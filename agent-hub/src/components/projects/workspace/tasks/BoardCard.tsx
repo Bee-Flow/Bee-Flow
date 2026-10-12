@@ -16,6 +16,7 @@ import { Assignees, TaskMeta } from './TaskRow';
 import { AnchoredMenu, ICON_BUTTON_CLASS, MENU_PANEL_CLASS, MenuItem, MenuLabel, MenuSeparator } from './tasksMenu';
 import { checklistProgress, priorityTone, statusLabel } from './taskText';
 import { storyPoints, visibleLabels, workItemType } from './taskPlanning';
+import ItemViewers from '../ItemViewers';
 
 type People = ReturnType<typeof useChatPeople>;
 
@@ -108,6 +109,7 @@ export default function BoardCard({ task, canEdit, people, columns, columnId, on
                     </span>
                 </button>
                 <CardChips task={task} />
+                <ItemViewers type="task" id={task.id} />
                 {facts ? (
                     <div className="flex items-center gap-2.5 min-h-5 text-[11.5px] text-[var(--text-tertiary)] tabular-nums">
                         <TaskMeta task={task} showPriority={false} />

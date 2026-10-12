@@ -14,7 +14,9 @@
  *                      final report                detected + 1 month
  *   CRA   Art. 14      early warning               detected + 24 h
  *                      vulnerability notification  detected + 72 h
- *                      final report                detected + 14 d
+ *                      final report, vulnerability detected + 14 d
+ *                      final report, severe        notification + 1 month
+ *                      incident (Art. 14(4)(c))    (detected + 72 h + 1 month until notified)
  *   DORA  Art. 19      customer notice             detected + `dora_customer_notice_hours` (default 4)
  *
  * `deadline_at` stays what every existing query expects — the NEXT thing due
@@ -49,6 +51,13 @@ const { run, getOne, getAll, exec } = require('../db');
 const { makeStoreInit } = require('./lib/storeInit');
 const { runDdl } = require('./lib/_ddl');
 const log = require('../telemetry/log');
+// The clock arithmetic is pure and lives on its own (incidentClocks.js); the
+// store persists what it computes.
+const {
+    VALID_REGIMES, DEADLINE_HOURS, DEFAULT_CUSTOMER_NOTICE_HOURS, REGIME_CLOCKS,
+    normalizeRegimes, computeClocks, nextOpenDeadline,
+    _jsonArray, _ms, _severeIncidentFinalDue,
+} = require('./incidentClocks');
 
 const initDB = makeStoreInit('IncidentStore', _initDB);
 
@@ -107,6 +116,7 @@ async function _initDB() {
     // Additive, idempotent, and part of the same boot step as the columns
     // above (compliance tables carry their schema here, not in migrations/).
     await backfillDeadlines();
+    await backfillCraIncidentFinals();
 }
 
 // ── One-time correction of `deadline_at` on already-stamped rows ────────────
@@ -187,13 +197,69 @@ async function backfillDeadlines() {
     return { scanned, moved };
 }
 
+// ── One-time correction of `final_report_due_at` on CRA severe incidents ───
+//
+// Until the CRA final clock was split by kind, every CRA row got the
+// vulnerability clock (detected + 14 d, Art. 14(2)(c)). A severe incident's
+// final report is due one month after its notification (Art. 14(4)(c)), so
+// those rows read as overdue — a critical fail of the Art. 14 check — around
+// day 14 for a report due around day 33. Same shape as backfillDeadlines:
+// keyset paging, the JS rule (_severeIncidentFinalDue + nextOpenDeadline)
+// rather than a second copy in SQL, a write only when the value moves, and
+// `updated_at` untouched. Idempotent: a corrected row computes to its own
+// value on the next run.
+async function backfillCraIncidentFinals() {
+    let lastId = 0;
+    let scanned = 0;
+    let moved = 0;
+    try {
+        for (let i = 0; i < BACKFILL_MAX_BATCHES; i++) {
+            const batch = await getAll(`
+                SELECT id, organization_id, status, kind, regimes, detected_at, deadline_at,
+                       early_warning_due_at, early_warning_sent_at,
+                       final_report_due_at, final_report_sent_at,
+                       customer_notice_due_at, customer_notified_at,
+                       authority_notified_at
+                FROM compliance_incidents
+                WHERE id > $1
+                  AND status <> 'closed'
+                  AND kind <> 'vulnerability'
+                  AND regimes @> '["CRA"]'::jsonb
+                  AND final_report_sent_at IS NULL
+                ORDER BY id
+                LIMIT $2
+            `, [lastId, BACKFILL_BATCH]);
+            if (!batch.length) break;
+            scanned += batch.length;
+            lastId = batch[batch.length - 1].id;
+            for (const row of batch) {
+                const finalDue = _severeIncidentFinalDue(row);
+                if (!finalDue || _ms(row.final_report_due_at) === finalDue.getTime()) continue;
+                const next = nextOpenDeadline({ ...row, final_report_due_at: finalDue });
+                await run(`
+                    UPDATE compliance_incidents SET final_report_due_at = $3, deadline_at = $4
+                    WHERE organization_id = $1 AND id = $2
+                `, [row.organization_id, row.id, finalDue, next]);
+                moved += 1;
+            }
+            if (batch.length < BACKFILL_BATCH) break;
+        }
+        if (moved > 0) {
+            log.info(`[IncidentStore] CRA final-report backfill: ${moved} of ${scanned} severe incident(s) re-dated to one month after the notification`);
+        }
+    } catch (err) {
+        // The SQLSTATE only, and never fail the boot (see backfillDeadlines).
+        log.error('[IncidentStore] CRA final-report backfill failed:', err?.code || 'unknown');
+    }
+    return { scanned, moved };
+}
+
 // 'critical' is the top step of the severity picker in agent-hub and has its
 // own tag ("Must fix") in the incident table. It was missing here, so an
 // unrecognised value fell back: a critical incident was CREATED as 'medium'
 // and a raise to critical on an existing row was dropped — both under a 200.
 const VALID_SEVERITIES = new Set(['low', 'medium', 'high', 'critical']);
 const VALID_KINDS = new Set(['breach', 'security_incident', 'vulnerability']);
-const VALID_REGIMES = new Set(['GDPR', 'NIS2', 'CRA', 'DORA']);
 const VALID_STATUSES = new Set([
     'open', 'assessing', 'early_warning_sent', 'authority_notified', 'reported', 'subjects_notified', 'closed',
 ]);
@@ -201,146 +267,23 @@ const VALID_STATUSES = new Set([
 // warning is a first contact, but the notification is still pending, so the
 // row stays in the open bucket until it is reported / authority_notified.
 const OPEN_STATUSES = ['open', 'assessing', 'early_warning_sent'];
-const HOUR_MS = 3600 * 1000;
-const DAY_MS = 24 * HOUR_MS;
-
-/** GDPR Art. 33(1) — kept as the exported legacy constant. */
-const DEADLINE_HOURS = 72;
-const DEFAULT_CUSTOMER_NOTICE_HOURS = 4;
-
-/**
- * The statutory windows per regime, from detected_at. `final` is either
- * {days} or {months}; a month is a calendar month (JS Date overflow rules —
- * 31 Jan + 1 month lands in March, which is the conservative reading).
- */
-const REGIME_CLOCKS = Object.freeze({
-    GDPR: { notificationHours: 72 },
-    NIS2: { earlyWarningHours: 24, notificationHours: 72, final: { months: 1 } },
-    CRA: { earlyWarningHours: 24, notificationHours: 72, final: { days: 14 } },
-    DORA: { customerNotice: true },
-});
-
-function _addMonths(date, months) {
-    const d = new Date(date.getTime());
-    d.setUTCMonth(d.getUTCMonth() + months);
-    return d;
-}
-
-function _earliest(dates) {
-    const ts = dates.filter(Boolean).map(d => d.getTime());
-    return ts.length ? new Date(Math.min(...ts)) : null;
-}
-
-/**
- * Normalise the caller's regimes: upper-cased, known, deduped. Without any,
- * a vulnerability is a CRA matter and everything else a GDPR one — the same
- * default the column carries.
- */
-function normalizeRegimes(input, kind) {
-    const list = Array.isArray(input) ? input : (typeof input === 'string' && input ? [input] : []);
-    const out = [];
-    for (const r of list) {
-        const code = String(r || '').trim().toUpperCase();
-        if (!code) continue;
-        if (!VALID_REGIMES.has(code)) throw new Error(`invalid regime "${r}"`);
-        if (!out.includes(code)) out.push(code);
-    }
-    if (out.length) return out;
-    return kind === 'vulnerability' ? ['CRA'] : ['GDPR'];
-}
-
-/**
- * Compute every clock from detected_at for the given regimes. Pure — the
- * deadline notifier and the route re-use it to explain a row.
- *
- * @returns {{ early_warning_due_at: Date|null, notification_due_at: Date|null,
- *             final_report_due_at: Date|null, customer_notice_due_at: Date|null, deadline_at: Date }}
- * @param detectedAt
- * @param {{ regimes?: string[], customerNoticeHours?: number }} [opts]
- */
-function computeClocks(detectedAt, { regimes, customerNoticeHours } = {}) {
-    const detected = detectedAt instanceof Date ? detectedAt : new Date(detectedAt);
-    if (Number.isNaN(detected.getTime())) throw new Error('detected_at is not a date');
-    const set = normalizeRegimes(regimes);
-    const at = (ms) => new Date(detected.getTime() + ms);
-
-    const early = [];
-    const notification = [];
-    const finals = [];
-    let customer = null;
-    for (const code of set) {
-        const c = REGIME_CLOCKS[code];
-        if (c.earlyWarningHours) early.push(at(c.earlyWarningHours * HOUR_MS));
-        if (c.notificationHours) notification.push(at(c.notificationHours * HOUR_MS));
-        if (c.final?.days) finals.push(at(c.final.days * DAY_MS));
-        if (c.final?.months) finals.push(_addMonths(detected, c.final.months));
-        if (c.customerNotice) {
-            const hours = Number.isFinite(Number(customerNoticeHours)) && Number(customerNoticeHours) > 0
-                ? Number(customerNoticeHours)
-                : DEFAULT_CUSTOMER_NOTICE_HOURS;
-            customer = at(hours * HOUR_MS);
-        }
-    }
-    const early_warning_due_at = _earliest(early);
-    const notification_due_at = _earliest(notification);
-    const final_report_due_at = _earliest(finals);
-    // The next thing due to somebody outside the organisation.
-    const deadline_at = _earliest([early_warning_due_at, notification_due_at, customer, final_report_due_at])
-        || at(DEADLINE_HOURS * HOUR_MS);
-    return { early_warning_due_at, notification_due_at, final_report_due_at, customer_notice_due_at: customer, deadline_at };
-}
-
-/**
- * The earliest clock that is still OPEN for a stored row — what `deadline_at`
- * must hold after any stage stamp. Pure, so the notifier and the route can
- * re-use it to explain a row.
- *
- * A clock counts as open when its satisfying stamp is absent:
- *   early warning (NIS2/CRA 24 h)          → early_warning_sent_at
- *   notification  (GDPR 72 h · NIS2 · CRA)  → authority_notified_at
- *   customer notice (DORA)                  → customer_notified_at
- *   final report  (NIS2 +1 month · CRA 14 d) → final_report_sent_at
- *
- * The stored `*_due_at` columns win over a recomputation — `customer_notice_due_at`
- * is the only record of the org's `dora_customer_notice_hours` — and the
- * notification clock, which has no column of its own, is derived from
- * detected_at + regimes.
- *
- * @returns {Date|null} null when the incident is closed or every clock is met.
- */
-function nextOpenDeadline(row) {
-    if (!row) return null;
-    if (row.status === 'closed') return null;
-    const detected = row.detected_at ? new Date(row.detected_at) : null;
-    if (!detected || Number.isNaN(detected.getTime())) return null;
-    const toDate = (v) => {
-        if (!v) return null;
-        const d = v instanceof Date ? v : new Date(v);
-        return Number.isNaN(d.getTime()) ? null : d;
-    };
-    let clocks;
-    try {
-        // Normalise WITH the kind so an absent regime list on a vulnerability
-        // is CRA, not GDPR — computeClocks alone cannot see the kind.
-        clocks = computeClocks(detected, { regimes: normalizeRegimes(_jsonArray(row.regimes), row.kind) });
-    } catch {
-        return toDate(row.deadline_at);
-    }
-    const open = [];
-    if (!row.early_warning_sent_at) open.push(toDate(row.early_warning_due_at) || clocks.early_warning_due_at);
-    if (!row.authority_notified_at) open.push(clocks.notification_due_at);
-    if (!row.customer_notified_at) open.push(toDate(row.customer_notice_due_at) || clocks.customer_notice_due_at);
-    if (!row.final_report_sent_at) open.push(toDate(row.final_report_due_at) || clocks.final_report_due_at);
-    return _earliest(open);
-}
-
 /**
  * Re-stamp `deadline_at` from the row's current stamps and hand back the row
- * every mutator returns. Writes only when the value actually moves.
+ * every mutator returns. Writes only when the value actually moves. A CRA
+ * severe incident's `final_report_due_at` is re-dated first (it runs from the
+ * notification, see _severeIncidentFinalDue), so the roll-up sees the new one.
  */
 async function _refreshDeadline(orgId, id) {
-    const row = await getIncident(orgId, id);
+    let row = await getIncident(orgId, id);
     if (!row) return null;
+    const finalDue = _severeIncidentFinalDue(row);
+    if (finalDue && _ms(row.final_report_due_at) !== finalDue.getTime()) {
+        await run(`
+            UPDATE compliance_incidents SET final_report_due_at = $3, updated_at = NOW()
+            WHERE organization_id = $1 AND id = $2
+        `, [orgId, id, finalDue]);
+        row = { ...row, final_report_due_at: finalDue };
+    }
     const next = nextOpenDeadline(row);
     const now = row.deadline_at ? new Date(row.deadline_at).getTime() : null;
     const wanted = next ? next.getTime() : null;
@@ -350,13 +293,6 @@ async function _refreshDeadline(orgId, id) {
         WHERE organization_id = $1 AND id = $2
     `, [orgId, id, next]);
     return { ...row, deadline_at: next };
-}
-
-function _jsonArray(v) {
-    if (v == null) return [];
-    if (Array.isArray(v)) return v;
-    if (typeof v === 'string') { try { const p = JSON.parse(v); return Array.isArray(p) ? p : []; } catch { return []; } }
-    return [];
 }
 
 function _cveIds(v) {
@@ -405,6 +341,7 @@ async function createIncident(input) {
     const detectedAt = input.detected_at ? new Date(input.detected_at) : new Date();
     const clocks = computeClocks(detectedAt, {
         regimes,
+        kind,
         customerNoticeHours: input.customerNoticeHours ?? input.customer_notice_hours,
     });
     const exploited = typeof input.exploited_in_wild === 'boolean' ? input.exploited_in_wild
@@ -611,9 +548,22 @@ async function listOpenClocks(orgId) {
  *   overdue_unnotified  — past deadline_at without an authority notification
  *   nearing_deadline    — within 24h of deadline, not yet notified
  *   vulnerabilities_open — kind='vulnerability' and not closed
+ *   gdpr_overdue_unnotified / gdpr_nearing_deadline — the same two, but for
+ *                         the GDPR Art. 33 clock only: incidents under the
+ *                         GDPR regime, measured from detected_at + 72 h.
+ *
+ * `deadline_at` is the EARLIEST open clock over every regime (a NIS2/CRA 24 h
+ * early warning, a DORA customer notice), so the first two counts cannot say
+ * whether the 72-hour Art. 33 deadline has passed: a GDPR+NIS2 incident is
+ * "overdue" at hour 25, a CRA-only vulnerability is never a GDPR matter. The
+ * Art-33 check reads the gdpr_* counts; counts.js and ISO A.5.24 keep reading
+ * the roll-up, which is what they mean.
  */
+const GDPR_NOTIFICATION_HOURS = REGIME_CLOCKS.GDPR.notificationHours;
 async function getDeadlineStats(orgId) {
     await initDB();
+    const gdprDue = `detected_at + INTERVAL '${GDPR_NOTIFICATION_HOURS} hours'`;
+    const gdprOpen = `status = ANY($2) AND regimes @> '["GDPR"]'::jsonb AND authority_notified_at IS NULL`;
     const row = await getOne(`
         SELECT
             COUNT(*) FILTER (WHERE status = ANY($2))::int AS open,
@@ -624,11 +574,20 @@ async function getDeadlineStats(orgId) {
                 WHERE status = ANY($2) AND authority_notified_at IS NULL
                   AND deadline_at >= NOW() AND deadline_at < NOW() + INTERVAL '24 hours'
             )::int AS nearing_deadline,
-            COUNT(*) FILTER (WHERE kind = 'vulnerability' AND status <> 'closed')::int AS vulnerabilities_open
+            COUNT(*) FILTER (WHERE kind = 'vulnerability' AND status <> 'closed')::int AS vulnerabilities_open,
+            COUNT(*) FILTER (
+                WHERE ${gdprOpen} AND ${gdprDue} < NOW()
+            )::int AS gdpr_overdue_unnotified,
+            COUNT(*) FILTER (
+                WHERE ${gdprOpen} AND ${gdprDue} >= NOW() AND ${gdprDue} < NOW() + INTERVAL '24 hours'
+            )::int AS gdpr_nearing_deadline
         FROM compliance_incidents
         WHERE organization_id = $1
     `, [orgId, OPEN_STATUSES]);
-    return row || { open: 0, overdue_unnotified: 0, nearing_deadline: 0, vulnerabilities_open: 0 };
+    return row || {
+        open: 0, overdue_unnotified: 0, nearing_deadline: 0, vulnerabilities_open: 0,
+        gdpr_overdue_unnotified: 0, gdpr_nearing_deadline: 0,
+    };
 }
 
 /** Open incidents whose deadline is near or past — for the daily notifier. */
@@ -660,6 +619,7 @@ async function hasRecentAutoIncident(orgId, source, hours = 24) {
 module.exports = {
     initDB,
     backfillDeadlines,
+    backfillCraIncidentFinals,
     createIncident,
     listIncidents,
     getIncident,

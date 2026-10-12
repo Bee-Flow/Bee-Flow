@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { TIER_META, customTierMeta, configuredTierKeys, tierCatalogId } from './tierMeta';
 import AppEmoji from '../icons/AppEmoji';
+import useTranslation from '../../hooks/useTranslation';
 
 const PANEL_MIN_WIDTH = 240;
 
@@ -13,6 +14,7 @@ const PANEL_MIN_WIDTH = 240;
  * current absolute behaviour.
  */
 const ModelTierSelector = ({ tiers = {}, value = 'fast', onChange, dropDirection = 'up', variant = 'default', portal = false }) => {
+    const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     const ref = useRef(null);
     const panelRef = useRef(null);
@@ -88,7 +90,7 @@ const ModelTierSelector = ({ tiers = {}, value = 'fast', onChange, dropDirection
                     whiteSpace: 'nowrap',
                     boxShadow: open ? 'var(--shadow-sm)' : 'none',
                 }}
-                title="Select model tier"
+                title={t('tier.select_model_tier', 'Select model tier')}
                 data-testid="model-tier-trigger"
             >
                 {currentMeta.iconSrc ? (
@@ -98,7 +100,7 @@ const ModelTierSelector = ({ tiers = {}, value = 'fast', onChange, dropDirection
                 ) : (
                     <AppEmoji id={tierCatalogId(value)} default={currentMeta.emoji} />
                 )}
-                <span>{currentMeta.label}</span>
+                <span>{t(`tier.${value}`, currentMeta.label)}</span>
                 <svg width="10" height="10" viewBox="0 0 10 10" fill="none"
                     style={{
                         opacity: 0.55,
@@ -205,7 +207,7 @@ const ModelTierSelector = ({ tiers = {}, value = 'fast', onChange, dropDirection
                                         lineHeight: 1.25,
                                         display: 'flex', alignItems: 'center', gap: '6px',
                                     }}>
-                                        <span>{meta.label}</span>
+                                        <span>{t(`tier.${key}`, meta.label)}</span>
                                         {meta.beta && (
                                             <span
                                                 className="text-[9px] px-1 py-px rounded font-medium flex-shrink-0"
@@ -214,7 +216,7 @@ const ModelTierSelector = ({ tiers = {}, value = 'fast', onChange, dropDirection
                                                     color: 'var(--accent-primary)',
                                                 }}
                                             >
-                                                beta
+                                                {t('chat.composer.beta_badge', 'beta')}
                                             </span>
                                         )}
                                     </div>

@@ -1,3 +1,4 @@
+import { pathKeys } from '@shared/expr/path.mjs';
 import { ChevronDown } from 'lucide-react';
 import React, { useCallback, useRef, useState } from 'react';
 import { onBindingDragOver, getBindingDropPath } from './bindingDnd';
@@ -37,7 +38,11 @@ export default function FieldKeyCombobox({
     const anchorRef = useRef(null);
     const close = useCallback(() => setOpen(false), []);
 
+    // The last KEY of a dropped path, read as the runtime reads it:
+    // `…items[*]["first-name"]` gives `first-name`, not `items[*]["first-name"]`.
     const lastSegment = (path) => {
+        const keys = pathKeys(String(path || '').trim());
+        if (keys) return keys.filter(k => typeof k === 'string' && k !== '*').pop() || '';
         const cleaned = String(path || '').trim().replace(/\[(?:\*|\d+)\]$/, '');
         const seg = cleaned.split('.').pop() || '';
         return seg.replace(/\[(?:\*|\d+)\]$/, '');

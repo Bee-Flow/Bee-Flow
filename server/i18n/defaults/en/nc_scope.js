@@ -2,7 +2,7 @@
 // Merged into GUI_DEFAULTS by ./index.js. The frontend copy (agent-hub/src/i18n/en-defaults.js)
 // is GENERATED from these files: after an edit, run `node scripts/gen-i18n-defaults.mjs`.
 module.exports = {
-    // Nextcloud per-user access scope (Settings → Integrations → Nextcloud)
+    // Nextcloud per-user access scope (Settings → Connections → Nextcloud)
     "nc_scope.all_files_root": "All files",
     "nc_scope.clear": "Clear",
     "nc_scope.collapse": "Collapse",

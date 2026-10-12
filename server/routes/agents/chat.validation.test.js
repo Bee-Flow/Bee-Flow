@@ -219,3 +219,27 @@ test('history with text, content blocks, null content and extra fields is accept
     });
     assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
 });
+
+// ═══ Chat signals: the notice marker and the opt-out ════════════════
+
+test('chat signals: the strict turn body takes the marker and the opt-out, and hands them to the turn', async () => {
+    const res = await dispatch({
+        url: '/a1/chat/stream',
+        body: { message: 'hi', chatSignalsNotice: 'agent@2026-10-14T09:00:00.000Z', chatSignalsOptOut: true },
+    });
+    assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
+    assert.deepStrictEqual(seen.find((s) => s.what === 'stream').metadata.chatSignals,
+        { notice: 'agent@2026-10-14T09:00:00.000Z', optOut: true });
+});
+
+test('chat signals: a turn without them carries an empty marker and no opt-out', async () => {
+    const res = await dispatch({ url: '/a1/chat/stream', body: { message: 'hi' } });
+    assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
+    assert.deepStrictEqual(seen.find((s) => s.what === 'stream').metadata.chatSignals, { notice: null, optOut: false });
+});
+
+test('chat signals: a marker that is not text, or too long, and an opt-out that is not a boolean are refused', async () => {
+    await refuses({ url: '/a1/chat/stream', body: { message: 'hi', chatSignalsNotice: 42 } }, 'body.chatSignalsNotice');
+    await refuses({ url: '/a1/chat/stream', body: { message: 'hi', chatSignalsNotice: 'x'.repeat(121) } }, 'body.chatSignalsNotice');
+    await refuses({ url: '/a1/chat/stream', body: { message: 'hi', chatSignalsOptOut: 'true' } }, 'body.chatSignalsOptOut');
+});

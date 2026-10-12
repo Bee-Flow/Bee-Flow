@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
@@ -172,17 +173,15 @@ describe('TokenVaultSection — what the list shows', () => {
         expect(screen.queryByRole('table')).toBeNull();
     });
 
-    it('labels the refresh control in Dutch on an English screen (wart: common.refresh is mistranslated)', async () => {
-        // en-defaults maps common.refresh to "Vernieuwen"; the component's own
-        // 'Refresh' fallback never wins because the key exists.
+    it('labels the refresh control "Refresh" (common.refresh, from the catalogue)', async () => {
         await mount({ entries: [], total: 0 });
-        expect(screen.getByRole('button', { name: 'Vernieuwen' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Refresh' })).toBeInTheDocument();
     });
 
     it('re-requests the current offset when refresh is pressed', async () => {
         await mount({ entries: [ENTRY], total: 1 });
         await waitFor(() => expect(gets()).toHaveLength(2), { timeout: 2000 });
-        fireEvent.click(screen.getByRole('button', { name: 'Vernieuwen' }));
+        await userEvent.setup().click(screen.getByRole('button', { name: 'Refresh' }));
         await waitFor(() => expect(gets()).toHaveLength(3));
         expect(lastGetUrl()).toBe('/api/privacy/token-vault?limit=100&offset=0');
     });
@@ -235,7 +234,7 @@ describe('TokenVaultSection — failed loads', () => {
     it('keeps the previously loaded rows on screen when a RELOAD fails', async () => {
         await mount({ entries: [ENTRY], total: 1 });
         authFetch.mockResolvedValue(jsonRes({}, 500));
-        fireEvent.click(screen.getByRole('button', { name: 'Vernieuwen' }));
+        await userEvent.setup().click(screen.getByRole('button', { name: 'Refresh' }));
 
         expect(await screen.findByText('Could not load your vault. Please try again.')).toBeInTheDocument();
         expect(screen.getByText('Jan Jansen')).toBeInTheDocument();
@@ -304,44 +303,48 @@ describe('TokenVaultSection — forgetting everything', () => {
         expect(screen.queryByText('Forget everything in this vault')).toBeNull();
     });
 
-    it('asks for a second confirmation in the page and sends nothing on cancel', async () => {
+    it('asks in the app\'s own dialog, like forgetting one entry, and sends nothing on cancel', async () => {
+        const user = userEvent.setup();
         const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
         await mount({ entries: [ENTRY], total: 1 });
 
-        fireEvent.click(screen.getByText('Forget everything in this vault'));
-        expect(screen.getByText(/Forget all stored values\?/)).toBeInTheDocument();
-        // The in-page step replaces the browser dialog: window.confirm is not used here.
+        await user.click(screen.getByRole('button', { name: 'Forget everything in this vault' }));
+        const dialog = await screen.findByRole('dialog', { name: 'Forget everything in this vault' });
+        expect(within(dialog).getByText(/Forget all stored values\?/)).toBeInTheDocument();
         expect(confirmSpy).not.toHaveBeenCalled();
 
-        fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
-        expect(screen.queryByText(/Forget all stored values\?/)).toBeNull();
+        await user.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+        await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
         expect(deletes()).toHaveLength(0);
+        expect(screen.getByText('Jan Jansen')).toBeInTheDocument();
         confirmSpy.mockRestore();
     });
 
     it('deletes the whole collection and reloads the list on confirm', async () => {
+        const user = userEvent.setup();
         await mount({ entries: [ENTRY], total: 1 });
         await waitFor(() => expect(gets()).toHaveLength(2), { timeout: 2000 });
 
-        fireEvent.click(screen.getByText('Forget everything in this vault'));
+        await user.click(screen.getByRole('button', { name: 'Forget everything in this vault' }));
         serve({ entries: [], total: 0 });
-        fireEvent.click(screen.getByRole('button', { name: 'Yes, forget everything' }));
+        await user.click(await screen.findByRole('button', { name: 'Yes, forget everything' }));
 
         await waitFor(() => expect(deletes()[0][0]).toBe('/api/privacy/token-vault'));
         await waitFor(() => expect(screen.getByText('Nothing stored yet.')).toBeInTheDocument());
         expect(screen.getByText('0 stored')).toBeInTheDocument();
-        expect(screen.queryByText('Forget everything in this vault')).toBeNull();
+        expect(screen.queryByRole('button', { name: 'Forget everything in this vault' })).toBeNull();
     });
 
-    it('WART: a rejected clear-all is silent too — the warning just stays open', async () => {
+    it('WART: a rejected clear-all is silent — the dialog closes and the rows stay', async () => {
+        const user = userEvent.setup();
         await mount({ entries: [ENTRY], total: 1 }, { deleteRes: jsonRes({ error: 'nope' }, 500) });
 
-        fireEvent.click(screen.getByText('Forget everything in this vault'));
-        fireEvent.click(screen.getByRole('button', { name: 'Yes, forget everything' }));
+        await user.click(screen.getByRole('button', { name: 'Forget everything in this vault' }));
+        await user.click(await screen.findByRole('button', { name: 'Yes, forget everything' }));
 
         await waitFor(() => expect(deletes()).toHaveLength(1));
-        expect(screen.getByText(/Forget all stored values\?/)).toBeInTheDocument();
         expect(screen.getByText('Jan Jansen')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Forget everything in this vault' })).toBeInTheDocument();
         expect(screen.queryByText('Could not load your vault. Please try again.')).toBeNull();
     });
 });

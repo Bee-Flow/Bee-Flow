@@ -16,6 +16,7 @@ import ValueBuilder from '../mapping/ValueBuilder';
 import { humanizeFieldKey } from './displayHelpers';
 import { expectedKindFor } from '../mapping/fieldKinds';
 import { expectedShapeFor } from '../mapping/listShape';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 export default function CallContractFields({
     step,
@@ -36,6 +37,7 @@ export default function CallContractFields({
     outputFields = [],
     errorSections = new Set(),
 }) {
+    const { t } = useTranslation();
     const autoMapped = Array.isArray(step.autoMapped) ? step.autoMapped : [];
     return (
         <>
@@ -51,8 +53,8 @@ export default function CallContractFields({
                     )}
                 </FormRow>
             </AccordionSection>
-            <AccordionSection stepType={stepType} sectionKey="inputs" title="Inputs" defaultOpen={contract.length > 0} forceOpen={errorSections.has('inputs')}>
-                <FormRow label="Inputs" hint={inputsHint}>
+            <AccordionSection stepType={stepType} sectionKey="inputs" title={t('automations.call_contract_fields.inputs', 'Inputs')} defaultOpen={contract.length > 0} forceOpen={errorSections.has('inputs')}>
+                <FormRow label={t('automations.call_contract_fields.inputs', 'Inputs')} hint={inputsHint}>
                     {contract.length === 0 ? (
                         <div className="text-[11px] text-[var(--text-tertiary)] italic">{emptyInputsLabel}</div>
                     ) : (
@@ -64,7 +66,7 @@ export default function CallContractFields({
                                         onClick={onAutoMap}
                                         className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded border border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition"
                                     >
-                                        <Sparkles size={12} /> Auto-map
+                                        <Sparkles size={12} /> {t('automations.call_contract_fields.auto_map', 'Auto-map')}
                                     </button>
                                 </div>
                             )}
@@ -115,8 +117,8 @@ export default function CallContractFields({
                 </FormRow>
             </AccordionSection>
             {outputFields.length > 0 && (
-                <AccordionSection stepType={stepType} sectionKey="returns" title="Returns">
-                    <FormRow label="Returns" hint="These fields are available to downstream steps by name.">
+                <AccordionSection stepType={stepType} sectionKey="returns" title={t('automations.call_contract_fields.returns', 'Returns')}>
+                    <FormRow label={t('automations.call_contract_fields.returns', 'Returns')} hint={t('automations.call_contract_fields.these_fields_are_available_to_downstream', 'These fields are available to downstream steps by name.')}>
                         <div className="text-[11px] text-[var(--text-secondary)] font-mono">{outputFields.join(', ')}</div>
                     </FormRow>
                 </AccordionSection>

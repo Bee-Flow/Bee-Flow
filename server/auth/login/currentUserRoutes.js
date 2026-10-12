@@ -13,7 +13,7 @@ const router = express.Router();
 const userStore = require('../../stores/userStore');
 const { loadConfig } = require('../permissions');
 const consentGuards = require('../consentGuards');
-const { isEncryptionEnabledForUser } = require('../../stores/encryptionAvailability');
+const { isEncryptionEnabledForUser, isSsoPinRequiredForUser } = require('../../stores/encryptionAvailability');
 const { validate } = require('../../core/http/validate');
 const { z } = require('zod');
 
@@ -90,7 +90,25 @@ router.get('/user', async (req, res) => {
                         const { isMemoryEnabledForUser } = require('../../core/memory/memoryPolicy');
                         return await isMemoryEnabledForUser(req.session.user.id);
                     } catch (_) { return true; }
-                })()
+                })(),
+                // The user's own opt-in for sensitive topics (Settings → Memory).
+                // Fails closed: sensitive memory stays off on any error.
+                memorySensitiveOptIn: await (async () => {
+                    try {
+                        const { memorySensitiveOptInKey } = require('../../core/memory/memoryPolicy');
+                        const configStore = require('../../stores/configStore');
+                        return (await configStore.getConfig(memorySensitiveOptInKey(req.session.user.id))) === true;
+                    } catch (_) { return false; }
+                })(),
+                // The organisation's memory policy, so the SPA can show
+                // "turned off by your organisation". Fail open like the policy.
+                ...(await (async () => {
+                    try {
+                        const { getOrgMemorySettings } = require('../../core/memory/memoryPolicy');
+                        const org = await getOrgMemorySettings(req.session.user.organizationId || null);
+                        return { orgMemoryEnabled: org.enabled, sensitiveOptInAllowed: org.sensitiveOptInAllowed };
+                    } catch (_) { return { orgMemoryEnabled: true, sensitiveOptInAllowed: false }; }
+                })())
             },
             isOAuthConfigured: !!(config.oauth.clientId && config.oauth.clientSecret),
             // Encryption status for SSO users. Suppress the setup/pin prompts
@@ -99,10 +117,12 @@ router.get('/user', async (req, res) => {
             // the PIN-setup screen.
             ...(await (async () => {
                 const enabled = await isEncryptionEnabledForUser(req.session.user.id);
+                // Managed tier: the org escrow holds the key, so no PIN prompt.
+                const pinRequired = enabled && await isSsoPinRequiredForUser(req.session.user.id);
                 return {
                     encryptionEnabled: enabled,
-                    needsEncryptionSetup: enabled && !!req.session.needsEncryptionSetup,
-                    needsEncryptionPin: enabled && !!req.session.needsEncryptionPin,
+                    needsEncryptionSetup: pinRequired && !!req.session.needsEncryptionSetup,
+                    needsEncryptionPin: pinRequired && !!req.session.needsEncryptionPin,
                 };
             })()),
             // Organisation membership for SSO users

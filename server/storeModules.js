@@ -91,6 +91,10 @@ const STORE_MODULES = [
     // otherwise they appear only once the app boots and something requires the
     // store, which is exactly how the first version of this feature shipped.
     { name: 'documentStore', file: './stores/documentStore' },
+    // AI / user suggestions on a document, sealed with the document's key
+    // (document_suggestions). No FK: the target is a document id, so no order
+    // constraint beyond being a store with its own DDL.
+    { name: 'documentSuggestionStore', file: './stores/documentSuggestionStore' },
     { name: 'notebookStore', file: './stores/notebookStore' },
     { name: 'notebookConversationStore', file: './stores/notebookConversationStore' },
     { name: 'aiTaskStore', file: './stores/aiTaskStore' },
@@ -166,6 +170,8 @@ const STORE_MODULES = [
     { name: 'skillStore', file: './stores/skillStore' },
     { name: 'skillActivations', file: './stores/skillActivations' },
     { name: 'webpageSchema', file: './stores/webpage/schema' },
+    // Named MCP access tokens (mcp_tokens): sha256 of the secret, scopes, per-token IP list.
+    { name: 'mcpTokenStore', file: './stores/mcpTokenStore' },
     { name: 'webpagePublicShareStore', file: './stores/webpagePublicShareStore' },
     { name: 'terminationStore', file: './stores/terminationStore' },
     { name: 'guardrailEventStore', file: './stores/guardrailEventStore' },
@@ -189,6 +195,11 @@ const STORE_MODULES = [
     // Compliance-hub-familie — allemaal al modern (memo + export), alleen nooit geregistreerd.
     { name: 'complianceStore', file: './stores/complianceStore' },
     { name: 'dpiaStore', file: './stores/dpiaStore' },
+    // Chat signals: weekly/daily counters of how the Privacy Shield handled
+    // chat messages (no ids, no text), and the per-person "Don't count my chat
+    // turns" objection. Read only through stores/lib/chatSignalSuppression.js.
+    { name: 'chatSignalStore', file: './stores/chatSignalStore' },
+    { name: 'chatSignalObjectionStore', file: './stores/chatSignalObjectionStore' },
     { name: 'dsrStore', file: './stores/dsrStore' },
     { name: 'incidentStore', file: './stores/incidentStore' },
     { name: 'riskStore', file: './stores/riskStore' },
@@ -206,6 +217,10 @@ const STORE_MODULES = [
     // the project compliance checks. No text, no offsets — categories + counts.
     { name: 'contentPiiSignalStore', file: './stores/contentPiiSignalStore' },
     { name: 'platformReleaseStore', file: './stores/platformReleaseStore' },
+    // Per-user notification channels and per-project mutes
+    // (user_notification_prefs, project_notification_mutes). No FKs, so the
+    // place in the ladder does not matter.
+    { name: 'notificationPrefsStore', file: './stores/notificationPrefsStore' },
 ];
 
 // Platform-module stores (server/modules/catalog.js) — in v1 the tables of

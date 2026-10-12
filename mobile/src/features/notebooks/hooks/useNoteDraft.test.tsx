@@ -31,6 +31,7 @@ const notebook = (over: Partial<Notebook> = {}): Notebook => ({
     instructions: '',
     knowledgeBaseIds: [],
     settings: {},
+    cryptoContext: null,
     documentContent: '<h1>Plan</h1>',
     documentMd: '# Plan',
     documentFormat: 'html',

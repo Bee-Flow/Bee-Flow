@@ -16,7 +16,7 @@ export const STEP_TYPES = [
     'trigger', 'integration_action', 'ai_step', 'condition', 'loop', 'code', 'notification',
     'approval', 'parallel',
     'set', 'datetime', 'wait', 'stop_error', 'switch',
-    'filter', 'limit', 'dedupe', 'aggregate', 'summarize',
+    'filter', 'limit', 'dedupe', 'aggregate', 'summarize', 'flatten',
     'guard', 'tokenize', 'untokenize',
     'parse_json',
     'call_layer', 'layer_output',

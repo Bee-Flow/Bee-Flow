@@ -10,7 +10,7 @@ const { SITE_DEFAULTS, DESIGN_DEFAULTS } = require('../../i18n/defaults/cmsDefau
 const {
     KEY_PROJECTS_INDEX, SITE_VERSION, INDEX_VERSION,
     newId, isPlainObject, clone, normalizeSlug, isReservedSlug, assertSiteId,
-    sanitizeDesign, sanitizeAnalytics,
+    sanitizeDesign, sanitizeAnalytics, sanitizeBlogSettings,
     projectKey, publishedKey,
 } = require('./shared');
 const { emptyPage, getPage, setPage, deletePage } = require('./pages');
@@ -18,6 +18,7 @@ const { applyTemplate } = require('./templates');
 const {
     collectLocaleOverrides, setSiteLocaleOverride, setPageLocaleOverride,
 } = require('./localeOverrides');
+const { listPosts, collectPostLocaleOverrides, restorePosts } = require('./posts');
 
 // ── Projects index ───────────────────────────────────────────────────
 
@@ -235,6 +236,7 @@ async function setProject(siteId, site) {
         announcement: isPlainObject(site.announcement) ? site.announcement : clone(SITE_DEFAULTS.announcement),
         analytics: sanitizeAnalytics(site.analytics),
         design: sanitizeDesign(site.design),
+        blog: sanitizeBlogSettings(site.blog),
     };
 
     if (sanitized.homepageId && !sanitized.pages.find(p => p.id === sanitized.homepageId)) {
@@ -358,6 +360,7 @@ async function duplicateProject(sourceSiteId) {
         // and guarantees the complete shape for sources that pre-date it.
         analytics: sanitizeAnalytics(source.analytics),
         design: clone(source.design || {}),
+        blog: sanitizeBlogSettings(source.blog),
     };
     await configStore.setConfig(projectKey(newSiteId), newSite);
 
@@ -423,6 +426,14 @@ async function duplicateProject(sourceSiteId) {
             if (isPlainObject(override.seo)) out.seo = clone(override.seo);
             if (Object.keys(out).length) await setPageLocaleOverride(newSiteId, newPageId, locale, out);
         }
+    }
+
+    // Blog posts and their translations, with fresh post ids. Status and dates
+    // carry over; the copy is a draft site, so nothing is visible until it is
+    // published (and made live) itself.
+    const sourcePosts = await listPosts(sourceSiteId, { fresh: true });
+    if (sourcePosts.length) {
+        await restorePosts(newSiteId, sourcePosts, await collectPostLocaleOverrides(sourceSiteId, { fresh: true }));
     }
 
     await mutateProjectsIndex((idx) => {

@@ -28,10 +28,12 @@ const { isGammaTool, executeGammaTool } = require('../../integrations/gammaTools
 const { isAfasTool, executeAfasTool } = require('../../integrations/afasTools');
 const { isNmbrsTool, executeNmbrsTool } = require('../../integrations/nmbrsTools');
 const { isVplanTool, executeVplanTool } = require('../../integrations/vplanTools');
+const { isScalewayBillingTool, executeScalewayBillingTool } = require('../../integrations/scalewayBillingTools');
 const { isN8nTool, executeN8nTool } = require('../../integrations/n8nTools');
 const { isN8nWorkflowTool, executeN8nWorkflowTool, getN8nToolPermission } = require('../../integrations/n8nWorkflowTools');
 const { hasPermission } = require('../../auth/permissions');
 const { isAgentSearchTool, executeWebSearch } = require('../../integrations/agentSearchTools');
+const { isReadUrlTool, executeReadUrlTool } = require('../../integrations/readUrlTools');
 const { isBrowseWebTool, executeBrowseWebTool } = require('../../integrations/browserFetchTools');
 const { isRegexGeneratorTool, executeRegexGeneratorTool } = require('../../integrations/regexGeneratorTools');
 const { executeWorkspaceTool } = require('../../integrations/workspaceTools');
@@ -324,6 +326,14 @@ async function dispatchTool(toolName, toolArgs, context = {}) {
     if (isVplanTool(toolName)) {
         return await executeVplanTool(toolName, toolArgs, userId);
     }
+    if (isScalewayBillingTool(toolName)) {
+        // The run scope lets scaleway_download_invoice keep the PDF for this
+        // automation run and hand on a generated_file handle.
+        return await executeScalewayBillingTool(toolName, toolArgs, userId, {
+            automationId: context.automationId || null,
+            runScope: runScope || null,
+        });
+    }
     {
         // Lazily required: withingsTools pulls in automationAuth (and through it the
         // credential vault), which nothing else on this hot path needs.
@@ -393,6 +403,10 @@ async function dispatchTool(toolName, toolArgs, context = {}) {
         // agent-search service, with node-search fallback for CPU-only deploys).
         // Single source of truth lives in agentSearchTools.executeWebSearch.
         return await executeWebSearch(toolName, toolArgs);
+    }
+    if (isReadUrlTool(toolName)) {
+        // Plain GET through the SSRF-guarded fetch; the egress probe records the host.
+        return await executeReadUrlTool(toolName, toolArgs);
     }
     if (isBrowseWebTool(toolName)) {
         // `send` streams browser_session_queued/start/frame/action/end events so
@@ -506,7 +520,14 @@ async function dispatchTool(toolName, toolArgs, context = {}) {
 
     // ─── KB Search Tool ─────────────────────────────────────────
     if (require('../../integrations/memoryTools').isMemoryTool(toolName)) {
-        return await require('../../integrations/memoryTools').executeMemoryTool(toolName, toolArgs, { userId, orgId, agentId, session });
+        return await require('../../integrations/memoryTools').executeMemoryTool(toolName, toolArgs, {
+            userId, orgId, agentId, session,
+            // Provenance: the memory_remember tool stores source_conversation_id from this.
+            conversationId: context.conversationId || null,
+            // Agent chat puts the per-chat flags on the context; direct chat only has the request.
+            memoryReadEnabled: context.memoryReadEnabled ?? context.req?.body?.memoryReadEnabled,
+            memoryWriteEnabled: context.memoryWriteEnabled ?? context.req?.body?.memoryWriteEnabled,
+        });
     }
     if (require('../../integrations/automationEvolutionTools').isAutomationEvolutionTool(toolName)) {
         // Self-scoped: context.automationId is set by the automation runner only.
@@ -622,41 +643,30 @@ async function dispatchTool(toolName, toolArgs, context = {}) {
     }
 
     // ─── Agent-Callable Automations (trigger.kind === 'agent_call') ─
-    // These tools are per-user and named dynamically (toolName or
-    // automation_<id>), so they can't be matched by a static isXxxTool guard.
-    // Look the caller's active automations up by name and dispatch to the runner.
-    //
-    // Handoff 5: the call carries who is calling (the agent, the
-    // conversation, and the run when an AI step inside an automation calls it),
-    // and an automation that is already three agent starts deep is refused
-    // (automation/automationCallDepth.js). A failure of the START comes back
-    // as `{ error, code }` for the model to read; only a failed LOOKUP falls
-    // through to the next matcher, as before.
+    // Named dynamically (toolName or automation_<id>), so no static isXxxTool
+    // guard can match them. Reachable ONLY through the agent they are bound to
+    // (the server-built callerAgentId / agentId, never anything the model sent):
+    // without an agent nothing matches. The call carries who is calling (agent,
+    // asker, conversation, and the run when an AI step calls it) and
+    // dispatchAgentCallableTool re-checks the binding itself. A failure of the
+    // START comes back as `{ error, code }` for the model; only a failed LOOKUP
+    // falls through to the next matcher.
     const automationCallCtx = {
         userId,
+        // The person who asked, not an acting or borrowed integration identity.
+        askerUserId: context.askerUserId || null,
         agentId: context.agentId || null,
         callerAgentId: context.callerAgentId || null,
         conversationId: context.conversationId || null,
+        // Set by the streaming tool round only: its confirm layer already stood
+        // between the model and this call, so a grant on 'ask' may run.
+        confirmLayer: context.confirmLayer === true,
         runScope: runScope || null,
     };
     if (userId) {
-        let match = null;
-        let tools = null;
-        try {
-            tools = require('../../automation/agentCallableTools');
-            const agentTools = await tools.getAgentCallableToolsForUser(userId);
-            match = agentTools.find(t => t?.function?.name === toolName) || null;
-        } catch (e) {
-            log.warn('[ToolDispatcher] agent-callable automation lookup failed:', e.message);
-        }
-        if (match) {
-            try {
-                return await tools.dispatchAgentCallableTool(match.__automation, toolArgs, automationCallCtx);
-            } catch (e) {
-                log.warn(`[ToolDispatcher] agent-callable automation ${match.__automation?.id} not started: ${e.message}`);
-                return require('../../automation/automationCallDepth').toolErrorFor(e);
-            }
-        }
+        const called = await require('../../automation/agentCallableTools')
+            .dispatchAgentCallableByName(toolName, toolArgs, automationCallCtx);
+        if (called.handled) return called.result;
     }
 
     // ─── Reusable Steps (kind='block') exposed as chat tools ────

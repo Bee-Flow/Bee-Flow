@@ -48,7 +48,7 @@ function ForEachFields({ fe, onChange, disabled }: { fe: ForEach; onChange: (nex
             />
             <NumberField
                 label={t('automations.canvas.loop_max_title', 'Max iterations')}
-                hint={t('mobile.flow.foreach.max_hint', 'Safety cap. 1–1000.')}
+                hint={t('automations.loop_fields.safety_cap_1_1000', 'Safety cap. 1–1000.')}
                 value={fe.maxIterations ?? 100}
                 min={1}
                 max={1000}
@@ -83,8 +83,8 @@ export function ForEachRow({
             on={!!fe}
             onToggle={toggle}
             disabled={disabled}
-            label={t('mobile.flow.foreach.label', 'Run once per item')}
-            description={hint ?? t('mobile.flow.foreach.hint', 'Each row is available to this step as its current row.')}
+            label={t('automations.collection_editors.run_once_per_item', 'Run once per item')}
+            description={hint ?? t('automations.collection_editors.each_row_is_available_to_this', 'Each row is available to this step as its current row.')}
             status={
                 count !== null ? (
                     <Text variant="caption" tone="secondary" weight="medium">

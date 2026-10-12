@@ -171,6 +171,8 @@ function buildExport(template, { exportedAt = null, source = null } = {}) {
         const bases = report.filter((r) => r.rule === RULES.APP_KNOWLEDGE_BASE_REFERENCE).length;
         if (automations) warnings.push(`${automations} automation reference(s) removed — whoever installs this connects their own.`);
         if (seats) warnings.push(`${seats} approver seat(s) removed: a seat names a real person in this organisation.`);
+        const stages = report.filter((r) => r.rule === RULES.APP_APPROVER_IDENTITY && typeof r.field === 'string' && r.field.startsWith('stages.')).length;
+        if (stages) warnings.push(`${stages} approval stage(s) lost their approvers: a stage cannot exist without somebody to decide it, so rebuild the approval chain after installing.`);
         if (bases) warnings.push(`${bases} knowledge-base reference(s) removed: they name internal resources of this organisation.`);
     }
 

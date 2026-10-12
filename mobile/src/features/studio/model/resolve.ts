@@ -31,10 +31,13 @@ export function passesGate(section: StudioSection, snapshot: AccessSnapshot): bo
 
 /**
  * The gate-passing sections plus the locked ones. A failed gate locks only
- * when the section opts in (`lockOn: 'disable'`) AND the entitlement it names
- * answers with a reason; `lockReason` is null while the entitlements are still
- * loading or failed (and when the entitlement IS effective, so the failing leg
- * must be a permission) — both of which hide, exactly as on the web.
+ * when the section opts in (`lockOn: 'disable'`), the person holds the
+ * section's role permissions (a lock is an upsell for someone who could
+ * otherwise use it; a permission miss hides, as on the web's
+ * resolveStudioNav) AND the entitlement it names answers with a reason;
+ * `lockReason` is null while the entitlements are still loading or failed
+ * (and when the entitlement IS effective, so the failing leg must be a
+ * permission) — both of which hide, exactly as on the web.
  */
 export function resolveSections(
     snapshot: AccessSnapshot,
@@ -47,6 +50,7 @@ export function resolveSections(
             continue;
         }
         if (section.lockOn !== 'disable' || !section.gateCapability) continue;
+        if (!(section.requires.perms ?? []).every((id) => holds(snapshot, id))) continue;
         const reason = lockReason(snapshot, section.gateCapability);
         if (reason) out.push({ ...section, locked: reason });
     }

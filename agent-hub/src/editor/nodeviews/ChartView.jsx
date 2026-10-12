@@ -10,11 +10,13 @@ import {
   PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
 } from 'recharts';
 import { Trash2 } from 'lucide-react';
+import { useTranslation } from '../../hooks/useTranslation';
 
 // Categorical palette — blues/greens/warm/teal/pink, no violet/indigo.
 const COLORS = ['#3b82f6', '#22c55e', '#f97316', '#eab308', '#14b8a6', '#ef4444', '#06b6d4', '#ec4899'];
 
 export default function ChartView({ node, view, editable }) {
+  const { t } = useTranslation();
   const spec = useMemo(() => { try { return JSON.parse(node.attrs?.spec || '{}'); } catch (e) { return {}; } }, [node.attrs?.spec]);
   const type = spec.type || 'bar';
   const labels = Array.isArray(spec.labels) ? spec.labels : [];
@@ -48,7 +50,7 @@ export default function ChartView({ node, view, editable }) {
 
   let chart = null;
   if (!series.length || !labels.length) {
-    chart = <div className="flex items-center justify-center h-full text-[12px]" style={{ color: 'var(--text-muted)' }}>No chart data</div>;
+    chart = <div className="flex items-center justify-center h-full text-[12px]" style={{ color: 'var(--text-muted)' }}>{t('editor.chart_no_data', 'No chart data')}</div>;
   } else if (type === 'line') {
     chart = (
       <LineChart data={data}><XAxis dataKey="name" {...axis} /><YAxis {...axis} />{grid}{tooltip}<Legend wrapperStyle={{ fontSize: 11 }} />
@@ -88,7 +90,7 @@ export default function ChartView({ node, view, editable }) {
       {editable && (
         <button
           type="button"
-          title="Delete chart"
+          title={t('editor.chart_delete', 'Delete chart')}
           onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); view.deleteAtom(node); }}
           className="absolute top-2 right-2 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity text-red-400 hover:bg-red-500/10">
           <Trash2 className="w-3.5 h-3.5" />

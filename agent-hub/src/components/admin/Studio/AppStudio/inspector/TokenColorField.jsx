@@ -1,5 +1,6 @@
 import { Check } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
+import useTranslation from '../../../../../hooks/useTranslation';
 import { COLOR_ROLES, HEX_RE } from './styleKnobMeta';
 import ColorPicker from '../../../../shared/ColorPicker';
 import SegmentedControl from '../../../../shared/SegmentedControl';
@@ -32,13 +33,23 @@ function roleSwatchColor(role, themePrimary) {
     return ROLE_COLORS[role];
 }
 
-const MODE_OPTIONS = [
-    { value: 'theme', label: 'Theme' },
-    { value: 'role', label: 'Role' },
-    { value: 'custom', label: 'Custom' },
+const modeOptions = (t) => [
+    { value: 'theme', label: t('studio_apps_insp.color.mode_theme', 'Theme') },
+    { value: 'role', label: t('studio_apps_insp.color.mode_role', 'Role') },
+    { value: 'custom', label: t('studio_apps_insp.color.mode_custom', 'Custom') },
 ];
 
+const roleLabel = (t, role) => ({
+    primary: t('studio_apps_insp.color.role_primary', 'primary'),
+    neutral: t('studio_apps_insp.color.role_neutral', 'neutral'),
+    success: t('studio_apps_insp.color.role_success', 'success'),
+    warning: t('studio_apps_insp.color.role_warning', 'warning'),
+    danger: t('studio_apps_insp.color.role_danger', 'danger'),
+    info: t('studio_apps_insp.color.role_info', 'info'),
+}[role] || role);
+
 export default function TokenColorField({ value = null, onChange, themePrimary = null, disabled = false }) {
+    const { t } = useTranslation();
     const [mode, setMode] = useState(() => modeForValue(value));
 
     // Follow external value changes (e.g. selecting a different node).
@@ -57,11 +68,11 @@ export default function TokenColorField({ value = null, onChange, themePrimary =
             <SegmentedControl
                 value={mode}
                 onChange={pickMode}
-                options={MODE_OPTIONS}
+                options={modeOptions(t)}
                 size="sm"
                 fullWidth
                 disabled={disabled}
-                ariaLabel="Color source"
+                ariaLabel={t('studio_apps_insp.color.source_aria', 'Color source')}
             />
             <div className="mt-2">
                 {mode === 'theme' && (
@@ -71,11 +82,11 @@ export default function TokenColorField({ value = null, onChange, themePrimary =
                             className="inline-block w-5 h-5 rounded-full border border-[var(--border-default)]"
                             style={{ background: themePrimary || APP_COLOR_PRESETS[0] }}
                         />
-                        Inherits the app theme
+                        {t('studio_apps_insp.color.inherits_theme', 'Inherits the app theme')}
                     </div>
                 )}
                 {mode === 'role' && (
-                    <div role="radiogroup" aria-label="Color role" className="flex items-center gap-2 flex-wrap">
+                    <div role="radiogroup" aria-label={t('studio_apps_insp.color.role_aria', 'Color role')} className="flex items-center gap-2 flex-wrap">
                         {COLOR_ROLES.map((role) => {
                             const active = value === role;
                             return (
@@ -84,8 +95,8 @@ export default function TokenColorField({ value = null, onChange, themePrimary =
                                     type="button"
                                     role="radio"
                                     aria-checked={active}
-                                    aria-label={role}
-                                    title={role}
+                                    aria-label={roleLabel(t, role)}
+                                    title={roleLabel(t, role)}
                                     disabled={disabled}
                                     onClick={() => onChange(role)}
                                     className="relative w-7 h-7 rounded-full transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
@@ -109,7 +120,7 @@ export default function TokenColorField({ value = null, onChange, themePrimary =
                         allowCustom
                         disabled={disabled}
                         swatchSize={24}
-                        ariaLabel="Custom color"
+                        ariaLabel={t('studio_apps_insp.color.custom_aria', 'Custom color')}
                     />
                 )}
             </div>

@@ -97,7 +97,9 @@ function Recent({ activity, formatActivity, formatRelative }) {
     const { t } = useTranslation();
     return (
         <TabCard title={t('projects.recent_activity', 'Recent activity')} icon={Activity}>
-            {activity.length === 0 ? (
+            {activity === null ? (
+                <TabNote>{t('projects.section_unavailable', 'Could not load this section. Your items are safe — try again shortly.')}</TabNote>
+            ) : activity.length === 0 ? (
                 <TabNote>{t('projects.section_empty', 'Nothing here yet.')}</TabNote>
             ) : (
                 <ul className="space-y-1.5">

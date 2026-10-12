@@ -26,21 +26,21 @@ export function HttpAuth({ value, onChange, disabled }: { value: string; onChang
         return (
             <>
                 <TextField value={value} onChangeText={(v) => onChange(v || null)} placeholder={CREDENTIAL_ID_EXAMPLE} autoCapitalize="none" autoCorrect={false} editable={!disabled} />
-                <Note>{t('mobile.flow.http.credentials_unreadable', 'Could not load your credentials — paste a credential id instead.')}</Note>
+                <Note>{t('automations.http_auth_picker.could_not_load_your_credentials_paste', 'Could not load your credentials — paste a credential id instead.')}</Note>
             </>
         );
     }
-    if (!conns.data) return <Note>{t('mobile.flow.http.credentials_loading', 'Loading credentials…')}</Note>;
+    if (!conns.data) return <Note>{t('automations.http_auth_picker.loading_credentials', 'Loading credentials…')}</Note>;
     const known = !value || conns.data.some((c) => c.id === value);
     const kind = (k: string) => (HTTP_KIND_NAMES[k] ? say(t, HTTP_KIND_NAMES[k]) : k);
     return (
         <>
             <SelectField
-                label={t('mobile.flow.http.credential', 'Credential')}
+                label={t('automations.http_request_fields.credential', 'Credential')}
                 value={value}
                 options={[
-                    { value: '', label: t('mobile.flow.http.no_credential', 'None (no credential)') },
-                    ...(known ? [] : [{ value, label: t('mobile.flow.http.unknown_credential', 'Unknown credential (not accessible) — pick another'), disabled: true }]),
+                    { value: '', label: t('automations.http_auth_picker.none_no_credential', 'None (no credential)') },
+                    ...(known ? [] : [{ value, label: t('automations.http_auth_picker.unknown_credential_not_accessible_pick_another', 'Unknown credential (not accessible) — pick another'), disabled: true }]),
                     ...conns.data.map((c) => ({
                         value: c.id,
                         label: c.label,

@@ -121,6 +121,13 @@ test('a built-in step type still gets the step-type message, not "not connected"
     assert.match(r._fixHint, /builder_add_http_request/);
 });
 
+test('builder_add_action({tool:"datatable"}) names builder_add_datatable and, for an existing step, builder_replace_step', async () => {
+    const dw = wrapWithAvailability();
+    const r = await addAction(dw, 'datatable');
+    assert.match(r._fixHint, /builder_add_datatable/);
+    assert.match(r._fixHint, /builder_replace_step\(\{stepId, newType:"datatable", spec\}\)/);
+});
+
 test('builder_update_step cannot smuggle an unavailable tool in through a patch', async () => {
     const dw = wrapWithAvailability();
     const ok = await applyToolCall('builder_add_action', { tool: 'nextcloud_files_list', inputs: {} }, dw);

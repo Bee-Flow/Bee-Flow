@@ -57,6 +57,18 @@ describe('the vocabulary', () => {
     });
 });
 
+describe('legacyAnnexAnswers (a row from before the ten questions)', () => {
+    it('agrees with the web on every answer and area', () => {
+        for (const answer of ['yes', 'no', null, 'unknown', undefined])
+            for (const category of [null, undefined, 'insurance', 'biometrics', 'made_up', 7]) {
+                const row = { answer, category };
+                expect([row, port.legacyAnnexAnswers(row)]).toEqual([row, web.legacyAnnexAnswers(row)]);
+            }
+        expect(port.legacyAnnexAnswers(null)).toEqual(web.legacyAnnexAnswers(null));
+        expect(port.legacyAnnexAnswers(undefined)).toEqual(web.legacyAnnexAnswers(undefined));
+    });
+});
+
 describe('outcome', () => {
     it('agrees on every signal combination and every pair of answers', () => {
         let cases = 0;

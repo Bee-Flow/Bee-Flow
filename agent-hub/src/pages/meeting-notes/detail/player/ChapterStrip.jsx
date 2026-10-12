@@ -1,5 +1,6 @@
 import React, { memo, useRef, useState } from 'react';
 import PlayerTooltip from './PlayerTooltip';
+import useTranslation from '../../../../hooks/useTranslation';
 import { formatDuration } from '../../lib/format';
 
 /** Labels vanish below this width — an ellipsis on 4% of a strip is noise. */
@@ -21,6 +22,7 @@ const LABEL_MIN_FRACTION = 0.06;
  * the 4×/s timeupdate re-render loop.
  */
 function ChapterStrip({ chapters = [], activeIndex = -1, onSeek }) {
+    const { t } = useTranslation();
     const stripRef = useRef(null);
     const [hovered, setHovered] = useState(null); // { index, x, width } while a block is hovered/focused
 
@@ -38,7 +40,7 @@ function ChapterStrip({ chapters = [], activeIndex = -1, onSeek }) {
     const hc = hovered != null ? chapters[hovered.index] : null;
 
     return (
-        <div ref={stripRef} className="relative flex w-full gap-[3px]" role="group" aria-label="Chapters">
+        <div ref={stripRef} className="relative flex w-full gap-[3px]" role="group" aria-label={t('meeting_notes.chapters_aria', 'Chapters')}>
             {chapters.map((c, i) => {
                 const active = i === activeIndex;
                 return (

@@ -60,8 +60,17 @@ const PUBLIC_SLUG_RE = /^[a-z0-9][a-z0-9-]*$/;
 const LOCALE_PREFIXES = new Set(['nl']);
 
 /**
+ * The blog's path segment: /blog is the index, /blog/<post-slug> a post (and
+ * /blog/feed.xml the feed, served by its own route). Mirrors BLOG_BASE in the
+ * client router; the drift test in seo.test.js pins the two together.
+ */
+const BLOG_BASE = 'blog';
+
+/**
  * Parse a pathname into `{ locale, slug }`, or null when it is not a
  * marketing path at all (an app route, an asset, a multi-segment URL).
+ * Blog paths also carry `blog: { view: 'index' } | { view: 'post', postSlug }`
+ * and a two-part slug ('blog/<post-slug>') that buildPublicPath round-trips.
  *
  * `locale` is null when the path carries no prefix — the caller then applies
  * the site default. `slug` is '' for a homepage.
@@ -78,22 +87,25 @@ function parsePublicPath(pathname, knownLocales = []) {
     const trimmed = pathname.replace(/\/+$/, '') || '/';
     if (trimmed === '/') return { locale: null, slug: '' };
 
-    const segments = trimmed.slice(1).split('/');
-    if (segments.length > 2) return null;
-
+    // One optional locale prefix, then: nothing (that locale's homepage),
+    // one page slug, or the blog (`blog`, `blog/<post-slug>`).
+    let rest = trimmed.slice(1).split('/');
     let locale = null;
-    let slugSeg = segments[0];
-
-    if (locales.has(segments[0].toLowerCase())) {
-        locale = segments[0].toLowerCase();
-        slugSeg = segments.length === 2 ? segments[1] : '';
-        if (slugSeg === '') return { locale, slug: '' };   // e.g. /nl
-    } else if (segments.length === 2) {
-        // Two segments and the first is not a locale — not ours.
-        return null;
+    if (locales.has(rest[0].toLowerCase())) {
+        locale = rest[0].toLowerCase();
+        rest = rest.slice(1);
+        if (rest.length === 0) return { locale, slug: '' };   // e.g. /nl
     }
 
-    const seg = slugSeg.toLowerCase();
+    const seg = rest[0].toLowerCase();
+    if (seg === BLOG_BASE && rest.length <= 2) {
+        if (rest.length === 1) return { locale, slug: BLOG_BASE, blog: { view: 'index' } };
+        const postSlug = rest[1].toLowerCase();
+        if (!PUBLIC_SLUG_RE.test(postSlug)) return null;
+        return { locale, slug: `${BLOG_BASE}/${postSlug}`, blog: { view: 'post', postSlug } };
+    }
+    // Anything longer, or two segments without a locale prefix, is not ours.
+    if (rest.length !== 1) return null;
     if (RESERVED_TOP_LEVEL.has(seg)) return null;
     if (!PUBLIC_SLUG_RE.test(seg)) return null;
     return { locale, slug: seg };
@@ -112,4 +124,4 @@ function buildPublicPath(locale, slug, defaultLocale) {
     return `${prefix}${tail}` || '/';
 }
 
-module.exports = { parsePublicPath, buildPublicPath, RESERVED_TOP_LEVEL, PUBLIC_SLUG_RE, LOCALE_PREFIXES };
+module.exports = { parsePublicPath, buildPublicPath, RESERVED_TOP_LEVEL, PUBLIC_SLUG_RE, LOCALE_PREFIXES, BLOG_BASE };

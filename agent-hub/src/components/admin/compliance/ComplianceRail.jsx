@@ -4,30 +4,45 @@
  *
  * Head (48 px): kind tile · "Compliance" + org subtitle · download icon.
  * Body: search · "All | Needs attention N" · grouped rows (KADERS · REGISTERS
- * · BEHEER) with a right-hand meta from railMeta.js. Foot: the evidence-chain
+ * · BEHEER) with a right-hand meta from railMeta.js — an actionable count or
+ * nothing; a row's background figures (railHint) are its tooltip and its
+ * accessible description. Foot: the evidence-chain
  * line. The rail is handed to StudioShell as `sidebar`, which wraps it in a
  * `flex-1 overflow-y-auto` box — so THIS component is an `h-full flex
  * flex-col` whose list is the only scrolling part, or the footer scrolls away
  * (the MeetingNotesPage rail has the same constraint).
  *
  * Row recipe = Studio/StudioRail.jsx: active is a raised card (`bg-card` +
- * `shadow-sm`), never an accent bar; every row carries `title={label}` and
- * `aria-current` — `ComplianceHub.nav.test.jsx` finds rows by that title.
+ * `shadow-sm`), never an accent bar; every row carries `title` (the label, plus
+ * the hint on a second line when there is one), `aria-current` and
+ * `data-testid="rail-row-<id>"`.
+ *
+ * "Needs attention" keeps a framework row while it has an open (fail/warn)
+ * check — the same count the row then shows as "{n} to fix" — and falls back
+ * to the score only while the checks have not loaded (`checks` null).
+ *
+ * The search also lists checks (from two characters): by title, by article
+ * as written ("Art. 50", "AI Act Art. 50", "A.5.20") and by id, one hit per
+ * check with "· n" when it runs per subject; a hit opens the framework page
+ * that scores it, focused on that row.
  *
  * Growing-set frameworks (`section.optional`) appear only once the org has
  * enabled them (counts.frameworks[id] present or frameworks.isEnabled(id));
  * the CRA/Data Act registers follow their framework.
  */
-import React, { useMemo, useState } from 'react';
 import { Download, Search, ShieldCheck, Timer } from 'lucide-react';
+import React, { useId, useMemo, useState } from 'react';
+import { searchChecks } from './data/checkSearch';
+import { openChecksFor } from './data/openChecks';
+import { countFor } from './data/useComplianceCounts';
+import railMeta, { railHint, railRowTitle } from './railMeta';
+import { GROUPS, SECTIONS, sectionsInGroup, frameworkOf, sectionForRegulation } from './sections';
+import ArticleRef from './shared/ArticleRef';
 import { useTranslation } from '../../../hooks/useTranslation';
-import SegmentedControl from '../../shared/SegmentedControl';
 import DeadlineClock from '../../shared/DeadlineClock';
 import { kindTileStyle } from '../../shared/kindColors';
+import SegmentedControl from '../../shared/SegmentedControl';
 import { TONES } from '../../shared/statusTone';
-import { GROUPS, SECTIONS, sectionsInGroup } from './sections';
-import railMeta from './railMeta';
-import { countFor } from './data/useComplianceCounts';
 
 const REGISTER_FRAMEWORK = Object.freeze({ vulnerabilities: 'cra', portability: 'data_act' });
 
@@ -45,19 +60,40 @@ export function visibleSections(sections, { counts, frameworks }) {
     });
 }
 
-/** Rows that have something open — the "Needs attention" filter. */
-export function hasOpenItem(section, counts) {
+/** Days after which the ROPA review is due (railMeta shows "review due"). */
+const ROPA_REVIEW_DAYS = 365;
+
+/**
+ * Rows that have something open — the "Needs attention" filter. A framework
+ * row qualifies with an open check (`checks` loaded), else — only while the
+ * checks are still null — with a score under 85.
+ */
+export function hasOpenItem(section, counts, checks = null) {
+    const regulation = section.regulation ?? frameworkOf(section.id);
+    if (regulation) {
+        const open = openChecksFor(checks, regulation);
+        if (open !== undefined) return open > 0;
+        const s = countFor(counts, `frameworks.${frameworkIdOfSection(section.id)}.score`);
+        return typeof s === 'number' && s < 85;
+    }
     switch (section.id) {
-        case 'gdpr': case 'aia': case 'iso': case 'nis2': case 'cra': case 'data_act': case 'pld': case 'eaa': case 'dora': case 'machinery': case 'custom': {
-            const s = countFor(counts, `frameworks.${frameworkIdOfSection(section.id)}.score`);
-            return typeof s === 'number' && s < 85;
+        case 'ropa': {
+            const ropa = countFor(counts, 'ropa');
+            if (!ropa || typeof ropa !== 'object') return false;
+            const at = ropa.last_reviewed_at ? new Date(ropa.last_reviewed_at).getTime() : NaN;
+            return !Number.isFinite(at) || Date.now() - at > ROPA_REVIEW_DAYS * 86_400_000;
         }
         case 'dsr': return (countFor(counts, 'dsr.overdue') || 0) > 0 || (countFor(counts, 'dsr.due_soon') || 0) > 0;
         case 'incidents': return (countFor(counts, 'incidents.open') || 0) > 0;
         case 'vulnerabilities': return (countFor(counts, 'incidents.vulnerabilities_open') || 0) > 0;
         case 'dpia': return (countFor(counts, 'dpia.todo') || 0) > 0;
         case 'risks': return (countFor(counts, 'risks.high') || 0) > 0;
-        case 'soa': { const a = countFor(counts, 'soa.approved'); const t = countFor(counts, 'soa.total'); return typeof a === 'number' && typeof t === 'number' && a < t; }
+        case 'soa': {
+            const todo = countFor(counts, 'soa.todo');
+            if (typeof todo === 'number') return todo > 0;
+            const a = countFor(counts, 'soa.approved'); const t = countFor(counts, 'soa.total');
+            return typeof a === 'number' && typeof t === 'number' && a < t;
+        }
         case 'policies': return (countFor(counts, 'policies.review_due') || 0) > 0;
         case 'training': { const d = countFor(counts, 'training.done'); const t = countFor(counts, 'training.total'); return typeof d === 'number' && typeof t === 'number' && d < t; }
         default: return false;
@@ -87,7 +123,7 @@ function Meta({ meta, t }) {
                     </span>
                 )}
                 {!meta.badge && meta.dueAt && (
-                    <DeadlineClock variant="rail" dueAt={meta.dueAt} startedAt={meta.startedAt} urgentBelowMs={meta.urgentBelowMs} />
+                    <DeadlineClock variant="rail" dueAt={meta.dueAt} startedAt={meta.startedAt} urgentBelowMs={meta.urgentBelowMs} testId="rail-meta-clock" />
                 )}
                 <span>{meta.suffix}</span>
             </span>
@@ -96,23 +132,29 @@ function Meta({ meta, t }) {
     return null;
 }
 
-function RailRow({ section, label, active, meta, onClick, t }) {
+function RailRow({ section, label, active, meta, hint, onClick, t }) {
     const Icon = section.icon;
+    const hintId = `${useId()}-hint`;
     return (
-        <button
-            type="button"
-            title={label}
-            aria-current={active ? 'page' : undefined}
-            onClick={onClick}
-            data-testid={`rail-row-${section.id}`}
-            className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left text-[12px] transition-colors duration-150 ${
-                active ? 'bg-[var(--bg-card)] shadow-sm font-medium text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--item-hover-bg)]'
-            }`}
-        >
-            {Icon && <Icon className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={active ? 2.25 : 1.75} aria-hidden="true" />}
-            <span className="truncate">{label}</span>
-            <Meta meta={meta} t={t} />
-        </button>
+        <>
+            <button
+                type="button"
+                title={railRowTitle(label, hint)}
+                aria-current={active ? 'page' : undefined}
+                aria-describedby={hint ? hintId : undefined}
+                onClick={onClick}
+                data-testid={`rail-row-${section.id}`}
+                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left text-[12px] transition-colors duration-150 ${
+                    active ? 'bg-[var(--bg-card)] shadow-sm font-medium text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--item-hover-bg)]'
+                }`}
+            >
+                {Icon && <Icon className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={active ? 2.25 : 1.75} aria-hidden="true" />}
+                <span className="truncate">{label}</span>
+                <Meta meta={meta} t={t} />
+            </button>
+            {/* Outside the button, so the row's name stays its label + meta. */}
+            {hint && <span id={hintId} className="sr-only" data-testid={`rail-hint-${section.id}`}>{hint}</span>}
+        </>
     );
 }
 
@@ -136,21 +178,20 @@ export default function ComplianceRail({
     const rows = useMemo(() => {
         const visible = visibleSections(SECTIONS, { counts, frameworks });
         return visible.filter((s) => {
-            if (mode === 'attention' && s.id !== 'overview' && !hasOpenItem(s, counts)) return false;
+            if (mode === 'attention' && s.id !== 'overview' && !hasOpenItem(s, counts, checks)) return false;
             if (!q) return true;
             const label = t(s.labelKey, s.labelFallback).toLowerCase();
             return label.includes(q) || s.id.includes(q);
         });
-    }, [counts, frameworks, mode, q, t]);
+    }, [counts, frameworks, mode, q, t, checks]);
 
-    // ≥ 2 characters also search the checks: title or article → the framework page, focused on the row.
-    const checkHits = useMemo(() => {
-        if (q.length < 2) return [];
-        return (checks || []).filter((c) => {
-            const title = t(c.titleKey, c.check_id).toLowerCase();
-            return title.includes(q) || String(c.article || '').toLowerCase().includes(q) || String(c.check_id).toLowerCase().includes(q);
-        }).slice(0, 8);
-    }, [checks, q, t]);
+    // ≥ 2 characters also search the checks → the framework page, focused on the row.
+    const checkHits = useMemo(() => searchChecks(checks, q, t), [checks, q, t]);
+    // In the attention view a framework row says how many of its checks are open.
+    const metaOf = (s) => railMeta(s, counts, t, {
+        locale,
+        failing: mode === 'attention' && s.regulation ? openChecksFor(checks, s.regulation) : undefined,
+    });
 
     const overview = rows.find(s => s.id === 'overview');
     const evidenceRows = countFor(counts, 'evidence.rows');
@@ -200,18 +241,24 @@ export default function ComplianceRail({
                 <div className="flex-1 min-h-0 overflow-y-auto -mx-0.5 px-0.5 flex flex-col gap-0.5 mt-0.5" data-testid={`${testId}-list`}>
                     {overview && (
                         <RailRow section={overview} label={t(overview.labelKey, overview.labelFallback)} active={active === 'overview'}
-                            meta={railMeta(overview, counts, t, { locale })} onClick={() => onSelect('overview')} t={t} />
+                            meta={metaOf(overview)} hint={railHint(overview, counts, t, { locale })} onClick={() => onSelect('overview')} t={t} />
                     )}
                     {checkHits.length > 0 && (
                         <>
                             <GroupLabel>{t('compliance.rail_group_checks', 'Checks')}</GroupLabel>
-                            {checkHits.map((c) => (
-                                <button key={`${c.check_id}:${c.scope_id || ''}`} type="button" title={t(c.titleKey, c.check_id)}
-                                    onClick={() => onSelect(c.regulation, c.check_id)}
+                            {checkHits.map(({ check: c, title, scopes }) => (
+                                <button key={c.check_id} type="button" title={title}
+                                    onClick={() => onSelect(sectionForRegulation(c.regulation), c.check_id)}
                                     className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left text-[12px] text-[var(--text-secondary)] hover:bg-[var(--item-hover-bg)]"
-                                    data-testid={`${testId}-check-hit`}>
-                                    <span className="truncate">{t(c.titleKey, c.check_id)}</span>
-                                    <span className="ml-auto flex-shrink-0 text-[11px] font-mono text-[var(--text-tertiary)]">{c.article}</span>
+                                    data-testid={`${testId}-check-hit`} data-check={c.check_id}>
+                                    <span className="truncate">{title}</span>
+                                    {scopes > 1 && (
+                                        <span className="flex-shrink-0 text-[11px] tabular-nums text-[var(--text-tertiary)]"
+                                            title={t('compliance.attention_subjects', '{n} affected', { n: scopes })} data-testid={`${testId}-check-scopes`}>
+                                            · {scopes}
+                                        </span>
+                                    )}
+                                    <ArticleRef refs={[{ regulation: c.regulation, ref: c.article }]} className="ml-auto flex-shrink-0" testId={`${testId}-check-ref`} />
                                 </button>
                             ))}
                         </>
@@ -224,7 +271,7 @@ export default function ComplianceRail({
                                 <GroupLabel>{t(g.labelKey, g.labelFallback)}</GroupLabel>
                                 {inGroup.map((s) => (
                                     <RailRow key={s.id} section={s} label={t(s.labelKey, s.labelFallback)} active={active === s.id}
-                                        meta={railMeta(s, counts, t, { locale })} onClick={() => onSelect(s.id)} t={t} />
+                                        meta={metaOf(s)} hint={railHint(s, counts, t, { locale })} onClick={() => onSelect(s.id)} t={t} />
                                 ))}
                             </React.Fragment>
                         );

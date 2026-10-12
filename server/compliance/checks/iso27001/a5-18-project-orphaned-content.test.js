@@ -41,6 +41,14 @@ test('a project whose owner left fails, and the orphaned chats and notebooks are
     assert.ok(!JSON.stringify(r).includes('Acme'), 'no project name');
 });
 
+test('the fail advice names actions a project has: hand it over or delete it, never archive it', () => {
+    // Projects have no archive state; both remaining actions go through the owner.
+    const r = check._verdict({ projects: 1, owners: ['abc'], threads: {}, notebooks: {} });
+    assert.strictEqual(r.status, 'fail');
+    assert.doesNotMatch(r.details, /archive it/);
+    assert.match(r.details, /hand the project over or delete it/);
+});
+
 test('orphaned content alone warns; nothing orphaned passes; no projects is not applicable', () => {
     const warn = check._verdict({ projects: 3, owners: [], threads: { p: 1 }, notebooks: {} });
     assert.strictEqual(warn.status, 'warn');

@@ -90,7 +90,7 @@ const SignupStepPrivacy = ({ signupData, setSignupData, handleSignupNext, setSig
 
             <p className="text-xs text-[var(--text-muted)] text-center mt-1">
                 {isPersonal
-                    ? t('signup.privacy_tune_later_personal', 'You can fine-tune these settings later in Settings → Privacy.')
+                    ? t('signup.privacy_tune_later_personal', 'You can fine-tune these settings later in Settings → Account → Privacy Shield.')
                     : t('signup.privacy_tune_later')}
             </p>
 

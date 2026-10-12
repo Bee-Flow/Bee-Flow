@@ -72,6 +72,18 @@ test('fromActivityLog: null when the ledger is missing, rows otherwise; country 
     assert.match(state.sql.at(-1).sql, /MAX\(country_code\) AS country_code/);
 });
 
+test('fromActivityLog: a failed read throws — only a missing table or column is "no ledger"', async () => {
+    state.activityError = Object.assign(new Error('missing column'), { code: '42703' });
+    assert.equal(await ops.fromActivityLog('org-1'), null);
+    state.activityError = Object.assign(new Error('canceling statement'), { code: '57014' });
+    await assert.rejects(() => ops.fromActivityLog('org-1'), (e) => e.code === '57014');
+    // The register keeps listing connections and AI providers through it.
+    state.connections = [{ provider: 'github', connections: 1, any_active: true }];
+    const reg = await ops.collect('org-1');
+    assert.equal(reg.ledger_available, false);
+    assert.deepEqual(reg.operators.map(o => o.key), ['github']);
+});
+
 test('fromActivityLog: local (private address too) and nameless unknown rows are no supplier; networks stay', async () => {
     await ops.fromActivityLog('org-1');
     const sql = state.sql.at(-1).sql;
@@ -137,6 +149,17 @@ test('collect: without a ledger the register still lists connections and AI prov
     assert.equal(reg.ledger_available, false);
     assert.deepEqual(reg.activity, []);
     assert.deepEqual(reg.operators.map(o => o.key).sort(), ['github', 'mistral']);
+});
+
+test('collect: ledger_error tells a failed ledger read apart from a ledger that is not provisioned', async () => {
+    state.activityError = Object.assign(new Error('missing'), { code: '42P01' });
+    assert.equal((await ops.collect('org-1')).ledger_error, false, 'not provisioned is no read failure');
+    state.activityError = Object.assign(new Error('canceling statement due to statement timeout'), { code: '57014' });
+    const reg = await ops.collect('org-1');
+    assert.equal(reg.ledger_available, false);
+    assert.equal(reg.ledger_error, true);
+    state.activityError = null;
+    assert.equal((await ops.collect('org-1')).ledger_error, false);
 });
 
 test('collect: an EU flag seen once sticks even when a later row says false', async () => {

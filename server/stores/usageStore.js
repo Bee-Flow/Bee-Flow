@@ -247,6 +247,12 @@ log.info('[UsageStore] Initialized (PostgreSQL)');
 // TTL is enough for fresh-enough billing while keeping the hot path cheap.
 // Callers that mutate subscription state should call invalidatePaygCache
 // (see userStore.setOrgSubscription / setConsumerSubscription).
+// The retired 'private-cloud' value counts as self-hosted (same as license/index.js).
+function _isSelfHosted() {
+    const mode = process.env.DEPLOYMENT_MODE || 'cloud';
+    return mode === 'self-hosted' || mode === 'private-cloud';
+}
+
 const _paygCache = new Map();
 const PAYG_CACHE_TTL_MS = 60_000;
 
@@ -254,7 +260,7 @@ async function _resolvePaygTarget(organizationId, userId) {
     // Self-hosted installs have no PAYG plan and no Stripe wiring. Skip the
     // resolver entirely so the AI hot path is free of billing lookups when
     // DEPLOYMENT_MODE is anything other than cloud.
-    if ((process.env.DEPLOYMENT_MODE || 'cloud') === 'self-hosted') return null;
+    if (_isSelfHosted()) return null;
     if (!organizationId && !userId) return null;
     const key = organizationId ? `org:${organizationId}` : `user:${userId}`;
     const hit = _paygCache.get(key);
@@ -304,7 +310,7 @@ async function _resolvePaygTarget(organizationId, userId) {
 // is applied uniformly across all rows. Shares the PAYG cache map: keys
 // are prefixed with `cur:` to avoid collision.
 async function _resolvePlanCurrency(organizationId, userId) {
-    if ((process.env.DEPLOYMENT_MODE || 'cloud') === 'self-hosted') return 'USD';
+    if (_isSelfHosted()) return 'USD';
     if (!organizationId && !userId) return 'EUR';
     const key = organizationId ? `cur:org:${organizationId}` : `cur:user:${userId}`;
     const hit = _paygCache.get(key);

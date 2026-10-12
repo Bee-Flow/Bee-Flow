@@ -5,15 +5,8 @@
  * Shared matching logic used by the OAuth callback to find an existing local
  * user for an SSO login before falling back to creating a new one.
  *
- * Resolution order:
- *   1. Azure OID  (users.azureUserId)      — authoritative for Microsoft SSO
- *   2. Email      (users.email, CI)        — handles users synced before the
- *                                            azureUserId column was populated
- *                                            and manually-created accounts
- *   3. Local id   (users.id)               — legacy/non-Azure providers only
- *
- * Extracted from oauthRoutes.js so it can be unit-tested in isolation and so
- * the directory sync and the login path share the same matching rules.
+ * Microsoft identities match only the validated tenant/object-ID pair.
+ * Email and local-ID resolution remain available for other providers.
  */
 
 const crypto = require('crypto');
@@ -55,24 +48,18 @@ function deriveLocalUserId(email, azureUserId) {
  * @param {object} userStore  store with getUserByAzureId, getUserByEmail, getUser, updateUser
  * @returns {Promise<{user: object|null, branch: 'azureId'|'email'|'legacyId'|'none'}>}
  *
- * Side effect: on an email-branch match for a Microsoft user, backfills the
- * user's azureUserId so the next login takes the fast path.
  */
 async function resolveExistingSSOUser(identity, userStore) {
-    const { azureUserId, email, localId } = identity;
+    const { azureUserId, azureTenantId, email, localId } = identity;
 
     if (azureUserId) {
-        const byAzure = await userStore.getUserByAzureId(azureUserId);
-        if (byAzure) return { user: byAzure, branch: 'azureId' };
+        const byAzure = azureTenantId ? await userStore.getUserByAzureId(azureUserId, azureTenantId) : null;
+        return { user: byAzure, branch: byAzure ? 'azureId' : 'none' };
     }
 
     if (email) {
         const byEmail = await userStore.getUserByEmail(email);
         if (byEmail) {
-            if (azureUserId && !byEmail.azureUserId) {
-                await userStore.updateUser(byEmail.id, { azureUserId });
-                byEmail.azureUserId = azureUserId;
-            }
             return { user: byEmail, branch: 'email' };
         }
     }

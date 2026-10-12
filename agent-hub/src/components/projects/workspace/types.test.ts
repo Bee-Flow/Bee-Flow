@@ -25,7 +25,7 @@ describe('roles and users', () => {
     });
 
     it('maps the app user, and none without an id', () => {
-        expect(toWorkspaceUser({ id: 'u', displayName: 'Ada', email: 'a@example.org' })).toEqual({ id: 'u', name: 'Ada', email: 'a@example.org' });
+        expect(toWorkspaceUser({ id: 'u', displayName: 'Ada', email: 'a@example.org' })).toEqual({ id: 'u', name: 'Ada', email: 'a@example.org', isOrgAdmin: false });
         expect(toWorkspaceUser({ username: 'x' })).toBeNull();
     });
 

@@ -20,13 +20,17 @@
  */
 
 /** Label for an action that will save the draft first. */
-export function saveFirstLabel(label, dirty) {
-    return dirty ? `Save & ${label.charAt(0).toLowerCase()}${label.slice(1)}` : label;
+export function saveFirstLabel(label, dirty, t) {
+    if (!dirty) return label;
+    const action = `${label.charAt(0).toLowerCase()}${label.slice(1)}`;
+    return t ? t('studio_apps_bi.save_gate.save_and', 'Save & {action}', { action }) : `Save & ${action}`;
 }
 
 /** Why an action that CANNOT save implicitly is unavailable, or null. */
-export function saveFirstReason(dirty) {
-    return dirty ? 'Save your changes first — this runs against the saved model.' : null;
+export function saveFirstReason(dirty, t) {
+    if (!dirty) return null;
+    const english = 'Save your changes first — this runs against the saved model.';
+    return t ? t('studio_apps_bi.save_gate.save_first', english) : english;
 }
 
 /**

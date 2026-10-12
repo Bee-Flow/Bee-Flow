@@ -16,7 +16,8 @@ import React from 'react';
 import type { ProjectNotebook } from '../../../../api/queries/projectContent';
 import useRelativeTime from '../../../../hooks/useRelativeTime';
 import useTranslation from '../../../../hooks/useTranslation';
-import { RemoveButton } from './contentUi';
+import ItemViewers from '../ItemViewers';
+import { RemoveButton } from '../workspaceUi';
 
 export interface ProjectNotebookCardProps {
     notebook: ProjectNotebook;
@@ -55,7 +56,8 @@ function CardMeta({ notebook, ownerName, editorName }: { notebook: ProjectNotebo
                     <span className="truncate">{ownerName}</span>
                 </span>
             )}
-            <span className="inline-flex items-center gap-1 ml-auto shrink-0" title={t('project_content.col_updated', 'Updated')}>
+            <span className="ml-auto shrink-0"><ItemViewers type="notebook" id={notebook.id} /></span>
+            <span className="inline-flex items-center gap-1 shrink-0" title={t('project_content.col_updated', 'Updated')}>
                 <Clock className="w-3 h-3" aria-hidden="true" />
                 {rel(notebook.lastActivityAt || notebook.updatedAt)}
             </span>

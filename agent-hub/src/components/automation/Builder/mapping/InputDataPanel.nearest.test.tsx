@@ -30,6 +30,13 @@ describe('InputDataPanel: which group starts open', () => {
         expect(screen.queryByText('Ticket ref')).toBeNull();
     });
 
+    it('also opens the nearest step WITH fields when the direct one never ran', () => {
+        const NOT_RUN = { id: 's2', label: 'List mailboxes', kind: 'integration_action', basePath: 'steps.s2.output', sample: null, fields: [] };
+        renderPanel([TRIGGER, STEP, NOT_RUN, INFO]);
+        expect(screen.getByText('Result text')).toBeTruthy();
+        expect(screen.queryByText('Trigger note')).toBeNull();
+    });
+
     it('lists Trigger info after the steps, not before the nearest one', () => {
         renderPanel([TRIGGER, STEP, INFO]);
         const order = titles().map(t => (t.includes('Trigger info') ? 'info' : t.includes('Trigger (manual)') ? 'trigger' : 'step'));

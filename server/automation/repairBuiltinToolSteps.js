@@ -34,7 +34,7 @@ const REPAIRABLE = {
     http_request: {
         build: (draft, args) => require('./builderTools/stepBuilders').applyAddHttpRequest(draft, args),
         fields: [
-            'url', 'method', 'headers', 'body', 'timeoutMs', 'blockPrivateTargets',
+            'url', 'method', 'headers', 'body', 'query', 'timeoutMs', 'blockPrivateTargets',
             'parseResponse', 'askOnce', 'cacheInto', 'authConnectionId',
         ],
     },

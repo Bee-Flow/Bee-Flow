@@ -132,7 +132,7 @@ run_wizard() {
     log "Starting install wizard on port $WIZARD_PORT..."
     docker run -d \
         --name "$WIZARD_CONTAINER" \
-        -p "${WIZARD_PORT}:9090" \
+        -p "127.0.0.1:${WIZARD_PORT}:9090" \
         -v /var/run/docker.sock:/var/run/docker.sock \
         -v "$SCRIPT_DIR":/project \
         -e REGISTRY_MODE=1 \
@@ -152,6 +152,10 @@ run_wizard() {
         echo ""
         echo -e "  ${BOLD}🐝 Open your browser:${NC}"
         echo -e "  ${CYAN}   http://localhost:${WIZARD_PORT}${NC}"
+        echo ""
+        echo -e "  ${YELLOW}The wizard is only reachable from this machine (loopback).${NC}"
+        echo -e "  ${YELLOW}Remote/headless install? Forward the port over SSH:${NC}"
+        echo -e "  ${CYAN}   ssh -L ${WIZARD_PORT}:localhost:${WIZARD_PORT} user@$(hostname)${NC}"
         echo ""
         echo -e "  ${YELLOW}The wizard will pull service images from the registry on demand${NC}"
         echo -e "  ${YELLOW}and guide you through deploying BeeFlow.${NC}"
@@ -183,7 +187,7 @@ show_status() {
     echo ""
 
     if docker ps --format '{{.Names}}' | grep -q "$WIZARD_CONTAINER"; then
-        echo -e "  ${GREEN}●${NC} Install Wizard   — http://localhost:${WIZARD_PORT}"
+        echo -e "  ${GREEN}●${NC} Install Wizard   — http://localhost:${WIZARD_PORT} (loopback only)"
     else
         echo -e "  ${RED}●${NC} Install Wizard   — not running"
     fi
@@ -200,7 +204,17 @@ uninstall() {
     echo -e "${RED}⚠️  This will stop and remove ALL BeeFlow containers,${NC}"
     echo -e "${RED}   data volumes, and pulled images.${NC}"
     echo ""
-    read -p "Type 'yes' to confirm: " confirm
+    # The confirmation must come from a human at a terminal: read from
+    # /dev/tty, never stdin — `echo yes | ./install-from-registry.sh --uninstall`
+    # (or a stray `yes` in a wrapper script) must not be able to pass this gate.
+    # No controlling terminal (CI, cron, piped scripts) means no confirmation
+    # is possible, so refuse outright instead of falling back to stdin.
+    if ! { : < /dev/tty; } 2>/dev/null; then
+        err "No terminal available for the confirmation prompt — refusing to delete data.
+        (--uninstall must be run interactively; piped input is deliberately ignored.)"
+    fi
+    read -r -p "Type 'yes' to confirm: " confirm < /dev/tty \
+        || { echo "Aborted."; exit 1; }
     if [ "$confirm" != "yes" ]; then
         echo "Aborted."
         exit 1
@@ -213,7 +227,8 @@ uninstall() {
     if [ -f "$compose_file" ]; then
         docker compose -f "$compose_file" \
             --profile core --profile search --profile search-gpu --profile search-llm \
-            --profile guard --profile guard-gpu --profile whisperx --profile pii \
+            --profile guard --profile whisperx --profile pii \
+            --profile local-llm --profile classify --profile analytics \
             down --volumes 2>/dev/null || true
     fi
 
@@ -230,6 +245,7 @@ uninstall() {
         rustfs-data rustfs-logs \
         search-pgdata search-redis-data search-hf-cache \
         guard-redis-data whisperx-cache pii-model-cache \
+        ollama-models \
         2>/dev/null || true
     ok "Data volumes removed"
 
@@ -265,7 +281,7 @@ case "${1:-}" in
         echo "  --help        Show this help"
         echo ""
         echo "Credentials: .credentials file (same format as deploy/registry/.credentials)"
-        echo "Wizard runs at: http://localhost:${WIZARD_PORT}"
+        echo "Wizard runs at: http://localhost:${WIZARD_PORT} (this machine only)"
         ;;
     *)
         check_docker

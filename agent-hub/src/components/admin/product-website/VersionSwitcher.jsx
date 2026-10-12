@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import AppIcon from '../../icons/AppIcon';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
  * Version switcher — lists every version (site) that shares the active
@@ -23,6 +24,7 @@ export default function VersionSwitcher({
     onSetLive,
     onDuplicate,
 }) {
+    const { t } = useTranslation();
     const [busy, setBusy] = useState(false);
 
     const handleDuplicate = async () => {
@@ -36,7 +38,7 @@ export default function VersionSwitcher({
         <div className="mt-2">
             <div className="flex items-center gap-1 mb-1 px-0.5 text-[10px] uppercase tracking-wide text-[var(--text-muted)]">
                 <AppIcon name="Layers" className="w-3 h-3" />
-                Versions
+                {t('cms_site.site.versions.title', 'Versions')}
             </div>
 
             <ul className="rounded-md border border-[var(--border-default)] overflow-hidden divide-y divide-[var(--border-subtle)]">
@@ -71,10 +73,10 @@ export default function VersionSwitcher({
                                 {isLive ? (
                                     <span
                                         className="flex items-center gap-1 shrink-0 px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-[9px] font-medium text-emerald-400"
-                                        title="This version is live at the public URL"
+                                        title={t('cms_site.site.versions.live_title', 'This version is live at the public URL')}
                                     >
                                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                                        Live
+                                        {t('cms_site.site.versions.live', 'Live')}
                                     </span>
                                 ) : (
                                     <button
@@ -83,9 +85,9 @@ export default function VersionSwitcher({
                                         className="shrink-0 opacity-40 group-hover:opacity-100 focus:opacity-100 transition-opacity
                                             text-[9px] font-medium px-1.5 py-0.5 rounded-full border border-[var(--border-default)]
                                             text-[var(--text-muted)] hover:text-[var(--accent-primary)] hover:border-[var(--accent-primary)]/60"
-                                        title="Make this version the live one"
+                                        title={t('cms_site.site.versions.set_live_title', 'Make this version the live one')}
                                     >
-                                        Set live
+                                        {t('cms_site.site.versions.set_live', 'Set live')}
                                     </button>
                                 )}
                             </div>
@@ -102,10 +104,10 @@ export default function VersionSwitcher({
                     border border-dashed border-[var(--border-default)] text-[var(--text-secondary)]
                     hover:border-[var(--accent-primary)]/60 hover:text-[var(--accent-primary)]
                     disabled:opacity-40 disabled:cursor-not-allowed"
-                title="Create a new version by duplicating the version you're editing"
+                title={t('cms_site.site.versions.duplicate_title', "Create a new version by duplicating the version you're editing")}
             >
                 <AppIcon name="Copy" className="w-3 h-3" />
-                {busy ? 'Duplicating…' : 'Duplicate current version'}
+                {busy ? t('cms_site.site.versions.duplicating', 'Duplicating…') : t('cms_site.site.versions.duplicate', 'Duplicate current version')}
             </button>
         </div>
     );

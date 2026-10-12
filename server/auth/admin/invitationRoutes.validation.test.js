@@ -26,6 +26,7 @@ const Module = require('module');
 // Every store and side-effect call lands in `touched`. A refused request must
 // leave it empty.
 const touched = [];
+let licenseSeatCap = null;
 const pass = (req, res, next) => next();
 
 const MOCKS = {
@@ -48,6 +49,7 @@ const MOCKS = {
         getInvitationById: async () => null,
         deleteInvitation: async () => true,
     },
+    '../../license': { getMaxSeatsForOrg: async () => licenseSeatCap },
     '../../utils/emailService': { sendInvitationEmail: async () => ({ success: true }) },
     '../../utils/perUserRateLimit': { perUserRateLimit: () => pass },
     '../../telemetry/log': { info() {}, warn() {}, error() {}, debug() {} },
@@ -75,7 +77,7 @@ const { dispatcher } = require('../../core/http/routeHarness');
 
 const dispatch = dispatcher(router, { session: () => ({ user: { id: 'root' }, isAdmin: true }) });
 
-test.beforeEach(() => { touched.length = 0; });
+test.beforeEach(() => { touched.length = 0; licenseSeatCap = null; });
 
 /** Assert: refused with 400, the named field is in `details`, nothing touched. */
 async function refuses(request, field) {
@@ -118,4 +120,13 @@ test('a role the installation does define still travels to the invitee', async (
     const created = touched.find((t) => t.what === 'createInvitation').args[0];
     assert.strictEqual(created.role, 'agent_admin');
     assert.strictEqual(created.email, 'new@acme.test', 'trimmed once, by the schema');
+});
+
+test('a licence seat cap blocks the invite up front, even when the plan has no user limit', async () => {
+    licenseSeatCap = 1; // getActiveSeatCount mock reports 1 active seat
+    const res = await dispatch({ method: 'POST', url: '/invitations', body: { email: 'capped@acme.test' } });
+    assert.strictEqual(res.statusCode, 403);
+    assert.strictEqual(res.body.code, 'seat_cap_exceeded');
+    assert.strictEqual(res.body.max, 1);
+    assert.deepStrictEqual(touched, []);
 });

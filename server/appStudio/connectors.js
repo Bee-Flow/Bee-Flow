@@ -536,7 +536,7 @@ async function connectionError(connector, message, { userId, deps: _deps } = {})
 
     if (hasCredential) {
         log.warn(`[Connectors] ${provider} is connected for user ${userId} but the connector session carried no token — upstream said: ${String(message).slice(0, 200)}`);
-        const err = connectorError(409, `Your ${provider} connection could not be loaded. Try disconnecting and reconnecting it in Settings → Integrations.`, 'connection_required');
+        const err = connectorError(409, `Your ${provider} connection could not be loaded. Try disconnecting and reconnecting it in Settings → Connections.`, 'connection_required');
         err.reason = 'token_unavailable';
         if (provider) err.provider = provider;
         return err;

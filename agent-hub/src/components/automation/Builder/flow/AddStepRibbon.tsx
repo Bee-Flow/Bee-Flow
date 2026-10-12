@@ -12,7 +12,7 @@ import { searchRibbon } from './ribbon/ribbonSearch';
 import type { RibbonAnchor } from './ribbon/ribbonAnchor';
 import { useRibbonData, useCloseOnOutside, useSlashToFocus } from './ribbon/useRibbonData';
 import type { RibbonScope } from './ribbon/useRibbonData';
-import CategoryTabs, { AddsAfterPill } from './ribbon/CategoryTabs';
+import CategoryTabs, { AddsAfterPill, ribbonFold } from './ribbon/CategoryTabs';
 import RibbonSearchField from './ribbon/RibbonSearchField';
 import RibbonPanel from './ribbon/RibbonPanel';
 
@@ -36,7 +36,9 @@ import RibbonPanel from './ribbon/RibbonPanel';
  *
  * The row folds by its OWN width (`@container/ribbon`): below 1440px the
  * anchor pill keeps only "step n", below 1180px inactive tabs keep only their
- * icon, below 820px the anchor pill goes and the search narrows.
+ * icon (each further suite tab, Google Workspace or Microsoft 365 beside
+ * Nextcloud, moves both 150px up; ribbon/CategoryTabs.tsx `ribbonFold`),
+ * below 820px the anchor pill goes and the search narrows.
  */
 
 interface Props {
@@ -137,7 +139,7 @@ export default function AddStepRibbon({
                 <RibbonSearchField query={query} onQueryChange={setQuery} results={results} onAdd={add} inputRef={inputRef} />
                 <CategoryTabs categories={categories} active={category} expanded={open} onSelect={select} />
                 <div className="ml-auto flex items-center gap-1.5 shrink-0 pl-2 text-[var(--text-tertiary)]">
-                    {anchor && <AddsAfterPill anchor={anchor} />}
+                    {anchor && <AddsAfterPill anchor={anchor} fold={ribbonFold(categories)} />}
                     <button
                         type="button"
                         onClick={() => setExpanded(o => !o)}

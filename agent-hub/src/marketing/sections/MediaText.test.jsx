@@ -87,3 +87,64 @@ describe('in the CMS editor preview', () => {
         expect(screen.getByText(/Add an image/i)).toBeInTheDocument();
     });
 });
+
+describe('clip (video with sound)', () => {
+    const clip = {
+        kind: 'clip',
+        src: '/api/cms/asset/cms/1-demo.mp4',
+        poster: '/api/cms/asset/cms/1-poster.jpg',
+        captionsSrc: '/api/cms/asset/cms/1-demo.en.vtt',
+        captionsLang: 'nl',
+        alt: 'Demo of the approval step',
+    };
+
+    it('renders a player with controls and sound, never autoplay or muted', () => {
+        const { container } = render(<MediaText data={{ ...base, media: clip }} />);
+        const video = container.querySelector('video');
+        expect(video).not.toBeNull();
+        expect(video.getAttribute('src')).toBe(clip.src);
+        expect(video.getAttribute('poster')).toBe(clip.poster);
+        expect(video.hasAttribute('controls')).toBe(true);
+        expect(video.getAttribute('preload')).toBe('metadata');
+        expect(video.hasAttribute('playsinline')).toBe(true);
+        expect(video.autoplay).toBe(false);
+        expect(video.muted).toBe(false);
+        expect(video.hasAttribute('loop')).toBe(false);
+        expect(video.getAttribute('aria-label')).toBe('Demo of the approval step');
+    });
+
+    it('adds a default captions track in the given language', () => {
+        const { container } = render(<MediaText data={{ ...base, media: clip }} />);
+        const track = container.querySelector('video track');
+        expect(track).not.toBeNull();
+        expect(track.getAttribute('kind')).toBe('captions');
+        expect(track.getAttribute('src')).toBe(clip.captionsSrc);
+        expect(track.getAttribute('srclang')).toBe('nl');
+        expect(track.hasAttribute('default')).toBe(true);
+    });
+
+    it('has no track and no poster when none were uploaded', () => {
+        const { container } = render(<MediaText data={{ ...base, media: { kind: 'clip', src: clip.src } }} />);
+        expect(container.querySelector('video track')).toBeNull();
+        expect(container.querySelector('video').hasAttribute('poster')).toBe(false);
+    });
+
+    it('leaves the silent loop exactly as it was: autoplay, muted, loop, no controls', () => {
+        const { container } = render(
+            <MediaText data={{ ...base, media: { kind: 'video-silent', src: clip.src, alt: '' } }} />
+        );
+        const video = container.querySelector('video');
+        expect(video.hasAttribute('autoplay')).toBe(true);
+        expect(video.hasAttribute('loop')).toBe(true);
+        expect(video.hasAttribute('controls')).toBe(false);
+    });
+
+    it('shows the upload prompt in the editor preview when empty, nothing on the public site', () => {
+        setPreview(true);
+        render(<MediaText data={{ ...base, media: { kind: 'clip', src: '' } }} />);
+        expect(screen.getByText(/Upload a clip/i)).toBeInTheDocument();
+        setPreview(false);
+        const { container } = render(<MediaText data={{ ...base, media: { kind: 'clip', src: '' } }} />);
+        expect(container.querySelector('.media-text-block-media')).toBeNull();
+    });
+});

@@ -40,8 +40,10 @@ const {
     verifyRouteRules,
     collectFieldPaths,
     routeRulesProblem,
+    routeRulesSystemPrompt,
     MAX_ROUTE_RULES,
 } = require('./routeRules');
+const { CONDITION_RULES_HINT } = require('../../../automation/builderTools/ruleExamples');
 const { parseExpr } = require('../../../automation/expr');
 
 const FIELDS = [
@@ -277,4 +279,64 @@ test('an isAbout over an undeclared field is dropped like any other', () => {
         { name: 'Complaints', expr: 'isAbout(item.body, "a complaint")' },
     ], { fields: FIELDS, topics: true });
     assert.deepStrictEqual(rules, []);
+});
+
+// ── A3/A4: File type and list columns ───────────────────────────────────────
+
+// The editor's field menu for a mail (shared ruleFieldOptions): the list of
+// attachments once, its File type, and its columns, each by the path the row
+// writes.
+const MAIL_FIELDS = [
+    { key: 'item.from', name: 'From', type: 'text' },
+    { key: 'item.attachments', name: 'Attachments', type: 'list' },
+    { key: 'fileType(item.attachments[*])', name: 'File type', type: 'text' },
+    { key: 'item.attachments[*].mimeType', name: 'Mime type', type: 'text' },
+];
+
+test('A4: fileType over a declared list of files reads a declared field', () => {
+    const rules = verifyRouteRules([
+        { name: 'pdf', expr: 'anyOf(fileType(item.attachments[*]), "equals", "pdf")' },
+        { name: 'word', expr: 'anyOf(fileType(item.attachments[*]), "equals", "word")' },
+    ], { fields: MAIL_FIELDS });
+    assert.deepStrictEqual(rules.map(r => r.name), ['pdf', 'word']);
+});
+
+test('A4: fileType(<declared path>) and the declared File type of the item both count', () => {
+    const rules = verifyRouteRules([
+        { name: 'by name', expr: 'equals(fileType(item.filename), "pdf")' },
+        { name: 'the file', expr: 'equals(fileType(item), "pdf")' },
+    ], { fields: [{ key: 'item.filename', name: 'Filename', type: 'text' }, { key: 'fileType(item)', name: 'File type', type: 'text' }] });
+    assert.deepStrictEqual(rules.map(r => r.name), ['by name', 'the file']);
+});
+
+test('A4: a column of a declared list reads a declared field, under either declaration', () => {
+    const viaColumn = verifyRouteRules(
+        [{ name: 'pdf', expr: 'anyOf(item.attachments[*].mimeType, "contains", "pdf")' }],
+        { fields: [{ key: 'item.attachments[*].mimeType', name: 'Mime type', type: 'text' }] },
+    );
+    assert.strictEqual(viaColumn.length, 1, 'the column itself was declared');
+    const viaList = verifyRouteRules(
+        [{ name: 'pdf', expr: 'anyOf(item.attachments[*].filename, "endsWith", ".pdf")' }],
+        { fields: [{ key: 'item.attachments', name: 'Attachments', type: 'list' }] },
+    );
+    assert.strictEqual(viaList.length, 1, 'the list was declared');
+});
+
+test('A4: an undeclared list, or fileType of an undeclared field, is still dropped', () => {
+    const rules = verifyRouteRules([
+        { name: 'typo', expr: 'anyOf(fileType(item.atachments[*]), "equals", "pdf")' },
+        { name: 'column typo', expr: 'anyOf(item.atachments[*].mimeType, "contains", "pdf")' },
+        { name: 'the row', expr: 'equals(fileType(item), "pdf")' },
+    ], { fields: MAIL_FIELDS });
+    assert.deepStrictEqual(rules, [], 'File type of the row was not declared for a mail');
+});
+
+test('A3: the Suggest-outputs prompt teaches the row shapes and fileType, not endsWith or lower()', () => {
+    const sys = routeRulesSystemPrompt({ topics: false });
+    assert.ok(sys.includes(CONDITION_RULES_HINT));
+    assert.match(sys, /anyOf\(fileType\(<list>\[\*\]\), "equals", "pdf"\)/);
+    assert.ok(!/lower\(s\)|upper\(s\)/.test(sys), 'lower()/upper() are no longer offered');
+    assert.ok(!/answered with endsWith\(\)/.test(sys), 'file types are no longer taught as endsWith()');
+    assert.ok(!sys.includes('isAbout'), 'isAbout only with the topic classifier');
+    assert.ok(routeRulesSystemPrompt({ topics: true }).includes('isAbout'));
 });

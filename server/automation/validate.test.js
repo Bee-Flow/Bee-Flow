@@ -935,7 +935,9 @@ function layerGraph(overrides = {}) {
 {
     const def = {
         trigger: trigger(),
-        steps: [{ id: 'h1', type: 'http_request', url: 'https://api.example.com', method: 'post', headers: { 'Content-Type': 'application/json' }, body: '{{steps.a.output.x}}', timeoutMs: 30_000, blockPrivateTargets: false }],
+        // The body reads the trigger: http_request templates are reference-scoped
+        // now, and the old `steps.a` named a step this fixture never had.
+        steps: [{ id: 'h1', type: 'http_request', url: 'https://api.example.com', method: 'post', headers: { 'Content-Type': 'application/json' }, body: '{{trigger.output.x}}', timeoutMs: 30_000, blockPrivateTargets: false }],
         edges: [{ from: 'trg', to: 'h1' }],
     };
     const r = validateDefinition(def);

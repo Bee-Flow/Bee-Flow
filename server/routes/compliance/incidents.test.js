@@ -202,6 +202,34 @@ test('a DORA incident reads dora_customer_notice_hours from the org settings', a
     assert.equal(state.calls.find(x => x.name === 'getSettings').orgId, 'org_a');
 });
 
+test('a NIS2/DORA incident re-runs the NIS2 and DORA reporting-path checks', async () => {
+    const res = await call('POST', '/incidents', ADMIN_A, { title: 'Outage', kind: 'security_incident', regimes: ['NIS2', 'DORA'] });
+    assert.equal(res.status, 201);
+    await tick();
+    const ids = state.reruns.map(r => r.checkId);
+    assert.ok(ids.includes('NIS2-Art23-early-warning-path'), ids.join(','));
+    assert.ok(ids.includes('DORA-Art30-incident-reporting-path'), ids.join(','));
+
+    state.reruns = [];
+    const notified = await call('POST', `/incidents/${res.body.id}/customer-notified`, ADMIN_A);
+    assert.equal(notified.status, 200);
+    await tick();
+    assert.ok(state.reruns.map(r => r.checkId).includes('DORA-Art30-incident-reporting-path'), 'the customer notice is the DORA stamp');
+
+    state.reruns = [];
+    assert.equal((await call('PATCH', `/incidents/${res.body.id}`, ADMIN_A, { status: 'assessing' })).status, 200);
+    await tick();
+    assert.ok(state.reruns.map(r => r.checkId).includes('NIS2-Art23-early-warning-path'));
+});
+
+test('the incident title never enters the evidence chain', async () => {
+    const res = await call('POST', '/incidents', ADMIN_A, { title: 'Mail to jan@example.org sent to the wrong client' });
+    assert.equal(res.status, 201);
+    assert.equal(state.evidence[0].payload.action, 'incident_created');
+    assert.ok(!('title' in state.evidence[0].payload));
+    assert.doesNotMatch(JSON.stringify(state.evidence[0].payload), /jan@example\.org/);
+});
+
 // ── Listing ──────────────────────────────────────────────────────────
 
 test('GET /incidents?kind= filters through the store, org-scoped; an unknown kind is 400', async () => {
@@ -246,6 +274,14 @@ test('POST /incidents/:id/cra-report early_warning → stampCraReport + CRA evid
     assert.deepEqual({ orgId: state.events[0].payload.orgId, incidentId: state.events[0].payload.incidentId, stage: state.events[0].payload.stage }, { orgId: 'org_a', incidentId: id, stage: 'early_warning' });
     await tick();
     assert.deepEqual(state.reruns.map(r => r.checkId), ['CRA-Art14-vuln-reporting-clocks']);
+});
+
+test('cra-report: an e-mail address typed as reported_via is chained as the channel "email"', async () => {
+    const id = await seedVuln();
+    const res = await call('POST', `/incidents/${id}/cra-report`, ADMIN_A, { stage: 'early_warning', reported_via: 'mail to contact@csirt.example.org' });
+    assert.equal(res.status, 200);
+    assert.equal(state.evidence[0].payload.reported_via, 'email');
+    assert.doesNotMatch(JSON.stringify(state.evidence[0].payload), /@/);
 });
 
 test('cra-report: stage full; invalid stage 400; foreign incident 404; non-CRA incident 409', async () => {

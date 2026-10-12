@@ -1,7 +1,9 @@
+import { render, screen, cleanup, waitFor, within, act } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
-import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import TrainingPage, { attestationDueAt, OBLIGATION_KINDS } from './TrainingPage';
+import TrainingPage, { OBLIGATION_KINDS } from './TrainingPage';
+import { attestationDueAt, needsAttestation } from './trainingAttestation';
 
 vi.mock('../../../../hooks/useTranslation', () => {
     const useTranslation = () => ({
@@ -20,9 +22,15 @@ afterEach(cleanup);
 
 const USERS = [{ id: 'u1', displayName: 'T. Smit', email: 't@example.com' }];
 
+const DAY_MS = 86_400_000;
+const daysAgo = (n) => new Date(Date.now() - n * DAY_MS).toISOString();
+
+// u1 attested 100 days ago (265 days left: no button, a quiet clock), u2
+// never (a button), u3 320 days ago (about 45 days left: a button).
 const PERSONNEL = [
-    { user_id: 'u1', displayName: 'T. Smit', email: 'tom.smit@example.com', policy_acks: 3, policy_total: 3, learning_done: 4, attested_at: '2026-06-01T10:00:00Z', attested_note: 'Awareness 2026' },
+    { user_id: 'u1', displayName: 'T. Smit', email: 'tom.smit@example.com', policy_acks: 3, policy_total: 3, learning_done: 4, attested_at: daysAgo(100), attested_note: 'Awareness 2026' },
     { user_id: 'u2', displayName: 'R. Bakker', email: 'rick@example.com', policy_acks: 1, policy_total: 3, learning_done: null, attested_at: null, attested_note: null },
+    { user_id: 'u3', displayName: 'F. Amrani', email: 'farah@example.com', policy_acks: 3, policy_total: 3, learning_done: 1, attested_at: daysAgo(320), attested_note: null },
 ];
 const OBLIGATIONS = [
     { id: 11, kind: 'internal_audit', title: 'Internal audit 2026', subject: 'ISMS', due_at: '2026-12-01', recur_months: 12, owner_user_id: 'u1', completed_at: null },
@@ -60,6 +68,22 @@ describe('attestationDueAt', () => {
         expect(attestationDueAt({ attested_at: null })).toBeNull();
         expect(attestationDueAt({})).toBeNull();
         expect(attestationDueAt({ attested_at: 'nonsense' })).toBeNull();
+    });
+});
+
+/** The create action the page handed to the header, as the header would click it. */
+function clickHeaderPrimary(setHeaderActions) {
+    const calls = setHeaderActions.mock.calls.filter(([a]) => a && a.primaryAction);
+    const { primaryAction } = calls[calls.length - 1][0];
+    act(() => primaryAction.onClick());
+    return primaryAction;
+}
+
+describe('needsAttestation', () => {
+    it('without an attestation, or with 60 days or less left on it', () => {
+        expect(needsAttestation({ attested_at: null })).toBe(true);
+        expect(needsAttestation({ attested_at: daysAgo(320) })).toBe(true);
+        expect(needsAttestation({ attested_at: daysAgo(100) })).toBe(false);
     });
 });
 
@@ -105,58 +129,115 @@ describe('TrainingPage', () => {
         expect(screen.getByTestId('training-never-u2')).toBeTruthy();
     });
 
+    it('only the members who need action carry the inline button', () => {
+        render(<TrainingPage {...pageProps()} />);
+        expect(screen.queryByTestId('training-attest-u1')).toBeNull();
+        expect(screen.getByTestId('training-attest-u2').textContent).toContain('Attest training');
+        expect(screen.getByTestId('training-attest-u3').textContent).toContain('Re-attest');
+    });
+
+    it('a distant validity date is a quiet clock, with the full date in its tooltip', () => {
+        render(<TrainingPage {...pageProps()} />);
+        const clock = screen.getByTestId('training-clock-u1');
+        expect(clock.hasAttribute('data-quiet')).toBe(true);
+        expect(clock.getAttribute('data-tone')).toBe('neutral');
+        expect(clock.parentElement.getAttribute('title')).toMatch(/\d{1,2} \w{3}/);
+        // The button shows from 60 days out, the clock stays quiet until 30.
+        expect(screen.getByTestId('training-clock-u3').hasAttribute('data-quiet')).toBe(true);
+    });
+
+    it('a clock with 30 days or less left is no longer quiet', () => {
+        const personnel = [{ user_id: 'u4', displayName: 'J. Visser', email: 'j@example.com', attested_at: daysAgo(350) }];
+        render(<TrainingPage {...pageProps({ training: { personnel } })} />);
+        expect(screen.getByTestId('training-clock-u4').hasAttribute('data-quiet')).toBe(false);
+        expect(screen.getByTestId('training-attest-u4')).toBeTruthy();
+    });
+
+    it('the column reads "Training valid"', () => {
+        render(<TrainingPage {...pageProps()} />);
+        const header = within(screen.getByTestId('training-personnel-table')).getAllByRole('columnheader').map(h => h.textContent);
+        expect(header).toContain('Training valid');
+    });
+
+    it('a row click opens the attest drawer, also for a member without a button', async () => {
+        const user = userEvent.setup();
+        render(<TrainingPage {...pageProps()} />);
+        await user.click(screen.getByTestId('training-person-u1'));
+        expect(screen.getByTestId('attest-drawer')).toBeTruthy();
+        expect(screen.getByTestId('attest-previous').textContent).toContain('Awareness 2026');
+    });
+
     it('records a training attestation with its note', async () => {
+        const user = userEvent.setup();
         const attest = vi.fn().mockResolvedValue({});
         render(<TrainingPage {...pageProps({ training: { attest } })} />);
-        fireEvent.click(screen.getByTestId('training-attest-u2'));
-        fireEvent.change(screen.getByTestId('attest-note'), { target: { value: 'Awareness course 3 Sep' } });
-        fireEvent.click(screen.getByTestId('attest-submit'));
+        await user.click(screen.getByTestId('training-attest-u2'));
+        await user.type(screen.getByTestId('attest-note'), 'Awareness course 3 Sep');
+        await user.click(screen.getByTestId('attest-submit'));
         await waitFor(() => expect(attest).toHaveBeenCalledWith('u2', 'Awareness course 3 Sep'));
     });
 
     it('sends no note when the field is left empty', async () => {
+        const user = userEvent.setup();
         const attest = vi.fn().mockResolvedValue({});
         render(<TrainingPage {...pageProps({ training: { attest } })} />);
-        fireEvent.click(screen.getByTestId('training-attest-u2'));
-        fireEvent.click(screen.getByTestId('attest-submit'));
+        await user.click(screen.getByTestId('training-attest-u2'));
+        await user.click(screen.getByTestId('attest-submit'));
         await waitFor(() => expect(attest).toHaveBeenCalledWith('u2', undefined));
     });
 
-    it('shows the previous attestation when recording again', () => {
-        render(<TrainingPage {...pageProps()} />);
-        fireEvent.click(screen.getByTestId('training-attest-u1'));
-        expect(screen.getByTestId('attest-previous').textContent).toContain('Awareness 2026');
-    });
-
-    it('completes an open obligation and shows the stamp on a done one', () => {
+    it('completes an open obligation; a done one reads "Done {date}" once and has no action', async () => {
+        const user = userEvent.setup();
         const completeObligation = vi.fn();
         render(<TrainingPage {...pageProps({ training: { completeObligation } })} />);
-        fireEvent.click(screen.getByTestId('obligation-complete-11'));
+        await user.click(screen.getByTestId('obligation-complete-11'));
         expect(completeObligation).toHaveBeenCalledWith(11);
         expect(screen.queryByTestId('obligation-complete-12')).toBeNull();
-        expect(screen.getByTestId('obligation-done-12')).toBeTruthy();
+        const row = screen.getByTestId('obligation-row-12');
+        expect(screen.getByTestId('obligation-done-12').textContent).toMatch(/^Done 20 Apr/);
+        expect(row.textContent.match(/Done /g)).toHaveLength(1);
+        expect(within(row).queryByRole('button')).toBeNull();
     });
 
-    it('creates an obligation from the drawer', async () => {
+    it('the kind is plain secondary text, not a bordered pill', () => {
+        render(<TrainingPage {...pageProps()} />);
+        const kind = screen.getByTestId('obligation-kind-11');
+        expect(kind.textContent).toBe('Internal audit');
+        expect(kind.closest('[data-testid="status-pill"]')).toBeNull();
+        expect(kind.className).not.toMatch(/border/);
+    });
+
+    it('"Add obligation" sits in the header and opens the create drawer', async () => {
+        const user = userEvent.setup();
+        const setHeaderActions = vi.fn();
         const createObligation = vi.fn().mockResolvedValue({});
-        render(<TrainingPage {...pageProps({ training: { createObligation } })} />);
-        fireEvent.click(screen.getByTestId('obligation-add'));
-        fireEvent.change(screen.getByTestId('obligation-f-title'), { target: { value: 'Supplier review' } });
-        fireEvent.change(screen.getByTestId('obligation-f-kind'), { target: { value: 'supplier_review' } });
-        fireEvent.change(screen.getByTestId('obligation-f-due'), { target: { value: '2027-01-15' } });
-        fireEvent.change(screen.getByTestId('obligation-f-recur'), { target: { value: '6' } });
-        fireEvent.click(screen.getByTestId('obligation-create-submit'));
+        render(<TrainingPage {...pageProps({ setHeaderActions, training: { createObligation } })} />);
+        expect(screen.queryByTestId('obligation-add')).toBeNull();
+        expect(clickHeaderPrimary(setHeaderActions).label).toBe('Add obligation');
+        await user.type(screen.getByTestId('obligation-f-title'), 'Supplier review');
+        await user.selectOptions(screen.getByTestId('obligation-f-kind'), 'supplier_review');
+        await user.type(screen.getByTestId('obligation-f-due'), '2027-01-15');
+        await user.type(screen.getByTestId('obligation-f-recur'), '6');
+        await user.click(screen.getByTestId('obligation-create-submit'));
         await waitFor(() => expect(createObligation).toHaveBeenCalled());
         expect(createObligation).toHaveBeenCalledWith(expect.objectContaining({
             kind: 'supplier_review', title: 'Supplier review', due_at: '2027-01-15', recur_months: 6,
         }));
     });
 
-    it('refuses to create an obligation without a title or a due date', () => {
+    it('a host without a header keeps "Add obligation" in the toolbar', async () => {
+        const user = userEvent.setup();
+        render(<TrainingPage {...pageProps({ setHeaderActions: undefined })} />);
+        await user.click(screen.getByTestId('obligation-add'));
+        expect(screen.getByTestId('obligation-drawer')).toBeTruthy();
+    });
+
+    it('refuses to create an obligation without a title or a due date', async () => {
+        const user = userEvent.setup();
         const createObligation = vi.fn();
-        render(<TrainingPage {...pageProps({ training: { createObligation } })} />);
-        fireEvent.click(screen.getByTestId('obligation-add'));
-        fireEvent.click(screen.getByTestId('obligation-create-submit'));
+        render(<TrainingPage {...pageProps({ setHeaderActions: undefined, training: { createObligation } })} />);
+        await user.click(screen.getByTestId('obligation-add'));
+        await user.click(screen.getByTestId('obligation-create-submit'));
         expect(createObligation).not.toHaveBeenCalled();
     });
 
@@ -201,17 +282,36 @@ describe('TrainingPage — phone (artboard 1h)', () => {
         expect(screen.getByTestId('training-person-card-u9').textContent).not.toMatch(/0 \/ 0/);
     });
 
-    it('the attest drawer is a right-side modal on a phone', () => {
+    it('an obligation card puts dots only between the parts it has', () => {
         render(<TrainingPage {...pageProps({ isMobile: true })} />);
-        fireEvent.click(screen.getByTestId('training-attest-card-u1'));
+        // obl 12: a kind and nothing else, so no trailing dot.
+        const bare = screen.getByTestId('obligation-kind-card-12').parentElement;
+        expect(bare.textContent).toBe('Penetration test');
+        // obl 11: kind · subject · every 12 months · owner.
+        const full = screen.getByTestId('obligation-kind-card-11').parentElement.textContent;
+        expect(full).toMatch(/^Internal audit · ISMS · every 12 months · /);
+        expect(full).not.toMatch(/·\s*·|·\s*$/);
+    });
+
+    it('a card carries the button only when the member needs action', () => {
+        render(<TrainingPage {...pageProps({ isMobile: true })} />);
+        expect(screen.queryByTestId('training-attest-card-u1')).toBeNull();
+        expect(screen.getByTestId('training-attest-card-u2')).toBeTruthy();
+    });
+
+    it('the attest drawer is a right-side modal on a phone', async () => {
+        const user = userEvent.setup();
+        render(<TrainingPage {...pageProps({ isMobile: true })} />);
+        await user.click(screen.getByTestId('training-person-open-card-u1'));
         expect(document.body.querySelector('[role="dialog"]')).not.toBeNull();
         expect(screen.getByTestId('attest-drawer').dataset.mode).toBe('modal');
     });
 
-    it('desktop keeps the grid rows and the inline drawer', () => {
+    it('desktop keeps the grid rows and the inline drawer', async () => {
+        const user = userEvent.setup();
         render(<TrainingPage {...pageProps()} />);
         expect(screen.getByTestId('training-personnel-table').dataset.view).toBe('table');
-        fireEvent.click(screen.getByTestId('training-attest-u1'));
+        await user.click(screen.getByTestId('training-attest-u2'));
         expect(document.body.querySelector('[role="dialog"]')).toBeNull();
         expect(screen.getByTestId('attest-drawer').dataset.mode).toBe('inline');
     });

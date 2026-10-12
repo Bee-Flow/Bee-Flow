@@ -13,16 +13,19 @@
  * empty state offers the thing that would fix it — a tagged link — rather than
  * explaining why the box is grey.
  */
-import React, { useMemo, useState } from 'react';
 import { Share2, Link2, Copy, Check } from 'lucide-react';
-import { useAnalyticsQuery } from '../useAnalyticsQuery';
+import React, { useMemo, useState } from 'react';
+import { useTranslation } from '../../../../../hooks/useTranslation';
+import { toChannels, channelLabel, referrerHost, pivot } from '../model';
+import { rich } from '../rich';
 import {
     ACCENT, SERIES, Card, Empty, ErrorNote, Skeleton, SplitBar, ShareBar,
     fmt, fmtDurationSec, rateColor, maxOf,
 } from '../ui';
-import { toChannels, referrerHost, pivot } from '../model';
+import { useAnalyticsQuery } from '../useAnalyticsQuery';
 
 export default function SourcesSection({ scope, onDrill }) {
+    const { t } = useTranslation();
     const referrers = useAnalyticsQuery('query', 'metrics', scope, { params: { type: 'referrer', limit: 50 } });
     const stats = useAnalyticsQuery('query', 'stats', scope);
     const utm = useAnalyticsQuery('report', 'utm', scope);
@@ -63,34 +66,41 @@ export default function SourcesSection({ scope, onDrill }) {
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <Card title="Channel mix" icon={Share2}>
+            <Card title={t('cms_site.analytics.sources.channel_mix', 'Channel mix')} icon={Share2}>
                 {channels.length === 0 ? (
-                    <Empty text="No visits in this period." />
+                    <Empty text={t('cms_site.analytics.sources.no_visits', 'No visits in this period.')} />
                 ) : (
                     <>
                         <SplitBar
                             segments={channels.map((c, i) => ({
-                                label: c.label, value: c.value, color: CHANNEL_COLORS[c.label] || SERIES.secondary,
+                                label: channelLabel(c.label, t), value: c.value, color: CHANNEL_COLORS[c.label] || SERIES.secondary,
                             }))}
                             legend height={12}
                         />
                         <p style={{ fontSize: 12, color: 'var(--text-secondary, #aaa)', margin: '12px 0 0' }}>
                             {channels[0].share >= 80
-                                ? <>Almost everything is <strong>{channels[0].label.toLowerCase()}</strong> traffic
-                                    ({Math.round(channels[0].share)}%). Tag the links you share to see more here.</>
-                                : <><strong>{channels[0].label}</strong> is your biggest channel
-                                    at {Math.round(channels[0].share)}%, followed by {channels[1]?.label?.toLowerCase()
-                                        || 'nothing else'}{channels[1] ? ` at ${Math.round(channels[1].share)}%` : ''}.</>}
+                                ? <>{rich(t('cms_site.analytics.sources.almost_all', 'Almost everything is {channel} traffic ({pct}%). Tag the links you share to see more here.'), {
+                                    channel: <strong>{channelLabel(channels[0].label, t).toLowerCase()}</strong>,
+                                    pct: Math.round(channels[0].share),
+                                })}</>
+                                : <>{rich(channels[1]
+                                    ? t('cms_site.analytics.sources.biggest_then', '{channel} is your biggest channel at {pct}%, followed by {second} at {pct2}%.')
+                                    : t('cms_site.analytics.sources.biggest_alone', '{channel} is your biggest channel at {pct}%, followed by nothing else.'), {
+                                    channel: <strong>{channelLabel(channels[0].label, t)}</strong>,
+                                    pct: Math.round(channels[0].share),
+                                    second: channels[1] ? channelLabel(channels[1].label, t).toLowerCase() : '',
+                                    pct2: channels[1] ? Math.round(channels[1].share) : '',
+                                })}</>}
                         </p>
                     </>
                 )}
             </Card>
 
-            <Card title="Referring sites" icon={Share2} action={
-                enriched.length ? <span style={{ fontSize: 10, color: 'var(--text-muted, #777)' }}>click to filter</span> : null
+            <Card title={t('cms_site.analytics.sources.referring', 'Referring sites')} icon={Share2} action={
+                enriched.length ? <span style={{ fontSize: 10, color: 'var(--text-muted, #777)' }}>{t('cms_site.analytics.sources.click_filter', 'click to filter')}</span> : null
             }>
                 {enriched.length === 0 ? (
-                    <Empty text="Nobody arrived from another site in this period — all traffic was direct or untracked." />
+                    <Empty text={t('cms_site.analytics.sources.no_referrers', 'Nobody arrived from another site in this period — all traffic was direct or untracked.')} />
                 ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
                         {enriched.slice(0, 15).map((r, i) => (
@@ -107,7 +117,7 @@ export default function SourcesSection({ scope, onDrill }) {
                                     <span style={{ display: 'flex', gap: 12, flexShrink: 0, alignItems: 'baseline' }}>
                                         {r.bounceRate != null && (
                                             <span style={{ fontSize: 11, color: rateColor(r.bounceRate) }}>
-                                                {Math.round(r.bounceRate)}% bounce
+                                                {t('cms_site.analytics.sources.bounce_pct', '{pct}% bounce', { pct: Math.round(r.bounceRate) })}
                                             </span>
                                         )}
                                         {r.avgTime != null && (
@@ -142,11 +152,11 @@ const CHANNEL_COLORS = {
 };
 
 const UTM_FIELDS = [
-    { key: 'utm_source', label: 'Source', dim: 'utmSource' },
-    { key: 'utm_medium', label: 'Medium', dim: 'utmMedium' },
-    { key: 'utm_campaign', label: 'Campaign', dim: 'utmCampaign' },
-    { key: 'utm_content', label: 'Content', dim: 'utmContent' },
-    { key: 'utm_term', label: 'Term', dim: 'utmTerm' },
+    { key: 'utm_source', labelKey: 'cms_site.analytics.sources.utm_source', label: 'Source', dim: 'utmSource' },
+    { key: 'utm_medium', labelKey: 'cms_site.analytics.sources.utm_medium', label: 'Medium', dim: 'utmMedium' },
+    { key: 'utm_campaign', labelKey: 'cms_site.analytics.sources.utm_campaign', label: 'Campaign', dim: 'utmCampaign' },
+    { key: 'utm_content', labelKey: 'cms_site.analytics.sources.utm_content', label: 'Content', dim: 'utmContent' },
+    { key: 'utm_term', labelKey: 'cms_site.analytics.sources.utm_term', label: 'Term', dim: 'utmTerm' },
 ];
 
 /**
@@ -157,22 +167,22 @@ const UTM_FIELDS = [
  * and tag a link.
  */
 function CampaignCard({ utm, onDrill }) {
+    const { t } = useTranslation();
     const data = utm.payload || {};
     const present = UTM_FIELDS
         .map(f => ({ ...f, rows: Array.isArray(data[f.key]) ? data[f.key] : [] }))
         .filter(f => f.rows.length > 0);
 
-    if (utm.loading) return <Card title="Campaigns" icon={Link2}><Skeleton height={140} /></Card>;
+    if (utm.loading) return <Card title={t('cms_site.analytics.sources.campaigns', 'Campaigns')} icon={Link2}><Skeleton height={140} /></Card>;
 
     if (!present.length) {
         return (
-            <Card title="Campaigns" icon={Link2}>
+            <Card title={t('cms_site.analytics.sources.campaigns', 'Campaigns')} icon={Link2}>
                 <p style={{ fontSize: 13, color: 'var(--text-secondary, #ccc)', margin: '0 0 4px' }}>
-                    No tagged links were visited in this period.
+                    {t('cms_site.analytics.sources.no_tagged', 'No tagged links were visited in this period.')}
                 </p>
                 <p style={{ fontSize: 12, color: 'var(--text-muted, #888)', margin: '0 0 14px' }}>
-                    Campaign data only appears when you share a link carrying <code>?utm_source=…</code>.
-                    Build one here and every visit through it shows up in this card.
+                    {rich(t('cms_site.analytics.sources.no_tagged_hint', 'Campaign data only appears when you share a link carrying {code}. Build one here and every visit through it shows up in this card.'), { code: <code>?utm_source=…</code> })}
                 </p>
                 <UtmBuilder />
             </Card>
@@ -180,14 +190,14 @@ function CampaignCard({ utm, onDrill }) {
     }
 
     return (
-        <Card title="Campaigns" icon={Link2}>
+        <Card title={t('cms_site.analytics.sources.campaigns', 'Campaigns')} icon={Link2}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
                 {present.map(f => {
                     const peak = maxOf(f.rows.map(r => Number(r.y ?? r.count) || 0));
                     return (
                         <div key={f.key}>
                             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #888)', marginBottom: 7 }}>
-                                {f.label}
+                                {t(f.labelKey, f.label)}
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                                 {f.rows.slice(0, 6).map((r, i) => {
@@ -224,6 +234,7 @@ function CampaignCard({ utm, onDrill }) {
 
 /** Builds a tagged URL. Purely client-side; nothing is stored. */
 function UtmBuilder() {
+    const { t } = useTranslation();
     const [url, setUrl] = useState('');
     const [source, setSource] = useState('');
     const [medium, setMedium] = useState('');
@@ -252,13 +263,13 @@ function UtmBuilder() {
     return (
         <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #888)', marginBottom: 8 }}>
-                Build a tagged link
+                {t('cms_site.analytics.sources.build_link', 'Build a tagged link')}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8 }}>
-                <Field value={url} onChange={setUrl} placeholder="https://your.site/pricing" label="Destination" />
-                <Field value={source} onChange={setSource} placeholder="newsletter" label="Source" />
-                <Field value={medium} onChange={setMedium} placeholder="email" label="Medium" />
-                <Field value={campaign} onChange={setCampaign} placeholder="launch-july" label="Campaign" />
+                <Field value={url} onChange={setUrl} placeholder="https://your.site/pricing" label={t('cms_site.analytics.sources.destination', 'Destination')} />
+                <Field value={source} onChange={setSource} placeholder={t('cms_site.analytics.sources.ph_source', 'newsletter')} label={t('cms_site.analytics.sources.utm_source', 'Source')} />
+                <Field value={medium} onChange={setMedium} placeholder={t('cms_site.analytics.sources.ph_medium', 'email')} label={t('cms_site.analytics.sources.utm_medium', 'Medium')} />
+                <Field value={campaign} onChange={setCampaign} placeholder={t('cms_site.analytics.sources.ph_campaign', 'launch-july')} label={t('cms_site.analytics.sources.utm_campaign', 'Campaign')} />
             </div>
             {built && (
                 <div style={{ display: 'flex', gap: 8, marginTop: 10, alignItems: 'center' }}>
@@ -274,7 +285,7 @@ function UtmBuilder() {
                         background: ACCENT, color: '#06241f',
                     }}>
                         {copied ? <Check style={{ width: 12, height: 12 }} /> : <Copy style={{ width: 12, height: 12 }} />}
-                        {copied ? 'Copied' : 'Copy'}
+                        {copied ? t('cms_site.analytics.sources.copied', 'Copied') : t('cms_site.analytics.sources.copy', 'Copy')}
                     </button>
                 </div>
             )}

@@ -42,6 +42,15 @@ describe('ndvModel — the column summaries', () => {
         expect(incomingSummary([], null, null, walk, t)).toBe('Nothing yet, this step comes first');
     });
 
+    it('column 1 skips "Trigger info": it comes after the steps but is not the nearest one', () => {
+        const groups = [
+            { label: 'Manual start', basePath: 'trigger.output', sample: {} },
+            { label: 'Mail accounts', basePath: 'steps.s1.output', sample: {} },
+            { label: 'Trigger info', kind: 'trigger_meta', basePath: 'trigger', sample: {} },
+        ];
+        expect(incomingSummary(groups, null, null, walk, t)).toBe('Mail accounts');
+    });
+
     it('column 2 reads the catalog description, one sentence', () => {
         const catalog = { apps: [{ label: 'Nextcloud', actions: [{ name: 'nc_read', description: 'Reads the content of a file from Nextcloud. Supports PDF.' }] }] };
         expect(whatItDoes({ id: 's', type: 'integration_action', tool: 'nc_read' }, catalog, t)).toBe('Reads the content of a file from Nextcloud');

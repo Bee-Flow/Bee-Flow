@@ -75,11 +75,33 @@ test('a shield counts only in front of what it precedes', () => {
     assert.equal(between.verdict, 'guarded');
 });
 
-test('all three of the Privacy Shield\'s runtime shapes count as a shield', () => {
-    for (const shape of ['guard', 'tokenize', 'untokenize']) {
+test('the hiding shapes guard what follows; a reveal does not', () => {
+    for (const shape of ['guard', 'tokenize']) {
         const flow = F.analyseFlow({ steps: [step(shape), step('integration_action', 'gmail_compose')], personal: PERSONAL });
         assert.equal(flow.exits[0].shielded, true, shape);
     }
+    // An untokenize is still a shield STEP (it is seen and counted), but it puts
+    // the real values back: a send behind it sends them.
+    const reveal = F.analyseFlow({ steps: [step('untokenize'), step('integration_action', 'gmail_compose')], personal: PERSONAL });
+    assert.equal(reveal.shields.length, 1);
+    assert.equal(reveal.exits[0].shielded, false);
+    assert.equal(reveal.verdict, 'unguarded');
+});
+
+test('a reveal after the hide re-exposes every later step, until the next hide', () => {
+    const steps = [
+        step('tokenize'),
+        step('ai_step'),
+        step('untokenize'),
+        step('integration_action', 'gmail_compose'),
+        step('tokenize'),
+        step('http_request'),
+    ];
+    const flow = F.analyseFlow({ steps, personal: PERSONAL });
+    assert.equal(flow.models[0].shielded, true, 'the model read tokens');
+    assert.equal(flow.exits[0].shielded, false, 'the mail went out after the reveal');
+    assert.equal(flow.exits[1].shielded, true, 'the HTTP call follows a fresh hide');
+    assert.equal(flow.verdict, 'unguarded');
 });
 
 test('"nothing personal leaves" and "nobody looked" stay different answers', () => {

@@ -6,7 +6,8 @@
  */
 
 const notificationStore = require('../../stores/notificationStore');
-const { resolveInputs, interpolateTemplate } = require('../../automation/bind');
+const { resolveInputs, interpolateTemplate, interpolateJsonBody } = require('../../automation/bind');
+const { withStepQuery, parseStepUrl, shieldPart, joinShieldedUrl } = require('./httpQuery');
 const { safeFetch, isPrivateAddressError } = require('../../utils/ssrfGuard');
 const sandbox = require('../../automation/codeSandbox');
 const { prepareCodeRun } = require('./codeStepGuard');
@@ -16,7 +17,7 @@ const { MASK_VALUES, resolveHttpAuthHeaders, evictToken } = require('./httpAuth'
 // answer lives there, so this file gains call sites and no policy.
 const httpCache = require('./httpCache');
 const { fetchFollowingSameHost } = require('./sameHostFetch');
-const { HTTP_RESPONSE_CAP } = require('../../automation/httpResponseLimits');
+const { HTTP_RESPONSE_CAP, readBodyBounded } = require('../../automation/httpResponseLimits');
 // Every secret this run can see, for the one refusal the visible cache tier
 // adds: a credential must never become a permanent row (execDatatable's own
 // refusal #4, and a key can sit in a URL PATH segment as well as in a query).
@@ -223,14 +224,17 @@ function parseHttpBody(text, contentType, mode, truncated) {
 async function execHttpRequest(step, ctx, runState, mode) {
     // A request carries DATA, not prose: lists stay JSON here (listAs 'json').
     const asData = { listAs: 'json' };
-    const url = interpolateTemplate(step.url || '', runState, asData);
+    const url = withStepQuery(interpolateTemplate(step.url || '', runState, { ...asData, field: 'url' }), step.query, runState);
     const method = (step.method || 'GET').toUpperCase();
     const headers = {};
     for (const [k, v] of Object.entries(step.headers || {})) {
-        headers[k] = interpolateTemplate(typeof v === 'string' ? v : '', runState, asData);
+        headers[k] = interpolateTemplate(typeof v === 'string' ? v : '', runState, { ...asData, field: `headers.${k}` });
     }
     const isWrite = HTTP_REQUEST_WRITE_METHODS.has(method);
-    const body = isWrite && step.body ? interpolateTemplate(step.body, runState, asData) : undefined;
+    // A JSON body stays JSON whatever the mapped values hold (bind.js
+    // interpolateJsonBody); a form or text body keeps the plain templating.
+    const contentType = Object.entries(headers).find(([k]) => k.toLowerCase() === 'content-type')?.[1];
+    const body = isWrite && step.body ? interpolateJsonBody(step.body, runState, { contentType, field: 'body' }) : undefined;
     // Feature C — optional saved-credential reference. Absent/null auth keeps
     // the pre-existing path byte-for-byte (no store call, no decryption).
     const authConnectionId = (step.auth && typeof step.auth === 'object'
@@ -247,9 +251,7 @@ async function execHttpRequest(step, ctx, runState, mode) {
         };
     }
 
-    let parsedUrl;
-    try { parsedUrl = new URL(url); }
-    catch (e) { throw new Error(`http_request: invalid URL "${url}" — ${e.message}`); }
+    const parsedUrl = parseStepUrl(url);
     if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
         throw new Error(`http_request: unsupported URL scheme "${parsedUrl.protocol}" — only http/https are allowed.`);
     }
@@ -303,7 +305,7 @@ async function execHttpRequest(step, ctx, runState, mode) {
     }
     const guardedHttp = await guardOutbound(step, ctx, mode, {
         toolName: 'http_request',
-        payload: { url, body, headers: guardableHeaders },
+        payload: { url: shieldPart(url), body, headers: guardableHeaders },
         destination,
         integMeta: httpMeta,
     });
@@ -324,7 +326,7 @@ async function execHttpRequest(step, ctx, runState, mode) {
             dryRunFallback: 'guardrail_block',
         };
     }
-    const sendUrl = typeof guardedHttp.payload.url === 'string' ? guardedHttp.payload.url : url;
+    const sendUrl = joinShieldedUrl(url, guardedHttp.payload.url);
     const sendBody = body === undefined ? undefined : guardedHttp.payload.body;
     for (const [k, v] of Object.entries(guardedHttp.payload.headers || {})) {
         if (typeof v === 'string') headers[k] = v;
@@ -396,11 +398,12 @@ async function execHttpRequest(step, ctx, runState, mode) {
             const r = authInjectedHeaders.size > 0
                 ? await fetchFollowingSameHost(fetchImpl, sendUrl, { method, headers, body: sendBody, signal: ac.signal })
                 : await fetchImpl(sendUrl, { method, headers, body: sendBody, signal: ac.signal });
-            return { resp: r, text: await r.text() };
+            const bounded = await readBodyBounded(r, { charCap: HTTP_REQUEST_RESPONSE_CAP, stopOnOversizeHeader: true });
+            return { resp: r, text: bounded.text, bodyTruncated: bounded.truncated };
         });
         httpProbe = call.probe;
         if (!call.ok) throw call.error;
-        const { resp, text } = call.value;
+        const { resp, text, bodyTruncated } = call.value;
         if (authConnectionId && resp.status === 401) {
             // Target rejected the credential: drop any cached oauth2_cc token
             // so a retry refetches a fresh one. Deliberately NOT flagging the
@@ -422,7 +425,7 @@ async function execHttpRequest(step, ctx, runState, mode) {
         // this call, which is what actually egress-logs it (one row, not
         // two) and is what adds that exact prefix via its generic
         // `http_request: ${e.message}` fallback.
-        if (text.length > HTTP_REQUEST_RESPONSE_CAP) {
+        if (bodyTruncated || text.length > HTTP_REQUEST_RESPONSE_CAP) {
             throw new Error('response body exceeded the 1 MiB limit and was clipped mid-document — this call cannot be completed safely. Reduce the response size (pagination, a narrower query) or contact support if you need a higher limit.');
         }
         await safety.logEgress({
@@ -707,30 +710,31 @@ async function execCode(step, ctx, runState, mode) {
                     ? rawHeaders : undefined;
                 const guardedFetch = await guardOutbound(step, ctx, mode, {
                     toolName: 'code_fetch_http',
-                    payload: { url: String(url), body: options && options.body, headers: guardableHeaders },
+                    payload: { url: shieldPart(String(url)), body: options && options.body, headers: guardableHeaders },
                     destination: isPrivateHost(host) ? 'internal' : 'external',
                     integMeta: meta,
                 });
+                const sendUrl = joinShieldedUrl(String(url), guardedFetch.payload.url);
                 const t0 = Date.now();
                 // What travels is built FROM THE GUARDED RESULT, never from the
                 // caller's object — that is the whole point of the guard.
                 const sendOptions = { ...(options || {}) };
                 if (guardedFetch.payload.body !== undefined) sendOptions.body = guardedFetch.payload.body;
                 if (guardableHeaders) sendOptions.headers = guardedFetch.payload.headers || {};
-                const call = await captured(() => sandbox.defaultFetchHttp(guardedFetch.payload.url, sendOptions));
+                const call = await captured(() => sandbox.defaultFetchHttp(sendUrl, sendOptions));
                 let res;
                 try {
                     if (!call.ok) throw call.error;
                     res = call.value;
                     await safety.logEgress({
-                        toolName: 'code_fetch_http', toolArgs: { url: guardedFetch.payload.url },
+                        toolName: 'code_fetch_http', toolArgs: { url: sendUrl },
                         result: { ok: true }, probe: call.probe, policy: guardedFetch.policy,
                         auditBase: guardedFetch.auditBase, mode, integMeta: meta,
                         durationMs: Date.now() - t0,
                     });
                 } catch (err) {
                     await safety.logEgress({
-                        toolName: 'code_fetch_http', toolArgs: { url: guardedFetch.payload.url }, error: err,
+                        toolName: 'code_fetch_http', toolArgs: { url: sendUrl }, error: err,
                         probe: call.probe, policy: guardedFetch.policy, auditBase: guardedFetch.auditBase, mode,
                         integMeta: meta, durationMs: Date.now() - t0,
                     });

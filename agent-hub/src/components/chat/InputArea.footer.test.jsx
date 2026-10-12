@@ -183,3 +183,29 @@ describe('InputArea — de voetregel op het scherm', () => {
         expect(footer.textContent).not.toMatch(MISTAKES);
     });
 });
+
+describe('InputArea — the chat-signals line beside the footer', () => {
+    const NOTICE = {
+        surface: 'direct', state: 'on', from: '2026-10-14', version: '2026-10-14T09:00:00.000Z',
+        signals: ['outcomes'], noticeUrl: null, marker: 'direct@2026-10-14T09:00:00.000Z', optedOut: false,
+    };
+
+    it('renders the line as a sibling above the footer, never inside it', async () => {
+        deployment = 'cloud';
+        render(<Harness chatSignalsNotice={NOTICE} onChatSignalsCounted={vi.fn()} />);
+        const footer = await screen.findByTestId('composer-footer');
+        const line = screen.getByTestId('chat-signals-line');
+        expect(footer.contains(line)).toBe(false);
+        expect(line.parentElement).toBe(footer.parentElement);
+        expect(line.compareDocumentPosition(footer) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        // The footer says exactly what it said before.
+        expect(footer.textContent).toMatch(MISTAKES);
+        expect(footer.textContent).not.toMatch(/Privacy Shield handled/);
+    });
+
+    it('shows no line where the host passes no notice', async () => {
+        render(<Harness />);
+        await screen.findByTestId('composer-footer');
+        expect(screen.queryByTestId('chat-signals-line')).toBeNull();
+    });
+});

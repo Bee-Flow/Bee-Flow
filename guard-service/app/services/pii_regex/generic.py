@@ -108,8 +108,40 @@ _IBAN_RE = re.compile(r"\b[A-Z]{2}\d{2}[A-Z0-9]{11,30}\b")
 # run past the end of the account into a following all-caps token.
 _IBAN_SPACED_RE = re.compile(r"\b[A-Z]{2}\d{2}(?:\s[A-Z0-9]{4})+(?:\s[A-Z0-9]{1,3})?\b")
 
+# The same account typed the way people type in chat: lower or mixed case
+# (`nl91abna0417164300`, `Nl91 Abna 0417 1643 00`) or grouped with dashes
+# (`NL91-ABNA-0417-1643-00`). Both patterns above are upper-case only, and IBAN
+# is regex-complete, so GLiNER was never asked: these forms were not detected
+# at all, and the dashed or spaced ones were partly reported as a phone number.
+#
+# Two shapes, both validated with mod-97 and neither near-miss (a lower-case
+# run that fails mod-97 is not a mistyped IBAN) nor `complete` (the upper-case
+# specs keep that claim):
+#   * groups of four with an optional space or dash between them, and
+#   * the contiguous run. The grouped pattern's optional separators are greedy
+#     and accept letters, so when the BBAN length is a multiple of four (BE,
+#     ES, AT, PL, SE, LU, CZ, ...) a following word of four or more characters
+#     is absorbed, mod-97 fails and the account is dropped; the contiguous twin
+#     still finds `be68539007547034 voor de huur`.
+# Known gap: a lower-case SPACED IBAN of those countries followed by such a
+# word (`be68 5390 0754 7034 voor`) is still missed.
+_IBAN_ANYCASE_RE = re.compile(
+    r"(?<![A-Za-z0-9])[A-Za-z]{2}\d{2}(?:[ \-]?[A-Za-z0-9]{4}){2,7}(?:[ \-]?[A-Za-z0-9]{1,3})?(?![A-Za-z0-9])"
+)
+_IBAN_CONTIG_ANYCASE_RE = re.compile(
+    r"(?<![A-Za-z0-9])[A-Za-z]{2}\d{2}[A-Za-z0-9]{11,30}(?![A-Za-z0-9])"
+)
+
 # 13-19 digit candidate, separators allowed. Validated with Luhn.
 _CC_RE = re.compile(r"\b(?:\d[\s\-]?){12,18}\d\b")
+
+# The bare card run on its own. _CC_RE is greedy across separators, so a
+# number just before the card joins the match (`klant 7 4111111111111111` is
+# tried as `7 4111111111111111`); Luhn fails on the joined run, the whole match
+# is dropped, and finditer resumes AFTER it, so the card itself was never
+# tried. This re-emits only Luhn-valid bare runs, which _CC_RE already emits
+# whenever no neighbour joins, so precision is unchanged.
+_CC_BARE_RE = re.compile(r"(?<!\d)\d{13,19}(?!\d)")
 
 # The GROUPED card notations humans actually write: 4-4-4-4(-3) (Visa/MC/
 # Discover, 16-19 digits) and 4-6-5 (Amex). This twin exists for near-miss
@@ -176,6 +208,18 @@ def _is_valid_iban(candidate: str) -> bool:
         return int(digits_str) % 97 == 1
     except ValueError:
         return False
+
+
+def _is_valid_iban_anysep(candidate: str) -> bool:
+    """mod-97 on an IBAN grouped with spaces or dashes (_IBAN_ANYCASE_RE).
+
+    At least 15 characters without separators, the same floor as _IBAN_RE's
+    body bound (ISO 13616 registers no shorter IBAN): the grouped shape also
+    fits a 14-character Dutch VAT number (`NL908830705B27`), and one in 97 of
+    those passes mod-97.
+    """
+    compact = candidate.replace("-", "").replace(" ", "")
+    return len(compact) >= 15 and _is_valid_iban(compact)
 
 
 def _is_valid_luhn(candidate: str) -> bool:

@@ -372,7 +372,10 @@ function applyAddSteps(graph, args, { draft, scope = null, sent = null } = {}, d
         // the patch skipped it, and the repair landed one round late.
         const patch = res && res._suggestedPatch ? liftEntryPatch(res._suggestedPatch, i, rawEntries[i], resendEntry) : null;
         const fullHint = [hint, dropped
-            ? `The entry in resendAs has "${rejectedPath}" REMOVED — it is the value that was refused. Fill it with one of the options in the error, or ask the user, before resending.`
+            ? (res && res._askArgs
+                // A table the user has not chosen: the value is theirs to give.
+                ? `The entry in resendAs has "${rejectedPath}" REMOVED — it is the value that was refused. Ask the user (builder_ask_questions with _askArgs) and resend with the table they choose; never pick one yourself.`
+                : `The entry in resendAs has "${rejectedPath}" REMOVED — it is the value that was refused. Fill it with one of the options in the error, or ask the user, before resending.`)
             : null].filter(Boolean).join(' ');
         return {
             error,
@@ -387,6 +390,9 @@ function applyAddSteps(graph, args, { draft, scope = null, sent = null } = {}, d
             },
             ...(patch ? { _suggestedPatch: patch } : {}),
             ...(res && res._needsInspect ? { _needsInspect: res._needsInspect, toolSchema: res.toolSchema } : {}),
+            // The consent question travels with the refusal: the model passes
+            // _askArgs to builder_ask_questions as the hint says.
+            ...(res && res._askArgs ? { code: res.code, _askArgs: res._askArgs } : {}),
             // Carry the entry's own hint. Without it applyToolCall stamps
             // this batch failure with "invalid input binding", so a refusal
             // that said "that app is not connected" reached the model as
@@ -545,9 +551,9 @@ function applyAddSteps(graph, args, { draft, scope = null, sent = null } = {}, d
         try {
             if (e.type === 'integration_action') res = applyAddAction(graph, spec, draftWrap);
             else if (e.type === 'call_layer') res = applyAddCallLayer(draft, spec, { graph, scope });
-            else if (e.type === 'array_op') res = applyAddArrayOp(graph, spec);
-            // draftWrap flows to every builder; only action (gate) and
-            // ai_step (modelTier gate) read it — the rest ignore the extra arg.
+            else if (e.type === 'array_op') res = applyAddArrayOp(graph, spec, draftWrap);
+            // draftWrap flows to every builder: the gates read it, and every
+            // binding check reads the shapes a dry run left on it.
             else res = ADD_FOR_TYPE[e.type](graph, spec, draftWrap);
         } catch (err) { res = { error: err.message }; }
 

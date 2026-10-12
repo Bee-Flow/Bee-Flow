@@ -48,7 +48,12 @@ export function imageFilesFrom(dataTransfer) {
 
 let seq = 0;
 
-const BAD_TYPE = (name) => `${name} isn't a supported image — use PNG, JPEG, WebP or GIF.`;
+/** English fallback when no translator is passed (tests, non-React callers). */
+const tr = (t, key, en, params) => (t
+    ? t(key, en, params)
+    : en.replace(/\{(\w+)\}/g, (m, k) => (params && k in params ? String(params[k]) : m)));
+
+const BAD_TYPE = (t, name) => tr(t, 'studio_apps_edit.composer_images.bad_type', '{name} isn\'t a supported image — use PNG, JPEG, WebP or GIF.', { name });
 
 // The downscale path decodes the image through the browser. A decode that
 // neither loads nor errors (a corrupt paste, a headless/odd environment) would
@@ -93,23 +98,23 @@ async function toDataUrl(file, fallbackType) {
 }
 
 /** One file → a staged image, or an error line. */
-async function stageOne(file) {
-    const name = file?.name || 'That image';
+async function stageOne(file, t) {
+    const name = file?.name || tr(t, 'studio_apps_edit.composer_images.that_image', 'That image');
     const type = String(file?.type || '').toLowerCase();
-    if (!IMAGE_MIME_ALLOWLIST.includes(type)) return { error: BAD_TYPE(file?.name || 'That file') };
+    if (!IMAGE_MIME_ALLOWLIST.includes(type)) return { error: BAD_TYPE(t, file?.name || tr(t, 'studio_apps_edit.composer_images.that_file', 'That file')) };
 
     const read = await toDataUrl(file, type);
-    if (!read) return { error: `${name} could not be read.` };
+    if (!read) return { error: tr(t, 'studio_apps_edit.composer_images.unreadable', '{name} could not be read.', { name }) };
     // The resize step can transcode (PNG → JPEG); re-check the RESULT's type so
     // we never stage something the server would then reject.
-    if (!IMAGE_MIME_ALLOWLIST.includes(read.mimeType)) return { error: BAD_TYPE(file?.name || 'That file') };
+    if (!IMAGE_MIME_ALLOWLIST.includes(read.mimeType)) return { error: BAD_TYPE(t, file?.name || tr(t, 'studio_apps_edit.composer_images.that_file', 'That file')) };
 
     const bytes = dataUrlBytes(read.dataUrl);
     if (bytes > MAX_IMAGE_BYTES) {
-        return { error: `${name} is too large (${(bytes / (1024 * 1024)).toFixed(1)} MB) — the limit is ${Math.round(MAX_IMAGE_BYTES / (1024 * 1024))} MB.` };
+        return { error: tr(t, 'studio_apps_edit.composer_images.too_large', '{name} is too large ({size} MB) — the limit is {max} MB.', { name, size: (bytes / (1024 * 1024)).toFixed(1), max: Math.round(MAX_IMAGE_BYTES / (1024 * 1024)) }) };
     }
     seq += 1;
-    return { image: { id: `img_${seq}`, dataUrl: read.dataUrl, name: file?.name || 'Pasted image', mimeType: read.mimeType, bytes } };
+    return { image: { id: `img_${seq}`, dataUrl: read.dataUrl, name: file?.name || tr(t, 'studio_apps_edit.composer_images.pasted_image', 'Pasted image'), mimeType: read.mimeType, bytes } };
 }
 
 /**
@@ -119,21 +124,23 @@ async function stageOne(file) {
  * Never throws: a file that cannot be read becomes an error line, and the rest
  * still stage.
  */
-export async function prepareComposerImages(files, alreadyStaged = 0) {
+export async function prepareComposerImages(files, alreadyStaged = 0, t = null) {
     const list = Array.from(files || []);
     const images = [];
     const errors = [];
     const room = Math.max(0, MAX_IMAGES_PER_TURN - alreadyStaged);
     if (!list.length) return { images, errors };
     if (room === 0) {
-        return { images, errors: [`You can attach at most ${MAX_IMAGES_PER_TURN} images per message.`] };
+        return { images, errors: [tr(t, 'studio_apps_edit.composer_images.at_most', 'You can attach at most {max} images per message.', { max: MAX_IMAGES_PER_TURN })] };
     }
     if (list.length > room) {
-        errors.push(`Only the first ${room} image${room === 1 ? '' : 's'} were attached — the limit is ${MAX_IMAGES_PER_TURN} per message.`);
+        errors.push(room === 1
+            ? tr(t, 'studio_apps_edit.composer_images.only_first_one', 'Only the first image was attached — the limit is {max} per message.', { max: MAX_IMAGES_PER_TURN })
+            : tr(t, 'studio_apps_edit.composer_images.only_first_many', 'Only the first {room} images were attached — the limit is {max} per message.', { room, max: MAX_IMAGES_PER_TURN }));
     }
 
     for (const file of list.slice(0, room)) {
-        const result = await stageOne(file);
+        const result = await stageOne(file, t);
         if (result.error) errors.push(result.error);
         else images.push(result.image);
     }

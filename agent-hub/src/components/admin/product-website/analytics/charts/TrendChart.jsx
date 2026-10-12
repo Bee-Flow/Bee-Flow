@@ -14,6 +14,7 @@
  *   - reference lines, for the Core Web Vitals thresholds
  */
 import React, { useMemo, useState } from 'react';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 import { ACCENT, fmt } from '../ui';
 
 const PAD = { top: 10, right: 8, bottom: 20, left: 8 };
@@ -32,8 +33,9 @@ function pathFor(values, x, y) {
 
 export default function TrendChart({
     series = [], labels = [], height = 200, formatY = fmt, formatLabel,
-    refLines = [], partialLast = false, yMin = 0, emptyText = 'No data',
+    refLines = [], partialLast = false, yMin = 0, emptyText,
 }) {
+    const { t: tr } = useTranslation();
     const [hover, setHover] = useState(null);
     const n = labels.length;
 
@@ -60,7 +62,7 @@ export default function TrendChart({
                 height, display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 12, color: 'var(--text-muted, #888)',
                 background: 'var(--bg-tertiary, rgba(255,255,255,0.02))', borderRadius: 10,
-            }}>{emptyText}</div>
+            }}>{emptyText || tr('cms_site.analytics.common.no_data', 'No data')}</div>
         );
     }
 
@@ -175,7 +177,7 @@ export default function TrendChart({
                     ))}
                     {partialLast && (
                         <span style={{ fontSize: 11, color: 'var(--text-muted, #777)' }}>
-                            dashed = period still in progress
+                            {tr('cms_site.analytics.trend_chart.partial_legend', 'dashed = period still in progress')}
                         </span>
                     )}
                 </div>

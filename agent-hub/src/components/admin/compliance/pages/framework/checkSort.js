@@ -11,7 +11,76 @@
  * check therefore appears on the ISO page as well, with a "also counts for
  * GDPR Art. 33" line under its title — one measurement, several ledgers.
  */
+import { affectedProjects } from './AffectedProjects';
 import { resolveSection, DEFAULT_SECTION } from '../../sections';
+
+/**
+ * The identity of ONE row: a per-source check has a row per subject (scope),
+ * so open state, focus and the busy spinners key on check + scope, never on
+ * the check id alone (one click used to open all four DPIA rows).
+ */
+export function rowKeyOf(check) {
+    return `${check?.check_id ?? ''}:${check?.scope_id || ''}`;
+}
+
+/**
+ * The row the overview sent us to. `focusId` is a row key ("id:scope") or a
+ * bare check id; a bare id opens the FIRST row of that check in the order
+ * given (the table passes its sorted list, so that is the most urgent one).
+ * null when no row matches.
+ */
+export function focusRowKey(list, focusId) {
+    if (!focusId || !Array.isArray(list)) return null;
+    const wanted = String(focusId);
+    const exact = list.find((c) => c && rowKeyOf(c) === wanted);
+    if (exact) return rowKeyOf(exact);
+    const first = list.find((c) => c && c.check_id === wanted);
+    return first ? rowKeyOf(first) : null;
+}
+
+/**
+ * Is THIS row the one the host is busy with (rerun / auto-fix spinner)? The
+ * host's id may be a row key (a host that knows rows) or a check id
+ * (useComplianceCore runs whole checks); for a check id, the row whose
+ * button was clicked (`askedKey`) spins, or every row of the check when the
+ * run was started elsewhere.
+ */
+export function isBusyRow(activeId, check, askedKey) {
+    if (!activeId || !check) return false;
+    const key = rowKeyOf(check);
+    if (activeId === key) return true;
+    if (activeId !== check.check_id) return false;
+    return askedKey && askedKey.startsWith(`${check.check_id}:`) ? askedKey === key : true;
+}
+
+/**
+ * Trail rows that belong to one row's subject (`field` is `scope_id` on a
+ * history row, `subject_id` on an evidence row); a global row keeps them all.
+ * A row that does not carry the field at all cannot be told apart and is kept.
+ */
+export function ofSubject(rows, scopeId, field = 'scope_id') {
+    const list = Array.isArray(rows) ? rows : [];
+    if (!scopeId) return list;
+    return list.filter((r) => r && (!(field in r) || String(r[field] ?? '') === String(scopeId)));
+}
+
+function nonEmpty(value) {
+    return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+/**
+ * What a per-subject row is about, by name: the runner's `subject_label`,
+ * else the agent or automation name a check wrote itself, else the one
+ * project the finding is about (its current name, resolved by the server).
+ * null when the row names no single subject.
+ */
+export function subjectLabel(check) {
+    const ev = check?.evidence && typeof check.evidence === 'object' ? check.evidence : {};
+    const named = nonEmpty(ev.subject_label) || nonEmpty(ev.agent_name) || nonEmpty(ev.automation_name);
+    if (named) return named;
+    const projects = check ? affectedProjects(check) : [];
+    return projects.length === 1 ? projects[0].name : null;
+}
 
 /** by_status order: what is broken first, what needs a look next, then the quiet rows. */
 export const STATUS_ORDER = Object.freeze({ fail: 0, warn: 1, pass: 2, not_applicable: 3, pending: 4 });
@@ -136,6 +205,16 @@ export function filterByStatus(list, pill) {
     return rows.filter((c) => c.status === pill);
 }
 
+/**
+ * The status pills worth showing: `all`, every status that has rows, and the
+ * active one even at 0 (so a filter that emptied after a run can still be
+ * left). Without counts (still loading) every pill shows, uncounted.
+ */
+export function visiblePills(counts, active) {
+    if (!counts) return [...STATUS_PILLS];
+    return STATUS_PILLS.filter((v) => v === 'all' || v === active || (counts[v] ?? 0) > 0);
+}
+
 /** Counts for the five pills; `all` is the whole list. */
 export function countByStatus(list) {
     const rows = Array.isArray(list) ? list : [];
@@ -145,14 +224,14 @@ export function countByStatus(list) {
 }
 
 /**
- * Free-text match over title, id, article and details. `titleOf(check)`
+ * Free-text match over title, id, article, details and the subject's name. `titleOf(check)`
  * gives the translated title so the search speaks the interface language.
  */
 export function matchesSearch(check, query, titleOf = () => '') {
     const q = String(query ?? '').trim().toLowerCase();
     if (!q) return true;
     const hay = [
-        titleOf(check), check.check_id, check.article, check.details,
+        titleOf(check), check.check_id, check.article, check.details, subjectLabel(check),
         ...(Array.isArray(check.frameworks) ? check.frameworks.map((f) => f && `${f.regulation} ${f.ref}`) : []),
     ].filter(Boolean).join(' ').toLowerCase();
     return hay.includes(q);

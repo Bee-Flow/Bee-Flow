@@ -6,6 +6,7 @@ import AppFontLoader from '../../components/admin/Studio/AppStudio/runtime/AppFo
 import { createPublicAppTransport } from '../../components/admin/Studio/AppStudio/runtime/publicAppTransport';
 import { CANVAS_GROUND, themeVars } from '../../components/admin/Studio/AppStudio/runtime/themeVars';
 import EmptyState from '../../components/shared/EmptyState';
+import { useTranslation } from '../../hooks/useTranslation';
 import { API_BASE, setPublicAppTransport } from '../../utils/helpers';
 
 /**
@@ -48,14 +49,15 @@ function storeVisitor(token, visitorToken) {
 }
 
 function LoadingSkeleton() {
+    const { t } = useTranslation();
     return (
-        <div className="min-h-screen animate-pulse p-6" role="status" aria-label="Laden">
+        <div className="min-h-screen animate-pulse p-6" role="status" aria-label={t('apps.public_loading_label', 'Loading')}>
             <div className="mx-auto max-w-[720px] space-y-4">
                 <div className="h-7 w-1/2 rounded bg-black/10" />
                 <div className="h-28 w-full rounded-lg bg-black/10" />
                 <div className="h-44 w-full rounded-lg bg-black/10" />
             </div>
-            <span className="sr-only">Laden…</span>
+            <span className="sr-only">{t('apps.loading_short', 'Loading…')}</span>
         </div>
     );
 }
@@ -66,16 +68,19 @@ function LoadingSkeleton() {
  * be said here, and a retry button would be a lie.
  */
 function NotAvailable({ error, onRetry }) {
+    const { t } = useTranslation();
     const notFound = error?.status === 404 || error?.message === 'not_found';
     return (
         <div className="min-h-screen flex items-center justify-center p-6">
             <EmptyState
                 icon={<CircleSlash className="w-12 h-12" />}
-                title={notFound ? 'Deze pagina bestaat niet (meer)' : 'De pagina kon niet worden geladen'}
+                title={notFound
+                    ? t('apps.public_not_found_title', 'This page does not exist (any more)')
+                    : t('apps.public_load_failed_title', 'The page could not be loaded')}
                 description={notFound
-                    ? 'De link klopt niet, of hij is ingetrokken. Vraag de afzender om een nieuwe link.'
-                    : 'Probeer het over een paar minuten opnieuw.'}
-                action={notFound ? undefined : { label: 'Opnieuw proberen', onClick: onRetry, variant: 'secondary' }}
+                    ? t('apps.public_not_found_body', 'The link is wrong or has been revoked. Ask the sender for a new link.')
+                    : t('apps.public_load_failed_body', 'Try again in a few minutes.')}
+                action={notFound ? undefined : { label: t('apps.public_retry', 'Try again'), onClick: onRetry, variant: 'secondary' }}
             />
         </div>
     );

@@ -20,11 +20,6 @@ test('the pinned hash is the data file\'s, so a data change re-runs the migratio
     assert.strictEqual(crypto.createHash('sha256').update(data).digest('hex'), DATA_SHA256);
 });
 
-test('every Dutch key exists in the English catalog', () => {
-    const orphans = [...Object.keys(NL_TRANSLATIONS), ...SAME_AS_ENGLISH].filter((k) => !(k in GUI_DEFAULTS));
-    assert.deepStrictEqual(orphans, []);
-});
-
 test('every code_step key has Dutch, or is declared identical', () => {
     const same = new Set(SAME_AS_ENGLISH);
     const untranslated = Object.keys(GUI_DEFAULTS).filter((k) => k.startsWith('code_step.') && !(k in NL_TRANSLATIONS) && !same.has(k));

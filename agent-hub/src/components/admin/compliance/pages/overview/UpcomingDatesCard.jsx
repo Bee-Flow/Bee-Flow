@@ -1,5 +1,5 @@
 import React from 'react';
-import { CalendarDays, ArrowUpRight } from 'lucide-react';
+import { CalendarDays, ChevronRight } from 'lucide-react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import RegulatoryCalendar from '../../shared/RegulatoryCalendar';
 import { formatCalDate } from '../../shared/calendarMath';
@@ -14,7 +14,8 @@ import { formatCalDate } from '../../shared/calendarMath';
  *   milestones       GET /calendar rows | null (null = not loaded / failed)
  *   failed           the read failed → its own line, never an empty list
  *   limitUpcoming    rows shown (default 3)
- *   onOpenCalendar() "Calendar ↗" — the page navigates to frameworks › calendar
+ *   onOpenCalendar() "Calendar ›" and "{n} more dates ›" — the Overview switches to
+ *                    its own Calendar tab; neither link leaves the page
  */
 export default function UpcomingDatesCard({
     milestones = null, failed = false, limitUpcoming = 3, onOpenCalendar,
@@ -46,7 +47,7 @@ export default function UpcomingDatesCard({
                         className="ml-auto inline-flex items-center gap-1 text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                         data-testid={`${testId}-open`}
                     >
-                        {t('compliance.ovw_open_calendar', 'Calendar')} <ArrowUpRight size={11} aria-hidden />
+                        {t('compliance.ovw_open_calendar', 'Calendar')} <ChevronRight size={12} aria-hidden />
                     </button>
                 ) : null}
             </header>

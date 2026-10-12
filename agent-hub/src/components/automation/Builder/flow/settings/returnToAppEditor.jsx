@@ -55,7 +55,7 @@ export default function ReturnToAppFields({
                         rows={2}
                         onFocusField={onFocusField}
                         previewSample={previewSample}
-                        placeholder="Saved {{steps.save.output.name}}"
+                        placeholder={t('automations.return_to_app_editor.saved', 'Saved {{steps.save.output.name}}')}
                     />
                 </FormRow>
                 {draft.toastMessage ? (

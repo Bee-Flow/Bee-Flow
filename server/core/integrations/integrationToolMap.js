@@ -64,6 +64,7 @@ const INTEGRATION_PREFIXES = {
     // REST); null lets the probe-captured tls_servername be the truth.
     nmbrs_:         { integration: 'nmbrs',           label: 'NMBRS',               serverFn: () => null },
     vplan_:         { integration: 'vplan',           label: 'vPlan',               server: 'api.vplan.com' },
+    scaleway_:      { integration: 'scaleway-billing', label: 'Scaleway Billing',   server: 'api.scaleway.com' },
     linkedin_:      { integration: 'linkedin',        label: 'LinkedIn',            server: 'api.linkedin.com' },
     withings_:      { integration: 'withings',        label: 'Withings',            server: 'wbsapi.withings.net' },
     github_:        { integration: 'github',          label: 'GitHub',              server: 'api.github.com' },
@@ -273,6 +274,17 @@ const INTEGRATION_TOOL_MAP = {
     vplan_list_master_data: {
         integration: 'vplan', label: 'vPlan', serverFn: () => 'api.vplan.com',
         direction: 'received', dataCategories: 'planning_data, crm, pii',
+    },
+
+    // ── Scaleway Billing (read-only invoices) ────────────────
+    // Invoices are the organisation's own financial records.
+    scaleway_list_invoices: {
+        integration: 'scaleway-billing', label: 'Scaleway Billing', serverFn: () => 'api.scaleway.com',
+        direction: 'received', dataCategories: 'finance',
+    },
+    scaleway_download_invoice: {
+        integration: 'scaleway-billing', label: 'Scaleway Billing', serverFn: () => 'api.scaleway.com',
+        direction: 'received', dataCategories: 'finance, document_content',
     },
 
     // ── Legacy email tools (generic provider) ────────────────

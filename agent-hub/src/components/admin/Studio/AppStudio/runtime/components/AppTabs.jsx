@@ -1,5 +1,6 @@
 import { tryEvaluate } from '@shared/expr/engine.mjs';
 import React, { useEffect, useEffectEvent, useState } from 'react';
+import useTranslation from '../../../../../../hooks/useTranslation';
 import AppIcon from '../../../../../icons/AppIcon';
 import { useFormContext } from '../formContext';
 import { resolveBinding } from '../resolveBinding';
@@ -84,6 +85,7 @@ function isHidden(tab, scope) {
 }
 
 export default function AppTabs({ node, children }) {
+    const { t } = useTranslation();
     const { mode, selectedNodeId, previewRole, scope, actionState, dataState } = useRuntime();
     const form = useFormContext();
     const fill = isFill(node);
@@ -112,7 +114,7 @@ export default function AppTabs({ node, children }) {
     if (tabs.length === 0) {
         return (
             <div className="text-sm py-2" style={{ color: 'var(--text-muted)' }}>
-                Add a tab to this tab group.
+                {t('studio_apps_runtime.tabs.add_tab', 'Add a tab to this tab group.')}
             </div>
         );
     }
@@ -206,14 +208,14 @@ export default function AppTabs({ node, children }) {
         >
             <div
                 role="tablist"
-                aria-label="Tabs"
+                aria-label={t('studio_apps_runtime.tabs.label', 'Tabs')}
                 className={fill ? `${stripCls} shrink-0` : stripCls}
                 style={stripStyle}
             >
                 {shown.map((i) => {
                     const tab = tabs[i];
                     const isActive = i === activeIdx;
-                    const label = tab.props?.label || `Tab ${i + 1}`;
+                    const label = tab.props?.label || t('studio_apps_runtime.tabs.tab_n', 'Tab {n}', { n: i + 1 });
                     const button = tabButton(isActive);
                     // Badge (spec: tab.badge/badgeTone). The strip reads raw
                     // child defs, so the binding resolves HERE, against the

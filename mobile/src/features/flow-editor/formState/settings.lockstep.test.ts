@@ -115,14 +115,66 @@ describe('routeIntents', () => {
         expect(ri.suggestOutputs(text)).toStrictEqual(web.suggestOutputs?.(text));
     });
 
+    // File items, and items that hold files (S1, S4), with the rule menu's own entries.
+    const PDF = { filename: 'invoice.pdf', mimeType: 'application/pdf', size: 3 };
+    const PNG = { filename: 'logo.png', mimeType: 'image/png', size: 1 };
+    const MAIL = { subject: 'Invoice', from: 'billing@fabrikam.example', attachments: [PDF, PNG] };
+    const MAIL_FIELDS = [
+        { path: 'item.subject', label: 'Subject', sample: 'Invoice' },
+        { path: 'item.from', label: 'From', sample: 'billing@fabrikam.example' },
+        { path: 'item.attachments', label: 'Attachments', sample: [PDF, PNG], kind: 'records' },
+        { path: 'fileType(item.attachments[*])', label: 'File type', kind: 'fileType', quantified: true },
+        { path: 'item.attachments[*].filename', label: 'Filename', sample: 'invoice.pdf', quantified: true },
+        { path: 'item.attachments[*].mimeType', label: 'Mime type', sample: 'application/pdf', quantified: true },
+    ];
+    const FILE_FIELDS = [
+        { path: 'fileType(item)', label: 'File type', kind: 'fileType' },
+        { path: 'item.filename', label: 'Filename', sample: 'invoice.pdf' },
+        { path: 'item.size', label: 'Size', sample: 3 },
+    ];
+    const SCENES: [string, Record<string, unknown>][] = [
+        ['mail', { fields: MAIL_FIELDS, element: MAIL }],
+        ['mail, menu only', { fields: MAIL_FIELDS }],
+        ['mail, sample only', { fields: MAIL_FIELDS.filter((f) => !f.kind && !f.quantified), element: MAIL }],
+        ['file', { fields: FILE_FIELDS, element: PDF }],
+        ['file, menu only', { fields: FILE_FIELDS }],
+        ['file, no File type entry', { fields: FILE_FIELDS.slice(1), element: { filename: 'x.docx' } }],
+        ['names only', { fields: FIELDS, element: { name: 'report.pdf' } }],
+    ];
+    const FILE_TEXTS = [
+        'split pdf, word and powerpoint', 'mails with a pdf', 'split the attachments', 'csv files', 'filename is a pdf',
+        'attachments with pdf', 'file type is word', 'mime type pdf', 'subject contains "x"', 'these documents', 'amount over 3', 'nothing',
+    ];
+    it.each(SCENES)('suggestOutputs on %s', (_name, opts) => {
+        for (const text of FILE_TEXTS) {
+            expect({ text, out: ri.suggestOutputs(text, opts) }).toStrictEqual({ text, out: web.suggestOutputs?.(text, opts) });
+        }
+    });
+
+    it('checks every attachment of a mail and offers the files inside', () => {
+        const out = ri.suggestOutputs('split pdf and word', { fields: MAIL_FIELDS, element: MAIL });
+        expect(out.rules).toEqual([
+            { name: 'pdf', expr: 'anyOf(fileType(item.attachments[*]), "equals", "pdf")' },
+            { name: 'word', expr: 'anyOf(fileType(item.attachments[*]), "equals", "word")' },
+        ]);
+        expect(out.filesInside).toEqual({ listPath: 'item.attachments', listKey: 'attachments' });
+        expect(ri.suggestOutputs('csv files', { fields: FILE_FIELDS, element: PDF }).rules).toEqual([{ name: 'csv', expr: 'equals(fileType(item), "excel")' }]);
+        expect(ri.suggestOutputs('split the attachments', { fields: MAIL_FIELDS, element: MAIL }).problemCode).toBe('name_types');
+        const counts = ri.matchCounts(out.rules, [MAIL, { ...MAIL, attachments: [PNG] }]);
+        expect(counts).toStrictEqual(web.matchCounts?.(out.rules, [MAIL, { ...MAIL, attachments: [PNG] }]));
+        expect(counts?.unmatched).toBe(1);
+    });
+
     it('slugs, file types and match counts', () => {
         for (const s of ['Hello World!', '', '__x__', null]) expect(ri.slugName(s)).toBe(web.slugName?.(s));
-        expect(ri.FILE_TYPES).toStrictEqual(webValue(web, 'FILE_TYPES'));
         const rules = ri.suggestOutputs('split pdf and word', { fields: FIELDS }).rules.concat([{ name: 'bad', expr: 'bogus((' }]);
         const rows = [{ name: 'a.pdf' }, { name: 'b.DOCX' }, { name: 'c.txt' }, {}];
         for (const opts of [undefined, { root: { x: 1 } }, { itemVar: 'row' }, { root: [1] }]) {
             expect(ri.matchCounts(rules, rows, opts)).toStrictEqual(web.matchCounts?.(rules, rows, opts));
         }
+        const indexed = [{ name: 'later', expr: '_index > 0' }];
+        expect(ri.matchCounts(indexed, rows)).toStrictEqual(web.matchCounts?.(indexed, rows));
+        expect(ri.matchCounts(indexed, rows)?.perRule[0]?.matched).toBe(3);
         expect(ri.matchCounts([], rows)).toBe(web.matchCounts?.([], rows));
         expect(ri.matchCounts(rules, null)).toBe(web.matchCounts?.(rules, null));
     });

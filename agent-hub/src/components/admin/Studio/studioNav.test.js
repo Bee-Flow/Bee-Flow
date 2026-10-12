@@ -4,7 +4,11 @@ import { fileURLToPath } from 'node:url';
 import { describe, it, expect } from 'vitest';
 
 import { STUDIO_APPS } from './studioApps';
-import { studioAppForKind, studioGateContext, studioSectionLabel } from './studioNav';
+import {
+    canSeeStudio, isStudioBuilder, studioAppForKind, studioEntrySections, studioGateContext,
+    studioLanding, studioNavSections, studioSectionAccess, studioSectionLabel,
+} from './studioNav';
+import { STUDIO_START } from './studioStart';
 
 /**
  * De twee stappen tussen het register en de rijen die iemand ziet, plus de
@@ -188,5 +192,113 @@ describe('studioGateContext', () => {
         expect(failed.lockReason('apps')).toBeNull();
         const real = studioGateContext({ ...base, lockReason: () => 'ceiling' });
         expect(real.lockReason('apps')).toBe('ceiling');
+    });
+});
+
+// "Only the parts they have rights to": who gets Studio, which sections it
+// holds, and what a direct URL may open — the decisions the sidebar, the rail
+// and the shell take together.
+describe('Studio by section access', () => {
+    // A fully licensed org with Meeting Notes on for everyone; the role is the
+    // only thing that varies between the people below.
+    const FEATURES = ['automations', 'approvals', 'webpages', 'app_studio', 'projects', 'meeting_notes'];
+    const ctxFor = (user) => studioGateContext({
+        user,
+        hasLicenseFeature: (f) => FEATURES.includes(f),
+        hasPermission: (p) => (user.permissions || []).includes('all') || (user.permissions || []).includes(p),
+        can: () => true,
+        lockReason: () => null,
+    });
+    const sectionsFor = (user) => studioNavSections(STUDIO_APPS, ctxFor(user));
+    const ALL_ON = Object.fromEntries(FEATURES.map((f) => [f, true]));
+    const member = (permissions) => ({ orgRole: 'member', permissions, canUseFeature: ALL_ON });
+    const admin = { isAdmin: true, orgRole: 'org_admin', permissions: ['all'] };
+    const ids = (sections) => sections.map((s) => s.id);
+    const accessFor = (user, section) => studioSectionAccess({
+        section, apps: [STUDIO_START, ...STUDIO_APPS], user,
+        hasPermission: ctxFor(user).hasPermission, sections: sectionsFor(user),
+    });
+
+    it('a member with use_meeting_notes gets Studio, holding Meeting Notes (and Documents, which is everyone\'s)', () => {
+        const user = member(['use_meeting_notes']);
+        const sections = sectionsFor(user);
+        expect(ids(sections)).toEqual(['documents', 'meetingNotes']);
+        expect(ids(studioEntrySections(sections))).toEqual(['meetingNotes']);
+        expect(canSeeStudio({ user, sections })).toBe(true);
+        expect(studioLanding({ user, sections }).id).toBe('meetingNotes');
+    });
+
+    it('a member with only use_notebooks gets no Studio — notebooks live in Documents, which has its own row', () => {
+        const user = member(['use_notebooks']);
+        const sections = sectionsFor(user);
+        expect(ids(sections)).toEqual(['documents']);
+        expect(canSeeStudio({ user, sections })).toBe(false);
+        expect(studioLanding({ user, sections })).toBeNull();
+    });
+
+    it('a member with nothing gets no Studio', () => {
+        const user = member([]);
+        expect(canSeeStudio({ user, sections: sectionsFor(user) })).toBe(false);
+    });
+
+    it('an admin sees every section, Start included, exactly as before', () => {
+        const sections = sectionsFor(admin);
+        expect(ids(sections)).toEqual(STUDIO_APPS.filter((a) => !a.hiddenFromNav).map((a) => a.id));
+        expect(isStudioBuilder(admin)).toBe(true);
+        expect(canSeeStudio({ user: admin, sections })).toBe(true);
+        expect(studioLanding({ user: admin, sections }).id).toBe('agents');
+        for (const section of ['start', ...STUDIO_APPS.map((a) => a.id)]) {
+            expect(accessFor(admin, section), section).toEqual({ allowed: true, redirectTo: null });
+        }
+    });
+
+    it('a builder keeps Studio even when every section of theirs is locked (the legacy rule stands)', () => {
+        const user = { orgRole: 'member', permissions: ['manage_skills'] };
+        expect(isStudioBuilder(user)).toBe(true);
+        expect(canSeeStudio({ user, sections: [{ id: 'skills', locked: 'not_granted' }] })).toBe(true);
+    });
+
+    it('a locked section earns no Studio row; a topLevelEntrance one neither', () => {
+        const user = member(['use_meeting_notes']);
+        expect(canSeeStudio({ user, sections: [{ id: 'meetingNotes', locked: 'ceiling' }] })).toBe(false);
+        expect(canSeeStudio({ user, sections: [{ id: 'documents', locked: null, topLevelEntrance: true }] })).toBe(false);
+    });
+
+    describe('a direct URL (studioSectionAccess)', () => {
+        it('opens a section the role opens', () => {
+            expect(accessFor(member(['use_meeting_notes']), 'meetingNotes')).toEqual({ allowed: true, redirectTo: null });
+        });
+
+        it('refuses one the role does not, and sends them to their own first section', () => {
+            expect(accessFor(member(['use_meeting_notes']), 'webpages')).toEqual({ allowed: false, redirectTo: 'meeting-notes' });
+            expect(accessFor(member(['use_meeting_notes']), 'agents')).toEqual({ allowed: false, redirectTo: 'meeting-notes' });
+        });
+
+        it('refuses with nowhere to go when nothing in Studio is theirs', () => {
+            expect(accessFor(member([]), 'meetingNotes')).toEqual({ allowed: false, redirectTo: null });
+        });
+
+        it('sends a non-builder from Start to their first section — Start is a builder\'s dashboard', () => {
+            expect(accessFor(member(['use_meeting_notes']), 'start')).toEqual({ allowed: false, redirectTo: 'meeting-notes' });
+        });
+
+        it('leaves Documents, Approvals (own entrance, e-mail links) and unknown ids alone', () => {
+            const user = member([]);
+            expect(accessFor(user, 'documents').allowed).toBe(true);
+            expect(accessFor(user, 'approvals').allowed).toBe(true);
+            expect(accessFor(user, 'some-module').allowed).toBe(true);
+        });
+
+        it('does not refuse on a licence miss — that is the section\'s (or the server\'s) to explain', () => {
+            const user = member(['use_webpages', 'use_meeting_notes']);
+            const unlicensed = studioGateContext({
+                user, hasLicenseFeature: () => false, hasPermission: (p) => user.permissions.includes(p),
+                can: () => false, lockReason: () => 'ceiling',
+            });
+            expect(studioSectionAccess({
+                section: 'webpages', apps: STUDIO_APPS, user,
+                hasPermission: unlicensed.hasPermission, sections: studioNavSections(STUDIO_APPS, unlicensed),
+            }).allowed).toBe(true);
+        });
     });
 });

@@ -106,9 +106,9 @@ export default function DocProcessingSection({
                     className="w-full px-3 py-2 rounded-lg border outline-none text-[13px] transition-colors focus:ring-2 focus:ring-blue-500/20"
                     style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                 >
-                    <option value="text-embedding-3-small">text-embedding-3-small (1536 dims)</option>
-                    <option value="text-embedding-3-large">text-embedding-3-large (3072 dims)</option>
-                    <option value="text-embedding-ada-002">text-embedding-ada-002 (1536 dims)</option>
+                    <option value="text-embedding-3-small">{t('azure.doc_processing_text_embedding_3_small_1536_dims', 'text-embedding-3-small (1536 dims)')}</option>
+                    <option value="text-embedding-3-large">{t('azure.doc_processing_text_embedding_3_large_3072_dims', 'text-embedding-3-large (3072 dims)')}</option>
+                    <option value="text-embedding-ada-002">{t('azure.doc_processing_text_embedding_ada_002_1536_dims', 'text-embedding-ada-002 (1536 dims)')}</option>
                 </select>
                 <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
                     {t('azure.embed_model_help')}

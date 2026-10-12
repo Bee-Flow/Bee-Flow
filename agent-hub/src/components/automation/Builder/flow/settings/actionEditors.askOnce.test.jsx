@@ -86,12 +86,11 @@ describe('the toggle is off unless ticked', () => {
     });
 });
 
-describe('the Advanced section stays closed when the toggle is already on', () => {
-    it('a step with askOnce says "set" on the closed band, and one click shows the toggle', () => {
+describe('a step that already asks once', () => {
+    it('a step with askOnce shows the toggle, ticked, in the Advanced mode', () => {
         renderFields({ draft: { askOnce: true } });
-        expect(screen.getByText('set')).toBeTruthy();
-        openAdvanced();
         expect(toggle()).toBeTruthy();
+        expect(toggle().checked).toBe(true);
     });
 });
 

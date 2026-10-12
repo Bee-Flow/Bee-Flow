@@ -35,7 +35,8 @@
  *    names from `slugName`, the one the rest of this box already uses. Two
  *    slugifiers is two answers to "what is this field called".
  *  - It does not write an expression shape of its own. Every rule is a plain
- *    `<path> == "<word>"`, which is exactly what utils/conditionModel.js
+ *    `equals(<path>, "<word>")` (text "is": upper/lower case and surrounding
+ *    spaces do not matter), which is exactly what utils/conditionModel.js
  *    parses back into a clickable row, so `describeRuleExpr` reads it as a
  *    sentence like every other suggestion and the author checks words rather
  *    than syntax.
@@ -267,7 +268,7 @@ export function planRouteHandoff({
             // Exactly the shape utils/conditionModel.js parses back into a
             // clickable row, so the preview reads it as a sentence and the
             // Advanced expression is the same text the runner sees.
-            expr: `${fieldPath} == ${JSON.stringify(name)}`,
+            expr: `equals(${fieldPath}, ${JSON.stringify(name)})`,
         });
     }
 

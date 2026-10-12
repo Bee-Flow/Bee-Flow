@@ -1,12 +1,18 @@
 import { ChevronDown, LogOut, Settings, Shield, User } from 'lucide-react';
 import React from 'react';
+import { PAGE_ROUTES } from '../../../authedApp/appRoutes';
 import { API_BASE } from '../../../utils/helpers';
 import NavLink from '../NavLink';
 import { ACCENT_BAR, ICON_ACTIVE, ICON_IDLE, TEXT_ACTIVE, TEXT_IDLE } from './sidebarTokens';
 
 /* ── Account footer: avatar row plus the profile menu (admin dashboard,
    settings, sign out). Moved verbatim out of Sidebar's JSX; the menu state and
-   the outside-click ref stay in Sidebar and arrive here as props. ── */
+   the outside-click ref stay in Sidebar and arrive here as props.
+   The trigger is a disclosure (aria-expanded + aria-controls), not a menu
+   button: the popup holds two links and a button, with no arrow-key menu
+   behind it, and aria-haspopup="menu" promised one. ── */
+const PROFILE_MENU_ID = 'sidebar-profile-menu';
+
 const SidebarFooter = ({
     isOpen, isMobile, user, t,
     profileRef, showProfileMenu, setShowProfileMenu,
@@ -25,9 +31,9 @@ const SidebarFooter = ({
                     className={`flex items-center transition-colors cursor-pointer ${isOpen ? 'w-full gap-2.5 px-4 h-14 ' + (showProfileMenu ? 'bg-[var(--bg-tertiary)]' : 'hover:bg-[var(--bg-tertiary)]') : 'w-10 h-10 my-3 rounded-full justify-center hover:bg-[var(--bg-tertiary)]'}`}
                     role="button"
                     tabIndex={0}
-                    aria-label="Open profile menu"
-                    aria-haspopup="menu"
+                    aria-label={t('sidebar.open_profile_menu', 'Open profile menu')}
                     aria-expanded={showProfileMenu}
+                    aria-controls={showProfileMenu ? PROFILE_MENU_ID : undefined}
                     data-testid="sidebar-profile"
                     data-tour="account"
                 >
@@ -47,7 +53,7 @@ const SidebarFooter = ({
                         <>
                             <div className="flex-1 min-w-0 text-left flex items-center gap-2">
                                 <span className="text-[13px] font-medium truncate text-[var(--text-primary)]">
-                                    {user?.displayName || user?.id || 'User'}
+                                    {user?.displayName || user?.username || user?.id || 'User'}
                                 </span>
                             </div>
                             <ChevronDown className={`w-4 h-4 flex-shrink-0 text-[var(--text-tertiary)] transition-transform duration-200 ${showProfileMenu ? 'rotate-180' : ''}`} />
@@ -57,6 +63,7 @@ const SidebarFooter = ({
 
                 {showProfileMenu && (
                     <div
+                        id={PROFILE_MENU_ID}
                         className={`absolute rounded-2xl border overflow-hidden z-50 ${isOpen ? 'bottom-full left-3 right-3 -mb-px' : 'bottom-full left-14 -mb-px w-64'}`}
                         style={{
                             borderColor: 'var(--border-default)',
@@ -69,7 +76,7 @@ const SidebarFooter = ({
                         <div className="p-1.5">
                             {!_simpleMode && !isMobile && (user?.isAdmin || user?.permissions?.includes('all')) && (
                                 <NavLink
-                                    href="/admin"
+                                    href={PAGE_ROUTES.admin}
                                     onClick={() => setShowProfileMenu(false)}
                                     onNavigate={() => { setShowProfileMenu(false); onNavigate('admin'); }}
                                     className={`w-full flex items-center gap-3 px-3 h-10 rounded-lg transition-all duration-150 text-left relative ${currentPage === 'admin' ? 'bg-[var(--item-active-bg)]' : 'hover:bg-[var(--item-hover-bg)]'}`}
@@ -86,7 +93,7 @@ const SidebarFooter = ({
                                 trimmed inside AdvancedSettings), so show it on phones too.
                                 Admin Dashboard above stays desktop-only. */}
                             <NavLink
-                                href="/settings"
+                                href={PAGE_ROUTES.settings}
                                 onClick={() => setShowProfileMenu(false)}
                                 onNavigate={() => { setShowProfileMenu(false); onNavigate('settings'); }}
                                 className={`w-full flex items-center gap-3 px-3 h-10 rounded-lg transition-all duration-150 text-left relative ${showSettings ? 'bg-[var(--item-active-bg)]' : 'hover:bg-[var(--item-hover-bg)]'}`}

@@ -1,5 +1,6 @@
 import { AlertTriangle, Braces, FunctionSquare, SlidersHorizontal } from 'lucide-react';
 import React from 'react';
+import useTranslation from '../../../../../../hooks/useTranslation';
 import ConditionField from './ConditionField';
 import useExpressionEditing, { conditionCanHold, useConditionToggle } from './useExpressionEditing';
 import VariablePicker from '../../../../../automation/Builder/mapping/VariablePicker';
@@ -58,6 +59,7 @@ export default function ExpressionInput({
     showPicker = true,
     roots = FORMULA_SCOPE_ROOTS,
 }) {
+    const { t } = useTranslation();
     const {
         fieldRef, picker, pickerProps, groups, sample, evalInfo,
         openPicker, closePicker, insertPath, handleInput, handleDragOver, handleDrop,
@@ -91,7 +93,7 @@ export default function ExpressionInput({
                 />
                 <div className="flex justify-end">
                     <ToggleLink onClick={() => setAsCondition(false)} icon={FunctionSquare} disabled={disabled}>
-                        Write a formula
+                        {t('studio_apps_insp.expression.write_formula', 'Write a formula')}
                     </ToggleLink>
                 </div>
             </div>
@@ -103,8 +105,8 @@ export default function ExpressionInput({
             type="button"
             onClick={(e) => openPicker(e.currentTarget)}
             disabled={disabled}
-            title="Insert a variable"
-            aria-label="Insert a variable"
+            title={t('studio_apps_insp.expression.insert_variable', 'Insert a variable')}
+            aria-label={t('studio_apps_insp.expression.insert_variable', 'Insert a variable')}
             className="shrink-0 px-2 rounded border border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] flex items-center justify-center transition-colors disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)]"
         >
             <Braces size={12} />
@@ -118,7 +120,7 @@ export default function ExpressionInput({
             previewSample={sample}
             onPick={(path) => { insertPath(path); closePicker(); }}
             onClose={closePicker}
-            title="Insert a variable"
+            title={t('studio_apps_insp.expression.insert_variable', 'Insert a variable')}
         />
     ) : null;
 
@@ -198,7 +200,7 @@ export default function ExpressionInput({
                 </div>
             ) : evalInfo.preview != null ? (
                 <div className="text-[11px] text-[var(--text-secondary)] flex items-center gap-1.5" data-formula-preview="true">
-                    <span className="uppercase tracking-wide text-[var(--text-tertiary)]">result</span>
+                    <span className="uppercase tracking-wide text-[var(--text-tertiary)]">{t('studio_apps_insp.expression.result', 'result')}</span>
                     <span className="font-mono truncate">{evalInfo.preview}</span>
                 </div>
             ) : null}
@@ -206,7 +208,7 @@ export default function ExpressionInput({
             {canUseCondition && (
                 <div className="flex justify-end">
                     <ToggleLink onClick={() => setAsCondition(true)} icon={SlidersHorizontal} disabled={disabled}>
-                        Use the condition builder
+                        {t('studio_apps_insp.expression.use_condition_builder', 'Use the condition builder')}
                     </ToggleLink>
                 </div>
             )}

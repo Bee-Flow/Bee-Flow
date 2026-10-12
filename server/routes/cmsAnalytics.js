@@ -25,6 +25,7 @@ const express = require('express');
 const configStore = require('../stores/configStore');
 const cmsStore = require('../stores/cmsStore');
 const umamiClient = require('../core/umamiClient');
+const analyticsQueries = require('../core/cms/analyticsQueries');
 const { perUserRateLimit } = require('../utils/perUserRateLimit');
 const { SITE_ID_RE, getLiveSiteId } = require('./cmsShared');
 const { requireSuperAdmin } = require('../auth/permissions');
@@ -34,9 +35,7 @@ const { z, worded, bodyOf, closedObject, choice } = require('../core/http/schema
 
 const router = express.Router();
 
-const KEY_ANALYTICS_ENABLED      = 'cms_analytics_enabled';
-const KEY_ANALYTICS_CONSENT_MODE = 'cms_analytics_consent_mode';
-const KEY_ANALYTICS_SITE_MAP     = 'cms_analytics_site_map';
+const { KEY_ANALYTICS_ENABLED, KEY_ANALYTICS_CONSENT_MODE, KEY_ANALYTICS_SITE_MAP, rangeToWindow } = analyticsQueries;
 const KEY_ANALYTICS_RECORDER_MAP = 'cms_analytics_recorder_map';
 const KEY_ANALYTICS_TRACKER_OPTS = 'cms_analytics_tracker_options';
 const KEY_ANALYTICS_RECORDER_OPTS = 'cms_analytics_recorder_options';
@@ -90,29 +89,12 @@ async function getRecorderOptions() {
     };
 }
 
-async function getAnalyticsSettings() {
-    const [enabled, consentMode, url] = await Promise.all([
-        configStore.getConfig(KEY_ANALYTICS_ENABLED),
-        configStore.getConfig(KEY_ANALYTICS_CONSENT_MODE),
-        configStore.getConfig(umamiClient.KEY_URL),
-    ]);
-    return {
-        enabled: enabled === true,
-        consentMode: consentMode === 'cookies' ? 'cookies' : 'cookieless',
-        // The PUBLIC script origin the browser loads /script.js from. Operator-
-        // set value wins; UMAMI_PUBLIC_URL is the env fallback. Deliberately NOT
-        // process.env.UMAMI_URL — that's the server's INTERNAL base (e.g.
-        // http://umami:3000) which a visitor's browser can't reach.
-        url: (typeof url === 'string' ? url : (process.env.UMAMI_PUBLIC_URL || '')) || '',
-    };
-}
-
-async function readMap(key) {
-    const v = await configStore.getConfig(key);
-    return (v && typeof v === 'object' && !Array.isArray(v)) ? v : {};
-}
-
-const getAnalyticsSiteMap = () => readMap(KEY_ANALYTICS_SITE_MAP);
+// Settings, site map and target resolution are shared with the CMS MCP
+// analytics tools (core/cms/analyticsQueries.js).
+const queries = analyticsQueries.createAnalyticsQueries({
+    configStore, umamiClient, getLiveSiteId, siteIdRe: SITE_ID_RE,
+});
+const { readMap, getSettings: getAnalyticsSettings, getSiteMap: getAnalyticsSiteMap, resolveTarget: resolveAnalyticsTarget } = queries;
 const getRecorderMap      = () => readMap(KEY_ANALYTICS_RECORDER_MAP);
 
 async function setAnalyticsWebsiteId(siteId, websiteId) {
@@ -167,38 +149,8 @@ router.use(requireSuperAdmin, analyticsLimiter);
 
 // ── Range + target resolution ────────────────────────────────────────
 
-// Translate a range token into Umami's millisecond-epoch window + the natural
-// bucket size. Absolute ranges arrive as `start`/`end` epoch ms with range=custom.
-function rangeToWindow(range, { start, end } = {}) {
-    if (range === 'custom') {
-        const s = Number(start);
-        const e = Number(end);
-        if (Number.isFinite(s) && Number.isFinite(e) && e > s) {
-            // Hourly buckets stay readable up to ~2 days; beyond that use days.
-            const unit = (e - s) <= 2 * 24 * 60 * 60 * 1000 ? 'hour' : 'day';
-            return { startAt: s, endAt: e, unit };
-        }
-    }
-    const endAt = Date.now();
-    const days = range === '24h' ? 1 : range === '30d' ? 30 : range === '90d' ? 90 : 7;
-    return { startAt: endAt - days * 24 * 60 * 60 * 1000, endAt, unit: range === '24h' ? 'hour' : 'day' };
-}
-
 function windowFromReq(src) {
     return rangeToWindow((src.range || '7d').toString(), { start: src.start, end: src.end });
-}
-
-// Pick the site the dashboard should show: explicit siteId (must be tracked),
-// else the live site, else the first tracked site. Null when nothing tracked.
-async function resolveAnalyticsTarget(wantedRaw) {
-    const map = await getAnalyticsSiteMap();
-    const wanted = (wantedRaw || '').toString();
-    if (wanted && SITE_ID_RE.test(wanted) && map[wanted]) return { siteId: wanted, websiteId: map[wanted] };
-    const liveSiteId = await getLiveSiteId();
-    if (liveSiteId && map[liveSiteId]) return { siteId: liveSiteId, websiteId: map[liveSiteId] };
-    const firstSiteId = Object.keys(map)[0];
-    if (firstSiteId) return { siteId: firstSiteId, websiteId: map[firstSiteId] };
-    return null;
 }
 
 // Shared preflight for every data route: enabled → configured → provisioned.
@@ -441,26 +393,14 @@ router.post('/report/:type', async (req, res) => {
         const src = req.body || {};
         const w = windowFromReq(src);
         const timezone = (src.timezone || 'UTC').toString();
-        // Umami 3.x report envelope, verified against a live 3.2 instance:
-        //   type       – discriminator, must equal the endpoint
-        //   filters    – REQUIRED, an object even when empty (omitting it 400s)
-        //   parameters – report options AND a repeat of the window; the
-        //                top-level dateRange alone is not enough
-        const startDate = new Date(w.startAt).toISOString();
-        const endDate = new Date(w.endAt).toISOString();
         const filters = pickFilters(src);
-        const parameters = { startDate, endDate, timezone, unit: w.unit };
+        const extra = {};
         for (const k of allowedKeys) {
-            if (src[k] !== undefined) parameters[k] = src[k];
+            if (src[k] !== undefined) extra[k] = src[k];
         }
-        const body = {
-            type: req.params.type,
-            websiteId: target.websiteId,
-            dateRange: { startDate, endDate, unit: w.unit, timezone },
-            timezone,
-            filters,
-            parameters,
-        };
+        const body = analyticsQueries.buildReportBody({
+            type: req.params.type, websiteId: target.websiteId, window: w, timezone, filters, extra,
+        });
 
         // Request identity, not the resolved dateRange — see the note in
         // /query/:resource: a relative range would bust the key every call.

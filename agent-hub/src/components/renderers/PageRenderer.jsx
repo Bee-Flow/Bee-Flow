@@ -1,10 +1,12 @@
 import React, { useMemo, useState } from 'react';
+import { useTranslation } from '../../hooks/useTranslation';
 
 /**
  * PageRenderer - Renders a page/dashboard from JSON definition
  * Supports layout, content, interactive, and data elements
  */
 const PageRenderer = ({ code, onAction }) => {
+    const { t } = useTranslation();
     const [overlay, setOverlay] = useState(null); // { title, content, url }
 
     // Parse the page definition
@@ -19,7 +21,7 @@ const PageRenderer = ({ code, onAction }) => {
     if (!pageDef) {
         return (
             <div className="my-4 p-4 rounded-xl border" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-tertiary)' }}>
-                <div className="text-red-400 text-sm">Invalid page definition. Expected JSON format.</div>
+                <div className="text-red-400 text-sm">{t('chat.renderers.page_invalid', 'Invalid page definition. Expected JSON format.')}</div>
                 <pre className="mt-2 text-xs overflow-auto" style={{ color: 'var(--text-muted)' }}>{code}</pre>
             </div>
         );
@@ -654,7 +656,7 @@ const PageRenderer = ({ code, onAction }) => {
                                     fontSize: '0.875rem'
                                 }}
                             >
-                                Open Link →
+                                {t('chat.renderers.page_open_link', 'Open Link →')}
                             </a>
                         )}
 
@@ -673,7 +675,7 @@ const PageRenderer = ({ code, onAction }) => {
                                 fontWeight: '500'
                             }}
                         >
-                            Close
+                            {t('common.close', 'Close')}
                         </button>
                     </div>
                 </div>

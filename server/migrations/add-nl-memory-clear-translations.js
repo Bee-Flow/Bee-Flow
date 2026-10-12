@@ -24,6 +24,7 @@ const NL_TRANSLATIONS = {
     'settings.memory_clear_confirm': 'Alles verwijderen',
     'settings.memory_clear_personal_error': 'Je persoonlijke herinneringen konden niet worden verwijderd. Probeer het opnieuw.',
     'settings.memory_clear_project_error': 'De herinneringen van dit project konden niet worden verwijderd. Probeer het opnieuw.',
+    'settings.memory_clear_all': 'Alle persoonlijke herinneringen verwijderen',
 };
 
 async function up() {

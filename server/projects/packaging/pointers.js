@@ -330,6 +330,7 @@ function visitSteeringFields(definition, fn) {
         if (step.type === 'http_request') {
             for (const field of ['url', 'headers']) if (step[field] !== undefined) fn({ ...at, field, value: step[field] });
         }
+        // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- a constant alternation of literals, no repeat: linear
         const recipients = RECIPIENT_STEP.test(String(step.type || ''));
         const destination = recipients ? toolDestinationKeys(step) : () => false;
         for (const [prefix, bag] of [['', step], ['inputs.', isObject(step.inputs) ? step.inputs : {}]]) {

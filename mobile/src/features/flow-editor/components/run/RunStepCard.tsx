@@ -97,7 +97,7 @@ export function RunStepCard({ row, onOpenStep }: { row: RunRowModel; onOpenStep:
                         </Text>
                     ) : null}
                 </Pressable>
-                {row.sample ? <Badge label={t('mobile.flow.run.sample', 'Sample data')} tone="warning" /> : null}
+                {row.sample ? <Badge label={t('automations.dry_run_panel.sample_data', 'Sample data')} tone="warning" /> : null}
             </View>
             {row.sample ? (
                 <Text variant="caption" tone="tertiary">

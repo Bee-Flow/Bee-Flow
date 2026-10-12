@@ -262,5 +262,5 @@ test('the overview asks the store for Solutions (and unclassified legacy rows) o
     await dispatch('/summary');
     // The store keeps legacy rows (kind NULL) on both sides; a collaborative
     // project is never a card here.
-    assert.deepStrictEqual(fx.listOpts, { kind: 'solution' });
+    assert.deepStrictEqual(fx.listOpts, { kind: 'solution', includeArchived: true });
 });

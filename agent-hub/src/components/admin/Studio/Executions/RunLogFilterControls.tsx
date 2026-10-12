@@ -45,7 +45,7 @@ export function modeOptions(t: TranslateFn) {
 export function narrowedWords(t: TranslateFn, p: SecondaryFilterProps): string[] {
     const { filters } = p;
     return [
-        filters.trigger ? triggerLabel(filters.trigger) : null,
+        filters.trigger ? triggerLabel(filters.trigger, t) : null,
         p.showModePicker && filters.mode && filters.mode !== 'live'
             ? modeOptions(t).find(m => m.key === filters.mode)?.label || filters.mode
             : null,
@@ -81,7 +81,7 @@ export function SecondarySelects({ p, stacked = false }: { p: SecondaryFilterPro
                 <SelectBox className={width('max-w-[12rem]')}>
                     <select value={filters.trigger || ''} onChange={(e) => set({ trigger: e.target.value || null })} aria-label={t('runs.log.filter_trigger_label', 'Filter by trigger')} className={SELECT}>
                         <option value="">{t('runs.log.any_trigger', 'Any trigger')}</option>
-                        {p.triggerKinds.map(kind => <option key={kind} value={kind}>{triggerLabel(kind)}</option>)}
+                        {p.triggerKinds.map(kind => <option key={kind} value={kind}>{triggerLabel(kind, t)}</option>)}
                     </select>
                 </SelectBox>
             ))}

@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -15,6 +15,7 @@ vi.mock('../../../../api/client', async (importOriginal) => ({
 vi.mock('../../../../api/queries/modelTiers', () => ({ useModelTiersQuery: () => ({ data: {} }) }));
 
 import TasksTab from './TasksTab';
+import { useUndoCapture } from '../undoTestKit';
 import scopedStorage, { setCurrentUser } from '../../../../utils/scopedStorage';
 
 const task = (id: string, extra: Partial<ProjectTask> = {}): ProjectTask => ({
@@ -248,26 +249,30 @@ describe('TasksTab', () => {
     });
 
     describe('deleting a task', () => {
+        const undo = useUndoCapture();
         beforeEach(() => {
             client.delete.mockImplementation(async () => ({ ok: true }));
         });
 
-        it('asks first, then deletes, from the list', async () => {
+        it('takes the task out at once and calls the API once, when the Undo toast runs out', async () => {
             const user = userEvent.setup();
             renderTab('owner');
             await user.click(await screen.findByTestId('delete-task-2'));
-            const dialog = await screen.findByRole('dialog');
-            expect(dialog).toHaveTextContent('"Task 2" disappears for everyone in the project.');
+            expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+            expect(screen.queryByTestId('project-task-2')).not.toBeInTheDocument();
+            expect(undo.last().message).toContain('Task 2');
             expect(client.delete).not.toHaveBeenCalled();
-            await user.click(within(dialog).getByRole('button', { name: 'Delete' }));
-            await waitFor(() => expect(client.delete).toHaveBeenCalledWith('/api/projects/p1/tasks/2', expect.anything()));
+            act(() => undo.last().onExpire());
+            await waitFor(() => expect(client.delete).toHaveBeenCalledTimes(1));
+            expect(client.delete).toHaveBeenCalledWith('/api/projects/p1/tasks/2', expect.anything());
         });
 
-        it('leaves the task when the person says no', async () => {
+        it('brings the task back on Undo and never calls the API', async () => {
             const user = userEvent.setup();
             renderTab('owner');
             await user.click(await screen.findByTestId('delete-task-2'));
-            await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Cancel' }));
+            act(() => undo.last().onUndo());
+            expect(await screen.findByTestId('project-task-2')).toBeInTheDocument();
             expect(client.delete).not.toHaveBeenCalled();
         });
 
@@ -277,7 +282,8 @@ describe('TasksTab', () => {
             await user.click(await screen.findByRole('radio', { name: 'Board' }));
             await user.click(within(await screen.findByTestId('board-task-3')).getByRole('button', { name: 'Task actions' }));
             await user.click(await screen.findByTestId('delete-task-3'));
-            await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Delete' }));
+            expect(screen.queryByTestId('board-task-3')).not.toBeInTheDocument();
+            act(() => undo.last().onExpire());
             await waitFor(() => expect(client.delete).toHaveBeenCalledWith('/api/projects/p1/tasks/3', expect.anything()));
         });
 
@@ -448,17 +454,40 @@ it('opens planning, edits a task date range, and sends only changed fields', asy
     await waitFor(() => expect(client.patch).toHaveBeenCalledWith('/api/projects/p1/tasks/1', { startDate: '2026-10-02', dueDate: '2026-10-06' }, expect.anything()));
 });
 
-it('keeps edited task details when closing is cancelled', async () => {
-    const user = userEvent.setup(); renderTab();
-    await user.click(await screen.findByText('Task 1'));
-    const dialog = screen.getByRole('dialog', { name: 'Task' });
-    await user.type(within(dialog).getByLabelText('What needs to be done?'), ' updated');
-    await user.click(within(dialog).getByRole('button', { name: 'Cancel' }));
-    await user.click(await screen.findByRole('button', { name: 'Keep editing' }));
-    expect(within(dialog).getByLabelText('What needs to be done?')).toHaveValue('Task 1 updated');
-    expect(client.patch).not.toHaveBeenCalled();
-});
+describe('closing a task with unsaved changes', () => {
+    async function editTitle() {
+        const user = userEvent.setup(); renderTab();
+        await user.click(await screen.findByText('Task 1'));
+        const dialog = screen.getByRole('dialog', { name: 'Task' });
+        await user.type(within(dialog).getByLabelText('What needs to be done?'), ' updated');
+        await user.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+        return { user, dialog };
+    }
 
+    it('shows an inline bar in the same dialog instead of a second dialog, and Keep editing keeps the edits', async () => {
+        const { user, dialog } = await editTitle();
+        expect(screen.getAllByRole('dialog')).toHaveLength(1);
+        const bar = within(dialog).getByTestId('task-unsaved-bar');
+        expect(bar).toHaveTextContent('Unsaved changes');
+        await user.click(within(bar).getByRole('button', { name: 'Keep editing' }));
+        expect(within(dialog).queryByTestId('task-unsaved-bar')).not.toBeInTheDocument();
+        expect(within(dialog).getByLabelText('What needs to be done?')).toHaveValue('Task 1 updated');
+        expect(client.patch).not.toHaveBeenCalled();
+    });
+
+    it('Discard closes the dialog without saving', async () => {
+        const { user, dialog } = await editTitle();
+        await user.click(within(dialog).getByTestId('task-unsaved-discard'));
+        await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+        expect(client.patch).not.toHaveBeenCalled();
+    });
+
+    it('Save sends the change', async () => {
+        const { user, dialog } = await editTitle();
+        await user.click(within(dialog).getByTestId('task-unsaved-save'));
+        await waitFor(() => expect(client.patch).toHaveBeenCalledWith('/api/projects/p1/tasks/1', { title: 'Task 1 updated' }, expect.anything()));
+    });
+});
 
 describe('planning dependencies', () => {
     it('shows saved hierarchy and related task relationships automatically', async () => {

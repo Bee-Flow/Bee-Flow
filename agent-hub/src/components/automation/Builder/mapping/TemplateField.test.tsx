@@ -117,18 +117,16 @@ describe('TemplateField: a list, table or group dragged into a text', () => {
         return { changes, forEachCalls, insert };
     }
 
-    it('goes in without a question, and More stays closed', () => {
+    it('goes in without a question; the other answers sit under it, no click needed (Advanced)', () => {
         const { changes, insert } = setupInsert();
         insert('steps.kw.output.rows');
         expect(changes.at(-1)).toBe('{{steps.kw.output.rows}}');
-        expect(screen.getByTestId('template-fit-more')).toBeTruthy();
-        expect(screen.queryByRole('group', { name: 'More ways to use this value' })).toBeNull();
+        expect(screen.getByRole('group', { name: 'More ways to use this value' })).toBeTruthy();
     });
 
     it('More turns the table into one column, in the same place', () => {
         const { changes, insert } = setupInsert();
         insert('steps.kw.output.rows');
-        fireEvent.click(screen.getByRole('button', { name: 'More ways to use this value' }));
         fireEvent.click(screen.getByText('Only “Id”, from every row'));
         expect(changes.at(-1)).toBe('{{steps.kw.output.rows[*].id}}');
     });
@@ -136,7 +134,6 @@ describe('TemplateField: a list, table or group dragged into a text', () => {
     it('a separate run for each row sets the step\'s forEach and puts the row in the text', () => {
         const { changes, forEachCalls, insert } = setupInsert();
         insert('steps.kw.output.rows');
-        fireEvent.click(screen.getByRole('button', { name: 'More ways to use this value' }));
         fireEvent.click(screen.getByText('A separate run for each row'));
         expect(forEachCalls.at(-1)).toEqual(expect.objectContaining({ overRef: 'steps.kw.output.rows' }));
         expect(changes.at(-1)).toMatch(/^\{\{loop\.[A-Za-z_]+\}\}$/);

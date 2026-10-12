@@ -58,8 +58,8 @@ export function GithubSyncScreen() {
                         <EmptyState
                             icon="GitBranch"
                             title={t('mobile.orgIntegrations.gh_not_connected', 'GitHub Not Connected')}
-                            message={t('mobile.orgIntegrations.gh_not_connected_hint', 'Connect your GitHub account under Integrations first, then return here to configure sync.')}
-                            actionLabel={t('settings.integrations', 'Integrations')}
+                            message={t('mobile.orgIntegrations.gh_not_connected_hint', 'Connect your GitHub account under Connections first, then return here to configure sync.')}
+                            actionLabel={t('settings.connections', 'Connections')}
                             onAction={() => router.push('/integrations')}
                         />
                     ) : null}

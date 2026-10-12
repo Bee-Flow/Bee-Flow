@@ -12,6 +12,7 @@ const {
 } = require('./shared');
 const { writeRecord, writeRecordBatch } = require('./records');
 const log = require('../../telemetry/log');
+const { replaceTemplate, parsePath, walkTokens } = require('../../automation/expr');
 
 // ── Native AI steps (acts-as-owner via appStudio/aiRuntime) ─────────
 // ai_extract / ai_generate / kb_query resolve the app OWNER's model tier and
@@ -119,21 +120,25 @@ async function redeemPendingDescriptors(app, model, descriptors, ctx) {
  * indexes vars-then-form) in a prompt from the live step scope. Unresolved
  * tokens are left verbatim — the author's literal braces, or data not present
  * yet, must never be silently deleted (mirrors the automation ai_step).
+ *
+ * The roots are this step's own; the path after them is read with the one
+ * path grammar (shared/expr/path.mjs), like the placeholders themselves
+ * (quote-aware): `form["Cost center"]`, `form.e-mail`, `vars.lines[0].sku`,
+ * own fields only — never the prototype chain.
  */
 function interpolatePrompt(text, ctx) {
     if (typeof text !== 'string') return '';
     const form = (ctx.formValues && typeof ctx.formValues === 'object') ? ctx.formValues : {};
     const vars = (ctx.vars && typeof ctx.vars === 'object') ? ctx.vars : {};
-    return text.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (m, pathExpr) => {
-        const parts = pathExpr.split('.');
-        let base; let rest;
-        if (parts[0] === 'form') { base = form; rest = parts.slice(1); }
-        else if (parts[0] === 'vars') { base = vars; rest = parts.slice(1); }
-        else if (parts[0] === 'item') { base = ctx.item; rest = parts.slice(1); }
-        else { base = { ...vars, ...form }; rest = parts; }
-        let cur = base;
-        for (const p of rest) { if (cur == null) return m; cur = cur[p]; }
-        if (cur === undefined || cur === null) return m;
+    const ROOTS = { form, vars, item: ctx.item };
+    return replaceTemplate(text, (inner, raw) => {
+        const tokens = parsePath(inner);
+        if (!tokens) return raw;
+        const head = tokens[0].key;
+        const cur = Object.prototype.hasOwnProperty.call(ROOTS, head)
+            ? walkTokens(tokens.slice(1), ROOTS[head])
+            : walkTokens(tokens, { ...vars, ...form });
+        if (cur === undefined || cur === null) return raw;
         return typeof cur === 'object' ? JSON.stringify(cur) : String(cur);
     });
 }
@@ -732,6 +737,7 @@ module.exports = {
     aiGenerateStep,
     kbQueryStep,
     resolveWriteMapping,
+    interpolatePrompt,
     // Pure, and the place a whole order's context was quietly destroyed —
     // worth testing on its own rather than through a model call.
     serializePromptContext,

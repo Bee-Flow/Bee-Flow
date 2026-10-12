@@ -59,8 +59,9 @@ test('prototype-chain members are blocked (own properties only)', () => {
 });
 
 test('non-string weirdness is rejected safely', () => {
-    // A bare-digit key fails REF_RE's identifier rule — bracket form works.
-    assert.strictEqual(walkRelativePath(0, { 0: 'zero' }), undefined);
+    // A bare-digit key reads as key "0" (shared/expr/path.mjs: `items.0.x`,
+    // the shape older AI-built paths have, resolves) — bracket form too.
+    assert.strictEqual(walkRelativePath(0, { 0: 'zero' }), 'zero');
     assert.strictEqual(walkRelativePath('[0]', ['zero']), 'zero');
     // A malformed path (unclosed bracket) → undefined, no throw.
     assert.strictEqual(walkRelativePath('items[0', { items: ['x'] }), undefined);

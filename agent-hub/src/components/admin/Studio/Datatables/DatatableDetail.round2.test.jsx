@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import DatatableDetail from './DatatableDetail';
@@ -145,6 +146,17 @@ describe('Columns (2a)', () => {
         // the chips' + opens the options editor
         fireEvent.click(screen.getByTestId('column-options-edit'));
         expect(screen.getByLabelText('Options for Status').value).toBe('Nieuw, Goedgekeurd, Afgewezen');
+    });
+
+    it('the usage pill names the automation on hover and opens Used by on click', async () => {
+        const user = userEvent.setup();
+        renderDetail();
+        await screen.findByDisplayValue('Datum');
+        const pill = screen.getAllByTestId('column-usage')[0];
+        await user.hover(pill);
+        expect(await screen.findByRole('tooltip')).toHaveTextContent(/Playbook · writes/);
+        await user.click(pill);
+        expect(screen.getByRole('radio', { name: /Used by/ })).toHaveAttribute('aria-checked', 'true');
     });
 });
 

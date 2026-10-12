@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
+import { withQueryClient } from '../test/queryWrapper';
 import ProjectsView, { type ProjectsViewProps } from './ProjectsView';
 
 /**
@@ -54,7 +55,7 @@ function renderView(over: Partial<ProjectsViewProps> = {}) {
         onStartChat: vi.fn(),
         ...over,
     };
-    render(<ProjectsView {...props} />);
+    render(withQueryClient(<ProjectsView {...props} />));
     return props;
 }
 

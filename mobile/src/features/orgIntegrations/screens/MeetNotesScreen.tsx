@@ -2,6 +2,8 @@
  * Google Meet Meeting Notes (web: meetings/GoogleMeetAdminPanel.jsx): turn
  * recorded Google Meet meetings into Meeting Notes. These organisation
  * settings override each member's own; the whole document is saved back.
+ * Opened from Meeting templates (as on the web), not from Nextcloud Sync:
+ * Meet needs no Nextcloud, so the gate is the org admin and the licence only.
  */
 
 import React from 'react';
@@ -28,7 +30,7 @@ export function MeetNotesScreen() {
     return (
         <OrgSettingsFrame
             title={t('mobile.orgIntegrations.meet_title', 'Google Meet Meeting Notes')}
-            subtitle={t('settings.nextcloud_sync', 'Nextcloud Sync')}
+            subtitle={t('settings.meeting_templates', 'Meeting Templates')}
             allowed={access.meetingNotes}
             query={query}
             footer={<SaveBar dirty={form.dirty} saving={saving} onSave={() => void save()} onDiscard={form.reset} />}

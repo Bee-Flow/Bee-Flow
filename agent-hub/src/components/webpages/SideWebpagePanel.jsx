@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Loader2, X, Pencil, Globe } from 'lucide-react';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import WebpagePreview from '../../pages/webpages/WebpagePreview';
+import { useTranslation } from '../../hooks/useTranslation';
 
 /**
  * Read-only webpage view for the right-hand chat slot. Fetches the webpage
@@ -18,6 +19,7 @@ export default function SideWebpagePanel({
     reloadKey = 0,    // bump to force a refetch (e.g. after AI edits)
     onNavigate,       // (page) — same shape as App.jsx's navigateToPage
 }) {
+    const { t } = useTranslation();
     const [state, setState] = useState({ loading: true, error: null, data: null });
     // Stash the callbacks in refs so the effect's deps stay limited to
     // webpageId + reloadKey. Parents typically pass inline arrows that get a
@@ -88,7 +90,7 @@ export default function SideWebpagePanel({
                 {isOwner && (
                     <button
                         onClick={openInEditor}
-                        title="Open in editor"
+                        title={t('webpages.side_panel.open_in_editor', 'Open in editor')}
                         className="p-1 rounded hover:bg-[var(--bg-secondary)]"
                     >
                         <Pencil className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
@@ -96,7 +98,7 @@ export default function SideWebpagePanel({
                 )}
                 <button
                     onClick={onClose}
-                    title="Close"
+                    title={t('common.close', 'Close')}
                     className="p-1 rounded hover:bg-[var(--bg-secondary)]"
                 >
                     <X className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
@@ -113,7 +115,7 @@ export default function SideWebpagePanel({
                     <div className="h-full flex flex-col items-center justify-center text-center px-6">
                         <Globe className="w-8 h-8 mb-3" style={{ color: 'var(--text-tertiary)' }} />
                         <div className="text-sm font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
-                            Webpage unavailable
+                            {t('webpages.side_panel.unavailable', 'Webpage unavailable')}
                         </div>
                         <div className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{state.error}</div>
                     </div>

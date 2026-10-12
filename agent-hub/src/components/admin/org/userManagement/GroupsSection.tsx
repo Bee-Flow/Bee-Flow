@@ -1,5 +1,6 @@
 import { Edit2, Shield, Trash2 } from 'lucide-react';
 import type { AdminGroup, AdminOrganization, AdminUser } from './types';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 export interface GroupsSectionProps {
     groups: AdminGroup[];
@@ -12,17 +13,18 @@ export interface GroupsSectionProps {
 }
 
 export default function GroupsSection({ groups, organizations, users, canManageUsers, onAddGroup, onEditGroup, onDeleteGroup }: GroupsSectionProps) {
+    const { t } = useTranslation();
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between mb-6">
-                <div><h3 className="text-lg font-semibold text-[var(--text-primary)]">Groups</h3><p className="text-sm text-[var(--text-muted)]">Organize users and assign permissions</p></div>
-                {canManageUsers && <button onClick={onAddGroup} className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium bg-[var(--accent-primary)] text-white"><Shield className="w-4 h-4" /> Add Group</button>}
+                <div><h3 className="text-lg font-semibold text-[var(--text-primary)]">{t('admin_org.groups_section_title', 'Groups')}</h3><p className="text-sm text-[var(--text-muted)]">{t('admin_org.groups_section_subtitle', 'Organize users and assign permissions')}</p></div>
+                {canManageUsers && <button onClick={onAddGroup} className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium bg-[var(--accent-primary)] text-white"><Shield className="w-4 h-4" /> {t('admin_org.groups_section_add', 'Add Group')}</button>}
             </div>
             <div className="space-y-6">
                 {/* Groups without organization */}
                 {groups.filter(g => !g.organizationId).length > 0 && (
                     <div className="space-y-4">
-                        <h4 className="font-medium text-sm uppercase tracking-wider pl-2 text-[var(--text-muted)]">Global Groups</h4>
+                        <h4 className="font-medium text-sm uppercase tracking-wider pl-2 text-[var(--text-muted)]">{t('admin_org.groups_section_global', 'Global Groups')}</h4>
                         <div className="grid gap-4">
                             {groups.filter(g => !g.organizationId).map(group => (
                                 <div key={group.id} className="p-4 rounded-xl border group hover:border-[var(--accent-primary)] bg-[var(--bg-secondary)] border-[var(--border-default)]">
@@ -33,7 +35,7 @@ export default function GroupsSection({ groups, organizations, users, canManageU
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(139, 92, 246, 0.12)', color: '#a78bfa' }}>
-                                                {users.filter(u => (u.groups || []).includes(group.id)).length} members
+                                                {users.filter(u => (u.groups || []).includes(group.id)).length === 1 ? t('admin_org.groups_section_member_one', '1 member') : t('admin_org.groups_section_members', '{count} members', { count: users.filter(u => (u.groups || []).includes(group.id)).length })}
                                             </span>
                                             <div className="flex items-center gap-2 opacity-100 xl:opacity-0 xl:group-hover:opacity-100">
                                                 <button onClick={() => onEditGroup(group)} className="p-1.5 rounded hover:bg-blue-500/10 text-blue-500"><Edit2 className="w-4 h-4" /></button>
@@ -70,7 +72,7 @@ export default function GroupsSection({ groups, organizations, users, canManageU
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(139, 92, 246, 0.12)', color: '#a78bfa' }}>
-                                                    {users.filter(u => (u.groups || []).includes(group.id)).length} members
+                                                    {users.filter(u => (u.groups || []).includes(group.id)).length === 1 ? t('admin_org.groups_section_member_one', '1 member') : t('admin_org.groups_section_members', '{count} members', { count: users.filter(u => (u.groups || []).includes(group.id)).length })}
                                                 </span>
                                                 <div className="flex items-center gap-2 opacity-100 xl:opacity-0 xl:group-hover:opacity-100">
                                                     <button onClick={() => onEditGroup(group)} className="p-1.5 rounded hover:bg-blue-500/10 text-blue-500"><Edit2 className="w-4 h-4" /></button>

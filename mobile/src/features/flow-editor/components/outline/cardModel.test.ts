@@ -96,8 +96,8 @@ describe('the data a card names', () => {
 
     it('shows a reference in a prompt or a message by name, never as {{…}}', () => {
         expect(card('ai_1')?.sub).toBe('Summarise ‹Gmail Search ▸ Body›');
-        expect(card('loop_1/b_ai')?.sub).toBe('Reply to ‹Loop item · mail ▸ Subject›');
-        expect(card('loop_1/b_note')).toMatchObject({ name: 'Draft for ‹Loop item · mail ▸ From›', sub: '‹Draft a reply ▸ Text›' });
+        expect(card('loop_1/b_ai')?.sub).toBe('Reply to ‹Each mail ▸ Subject›');
+        expect(card('loop_1/b_note')).toMatchObject({ name: 'Draft for ‹Each mail ▸ From›', sub: '‹Draft a reply ▸ Text›' });
     });
 
     it('names the list a loop or a list step works through', () => {
@@ -106,8 +106,8 @@ describe('the data a card names', () => {
         expect(card('ai_1')?.list).toBeNull();
     });
 
-    it('names the references in a rule it cannot put in words', () => {
-        expect(card('cond')?.sub).toBe('‹Summarise ▸ Score› * 2 > ‹Trigger ▸ Cap›');
+    it('calls a rule it cannot put in words a custom rule, never code (C1)', () => {
+        expect(card('cond')?.sub).toBe('Custom rule');
     });
 
     it('names a long question before cutting it, so the cut never leaves half a {{…', () => {

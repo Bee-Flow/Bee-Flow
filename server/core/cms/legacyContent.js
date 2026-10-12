@@ -99,7 +99,8 @@ function synthesizeLegacyContent(eff) {
                 ...(cta.link?.target ? { target: cta.link.target } : {}),
                 ...(cta.link?.rel    ? { rel:    cta.link.rel    } : {}),
             })),
-            activeSlug: eff.page?.isHomepage ? '' : (eff.page?.slug || ''),
+            // A blog URL marks a nav item pointing at /blog as active, post or index.
+            activeSlug: eff.blog ? 'blog' : (eff.page?.isHomepage ? '' : (eff.page?.slug || '')),
         };
     }
     if (eff.footer) {
@@ -169,6 +170,9 @@ function synthesizeLegacyContent(eff) {
     for (const b of enabledBlocks) {
         out[b.type] = { enabled: true, ...(b.content || {}) };
     }
+    // Blog URLs (stores/cms/blogEffective): the index or post payload the
+    // renderer shows instead of blocks. Absent on every ordinary page.
+    if (eff.blog) out.blog = eff.blog;
     return out;
 }
 

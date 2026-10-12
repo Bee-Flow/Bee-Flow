@@ -234,7 +234,7 @@ async function resolveMailboxIdentity(connector, { app, viewerId = null, deps: i
                 const connected = await hasAnyCredential(viewerId, oauthProvider, { integrationId, orgId, deps });
                 const err = connected
                     ? identityError(403, `Your organisation has not enabled ${integrationId}. An admin can turn it on under Organisation → Integrations.`, 'integration_disabled')
-                    : identityError(409, `Connect ${integrationId} in Settings → Integrations to use this mailbox.`, 'connection_required');
+                    : identityError(409, `Connect ${integrationId} in Settings → Connections to use this mailbox.`, 'connection_required');
                 err.provider = integrationId;
                 throw err;
             }
@@ -243,7 +243,7 @@ async function resolveMailboxIdentity(connector, { app, viewerId = null, deps: i
 
     const cred = await resolveCredential(effectiveUserId, { oauthProvider, integrationId, orgId, deps });
     if (!cred?.accessToken) {
-        const err = identityError(409, `Connect ${integrationId} in Settings → Integrations to use this mailbox.`, 'connection_required');
+        const err = identityError(409, `Connect ${integrationId} in Settings → Connections to use this mailbox.`, 'connection_required');
         err.provider = integrationId;
         throw err;
     }

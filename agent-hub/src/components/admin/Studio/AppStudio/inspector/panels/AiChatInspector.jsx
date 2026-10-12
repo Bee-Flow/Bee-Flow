@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import useTranslation from '../../../../../../hooks/useTranslation';
 import FormField from '../../../../../shared/FormField';
 import SegmentedControl from '../../../../../shared/SegmentedControl';
 import { KbMultiSelect, ModelTierRow } from '../AiActionEditors';
@@ -12,15 +13,15 @@ import { INPUT_CLS, TextAreaField, TextField, usePatch } from './kit';
  * every AI surface in App Studio.
  */
 
-const MODES = [
-    { value: 'chat', label: 'Conversation' },
-    { value: 'assistant', label: 'Single question' },
-];
-
 const MAX_STARTERS = 6;
 
 export default function AiChatInspector({ node, definition, onCommit, disabled = false }) {
     const props = node.props || {};
+    const { t } = useTranslation();
+    const MODES = [
+        { value: 'chat', label: t('studio_apps_panels.ai_chat.mode_chat', 'Conversation') },
+        { value: 'assistant', label: t('studio_apps_panels.ai_chat.mode_assistant', 'Single question') },
+    ];
     const patch = usePatch(node, definition, onCommit);
     const starters = Array.isArray(props.starters) ? props.starters : [];
     // The textarea keeps its own text: the prop drops blank lines, so joining
@@ -35,16 +36,16 @@ export default function AiChatInspector({ node, definition, onCommit, disabled =
     return (
         <div className="flex flex-col gap-4">
             <TextAreaField
-                label="System prompt"
+                label={t('studio_apps_panels.ai_chat.system_prompt', 'System prompt')}
                 value={props.systemPrompt}
                 onChange={(v) => patch({ systemPrompt: v })}
                 rows={4}
-                placeholder="You are a support assistant for our returns policy…"
+                placeholder={t('studio_apps_panels.ai_chat.system_prompt_placeholder', 'You are a support assistant for our returns policy…')}
                 disabled={disabled}
             />
-            <ModelTierRow value={props.modelTier} onChange={(t) => patch({ modelTier: t })} disabled={disabled} />
+            <ModelTierRow value={props.modelTier} onChange={(tier) => patch({ modelTier: tier })} disabled={disabled} />
             <KbMultiSelect value={props.knowledgeBaseIds} onChange={(ids) => patch({ knowledgeBaseIds: ids })} disabled={disabled} />
-            <FormField label="Mode" hint="A conversation keeps history; a single question answers each one on its own.">
+            <FormField label={t('studio_apps_panels.ai_chat.mode', 'Mode')} hint={t('studio_apps_panels.ai_chat.mode_hint', 'A conversation keeps history; a single question answers each one on its own.')}>
                 <SegmentedControl
                     value={props.mode ?? 'chat'}
                     onChange={(v) => patch({ mode: v })}
@@ -52,24 +53,24 @@ export default function AiChatInspector({ node, definition, onCommit, disabled =
                     size="sm"
                     fullWidth
                     disabled={disabled}
-                    ariaLabel="Chat mode"
+                    ariaLabel={t('studio_apps_panels.ai_chat.chat_mode_aria', 'Chat mode')}
                 />
             </FormField>
             <TextField
-                label="Greeting"
+                label={t('studio_apps_panels.ai_chat.greeting', 'Greeting')}
                 value={props.greeting}
                 onChange={(v) => patch({ greeting: v })}
-                placeholder="Ask me anything."
+                placeholder={t('studio_apps_panels.ai_chat.greeting_placeholder', 'Ask me anything.')}
                 disabled={disabled}
             />
             <TextField
-                label="Input placeholder"
+                label={t('studio_apps_panels.ai_chat.input_placeholder', 'Input placeholder')}
                 value={props.placeholder}
                 onChange={(v) => patch({ placeholder: v })}
-                placeholder="Ask a question…"
+                placeholder={t('studio_apps_panels.ai_chat.input_placeholder_example', 'Ask a question…')}
                 disabled={disabled}
             />
-            <FormField label="Starter questions" hint="One per line — shown before the first message.">
+            <FormField label={t('studio_apps_panels.ai_chat.starters', 'Starter questions')} hint={t('studio_apps_panels.ai_chat.starters_hint', 'One per line — shown before the first message.')}>
                 <textarea
                     className={`${INPUT_CLS} min-h-[64px]`}
                     value={startersText}
@@ -81,7 +82,7 @@ export default function AiChatInspector({ node, definition, onCommit, disabled =
                     }}
                     rows={3}
                     disabled={disabled}
-                    aria-label="Starter questions"
+                    aria-label={t('studio_apps_panels.ai_chat.starters', 'Starter questions')}
                 />
             </FormField>
         </div>

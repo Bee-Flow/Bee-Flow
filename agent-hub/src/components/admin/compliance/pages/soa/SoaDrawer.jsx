@@ -1,10 +1,11 @@
 import React, { useMemo, useState } from 'react';
-import { ArrowUpRight, CircleCheck, CircleDashed, CircleX, Save, TriangleAlert, X } from 'lucide-react';
+import { ArrowUpRight, CircleCheck, CircleDashed, CircleX, Info, TriangleAlert, X } from 'lucide-react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
-import SideDrawer, { DrawerSection } from '../../../../shared/SideDrawer';
-import { PRIMARY_ACTION_STYLE } from '../../../../shared/StudioSectionHeader';
+import SideDrawer, { DrawerSection, DrawerFooter } from '../../../../shared/SideDrawer';
+import Tooltip from '../../../../shared/Tooltip';
 import { TONES, toneOfCheckStatus } from '../../../../shared/statusTone';
 import ArticleRef, { formatArticleRef } from '../../shared/ArticleRef';
+import { useDateFormat } from '../../shared/formatDates';
 import UserPicker from '../../shared/UserPicker';
 import { sectionForRegulation } from '../../sections';
 import RadioCards from './RadioCards';
@@ -21,6 +22,9 @@ import { approvedBlocked, draftOf, justificationMissing, liveCheckOf, patchOf, D
  * Both are pure predicates in soaThemes.js (`approvedBlocked`,
  * `justificationMissing`) so the tests pin them without a DOM.
  *
+ * The footer: the who/when stamp on one line (why it is stamped is its
+ * tooltip, reachable by keyboard), then the DrawerFooter with Save.
+ *
  * props:
  *   control        the SoA row ({ ref, titleKey, objectiveKey, checks, entry })
  *   checksById     Map from soaThemes.indexChecks(core.checks)
@@ -31,6 +35,7 @@ import { approvedBlocked, draftOf, justificationMissing, liveCheckOf, patchOf, D
  */
 export default function SoaDrawer({ control, checksById, orgUsers, busy = false, onSave, onClose, navigate, mode = 'inline', testId = 'soa-drawer' }) {
     const { t } = useTranslation();
+    const dates = useDateFormat();
     const [draft, setDraft] = useState(() => draftOf(control));
     // A fresh draft when another control opens or this one changed on the
     // server — during render, so typing is never reset by a parent re-render.
@@ -69,19 +74,14 @@ export default function SoaDrawer({ control, checksById, orgUsers, busy = false,
     );
 
     const footer = (
-        <div className="flex flex-col gap-2">
-            <button
-                type="button"
-                disabled={saveDisabled}
-                onClick={() => onSave?.(control.ref, patchOf(draft))}
-                style={PRIMARY_ACTION_STYLE}
-                className="h-8 px-3 rounded-[10px] text-[12px] font-semibold inline-flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                data-testid={`${testId}-save`}
-            >
-                <Save size={13} aria-hidden="true" /> {t('common.save', 'Save')}
-            </button>
-            <StampNote entry={entry} orgUsers={orgUsers} t={t} testId={`${testId}-stamp`} />
-        </div>
+        <>
+            <StampNote entry={entry} orgUsers={orgUsers} t={t} formatDay={dates.formatDay} testId={`${testId}-stamp`} />
+            <DrawerFooter
+                onPrimary={() => onSave?.(control.ref, patchOf(draft))}
+                primaryDisabled={saveDisabled}
+                testId={`${testId}-actions`}
+            />
+        </>
     );
 
     return (
@@ -90,7 +90,7 @@ export default function SoaDrawer({ control, checksById, orgUsers, busy = false,
                 <p className="text-[11px] text-[var(--text-secondary)] m-0">{t(control.objectiveKey, '')}</p>
             )}
 
-            <LinkedCheckBox live={live} navigate={navigate} t={t} testId={`${testId}-check`} />
+            <LinkedCheckBox live={live} navigate={navigate} t={t} formatDayTime={dates.formatDayTime} testId={`${testId}-check`} />
 
             <DrawerSection label={t('compliance.soa_col_status', 'Decision')}>
                 <RadioCards
@@ -181,7 +181,7 @@ const CHECK_STATUS_LABEL = Object.freeze({
 });
 
 /** The linked-check box under the header: glyph in tone, status word, title · run time · also {other refs}, "Check ↗". */
-function LinkedCheckBox({ live, navigate, t, testId }) {
+function LinkedCheckBox({ live, navigate, t, formatDayTime, testId }) {
     if (!live || live.kind === 'none') {
         return (
             <div className="rounded-[10px] border border-[var(--border-default)] bg-[var(--bg-secondary)] px-3 py-2 text-[11px] text-[var(--text-tertiary)]" data-testid={testId}>
@@ -215,7 +215,7 @@ function LinkedCheckBox({ live, navigate, t, testId }) {
                 </div>
                 <div className="text-[11px] text-[var(--text-secondary)] truncate">
                     {title}
-                    {runAt && <> · {t('compliance.soa_check_run', 'run {time}', { time: formatTime(runAt) })}</>}
+                    {runAt && formatDayTime(runAt) && <> · {t('compliance.soa_check_run', 'run {time}', { time: formatDayTime(runAt) })}</>}
                     {alsoRefs.length > 0 && <> · {t('compliance.soa_check_also', 'also {refs}', { refs: alsoRefs.join(', ') })}</>}
                 </div>
             </div>
@@ -231,34 +231,40 @@ function LinkedCheckBox({ live, navigate, t, testId }) {
     );
 }
 
-/** "Added 10 Jun 2026 (template) · never changed." / "Last changed 3 Sep 2026 by T. Smit" + the stamping sentence. */
-function StampNote({ entry, orgUsers, t, testId }) {
+/**
+ * "Added 10 Jun (template) · never changed." / "Last changed 3 Sep by T. Smit",
+ * on one line. Why every change is stamped is the line's tooltip: a focusable
+ * trigger, so a keyboard reaches it too; the tooltip repeats the line, which
+ * may be cut short in a narrow drawer.
+ */
+function StampNote({ entry, orgUsers, t, formatDay, testId }) {
     let line;
     if (!entry) {
         line = t('compliance.soa_stamp_none', 'No row yet — saving creates it.');
     } else if (entry.updated_by) {
         line = t('compliance.soa_stamp_changed', 'Last changed {date} by {by}', {
-            date: formatDate(entry.updated_at),
+            date: formatDay(entry.updated_at) || '—',
             by: ownerName(orgUsers, entry.updated_by) || '—',
         });
     } else {
-        line = t('compliance.soa_stamp_template', 'Added {date} (template) · never changed.', { date: formatDate(entry.updated_at) });
+        line = t('compliance.soa_stamp_template', 'Added {date} (template) · never changed.', { date: formatDay(entry.updated_at) || '—' });
     }
+    const hint = t('compliance.soa_stamp_hint', 'Every change is stamped with who and when and travels into the SoA PDF; "Fill missing rows" never overwrites a decision.');
     return (
-        <p className="m-0 text-[11px] text-[var(--text-tertiary)]" data-testid={testId}>
-            {line} {t('compliance.soa_stamp_hint', 'Every change is stamped with who and when and travels into the SoA PDF; "Fill missing rows" never overwrites a decision.')}
-        </p>
+        <Tooltip
+            side="top"
+            className="w-full min-w-0"
+            content={(
+                <span className="block w-[260px] whitespace-normal leading-snug font-normal" data-testid={`${testId}-hint`}>
+                    <span className="block font-semibold">{line}</span>
+                    {hint}
+                </span>
+            )}
+        >
+            <button type="button" className="flex w-full min-w-0 items-center gap-1 text-left text-[11px] text-[var(--text-tertiary)] cursor-default rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]" data-testid={testId}>
+                <span className="truncate min-w-0">{line}</span>
+                <Info size={11} aria-hidden="true" className="shrink-0" />
+            </button>
+        </Tooltip>
     );
-}
-
-function formatDate(value) {
-    const ms = value ? new Date(value).getTime() : NaN;
-    if (Number.isNaN(ms)) return '—';
-    return new Date(ms).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
-}
-
-function formatTime(value) {
-    const ms = value ? new Date(value).getTime() : NaN;
-    if (Number.isNaN(ms)) return '—';
-    return new Date(ms).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 }

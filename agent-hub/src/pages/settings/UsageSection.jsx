@@ -231,11 +231,10 @@ const UsageSection = ({ initialReport = '' }) => {
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingBottom: 24 }}>
             {/* Page header + global range control */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, minWidth: 0, flex: 1 }}>
-                    <h2 data-tour="usage-summary" style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>{t('usage.title')}</h2>
-                    <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500 }}>·</span>
-                    <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0, fontWeight: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t('usage.subtitle')}</p>
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+                <div className="min-w-0 flex-1">
+                    <h2 data-tour="usage-summary" className="text-lg font-semibold text-[var(--text-primary)]">{t('usage.title')}</h2>
+                    <p className="mt-1 text-sm text-[var(--text-muted)]">{t('usage.subtitle')}</p>
                 </div>
                 <RangeControl range={range} onChange={setRange} t={t} />
             </div>

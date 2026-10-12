@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { useTranslation } from '../../hooks/useTranslation';
 import { createPortal } from 'react-dom';
 import mermaid from 'mermaid';
 import { Maximize2, X, Download } from 'lucide-react';
@@ -75,6 +76,7 @@ const MERMAID_CONFIG = {
  * Fullscreen overlay for Mermaid diagrams
  */
 const MermaidOverlay = ({ code, onClose }) => {
+    const { t } = useTranslation();
     const overlayRef = useRef(null);
     const containerRef = useRef(null);
     const idRef = useRef(`mermaid-overlay-${Date.now()}-${instanceCounter++}`);
@@ -180,12 +182,12 @@ const MermaidOverlay = ({ code, onClose }) => {
                     color: 'rgba(255,255,255,0.6)',
                     letterSpacing: '0.05em', textTransform: 'uppercase',
                 }}>
-                    📊 Diagram — Full View
+                    📊 {t('chat.renderers.mermaid_full_view', 'Diagram — Full View')}
                 </span>
                 <div style={{ display: 'flex', gap: '8px' }}>
                     <button
                         onClick={handleDownloadSVG}
-                        title="Download SVG"
+                        title={t('chat.renderers.mermaid_download_svg', 'Download SVG')}
                         style={{
                             display: 'flex', alignItems: 'center', gap: '6px',
                             padding: '8px 14px', borderRadius: '8px',
@@ -198,11 +200,11 @@ const MermaidOverlay = ({ code, onClose }) => {
                         onMouseEnter={e => { e.target.style.background = 'rgba(255,255,255,0.2)'; }}
                         onMouseLeave={e => { e.target.style.background = 'rgba(255,255,255,0.1)'; }}
                     >
-                        <Download size={14} /> Download SVG
+                        <Download size={14} /> {t('chat.renderers.mermaid_download_svg', 'Download SVG')}
                     </button>
                     <button
                         onClick={onClose}
-                        title="Close (ESC)"
+                        title={t('chat.renderers.mermaid_close_esc', 'Close (ESC)')}
                         style={{
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             width: '36px', height: '36px', borderRadius: '8px',
@@ -247,6 +249,7 @@ const MermaidOverlay = ({ code, onClose }) => {
  * as an interactive SVG with dark theme styling consistent with the app.
  */
 const MermaidRenderer = ({ code }) => {
+    const { t } = useTranslation();
     const containerRef = useRef(null);
     const [error, setError] = useState(null);
     const [ready, setReady] = useState(false);
@@ -316,8 +319,8 @@ const MermaidRenderer = ({ code }) => {
                     margin: '8px 0',
                     textAlign: 'center',
                 }}>
-                    <div style={{ fontWeight: 600, marginBottom: '6px' }}>🔄 New version available</div>
-                    <div style={{ opacity: 0.8, marginBottom: '12px' }}>Reload the page to view this diagram.</div>
+                    <div style={{ fontWeight: 600, marginBottom: '6px' }}>🔄 {t('chat.renderers.mermaid_new_version', 'New version available')}</div>
+                    <div style={{ opacity: 0.8, marginBottom: '12px' }}>{t('chat.renderers.mermaid_reload_hint', 'Reload the page to view this diagram.')}</div>
                     <button
                         onClick={() => window.location.reload()}
                         style={{
@@ -332,7 +335,7 @@ const MermaidRenderer = ({ code }) => {
                             transition: 'all 0.15s',
                         }}
                     >
-                        Reload page
+                        {t('chat.renderers.mermaid_reload', 'Reload page')}
                     </button>
                 </div>
             );
@@ -348,7 +351,7 @@ const MermaidRenderer = ({ code }) => {
                 fontSize: '13px',
                 margin: '8px 0',
             }}>
-                <div style={{ fontWeight: 600, marginBottom: '4px' }}>⚠️ Diagram Error</div>
+                <div style={{ fontWeight: 600, marginBottom: '4px' }}>⚠️ {t('chat.renderers.mermaid_error', 'Diagram Error')}</div>
                 <div style={{ opacity: 0.8, fontFamily: 'monospace', fontSize: '12px', whiteSpace: 'pre-wrap' }}>{error}</div>
             </div>
         );
@@ -379,7 +382,7 @@ const MermaidRenderer = ({ code }) => {
                 {/* Expand button */}
                 <button
                     onClick={(e) => { e.stopPropagation(); setShowOverlay(true); }}
-                    title="Open full view"
+                    title={t('chat.renderers.mermaid_open_full', 'Open full view')}
                     style={{
                         position: 'absolute', top: '10px', right: '10px',
                         display: 'flex', alignItems: 'center', gap: '5px',
@@ -393,7 +396,7 @@ const MermaidRenderer = ({ code }) => {
                         zIndex: 2, opacity: hovered ? 1 : 0,
                     }}
                 >
-                    <Maximize2 size={13} /> Expand
+                    <Maximize2 size={13} /> {t('chat.renderers.mermaid_expand', 'Expand')}
                 </button>
 
                 <div

@@ -4,6 +4,7 @@ import FormField from '../../../../shared/FormField';
 import SegmentedControl from '../../../../shared/SegmentedControl';
 import Slider from '../../../../shared/Slider';
 import { SECTION_IDS } from '../useLookForm';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 
 const TIER_DEFAULTS = {
     subtle:  { blur: 10, saturate: 170, brightness: 1.05 },
@@ -24,13 +25,14 @@ const TIER_LABELS = {
  * approachable; power users open it when they need to dig in.
  */
 export default function AdvancedGlassDisclosure({ form, setForm, saving }) {
+    const { t } = useTranslation();
     return (
         <section
             id={SECTION_IDS.advanced}
             aria-labelledby={`${SECTION_IDS.advanced}-heading`}
         >
             <Disclosure
-                title="Advanced glass options"
+                title={t('appearance.advanced_glass_disclosure_advanced_glass_options', 'Advanced glass options')}
                 hint="Animation, grain, border style, per-tier overrides"
                 variant="card"
             >
@@ -94,11 +96,10 @@ export default function AdvancedGlassDisclosure({ form, setForm, saving }) {
                     >
                         <div>
                             <h4 className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                                Per-tier overrides
+                                {t('appearance.advanced_glass_disclosure_per_tier_overrides', 'Per-tier overrides')}
                             </h4>
                             <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                                Override the intensity-derived blur / saturate / brightness for each tier individually.
-                                Leave a tier off to keep the default.
+                                {t('appearance.advanced_glass_disclosure_override_the_intensity_derived_blur', 'Override the intensity-derived blur / saturate / brightness for each tier individually. Leave a tier off to keep the default.')}
                             </p>
                         </div>
                         {Object.keys(TIER_DEFAULTS).map((tierKey) => (

@@ -18,7 +18,7 @@ export function TableRow({ table }: { table: DataCardTable }) {
         table.mode === 'readwrite'
             ? t('mobile.webpages.data.reads_writes', 'Reads and writes')
             : t('mobile.webpages.data.reads', 'Reads'),
-        table.rowCount !== null ? t('mobile.webpages.data.rows', '{count} rows', { count: table.rowCount }) : null,
+        table.rowCount !== null ? t('automations.output.n_rows', '{count} rows', { count: table.rowCount }) : null,
         table.publicColumns.length
             ? t('mobile.webpages.data.public_columns', '{count} public columns', { count: table.publicColumns.length })
             : null,

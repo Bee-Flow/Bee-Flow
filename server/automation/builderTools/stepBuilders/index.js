@@ -16,6 +16,7 @@
  *   aiStep.js              ai_step, its agent/skill/permission block, the model-tier gate
  *   flowSteps.js           condition, switch, guard, tokenize, loop, wait, form_page, stop_error
  *   dataSteps.js           set + the five list ops, datetime, code, the retired parse_json rows
+ *   flattenStep.js         flatten: one row per item of a list inside a list
  *   documentSteps.js       generate_document, fill_document, slide, presentation
  *   dataExtractionStep.js  data_extraction, and every vocabulary it arrives in
  *   datatableStep.js       datatable reads and writes
@@ -24,6 +25,7 @@
  */
 
 const { applyAddApproval } = require('../approval');
+const { REPLACEABLE_STEP_TYPES } = require('../stepTypeTable');
 const { applyAddCallLayer } = require('../layers');
 const { applyTrigger } = require('./triggerApply');
 const { resolveToolName, unknownToolError, findDuplicateAction } = require('./toolResolution');
@@ -31,12 +33,13 @@ const {
     autoBindRequiredInputs, requiredInputError, fileLocationField, bindingToTemplate,
 } = require('./inputBindings');
 const { applyAddAction } = require('./actionStep');
+const { applyAddFlatten } = require('./flattenStep');
 const {
     modelTierGateError, sanitizeAgentId, sanitizeSkillIds, sanitizeAgentPermissions,
     sanitizeDisabledAgentSkillIds, agentPermissionsBlock, applyAddAi,
 } = require('./aiStep');
 const {
-    applyAddCondition, applyAddGuard, applyAddTokenize, applyAddLoop, applyAddSwitch,
+    applyAddCondition, applyAddGuard, applyAddTokenize, applyAddUntokenize, applyAddLoop, applyAddSwitch,
     applyAddWait, applyAddFormPage, applyAddStopError, sanitizeSwitchCases,
 } = require('./flowSteps');
 const {
@@ -54,7 +57,7 @@ const {
     translateDataExtractionVocabulary,
 } = require('./dataExtractionStep');
 const {
-    sanitizeDatatableBindings, DATATABLE_WRITE_OPS, readOnlyTableError, coerceSortList,
+    sanitizeDatatableBindings, sanitizeDatatableCursor, DATATABLE_WRITE_OPS, readOnlyTableError, coerceSortList,
     resolveDatatableColumns, checkExtractionFieldRefs, applyAddDatatable,
 } = require('./datatableStep');
 const {
@@ -63,11 +66,12 @@ const {
 } = require('./outboundSteps');
 const { sanitizeNoteSize, applyAddNote, NOTE_MAX_TEXT_LENGTH, NOTE_COLOR_KEYS } = require('./noteStep');
 
-// Map a step type to the apply* builder that constructs it — reused by
-// builder_replace_step so a type swap inherits every per-type validation/clamp.
-const ADD_FOR_TYPE = {
+// The apply* builder of every type the builder can create. Reused by
+// builder_replace_step and builder_add_steps so a swapped or batched step inherits
+// every per-type validation/clamp.
+const BUILDERS = {
     integration_action: applyAddAction, ai_step: applyAddAi, condition: applyAddCondition,
-    guard: applyAddGuard, tokenize: applyAddTokenize,
+    guard: applyAddGuard, tokenize: applyAddTokenize, untokenize: applyAddUntokenize,
     switch: applyAddSwitch, code: applyAddCode, notification: applyAddNotification, set: applyAddSet,
     http_request: applyAddHttpRequest,
     generate_document: applyAddGenerateDocument,
@@ -81,7 +85,21 @@ const ADD_FOR_TYPE = {
     aggregate: applyAddAggregate, summarize: applyAddSummarize, call_layer: applyAddCallLayer, loop: applyAddLoop,
     datatable: applyAddDatatable,
     knowledge_write: applyAddKnowledgeWrite,
+    flatten: applyAddFlatten,
 };
+
+// Map a step type to its builder — DRIVEN BY the step-type table
+// (stepTypeTable.js), the same list the batch/replace enums and the prompt read.
+// A type in the table without a builder, or a builder the table does not list,
+// stops the server at load: the lists cannot drift apart silently any more.
+const ADD_FOR_TYPE = {};
+for (const type of REPLACEABLE_STEP_TYPES) {
+    if (!BUILDERS[type]) throw new Error(`stepTypeTable lists "${type}" as creatable but stepBuilders has no builder for it`);
+    ADD_FOR_TYPE[type] = BUILDERS[type];
+}
+for (const type of Object.keys(BUILDERS)) {
+    if (!REPLACEABLE_STEP_TYPES.includes(type)) throw new Error(`stepBuilders has a builder for "${type}" that stepTypeTable does not list`);
+}
 
 module.exports = {
     agentPermissionsBlock,
@@ -92,6 +110,7 @@ module.exports = {
     applyAddKnowledgeWrite,
     bindingToTemplate,
     sanitizeDatatableBindings,
+    sanitizeDatatableCursor,
     coerceSortList,
     resolveDatatableColumns,
     checkExtractionFieldRefs,
@@ -110,6 +129,7 @@ module.exports = {
     applyAddCondition,
     applyAddGuard,
     applyAddTokenize,
+    applyAddUntokenize,
     applyAddLoop,
     applyAddCode,
     applyAddNotification,

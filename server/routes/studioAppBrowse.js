@@ -112,12 +112,8 @@ router.post('/:id/actions/:actionId/step/stream', requireAuth, jsonBody, validat
 
     // Rate limits: the tight browse bucket + the shared AI-step bucket (a browse
     // is a model-driven agent loop).
-    let allowed = false;
-    browseStepLimiter(req, res, () => { allowed = true; });
-    if (!allowed) return;
-    allowed = false;
-    aiStepLimiter(req, res, () => { allowed = true; });
-    if (!allowed) return;
+    if (!(await browseStepLimiter.check(req, res))) return;
+    if (!(await aiStepLimiter.check(req, res))) return;
 
     try {
         const userId = req.session.user.id;

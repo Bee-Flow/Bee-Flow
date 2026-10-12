@@ -29,6 +29,7 @@ function classifyStreamError(error) {
 
     // Permanent errors — do not retry
     if (httpStatus === 413) return { retryable: false, errorType: 'payload_too_large', userMessage: 'Message too large — try sending fewer or smaller images' };
+    if (httpStatus === 400 && /failed to parse JSON|Invalid body/i.test(msg)) return { retryable: false, errorType: 'invalid_request_body', userMessage: msg };
     if (httpStatus === 400) return { retryable: false, errorType: 'bad_request', userMessage: msg };
     if (httpStatus === 401 || httpStatus === 403) return { retryable: false, errorType: 'auth', userMessage: 'Authentication error with AI service' };
 

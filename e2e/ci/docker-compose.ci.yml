@@ -7,22 +7,19 @@
 #
 #   docker compose -f docker-compose.from-registry.yml \
 #                  -f e2e/ci/docker-compose.ci.yml \
-#                  --profile core --profile search up -d
+#                  --profile core up -d
 #
 # What it changes:
-#   • restart: "no" on every core+search service — a crash-looping container
+#   • restart: "no" on every core service — a crash-looping container
 #     must FAIL the strict gate (e2e/ci/wait-for-stack.sh), not get papered
 #     over by the base file's `unless-stopped` restarts.
 #   • server: forwards the first-boot AI provider env (INIT_AI_PROVIDER /
 #     INIT_GENERIC_API_KEY / INIT_CHAT_MODEL_TIERS) that the base file does
 #     NOT pass through; boot-init.js consumes these once so the smoke suite
 #     gets working chat model tiers without touching the admin UI.
-#   • search-api: SEARCH_INFERENCE_ENABLED=false — CI runners have no GPU,
-#     so the embedding/reranking sidecars (search-gpu profile) are absent
-#     and must not be called.
 #
 # NOTE: profiles are declared in the base file and MUST be passed
-# (--profile core --profile search) on EVERY compose invocation
+# (--profile core) on EVERY compose invocation
 # (up / ps / logs / down), otherwise compose acts on an empty service set.
 # ══════════════════════════════════════════════════════════════════
 
@@ -50,15 +47,3 @@ services:
 
   agent-hub:
     restart: "no"
-
-  search-postgres:
-    restart: "no"
-
-  search-redis:
-    restart: "no"
-
-  search-api:
-    restart: "no"
-    # The base file uses map-style environment on this service.
-    environment:
-      SEARCH_INFERENCE_ENABLED: "false"

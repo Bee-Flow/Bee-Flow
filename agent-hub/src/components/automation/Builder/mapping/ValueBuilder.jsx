@@ -1,18 +1,23 @@
-import { ChevronDown, ChevronRight, Eye, FunctionSquare, List, Plus, Repeat, Tag, Workflow, X, Zap } from 'lucide-react';
+import { Eye, FunctionSquare, List, Plus, Repeat, Tag, Workflow, X, Zap } from 'lucide-react';
 import React, { useMemo, useRef, useState } from 'react';
 import { onBindingDragOver, getBindingDropPath } from './bindingDnd';
 import BindingField from './BindingField';
 import previewBinding from './bindingPreview';
 import { isEmptyValue } from './boundPaths';
+import { planDeepPick } from './deepPick';
 import { EmptySlotNote, FieldLabelRow } from './fieldChrome';
 import { useFormRowLabel } from './FormRowLabelContext';
 import ListPickChooser from './ListPickChooser';
 import { pathListShape } from './listShape';
-import { detectMismatch, kindAtPath, quietDefaultId, remediesFor } from './mismatch';
+import { kindAtPath } from './mismatch';
 import MismatchResolver from './MismatchResolver';
+import { proposePickBinding } from './proposePick';
 import { pillTint, PILL_TINT_CLASS } from './refEditorDom';
 import RefTokenInput from './RefTokenInput';
+import { classifyRef, scanExprPaths } from './refTokens';
+import { useSlotListAs } from './slotListAs';
 import useVariablePicker from './useVariablePicker';
+import { PathAsTextNote } from './ValueNotes';
 import {
     buildValue, DATE_FORMATS, describeDataPath, NUMBER_STYLES, parseValue,
     TRANSFORM_BY_ID, VALUE_TRANSFORMS,
@@ -20,8 +25,10 @@ import {
 import VariablePicker from './VariablePicker';
 import { useVariablePickerContext } from './VariablePickerContext';
 import { useTranslation } from '../../../../hooks/useTranslation';
-import { bindingFromInput, formatPathForInsert } from '../../../../utils/bindingHelpers';
-import { controlSurfaceClass, denseInputClass, listBadgeClass, AMBER_NOTE, INLINE_LINK } from '../flow/settings/formStyles';
+import { bindingFromInput, canonicalRefPath, formatPathForInsert, isCleanPath, refPathTokens } from '../../../../utils/bindingHelpers';
+import { humanizeFieldKey } from '../flow/displayHelpers';
+import { useFormMode } from '../flow/settings/formDensity';
+import { controlSurfaceClass, denseInputClass, listBadgeClass, AMBER_NOTE, FOCUS_RING, INLINE_LINK } from '../flow/settings/formStyles';
 
 /**
  * VISUAL value editor — the plain-language alternative to BindingField.
@@ -68,6 +75,10 @@ export default function ValueBuilder({
     // false while the step already runs per item (useForEachRequest), when
     // the callback stays only so Undo can clear what a pick just set.
     canForEach = null,
+    // { itemVar, apply(plan, newItem) => { undo, runs, orphans } } while the
+    // step already runs per item: a value from a list INSIDE that item moves
+    // the step to that list (deepenForEach.ts). Absent: not offered.
+    deepenForEach = null,
     // Slot chrome (mapping/fieldChrome.jsx) — the same label row and
     // empty-required note BindingField draws, so a schema-declared parameter
     // reads identically whichever editor renders it. `label` alone still only
@@ -78,6 +89,9 @@ export default function ValueBuilder({
     hint = null,
     autoMapped = false,
     multiline = false, // honoured by the raw escape; the visual editor grows on its own
+    // How the run writes a list into this slot's text ('text' | 'json');
+    // defaults to the step's own (slotListAs, provided by SettingsForm).
+    listAs = null,
 }) {
     const rowLabel = useFormRowLabel();
     const { t } = useTranslation();
@@ -99,7 +113,10 @@ export default function ValueBuilder({
     // "More": how a picked list/table/group is used, the transform menu and
     // the formula escape (the field's own advanced options). Closed by default — a drop already chose the
     // sensible answer (quietDefaultId), so most authors never need it.
-    const [advancedOpen, setAdvancedOpen] = useState(false);
+    // "Adjust it", Formula and the other answers for a list/table pick are
+    // Advanced: shown inline in the Advanced mode (also outside the step
+    // form, where there is no mode), never in Simple. No per-field toggle.
+    const advancedOpen = useFormMode() !== 'simple';
 
     // One placeholder string for every branch below (the raw escape gets it
     // too), so switching editors never changes what the empty box says.
@@ -107,7 +124,10 @@ export default function ValueBuilder({
     const allowForEach = canForEach ?? !!onRequestForEach;
     const parsed = useMemo(() => parseValue(value), [value]);
     const sampleRoot = previewSample ?? pickerCtx.previewSample;
-    const example = previewBinding(value, sampleRoot, { raw: false });
+    const slotListAs = useSlotListAs();
+    // Room for a sentence: the line wraps to two (ExampleLine), so the deep
+    // values of a long text are shown rather than cut after a few words.
+    const example = previewBinding(value, sampleRoot, { raw: false, listAs: listAs || slotListAs, maxLen: EXAMPLE_MAX });
 
     const parts = parsed.parts;
     // ONE text box with the references as pills in it (design 2a: "just
@@ -152,48 +172,48 @@ export default function ValueBuilder({
     //           chip, with its separator control; it writes nothing until
     //           the author answers.
     const proposePick = (path, anchorEl, opts = {}) => {
-        const clean = String(path || '').trim();
+        // The canonical spelling, whatever the source handed over (a drag
+        // from an output table may say `headers.content-type`): every answer
+        // below is a ref or a formula over it, and a formula reads only the
+        // canonical spelling as that same path.
+        let clean = canonicalRefPath(String(path || '').trim());
         if (!clean) return;
         const index = pickTarget.current;
         pickTarget.current = -1;
         if (opts.raw || expectShape !== 'scalar') { insertPath(clean, index, opts.at); return; }
-        const actualKind = kindAtPath(clean, sampleRoot);
-        // A scalar slot with no declared kind still wants ONE value; 'text' is
-        // the widest scalar, so it asks the same question the shape-level rule
-        // used to ask and never a narrower one.
-        const expectedKind = expectKind && expectKind !== 'unknown' ? expectKind : 'text';
-        const mm = detectMismatch({ actualKind, expectedKind });
-        if (!mm) { insertPath(clean, index, opts.at); return; }
-        if (mm.code === 'list_into_one') {
-            // Round 2 leftover (artboard 2a): a list picked into the field
-            // (tree click, drag, the picker) answers INLINE, as buttons in the
-            // warning box under the field. Re-picking an existing chip keeps
-            // the popover beside that chip: the question is about the chip.
-            // No question, also not on a re-pick onto a chip: the quiet
-            // default goes in and the other answers wait under "More".
-            const shape = pathListShape(clean, sampleRoot);
-            if (shape && openResolver(clean, actualKind, expectedKind)) return;
-            insertPath(clean, index, opts.at);
+        // WHICH value goes in, and how a list, table or group is shaped when it
+        // does not fit, is one pure decision (proposePick.proposePickBinding) the
+        // phone makes identically.
+        const pick = proposePickBinding(clean, sampleRoot, { slot: label, expectKind, expectShape, allowForEach });
+        clean = pick.path;
+        // A value from a list inside a list (Attachments ▸ Attachment id while
+        // the step runs per email, or Orders ▸ Line items ▸ Sku): one run per
+        // INNER item, the outer item kept (deepPick.ts). Never joined.
+        const deep = planDeepPick(clean, { deepenForEach, canForEach: allowForEach && !!onRequestForEach, sampleRoot });
+        if (deep) {
+            onChange?.(deep.binding);
+            let orphans = [];
+            if (deep.plan) {
+                const res = deepenForEach.apply(deep.plan, deep.newItem);
+                undoRef.current = { value, custom: res?.undo || null };
+                orphans = res?.orphans || [];
+            } else {
+                undoRef.current = { value, forEach: null, request: onRequestForEach };
+                onRequestForEach(deep.forEach);
+            }
+            setForeachNote({ runs: deep.runs, noun: deep.itemVar, orphans });
             return;
         }
-        if (!openResolver(clean, actualKind, expectedKind)) insertPath(clean, index, opts.at);
-    };
-    // Write the quiet default (mismatch.quietDefaultId) without asking; the
-    // other answers stay one click away under "Advanced". False when there is
-    // no remedy at all — the caller then inserts the path verbatim rather than
-    // swallowing the pick.
-    const openResolver = (path, actualKind, expectedKind) => {
-        const remedies = remediesFor(path, sampleRoot, { allowForEach, actualKind });
-        const all = [...remedies.primary, ...remedies.more];
-        const chosen = all.find(r => r.id === quietDefaultId(remedies, { path, actualKind, expectedKind }))
-            || all.find(r => r.id === remedies.defaultId)
-            || remedies.primary[0];
-        if (!chosen) return false;
+        // A pick that fits goes in as it is. One that does not gets the quiet
+        // default written at once (round 2, artboard 2a): the field is never
+        // left holding the raw list while the question is on screen, and the
+        // other answers wait under "More" (Advanced).
+        const chosen = pick.remedy;
+        if (!chosen) { insertPath(clean, index, opts.at); return; }
         applyRemedy(chosen);
         // The one default that changes how the step RUNS says so, with Undo.
-        if (chosen.id === 'foreach') setForeachNote({ runs: remedies.shape?.rows ?? remedies.count ?? null });
-        setResolver({ path, actualKind, expectedKind, selectedId: chosen.id });
-        return true;
+        if (chosen.id === 'foreach') setForeachNote({ runs: pick.remedies?.shape?.rows ?? pick.remedies?.count ?? null });
+        setResolver({ path: clean, actualKind: pick.actualKind, expectedKind: pick.expectedKind, selectedId: chosen.id });
     };
     // Write one remedy's binding. A remedy is the WHOLE value (it is an
     // expression over the picked path), so it replaces the parts rather than
@@ -222,8 +242,9 @@ export default function ValueBuilder({
             return;
         }
         const next = [...parts];
-        if (index >= 0 && next[index]) next[index] = { type: 'data', path };
-        else next.push({ type: 'data', path });
+        const picked = canonicalRefPath(path);
+        if (index >= 0 && next[index]) next[index] = { type: 'data', path: picked };
+        else next.push({ type: 'data', path: picked });
         emit(next);
     };
     const onPick = (path, opts = {}) => {
@@ -259,6 +280,9 @@ export default function ValueBuilder({
         undoRef.current = null;
         setForeachNote(null);
         if (!undo) return;
+        // A deepened forEach restores the step as a whole (its forEach and the
+        // fields it moved), this field included.
+        if (undo.custom) { undo.custom(); return; }
         (undo.request || onRequestForEach)?.(null);
         onChange?.(undo.value ?? { kind: 'literal', value: '' });
     };
@@ -362,6 +386,7 @@ export default function ValueBuilder({
                     multiline={multiline}
                     expectShape={expectShape}
                     onRequestForEach={allowForEach ? onRequestForEach : null}
+                    listAs={listAs}
                 />
                 <button
                     type="button"
@@ -402,6 +427,7 @@ export default function ValueBuilder({
 
     const dataParts = parts.filter(p => p.type === 'data');
     const showTransform = parts.length === 1 && dataParts.length === 1;
+    const pathText = pathTextOf(parts);
     // A JSON pick is the whole value (see buildValue) — nothing to combine it
     // with, so the add buttons stand down rather than offering a dead end.
     const jsonOnly = parts.length === 1 && parts[0].type === 'json';
@@ -411,7 +437,7 @@ export default function ValueBuilder({
     const viewParts = parts.length ? parts : [{ type: 'text', text: '' }];
 
     return (
-        <div className="space-y-1" onDragOver={onBindingDragOver} onDrop={onDrop}>
+        <div className="space-y-2" onDragOver={onBindingDragOver} onDrop={onDrop}>
             {chrome}
             {inline ? (
                 <RefTokenInput
@@ -459,12 +485,12 @@ export default function ValueBuilder({
                 />
             )))}
 
-            <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-4 flex-wrap pt-0.5">
                 {!jsonOnly && (
                     <button
                         type="button"
                         onClick={(e) => openPicker(e.currentTarget, -1)}
-                        className="flex items-center gap-1 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] underline"
+                        className={`flex items-center gap-1 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded ${FOCUS_RING}`}
                     >
                         {/* The first pick is the headline action; once something
                             is bound, picking again APPENDS — so it reads as an add. */}
@@ -477,30 +503,19 @@ export default function ValueBuilder({
                     <button
                         type="button"
                         onClick={() => setComposing(true)}
-                        className="flex items-center gap-1 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                        className={`flex items-center gap-1 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded ${FOCUS_RING}`}
                     >
                         <Plus size={11} /> {t('automations.builder.add_text', 'Add text')}
                     </button>
                 )}
-                {(allowRaw || showTransform || resolver) && (
-                    <button
-                        type="button"
-                        onClick={() => setAdvancedOpen(o => !o)}
-                        aria-expanded={advancedOpen}
-                        aria-label={t('automations.builder.value_more_aria', 'More ways to use this value')}
-                        className="ml-auto flex items-center gap-1 text-[10px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
-                    >
-                        {advancedOpen ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
-                        {t('automations.builder.value_more', 'More')}
-                    </button>
-                )}
+                {emptyNote}
                 {allowRaw && advancedOpen && (
                     <button
                         type="button"
                         onClick={() => setRawOpen(true)}
                         title={t('automations.builder.write_as_formula', 'Write this value as a formula')}
                         aria-label={t('automations.builder.write_as_formula', 'Write this value as a formula')}
-                        className="flex items-center gap-1 text-[10px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+                        className={`ml-auto flex items-center gap-1 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] rounded ${FOCUS_RING}`}
                     >
                         {/* The visible word, not just the tooltip: this button
                             had its title and aria-label translated while the
@@ -566,19 +581,42 @@ export default function ValueBuilder({
 
             {foreachNote && (
                 <div className={`${AMBER_NOTE} flex items-center gap-2`}>
-                    {t('automations.builder.foreach_set_note', 'This step now runs once per row — {n} runs.', { n: foreachNote.runs ?? '?' })}
+                    <span>
+                        {foreachNote.noun
+                            ? t('automations.builder.foreach_deepened_note', 'This step now runs once per {item}, across every one it read before.', { item: humanizeFieldKey(foreachNote.noun).toLowerCase() })
+                            : foreachNote.runs === 1
+                                ? t('automations.builder.foreach_set_note_one', 'This step now runs once per row — 1 run.')
+                                : t('automations.builder.foreach_set_note', 'This step now runs once per row — {n} runs.', { n: foreachNote.runs ?? '?' })}
+                        {foreachNote.orphans?.length > 0 && (
+                            <> {t('automations.builder.foreach_deepened_orphans', 'Check {fields}: it has no match in the new item.', { fields: foreachNote.orphans.join(', ') })}</>
+                        )}
+                    </span>
                     <button type="button" onClick={undoForeach} className="underline hover:no-underline">
                         {t('automations.builder.undo', 'Undo')}
                     </button>
                 </div>
             )}
 
-            {emptyNote}
             {example != null && <ExampleLine value={example} />}
+            {pathText && <PathAsTextNote onUse={() => onChange?.(buildValue([{ type: 'data', path: pathText }]))} />}
             {pickerNode}
         </div>
     );
 }
+
+/**
+ * The path a value that is ONLY text spells out (`steps.jira.output.fields["Story
+ * Points"]` typed or left behind as plain text), canonical — or null. The run
+ * sends those characters, not the value they name; the editor offers the fix.
+ */
+function pathTextOf(parts) {
+    if (parts.length !== 1 || parts[0].type !== 'text') return null;
+    const text = parts[0].text.trim();
+    const tokens = isCleanPath(text) ? refPathTokens(text) : null;
+    return tokens && tokens.length > 1 && PATH_TEXT_ROOTS.has(tokens[0].key) ? canonicalRefPath(text) : null;
+}
+
+const PATH_TEXT_ROOTS = new Set(['steps', 'trigger', 'loop', 'vars', 'item']);
 
 // The separators the inline join editor offers — same wording as the chooser.
 const JOIN_SEPARATORS = [
@@ -665,13 +703,16 @@ function TransformArg({ transform, arg, arg2, onChange }) {
     return null;
 }
 
+// How much of a value the example line holds; it wraps to two lines.
+const EXAMPLE_MAX = 240;
+
 function ExampleLine({ value }) {
     const { t } = useTranslation();
     return (
-        <div className="text-[10px] text-[var(--text-tertiary)] flex items-center gap-1.5 min-w-0">
-            <Eye size={11} className="shrink-0" />
+        <div className="text-[10px] text-[var(--text-tertiary)] flex items-start gap-1.5 min-w-0" data-testid="value-example">
+            <Eye size={11} className="shrink-0 mt-px" />
             <span className="shrink-0">{t('automations.builder.how_it_looks', "Here's how it looks:")}</span>
-            <span className="text-[var(--text-secondary)] truncate">{value}</span>
+            <span className="text-[var(--text-secondary)] min-w-0 break-words line-clamp-2" title={value}>{value}</span>
         </div>
     );
 }
@@ -731,16 +772,18 @@ function DataPart({ path, stepLabelById, stepTypeById = null, onChange, onRemove
     const { t } = useTranslation();
     const { name, suffix, missing, source } = describeDataPath(path, stepLabelById);
     const Icon = SOURCE_ICON[source] || Workflow;
-    const stepId = /^steps\.([^.[]+)/.exec(String(path || ''))?.[1] || null;
+    const stepId = classifyRef(String(path || ''))?.stepId || null;
     const tint = pillTint({ source: source === 'item' ? 'loop' : source, stepId }, stepTypeById);
+    // The pill IS the "change" control (a real button, so the keyboard reaches
+    // it): a separate "change" link beside it only crowded the row.
+    const Pill = onChange ? 'button' : 'span';
     return (
-        <div className="flex items-center gap-1">
-            <span
-                title={jsonPath ? `parseJson(${path}, "${jsonPath}")` : path}
-                onClick={onChange || undefined}
-                role={onChange ? 'button' : undefined}
+        <div className="flex items-center gap-2">
+            <Pill
+                {...(onChange ? { type: 'button', onClick: onChange } : {})}
+                title={onChange ? t('automations.builder.change_word', 'change') : (jsonPath ? `parseJson(${path}, "${jsonPath}")` : path)}
                 style={{ '--pill-tint': tint }}
-                className={`inline-flex items-center gap-1 min-w-0 rounded px-2 py-1 text-[11px] border ${
+                className={`inline-flex items-center gap-1 min-w-0 rounded-md px-2.5 py-1.5 text-[11px] border ${onChange ? `cursor-pointer hover:brightness-95 ${FOCUS_RING}` : ''} ${
                     missing
                         ? 'border-dashed border-[var(--border-default)] bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]'
                         : PILL_TINT_CLASS
@@ -763,16 +806,7 @@ function DataPart({ path, stepLabelById, stepTypeById = null, onChange, onRemove
                         {t('automations.builder.from_the_json', '· from the JSON')}{jsonPath ? `: ${jsonPath}` : ''}
                     </span>
                 )}
-            </span>
-            {onChange && (
-                <button
-                    type="button"
-                    onClick={onChange}
-                    className="shrink-0 text-[10px] text-[var(--text-secondary)] underline hover:text-[var(--text-primary)]"
-                >
-                    {t('automations.builder.change_word', 'change')}
-                </button>
-            )}
+            </Pill>
             <button
                 type="button"
                 onClick={onRemove}
@@ -789,22 +823,15 @@ function DataPart({ path, stepLabelById, stepTypeById = null, onChange, onRemove
  * Read-only render of a formula with its step references resolved to names.
  * Deliberately NOT RefChips: that component only knows the `steps.`/`trigger.`/
  * `loop.` roots, so a list-mode `item.subject` would come out raw. Here every
- * pickable path goes through describeDataPath.
+ * pickable path goes through describeDataPath. Paths are found the way the
+ * expression engine reads them (refTokens.scanExprPaths): a bracket after the
+ * root, a quoted key or a match segment belongs to the chip; text inside a
+ * string literal never does.
  */
-const FORMULA_PATH = /(?<![A-Za-z0-9_$."'])(?:steps|trigger|loop|vars|item|_index)(?:\.[A-Za-z0-9_$]+|\[[^\]]*\])*/g;
+const FORMULA_ROOTS = ['steps', 'trigger', 'loop', 'vars', 'item', '_index'];
 
 function FormulaChips({ text, stepLabelById, stepTypeById = null }) {
-    const source = String(text || '');
-    const nodes = [];
-    let last = 0;
-    let m;
-    FORMULA_PATH.lastIndex = 0;
-    while ((m = FORMULA_PATH.exec(source))) {
-        if (m.index > last) nodes.push({ text: source.slice(last, m.index) });
-        nodes.push({ path: m[0] });
-        last = m.index + m[0].length;
-    }
-    if (last < source.length) nodes.push({ text: source.slice(last) });
+    const nodes = scanExprPaths(String(text || ''), FORMULA_ROOTS);
 
     return (
         <div className="text-[11px] leading-[1.6] break-words text-[var(--text-primary)]">
@@ -815,7 +842,7 @@ function FormulaChips({ text, stepLabelById, stepTypeById = null }) {
                 // reference pill (DataPart above, RefTokenInput). `--accent`
                 // used to tint these: a grey that reads as "disabled" and, on
                 // the canvas, is banned outright (nodeTypeColors.js).
-                const stepId = /^steps\.([^.[]+)/.exec(String(n.path || ''))?.[1] || null;
+                const stepId = classifyRef(String(n.path || ''))?.stepId || null;
                 const tint = pillTint({ source: refSource === 'item' ? 'loop' : refSource, stepId }, stepTypeById);
                 return (
                     <span

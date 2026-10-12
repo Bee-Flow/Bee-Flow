@@ -121,7 +121,7 @@ Segmented sub-nav (aria-label **"Data surfaces"**): **Overview** · **Actions** 
   accounts."*, sections **"Apps"** and automations, fields **"App"**, **"Action"**, **"Label (optional)"**,
   **"Pinned arguments (optional JSON)"** with hint *"Pinned values always win over what the page sends
   — pin anything a visitor must not choose (recipient, channel, sheet id)."*, button **"Add to page"**.
-  Not-connected app: **"Connect it in Settings → Integrations"**.
+  Not-connected app: **"Connect it in Settings → Connections"**.
 * **Who can see it** (`WebpageAudiencePanel.jsx`, fed by `GET /:id/audience`): subtitle *"Who can see
   this page, and where it lives."*; the three internal rows plus a fourth card **"Public"** with
   **"Anyone with the address"** / **"Make public"** / **"Turn off"** / **"Change what goes out"**.
@@ -321,7 +321,7 @@ this page is unknown…"*, plus *"Could not be checked: {kinds}. Treat this list
 * **Data cards / bindings / audience read fails** → the panel says so (**"Could not load what is linked to
   this page."**) and offers **"Try again"**; it never renders an empty list as "nothing".
 * **A grant to an app you have not connected** → `409 { code: 'connection_required', provider }`; the UI
-  shows **"Connect it in Settings → Integrations"**.
+  shows **"Connect it in Settings → Connections"**.
 * **Public snapshot of a vanilla page runs no JavaScript at all** (`webpageSnapshot.js` omits the js slot).
   Anything that needs JS is rendered *visibly inert* with a notice rather than silently vanishing; on a
   shared **React** page `bf-table` is refused with *"This table cannot be shown on a shared link."*

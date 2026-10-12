@@ -55,6 +55,7 @@ export default function SheetChartCreator({ open, onClose, onCreate, selection, 
 
     const submit = () => {
         const config: SheetChartConfig = {
+            // nosemgrep: ajinabraham.njsscan.crypto.crypto_node.node_insecure_random_generator -- a local chart id for React keys, not a secret
             id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
             type,
             title: title.trim() || undefined,

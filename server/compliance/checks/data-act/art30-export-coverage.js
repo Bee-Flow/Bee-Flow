@@ -1,5 +1,9 @@
 /**
- * Data Act Art. 30(1) / Art. 23 — every kind of data held here can be exported.
+ * Data Act Art. 23(c) / Art. 25(2)(a),(e) / Art. 30(5) — all exportable data
+ * can be ported. (Art. 30(1) is functional equivalence for IaaS providers and
+ * is not what this check measures; the id and `article: '30'` stay for the
+ * evidence history, and Art. 30(5) itself requires the export of all
+ * exportable data.)
  *
  * A customer switching away from the service must be able to take ALL its data
  * along. The export registry (dataPortability/exportRegistry.js) lists every
@@ -129,7 +133,7 @@ module.exports = {
             return {
                 status: 'fail',
                 evidence,
-                details: `${uncovered.length} of ${held.length} held data kind(s) cannot be exported: ${parts.join('; ')}. Art. 30 requires every kind of customer data to be portable when switching — see the Portability matrix.`,
+                details: `${uncovered.length} of ${held.length} held data kind(s) cannot be exported: ${parts.join('; ')}. Art. 23(c) and Art. 25(2)(a),(e) require all exportable data to be portable when switching — see the Portability matrix.`,
             };
         }
 
@@ -143,7 +147,7 @@ module.exports = {
             return {
                 status: 'warn',
                 evidence,
-                details: `Every counted data kind has a mounted export route, but ${unknownUncoverable.length} kind(s) without one could not be counted (${unknownUncoverable.join(', ')}). Whether this organisation holds data that cannot be exported is unknown — Art. 30 coverage is not established until those kinds can be counted.${heavy}`,
+                details: `Every counted data kind has a mounted export route, but ${unknownUncoverable.length} kind(s) without one could not be counted (${unknownUncoverable.join(', ')}). Whether this organisation holds data that cannot be exported is unknown — export coverage (Art. 23(c), 25(2)(e)) is not established until those kinds can be counted.${heavy}`,
             };
         }
 

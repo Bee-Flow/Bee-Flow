@@ -9,17 +9,16 @@ import { nodeDefaultLabel } from '@/features/flow-editor/model/nodeDefs';
 
 import { arr, isObj } from '../json';
 import type { FlowNode, VariableGroup } from '../types';
-import { samplePlaceholderFor, stepGroup } from './sampleFields';
+import { samplePlaceholderFor, schemaToSample, stepGroup } from './sampleFields';
 
-/** Both schema shapes the runtime accepts: JSON Schema, or flat `{field: 'type'}`. */
-function aiStepOutputProps(schema: unknown): Record<string, string> | null {
+/** The declared top-level properties, each as its own (sub)schema — JSON Schema or flat `{field: 'type'}`; null when none. */
+function aiStepOutputProps(schema: unknown): Record<string, unknown> | null {
     if (!isObj(schema)) return null;
     const raw = isObj(schema.properties) ? schema.properties : schema;
-    const out: Record<string, string> = {};
+    const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(raw)) {
         if (!k) continue;
-        if (typeof v === 'string') out[k] = v;
-        else if (v && typeof v === 'object') out[k] = typeof (v as { type?: unknown }).type === 'string' ? ((v as { type: string }).type) : 'string';
+        if (typeof v === 'string' || (v && typeof v === 'object')) out[k] = v;
     }
     return Object.keys(out).length ? out : null;
 }
@@ -35,7 +34,9 @@ export function describeAiStep(node: FlowNode): VariableGroup {
     if (!props) {
         return stepGroup(node, { label, kind: 'ai_step' }, '<AI response>', [{ key: 'response', path: base, sample: '<AI response>' }]);
     }
-    const sample = Object.fromEntries(Object.entries(props).map(([k, type]) => [k, samplePlaceholderFor(type)]));
+    // A nested declaration is a nested sample: `customer.address.city` and
+    // `items[*].sku` are pickable before the step has ever run.
+    const sample = Object.fromEntries(Object.entries(props).map(([k, decl]) => [k, schemaToSample(decl)]));
     return stepGroup(node, { label, kind: 'ai_step' }, sample);
 }
 

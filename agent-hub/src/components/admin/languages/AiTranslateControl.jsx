@@ -16,6 +16,7 @@
 // with a different emoji), so reusing it would change the visible labels.
 
 import { AlertCircle, Check, Languages } from 'lucide-react';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 const TIER_OPTIONS = [
     { value: 'fast', label: '⚡ Fast' },
@@ -35,6 +36,7 @@ export default function AiTranslateControl({
     showCount = true,
     className = 'flex items-center gap-1.5 shrink-0',
 }) {
+    const { t } = useTranslation();
     return (
         <div className={className}>
             <select
@@ -53,9 +55,9 @@ export default function AiTranslateControl({
                 style={{ background: gradient ? 'linear-gradient(135deg, #8b5cf6, #6366f1)' : 'var(--accent-primary)' }}
             >
                 {translating ? (
-                    <><span className="inline-block w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Translating...</>
+                    <><span className="inline-block w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> {t('admin_languages.ai.translating', 'Translating...')}</>
                 ) : (
-                    <>{icon} AI Translate{showCount ? ` (${missing || 0})` : ''}</>
+                    <>{icon} {t('admin_languages.ai.translate', 'AI Translate')}{showCount ? ` (${missing || 0})` : ''}</>
                 )}
             </button>
         </div>

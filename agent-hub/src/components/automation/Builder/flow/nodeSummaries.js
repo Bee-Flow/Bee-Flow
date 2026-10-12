@@ -17,6 +17,7 @@
 
 import { humanizeExpression, humanizeFieldKey } from './displayHelpers';
 import { formatWaitDuration } from './waitDuration';
+import { listPathLabel } from '../mapping/listPathLabel';
 
 /**
  * The source list, named the way the user named the step that made it.
@@ -56,6 +57,17 @@ export function dedupeSummary(step, { stepLabelById } = {}) {
     return step.keyField
         ? `One per ${humanizeFieldKey(step.keyField)}${fromList(step.arrayRef, stepLabelById, '· from')}`
         : `Identical items removed${fromList(step.arrayRef, stepLabelById, 'from')}`;
+}
+
+/** "From Read many ▸ Messages": the outer list a flatten works through, or "Pick a list" (muted). */
+/** @param {any} step @param {{ stepLabelById?: Map<string, string>, t?: any }} [opts] */
+export function flattenSummary(step, { stepLabelById, t = null } = {}) {
+    const route = String(step?.arrayRef || '');
+    const wild = route.indexOf('[*]');
+    const outer = wild > 0 ? route.slice(0, wild) : route.trim();
+    if (!outer) return { muted: t ? t('flatten_node.card.pick', 'Pick a list') : 'Pick a list' };
+    const source = listPathLabel(outer, stepLabelById, t, { compact: true }) || outer;
+    return t ? t('flatten_node.card.from', 'From {source}', { source }) : `From ${source}`;
 }
 
 export function aggregateSummary(step, { stepLabelById } = {}) {

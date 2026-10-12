@@ -431,6 +431,9 @@ router.post(
                         session: req.session,
                         isAdmin: !!req.session.isAdmin,
                         agentConfig,
+                        // Only a chosen agent brings its bound automations; plain
+                        // voice has no agent and so none.
+                        agentId: agent ? agent.id : null,
                     });
                     voiceTools = filterVoiceTools(tools);
                 } catch (err) {

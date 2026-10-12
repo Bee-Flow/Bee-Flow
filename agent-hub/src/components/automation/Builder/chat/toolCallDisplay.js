@@ -35,6 +35,9 @@ const VERBS = {
     builder_inspect_mapping: { key: 'automations.assistant.act.read_mapping', en: 'Checked bindings and available fields' },
     builder_inspect_run: { key: 'automations.assistant.act.read_run', en: 'Checked values from the latest run' },
     builder_write_plan: { key: 'automations.assistant.act.write_plan', en: 'Wrote the plan for review' },
+    // Web research (the composer's Web search switch): reads the web, no step.
+    agent_search: { key: 'automations.assistant.act.web_search', en: 'Searched the web' },
+    read_url: { key: 'automations.assistant.act.read_url', en: 'Read a web page' },
     builder_propose_trigger: { key: 'automations.builder.act.trigger', en: 'Set the trigger' },
     builder_remove_step: { key: 'automations.builder.act.remove', en: 'Removed a step' },
     builder_update_step: { key: 'automations.builder.act.update', en: 'Adjusted a step' },
@@ -51,6 +54,14 @@ const VERBS = {
     // A table made at design time — a side effect outside the draft, no step.
     builder_create_datatable: { key: 'automations.builder.act.create_datatable', en: 'Created a table' },
     builder_propose_plan: { key: 'automations.builder.act.plan', en: 'Updated the plan' },
+};
+
+/** The web tools' row names what was searched or read: the query, or the URL. */
+const WEB_TOOLS = new Set(['agent_search', 'read_url']);
+
+/** `builder_add_array_op` ops with a word of their own while no step names them yet. */
+const ARRAY_OP_VERBS = {
+    flatten: { key: 'flatten_node.activity', en: 'Flattening a list' },
 };
 
 /** Model-facing echoes of the whole draft — noise in a per-call detail view. */
@@ -126,13 +137,16 @@ function stepsOf(raw, t) {
 }
 
 /** The title for a call, in the order of how much the source really knows. */
-function titleFor(name, type, t) {
+function titleFor(name, type, t, tc = null) {
+    const args = tc?.arguments;
     // The step's own type first: that is the builder's answer, not a guess
     // from the tool's name, and it is the same word the canvas shows.
     if (type) {
         const label = nodeTypeLabel(type, t);
         if (label) return label;
     }
+    const opVerb = name === 'builder_add_array_op' && isPlainObject(args) ? ARRAY_OP_VERBS[args.op] : null;
+    if (opVerb) return t ? t(opVerb.key, opVerb.en) : opVerb.en;
     const verb = VERBS[name];
     if (verb) return t ? t(verb.key, verb.en) : verb.en;
     // A builder tool added next month must degrade to something readable
@@ -183,9 +197,16 @@ export function describeToolCall(tc, t = null) {
 
     const added = raw[0] || null;
     const type = added ? str(added.type) : null;
+    // A table only STAGED in a preview mode is made when the user presses Apply.
+    if (name === 'builder_create_datatable' && isPlainObject(result) && result.staged && !error) {
+        const tableName = str(result.name) || str(result.table?.name) || str(tc?.arguments?.name) || '';
+        const en = 'Proposed new table "{name}" (created on Apply)';
+        return { title: t ? t('automations.assistant.staged_table', en, { name: tableName }) : en.replace('{name}', tableName), detail: '', type: null, family: null, status, error, hint, steps };
+    }
     return {
-        title: titleFor(name, type, t),
-        detail: (added && str(added.label)) || str(result?.step?.label) || str(tc?.arguments?.stepId) || '',
+        title: titleFor(name, type, t, tc),
+        detail: (added && str(added.label)) || str(result?.step?.label) || str(tc?.arguments?.stepId)
+            || (WEB_TOOLS.has(name) ? str(tc?.arguments?.query) || str(tc?.arguments?.url) : null) || '',
         type,
         family: type ? typeGroupOf(type) : null,
         status,

@@ -3,6 +3,7 @@ import DiagramPane from './DiagramPane';
 import { buildRunStepLabelMap, runStepLabel } from './flow/displayHelpers';
 import OutputView from './OutputView';
 import { tokenForStep } from '../../shared/statusTokens';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
  * Read-only execution view for ONE run, shared by the in-automation Run
@@ -90,6 +91,7 @@ export default function RunExecutionView({
  * recorded Input + Output side by side as friendly OutputViews.
  */
 function StepDataPanel({ attempts, label, onClose }) {
+    const { t } = useTranslation();
     // Latest attempt by default — that is the one whose outcome counted.
     const [attemptIdx, setAttemptIdx] = useState(-1);
     const idx = attemptIdx === -1 ? attempts.length - 1 : Math.min(attemptIdx, attempts.length - 1);
@@ -103,13 +105,13 @@ function StepDataPanel({ attempts, label, onClose }) {
                 {record.stepType && <span className="text-[var(--text-tertiary)]">({record.stepType})</span>}
                 {attempts.length > 1 && (
                     <select
-                        aria-label="Attempt"
+                        aria-label={t('automations.run_execution_view.attempt', 'Attempt')}
                         value={idx}
                         onChange={(e) => setAttemptIdx(Number(e.target.value))}
                         className="px-1.5 py-0.5 rounded border border-[var(--border-default)] bg-[var(--bg-primary)] text-[11px] text-[var(--text-primary)]"
                     >
                         {attempts.map((_, i) => (
-                            <option key={i} value={i}>attempt {i + 1} of {attempts.length}</option>
+                            <option key={i} value={i}>{t('automations.run_execution_view.attempt_of', 'attempt {n} of {total}', { n: i + 1, total: attempts.length })}</option>
                         ))}
                     </select>
                 )}
@@ -117,7 +119,7 @@ function StepDataPanel({ attempts, label, onClose }) {
                     onClick={onClose}
                     className="ml-auto text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
                 >
-                    Close
+                    {t('automations.run_execution_view.close', 'Close')}
                 </button>
             </div>
             {record.error && (
@@ -129,11 +131,11 @@ function StepDataPanel({ attempts, label, onClose }) {
             {/* Same friendly Table/JSON view as the Build editor's node Run tab. */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                 <div className="min-w-0">
-                    <div className="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)] mb-1">Input</div>
+                    <div className="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)] mb-1">{t('automations.run_execution_view.input', 'Input')}</div>
                     <OutputView value={record.input ?? null} emptyMessage="No input recorded." />
                 </div>
                 <div className="min-w-0">
-                    <div className="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)] mb-1">Output</div>
+                    <div className="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)] mb-1">{t('automations.run_execution_view.output', 'Output')}</div>
                     <OutputView
                         value={record.output ?? null}
                         basePath={`steps.${record.stepId}.output`}

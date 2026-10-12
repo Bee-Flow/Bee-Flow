@@ -1,10 +1,9 @@
 /**
- * The pane's first row: which period this is, what it shows, and the range.
+ * The pane's first row: which period this is, and the range.
  *
- * The description is careful about what is logged: the shield writes a row
- * when it ACTS on a message, and every call to an outside service is
- * recorded. A message the shield found nothing in leaves no trace, so this
- * never says "every message".
+ * No sentence under the period: what is logged (the shield writes a row when
+ * it ACTS on a message, and every call to an outside service) is what the
+ * filter bar's count and the log's columns already say.
  */
 
 import React from 'react';
@@ -31,9 +30,6 @@ export function ActivityHeader({ period, preset, onPreset, t }: Props) {
         <div className="flex flex-wrap items-center gap-3">
             <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                 {period && <h2 className="m-0 text-base font-semibold text-[var(--text-primary)]">{period}</h2>}
-                <p className="m-0 text-xs text-[var(--text-tertiary)]">
-                    {t('shield_activity.subtitle', 'Each time the shield acted on a message, and every call your organisation made to an outside service.')}
-                </p>
             </div>
             <SegmentedControl
                 size="sm"

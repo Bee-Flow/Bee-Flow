@@ -24,7 +24,7 @@ vi.mock('@dnd-kit/core', async () => {
 });
 
 const BINDING = { kind: 'records', tableId: 'tbl_x', limit: 50 };
-const ERROR_MESSAGE = 'Connect Gmail in Settings → Integrations to load this.';
+const ERROR_MESSAGE = 'Connect Gmail in Settings → Connections to load this.';
 const dataState = {
     [dataCacheKey(BINDING)]: { status: 'error', error: ERROR_MESSAGE, tableId: 'tbl_x' },
 };

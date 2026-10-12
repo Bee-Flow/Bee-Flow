@@ -1,11 +1,14 @@
 import React from 'react';
 import { resolveAssetUrl } from '../assetUrl';
+import ClipVideo from './ClipVideo';
 
 /**
  * FramedMedia — the one way media renders on the marketing site.
  *
  * Accepts the shared media-slot shape used across section content:
- *   { src, srcDark, alt, frame: 'hairline'|'browser'|'none', kind: 'image'|'video' }
+ *   { src, srcDark, alt, frame: 'hairline'|'browser'|'none', kind: 'image'|'video'|'clip' }
+ *   ('video' = silent autoplay loop; 'clip' = controls + sound, optional
+ *   poster / captionsSrc / captionsLang — see ClipVideo)
  *
  * - Hairline frame + radius + optional faint brand glow: a raw unframed
  *   screenshot is the single biggest "cheap site" tell, so sections never
@@ -18,7 +21,7 @@ import { resolveAssetUrl } from '../assetUrl';
 export default function FramedMedia({ media, glow = true, fadeMask = false, className = '', priority = false }) {
     const m = media || {};
     const frame = ['hairline', 'browser', 'none'].includes(m.frame) ? m.frame : 'hairline';
-    const kind = m.kind === 'video' ? 'video' : 'image';
+    const kind = m.kind === 'video' || m.kind === 'clip' ? m.kind : 'image';
     const src = typeof m.src === 'string' ? m.src.trim() : '';
     const srcDark = typeof m.srcDark === 'string' ? m.srcDark.trim() : '';
 
@@ -58,7 +61,9 @@ export default function FramedMedia({ media, glow = true, fadeMask = false, clas
             ) : null}
             <div className="cms-frame-body">
                 {src ? (
-                    kind === 'video' ? (
+                    kind === 'clip' ? (
+                        <ClipVideo className="cms-frame-media" media={m} />
+                    ) : kind === 'video' ? (
                         <video
                             className="cms-frame-media"
                             src={resolveAssetUrl(src)}

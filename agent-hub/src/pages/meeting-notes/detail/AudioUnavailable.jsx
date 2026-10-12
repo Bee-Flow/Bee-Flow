@@ -1,4 +1,5 @@
 import React from 'react';
+import useTranslation from '../../../hooks/useTranslation';
 import { AlertTriangle, Download, RefreshCw } from 'lucide-react';
 
 /**
@@ -18,20 +19,21 @@ import { AlertTriangle, Download, RefreshCw } from 'lucide-react';
  *   otherwise            an uploaded file → asking for the original is fair
  */
 export default function AudioUnavailable({ audio, onRetry }) {
+    const { t } = useTranslation();
     const recoverable = !!audio?.recoverable;
     const wasRecorded = audio?.capture === 'recording';
 
     let title;
     let detail;
     if (recoverable) {
-        title = 'Audio is temporarily unavailable';
-        detail = 'The recording is stored safely — the audio service just isn’t reachable right now.';
+        title = t('meeting_notes.audio_temp_title', 'Audio is temporarily unavailable');
+        detail = t('meeting_notes.audio_temp_detail', 'The recording is stored safely — the audio service just isn’t reachable right now.');
     } else if (wasRecorded) {
-        title = 'This recording is no longer available';
-        detail = 'It was recorded in your browser, so no other copy of the audio exists. The transcript and summary below are what remains.';
+        title = t('meeting_notes.audio_gone_title', 'This recording is no longer available');
+        detail = t('meeting_notes.audio_gone_detail', 'It was recorded in your browser, so no other copy of the audio exists. The transcript and summary below are what remains.');
     } else {
-        title = 'The saved audio is no longer available';
-        detail = 'Upload the original file again to restore playback and re-transcribe it.';
+        title = t('meeting_notes.audio_saved_gone_title', 'The saved audio is no longer available');
+        detail = t('meeting_notes.audio_saved_gone_detail', 'Upload the original file again to restore playback and re-transcribe it.');
     }
 
     return (
@@ -50,7 +52,7 @@ export default function AudioUnavailable({ audio, onRetry }) {
                     style={{ background: 'var(--accent-primary)', color: '#fff' }}
                 >
                     <RefreshCw className="w-3.5 h-3.5" />
-                    Try again
+                    {t('meeting_notes.audio_retry', 'Try again')}
                 </button>
             )}
         </div>
@@ -63,13 +65,14 @@ export default function AudioUnavailable({ audio, onRetry }) {
  * download, which is the user's own escape hatch while it still exists.
  */
 export function AudioNotBackedUp({ downloadUrl }) {
+    const { t } = useTranslation();
     return (
         <div
             className="flex items-center gap-2 rounded-lg border px-3 py-2 text-[11px]"
             style={{ background: 'var(--bg-secondary)', borderColor: '#f59e0b', color: 'var(--text-muted)' }}
         >
             <AlertTriangle className="w-3.5 h-3.5 shrink-0" style={{ color: '#f59e0b' }} />
-            <span className="flex-1">This recording doesn&rsquo;t have a durable backup yet.</span>
+            <span className="flex-1">{t('meeting_notes.audio_no_backup', 'This recording doesn’t have a durable backup yet.')}</span>
             {downloadUrl && (
                 <a
                     href={downloadUrl}
@@ -77,7 +80,7 @@ export function AudioNotBackedUp({ downloadUrl }) {
                     style={{ color: 'var(--accent-primary)' }}
                 >
                     <Download className="w-3.5 h-3.5" />
-                    Download
+                    {t('chat.download', 'Download')}
                 </a>
             )}
         </div>

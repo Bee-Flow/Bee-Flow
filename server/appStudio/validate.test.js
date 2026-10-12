@@ -279,9 +279,13 @@ test('binding checks', () => {
     assert.ok(has(broken((d) => { kids(d)[7].props.value = 'bare'; }).errors, 'binding.invalid'));
     assert.ok(has(broken((d) => { kids(d)[7].props.value = { kind: 'magic' }; }).errors, 'binding.kind_invalid'));
     assert.ok(has(broken((d) => { kids(d)[7].props.value.actionId = 'act_none99'; }).errors, 'binding.action_unresolved'));
-    assert.ok(has(broken((d) => { kids(d)[7].props.value.path = 'rows[0].x'; }).errors, 'binding.path_invalid'));
-    // numeric indices as plain dot segments are the supported spelling
+    // One path grammar with the app's resolver and the automation runtime:
+    // a path neither can read is refused…
+    assert.ok(has(broken((d) => { kids(d)[7].props.value.path = 'rows[0'; }).errors, 'binding.path_invalid'));
+    // …and both spellings of a list position are accepted (the bracket one
+    // used to be refused here while the preview resolved it).
     assert.ok(!has(broken((d) => { kids(d)[7].props.value.path = 'rows.0.x'; }).errors, 'binding.path_invalid'));
+    assert.ok(!has(broken((d) => { kids(d)[7].props.value.path = 'rows[0].x'; }).errors, 'binding.path_invalid'));
 });
 
 test('children only on containers', () => {

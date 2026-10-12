@@ -344,6 +344,7 @@ app.use(session({
 // it without forty call sites growing a parameter.
 const { withRequestClient, currentClient } = require('./telemetry/requestClient');
 app.use(withRequestClient);
+app.use(require('./stores/lib/documentCrypto').withDocumentEncryptionSession);
 
 // Nextcloud Connector JWT auth — handles requests from the Bee Flow ExApp
 // connector. Tagged with `X-Beeflow-Source: nextcloud-connector`. Populates
@@ -396,6 +397,9 @@ app.use(async (req, res, next) => {
     next();
 });
 
+// Recheck the login identity even when connected integration credentials change.
+app.use(require('./auth/microsoftSession').validateMicrosoftSession);
+
 app.get('/api/session-token', async (req, res) => {
     if (!req.session?.user?.id) return res.status(401).json({ error: 'Not authenticated' });
 
@@ -422,6 +426,9 @@ app.get('/api/session-token', async (req, res) => {
             accessToken: req.session.accessToken,
             refreshToken: req.session.refreshToken,
             oauthProvider: req.session.oauthProvider,
+            microsoftIdentityVersion: req.session.microsoftIdentityVersion,
+            microsoftLoginIdentity: req.session.microsoftLoginIdentity,
+            oauthTokenSource: req.session.oauthTokenSource,
             nextcloudUid: req.session.nextcloudUid,
             appPassword: appPasswordData,
             isAuthenticated: req.session.isAuthenticated || false,
@@ -617,6 +624,7 @@ app.use('/api/csp-report', require('./routes/cspReport'));
 app.use('/api/public', require('./routes/publicGithubStats'));
 app.use('/api/org-privacy-shield', require('./routes/orgPrivacyShield'));
 app.use('/api/org-ai-context', require('./routes/orgAiContext'));
+app.use('/api/org-memory', require('./routes/orgMemory'));
 // The AI that decides by itself when to join a team chat or comment thread:
 // the org policy (members read, admins write) and each person's own opt-out.
 // requireAuth sits on every route of the router.
@@ -640,6 +648,9 @@ app.use('/api/privacy/token-vault', require('./routes/piiVault'));
 // The caller's own effective Privacy Shield status — the one source behind the
 // chat and Cowork privacy claims (F4). Self-scoped; requireAuth on the route.
 app.use('/api/privacy/shield-status', require('./routes/privacyShieldStatus'));
+// The caller's own "Don't count my chat turns" preference for chat signals.
+// Self-scoped; requireAuth on each route; no admin equivalent by design.
+app.use('/api/privacy/chat-signals', require('./routes/privacyChatSignals'));
 // CMS AI builder — mounted BEFORE /api/cms so the more-specific prefix wins.
 app.use('/api/cms/builder', require('./routes/ai/cmsBuilder'));
 app.use('/api/cms', require('./routes/cms'));
@@ -696,6 +707,7 @@ const { requireFeature: requireLicenseFeature } = require('./license/middleware'
 const { requireCapability } = require('./core/entitlements/entitlements');
 app.use('/api/documents', require('./routes/documents'));
 app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/me/notification-prefs', require('./routes/notificationPrefs'));
 // Deployment/maintenance banner: the deploy pipeline announces a window before
 // it rolls the Deployments, so open sessions get warning + an ETA instead of a
 // stream that just dies. Write paths are token-gated (CI calls them, not a user).
@@ -760,6 +772,15 @@ if (automationMcp.isEnabled()) {
     app.use('/mcp/automations', require('./routes/mcpAutomations'));
     log.info('[Server] Automations MCP endpoint mounted at /mcp/automations (AUTOMATION_MCP_ENABLED=1).');
 }
+// The product website (CMS) over MCP — edit pages, header/footer, translations,
+// upload local media, screenshot and (with the cms.publish scope) publish from an
+// external coding agent. Same gating shape: without CMS_MCP_ENABLED=1 the path
+// does not exist and the module is never loaded. Also mounted BEFORE /mcp.
+const cmsMcp = require('./cms/mcp');
+if (cmsMcp.isEnabled()) {
+    app.use('/mcp/cms', require('./routes/mcpCms'));
+    log.info('[Server] CMS MCP endpoint mounted at /mcp/cms (CMS_MCP_ENABLED=1).');
+}
 // Bee Flow AS an MCP server. Deliberately NOT under /api: MCP clients are
 // configured with a bare URL, and the endpoint authenticates with its own
 // Bearer token rather than a session cookie (see routes/mcpServer.js).
@@ -772,6 +793,10 @@ app.use('/api/nextcloud/task-processing', require('./routes/nextcloudTaskProcess
 app.use('/api/nextcloud/studio-apps', requireModule('apps'), require('./routes/nextcloudStudioApps'));
 // Self-service token management for the above — session-authenticated.
 app.use('/api/mcp-server', requireAuthedUser, require('./routes/mcpServerTokens'));
+// Named MCP access tokens (scopes, expiry, IP allow-list), per user, session-authenticated.
+// The org-wide policy those tokens answer to is org-admin only, on the caller's own org.
+app.use('/api/mcp-tokens', requireAuthedUser, require('./routes/mcpTokens'));
+app.use('/api/org/mcp-access', requireAuthedUser, require('./routes/orgMcpAccess'));
 // BFSF-255: hydrate password-account sessions from the encrypted vault so the
 // session-based Google surfaces (pickers, /status) work after connecting via
 // Settings → Connections, not only after Google-SSO login.
@@ -1045,7 +1070,13 @@ const { runStartupChecks, runStartupTasks } = require('./boot/startupTasks');
 // WebSocket 'upgrade' listener for Vite HMR — upgrade requests bypass the
 // Express app entirely and can only be intercepted on the underlying
 // http.Server.
-const server = app.listen(PORT, '0.0.0.0', () => {
+const server = require('node:http').createServer(app);
+async function startServer() {
+    // Existing deployments must finish additive auth schema and transactional
+    // secret migration before accepting requests. Any failure stops startup.
+    await require('./stores/userStore').initDB();
+    await require('./stores/authConfigStore').migrate();
+    server.listen(PORT, '0.0.0.0', () => {
     log.info(`Server running on http://0.0.0.0:${PORT}`);
     // Refuse-to-boot / NODE_ENV posture checks, the INIT_* first-boot wizard and
     // the durable HMAC secrets — see boot/startupTasks.js.
@@ -1075,6 +1106,11 @@ const server = app.listen(PORT, '0.0.0.0', () => {
     // Sanity probes, warmups, one-shot backfills and migrations, schedulers,
     // runners and periodic jobs — see boot/startupTasks.js.
     runStartupTasks();
+    });
+}
+startServer().catch(err => {
+    log.error('[Server] OAuth upgrade failed; refusing startup:', err.message);
+    process.exit(1);
 });
 
 // ── Graceful shutdown ─────────────────────────────────────────────────────────
@@ -1095,6 +1131,8 @@ const shutdown = async (signal) => {
     } catch (e) { log.warn('[Server] automation runner drain failed:', e.message); }
     try { require('./jobs/usageOpenObservePush').stop(); } catch (_) { /* best-effort */ }
     try { require('./jobs/opsMetricsPush').stop(); } catch (_) { /* best-effort */ }
+    // Chat signals: write the last minute of counters (bounded; a lost minute is acceptable, a hung shutdown is not).
+    try { await Promise.race([require('./core/privacy/chatSignals').flush(), new Promise(r => setTimeout(r, 2000).unref())]); } catch (_) { /* best-effort */ }
     try { require('./stores/configStore')._stopInvalidationListener(); } catch (_) { /* best-effort */ }
     await disconnectRedis(); // ioredis client (caching)
     // node-redis v5: close() replaces deprecated quit()

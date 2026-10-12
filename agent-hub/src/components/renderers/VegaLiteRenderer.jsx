@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { useTranslation } from '../../hooks/useTranslation';
 import vegaEmbed from 'vega-embed';
 
 /**
@@ -7,6 +8,7 @@ import vegaEmbed from 'vega-embed';
  * Features: responsive width via ResizeObserver, themed action menu, fade-in animation.
  */
 const VegaLiteRenderer = ({ spec: specString }) => {
+    const { t } = useTranslation();
     const containerRef = useRef(null);
     const wrapperRef = useRef(null);
     const viewRef = useRef(null);
@@ -187,7 +189,7 @@ const VegaLiteRenderer = ({ spec: specString }) => {
                 fontSize: '13px',
                 margin: '8px 0'
             }}>
-                <div style={{ fontWeight: 600, marginBottom: '4px' }}>⚠️ Chart Error</div>
+                <div style={{ fontWeight: 600, marginBottom: '4px' }}>⚠️ {t('chat.renderers.chart_error', 'Chart Error')}</div>
                 <div style={{ opacity: 0.8 }}>{error}</div>
             </div>
         );

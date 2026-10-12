@@ -75,6 +75,16 @@ test('MQTT ports alone are low confidence; MQTT + a Modbus port is high', () => 
     assert.equal(det.confidenceOf(det.scanText('mqtt://broker.example.com:8883 and modbus at 10.0.0.9:502')), 'high');
 });
 
+test('port 2222 is the SFTP alternative as often as EtherNet/IP: no signal in an SSH-family URL, low on its own', () => {
+    assert.deepEqual(det.scanText('sftp://backup.example.com:2222/nightly'), []);
+    assert.deepEqual(det.scanText('ssh://deploy@build.example.com:2222'), []);
+    const bare = det.scanText('controller at 10.0.0.7:2222');
+    assert.equal(bare.length, 1);
+    assert.equal(det.confidenceOf(bare), 'low');
+    // Together with the explicit EtherNet/IP port it is a PLC again.
+    assert.equal(det.confidenceOf(det.scanText('10.0.0.7:2222 and 10.0.0.7:44818')), 'high');
+});
+
 test('vendor hosts are high confidence, with or without a scheme', () => {
     const a = det.scanText('https://acme.eu1.mindsphere.io/api/iottimeseries/v3');
     assert.ok(a.some(s => s.kind === 'host' && s.value === 'acme.eu1.mindsphere.io'));
@@ -245,11 +255,12 @@ test('unprovisioned tables are skipped, never thrown; other sources still run', 
     assert.equal(r.matches.length, 1);
 });
 
-test('an unexpected query error is recorded as a skip with a truncated reason', async () => {
-    state.rows = { automations: new Error('connection refused') };
+test('an unexpected query error is recorded as a skip with its class and code, never its message', async () => {
+    state.rows = { automations: Object.assign(new Error('invalid input syntax for type uuid: "jan@example.com"'), { code: '22P02' }) };
     const r = await det.detect('org1');
     const s = r.skipped.find(x => x.source === 'automations');
-    assert.match(s.reason, /^query failed: connection refused/);
+    assert.strictEqual(s.reason, 'query failed: Error (code 22P02)');
+    assert.ok(!JSON.stringify(r).includes('jan@example.com'), 'the driver message reaches no part of the detector output');
 });
 
 test('detector output carries no e-mail addresses or credentials', async () => {

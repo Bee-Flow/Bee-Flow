@@ -113,9 +113,13 @@ A panel listing every integration the server is configured for (env vars set), w
 
 | Field | Notes |
 |-------|-------|
-| User memory enabled | Master toggle for the Memory Extractor system agent. |
-| Org memory | Shared memory facts visible to all agents (e.g. "We refer to Q1 as 'the launch quarter'."). |
-| Retention | Forever / 12 months / 6 months. |
+| Memory enabled | Organisation-wide master switch, on by default. When off, nobody in the organisation gets memories injected into chats or automations, and nothing new is saved (including the memory tools and import). It beats each person's own memory switch; members see "turned off by your organisation". |
+| Sensitive opt-in allowed | Off by default. When on, members may choose to let sensitive memories be kept. |
+| Max per user | Upper limit of memories per person. Default 1000, between 50 and 10000. |
+
+The panel also shows how many active memories exist and for how many people (counts only, never the content). **Clear all memories** deletes every memory of every user in the organisation after you confirm; it cannot be undone.
+
+How long memories are kept is not set here: retention lives in the compliance settings.
 
 ## Danger zone
 

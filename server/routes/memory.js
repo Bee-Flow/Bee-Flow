@@ -31,9 +31,9 @@
  *     narrowing now is `{"projectId"}`, which clears that project's shared
  *     pool (editor required); anything else is refused. Without it the
  *     project tab's "Clear All" deleted the member's PERSONAL memories;
- *   - `PUT /:id` validated `type` and then dropped it (updateMemory has no
- *     type column), so a type change answered success and changed nothing.
- *     A memory's type is refused on PUT, with the reason;
+ *   - `PUT /:id` validated `type` and then dropped it, so a type change
+ *     answered success and changed nothing. It is applied now (the blind index
+ *     is recomputed), here and in `POST /bulk-update`;
  *   - `PUT /:id {"importance":0.9}` replaced the stored summary with the
  *     first 50 characters of the content: the route handed the store `null`
  *     for "not sent", and the store reads null as "derive a new one". A PUT
@@ -52,6 +52,7 @@
 
 const express = require('express');
 const memoryStore = require('../stores/memoryStore');
+const memoryQueries = require('../stores/memoryQueries');
 const { hasProjectRole } = require('../auth/projectAccess');
 const { requireAuth } = require('../auth');
 const { getEffectiveUserId } = require('./agents');
@@ -60,6 +61,9 @@ const llmClient = require('../core/llm/llmClient');
 const { resolveModelForTier, getTierConfig } = require('../core/llm/modelResolver');
 const { perUserRateLimit } = require('../utils/perUserRateLimit');
 const log = require('../telemetry/log');
+const memoryPolicy = require('../core/memory/memoryPolicy');
+const { resolveMemoryPolicy, getOrgMemorySettings } = memoryPolicy;
+const { HttpError } = require('../core/http/errors');
 const { validate } = require('../core/http/validate');
 const { z } = require('zod');
 
@@ -140,15 +144,25 @@ const CreateMemoryBody = orEmpty(z.object({
 
 const UpdateMemoryBody = orEmpty(z.object({
     content: memoryContent.nullish(),
-    // updateMemory has no type column: this used to be validated and dropped.
-    type: z.undefined({ invalid_type_error: 'A memory\'s type cannot be changed. Delete it and add it again with the right type.' }),
+    type: memoryType.nullish(),
     summary: memorySummary,
     importance: memoryImportance,
+}).strict().refine(
+    (b) => ['content', 'type', 'summary', 'importance'].some((k) => b[k] !== undefined),
+    { message: 'Send at least one of content, type, summary or importance.' },
+));
+
+const BulkUpdateBody = orEmpty(z.object({
+    ids: z.array(worded('Each id is the id of a memory.'), { required_error: 'ids array is required', invalid_type_error: 'ids array is required' })
+        .min(1, 'ids array is required')
+        .max(500, 'Update at most 500 memories at a time.'),
+    type: memoryType,
 }).strict());
 
 const BulkDeleteBody = orEmpty(z.object({
     ids: z.array(worded('Each id is the id of a memory.'), { required_error: 'ids array is required', invalid_type_error: 'ids array is required' })
-        .min(1, 'ids array is required'),
+        .min(1, 'ids array is required')
+        .max(500, 'Delete at most 500 memories at a time.'),
 }).strict());
 
 /**
@@ -179,7 +193,12 @@ function pageNumber(name, { min, max, fallback }) {
         .transform((v) => Math.min(Math.max(Number(v), min), max))
         .default(String(fallback));
 }
+const oneOf = (name, values) => z.enum(values, { errorMap: () => ({ message: `${name} is one of: ${values.join(', ')}.` }) });
 const ListQuery = orEmpty(z.object({
+    scope: oneOf('scope', memoryQueries.SCOPES).optional(),
+    origin: oneOf('origin', ['explicit', 'inferred', 'imported', 'tool']).optional(),
+    status: oneOf('status', memoryQueries.LISTABLE_STATUSES).optional(),
+    sort: oneOf('sort', memoryQueries.SORTS).optional(),
     agentId: worded('agentId is an id.').trim().max(200, 'agentId is at most 200 characters.').optional(),
     projectId: worded('projectId is an id.').trim().max(200, 'projectId is at most 200 characters.').optional(),
     type: z.enum(LIST_TYPES, { errorMap: () => ({ message: `type is one of: ${LIST_TYPES.join(', ')}.` }) }).optional(),
@@ -188,6 +207,41 @@ const ListQuery = orEmpty(z.object({
     limit: pageNumber('limit', { min: 1, max: 200, fallback: 50 }),
     offset: pageNumber('offset', { min: 0, max: Number.MAX_SAFE_INTEGER, fallback: 0 }),
 }).strict());
+
+/** `?ids=a,b,c`: the reload previews. Alone: any other key is refused. */
+const MAX_IDS = 50;
+const IDS_TEXT = `ids is a comma-separated list of 1 to ${MAX_IDS} memory ids.`;
+const IdsQuery = orEmpty(z.object({
+    ids: worded(IDS_TEXT).transform((v) => [...new Set(v.split(',').map((i) => i.trim()).filter(Boolean))])
+        .pipe(z.array(z.string().max(200, IDS_TEXT)).min(1, IDS_TEXT).max(MAX_IDS, IDS_TEXT)),
+}).strict());
+
+/** `?undo=1` is the chip's Undo; nothing else is accepted. */
+const DeleteQuery = orEmpty(z.object({
+    undo: z.literal('1', { errorMap: () => ({ message: 'undo is 1 or left out.' }) }).optional(),
+}).strict());
+
+const RecentQuery = orEmpty(z.object({
+    conversationId: worded('conversationId is required.').trim().min(1, 'conversationId is required.').max(200, 'conversationId is at most 200 characters.'),
+    since: worded('since is required: an ISO date.').trim()
+        .refine((v) => v !== '' && !Number.isNaN(Date.parse(v)), 'since is an ISO date.')
+        .transform((v) => new Date(v).toISOString()),
+}).strict());
+
+const ReviewQuery = orEmpty(z.object({
+    limit: pageNumber('limit', { min: 1, max: 200, fallback: 50 }),
+    offset: pageNumber('offset', { min: 0, max: Number.MAX_SAFE_INTEGER, fallback: 0 }),
+}).strict());
+
+/**
+ * The org of the signed-in user. `req.user` is never set in this server (the
+ * session carries the user), so reading it silently meant "no org": the org's
+ * maxPerUser and model routing did not apply.
+ */
+const orgIdOf = (req) => req.session?.user?.organizationId || null;
+
+/** The writer and its detectors are resolved lazily (and replaced in tests). */
+const writer = () => require('../agents/memory/memoryWriter');
 
 // Get memory type definitions
 router.get('/types', validate({ query: NoQuery }), (req, res) => {
@@ -215,67 +269,139 @@ async function canAccessMemory(userId, memory, minRole) {
     return memory.user_id === userId;
 }
 
-// Get all memories for current user. For the user-global view (no agentId /
-// projectId) supports `limit`, `offset`, and `search` so the Memory panel can
-// page through the full backlog and find specific entries (BFSF-161).
+/**
+ * May this caller look at memories filed under this agent? The list itself is
+ * always limited to the caller's own rows; this stops the endpoint from being
+ * an oracle for agent ids (and honours the contract: an unknown agent is a
+ * 404, one the caller cannot see a 403).
+ */
+async function assertAgentVisible(req, userId, agentId) {
+    const agent = await require('../stores/agentStore').getAgent(agentId);
+    if (!agent) throw new HttpError(404, 'agent_not_found', 'Agent not found');
+    const orgId = orgIdOf(req);
+    const visible = agent.owner_id === userId || agent.owner_id === 'system' || agent.owner_id === 'swarm'
+        || agent.is_published === true || (!!orgId && agent.organization_id === orgId);
+    if (!visible) throw new HttpError(403, 'agent_forbidden', 'No access to this agent');
+    return agent;
+}
+
+// The caller's own readable ACTIVE rows among `?ids=` (the chat's reload
+// previews). Only taken when `ids` is present; the plain list follows.
+router.get('/', (req, res, next) => (req.query.ids === undefined ? next('route') : next()),
+    validate({ query: IdsQuery }), async (req, res) => {
+        const userId = getEffectiveUserId(req);
+        const items = await memoryQueries.listActiveByIds(userId, req.query.ids, {
+            canReadProject: (projectId) => hasProjectRole(userId, projectId, 'viewer'),
+        });
+        res.json({ items });
+    });
+
+// Get all memories for current user. Filters: scope (personal | agent |
+// project | all), agentId, projectId, type, origin, status, sort and search;
+// paged with `limit` / `offset`. The answer carries the page twice: `items`
+// (the contract) and `memories` (what the mobile client and the project tab
+// read), both enriched with agent / project names and the chat kind.
 router.get('/', validate({ query: ListQuery }), async (req, res) => {
     const userId = getEffectiveUserId(req);
-    const agentId = req.query.agentId || null;
-    const projectId = req.query.projectId || null;
-    const typeFilter = req.query.type || null;
-    const search = req.query.search || null;
-    const { limit, offset } = req.query;
+    const { agentId = null, projectId = null, type = null, search = null, origin = null, status, sort, limit, offset } = req.query;
+    // Callers from before `scope` existed sent only agentId or projectId.
+    const scope = req.query.scope || (projectId ? 'project' : agentId ? 'agent' : 'personal');
 
-    if (projectId) {
+    if (scope === 'project' && !projectId) {
+        throw new HttpError(400, 'project_required', 'scope=project needs a projectId.');
+    }
+    if (projectId && scope !== 'agent') {
         // Verify the caller can actually see this project before returning its
-        // memories — every other project-scoped memory endpoint already does
-        // this; the list endpoint was missing the check, letting any logged-in
+        // memories: the list endpoint once lacked this, letting any logged-in
         // user dump project memories by guessing the UUID.
         if (!await hasProjectRole(userId, projectId, 'viewer')) {
             return res.status(403).json({ error: 'No access to this project' });
         }
-        const memories = await memoryStore.getMemoriesForProject(userId, projectId);
-        const filtered = typeFilter ? memories.filter(m => m.type === typeFilter) : memories;
-        return res.json({ memories: filtered });
-    }
-    if (agentId) {
-        // Honor the agent's "use general memory" flag for per-agent agents.
-        let includeGeneral = true;
-        try {
-            const agentStore = require('../stores/agentStore');
-            const a = await agentStore.getAgent(agentId);
-            const cfg = a?.config || {};
-            if (cfg.memoryEnabled === true && cfg.useGeneralMemory === false) {
-                includeGeneral = false;
-            }
-        } catch (_) { /* default to true */ }
-        const memories = await memoryStore.getMemoriesForAgent(userId, agentId, 50, { includeGeneral });
-        const filtered = typeFilter ? memories.filter(m => m.type === typeFilter) : memories;
-        return res.json({ memories: filtered });
     }
 
-    // User-global view — paginate + search at the DB layer.
-    const page = await memoryStore.searchUserMemories(userId, {
-        limit,
-        offset,
-        search,
-        type: typeFilter,
+    let includeGeneral = false;
+    if (agentId && scope === 'agent') {
+        const agent = await assertAgentVisible(req, userId, agentId);
+        // A legacy call (agentId alone) also got the general memory, unless the
+        // agent opted out; an explicit scope=agent is the agent's own bucket.
+        const cfg = agent.config || {};
+        includeGeneral = !req.query.scope && !(cfg.memoryEnabled === true && cfg.useGeneralMemory === false);
+    }
+
+    const page = await memoryQueries.listMemories(userId, {
+        scope, agentId, projectId, includeGeneral, type, search, origin, status, sort, limit, offset,
+        // An encrypted org is searched in JS over at most this many rows.
+        scanLimit: (await getOrgMemorySettings(orgIdOf(req))).maxPerUser,
     });
     res.json({
+        items: page.items,
         memories: page.items,
         total: page.total,
         limit: page.limit,
         offset: page.offset,
         hasMore: page.offset + page.items.length < page.total,
+        ...(page.truncated ? { truncated: true } : {}),
     });
 });
 
-// User-global memory stats (total + type distribution + importance buckets).
+// User-global memory stats (total + type distribution + importance buckets,
+// over the ACTIVE personal rows, plus the review backlog and origins).
 // Must be registered before `/:id` or Express will route "stats" as an id.
 router.get('/stats', validate({ query: NoQuery }), async (req, res) => {
-    const userId = getEffectiveUserId(req);
-    const stats = await memoryStore.getMemoryStats(userId);
-    res.json(stats);
+    res.json(await memoryQueries.getStats(getEffectiveUserId(req)));
+});
+
+// The "Remembered" chip: what this conversation just taught the caller.
+router.get('/recent', validate({ query: RecentQuery }), async (req, res) => {
+    const { conversationId, since } = req.query;
+    res.json({ items: await memoryQueries.listRecent(getEffectiveUserId(req), conversationId, since) });
+});
+
+// The caller's review queue (memories waiting for a yes or a no).
+router.get('/review', validate({ query: ReviewQuery }), async (req, res) => {
+    res.json(await memoryQueries.listReview(getEffectiveUserId(req), req.query));
+});
+
+/** A pending row of the caller's own, or the right error. Review is personal. */
+async function ownPendingMemory(req) {
+    const memory = await memoryStore.getMemoryById(req.params.id);
+    if (!memory) throw new HttpError(404, 'memory_not_found', 'Memory not found');
+    if (memory.user_id !== getEffectiveUserId(req)) throw new HttpError(403, 'forbidden', 'Access denied');
+    if (memory.status !== 'pending_review') throw new HttpError(409, 'not_pending_review', 'This memory is not waiting for review.');
+    return memory;
+}
+
+router.post('/review/:id/approve', validate({ query: NoQuery }), async (req, res) => {
+    const memory = await ownPendingMemory(req);
+    await lifecycle().approve(memory.id);
+    res.json({ memory: await presentOne(memory.id) });
+});
+
+router.post('/review/:id/reject', validate({ query: NoQuery }), async (req, res) => {
+    const memory = await ownPendingMemory(req);
+    await memoryStore.deleteMemory(memory.id);
+    res.json({ deleted: 1 });
+});
+
+/** One memory as the API shows it (re-read, so a lifecycle change is reflected). */
+async function presentOne(id) {
+    const row = await memoryStore.getMemoryById(id);
+    return row ? (await memoryQueries.presentMemories([row]))[0] : null;
+}
+
+/** memoryLifecycle is the write path for status changes; resolved lazily. */
+const lifecycle = () => require('../stores/memoryLifecycle');
+
+// Archived → active again.
+router.post('/:id/restore', validate({ query: NoQuery }), async (req, res) => {
+    const memory = await memoryStore.getMemoryById(req.params.id);
+    if (!memory) throw new HttpError(404, 'memory_not_found', 'Memory not found');
+    if (!await canAccessMemory(getEffectiveUserId(req), memory, 'editor')) {
+        throw new HttpError(403, 'forbidden', 'Access denied');
+    }
+    if (memory.status !== 'archived') throw new HttpError(409, 'not_archived', 'Only an archived memory can be restored.');
+    await lifecycle().restore(memory.id);
+    res.json({ memory: await presentOne(memory.id) });
 });
 
 // Get a single memory
@@ -287,7 +413,12 @@ router.get('/:id', validate({ query: NoQuery }), async (req, res) => {
     if (!await canAccessMemory(userId, memory, 'viewer')) {
         return res.status(403).json({ error: 'Access denied' });
     }
-    res.json({ memory });
+    // Pending, archived and superseded rows, and art. 9 rows, are private to
+    // their own person, also inside a project pool.
+    if ((memory.status && memory.status !== 'active' || memory.sensitivity === 'art9') && memory.user_id !== userId) {
+        return res.status(403).json({ error: 'Access denied' });
+    }
+    res.json({ memory: (await memoryQueries.presentMemories([memory]))[0] });
 });
 
 // Create a memory manually
@@ -295,14 +426,36 @@ router.post('/', validate({ body: CreateMemoryBody }), async (req, res) => {
     const userId = getEffectiveUserId(req);
     const { agentId, projectId, content, type, summary, importance } = req.body;
 
+    // The org switch stops manual adds too; a user who only paused their own
+    // memory may still write one by hand.
+    const policy = await resolveMemoryPolicy({ userId, orgId: orgIdOf(req) });
+    if (policy.reason === 'org_disabled') {
+        throw new HttpError(403, 'memory_disabled', 'Memory is turned off for your organisation.');
+    }
+
+    // Secrets and identifiers are never stored, typed or not.
+    const { detectSensitiveIdentifier, looksArt9 } = writer();
+    if (detectSensitiveIdentifier([content, summary].filter(Boolean).join('\n'))) {
+        throw new HttpError(422, 'sensitive_identifier', 'This looks like a secret or an identifier (a password, key, card, IBAN or ID number). Bee Flow does not store those.');
+    }
+    const art9 = looksArt9([content, summary].filter(Boolean).join(' '));
+    if (art9 && !await memoryPolicy.isSensitiveOptInForUser(userId, orgIdOf(req))) {
+        throw new HttpError(422, 'sensitive_not_allowed', 'This is sensitive information (health, beliefs, orientation and the like). Enable sensitive topics in Settings → Memory to store it.');
+    }
+
+    if (agentId) await assertAgentVisible(req, userId, agentId);
+
+    // Sensitive memory is personal: never in a project's shared pool.
+    const poolId = art9 ? null : (projectId || null);
     // Writing into a project's shared memory pool requires editor, not membership.
-    if (projectId && !await hasProjectRole(userId, projectId, 'editor')) {
+    if (poolId && !await hasProjectRole(userId, poolId, 'editor')) {
         return res.status(403).json({ error: 'Editor role required for this project' });
     }
 
     const id = await memoryStore.createMemory(
         userId, agentId || null, type || 'fact',
-        content, summary ?? null, importance ?? DEFAULT_IMPORTANCE, null, null, null, null, projectId || null
+        content, summary ?? null, importance ?? DEFAULT_IMPORTANCE, null, null, null, null, poolId,
+        art9 ? { origin: 'explicit', sensitivity: 'art9', status: 'active' } : { origin: 'explicit' }
     );
     res.json({ success: true, id });
 });
@@ -310,7 +463,7 @@ router.post('/', validate({ body: CreateMemoryBody }), async (req, res) => {
 // Update a memory — validated like POST.
 router.put('/:id', validate({ body: UpdateMemoryBody }), async (req, res) => {
     const userId = getEffectiveUserId(req);
-    const { content, summary, importance } = req.body;
+    const { content, type, summary, importance } = req.body;
 
     const memory = await memoryStore.getMemoryById(req.params.id);
     if (!memory) return res.status(404).json({ error: 'Memory not found' });
@@ -318,18 +471,43 @@ router.put('/:id', validate({ body: UpdateMemoryBody }), async (req, res) => {
         return res.status(403).json({ error: 'Access denied' });
     }
 
-    const newContent = content ?? memory.content;
-    // updateMemory reads a null summary as "derive one from the content".
-    // Right when the content changed; wrong when only the importance did —
-    // that used to overwrite the stored summary with 50 characters of text.
-    const keepSummary = summary === undefined && (content === undefined || content === null);
-    await memoryStore.updateMemory(
-        req.params.id,
-        newContent,
-        keepSummary ? (memory.summary ?? null) : (summary ?? null),
-        importance ?? null,
-    );
-    res.json({ success: true });
+    const textOrWeightChanged = [content, summary, importance].some((v) => v !== undefined && v !== null);
+    if (textOrWeightChanged) {
+        // An unreadable row has no text to re-seal: a content-less update would blank it.
+        if (memory.unreadable && !content) {
+            throw new HttpError(409, 'memory_unreadable', 'This memory cannot be opened, so only deleting it is possible.');
+        }
+        const newContent = content ?? memory.content;
+        // updateMemory reads a null summary as "derive one from the content".
+        // Right when the content changed; wrong when only the importance did:
+        // that used to overwrite the stored summary with 50 characters of text.
+        const keepSummary = summary === undefined && (content === undefined || content === null);
+        await memoryStore.updateMemory(
+            req.params.id,
+            newContent,
+            keepSummary ? (memory.summary ?? null) : (summary ?? null),
+            importance ?? null,
+        );
+    }
+    if (type && type !== memory.type) {
+        if (memory.type === 'schedule_coverage') {
+            throw new HttpError(400, 'type_locked', 'This memory is bookkeeping of a schedule; its type cannot be changed.');
+        }
+        await memoryQueries.setType([memory], type);
+    }
+    res.json({ success: true, memory: await presentOne(req.params.id) });
+});
+
+// Change the type of several memories at once. Rows the caller may not edit
+// are skipped, not failed, like bulk-delete; `updated` is what really changed.
+router.post('/bulk-update', validate({ body: BulkUpdateBody }), async (req, res) => {
+    const userId = getEffectiveUserId(req);
+    const { ids, type } = req.body;
+    const allowed = [];
+    for (const memory of await memoryStore.getMemoriesByIds(ids)) {
+        if (await canAccessMemory(userId, memory, 'editor')) allowed.push(memory);
+    }
+    res.json({ success: true, updated: await memoryQueries.setType(allowed, type) });
 });
 
 // Bulk delete memories
@@ -337,19 +515,26 @@ router.post('/bulk-delete', validate({ body: BulkDeleteBody }), async (req, res)
     const userId = getEffectiveUserId(req);
     const { ids } = req.body;
 
-    let deleted = 0;
-    for (const id of ids) {
-        const memory = await memoryStore.getMemoryById(id);
-        if (!memory) continue;
-        if (!await canAccessMemory(userId, memory, 'editor')) continue;
-        await memoryStore.deleteMemory(id);
-        deleted++;
+    // One read, one delete; the access check stays per row because a
+    // project-pool row needs the editor role, not ownership.
+    const allowed = [];
+    for (const memory of await memoryStore.getMemoriesByIds(ids)) {
+        if (await canAccessMemory(userId, memory, 'editor')) allowed.push(memory.id);
     }
+    const deleted = await memoryStore.deleteMemoriesByIds(allowed);
     res.json({ success: true, deleted });
 });
 
+// Delete what a conversation taught the CALLER (their own rows only). The
+// client calls this explicitly when a chat is deleted and the person chose to
+// forget its memories too; deleting a chat never cascades by itself.
+router.delete('/by-conversation/:conversationId', validate({ query: NoQuery }), async (req, res) => {
+    const deleted = await memoryQueries.deleteByConversation(getEffectiveUserId(req), req.params.conversationId);
+    res.json({ deleted });
+});
+
 // Delete a memory
-router.delete('/:id', validate({ query: NoQuery }), async (req, res) => {
+router.delete('/:id', validate({ query: DeleteQuery }), async (req, res) => {
     const userId = getEffectiveUserId(req);
 
     const memory = await memoryStore.getMemoryById(req.params.id);
@@ -358,6 +543,17 @@ router.delete('/:id', validate({ query: NoQuery }), async (req, res) => {
         return res.status(403).json({ error: 'Access denied' });
     }
 
+    // Undo of the "Remembered" chip (`?undo=1`): if this memory replaced an
+    // older fact, the older fact comes back, or undoing would lose it. A plain
+    // delete restores nothing: the person is forgetting this row, not undoing.
+    // A failure here must not block the delete the person asked for.
+    if (req.query.undo === '1') {
+        try {
+            await lifecycle().restorePredecessorOf(req.params.id);
+        } catch (err) {
+            log.warn(`[memory] predecessor of ${req.params.id} not restored: ${err.message}`);
+        }
+    }
     await memoryStore.deleteMemory(req.params.id);
     res.json({ success: true });
 });
@@ -391,7 +587,8 @@ router.post('/clear', validate({ query: NoQuery, body: ClearBody }), async (req,
 router.get('/export/all', validate({ query: NoQuery }), require('../compliance/dataPortability/stampExport')('memories'), async (req, res) => {
     const userId = getEffectiveUserId(req);
 
-    const memories = await memoryStore.getMemories(userId, 1000);
+    // Every row of the person's own, any status, opened, with provenance.
+    const memories = await memoryQueries.listForExport(userId);
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Content-Disposition', 'attachment; filename=memories.json');
     res.json({ exportDate: new Date().toISOString(), userId, memories });
@@ -404,18 +601,23 @@ function contentKey(content) {
 
 // Import memories from pasted text (e.g. an export from another AI provider).
 // Uses the fast-tier LLM to extract a typed list of memories from free-form
-// text, then inserts each one through the normal createMemory path — capped
+// text, then writes each one through the memory writer (secrets dropped, art. 9 gated, near-duplicates confirmed) — capped
 // per paste, de-duped within the paste and against what already exists.
 router.post('/import', importLimiter, validate({ body: ImportBody }), async (req, res) => {
     const userId = getEffectiveUserId(req);
     // Trimmed and required non-blank by the schema.
     const { text } = req.body;
 
+    // An import writes memories, so it obeys the same gate as extraction.
+    const orgId = orgIdOf(req);
+    const policy = await resolveMemoryPolicy({ userId, orgId });
+    if (!policy.write) throw new HttpError(403, 'memory_disabled', 'Memory is turned off, so memories cannot be imported.');
+
     if (Buffer.byteLength(text, 'utf8') > MAX_IMPORT_BYTES) {
         return res.status(400).json({ error: `text exceeds ${MAX_IMPORT_BYTES} byte limit` });
     }
 
-    const userOrgId = req.user?.organizationId || null;
+    const userOrgId = orgId;
         const modelId = await resolveModelForTier('tier:fast', { userOrgId, userId, fallbackTier: 'fast' });
         const tierConfig = await getTierConfig('fast', { userOrgId, userId });
 
@@ -452,8 +654,10 @@ If unsure, use "fact".
 
         let imported = 0;
         let skipped = 0;
+        const skippedBy = { sensitive: 0, identifier: 0, duplicate: 0 };
         const inserted = [];
         const seen = new Set();
+        const { writeMemory } = writer();
         for (const item of items) {
             // The cap is on INSERTS. Past it the remainder is counted, not
             // silently dropped, so the caller can see the paste was too big.
@@ -466,30 +670,34 @@ If unsure, use "fact".
 
             // Within one paste: case and whitespace do not make a new memory.
             const key = contentKey(content);
-            if (seen.has(key)) { skipped++; continue; }
+            if (seen.has(key)) { skipped++; skippedBy.duplicate++; continue; }
             seen.add(key);
 
             try {
-                // Against what already exists: re-pasting the same export used to
-                // double the memory count. createMemory's canonical dedupe needs
-                // subject/attribute, which an import never has, so the similarity
-                // check has to happen here — and a hit confirms the existing row.
-                const existing = await memoryStore.findSimilarMemory(userId, content);
-                if (existing) {
-                    await memoryStore.confirmMemory(existing.id);
+                // The one write pipeline: secrets are dropped, art. 9 content
+                // needs the person's opt-in, and a near-duplicate of an
+                // existing memory confirms that one instead of doubling it.
+                const result = await writeMemory({ type, content }, { origin: 'imported', userId, orgId });
+                if (result?.action === 'rejected') {
                     skipped++;
-                    continue;
+                    if (result.reason === 'sensitive_identifier') skippedBy.identifier++;
+                    else if (result.reason === 'art9_no_consent') skippedBy.sensitive++;
+                } else if (result?.action === 'confirmed') {
+                    skipped++;
+                    skippedBy.duplicate++;
+                } else {
+                    imported++;
+                    inserted.push({ type, content });
                 }
-                await memoryStore.createMemory(userId, null, type, content);
-                imported++;
-                inserted.push({ type, content });
             } catch (e) {
                 skipped++;
                 log.warn('[memory/import] insert failed:', e.message);
             }
         }
 
-        res.json({ imported, skipped, items: inserted });
+        // `skipped` stays the total (older clients read a number); `skippedBy`
+        // says why, for the reasons the person can act on.
+        res.json({ imported, skipped, skippedBy, items: inserted });
 });
 
 module.exports = router;

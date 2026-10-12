@@ -36,6 +36,10 @@ const fx = {
     agents: {},
     automations: {},
     automationThrows: false,
+    // 'automationId|agentId' pairs: automation_agent_bindings.
+    bindings: new Set(),
+    bindCalls: [],
+    bindRefusal: null,
     updateCalls: [],
     updateResult: { ok: true, rev: 2 },
 };
@@ -74,6 +78,17 @@ const CRUD_MOCKS = {
         getAutomation: async (id) => {
             if (fx.automationThrows) throw new Error('automations table unreachable');
             return fx.automations[id] || null;
+        },
+        hasAgentBinding: async (automationId, agentId) => fx.bindings.has(`${automationId}|${agentId}`),
+        listBindingsForAutomation: async (automationId) => [...fx.bindings]
+            .filter((k) => k.startsWith(`${automationId}|`)).map((k) => ({ agentId: k.split('|')[1] })),
+    },
+    // The one write gate for a binding; its own rules are tested in agentBinding.test.js.
+    '../../automation/agentBinding': {
+        setAgentBindings: async (call) => {
+            fx.bindCalls.push(call);
+            if (fx.bindRefusal) throw fx.bindRefusal;
+            for (const id of call.agentIds) fx.bindings.add(`${call.automation.id}|${id}`);
         },
     },
     '../../automation/agentCallableTools': {
@@ -123,6 +138,9 @@ function resetFx() {
     fx.agents = {};
     fx.automations = {};
     fx.automationThrows = false;
+    fx.bindings = new Set();
+    fx.bindCalls = [];
+    fx.bindRefusal = null;
     fx.updateCalls = [];
     fx.updateResult = { ok: true, rev: 2 };
 }
@@ -138,8 +156,9 @@ const HANDOFF = { who: 'You are support.', does: ['Answer questions'], unknown: 
 
 // ── verifyHandoffAutomation: every non-yes is a no ──────────────────
 
-test('an automation of the agent owner, active and agent-callable, verifies', async () => {
+test('an automation of the agent owner, active, agent-callable and bound to the agent, verifies', async () => {
     fx.automations['auto-1'] = CALLABLE();
+    fx.bindings.add('auto-1|a1');
     const v = await verifyHandoffAutomation(AGENT(), 'auto-1');
     assert.deepStrictEqual(v, { id: 'auto-1', label: 'escalate_to_support', title: 'Escalate to support' });
 });
@@ -167,6 +186,68 @@ test('a lookup that THROWS is a no, not a yes', async () => {
     fx.automationThrows = true;
     assert.strictEqual(await verifyHandoffAutomation(AGENT(), 'auto-1'), null,
         '"I could not check" is the one answer that must never become "allowed"');
+});
+
+// ── the hand-off needs the binding, or it is a prompt line for a tool that never exists ──
+
+const PICK = { actorId: 'owner', session: { user: { id: 'owner' } }, newSelection: true };
+
+test('an automation NOT bound to the agent is refused when nobody is choosing it right now', async () => {
+    fx.automations['auto-1'] = CALLABLE();
+    assert.strictEqual(await verifyHandoffAutomation(AGENT(), 'auto-1'), null, 'no actor, no binding');
+    assert.strictEqual(await verifyHandoffAutomation(AGENT(), 'auto-1', { actorId: 'owner', newSelection: false }), null,
+        'an autosave echoing an old hand-off must not undo an unlink');
+    assert.deepStrictEqual(fx.bindCalls, []);
+});
+
+test('choosing an unbound automation as the hand-off binds it through the write gate, keeping the other agents', async () => {
+    fx.automations['auto-1'] = CALLABLE();
+    fx.bindings.add('auto-1|other-agent');
+    const v = await verifyHandoffAutomation(AGENT(), 'auto-1', PICK);
+    assert.strictEqual(v.id, 'auto-1');
+    assert.strictEqual(fx.bindCalls.length, 1);
+    assert.deepStrictEqual(fx.bindCalls[0].agentIds, ['other-agent', 'a1']);
+    assert.strictEqual(fx.bindCalls[0].actorId, 'owner');
+    assert.strictEqual(fx.bindCalls[0].automation.id, 'auto-1');
+});
+
+test('an already bound hand-off writes nothing', async () => {
+    fx.automations['auto-1'] = CALLABLE();
+    fx.bindings.add('auto-1|a1');
+    assert.ok(await verifyHandoffAutomation(AGENT(), 'auto-1', PICK));
+    assert.deepStrictEqual(fx.bindCalls, []);
+});
+
+test('a refusal of the write gate drops the hand-off', async () => {
+    fx.automations['auto-1'] = CALLABLE();
+    fx.bindRefusal = Object.assign(new Error('You need edit rights on this automation'), { status: 403 });
+    assert.strictEqual(await verifyHandoffAutomation(AGENT(), 'auto-1', PICK), null);
+    assert.ok(!fx.bindings.has('auto-1|a1'));
+});
+
+test('a new agent (no id yet) cannot be bound, so a hand-off is dropped with a reason', async () => {
+    fx.automations['auto-1'] = CALLABLE();
+    const r = await resolvePersonaWrite(AGENT({ id: null }), HANDOFF, { enabledIntegrations: [] }, { actorId: 'owner' });
+    assert.strictEqual(r.persona.unknown.automationId, null);
+    assert.deepStrictEqual(fx.bindCalls, []);
+    assert.ok(r.warnings.some(w => /saved first/.test(w)));
+});
+
+test('saving a persona that picks a hand-off links it, and the next autosave of the same persona does not re-link a removed binding', async () => {
+    fx.automations['auto-1'] = CALLABLE();
+    const first = await resolvePersonaWrite(AGENT(), HANDOFF, { enabledIntegrations: [] }, { actorId: 'owner' });
+    assert.strictEqual(first.persona.unknown.automationId, 'auto-1');
+    assert.strictEqual(fx.bindCalls.length, 1);
+
+    // The owner unlinks the agent in the trigger panel; the editor then echoes the stored persona.
+    fx.bindings.clear();
+    fx.bindCalls = [];
+    const echoed = await resolvePersonaWrite(
+        AGENT({ persona: first.persona }), first.persona, { enabledIntegrations: [] }, { actorId: 'owner' },
+    );
+    assert.deepStrictEqual(fx.bindCalls, [], 'an unlink is the owner\'s word');
+    assert.strictEqual(echoed.persona.unknown.automationId, null);
+    assert.ok(!/hand it over with/.test(echoed.systemPrompt));
 });
 
 test('an agent without an owner verifies nothing', async () => {
@@ -212,7 +293,7 @@ test('…and leaves it alone on an agent with nothing to be strict about', async
 
 test('a VERIFIED hand-off writes the grant and names the real action in the prompt', async () => {
     fx.automations['auto-1'] = CALLABLE();
-    const r = await resolvePersonaWrite(AGENT(), HANDOFF, { enabledIntegrations: [] });
+    const r = await resolvePersonaWrite(AGENT(), HANDOFF, { enabledIntegrations: [] }, { actorId: 'owner' });
     assert.deepStrictEqual(r.config.tools.automations, { 'auto-1': { confirm: 'ask' } });
     assert.match(r.systemPrompt, /hand it over with the "escalate_to_support" action/);
     assert.strictEqual(r.persona.unknown.automationId, 'auto-1');
@@ -231,7 +312,7 @@ test('an UNVERIFIED hand-off writes no grant, drops the id, and promises nothing
 
 test('a request that carries no config gets no config invented for it', async () => {
     fx.automations['auto-1'] = CALLABLE();
-    const r = await resolvePersonaWrite(AGENT(), HANDOFF, undefined);
+    const r = await resolvePersonaWrite(AGENT(), HANDOFF, undefined, { actorId: 'owner' });
     assert.strictEqual(r.config, undefined,
         'folding onto the stored config would turn a persona-only save into a config write nobody asked for');
     assert.ok(r.warnings.some(w => /app configuration/.test(w)));

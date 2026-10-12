@@ -29,6 +29,8 @@ const VALID_STEP_TYPES = new Set([
     // n8n-style utility nodes (Phase A: data + control flow, Phase B: collection ops)
     'set', 'datetime', 'wait', 'stop_error', 'switch',
     'filter', 'limit', 'dedupe', 'aggregate', 'summarize',
+    // One row per item of a list inside a list (shared/expr/flatten.mjs).
+    'flatten',
     // Scan a value for personal data with the Privacy Shield's detector and
     // branch on the answer.
     'guard',
@@ -187,6 +189,13 @@ const DATATABLE_WRITE_OPS = new Set(['add_row', 'save_row', 'update_rows', 'dele
 // records the incident where a dropped filter listed an app's every attachment.
 const DATATABLE_FILTERED_OPS = new Set(['update_rows', 'delete_rows']);
 const DATATABLE_MAX_FILTERS = 20;
+// The id the builder gives a table it has only PROPOSED (not created yet): a
+// step staged in a preview points at "pending:1" until the user presses Apply
+// and the server swaps it for the real id. One definition, shared by the
+// validator, the builder's pendingDatatables helpers and the runner, so a
+// pending id can never be told apart differently in two places. The client
+// twin is agent-hub/src/components/automation/Builder/chat/pendingTables.ts.
+const PENDING_DATATABLE_RE = /^pending:[1-9]\d{0,2}$/;
 const DATATABLE_MAX_LIMIT = 1000;
 // How the conditions join each other. ONE top-level combinator: 'status is new
 // OR retry' is the shape authors ask for, and it compiles to a single OR group
@@ -472,11 +481,14 @@ const NESTED_FORBIDDEN_RULES = new Map([
     }],
 ]);
 
-// A single addressable segment of a binding path — the head production of
-// bind.js's REF_RE (`^[A-Za-z_$][A-Za-z0-9_$]*`). Step ids and generated output
-// field names have to match it to be referenceable as `steps.<id>.output.<name>`:
-// a hyphen turns `steps.my-step.output.n` into a SUBTRACTION that silently
-// evaluates to NaN, and a space/dot breaks the path apart entirely.
+// A segment every reader takes as a plain name: an ASCII identifier, the
+// expression engine's name. The path grammar (shared/expr/path.mjs) reads
+// more in a reference or a {{ }} placeholder (`first-name`, `prénom`), but an
+// EXPRESSION does not: there a hyphen turns `steps.my-step.output.n` into a
+// SUBTRACTION that silently evaluates to NaN, and a space/dot breaks the path
+// apart everywhere. Step ids and generated output field names should match it
+// to be referenceable as `steps.<id>.output.<name>` in every slot; anything
+// else needs the bracket form (`steps["my-step"]`), which the picker writes.
 const BINDABLE_SEGMENT_RE = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 
 // Channels a NOTIFICATION STEP may deliver on, per engine.js's execNotification:
@@ -494,15 +506,15 @@ const FORM_PAGE_MIN_WAIT_S = 60;
 const FORM_PAGE_MAX_WAIT_S = 7 * 24 * 3600;
 
 // parse_json field contract. Names are identifier-safe (they become output
-// keys bound as steps.<id>.output.<name>); paths are RELATIVE to the parsed
-// source — like bind.js's REF_RE but additionally permitting a LEADING
-// bracket segment (root-array sources: `[0].x`, `[*].sku`). ''/'$' (whole
-// source) are checked separately.
+// keys bound as steps.<id>.output.<name>). Paths are RELATIVE to the parsed
+// source and checked with the runner's own relative reader
+// (refPaths.relativePathTokens, mirroring shared getRelativePath) — a regex
+// here was a second grammar that took `$.order.id` for valid and then
+// resolved it to nothing.
 // Lookahead bans prototype-plumbing names (__proto__/constructor/prototype) —
 // assigning them at runtime would not create an own key, so the field would
 // silently vanish from the step output while validation stayed green.
 const PARSE_JSON_FIELD_NAME_RE = /^(?!(?:__proto__|constructor|prototype)$)[A-Za-z_][A-Za-z0-9_]*$/;
-const PARSE_JSON_PATH_RE = /^(?:[A-Za-z_$][A-Za-z0-9_$]*|\[(?:[0-9]+|\*|"[^"]*"|'[^']*')\])(?:\.[A-Za-z_$][A-Za-z0-9_$]*|\[(?:[0-9]+|\*|"[^"]*"|'[^']*')\])*$/;
 const MAX_PARSE_JSON_FIELDS = 50;
 
 const DATETIME_OPS = new Set(['now', 'parse', 'format', 'addDays', 'addHours', 'addMinutes', 'diff', 'extract']);
@@ -547,6 +559,7 @@ module.exports = {
     DATATABLE_WRITE_OPS,
     DATATABLE_FILTERED_OPS,
     DATATABLE_MAX_FILTERS,
+    PENDING_DATATABLE_RE,
     DATATABLE_MAX_LIMIT,
     DATATABLE_MATCH_MODES,
     APPROVAL_MAX_EXPIRY_HOURS,
@@ -599,7 +612,6 @@ module.exports = {
     FORM_PAGE_MIN_WAIT_S,
     FORM_PAGE_MAX_WAIT_S,
     PARSE_JSON_FIELD_NAME_RE,
-    PARSE_JSON_PATH_RE,
     MAX_PARSE_JSON_FIELDS,
     DATETIME_OPS,
     SUMMARIZE_OPS,

@@ -9,6 +9,14 @@ app actions use that same definition.
 
 ## Organize and create
 
+Open **Documents** from the ordinary left menu to use your own and shared documents
+without Studio builder permissions. Opening a document keeps the workspace sidebar;
+document and notebook links can be bookmarked and support browser back/forward.
+This desktop view omits organisation management controls. **Studio → Documents**
+also offers the house-style panel; saving an organisation house style still requires
+the `org_admin` permission on the server. Document sharing and encryption follow the
+same rules from either entry point.
+
 Use the **Documents**, **Templates** and **Reusable sections** views to search,
 sort and browse your library. Folders can contain other folders. Deleting a folder
 moves its documents and child folders to its parent. Select documents to move them
@@ -19,10 +27,30 @@ proposal, invoice, letter or report starter. Starters and workspace controls are
 available in English and Dutch. Use **Parameters → Save a copy as template** to
 make a reusable version. Customer sample values are excluded from saved templates.
 
-Documents are private by default. Templates and reusable sections can be explicitly
-shared with the team. Organization members can read and copy shared items; their
-owner and organization administrators can edit them. Archiving retains revisions
-already referenced by generated documents and automations.
+Documents are private by default. Use the share button beside an item to give
+read access to the entire organisation, selected groups, selected users, or a
+combination of users and groups. This works for pages, notebooks, spreadsheets,
+designed documents, presentations, templates and reusable sections. Recipients
+see shared items in their own Documents library. Only the owner changes these
+shares; existing project editing permissions still apply. Choose **Private** to
+remove direct shares. Project membership continues to grant its existing access.
+The recipient picker separates groups, users and selected recipients into tabs.
+Search and paging keep large directories compact; selections remain visible and
+are preserved when you search, change tabs or move between pages.
+
+When encryption is enabled, private content uses the owner's encryption key.
+Sharing switches the content and its revision history to organisation encryption;
+notebook sources, original uploaded files and spreadsheet cells follow the same
+rule. On the zero-knowledge tier, shared content therefore uses a server-accessible
+organisation key. The sharing dialog states that shared content uses organisation
+encryption. If a required key is unavailable, access is not granted. Titles,
+descriptions, categories and access-control metadata remain searchable metadata.
+Existing plaintext content is encrypted when written or explicitly shared.
+This protects the document store and notebook source uploads. Linked external
+assets and the separate knowledge search index keep their own storage policies.
+
+Archiving retains revisions already referenced by generated documents and automations.
+
 
 ## Presentations
 

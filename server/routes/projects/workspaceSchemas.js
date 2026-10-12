@@ -29,7 +29,14 @@ const MyChatsQuery = queryOf({
     limit: wholeNumber('limit is a whole number from 1 to 200.', { min: 1, max: 200 }).optional(),
 }, 'The list of your chats in this project');
 
-/** POST /:id/presence — a ping; it carries nothing. */
-const PresenceBody = bodyOf({}, 'A presence ping');
+const PRESENCE_TARGET_TYPES = ['document', 'notebook', 'meeting', 'task', 'chat'];
+const PRESENCE_TARGET = 'A presence target is a type (document, notebook, meeting, task or chat) and the id of that item.';
+/** POST /:id/presence — a ping, optionally naming the item being viewed. */
+const PresenceBody = bodyOf({
+    target: closedObject({
+        type: z.enum(PRESENCE_TARGET_TYPES, { errorMap: () => ({ message: PRESENCE_TARGET }) }),
+        id: worded(PRESENCE_TARGET).trim().min(1, PRESENCE_TARGET).max(128, PRESENCE_TARGET),
+    }, 'A presence target').optional(),
+}, 'A presence ping');
 
 module.exports = { z, FilesQuery, FileParams, NoBody, NoQuery, MyChatsQuery, PresenceBody };

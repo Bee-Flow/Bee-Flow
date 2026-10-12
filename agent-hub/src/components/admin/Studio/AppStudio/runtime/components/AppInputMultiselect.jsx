@@ -1,5 +1,6 @@
 import { X } from 'lucide-react';
 import { useEffect } from 'react';
+import useTranslation from '../../../../../../hooks/useTranslation';
 import { useFormField } from '../formContext';
 import { Field, INPUT_CLASS, inputStyle } from '../uiBits';
 import useInputChange from '../useInputChange';
@@ -28,7 +29,8 @@ export function toValueList(value) {
 }
 
 export default function AppInputMultiselect({ node }) {
-    const { name, label = 'Choices', options = [], required = false, defaultValue = [] } = node.props || {};
+    const { t } = useTranslation();
+    const { name, label = t('studio_apps_runtime.inputs.choices', 'Choices'), options = [], required = false, defaultValue = [] } = node.props || {};
     const { value, setValue, error } = useFormField({
         name, defaultValue: Array.isArray(defaultValue) ? defaultValue : [], required, label,
     });
@@ -77,7 +79,7 @@ export default function AppInputMultiselect({ node }) {
                 <select
                     id={id}
                     value=""
-                    aria-label={`Add to ${label}`}
+                    aria-label={t('studio_apps_runtime.inputs.add_to', 'Add to {label}', { label })}
                     aria-required={required || undefined}
                     aria-invalid={error ? true : undefined}
                     aria-describedby={error ? `${id}-error` : undefined}
@@ -87,7 +89,9 @@ export default function AppInputMultiselect({ node }) {
                     disabled={available.length === 0}
                 >
                     <option value="" disabled>
-                        {available.length ? 'Add an option…' : 'All options selected'}
+                        {available.length
+                            ? t('studio_apps_runtime.inputs.add_option', 'Add an option…')
+                            : t('studio_apps_runtime.inputs.all_selected', 'All options selected')}
                     </option>
                     {available.map((o) => (
                         <option key={o.value} value={o.value}>{o.label || o.value}</option>

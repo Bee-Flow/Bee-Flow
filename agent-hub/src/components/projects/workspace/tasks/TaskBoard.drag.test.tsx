@@ -5,7 +5,14 @@ import type { ProjectTask } from '../../../../api/queries/projectTasks';
 import TaskBoard from './TaskBoard';
 
 const task = { id: 'a', title: 'Drag this card', status: 'todo', priority: 'normal', labels: [], links: [], checklist: [], assigneeIds: [], dueDate: null, sortOrder: 1 } as unknown as ProjectTask;
-afterEach(() => vi.restoreAllMocks());
+// After a drag, dnd-kit keeps a capture listener on document that swallows
+// clicks for another 50 ms (AbstractPointerSensor.detach). Wait it out, or a
+// fast run hands the next test's click to that listener.
+const DND_CLICK_GUARD_MS = 50;
+afterEach(async () => {
+    vi.restoreAllMocks();
+    await new Promise(resolve => setTimeout(resolve, DND_CLICK_GUARD_MS + 10));
+});
 
 function renderBoard(canEdit = true) {
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {

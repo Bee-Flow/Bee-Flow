@@ -2,6 +2,10 @@
  * The window at a glance: what the shield caught, what left the building and
  * where it went. The web draws the destinations on a world map; a phone lists
  * the countries, busiest first. Top lists are capped at ten rows.
+ *
+ * Nothing here is a filter, so no total ever narrows another list: "Most
+ * found" are the organisation's totals, health included (with a note that it
+ * is a total only), and "Who triggered it most" ranks people over everything.
  */
 
 import React from 'react';
@@ -11,7 +15,7 @@ import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Group, InfoRow, Stat } from '@/shared/ui';
 
-import { categoryLabel, countriesOf } from '../model/activity';
+import { SPECIAL_TOTAL_NOTE, categoryLabel, countriesOf, namesSpecialCategory } from '../model/activity';
 import type { ShieldActivity } from '../model/activityTypes';
 
 const TOP = 10;
@@ -32,7 +36,10 @@ export function ActivitySummary({ activity }: { activity: ShieldActivity }) {
                 </View>
             </Group>
             {guard.topCategories.length > 0 ? (
-                <Group title={t('mobile.orgShield.top_categories', 'Most found')}>
+                <Group
+                    title={t('mobile.orgShield.top_categories', 'Most found')}
+                    footer={namesSpecialCategory(guard.topCategories) ? t(SPECIAL_TOTAL_NOTE.key, SPECIAL_TOTAL_NOTE.en) : undefined}
+                >
                     {guard.topCategories.slice(0, TOP).map((c) => (
                         <InfoRow key={c.category} label={categoryLabel(c.category, t)} value={String(c.count)} />
                     ))}

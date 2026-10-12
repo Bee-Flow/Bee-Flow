@@ -8,9 +8,10 @@
 // comments (in a project), the version history, print and PDF. Viewers read;
 // nothing here interrupts typing.
 
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import RichTextEditorJs from '../../editor/react/RichTextEditor';
 import type { CommentAnchor } from '../../api/queries/comments';
+import { useDocumentSuggestions } from '../../api/queries/suggestions';
 import useTranslation from '../../hooks/useTranslation';
 import type { OutlineItem } from './canvasBridge';
 import type { People, StudioDocument } from './documentQueries';
@@ -44,6 +45,8 @@ interface EditorApi {
     getSelectionAnchor?: () => CommentAnchor | null;
     highlightAnchors?: (list: Array<{ id: string; anchor: CommentAnchor }>, activeId?: string | null) => void;
     scrollToAnchor?: (anchor: CommentAnchor) => boolean;
+    highlightSuggestions?: (list: Array<{ id: string; anchor: CommentAnchor }>, activeId?: string | null) => void;
+    suggestionAtPoint?: (x: number, y: number) => string | null;
     getEditor?: () => { getText?: () => string; getHTML?: () => string } | null;
 }
 interface TocEntry { textContent: string; level: number; itemIndex: number }
@@ -79,6 +82,27 @@ function PageNotices({ p, onOpenConflict, onOpenHistory }: { p: ReturnType<typeo
     );
 }
 
+/**
+ * The AI's proposals for this page: the open count for the toolbar, the
+ * focused one, and the drawer opening by itself when a NEW batch arrives
+ * (batches already waiting when the page was opened do not).
+ */
+function usePageSuggestions(documentId: string, side: SidePanel, setSide: (s: SidePanel) => void) {
+    const query = useDocumentSuggestions(documentId);
+    const [focusedId, setFocusedId] = useState<string | null>(null);
+    const seen = useRef<Set<string> | null>(null);
+    const sideRef = useRef(side);
+    sideRef.current = side;
+    useEffect(() => {
+        if (!query.data) return;
+        const ids = new Set(query.data.suggestions.filter(s => s.status === 'open').map(s => s.batchId));
+        const before = seen.current;
+        seen.current = ids;
+        if (before && [...ids].some(id => !before.has(id)) && sideRef.current !== 'suggestions') setSide('suggestions');
+    }, [query.data, setSide]);
+    return { open: query.data?.open ?? 0, focusedId, setFocusedId };
+}
+
 export default function PageEditor({ initial, people, variant, currentUser, onBack, onRenamed, onOpenInStudio }: PageEditorProps) {
     const { t } = useTranslation();
     const editorRef = useRef<EditorApi>(null);
@@ -88,8 +112,8 @@ export default function PageEditor({ initial, people, variant, currentUser, onBa
     const [outline, setOutline] = useState<OutlineItem[]>([]);
     const [words, setWords] = useState<number | null>(null);
     const [conflictOpen, setConflictOpen] = useState(false);
-    const canComment = !!initial.projectId;
-    const isPanel = variant === 'panel';
+    const sug = usePageSuggestions(initial.id, side, setSide);
+    const [canComment, isPanel] = [!!initial.projectId, variant === 'panel'];
 
     const leave = async () => {
         editorRef.current?.flush?.();
@@ -107,13 +131,18 @@ export default function PageEditor({ initial, people, variant, currentUser, onBa
             <PageToolbar
                 doc={p.doc} isPanel={isPanel} readOnly={p.readOnly} live={p.live ? p.collab : null}
                 save={{ state: p.autosave.saveState, lastSavedAt: p.autosave.lastSavedAt, onRetry: () => { p.autosave.flush().catch(() => undefined); }, onResolve: () => setConflictOpen(true) }}
-                side={side} onSide={setSide} canComment={canComment} downloading={p.downloading}
+                side={side} onSide={setSide} canComment={canComment} openSuggestions={sug.open} downloading={p.downloading}
                 onLeave={leave} onRename={p.rename} onFind={() => editorRef.current?.openFind?.()} onPrint={p.print} onDownload={p.download}
                 onOpenInStudio={onOpenInStudio ? () => { leave().then(() => onOpenInStudio(initial.id)); } : undefined}
             />
             <PageNotices p={p} onOpenConflict={() => setConflictOpen(true)} onOpenHistory={() => setSide('history')} />
             <div className="flex-1 min-h-0 flex">
-                <div className="flex-1 min-w-0 min-h-0 overflow-auto" data-testid="page-body">
+                <div className="flex-1 min-w-0 min-h-0 overflow-auto" data-testid="page-body"
+                    onClick={(e) => {
+                        // A click on a passage the AI proposes to change focuses its suggestion.
+                        const id = editorRef.current?.suggestionAtPoint?.(e.clientX, e.clientY);
+                        if (id) { sug.setFocusedId(id); setSide('suggestions'); }
+                    }}>
                     <div className="max-w-3xl mx-auto h-full">
                         <RichTextEditor
                             ref={editorRef}
@@ -134,6 +163,13 @@ export default function PageEditor({ initial, people, variant, currentUser, onBa
                     outline={{ items: outline, activeSection: null, busySections: {}, onGo: (item) => editorRef.current?.scrollToHeading?.(item.index) }}
                     onRestored={p.onRestored}
                     expectedVersion={p.live ? null : p.doc.versionId}
+                    suggestions={{
+                        focusedId: sug.focusedId, onFocus: sug.setFocusedId,
+                        highlight: (list, activeId) => editorRef.current?.highlightSuggestions?.(list, activeId),
+                        scrollToAnchor: (anchor) => !!editorRef.current?.scrollToAnchor?.(anchor),
+                        // A live page follows the accepted edit by itself; a stored one is read again.
+                        onAccepted: () => { if (!p.live) p.showLatest().catch(() => undefined); },
+                    }}
                     comments={{
                         getSelectionAnchor: () => editorRef.current?.getSelectionAnchor?.() || null,
                         highlightAnchors: (list, activeId) => editorRef.current?.highlightAnchors?.(list, activeId),

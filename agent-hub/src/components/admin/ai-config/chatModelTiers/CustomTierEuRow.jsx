@@ -4,15 +4,17 @@
 import React from 'react';
 import { getModelDisplayName } from '../../../../utils/modelMeta';
 import SearchableModelSelect from '../../shared/SearchableModelSelect';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 export default function CustomTierEuRow({
     tier, chatModels, byProvider, hiddenModelIds, toggleHiddenModel, updateCustomTier,
 }) {
+    const { t } = useTranslation();
         const selectedModel = chatModels.find(m => m.id === tier.euModelId);
         const displayName = selectedModel ? getModelDisplayName(selectedModel) : null;
         const label = selectedModel
             ? (displayName !== selectedModel.id ? displayName : selectedModel.id)
-            : '— Not configured —';
+            : t('admin_ai_config.tier_not_configured', 'Not configured');
         return (
             <div key={tier.id} className="rounded-xl border overflow-hidden" style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-default)' }}>
                 <div className="p-4">
@@ -21,10 +23,10 @@ export default function CustomTierEuRow({
                         <div className="flex-1">
                             <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{tier.label}</span>
                             <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                                {tier.description || <span className="italic opacity-60">Custom tier</span>}
+                                {tier.description || <span className="italic opacity-60">{t('admin_ai_config.tier_eu_custom_tier', 'Custom tier')}</span>}
                             </p>
                         </div>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: 'rgba(234, 179, 8, 0.2)', color: '#eab308' }}>custom</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: 'rgba(234, 179, 8, 0.2)', color: '#eab308' }}>{t('admin_ai_config.tier_eu_custom_badge', 'custom')}</span>
                     </div>
                     <SearchableModelSelect
                         value={tier.euModelId || ''}

@@ -90,15 +90,20 @@ describe('the Runs & log descriptor (H2)', () => {
         expect(STUDIO_RECENT_SOURCES.runs).toBeUndefined();
     });
 
-    it('gates like the rest of the /api/automation mount, and no further', () => {
+    it('gates like Automations — the same mount and the same role permission — and no further', () => {
+        // use_automations, like the Automations section: the log is what YOUR
+        // automations did, and a role that may not build one has nothing in it.
         // Seeing the ORGANISATION's runs instead of your own is a separate
         // permission (manage_automations) that only the server checks, per
         // request. If this gate ever grew that check, a stale permission list
         // in the browser would decide who may ask.
         const gate = runs().gate;
-        expect(gate(ctx({ features: ['automations'], canUseIds: ['automations'] }))).toBe(true);
-        expect(gate(ctx({ features: ['automations'], canUseIds: [] }))).toBe(false);
-        expect(gate(ctx({ features: [], canUseIds: ['automations'] }))).toBe(false);
+        const perms = ['use_automations'];
+        expect(gate(ctx({ features: ['automations'], canUseIds: ['automations'], perms }))).toBe(true);
+        expect(gate(ctx({ features: ['automations'], canUseIds: ['automations'] }))).toBe(false);
+        expect(gate(ctx({ features: ['automations'], canUseIds: [], perms }))).toBe(false);
+        expect(gate(ctx({ features: [], canUseIds: ['automations'], perms }))).toBe(false);
         expect(gate(ctx({ perms: ['manage_automations'] }))).toBe(false);
+        expect(runs().permission).toBe('use_automations');
     });
 });

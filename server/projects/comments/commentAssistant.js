@@ -21,8 +21,9 @@
  *     on the whole item;
  *   - the thread so far, each comment under its author's display name (never
  *     an e-mail address);
- *   - passages from the project's knowledge bases the ASKING member may read
- *     (the team chat's search, projects/chatAssistant.searchProjectKnowledge);
+ *   - passages from the project's knowledge bases EVERY member may read (the
+ *     team chat's search, projects/chatAssistant.searchProjectKnowledge, cut to
+ *     the project's audience: a thread is read by the whole project);
  *   - the project's name and instructions.
  *
  * The passage, the item's name and the thread are one user message, so the
@@ -177,7 +178,8 @@ async function answerWithin(call, ms) {
  * @param {object}   [deps.shield]           projects/chatShield makeChatShield() surface
  * @param {Function} [deps.llmChat]          (modelId, messages, options) => { content, usage }
  * @param {Function} [deps.resolveModel]     ({userId, orgId}) => { modelId, options, providerConfig } | null
- * @param {Function} [deps.searchKnowledge]  ({project, userId, query, session, shield}) => string
+ * @param {Function} [deps.searchKnowledge]  ({project, userId, query, session, shield, audienceIds}) => string
+ * @param {Function} [deps.listAudience]     (project) => string[] | null, chatAssistant.listProjectAudience
  * @param {object}   [deps.itemReader]       { read({projectId, targetType, targetId, userId, sectionId}) }
  * @param {Function} [deps.getUser]          (id) => user row
  * @param {Function} [deps.displayName]      (user) => display name
@@ -198,6 +200,7 @@ function makeCommentAssistant(deps = {}) {
     const llmChat = deps.llmChat || ((modelId, messages, options) => require('../../core/llm/llmClient').chat(modelId, messages, options));
     const resolveModel = deps.resolveModel || ((args) => require('../chatAssistant').resolveChatModel(args));
     const searchKnowledge = deps.searchKnowledge || ((args) => require('../chatAssistant').searchProjectKnowledge(args));
+    const listAudience = deps.listAudience || ((project) => require('../chatAssistant').listProjectAudience(project));
     let defaultReader = null;
     const itemReader = () => deps.itemReader || (defaultReader || (defaultReader = require('./passage').makeItemReader()));
     const getUser = deps.getUser || ((id) => require('../../stores/userStore').getUser(id));
@@ -309,7 +312,8 @@ function makeCommentAssistant(deps = {}) {
             let knowledge = '';
             try {
                 const query = [triggerText, where.quote].filter(Boolean).join('\n').slice(0, 2000);
-                knowledge = await searchKnowledge({ project, userId, query, session, shield: shieldConfig }) || '';
+                const audienceIds = await listAudience(project);
+                knowledge = await searchKnowledge({ project, userId, query, session, shield: shieldConfig, audienceIds }) || '';
             } catch (err) {
                 log.warn(`[ProjectComments] project knowledge search failed for thread ${thread.id}: ${err && err.message}`);
             }

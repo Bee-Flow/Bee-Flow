@@ -21,6 +21,9 @@ const guardAiInputCalls = [];
 const memoryCalls = [];
 const scrubCalls = [];
 let memories = [];
+let policy = { read: true, write: true, reason: 'enabled' };
+const policyCalls = [];
+let piiDetectionEnabled = true;
 
 const restore = installResolveStub({
     '../llm/modelResolver': { async getUserTierMap() { return TIERS; } },
@@ -28,7 +31,7 @@ const restore = installResolveStub({
     '../llm/promptClassifier': { async classifyWithLLM() { return { tier: 'fast' }; } },
     '../aiAgent': {
         async getProviderForModel(modelId) { return { apiKey: 'k', url: 'u', providerType: 'test', modelId }; },
-        async getAIConfig() { return { model: 'model-fast' }; },
+        async getAIConfig() { return { model: 'model-fast', piiDetectionEnabled }; },
     },
     '../providers': {
         getAdapter: () => ({ async chat() { return { content: '{"ok":true}', usage: {} }; } }),
@@ -61,8 +64,17 @@ const restore = installResolveStub({
         },
     },
     '../memory/scrubMemoryContext': {
-        async scrubMemoryContext(text) { scrubCalls.push(text); return text.replace('tom@example.com', "[User's email address]"); },
+        // The real shape: an object, never the bare string.
+        async scrubMemoryContext(text) {
+            scrubCalls.push(text);
+            const scrubbed = text.replace('tom@example.com', "[User's email address]");
+            return { scrubbed, replacedCategories: scrubbed === text ? [] : ['Email'] };
+        },
     },
+    '../memory/memoryPolicy': {
+        async resolveMemoryPolicy(opts) { policyCalls.push(opts); return policy; },
+    },
+    '../../stores/configStore': { async getConfig() { return null; } },
 });
 after(() => restore());
 
@@ -77,7 +89,7 @@ function systemMessage() {
     return messages && messages.find((m) => m.role === 'system');
 }
 
-beforeEach(() => { guardAiInputCalls.length = 0; memoryCalls.length = 0; scrubCalls.length = 0; memories = []; });
+beforeEach(() => { guardAiInputCalls.length = 0; memoryCalls.length = 0; scrubCalls.length = 0; memories = []; policyCalls.length = 0; policy = { read: true, write: true, reason: 'enabled' }; piiDetectionEnabled = true; });
 
 test('useMemory grounds the system prompt with the owner\'s memories, scrubbed, before the safety tail', async () => {
     memories = [{ type: 'preference', content: 'Signs off with "Groet, Tom"; reach him at tom@example.com' }];
@@ -108,4 +120,40 @@ test('no memories, or a store failure, leave the prompt exactly as it was', asyn
     await execAiStep(step({ useMemory: true }), CTX, {}, 'live');
     assert.doesNotMatch(systemMessage().content, /Active Memory/);
     assert.strictEqual(scrubCalls.length, 0, 'nothing to scrub');
+});
+
+test('the scrubbed text, not the scrub result object, lands in the prompt', async () => {
+    // Failed on the old code: `block` became the {scrubbed, replacedCategories}
+    // object and the prompt carried "[object Object]".
+    memories = [{ type: 'preference', content: 'Reach him at tom@example.com' }];
+    await execAiStep(step({ useMemory: true }), CTX, {}, 'live');
+    const sys = systemMessage().content;
+    assert.doesNotMatch(sys, /\[object Object\]/);
+    assert.match(sys, /\[User's email address\]/);
+});
+
+test('with PII detection off and no org shield the block is not scrubbed', async () => {
+    piiDetectionEnabled = false;
+    memories = [{ type: 'preference', content: 'Reach him at tom@example.com' }];
+    await execAiStep(step({ useMemory: true }), CTX, {}, 'live');
+    assert.strictEqual(scrubCalls.length, 0);
+    assert.match(systemMessage().content, /tom@example\.com/);
+});
+
+test('memory policy off (user or org) means the store is never read', async () => {
+    policy = { read: false, write: false, reason: 'org_disabled' };
+    memories = [{ type: 'preference', content: 'should not appear' }];
+    await execAiStep(step({ useMemory: true }), CTX, {}, 'live');
+    assert.strictEqual(memoryCalls.length, 0);
+    assert.deepStrictEqual(policyCalls[0], { userId: 'u1', orgId: 'org1' });
+    assert.doesNotMatch(systemMessage().content, /Active Memory|should not appear/);
+});
+
+test('art. 9 memories are read only when the resolved policy says the owner opted in', async () => {
+    memories = [{ type: 'preference', content: 'Likes tea' }];
+    await execAiStep(step({ useMemory: true }), CTX, {}, 'live');
+    assert.strictEqual(memoryCalls.at(-1).opts.includeSensitive, false);
+    policy = { read: true, write: true, reason: 'enabled', sensitive: true };
+    await execAiStep(step({ useMemory: true }), CTX, {}, 'live');
+    assert.strictEqual(memoryCalls.at(-1).opts.includeSensitive, true);
 });

@@ -4,6 +4,7 @@ import { nodeHelp, nodeTypeLabel } from '../nodeDefs';
 import StepNodeBase, { NodeChip } from './StepNodeBase';
 import IntegrationLogo from './IntegrationLogo';
 import { humanizeToolName } from '../displayHelpers';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 
 /**
  * Fallback side-effect heuristic for legacy steps that predate the catalog
@@ -17,6 +18,9 @@ const SIDE_EFFECT_VERBS = new Set([
     'send', 'compose', 'create', 'update', 'delete', 'post',
     'add', 'remove', 'move', 'share', 'set', 'reply', 'forward',
     'attach', 'write',
+    // gmail_modify_labels / gmail_bulk_modify, gmail_archive, gmail_mark_read. Not
+    // 'trash': nextcloud_list_trash only reads.
+    'modify', 'archive', 'mark',
 ]);
 export function looksLikeSideEffect(toolName) {
     if (!toolName) return false;
@@ -24,6 +28,7 @@ export function looksLikeSideEffect(toolName) {
 }
 
 export default function IntegrationActionNode({ id, data }) {
+    const { t } = useTranslation();
     const { step, runStep, issues, onAddAfter } = data;
     const tool = step.tool || 'unknown_tool';
     const sideEffect = step.sideEffect ?? looksLikeSideEffect(tool);
@@ -34,11 +39,11 @@ export default function IntegrationActionNode({ id, data }) {
         <>
             {iterates && (
                 <NodeChip tone="accent" title={`Runs once per item in ${step.forEach.overRef}`}>
-                    <Repeat size={10} /> for each
+                    <Repeat size={10} /> {t('automations.integration_action_node.for_each', 'for each')}
                 </NodeChip>
             )}
             {sideEffect && (
-                <NodeChip tone="warn" title="This step writes/sends — runs are skipped in dry-run.">
+                <NodeChip tone="warn" title={t('automations.integration_action_node.this_step_writes_sends_runs_are', 'This step writes/sends — runs are skipped in dry-run.')}>
                     <Zap size={10} />
                 </NodeChip>
             )}

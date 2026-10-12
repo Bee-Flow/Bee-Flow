@@ -14,6 +14,9 @@ const assert = require('node:assert');
 const depth = require('./automationCallDepth');
 const { dispatchAgentCallableTool, dispatchStepTool, callerTraceOf, runnerTraceOptions } = require('./agentCallableTools');
 
+// The binding check has its own tests (agentCallableTools.test.js); here the agent is always bound.
+const bound = { agentMayCall: async () => ({ ok: true }), agentGrantVerdict: async () => ({ ok: true }) };
+
 function automation(id) {
     return {
         id, userId: 'u1', isActive: true, title: id,
@@ -65,13 +68,19 @@ test('the trace names the agent, the conversation and the calling run', () => {
     assert.deepStrictEqual(callerTraceOf(null), { callerAgentId: null, callerConversationId: null, callerRunId: null, callerRootRunId: null });
 });
 
-test('startedByUserId is set only when a person in a conversation started it', () => {
+test('startedByUserId records the person who asked, with or without a conversation, never inside a run', () => {
     assert.deepStrictEqual(
         runnerTraceOptions({ callerAgentId: 'a', callerConversationId: 'c' }, { userId: 'u1' }),
         { callerAgentId: 'a', callerConversationId: 'c', startedByUserId: 'u1' },
     );
+    // Voice or a call without a conversation id still names the asker.
     assert.deepStrictEqual(
         runnerTraceOptions({ callerAgentId: 'a', callerConversationId: null }, { userId: 'u1' }),
+        { callerAgentId: 'a', callerConversationId: null, startedByUserId: 'u1' },
+    );
+    // Called from inside an automation run: nobody asked, the owner is the run's user.
+    assert.deepStrictEqual(
+        runnerTraceOptions({ callerAgentId: 'a', callerConversationId: null, callerRunId: 'r1' }, { userId: 'u1' }),
         { callerAgentId: 'a', callerConversationId: null },
     );
 });
@@ -80,6 +89,7 @@ test('an agent-called automation carries the caller and never reuses parent_run_
     let seenOpts = null;
     const deps = {
         automationStore: { getAutomation: async (id) => automation(id) },
+        agentBinding: bound,
         automationRunner: { executeAutomation: async (_a, opts) => { seenOpts = opts; return { lastOutput: { ok: 1 } }; } },
     };
     const out = await dispatchAgentCallableTool({ id: 'r1', userId: 'u1' }, { q: 1 }, {
@@ -97,6 +107,7 @@ test('automations that keep calling each other stop at the limit, with the reaso
     let starts = 0;
     const deps = {
         automationStore: { getAutomation: async (id) => automation(id) },
+        agentBinding: bound,
         automationRunner: {
             // Each run's agent step starts the same automation again.
             executeAutomation: async (a) => {
@@ -106,7 +117,7 @@ test('automations that keep calling each other stop at the limit, with the reaso
         },
     };
     await assert.rejects(
-        dispatchAgentCallableTool({ id: 'loop', userId: 'u1' }, {}, { userId: 'u1' }, deps),
+        dispatchAgentCallableTool({ id: 'loop', userId: 'u1' }, {}, { userId: 'u1', callerAgentId: 'agt' }, deps),
         (e) => e.code === 'automation_call_depth_exceeded',
     );
     assert.strictEqual(starts, 3);

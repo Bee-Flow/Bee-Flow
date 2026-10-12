@@ -8,7 +8,7 @@ import { useCreateSprint, type Sprint } from '../../../../api/queries/projectSpr
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { toast } from '../../../shared/Toast';
 import { projectErrorText } from '../projectErrorText';
-import { GhostButton, PrimaryButton } from '../workspaceUi';
+import { GhostButton, PrimaryButton, SelectField } from '../workspaceUi';
 import { addDays } from './taskPlanning';
 import { SMALL_INPUT } from './sprintUi';
 
@@ -50,10 +50,10 @@ export default function SprintCreateForm({ projectId, canEdit, onCreated, onCanc
             <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
                 <input className={SMALL_INPUT} type="date" value={start} onChange={e => setStart(e.target.value)}
                     aria-label={t('project_tasks.start_label', 'Start date')} title={t('project_tasks.start_label', 'Start date')} />
-                <select className={`${SMALL_INPUT} !w-auto pr-7`} value={weeks} onChange={e => setWeeks(Number(e.target.value))}
+                <SelectField bare className={`${SMALL_INPUT} !w-auto`} value={weeks} onChange={e => setWeeks(Number(e.target.value))}
                     aria-label={t('project_tasks.sprint_length', 'Length')}>
                     {SPRINT_WEEKS.map(w => <option key={w} value={w}>{t('project_tasks.sprint_weeks', '{count} weeks', { count: w })}</option>)}
-                </select>
+                </SelectField>
             </div>
             <input className={SMALL_INPUT} type="number" min={0} inputMode="numeric" value={capacity} onChange={e => setCapacity(e.target.value)}
                 aria-label={t('project_tasks.sprint_capacity', 'Capacity (pts)')} placeholder={t('project_tasks.sprint_capacity', 'Capacity (pts)')} />

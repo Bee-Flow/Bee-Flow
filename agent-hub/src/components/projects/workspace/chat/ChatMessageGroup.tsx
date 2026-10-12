@@ -8,17 +8,21 @@ import { useTranslation } from '../../../../hooks/useTranslation';
 import { Avatar } from '../workspaceUi';
 import ChatMessageBubble, { type MessageContext } from './ChatMessageBubble';
 import { inkOf } from '../memberColors';
-import { AI_TONE, type AiTone } from '../projectVisuals';
+import { kindColorVar, kindTint } from '../../../shared/kindColors';
+import { CHAT_COLUMN_CLASS } from './chatColumn';
 import { formatMessageTime, type MessageGroup } from './messageGroups';
 import SystemNotice from './SystemNotice';
 
-function AssistantAvatar({ agent, tone, icon }: { agent: boolean; tone: AiTone; icon?: string }) {
+/** The 26 px tile of the AI chat (`MessageItem`), in the agent colour of the Studio kinds. */
+function AssistantAvatar({ agent, icon }: { agent: boolean; icon?: string }) {
     const Icon = agent ? Bot : Sparkles;
     const emoji = !agent && icon ? icon : null;
+    const ink = kindColorVar('agent');
     return (
-        <span className="inline-grid place-items-center w-8 h-8 rounded-full flex-shrink-0" aria-hidden="true"
-            style={{ color: tone.ink, background: tone.soft, boxShadow: `inset 0 0 0 1px ${tone.ring}` }}>
-            {emoji ? <span className="text-[16px] leading-none">{emoji}</span> : <Icon className="w-4 h-4" />}
+        <span data-testid="assistant-avatar" aria-hidden="true"
+            className="w-[26px] h-[26px] rounded-lg flex-shrink-0 grid place-items-center overflow-hidden text-[13px] leading-none select-none"
+            style={{ color: ink, background: kindTint('agent', 14) }}>
+            {emoji ? <span>{emoji}</span> : <Icon className="w-3.5 h-3.5" />}
         </span>
     );
 }
@@ -35,21 +39,20 @@ export default function ChatMessageGroup({ group, ctx }: { group: MessageGroup; 
         );
     }
     const assistant = group.authorKind === 'assistant';
-    const tone = ctx.aiTone || AI_TONE;
     const name = assistant ? ctx.assistantName(group.agentId) : ctx.nameOf(group.authorUserId);
     const mine = !assistant && !!ctx.currentUserId && group.authorUserId === ctx.currentUserId;
     const color = assistant ? null : ctx.colorOf?.(group.authorUserId) ?? null;
     return (
-        <li className={`flex items-start gap-2.5 px-4 py-1.5 ${mine ? 'flex-row-reverse' : ''}`} data-testid="team-chat-group" data-mine={mine || undefined}>
-            {assistant ? <AssistantAvatar agent={!!group.agentId} tone={tone} icon={ctx.aiIcon} /> : <Avatar name={name} picture={ctx.avatarOf?.(group.authorUserId)} color={color} />}
+        <li className={`flex items-start gap-3 px-4 py-1.5 ${CHAT_COLUMN_CLASS} ${mine ? 'flex-row-reverse' : ''}`} data-testid="team-chat-group" data-mine={mine || undefined}>
+            {assistant ? <AssistantAvatar agent={!!group.agentId} icon={ctx.aiIcon} /> : <Avatar name={name} picture={ctx.avatarOf?.(group.authorUserId)} color={color} />}
             <div className={`flex-1 min-w-0 ${mine ? 'flex flex-col items-end' : ''}`}>
                 <div className={`flex items-baseline gap-2 min-w-0 ${mine ? 'justify-end' : ''}`}>
                     {/* Your own messages are on the right, marked by where they are: no name needed. */}
-                    {!mine && <span className="text-[13px] font-semibold truncate"
-                        style={{ color: assistant ? tone.ink : inkOf(color || 'var(--text-secondary)') }}>{name}</span>}
+                    {!mine && assistant && <span className="text-[13px] font-semibold truncate text-[var(--text-primary)]">{name}</span>}
+                    {!mine && !assistant && <span className="text-[13px] font-semibold truncate"
+                        style={{ color: inkOf(color || 'var(--text-secondary)') }}>{name}</span>}
                     {assistant && (
-                        <span className="text-[10.5px] px-1.5 py-px rounded-full font-semibold"
-                            style={{ background: tone.soft, color: tone.ink }}>
+                        <span className="text-[10.5px] px-1.5 py-px rounded-full font-semibold bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
                             {t('project_chat.ai_badge', 'AI')}
                         </span>
                     )}

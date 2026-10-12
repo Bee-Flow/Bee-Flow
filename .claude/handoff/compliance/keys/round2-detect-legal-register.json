@@ -1,0 +1,14 @@
+{
+  "en": {
+    "compliance.cal_ms_gdpr_procedural_regulation_label": "GDPR cross-border enforcement procedure",
+    "compliance.cal_ms_gdpr_procedural_regulation_detail": "Regulation (EU) 2025/2518 (in force 1 Jan 2026) applies to new cross-border cases: uniform rules for how data protection authorities handle complaints and investigations, including admissibility, the right to be heard on preliminary findings, access to the file and time limits · matters only if your processing is cross-border (GDPR Art. 4(23))",
+    "compliance.cal_ms_eaa_en301549_v4_citation_label": "EN 301 549 V4.1.1 (WCAG 2.2 AA) cited under the EAA",
+    "compliance.cal_ms_eaa_en301549_v4_citation_detail": "published Sep 2026; gives a presumption of conformity only once the Commission cites it in the Official Journal. Until then V3.2.1 / WCAG 2.1 AA is the reference."
+  },
+  "nl": {
+    "compliance.cal_ms_gdpr_procedural_regulation_label": "Procedure voor grensoverschrijdende AVG-handhaving",
+    "compliance.cal_ms_gdpr_procedural_regulation_detail": "Verordening (EU) 2025/2518 (in werking sinds 1 jan 2026) geldt voor nieuwe grensoverschrijdende zaken: uniforme regels voor hoe toezichthouders klachten en onderzoeken behandelen, waaronder ontvankelijkheid, het recht om gehoord te worden over voorlopige bevindingen, inzage in het dossier en termijnen · alleen van belang als je verwerking grensoverschrijdend is (AVG art. 4, punt 23)",
+    "compliance.cal_ms_eaa_en301549_v4_citation_label": "EN 301 549 V4.1.1 (WCAG 2.2 AA) aangewezen onder de EAA",
+    "compliance.cal_ms_eaa_en301549_v4_citation_detail": "gepubliceerd in sep 2026; geeft pas een vermoeden van conformiteit zodra de Commissie de referentie in het Publicatieblad bekendmaakt. Tot die tijd is V3.2.1 / WCAG 2.1 AA de maatstaf."
+  }
+}

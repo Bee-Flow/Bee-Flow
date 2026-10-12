@@ -1,25 +1,27 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
-import fs from 'node:fs';
-import path from 'node:path';
+import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
-import { describe, expect, it, vi } from 'vitest';
-import DataTable, { TABLE_FOLD, TableCell, TableHeader, TableRow, accentColor, gridTemplate } from './DataTable';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import DataTable, {
+    TABLE_FOLD, TABLE_FOLD_NARROW, TABLE_FOLDED_ONLY, TABLE_GRID,
+    TableCell, TableHeader, TableRow, accentColor, gridTemplate,
+} from './DataTable';
 
 /**
  * The one table pattern (artboards 1b/1c/1d). Pinned:
  *   - header and rows read their grid from the SAME columns[] — the widths
- *     the artboard draws ("18px 1fr 84px 150px 84px 170px") come out as one
- *     gridTemplateColumns string on both;
+ *     the artboard draws ("18px 1fr 84px 150px 84px 170px") come out as the
+ *     same three custom properties on both (--ct-cols, and --ct-cols-1180 /
+ *     --ct-cols-900 without the tracks of the columns folded at that width);
  *   - the stripe is an inset 3px box-shadow in the STATUS tone's raw colour,
  *     teal for the selected row, none for a null accent;
  *   - selected and expanded rows are bg-secondary;
- *   - the fold is the literal `@max-[1180px]/ctable:hidden` on both the
- *     header cell and the body cell of a foldBelow column — pinned as
- *     SOURCE too, since jsdom lays nothing out;
+ *   - the fold is the literal `@max-[1180px]/ctable:hidden` (or the 900px
+ *     one) on both the header cell and the body cell of a foldBelow column;
  *   - a clickable row is a keyboard row (Enter/Space on the row itself, not
  *     on a button inside it);
  *   - loading draws skeletons, empty draws the host's node, mobile draws
- *     cards through renderCard.
+ *     cards through renderCard, and so does a card narrower than cardsBelow.
  */
 
 const COLUMNS = [
@@ -31,6 +33,9 @@ const COLUMNS = [
     { id: 'actions', label: '', width: '170px' },
 ];
 const TEMPLATE = '18px 1fr 84px 150px 84px 170px';
+const TEMPLATE_1180 = '18px 1fr 150px 84px 170px';
+
+const cols = (el, tier = '') => el.style.getPropertyValue(`--ct-cols${tier}`);
 
 const ROWS = [
     { id: 'a', title: 'Encryption at rest', status: 'fail' },
@@ -77,21 +82,48 @@ describe('DataTable — card, header, grid', () => {
         renderTable();
         const head = screen.getByTestId('t-header');
         expect(head.getAttribute('role')).toBe('row');
-        expect(head.className).toMatch(/grid gap-3 px-3\.5 py-2 border-b border-\[var\(--border-default\)\] text-\[10px\] uppercase tracking-\[\.08em\] font-semibold text-\[var\(--text-tertiary\)\]/);
-        expect(head.style.gridTemplateColumns).toBe(TEMPLATE);
+        expect(head.className).toMatch(/^grid /);
+        expect(head.className).toMatch(/gap-3 px-3\.5 py-2 border-b border-\[var\(--border-default\)\] text-\[10px\] uppercase tracking-\[\.08em\] font-semibold text-\[var\(--text-tertiary\)\]/);
+        expect(cols(head)).toBe(TEMPLATE);
+        expect(head.className).toContain(TABLE_GRID);
         const cells = within(head).getAllByRole('columnheader');
         expect(cells.length).toBe(COLUMNS.length);
         expect(cells[1].textContent).toBe('Check');
         expect(cells[4].className).toMatch(/\btext-right\b/);
     });
 
-    it('rows read the same grid template as the header', () => {
+    it('rows read the same three grid templates as the header', () => {
         renderTable();
         expect(gridTemplate(COLUMNS)).toBe(TEMPLATE);
+        const head = screen.getByTestId('t-header');
         for (const r of ROWS) {
-            expect(screen.getByTestId(`row-${r.id}`).style.gridTemplateColumns).toBe(TEMPLATE);
+            const row = screen.getByTestId(`row-${r.id}`);
+            for (const tier of ['', '-1180', '-900']) expect(cols(row, tier)).toBe(cols(head, tier));
+            expect(row.className).toContain(TABLE_GRID);
+            expect(row.style.gridTemplateColumns).toBe('');
         }
         expect(gridTemplate([{ id: 'x' }, { id: 'y', width: '80px' }])).toBe('1fr 80px');
+    });
+
+    it('a folded column leaves no track behind: --ct-cols-1180 drops the 1180 folds, --ct-cols-900 the 900 ones too', () => {
+        const columns = [
+            { id: 'title', width: '1fr' },
+            { id: 'owner', width: '150px', foldBelow: 1180 },
+            { id: 'data', width: '200px', foldBelow: 900 },
+            { id: 'when', width: '84px' },
+        ];
+        render(<TableHeader columns={columns} testId="h3" />);
+        const tiers = screen.getByTestId('h3');
+        expect(cols(tiers)).toBe('1fr 150px 200px 84px');
+        expect(cols(tiers, '-1180')).toBe('1fr 200px 84px');
+        expect(cols(tiers, '-900')).toBe('1fr 84px');
+        expect(gridTemplate(columns, 900)).toBe('1fr 84px');
+        renderTable();
+        const head = screen.getByTestId('t-header');
+        expect(cols(head, '-1180')).toBe(TEMPLATE_1180);
+        expect(cols(head, '-900')).toBe(TEMPLATE_1180);
+        // The class picks the template by the CARD's width, three literals.
+        expect(TABLE_GRID).toBe('[grid-template-columns:var(--ct-cols)] @max-[1180px]/ctable:[grid-template-columns:var(--ct-cols-1180)] @max-[900px]/ctable:[grid-template-columns:var(--ct-cols-900)]');
     });
 
     it('the fold literal sits on the header cell AND the body cell of a foldBelow column, nowhere else', () => {
@@ -104,10 +136,30 @@ describe('DataTable — card, header, grid', () => {
         expect(TABLE_FOLD).toBe('@max-[1180px]/ctable:hidden');
     });
 
-    it('the fold literal and the container name are spelled out in the source (Tailwind reads literals only)', () => {
-        const src = fs.readFileSync(path.join(__dirname, 'DataTable.jsx'), 'utf8');
-        expect(src).toMatch(/TABLE_FOLD = '@max-\[1180px\]\/ctable:hidden'/);
-        expect(src).toMatch(/'@container\/ctable'/);
+    it('foldBelow 900 gets the narrow fold literal on header and body cell', () => {
+        const columns = [{ id: 'title', label: 'Title', width: '1fr' }, { id: 'data', label: 'Data', width: '200px', foldBelow: 900 }];
+        render(
+            <DataTable
+                columns={columns}
+                rows={[{ id: 'x' }]}
+                renderRow={() => (
+                    <TableRow columns={columns} testId="r">
+                        <TableCell column={columns[0]}>t</TableCell>
+                        <TableCell column={columns[1]} testId="data-cell">d</TableCell>
+                    </TableRow>
+                )}
+                testId="n"
+            />,
+        );
+        expect(TABLE_FOLD_NARROW).toBe('@max-[900px]/ctable:hidden');
+        expect(within(screen.getByTestId('n-header')).getAllByRole('columnheader')[1].className).toContain(TABLE_FOLD_NARROW);
+        expect(screen.getByTestId('data-cell').className).toContain(TABLE_FOLD_NARROW);
+        expect(screen.getByTestId('data-cell').className).not.toContain(TABLE_FOLD);
+    });
+
+    it('TABLE_FOLDED_ONLY is the opposite of the fold: hidden until that tier folds', () => {
+        expect(TABLE_FOLDED_ONLY[1180]).toBe('hidden @max-[1180px]/ctable:inline');
+        expect(TABLE_FOLDED_ONLY[900]).toBe('hidden @max-[900px]/ctable:inline');
     });
 
     it('another containerName still gets a container but not this file\'s fold', () => {
@@ -177,7 +229,8 @@ describe('TableRow — stripe, selected, expanded, keyboard', () => {
         expect(r.getAttribute('tabindex')).toBeNull();
     });
 
-    it('a clickable row is a keyboard row: tabIndex 0, Enter and Space activate, click activates', () => {
+    it('a clickable row is a keyboard row: tabIndex 0, Enter and Space activate, click activates', async () => {
+        const user = userEvent.setup();
         const onClick = vi.fn();
         render(<TableRow columns={COLUMNS} onClick={onClick} ariaExpanded={false} testId="r"><span>x</span></TableRow>);
         const r = screen.getByTestId('r');
@@ -185,14 +238,21 @@ describe('TableRow — stripe, selected, expanded, keyboard', () => {
         expect(r.getAttribute('tabindex')).toBe('0');
         expect(r.getAttribute('aria-expanded')).toBe('false');
         expect(r.className).toMatch(/\bcursor-pointer\b/);
-        fireEvent.keyDown(r, { key: 'Enter' });
-        fireEvent.keyDown(r, { key: ' ' });
-        fireEvent.keyDown(r, { key: 'a' });
-        fireEvent.click(r);
+        // An outline, because the stripe's inline box-shadow would hide a ring.
+        expect(r.className).toContain('focus-visible:outline-[var(--focus-ring)]');
+        expect(r.className).toContain('focus-visible:-outline-offset-2');
+        await user.tab();
+        expect(r).toHaveFocus();
+        await user.keyboard('{Enter}');
+        await user.keyboard(' ');
+        await user.keyboard('a');
+        expect(onClick).toHaveBeenCalledTimes(2);
+        await user.click(r);
         expect(onClick).toHaveBeenCalledTimes(3);
     });
 
-    it('a key pressed on a button INSIDE the row does not open the row', () => {
+    it('a key pressed on a button INSIDE the row does not open the row', async () => {
+        const user = userEvent.setup();
         const onClick = vi.fn();
         const onFix = vi.fn();
         render(
@@ -200,11 +260,20 @@ describe('TableRow — stripe, selected, expanded, keyboard', () => {
                 <button type="button" onClick={(e) => { e.stopPropagation(); onFix(); }}>Open fix</button>
             </TableRow>,
         );
-        fireEvent.keyDown(screen.getByRole('button', { name: 'Open fix' }), { key: 'Enter' });
-        expect(onClick).not.toHaveBeenCalled();
-        fireEvent.click(screen.getByRole('button', { name: 'Open fix' }));
+        screen.getByRole('button', { name: 'Open fix' }).focus();
+        await user.keyboard('{Enter}');
         expect(onFix).toHaveBeenCalledTimes(1);
         expect(onClick).not.toHaveBeenCalled();
+        await user.click(screen.getByRole('button', { name: 'Open fix' }));
+        expect(onFix).toHaveBeenCalledTimes(2);
+        expect(onClick).not.toHaveBeenCalled();
+    });
+
+    it('a row without columns keeps its host\'s own grid (no table templates)', () => {
+        render(<TableRow testId="r" className="grid-cols-[1fr_1fr]" />);
+        const r = screen.getByTestId('r');
+        expect(r.className).not.toContain(TABLE_GRID);
+        expect(cols(r)).toBe('');
     });
 
     it('TableCell is a min-w-0 cell that honours the column\'s alignment', () => {
@@ -222,7 +291,7 @@ describe('TableRow — stripe, selected, expanded, keyboard', () => {
 
     it('TableHeader alone renders with the grid of its columns', () => {
         render(<TableHeader columns={COLUMNS.slice(0, 2)} testId="h" />);
-        expect(screen.getByTestId('h').style.gridTemplateColumns).toBe('18px 1fr');
+        expect(cols(screen.getByTestId('h'))).toBe('18px 1fr');
     });
 });
 
@@ -232,7 +301,9 @@ describe('DataTable — loading, empty, footer, cards', () => {
         const sk = screen.getAllByTestId('table-skeleton-row');
         expect(sk.length).toBe(4);
         expect(sk[0].className).toMatch(/\banimate-pulse\b/);
-        expect(sk[0].style.gridTemplateColumns).toBe(TEMPLATE);
+        expect(cols(sk[0])).toBe(TEMPLATE);
+        expect(cols(sk[0], '-1180')).toBe(TEMPLATE_1180);
+        expect(sk[0].className).toContain(TABLE_GRID);
         expect(screen.getByTestId('t').getAttribute('aria-busy')).toBe('true');
         expect(screen.queryByTestId('row-a')).toBeNull();
     });
@@ -280,5 +351,49 @@ describe('DataTable — loading, empty, footer, cards', () => {
         renderTable({ isMobile: true });
         expect(screen.getByTestId('t').dataset.view).toBe('table');
         expect(screen.getByTestId('row-a')).toBeInTheDocument();
+    });
+});
+
+describe('DataTable — cardsBelow: cards whenever the card is narrow', () => {
+    afterEach(() => {
+        vi.unstubAllGlobals();
+    });
+
+    // jsdom lays nothing out; this observer reports the width the test asks for.
+    function stubWidth(width) {
+        const observe = vi.fn();
+        vi.stubGlobal('ResizeObserver', class {
+            constructor(cb) { this.cb = cb; }
+            observe(el) { observe(el); this.cb([{ contentRect: { width }, borderBoxSize: [{ inlineSize: width }] }]); }
+            disconnect() {}
+        });
+        return observe;
+    }
+    const card = (row) => <span data-testid={`card-${row.id}`}>{row.title}</span>;
+
+    it('a card narrower than cardsBelow renders renderCard, even on desktop', () => {
+        const observe = stubWidth(700);
+        renderTable({ cardsBelow: 860, renderCard: card });
+        expect(observe).toHaveBeenCalledWith(screen.getByTestId('t'));
+        expect(screen.getByTestId('t').dataset.view).toBe('cards');
+        expect(screen.queryByTestId('t-header')).toBeNull();
+        expect(screen.getByTestId('card-a').textContent).toBe('Encryption at rest');
+    });
+
+    it('a card at or above cardsBelow stays a table', () => {
+        stubWidth(1112);
+        renderTable({ cardsBelow: 860, renderCard: card });
+        expect(screen.getByTestId('t').dataset.view).toBe('table');
+        expect(screen.getByTestId('row-a')).toBeInTheDocument();
+    });
+
+    it('an unmeasured card (width unknown) stays a table, and without cardsBelow nothing is observed', () => {
+        const observe = vi.fn();
+        vi.stubGlobal('ResizeObserver', class { observe(el) { observe(el); } disconnect() {} });
+        renderTable({ cardsBelow: 860, renderCard: card });
+        expect(screen.getByTestId('t').dataset.view).toBe('table');
+        observe.mockClear();
+        renderTable({ renderCard: card, testId: 'u' });
+        expect(observe).not.toHaveBeenCalled();
     });
 });

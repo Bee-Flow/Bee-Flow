@@ -111,18 +111,25 @@ describe('PortabilityPage', () => {
         expect(screen.getAllByTestId('pf-row')[2].textContent).not.toMatch(/\b0\b/);
     });
 
-    it('names the platform-wide kind and the coverage, and reports the summary to the header', async () => {
+    it('names the platform-wide kind, and reports the coverage to the header with its refresh', async () => {
         fetchJson.mockResolvedValueOnce(matrix());
         const p = props();
         render(<PortabilityPage {...p} />);
-        await waitFor(() => expect(screen.getByTestId('pf-coverage')).toBeTruthy());
-        expect(screen.getByTestId('pf-coverage').textContent).toBe('2 of 5 kinds portable');
-        expect(screen.getByTestId('pf-coverage').dataset.tone).toBe('warning');
-        expect(screen.getByTestId('pf-footer').textContent).toContain('2 of 5 kinds have a working export route');
+        await waitFor(() => expect(screen.getByTestId('pf-footer')).toBeTruthy());
         expect(screen.getAllByTestId('pf-row')[1].textContent).toContain('platform-wide');
         await waitFor(() => expect(p.setHeaderActions).toHaveBeenCalledWith(
-            expect.objectContaining({ portabilityCoverage: { total: 5, portable: 2, held: 4 } }),
+            expect.objectContaining({ portabilityCoverage: { total: 5, portable: 2, held: 4 }, onRefreshPortability: expect.any(Function) }),
         ));
+    });
+
+    it('says the coverage once in the body: the footer sentence, not a second pill in the intro', async () => {
+        fetchJson.mockResolvedValueOnce(matrix());
+        render(<PortabilityPage {...props()} />);
+        await waitFor(() => expect(screen.getByTestId('pf-footer')).toBeTruthy());
+        expect(screen.getByTestId('pf-footer').textContent).toContain('2 of 5 kinds have a working export route');
+        expect(screen.queryByTestId('pf-coverage')).toBeNull();
+        expect(screen.getByTestId('pf-intro').textContent).not.toMatch(/of 5/);
+        expect(screen.getByTestId('portability-page').textContent.match(/2 of 5/g)).toHaveLength(1);
     });
 
     it('a failed read is its own state, not an empty matrix', async () => {
@@ -137,7 +144,7 @@ describe('PortabilityPage', () => {
         fetchJson.mockReturnValueOnce(new Promise(() => {}));
         render(<PortabilityPage {...props()} />);
         expect(screen.getAllByTestId('table-skeleton-row').length).toBeGreaterThan(0);
-        expect(screen.queryByTestId('pf-coverage')).toBeNull();
+        expect(screen.queryByTestId('pf-footer')).toBeNull();
     });
 });
 

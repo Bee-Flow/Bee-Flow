@@ -23,10 +23,10 @@ export type { StepGroupId } from './stepRows';
 export const STEP_GROUPS: readonly StepGroupId[] = ['On screen', 'Data', 'AI', 'Flow'];
 
 export const STEP_GROUP_LABELS: Readonly<Record<StepGroupId, Msg>> = {
-    'On screen': { i18nKey: 'mobile.app_studio.step_group.on_screen', en: 'On screen' },
-    Data: { i18nKey: 'mobile.app_studio.step_group.data', en: 'Data' },
-    AI: { i18nKey: 'mobile.app_studio.step_group.ai', en: 'AI' },
-    Flow: { i18nKey: 'mobile.app_studio.step_group.flow', en: 'Flow' },
+    'On screen': { i18nKey: 'studio_apps_edit.step_catalog.group_on_screen', en: 'On screen' },
+    Data: { i18nKey: 'studio_apps_edit.step_catalog.group_data', en: 'Data' },
+    AI: { i18nKey: 'studio_apps_edit.step_catalog.group_ai', en: 'AI' },
+    Flow: { i18nKey: 'studio_apps_edit.step_catalog.group_flow', en: 'Flow' },
 };
 
 export interface StepMeta {
@@ -43,10 +43,10 @@ export interface StepMeta {
 
 function toMeta([kind, group, icon, label, blurb, flag]: StepRow): [string, StepMeta] {
     const meta: StepMeta = {
-        label: { i18nKey: `mobile.app_studio.step.${kind}.label`, en: label },
+        label: { i18nKey: `studio_apps_edit.step_catalog.${kind}_label`, en: label },
         group,
         icon,
-        blurb: { i18nKey: `mobile.app_studio.step.${kind}.blurb`, en: blurb },
+        blurb: { i18nKey: `studio_apps_edit.step_catalog.${kind}_blurb`, en: blurb },
     };
     if (flag) meta[flag] = true;
     return [kind, meta];
@@ -56,7 +56,7 @@ export const STEP_CATALOG: Readonly<Record<string, StepMeta>> = Object.fromEntri
 
 /** Fallback presentation, so an unknown kind is still readable. */
 export const UNKNOWN_STEP: StepMeta = {
-    label: { i18nKey: 'mobile.app_studio.step.unknown.label', en: 'Step' },
+    label: { i18nKey: 'studio_apps_edit.step_catalog.unknown_step', en: 'Step' },
     group: 'Flow',
     icon: 'Bell',
     blurb: { i18nKey: 'mobile.app_studio.step.unknown.blurb', en: '' },

@@ -266,6 +266,9 @@ test('public POST derives the org from the address, returns due_at and sends the
     assert.strictEqual(res.body.id, 1);
     assert.ok(res.body.due_at);
     assert.strictEqual(res.body.status_url, '/api/dsr/requests/1/public');
+    // What the data subject is promised: one month (Art. 12(3)), not 30 days.
+    assert.match(res.body.ack, /within one month/);
+    assert.doesNotMatch(res.body.ack, /30 days/);
     const row = state.rows.get(1);
     assert.strictEqual(row.organization_id, 'org_a');
     assert.strictEqual(row.channel, 'public_form');
@@ -566,7 +569,9 @@ test('fulfil requires a summary, e-mails only the subject, writes allow-listed e
     assert.ok(!JSON.stringify(ev).includes(EMAIL), 'evidence carries no address');
     assert.ok(!JSON.stringify(ev).includes('registered mail'), 'evidence carries the summary LENGTH, not the text');
 
-    assert.deepStrictEqual(state.runnerCalls, [{ orgId: 'org_a', checkId: 'GDPR-Art15-dsr-access' }]);
+    // The re-run of the SLA check belongs to the DSR_FULFILLED handler
+    // (events.test.js pins it); a direct run here wrote every fulfilment twice.
+    assert.deepStrictEqual(state.runnerCalls, []);
     assert.ok(state.events.some(e => e.name === 'dsr_fulfilled' && e.payload.status === 'fulfilled'));
 
     assert.deepStrictEqual((await post(`/requests/${id}/fulfil`, { session: ADMIN, body: { status: 'rejected' } })).body, { error: 'not_open' });
@@ -585,7 +590,7 @@ test('reject needs no summary; notify_subject=false sends nothing; a failed mail
     const res = await post(`/requests/${id2}/fulfil`, { session: ADMIN, body: { status: 'fulfilled', result_summary: 'Erased.' } });
     assert.strictEqual(res.status, 200);
     assert.ok(state.rows.get(id2).timeline.some(e => e.kind === 'email_failed'));
-    assert.strictEqual(state.runnerCalls.at(-1).checkId, 'GDPR-Art17-dsr-deletion');
+    assert.ok(state.events.some(e => e.name === 'dsr_fulfilled' && e.payload.requestType === 'deletion'));
     assert.strictEqual(state.evidence.at(-1).check_id, 'GDPR-Art17-dsr-deletion');
 });
 

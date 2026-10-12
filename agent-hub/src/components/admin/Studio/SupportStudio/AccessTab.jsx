@@ -92,7 +92,7 @@ export default function AccessTab({ inbox, user, onChanged }) {
                         {mode === 'groups' && (
                             <div className="pl-7 space-y-2">
                                 {availableGroups.length === 0
-                                    ? <div className="text-xs text-[var(--text-tertiary)] italic">{t('support.access.no_groups', 'Your organisation has no groups yet. Create groups in Organisation Settings → Users.')}</div>
+                                    ? <div className="text-xs text-[var(--text-tertiary)] italic">{t('support.access.no_groups', 'Your organisation has no groups yet. Create groups in Settings → Organisation → Users & Groups.')}</div>
                                     : (
                                         <div className="flex flex-wrap gap-1.5">
                                             {availableGroups.map(g => (

@@ -32,7 +32,7 @@ export const TOUR_ANCHORS = {
     'skill-create': { selector: '[data-tour="skill-create"]', owner: 'skills/SkillsGrid.jsx', reveal: {} },
     'knowledge-create': { selector: '[data-tour="knowledge-create"]', owner: 'Studio/KnowledgeStudio/KnowledgeOverview.jsx', reveal: {} },
     'integration-card': { selector: '[data-tour="integration-card"]', owner: 'settings/IntegrationsSection.jsx', reveal: {} },
-    'memory-manage': { selector: '[data-tour="memory-manage"]', owner: 'settings/MemorySection.jsx', reveal: {} },
+    'memory-manage': { selector: '[data-tour="memory-manage"]', owner: 'settings/MemorySection.tsx', reveal: {} },
     'automation-create': { selector: '[data-tour="automation-create"]', owner: 'automation/index.jsx', reveal: {} },
     'usage-summary': { selector: '[data-tour="usage-summary"]', owner: 'settings/UsageSection.jsx', reveal: {} },
 

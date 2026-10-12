@@ -16,6 +16,7 @@
  * says "not seen yet — run the step above" rather than guessing a word.
  */
 import { pathListShape } from './listShape';
+import { jsonTextValue } from './upstream/fieldTree';
 import { walkPath } from '../../../../utils/bindingHelpers';
 
 export const KINDS = Object.freeze(['text', 'email', 'number', 'yesno', 'date', 'choice', 'list', 'group', 'table', 'file', 'unknown']);
@@ -115,6 +116,26 @@ export function formatBytes(n) {
 }
 
 /**
+ * How many columns a table has: every key its first rows carry, not only the
+ * first row's (a key only row 2 has is still a column the picker offers).
+ */
+function columnCount(rows) {
+    const keys = new Set();
+    for (const r of rows.slice(0, 50)) {
+        if (r && typeof r === 'object' && !Array.isArray(r)) for (const k of Object.keys(r)) keys.add(k);
+    }
+    return keys.size;
+}
+
+/** "· JSON with 3 fields", "· JSON with 1 field", "· JSON, a list of 2". */
+function jsonDetail(encoded, n, tr) {
+    if (Array.isArray(encoded)) return tr('automations.kind.json_list', '· JSON, a list of {n}', { n });
+    return n === 1
+        ? tr('automations.kind.json_record_one', '· JSON with 1 field')
+        : tr('automations.kind.json_record', '· JSON with {n} fields', { n });
+}
+
+/**
  * Describe a picker FIELD row: `{ key, path, sample, children }` from
  * upstream.js, resolved against the merged sample root when there is one.
  *
@@ -139,14 +160,17 @@ export function describeField(field, sampleRoot = null, t = null) {
         const shape = field?.path ? pathListShape(field.path, sampleRoot) : null;
         const count = shape?.count ?? (Array.isArray(value) ? value.length : null);
         if (kind === 'table') {
-            const cols = Array.isArray(value) && value.length ? Object.keys(value.find(r => r && typeof r === 'object') || {}).length : null;
+            const cols = Array.isArray(value) && value.length ? columnCount(value) : null;
             const rowsText = count === 1 ? tr('automations.kind.row', '{n} row', { n: 1 }) : tr('automations.kind.rows', '{n} rows', { n: count ?? '?' });
             const colsText = cols === 1 ? tr('automations.kind.column', '{n} column', { n: 1 }) : tr('automations.kind.columns', '{n} columns', { n: cols ?? '?' });
             return { kind, word, value, count, of: 'records', detail: `· ${rowsText} · ${colsText}` };
         }
         const first = Array.isArray(value) ? value.find(x => x !== null && x !== undefined) : undefined;
         const elemKind = first === undefined ? null : kindOfValue(first);
-        const elemWord = elemKind ? tr(KIND_WORD[elemKind].key, KIND_WORD[elemKind].en) : null;
+        // A list of JSON texts reads "list of 2 · JSON", never as the raw text.
+        const elemWord = jsonTextValue(first) !== undefined
+            ? tr('automations.kind.json', 'JSON')
+            : (elemKind ? tr(KIND_WORD[elemKind].key, KIND_WORD[elemKind].en) : null);
         if (count === 0) return { kind, word, value, count, of: null, detail: tr('automations.kind.list_empty', '· empty') };
         return {
             kind, word, value, count, of: elemKind,
@@ -159,12 +183,21 @@ export function describeField(field, sampleRoot = null, t = null) {
     }
     if (kind === 'group') {
         const n = Object.keys(value).length;
-        return { kind, word, value, count: n, of: null, detail: tr('automations.kind.group_fields', '· {n} fields', { n }) };
+        const detail = n === 1 ? tr('automations.kind.group_field', '· 1 field') : tr('automations.kind.group_fields', '· {n} fields', { n });
+        return { kind, word, value, count: n, of: null, detail };
     }
     if (kind === 'file') {
         const name = value.name || value.filename || '';
         const size = formatBytes(value.size);
         return { kind, word, value, count: null, of: null, detail: [name, size].filter(Boolean).map(x => `· ${x}`).join(' ') || null };
+    }
+    const encoded = kind === 'text' ? jsonTextValue(value) : undefined;
+    if (encoded !== undefined) {
+        // JSON text (a body, an AI answer): say what it holds, never show the
+        // raw text; its fields open under the row with plain paths.
+        const n = Array.isArray(encoded) ? encoded.length : Object.keys(encoded).length;
+        const detail = jsonDetail(encoded, n, tr);
+        return { kind, word, value, count: null, of: null, detail };
     }
     if (kind === 'text' && typeof value === 'string' && value.length > 120) {
         // "text · 2 paragraphs" (design 1h) — a blob is not a value you read

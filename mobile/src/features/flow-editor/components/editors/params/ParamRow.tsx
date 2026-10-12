@@ -107,7 +107,7 @@ export function ParamRow(props: ParamRowProps) {
                 />
             ) : null}
             <View style={styles.required}>
-                <ToggleField value={!!row.required} onChange={(required) => onPatch({ required })} label={t('mobile.flow.params.required', 'required')} disabled={disabled} />
+                <ToggleField value={!!row.required} onChange={(required) => onPatch({ required })} label={t('automations.field_designer.required', 'required')} disabled={disabled} />
             </View>
         </RowCard>
     );

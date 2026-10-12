@@ -2,11 +2,7 @@
 // cms-select / cms-block-action / cms-insert-at / cms-hotkey / cms-scroll)
 // of the ProductWebsitePanel container — moved verbatim from
 // ProductWebsitePanel.jsx. State stays owned by the panel (threaded in).
-/* eslint-disable react-hooks/preserve-manual-memoization -- verbatim move
-   out of ProductWebsitePanel.jsx: the React Compiler lint can no longer see
-   that the threaded panel refs/setters are stable, so it reports advisory
-   "compilation skipped" notes; the dep arrays are unchanged from the
-   original component. */
+ 
 import { useCallback, useEffect, useEffectEvent } from 'react';
 import { toast } from '../../../shared/Toast';
 import { mergePreviewPage, mergePreviewSite } from '../localeMerge';
@@ -19,6 +15,7 @@ export default function useCmsPreviewBridge({
     activeBlockId, setActiveBlockId, setBlockEditorTab, activeLocale,
     translationMode, localeOverrides, builderRunning, builderRunningRef,
     applyIframeEdit, runHistoryHotkey, handleBlockAction, handleInsertAt,
+    blogPreview = null,
 }) {
     // ── iframe postMessage ───────────────────────────────────────────
 
@@ -33,7 +30,9 @@ export default function useCmsPreviewBridge({
         // Any chrome entry (header / footer / cookie banner) previews the
         // chrome in isolation — blockless page + previewMode='chrome'.
         const isChromeView = isChromeEntryId(activePageId);
-        const pageForPreview = isChromeView ? { blocks: [] } : previewPage;
+        // Blog entry: the site chrome around the blog index / the post being
+        // edited (blog/blogPreview.ts) — no page blocks.
+        const pageForPreview = (isChromeView || blogPreview) ? { blocks: [] } : previewPage;
         // In translation mode, pre-merge the active locale's overrides so the
         // preview renders translated text (with source fallback), matching
         // exactly what the published site will serve at ?locale=…
@@ -48,6 +47,7 @@ export default function useCmsPreviewBridge({
             previewPageMerged = mergePreviewPage(pageForPreview, pageOv, siteOv);
         }
         const content = buildPreviewContent(previewSite, previewPageMerged);
+        if (blogPreview) content.blog = blogPreview;
         // Design flows alongside content (not nested) so the iframe can
         // apply CSS variables independently of content updates.
         const design = site?.design || null;
@@ -55,7 +55,7 @@ export default function useCmsPreviewBridge({
         // Target our own origin (the preview route is same-origin) so draft
         // content/design can't leak to a cross-origin frame in the preview slot.
         win.postMessage({ type: 'cms-preview', content, design, previewMode }, window.location.origin);
-    }, [site, previewPage, activePageId, translationMode, activeLocale, localeOverrides, iframeRef, previewReadyRef]);
+    }, [site, previewPage, activePageId, translationMode, activeLocale, localeOverrides, iframeRef, previewReadyRef, blogPreview]);
 
     // Selection + AI-stream-lock mirror → iframe (cms-active). Deliberately
     // a dedicated message posted from its own effect, NOT folded into

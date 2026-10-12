@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { withQueryClient } from '../../../test/queryWrapper';
 import type { StudioDocument } from '../documentQueries';
 import SpreadsheetEditor from './SpreadsheetEditor';
+import { SAVE_DEBOUNCE_MS } from './useSheet';
 
 /**
  * The spreadsheet as a person meets it: a grid moved and edited with the
@@ -247,10 +248,23 @@ describe('SpreadsheetEditor formula bar', () => {
 describe('SpreadsheetEditor saving', () => {
     it('sends several edits as one PATCH with all the cells', async () => {
         const { user, cell } = await open();
-        await user.click(cell('A1'));
-        await user.keyboard('1{Enter}2{Enter}=A1+A2{Enter}');
-        expect(sheetApi.patchSheet).not.toHaveBeenCalled();
-        expect(screen.getByTestId('document-save-state')).toHaveAttribute('data-state', 'unsaved');
+        // The save waits SAVE_DEBOUNCE_MS after the last edit. On a loaded CI
+        // runner typing three values can take longer than that, and the real
+        // timer then saved halfway. Hold back only that timer while typing
+        // (every other timer runs), so the test is about the batching, not
+        // about how fast the machine is; clicking away then saves.
+        const realSetTimeout = globalThis.setTimeout;
+        const held = vi.spyOn(globalThis, 'setTimeout').mockImplementation(((fn: () => void, ms?: number, ...rest: unknown[]) => (
+            ms === SAVE_DEBOUNCE_MS ? realSetTimeout(() => undefined, 0) : realSetTimeout(fn, ms, ...rest)
+        )) as unknown as typeof setTimeout);
+        try {
+            await user.click(cell('A1'));
+            await user.keyboard('1{Enter}2{Enter}=A1+A2{Enter}');
+            expect(sheetApi.patchSheet).not.toHaveBeenCalled();
+            expect(screen.getByTestId('document-save-state')).toHaveAttribute('data-state', 'unsaved');
+        } finally {
+            held.mockRestore();
+        }
         await user.click(document.body);
         await waitFor(() => expect(sheetApi.patchSheet).toHaveBeenCalledTimes(1));
         expect(sheetApi.patchSheet).toHaveBeenCalledWith('doc-1', { A1: '1', A2: '2', A3: '=A1+A2' });

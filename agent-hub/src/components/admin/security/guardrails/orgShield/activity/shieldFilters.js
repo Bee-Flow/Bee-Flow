@@ -26,6 +26,14 @@
  * `region` and `dest` only exist on calls to outside services, so either one
  * leaves the shield's own events out — which the chip at the top makes visible.
  *
+ * ── One kind is never a filter: health (GDPR Art. 9) ──────────────────────
+ * Health categories appear as organisation totals only (specialCategories.ts,
+ * mirroring the server). `kind` can therefore never be set to one: a health
+ * filter would narrow the people panel to the people with health data, which
+ * is exactly the per-person view the server refuses (400
+ * special_category_per_person). `toggleFilter` is the one way in, so it is
+ * where that is enforced.
+ *
  * ── Why the counts are honest about their source ──────────────────────────
  * The overview endpoints aggregate server-side over the WHOLE window; the
  * detail endpoints return at most 200 rows. So an unfiltered KPI must come
@@ -35,6 +43,8 @@
  * ends up reporting "14" for a window that saw 900. `countMode` below makes
  * the switch explicit so the UI can label a sample as a sample.
  */
+
+import { isSpecialCategory } from './specialCategories';
 
 /** The independent filter axes. Order is the order chips render in. */
 export const FILTER_KEYS = ['kind', 'person', 'place', 'dest', 'region', 'outcome', 'pii', 'day'];
@@ -49,6 +59,8 @@ export const NO_FILTERS = Object.freeze({});
  */
 export function toggleFilter(filters, key, value) {
     if (!FILTER_KEYS.includes(key)) return filters;
+    // A health category is a total, never a filter (see the header).
+    if (key === 'kind' && isSpecialCategory(value)) return filters;
     const next = { ...filters };
     // Loose-ish compare: `pii` is a boolean and everything else a string, and
     // all of them arrive from DOM handlers where a stray cast is easy.

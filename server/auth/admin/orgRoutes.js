@@ -19,6 +19,7 @@ const { validate } = require('../../core/http/validate');
 const { z } = require('zod');
 const freeEmailDomains = require('../../utils/freeEmailDomains');
 const { requireOrgAdmin } = require('./orgAdminGuards');
+const { HttpError } = require('../../core/http/errors');
 
 /**
  * The fields PUT /organizations/:id writes. The user route has had an
@@ -74,6 +75,10 @@ const EncryptionBody = z.object({
     scope: z.union([z.record(z.unknown()), z.null()], {
         invalid_type_error: 'scope must be an object of surface booleans, or null',
     }).optional(),
+}).strict();
+
+const EncryptionBackfillBody = z.object({
+    dryRun: z.boolean({ required_error: 'dryRun is required', invalid_type_error: 'dryRun must be true or false' }),
 }).strict();
 
 /**
@@ -230,6 +235,49 @@ router.get('/organizations/:id/encryption', async (req, res) => {
         // save would 403.
         canEditScope: isSuperAdminReq(req),
     });
+});
+
+// ── Encrypt existing data (backfill) ────────────────────────────────────────
+// Starts / reports the background job that encrypts rows stored before the tier
+// was switched on. Same strict org-admin gate as the settings routes above.
+// Job state is per process, see stores/encryptionBackfillJob.js.
+router.post('/organizations/:id/encryption/backfill', validate({ body: EncryptionBackfillBody }), async (req, res) => {
+    if (!(await requireStrictOrgAdmin(req, res))) return;
+    const { policyFromRow } = require('../../stores/encryptionPolicy');
+    const backfillJob = require('../../stores/encryptionBackfillJob');
+    const { id } = req.params;
+    const { dryRun } = req.body;
+
+    const org = await userStore.getOrganization(id);
+    if (!org) throw new HttpError(404, 'org_not_found', 'Organization not found');
+    const policy = policyFromRow({
+        encryption_tier: org.encryption_tier ?? org.encryptionTier,
+        encryption_scope: org.encryption_scope ?? org.encryptionScope,
+    });
+    if (policy.tier === 'none') {
+        throw new HttpError(409, 'encryption_not_enabled', 'Encryption is off for this organization; there is nothing to encrypt.');
+    }
+
+    const { started, job } = backfillJob.start(id, dryRun);
+    if (!started) {
+        throw new HttpError(409, 'backfill_running', 'An encryption run is already in progress for this organization.');
+    }
+
+    const actorId = req.session.user?.id || 'system';
+    log.info(`[Audit] ${actorId} started ${dryRun ? 'a preview of' : 'an'} encryption backfill for org '${id}'`);
+    try {
+        await userStore.logAccessAudit(
+            'org.encryption.backfill', 'organization', id, actorId,
+            null, { dryRun, tier: policy.tier }, id,
+        );
+    } catch (_) { /* logAccessAudit already swallows; belt and braces */ }
+
+    res.status(202).json(job);
+});
+
+router.get('/organizations/:id/encryption/backfill', async (req, res) => {
+    if (!(await requireStrictOrgAdmin(req, res))) return;
+    res.json(require('../../stores/encryptionBackfillJob').get(req.params.id));
 });
 
 router.put('/organizations/:id/encryption', validate({ body: EncryptionBody }), async (req, res) => {

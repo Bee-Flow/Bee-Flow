@@ -36,7 +36,7 @@ export function FormPageStepEditor(editor: StepEditorProps) {
     const form = (draft.form as FormDeclaration | null) ?? null;
     const base = `steps.${String(step.id || 'this')}.output`;
     const rename = ctx.renameField;
-    const title = t('mobile.flow.form_page.page', 'Page');
+    const title = t('automations.trigger_editors.page', 'Page');
     if (!form) {
         return (
             <Band editor={editor} sectionKey="config" title={title} defaultOpen>
@@ -48,7 +48,7 @@ export function FormPageStepEditor(editor: StepEditorProps) {
                 <Button
                     size="sm"
                     iconName="Plus"
-                    label={t('mobile.flow.form_page.create', 'Create the page')}
+                    label={t('automations.trigger_editors.create_the_page', 'Create the page')}
                     onPress={() => set('form', ending ? defaultFormEndingDeclaration() : defaultFormPageDeclaration())}
                     disabled={ctx.disabled}
                     testID="form-page-create"
@@ -73,10 +73,10 @@ export function FormPageStepEditor(editor: StepEditorProps) {
                 />
             </Band>
             {ending ? null : (
-                <Band editor={editor} sectionKey="waiting" title={t('mobile.flow.form_page.waiting', 'Waiting')} defaultOpen>
+                <Band editor={editor} sectionKey="waiting" title={t('automations.trigger_editors.waiting', 'Waiting')} defaultOpen>
                     <SelectField
-                        label={t('mobile.flow.form_page.wait', 'Wait for an answer')}
-                        hint={t('mobile.flow.form_page.wait_hint', 'After this the automation gives up and the run fails.')}
+                        label={t('automations.trigger_editors.wait_for_an_answer', 'Wait for an answer')}
+                        hint={t('automations.trigger_editors.after_this_the_automation_gives_up', 'After this the automation gives up and the run fails.')}
                         value={String(wait)}
                         options={choices}
                         onChange={(v) => set('waitSeconds', Number(v))}

@@ -21,7 +21,7 @@ export function AppTriggerFields(editor: StepEditorProps) {
     const t = useTranslation();
     return (
         <FieldRow
-            label={t('mobile.flow.trigger.app_inputs', 'App inputs')}
+            label={t('automations.trigger_editors.app_inputs', 'App inputs')}
             hint={t(
                 'mobile.flow.trigger.app_inputs_hint',
                 'Inputs the app action must provide. Later steps pick them with Insert data, as Trigger ▸ <name>; a file input arrives as { fileId, name, mime, size, url }.',

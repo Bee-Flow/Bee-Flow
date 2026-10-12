@@ -10,6 +10,7 @@ import useConfirm from '../../shared/useConfirm';
 // dropdown previews render in the chosen face. Same CSS file the
 // iframe imports via ProductWebsite.jsx.
 import '../../../marketing/self-hosted-fonts.css';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 // ColorRow / FontRow used to be defined here; they now live in
 // ./primitives. Re-export so existing imports from this module
@@ -71,6 +72,7 @@ const FALLBACK_DESIGN = {
 };
 
 export default function DesignEditor({ design, onChange }) {
+    const { t } = useTranslation();
     const { confirm, confirmDialog } = useConfirm();
     const d = design || FALLBACK_DESIGN;
 
@@ -127,10 +129,10 @@ export default function DesignEditor({ design, onChange }) {
             <div className="px-4 pt-4 pb-6">
                 <div className="flex items-center gap-2 mb-1">
                     <AppIcon name="Palette" className="w-4 h-4 text-[var(--accent-primary)]" />
-                    <span className="text-sm font-semibold text-[var(--text-primary)]">Design</span>
+                    <span className="text-sm font-semibold text-[var(--text-primary)]">{t('cms_site.site.design.title', 'Design')}</span>
                 </div>
                 <p className="text-xs text-[var(--text-muted)] mb-4">
-                    Site-wide brand colors, fonts, and shape. Applied to every page in this site.
+                    {t('cms_site.site.design.intro', 'Site-wide brand colors, fonts, and shape. Applied to every page in this site.')}
                 </p>
 
                 <SectionDivider label="Theme presets" />
@@ -157,9 +159,9 @@ export default function DesignEditor({ design, onChange }) {
                 <ContrastBadge fg={d.colors.textSecondary} bg={d.colors.background} label="Muted text on background" />
                 <ContrastBadge fg="#FFFFFF" bg={d.colors.primary} label="Button text on primary" />
 
-                <SectionDivider label="Dark mode palette" />
+                <SectionDivider label={t('cms_site.site.design.dark_palette', 'Dark mode palette')} />
                 <p className="text-[11px] text-[var(--text-muted)] mb-2">
-                    Used while the site (or a visitor) is in dark mode. Brand colors above stay the same in both modes.
+                    {t('cms_site.site.design.dark_help', 'Used while the site (or a visitor) is in dark mode. Brand colors above stay the same in both modes.')}
                 </p>
                 <ColorRow label="Background"     value={dk.background    || ''} onChange={v => setDarkColor('background',    v)} hint="Dark page background" />
                 <ColorRow label="Surface"        value={dk.surface       || ''} onChange={v => setDarkColor('surface',       v)} hint="Dark cards / bands" />
@@ -392,6 +394,7 @@ export default function DesignEditor({ design, onChange }) {
 // Pure-CSS mini site painted from the preset's own values — honest
 // preview, no iframe. Dark presets preview their dark palette.
 function PresetCard({ preset, active, onApply }) {
+    const { t } = useTranslation();
     const p = preset.design;
     const dark = p.theme === 'dark';
     const bg      = dark ? p.darkColors.background   : p.colors.background;
@@ -449,7 +452,7 @@ function PresetCard({ preset, active, onApply }) {
                 </div>
                 {/* mini hero */}
                 <div style={{ fontFamily: fontStack(p.fonts.heading), color: text, fontSize: 11, fontWeight: p.typography.headingWeight, lineHeight: 1.15, marginBottom: 5 }}>
-                    Your AI. Your rules.
+                    {t('cms_site.site.design.sample_headline', 'Your AI. Your rules.')}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginBottom: 6 }}>
                     {line('80%', muted, 3)}
@@ -466,7 +469,7 @@ function PresetCard({ preset, active, onApply }) {
                     color: btnFg, fontSize: 7, fontWeight: 600,
                     fontFamily: fontStack(p.fonts.body),
                 }}>
-                    Get started
+                    {t('cms_site.site.design.sample_button', 'Get started')}
                 </div>
                 {/* mini cards — carry the card recipe */}
                 <div style={{ display: 'flex', gap: 4 }}>
@@ -476,7 +479,7 @@ function PresetCard({ preset, active, onApply }) {
             </div>
             <div className="px-2.5 py-1.5 text-[11px] font-medium text-[var(--text-primary)] flex items-center justify-between">
                 {preset.label}
-                {active ? <span className="text-[10px] text-[var(--accent-primary)]">Active</span> : null}
+                {active ? <span className="text-[10px] text-[var(--accent-primary)]">{t('cms_site.site.design.active', 'Active')}</span> : null}
             </div>
         </button>
     );
@@ -501,6 +504,7 @@ function ContrastBadge({ fg, bg, label }) {
 // One-glance pairing check: display / heading / body / eyebrow samples in
 // the chosen faces on the chosen background.
 function TypeScalePreview({ design }) {
+    const { t } = useTranslation();
     const bg = design.theme === 'dark'
         ? (design.darkColors?.background || '#101012')
         : design.colors.background;
@@ -515,16 +519,16 @@ function TypeScalePreview({ design }) {
         <div className="rounded-md border border-[var(--border-default)] overflow-hidden mb-2">
             <div style={{ background: bg, padding: '12px 14px' }}>
                 <div style={{ fontFamily: fontStack(design.fonts.heading), fontWeight: weight, fontSize: 22, lineHeight: 1.1, letterSpacing: '-0.02em', color: text }}>
-                    Display headline
+                    {t('cms_site.site.design.display_headline', 'Display headline')}
                 </div>
                 <div style={{ fontFamily: fontStack(design.fonts.heading), fontWeight: weight, fontSize: 14, marginTop: 6, color: text }}>
-                    Section heading
+                    {t('cms_site.site.design.section_heading', 'Section heading')}
                 </div>
                 <div style={{ fontFamily: fontStack(design.fonts.body), fontSize: 11, lineHeight: 1.5, marginTop: 6, color: muted }}>
-                    Body copy set in the paragraph face, sized for reading.
+                    {t('cms_site.site.design.body_copy', 'Body copy set in the paragraph face, sized for reading.')}
                 </div>
                 <div style={{ fontFamily: fontStack(design.fonts.mono || 'IBM Plex Mono'), fontSize: 8.5, letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: 7, color: muted }}>
-                    01 — Eyebrow label
+                    {t('cms_site.site.design.eyebrow', '01 — Eyebrow label')}
                 </div>
             </div>
         </div>

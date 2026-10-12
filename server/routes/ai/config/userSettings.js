@@ -45,12 +45,15 @@ const configStore = require('../../../stores/configStore');
 const { normalizeAfasToken } = require('../../../integrations/afasTools');
 const { SUBDOMAIN_RE: NMBRS_SUBDOMAIN_RE, TOKEN_RE: NMBRS_TOKEN_RE, EMAIL_RE: NMBRS_EMAIL_RE } = require('../../../integrations/nmbrsTools');
 const { API_KEY_RE: VPLAN_API_KEY_RE, API_ENV_RE: VPLAN_API_ENV_RE } = require('../../../integrations/vplanTools');
+const { SECRET_KEY_RE: SCALEWAY_SECRET_KEY_RE, ORG_ID_RE: SCALEWAY_ORG_ID_RE } = require('../../../integrations/scalewayBillingTools');
 const { sanitizeLearningProgress, mergeLearningProgress } = require('../../../learning/progressValidation');
 const { readServerProgress } = require('../../../learning/certificates');
 const { requireAuth } = require('../../../auth/permissions');
 const { orgScope } = require('../../../auth/orgScope');
-const { memoryEnabledKey, isMemoryEnabledForUser } = require('../../../core/memory/memoryPolicy');
+const { memoryEnabledKey, memorySensitiveOptInKey, isMemoryEnabledForUser, getOrgMemorySettings, ORG_DEFAULTS } = require('../../../core/memory/memoryPolicy');
 const { validate } = require('../../../core/http/validate');
+const { HttpError } = require('../../../core/http/errors');
+const memoryQueries = require('../../../stores/memoryQueries');
 
 // One DNS label — the team part of <team>.signrequest.com, nothing else.
 const SIGNREQUEST_SUBDOMAIN_RE = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/i;
@@ -115,10 +118,16 @@ const UserSettingsBody = z.object({
     // X-Api-Env), so the shape check is the header-injection guard.
     vplanApiKey: shaped(VPLAN_API_KEY_RE, 'vPlan API key is invalid — paste the key from vPlan → Settings → Developers, with no spaces.'),
     vplanApiEnv: shaped(VPLAN_API_ENV_RE, 'vPlan environment is invalid — paste the API env shown next to the key in vPlan, with no spaces.'),
+    // Scaleway Billing (read-only). The secret key travels in X-Auth-Token and
+    // the organization id in a query string; both are UUIDs.
+    // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- the string is a validation message, not a key
+    scalewayBillingSecretKey: shaped(SCALEWAY_SECRET_KEY_RE, 'Scaleway secret key is invalid. Paste the secret key of the IAM API key, with no spaces.'),
+    scalewayBillingOrgId: shaped(SCALEWAY_ORG_ID_RE, 'Scaleway Organization ID is invalid. Paste the ID from Organization settings, a UUID like 11111111-2222-3333-4444-555555555555.'),
     enabledApps: z.array(z.string({ invalid_type_error: APPS_TEXT }).trim().min(1, APPS_TEXT).max(100, APPS_TEXT),
         { invalid_type_error: APPS_TEXT }).max(500, APPS_TEXT).nullable(),
     simpleMode: flag('simpleMode'),
     memoryEnabled: flag('memoryEnabled'),
+    memorySensitiveOptIn: flag('memorySensitiveOptIn'),
     hasSeenIntroTour: flag('hasSeenIntroTour'),
     learningProgress: z.record(z.unknown(), { invalid_type_error: 'learningProgress is a map of lesson ids.' }).nullable(),
     learningProgressReset: flag('learningProgressReset'),
@@ -240,6 +249,10 @@ router.get('/user-settings', requireAuth, async (req, res) => {
     // Memory master switch — the per-user "may this turn read/write memory"
     // decision. Defaults ON, so this is only ever false after an explicit choice.
     const memoryEnabled = await isMemoryEnabledForUser(userId);
+    const memorySensitiveOptIn = (await configStore.getConfig(memorySensitiveOptInKey(userId)).catch(() => null)) === true;
+    // The organisation's side of it, so the SPA can say "turned off by your
+    // organisation". Fail open like the policy: a config error reads as default.
+    const orgMemory = await getOrgMemorySettings(homeOrgId || null).catch(() => ({ ...ORG_DEFAULTS }));
 
     // Has the user seen the new-user product tour? Stored per-user in the DB so
     // it persists across devices (the OnboardingTour also keeps a localStorage
@@ -276,6 +289,7 @@ router.get('/user-settings', requireAuth, async (req, res) => {
         hasAfasConfig: !!(await configStore.getSecret(`afas_token_user_${userId}`)) && !!(await configStore.getSecret(`afas_member_number_user_${userId}`)),
         hasNmbrsConfig: !!(await configStore.getSecret(`nmbrs_subdomain_user_${userId}`)) && !!(await configStore.getSecret(`nmbrs_token_user_${userId}`)),
         hasVplanConfig: !!(await configStore.getSecret(`vplan_api_key_user_${userId}`)) && !!(await configStore.getSecret(`vplan_api_env_user_${userId}`)),
+        hasScalewayBillingConfig: !!(await configStore.getSecret(`scaleway_billing_secret_key_user_${userId}`)),
         // Non-secret NMBRS fields so the settings form can pre-fill (the token is never returned).
         nmbrsApiMode: (await configStore.getSecret(`nmbrs_api_mode_user_${userId}`)) || 'soap',
         nmbrsSubdomain: (await configStore.getSecret(`nmbrs_subdomain_user_${userId}`)) || '',
@@ -302,6 +316,10 @@ router.get('/user-settings', requireAuth, async (req, res) => {
         simpleMode,
         // Memory master switch (personal; core/memory/memoryPolicy.js)
         memoryEnabled,
+        // Sensitive (art. 9) memory opt-in; only effective when the org allows it.
+        memorySensitiveOptIn,
+        orgMemoryEnabled: orgMemory.enabled,
+        sensitiveOptInAllowed: orgMemory.sensitiveOptInAllowed,
         // New-user product tour seen flag (personal UI preference)
         hasSeenIntroTour,
         // Learning Center per-lesson completion map
@@ -314,7 +332,17 @@ router.get('/user-settings', requireAuth, async (req, res) => {
 
 router.post('/user-settings', requireAuth, validate({ body: UserSettingsBody }), async (req, res) => {
     const userId = req.session.user.id;
-    const { enabledApps, simpleMode, memoryEnabled, hasSeenIntroTour, learningProgress, learningProgressReset, learningPath } = req.body;
+    const { enabledApps, simpleMode, memoryEnabled, memorySensitiveOptIn, hasSeenIntroTour, learningProgress, learningProgressReset, learningPath } = req.body;
+
+    // Opting in to sensitive memory is refused unless the organisation allows
+    // it. Like every refusal here it runs before anything is written.
+    if (memorySensitiveOptIn === true) {
+        const { homeOrgId } = await orgScope(req);
+        const org = await getOrgMemorySettings(homeOrgId || null);
+        if (org.sensitiveOptInAllowed !== true) {
+            throw new HttpError(403, 'sensitive_not_allowed', 'Your organisation does not allow storing sensitive information in memory.');
+        }
+    }
 
     // The last refusal, and it too runs before anything is written: the
     // Learning Center blob is size-checked by its own sanitizer.
@@ -345,6 +373,8 @@ router.post('/user-settings', requireAuth, validate({ body: UserSettingsBody }),
         nmbrsEnv: 'nmbrs_env',
         vplanApiKey: 'vplan_api_key',
         vplanApiEnv: 'vplan_api_env',
+        scalewayBillingSecretKey: 'scaleway_billing_secret_key',
+        scalewayBillingOrgId: 'scaleway_billing_org_id',
     };
     for (const [field, key] of Object.entries(SECRETS)) {
         if (req.body[field] !== undefined) {
@@ -373,6 +403,13 @@ router.post('/user-settings', requireAuth, validate({ body: UserSettingsBody }),
     // the text "false" used to be stored here as true.
     if (memoryEnabled !== undefined) {
         await configStore.setConfig(memoryEnabledKey(userId), memoryEnabled);
+    }
+
+    // Sensitive-memory opt-in. Turning it OFF also removes what was stored under
+    // it: sensitive memories are kept only while the person agrees to it.
+    if (memorySensitiveOptIn !== undefined) {
+        await configStore.setConfig(memorySensitiveOptInKey(userId), memorySensitiveOptIn);
+        if (memorySensitiveOptIn === false) await memoryQueries.deleteSensitiveForUser(userId);
     }
 
     if (hasSeenIntroTour !== undefined) {

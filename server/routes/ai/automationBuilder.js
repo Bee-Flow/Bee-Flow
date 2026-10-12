@@ -32,6 +32,9 @@ router.use(require('./automationBuilder/stepLabels'));
 // ─── Map-with-AI for parse_json steps ────────────────────────────
 router.use(mapJsonFields);
 
+// ─── Auto-map's AI fallback (the wand, after the deterministic pass) ─
+router.use(require('./automationBuilder/suggestMappings'));
+
 // ─── Code step AI assistant (SSE) ────────────────────────────────
 router.use(require('./automationBuilder/codeAssist'));
 

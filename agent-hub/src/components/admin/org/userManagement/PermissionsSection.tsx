@@ -1,14 +1,16 @@
 import { Key } from 'lucide-react';
 import type { AdminPermission } from './types';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 export interface PermissionsSectionProps {
     permissions: AdminPermission[];
 }
 
 export default function PermissionsSection({ permissions }: PermissionsSectionProps) {
+    const { t } = useTranslation();
     return (
         <div className="space-y-4">
-            <div className="mb-6"><h3 className="text-lg font-semibold text-[var(--text-primary)]">Permissions</h3><p className="text-sm text-[var(--text-muted)]">Available permissions for roles and groups</p></div>
+            <div className="mb-6"><h3 className="text-lg font-semibold text-[var(--text-primary)]">{t('admin_org.permissions_section_title', 'Permissions')}</h3><p className="text-sm text-[var(--text-muted)]">{t('admin_org.permissions_section_subtitle', 'Available permissions for roles and groups')}</p></div>
             <div className="grid gap-3">
                 {permissions.map(perm => (
                     <div key={perm.id} className="p-4 rounded-xl border flex items-center justify-between bg-[var(--bg-secondary)] border-[var(--border-default)]">

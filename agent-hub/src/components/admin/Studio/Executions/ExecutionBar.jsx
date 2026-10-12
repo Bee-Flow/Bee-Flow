@@ -1,5 +1,6 @@
 import { ArrowLeft, RotateCcw, Ban, Check, X, ExternalLink, Link2, Loader2 } from 'lucide-react';
 import React, { useState } from 'react';
+import { useTranslation } from '../../../../hooks/useTranslation';
 import { enteredTriggerLabel, errorClassLabel, runTitle, triggerLabel } from './runLanguage';
 import { formatDuration, formatRelative, formatExpiry } from '../AutomationsStudio/historyUtils';
 import { RunStatusBadge, DryRunBadge } from '../AutomationsStudio/RunStatusBits';
@@ -12,6 +13,7 @@ import { RunStatusBadge, DryRunBadge } from '../AutomationsStudio/RunStatusBits'
  * `return null` used to strand the user in a bare canvas.
  */
 export default function ExecutionBar({ run, definition = null, onBack, onRetry, onCancel, onApprove, onOpenEditor, onOpenRun = null, showOpenEditor = true }) {
+    const { t } = useTranslation();
     const [pending, setPending] = useState(null);
     const [actionError, setActionError] = useState(null);
 
@@ -19,7 +21,7 @@ export default function ExecutionBar({ run, definition = null, onBack, onRetry, 
     const isRunning = run?.status === 'running' || run?.status === 'queued';
     const isAwaiting = run?.status === 'awaiting_approval' || run?.status === 'awaiting_confirm';
     const isDry = run?.mode === 'dry_run';
-    const classNote = errorClassLabel(run?.errorClass);
+    const classNote = errorClassLabel(run?.errorClass, t);
     const expiry = run?.awaitingStepExpiresAt ? formatExpiry(run.awaitingStepExpiresAt) : null;
 
     const act = async (key, fn) => {
@@ -31,7 +33,14 @@ export default function ExecutionBar({ run, definition = null, onBack, onRetry, 
         } catch (e) {
             // Surface the failure — without a catch this was an unhandled
             // promise rejection and the button just silently reset.
-            setActionError(`${key} failed: ${e?.message || 'unknown error'}`);
+            const message = e?.message || t('studio_misc.runbar.unknown_error', 'unknown error');
+            const failed = {
+                retry: () => t('studio_misc.runbar.failed_retry', 'retry failed: {message}', { message }),
+                cancel: () => t('studio_misc.runbar.failed_cancel', 'cancel failed: {message}', { message }),
+                approve: () => t('studio_misc.runbar.failed_approve', 'approve failed: {message}', { message }),
+                reject: () => t('studio_misc.runbar.failed_reject', 'reject failed: {message}', { message }),
+            }[key];
+            setActionError(failed ? failed() : t('studio_misc.runbar.failed_other', '{action} failed: {message}', { action: key, message }));
         } finally {
             setPending(null);
         }
@@ -53,39 +62,39 @@ export default function ExecutionBar({ run, definition = null, onBack, onRetry, 
         <div className="@container/runbar flex-shrink-0 flex flex-wrap items-center gap-2 px-4 py-2 border-b border-[var(--border-default)] bg-[var(--bg-primary)]">
             <button
                 onClick={onBack}
-                title="Back to Runs"
+                title={t('studio_misc.runbar.back_to_runs', 'Back to Runs')}
                 className="inline-flex items-center gap-1 p-1.5 rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition"
             >
-                <ArrowLeft size={16} /> <span className="text-xs font-medium">Runs</span>
+                <ArrowLeft size={16} /> <span className="text-xs font-medium">{t('studio_misc.runbar.runs', 'Runs')}</span>
             </button>
 
             {!run ? (
                 // Skeleton — the back button above must exist even before the
                 // run resolves (or fails to).
-                <span className="text-xs text-[var(--text-tertiary)]">Loading the run…</span>
+                <span className="text-xs text-[var(--text-tertiary)]">{t('studio_misc.runbar.loading', 'Loading the run…')}</span>
             ) : (
                 <>
                     <span className="text-[var(--text-tertiary)]">·</span>
-                    <span className="text-sm font-medium text-[var(--text-primary)]" title={run.id}>{runTitle(run)}</span>
+                    <span className="text-sm font-medium text-[var(--text-primary)]" title={run.id}>{runTitle(run, undefined, t)}</span>
                     <RunStatusBadge status={run.status} />
                     {isDry && <DryRunBadge />}
 
                     {formatDuration(run.durationMs) && (
-                        <span className="text-xs text-[var(--text-secondary)] tabular-nums">took {formatDuration(run.durationMs)}</span>
+                        <span className="text-xs text-[var(--text-secondary)] tabular-nums">{t('studio_misc.runbar.took', 'took {duration}', { duration: formatDuration(run.durationMs) })}</span>
                     )}
                     {run.startedAt && (
                         <span className="text-xs text-[var(--text-tertiary)]" title={run.startedAt}>{formatRelative(run.startedAt)}</span>
                     )}
                     {(run.triggerKind || run.automationTriggerType) && (
-                        <span className="text-xs text-[var(--text-tertiary)]">· {triggerLabel(run.triggerKind || run.automationTriggerType)}</span>
+                        <span className="text-xs text-[var(--text-tertiary)]">· {triggerLabel(run.triggerKind || run.automationTriggerType, t)}</span>
                     )}
                     {/* The entry point, for an automation with several triggers —
                         resolved against the snapshot that ran, not today's. */}
                     {enteredTriggerLabel(run, definition) && (
-                        <span className="text-xs text-[var(--text-tertiary)]" title="The trigger this run started from">· via {enteredTriggerLabel(run, definition)}</span>
+                        <span className="text-xs text-[var(--text-tertiary)]" title={t('studio_misc.runbar.via_title', 'The trigger this run started from')}>{t('studio_misc.runbar.via', '· via {trigger}', { trigger: enteredTriggerLabel(run, definition) })}</span>
                     )}
                     {run.version != null && (
-                        <span className="text-[10px] text-[var(--text-tertiary)] px-1.5 py-0.5 rounded bg-[var(--bg-secondary)]" title={`This run used saved version ${run.version}.`}>v{run.version}</span>
+                        <span className="text-[10px] text-[var(--text-tertiary)] px-1.5 py-0.5 rounded bg-[var(--bg-secondary)]" title={t('studio_misc.runbar.version_title', 'This run used saved version {version}.', { version: run.version })}>v{run.version}</span>
                     )}
                     {/* Lineage: a retry names — and opens — the run it replays.
                         A run that CONTINUES a paused one also carries a
@@ -99,14 +108,16 @@ export default function ExecutionBar({ run, definition = null, onBack, onRetry, 
                             onClick={() => onOpenRun?.(run.parentRunId)}
                             disabled={!onOpenRun}
                             className="text-[10px] text-[var(--text-secondary)] px-1.5 py-0.5 rounded bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] transition disabled:cursor-default"
-                            title="Open the earlier run"
+                            title={t('studio_misc.runbar.open_earlier', 'Open the earlier run')}
                         >
-                            This was a retry of an earlier run
+                            {t('studio_misc.runbar.was_retry', 'This was a retry of an earlier run')}
                         </button>
                     )}
                     {Number(run.handledErrorCount || 0) > 0 && (
                         <span className="text-[10px] text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded bg-amber-500/10">
-                            {run.handledErrorCount} problem{run.handledErrorCount === 1 ? '' : 's'} handled automatically
+                            {run.handledErrorCount === 1
+                                ? t('studio_misc.runbar.handled_one', '1 problem handled automatically')
+                                : t('studio_misc.runbar.handled_many', '{n} problems handled automatically', { n: run.handledErrorCount })}
                         </span>
                     )}
                     {isAwaiting && expiry && (
@@ -118,12 +129,12 @@ export default function ExecutionBar({ run, definition = null, onBack, onRetry, 
 
                     <div className="ml-auto flex items-center gap-2">
                         {isError && onRetry && (
-                            <BarButton onClick={() => act('retry', onRetry)} pending={pending === 'retry'} icon={<RotateCcw size={14} />} tone="primary" title="Uses the automation as it is now">
-                                Run it again
+                            <BarButton onClick={() => act('retry', onRetry)} pending={pending === 'retry'} icon={<RotateCcw size={14} />} tone="primary" title={t('studio_misc.runbar.run_again_title', 'Uses the automation as it is now')}>
+                                {t('studio_misc.runbar.run_again', 'Run it again')}
                             </BarButton>
                         )}
                         {isRunning && onCancel && (
-                            <BarButton onClick={() => act('cancel', onCancel)} pending={pending === 'cancel'} icon={<Ban size={14} />} tone="danger">Stop it</BarButton>
+                            <BarButton onClick={() => act('cancel', onCancel)} pending={pending === 'cancel'} icon={<Ban size={14} />} tone="danger">{t('studio_misc.runbar.stop', 'Stop it')}</BarButton>
                         )}
                         {/* Step-level approvals (awaiting_approval) decide in
                             the panel below the bar — it shows the question,
@@ -138,27 +149,27 @@ export default function ExecutionBar({ run, definition = null, onBack, onRetry, 
                             the word rather than assuming approval. */}
                         {run?.status === 'awaiting_confirm' && (
                             <>
-                                <BarButton onClick={() => act('approve', () => onApprove?.('approve'))} pending={pending === 'approve'} icon={<Check size={14} />} tone="primary">Approve</BarButton>
-                                <BarButton onClick={() => act('reject', () => onApprove?.('reject'))} pending={pending === 'reject'} icon={<X size={14} />} tone="danger">Reject</BarButton>
+                                <BarButton onClick={() => act('approve', () => onApprove?.('approve'))} pending={pending === 'approve'} icon={<Check size={14} />} tone="primary">{t('studio_misc.runbar.approve', 'Approve')}</BarButton>
+                                <BarButton onClick={() => act('reject', () => onApprove?.('reject'))} pending={pending === 'reject'} icon={<X size={14} />} tone="danger">{t('studio_misc.runbar.reject', 'Reject')}</BarButton>
                             </>
                         )}
                         <button
                             onClick={copyLink}
-                            aria-label="Copy link"
+                            aria-label={t('studio_misc.runbar.copy_link', 'Copy link')}
                             className={SECONDARY}
-                            title="Copy a link to this run"
+                            title={t('studio_misc.runbar.copy_link_title', 'Copy a link to this run')}
                         >
-                            <Link2 size={14} aria-hidden /> <span className="hidden @[72rem]/runbar:inline">Copy link</span>
+                            <Link2 size={14} aria-hidden /> <span className="hidden @[72rem]/runbar:inline">{t('studio_misc.runbar.copy_link', 'Copy link')}</span>
                         </button>
                         {showOpenEditor && (
                             <button
                                 onClick={() => run.automationId && onOpenEditor?.(run.automationId)}
                                 disabled={!run.automationId}
-                                aria-label="Open in editor"
-                                title="Open in editor"
+                                aria-label={t('studio_misc.runbar.open_editor', 'Open in editor')}
+                                title={t('studio_misc.runbar.open_editor', 'Open in editor')}
                                 className={`${SECONDARY} disabled:opacity-50`}
                             >
-                                <ExternalLink size={14} aria-hidden /> <span className="hidden @[72rem]/runbar:inline">Open in editor</span>
+                                <ExternalLink size={14} aria-hidden /> <span className="hidden @[72rem]/runbar:inline">{t('studio_misc.runbar.open_editor', 'Open in editor')}</span>
                             </button>
                         )}
                     </div>

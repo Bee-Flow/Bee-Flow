@@ -1,6 +1,7 @@
 import { Check, LayoutGrid } from 'lucide-react';
 import React, { useMemo } from 'react';
 import useAppRoles from './useAppRoles';
+import useTranslation from '../../../../../hooks/useTranslation';
 import EmptyState from '../../../../shared/EmptyState';
 import { getComponentEntry } from '../runtime/componentRegistry';
 import { getVisibleToRoles, setVisibleToRoles } from '../state/definitionOps';
@@ -32,10 +33,10 @@ function nodeLabel(node) {
     return base;
 }
 
-function buildItems(def) {
+function buildItems(def, t) {
     const items = [];
     for (const screen of def?.screens || []) {
-        items.push({ id: screen.id, kind: 'screen', label: screen.name || 'Screen', depth: 0 });
+        items.push({ id: screen.id, kind: 'screen', label: screen.name || t('studio_apps_edit.access_matrix.screen', 'Screen'), depth: 0 });
         for (const section of screen.sections || []) {
             for (const node of section.children || []) {
                 items.push({ id: node.id, kind: 'node', label: nodeLabel(node), depth: 1 });
@@ -46,9 +47,10 @@ function buildItems(def) {
 }
 
 export default function AccessMatrix({ appId, definition = null, onCommit = null }) {
+    const { t } = useTranslation();
     const { roles } = useAppRoles(appId);
     const roleKeys = useMemo(() => roles.map((r) => r.key), [roles]);
-    const items = useMemo(() => buildItems(definition), [definition]);
+    const items = useMemo(() => buildItems(definition, t), [definition, t]);
 
     const isChecked = (itemId, roleKey) => {
         const gate = getVisibleToRoles(definition, itemId);
@@ -81,8 +83,8 @@ export default function AccessMatrix({ appId, definition = null, onCommit = null
         return (
             <EmptyState
                 icon={<LayoutGrid className="h-8 w-8" aria-hidden="true" />}
-                title="No roles yet"
-                description="Create roles on the Roles tab first — then you can choose which screens and components each role sees here."
+                title={t('studio_apps_edit.access_matrix.no_roles', 'No roles yet')}
+                description={t('studio_apps_edit.access_matrix.no_roles_desc', 'Create roles on the Roles tab first — then you can choose which screens and components each role sees here.')}
             />
         );
     }
@@ -90,16 +92,14 @@ export default function AccessMatrix({ appId, definition = null, onCommit = null
     return (
         <div data-testid="access-matrix" className="flex flex-col gap-3">
             <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                A checked cell means that role can see the screen or component. Cleared cells hide it from that role,
-                and clearing every role hides it from everyone. This is a preview aid — data access is always enforced
-                by row-level security.
+                {t('studio_apps_edit.access_matrix.help', 'A checked cell means that role can see the screen or component. Cleared cells hide it from that role, and clearing every role hides it from everyone. This is a preview aid — data access is always enforced by row-level security.')}
             </p>
             <div className="overflow-x-auto">
                 <table className="w-full border-collapse text-sm">
                     <thead>
                         <tr>
                             <th className="sticky left-0 z-10 px-2 py-2 text-left text-xs font-semibold" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
-                                Screen / component
+                                {t('studio_apps_edit.access_matrix.screen_component', 'Screen / component')}
                             </th>
                             {roles.map((r) => (
                                 <th key={r.key} className="px-3 py-2 text-center text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
@@ -123,7 +123,7 @@ export default function AccessMatrix({ appId, definition = null, onCommit = null
                                     </span>
                                     {hiddenFromAll(item.id) ? (
                                         <span className="ml-2 text-[11px] italic" style={{ color: 'var(--text-tertiary)' }}>
-                                            Hidden from everyone
+                                            {t('studio_apps_edit.access_matrix.hidden_all', 'Hidden from everyone')}
                                         </span>
                                     ) : null}
                                 </td>
@@ -135,7 +135,7 @@ export default function AccessMatrix({ appId, definition = null, onCommit = null
                                                 type="button"
                                                 role="checkbox"
                                                 aria-checked={checked}
-                                                aria-label={`${item.label} visible to ${r.label || r.key}`}
+                                                aria-label={t('studio_apps_edit.access_matrix.visible_to', '{item} visible to {role}', { item: item.label, role: r.label || r.key })}
                                                 onClick={() => toggle(item.id, r.key)}
                                                 className="inline-flex h-5 w-5 items-center justify-center rounded border transition-colors"
                                                 style={checked

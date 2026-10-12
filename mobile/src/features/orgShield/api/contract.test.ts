@@ -98,6 +98,16 @@ describe('the activity endpoints (routes/usage.js)', () => {
         ]);
     });
 
+    it('keep health an organisation total: stripped from rows with a person, refused as a filter beside one', () => {
+        // The phone never sends `user` or `pii` (api/endpoints.test.ts) and
+        // strips the rows itself for an older server (model/activity.ts).
+        expectAll(usage, [
+            "new HttpError(400, 'special_category_per_person'",
+            "withholdSpecialCategories(raw, 'violation_categories')",
+            "withholdSpecialCategories(raw, 'pii_categories_detected')",
+        ]);
+    });
+
     it('return the fields the readers read', () => {
         expectAll(guardStore, [
             'as total_events', 'as pii_count', 'as dlp_blocked', 'as unique_users',

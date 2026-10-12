@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import useTranslation from '../../../../../hooks/useTranslation';
 import Illustration from '../../../../shared/illustrations';
 
 /**
@@ -36,6 +37,7 @@ export function SkeletonLines({ lines = 3 }) {
  * as it did.
  */
 export function EmptyText({ text, icon: Icon = null, title = null, art = null }) {
+    const { t } = useTranslation();
     // The one-line form is UNCHANGED (every existing caller passes only `text`).
     // With an icon, a title or a scene it becomes a composed empty state — the
     // shape the rest of the product uses (shared/EmptyState) — so a component
@@ -46,7 +48,7 @@ export function EmptyText({ text, icon: Icon = null, title = null, art = null })
                 className="flex h-full min-h-0 items-center justify-center text-sm py-1 text-center"
                 style={{ color: 'var(--text-muted)' }}
             >
-                {text || 'Nothing to show yet.'}
+                {text || t('studio_apps_runtime.ui.nothing_to_show', 'Nothing to show yet.')}
             </div>
         );
     }
@@ -69,7 +71,7 @@ export function EmptyText({ text, icon: Icon = null, title = null, art = null })
                 <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{title}</span>
             ) : null}
             <span className="text-sm max-w-xs" style={{ color: 'var(--text-muted)' }}>
-                {text || 'Nothing to show yet.'}
+                {text || t('studio_apps_runtime.ui.nothing_to_show', 'Nothing to show yet.')}
             </span>
         </div>
     );
@@ -204,6 +206,7 @@ export function useStickyBinding({ value, isLoading, error = null, errorCode = n
  * what to do about it.
  */
 export function ErrorText({ error, errorCode = null, onRetry = null }) {
+    const { t } = useTranslation();
     const needsConnection = errorCode === 'connection_required';
     return (
         <div
@@ -212,7 +215,9 @@ export function ErrorText({ error, errorCode = null, onRetry = null }) {
             data-app-error="true"
         >
             <span className="text-sm" style={{ color: 'var(--error)' }}>
-                {needsConnection ? 'This needs a connection first.' : 'This could not be loaded.'}
+                {needsConnection
+                    ? t('studio_apps_runtime.ui.needs_connection', 'This needs a connection first.')
+                    : t('studio_apps_runtime.ui.could_not_load', 'This could not be loaded.')}
             </span>
             {error ? (
                 <span className="text-xs max-w-xs" style={{ color: 'var(--text-muted)' }}>{String(error)}</span>
@@ -224,7 +229,7 @@ export function ErrorText({ error, errorCode = null, onRetry = null }) {
                     className={`mt-1 px-2.5 py-1 text-xs border ${FOCUS_OUTLINE}`}
                     style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', borderRadius: 'var(--app-radius)' }}
                 >
-                    Try again
+                    {t('studio_apps_runtime.ui.try_again', 'Try again')}
                 </button>
             ) : null}
         </div>

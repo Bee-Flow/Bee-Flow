@@ -2,7 +2,7 @@
  * Variable-tree filtering, shared by the {} VariablePicker popover and the
  * NDV's INPUT panel so "search" means exactly the same thing in both.
  *
- * A node survives when its own key/path matches OR any descendant matches — a
+ * A node survives when its own key/path/label matches OR any descendant matches — a
  * parent is kept as a PATH to its matching children, never as a false hit, and
  * the surviving subtree is a copy so the caller's data is untouched.
  */
@@ -13,7 +13,10 @@ export function filterFields(fields, q) {
     if (!needle) return fields || [];
     const out = [];
     for (const f of fields || []) {
-        const matchesSelf = f.key?.toLowerCase().includes(needle) || f.path?.toLowerCase().includes(needle);
+        // `label` is the name a person reads for an internal key (a Condition
+        // output "Otherwise" for `matchesByCase.default`), so it is searchable.
+        const matchesSelf = f.key?.toLowerCase().includes(needle) || f.path?.toLowerCase().includes(needle)
+            || (typeof f.label === 'string' && f.label.toLowerCase().includes(needle));
         let subs = [];
         if (Array.isArray(f.children)) subs = filterFields(f.children, needle);
         if (matchesSelf) {
