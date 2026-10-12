@@ -222,3 +222,30 @@ test('strict: a 429 that never clears throws after the retries', async () => {
     await assert.rejects(dispatchEmbedTexts(['a'], { strict: true }), /embed 429/);
     assert.strictEqual(calls.length, 5);
 });
+
+// ── Azure: the same retry on both Azure paths ────────────────────────────────
+// Azure OpenAI / AI Foundry deployments have a tokens-per-minute quota and answer
+// 429 with Retry-After. A configured Azure provider and the legacy
+// azure_openai_embedding_* keys must both wait it out instead of falling to CPU.
+
+test('configured Azure provider: a 429 is waited out, the vectors stay Azure', async () => {
+    waits.length = 0;
+    scriptedFetch([{ status: 429, headers: { 'retry-after': '7' } }, { status: 200 }]);
+    target = { providerType: 'azure', providerName: 'Azure', endpoint: 'https://res.openai.azure.com/', apiKey: 'k', modelId: 'text-embedding-3-small' };
+    const { source, vectors } = await dispatchEmbedTexts(['a']);
+    assert.strictEqual(source, 'provider');
+    assert.strictEqual(vectors.length, 1);
+    assert.deepStrictEqual(waits, [7000]);
+    assert.ok(calls.every(c => c.url === 'https://res.openai.azure.com/openai/v1/embeddings'));
+});
+
+test('legacy Azure config: a 429 is waited out instead of falling to the CPU embedder', async () => {
+    waits.length = 0;
+    scriptedFetch([{ status: 429 }, { status: 200 }]);
+    config.azure_openai_embedding_endpoint = 'https://legacy.openai.azure.com/';
+    config.azure_openai_embedding_model = 'text-embedding-3-small';
+    secrets.azure_openai_embedding_key = 'lk';
+    const { source } = await dispatchEmbedTexts(['q']);
+    assert.strictEqual(source, 'azure');
+    assert.strictEqual(calls.length, 2);
+});
