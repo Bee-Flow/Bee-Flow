@@ -168,6 +168,42 @@ async function knownConnectionsFor(def, ownerId, deps) {
 }
 
 const pinLabel = (pin) => `${pin.kind === 'trigger' ? 'Trigger' : 'Step'} "${pin.id || '(no id)'}"${pin.layerKey ? ` in flowlet "${pin.layerKey}"` : ''}`;
+/**
+ * The 400 body for a definition with hand-written (`edited`) pins, or null.
+ * Shared by activation and by saving an already-active automation (BFSF-452).
+ */
+function editedPinRefusal(pins, { verb = 'activate' } = {}) {
+    const editedPins = pins.filter(pin => pin.pinnedSource === 'edited');
+    if (!editedPins.length) return null;
+    const labels = editedPins.map(pinLabel).join(', ');
+    const s = editedPins.length === 1 ? 's' : '';
+    // Saving an already-active automation is not an activation: say what
+    // actually blocks it, and the way out.
+    const message = verb === 'save'
+        ? `Cannot save while this automation is active — ${labels} serve${s} sample data you wrote by hand instead of running. A live run would use that made-up data for real. Unpin, capture a sample from a real run, or deactivate the automation first.`
+        : `Cannot activate — ${labels} serve${s} sample data you wrote by hand instead of running. A live run would use that made-up data for real. Unpin, or capture a sample from a real run.`;
+    return {
+        error: message,
+        code: 'pinned_edited_sample',
+        details: editedPins.map(pin => ({
+            code: 'pin.edited_sample_blocks_activation', severity: 'error', path: pinPath(pin),
+            message: `${pinLabel(pin)} serves hand-written sample data instead of running.`,
+            hint: verb === 'save'
+                ? 'Open the node and unpin it, run the step once and pin its real output, or deactivate the automation first.'
+                : 'Open the node and unpin it, or run the step once and pin its real output.',
+        })),
+    };
+}
+
+/** The non-blocking `pin.serves_sample_data` warnings for a definition's pins. */
+function capturedPinWarnings(pins) {
+    return pins.map(pin => ({
+        code: 'pin.serves_sample_data', severity: 'warning', path: pinPath(pin),
+        message: `${pinLabel(pin)} serves pinned data instead of running — live runs will use that saved sample, not fresh data.`,
+        hint: 'Unpin it if the automation should do this work for real; keep it if serving the sample is deliberate.',
+    }));
+}
+
 const pinPath = (pin) => `${pin.layerKey ? `layers.${pin.layerKey}.` : ''}${pin.kind === 'trigger' ? 'trigger' : `steps[${pin.id}]`}`;
 
 /**
@@ -235,24 +271,11 @@ async function checkBeforeLiveCore({ automation, definition, ownerId, organizati
     // anything, so a live run would hand invented data to real side effects:
     // a 400. Unpin it, or capture it for real.
     const pins = collectPinnedNodes(def);
-    const editedPins = pins.filter(pin => pin.pinnedSource === 'edited');
-    if (editedPins.length) {
-        const message = `Cannot activate — ${editedPins.map(pinLabel).join(', ')} serve${editedPins.length === 1 ? 's' : ''} sample data you wrote by hand instead of running. A live run would use that made-up data for real. Unpin, or capture a sample from a real run.`;
-        return refuse(400, 'pinned_edited_sample', message, {
-            error: message,
-            code: 'pinned_edited_sample',
-            details: editedPins.map(pin => ({
-                code: 'pin.edited_sample_blocks_activation', severity: 'error', path: pinPath(pin),
-                message: `${pinLabel(pin)} serves hand-written sample data instead of running.`,
-                hint: 'Open the node and unpin it, or run the step once and pin its real output.',
-            })),
-        });
+    const editedRefusal = editedPinRefusal(pins);
+    if (editedRefusal) {
+        return refuse(400, 'pinned_edited_sample', editedRefusal.error, editedRefusal);
     }
-    const pinWarnings = pins.map(pin => ({
-        code: 'pin.serves_sample_data', severity: 'warning', path: pinPath(pin),
-        message: `${pinLabel(pin)} serves pinned data instead of running — live runs will use that saved sample, not fresh data.`,
-        hint: 'Unpin it if the automation should do this work for real; keep it if serving the sample is deliberate.',
-    }));
+    const pinWarnings = capturedPinWarnings(pins);
 
     // ── AI Act check (handoff 5, owner decision 2) ──
     // Only in an organisation with the compliance hub licence; last, so the
@@ -493,6 +516,8 @@ async function convergeAfterPublish({
 }
 
 module.exports = {
+    editedPinRefusal,
+    capturedPinWarnings,
     planGoLive,
     checkBeforeLiveCore,
     activateCore,

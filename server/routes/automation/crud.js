@@ -23,7 +23,7 @@ const orgOf = async (req) => (await resolveDatatablePrincipal(req)).orgId;
 // automation/liveSideEffects.js for what each does and why it is best-effort.
 const liveSideEffects = require('../../automation/liveSideEffects');
 const { agentsFor, wakeComplianceReview, ensureFormPages, ensureAnswersTable } = liveSideEffects;
-const { deactivateCore } = require('../../automation/goLive');
+const { deactivateCore, editedPinRefusal, capturedPinWarnings } = require('../../automation/goLive');
 const automationStore = require('../../stores/automationStore');
 const { z } = require('zod');
 const { validate } = require('../../core/http/validate');
@@ -1133,6 +1133,17 @@ router.put('/:id', validate({ body: UpdateAutomationBody }), async (req, res) =>
         const assigneeErrors = await require('../../automation/approvalService').validateApprovalAssignees(updates.definition, ownerId);
         if (assigneeErrors.length) return res.status(400).json({ error: 'Invalid definition', details: assigneeErrors });
         saveWarnings = v.warnings;
+        // An ACTIVE automation without a separate live version runs this very
+        // working copy, so a save is a go-live: refuse hand-written pins here
+        // exactly as activation does (BFSF-452). With a live version the
+        // publish step re-checks.
+        if (existing.isActive && !hasLive) {
+            const pins = require('../../automation/portability').collectPinnedNodes(updates.definition);
+            const pinRefusal = editedPinRefusal(pins, { verb: 'save' });
+            if (pinRefusal) return res.status(400).json(pinRefusal);
+            // Live now serves the saved sample: tell the client, as activation does.
+            saveWarnings = [...saveWarnings, ...capturedPinWarnings(pins)];
+        }
         // Knowledge-base links need the database, so validate.js cannot see
         // them (it is the pure pass). A WARNING while building: the builder
         // PUTs the whole definition on every node edit, and a save blocked
