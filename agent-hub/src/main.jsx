@@ -12,10 +12,14 @@ import { ThemeProvider } from './components/appearance/ThemeContext.jsx'
 import { Toaster } from './components/shared/Toast.tsx'
 import { drainErrorQueue } from './utils/clientErrorReporter'
 import { sealDemoBeforeBoot } from './utils/helpers'
+import { applyNcDeepLink } from './utils/ncDeepLink'
 import { reportWebVitals } from './utils/webVitalsReporter'
 import { initOpenObserve } from './telemetry/openobserve'
 import { queryClient } from './api/queryClient'
 import './index.css'
+
+// Nextcloud embed deep link (?ncPath=): must run before anything reads the URL.
+applyNcDeepLink()
 
 // Embed route — `/chat/<id>` is mounted before LicenseProvider runs and would
 // otherwise inherit the host org's saved theme. We freeze the theme to the URL

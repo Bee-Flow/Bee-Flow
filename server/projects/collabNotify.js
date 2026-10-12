@@ -56,17 +56,70 @@ function makeRenderText(deps = {}) {
  * @param {{ filterRecipients: Function }} [deps.prefs]  (userIds, projectId, event) => { bell, email }
  * @param {Function} [deps.sendEmail]           ({ userId, event, vars: { project, actor, intro, detail }, ctaUrl }) => void; the mail of the same event (default: emailService.sendProjectCollabEmail)
  * @param {Function} [deps.clientHost]          () => the app's absolute origin, for the link in the mail
+ * @param {Function} [deps.mailLink]            (userId, link) => the absolute URL in the recipient's mail; Nextcloud users get their Nextcloud portal's Bee Flow page with the path as ?path=, everyone else clientHost() + link
  * @param {Function} [deps.renderText]          ({ userId, key, vars }) => { title, message } in the recipient's locale
  * @param {Function} [deps.projectPath]         (projectId, section) => in-app path
  * @param {Function} [deps.groupMemberIds]      (groupId, cap) => { ids, total }
  * @param {Function} [deps.getUser]             (id) => user row, for the actor's display name
  */
+/**
+ * Is this the address a recipient's browser can open? The stored base URL is
+ * whatever the connector sent, which falls back to the Docker-internal
+ * NEXTCLOUD_URL (e.g. "http://nextcloud") when no public URL is configured.
+ * Reachable here means a dotted hostname that is neither localhost, a bare IP
+ * nor a private/loopback name; anything else keeps the clientHost() link.
+ * @param {string} url
+ * @returns {boolean}
+ */
+function looksBrowserReachable(url) {
+    let host;
+    try { host = new URL(url).hostname.toLowerCase().replace(/\.$/, ''); } catch { return false; }
+    if (!host || !host.includes('.')) return false;
+    if (host === 'localhost' || host.endsWith('.localhost')) return false;
+    if (host.includes(':') || host.startsWith('[')) return false; // IPv6 literal
+    if (/^\d+(\.\d+){3}$/.test(host)) return false; // bare IPv4 (private, loopback or public)
+    if (/\.(local|internal|lan|home|localdomain|intranet|corp)$/.test(host)) return false;
+    return true;
+}
+
+/**
+ * Where a Nextcloud user should land: their own Nextcloud portal (the Bee Flow
+ * page, i.e. the "main" top-menu entry whose embed script frames the SPA inside
+ * the Nextcloud chrome), not the public Bee Flow site. Only when the
+ * person is a Nextcloud user (nc_uid) of an organisation that came in through
+ * the connector and has a known Nextcloud base URL; null for everyone else, so
+ * the caller keeps its normal origin.
+ * @param {string} userId
+ * @param {{ getUser?: Function, getOrganization?: Function, appId?: string }} [deps]
+ * @returns {Promise<string|null>} e.g. "https://cloud.example/index.php/apps/app_api/embedded/bee_flow/main"
+ */
+async function ncPortalBase(userId, { getUser, getOrganization, appId } = {}) {
+    try {
+        const user = await (getUser || ((id) => require('../stores/userStore').getUser(id)))(userId);
+        if (!user || !(user.nc_uid || user.ncUid) || !user.organizationId) return null;
+        const org = await (getOrganization || ((id) => require('../stores/userStore').getOrganization(id)))(user.organizationId);
+        if (!org) return null;
+        const isNc = org.registrationSource === 'nextcloud_connector' || org.registration_source === 'nextcloud_connector'
+            || !!(org.nc_instance_id || org.ncInstanceId);
+        const base = String(org.nc_base_url || org.ncBaseUrl || '').trim().replace(/\/+$/, '');
+        if (!isNc || !/^https?:\/\//i.test(base) || !looksBrowserReachable(base)) return null;
+        return `${base}/index.php/apps/app_api/embedded/${appId || 'bee_flow'}/main`;
+    } catch (err) {
+        log.warn(`[ProjectCollab] Nextcloud link base for ${userId} unavailable: ${err && err.message}`);
+        return null;
+    }
+}
+
 function makeCollabNotifier(deps = {}) {
     const createNotification = deps.createNotification || ((n) => require('../stores/notificationStore').createNotification(n));
     const prefs = deps.prefs || { filterRecipients: (ids, projectId, event) => require('../stores/notificationPrefsStore').filterRecipients(ids, projectId, event) };
     const sendEmail = deps.sendEmail || ((mail) => require('../utils/emailService').sendProjectCollabEmail(mail));
     const clientHost = deps.clientHost || (() => require('../utils/appPaths').clientHost());
     const getUser = deps.getUser || ((id) => require('../stores/userStore').getUser(id));
+    const mailLink = deps.mailLink || (async (userId, link) => {
+        const portal = await ncPortalBase(userId, { getUser, getOrganization: deps.getOrganization });
+        return portal ? `${portal}?path=${encodeURIComponent(link)}` : `${clientHost()}${link}`;
+    });
     const renderText = deps.renderText || makeRenderText({ getUser });
     const projectPath = deps.projectPath || ((id, section) => require('../utils/appPaths').projectPath(id, section));
     const groupMemberIds = deps.groupMemberIds
@@ -116,7 +169,7 @@ function makeCollabNotifier(deps = {}) {
                         userId,
                         event,
                         vars: { project: project.name, actor, intro, detail },
-                        ctaUrl: link ? `${clientHost()}${link}` : null,
+                        ctaUrl: link ? await mailLink(userId, link) : null,
                     });
                 } catch (err) {
                     log.warn(`[ProjectCollab] ${event} mail to ${userId} not sent: ${err && err.message}`);
@@ -208,4 +261,4 @@ function makeCollabNotifier(deps = {}) {
     return { chatMentioned, commentMentioned, added, roleChanged, removed, left, ownerChanged, taskAssigned };
 }
 
-module.exports = { makeCollabNotifier, makeRenderText, GROUP_CAP };
+module.exports = { makeCollabNotifier, makeRenderText, ncPortalBase, GROUP_CAP };
