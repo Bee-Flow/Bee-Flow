@@ -1,5 +1,5 @@
 /**
- * What "What Bee Flow may access" (Settings → Integrations → Nextcloud)
+ * What "What Bee Flow may access" (Settings → Connections → Nextcloud)
  * accepts, and what it says when it refuses (routes/ncScope.js).
  *
  * The core drops whatever it does not recognise, which is right for a stored

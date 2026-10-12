@@ -1,6 +1,5 @@
 import { Mic, Square, X, Loader2 } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { NC_BLUE } from './shared/settingsPrimitives';
 import { passageFor } from './voiceprintPassages';
 import Modal from '../../components/shared/Modal';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -153,7 +152,7 @@ export default function VoiceprintEnrollModal({ open, onClose, limits, onEnrolle
                         <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--border-subtle)' }}>
                             <div
                                 className="h-full transition-[width] duration-300"
-                                style={{ width: `${progress}%`, background: canStop ? NC_BLUE : '#f59e0b' }}
+                                style={{ width: `${progress}%`, background: canStop ? 'var(--accent-primary)' : 'var(--warning)' }}
                             />
                         </div>
                         <div className="flex items-center justify-between mt-1.5 text-[11px]" style={{ color: 'var(--text-muted)' }}>

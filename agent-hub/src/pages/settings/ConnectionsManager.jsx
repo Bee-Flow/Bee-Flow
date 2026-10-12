@@ -41,7 +41,7 @@ const inputStyle = { background: 'var(--bg-primary)', borderColor: 'var(--border
 const inputCls = 'px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors';
 
 const GroupLabel = ({ children }) => (
-    <p className="text-[11px] font-semibold uppercase tracking-widest px-1 mb-2" style={{ color: 'var(--text-muted)' }}>{children}</p>
+    <p className="text-[11px] font-semibold uppercase tracking-widest px-1 mb-2 text-[var(--text-muted)]">{children}</p>
 );
 
 const ErrorLine = ({ children }) => (
@@ -281,7 +281,7 @@ const ConnectionRow = ({ connection, grants, onChanged }) => {
                             >{t('connections.set_default', 'Set default')}</button>
                         )}
                         <button onClick={() => setRenaming(true)} className="text-[11px] underline" style={{ color: 'var(--text-muted)' }}>{t('connections.rename', 'Rename')}</button>
-                        <button onClick={() => setSharing(v => !v)} className="p-1" title={t('connections.share', 'Share')} style={{ color: sharing ? 'var(--accent-primary)' : 'var(--text-muted)' }}><Share2 size={14} /></button>
+                        <button type="button" onClick={() => setSharing(v => !v)} aria-expanded={sharing} className="p-1" title={t('connections.share', 'Share')} style={{ color: sharing ? 'var(--accent-primary)' : 'var(--text-muted)' }}><Share2 size={14} /></button>
                         <button onClick={remove} disabled={busy} className="p-1" title={t('connections.delete', 'Delete')} style={{ color: 'var(--text-muted)' }}><Trash2 size={14} /></button>
                     </>
                 )}
@@ -444,7 +444,7 @@ const ConnectionsManager = () => {
 
     return (
         <div className="space-y-1.5">
-            <GroupLabel>{t('connections.title', 'Connections')}</GroupLabel>
+            <GroupLabel>{t('connections.title', 'Named connections')}</GroupLabel>
             <p className="text-[11px] px-1 -mt-1 mb-1" style={{ color: 'var(--text-muted)' }}>
                 {t('connections.description', 'Keep multiple named credentials per integration and lend a specific one to teammates. Recipients without a lent connection bring their own.')}
             </p>

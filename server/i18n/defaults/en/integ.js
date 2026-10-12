@@ -108,7 +108,7 @@ module.exports = {
     'integ.mcp_desc': 'Configure your credentials for {toolCount} tools',
     'integ.n8n_desc': 'Workflow automation with n8n webhooks',
 
-    // ── Settings → Integrations: Nextcloud + MCP cards ──────────
+    // ── Settings → Connections: Nextcloud + MCP cards ──────────
     'integ.nextcloud_desc': 'Connect Nextcloud for file/WebDAV access in chat',
     'integ.nextcloud_connected': 'App password saved — files & WebDAV available to agents',
     'integ.nextcloud_connector': 'Connected via Bee Flow Nextcloud connector — files, calendar, mail and more work in chat without extra setup.',
@@ -198,13 +198,13 @@ module.exports = {
     'integ.search_save_defaults': 'Save Defaults',
     'integ.services_linkedin_configuration': 'LinkedIn Configuration',
     'integ.services_configured': 'Configured',
-    'integ.services_set_linkedin_api_credentials_users_can': 'Set LinkedIn API credentials. Users can then connect their LinkedIn accounts from Settings → Integrations.',
+    'integ.services_set_linkedin_api_credentials_users_can': 'Set LinkedIn API credentials. Users can then connect their LinkedIn accounts from Settings → Connections.',
     'integ.services_save': 'Save',
     'integ.services_get_credentials_from_your': 'Get credentials from your',
     'integ.services_linkedin_developer_app': 'LinkedIn Developer App',
     'integ.services_enable_share_on_linkedin_sign_in_with': '— enable "Share on LinkedIn" + "Sign In with LinkedIn using OpenID Connect".',
     'integ.services_withings_configuration': 'Withings Configuration',
-    'integ.services_set_withings_api_credentials_users_can': 'Set Withings API credentials. Users can then connect their Health Mate accounts from Settings → Integrations.',
+    'integ.services_set_withings_api_credentials_users_can': 'Set Withings API credentials. Users can then connect their Health Mate accounts from Settings → Connections.',
     'integ.services_register_an_app_in_the': 'Register an app in the',
     'integ.services_withings_developer_dashboard': 'Withings Developer Dashboard',
     'integ.services_and_set_its_callback_url_to': 'and set its callback URL to',
@@ -330,7 +330,7 @@ module.exports = {
     'integ.git_hub_sync_github_sync': 'GitHub Sync',
     'integ.git_hub_sync_version_control_your_ai_agent': 'Version-control your AI agent configurations by syncing them to a GitHub repository.',
     'integ.git_hub_sync_github_not_connected': 'GitHub Not Connected',
-    'integ.git_hub_sync_connect_your_github_account_in': 'Connect your GitHub account in Settings → Integrations first, then return here to configure sync.',
+    'integ.git_hub_sync_connect_your_github_account_in': 'Connect your GitHub account in Settings → Connections first, then return here to configure sync.',
     'integ.git_hub_sync_set_up_agent_sync': 'Set Up Agent Sync',
     'integ.git_hub_sync_choose_a_github_repository_to_store': 'Choose a GitHub repository to store your agent configurations. Every change will be tracked as a commit with full diff history.',
     'integ.git_hub_sync_configure_repository': 'Configure Repository',

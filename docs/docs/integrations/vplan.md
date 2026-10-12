@@ -14,7 +14,7 @@ vPlan issues **two** values that are needed together — the API key *and* the A
 
 1. In vPlan, open **Settings → Developers** and click the **+** next to *API keys*. (API access is available from the **Basic** plan.)
 2. Give the key a name and save. vPlan now shows the **API key** and the **API env** — copy both.
-3. In Bee Flow, go to **Settings → Integrations → vPlan**, paste the API env and the API key, and save.
+3. In Bee Flow, go to **Settings → Connections → vPlan**, paste the API env and the API key, and save.
 
 The pair is stored per user and encrypted at rest (AES-256-GCM). vPlan recommends rotating the key at least every 6 months.
 

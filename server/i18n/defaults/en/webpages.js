@@ -107,7 +107,7 @@ module.exports = {
     'webpages.apps.choose_automation': 'Choose an automation…',
     'webpages.apps.come_back': 'and come back — this list updates when you return.',
     'webpages.apps.connect_first': 'Connect it first',
-    'webpages.apps.connect_in_settings': 'Connect it in Settings → Integrations',
+    'webpages.apps.connect_in_settings': 'Connect it in Settings → Connections',
     'webpages.apps.discovery_failed': 'Couldn\'t verify your connected apps — statuses below may be stale.',
     'webpages.apps.err_add_app': 'Could not add the app ({status})',
     'webpages.apps.err_add_automation': 'Could not add the automation ({status})',

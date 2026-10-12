@@ -422,7 +422,7 @@ function settingAndFixes(code, ctx) {
     const integrationStep = !!step?.tool;
     if (CONNECTION_CODES.has(code)) {
         // Only an integration action has a connection to switch; for any other
-        // step the connection lives in Settings → Integrations.
+        // step the connection lives in Settings → Connections.
         const settingKey = integrationStep ? 'connection' : null;
         const fixes = [];
         if (code === 'nextcloud_no_access') {

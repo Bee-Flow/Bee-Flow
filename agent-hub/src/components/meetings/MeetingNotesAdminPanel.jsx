@@ -46,67 +46,60 @@ export default function MeetingNotesAdminPanel({ user }) {
         <div className="mt-6">
             <div className="flex items-center gap-2 mb-2">
                 <MessageSquare className="w-4 h-4" style={{ color: NC_BLUE }} />
-                <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">
                     {t('meetings.admin_talk.title', 'Talk Meeting Notes')}
                 </p>
             </div>
-            <p className="text-[12px] mb-3" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-[12px] mb-3 text-[var(--text-muted)]">
                 {t('meetings.admin_talk.intro', 'Turn Nextcloud Talk call recordings into Meeting Notes, transcribed by your organisation\'s configured transcription engine. These org settings override each member\'s personal settings.')}
             </p>
 
             {loading ? (
-                <div className="flex items-center gap-2 px-5 py-4 rounded-xl" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}>
-                    <Loader2 className="w-4 h-4 animate-spin" style={{ color: NC_BLUE }} />
-                    <span className="text-[13px]" style={{ color: 'var(--text-muted)' }}>{t('common.loading_ellipsis', 'Loading…')}</span>
+                <div className="flex items-center gap-2 px-5 py-4 rounded-xl border bg-[var(--bg-secondary)] border-[var(--border-subtle)]">
+                    <Loader2 className="w-4 h-4 animate-spin text-[var(--accent-primary)]" />
+                    <span className="text-[13px] text-[var(--text-muted)]">{t('common.loading_ellipsis', 'Loading…')}</span>
                 </div>
             ) : (
                 <>
-                    <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-subtle)' }}>
+                    <div className="rounded-xl overflow-hidden border border-[var(--border-subtle)] divide-y divide-[var(--border-subtle)]">
                         <Row title={t('meetings.admin_talk.auto_record', 'Auto-record Talk meetings')} desc={t('meetings.admin_talk.auto_record_desc', 'Automatically start recording calls members moderate (requires the Nextcloud recording backend).')}>
-                            <Toggle on={cfg.autoRecord} onClick={() => setCfg(c => ({ ...c, autoRecord: !c.autoRecord }))} disabled={saving} />
+                            <Toggle ariaLabel={t('meetings.admin_talk.auto_record', 'Auto-record Talk meetings')} on={cfg.autoRecord} onClick={() => setCfg(c => ({ ...c, autoRecord: !c.autoRecord }))} disabled={saving} />
                         </Row>
                         {cfg.autoRecord && (
                             <>
-                                <div style={{ height: 1, background: 'var(--border-subtle)' }} />
                                 <Row title={t('meetings.admin_talk.which', 'Which calls')} desc={t('meetings.admin_talk.which_desc', 'Record only scheduled calendar meetings, or every call a member moderates.')}>
-                                    <Select value={cfg.autoRecordScope} disabled={saving} onChange={e => setCfg(c => ({ ...c, autoRecordScope: e.target.value }))}
+                                    <Select ariaLabel={t('meetings.admin_talk.which', 'Which calls')} value={cfg.autoRecordScope} disabled={saving} onChange={e => setCfg(c => ({ ...c, autoRecordScope: e.target.value }))}
                                         options={[{ value: 'calendar', label: t('meetings.admin_talk.scope_calendar', 'Calendar meetings') }, { value: 'all', label: t('meetings.admin_talk.scope_all', 'Any moderated call') }]} />
                                 </Row>
-                                <div style={{ height: 1, background: 'var(--border-subtle)' }} />
                                 <Row title={t('meetings.admin_talk.quality', 'Recording quality')} desc={t('meetings.admin_talk.quality_desc', 'Audio-only is smaller and faster to transcribe.')}>
-                                    <Select value={cfg.recordingMode} disabled={saving} onChange={e => setCfg(c => ({ ...c, recordingMode: e.target.value }))}
+                                    <Select ariaLabel={t('meetings.admin_talk.quality', 'Recording quality')} value={cfg.recordingMode} disabled={saving} onChange={e => setCfg(c => ({ ...c, recordingMode: e.target.value }))}
                                         options={[{ value: 'audio', label: t('meetings.admin_talk.audio_only', 'Audio-only') }, { value: 'video', label: t('meetings.admin_talk.video', 'Video') }]} />
                                 </Row>
                             </>
                         )}
-                        <div style={{ height: 1, background: 'var(--border-subtle)' }} />
                         <Row title={t('meetings.admin_talk.auto_transcribe', 'Auto-transcribe Talk recordings')} desc={t('meetings.admin_talk.auto_transcribe_desc', 'When a new Talk recording appears, create a Meeting Note automatically.')}>
-                            <Toggle on={cfg.autoTranscribe} onClick={() => setCfg(c => ({ ...c, autoTranscribe: !c.autoTranscribe }))} disabled={saving} />
+                            <Toggle ariaLabel={t('meetings.admin_talk.auto_transcribe', 'Auto-transcribe Talk recordings')} on={cfg.autoTranscribe} onClick={() => setCfg(c => ({ ...c, autoTranscribe: !c.autoTranscribe }))} disabled={saving} />
                         </Row>
-                        <div style={{ height: 1, background: 'var(--border-subtle)' }} />
                         <Row title={t('meetings.admin_talk.post_summary', 'Post summary back into Talk')} desc={t('meetings.admin_talk.post_summary_desc', 'After transcription, post the summary + action items into the conversation.')}>
-                            <Toggle on={cfg.postSummaryBack} onClick={() => setCfg(c => ({ ...c, postSummaryBack: !c.postSummaryBack }))} disabled={saving} />
+                            <Toggle ariaLabel={t('meetings.admin_talk.post_summary', 'Post summary back into Talk')} on={cfg.postSummaryBack} onClick={() => setCfg(c => ({ ...c, postSummaryBack: !c.postSummaryBack }))} disabled={saving} />
                         </Row>
-                        <div style={{ height: 1, background: 'var(--border-subtle)' }} />
                         <Row title={t('meetings.admin_talk.folder', 'Recordings folder')} desc={t('meetings.admin_talk.folder_desc', 'Nextcloud Files folder where Talk saves recordings — normally /Talk/Recording, with one subfolder per conversation.')}>
                             <input
+                                aria-label={t('meetings.admin_talk.folder', 'Recordings folder')}
                                 type="text" value={cfg.recordingFolder}
                                 onChange={e => setCfg(c => ({ ...c, recordingFolder: e.target.value }))}
                                 disabled={saving} placeholder="/Talk/Recording"
-                                className="w-40 px-3 py-1.5 rounded-lg border outline-none text-[13px]"
-                                style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                className="w-40 px-3 py-1.5 rounded-lg border outline-none text-[13px] bg-[var(--bg-primary)] border-[var(--border-default)] text-[var(--text-primary)]"
                             />
                         </Row>
-                        <div style={{ height: 1, background: 'var(--border-subtle)' }} />
                         <Row title={t('meetings.admin_talk.insights', 'Per-person meeting insights')} desc={t('meetings.admin_talk.insights_desc', 'Show per-person statistics (talk time, longest monologue) on the meeting Insights panel. Off = members see only meeting-level metrics.')}>
-                            <Toggle on={cfg.insightsPerPersonStats !== false} onClick={() => setCfg(c => ({ ...c, insightsPerPersonStats: c.insightsPerPersonStats === false }))} disabled={saving} />
+                            <Toggle ariaLabel={t('meetings.admin_talk.insights', 'Per-person meeting insights')} on={cfg.insightsPerPersonStats !== false} onClick={() => setCfg(c => ({ ...c, insightsPerPersonStats: c.insightsPerPersonStats === false }))} disabled={saving} />
                         </Row>
-                        <div style={{ height: 1, background: 'var(--border-subtle)' }} />
                         <Row title={t('meetings.admin_talk.language', 'Default language')} desc={t('meetings.admin_talk.language_desc', 'Language used when auto-transcribing Talk recordings.')}>
                             <select
+                                aria-label={t('meetings.admin_talk.language', 'Default language')}
                                 value={cfg.language} onChange={e => setCfg(c => ({ ...c, language: e.target.value }))} disabled={saving}
-                                className="w-40 px-3 py-1.5 rounded-lg border outline-none text-[13px]"
-                                style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                className="w-40 px-3 py-1.5 rounded-lg border outline-none text-[13px] bg-[var(--bg-primary)] border-[var(--border-default)] text-[var(--text-primary)]"
                             >
                                 {LANGS.map(l => <option key={l.code} value={l.code}>{l.label}</option>)}
                             </select>
@@ -116,13 +109,12 @@ export default function MeetingNotesAdminPanel({ user }) {
                     <div className="flex items-center gap-3 mt-3">
                         <button
                             onClick={save} disabled={saving}
-                            className="px-4 py-1.5 rounded-lg text-[13px] font-medium text-white disabled:opacity-40"
-                            style={{ background: NC_BLUE }}
+                            className="px-4 py-1.5 rounded-lg text-[13px] font-medium disabled:opacity-40 bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]"
                         >
                             {saving ? t('common.saving', 'Saving…') : t('common.save', 'Save')}
                         </button>
                         {message && (
-                            <span className={`text-[12px] font-medium ${message.type === 'success' ? 'text-green-600' : 'text-red-500'}`}>
+                            <span className={`text-[12px] font-medium ${message.type === 'success' ? 'text-[var(--success-ink)]' : 'text-[var(--error-ink)]'}`}>
                                 {message.type === 'success' ? '✓' : '⚠'} {message.text}
                             </span>
                         )}

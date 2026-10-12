@@ -52,8 +52,8 @@ const ConsumerBetaFeaturesSection = () => {
         return (
             <div className="space-y-5 animate-fadeIn">
                 <div>
-                    <h2 className="text-lg font-bold text-[var(--text-primary)]">
-                        {t('settings.beta_features', 'Beta features')}
+                    <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+                        {t('settings.beta_features', 'Beta Features')}
                     </h2>
                     <p className="text-sm text-[var(--text-muted)] mt-1">
                         {t('settings.beta_features_intro', 'Experimental features available on your account')}
@@ -81,8 +81,8 @@ const ConsumerBetaFeaturesSection = () => {
     return (
         <div className="space-y-5 animate-fadeIn">
             <div>
-                <h2 className="text-lg font-bold text-[var(--text-primary)]">
-                    {t('settings.beta_features', 'Beta features')}
+                <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+                    {t('settings.beta_features', 'Beta Features')}
                 </h2>
                 <p className="text-sm text-[var(--text-muted)] mt-1">
                     {t('settings.consumer_beta.subtitle', 'Experimental features available on your account')}

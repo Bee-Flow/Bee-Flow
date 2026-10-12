@@ -88,7 +88,7 @@ export function OrgAiContextScreen() {
 
     return (
         <OrgSettingsFrame
-            title={t('settings.ai_context', 'Context in long conversations')}
+            title={t('admin.ai_context.title', 'Context in long conversations')}
             subtitle={t('mobile.org.ai_context_subtitle', 'How much of a long chat the assistant keeps in view')}
             allowed={allowed}
             query={query}

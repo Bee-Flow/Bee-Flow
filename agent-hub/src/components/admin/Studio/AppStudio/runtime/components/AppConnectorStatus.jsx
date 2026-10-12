@@ -158,7 +158,7 @@ export default function AppConnectorStatus({ node }) {
             : ROLE_COLORS.success;
 
     const detail = !connected
-        ? t('studio_apps_runtime.connector.not_connected', 'Not connected. Connect {provider} under Settings → Integrations and this fills up by itself.', { provider: providerLabel })
+        ? t('studio_apps_runtime.connector.not_connected', 'Not connected. Connect {provider} under Settings → Connections and this fills up by itself.', { provider: providerLabel })
         : [
             data.address
                 ? t('studio_apps_runtime.connector.reading_address', 'Reading {address}', { address: data.address })

@@ -398,7 +398,7 @@ function testFailureMessage(status, body, t) {
     if (status === 404) return t('studio_apps_bi.connectors.test_save_first', 'Save your changes first — a test always runs the last saved version of this connector.');
     if (body?.code === 'connection_required') {
         const app = body.provider || t('studio_apps_bi.sync.err_connect_that_app', 'that app');
-        return t('studio_apps_bi.connectors.test_connect_first', 'Connect {app} to your account first (Settings → Integrations), then test again.', { app });
+        return t('studio_apps_bi.connectors.test_connect_first', 'Connect {app} to your account first (Settings → Connections), then test again.', { app });
     }
     if (status === 429) return t('studio_apps_bi.connectors.test_rate_limited', 'That is a lot of tests in one minute. Wait a moment and try again.');
     return body?.error || t('studio_apps_bi.sync.err_failed', 'It did not work ({status}).', { status });
@@ -610,7 +610,7 @@ function MailboxFields({ connector, setOpt, disabled, appId, saved }) {
                     <p className="-mt-1 text-xs text-[var(--text-tertiary)]">
                         {isGmail
                             ? t('studio_apps_bi.connectors.shared_gmail_note', 'Gmail cannot open someone else’s mailbox, so this must be a team address delivered to your own inbox and verified as a “send mail as” alias.')
-                            : t('studio_apps_bi.connectors.shared_outlook_note', 'Your Microsoft admin must have given you access to this mailbox, and the connection needs the shared-mailbox permission (reconnect Microsoft in Settings → Integrations if it does not).')}
+                            : t('studio_apps_bi.connectors.shared_outlook_note', 'Your Microsoft admin must have given you access to this mailbox, and the connection needs the shared-mailbox permission (reconnect Microsoft in Settings → Connections if it does not).')}
                     </p>
                 </>
             ) : null}

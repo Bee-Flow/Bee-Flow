@@ -135,7 +135,7 @@ describe('UpcomingMeetings', () => {
         render(<UpcomingMeetings />);
 
         await screen.findByText(/Connect Google Workspace to see your Meet meetings here/);
-        expect(screen.getByRole('link', { name: /Settings → Integrations/ })).toHaveAttribute('href', '/app/settings/integrations');
+        expect(screen.getByRole('link', { name: /Settings → Connections/ })).toHaveAttribute('href', '/app/settings/integrations');
         expect(screen.queryByText("Couldn't load Google Meet meetings")).not.toBeInTheDocument();
         expect(screen.queryByText(/doesn't include Meet permissions/)).not.toBeInTheDocument();
     });

@@ -33,7 +33,10 @@ const EMERALD = '#10b981';
 const BLUE = '#3b82f6';
 const EVERYONE = '__everyone__';
 
-export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = null, hideLocked = false, heading, subtitle }) {
+// `hideHeading`: for a caller whose page already titles the matrix (Settings →
+// Organisation → Integrations, whose h2 and selected tab name it). The intro
+// line and the save status stay.
+export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = null, hideLocked = false, heading, subtitle, hideHeading = false }) {
     const { t } = useTranslation();
     const [loading, setLoading] = useState(true);
     const [data, setData] = useState(null);
@@ -212,26 +215,38 @@ export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = nul
         );
     };
 
+    // The save status sits next to the heading, or next to the intro line
+    // when the heading is hidden.
+    const status = message ? (
+        <span className="inline-flex items-center gap-1.5 text-xs shrink-0" style={{ color: message.type === 'ok' ? EMERALD : '#dc2626' }}>
+            {message.type === 'ok' ? <Check className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}{message.text}
+        </span>
+    ) : null;
+    const intro = subtitle || (
+        <>
+            {t('admin_org.access_matrix_pick', 'Pick')} <strong>{t('admin_org.access_matrix_all_members', 'All members')}</strong> {t('admin_org.access_matrix_or_a', 'or a')} <strong>{t('admin_org.access_matrix_group', 'group')}</strong>{t('admin_org.access_matrix_intro_a', ", then grant the features and integrations it should have. A user gets a capability if it's granted to All members")}{' '}
+            <em>{t('admin_org.access_matrix_or', 'or')}</em> {t('admin_org.access_matrix_intro_b', 'any group they belong to. Locked items (')}<Lock className="w-3 h-3 inline -mt-0.5" />{t('admin_org.access_matrix_intro_c', ") are outside your organisation's access.")}
+        </>
+    );
+
     return (
         <section className="rounded-2xl p-5" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}>
-            <header className="flex items-center justify-between mb-1">
-                <div className="flex items-center gap-2">
-                    <ShieldCheck className="w-5 h-5" style={{ color: EMERALD }} />
-                    <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{heading || t('admin_org.access_matrix_heading', 'Access & Permissions')}</h2>
+            {hideHeading ? (
+                <div className="flex items-start justify-between gap-3 mb-4">
+                    <p className="text-sm text-[var(--text-muted)] max-w-[760px]">{intro}</p>
+                    {status}
                 </div>
-                {message ? (
-                    <span className="inline-flex items-center gap-1.5 text-xs" style={{ color: message.type === 'ok' ? EMERALD : '#dc2626' }}>
-                        {message.type === 'ok' ? <Check className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}{message.text}
-                    </span>
-                ) : null}
-            </header>
-            {subtitle ? (
-                <p className="text-sm mb-4" style={{ color: 'var(--text-muted)', maxWidth: 760 }}>{subtitle}</p>
             ) : (
-                <p className="text-sm mb-4" style={{ color: 'var(--text-muted)', maxWidth: 760 }}>
-                    {t('admin_org.access_matrix_pick', 'Pick')} <strong>{t('admin_org.access_matrix_all_members', 'All members')}</strong> {t('admin_org.access_matrix_or_a', 'or a')} <strong>{t('admin_org.access_matrix_group', 'group')}</strong>{t('admin_org.access_matrix_intro_a', ", then grant the features and integrations it should have. A user gets a capability if it's granted to All members")}{' '}
-                    <em>{t('admin_org.access_matrix_or', 'or')}</em> {t('admin_org.access_matrix_intro_b', 'any group they belong to. Locked items (')}<Lock className="w-3 h-3 inline -mt-0.5" />{t('admin_org.access_matrix_intro_c', ") are outside your organisation's access.")}
-                </p>
+                <>
+                    <header className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2">
+                            <ShieldCheck className="w-5 h-5" style={{ color: EMERALD }} />
+                            <h2 className="text-lg font-semibold text-[var(--text-primary)]">{heading || t('admin_org.access_matrix_heading', 'Access & Permissions')}</h2>
+                        </div>
+                        {status}
+                    </header>
+                    <p className="text-sm mb-4 text-[var(--text-muted)] max-w-[760px]">{intro}</p>
+                </>
             )}
 
             <div className="flex flex-col md:flex-row gap-5">

@@ -122,7 +122,7 @@ module.exports = {
     'compliance.conn_enabled': 'Enabled — swept every 6 hours and on demand',
     'compliance.conn_connection': 'Vault connection',
     'compliance.conn_connection_none': 'No connection linked',
-    'compliance.conn_connection_hint': 'Create a "{provider}" connection under Integrations first — the secret stays in the encrypted vault.',
+    'compliance.conn_connection_hint': 'Create a "{provider}" connection in Settings → Connections first — the secret stays in the encrypted vault.',
     'compliance.conn_settings': 'Settings (JSON)',
     'compliance.conn_settings_invalid': 'Not valid JSON',
     'compliance.conn_save': 'Save connector',

@@ -191,7 +191,7 @@ const FROZEN_LEGACY = [
     ['/app/settings/learning', 'settings', 'jobs/learningNudge.js'],
     ['/app/settings/account/license?checkout=success', 'settings', 'Stripe checkout return (BFSF-244)'],
     ['/app/settings/organisation/license?checkout=cancelled', 'settings', 'Stripe checkout return (BFSF-244)'],
-    ['/app/settings?tab=license', 'settings', 'Stripe portal return'],
+    ['/app/settings?tab=license', 'settings', 'legacy Stripe portal return (minted before the portal returned to /settings/*/license)'],
     ['/app/admin/security/users', 'admin', 'auth/connectorJwt.js pending-user bell'],
     ['/app/admin/support/th1', 'admin', 'issueEgress (BFSF-441 ticket ref), supportIssueSync'],
     ['/app/admin?tab=support&thread=t1', 'admin', 'routes/support/shared.js staff email'],

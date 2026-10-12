@@ -165,7 +165,7 @@ export default function ConnectorSyncPanel({
                 // A missing connection is the one failure with an obvious fix,
                 // so it gets said in those terms rather than as a raw error.
                 if (body?.code === 'connection_required') {
-                    setError(t('studio_apps_bi.sync.err_connect', 'Connect {app} to your account first (Settings → Integrations), then try again.', { app: body.provider || connector.integrationId || t('studio_apps_bi.sync.err_connect_that_app', 'that app') }));
+                    setError(t('studio_apps_bi.sync.err_connect', 'Connect {app} to your account first (Settings → Connections), then try again.', { app: body.provider || connector.integrationId || t('studio_apps_bi.sync.err_connect_that_app', 'that app') }));
                 } else if (res.status === 404) {
                     setError(t('studio_apps_bi.sync.err_save_first', 'Save your changes first — this always runs the last saved version of the connector.'));
                 } else {

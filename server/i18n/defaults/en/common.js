@@ -44,7 +44,7 @@ module.exports = {
     'common.saving': 'Saving…',
     "common.on": "On",
     "common.off": "Off",
-    "common.refresh": "Vernieuwen",
+    "common.refresh": "Refresh",
     "common.clear": "Clear",
     'common.previous': 'Previous',
     'common.pager_range': 'Rows {from}–{to} of {total}',

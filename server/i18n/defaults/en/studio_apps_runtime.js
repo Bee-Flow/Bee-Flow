@@ -104,7 +104,7 @@ module.exports = {
     'studio_apps_runtime.connector.last_problem': 'last check reported a problem',
     'studio_apps_runtime.connector.min_ago': '{n} min ago',
     'studio_apps_runtime.connector.not_checked': 'not checked yet',
-    'studio_apps_runtime.connector.not_connected': 'Not connected. Connect {provider} under Settings → Integrations and this fills up by itself.',
+    'studio_apps_runtime.connector.not_connected': 'Not connected. Connect {provider} under Settings → Connections and this fills up by itself.',
     'studio_apps_runtime.connector.reading_account': 'Reading the {provider} account you signed in with',
     'studio_apps_runtime.connector.reading_address': 'Reading {address}',
     'studio_apps_runtime.connector.refresh_running': 'A refresh is already running.',

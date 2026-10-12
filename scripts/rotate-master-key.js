@@ -424,7 +424,7 @@ async function main() {
                     continue;
                 }
             }
-            console.error(`[rotate] UNREADABLE users."appPassword" for id=${JSON.stringify(row.id)} — user must re-save it in Settings → Integrations.`);
+            console.error(`[rotate] UNREADABLE users."appPassword" for id=${JSON.stringify(row.id)} — user must re-save it in Settings → Connections.`);
             unread++;
         }
         vaultUnreadable += unread;

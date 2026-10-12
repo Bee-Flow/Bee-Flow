@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 
 /**
@@ -74,8 +74,8 @@ vi.mock('../components/agents/AgentDesigner/index', () => ({
 vi.mock('../components/admin/org/OrgUsersPanel', () => ({
     default: () => <div data-testid="mock-org-users" />,
 }));
-vi.mock('../components/admin/org/OrgInfoPanel', () => ({
-    default: () => <div data-testid="mock-org-info" />,
+vi.mock('./settings/OrganisationSection', () => ({
+    default: ({ activeSection }) => <div data-testid="mock-org-section" data-section={activeSection} />,
 }));
 vi.mock('../components/knowledge/SystemKnowledgeBasesPanel', () => ({
     default: () => <div data-testid="mock-system-kbs" />,
@@ -130,8 +130,8 @@ describe('OrgSettings — knowledge-bases tab', () => {
     it('keeps the tab reachable for a manage_knowledge-only user', async () => {
         // The tab is gated on `manage_knowledge` and nothing else; losing it
         // would move knowledge administration out of reach for the exact role
-        // that needs it. (Such a user lands on 'organisation' by default, so
-        // the tab is addressed explicitly here.)
+        // that needs it. (The tab is addressed explicitly here, so the test
+        // does not depend on which tab such a user lands on by default.)
         const OrgSettings = await loadOrgSettings();
         const kbAdmin = { permissions: ['manage_knowledge'] };
         render(<OrgSettings user={kbAdmin} orgSettingsPath={{ seg1: 'knowledge-bases' }} />);
@@ -145,5 +145,49 @@ describe('OrgSettings — knowledge-bases tab', () => {
         const usersAdmin = { permissions: ['manage_users'] };
         render(<OrgSettings user={usersAdmin} orgSettingsPath={{ seg1: 'knowledge-bases' }} />);
         expect(screen.queryByTestId('mock-system-kbs')).toBeNull();
+    });
+});
+
+describe('OrgSettings — organisation tab', () => {
+    it('opens on the Organisation Info editor, not an empty page', async () => {
+        const OrgSettings = await loadOrgSettings();
+        render(<OrgSettings user={adminUser} orgSettingsPath={{}} />);
+        // OrganisationSection with 'info' is the editor plus its save bar; a
+        // bare OrgInfoPanel without a section drew nothing.
+        expect(screen.getByTestId('mock-org-section')).toHaveAttribute('data-section', 'info');
+        expect(screen.getByRole('button', { name: 'Organisation' })).toHaveAttribute('aria-current', 'page');
+    });
+
+    it('is an org-admin tab: an agent editor lands on Agents instead of a form they cannot save', async () => {
+        const OrgSettings = await loadOrgSettings();
+        render(<OrgSettings user={{ orgRole: 'agent_editor', permissions: ['manage_agents'] }} orgSettingsPath={{ seg1: 'organisation' }} />);
+        expect(screen.queryByRole('button', { name: 'Organisation' })).toBeNull();
+        expect(screen.queryByTestId('mock-org-section')).toBeNull();
+        expect(screen.getByTestId('mock-agent-designer')).toBeTruthy();
+    });
+
+    it('stays open to an organisation admin without the global permission', async () => {
+        const OrgSettings = await loadOrgSettings();
+        render(<OrgSettings user={{ orgRole: 'org_admin', permissions: ['org_admin', 'manage_users'] }} orgSettingsPath={{}} />);
+        expect(screen.getByTestId('mock-org-section')).toHaveAttribute('data-section', 'info');
+    });
+});
+
+describe('OrgSettings — tab bar', () => {
+    it('names every tab through the dictionary, in the order of the page', async () => {
+        const OrgSettings = await loadOrgSettings();
+        render(<OrgSettings user={adminUser} orgSettingsPath={{}} />);
+        const bar = screen.getByRole('button', { name: 'Organisation' }).parentElement;
+        expect(within(bar).getAllByRole('button').map(b => b.textContent)).toEqual([
+            'Organisation', 'Agents', 'Knowledge Bases', 'GitHub Sync', 'Nextcloud Sync', 'Users',
+        ]);
+    });
+
+    it('marks only the open tab as the current page', async () => {
+        const OrgSettings = await loadOrgSettings();
+        render(<OrgSettings user={adminUser} orgSettingsPath={{ seg1: 'users' }} />);
+        expect(screen.getByRole('button', { name: 'Users' })).toHaveAttribute('aria-current', 'page');
+        expect(screen.getByRole('button', { name: 'Organisation' })).not.toHaveAttribute('aria-current');
+        expect(screen.getByTestId('mock-org-users')).toBeTruthy();
     });
 });

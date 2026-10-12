@@ -60,11 +60,11 @@ export default function ScalewayBillingIntegration({ hasScalewayBillingConfig, o
                 <ApiKeyField
                     placeholder={hasScalewayBillingConfig ? '••••••••••••••••' : t('integ.scaleway_billing_key_placeholder')}
                     value={secretKey} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSecretKey(e.target.value)}
-                    onSave={handleSave} saving={saving} canSave={canSave} t={t}
+                    onSave={handleSave} saving={saving} canSave={canSave}
                     hint={<>{t('settings.scaleway_billing.help_prefix', 'Scaleway Help:')} <a href={HELP_URL} target="_blank" rel="noopener noreferrer" className="underline text-[var(--accent-primary)]">{t('settings.scaleway_billing.help_link', 'create an API key')}</a></>}
                 />
                 {error && <p className="text-[11px] text-[#dc2626]">{error}</p>}
-                {hasScalewayBillingConfig && <DisconnectButton onDisconnect={handleDisconnect} disconnecting={disconnecting} t={t} />}
+                {hasScalewayBillingConfig && <DisconnectButton onDisconnect={handleDisconnect} disconnecting={disconnecting} />}
             </div>
         </IntegrationRow>
     );

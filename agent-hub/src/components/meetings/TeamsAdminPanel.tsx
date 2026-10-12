@@ -65,13 +65,13 @@ export default function TeamsAdminPanel({ user }: { user?: { organizationId?: st
                             title={t('settings.teams_admin_auto_import', 'Auto-import recorded Teams meetings')}
                             desc={t('settings.teams_admin_auto_import_desc', 'When a Teams meeting a member organised has a recording, create a Meeting Note automatically. Meetings organised by someone outside Bee Flow are not imported.')}
                         >
-                            <Toggle on={!!cfg.autoImport} onClick={() => setCfg((c) => ({ ...c, autoImport: !c.autoImport }))} disabled={busy} />
+                            <Toggle ariaLabel={t('settings.teams_admin_auto_import', 'Auto-import recorded Teams meetings')} on={!!cfg.autoImport} onClick={() => setCfg((c) => ({ ...c, autoImport: !c.autoImport }))} disabled={busy} />
                         </Row>
                         <Row
                             title={t('settings.teams_admin_auto_record', 'Switch on Teams recording for meetings members organise')}
                             desc={t('settings.teams_admin_auto_record_desc', 'When a member turns recording on for a meeting, Bee Flow sets Teams to record it automatically. Teams shows everyone in the call that it is being recorded.')}
                         >
-                            <Toggle on={!!cfg.autoRecordConfig} onClick={() => setCfg((c) => ({ ...c, autoRecordConfig: !c.autoRecordConfig }))} disabled={busy} />
+                            <Toggle ariaLabel={t('settings.teams_admin_auto_record', 'Switch on Teams recording for meetings members organise')} on={!!cfg.autoRecordConfig} onClick={() => setCfg((c) => ({ ...c, autoRecordConfig: !c.autoRecordConfig }))} disabled={busy} />
                         </Row>
                         <Row
                             title={t('settings.teams_notes_language', 'Default language')}

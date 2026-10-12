@@ -162,7 +162,7 @@ export default function ConnectorDrawer({
             {connector.credential && (
                 <DrawerSection
                     label={t('compliance.conn_connection', 'Connection')}
-                    hint={t('compliance.conn_connection_hint', 'Create a "{provider}" connection under Integrations first.', { provider: connector.credential.provider })}
+                    hint={t('compliance.conn_connection_hint', 'Create a "{provider}" connection in Settings → Connections first — the secret stays in the encrypted vault.', { provider: connector.credential.provider })}
                 >
                     <div className="flex items-center gap-1.5">
                         <KeyRound size={12} aria-hidden="true" className="text-[var(--text-tertiary)]" />

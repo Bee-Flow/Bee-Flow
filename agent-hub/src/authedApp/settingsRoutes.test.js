@@ -181,6 +181,8 @@ describe('FROZEN_LEGACY: settings paths the server has minted', () => {
             auth: 'auth',
             privacy: 'privacy',
             encryption: 'encryption',
+            ai_context: 'ai-context',
+            integration_cache: 'integration-cache',
             info: 'info',
             org_usage: 'usage',
             org_compliance: 'compliance',

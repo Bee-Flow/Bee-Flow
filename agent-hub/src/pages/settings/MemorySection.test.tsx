@@ -48,6 +48,15 @@ const lastPost = (spy: ReturnType<typeof mockFetch>) => {
     return { url: String(url), body: JSON.parse(String(init.body)) };
 };
 
+describe('MemorySection: page layout', () => {
+    it('names the page with an h2 and says the import heading once', () => {
+        mockFetch();
+        setup();
+        expect(screen.getByRole('heading', { level: 2, name: 'Memory' })).toBeInTheDocument();
+        expect(screen.getAllByText('Import memory from other AI providers')).toHaveLength(1);
+    });
+});
+
 describe('MemorySection: the master switch', () => {
     it('is On when the user never touched it', () => {
         mockFetch();

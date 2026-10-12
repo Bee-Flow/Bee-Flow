@@ -83,7 +83,7 @@ router.post('/:id/diagnose-trigger', async (req, res) => {
         } else if (session?.accessToken) {
             checks.push({ name: 'auth_mode', status: 'ok', message: 'Nextcloud session found.', detail: { source: session._source || 'session' } });
         } else {
-            checks.push({ name: 'auth_mode', status: 'error', message: 'No Nextcloud credentials found for scheduled/offline runs.', detail: { remediation: 'Connect Nextcloud in Settings → Integrations.' } });
+            checks.push({ name: 'auth_mode', status: 'error', message: 'No Nextcloud credentials found for scheduled/offline runs.', detail: { remediation: 'Connect Nextcloud in Settings → Connections.' } });
         }
 
         // 3) Subscription state (cursor / lastPolledAt / lastPushAt / failures)

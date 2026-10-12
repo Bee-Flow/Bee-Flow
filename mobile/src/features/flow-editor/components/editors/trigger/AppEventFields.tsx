@@ -68,7 +68,7 @@ export function AppEventFields(editor: StepEditorProps) {
             <Note>
                 {t(
                     'automations.trigger_editors.no_event_sources_are_available_to',
-                    'No event sources are available to you yet. Connect an app (e.g. Gmail or Nextcloud) in Settings → Integrations first.',
+                    'No event sources are available to you yet. Connect an app (e.g. Gmail or Nextcloud) in Settings → Connections first.',
                 )}
             </Note>
         );

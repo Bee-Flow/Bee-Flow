@@ -157,7 +157,7 @@ const GitHubSyncPanel = ({ user }) => {
 
     if (loading) {
         return (
-            <div className="max-w-2xl mx-auto space-y-4 animate-pulse">
+            <div className="max-w-2xl space-y-4 animate-pulse">
                 <div className="h-6 w-48 bg-[var(--bg-tertiary)] rounded-lg" />
                 <div className="h-32 bg-[var(--bg-tertiary)] rounded-2xl" />
                 <div className="h-24 bg-[var(--bg-tertiary)] rounded-2xl" />
@@ -166,10 +166,10 @@ const GitHubSyncPanel = ({ user }) => {
     }
 
     return (
-        <div className="max-w-2xl mx-auto space-y-6">
+        <div className="max-w-2xl space-y-6">
             {/* Header */}
             <div>
-                <h2 className="text-lg font-bold text-[var(--text-primary)] flex items-center gap-2">
+                <h2 className="text-lg font-semibold text-[var(--text-primary)] flex items-center gap-2">
                     <FolderGit2 className="w-5 h-5" style={{ color: 'var(--accent-primary)' }} />
                     {t('integ.git_hub_sync_github_sync', 'GitHub Sync')}
                 </h2>
@@ -195,7 +195,7 @@ const GitHubSyncPanel = ({ user }) => {
                     <GitBranch className="w-10 h-10 mx-auto mb-3 text-[var(--text-muted)] opacity-40" />
                     <p className="text-sm font-medium text-[var(--text-primary)]">{t('integ.git_hub_sync_github_not_connected', 'GitHub Not Connected')}</p>
                     <p className="text-xs text-[var(--text-muted)] mt-1">
-                        {t('integ.git_hub_sync_connect_your_github_account_in', 'Connect your GitHub account in Settings → Integrations first, then return here to configure sync.')}
+                        {t('integ.git_hub_sync_connect_your_github_account_in', 'Connect your GitHub account in Settings → Connections first, then return here to configure sync.')}
                     </p>
                 </div>
             )}

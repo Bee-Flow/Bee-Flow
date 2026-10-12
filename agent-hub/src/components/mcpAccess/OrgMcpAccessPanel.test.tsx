@@ -159,3 +159,10 @@ it('says why the policy could not be loaded', async () => {
     render(withQueryClient(<OrgMcpAccessPanel />));
     expect(await screen.findByRole('alert')).toHaveTextContent('Only an organisation admin can open MCP access.');
 });
+
+it('titles the page with a level-2 heading, like the other organisation pages', async () => {
+    serve();
+    await renderLoaded();
+    expect(screen.getByRole('heading', { level: 2, name: 'MCP Access' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'MCP Access' })).toBeInTheDocument();
+});

@@ -168,7 +168,7 @@ function AppEventFields({ draft, set, setNested, catalog = null }) {
     if (!provider && providerDefs.length === 0) {
         return (
             <div className="text-[11px] text-[var(--text-tertiary)] leading-snug">
-                {t('automations.trigger_editors.no_event_sources_are_available_to', 'No event sources are available to you yet. Connect an app (e.g. Gmail or Nextcloud) in Settings → Integrations first.')}
+                {t('automations.trigger_editors.no_event_sources_are_available_to', 'No event sources are available to you yet. Connect an app (e.g. Gmail or Nextcloud) in Settings → Connections first.')}
             </div>
         );
     }

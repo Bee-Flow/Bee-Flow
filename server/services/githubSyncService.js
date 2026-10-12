@@ -31,7 +31,7 @@ const GITHUB_API = 'https://api.github.com';
  */
 async function getToken(userId) {
     const token = await configStore.getSecret(`github_token_user_${userId}`);
-    if (!token) throw new Error('GitHub not connected. Set your Personal Access Token in Settings → Integrations.');
+    if (!token) throw new Error('GitHub not connected. Set your Personal Access Token in Settings → Connections.');
     return token;
 }
 
@@ -52,7 +52,7 @@ async function ghFetch(token, endpoint, options = {}) {
     });
 
     if (res.status === 401) {
-        throw new Error('GitHub token expired or invalid. Update it in Settings → Integrations.');
+        throw new Error('GitHub token expired or invalid. Update it in Settings → Connections.');
     }
     // 404 is expected for new files (file doesn't exist yet)
     if (res.status === 404 && options._allow404) {

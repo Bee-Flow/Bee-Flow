@@ -8,7 +8,8 @@ import { COUNTRIES } from '../../subscriptions/access/countries';
 
 // ── Organisation Info section (Branding + Legal) — extracted verbatim from OrgInfoPanel. ──
 const OrgInfoSection = ({ t, isNcOrg, ncOrg, orgData, setOrgData, handleLogoUpload, handleLogoRemove }) => (
-                    <div className="max-w-xl mx-auto space-y-8 animate-fadeIn">
+                    <div className="max-w-3xl space-y-8 animate-fadeIn">
+                        <h2 className="text-lg font-semibold text-[var(--text-primary)]">{t('settings.org_info', 'Organisation Info')}</h2>
                         {/* NC binding banner — read-only summary of which Nextcloud
                             instance owns this org's identity. Reminds admins that
                             users come from NC and points them to the Sync panel. */}
@@ -47,7 +48,7 @@ const OrgInfoSection = ({ t, isNcOrg, ncOrg, orgData, setOrgData, handleLogoUplo
                         {/* ── Branding section ── */}
                         <div className="space-y-5">
                             <div>
-                                <h2 className="text-lg font-bold text-[var(--text-primary)]">{t('org.branding')}</h2>
+                                <h3 className="text-base font-semibold text-[var(--text-primary)]">{t('org.branding')}</h3>
                                 <p className="text-sm text-[var(--text-muted)] mt-0.5">{t('org.branding_subtitle')}</p>
                             </div>
                             <Field label={t('org.logo')} hint={t('org.logo_hint')}>
@@ -64,13 +65,13 @@ const OrgInfoSection = ({ t, isNcOrg, ncOrg, orgData, setOrgData, handleLogoUplo
                                         </div>
                                     )}
                                     <div className="flex flex-col gap-2">
-                                        <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-[var(--accent-primary)] text-white hover:opacity-90 transition-opacity">
+                                        <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-[var(--accent-primary)] text-[var(--accent-primary-fg)] hover:opacity-90 transition-opacity">
                                             <Upload className="w-4 h-4" />
                                             {t('org.upload_logo')}
                                             <input type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" className="hidden" onChange={handleLogoUpload} />
                                         </label>
                                         {orgData.logo && (
-                                            <button onClick={handleLogoRemove} className="text-xs text-[var(--text-muted)] hover:text-red-500 transition-colors text-left">
+                                            <button type="button" onClick={handleLogoRemove} className="text-xs text-[var(--text-muted)] hover:text-red-500 transition-colors text-left">
                                                 {t('org.remove_logo')}
                                             </button>
                                         )}
@@ -107,7 +108,7 @@ const OrgInfoSection = ({ t, isNcOrg, ncOrg, orgData, setOrgData, handleLogoUplo
                                 {/* ── Legal & Invoicing section ── */}
                                 <div className="space-y-5">
                                     <div>
-                                        <h2 className="text-lg font-bold text-[var(--text-primary)]">{t('org.legal_invoicing')}</h2>
+                                        <h3 className="text-base font-semibold text-[var(--text-primary)]">{t('org.legal_invoicing')}</h3>
                                         <p className="text-sm text-[var(--text-muted)] mt-0.5">{t('org.legal_subtitle')}</p>
                                     </div>
                                     <Field label={t('org.street')} hint={t('org.billing_address_hint')}>

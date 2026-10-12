@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, waitFor, within, cleanup, act } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import OrgUsersPanel from './OrgUsersPanel';
 import { authFetch } from '../../../utils/helpers';
@@ -23,7 +24,7 @@ import { authFetch } from '../../../utils/helpers';
 
 // useUrlTab is mocked, so the section under test is chosen here and every
 // setActiveSection() call is recorded instead of touching history.
-const tab = vi.hoisted(() => ({ section: 'users', navigated: [] }));
+const tab = vi.hoisted(() => ({ section: 'users', navigated: [], basePath: null }));
 
 vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 const { toast } = vi.hoisted(() => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
@@ -42,7 +43,10 @@ vi.mock('../../../hooks/useTranslation', () => ({
     }),
 }));
 vi.mock('../../../hooks/useUrlTab', () => ({
-    useUrlTab: () => [tab.section, (v) => { tab.navigated.push(v); }],
+    useUrlTab: ({ basePath }) => {
+        tab.basePath = basePath;
+        return [tab.section, (v) => { tab.navigated.push(v); }];
+    },
 }));
 vi.mock('./OrgCustomTiersPanel', () => ({ default: () => <div data-testid="custom-tiers-panel" /> }));
 vi.mock('../../integrations/nextcloud/NextcloudSyncPanel', () => ({
@@ -171,6 +175,7 @@ beforeEach(() => {
     cleanup();
     tab.section = 'users';
     tab.navigated = [];
+    tab.basePath = null;
     authFetch.mockReset();
     resetState();
     installFetch();
@@ -1161,17 +1166,30 @@ describe('OrgUsersPanel — roles section', () => {
 // ═════════════════════════════════════════════════════════ sections / tabs ═══
 
 describe('OrgUsersPanel — sections', () => {
-    it('renders three tabs for a normal org', async () => {
+    it('renders three tabs for a normal org, as a tab list with the current one selected', async () => {
         await renderPanel();
-        expect(screen.getByText('Users')).toBeInTheDocument();
-        expect(screen.getByText('Groups')).toBeInTheDocument();
-        expect(screen.getByText('Roles')).toBeInTheDocument();
+        const tabs = within(screen.getByRole('tablist', { name: 'Users & Groups' })).getAllByRole('tab');
+        expect(tabs.map(el => el.textContent)).toEqual(['Users2', 'Groups2', 'Roles6']);
+        expect(screen.getByRole('tab', { name: /^Users/ })).toHaveAttribute('aria-selected', 'true');
+        expect(screen.getByRole('tab', { name: /^Groups/ })).toHaveAttribute('aria-selected', 'false');
         expect(screen.queryByText('Nextcloud Sync')).not.toBeInTheDocument();
     });
 
-    it('adds a Nextcloud Sync tab only for an ncOrg', async () => {
+    it('has no Nextcloud Sync tab, not even for an ncOrg: Organisation → Nextcloud Sync shows that panel', async () => {
         await renderPanel({}, { ...ADMIN, ncOrg: { instanceId: 'nc1' } });
-        expect(screen.getByText('Nextcloud Sync')).toBeInTheDocument();
+        expect(screen.getAllByRole('tab')).toHaveLength(3);
+        expect(screen.queryByRole('tab', { name: /Nextcloud/ })).not.toBeInTheDocument();
+    });
+
+    it('keeps its addresses under the legacy page by default', async () => {
+        await renderPanel();
+        expect(tab.basePath).toBe('/app/org-settings/users');
+    });
+
+    it('takes the address of the screen that mounts it, so a tab click stays in Settings', async () => {
+        render(<OrgUsersPanel user={ADMIN} basePath="/app/settings/organisation/users" />);
+        await waitFor(() => expect(screen.queryByTestId('user-list-skeleton')).not.toBeInTheDocument());
+        expect(tab.basePath).toBe('/app/settings/organisation/users');
     });
 
     it('renders the Nextcloud panel only when the viewer is an ncOrg — otherwise nothing (fails closed)', async () => {
@@ -1193,7 +1211,7 @@ describe('OrgUsersPanel — sections', () => {
 
     it('switching tab records the new section', async () => {
         await renderPanel();
-        fireEvent.click(screen.getByText('Roles').closest('button'));
+        await userEvent.click(screen.getByRole('tab', { name: /^Roles/ }));
         expect(tab.navigated).toContain('roles');
     });
 });

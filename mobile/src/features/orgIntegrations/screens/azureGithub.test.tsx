@@ -1,8 +1,9 @@
 /**
  * Azure (self-hosted only), GitHub Sync and the org's meeting templates
  * against canned server answers: the section bodies each save sends — a
- * secret only when one was typed — the group sync, who is turned away, and
- * that a new org template starts on the organisation scope.
+ * secret only when one was typed — the group sync, who is turned away, that
+ * a new org template starts on the organisation scope, and that Meeting
+ * templates opens the Google Meet meeting-notes settings (no Nextcloud needed).
  */
 
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
@@ -22,6 +23,7 @@ jest.setTimeout(30_000);
 const mockRouter = { push: jest.fn(), replace: jest.fn(), back: jest.fn() };
 const mockOrg = { orgId: 'o1', isOrgAdmin: true, isSelfHosted: true, isNcOrg: false };
 const mockAccess = { isSuperAdmin: false, orgRole: 'org_admin' };
+let mockLicensed = true;
 
 jest.mock('expo-router', () => ({
     useRouter: () => mockRouter,
@@ -35,7 +37,7 @@ jest.mock('@/core/access', () => ({
     ...jest.requireActual('@/core/access'),
     useAccess: () => mockAccess,
     holds: () => true,
-    hasLicenseFeature: () => true,
+    hasLicenseFeature: () => mockLicensed,
 }));
 
 const AZURE = {
@@ -57,6 +59,7 @@ beforeEach(() => {
     jest.clearAllMocks();
     Object.assign(mockOrg, { orgId: 'o1', isOrgAdmin: true, isSelfHosted: true, isNcOrg: false });
     Object.assign(mockAccess, { isSuperAdmin: false, orgRole: 'org_admin' });
+    mockLicensed = true;
     answers = { '/api/org-azure-config/o1': AZURE };
     (api.get as jest.Mock).mockImplementation((path: string) => Promise.resolve(answers[path] ?? null));
     (api.post as jest.Mock).mockResolvedValue({ ok: true });
@@ -183,7 +186,7 @@ describe('GithubSyncScreen', () => {
     it('sends someone without a GitHub connection to Integrations', async () => {
         answers['/api/integrations/github-sync/status'] = { configured: false, githubConnected: false };
         await renderScreen(<GithubSyncScreen />);
-        await fireEvent.press(await screen.findByText('Integrations'));
+        await fireEvent.press(await screen.findByText('Connections'));
         expect(mockRouter.push).toHaveBeenCalledWith('/integrations');
     });
 
@@ -240,5 +243,21 @@ describe('MeetingTemplatesScreen', () => {
                 isDefault: false,
             }),
         );
+    });
+
+    it('opens the Google Meet meeting-notes settings, also for an org without a Nextcloud and without templates', async () => {
+        answers['/api/summary-templates/org'] = { templates: [], groups: [] };
+        answers['/api/summary-templates'] = { builtins: [], custom: [] };
+        await renderScreen(<MeetingTemplatesScreen />);
+        expect(await screen.findByText('No organization or group templates yet.')).toBeTruthy();
+        await fireEvent.press(screen.getByTestId('meet-notes-link'));
+        expect(mockRouter.push).toHaveBeenCalledWith('/org/nextcloud/meet');
+    });
+
+    it('offers neither templates nor the Meet settings without the Meeting Notes licence', async () => {
+        mockLicensed = false;
+        await renderScreen(<MeetingTemplatesScreen />);
+        expect(screen.getByText('Not in your licence')).toBeTruthy();
+        expect(screen.queryByTestId('meet-notes-link')).toBeNull();
     });
 });

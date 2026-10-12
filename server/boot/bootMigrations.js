@@ -240,6 +240,10 @@ const NL_TRANSLATIONS = [
     'update-nl-memory-2026-10',                // Memory: Dutch for the memory manager, chat controls, org Memory admin page and Settings lines; "Conversation memory" becomes "Context in lange gesprekken" (old shipped text only)
     // Corrects keys an earlier catalogue shipped as English: after every catalogue above, so its Dutch wins.
     'add-nl-fix-english-2026-10-translations',
+    // Settings menu clean-up: "Instellingen → Integraties" becomes "Instellingen → Koppelingen",
+    // "Organisatie-instellingen → …" the real menu path, and the relabelled rows (old shipped text only).
+    // After the memory catalogue, whose "Context in lange gesprekken" it rewords.
+    'update-nl-settings-nav-2026-10',
     // Last, after every catalogue: stored translations follow the routine →
     // automation keys, and shipped Dutch "routine" becomes "automatisering".
     'rename-routine-i18n-2026-10',

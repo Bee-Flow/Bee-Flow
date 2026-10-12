@@ -2725,7 +2725,7 @@ module.exports = {
     "automations.trigger_editors.app_event_e_g_new_gmail": "App event — e.g. new Gmail email",
     "automations.trigger_editors.agent_callable_from_chat": "Agent — callable from chat",
     "automations.trigger_editors.studio_app_called_by_an_app": "Studio App — called by an app action",
-    "automations.trigger_editors.no_event_sources_are_available_to": "No event sources are available to you yet. Connect an app (e.g. Gmail or Nextcloud) in Settings → Integrations first.",
+    "automations.trigger_editors.no_event_sources_are_available_to": "No event sources are available to you yet. Connect an app (e.g. Gmail or Nextcloud) in Settings → Connections first.",
     "automations.trigger_editors.this_app_isn_t_available_to": "This app isn't available to you right now (integration not connected or not permitted for your account). The trigger is kept as configured, but it may not fire.",
     "automations.trigger_editors.create_the_page": "Create the page",
     "automations.trigger_filters.gmail_label_added_filter_label_id": "Gmail label.added filter (labelId is required)",

@@ -36,16 +36,13 @@ export default function AppearanceSection() {
 
     if (theme.allowUserOverride === false) {
         return (
-            <div className="max-w-3xl mx-auto px-6 py-6">
-                <header className="mb-6">
-                    <h2 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
+            <div className="space-y-6">
+                <header>
+                    <h2 className="text-lg font-semibold text-[var(--text-primary)]">
                         {t('settings.appearance.title', 'Appearance')}
                     </h2>
                 </header>
-                <div
-                    className="px-4 py-3 rounded-xl flex items-start gap-3"
-                    style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}
-                >
+                <div className="px-4 py-3 rounded-xl flex items-start gap-3 bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
                     <Lock className="w-4 h-4 mt-0.5 shrink-0" />
                     <p className="text-sm">
                         {t('settings.appearance.locked_prefix', 'Your organisation has locked the appearance to')} <strong>{labelForPreset(theme.preset)}</strong>{t('settings.appearance.locked_suffix', '. Contact an administrator if you need to change it.')}
@@ -70,52 +67,50 @@ export default function AppearanceSection() {
     };
 
     return (
-        <div className="h-full overflow-y-auto" style={{ background: 'var(--bg-primary)' }}>
-            <div className="max-w-3xl mx-auto px-6 py-6 space-y-8">
-                <header>
-                    <h2 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
-                        {t('settings.appearance.title', 'Appearance')}
-                    </h2>
-                    <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
-                        {t('settings.appearance.subtitle', 'Customise how Bee Flow looks on this device. Only you see your choice.')}
-                    </p>
-                </header>
+        <div className="space-y-8">
+            <header>
+                <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+                    {t('settings.appearance.title', 'Appearance')}
+                </h2>
+                <p className="mt-1 text-sm text-[var(--text-muted)]">
+                    {t('settings.appearance.subtitle', 'Customise how Bee Flow looks on this device. Only you see your choice.')}
+                </p>
+            </header>
 
+            <section>
+                <SectionLabel>{t('settings.appearance.theme', 'Theme')}</SectionLabel>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {USER_PRESETS.map(({ id, Icon, hintKey, hint }) => {
+                        const meta = THEME_PRESETS.find((p) => p.id === id);
+                        return (
+                            <PresetCard
+                                key={id}
+                                id={id}
+                                label={meta?.label || id}
+                                Icon={Icon}
+                                hint={t(hintKey, hint)}
+                                selected={theme.preset === id}
+                                disabled={busy}
+                                onSelect={(next) => apply({ preset: next }, `Switched to ${meta?.label || next}`)}
+                            />
+                        );
+                    })}
+                </div>
+            </section>
+
+            {isGlassPreset && (
                 <section>
-                    <SectionLabel>{t('settings.appearance.theme', 'Theme')}</SectionLabel>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                        {USER_PRESETS.map(({ id, Icon, hintKey, hint }) => {
-                            const meta = THEME_PRESETS.find((p) => p.id === id);
-                            return (
-                                <PresetCard
-                                    key={id}
-                                    id={id}
-                                    label={meta?.label || id}
-                                    Icon={Icon}
-                                    hint={t(hintKey, hint)}
-                                    selected={theme.preset === id}
-                                    disabled={busy}
-                                    onSelect={(next) => apply({ preset: next }, `Switched to ${meta?.label || next}`)}
-                                />
-                            );
-                        })}
-                    </div>
+                    <SectionLabel>{t('settings.appearance.mood', 'Mood')}</SectionLabel>
+                    <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>
+                        {t('settings.appearance.mood_hint', 'The colour palette behind glass surfaces.')}
+                    </p>
+                    <WallpaperPresets
+                        value={theme.wallpaperPreset || 'mono'}
+                        onChange={(id) => apply({ wallpaperPreset: id }, id)}
+                        disabled={busy}
+                    />
                 </section>
-
-                {isGlassPreset && (
-                    <section>
-                        <SectionLabel>{t('settings.appearance.mood', 'Mood')}</SectionLabel>
-                        <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>
-                            {t('settings.appearance.mood_hint', 'The colour palette behind glass surfaces.')}
-                        </p>
-                        <WallpaperPresets
-                            value={theme.wallpaperPreset || 'mono'}
-                            onChange={(id) => apply({ wallpaperPreset: id }, id)}
-                            disabled={busy}
-                        />
-                    </section>
-                )}
-            </div>
+            )}
         </div>
     );
 }

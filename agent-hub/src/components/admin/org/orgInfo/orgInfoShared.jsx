@@ -1,5 +1,5 @@
 import { CreditCard, KeyRound, Shield, Lock, Brain, DatabaseZap, Info, Globe, X, Plus } from 'lucide-react';
-import { useState, useRef } from 'react';
+import { cloneElement, isValidElement, useId, useState, useRef } from 'react';
 
 // Map a 3-letter currency code to its glyph for inline display.
 const currencySym = (c) => ({ EUR: '€', USD: '$', GBP: '£' }[String(c || 'EUR').toUpperCase()] || (c || '€'));
@@ -7,29 +7,37 @@ const currencySym = (c) => ({ EUR: '€', USD: '$', GBP: '£' }[String(c || 'EUR
 // Labelled form field wrapper. Defined at module scope (not inside the panel's
 // render) so its component identity is stable across renders — otherwise React
 // remounts the wrapped input on every keystroke and the field loses focus.
-const Field = ({ label, hint, children }) => (
-    <div>
-        <label className="block text-sm font-medium mb-1.5 text-[var(--text-primary)]">{label}</label>
-        {hint && <p className="text-[11px] text-[var(--text-muted)] mb-1.5">{hint}</p>}
-        {children}
-    </div>
-);
+// A single input/select/textarea child is tied to the label (htmlFor/id) and
+// to the hint (aria-describedby); any other child (the logo picker) keeps a
+// plain caption, as a label pointing at a <div> names nothing.
+const FORM_CONTROLS = new Set(['input', 'select', 'textarea']);
+const Field = ({ label, hint, children }) => {
+    const autoId = useId();
+    const isControl = isValidElement(children) && FORM_CONTROLS.has(children.type);
+    const controlId = isControl ? (children.props.id || autoId) : undefined;
+    const hintId = hint ? `${autoId}-hint` : undefined;
+    return (
+        <div>
+            <label htmlFor={controlId} className="block text-sm font-medium mb-1.5 text-[var(--text-primary)]">{label}</label>
+            {hint && <p id={hintId} className="text-[11px] text-[var(--text-muted)] mb-1.5">{hint}</p>}
+            {isControl
+                ? cloneElement(children, { id: controlId, 'aria-describedby': hintId })
+                : children}
+        </div>
+    );
+};
 
-// Skeleton loader
+// Skeleton loader — the page body only: the settings shell draws the menu
+// and the frame, so a sidebar column here would be a phantom second one.
 const Skeleton = () => (
-    <div className="flex h-full animate-pulse">
-        <div className="w-56 p-4 border-r border-[var(--border-subtle)] space-y-3">
-            {[1, 2, 3, 4].map(i => <div key={i} className="h-10 rounded-lg bg-[var(--bg-tertiary)]" />)}
-        </div>
-        <div className="flex-1 p-8 space-y-5">
-            <div className="h-6 w-40 bg-[var(--bg-tertiary)] rounded-lg" />
-            {[1, 2, 3].map(i => (
-                <div key={i} className="space-y-1.5">
-                    <div className="h-4 w-24 bg-[var(--bg-tertiary)] rounded" />
-                    <div className="h-10 w-full bg-[var(--bg-tertiary)] rounded-xl" />
-                </div>
-            ))}
-        </div>
+    <div className="max-w-3xl space-y-5 animate-pulse">
+        <div className="h-6 w-40 bg-[var(--bg-tertiary)] rounded-lg" />
+        {[1, 2, 3].map(i => (
+            <div key={i} className="space-y-1.5">
+                <div className="h-4 w-24 bg-[var(--bg-tertiary)] rounded" />
+                <div className="h-10 w-full bg-[var(--bg-tertiary)] rounded-xl" />
+            </div>
+        ))}
     </div>
 );
 
@@ -87,10 +95,12 @@ const SECTIONS = [
 ];
 
 // ── Allowed Domains editor (tag-input) ──
+/** @param {{ domains?: string[], onChange: Function, t: Function }} props */
 const AllowedDomainsEditor = ({ domains = [], onChange, t }) => {
     const [inputValue, setInputValue] = useState('');
     const [error, setError] = useState('');
     const inputRef = useRef(null);
+    const ids = useId();
 
     const domainRegex = /^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z]{2,})+$/;
 
@@ -99,11 +109,11 @@ const AllowedDomainsEditor = ({ domains = [], onChange, t }) => {
         if (!domain) return;
 
         if (!domainRegex.test(domain)) {
-            setError(`Invalid domain format: "${domain}"`);
+            setError(t('org.domain_invalid', 'Invalid domain format: "{domain}"', { domain }));
             return;
         }
         if (domains.includes(domain)) {
-            setError(`Domain "${domain}" is already added`);
+            setError(t('org.domain_duplicate', 'Domain "{domain}" is already added', { domain }));
             return;
         }
 
@@ -130,8 +140,8 @@ const AllowedDomainsEditor = ({ domains = [], onChange, t }) => {
     return (
         <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] p-4 space-y-3">
             <div className="flex items-center gap-2">
-                <Globe className="w-4 h-4 text-[var(--accent-primary)]" />
-                <span className="text-sm font-semibold text-[var(--text-primary)]">
+                <Globe className="w-4 h-4 text-[var(--accent-primary)]" aria-hidden="true" />
+                <span id={`${ids}-title`} className="text-sm font-semibold text-[var(--text-primary)]">
                     {t('org.allowed_domains', 'Allowed Domains')}
                 </span>
             </div>
@@ -147,15 +157,16 @@ const AllowedDomainsEditor = ({ domains = [], onChange, t }) => {
                 {domains.map(domain => (
                     <span
                         key={domain}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-[var(--accent-primary)] text-white"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]"
                     >
                         {domain}
                         <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); removeDomain(domain); }}
+                            aria-label={t('org.remove_domain', 'Remove {domain}', { domain })}
                             className="ml-0.5 hover:bg-white/20 rounded-full p-0.5 transition-colors"
                         >
-                            <X className="w-3 h-3" />
+                            <X className="w-3 h-3" aria-hidden="true" />
                         </button>
                     </span>
                 ))}
@@ -166,23 +177,27 @@ const AllowedDomainsEditor = ({ domains = [], onChange, t }) => {
                         value={inputValue}
                         onChange={(e) => { setInputValue(e.target.value); setError(''); }}
                         onKeyDown={handleKeyDown}
-                        placeholder={domains.length === 0 ? 'company.com' : 'Add domain...'}
+                        aria-labelledby={`${ids}-title`}
+                        aria-invalid={error ? true : undefined}
+                        aria-describedby={error ? `${ids}-error` : undefined}
+                        placeholder={domains.length === 0 ? 'company.com' : t('org.add_domain_placeholder', 'Add domain...')}
                         className="flex-1 bg-transparent text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none min-w-0"
                     />
                     {inputValue && (
                         <button
                             type="button"
                             onClick={addDomain}
+                            aria-label={t('org.add_domain', 'Add domain')}
                             className="p-1 rounded-md hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--accent-primary)] transition-colors"
                         >
-                            <Plus className="w-4 h-4" />
+                            <Plus className="w-4 h-4" aria-hidden="true" />
                         </button>
                     )}
                 </div>
             </div>
 
             {error && (
-                <p className="text-xs text-red-400 ml-6">{error}</p>
+                <p id={`${ids}-error`} role="alert" className="text-xs text-[var(--error-ink)] ml-6">{error}</p>
             )}
         </div>
     );

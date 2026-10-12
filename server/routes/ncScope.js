@@ -1,6 +1,6 @@
 /**
  * Per-user Nextcloud access scope API — the settings surface behind
- * "What Bee Flow may access" (Settings → Integrations → Nextcloud).
+ * "What Bee Flow may access" (Settings → Connections → Nextcloud).
  *
  * Self-service only in v1: a user reads and writes their OWN scope. The org
  * ceiling (org_nc_scope_<orgId>) is composed by the resolver but has no

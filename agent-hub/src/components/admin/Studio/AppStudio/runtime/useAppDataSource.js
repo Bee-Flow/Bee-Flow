@@ -165,7 +165,7 @@ async function fetchBinding(appId, binding, { sample = false, cacheKey = null } 
             // components and the pre-flight banner can render "connect first".
             const err = body?.code === 'connection_required'
                 ? Object.assign(
-                    new Error(`Connect ${body?.provider || 'this app'} in Settings → Integrations to load this data`),
+                    new Error(`Connect ${body?.provider || 'this app'} in Settings → Connections to load this data`),
                     { status: res.status },
                 )
                 : dataError(res, body, 'Could not run connector');

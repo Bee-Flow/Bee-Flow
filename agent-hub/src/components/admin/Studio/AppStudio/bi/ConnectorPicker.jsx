@@ -81,7 +81,7 @@ export default function ConnectorPicker({ connectors = [], onApply, onClose }) {
                 <p className="text-sm text-[var(--text-primary)]">
                     {loading ? t('studio_apps_bi.picker.loading', 'Loading your apps…')
                         : failed ? t('studio_apps_bi.picker.failed', 'We couldn’t load your apps just now.')
-                            : t('studio_apps_bi.picker.none_connected', 'No apps are connected to your account yet. Connect one in Settings → Integrations.')}
+                            : t('studio_apps_bi.picker.none_connected', 'No apps are connected to your account yet. Connect one in Settings → Connections.')}
                 </p>
                 <div className="mt-4 flex items-center gap-2">
                     {!loading && (

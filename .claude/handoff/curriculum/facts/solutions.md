@@ -202,7 +202,7 @@ Modal title **Install a Blueprint**, subtitle "{step}/3 · {title}". Footer note
 - **What the file asks its pages to be allowed to do** — "A page's tools run as whoever installed it,
   so installing grants none of these. Tick the ones you want to hand over yourself."
   - "Let \"{page}\" use {tool}" + "Connected to your account" / "Not connected to your account —
-    connect it in Settings → Integrations, then grant it on the page." / "Whether this app is
+    connect it in Settings → Connections, then grant it on the page." / "Whether this app is
     connected could not be checked…"
   - "\"{page}\" asks to let anonymous visitors spend your AI budget." + "It asks for up to ${cap} a
     day. Installing never switches this on — open the page and decide there." (shown, never offered:
