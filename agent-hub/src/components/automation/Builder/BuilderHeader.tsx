@@ -15,6 +15,7 @@ import { CategoryField, StepActionCluster, type StepRow, type StepSharing } from
 import TestRunMenu, { type RunTriggerOption } from './header/TestRunMenu';
 import TitleField, { type HeaderScope } from './header/TitleField';
 import ViewSwitcher, { ViewMenu } from './header/ViewSwitcher';
+import WorkflowMenu from './header/WorkflowMenu';
 
 type Fn = (() => void) | null | undefined;
 
@@ -37,6 +38,8 @@ export interface BuilderHeaderProps {
     backLabel?: string | null;
     /** Opens the automations / Steps list as a slide-over (BFSF-404). */
     onOpenList?: Fn;
+    /** Export the open workflow as JSON (BFSF-405); the menu is hidden without it. */
+    onExportJson?: Fn;
     onActivate?: Fn;
     onDeactivate?: Fn;
     /** "Make vN live": POST /:id/publish. */
@@ -112,7 +115,7 @@ const ICON_BTN = 'w-[30px] h-[30px] rounded-lg grid place-items-center text-[var
 export default function BuilderHeader(props: BuilderHeaderProps) {
     const {
         title = '', triggerKind, automation = null, isActive = false, isDraft = false, canActivate = true,
-        canDiagnose = false, busy = false, onBack, backLabel = null, onOpenList, onActivate, onDeactivate, onPublish,
+        canDiagnose = false, busy = false, onBack, backLabel = null, onOpenList, onExportJson, onActivate, onDeactivate, onPublish,
         onDryRun, onRunLive, triggers = [], primaryTriggerLabel = 'Primary trigger', onDiagnose, onRename,
         scope = null, onExitScope, onDeleteLayer, diagnoseAnchorRef, savingState = 'idle', tab = 'build', onTabChange,
         onUndo, onRedo, canUndo = false, canRedo = false, mode = 'automation', step = null, orgGroups = [],
@@ -250,6 +253,7 @@ export default function BuilderHeader(props: BuilderHeaderProps) {
                                 onPublish={onPublish}
                                 onDeactivate={onDeactivate}
                             />
+                            <WorkflowMenu onExportJson={onExportJson} />
                         </>
                     )}
                 </div>

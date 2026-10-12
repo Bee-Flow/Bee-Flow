@@ -9,6 +9,7 @@ import { useEntitlements } from '../../components/licensing/EntitlementsContext'
 import { useTranslation } from '../../hooks/useTranslation';
 import useUserSettingSave from '../../hooks/useUserSettingSave';
 import { openGoogleOAuthPopup } from '../../lib/googleOAuthPopup';
+import { isTrustedOAuthOrigin } from '../../lib/oauthMessageOrigin';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import NcScopeSection from '../../components/integrations/nextcloud/NcScopeSection';
 import OrgMcpConnections from './OrgMcpConnections';
@@ -586,7 +587,10 @@ const LinkedInIntegration = ({ connected, linkedInName, hasLinkedInConfig, onSav
     const [connecting, setConnecting] = useState(false);
     const [disconnecting, setDisconnecting] = useState(false);
     React.useEffect(() => {
-        const handler = (e) => { if (e.data?.type === 'linkedin-callback' && e.data?.success) onSaved(); };
+        const handler = (e) => {
+            if (!isTrustedOAuthOrigin(e.origin, API_BASE)) return;
+            if (e.data?.type === 'linkedin-callback' && e.data?.success) onSaved();
+        };
         window.addEventListener('message', handler);
         return () => window.removeEventListener('message', handler);
     }, [onSaved]);
@@ -650,6 +654,7 @@ const WithingsIntegration = ({ onSaved, last }) => {
 
     React.useEffect(() => {
         const handler = (e) => {
+            if (!isTrustedOAuthOrigin(e.origin, API_BASE)) return;
             if (e.data?.type !== 'withings-callback') return;
             checkStatus();
             if (e.data.success) onSaved();

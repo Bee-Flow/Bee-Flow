@@ -216,6 +216,7 @@ module.exports = {
     'solutions.installs_none': 'No installation on this instance could be tied back to this Blueprint yet.',
     'solutions.release_version': 'v{version}',
     'solutions.release_version_unknown': 'Version unknown',
+    'solutions.remove_failed': 'That could not be removed from the Solution.',
     'solutions.release_none': 'This Solution has not been published yet, so there are no versions.',
     'solutions.release_row_unrecorded': 'not recorded',
     'solutions.release_carries_nothing': 'This version carries nothing that can be listed.',

@@ -75,7 +75,7 @@ import ManagedPartBanner from '../../shared/ManagedPartBanner';
 import useConfirm from '../../shared/useConfirm';
 import { followUpPlanId } from './chat/planBuild';
 
-export default function BuilderShell({ automationId, onBack, onOpenList = null, user, initialChatInput = '', autoSendInput = null, onAutomationIdResolved = null, initialScopeKey = null, onScopeChange = null, mode = 'automation', onPublished = null, initialTab = null, initialRunId = null, initialRunStepId = null, onBuilderStateChange = null, initialAppRef = null,
+export default function BuilderShell({ automationId, onBack, onOpenList = null, onExportJson = null, user, initialChatInput = '', autoSendInput = null, onAutomationIdResolved = null, initialScopeKey = null, onScopeChange = null, mode = 'automation', onPublished = null, initialTab = null, initialRunId = null, initialRunStepId = null, onBuilderStateChange = null, initialAppRef = null,
     // Hosting hooks for a page that DRIVES the builder (Studio Playbooks):
     //   onTurnEnd({ finalized, aborted, error, automationId, messageCount })
     //     fires once per turn when the stream stops — the only way a host can
@@ -1313,7 +1313,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
     // both cases. The view's id stays `build`; only its label reads "Editor".
     const headerProps = {
         title, triggerKind, isActive, isDraft, statusLabel, statusBadgeClass, canActivate,
-        canDiagnose: isAppEventTrigger, busy, onBack, backLabel, onOpenList, onActivate, onDeactivate,
+        canDiagnose: isAppEventTrigger, busy, onBack, backLabel, onOpenList, onExportJson: isStep ? null : onExportJson, onActivate, onDeactivate,
         onDryRun, onRunLive, onDiagnose, onRename, mode,
         onAssistant: isStep || readOnly ? null : () => askAssistant(), assistantOpen: assistantOpen && !readOnly,
         triggers: secondaryTriggerOptions, primaryTriggerLabel,

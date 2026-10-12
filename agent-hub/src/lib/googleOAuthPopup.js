@@ -8,6 +8,8 @@
 //   { type: 'google-callback', success: boolean }
 // to window.opener and closes itself.
 
+import { isTrustedOAuthOrigin } from './oauthMessageOrigin';
+
 const POPUP_NAME = 'google-oauth';
 const POPUP_WIDTH = 600;
 const POPUP_HEIGHT = 700;
@@ -76,16 +78,9 @@ export async function openGoogleOAuthPopup({ authFetch, apiBase, onDone, onOpene
             onDone?.(result);
             resolve(result);
         };
-        // Only trust the callback page. Without an origin check any window
-        // (an embedded frame, another tab that got a handle) could post a
-        // forged { type:'google-callback', success:true } and make the UI
-        // report a connection that never happened. The API origin is where
-        // the callback page is served; in dev that differs from the SPA's.
-        const apiOrigin = (() => {
-            try { return new URL(apiBase || '', window.location.origin).origin; } catch { return window.location.origin; }
-        })();
+        // Only trust the callback page (see lib/oauthMessageOrigin).
         const handler = (e) => {
-            if (e.origin !== apiOrigin && e.origin !== window.location.origin) return;
+            if (!isTrustedOAuthOrigin(e.origin, apiBase)) return;
             if (e.data?.type === 'google-callback') finish({ success: !!e.data.success });
         };
         window.addEventListener('message', handler);

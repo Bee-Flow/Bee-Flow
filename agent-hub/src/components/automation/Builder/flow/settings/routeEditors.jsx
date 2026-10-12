@@ -1,7 +1,7 @@
 // The unified Condition editor (If / Switch / Filter), extracted verbatim
 // from SettingsForm.jsx.
 import { getList } from '@shared/expr/path.mjs';
-import { Plus, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import ConditionBuilder from '../../mapping/ConditionBuilder';
@@ -222,6 +222,16 @@ function RouteFields({
         // already had behave (routeModel.js, readMatchMode).
         ...(rules.length <= 1 ? { matchMode: 'all' } : null),
     });
+    // BFSF-406: reorder the outputs. Only the order of `cases` changes; edges
+    // are keyed by case NAME, so each connection stays on its own output (the
+    // canvas ports follow the array order).
+    const moveRule = (i, dir) => {
+        const j = i + dir;
+        if (j < 0 || j >= rules.length) return;
+        const next = rules.slice();
+        [next[i], next[j]] = [next[j], next[i]];
+        setRoute({ rules: next });
+    };
     const removeRule = (i) => setRoute({
         rules: rules.filter((_, j) => j !== i),
         ...(route.defaultBranch === rules[i]?.name ? { defaultBranch: '' } : null),
@@ -462,6 +472,26 @@ function RouteFields({
                                             siblingNames={rules.filter((_, j) => j !== i).map(x => x?.name).filter(Boolean)}
                                             onCommit={(name) => updateRule(i, { name })}
                                         />
+                                        <button
+                                            type="button"
+                                            onClick={() => moveRule(i, -1)}
+                                            disabled={i === 0}
+                                            aria-label={t('automations.route_editors.move_output_up', 'Move output up')}
+                                            title={t('automations.route_editors.move_output_up', 'Move output up')}
+                                            className="p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-30 disabled:hover:bg-transparent"
+                                        >
+                                            <ArrowUp size={12} />
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => moveRule(i, 1)}
+                                            disabled={i === rules.length - 1}
+                                            aria-label={t('automations.route_editors.move_output_down', 'Move output down')}
+                                            title={t('automations.route_editors.move_output_down', 'Move output down')}
+                                            className="p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-30 disabled:hover:bg-transparent"
+                                        >
+                                            <ArrowDown size={12} />
+                                        </button>
                                         <button
                                             type="button"
                                             onClick={() => removeRule(i)}

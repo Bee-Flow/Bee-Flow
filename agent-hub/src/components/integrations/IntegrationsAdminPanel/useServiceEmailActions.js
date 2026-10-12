@@ -1,6 +1,7 @@
 // Service Email (Gmail API via OAuth) actions of the IntegrationsAdminPanel —
 // connect popup, disconnect and display-name save, moved verbatim from
 // IntegrationsAdminPanel.jsx.
+import { isTrustedOAuthOrigin } from '../../../lib/oauthMessageOrigin';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 
 export default function useServiceEmailActions({
@@ -43,17 +44,18 @@ export default function useServiceEmailActions({
                 return;
             }
             const onMsg = (ev) => {
+                if (!isTrustedOAuthOrigin(ev.origin, API_BASE)) return;
                 if (!ev.data || ev.data.type !== 'service-email-oauth') return;
                 window.removeEventListener('message', onMsg);
                 clearInterval(timer);
                 setConnectingServiceEmail(false);
                 if (ev.data.ok) {
                     setHasServiceEmail(true);
-                    if (ev.data.message) setServiceEmailAddress(ev.data.message);
-                    setMessage({ type: 'success', text: `Connected ${ev.data.message || 'Google account'}` });
+                    // The address shown comes from load() (server state), never from the message.
+                    setMessage({ type: 'success', text: 'Connected Google account' });
                     load();
                 } else {
-                    setMessage({ type: 'error', text: ev.data.message || 'Connection failed' });
+                    setMessage({ type: 'error', text: 'Connection failed' });
                 }
                 setTimeout(() => setMessage(null), 4000);
             };

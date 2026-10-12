@@ -106,6 +106,9 @@ export function useSolutionData(projectId) {
     const [resources, setResources] = useState(null);
     const [resourcesLoading, setResourcesLoading] = useState(false);
     const [activity, setActivity] = useState([]);
+    // A failed load is not an empty trail: null reaches the Overview as
+    // "could not load", [] stays "nothing here yet".
+    const [activityFailed, setActivityFailed] = useState(false);
     const [graph, setGraph] = useState(null);
     const [graphLoading, setGraphLoading] = useState(false);
     const [completeness, setCompleteness] = useState(null);
@@ -134,10 +137,11 @@ export function useSolutionData(projectId) {
         if (!projectId) return;
         try {
             const res = await authFetch(`${API_BASE}/api/projects/${projectId}/activity?limit=20`);
-            if (!res.ok) return;
+            if (!res.ok) { setActivityFailed(true); return; }
             const data = await res.json();
             setActivity(Array.isArray(data) ? data : (data.items || []));
-        } catch { /* the stream will re-trigger this */ }
+            setActivityFailed(false);
+        } catch { setActivityFailed(true); /* the stream will re-trigger this */ }
     }, [projectId]);
 
     const fetchGraph = useCallback(async () => {
@@ -230,7 +234,7 @@ export function useSolutionData(projectId) {
     });
 
     return {
-        resources, resourcesLoading, activity, graph, graphLoading,
+        resources, resourcesLoading, activity, activityFailed, graph, graphLoading,
         completeness, completenessLoading, completenessError, members, blueprints, runs,
         releases, installs,
         fetchResources, fetchActivity, fetchGraph, fetchCompleteness, fetchMembers, fetchBlueprints,

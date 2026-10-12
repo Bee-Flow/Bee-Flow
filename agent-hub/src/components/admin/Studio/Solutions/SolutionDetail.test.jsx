@@ -496,3 +496,46 @@ describe('the Settings tab', () => {
         expect(queryByTestId('stage-settings')).toBeNull();
     });
 });
+
+describe('removing a part from the Content tab', () => {
+    const project = { id: 'p1', name: 'Quotes', permission: 'owner', installedFromBlueprintId: null, update: null };
+    const RES = { role: 'owner', notebooks: [], apps: [], automations: [{ id: 'r1', name: 'Check VAT', userId: 'u1', isActive: true }], webpages: [], approvals: [] };
+
+    it('says so when the server refuses, and keeps the row', async () => {
+        const user = userEvent.setup();
+        globalThis.__authFetch = vi.fn(async (url, init) => {
+            const ok = (body) => ({ ok: true, status: 200, json: async () => body });
+            if (init?.method === 'PUT') return { ok: false, status: 403, json: async () => ({ error: 'Not allowed' }) };
+            if (url.includes('/resources')) return ok(RES);
+            if (url.includes('/completeness')) return ok(CLEAN);
+            if (url.includes('/graph')) return ok({ nodes: [], edges: [], externals: [], problems: [], unavailable: [], complete: true });
+            if (url.includes('/members')) return ok({ ownerId: 'u1', members: [] });
+            if (url.includes('/package/blueprints')) return ok({ blueprints: [] });
+            return ok({});
+        });
+        const { findByRole, findByTestId, findByText } = render(<SolutionDetail project={project} onBack={() => {}} currentUserId="u1" />);
+        await findByText('Check VAT');
+        await user.click(await findByRole('button', { name: /: Check VAT$/ }));
+        expect((await findByTestId('solution-remove-error')).textContent).toMatch(/Not allowed/);
+        expect(await findByText('Check VAT')).toBeTruthy();
+    });
+});
+
+describe('the Overview activity band', () => {
+    it('a failed activity read does not read as "Nothing here yet."', async () => {
+        const base = globalThis.__authFetch;
+        globalThis.__authFetch = vi.fn(async (url, init) => (
+            url.includes('/activity')
+                ? { ok: false, status: 500, json: async () => ({ error: 'boom' }) }
+                : base(url, init)
+        ));
+        const { findByText, findAllByText, queryByText } = render(
+            <SolutionDetail project={{ id: 'p1', name: 'Quotes', permission: 'owner', installedFromBlueprintId: null, update: null }} onBack={() => {}} />,
+        );
+        await userEvent.setup().click(await findByText('Overview'));
+        await findByText('Recent activity');
+        await waitFor(() => expect(globalThis.__authFetch.mock.calls.some(([u]) => u.includes('/activity'))).toBe(true));
+        expect((await findAllByText(/Could not load this section/)).length).toBeGreaterThan(0);
+        expect(queryByText('Nothing here yet.')).toBeNull();
+    });
+});

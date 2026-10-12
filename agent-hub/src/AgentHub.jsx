@@ -174,8 +174,8 @@ const AgentHub = ({
     // floating drawer or scrim — the notebook simply sits to the right of
     // the chat, the way users expect a split workspace.
     const notebookWrapperClass = isCompact
-        ? "w-[420px] flex-shrink-0 flex flex-col h-full border-l border-[var(--border-subtle)] animate-in slide-in-from-right duration-300"
-        : "w-1/2 min-w-[400px] flex flex-col h-full border-l border-[var(--border-subtle)] animate-in slide-in-from-right duration-300";
+        ? "w-[min(420px,50%)] min-w-0 flex-shrink flex flex-col h-full border-l border-[var(--border-subtle)] animate-in slide-in-from-right duration-300"
+        : "w-1/2 min-w-[min(400px,50%)] flex flex-col h-full border-l border-[var(--border-subtle)] animate-in slide-in-from-right duration-300";
 
     // Feature flags
     // Simple Mode also forces notebooks off — the toggle in /settings/simple-mode

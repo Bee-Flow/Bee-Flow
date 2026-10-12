@@ -147,7 +147,7 @@ const DirectChatView = ({
                         <div className="flex-1 flex overflow-hidden">
                             {/* Chat Pane */}
                             <div className="flex-1 flex flex-col min-w-0 border-r" style={{ borderColor: 'var(--border-subtle)' }}>
-                                <div ref={messagesContainerRef} className={`flex-1 overflow-y-auto ${isMobile ? 'p-2' : 'p-4'} custom-scrollbar`}>
+                                <div ref={messagesContainerRef} className={`flex-1 overflow-y-auto overflow-x-hidden ${isMobile ? 'p-2' : 'p-4'} custom-scrollbar`}>
                                     {messages.length === 0 ? (
                                         <EmptyChatState>
                                             {/* In Cowork the next thing typed is not

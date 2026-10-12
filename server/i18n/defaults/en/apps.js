@@ -46,7 +46,12 @@ module.exports = {
     'apps.run.try_again': 'Try again',
     // Hardcoded literals converted (2026-10)
     'apps.run.loading_label': 'Loading app',
+    'apps.public_load_failed_body': 'Try again in a few minutes.',
+    'apps.public_load_failed_title': 'The page could not be loaded',
     'apps.public_loading_label': 'Loading',
+    'apps.public_not_found_body': 'The link is wrong or has been revoked. Ask the sender for a new link.',
+    'apps.public_not_found_title': 'This page does not exist (any more)',
+    'apps.public_retry': 'Try again',
     'apps.picker_active': '{active}/{total} active',
     'apps.picker_hint': 'Click to use · Toggle to enable/disable',
     'apps.picker_search_placeholder': 'Search apps...',
