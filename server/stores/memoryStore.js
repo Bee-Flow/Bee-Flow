@@ -1022,7 +1022,7 @@ async function _retrieveInSql(scope, queryText, q) {
     // seam that keeps a row sealed in the meantime from reaching the prompt as ciphertext.
     const opened = await hydrateRows(candidates.map(c => c.memory));
     const byId = new Map(opened.map(m => [m.id, m]));
-    return candidates.filter(c => byId.has(c.memory.id)).map(c => ({ memory: byId.get(c.memory.id), score: c.score }));
+    return candidates.filter(c => byId.has(c.memory.id)).map(c => ({ memory: byId.get(c.memory.id), score: c.score, relevant: c.relevant === true }));
 }
 
 /**

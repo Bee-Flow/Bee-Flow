@@ -139,3 +139,19 @@ describe('memory_used and the Remembered watch', () => {
         expect(watches[1]?.until).toBeUndefined();
     });
 });
+
+describe('memory_used in a direct chat', () => {
+    it('survives conversation_created and done and keeps the server why', async () => {
+        const created = 'event: conversation_created\ndata: {"conversationId":"c9"}\n\n';
+        const used = 'event: memory_used\ndata: {"items":[{"id":"m1","type":"fact","preview":"Lives in Utrecht","why":"relevant"}]}\n\n';
+        const phase = 'event: phase\ndata: {"stage":"building_prompt","status":"start"}\n\n';
+        const title = 'event: title\ndata: {"title":"Hi","conversationId":"c9"}\n\n';
+        fetchSpy.mockImplementation(async () => streamResponse([phase, used, created, CONTENT, 'event: done\ndata: {"conversationId":"c9"}\n\n', title]));
+        const onDirectConversationCreated = vi.fn();
+        const { result } = await send({ directMode: { enabled: true }, onDirectConversationCreated });
+        const assistant = result.current.messages.find((m) => m.role === 'assistant');
+        expect(onDirectConversationCreated).toHaveBeenCalled();
+        expect(assistant?.memoryUsed).toEqual([{ id: 'm1', type: 'fact', preview: 'Lives in Utrecht', why: 'relevant' }]);
+        expect(assistant?.isStreaming).toBe(false);
+    });
+});

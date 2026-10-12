@@ -115,7 +115,7 @@ async function resolveMemoryContext({ agent, agentId, userId, userMessage, valid
                 } catch (scrubErr) {
                     log.warn('[AgentRuntime] Memory scrub failed (fail-open):', scrubErr.message);
                 }
-                log.info(`[AgentRuntime] Memory context:\n${memoryContext}`);
+                log.info(`[AgentRuntime] Memory context: ${memoryContext.length} chars`);
             } else {
                 log.info('[AgentRuntime] No memories found for this user/agent');
             }
