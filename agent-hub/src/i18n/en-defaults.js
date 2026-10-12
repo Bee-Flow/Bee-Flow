@@ -654,6 +654,8 @@ const EN_DEFAULTS = {
     "admin.shield_activity_marker_scan_overflow": "File too large to fully check",
     "admin.shield_activity_marker_scan_degraded": "Check ran reduced",
     "admin.shield_activity_marker_token_evicted": "Some placeholders were dropped",
+    "admin.shield_activity_marker_user_blocked": "Stopped by the person",
+    "admin.shield_activity_marker_ask_timeout": "Review went unanswered",
     "admin.shield_activity_top_title": "What to look at",
     "admin.shield_activity_top_people": "People with the most catches",
     "admin.shield_activity_top_kinds": "What we caught most",

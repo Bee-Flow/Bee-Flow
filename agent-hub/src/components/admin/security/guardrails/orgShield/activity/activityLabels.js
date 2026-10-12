@@ -43,6 +43,9 @@ export const MARKERS = {
     // The chat's pre-send check could not run and the message went out
     // unchecked (a dlp_decision row); the word is the action's own.
     scan_failed: { key: 'admin.shield_activity_action_scan_failed', en: 'Check failed' },
+    // A person's decision on an attachment review, written next to the categories.
+    user_blocked: { key: 'admin.shield_activity_marker_user_blocked', en: 'Stopped by the person' },
+    ask_timeout: { key: 'admin.shield_activity_marker_ask_timeout', en: 'Review went unanswered' },
 };
 
 /** Is this id an audit marker rather than a kind of personal data? */

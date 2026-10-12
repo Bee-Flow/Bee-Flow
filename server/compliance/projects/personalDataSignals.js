@@ -85,6 +85,10 @@ const LABELS_PER_PROJECT = `
     GROUP BY project_id
     ${PAGE}`;
 
+// Audit markers for a person's decision on an attachment review: they travel in
+// violation_categories next to the categories but are not a kind of personal data.
+const DECISION_MARKERS_SQL = ['user_blocked', 'ask_timeout'].map(m => `'${m}'`).join(', ');
+
 /**
  * `(project_id, label, n)`: the window's Privacy Shield PII decisions on one
  * kind of project surface (`container` is the table whose id the events carry
@@ -106,6 +110,7 @@ function eventLabels(sources, container) {
           AND g.violation_categories IS NOT NULL
           AND g.source IN (${list})
           AND ${ORG} AND ${WS} AND btrim(l.label) <> ''
+          AND btrim(l.label) NOT IN (${DECISION_MARKERS_SQL})
         GROUP BY c.project_id, btrim(l.label)`;
 }
 

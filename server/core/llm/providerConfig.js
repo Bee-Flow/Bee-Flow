@@ -69,6 +69,7 @@ async function getFullConfig() {
 async function getAIConfig() {
     try {
         const ai = await configStore.getConfig('ai') || {};
+        const mistralSecret = await configStore.getSecret('mistral_api_key');
 
         // If we have providers, return the default one
         if (ai.providers && ai.providers.length > 0 && ai.defaultProviderId) {
@@ -76,8 +77,14 @@ async function getAIConfig() {
             if (defaultProvider) {
                 return {
                     url: defaultProvider.url || DEFAULT_CONFIG.url,
+                    // The default provider's type, so a caller that needs a key for ONE
+                    // vendor (Mistral OCR) can tell whether `apiKey` is that vendor's.
+                    providerType: defaultProvider.type || null,
                     model: defaultProvider.model || DEFAULT_CONFIG.model,
-                    apiKey: await configStore.getSecret('mistral_api_key') || defaultProvider.apiKey || DEFAULT_CONFIG.apiKey,
+                    apiKey: mistralSecret || defaultProvider.apiKey || DEFAULT_CONFIG.apiKey,
+                    // The Mistral secret on its own, whatever the default provider is
+                    // (Mistral OCR may use it next to a Claude/OpenAI default).
+                    mistralApiKey: mistralSecret || null,
                     lakeraApiKey: ai.lakeraApiKey || DEFAULT_CONFIG.lakeraApiKey,
                     mistralOcrApiKey: ai.mistralOcrApiKey || null,
                     regexGuardrails: ai.regexGuardrails || null,
@@ -96,7 +103,8 @@ async function getAIConfig() {
         return {
             url: ai.url || DEFAULT_CONFIG.url,
             model: ai.model || DEFAULT_CONFIG.model,
-            apiKey: await configStore.getSecret('mistral_api_key') || ai.apiKey || DEFAULT_CONFIG.apiKey,
+            apiKey: mistralSecret || ai.apiKey || DEFAULT_CONFIG.apiKey,
+            mistralApiKey: mistralSecret || null,
             lakeraApiKey: ai.lakeraApiKey || DEFAULT_CONFIG.lakeraApiKey,
             mistralOcrApiKey: ai.mistralOcrApiKey || null,
             regexGuardrails: ai.regexGuardrails || null,

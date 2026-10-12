@@ -136,6 +136,39 @@ test('BFSF-436: response body over the 1MB cap now FAILS THE STEP instead of ret
     );
 });
 
+// A real streamed Response that never ends, to prove the step reads through the
+// bounded helper (BFSF-460) instead of buffering `await resp.text()`.
+function endlessStream(headers = {}) {
+    const state = { pulled: 0, cancelled: false };
+    const body = new ReadableStream({
+        pull(controller) { state.pulled++; controller.enqueue(new Uint8Array(1024).fill(97)); },
+        cancel() { state.cancelled = true; },
+    });
+    return { state, resp: new Response(body, { headers }) };
+}
+
+test('BFSF-460: an endless response fails the step with the 1 MiB message and the stream is cancelled near 4 MiB', async () => {
+    const s = endlessStream();
+    safeFetchImpl = async () => s.resp;
+    await assert.rejects(
+        () => execHttpRequest({ id: 'h1', type: 'http_request', url: 'https://api.example.com/endless' }, {}, baseState(), 'live'),
+        /response body exceeded the 1 MiB limit/,
+    );
+    assert.ok(s.state.cancelled, 'stream cancelled');
+    assert.ok(s.state.pulled * 1024 <= 4 * 1024 * 1024 + 64 * 1024, `pulled ${s.state.pulled} KiB`);
+});
+
+test('BFSF-460: an oversize Content-Length fails the step without reading the body', async () => {
+    const s = endlessStream({ 'content-length': String(5 * 1024 * 1024) });
+    safeFetchImpl = async () => s.resp;
+    await assert.rejects(
+        () => execHttpRequest({ id: 'h1', type: 'http_request', url: 'https://api.example.com/declared' }, {}, baseState(), 'live'),
+        /response body exceeded the 1 MiB limit/,
+    );
+    assert.ok(s.state.cancelled);
+    assert.ok(s.state.pulled <= 1, `pulled ${s.state.pulled}`);
+});
+
 test('blockPrivateTargets default true: a private-address refusal from safeFetch surfaces a friendly, actionable error', async () => {
     safeFetchImpl = async () => { throw new FakePrivateAddressError('169.254.169.254'); };
     const step = { id: 'h1', type: 'http_request', url: 'http://169.254.169.254/latest/meta-data' };

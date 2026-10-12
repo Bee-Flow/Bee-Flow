@@ -111,7 +111,7 @@ async function processAttachmentsAndUserMessage({ req, res, send, userId, convId
                     // Pauses the turn until the person answers (one pause per
                     // attachment needing one — see attachmentAskFlow.js).
                     r = await _resolveAttachmentAsk({
-                        text: r.text, findings: r.findings, filename, provider: _attProvider,
+                        text: r.text, findings: r.findings, summary: r.summary, filename, provider: _attProvider,
                         orgShield: _psShield, conversationId: convId, userId, emit: send,
                     });
                 }
@@ -530,7 +530,9 @@ async function processAttachmentsAndUserMessage({ req, res, send, userId, convId
             } catch (attErr) {
                 if (attErr && attErr.code === 'ATTACHMENT_PII_BLOCKED') {
                     const cats = Object.keys(attErr.summary?.byCategory || {});
-                    const cause = attErr.reason && attErr.reason !== 'pii' ? attErr.reason : 'pii';
+                    const { attachmentBlockAudit } = require('../../../core/dlp/attachmentBlockAudit');
+                    const audit = attachmentBlockAudit(attErr.reason, cats);
+                    const cause = audit.cause;
                     const sseReason = cause === 'pii' ? 'attachment_pii' : `attachment_${cause}`;
                     send('dlp_blocked', {
                         reason: sseReason,
@@ -546,9 +548,9 @@ async function processAttachmentsAndUserMessage({ req, res, send, userId, convId
                             user_id: userId || null,
                             conversation_id: conversationId || null,
                             violation_type: 'pii',
-                            violation_categories: cause === 'pii' ? (cats.join(', ') || null) : `scan_${cause}`,
+                            violation_categories: audit.violation_categories,
                             direction: 'input',
-                            action_taken: cause === 'pii' ? 'blocked' : 'held',
+                            action_taken: audit.action_taken,
                             source: config?.providerName || config?.providerType || 'LLM',
                             model: modelId || null,
                             attachment_filename: attErr.filename,
