@@ -27,6 +27,7 @@
 const log = require('../../telemetry/log');
 const { ANALYTICS_TOOLS, MCP_ONLY_TOOLS, PUBLISH_TOOLS, buildToolList: buildList } = require('./tools');
 const { createAnalyticsHandlers } = require('./analytics');
+const { createBlogHandlers } = require('./blog');
 const { maxBytesFor } = require('../../core/cms/uploadPolicy');
 const { EXT_BY_TYPE, assetUrlFor } = require('./uploadReceiver');
 
@@ -58,6 +59,8 @@ const INSTRUCTIONS = [
     'Website analytics (cms_analytics_*, super admin only, read-only): aggregated visitor, pageview, source, page and web-vitals numbers, never individual visitors. Start with cms_analytics_status; a plain sentence means analytics is not set up.',
     '',
     'Publishing (cms_publish, cms_set_live_site) needs the cms.publish scope on the token and is audited. Only publish when asked to.',
+    '',
+    'Blog: cms_list_posts / cms_get_post / cms_create_post / cms_update_post (Markdown body; bodyEdits for small changes) / cms_delete_post / cms_set_post_translation / cms_update_blog_settings. Posts live at /blog/<slug>; cms_screenshot {postSlug} shows one. They go live with cms_publish like everything else.',
 ].join('\n');
 
 const rpcResult = (id, result) => ({ jsonrpc: '2.0', id, result });
@@ -438,6 +441,8 @@ function createCmsMcp(deps) {
             siteId: site.siteId,
             pageId: args.pageId,
             slug: args.slug,
+            postSlug: typeof args.postSlug === 'string' ? args.postSlug : undefined,
+            blog: args.blog === true,
             state: args.state,
             locale: args.locale,
             viewport: args.viewport,
@@ -499,8 +504,12 @@ function createCmsMcp(deps) {
         ? createAnalyticsHandlers({ analytics: deps.analytics.analytics, umami: deps.analytics.umami, siteIdRe: live.SITE_ID_RE, now }).handlers
         : {};
 
+    // Blog posts: same resolveSite, same audit sink.
+    const blogHandlers = createBlogHandlers({ cmsStore, resolveSite, audit: deps.audit, now }).handlers;
+
     const HANDLERS = {
         ...analyticsHandlers,
+        ...blogHandlers,
         cms_list_sites: listSites,
         cms_get_site_settings: getSiteSettings,
         cms_update_site_settings: updateSiteSettings,

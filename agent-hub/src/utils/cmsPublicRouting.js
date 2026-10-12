@@ -80,7 +80,26 @@ export const PUBLIC_SLUG_RE = /^[a-z0-9][a-z0-9-]*$/;
 export const LOCALE_PREFIXES = new Set(['nl']);
 
 /**
+ * The blog's top-level segment: `/blog` is the index, `/blog/<post-slug>` a
+ * post, each optionally behind a locale prefix (`/nl/blog/<post-slug>`).
+ * Mirrors BLOG_BASE in server/core/seo/publicPath.js (pinned by seo.test.js).
+ * Not in RESERVED_TOP_LEVEL — the CMS renders it — but the server refuses it
+ * as a PAGE slug, and slugIssues() below warns about it.
+ */
+export const BLOG_BASE = 'blog';
+
+function parseBlogSegments(segments) {
+    const hasLocale = segments.length >= 2 && LOCALE_PREFIXES.has(segments[0].toLowerCase());
+    const locale = hasLocale ? segments[0].toLowerCase() : null;
+    const [base, postSlug, extra] = (hasLocale ? segments.slice(1) : segments).map((seg) => seg.toLowerCase());
+    if (base !== BLOG_BASE || extra !== undefined) return null;
+    if (postSlug === undefined) return { locale, slug: BLOG_BASE, blog: { view: 'index' } };
+    return PUBLIC_SLUG_RE.test(postSlug) ? { locale, slug: `${BLOG_BASE}/${postSlug}`, blog: { view: 'post', postSlug } } : null;
+}
+
+/**
  * Split a pathname into `{ locale, slug }`, or null when it is not a CMS path.
+ * Blog paths also carry `blog: { view: 'index' } | { view: 'post', postSlug }`.
  * `locale` is null when the URL carries no prefix (i.e. the default locale).
  *
  * Dutch used to live at `?locale=nl`, which gave every page three crawlable
@@ -94,6 +113,8 @@ export function parseCmsPath(pathname) {
     if (trimmed === '/') return { locale: null, slug: '' };
 
     const segments = trimmed.slice(1).split('/');
+    const blog = parseBlogSegments(segments);
+    if (blog) return blog;
     if (segments.length > 2) return null;
 
     let locale = null;
@@ -155,7 +176,7 @@ export function isPublicMarketingPath(pathname) {
 export function slugIssues(slug, { existingSlugs = null, currentSlug = null } = {}) {
     const s = (slug || '').trim().toLowerCase();
     if (!s) return null;
-    if (RESERVED_TOP_LEVEL.has(s)) {
+    if (RESERVED_TOP_LEVEL.has(s) || s === BLOG_BASE) {
         return {
             kind: 'reserved',
             blocking: true,

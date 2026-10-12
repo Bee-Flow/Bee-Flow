@@ -6,7 +6,7 @@ import DesignInspector from './DesignInspector';
 import PageInspector from './PageInspector';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import {
-    ANALYTICS_VIRTUAL_ID, DESIGN_VIRTUAL_ID, isChromeEntryId, normalizeVirtualId,
+    ANALYTICS_VIRTUAL_ID, BLOG_VIRTUAL_ID, DESIGN_VIRTUAL_ID, isChromeEntryId, normalizeVirtualId,
 } from '../sentinels';
 
 function CenteredNote({ children }) {
@@ -37,9 +37,11 @@ export default function InspectorHost({
     designProps,        // { design, onChange }
     analyticsProps,     // { site, onChange, onOpenCookieSettings, onOpenAnalytics }
     pageProps,          // PageInspector props minus `page` (added here)
+    blogInspector = null, // the Blog entry's inspector (handles translation mode itself)
 }) {
     const { t } = useTranslation();
     const entryId = normalizeVirtualId(activePageId);
+    if (entryId === BLOG_VIRTUAL_ID && blogInspector) return blogInspector;
     const isChrome = isChromeEntryId(entryId);
     const isDesign = entryId === DESIGN_VIRTUAL_ID;
     const isAnalytics = entryId === ANALYTICS_VIRTUAL_ID;

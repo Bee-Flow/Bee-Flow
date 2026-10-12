@@ -1,5 +1,9 @@
 import React, { useCallback, useEffect, useEffectEvent, useMemo } from 'react';
 import CmsAssistantPane from './assistant/CmsAssistantPane';
+import BlogInspector from './blog/BlogInspector';
+import BlogPostList from './blog/BlogPostList';
+import { buildBlogPreview } from './blog/blogPreview';
+import useBlogEditor from './blog/useBlogEditor';
 import { cmsApi } from './cmsApi';
 import AddBlockDialog from './dialogs/AddBlockDialog';
 import { CreatePageContext } from './fields';
@@ -22,7 +26,7 @@ import useCmsSiteOps from './panel/useCmsSiteOps';
 import PreviewStage from './preview/PreviewStage';
 import {
     DESIGN_VIRTUAL_ID, HEADER_VIRTUAL_ID,
-    COOKIE_VIRTUAL_ID, ANALYTICS_VIRTUAL_ID,
+    COOKIE_VIRTUAL_ID, ANALYTICS_VIRTUAL_ID, BLOG_VIRTUAL_ID,
     isVirtualPageId, isChromeEntryId, normalizeVirtualId,
 } from './sentinels';
 import CmsBuilderShell from './shell/CmsBuilderShell';
@@ -340,11 +344,36 @@ export default function ProductWebsitePanel({ onExit, onNavigate } = {}) {
         locales, setDefaultLocale,
     });
 
+    // ── blog ────────────────────────────────────────────────────────
+    // Posts are their own documents with their own autosave (blog/useBlogEditor);
+    // the index settings live on the SiteDoc (site.blog) and ride the site save.
+    const isBlogView = normalizeVirtualId(activePageId) === BLOG_VIRTUAL_ID;
+    const blog = useBlogEditor({
+        siteId: activeSiteId,
+        enabled: isBlogView,
+        onSaved: () => setDirtySincePublish(true),
+    });
+    const blogSettings = useMemo(() => ({
+        title: site?.blog?.title || {},
+        description: site?.blog?.description || {},
+        postsPerPage: site?.blog?.postsPerPage || 10,
+    }), [site]);
+    const blogPreview = useMemo(() => (isBlogView ? buildBlogPreview({
+        post: blog.post,
+        posts: blog.posts,
+        translation: translationMode && blog.post ? (blog.translations[activeLocale] || null) : null,
+        locale: activeLocale,
+        defaultLocale,
+        settings: blogSettings,
+        labelFor: (key, fallback) => t(`cms_blog.public.${key}`, fallback),
+    }) : null), [isBlogView, blog.post, blog.posts, blog.translations, translationMode, activeLocale, defaultLocale, blogSettings, t]);
+
     const { selectAndScrollToBlock } = useCmsPreviewBridge({
         iframeRef, previewReadyRef, site, previewPage, activePage, activePageId,
         activeBlockId, setActiveBlockId, setBlockEditorTab, activeLocale,
         translationMode, localeOverrides, builderRunning, builderRunningRef,
         applyIframeEdit, runHistoryHotkey, handleBlockAction, handleInsertAt,
+        blogPreview,
     });
 
     const { updatePageSeo, savePageMeta, updatePageMeta } = useCmsPageMeta({
@@ -426,7 +455,7 @@ export default function ProductWebsitePanel({ onExit, onNavigate } = {}) {
 
     const statusText = rightView === 'preview'
         ? t('cms_site.site.panel.status', '{view} · {locale}{editorOnly} · Click text to edit', {
-            view: isChromeView ? t('cms_site.site.panel.view_chrome', 'site chrome') : isDesignView ? t('cms_site.site.panel.view_design', 'design') : isAnalyticsView ? t('cms_site.site.panel.view_analytics', 'analytics') : (activePage?.slug || 'home'),
+            view: isBlogView ? t('cms_blog.navigator.blog', 'Blog') : isChromeView ? t('cms_site.site.panel.view_chrome', 'site chrome') : isDesignView ? t('cms_site.site.panel.view_design', 'design') : isAnalyticsView ? t('cms_site.site.panel.view_analytics', 'analytics') : (activePage?.slug || 'home'),
             locale: activeLocale,
             editorOnly: !isLive ? t('cms_site.site.panel.editor_only', ' · editor only') : '',
         })
@@ -553,7 +582,8 @@ export default function ProductWebsitePanel({ onExit, onNavigate } = {}) {
                         dirtySincePublish,
                         isLive,
                         liveSiteName: otherLiveSite?.name || null,
-                        onPublish: handlePublish,
+                        // Pending post edits land before the snapshot is taken.
+                        onPublish: async (...args) => { await blog.flush(); return handlePublish(...args); },
                         onSetLive: persistLive,
                     }}
                     saveStatus={saveStatus}
@@ -589,6 +619,25 @@ export default function ProductWebsitePanel({ onExit, onNavigate } = {}) {
                 <NavigatorPanel
                     activeEntryId={entryId}
                     onSelectEntry={setActivePageId}
+                    blogSlot={isBlogView ? (
+                        <BlogPostList
+                            posts={blog.posts}
+                            loaded={blog.loaded}
+                            activePostId={blog.activePostId}
+                            locale={activeLocale}
+                            onSelect={(id) => { void blog.selectPost(id); }}
+                            onCreate={() => { void blog.createPost(t('cms_blog.list.new_title', 'New post')); }}
+                            onDelete={async (p) => {
+                                const ok = await confirm({
+                                    title: t('cms_blog.list.delete_title', 'Delete “{title}”?', { title: p.title || t('cms_blog.list.untitled', 'Untitled post') }),
+                                    description: t('cms_blog.list.delete_body', 'The post and its translations are removed from the draft. The live site keeps it until you publish again. This cannot be undone.'),
+                                    confirmLabel: t('cms_blog.list.delete', 'Delete post'),
+                                    destructive: true,
+                                });
+                                if (ok) await blog.deletePost(p.id);
+                            }}
+                        />
+                    ) : null}
                     pageListProps={{
                         pages: site?.pages || [],
                         activePageId,
@@ -649,6 +698,22 @@ export default function ProductWebsitePanel({ onExit, onNavigate } = {}) {
             }
             inspector={
                 <InspectorHost
+                    blogInspector={isBlogView ? (
+                        <BlogInspector
+                            post={blog.post}
+                            translations={blog.translations}
+                            saveStatus={blog.saveStatus}
+                            error={blog.error}
+                            translationMode={translationMode}
+                            activeLocale={activeLocale}
+                            localeName={activeLocaleName}
+                            defaultLocale={defaultLocale}
+                            onPostChange={blog.updatePost}
+                            onTranslationChange={blog.updateTranslation}
+                            settings={blogSettings}
+                            onSettingsChange={(next) => site && updateSiteChrome({ ...site, blog: next })}
+                        />
+                    ) : null}
                     activePageId={activePageId}
                     activePage={activePage}
                     translationMode={translationMode}

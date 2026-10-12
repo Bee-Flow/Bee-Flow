@@ -5,7 +5,7 @@ import BlockList from '../BlockList';
 import PageList from '../PageList';
 import {
     DESIGN_VIRTUAL_ID, HEADER_VIRTUAL_ID, FOOTER_VIRTUAL_ID, COOKIE_VIRTUAL_ID,
-    ANNOUNCE_VIRTUAL_ID, ANALYTICS_VIRTUAL_ID,
+    ANNOUNCE_VIRTUAL_ID, ANALYTICS_VIRTUAL_ID, BLOG_VIRTUAL_ID,
 } from '../sentinels';
 
 const SITE_ENTRIES = [
@@ -15,6 +15,7 @@ const SITE_ENTRIES = [
     { id: ANNOUNCE_VIRTUAL_ID,  label: 'Announcement bar', labelKey: 'cms_site.site.navigator.announcement',  icon: 'Megaphone' },
     { id: COOKIE_VIRTUAL_ID,    label: 'Cookie banner', labelKey: 'cms_site.site.navigator.cookie',     icon: 'Cookie' },
     { id: ANALYTICS_VIRTUAL_ID, label: 'Analytics', labelKey: 'cms_site.site.navigator.analytics',         icon: 'BarChart3' },
+    { id: BLOG_VIRTUAL_ID,      label: 'Blog', labelKey: 'cms_blog.navigator.blog',                       icon: 'Newspaper' },
 ];
 
 function Caption({ children }) {
@@ -39,6 +40,7 @@ export default function NavigatorPanel({
     onSelectEntry,          // (id) — virtual id or page id
     pageListProps,          // spread into <PageList/> (activePageId/onSelect included)
     blockListProps,         // spread into <BlockList/>; null hides the BLOCKS zone
+    blogSlot = null,        // the Blog entry's post list; replaces PAGES + BLOCKS while set
 }) {
     const { t } = useTranslation();
     return (
@@ -62,6 +64,11 @@ export default function NavigatorPanel({
                 ))}
             </div>
 
+            {blogSlot ? (
+                <div className="border-t border-[var(--border-subtle)] mt-2 flex-1 min-h-0 flex flex-col">
+                    {blogSlot}
+                </div>
+            ) : (<>
             {/* PAGES — own scroll region, capped so blocks keep room */}
             <div className="border-t border-[var(--border-subtle)] mt-2 flex flex-col min-h-0 shrink-0" style={{ maxHeight: '45%' }}>
                 <div className="flex-1 min-h-0 overflow-hidden">
@@ -81,6 +88,7 @@ export default function NavigatorPanel({
                     </p>
                 </div>
             )}
+            </>)}
         </div>
     );
 }

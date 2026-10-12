@@ -42,6 +42,7 @@ const NAMESPACES = {
     "chat":            require('./chat.js'),
     "chat_monitoring": require('./chat_monitoring.js'),
     "checkout":        require('./checkout.js'),
+    "cms_blog":        require('./cms_blog.js'),
     "cms_site":         require('./cms_site.js'),
     "code_step":       require('./code_step.js'),
     "comments":        require('./comments.js'),

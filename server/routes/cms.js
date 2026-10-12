@@ -18,6 +18,8 @@
  *     GET  /api/cms/site                       legacy keyed-content shape
  *     GET  /api/cms/site?v=2[&slug=…&locale=…] new shape
  *     GET  /api/cms/asset/:key(*)              streams a CMS asset
+ *     GET  /api/cms/site?blog=index|post&post=… blog index / post (published)
+ *     GET  /api/cms/blog/posts                 newest posts (latest-posts block)
  *
  *   ADMIN — site management (super-admin only):
  *     GET    /api/cms/sites                                    list sites + liveSiteId
@@ -26,6 +28,7 @@
  *     PUT    /api/cms/sites/:siteId                            replace SiteDoc
  *     PATCH  /api/cms/sites/:siteId                            { name } — rename
  *     DELETE /api/cms/sites/:siteId                            delete site + cascade
+ *     *      /api/cms/sites/:siteId/posts[/:postId[/locale/:l]] blog posts (routes/cmsBlog.js)
  *     PUT    /api/cms/sites/:siteId/live                       { live } — set/clear live
  *     POST   /api/cms/sites/:siteId/duplicate                  deep-copy → new version
  *
@@ -89,6 +92,7 @@ const {
 } = cmsAnalytics;
 const { sanitizeSvg } = require('../utils/svgSanitizer');
 const cmsMedia = require('./cmsMedia');
+const cmsBlog = require('./cmsBlog');
 const { UPLOAD_MIME_WHITELIST, IMAGE_MAX_BYTES } = require('../core/cms/uploadPolicy');
 const { parseRangeHeader } = require('../core/http/httpRange');
 const { validate } = require('../core/http/validate');
@@ -914,6 +918,33 @@ router.get('/site', async (req, res) => {
         const v2 = req.query.v === '2';
         const slug = (req.query.slug || '').toString();
 
+        // Blog URLs (?blog=index|post&post=<slug>&tag=&page=): the published
+        // blog payload with the site chrome, in the same legacy `content`
+        // shape a page gets (content.blog carries the posts).
+        const blogView = req.query.blog === 'index' || req.query.blog === 'post' ? req.query.blog : null;
+        if (blogView) {
+            const blogEff = await cmsStore.getEffectiveBlog(siteId, {
+                state: 'published',
+                view: blogView,
+                postSlug: String(req.query.post || '').slice(0, 200),
+                tag: String(req.query.tag || '').slice(0, 60),
+                page: String(req.query.page || '1').slice(0, 6),
+                locale,
+            });
+            if (!blogEff) return res.json({ enabled: true, appOnly, found: false, defaultLocale, locale });
+            return res.json({
+                enabled: true,
+                appOnly,
+                found: !!blogEff.found,
+                canonicalSlug: blogEff.page?.slug || 'blog',
+                defaultLocale,
+                locale,
+                content: synthesizeLegacyContent(blogEff),
+                design: blogEff.design,
+                analytics: null,
+            });
+        }
+
         // The public site serves the last-published snapshot only — never the
         // in-progress draft. A legacy live site with no snapshot yet (live
         // before publish-on-Live landed) self-heals: freeze its current draft
@@ -1021,6 +1052,9 @@ router.get('/site', async (req, res) => {
         res.status(500).json({ error: 'Failed to load CMS content' });
     }
 });
+
+// Public blog read for the "latest posts" block: GET /api/cms/blog/posts.
+router.use('/blog', cmsBlog.createPublicRouter());
 
 // MIME types that browsers would happily execute as script in the page
 // origin if served inline. The upload whitelist already blocks new
@@ -1183,6 +1217,10 @@ router.post('/sites/import', importLimiter, importSiteUpload, importJsonParser, 
 
 // Validate :siteId for everything below before running handlers.
 router.use('/sites/:siteId', attachSiteIdFromParam);
+
+// Blog posts (routes/cmsBlog.js): list / create / read / patch / delete and
+// per-language translations. req.siteId is set by the middleware above.
+router.use('/sites/:siteId/posts', cmsBlog.createAdminRouter());
 
 // Pages — literal '/order' before ':id' wildcard.
 router.post('/sites/:siteId/pages', newPageBody, postPage);
