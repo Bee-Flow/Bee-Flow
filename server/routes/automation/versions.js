@@ -42,6 +42,7 @@ const { syncSchedules, scheduleFingerprint } = require('../../automation/schedul
 const { syncAppEventSubscription, hasAppEventTrigger, appEventFingerprint } = require('../../automation/subscriptionSync');
 const formAnswers = require('../../automation/formAnswers');
 const { validateApprovalAssignees } = require('../../automation/approvalService');
+const { editedPinRefusal } = require('../../automation/goLive');
 const { validate } = require('../../core/http/validate');
 const { z } = require('zod');
 const log = require('../../telemetry/log');
@@ -151,6 +152,17 @@ router.post('/:id/versions/:versionId/restore', validate({ body: NoBody, query: 
     const assigneeErrors = await validateApprovalAssignees(version.definition, ownerId);
     if (assigneeErrors.length) return res.status(400).json({ error: 'Stored version no longer validates', details: assigneeErrors });
 
+    // Handoff 5: on an automation with a live version a restore lands in the
+    // WORKING copy, like any save — the schedule and triggers keep following
+    // the live definition until the restored version is published.
+    const hasLive = a.liveVersion != null;
+    // An ACTIVE automation without a live version runs this very working copy,
+    // so a restore is a go-live: refuse hand-written pins like PUT does (BFSF-452).
+    if (a.isActive && !hasLive) {
+        const pinRefusal = editedPinRefusal(require('../../automation/portability').collectPinnedNodes(version.definition), { verb: 'save' });
+        if (pinRefusal) return res.status(400).json(pinRefusal);
+    }
+
     // The trigger columns follow the restored definition, exactly as they do
     // on PUT /:id, and so does next_run_at: computed for a schedule with a
     // cron, cleared for anything else. A cron that no longer parses refuses
@@ -164,10 +176,6 @@ router.post('/:id/versions/:versionId/restore', validate({ body: NoBody, query: 
         if (!nextRunAt) return res.status(400).json({ error: `Stored version no longer validates: its schedule "${columns.scheduleCron}" has no upcoming run time.` });
     }
 
-    // Handoff 5: on an automation with a live version a restore lands in the
-    // WORKING copy, like any save — the schedule and triggers keep following
-    // the live definition until the restored version is published.
-    const hasLive = a.liveVersion != null;
     // Always a new version, described as the restore it is; one that only
     // brings back positions is marked layout-only so it is no pending change.
     const updated = await automationStore.updateAutomation(a.id,

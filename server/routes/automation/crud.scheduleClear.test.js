@@ -236,3 +236,36 @@ test('a definition without a runPolicy leaves run_timeout_ms alone', async () =>
     assert.strictEqual(res.statusCode, 200);
     assert.ok(!('runTimeoutMs' in lastUpdate));
 });
+
+// ── BFSF-452: saving an ACTIVE automation refuses hand-written pins ──────────
+
+const pinDef = (pin) => ({
+    trigger: { id: 'trg1', kind: 'manual', label: 'Start' },
+    steps: [{ id: 's1', type: 'set', ...pin }],
+    edges: [],
+});
+function seedManual(extra = {}) {
+    seed({ triggerType: 'manual', scheduleCron: null, scheduleTz: null, nextRunAt: null, definition: pinDef({}), ...extra });
+}
+
+test('BFSF-452: active automation: saving an edited pin is refused with 400', async () => {
+    seedManual();
+    const res = await put({ definition: pinDef({ pinnedOutput: { a: 1 }, pinnedSource: 'edited' }) });
+    assert.strictEqual(res.statusCode, 400);
+    assert.strictEqual(res.body.code, 'pinned_edited_sample');
+    assert.strictEqual(res.body.details[0].code, 'pin.edited_sample_blocks_activation');
+    assert.match(res.body.error, /^Cannot save while this automation is active/);
+});
+
+test('BFSF-452: active automation: a captured pin still saves', async () => {
+    seedManual();
+    const res = await put({ definition: pinDef({ pinnedOutput: { a: 1 }, pinnedSource: 'captured' }) });
+    assert.strictEqual(res.statusCode, 200);
+    assert.ok(res.body.warnings.some(w => w.code === 'pin.serves_sample_data'));
+});
+
+test('BFSF-452: inactive automation: an edited pin still saves', async () => {
+    seedManual({ isActive: false });
+    const res = await put({ definition: pinDef({ pinnedOutput: { a: 1 }, pinnedSource: 'edited' }) });
+    assert.strictEqual(res.statusCode, 200);
+});

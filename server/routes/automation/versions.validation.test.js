@@ -218,6 +218,23 @@ test('an approver who is no longer in the owner\'s organisation refuses the rest
     assert.strictEqual(written(), undefined, 'nothing is written');
 });
 
+test('an ACTIVE never-live automation refuses a restore that brings back a hand-written pin (BFSF-452)', async () => {
+    AUTOMATION = { ...AUTOMATION, isActive: true, liveVersion: null };
+    VERSIONS.vEdited = {
+        id: 'vEdited', automationId: 'a1', version: 8,
+        definition: { trigger: { kind: 'manual' }, steps: [{ id: 's1', type: 'set', pinnedOutput: { a: 1 }, pinnedSource: 'edited' }] },
+    };
+    const res = await dispatch({ method: 'POST', url: '/a1/versions/vEdited/restore', body: {} });
+    assert.strictEqual(res.statusCode, 400, JSON.stringify(res.body));
+    assert.strictEqual(res.body.code, 'pinned_edited_sample');
+    assert.strictEqual(written(), undefined, 'the definition is unchanged');
+
+    // Inactive: drafts may pin freely.
+    AUTOMATION = { ...AUTOMATION, isActive: false };
+    const ok = await dispatch({ method: 'POST', url: '/a1/versions/vEdited/restore', body: {} });
+    assert.strictEqual(ok.statusCode, 200, JSON.stringify(ok.body));
+});
+
 test('an ACTIVE automation restored to a different app event re-subscribes', async () => {
     AUTOMATION = { ...AUTOMATION, isActive: true };
     const res = await dispatch({ method: 'POST', url: '/a1/versions/vGmail/restore', body: {} });

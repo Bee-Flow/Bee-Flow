@@ -201,6 +201,21 @@ const resourceLimiter = rateLimit({
 // asked twice per minute for the same catalogue.
 const _resourceCache = new Map();
 const RESOURCE_CACHE_TTL_MS = 60_000;
+const RESOURCE_CACHE_MAX = 500;
+
+// Entries were only ever replaced, never removed, so every (user, integration,
+// path) ever listed stayed in memory (BFSF-381). Each insert drops expired
+// entries, then the oldest ones while the map is over its cap.
+function cacheResource(key, data, now = Date.now()) {
+    for (const [k, v] of _resourceCache) {
+        if (now - v.at >= RESOURCE_CACHE_TTL_MS) _resourceCache.delete(k);
+    }
+    _resourceCache.delete(key); // re-insert so Map order stays oldest-first
+    _resourceCache.set(key, { at: now, data });
+    while (_resourceCache.size > RESOURCE_CACHE_MAX) {
+        _resourceCache.delete(_resourceCache.keys().next().value);
+    }
+}
 
 router.get('/resources/:integrationId', requireAuth, resourceLimiter, validate({ query: ResourcesQuery }), async (req, res) => {
     const { integrationId } = req.params;
@@ -246,7 +261,7 @@ router.get('/resources/:integrationId', requireAuth, resourceLimiter, validate({
             }).filter(Boolean);
             data = { kind: spec.kind, resources };
         }
-        _resourceCache.set(cacheKey, { at: Date.now(), data });
+        cacheResource(cacheKey, data);
         res.json(data);
     } catch (e) {
         res.status(502).json({ error: 'Could not list Nextcloud resources — is your Nextcloud connection working?' });
@@ -254,3 +269,4 @@ router.get('/resources/:integrationId', requireAuth, resourceLimiter, validate({
 });
 
 module.exports = router;
+module.exports._test = { _resourceCache, cacheResource, RESOURCE_CACHE_MAX, RESOURCE_CACHE_TTL_MS }; // exported for tests
