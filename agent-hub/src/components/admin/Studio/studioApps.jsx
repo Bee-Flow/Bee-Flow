@@ -440,7 +440,7 @@ export const STUDIO_APPS = [
         labelKey: 'studio.tab.knowledge',
         descKey: 'studio.tab.knowledge_desc',
         descFallback: 'Knowledge bases your AI can search',
-        Icon: STUDIO_ICONS.knowledge,
+        Icon: BookOpen,
         kind: 'kb',
         category: 'ai',
         // No licence gate (Knowledge is Community), but the organisation
@@ -478,7 +478,7 @@ export const STUDIO_APPS = [
         labelFallback: 'Automations',
         descKey: 'studio.tab.automations_desc',
         descFallback: 'Multi-step automations that run for you',
-        Icon: STUDIO_ICONS.aiTasks,
+        Icon: ListChecks,
         kind: 'automation',
         countKey: 'automations',
         category: 'build',
@@ -622,7 +622,7 @@ export const STUDIO_APPS = [
         labelFallback: 'Webpages',
         descKey: 'studio.tab.webpages_desc',
         descFallback: 'Design and publish public webpages',
-        Icon: STUDIO_ICONS.webpages,
+        Icon: Globe,
         kind: 'webpage',
         category: 'build',
         // Licence feature is authoritative. canUseFeature is the server-derived
