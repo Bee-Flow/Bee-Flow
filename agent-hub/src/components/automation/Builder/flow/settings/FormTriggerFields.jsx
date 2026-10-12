@@ -1,7 +1,8 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { Plus, Copy, Check, Link2, RefreshCw, Loader2 } from 'lucide-react';
 import { denseInputClass } from './formPrimitives';
-import FormBuilderFields, { defaultFormDeclaration } from './FormBuilderFields';
+import { defaultFormDeclaration } from './FormBuilderFields';
+import FormPageEditor from './FormPageEditor';
 import useAutomationApi from '../../../../../hooks/useAutomationApi';
 import { useBuilderConfirm } from '../../BuilderConfirmContext';
 import { useTranslation } from '../../../../../hooks/useTranslation';
@@ -22,7 +23,7 @@ export { defaultFormDeclaration, slugifyFieldName, THEME_PRESETS } from './FormB
 /** See the note in FormTriggerFields: Forms owns the public link for now. */
 export const SHOW_PUBLIC_LINK_IN_BUILDER = false;
 
-export default function FormTriggerFields({ draft, set, automation = null, stepId = null, onTestSubmit = null, onRenameField = null }) {
+export default function FormTriggerFields({ draft, set, automation = null, stepId = null, onTestSubmit = null, onRenameField = null, formEditor = null }) {
     const { t } = useTranslation();
     const form = draft.form || null;
 
@@ -60,7 +61,7 @@ export default function FormTriggerFields({ draft, set, automation = null, stepI
                 ensureFormPages), so hiding this panel cannot stop a form from
                 being published. */}
             {SHOW_PUBLIC_LINK_IN_BUILDER && <FormTriggerUrlPanel automation={automation} stepId={stepId} />}
-            <FormBuilderFields form={form} onChange={(next) => set('form', next)} bindingBase="trigger.output" onTestSubmit={onTestSubmit} onRenameField={onRenameField} />
+            <FormPageEditor form={form} onChange={(next) => set('form', next)} stepId={stepId} formEditor={formEditor} bindingBase="trigger.output" onTestSubmit={onTestSubmit} onRenameField={onRenameField} />
         </div>
     );
 }

@@ -35,7 +35,7 @@ const text = (name, label) => ({ name, type: 'text', label, required: false, pla
 
 function renderEditor(declaration, props = {}) {
     const onChange = vi.fn();
-    const utils = render(<FormBuilderFields form={declaration} onChange={onChange} bindingBase="trigger.output" {...props} />);
+    const utils = render(<FormBuilderFields form={declaration} onChange={onChange} bindingBase="trigger.output" defaultExpanded {...props} />);
     return { ...utils, onChange };
 }
 

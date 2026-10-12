@@ -33,7 +33,7 @@ const download = (over = {}) => ({ name: 'document', type: 'download', label: 'D
 function renderEditor(form, props = {}) {
     const onChange = vi.fn();
     const utils = render(
-        <FormBuilderFields form={form} onChange={onChange} bindingBase="steps.fp_1.output" {...props} />,
+        <FormBuilderFields form={form} onChange={onChange} bindingBase="steps.fp_1.output" defaultExpanded {...props} />,
     );
     return { ...utils, onChange };
 }

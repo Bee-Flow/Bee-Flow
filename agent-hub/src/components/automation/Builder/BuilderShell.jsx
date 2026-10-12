@@ -17,6 +17,7 @@ import {
 } from './flow/flowletScope';
 import { normalizeDefinitionShape, isBlankDefinition } from './flow/normalizeDefinition';
 import { densityForOpen } from './flow/settings/formDensity';
+import { shouldAutoOpenFormOverlay, awaitingFormStepId, dismissKey } from './flow/formOverlayAutoOpen';
 import useFormModePreference from './flow/settings/useFormModePreference';
 import { triggerTypeLabel } from './flow/triggerLabels';
 import useAutomationDraftHistory from './flow/useAutomationDraftHistory';
@@ -257,6 +258,13 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
     // all-optional form — and that must always execute for real.
     const handleExecuteStep = useCallback(
         (stepId, opts) => {
+            // "Test this form" in the trigger's panel asks for the page
+            // explicitly (openForm), so it opens the overlay even when a
+            // sample is pinned and Execute alone would replay that sample.
+            if (opts?.openForm && formDeclRef.current?.triggerStepId === stepId) {
+                setFormTest(formDeclRef.current);
+                return Promise.resolve();
+            }
             if (!opts?.triggerPayload && bareFormTriggerIdRef.current && bareFormTriggerIdRef.current === stepId) {
                 // A form trigger has nothing to run WITH until somebody fills
                 // the page in, so Execute opens that page over the canvas and
@@ -570,6 +578,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
     };
     const onDryRun = async (fromTrigger = null) => {
         setBusy(true); setError(null);
+        liveFromBuilderRef.current = false;
         let stopWatch = () => {};
         try {
             const aid = await ensureAutomationCreated();
@@ -602,6 +611,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
      */
     const startLiveRun = async (body) => {
         setBusy(true); setError(null);
+        liveFromBuilderRef.current = true;
         let stopWatch = () => {};
         try {
             const aid = await ensureAutomationCreated();
@@ -648,7 +658,28 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
         return (t?.kind === 'form' && t?.form) ? { form: t.form, triggerStepId: t.id } : null;
     };
 
-    const closeFormTest = useCallback(() => setFormTest(null), []);
+    // Live-run form pages: a live run started from THIS builder that parks on a
+    // `form_page` opens the overlay attached to that run. Dry runs never do.
+    // Closing remembers `${runId}:${stepId}` so the same page does not pop up
+    // again straight away.
+    const liveFromBuilderRef = useRef(false);
+    const dismissedFormPagesRef = useRef(new Set());
+    const awaitingStepNow = awaitingFormStepId(state.steps);
+    const currentRunId = state.dryRun?.id || null;
+    const closeFormTest = () => {
+        if (currentRunId && awaitingStepNow) dismissedFormPagesRef.current.add(dismissKey(currentRunId, awaitingStepNow));
+        setFormTest(null);
+    };
+    const openFormOverlay = (runId) => { if (runId) setFormTest({ runId }); };
+    useEffect(() => {
+        if (shouldAutoOpenFormOverlay({
+            liveFromBuilder: liveFromBuilderRef.current,
+            runId: currentRunId,
+            awaitingStepId: awaitingStepNow,
+            overlayOpen: !!formTest,
+            dismissed: dismissedFormPagesRef.current,
+        })) setFormTest({ runId: currentRunId });
+    }, [currentRunId, awaitingStepNow, formTest]);
 
     /**
      * Start the run the overlay's Submit asked for.
@@ -1398,6 +1429,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
                         formTest={formTest}
                         onFormTestRun={onFormTestRun}
                         onCloseFormTest={closeFormTest}
+                        onOpenFormOverlay={openFormOverlay}
                         state={state}
                         // The persisted row — the webhook trigger's node panel
                         // needs its id to list/create webhook URLs (BFSF-320).

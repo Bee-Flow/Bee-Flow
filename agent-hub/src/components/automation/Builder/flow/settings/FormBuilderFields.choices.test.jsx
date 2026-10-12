@@ -38,6 +38,7 @@ function Controlled({ initial, external = null, onForm }) {
             form={form}
             onChange={(next) => { setForm(next); onForm?.(next); }}
             bindingBase="trigger.output"
+            defaultExpanded
         />
     );
 }

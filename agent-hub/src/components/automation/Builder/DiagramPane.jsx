@@ -158,6 +158,7 @@ const DiagramPane = forwardRef(function DiagramPane({
     // The automation's public form page. Only ever used by the run banner, and
     // only while a run is parked on a form (design 1d, "Formulier openen").
     formUrl = null,
+    onOpenFormOverlay = null, // () — open the waiting form page over the canvas
     // What the AI build is doing right now — { running, phase, startedAt,
     // lastCall, narration, todos, finalizedId, aborted, stepCount } from
     // BuildTab. Drives the choreography's phase, the ghost slot's caption, the
@@ -227,6 +228,7 @@ const DiagramPane = forwardRef(function DiagramPane({
                 onOpenAssistant={onOpenAssistant}
                 editingStepId={editingStepId}
                 formUrl={formUrl}
+                onOpenFormOverlay={onOpenFormOverlay}
                 buildCue={buildCue}
                 ribbonRootRef={ribbonRootRef}
                 replayStepId={replayStepId}
@@ -261,6 +263,7 @@ const DiagramPaneInner = forwardRef(function DiagramPaneInner({
     onAddTrigger = null, onOpenAssistant = null,
     editingStepId = null,
     formUrl = null,
+    onOpenFormOverlay = null,
     buildCue = null,
     ribbonRootRef = null,
     replayStepId = null,
@@ -1249,6 +1252,7 @@ const DiagramPaneInner = forwardRef(function DiagramPaneInner({
                         runFocus={runFocus}
                         onShowRun={focusRunStep}
                         formUrl={formUrl}
+                        onOpenFormOverlay={onOpenFormOverlay}
                         selectedCount={selectedIds.length}
                         selectionInDrawer={selectionInDrawer}
                         onDeleteSelection={deleteSelection}

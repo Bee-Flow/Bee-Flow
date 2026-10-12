@@ -57,6 +57,6 @@ describe('form defaults', () => {
 
     it('the web trigger form still takes its default from FormBuilderFields', () => {
         const trigger = fs.readFileSync(path.join(SETTINGS, 'FormTriggerFields.jsx'), 'utf8');
-        expect(trigger).toMatch(/import FormBuilderFields, \{ defaultFormDeclaration \} from '\.\/FormBuilderFields'/);
+        expect(trigger).toMatch(/import (?:FormBuilderFields, )?\{ defaultFormDeclaration \} from '\.\/FormBuilderFields'/);
     });
 });

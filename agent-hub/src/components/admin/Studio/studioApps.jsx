@@ -2,6 +2,12 @@ import React from 'react';
 import { lazy } from '../../../utils/lazyWithReload';
 import { Bot, Sparkles, ListChecks, ShieldCheck, BookOpen, Globe, Mic, LayoutGrid, Boxes, Table2, ClipboardList, History, Clapperboard, FileText } from 'lucide-react';
 
+/**
+ * The sidebar icons other surfaces borrow (the automation builder's step
+ * ribbon, menu and nodes, via utils/integrationLogos), so they cannot drift.
+ */
+export const STUDIO_ICONS = { knowledge: BookOpen, aiTasks: ListChecks, webpages: Globe };
+
 // Studio app registry — the single source of truth for which apps live inside
 // the unified Studio shell, in what order, behind which gates, and with which
 // props. Studio/index.jsx renders tabs + the active app from this list, and

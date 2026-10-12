@@ -1,6 +1,7 @@
 import { render, screen, fireEvent, cleanup, within } from '@testing-library/react';
 import { editor, editors, editorValue, editorWithValue, typeInEditor } from '../../../../test/refEditor';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import SettingsForm from './SettingsForm';
 import { VariablePickerProvider } from '../mapping/VariablePickerContext';
@@ -69,8 +70,10 @@ describe('SettingsForm — form page step', () => {
         try { localStorage.clear(); } catch { /* jsdom without storage */ }
     });
 
-    it('an input page edits its questions', () => {
+    it('an input page edits its questions', async () => {
         renderStep(inputPage());
+        const user = userEvent.setup();
+        await user.click(screen.getByLabelText('Expand question 1'));
         expect(editorWithValue(document.body, 'One more thing')).toBeTruthy();
         expect(editorWithValue(document.body, 'Your address')).toBeTruthy();
         expect(screen.getByLabelText('Question 1 type').value).toBe('text');
@@ -81,8 +84,10 @@ describe('SettingsForm — form page step', () => {
      * steps.<id>.output.<name> binding points at, so renaming the QUESTION
      * must not touch it. Re-deriving would break bindings with nothing to see.
      */
-    it('editing a label leaves the binding name alone', () => {
+    it('editing a label leaves the binding name alone', async () => {
         const { onPatch } = renderStep(inputPage());
+        const user = userEvent.setup();
+        await user.click(screen.getByLabelText('Expand question 1'));
         typeInEditor(screen.getByLabelText('Question 1 label'), 'Delivery address');
         fireEvent.click(screen.getByText('Save'));
 
@@ -230,8 +235,10 @@ describe('SettingsForm — form page: values from earlier steps', () => {
         fireEvent.click(screen.getByTitle(path));
     };
 
-    it('every text slot on a page offers the picker', () => {
+    it('every text slot on a page offers the picker', async () => {
         renderStep(inputPage(), { groups: [TICKET_GROUP], previewSample: TICKET_SAMPLE });
+        const user = userEvent.setup();
+        await user.click(screen.getByLabelText('Expand question 1'));
         // title, intro, the one question's label, button text, thank-you text.
         expect(screen.getAllByLabelText('Insert variable')).toHaveLength(5);
     });
@@ -243,8 +250,10 @@ describe('SettingsForm — form page: values from earlier steps', () => {
         expect(onPatch.mock.calls.at(-1)[0].form.title).toContain('{{steps.t.output.number}}');
     });
 
-    it('a question label can quote an earlier step without touching its binding name', () => {
+    it('a question label can quote an earlier step without touching its binding name', async () => {
         const { onPatch } = renderStep(inputPage(), { groups: [TICKET_GROUP], previewSample: TICKET_SAMPLE });
+        const user = userEvent.setup();
+        await user.click(screen.getByLabelText('Expand question 1'));
         // Index 2: title, intro, then the first question's label.
         pickInto(2, 'steps.t.output.number');
         fireEvent.click(screen.getByText('Save'));

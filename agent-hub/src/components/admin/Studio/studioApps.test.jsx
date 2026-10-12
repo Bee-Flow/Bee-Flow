@@ -2,8 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
     STUDIO_APPS, STUDIO_CATEGORIES, DEFAULT_STUDIO_CATEGORY,
     groupStudioApps, makeCanUse, resolveStudioNav, studioLockHint, createAutomationDraft,
-    createFormAutomation, firstOpenStudioSection, studioPermissionHeld,
+    createFormAutomation, firstOpenStudioSection, studioPermissionHeld, STUDIO_ICONS,
 } from './studioApps';
+import { STUDIO_GLYPH_ICONS } from '../../../utils/integrationLogos';
 import studioAppsSource from './studioApps.jsx?raw';
 import EN_DEFAULTS from '../../../i18n/en-defaults';
 import { KIND_KEYS } from '../../shared/kindColors';
@@ -616,6 +617,16 @@ describe('hiddenFromNav', () => {
         // route, the deep link and the shell rendering are unchanged — see
         // Sidebar.studioNav.test.jsx for the nav side.
         expect(STUDIO_APPS.filter((a) => a.hiddenFromNav).map((a) => a.id)).toEqual(['approvals']);
+    });
+});
+
+describe('icons borrowed by the automation builder', () => {
+    it('the ribbon glyphs for Webpages, Knowledge Base Ingest and Automation evolution are the sidebar icons', () => {
+        expect(STUDIO_GLYPH_ICONS).toEqual(STUDIO_ICONS);
+        const iconOf = (id) => STUDIO_APPS.find((a) => a.id === id).Icon;
+        expect(iconOf('webpages')).toBe(STUDIO_ICONS.webpages);
+        expect(iconOf('knowledge')).toBe(STUDIO_ICONS.knowledge);
+        expect(iconOf('aiTasks')).toBe(STUDIO_ICONS.aiTasks);
     });
 });
 
