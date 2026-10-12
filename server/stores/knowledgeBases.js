@@ -73,13 +73,15 @@ const KB_COUNTS_SELECT = `
             SELECT kb.*,
                    COALESCE(d.doc_count, 0) AS document_count,
                    COALESCE(d.doc_count_all, 0) AS document_count_all,
-                   COALESCE(d.total_chunks, 0) AS total_chunks
+                   COALESCE(d.total_chunks, 0) AS total_chunks,
+                   d.last_document_at
             FROM knowledge_bases kb
             LEFT JOIN (
                 SELECT knowledge_base_id,
                        COUNT(*) FILTER (WHERE ${ACTIVE_STATUS_SQL}) AS doc_count,
                        COUNT(*) AS doc_count_all,
-                       SUM(chunk_count) FILTER (WHERE ${ACTIVE_STATUS_SQL}) AS total_chunks
+                       SUM(chunk_count) FILTER (WHERE ${ACTIVE_STATUS_SQL}) AS total_chunks,
+                       MAX(created_at) FILTER (WHERE ${ACTIVE_STATUS_SQL}) AS last_document_at
                 FROM documents
                 GROUP BY knowledge_base_id
             ) d ON d.knowledge_base_id = kb.id`;

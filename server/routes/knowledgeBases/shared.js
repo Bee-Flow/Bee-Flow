@@ -185,7 +185,9 @@ async function decorateKbList(kbs) {
             sourceCount: Number(c.sourceCount || 0),
             autoRefreshCount: Number(c.autoRefreshCount || 0),
             lastRefreshAt: c.lastRefreshAt || null,
-            lastContentAt: kb.last_content_at || null,
+            // last_content_at is stamped since K1; a base filled before that
+            // has documents but no stamp, so its newest document stands in.
+            lastContentAt: kb.last_content_at || kb.last_document_at || null,
         };
     });
 }
