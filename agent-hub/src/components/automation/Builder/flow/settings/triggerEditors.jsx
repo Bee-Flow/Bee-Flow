@@ -12,13 +12,14 @@ import { defaultTriggerLabel, isGeneratedTriggerLabel } from '../triggerLabels';
 import TriggerProviderPicker from '../TriggerProviderPicker';
 import AgentBindingsSection from './agentBindings/AgentBindingsSection';
 import FieldDesigner from './fieldDesigner';
-import FormBuilderFields, { defaultFormPageDeclaration, defaultFormEndingDeclaration } from './FormBuilderFields';
+import FormPageEditor from './FormPageEditor';
+import { defaultFormPageDeclaration, defaultFormEndingDeclaration } from './FormBuilderFields';
 import { FormRow, inputClass } from './formPrimitives';
 import FormTriggerFields from './FormTriggerFields';
 import { FILTER_FORM_BY_KEY } from './triggerFilters';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 
-function TriggerFields({ draft, set, setNested, errorSections = new Set(), catalog = null, automation = null, stepId = null, isSecondaryTrigger = false, onTestSubmit = null, onRenameField = null }) {
+function TriggerFields({ draft, set, setNested, errorSections = new Set(), catalog = null, automation = null, stepId = null, isSecondaryTrigger = false, onTestSubmit = null, onRenameField = null, formEditor = null }) {
     const { t } = useTranslation();
     const kind = draft.kind || 'manual';
     // A flowlet's trigger declares its input contract instead of firing — no
@@ -97,7 +98,7 @@ function TriggerFields({ draft, set, setNested, errorSections = new Set(), catal
                         <TriggerWebhookPanel automation={automation} stepId={stepId} />
                     )}
                     {kind === 'form' && (
-                        <FormTriggerFields draft={draft} set={set} automation={automation} stepId={stepId} onTestSubmit={onTestSubmit} onRenameField={onRenameField} />
+                        <FormTriggerFields draft={draft} set={set} automation={automation} stepId={stepId} onTestSubmit={onTestSubmit} onRenameField={onRenameField} formEditor={formEditor} />
                     )}
                 </AccordionSection>
             )}
@@ -397,7 +398,7 @@ const FORM_WAIT_CHOICES = [
  * moment it is shown, so the slots get the {} picker and the Input panel can
  * drop values from earlier steps straight into them.
  */
-function FormPageFields({ draft, set, stepId, onFocusField, previewSample, errorSections = new Set(), onRenameField = null }) {
+function FormPageFields({ draft, set, stepId, onFocusField, previewSample, errorSections = new Set(), onRenameField = null, formEditor = null }) {
     const { t } = useTranslation();
     const isEnding = draft.mode === 'ending';
     const form = draft.form || null;
@@ -424,9 +425,11 @@ function FormPageFields({ draft, set, stepId, onFocusField, previewSample, error
     return (
         <>
             <AccordionSection stepType="form_page" sectionKey="config" title={t('automations.trigger_editors.page', 'Page')} defaultOpen forceOpen={errorSections.has('config')}>
-                <FormBuilderFields
+                <FormPageEditor
                     form={form}
                     onChange={(next) => set('form', next)}
+                    stepId={stepId}
+                    formEditor={formEditor}
                     bindingBase={`steps.${stepId || 'this'}.output`}
                     variant={isEnding ? 'ending' : 'input'}
                     allowVariables

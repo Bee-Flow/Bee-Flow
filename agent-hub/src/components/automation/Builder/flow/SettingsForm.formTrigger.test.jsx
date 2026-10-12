@@ -1,5 +1,6 @@
 import { render, screen, fireEvent, cleanup, within } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import SettingsForm from './SettingsForm';
 import { VariablePickerProvider } from '../mapping/VariablePickerContext';
@@ -104,7 +105,7 @@ describe('SettingsForm — form trigger', () => {
      * hook more than the first — React #310, and the whole builder fell into
      * its error boundary.
      */
-    it('creating the declaration in place does not change the hook count', () => {
+    it('creating the declaration in place does not change the hook count', async () => {
         function Harness() {
             const [step, setStep] = React.useState({ id: 'trg', type: 'trigger', kind: 'form' });
             return (
@@ -121,14 +122,18 @@ describe('SettingsForm — form trigger', () => {
         }
         render(<Harness />);
         fireEvent.click(screen.getByText('Create the form'));
+        const user = userEvent.setup();
+        await user.click(screen.getByLabelText('Expand question 1'));
         // The editor for the seeded declaration is on screen — no throw.
         expect(screen.getByDisplayValue('Get in touch')).toBeTruthy();
         expect(screen.getByDisplayValue('Your name')).toBeTruthy();
         expect(screen.queryByText('Create the form')).toBeNull();
     });
 
-    it('lists the declared questions and their types', () => {
+    it('lists the declared questions and their types', async () => {
         renderForm(trigger());
+        const user = userEvent.setup();
+        await user.click(screen.getByText('Expand all'));
         expect(screen.getByDisplayValue('Your name')).toBeTruthy();
         expect(screen.getByDisplayValue('Your email')).toBeTruthy();
         expect(screen.getByLabelText('Question 2 type').value).toBe('email');
@@ -140,8 +145,10 @@ describe('SettingsForm — form trigger', () => {
      * QUESTION must not touch it. Re-deriving it here would break bindings
      * silently, with nothing to see in the UI.
      */
-    it('editing a label leaves the binding name alone', () => {
+    it('editing a label leaves the binding name alone', async () => {
         const { onPatch } = renderForm(trigger());
+        const user = userEvent.setup();
+        await user.click(screen.getByLabelText('Expand question 1'));
         fireEvent.change(screen.getByLabelText('Question 1 label'), { target: { value: 'Full name' } });
         fireEvent.click(screen.getByText('Save'));
 

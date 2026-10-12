@@ -1,4 +1,4 @@
-import { Crosshair, ExternalLink, Trash2, X } from 'lucide-react';
+import { Crosshair, ExternalLink, FileText, Trash2, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { enginePill, engineSegments, showsRates } from './engineLine';
 import { statusVar } from './nodeTypeColors';
@@ -210,7 +210,7 @@ function BuildBanner({ building, buildCue, farewell, endedAt, skipped, now, foll
 }
 
 export default function CanvasSouthBar({
-    runFocus = null, onShowRun = null, formUrl = null,
+    runFocus = null, onShowRun = null, formUrl = null, onOpenFormOverlay = null,
     selectedCount = 0, selectionInDrawer = false, onDeleteSelection = null, onClearSelection = null,
     structuralEditsBlocked = false, interactive = true, editable = false,
     buildCue = null, following = true, onFollow = null,
@@ -335,21 +335,32 @@ export default function CanvasSouthBar({
                     </button>
                 )}
                 {/* The one thing that un-parks a run waiting on a form: the
-                    page itself. An anchor, not a button — a viewer with the
-                    canvas open should be able to middle-click it, and the
-                    sandboxed artboard's script-driven "open" would not work
-                    for them anyway. Absent when the automation has no form page
-                    provisioned; never a dead control. */}
+                    page itself. The primary action shows it over the canvas
+                    (the overlay, attached to this run); the public page stays
+                    reachable as a small secondary link. Absent when neither
+                    exists; never a dead control. */}
+                {runFocus.awaitingForm && onOpenFormOverlay && (
+                    <button
+                        type="button"
+                        onClick={onOpenFormOverlay}
+                        data-testid="canvas-run-open-form"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg font-semibold transition hover:opacity-90"
+                        style={{ background: 'var(--accent-primary)', color: 'var(--accent-primary-fg)' }}
+                    >
+                        <FileText size={12} /> {t('automations.canvas.open_form', 'Open the form')}
+                    </button>
+                )}
                 {runFocus.awaitingForm && formUrl && (
                     <a
                         href={formUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        data-testid="canvas-run-open-form"
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg font-semibold transition hover:opacity-90"
-                        style={{ background: 'var(--accent-primary)', color: 'var(--accent-primary-fg)' }}
+                        data-testid="canvas-run-open-form-tab"
+                        aria-label={t('automations.canvas.open_form_new_tab', 'Open in a new tab')}
+                        title={t('automations.canvas.open_form_new_tab', 'Open in a new tab')}
+                        className="inline-flex items-center justify-center p-1.5 rounded-lg border border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition"
                     >
-                        <ExternalLink size={12} /> {t('automations.canvas.open_form', 'Open the form')}
+                        <ExternalLink size={12} />
                     </a>
                 )}
             </div>

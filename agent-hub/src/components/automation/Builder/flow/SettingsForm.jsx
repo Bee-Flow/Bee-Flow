@@ -100,6 +100,8 @@ export default function SettingsForm({
     // Renaming a form question's binding name rewrites the whole definition, so
     // it is handed down from the shell that owns it — see FormBuilderFields.
     onRenameField = null,
+    // { pages, savePage, onTestForm } — the whole automation's form pages, for the full-screen form editor (null where the shell cannot supply it).
+    formEditor = null,
     // (step) => boolean|undefined — insert a step BEFORE this one and re-point
     // the connections. Same shape and same reason as onRenameField above: it
     // rewrites the graph, so it comes from the shell that owns the definition,
@@ -323,7 +325,7 @@ export default function SettingsForm({
                 </div>
 
                 {step.type === 'trigger' && (
-                    <TriggerFields draft={draft} set={set} setNested={setNested} errorSections={errorSections} catalog={catalog} automation={automation} stepId={step.id} isSecondaryTrigger={isSecondaryTrigger} onTestSubmit={onTestSubmit} onRenameField={onRenameField} />
+                    <TriggerFields draft={draft} set={set} setNested={setNested} errorSections={errorSections} catalog={catalog} automation={automation} stepId={step.id} isSecondaryTrigger={isSecondaryTrigger} onTestSubmit={onTestSubmit} onRenameField={onRenameField} formEditor={formEditor} />
                 )}
 
                 {step.type === 'ai_step' && (
@@ -468,7 +470,7 @@ export default function SettingsForm({
                     <ReturnToAppFields draft={draft} set={set} onFocusField={onFocusField} previewSample={previewSample} errorSections={errorSections} />
                 )}
                 {step.type === 'form_page' && (
-                    <FormPageFields draft={draft} set={set} stepId={step.id} onFocusField={onFocusField} previewSample={previewSample} errorSections={errorSections} onRenameField={onRenameField} />
+                    <FormPageFields draft={draft} set={set} stepId={step.id} onFocusField={onFocusField} previewSample={previewSample} errorSections={errorSections} onRenameField={onRenameField} formEditor={formEditor} />
                 )}
                 {step.type === 'limit' && (
                     <LimitFields draft={draft} set={set} groups={groups} onFocusField={onFocusField} previewSample={previewSample} errorSections={errorSections} />

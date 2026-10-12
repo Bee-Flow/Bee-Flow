@@ -123,6 +123,8 @@ export default function BuildTab({
     // rather than in the shell so it sits OVER the canvas — the point of the
     // overlay is that each step lights up behind the page you are filling in.
     formTest = null, onFormTestRun = null, onCloseFormTest = null,
+    // (runId) — open that form overlay attached to a run parked on a page.
+    onOpenFormOverlay = null,
     state, automation = null, rootDef, scopedDef, scopeKey, setScopeKey, onVisualEditRoot,
     chatInput, setChatInput, modelTiers, selectedTier, setSelectedTier, user,
     onSend, onStopBuild = null, messagesContainerRef, messagesBodyRef = null, messagesEndRef, onMessagesScroll = undefined,
@@ -1342,6 +1344,7 @@ export default function BuildTab({
                         runSteps={replaySteps}
                         replayStepId={replayStepId}
                         formUrl={waitingFormUrl}
+                        onOpenFormOverlay={onOpenFormOverlay && state.dryRun?.id ? () => onOpenFormOverlay(state.dryRun.id) : null}
                         onNodeClick={onNodeClickWrapped}
                         onNodeExpand={onNodeExpand}
                         validation={state.validation}
@@ -1509,6 +1512,7 @@ export default function BuildTab({
                     <FormRunOverlay
                         automationId={state.automationId || automation?.id}
                         form={formTest.form}
+                        runId={formTest.runId}
                         onStartRun={onFormTestRun}
                         onClose={onCloseFormTest}
                     />

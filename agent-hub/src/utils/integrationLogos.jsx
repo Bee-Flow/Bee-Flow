@@ -1,4 +1,4 @@
-import { BookPlus, Brain, Compass, Dna, Music, Presentation } from 'lucide-react';
+import { BookOpen, Brain, Compass, Globe, ListChecks, Music, Presentation } from 'lucide-react';
 import React from 'react';
 
 /**
@@ -328,19 +328,6 @@ const KbSearchLogo = (p) => (
     </Wrap>
 );
 
-const WebpagesLogo = (p) => (
-    <Wrap {...p} viewBox="0 0 24 24">
-        <rect width="24" height="24" rx="4" fill="#0EA5E9" />
-        <rect x="4" y="6" width="16" height="12" rx="1.5" fill="#fff" />
-        <rect x="4" y="6" width="16" height="3" rx="1.5" fill="#0284C7" />
-        <circle cx="6" cy="7.5" r="0.6" fill="#fff" />
-        <circle cx="8" cy="7.5" r="0.6" fill="#fff" />
-        <rect x="6" y="11" width="12" height="1" rx="0.5" fill="#0EA5E9" />
-        <rect x="6" y="13" width="9" height="1" rx="0.5" fill="#0EA5E9" />
-        <rect x="6" y="15" width="6" height="1" rx="0.5" fill="#0EA5E9" />
-    </Wrap>
-);
-
 const ImageGenLogo = (p) => (
     <Wrap {...p} viewBox="0 0 24 24">
         <defs>
@@ -390,8 +377,24 @@ function toolTile(Icon, fill) {
 }
 
 const MemoryLogo = toolTile(Brain, '#8B5CF6');
-const KbIngestLogo = toolTile(BookPlus, '#10B981');
-const AutomationEvolutionLogo = toolTile(Dna, '#F59E0B');
+
+/**
+ * Plain, monochrome: the Studio sidebar's own icon in the surrounding text
+ * colour, like Note / Code / Privacy Shield in the ribbon. These three are
+ * the Studio sections (Webpages, Knowledge, Automations), not brands.
+ */
+function studioGlyph(Icon) {
+    const Glyph = ({ size = 18, className }) => (
+        <Icon size={size} className={className || 'text-[var(--text-secondary)]'} aria-hidden="true" />
+    );
+    return Glyph;
+}
+// Must stay the Studio sidebar's icons; studioApps.test.jsx pins them to
+// STUDIO_ICONS (studioApps cannot be imported here: it is not node-safe).
+export const STUDIO_GLYPH_ICONS = { webpages: Globe, knowledge: BookOpen, aiTasks: ListChecks };
+const WebpagesLogo = studioGlyph(Globe);
+const KbIngestLogo = studioGlyph(BookOpen);
+const AutomationEvolutionLogo = studioGlyph(ListChecks);
 const BrowseWebLogo = toolTile(Compass, '#0EA5E9');
 const MusicGenLogo = toolTile(Music, '#0EA5E9');
 const PresentationsLogo = toolTile(Presentation, '#EA580C');

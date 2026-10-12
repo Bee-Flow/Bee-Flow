@@ -17,6 +17,7 @@ import NdvSideColumn from './ndv/NdvSideColumn';
 import stepPlumbing from './ndv/stepPlumbing';
 import useNdvLayout from './ndv/useNdvLayout';
 import useOutputEditor from './ndv/useOutputEditor';
+import useFormEditor from './ndv/useFormEditor';
 import useStepPatchSave from './ndv/useStepPatchSave';
 import useHiddenSections from './useHiddenSections';
 import useNdvNavigation from './useNdvNavigation';
@@ -108,6 +109,13 @@ export default function NodeDetailView({
 
     const { position, canNavigate, goPrev, goNext } = useNdvNavigation({ definition, step, onNavigate, onClose });
     const { saving, saveError, saveStatus, lastSavedAt, persistStepPatch, retrySave } = useStepPatchSave({ definition, step, onSaveStep, t });
+
+    // "Test this form" on the trigger = the shell's Execute path, which opens the form over the canvas.
+    const onTestForm = useMemo(
+        () => (typeof onExecuteStep === 'function' && step?.type === 'trigger' && step?.kind === 'form' ? () => { onExecuteStep(step.id, { openForm: true }); } : null),
+        [onExecuteStep, step],
+    );
+    const formEditor = useFormEditor({ definition, step, onSaveStep, onTest: onTestForm });
 
     const outputPinned = step?.pinnedOutput !== undefined && step?.pinnedOutput !== null;
     // Typed by the author, not captured from a run: the badge says so.
@@ -338,6 +346,7 @@ export default function NodeDetailView({
                                     isSecondaryTrigger={isSecondaryTrigger}
                                     onTestSubmit={onTestSubmit}
                                     onRenameField={onRenameField}
+                                    formEditor={formEditor}
                                     onInsertUpstreamStep={onInsertUpstreamStep}
                                     routeFollow={routeFollow} wholeRun={wholeRun}
                                     onExpandOnCanvas={onExpandOnCanvas}
