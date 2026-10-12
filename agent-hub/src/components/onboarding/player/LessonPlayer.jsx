@@ -1,4 +1,4 @@
-import { X, ArrowLeft, ArrowRight, Check, Lock, PartyPopper, Sparkles, Minus, PanelRight, Maximize2, AppWindow, CircleCheck, Loader2, Award, Play } from 'lucide-react';
+import { X, ArrowLeft, ArrowRight, Check, Lock, PartyPopper, MessageCircleQuestionMark, Minus, PanelRight, Maximize2, AppWindow, CircleCheck, Loader2, Award, Play } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from '../../../hooks/useTranslation';
@@ -376,12 +376,12 @@ function LessonPlayerView({ lessonId, courseId = null, initialLayout = null, use
                 </div>
                 {!finished && (
                     <button type="button" onClick={() => setTutorOpen((o) => !o)} aria-pressed={tutorOpen}
-                        className={iconBtn}
-                        style={tutorOpen
-                            ? { background: 'color-mix(in srgb, var(--accent-primary) 18%, transparent)', color: 'var(--accent-primary)' }
-                            : { color: 'var(--text-secondary)' }}
-                        title={t('learn.tutor.toggle_title', 'Stuck? Ask the AI coach about this step')} aria-label={t('learn.tutor.toggle', 'Ask AI')}>
-                        <Sparkles style={{ width: 14, height: 14 }} />
+                        className={`inline-flex items-center gap-1 h-7 px-2.5 mr-1 rounded-full text-[12px] font-medium whitespace-nowrap flex-shrink-0 transition-colors border ${tutorOpen
+                            ? 'border-[var(--accent-primary)] bg-[color-mix(in_srgb,var(--accent-primary)_18%,transparent)] text-[var(--accent-primary)]'
+                            : 'border-[var(--border-default)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]'}`}
+                        title={t('learn.tutor.toggle_title', 'Stuck? Ask the AI coach about this step')}>
+                        <MessageCircleQuestionMark className="w-3.5 h-3.5" aria-hidden="true" />
+                        {t('learn.tutor.toggle', 'Ask AI')}
                     </button>
                 )}
                 {!finished && !mobile && (
@@ -467,7 +467,15 @@ function LessonPlayerView({ lessonId, courseId = null, initialLayout = null, use
             {/* Footer — 56px */}
             {!finished && (
                 <div className="flex items-center gap-2 flex-shrink-0" style={{ height: 56, padding: '0 14px', borderTop: '1px solid var(--border-default)' }}>
-                    <span className="text-[12px] tabular-nums" style={{ color: 'var(--text-tertiary)' }}>{stepCounter}</span>
+                    {/* The step counter already sits above the body; down here the
+                        eye lands next to "Next", so this is where help is offered. */}
+                    {!tutorOpen && (
+                        <button type="button" onClick={() => setTutorOpen(true)}
+                            className="inline-flex items-center gap-1.5 min-w-0 text-[12px] text-[var(--text-secondary)] hover:text-[var(--accent-primary)] transition-colors">
+                            <MessageCircleQuestionMark className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" />
+                            <span className="truncate">{t('learn.tutor.footer_hint', 'Stuck? Ask the AI coach')}</span>
+                        </button>
+                    )}
                     <div className="flex-1" />
                     {stepIndex > 0 && (
                         <button type="button" onClick={back}

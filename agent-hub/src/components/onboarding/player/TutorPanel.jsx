@@ -1,4 +1,4 @@
-import { CornerDownLeft, Loader2, Sparkles, X } from 'lucide-react';
+import { CornerDownLeft, Loader2, MessageCircleQuestionMark, X } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from '../../../hooks/useTranslation';
 import MarkdownRenderer from '../../renderers/MarkdownRenderer';
@@ -73,7 +73,7 @@ export default function TutorPanel({ lessonId, step, modelTier = 'fast', onClose
     return (
         <div className="flex flex-col gap-2 rounded-[10px] flex-shrink-0" style={{ background: 'var(--bg-secondary)', padding: '10px 12px' }} data-testid="tutor-panel">
             <div className="flex items-center gap-1.5">
-                <Sparkles style={{ width: 13, height: 13, color: 'var(--accent-primary)' }} aria-hidden="true" />
+                <MessageCircleQuestionMark className="w-[13px] h-[13px] text-[var(--accent-primary)]" aria-hidden="true" />
                 <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{t('learn.tutor.name', 'AI tutor')}</span>
                 <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>{t('learn.tutor.ladder', 'gives a hint first, the answer only after')}</span>
                 <button type="button" onClick={onClose} aria-label={t('common.close', 'Close')}

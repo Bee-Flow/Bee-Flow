@@ -218,6 +218,7 @@ module.exports = {
     'learn.action.unavailable': 'This challenge isn’t available right now — you can continue.',
     'learn.tutor.title': 'Ask the AI coach',
     'learn.tutor.toggle': 'Ask AI',
+    'learn.tutor.footer_hint': 'Stuck? Ask the AI coach',
     'learn.tutor.toggle_title': 'Stuck? Ask the AI coach about this step',
     'learn.tutor.placeholder': 'Stuck? Ask anything about this step…',
     'learn.tutor.thinking': 'Thinking…',
