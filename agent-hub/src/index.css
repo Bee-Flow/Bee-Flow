@@ -1943,45 +1943,6 @@ body,
     animation: bfCaret 1s steps(2, start) infinite;
 }
 
-/* ── The silence before the first token (chat/BuilderWaitingCard.jsx) ───
-   Two rules for the waiting card in the chat column. The dot beside "Model
-   is reading your request" is REMOUNTED on every server heartbeat, so a
-   one-shot swell per mount reads as a pulse that only beats while the
-   connection does — a dot that stopped is the truth, a looping pulse would
-   not be. The bar with no history to draw on is a shimmer, a promise-free
-   "still going"; a bar with an estimate is a plain inline width and never
-   carries the class, so the shimmer cannot ride over a real fill. */
-@keyframes bfPingTick {
-    from { scale: 1; opacity: 1; }
-    40%  { scale: 1.8; opacity: .4; }
-    to   { scale: 1; opacity: 1; }
-}
-
-.bf-ping-tick {
-    animation: bfPingTick 600ms ease-out both;
-}
-
-@keyframes bfWaitBar {
-    from { translate: -100% 0; }
-    to   { translate: 300% 0; }
-}
-
-.bf-wait-bar {
-    position: relative;
-    overflow: hidden;
-}
-
-.bf-wait-bar::after {
-    content: '';
-    position: absolute;
-    inset: 0 auto 0 0;
-    width: 33%;
-    border-radius: inherit;
-    background: var(--bf-accent, var(--accent));
-    opacity: .7;
-    animation: bfWaitBar 1.6s ease-in-out infinite;
-}
-
 /* Reduced motion: every rule above, zeroed in one place. Not just
    `animation: none` — the fill is what hides a card before its turn, so the
    animation going away is what makes it visible; the pseudo-elements go too
@@ -2028,16 +1989,6 @@ body,
     .bf-ribbon-spot::after,
     .bf-caret {
         animation: none;
-    }
-
-    .bf-ping-tick {
-        animation: none;
-    }
-
-    /* No shimmer; the tinted track alone says "still waiting". */
-    .bf-wait-bar::after {
-        animation: none;
-        content: none;
     }
 }
 

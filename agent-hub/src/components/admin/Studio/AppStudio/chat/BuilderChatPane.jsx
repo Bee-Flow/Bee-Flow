@@ -13,7 +13,6 @@ import useModelTierSelection from '../../../../../hooks/useModelTierSelection';
 import useTranslation from '../../../../../hooks/useTranslation';
 import ModelTierSelector from '../../../../licensing/ModelTierSelector';
 import BuilderWaitingCard from '../../../../shared/builder/BuilderWaitingCard';
-import { modelKeyFor, recordTtft } from '../../../../shared/builder/timeToFirstToken';
 import toast from '../../../../shared/Toast';
 import MessageBubble from '../../../../automation/Builder/chat/MessageBubble';
 import useStickToBottom from '../../../../../hooks/useStickToBottom';
@@ -525,15 +524,6 @@ export default function BuilderChatPane({ appId, initialPrompt = '', autoSend = 
             || (tailAssistant.thinkingParts && tailAssistant.thinkingParts.length)
             || (tailAssistant.toolCalls && tailAssistant.toolCalls.length)));
     const waitingForFirstToken = !!running && !turn?.firstEventAt && nothingStreamedYet;
-    // Its own TTFT bucket: the App Studio prompt is a different size than the
-    // automation builder's, so a shared history would mis-estimate both.
-    const waitModelKey = `app:${modelKeyFor(turn, tierForSend)}`;
-    const ttftFiledForRef = useRef(null);
-    useEffect(() => {
-        if (!turn?.firstEventAt || !turn.sentAt || ttftFiledForRef.current === turn.sentAt) return;
-        ttftFiledForRef.current = turn.sentAt;
-        recordTtft(`app:${modelKeyFor(turn, tierForSend)}`, turn.firstEventAt - turn.sentAt);
-    }, [turn, tierForSend]);
     // ── The build cue for the canvas (banner, ghost cell, camera) ────────
     // Built once per tool call / plan / turn milestone — keyed on the last
     // assistant message's toolCalls ARRAY, never its streaming text — so the
@@ -682,7 +672,7 @@ export default function BuilderChatPane({ appId, initialPrompt = '', autoSend = 
                         ) : null}
 
                         {waitingForFirstToken && (
-                            <BuilderWaitingCard turn={turn} startedAt={buildStart.at} modelKey={waitModelKey} />
+                            <BuilderWaitingCard />
                         )}
                     </div>
                 )}

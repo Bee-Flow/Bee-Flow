@@ -244,7 +244,7 @@ describe('index.css — builder canvas motion', () => {
         const root = parseBlocks(CSS);
         const names = new Set();
         walk(root, (n) => { if (n.prelude.startsWith('@keyframes')) names.add(n.prelude.split(/\s+/)[1]); });
-        for (const k of ['bfEdgeDraw', 'bfCardIn', 'bfRingDissolve', 'bfTilePop', 'bfTextIn', 'bfSubWipe', 'bfTouchWash', 'bfLivePulse', 'bfPingTick', 'bfWaitBar', 'bfRibbonPick', 'bfFlyLand', 'bfSpotBreathe', 'bfCaret']) {
+        for (const k of ['bfEdgeDraw', 'bfCardIn', 'bfRingDissolve', 'bfTilePop', 'bfTextIn', 'bfSubWipe', 'bfTouchWash', 'bfLivePulse', 'bfRibbonPick', 'bfFlyLand', 'bfSpotBreathe', 'bfCaret']) {
             expect(names.has(k), `@keyframes ${k} missing`).toBe(true);
         }
     });
