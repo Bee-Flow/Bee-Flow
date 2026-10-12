@@ -46,7 +46,11 @@ const ComposerActions = ({
     const ShieldIcon = shieldClaim?.tone === 'warn' ? ShieldAlert : ShieldCheck;
 
     return (
-        <div className="flex items-center gap-2 min-w-0">
+        // Grows into whatever the pills leave over, never takes room from
+        // them: the shield text has width 0 (it counts for nothing in the
+        // row's sizing) and only fills the leftover, up to its own length.
+        // With its natural width it squeezed the pills group into a wrap.
+        <div className="flex flex-1 items-center justify-end gap-2">
             {/* C5 — what happens to personal data in this
                 message, before it is sent. Silent unless the
                 status route actually substantiates a claim:
@@ -59,7 +63,7 @@ const ComposerActions = ({
                     data-testid="composer-shield-line"
                     data-shield-tone={shieldClaim.tone}
                     title={t(shieldClaim.key, shieldClaim.en)}
-                    className="hidden sm:inline-flex items-center gap-1 min-w-0"
+                    className="hidden sm:flex flex-1 justify-end items-center gap-1 min-w-0"
                     style={{
                         fontSize: '11px', lineHeight: 1.2,
                         color: shieldClaim.tone === 'warn' ? 'var(--warning)' : 'var(--text-tertiary)',
@@ -73,7 +77,7 @@ const ComposerActions = ({
                             color: shieldClaim.tone === 'warn' ? 'var(--warning)' : 'var(--success)',
                         }}
                     />
-                    <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <span className="w-0 grow max-w-max truncate">
                         {t(shieldClaim.key, shieldClaim.en)}
                     </span>
                 </span>
