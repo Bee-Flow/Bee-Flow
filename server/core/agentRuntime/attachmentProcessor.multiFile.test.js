@@ -33,7 +33,7 @@ const fakeAttachmentScanner = {
         action: 'ask',
         text,
         findings: [{ id: `pii_${filename}`, category: 'Person', source: 'pii', offset: 0, length: 4, text: text.slice(0, 4), confidence: 0.9 }],
-        summary: { filename },
+        summary: { filename, count: 1, mentions: 1, byCategory: { Person: 1 }, pages: {} },
         tokenMap: null,
     }),
     AttachmentPrivacyBlock: FakeAttachmentPrivacyBlock,
@@ -104,6 +104,24 @@ test('a block decision on the SECOND of two attachments still stops the turn (th
         (err) => err.code === 'ATTACHMENT_PII_BLOCKED' && err.filename === 'b.txt',
     );
     assert.equal(resolveCalls.length, 2, 'the first file was still reviewed before the second one blocked the turn');
+});
+
+test('the agent-runtime path hands the scan summary to the ask flow, so a "send anyway" audit row keeps its categories', async () => {
+    reset();
+    resolveImpl = (args) => ({
+        action: 'pass', text: args.text, findings: args.findings, summary: { ...args.summary, filename: args.filename }, tokenMap: null,
+    });
+    const lastMsg = { role: 'user', content: 'send anyway' };
+    const { attachmentScanSummaries } = await processAttachments(
+        [{ name: 'a.txt', type: 'text/plain', content: 'AAAA is confidential' }],
+        lastMsg, 'u1',
+        { orgShield: { dlpEnabled: true, dlpMode: 'ask' }, conversationId: 'conv3' },
+    );
+    assert.equal(resolveCalls.length, 1);
+    assert.deepEqual(resolveCalls[0].summary.byCategory, { Person: 1 });
+    assert.equal(attachmentScanSummaries.length, 1);
+    assert.equal(attachmentScanSummaries[0].action, 'allowed');
+    assert.deepEqual(attachmentScanSummaries[0].byCategory, { Person: 1 });
 });
 
 test.after(() => restore());

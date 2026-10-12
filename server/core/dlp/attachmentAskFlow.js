@@ -30,6 +30,8 @@ const dlpRunner = require('./dlpRunner');
  *                                   for review — findings' offsets are
  *                                   relative to exactly this string.
  * @param {Array}  p.findings
+ * @param {object} [p.summary]       The scan summary (byCategory, pages, count, ...). Carried
+ *                                   through so the audit row can name what was found.
  * @param {string} p.filename
  * @param {object} [p.provider]      Provider classification, for the modal's "sent to X" line.
  * @param {object} p.orgShield
@@ -39,8 +41,9 @@ const dlpRunner = require('./dlpRunner');
  * @param {Function} [p.registerDecision]  decisionQueue.register (injected for tests).
  * @returns {Promise<{action:'block'|'pass'|'tokenize', text:(string|null), findings:Array, summary:object, tokenMap:(object|null), reason?:string}>}
  */
-async function resolveAttachmentAsk({ text, findings, filename, provider, orgShield, conversationId, userId, emit, registerDecision }) {
+async function resolveAttachmentAsk({ text, findings, summary, filename, provider, orgShield, conversationId, userId, emit, registerDecision }) {
     const reg = registerDecision || register;
+    const fullSummary = { ...(summary || {}), filename };
     const { decisionId, promise } = reg({ conversationId, userId });
 
     emit?.('dlp_attachment_preview', {
@@ -70,7 +73,7 @@ async function resolveAttachmentAsk({ text, findings, filename, provider, orgShi
         // Timeout or abort → fail-closed, same as the text path. A distinct
         // reason from the scanner's own 'timeout' (which means the SCAN
         // couldn't finish) — this means the PERSON didn't answer in time.
-        return { action: 'block', reason: err.code === 'DLP_TIMEOUT' ? 'ask_timeout' : 'user_blocked', text: null, findings, summary: { filename }, tokenMap: null };
+        return { action: 'block', reason: err.code === 'DLP_TIMEOUT' ? 'ask_timeout' : 'user_blocked', text: null, findings, summary: fullSummary, tokenMap: null };
     }
 
     if (decision.rememberForConversation && decision.choice !== 'block') {
@@ -78,10 +81,10 @@ async function resolveAttachmentAsk({ text, findings, filename, provider, orgShi
     }
 
     if (decision.choice === 'block') {
-        return { action: 'block', reason: 'user_blocked', text: null, findings, summary: { filename }, tokenMap: null };
+        return { action: 'block', reason: 'user_blocked', text: null, findings, summary: fullSummary, tokenMap: null };
     }
     if (decision.choice === 'allow') {
-        return { action: 'pass', text, findings, summary: { filename }, tokenMap: null };
+        return { action: 'pass', text, findings, summary: fullSummary, tokenMap: null };
     }
 
     // 'redact' — merge manual additions, re-sliced from THIS attachment's own

@@ -144,10 +144,11 @@ async function processTurnAttachments({ messageMetadata, lastMsg, userId, modelT
                 } catch (attErr) {
                     if (attErr && attErr.code === 'ATTACHMENT_PII_BLOCKED') {
                         const cats = Object.keys(attErr.summary?.byCategory || {});
-                        // reason ∈ {pii, overflow, timeout, degraded}. Non-pii
-                        // causes are "held" (scan couldn't cover the input) — the
-                        // client renders distinct copy.
-                        const cause = attErr.reason && attErr.reason !== 'pii' ? attErr.reason : 'pii';
+                        // Held (scan couldn't cover the input) vs blocked (policy or
+                        // the person decided) — see attachmentBlockAudit.
+                        const { attachmentBlockAudit } = require('../dlp/attachmentBlockAudit');
+                        const audit = attachmentBlockAudit(attErr.reason, cats);
+                        const cause = audit.cause;
                         const sseReason = cause === 'pii' ? 'attachment_pii' : `attachment_${cause}`;
                         onEvent?.('dlp_blocked', {
                             reason: sseReason,
@@ -166,9 +167,9 @@ async function processTurnAttachments({ messageMetadata, lastMsg, userId, modelT
                             model: modelToUse,
                             source: config?.providerName || config?.providerType || 'LLM',
                             violation_type: 'pii',
-                            violation_categories: cause === 'pii' ? (cats.join(', ') || null) : `scan_${cause}`,
+                            violation_categories: audit.violation_categories,
                             direction: 'input',
-                            action_taken: cause === 'pii' ? 'blocked' : 'held',
+                            action_taken: audit.action_taken,
                             attachment_filename: attErr.filename,
                             attachment_page: null,
                         }).catch(() => {});
