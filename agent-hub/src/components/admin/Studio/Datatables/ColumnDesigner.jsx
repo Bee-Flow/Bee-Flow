@@ -11,6 +11,7 @@ import { TypeSelect } from './NewDatatableDialog';
 import useTranslation from '../../../../hooks/useTranslation';
 import Modal from '../../../shared/Modal';
 import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
+import Tooltip from '../../../shared/Tooltip';
 import useConfirm from '../../../shared/useConfirm';
 import { cellText } from '../AppStudio/tables/rowValues';
 
@@ -57,7 +58,7 @@ import { cellText } from '../AppStudio/tables/rowValues';
  * column"; a locked or source column keeps its one-line hint because that
  * is information, not decoration.
  */
-export default function ColumnDesigner({ table, canEdit: canEditProp, usage = [], onChanged, mirror = null }) {
+export default function ColumnDesigner({ table, canEdit: canEditProp, usage = [], onChanged, mirror = null, onOpenUsage = null }) {
     const { t } = useTranslation();
     // A table whose WHOLE column list is the source's — Nextcloud's table,
     // or a spreadsheet's header row: everything is visible, nothing is
@@ -305,6 +306,7 @@ export default function ColumnDesigner({ table, canEdit: canEditProp, usage = []
                                 last={i === fields.length - 1}
                                 sample={sample}
                                 readers={usage.filter(u => (u.columns || []).includes(f.key))}
+                                onOpenUsage={onOpenUsage}
                                 onChange={(patch) => set(i, patch)}
                                 onMove={(delta) => move(i, delta)}
                                 onRemove={() => remove(i)}
@@ -484,9 +486,32 @@ function managedHint(t, kind, key) {
     }
 }
 
+const SUMMARY_MAX = 5;
+
+/** The pill's hover card: which automation step touches this column, and how. */
+function UsageSummary({ t, readers }) {
+    const roleWord = (mode) => mode === 'readwrite' ? t('usage.role_readwrite', 'reads and writes')
+        : mode === 'write' ? t('usage.role_write', 'writes') : t('usage.role_read', 'reads');
+    return (
+        <span className="flex flex-col gap-0.5 text-left">
+            {readers.slice(0, SUMMARY_MAX).map((u, i) => (
+                <span key={`${u.consumerId || u.automationId || ''}:${u.stepOrdinal || i}`}>
+                    {u.consumerTitle || u.automationTitle || t('datatables.column_usage_unnamed', 'An automation')}
+                    {u.stepOrdinal ? ` · ${t('datatables.column_usage_step', 'step {n}', { n: u.stepOrdinal })}` : ''}
+                    {` · ${roleWord(u.mode)}`}
+                </span>
+            ))}
+            {readers.length > SUMMARY_MAX && (
+                <span>{t('datatables.column_usage_more', '+ {n} more', { n: readers.length - SUMMARY_MAX })}</span>
+            )}
+            <span className="font-normal opacity-75">{t('datatables.column_usage_open', 'Click to open Used by')}</span>
+        </span>
+    );
+}
+
 function ColumnRow({
     t, field, canEdit, managedKind, locked, first, last, sample, readers,
-    onChange, onMove, onRemove, ncColumn = null, onRemoveRetired = null, drag = null,
+    onChange, onMove, onRemove, ncColumn = null, onRemoveRetired = null, drag = null, onOpenUsage = null,
 }) {
     const needsOptions = field.type === 'select' || field.type === 'multiselect';
     const label = columnLabel(field) || t('datatables.column_generic', 'column');
@@ -552,15 +577,17 @@ function ColumnRow({
                         style={{ color: 'var(--text-primary)', outlineColor: 'var(--accent-primary)' }}
                     />
                     {marked.length > 0 && (
-                        <span className="inline-flex items-center gap-1 text-[11px] shrink-0 whitespace-nowrap"
-                            style={{ padding: '1px 7px', borderRadius: 999, background: 'var(--bg-secondary)', border: '1px solid var(--border-default)', color: 'var(--text-secondary)' }}
-                            title={writers.length ? t('datatables.column_written_by', 'An automation writes to this column') : t('datatables.column_read_by', 'An automation reads this column')}
-                            data-testid="column-usage">
-                            <Workflow className="w-[11px] h-[11px]" aria-hidden="true" />
-                            {marked.length === 1
-                                ? t('datatables.column_used_one_pill', '1 automation')
-                                : t('datatables.column_used_many_pill', '{n} automations', { n: marked.length })}
-                        </span>
+                        <Tooltip content={<UsageSummary t={t} readers={readers} />}>
+                            <button type="button" onClick={onOpenUsage || undefined}
+                                className="inline-flex items-center gap-1 text-[11px] shrink-0 whitespace-nowrap px-[7px] py-px rounded-full cursor-pointer bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--accent-primary)] hover:text-[var(--text-primary)] focus-visible:outline focus-visible:outline-2 outline-[var(--accent-primary)]"
+                                aria-label={writers.length ? t('datatables.column_written_by', 'An automation writes to this column') : t('datatables.column_read_by', 'An automation reads this column')}
+                                data-testid="column-usage">
+                                <Workflow className="w-[11px] h-[11px]" aria-hidden="true" />
+                                {marked.length === 1
+                                    ? t('datatables.column_used_one_pill', '1 automation')
+                                    : t('datatables.column_used_many_pill', '{n} automations', { n: marked.length })}
+                            </button>
+                        </Tooltip>
                     )}
                 </span>
 

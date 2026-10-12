@@ -239,7 +239,8 @@ export default function DatatableDetail({
                                 canWrite={gradeAtLeast(table.grade, 'editor')} onChanged={onChanged} />
                         )}
                         {tab === 'columns' && (
-                            <ColumnDesigner table={table} canEdit={canEdit} usage={usage || []} onChanged={onChanged} mirror={mirror} />
+                            <ColumnDesigner table={table} canEdit={canEdit} usage={usage || []} onChanged={onChanged} mirror={mirror}
+                                onOpenUsage={() => setTab('usage')} />
                         )}
                         {tab === 'retention' && (
                             <RetentionPanel table={table} canEdit={canEdit} columns={columns} onChanged={onChanged} />
