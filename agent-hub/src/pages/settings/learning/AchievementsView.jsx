@@ -166,7 +166,7 @@ function LevelLine({ t, xp, current }) {
                         <div className="text-[11px] leading-[14px]" style={{ color: isCurrent ? 'var(--text-primary)' : 'var(--text-tertiary)', fontWeight: isCurrent ? 600 : 400 }}>
                             {t(`learn.level.${lv.key}`, lv.titleFallback)}<br />
                             <span className="text-[10px] font-normal" style={{ color: 'var(--text-tertiary)' }}>
-                                {lv.min.toLocaleString()} XP{isCurrent && <> · {t('learn.achievements.you', 'you: {xp}').replace('{xp}', String(xp))}</>}
+                                {t('learn.achievements.xp_value', '{xp} XP', { xp: lv.min.toLocaleString() })}{isCurrent && <> · {t('learn.achievements.you', 'you: {xp}').replace('{xp}', String(xp))}</>}
                             </span>
                         </div>
                     </div>

@@ -209,7 +209,7 @@ function buildFilters(filters, startIdx = 1) {
 
 // Audit markers that travel in violation_categories but are not kinds of
 // personal data (mirrors MARKERS in the Shield's activityLabels.js).
-const AUDIT_MARKERS_SQL = ['privacy_protection_unavailable', 'scan_timeout', 'scan_overflow', 'scan_degraded', 'token_evicted', 'scan_failed']
+const AUDIT_MARKERS_SQL = ['privacy_protection_unavailable', 'scan_timeout', 'scan_overflow', 'scan_degraded', 'token_evicted', 'scan_failed', 'user_blocked', 'ask_timeout']
     .map(m => `'${m}'`).join(', ');
 
 async function getGuardrailSummary(filters = {}) {

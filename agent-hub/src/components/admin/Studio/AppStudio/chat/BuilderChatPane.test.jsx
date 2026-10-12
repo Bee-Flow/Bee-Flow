@@ -428,11 +428,9 @@ describe('BuilderChatPane', () => {
         const chrome = renderPane({ chrome: { commitTurn: vi.fn(), markSaved: vi.fn(), publishBuildCue: vi.fn() } });
         await sendMessage('Bouw het dashboard');
 
-        // Nothing streamed yet → the card, saying what the stream proved.
+        // Nothing streamed yet → the same "Thinking…" line the chat shows.
         const card = await screen.findByRole('status');
-        expect(card.textContent).toMatch(/Session opened/);
-        expect(card.textContent).toMatch(/Model is reading/);
-        expect(screen.getByTestId('waiting-bar').getAttribute('data-source')).toBe('progress');
+        expect(card.textContent).toMatch(/Thinking/);
         // Not "Auto → Fast": the tier was auto (no explicit tier in this pane
         // without a configured list), so the badge is allowed here — but never
         // an "Auto" badge on an explicit pick (covered in the hook test).

@@ -46,7 +46,7 @@ export function TransferGroup({ flowKey, title, onImported }: { flowKey: string;
                 testID="settings-export"
             />
             <SettingRow
-                label={importer.busy ? t('mobile.flow.settings.importing', 'Importing…') : t('mobile.flow.settings.import', 'Import an automation')}
+                label={importer.busy ? t('mobile.flow.settings.importing', 'Importing…') : t('automations.automation_page.import_an_automation', 'Import an automation')}
                 value={t('mobile.flow.settings.import_value', 'New draft')}
                 icon={<Icon name="Import" size={18} />}
                 onPress={importer.pick}

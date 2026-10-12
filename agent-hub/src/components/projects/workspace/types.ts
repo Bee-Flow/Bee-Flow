@@ -7,6 +7,7 @@
 // project list.
 
 import type { Project, ProjectRole } from '../../../api/queries/projects';
+import { isOrgAdminLike } from '../../../utils/orgAdmin';
 
 export type WorkspaceTabId =
     | 'overview'
@@ -71,6 +72,8 @@ export interface WorkspaceUser {
     /** The person's own avatar as the app knows it (an emoji, a path, or a url). */
     avatar?: string | null;
     avatarType?: string | null;
+    /** An organisation admin may name a new owner for a project (the server decides the rest). */
+    isOrgAdmin?: boolean;
 }
 
 /**
@@ -102,6 +105,12 @@ export interface WorkspaceTabProps {
      * open one here, since the notebook editor would refuse it. Absent: true.
      */
     notebooksEnabled?: boolean;
+    /**
+     * The project is archived: nothing can be added or changed. The shell also
+     * hands the content tabs a viewer's role then, so they show their read-only
+     * state; this flag lets a tab say WHY. Default false.
+     */
+    readOnly?: boolean;
 }
 
 /** A content section (documents, notebooks, meetings, knowledge): only the content intents reach it. */
@@ -127,6 +136,9 @@ export interface AppUserLike {
     email?: string;
     avatar?: string | null;
     avatarType?: string | null;
+    isAdmin?: boolean;
+    orgRole?: string | null;
+    permissions?: string[] | null;
 }
 
 export interface ProjectWorkspacePageProps {
@@ -146,11 +158,14 @@ export interface ProjectWorkspacePageProps {
     onStartChat: StartChat;
     /** The app's answer to "may this person use notebooks" (AgentHub). Absent: true. */
     notebooksEnabled?: boolean;
+    /** The project search dialog is owned by the hub (the sidebar rail opens it). */
+    searchOpen?: boolean;
+    onSearchOpenChange?: (open: boolean) => void;
 }
 
 export function toWorkspaceUser(user: AppUserLike | null | undefined): WorkspaceUser | null {
     if (!user?.id) return null;
-    return { id: user.id, name: user.displayName || user.name || user.username, email: user.email, avatar: user.avatar, avatarType: user.avatarType };
+    return { id: user.id, name: user.displayName || user.name || user.username, email: user.email, avatar: user.avatar, avatarType: user.avatarType, isOrgAdmin: isOrgAdminLike(user) };
 }
 
 /**

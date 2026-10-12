@@ -34,6 +34,11 @@ const {
     isAnonymousUserId,
     isMemoryEnabledForUser,
     resolveMemoryPolicy,
+    orgMemoryKey,
+    getOrgMemorySettings,
+    setOrgMemorySettings,
+    memorySensitiveOptInKey,
+    isSensitiveOptInForUser,
 } = require('./memoryPolicy');
 
 beforeEach(() => { rows.clear(); reads.length = 0; });
@@ -143,4 +148,121 @@ test('an undefined per-chat toggle is not a pause', async () => {
     // The wire default is "absent means on" — `!== false`, not `=== true`.
     const p = await resolveMemoryPolicy({ userId: 'bob', perChatWriteEnabled: undefined });
     assert.strictEqual(p.write, true);
+});
+
+// ── Org layer ────────────────────────────────────────────────────────
+
+test('an org that never saved settings gets the defaults', async () => {
+    assert.deepStrictEqual(await getOrgMemorySettings('org1'), { enabled: true, sensitiveOptInAllowed: false, maxPerUser: 1000 });
+    assert.deepStrictEqual(await getOrgMemorySettings(null), { enabled: true, sensitiveOptInAllowed: false, maxPerUser: 1000 });
+});
+
+test('setOrgMemorySettings merges a patch, sanitises it and clamps maxPerUser', async () => {
+    assert.strictEqual((await setOrgMemorySettings('org1', { maxPerUser: 5 })).maxPerUser, 50);
+    assert.strictEqual((await setOrgMemorySettings('org1', { maxPerUser: 99999 })).maxPerUser, 10000);
+    assert.strictEqual((await setOrgMemorySettings('org1', { maxPerUser: 'nope' })).maxPerUser, 1000);
+    const s = await setOrgMemorySettings('org1', { enabled: false, bogus: 1 });
+    assert.deepStrictEqual(s, { enabled: false, sensitiveOptInAllowed: false, maxPerUser: 1000 });
+    assert.deepStrictEqual(rows.get(orgMemoryKey('org1')), s, 'stored under org_memory_<orgId>, unknown keys dropped');
+    assert.strictEqual(orgMemoryKey('org1'), 'org_memory_org1');
+});
+
+test('org disabled beats a user who has memory on, in both directions', async () => {
+    rows.set(orgMemoryKey('org1'), { enabled: false });
+    const p = await resolveMemoryPolicy({ userId: 'bob', orgId: 'org1', perChatWriteEnabled: true, perChatReadEnabled: true });
+    assert.deepStrictEqual(p, { read: false, write: false, reason: 'org_disabled', sensitive: false });
+});
+
+test('org disabled is reported before user disabled', async () => {
+    rows.set(orgMemoryKey('org1'), { enabled: false });
+    rows.set(memoryEnabledKey('bob'), false);
+    assert.strictEqual((await resolveMemoryPolicy({ userId: 'bob', orgId: 'org1' })).reason, 'org_disabled');
+});
+
+test('an org with memory on does not override the user switch', async () => {
+    rows.set(orgMemoryKey('org1'), { enabled: true });
+    rows.set(memoryEnabledKey('bob'), false);
+    assert.strictEqual((await resolveMemoryPolicy({ userId: 'bob', orgId: 'org1' })).reason, 'user_disabled');
+});
+
+test('a user without an org never touches the org key', async () => {
+    await resolveMemoryPolicy({ userId: 'bob' });
+    assert.ok(!reads.some(k => k.startsWith('org_memory_')));
+});
+
+test('per-chat read off blocks read AND write; it ranks below the embed agent', async () => {
+    const off = await resolveMemoryPolicy({ userId: 'bob', perChatReadEnabled: false });
+    assert.deepStrictEqual(off, { read: false, write: false, reason: 'chat_off', sensitive: false });
+    const embed = await resolveMemoryPolicy({ userId: 'bob', perChatReadEnabled: false, agent: { embed_enabled: true } });
+    assert.strictEqual(embed.reason, 'embed_agent');
+});
+
+test('chat_off ranks above chat_paused and blocked; an undefined read flag is not off', async () => {
+    const both = await resolveMemoryPolicy({ userId: 'bob', perChatReadEnabled: false, perChatWriteEnabled: false, blocked: true });
+    assert.strictEqual(both.reason, 'chat_off');
+    const none = await resolveMemoryPolicy({ userId: 'bob', perChatReadEnabled: undefined });
+    assert.deepStrictEqual(none, { read: true, write: true, reason: 'enabled', sensitive: false });
+});
+
+test('a paused write ranks above blocked', async () => {
+    assert.strictEqual((await resolveMemoryPolicy({ userId: 'bob', perChatWriteEnabled: false, blocked: true })).reason, 'chat_paused');
+});
+
+test('an anonymous caller is inert even when the org has memory on, without a config read', async () => {
+    const p = await resolveMemoryPolicy({ userId: 'guest_1', orgId: 'org1' });
+    assert.strictEqual(p.reason, 'anonymous');
+    assert.deepStrictEqual(reads, []);
+});
+
+test('a config outage on the org read fails open', async () => {
+    require.cache[configStorePath].exports = { getConfig: async () => { throw new Error('pg down'); } };
+    try {
+        const p = await resolveMemoryPolicy({ userId: 'bob', orgId: 'org1' });
+        assert.deepStrictEqual({ read: p.read, write: p.write }, { read: true, write: true });
+    } finally {
+        require.cache[configStorePath].exports = configStub;
+    }
+});
+
+// ── isSensitiveOptInForUser ──────────────────────────────────────────
+
+test('sensitive opt-in needs the user flag AND the org allowance', async () => {
+    assert.strictEqual(memorySensitiveOptInKey('u1'), 'memory_sensitive_opt_in_user_u1');
+    assert.strictEqual(await isSensitiveOptInForUser('u1', 'o1'), false);
+    rows.set(memorySensitiveOptInKey('u1'), true);
+    assert.strictEqual(await isSensitiveOptInForUser('u1', 'o1'), false, 'org has not allowed it');
+    rows.set(orgMemoryKey('o1'), { sensitiveOptInAllowed: true });
+    assert.strictEqual(await isSensitiveOptInForUser('u1', 'o1'), true);
+    rows.set(memorySensitiveOptInKey('u1'), 'yes');
+    assert.strictEqual(await isSensitiveOptInForUser('u1', 'o1'), false, 'only boolean true counts');
+    assert.strictEqual(await isSensitiveOptInForUser('guest_x', 'o1'), false);
+});
+
+test('sensitive opt-in fails closed on a config error', async () => {
+    const orig = configStub.getConfig;
+    configStub.getConfig = async () => { throw new Error('db down'); };
+    try {
+        assert.strictEqual(await isSensitiveOptInForUser('u1', 'o1'), false);
+    } finally { configStub.getConfig = orig; }
+});
+
+// ── sensitive (art. 9) on the read side ──────────────────────────────
+
+test('resolveMemoryPolicy carries sensitive: true only for an opted-in user in an org that allows it', async () => {
+    rows.set(orgMemoryKey('org1'), { sensitiveOptInAllowed: true });
+    assert.strictEqual((await resolveMemoryPolicy({ userId: 'bob', orgId: 'org1' })).sensitive, false, 'user has not opted in');
+    rows.set(memorySensitiveOptInKey('bob'), true);
+    assert.strictEqual((await resolveMemoryPolicy({ userId: 'bob', orgId: 'org1' })).sensitive, true);
+    assert.strictEqual((await resolveMemoryPolicy({ userId: 'bob', orgId: 'org1', perChatWriteEnabled: false })).sensitive, true, 'a paused write still reads');
+    rows.set(orgMemoryKey('org1'), { sensitiveOptInAllowed: false });
+    assert.strictEqual((await resolveMemoryPolicy({ userId: 'bob', orgId: 'org1' })).sensitive, false, 'the org no longer allows it');
+});
+
+test('a turn with memory off reads no sensitive config and says sensitive: false', async () => {
+    rows.set(memorySensitiveOptInKey('bob'), true);
+    rows.set(memoryEnabledKey('bob'), false);
+    reads.length = 0;
+    const p = await resolveMemoryPolicy({ userId: 'bob', orgId: 'org1' });
+    assert.strictEqual(p.sensitive, false);
+    assert.ok(!reads.includes(memorySensitiveOptInKey('bob')));
 });

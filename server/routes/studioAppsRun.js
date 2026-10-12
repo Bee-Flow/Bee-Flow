@@ -55,11 +55,16 @@ const { resolveInputs, deriveRunOutcome } = actionExecutor;
 async function runBody(run) {
     // Final output only — never the step list (intermediate steps can carry
     // the owner's integration payloads).
-    const { output, appEffects, effectsUnknown } = await deriveRunOutcome(run);
+    const { output, appEffects, effectsUnknown, outputTooLarge } = await deriveRunOutcome(run);
     return {
         runId: run.id,
         status: run.status,
         output,
+        // The run succeeded but its answer was too large to keep in full, so
+        // `output` is null. Without this flag that is indistinguishable from
+        // "the automation returned nothing" and a bound list just stays empty.
+        // Present only when it applies, like `_appEffectsUnknown` below.
+        ...(outputTooLarge ? { _outputTooLarge: true } : {}),
         ...(appEffects ? { _appEffects: appEffects } : {}),
         // `_appEffectsUnknown` is de derde stand, en hij bestaat omdat de
         // andere twee anders samenvallen: de stappenlees kán omvallen (een
@@ -228,8 +233,8 @@ router.post('/:id/actions/:actionId/step', requireAuth, stepLimiter, jsonBody, b
 
         // The kind is only known once the step is resolved, so the heavy-step
         // budget is charged here rather than as route middleware. The limiter
-        // answers 429 itself when the bucket is empty (it is synchronous — the
-        // callback either fires now or never).
+        // answers 429 itself when the bucket is empty (the Redis-backed
+        // path is asynchronous, so the check is awaited — BFSF-459).
         //
         // Model calls get their own bucket. The /run bucket is sized on "one
         // click = one run", which is exactly wrong for an action that loops a
@@ -238,40 +243,28 @@ router.post('/:id/actions/:actionId/step', requireAuth, stepLimiter, jsonBody, b
         // already paid for the calls that landed. AI_STEP_RPM is still a real
         // ceiling — see the reasoning where it is declared.
         if (AI_STEP_KINDS.includes(step.kind)) {
-            let allowed = false;
-            aiStepLimiter(req, res, () => { allowed = true; });
-            if (!allowed) return;
+            if (!(await aiStepLimiter.check(req, res))) return;
         } else if (HEAVY_STEP_KINDS.includes(step.kind)) {
-            let allowed = false;
-            actionRunLimiter(req, res, () => { allowed = true; });
-            if (!allowed) return;
+            if (!(await actionRunLimiter.check(req, res))) return;
         }
         // Outbound mail is charged twice more: a per-minute bucket and a daily
         // ceiling. Unlike the other heavy steps this one leaves the building —
         // an unthrottled loop of it is somebody's mailbox getting suspended.
         if (step.kind === 'send_email') {
-            let allowed = false;
-            sendEmailLimiter(req, res, () => { allowed = true; });
-            if (!allowed) return;
-            allowed = false;
-            sendEmailDailyLimiter(req, res, () => { allowed = true; });
-            if (!allowed) return;
+            if (!(await sendEmailLimiter.check(req, res))) return;
+            if (!(await sendEmailDailyLimiter.check(req, res))) return;
         }
         // Bulk intake gets its own tight bucket on top of the heavy budget:
         // one hit is up to 25 provider fetches landing bytes in the owner's
         // storage, so the generic step allowance is the wrong unit.
         if (step.kind === 'file_intake') {
-            let allowed = false;
-            fileIntakeLimiter(req, res, () => { allowed = true; });
-            if (!allowed) return;
+            if (!(await fileIntakeLimiter.check(req, res))) return;
         }
         // A dataset slice is a bounded ranged read + row scan (~16 MB ceiling,
         // no model call) — its own bucket so genome browsing cannot starve the
         // generic step budget, and vice versa.
         if (step.kind === 'dataset_query') {
-            let allowed = false;
-            datasetQueryLimiter(req, res, () => { allowed = true; });
-            if (!allowed) return;
+            if (!(await datasetQueryLimiter.check(req, res))) return;
         }
 
         const formValues = sanitizeBag(req.body?.formValues);

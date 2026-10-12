@@ -28,6 +28,7 @@ export const SYNONYM_GROUPS: readonly string[][] = [
     ['if', 'condition', 'branch', 'filter'],
     ['each', 'loop', 'repeat', 'for each'],
     ['summarise', 'summarize', 'summary'],
+    ['flatten', 'split out', 'unnest', 'explode'],
     ['notify', 'notification', 'alert'],
     ['calendar', 'agenda', 'meeting', 'event'],
     ['form', 'survey', 'questionnaire'],

@@ -14,7 +14,8 @@ import { TextField } from '@/shared/ui';
 
 import { CaseNameInput } from './CaseNameInput';
 import { ConditionBuilder } from './ConditionBuilder';
-import { addRule, outputLetter, removeRule, updateRule, type RoutePatch } from './routeEdits';
+import { outputNamer } from './OutputsChooser';
+import { addRule, removeRule, updateRule, type RoutePatch } from './routeEdits';
 import { AddButton } from '../shared/AddButton';
 import type { PickOption } from '../shared/FieldPicker';
 import { Note } from '../shared/Note';
@@ -26,6 +27,8 @@ export interface RuleListProps {
     setRoute: (patch: RoutePatch) => void;
     fieldOptions: readonly PickOption[];
     sampleRoot: unknown;
+    /** Simple mode: a formula the rows cannot show reads as a "Custom rule" card. */
+    simple?: boolean;
     disabled?: boolean;
 }
 
@@ -53,6 +56,7 @@ function RuleBody({ props, i }: { props: RuleListProps; i: number }) {
             context={items ? 'filter' : 'condition'}
             fieldOptions={props.fieldOptions}
             fieldBase={items ? 'item' : 'trigger.output'}
+            simple={props.simple}
             disabled={props.disabled}
         />
     );
@@ -65,12 +69,12 @@ export function RuleList(props: RuleListProps) {
     const several = rules.length > 1;
     return (
         <>
-            {rules.length === 0 ? <Note>{t('mobile.flow.route.no_outputs', 'No outputs yet — add one.')}</Note> : null}
+            {rules.length === 0 ? <Note>{t('automations.route_editors.no_outputs_yet_add_one', 'No outputs yet — add one.')}</Note> : null}
             {rules.map((rule, i) =>
                 several ? (
                     <RowCard
                         key={i}
-                        title={t('mobile.flow.route.output_letter', 'Output {letter}', { letter: outputLetter(i) })}
+                        title={outputNamer(t)(i + 1)}
                         onRemove={() => setRoute(removeRule(route, i))}
                         removeLabel={
                             wired.has(rule.name)
@@ -87,15 +91,15 @@ export function RuleList(props: RuleListProps) {
                             disabled={disabled}
                             testID={`route-output-${i + 1}-name`}
                         />
-                        {wired.has(rule.name) ? <Note>{t('mobile.flow.route.wired', 'Wired on the canvas — renaming keeps the connection; removing drops it.')}</Note> : null}
+                        {wired.has(rule.name) ? <Note>{t('automations.route_editors.wired_on_the_canvas_renaming_keeps', 'Wired on the canvas — renaming keeps the connection; removing drops it.')}</Note> : null}
                         <RuleBody props={props} i={i} />
                     </RowCard>
                 ) : (
                     <RuleBody key={i} props={props} i={i} />
                 ),
             )}
-            <AddButton label={t('mobile.flow.route.add_output', 'Add output')} onPress={() => setRoute(addRule(route))} disabled={disabled} testID="route-add-output" />
-            <Note>{t('mobile.flow.route.case_note', 'Text comparisons ignore upper/lower case.')}</Note>
+            <AddButton label={t('automations.route_editors.add_output', 'Add output')} onPress={() => setRoute(addRule(route, outputNamer(t)))} disabled={disabled} testID="route-add-output" />
+            <Note>{t('condition_node.hint.case', 'Text comparisons ignore upper/lower case.')}</Note>
         </>
     );
 }

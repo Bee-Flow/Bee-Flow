@@ -75,9 +75,9 @@ export function AskOnceRow({
                     value={acrossRuns}
                     onChange={(next) => onChange(acrossRunsValue(value, next))}
                     disabled={disabled}
-                    label={t('mobile.flow.ask_once.across_runs', '…and keep the answer for later runs too')}
+                    label={t('automations.ask_once_row.and_keep_the_answer_for_later', '…and keep the answer for later runs too')}
                     description={t(
-                        'mobile.flow.ask_once.across_runs_hint',
+                        'automations.ask_once_row.the_answer_is_stored_encrypted_so',
                         'The answer is stored, encrypted, so the next run can use it instead of asking again. Your administrator decides whether that is allowed, and for how long; until they turn it on, this step asks every run.',
                     )}
                 />

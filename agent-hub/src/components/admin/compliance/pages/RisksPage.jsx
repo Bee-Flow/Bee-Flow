@@ -8,6 +8,7 @@ import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
 import { API, fetchJson, jsonInit } from '../data/api';
 import RisksTable, { CATEGORIES, SCALE, RISK_STATUSES, scoreOf, isReviewOverdue, ownerName } from './risks/RisksTable';
 import RiskDrawer from './risks/RiskDrawer';
+import useDrawerMode from '../shared/useDrawerMode';
 
 /**
  * RisksPage — the ISO 27001 6.1.2 / 6.1.3 risk register on the table pattern.
@@ -22,6 +23,10 @@ import RiskDrawer from './risks/RiskDrawer';
  * `onSeedRisks`) and keeps the modal; a host that signals with
  * `headerAction="create"` (+ `onHeaderActionHandled`) is served too. With
  * neither, the page draws both buttons in its own toolbar.
+ *
+ * The drawer goes where the register's width allows (useDrawerMode): beside
+ * the table while the table keeps its room, over it behind a scrim at 1280
+ * and 1024, a dialog on a phone.
  */
 export const HEADER_ACTION_CREATE = 'create';
 
@@ -35,10 +40,14 @@ const FILTERS = Object.freeze([
     Object.freeze({ id: 'overdue', tone: 'warning', labelKey: 'compliance.risk_filter_overdue', fallback: 'Review overdue' }),
 ]);
 
+/**
+ * The filter rule per pill. "High" is riskStore.getStats' rule (score >= 10,
+ * closed risks drop out), so the pill counts what the header and the rail say.
+ */
 export function matchesFilter(r, filter) {
     switch (filter) {
         case 'all': return true;
-        case 'high': return scoreOf(r) >= 10;
+        case 'high': return scoreOf(r) >= 10 && r.status !== 'closed';
         case 'overdue': return isReviewOverdue(r);
         default: return r.status === filter;
     }
@@ -83,6 +92,7 @@ export default function RisksPage(props) {
         setSeenFocusId(focusId);
         if (focusId != null) setSelectedId(Number(focusId) || null);
     }
+    const [frameRef, drawerMode] = useDrawerMode({ isMobile });
     const openCreateFromHeader = useEffectEvent(() => { setShowCreate(true); onHeaderActionHandled?.(); });
     useEffect(() => {
         if (headerAction === HEADER_ACTION_CREATE) openCreateFromHeader();
@@ -143,12 +153,13 @@ export default function RisksPage(props) {
             onUpdate={update}
             onAddTreatment={addTreatment}
             onClose={() => setSelectedId(null)}
-            mode={isMobile ? 'modal' : 'inline'}
+            mode={drawerMode}
         />
     );
+    const inline = drawerMode === 'inline';
 
     return (
-        <div className="relative h-full min-h-0 flex flex-col gap-3 p-3.5" data-testid="risk-page">
+        <div className="relative h-full min-h-0 flex flex-col gap-3 p-3.5" data-testid="risk-page" data-drawer-mode={drawer ? drawerMode : undefined}>
             <div className="flex flex-wrap items-center gap-2">
                 <FilterPills value={filter} onChange={setFilter} options={pillOptions} ariaLabel={t('compliance.risk_col_status', 'Status')} testId="risk-filter" />
                 <label className="ml-auto inline-flex items-center gap-1.5 h-8 px-2.5 rounded-[10px] border border-[var(--border-default)] bg-[var(--bg-card)] text-xs text-[var(--text-secondary)] min-w-[160px]">
@@ -170,7 +181,7 @@ export default function RisksPage(props) {
                 )}
             </div>
 
-            <div className="flex-1 min-h-0 flex gap-3 items-start">
+            <div ref={frameRef} className="flex-1 min-h-0 flex gap-3 items-start">
                 <div className="flex-1 min-w-0 min-h-0 overflow-y-auto">
                     {failed ? (
                         <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] px-3.5 py-3 text-xs text-[var(--text-tertiary)]" data-testid="risk-failed">
@@ -194,9 +205,9 @@ export default function RisksPage(props) {
                         />
                     )}
                 </div>
-                {!isMobile && drawer}
+                {inline && drawer}
             </div>
-            {isMobile && drawer}
+            {!inline && drawer}
 
             <Modal
                 open={showCreate}

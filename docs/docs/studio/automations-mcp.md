@@ -32,16 +32,18 @@ recreate the server container. While the variable is unset the route is never
 mounted and the module is never loaded, so `/mcp/automations` simply does not
 exist.
 
-Then mint a bearer token for the user whose automations you want to edit:
+Then create a token for the user whose automations you want to edit. In Bee Flow
+open **Settings → MCP tokens**, give the token a name, tick the `automations`
+server (and a level: *read* lists and inspects, *write* builds), and optionally
+restrict it to specific tools, to a list of IP ranges, or give it an expiry. The
+token is shown **once**; revoke it from the same list. Several named tokens can
+exist side by side, so each editor or CI job gets its own and can be revoked on
+its own.
 
-```bash
-docker compose exec server node scripts/mint-mcp-token.js --email you@example.com
-```
-
-The token is shown **once**. Minting again replaces it; `--revoke` kills it.
-It is the **same token** `/mcp` and `/mcp/studio` use, so a user has exactly one
-credential across all three surfaces. A second token type would be a second
-secret to rotate and a second way to get revocation wrong.
+The older single token from `scripts/mint-mcp-token.js --email you@example.com`
+still works (it is what the mobile app and the Nextcloud assistant use). It has
+full access to the three surfaces and is labelled *legacy* in the list. An
+organisation can [refuse legacy tokens altogether](#organisation-policy).
 
 ## Wiring up Claude Code
 
@@ -101,7 +103,10 @@ something finished; it cannot start it.
 Four independent gates, all of which must pass:
 
 1. `AUTOMATION_MCP_ENABLED=1` on the server — the operator's switch.
-2. A valid `bfmcp.…` bearer token — resolves to exactly one Bee Flow user.
+2. A valid bearer token (`bfmcp_…`, or a legacy `bfmcp.…`) — resolves to exactly one
+   active Bee Flow user, carries the `automations` server in its scope, and comes
+   from an address its own IP list and the organisation policy allow. Read-level
+   tokens only ever see and call read-only tools.
 3. The `automations` beta feature for that user, re-checked on every call so
    withdrawn access stops an already-connected client. This is the same
    predicate that guards every authenticated `/api/automation` route, so an org
@@ -111,3 +116,27 @@ Four independent gates, all of which must pass:
 
 A token grants exactly what that user could do in the automation builder UI: no
 more, and never another user's automations.
+
+## Organisation policy
+
+Org admins set one policy for every MCP endpoint under **Organisation → Security →
+MCP access**: switch MCP off for the whole organisation, allow it only from given
+IP ranges (IPv4 and IPv6), limit it to certain roles or named users, and refuse
+legacy tokens. The strictest rule wins: a request must pass the organisation's IP
+list and the token's own. A refused request gets a generic "unauthorised" or
+"forbidden" answer that does not say which rule failed; the reason is in the
+server log, with the token id and never the token. Suspended accounts lose MCP
+access at once, and each token is limited to 120 requests per minute and each user to 300 across all
+their tokens (a batch counts one per message, and a batch holds at most 20). Creating and
+revoking tokens and changing the policy are written to the audit log.
+
+:::warning IP allow-lists need the proxy in front
+The client address comes from the reverse proxy's `X-Forwarded-For`, peeled off
+`TRUST_PROXY_HOPS` (default 1) hops deep. Point MCP clients at the public URL that goes
+through the proxy (the standard image proxies `/mcp` for you), and make sure the server
+port itself (3101 / 3001) is not reachable from outside. A client that can talk to the
+server port directly can claim any address in that header. Behind a second proxy
+(a load balancer in front of the proxy, say) set `TRUST_PROXY_HOPS` accordingly, and
+check the "your address" shown on the MCP access page before you save an IP list: it
+must be your real address, not the proxy's.
+:::

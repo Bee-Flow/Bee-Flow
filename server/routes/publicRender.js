@@ -51,6 +51,7 @@ const { localesForPage } = require('../core/seo/locales');
 const { LEGACY_SLUGS } = require('../core/seo/legacySlugs');
 const { jsonForScript } = require('../core/seo/html');
 const { synthesizeLegacyContent } = require('../core/cms/legacyContent');
+const { buildBlogHead, renderBlogBody, buildFeed, blogSitemapEntries } = require('../core/seo/blog');
 const log = require('../telemetry/log');
 
 const router = express.Router();
@@ -185,14 +186,132 @@ router.get('/sitemap.xml', async (req, res, _next) => {
                 };
             });
 
+        // Blog: the index and every post visitors can see now, each in the
+        // languages it is translated into.
+        const blogEntries = await blogSitemap(siteId, { snapshot, defaultLocale, locales, lastmod });
+
         res.type('application/xml').set('Cache-Control', 'public, max-age=600');
-        return res.send(buildSitemap(pages, { origin, defaultLocale, locales }));
+        return res.send(buildSitemap([...pages, ...blogEntries], { origin, defaultLocale, locales }));
     } catch (err) {
         log.warn('[SEO] sitemap failed:', err.message);
         res.type('application/xml').set('Cache-Control', 'no-store');
         return res.status(503).send(buildSitemap([], { origin }));
     }
 });
+
+async function blogSitemap(siteId, { snapshot, defaultLocale, locales, lastmod }) {
+    if (!snapshot?.posts || !Object.keys(snapshot.posts).length) return [];
+    // A legacy page slugged "blog" owns /blog; the posts below it still list.
+    const { posts } = await cmsStore.getLatestPublishedPosts(siteId, { locale: defaultLocale, limit: 50_000 });
+    const { localesForPost } = require('../stores/cms/blogEffective');
+    const overrides = snapshot.postLocaleOverrides || {};
+    const byPost = {};
+    for (const p of posts) byPost[p.id] = localesForPost(overrides, p.id, defaultLocale, locales);
+    const index = [defaultLocale, ...locales.filter(l => l !== defaultLocale && posts.some(p => byPost[p.id].includes(l)))];
+    const full = posts.map(p => ({ ...p, seo: snapshot.posts[p.id]?.seo || {} }));
+    return blogSitemapEntries({ posts: full, overridesLocales: { index, byPost }, lastmod });
+}
+
+// ── blog feed (RSS 2.0) ──────────────────────────────────────────────
+// /blog/feed.xml and /<locale>/blog/feed.xml. Like the sitemap, never falls
+// through to the SPA: a feed reader that got HTML would report a broken feed.
+router.get(/^\/(?:([a-z]{2,3})\/)?blog\/feed\.xml$/, async (req, res) => {
+    const origin = resolveOrigin(req);
+    try {
+        const siteId = await getLiveSiteId();
+        const { defaultLocale, locales } = await siteLocales();
+        // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss -- the locale segment is matched by [a-z]{2,3} and must be one of the site locales; it is never echoed
+        const asked = req.params[0] ? String(req.params[0]).toLowerCase() : null;
+        if (!siteId || (asked && (asked === defaultLocale || !locales.includes(asked)))) {
+            return res.status(404).type('text/plain').set('Cache-Control', 'public, max-age=300').send('Not found');
+        }
+        const locale = asked || defaultLocale;
+        const latest = await cmsStore.getLatestPublishedPosts(siteId, { locale, limit: 30, withBody: true });
+        const blogSettings = cmsStore.sanitizeBlogSettings(latest.site?.blog);
+        const pick = (m) => (m && (m[locale] || m[defaultLocale])) || '';
+        const { blogLabels } = require('../stores/cms/blogEffective');
+        const labels = await blogLabels(locale);
+        const siteName = latest.site?.header?.logoText || latest.site?.name || 'Bee Flow';
+        res.type('application/rss+xml; charset=utf-8')
+            .set('Cache-Control', 'public, max-age=300, s-maxage=600');
+        // nosemgrep: javascript.express.security.audit.xss.direct-response-write.direct-response-write, ajinabraham.njsscan.xss.xss_node.express_xss -- buildFeed escapes every string into XML; the response type is application/rss+xml
+        return res.send(buildFeed(latest.posts, {
+            origin, siteName, locale, defaultLocale,
+            title: pick(blogSettings.title) || labels.title || 'Blog',
+            description: pick(blogSettings.description),
+            lastBuildDate: latest.publishedAt,
+        }));
+    } catch (err) {
+        log.warn('[SEO] blog feed failed:', err.message);
+        return res.status(503).type('text/plain').set('Cache-Control', 'no-store').send('Feed unavailable');
+    }
+});
+
+/**
+ * A blog URL: the index (/blog, ?tag=, ?page=) or a post (/blog/<slug>), with
+ * the same failure posture as pages — every error path is next().
+ * Returns false when the URL should be handled as an ordinary page instead
+ * (a legacy page slugged "blog").
+ */
+async function renderBlog(req, res, { origin, siteId, parsed, defaultLocale, locales }) {
+    const locale = parsed.locale || defaultLocale;
+    const q = rawQuery(req);
+    const eff = await cmsStore.getEffectiveBlog(siteId, {
+        state: 'published',
+        view: parsed.blog.view,
+        postSlug: parsed.blog.postSlug,
+        tag: q.get('tag') || '',
+        page: q.get('page') || 1,
+        locale,
+        siteLocales: locales,
+    });
+    if (!eff) return false;
+    if (parsed.blog.view === 'index' && (eff.pages || []).some(p => p.slug === 'blog')) return false;
+
+    if (!eff.found || (!eff.blog?.post && parsed.blog.view === 'post')) {
+        const shell410 = await getShell();
+        if (!shell410) return false;
+        res.status(410).type('html').set('Cache-Control', 'no-store');
+        res.send(injectIntoShell(shell410, {
+            head: ['<title>Page not found — Bee Flow</title>', '<meta name="robots" content="noindex, follow">'].join('\n    '),
+            body: '',
+            lang: locale,
+        }));
+        return true;
+    }
+
+    const pageLocales = eff.blog.locales || [defaultLocale];
+    if (locale !== defaultLocale && !pageLocales.includes(locale)) {
+        const kept = rawQuery(req);
+        kept.delete('locale');
+        const qs = kept.toString();
+        const target = buildPublicPath(defaultLocale, parsed.slug, defaultLocale);
+        res.redirect(301, qs ? `${target}?${qs}` : target);
+        return true;
+    }
+
+    const shell = await getShell();
+    if (!shell) return false;
+    const siteName = (eff.header && eff.header.logoText) || 'Bee Flow';
+    const head = buildBlogHead({ origin, eff, locale, defaultLocale, locales: pageLocales, siteName });
+    const body = renderBlogBody(eff);
+    const bootstrap = jsonForScript({
+        enabled: true,
+        found: true,
+        canonicalSlug: eff.page.slug,
+        defaultLocale,
+        locale,
+        content: synthesizeLegacyContent(eff),
+        design: eff.design || {},
+    });
+    const headWithCss = `${head}
+    <style>${PREHYDRATE_CSS}</style>
+    <script type="application/json" id="__BEEFLOW_CMS__">${bootstrap}</script>`;
+    // Same anonymous, identical-for-everyone response as a page (see below).
+    res.type('html').set('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=86400');
+    res.send(injectIntoShell(shell, { head: headWithCss, body, lang: locale }));
+    return true;
+}
 
 // ── llms.txt ─────────────────────────────────────────────────────────
 // Same source as the sitemap, addressed to language models rather than
@@ -234,8 +353,16 @@ router.get(/^\/(?!api\/|assets\/|__demo__\/|__cms_preview__).*/, async (req, res
         if (!siteId) return next();
 
         const { defaultLocale, locales } = await siteLocales();
-        const parsed = parsePublicPath(req.path, locales);
+        // nosemgrep: ajinabraham.njsscan.redirect.open_redirect.express_open_redirect, ajinabraham.njsscan.xss.xss_node.express_xss -- parsePublicPath only yields [a-z0-9-] slugs; every redirect target below is buildPublicPath(...), a same-site path starting with one "/", and pages are rendered through the escaping head/body builders
+        let parsed = parsePublicPath(req.path, locales);
         if (!parsed) return next();
+
+        if (parsed.blog) {
+            if (await renderBlog(req, res, { origin, siteId, parsed, defaultLocale, locales })) return undefined;
+            // Not handled: only /blog itself may fall back to a legacy page of that slug.
+            if (parsed.blog.view !== 'index') return next();
+            parsed = { locale: parsed.locale, slug: 'blog' };
+        }
 
         // Consolidate the old ?locale= form onto its path URL. It produced
         // three crawlable addresses per page (bare, ?locale=en, ?locale=nl)

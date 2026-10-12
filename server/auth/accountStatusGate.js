@@ -68,6 +68,24 @@ function isLoginBlockedAccount(storedUser) {
 }
 
 /**
+ * Is this account allowed to keep USING an already-issued credential?
+ *
+ * The login gate above asks "may it start a session"; a static bearer token
+ * (the MCP access tokens) never goes through a login, so the same account
+ * state has to be asked on every request. Stricter than the login gate on
+ * purpose: a credential that works without a login is only honoured for an
+ * account that is plainly active. No status (a row from before the column) is
+ * active; a missing row is not an account at all.
+ *
+ * @param {object|null|undefined} storedUser row from userStore
+ * @returns {boolean} true when the credential may still be used
+ */
+function isActiveAccount(storedUser) {
+    if (!storedUser || typeof storedUser !== 'object') return false;
+    return !storedUser.status || storedUser.status === 'active';
+}
+
+/**
  * The single refusal shape, so the four paths cannot answer differently.
  *
  * Deliberately the SAME body as a wrong password ("Invalid credentials", 401).
@@ -79,4 +97,4 @@ function isLoginBlockedAccount(storedUser) {
  */
 const REFUSAL = Object.freeze({ status: 401, body: Object.freeze({ error: 'Invalid credentials' }) });
 
-module.exports = { HARD_BLOCKED_STATUSES, isLoginBlockedAccount, REFUSAL };
+module.exports = { HARD_BLOCKED_STATUSES, isLoginBlockedAccount, isActiveAccount, REFUSAL };

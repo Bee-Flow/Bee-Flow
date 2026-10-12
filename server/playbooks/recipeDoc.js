@@ -202,6 +202,7 @@ function normaliseField(raw, i, used, copy) {
 }
 
 function normalisePhase(raw, i, copy) {
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- constant replace/test patterns without nested repeats on bounded strings: linear
     const p = raw && typeof raw === 'object' ? raw : {};
     let kind = String(p.kind || p.key || '').toLowerCase().replace(/-/g, '_');
     // An approval flow is a AUTOMATION on Studio → Approvals (the person decides
@@ -258,6 +259,7 @@ function normaliseRecipeDoc(raw, { source = 'ai', locale = null } = {}) {
     // What the SERVER adds to the document (a fill phase, a design phase, a
     // name for something left unnamed) is written in the demo's language.
     const copy = copyFor(locale);
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- constant replace/test patterns without nested repeats on bounded strings: linear
     const d = raw && typeof raw === 'object' ? raw : {};
     const title = String(d.title || '').trim().slice(0, MAX_TITLE);
     const description = String(d.description || d.blurb || '').trim().slice(0, 300);

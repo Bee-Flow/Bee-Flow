@@ -173,7 +173,7 @@ test('connection: a THROWN not-connected error becomes 409 connection_required, 
 
 test('connection: a soft { error } saying the same thing is classified identically', async () => {
     const { _deps } = deps({
-        vplan_list_cards: { error: 'vPlan not configured. Add your API key and environment in Settings → Integrations.' },
+        vplan_list_cards: { error: 'vPlan not configured. Add your API key and environment in Settings → Connections.' },
     });
     await assert.rejects(
         () => connectors.runConnector(

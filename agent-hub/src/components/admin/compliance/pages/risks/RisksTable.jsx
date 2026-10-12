@@ -1,23 +1,30 @@
 import React from 'react';
 import { TriangleAlert } from 'lucide-react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
-import DataTable, { TableRow, TableCell } from '../../../../shared/DataTable';
+import DataTable, { TableRow, TableCell, TABLE_FOLDED_ONLY } from '../../../../shared/DataTable';
 import { DrawerId } from '../../../../shared/SideDrawer';
 import { TONES, toneOfSeverity } from '../../../../shared/statusTone';
-import StatusPill from '../../shared/StatusPill';
+import RegisterStatePill from '../../shared/RegisterStatePill';
 
 /**
- * RisksTable — R-{id} · Risk · Score · Treatment · Owner (the 1c/1d table
+ * RisksTable — R-{id} · Risk · Score · Status · Owner (the 1c/1d table
  * pattern for the ISO 27001 6.1.2 register). The score pill wears the tone
  * of the SEVERITY the score band maps to (16–25 critical, 10–15 high, 5–9
- * medium, 1–4 low) — `toneOfSeverity`, not a fourth palette.
+ * medium, 1–4 low) — `toneOfSeverity`, not a fourth palette. The status is
+ * the register's lifecycle state (RegisterStatePill) with the number of
+ * treatment actions beside it; the row's stripe keeps the urgency.
+ *
+ * The title line holds only the title, so a "review overdue" flag can never
+ * shrink it: the flag leads the second line, before the category and the
+ * scenario. Below 900px of card width the Owner column folds and the owner
+ * joins that second line.
  */
 export const RISK_COLUMNS = Object.freeze([
-    Object.freeze({ id: 'ref', width: '58px', labelKey: 'compliance.risk_col_ref', fallback: 'Risk' }),
+    Object.freeze({ id: 'ref', width: '64px', labelKey: 'compliance.risk_col_ref', fallback: 'Risk' }),
     Object.freeze({ id: 'risk', width: '1fr', labelKey: 'compliance.risk_col_title', fallback: 'Title · scenario' }),
     Object.freeze({ id: 'score', width: '110px', labelKey: 'compliance.risk_col_score', fallback: 'Score' }),
-    Object.freeze({ id: 'treatment', width: '110px', labelKey: 'compliance.risk_col_treatment', fallback: 'Treatment' }),
-    Object.freeze({ id: 'owner', width: '92px', labelKey: 'compliance.risk_col_owner', fallback: 'Owner' }),
+    Object.freeze({ id: 'status', width: '150px', labelKey: 'compliance.risk_col_status', fallback: 'Status' }),
+    Object.freeze({ id: 'owner', width: '120px', labelKey: 'compliance.risk_col_owner', fallback: 'Owner', foldBelow: 900 }),
 ]);
 
 export const CATEGORIES = Object.freeze(['confidentiality', 'integrity', 'availability', 'compliance']);
@@ -76,26 +83,55 @@ export function ScorePill({ risk, testId }) {
     );
 }
 
-export function RiskStatusPill({ status, count }) {
+/** The risk's lifecycle state in the register vocabulary (statusVocabulary). */
+export function RiskStatusPill({ status, className = '', testId = undefined }) {
     const { t } = useTranslation();
     const key = RISK_STATUSES.includes(status) ? status : 'open';
     return (
-        <StatusPill tone={toneOfRiskStatus(key)} className="whitespace-nowrap">
+        <RegisterStatePill state={key} className={className} testId={testId}>
             {t(`compliance.risk_status_${key}`, STATUS_EN[key])}
-            {count > 0 && <span className="text-[var(--text-tertiary)] font-normal tabular-nums">· {count}</span>}
-        </StatusPill>
+        </RegisterStatePill>
     );
 }
 
 const STATUS_EN = Object.freeze({ open: 'Open', treating: 'Treating', accepted: 'Accepted', closed: 'Closed' });
 
+/** "· 2 actions": the treatment plan's size, beside the status. Nothing for none. */
+function ActionCount({ count, testId = undefined }) {
+    const { t } = useTranslation();
+    if (!(count > 0)) return null;
+    return (
+        <span className="text-[11px] text-[var(--text-tertiary)] tabular-nums whitespace-nowrap" data-testid={testId}>
+            {count === 1 ? t('compliance.risk_actions_n_one', '· 1 action') : t('compliance.risk_actions_n', '· {n} actions', { n: count })}
+        </span>
+    );
+}
+
+/** The "review overdue" flag, in the warning ink with a glyph (so it is not colour alone). */
+function OverdueFlag({ testId }) {
+    const { t } = useTranslation();
+    return (
+        <span className="inline-flex items-center gap-1 font-semibold whitespace-nowrap text-[var(--warning-ink)]" data-testid={testId}>
+            <TriangleAlert size={10} aria-hidden="true" /> {t('compliance.risk_overdue_pill', 'review overdue')}
+        </span>
+    );
+}
+
+function categoryLabel(t, category) {
+    if (!category) return null;
+    return CATEGORIES.includes(category) ? t(`compliance.risk_cat_${category}`, category) : category;
+}
+
 export default function RisksTable({ rows, treatmentsByRisk, orgUsers, selectedId, onSelect, loading = false, isMobile = false, footer, empty, testId = 'risk-table' }) {
     const { t } = useTranslation();
-    const columns = RISK_COLUMNS.map(c => ({ id: c.id, width: c.width, label: t(c.labelKey, c.fallback) }));
+    const columns = RISK_COLUMNS.map(c => ({ id: c.id, width: c.width, foldBelow: c.foldBelow, label: t(c.labelKey, c.fallback) }));
 
     const renderRow = (r, ctx) => {
         const count = treatmentsByRisk?.get?.(r.id)?.length ?? 0;
         const overdue = isReviewOverdue(r);
+        const owner = ownerName(orgUsers, r.owner_user_id);
+        const category = categoryLabel(t, r.category);
+        const scenario = [category, r.description].filter(Boolean).join(' · ');
         return (
             <TableRow
                 key={r.id}
@@ -105,36 +141,44 @@ export default function RisksTable({ rows, treatmentsByRisk, orgUsers, selectedI
                 onClick={() => onSelect?.(r)}
                 testId={`${testId}-row-${r.id}`}
             >
-                <TableCell column={ctx.columns[0]}><DrawerId>{riskRef(r)}</DrawerId></TableCell>
+                <TableCell column={ctx.columns[0]} className="whitespace-nowrap"><DrawerId>{riskRef(r)}</DrawerId></TableCell>
                 <TableCell column={ctx.columns[1]} className="min-w-0">
-                    <div className="flex items-center gap-2 min-w-0">
-                        <span className="truncate font-medium text-[var(--text-primary)]">{r.title}</span>
-                        {overdue && (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold whitespace-nowrap" style={{ color: TONES.warning.ink }} data-testid={`${testId}-overdue-${r.id}`}>
-                                <TriangleAlert size={10} aria-hidden="true" /> {t('compliance.risk_overdue_pill', 'review overdue')}
-                            </span>
-                        )}
-                    </div>
-                    <div className="truncate text-[11px] text-[var(--text-secondary)]">
-                        {r.category ? (CATEGORIES.includes(r.category) ? t(`compliance.risk_cat_${r.category}`, r.category) : r.category) : null}
-                        {r.category && r.description ? ' · ' : ''}
-                        {r.description || ''}
+                    <div className="truncate font-medium text-[var(--text-primary)]" title={r.title}>{r.title}</div>
+                    <div className="truncate text-[11px] text-[var(--text-secondary)]" data-testid={`${testId}-meta-${r.id}`}>
+                        {/* Separators only between parts on screen: the owner shows only while its column is folded. */}
+                        {overdue && <OverdueFlag testId={`${testId}-overdue-${r.id}`} />}
+                        {owner && <span className={TABLE_FOLDED_ONLY[900]}>{overdue ? ' · ' : ''}{owner}</span>}
+                        {scenario && (overdue ? ' · ' : (owner ? <span className={TABLE_FOLDED_ONLY[900]}>{' · '}</span> : null))}
+                        {scenario}
                     </div>
                 </TableCell>
                 <TableCell column={ctx.columns[2]}><ScorePill risk={r} testId={`${testId}-score-${r.id}`} /></TableCell>
-                <TableCell column={ctx.columns[3]}><RiskStatusPill status={r.status} count={count} /></TableCell>
-                <TableCell column={ctx.columns[4]} className="truncate text-[11px]">{ownerName(orgUsers, r.owner_user_id) || '—'}</TableCell>
+                <TableCell column={ctx.columns[3]} className="flex items-center gap-1.5">
+                    <RiskStatusPill status={r.status} testId={`${testId}-status-${r.id}`} />
+                    <ActionCount count={count} testId={`${testId}-actions-${r.id}`} />
+                </TableCell>
+                <TableCell column={ctx.columns[4]} className="truncate text-[11px]">{owner || '—'}</TableCell>
             </TableRow>
         );
     };
 
-    const renderCard = (r) => (
-        <button type="button" onClick={() => onSelect?.(r)} className="w-full text-left px-3.5 py-2.5 flex flex-col gap-1 border-b border-[var(--border-default)]" data-testid={`${testId}-card-${r.id}`}>
-            <div className="flex items-center justify-between gap-2"><DrawerId>{riskRef(r)}</DrawerId><ScorePill risk={r} /></div>
-            <div className="text-xs font-medium text-[var(--text-primary)] truncate">{r.title}</div>
-            <RiskStatusPill status={r.status} />
-        </button>
-    );
+    const renderCard = (r) => {
+        const overdue = isReviewOverdue(r);
+        const owner = ownerName(orgUsers, r.owner_user_id);
+        const count = treatmentsByRisk?.get?.(r.id)?.length ?? 0;
+        return (
+            <button type="button" onClick={() => onSelect?.(r)} className="w-full text-left flex flex-col gap-1" data-testid={`${testId}-card-${r.id}`}>
+                <div className="flex items-center justify-between gap-2"><DrawerId>{riskRef(r)}</DrawerId><ScorePill risk={r} /></div>
+                <div className="text-xs font-medium text-[var(--text-primary)] truncate">{r.title}</div>
+                <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] text-[var(--text-secondary)]">
+                    <RiskStatusPill status={r.status} className="self-start" />
+                    <ActionCount count={count} />
+                    {overdue && <OverdueFlag testId={`${testId}-card-overdue-${r.id}`} />}
+                    <span className="truncate" data-testid={`${testId}-card-owner-${r.id}`}>{owner || t('compliance.risk_owner_none', 'No owner')}</span>
+                </div>
+            </button>
+        );
+    };
 
     return (
         <DataTable

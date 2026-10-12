@@ -314,6 +314,26 @@ describe('TierSlider', () => {
         expect(onToggle).toHaveBeenCalled();
     });
 
+    it('carries the three-state memory control and its lock', async () => {
+        const user = userEvent.setup();
+        const onChange = vi.fn();
+        const { rerender } = render(<TierSlider
+            tiers={DEPTH_TIERS} value="thinking" onChange={vi.fn()}
+            memory={{ mode: 'read', onChange }}
+        />);
+        await openPanel(user);
+        const toggle = screen.getByTestId('tier-slider-memory-toggle');
+        expect(toggle).toHaveAttribute('data-memory-mode', 'read');
+        await user.click(toggle);
+        expect(onChange).toHaveBeenCalledWith('off');
+
+        rerender(<TierSlider tiers={DEPTH_TIERS} value="thinking" onChange={vi.fn()} memory={{ mode: 'on', onChange, lock: 'user_paused' }} />);
+        const locked = screen.getByTestId('tier-slider-memory-toggle');
+        expect(locked).toHaveAttribute('aria-disabled', 'true');
+        await user.click(locked);
+        expect(onChange).toHaveBeenCalledTimes(1);
+    });
+
     it('omits the memory switch where the host does not offer one', async () => {
         const user = userEvent.setup();
         setup();

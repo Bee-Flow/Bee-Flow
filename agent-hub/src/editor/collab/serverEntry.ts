@@ -23,3 +23,4 @@ export { astToFragment, fragmentToAst, createYCache, sameInY } from './yConvert'
 export { syncDocToFragment } from './ySync';
 export { relativeFromPos, posFromRelative, encodeRelpos, decodeRelpos } from './relpos';
 export { diffDocs, diffHtml, diffMarkdown } from '../diff/index';
+export { hunksFrom, anchorsForFragment, applyHunks, hunkWords } from '../suggest/index';

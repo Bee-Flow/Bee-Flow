@@ -760,11 +760,10 @@ export default function useAppBuilderStream({
 }
 
 /**
- * The live turn record the waiting card reads. Same contract as the automation
- * builder's (useAutomationBuilderStream openTurn) so BuilderWaitingCard and
- * timeToFirstToken serve both: sentAt/sessionAt/pings/modelId for the
- * milestones, roundStartedAt/promptChars/progress for the reading bar,
- * firstEventAt — set ONCE — for what recordTtft() measures against sentAt.
+ * The live turn record of a build. Same contract as the automation builder's
+ * (useAutomationBuilderStream openTurn): sentAt/sessionAt/pings/modelId,
+ * roundStartedAt/promptChars/progress, and firstEventAt — set ONCE — which
+ * ends the "Thinking…" wait in the chat column.
  */
 export function openTurn(tier?: string | null): BuilderTurn {
     return {

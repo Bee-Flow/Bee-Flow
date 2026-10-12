@@ -289,6 +289,9 @@ function sampleTimes(perDay: (i: number) => number, offset: number): string[] {
     return out.sort((a, b) => b.localeCompare(a));
 }
 
+// No sample row names a health category (MedicalCondition is in
+// TOP_CATEGORIES as a total): the server never returns one on a row that
+// carries a person (server/core/privacy/specialCategories.js).
 const GUARD_EVENT_SEEDS: Array<[number, string, string, string, string | null]> = [
     [0, 'direct', 'Person,Email', 'tokenized', null],
     [1, 'agent', 'InternationalBankingAccountNumber', 'tokenized', 'Schadebeoordeling'],
@@ -296,7 +299,7 @@ const GUARD_EVENT_SEEDS: Array<[number, string, string, string, string | null]> 
     [2, 'automation', 'Email', 'redacted', 'Wekelijkse schaderapportage'],
     [3, 'direct', 'NationalIdentificationNumber', 'blocked', null],
     [1, 'agent', 'Person,Address', 'tokenized', 'Klachtdossier'],
-    [4, 'direct', 'MedicalCondition', 'blocked', null],
+    [4, 'direct', 'NationalIdentificationNumber', 'blocked', null],
     [2, 'agent', 'Person', 'tokenized', 'Klantenservice-assistent'],
     [0, 'notebook', 'Email,Person', 'tokenized', null],
     [3, 'automation', 'InternationalBankingAccountNumber,Person', 'tokenized', 'Incassobestand opschonen'],

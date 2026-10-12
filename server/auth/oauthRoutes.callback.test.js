@@ -39,6 +39,7 @@ const STUBBED = [
     './permissions', './ssoUserResolver', '../stores/userStore', './encryption',
     './establishSession', '../integrations/azureGroupSync', '../stores/automationCredentialStore',
     '../utils/freeEmailDomains', './signupGuards', '../stores/encryptionAvailability',
+    './microsoftIdentity', '../stores/microsoftIdentityStore',
 ];
 const realPaths = STUBBED.map((r) => { try { return require.resolve(r); } catch (_) { return null; } });
 
@@ -58,6 +59,8 @@ const DEEPER = {
     '../utils/freeEmailDomains': '../../utils/freeEmailDomains',
     './signupGuards': '../signupGuards',
     '../stores/encryptionAvailability': '../../stores/encryptionAvailability',
+    './microsoftIdentity': '../microsoftIdentity',
+    '../stores/microsoftIdentityStore': '../../stores/microsoftIdentityStore',
 };
 /** Same stub under the auth/-level key and the auth/oauth/-level key. */
 const bothDepths = (map) => {
@@ -85,18 +88,21 @@ function resetState() {
     state.groups = [];
     state.orgs = [];
     state.updateCalls = [];
+    state.linkRequests = []; state.sessions = []; state.graphOid = null; state.verifyError = null; state.msTenant = 'common';
+    state.identity = { azureTenantId: '11111111-1111-1111-1111-111111111111', azureUserId: '22222222-2222-2222-2222-222222222222' };
 }
 
 const realPermissions = require('./permissions');
 const realResolver = require('./ssoUserResolver');
+const realMicrosoftIdentity = require('./microsoftIdentity');
 
 const userStoreStub = {
     getUser: async (id) => state.users.get(id) || null,
     getAllGroups: async () => state.groups,
     getAllOrganizations: async () => state.orgs,
     updateUser: async (id, updates) => { state.updateCalls.push({ id, updates }); return true; },
-    getUserByEmail: async () => null,
-    getUserByAzureId: async () => null,
+    getUserByEmail: async email => [...state.users.values()].find(user => user.email?.toLowerCase() === email.toLowerCase()) || null,
+    getUserByAzureId: async (oid, tid) => [...state.users.values()].find(user => user.azureUserId === oid && user.azureTenantId === tid) || null,
     getAppPassword: async () => null,
     claimNotification: async () => false,
     createUserWithSeatCheck: async () => ({ created: false, reason: 'not used in these tests' }),
@@ -106,16 +112,13 @@ const userStoreStub = {
 const restore = installResolveStub(bothDepths({
     './permissions': {
         ...realPermissions,
-        loadConfig: async () => ({ providers: { google: { clientId: 'cid', clientSecret: 'sec' } } }),
+        loadConfig: async () => ({ providers: { google: { clientId: 'cid', clientSecret: 'sec' }, microsoft: { clientId: 'cid', clientSecret: 'sec', tenantId: state.msTenant } } }),
     },
     './ssoUserResolver': {
         ...realResolver,
         // The router's own resolution is not under test here; hand back the
         // fixture row directly so each test controls the stored shape.
-        resolveExistingSSOUser: async ({ localId }) => ({
-            user: state.users.get(localId) || null,
-            branch: 'id',
-        }),
+        resolveExistingSSOUser: async identity => identity.azureUserId ? realResolver.resolveExistingSSOUser(identity, userStoreStub) : ({ user: state.users.get(identity.localId) || null, branch: 'id' }),
     },
     '../stores/userStore': userStoreStub,
     './encryption': {
@@ -123,12 +126,21 @@ const restore = installResolveStub(bothDepths({
         setupSSOUserDEK: async () => ({}),
         unlockSSOUserDEK: async () => ({}),
     },
-    './establishSession': { establishSession: async () => { } },
+    './establishSession': { establishSession: async (req) => { state.sessions.push(req.session.user); } },
+    './microsoftIdentity': { ...realMicrosoftIdentity, verifyMicrosoftIdentity: async () => { if (state.verifyError) throw state.verifyError; return state.identity; } },
+    '../stores/microsoftIdentityStore': { findUnboundIdentity: async oid => [...state.users.values()].filter(user => user.azureUserId === oid && !user.azureTenantId), requestLink: async request => state.linkRequests.push(request),
+        // Mirrors the unambiguous-oid rule of the real store (covered by its pg test).
+        autoLinkLegacy: async ({ azureTenantId, azureUserId, configuredTenantId }) => {
+            const owners = [...state.users.values()].filter(user => user.azureUserId === azureUserId);
+            if (configuredTenantId !== azureTenantId || owners.length !== 1 || owners[0].azureTenantId) return { linked: false, reason: 'x' };
+            owners[0].azureTenantId = azureTenantId; return { linked: true, userId: owners[0].id, basis: 'auto-link-oid' };
+        },
+        getIdentityBinding: async id => state.users.has(id) ? { ...state.identity, revision: '0' } : null },
     '../integrations/azureGroupSync': { syncUserGroupsOnLogin: async () => { } },
     '../stores/automationCredentialStore': { upsertCredential: async () => { }, listCredentials: async () => [] },
     '../utils/freeEmailDomains': { getEffectiveFreeEmailDomains: async () => ['gmail.com'] },
     './signupGuards': { checkWebSignupAllowed: async () => ({ ok: true }), resolveSignupLocale: async () => 'en' },
-    '../stores/encryptionAvailability': { isEncryptionEnabledForUser: async () => false },
+    '../stores/encryptionAvailability': { isEncryptionEnabledForUser: async () => false, isSsoPinRequiredForUser: async () => false },
 }));
 
 for (const p of realPaths) if (p) delete require.cache[p];
@@ -141,7 +153,11 @@ global.fetch = async (url) => {
     const href = String(url);
     state.tokenFetches.push(href);
     if (href.includes('/token')) {
-        return { ok: true, status: 200, statusText: 'OK', json: async () => ({ access_token: 'at', refresh_token: 'rt', expires_in: 3600 }), text: async () => '' };
+        return { ok: true, status: 200, statusText: 'OK', json: async () => ({ access_token: 'at', refresh_token: 'rt', expires_in: 3600, id_token: 'validated-by-the-identity-test-double' }), text: async () => '' };
+    }
+    if (href.includes('graph.microsoft.com')) {
+        if (href.includes('/photo/')) return { ok: false, status: 404 };
+        return { ok: true, status: 200, json: async () => ({ id: state.graphOid || state.identity.azureUserId, mail: 'group-only@acme.example', displayName: 'Microsoft profile' }) };
     }
     // userinfo
     return {
@@ -195,7 +211,7 @@ test('callback with a state but no session state is rejected', async () => {
 
 test('callback with a session state but no query state is rejected', async () => {
     resetState();
-    nextSession = { oauthState: 'abc' };
+    nextSession = { oauthProvider: 'google', oauthState: 'abc' };
     const res = await realFetch(`${baseUrl}/auth/callback/google?code=C`, { redirect: 'manual' });
     assert.match(res.headers.get('location'), /error=invalid_state/);
     assert.deepStrictEqual(state.tokenFetches, []);
@@ -203,7 +219,7 @@ test('callback with a session state but no query state is rejected', async () =>
 
 test('a mismatching state is rejected and the stored state is consumed either way', async () => {
     resetState();
-    const session = { oauthState: 'expected-state' };
+    const session = { oauthProvider: 'google', oauthState: 'expected-state' };
     nextSession = session;
     const res = await realFetch(`${baseUrl}/auth/callback/google?code=C&state=wrong-state`, { redirect: 'manual' });
     assert.match(res.headers.get('location'), /error=invalid_state/);
@@ -217,7 +233,7 @@ test('a matching state still passes — the guard must not lock legitimate login
         id: 'group-only@acme.example', email: 'group-only@acme.example',
         groups: [], organizationId: 'acme', orgRole: 'member', status: 'active',
     });
-    nextSession = { oauthState: 'good-state' };
+    nextSession = { oauthProvider: 'google', oauthState: 'good-state' };
     await realFetch(`${baseUrl}/auth/callback/google?code=C&state=good-state`, { redirect: 'manual' });
     assert.ok(
         state.tokenFetches.some((u) => u.includes('/token')),
@@ -240,7 +256,7 @@ test('a member whose only org link is a group is NOT re-bound by email domain', 
     // A DIFFERENT org owns the email domain — the rebind target.
     state.orgs = [{ id: 'org-other', name: 'Other BV', allowedDomains: ['acme.example'], autoApproveSSO: false }];
 
-    const session = { oauthState: 's' };
+    const session = { oauthProvider: 'google', oauthState: 's' };
     nextSession = session;
     await realFetch(`${baseUrl}/auth/callback/google?code=C&state=s`, { redirect: 'manual' });
 
@@ -261,10 +277,71 @@ test('a group with no org still counts as org-less (domain match may proceed)', 
     state.groups = [{ id: 'grp-global', organizationId: null, name: 'Everyone' }];
     state.orgs = [{ id: 'org-other', name: 'Other BV', allowedDomains: ['acme.example'], autoApproveSSO: true }];
 
-    nextSession = { oauthState: 's' };
+    nextSession = { oauthProvider: 'google', oauthState: 's' };
     await realFetch(`${baseUrl}/auth/callback/google?code=C&state=s`, { redirect: 'manual' });
 
     const rebinds = state.updateCalls.filter((c) => c.updates.organizationId !== undefined);
     assert.strictEqual(rebinds.length, 1, 'a genuinely org-less user is still domain-matched');
     assert.strictEqual(rebinds[0].updates.organizationId, 'org-other');
+});
+
+
+// Token claim/signature validation is covered with actual signed tokens in
+// microsoftIdentity.test.js; these cases pin the account/session decisions.
+async function microsoftCallback() {
+    nextSession = { oauthProvider: 'microsoft', oauthState: 's', oauthNonce: 'nonce' };
+    return realFetch(`${baseUrl}/auth/callback/microsoft?code=C&state=s`, { redirect: 'manual' });
+}
+test('same email with a different Microsoft object or tenant creates only a validated linking request', async () => {
+    for (const identity of [{ azureTenantId: '11111111-1111-1111-1111-111111111111', azureUserId: '33333333-3333-3333-3333-333333333333' },
+        { azureTenantId: '44444444-4444-4444-4444-444444444444', azureUserId: '22222222-2222-2222-2222-222222222222' }]) {
+        resetState();
+        state.users.set('local', { id: 'local', email: 'group-only@acme.example', azureTenantId: state.identity.azureTenantId, azureUserId: state.identity.azureUserId });
+        state.identity = identity;
+        const response = await microsoftCallback();
+        assert.match(response.headers.get('location'), /error=sso_link_required/);
+        assert.deepStrictEqual(state.linkRequests, [{ ...identity, email: 'group-only@acme.example' }]);
+        assert.deepStrictEqual(state.updateCalls, []); assert.deepStrictEqual(state.sessions, []);
+        assert.strictEqual(nextSession.user, undefined);
+        assert.strictEqual(state.users.size, 1);
+    }
+});
+test('unconfirmed legacy object IDs require administrator linking even when the email changed', async () => {
+    resetState();
+    state.users.set('legacy-local', { id: 'legacy-local', azureUserId: state.identity.azureUserId, email: 'old@example.test' });
+    const response = await microsoftCallback();
+    assert.match(response.headers.get('location'), /error=sso_link_required/);
+    assert.strictEqual(state.linkRequests.length, 1); assert.deepStrictEqual(state.sessions, []);
+});
+test('a pre-upgrade account with a stored object ID signs in at once when the configured tenant is concrete', async () => {
+    resetState();
+    state.msTenant = state.identity.azureTenantId;
+    state.users.set('legacy-local', { id: 'legacy-local', azureUserId: state.identity.azureUserId, email: 'old@example.test', groups: [], organizationId: 'org-A', status: 'active', role: 'user' });
+    const response = await microsoftCallback();
+    assert.doesNotMatch(response.headers.get('location') || '', /error=/);
+    assert.deepStrictEqual(state.linkRequests, []);
+    assert.strictEqual(nextSession.user.id, 'legacy-local');
+    assert.strictEqual(state.users.get('legacy-local').azureTenantId, state.identity.azureTenantId);
+});
+test('rejected Microsoft tokens and mismatching Graph IDs cannot request linking or start sessions', async () => {
+    for (const invalidToken of [true, false]) {
+        resetState();
+        if (invalidToken) state.verifyError = new Error('Invalid Microsoft ID token');
+        else state.graphOid = '55555555-5555-5555-5555-555555555555';
+        const response = await microsoftCallback();
+        assert.match(response.headers.get('location'), /error=/);
+        assert.deepStrictEqual(state.linkRequests, []); assert.deepStrictEqual(state.sessions, []);
+        assert.deepStrictEqual(state.updateCalls, []); assert.strictEqual(nextSession.user, undefined);
+    }
+});
+test('an exact Microsoft identity retains its local account without domain-based organization assignment', async () => {
+    resetState();
+    state.users.set('local', { id: 'local', ...state.identity, email: 'group-only@acme.example', groups: [], organizationId: '', status: 'active', role: 'user' });
+    state.orgs = [{ id: 'email-domain-org', allowedDomains: ['acme.example'], autoApproveSSO: true }];
+    await microsoftCallback();
+    assert.strictEqual(nextSession.user.id, 'local');
+    assert.strictEqual(nextSession.microsoftIdentityVersion, 2);
+    assert.deepStrictEqual(nextSession.microsoftLoginIdentity, { ...state.identity, revision: '0' });
+    assert.deepStrictEqual(state.updateCalls.filter(call => call.updates.organizationId !== undefined), []);
+    assert.deepStrictEqual(state.linkRequests, []);
 });

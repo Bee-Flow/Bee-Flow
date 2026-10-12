@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { AlertCircle, AlertTriangle, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { buildStepLabelMap, resolveOwningStepId, humanizeIssueText } from './flow/displayHelpers';
 import FindingRow from '../../shared/FindingRow';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
  * The validation chip in the canvas's north-west zone (design 1a: "● 1
@@ -20,6 +21,7 @@ import FindingRow from '../../shared/FindingRow';
  * (`onFocusStep`) jumps to that node on the canvas.
  */
 export default function FloatingValidationPill({ fatalError, validation, aborted, onDismissFatal, def = null, onFocusStep = null }) {
+    const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     // Hooks must run unconditionally — keep them above the empty-state return.
     const labelById = useMemo(() => buildStepLabelMap(def), [def]);
@@ -72,7 +74,7 @@ export default function FloatingValidationPill({ fatalError, validation, aborted
                         <button
                             onClick={() => setOpen(false)}
                             className="p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
-                            title="Collapse"
+                            title={t('automations.floating_validation_pill.collapse', 'Collapse')}
                         >
                             <X size={14} />
                         </button>
@@ -86,7 +88,7 @@ export default function FloatingValidationPill({ fatalError, validation, aborted
                                 </div>
                                 {onDismissFatal && (
                                     <button onClick={onDismissFatal} className="text-[10px] underline hover:no-underline opacity-80 flex-shrink-0">
-                                        dismiss
+                                        {t('automations.floating_validation_pill.dismiss', 'dismiss')}
                                     </button>
                                 )}
                             </div>

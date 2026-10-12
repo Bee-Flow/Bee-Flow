@@ -51,7 +51,7 @@ const CreateLabelInline = ({ onCreateLabel, t }) => {
                     value={color}
                     onChange={(e) => setColor(e.target.value)}
                     className="w-6 h-6 rounded cursor-pointer border-0 p-0 bg-transparent"
-                    title="Pick a color"
+                    title={t('sidebar.pick_color', 'Pick a color')}
                     style={{ WebkitAppearance: 'none' }}
                 />
                 <input
@@ -62,7 +62,7 @@ const CreateLabelInline = ({ onCreateLabel, t }) => {
                         if (e.key === 'Enter' && name.trim()) handleCreate();
                         if (e.key === 'Escape') { setName(''); setIsCreating(false); }
                     }}
-                    placeholder="Label name..."
+                    placeholder={t('sidebar.label_name_placeholder', 'Label name...')}
                     className="flex-1 text-[12px] bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded px-2 py-1 outline-none focus:border-[var(--accent-primary)] text-[var(--text-primary)] min-w-0"
                 />
                 <button

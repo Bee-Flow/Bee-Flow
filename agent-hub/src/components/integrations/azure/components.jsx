@@ -177,7 +177,7 @@ export const SearchableModelSelect = ({ value, label, models, onChange }) => {
                         <div>
                             <h3 id={titleId} className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{t('azure.select_model')}</h3>
                             <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                                {totalResults} model{totalResults !== 1 ? 's' : ''}{search ? ` matching "${search}"` : ' available'}
+                                {totalResults === 1 ? t('azure.components_model_one', '{count} model', { count: 1 }) : t('azure.components_model_other', '{count} models', { count: totalResults })}{search ? ` matching "${search}"` : ' available'}
                             </p>
                         </div>
                         <button

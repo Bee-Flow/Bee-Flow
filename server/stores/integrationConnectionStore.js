@@ -57,6 +57,8 @@ const LEGACY_KEY_MAP = {
     'nmbrs_env':             { provider: 'nmbrs',       field: 'env',          kind: 'basic'   },
     'vplan_api_key':         { provider: 'vplan',       field: 'api_key',      kind: 'basic'   },
     'vplan_api_env':         { provider: 'vplan',       field: 'api_env',      kind: 'basic'   },
+    'scaleway_billing_secret_key': { provider: 'scaleway-billing', field: 'secret_key',      kind: 'basic' },
+    'scaleway_billing_org_id':     { provider: 'scaleway-billing', field: 'organization_id', kind: 'basic' },
 };
 // Reverse index: provider → [{ prefix, field, kind }] for mirror-writes + backfill grouping.
 const PROVIDER_LEGACY_FIELDS = {};

@@ -23,6 +23,7 @@
  *     A summary the user did not ask for beats a hard 400 "prompt is too long".
  */
 const log = require('../../telemetry/log');
+const { wellFormed } = require('../../utils/messageUtils');
 
 const COMPACTION_THRESHOLD = 16;  // Default: start compacting after this many messages
 const RECENT_WINDOW = 8;         // Default: keep this many recent messages verbatim
@@ -57,15 +58,6 @@ const TOOL_RESULT_MAX_LEN = 500; // Truncate tool results beyond this in recent 
 // chopped the middle out of most uploads and broke BFSF-162). Anything larger
 // still gets head-truncated with a marker pointing at the RustFS storage key.
 const SUMMARY_FILE_TEXT_MAX_CHARS = 40_000;
-
-// Unpaired UTF-16 high (D800-DBFF) or low (DC00-DFFF) surrogate. JSON parsers
-// downstream of HTTP (notably Anthropic's) reject these, breaking the entire
-// compaction call. Strip rather than escape so the summarizer still runs.
-const LONE_SURROGATE_RE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g;
-function stripLoneSurrogates(s) {
-    if (typeof s !== 'string' || !s) return s;
-    return s.replace(LONE_SURROGATE_RE, '�');
-}
 
 /**
  * Resolve the persisted watermark against the current conversation.
@@ -510,7 +502,7 @@ async function generateSummary(oldMessages, existingSummary, summaryModelId, use
     //   "no low surrogate in string: line 1 column N"
     // and the whole compaction call fails. Replace with U+FFFD so the
     // summarizer still runs and the conversation actually shrinks.
-    contentToSummarize = stripLoneSurrogates(contentToSummarize);
+    contentToSummarize = wellFormed(contentToSummarize);
 
     try {
         const result = await llmClient.chat(modelId, [

@@ -11,7 +11,7 @@ const { isSideEffect } = require('../sideEffectMap');
 const {
     BRANCHING_TYPES, listStepIds, findStepAnywhere, reconcileOutgoingEdges, moveStepAfter,
 } = require('./draftGraph');
-const { validateAndFixBindings, sanitizeForEach } = require('./bindings');
+const { validateAndFixBindings, sanitizeForEach, checkTextPlaceholders, checkLoopBindings, sanitizeArrayRef } = require('./bindings');
 const { inspectGateError } = require('./inspection');
 const { checkLoopRef } = require('./outputFields');
 const { normalizeApprovalConfig } = require('./approval');
@@ -19,7 +19,7 @@ const {
     modelTierGateError, clampDocumentTtl, sanitizeSetOperations,
     sanitizeParseJsonFieldRows, sanitizeDatatableBindings, normalizeAskOnce,
     normalizeCacheInto,
-    resolveDatatableColumns, checkExtractionFieldRefs, readOnlyTableError, DATATABLE_WRITE_OPS,
+    resolveDatatableColumns, checkExtractionFieldRefs, readOnlyTableError, DATATABLE_WRITE_OPS, sanitizeDatatableCursor,
     PARSE_JSON_RETIRED_MSG, ADD_FOR_TYPE, bindingToTemplate,
     sanitizeDataExtractionFields, sanitizeDataExtractionSource, translateDataExtractionVocabulary,
     loopItemSourceError,
@@ -27,10 +27,27 @@ const {
     sanitizeAgentId, sanitizeSkillIds, sanitizeAgentPermissions, sanitizeDisabledAgentSkillIds, agentPermissionsBlock, unknownToolError,
     sanitizeSwitchCases,
 } = require('./stepBuilders');
+const { patchFlatten } = require('./stepBuilders/flattenStep');
+const { normalizeQuery: normalizeHttpQuery } = require('../../core/automationRunner/httpQuery');
+
+// A flatten's route and column plan: re-planned together, never merged key by key.
+const FLATTEN_PLANNED_KEYS = ['arrayRef', 'parents', 'childField', 'keepFields'];
 const { KNOWLEDGE_WRITE_DUPLICATE_STRATEGIES, DATA_EXTRACTION_MAX_INSTRUCTIONS_CHARS } = require('../validate/constants');
+const { followAddedSteps, followPatchedRoute, followReplacedRoute } = require('./routeFollowDraft');
+const { approvalGateError } = require('./datatableApproval');
+const { REPLACEABLE_STEP_TYPES } = require('./stepTypeTable');
+const { ALIASES: STEP_TYPE_ALIASES, isBuiltinStepType } = require('../builtinStepTools');
 const {
     translateDatatableVocabulary, resolveDatatableOp, resolveDatatableRef, mapColumnKeys,
 } = require('./datatableRefs');
+
+// Step fields that hold TEXT with {{…}} placeholders the run interpolates —
+// patched through the same placeholder check the add tools use.
+const TEXT_TEMPLATE_FIELDS = Object.freeze({
+    ai_step: ['prompt'],
+    notification: ['title', 'body'],
+    http_request: ['url', 'body'],
+});
 
 // Position and wiring keys handled by applyUpdateStep BEFORE the per-type
 // allow-list: they change edges, not the step's own fields.
@@ -56,7 +73,9 @@ const PATCHABLE_FIELDS = {
     // merged.
     ai_step: ['prompt', 'systemPrompt', 'inputs', 'outputSchema', 'modelTier', 'allowTools', 'tools', 'knowledgeBaseIds', 'useMemory', 'label', 'forEach', 'agentId', 'skillIds', 'agentPermissions', 'disabledAgentSkillIds'],
     condition: ['expr', 'label'],
-    switch: ['expr', 'cases', 'defaultBranch', 'label'],
+    // A switch that works through a list (A2): its list, whether one item may
+    // go down several outputs, and the input cap — all three the add path keeps.
+    switch: ['expr', 'cases', 'defaultBranch', 'label', 'arrayRef', 'matchMode', 'maxItems'],
     loop: ['overRef', 'itemVar', 'maxIterations', 'label'],   // body steps are edited by their own id
     // `limits` is patchable for the reason it became settable on the add path:
     // the sandbox clamps memoryMb/cpuMs/wallMs/httpBudget on every run, and
@@ -66,7 +85,7 @@ const PATCHABLE_FIELDS = {
     // the authority; this only lets a step ask, within it.
     code: ['code', 'inputs', 'outputSchema', 'allowedTools', 'limits', 'label', 'forEach'],
     notification: ['title', 'body', 'channels', 'label', 'forEach'],
-    http_request: ['url', 'method', 'headers', 'body', 'timeoutMs', 'blockPrivateTargets', 'parseResponse', 'label', 'forEach', 'askOnce', 'cacheInto'],
+    http_request: ['url', 'method', 'headers', 'body', 'query', 'timeoutMs', 'blockPrivateTargets', 'parseResponse', 'label', 'forEach', 'askOnce', 'cacheInto'],
     generate_document: ['content', 'contentFormat', 'format', 'title', 'fileName', 'expiresInDays', 'label'],
     // `values` is the placeholder map, replaced wholesale like data_extraction's
     // `fields`: a merge would leave a value bound to a placeholder the person
@@ -94,11 +113,14 @@ const PATCHABLE_FIELDS = {
     approval: ['prompt', 'approval', 'label'],
     stop_error: ['message', 'label'],
     form_page: ['mode', 'form', 'waitSeconds', 'label'],
-    filter: ['arrayRef', 'expr', 'label'],
+    filter: ['arrayRef', 'expr', 'label', 'maxItems'],
     limit: ['arrayRef', 'count', 'mode', 'label'],
     dedupe: ['arrayRef', 'keyField', 'label'],
     aggregate: ['arrayRef', 'field', 'label'],
     summarize: ['arrayRef', 'field', 'op', 'label'],
+    // childField and keepFields are the add tool's sugar: they re-plan the
+    // columns (flattenStep.patchFlatten) and are never stored.
+    flatten: ['arrayRef', 'parents', 'keepEmpty', 'maxItems', 'label', 'childField', 'keepFields'],
     call_layer: ['inputs', 'label'],   // layerKey change = builder_replace_step (recursion guard re-runs)
     // `datatableId` is patchable ONLY onto a step that has none — see the
     // fill-only guard in applyUpdateStep. Repointing a BOUND step at a
@@ -118,6 +140,12 @@ const PATCHABLE_FIELDS = {
     // of the merge/revalidate machinery the other types get; normalizePatchField
     // below clamps text/size the same way applyAddNote does.
     note: ['text', 'position', 'size', 'color', 'label'],
+    // The Privacy Shield steps. `onFound` is rebuilt from its three known switches
+    // (normalizePatchField), never merged: an invented key would persist as a
+    // setting that looks configured and does nothing.
+    guard: ['sourceRef', 'categories', 'confidence', 'onFound', 'label'],
+    tokenize: ['sourceRef', 'categories', 'confidence', 'label'],
+    untokenize: ['sourceRef', 'label'],
 };
 
 /**
@@ -193,6 +221,7 @@ function normalizePatchField(type, key, value) {
         if (key === 'method') return String(value || 'GET').toUpperCase();
         if (key === 'headers') return (value && typeof value === 'object' && !Array.isArray(value)) ? value : {};
         if (key === 'body') return typeof value === 'string' ? value : '';
+        if (key === 'query') return normalizeHttpQuery(value);
         if (key === 'timeoutMs') return Math.max(1000, Math.min(60000, Number(value) || 10000));
         if (key === 'blockPrivateTargets') return value === false ? false : true;
         // Anything unrecognised means 'auto' — the executor falls back the same
@@ -259,6 +288,14 @@ function normalizePatchField(type, key, value) {
         // editor writes; see sanitizeSwitchCases for the full note.
         if (key === 'cases') return sanitizeSwitchCases(value);
         if (key === 'defaultBranch') return typeof value === 'string' ? value : null;
+        // Same rules as applyAddSwitch: 'all' or absent. A string list keeps
+        // or enters list mode ('' = source not picked yet, as the editor
+        // writes it); null takes the switch out of list mode.
+        if (key === 'matchMode') return value === 'all' ? 'all' : undefined;
+        if (key === 'arrayRef') return typeof value === 'string' ? value.trim() : undefined;
+    }
+    if ((type === 'switch' || type === 'filter') && key === 'maxItems') {
+        return (Number.isInteger(value) && value > 0) ? value : undefined;
     }
     // Rebuilt, never merged — the same discipline `approval` gets, and for the
     // same reason: a model reaching for this invents `ttl`, `cacheSeconds`,
@@ -306,7 +343,27 @@ function normalizePatchField(type, key, value) {
             return KNOWLEDGE_WRITE_DUPLICATE_STRATEGIES.includes(value) && value !== 'skip' ? value : undefined;
         }
     }
+    if (type === 'guard' || type === 'tokenize' || type === 'untokenize') {
+        // A ref PATH string, as the add path stores it ('' = not picked yet).
+        if (key === 'sourceRef') return typeof value === 'string' ? value.trim() : '';
+        // Narrow-only, like the runner (execPrivacy.narrowPolicy): a list of
+        // category names, or absent for "every category the organisation allows".
+        if (key === 'categories') {
+            const list = Array.isArray(value) ? value.filter(c => typeof c === 'string' && c) : [];
+            return list.length ? list : undefined;
+        }
+        if (key === 'confidence') return (typeof value === 'number' && value > 0 && value <= 1) ? value : undefined;
+        if (key === 'onFound') {
+            const o = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+            const next = { ...(o.stop === true ? { stop: true } : {}), ...(o.mask === true ? { mask: true } : {}), ...(o.tokenize === true ? { tokenize: true } : {}) };
+            return Object.keys(next).length ? next : undefined;
+        }
+    }
     if (type === 'dedupe' && key === 'keyField') return typeof value === 'string' ? value : undefined;
+    if (type === 'flatten') {
+        if (key === 'keepEmpty') return value === true ? true : undefined;
+        if (key === 'maxItems') return (Number.isInteger(value) && value > 0) ? value : undefined;
+    }
     if (type === 'note') {
         // Same clamps applyAddNote uses, so a patched note is byte-identical
         // to a freshly-added one — text/size never land oversized, an unknown
@@ -329,6 +386,123 @@ function normalizePatchField(type, key, value) {
     return value;
 }
 
+
+// ── A type change through builder_update_step ──
+//
+// Measured on a live build: a Nextcloud Tables row step was to become a Bee
+// Flow datatable step, and the model sent builder_update_step({patch:{tool:
+// "datatable", op, values}}). The allow-list refused "op, values" before the
+// unknown-tool check ever ran, and the hint named only builder_replace_step,
+// which the small-model menu does not even offer. So the patch performs the
+// type change itself, as the same replace (same id, same wiring), and says so.
+// Nextcloud Tables and Bee Flow datatables are different systems: a Nextcloud
+// `tableId` (often a title like "Facturen") is never read as a Bee Flow table.
+const ROW_OP_FOR_TOOL = Object.freeze({
+    nextcloud_tables_create_row: 'add_row',
+    nextcloud_tables_update_row: 'update_rows',
+    nextcloud_tables_list_rows: 'find_rows',
+    nextcloud_tables_delete_row: 'delete_rows',
+});
+// What a step of the new type may take from a patch's `inputs` map. tableId
+// and rowId are deliberately absent (see above).
+const DATATABLE_LIFT_KEYS = ['op', 'values', 'where', 'matchColumn', 'sort', 'limit', 'datatableId', 'datatableKey'];
+
+const resolvedStepType = (name) => (Object.prototype.hasOwnProperty.call(STEP_TYPE_ALIASES, name) ? STEP_TYPE_ALIASES[name] : name);
+
+/**
+ * Does this patch change the step's TYPE? `{newType}` when it does,
+ * `{error}` when it asks for a type that cannot be replaced into, null when
+ * it is an ordinary patch.
+ *   (a) patch.type names another replaceable type;
+ *   (b) an integration_action whose patch.tool is a built-in step type
+ *       (tool:"datatable"): a type name where a tool belongs. A name the
+ *       user's own catalog has stays a tool.
+ */
+function typeChangeFromPatch(step, patch, draftWrap) {
+    if (typeof patch.type === 'string' && patch.type !== step.type) {
+        const to = resolvedStepType(patch.type);
+        if (to !== step.type && REPLACEABLE_STEP_TYPES.includes(to)) return { newType: to };
+        if (to === step.type) return null;
+        return { error: `Cannot change a step's type to "${patch.type}". Allowed types: ${REPLACEABLE_STEP_TYPES.join(', ')}.` };
+    }
+    if (step.type === 'integration_action' && typeof patch.tool === 'string' && isBuiltinStepType(patch.tool)
+        && !(draftWrap && draftWrap._inputSchemasByTool && draftWrap._inputSchemasByTool[patch.tool])
+        && !(draftWrap && draftWrap._availableToolNames && draftWrap._availableToolNames.has(patch.tool))) {
+        const to = resolvedStepType(patch.tool);
+        if (to !== 'integration_action' && REPLACEABLE_STEP_TYPES.includes(to)) return { newType: to };
+    }
+    return null;
+}
+
+/** The replace spec for a type change, and the notes about what was read or dropped. */
+function specForTypeChange(step, patch, newType) {
+    const notes = [];
+    const spec = {};
+    for (const [k, v] of Object.entries(patch)) if (!['type', 'tool', 'id', 'inputs'].includes(k)) spec[k] = v;
+    const inputs = (patch.inputs && typeof patch.inputs === 'object' && !Array.isArray(patch.inputs)) ? patch.inputs : {};
+    if (newType === 'datatable') {
+        for (const k of DATATABLE_LIFT_KEYS) if (!(k in spec) && k in inputs) spec[k] = inputs[k];
+        if (!('values' in spec) && step.inputs && step.inputs.values && typeof step.inputs.values === 'object' && !Array.isArray(step.inputs.values)) {
+            spec.values = step.inputs.values;
+            notes.push('The row values of the old step were carried over; their column names are matched against the new table\'s columns.');
+        }
+        if (!('op' in spec) && step.type === 'integration_action' && ROW_OP_FOR_TOOL[step.tool]) {
+            spec.op = ROW_OP_FOR_TOOL[step.tool];
+            notes.push(`op was not set: ${step.tool} read as op "${spec.op}".`);
+        }
+        const dropped = ['tableId', 'rowId'].filter((k) => (step.inputs && k in step.inputs) || k in inputs);
+        if (dropped.length) notes.push(`The Nextcloud ${dropped.join(' and ')} of the old step were not carried over: Nextcloud Tables is a different system, and the Bee Flow table comes from datatableId.`);
+    } else {
+        for (const [k, v] of Object.entries(inputs)) if (!(k in spec)) spec[k] = v;
+    }
+    for (const k of ['label', 'forEach']) if (!(k in spec) && step[k] !== undefined) spec[k] = step[k];
+    return { spec, notes };
+}
+
+function typeChangeHint(stepId, newType, draftWrap) {
+    const offered = draftWrap && draftWrap._offeredTools;
+    const replaceOffered = !(offered instanceof Set) || offered.has('builder_replace_step');
+    const fields = newType === 'datatable' ? 'op, datatableId, datatableKey, values' : 'the fields of the new type';
+    const call = replaceOffered
+        ? `builder_replace_step({stepId:"${stepId}", newType:"${newType}", spec:{${fields}}})`
+        : `builder_update_step({stepId:"${stepId}", patch:{type:"${newType}", ${fields}}})`;
+    return `Reject reason: type change. Send ${call}.`
+        + (newType === 'datatable' ? ' The Bee Flow table id comes from the Datatables block, builder_create_datatable, or the user\'s choice; never from the Nextcloud tableId. Nextcloud Tables and Bee Flow datatables are different systems.' : '');
+}
+
+/** Run a type change patch as the replace it is. */
+function updateAsTypeChange(graph, step, found, patch, newType, args, draftWrap) {
+    if (found.kind === 'loop') {
+        return {
+            error: `"${step.id}" sits inside a loop body, and no tool changes the type of a loop-body step in place. Remove it and add the new step inside the loop body, or re-send the whole loop with builder_replace_step({stepId:"${found.parentLoop && found.parentLoop.id}", newType:"loop", spec:{overRef, itemVar, maxIterations, body:[…]}}).`,
+            _fixHint: 'Reject reason: type change inside a loop body. Rebuild the loop body (builder_replace_step on the loop) instead of changing one body step\'s type.',
+        };
+    }
+    const { spec, notes } = specForTypeChange(step, patch, newType);
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- aboutTable below is a fixed alternation of literals over our own error text
+    const r = applyReplaceStep(graph, { stepId: step.id, newType, spec }, { draft: draftWrap && draftWrap.def, scope: args.scope || null }, draftWrap);
+    if (r.error) {
+        // A consent question or an access refusal keeps its own instructions.
+        if (r._askArgs) return r;
+        // A refusal about the table itself (missing, unknown) is exactly what
+        // the type-change hint answers; any other keeps its own, precise hint
+        // (an unknown column, a read-only table) with the type-change form
+        // appended.
+        const aboutTable = /datatableId|no datatable|unknown datatable|datatable exists/i.test(`${r.error} ${r._fixHint || ''}`);
+        const hint = typeChangeHint(step.id, newType, draftWrap);
+        return { ...r, _fixHint: r._fixHint && !aboutTable ? `${r._fixHint} (A type change is sent as: ${hint.replace(/^Reject reason: type change\. /, '')})` : hint };
+    }
+    return {
+        updated: r.replaced,
+        replacedType: { from: step.type, to: newType },
+        ...(r.rewired ? { rewired: r.rewired } : {}),
+        _warnings: [
+            ...(r._warnings || []), ...notes,
+            `builder_update_step does not change a step's type, so this patch was applied as builder_replace_step(newType:"${newType}"): same id, same wiring.`,
+        ],
+    };
+}
+
 /**
  * builder_update_step — patch an existing step in place (same type, same id,
  * wiring preserved). Reuses validateAndFixBindings / sanitizeForEach so the
@@ -339,12 +513,21 @@ function applyUpdateStep(graph, args, draftWrap) {
     if (!stepId) return { error: 'stepId is required.' };
     let patch = (args.patch && typeof args.patch === 'object' && !Array.isArray(args.patch)) ? args.patch : null;
     if (!patch) return { error: 'patch must be an object of fields to change.' };
-    if ('type' in patch) return { error: 'Cannot change a step\'s type via builder_update_step — use builder_replace_step.' };
     if ('id' in patch) return { error: 'Cannot change a step id.' };
 
     let found = findStepAnywhere(graph, stepId);
     if (!found) return { error: `Unknown stepId "${stepId}". Existing step ids: ${listStepIds(graph)}.` };
     let step = found.step;
+    // Before the move and the allow-list: a type-change patch carries fields
+    // of the NEW type, which the old type's allow-list would refuse by name.
+    const change = typeChangeFromPatch(step, patch, draftWrap);
+    if (change && change.error) return change;
+    if (change) return updateAsTypeChange(graph, step, found, patch, change.newType, args, draftWrap);
+    if ('type' in patch) {
+        // Same type restated: nothing to change, and not a field to store.
+        patch = { ...patch };
+        delete patch.type;
+    }
     if (step.type === 'fill_document' && ['documentId','documentVersionId','values','sectionOverrides'].some(k=>k in patch)) {
         const candidate = {...step,...patch};
         const issue = require('../../core/documents/documentDiscovery').inspectBindings(candidate,draftWrap,'builder');
@@ -386,7 +569,10 @@ function applyUpdateStep(graph, args, draftWrap) {
         // The move re-ordered the steps array, so the slot found above is stale.
         found = findStepAnywhere(graph, stepId);
         step = found.step;
-        if (!Object.keys(patch).length) return { updated: step, moved };
+        if (!Object.keys(patch).length) {
+            const notes = followAddedSteps(graph, [stepId]);
+            return { updated: findStepAnywhere(graph, stepId).step, moved, ...(notes.length ? { _warnings: notes } : {}) };
+        }
     }
 
     // A data_extraction patch in integration_action / ai_step vocabulary
@@ -475,6 +661,8 @@ function applyUpdateStep(graph, args, draftWrap) {
                 delete patch.datatableKey;
                 patchNotes.push(`datatableId already is ${linked} (${ref.table.key}, "${ref.table.name}") — nothing to change there.`);
             } else if (!linked) {
+                const deny = approvalGateError(ref.table, draftWrap, { op: patch.op || step.op });
+                if (deny) return deny;
                 patch.datatableId = ref.table.id;
                 patch.datatableKey = ref.table.key;
                 filledTable = ref.table;
@@ -542,16 +730,17 @@ function applyUpdateStep(graph, args, draftWrap) {
             next.fields = fields;
         }
         if ('source' in patch) {
-            const src = sanitizeDataExtractionSource(patch.source, graph);
+            const src = sanitizeDataExtractionSource(patch.source, graph, draftWrap);
             if (src.error) return { error: src.error, ...(src._fixHint ? { _fixHint: src._fixHint } : {}) };
             next.source = src.source;
+            patchNotes.push(...(src.notes || []));
             // The same item-shape check the add path runs, against the forEach
             // the step will have once this patch lands (a forEach in the same
             // patch counts; an invalid one is left for the forEach block below
             // to refuse). A patch was the one way the measured `loop.r.content`
             // could still reach a step after the add path learned to repair it.
             const fe = 'forEach' in patch
-                ? (patch.forEach === null ? undefined : sanitizeForEach(patch.forEach, graph).forEach)
+                ? (patch.forEach === null ? undefined : sanitizeForEach(patch.forEach, graph, draftWrap).forEach)
                 : step.forEach;
             if (fe && next.source.kind === 'ref' && typeof next.source.path === 'string' && next.source.path.startsWith(`loop.${fe.itemVar}.`)) {
                 const chk = checkLoopRef(graph, next.source.path, fe, draftWrap);
@@ -599,7 +788,12 @@ function applyUpdateStep(graph, args, draftWrap) {
             return readOnlyTableError(table, opAfter);
         }
         if ('values' in patch || 'where' in patch) {
-            const merged = { values: step.values, where: step.where };
+            // Only what the patch sends is canonicalised and checked; the
+            // columns it leaves alone are the author's and stay byte-identical
+            // (a broken one is the validator's report, never a reason to
+            // refuse an unrelated patch).
+            const merged = { values: {}, where: [] };
+            let patchValues = null;
             if ('values' in patch) {
                 let raw = (patch.values && typeof patch.values === 'object' && !Array.isArray(patch.values)) ? patch.values : {};
                 // The PATCH keys are mapped before the merge, not the merged
@@ -612,12 +806,8 @@ function applyUpdateStep(graph, args, draftWrap) {
                 if (m.error) return m;
                 patchNotes.push(...m.notes);
                 raw = m.map;
-                if (args.inputsMode === 'replace') merged.values = raw;
-                else {
-                    const mm = { ...(step.values || {}) };
-                    for (const [k, v] of Object.entries(raw)) { if (v === null) delete mm[k]; else mm[k] = v; }
-                    merged.values = mm;
-                }
+                patchValues = raw;
+                merged.values = Object.fromEntries(Object.entries(raw).filter(([, v]) => v !== null));
             }
             // `where` is a LIST — merging by index would silently keep a condition
             // the author meant to drop, so it is replaced wholesale like
@@ -629,11 +819,18 @@ function applyUpdateStep(graph, args, draftWrap) {
             // values", and the model re-sent the same patch (measured, four
             // rounds running, 2026-09-16).
             if ('where' in patch) merged.where = patch.where;
-            const bound = sanitizeDatatableBindings(merged, graph);
+            const bound = sanitizeDatatableBindings(merged, graph, draftWrap);
             if (bound.error) return { error: bound.error };
             patchNotes.push(...bound.repairs);
-            next.values = bound.values;
-            next.where = bound.where;
+            if (patchValues) {
+                if (args.inputsMode === 'replace') next.values = bound.values;
+                else {
+                    const mm = { ...(step.values || {}) };
+                    for (const [k, v] of Object.entries(patchValues)) { if (v === null) delete mm[k]; else mm[k] = bound.values[k]; }
+                    next.values = mm;
+                }
+            }
+            if ('where' in patch) next.where = bound.where;
         }
         if (table) {
             // Only what the patch touched: a stale column on a field the patch
@@ -656,7 +853,7 @@ function applyUpdateStep(graph, args, draftWrap) {
             // forEach the step will have once this patch lands (an invalid one
             // is left for the forEach block below to refuse).
             const fe = 'forEach' in patch
-                ? (patch.forEach === null ? undefined : sanitizeForEach(patch.forEach, graph).forEach)
+                ? (patch.forEach === null ? undefined : sanitizeForEach(patch.forEach, graph, draftWrap).forEach)
                 : step.forEach;
             if (fe) {
                 const ex = checkExtractionFieldRefs(graph, next.values, fe, draftWrap);
@@ -668,28 +865,95 @@ function applyUpdateStep(graph, args, draftWrap) {
     }
 
     // inputs / fields: merge-by-key (null deletes) unless inputsMode:'replace'.
+    // Only the keys the patch names are canonicalised and checked. The rest
+    // are the author's own mappings: they stay byte-identical. Re-running the
+    // whole merged map through the canonicaliser is how one AI edit of
+    // `subject` used to rewrite a hand-mapped `to` from value[0].from… to the
+    // unreadable value.0.from… (findings C1, 2026-10).
+    // The forEach the step will have once this patch lands (an invalid one is
+    // refused by the forEach block below): loop.<var> paths the patch sends
+    // are checked against what it iterates.
+    const feAfter = 'forEach' in patch
+        ? (patch.forEach === null ? undefined : sanitizeForEach(patch.forEach, graph, draftWrap).forEach)
+        : step.forEach;
     const bindKey = step.type === 'set' ? 'fields' : 'inputs';
     if (bindKey in patch) {
         const mode = args.inputsMode === 'replace' ? 'replace' : 'merge';
-        let raw = (patch[bindKey] && typeof patch[bindKey] === 'object') ? patch[bindKey] : {};
+        const raw = (patch[bindKey] && typeof patch[bindKey] === 'object') ? patch[bindKey] : {};
+        const sent = Object.fromEntries(Object.entries(raw).filter(([, v]) => v !== null));
+        const bound = validateAndFixBindings(sent, graph, { draftWrap });
+        if (bound.error) {
+            return {
+                error: bound.error,
+                ...(bound._suggestedPatch ? { _suggestedPatch: { ops: bound._suggestedPatch.ops.map(o => ({ ...o, path: `patch.${bindKey}${o.path.slice('inputs'.length)}` })) } } : {}),
+            };
+        }
+        const loop = checkLoopBindings(bound.inputs, graph, feAfter, draftWrap, { label: bindKey });
+        if (loop.error) return { error: loop.error };
+        const inputs = loop.value;
+        const notes = [...(bound.notes || []), ...loop.notes];
         if (mode === 'merge') {
             const merged = { ...(step[bindKey] || {}) };
-            for (const [k, v] of Object.entries(raw)) { if (v === null) delete merged[k]; else merged[k] = v; }
-            raw = merged;
+            for (const k of Object.keys(raw)) { if (raw[k] === null) delete merged[k]; else merged[k] = inputs[k]; }
+            next[bindKey] = merged;
+        } else {
+            next[bindKey] = inputs;
         }
-        const { inputs, error } = validateAndFixBindings(raw, graph);
-        if (error) return { error };
-        next[bindKey] = inputs;
+        patchNotes.push(...notes.map(n => (bindKey === 'fields' ? n.replace(/^inputs\./, 'fields.') : n)));
     }
 
     // forEach: re-validate; null clears it.
     if ('forEach' in patch) {
         if (patch.forEach === null) { delete next.forEach; }
         else {
-            const { forEach, error } = sanitizeForEach(patch.forEach, graph);
+            const { forEach, error, notes } = sanitizeForEach(patch.forEach, graph, draftWrap);
             if (error) return { error };
             if (forEach) next.forEach = forEach; else delete next.forEach;
+            patchNotes.push(...(notes || []));
         }
+    }
+
+    // Text fields the run interpolates, and the list a step works through:
+    // the same path checks the add tools run (bindings.js). The checked
+    // values replace the patch's own in the scalar pass below (the patch
+    // object is the model's and is never mutated).
+    const checked = {};
+    for (const key of TEXT_TEMPLATE_FIELDS[step.type] || []) {
+        if (!(key in patch) || typeof patch[key] !== 'string') continue;
+        const t = checkTextPlaceholders(patch[key], graph, { draftWrap, label: key });
+        if (t.error) return { error: t.error };
+        const loop = checkLoopBindings(t.text, graph, feAfter, draftWrap, { label: key });
+        if (loop.error) return { error: loop.error };
+        checked[key] = loop.value;
+        patchNotes.push(...t.notes, ...loop.notes);
+    }
+    if (step.type === 'http_request' && ('query' in patch || ('url' in patch && typeof patch.url === 'string'))) {
+        // The patch's url (already checked above) and query: a nested query left
+        // in the URL moves into `query`; the query's own {{…}} paths get checked.
+        const { checkQueryPlaceholders, liftUrlQuery } = require('./stepBuilders/outboundSteps');
+        const urlNow = 'url' in checked ? checked.url : (typeof patch.url === 'string' ? patch.url : step.url);
+        const queryNow = 'query' in patch ? normalizeHttpQuery(patch.query) : step.query;
+        const lifted = liftUrlQuery(urlNow, queryNow);
+        const qc = checkQueryPlaceholders(lifted.query, graph, draftWrap, feAfter);
+        if (qc.error) return { error: qc.error };
+        if ('url' in patch || lifted.url !== urlNow) checked.url = lifted.url;
+        checked.query = qc.query;
+        if (lifted.url !== urlNow && !('url' in patch)) patch = { ...patch, url: lifted.url };
+        if (!('query' in patch) && qc.query) patch = { ...patch, query: qc.query };
+        patchNotes.push(...lifted.notes, ...qc.notes);
+    }
+    const listKey = step.type === 'loop' ? 'overRef' : 'arrayRef';
+    if (listKey in patch && typeof patch[listKey] === 'string' && patch[listKey].trim()) {
+        const ar = sanitizeArrayRef(patch[listKey], graph, { draftWrap, strictRoot: step.type === 'set' });
+        if (ar.error) return { error: ar.error.replace(/^arrayRef/, listKey) };
+        checked[listKey] = ar.arrayRef;
+        patchNotes.push(...ar.notes.map(n => n.replace(/^arrayRef/, listKey)));
+    }
+    if (step.type === 'datatable' && 'cursor' in patch) {
+        const c = sanitizeDatatableCursor(patch.cursor, graph, draftWrap);
+        if (c.error) return { error: c.error };
+        checked.cursor = c.cursor;
+        patchNotes.push(...c.notes);
     }
 
     // Scalar / structured fields.
@@ -698,10 +962,16 @@ function applyUpdateStep(graph, args, draftWrap) {
         if (step.type === 'set' && k === 'operations') continue; // handled wholesale above
         if (step.type === 'datatable' && (k === 'values' || k === 'where')) continue; // canonicalized above
         if (step.type === 'data_extraction' && k === 'source') continue; // canonicalized above
+        if (step.type === 'flatten' && FLATTEN_PLANNED_KEYS.includes(k)) continue; // patchFlatten below
         if (!(k in patch)) continue;
-        const norm = normalizePatchField(step.type, k, patch[k]);
+        const norm = normalizePatchField(step.type, k, k in checked ? checked[k] : patch[k]);
         if (norm === undefined) { if (k !== 'label') delete next[k]; }
         else next[k] = norm;
+    }
+
+    if (step.type === 'flatten') {
+        const err = patchFlatten(graph, next, { ...patch, ...('arrayRef' in checked ? { arrayRef: checked.arrayRef } : {}) }, draftWrap);
+        if (err) return { error: err };
     }
 
     // set cross-field integrity after the patch lands — the validator would
@@ -746,8 +1016,19 @@ function applyUpdateStep(graph, args, draftWrap) {
         }
     }
 
-    return { updated: next, ...(moved.length ? { moved } : {}), ...(patchNotes.length ? { _warnings: patchNotes } : {}) };
+    // Follow the route (W8): a moved step reads the output it now hangs off;
+    // a Condition whose outputs or list changed takes its readers along.
+    if (found.kind === 'graph') {
+        if (moved.length) patchNotes.push(...followAddedSteps(graph, [stepId]));
+        if (ROUTE_SHAPE_KEYS.some(k => k in patch)) patchNotes.push(...followPatchedRoute(graph, step, stepId));
+    }
+    const updated = found.kind === 'graph' ? findStepAnywhere(graph, stepId).step : next;
+    return { updated, ...(moved.length ? { moved } : {}), ...(patchNotes.length ? { _warnings: patchNotes } : {}) };
 }
+
+// The fields of a filter/switch whose change moves its outputs (and so what
+// the steps after it must read): its outputs, its list.
+const ROUTE_SHAPE_KEYS = ['cases', 'arrayRef'];
 
 /**
  * builder_update_steps — batch, all-or-nothing (snapshot + rollback).
@@ -765,14 +1046,25 @@ function applyUpdateSteps(graph, args, draftWrap) {
     const snapEdges = structuredClone(graph.edges);
     const applied = [];
     const unchanged = [];
+    // Each entry's notes (repaired paths, re-pointed readers) ride along, as
+    // they do on a single builder_update_step.
+    const warnings = [];
     for (const u of updates) {
         const before = JSON.stringify(findStepAnywhere(graph, (u && u.stepId) || '')?.step ?? null);
         const r = applyUpdateStep(graph, u || {}, draftWrap);
         if (r.error) {
             graph.steps = snapSteps;
             graph.edges = snapEdges;
-            return { error: `update for "${u && u.stepId}": ${r.error}`, _rolledBack: true };
+            // The entry's own instructions travel with it: a consent question
+            // (_askArgs) or the type-change form (_fixHint) is how the model
+            // fixes this entry.
+            return {
+                error: `update for "${u && u.stepId}": ${r.error}`, _rolledBack: true,
+                ...(r._askArgs ? { code: r.code, _askArgs: r._askArgs } : {}),
+                ...(r._fixHint ? { _fixHint: r._fixHint } : {}),
+            };
         }
+        for (const w of r._warnings || []) warnings.push(`${r.updated.id}: ${w}`);
         const after = JSON.stringify(findStepAnywhere(graph, r.updated.id)?.step ?? null);
         // A move re-wires edges without touching the step object, so it counts
         // as a change even when the step itself is byte-identical.
@@ -787,7 +1079,8 @@ function applyUpdateSteps(graph, args, draftWrap) {
                 + 'Re-sending the same patch will not help — inspect the step, change something else, or move on.',
         };
     }
-    return unchanged.length ? { updated: applied, unchanged } : { updated: applied };
+    const out = unchanged.length ? { updated: applied, unchanged } : { updated: applied };
+    return warnings.length ? { ...out, _warnings: warnings } : out;
 }
 
 /**
@@ -813,6 +1106,14 @@ function applyReplaceStep(graph, args, { draft, scope = null } = {}, draftWrap) 
     }
     const oldStep = found.step;
 
+    if (newType === 'integration_action' && isBuiltinStepType(spec.tool)
+        && !(draftWrap && draftWrap._inputSchemasByTool && draftWrap._inputSchemasByTool[spec.tool])
+        && !(draftWrap && draftWrap._availableToolNames && draftWrap._availableToolNames.has(spec.tool))) {
+        return {
+            error: `"${spec.tool}" is a step type, not a tool.`,
+            _fixHint: 'Use newType:"<resolved type>" with the fields of builder_add_<type>.'.replace('<resolved type>', resolvedStepType(spec.tool)),
+        };
+    }
     if (newType === 'integration_action') {
         const gate = inspectGateError(spec.tool, spec.inputs, draftWrap);
         if (gate) return gate;
@@ -831,11 +1132,25 @@ function applyReplaceStep(graph, args, { draft, scope = null } = {}, draftWrap) 
     built.id = oldStep.id;                       // keep id → every edge still targets it
 
     found.container[found.index] = built;
+    // A filter that became a list switch (or back) takes its readers along
+    // (W3) — before the edges are reconciled, so its kept connection is on
+    // the first output already.
+    const followed = followReplacedRoute(graph, oldStep, built.id);
     const rewired = reconcileOutgoingEdges(graph, oldStep, built);
     // The builder's tolerant reads (an op alias, a title-keyed column) are
     // said on the add path; a replace that swallowed them would leave the
     // model believing its spelling was stored as sent.
-    return { replaced: built, ...(rewired ? { rewired } : {}), ...(res._warnings ? { _warnings: res._warnings } : {}) };
+    const warnings = [...(res._warnings || []), ...followed];
+    if (oldStep.type !== built.type && !followed.length) {
+        // (A filter/switch swap already re-pointed its readers: followed.)
+        // The new type has another output shape (a datatable add_row answers
+        // row, id, created, updated); whoever read the old fields now reads
+        // nothing. Said here because the next validation round is too late.
+        const readers = findDanglingRefs(graph, built.id);
+        if (readers.length) warnings.push(`Steps ${readers.join(', ')} read this step's output; its shape changed${built.type === 'datatable' ? ' (a datatable add_row returns row, id, created, updated)' : ''}. Check their bindings.`);
+    }
+    const replaced = findStepAnywhere(graph, built.id).step;
+    return { replaced, ...(rewired ? { rewired } : {}), ...(warnings.length ? { _warnings: warnings } : {}) };
 }
 
 /**
@@ -853,22 +1168,45 @@ function applyReplaceStep(graph, args, { draft, scope = null } = {}, draftWrap) 
  * report-don't-block precedent for orphans.
  */
 function findDanglingRefs(graph, id) {
-    const { collectRefPaths } = require('../validate/helpers');
+    const { collectRefPaths, isObject } = require('../validate/helpers');
+    const { collectStepRefs } = require('../validate/stepRules/refSurfaces');
+    const { refHead, tryParseExpr, exprStepIds, findRefPaths } = require('../validate/refPaths');
+    const { TOPIC_HOST_SPEC } = require('../expr');
+    // One reference, read the way the runner reads it: a path by the shared
+    // grammar (dotted or bracketed id, never a prefix match), an expression
+    // by its parser (a quoted "read" is a value). A half-typed expression is
+    // still searched for the paths in it, so a typo does not hide a read.
+    const readsId = (r) => {
+        if (r.kind === 'ref') {
+            const h = refHead(r.path);
+            return h.root === 'steps' && h.second === id;
+        }
+        const { ast } = tryParseExpr(r.src, { host: TOPIC_HOST_SPEC });
+        if (ast) return exprStepIds(ast).includes(id);
+        return findRefPaths(r.src, ['steps']).some(t => t[1].type === 'prop' && String(t[1].key) === id);
+    };
+    // Every reference a step carries: binding objects anywhere in it, plus the
+    // surfaces that hold bare paths, templates and expressions (refSurfaces.js,
+    // the validator's list), for the step and every step nested in it.
+    const refsOf = (s) => {
+        const out = [];
+        collectRefPaths(s, out);
+        const walk = (st) => {
+            if (!isObject(st)) return;
+            out.push(...collectStepRefs(st));
+            for (const child of (Array.isArray(st.body) ? st.body : [])) walk(child);
+            for (const b of (Array.isArray(st.branches) ? st.branches : [])) {
+                for (const child of (Array.isArray(b) ? b : (Array.isArray(b?.steps) ? b.steps : []))) walk(child);
+            }
+        };
+        walk(s);
+        return out;
+    };
     const hits = new Set();
     const scan = (steps, scope) => {
         for (const s of (steps || [])) {
             if (!s || s.id === id) continue;
-            const out = [];
-            collectRefPaths(s, out);
-            for (const r of out) {
-                const src = r.path || r.src || '';
-                // `steps.<id>` followed by a boundary — never a prefix match
-                // (steps.a_12 must not match steps.a_1).
-                if (new RegExp(`\\bsteps\\.${id}(?![A-Za-z0-9_])`).test(src)) {
-                    hits.add(scope ? `${scope}/${s.id}` : s.id);
-                    break;
-                }
-            }
+            if (refsOf(s).some(readsId)) hits.add(scope ? `${scope}/${s.id}` : s.id);
         }
     };
     scan(graph?.steps, null);
@@ -955,4 +1293,5 @@ module.exports = {
     applyUpdateSteps,
     applyReplaceStep,
     applyRemoveStep,
+    findDanglingRefs,
 };

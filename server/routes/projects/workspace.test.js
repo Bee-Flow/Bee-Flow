@@ -283,8 +283,22 @@ test('presence: a transient presence.online for the caller', async () => {
     const res = await call('POST', '/api/projects/p1/presence', { user: VIEWER, body: {} });
     assert.strictEqual(res.status, 200);
     assert.deepStrictEqual(res.body, { ok: true });
-    assert.deepStrictEqual(rec.transients, [['p1', { kind: 'presence.online', actorId: 'u_viewer' }]]);
+    assert.deepStrictEqual(rec.transients, [['p1', { kind: 'presence.online', actorId: 'u_viewer', target: null }]]);
     assert.deepStrictEqual(rec.events, [], 'presence is never a durable event');
+});
+
+test('presence: a ping with a target carries it', async () => {
+    const target = { type: 'document', id: 'doc-1' };
+    const res = await call('POST', '/api/projects/p1/presence', { user: VIEWER, body: { target } });
+    assert.strictEqual(res.status, 200);
+    assert.deepStrictEqual(rec.transients, [['p1', { kind: 'presence.online', actorId: 'u_viewer', target }]]);
+});
+
+test('presence: an unknown target type or an empty id is refused, nothing is published', async () => {
+    assert.strictEqual((await call('POST', '/api/projects/p1/presence', { user: VIEWER, body: { target: { type: 'secret', id: 'x' } } })).status, 400);
+    assert.strictEqual((await call('POST', '/api/projects/p1/presence', { user: VIEWER, body: { target: { type: 'task', id: '  ' } } })).status, 400);
+    assert.strictEqual((await call('POST', '/api/projects/p1/presence', { user: VIEWER, body: { target: { type: 'task', id: 'a', extra: 1 } } })).status, 400);
+    assert.deepStrictEqual(rec.transients, []);
 });
 
 test('presence: a stranger 404, a body with fields 400 — nothing is published', async () => {

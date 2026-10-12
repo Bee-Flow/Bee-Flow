@@ -52,7 +52,7 @@ export default function PublicFormTab({ publicUrl, onOpenSettings, onCopied, tes
                     <span className="font-semibold text-[13px]">{t('compliance.dsr_pf_title', 'Public request form')}</span>
                 </div>
                 <p className="m-0 text-[12px] text-[var(--text-secondary)] leading-5">
-                    {t('compliance.dsr_pf_intro', 'Data subjects submit requests here without an account. Link it from your privacy notice; every submission starts the 30-day clock at receipt.')}
+                    {t('compliance.dsr_pf_intro', 'Data subjects submit requests here without an account. Link it from your privacy notice; every submission starts the one-month clock at receipt.')}
                 </p>
                 <div className="flex items-center gap-2 flex-wrap">
                     <code className="font-mono text-[12px] px-2.5 py-1.5 rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] truncate max-w-full" data-testid={`${testId}-url`}>{url}</code>

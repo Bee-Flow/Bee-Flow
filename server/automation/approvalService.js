@@ -78,11 +78,17 @@ async function recordDeploymentOutcome(approval) {
     }
 }
 
+// users has no `name` column: the person's name is displayName, then username,
+// then e-mail (BFSF-389). One helper so the three decision sites cannot drift.
+function userDisplayName(u) {
+    return u?.displayName || u?.username || u?.email || null;
+}
+
 async function deciderName(userId) {
     try {
         const userStore = require('../stores/userStore');
         const u = await userStore.getUser(userId);
-        return u?.name || u?.email || null;
+        return userDisplayName(u);
     } catch { return null; }
 }
 
@@ -660,7 +666,7 @@ async function castStageVote({ approval, run, deciderId, decision, trimmedReason
         const userStore = require('../stores/userStore');
         const { parseGroupIds } = require('../auth/orgMembership');
         const u = await userStore.getUser(deciderId);
-        voterName = u?.name || u?.email || null;
+        voterName = userDisplayName(u);
         groupIds = u ? parseGroupIds(u).map(String) : [];
     } catch { /* seat matching falls back to personal seats only */ }
     const viewer = { userId: deciderId, groupIds };
@@ -806,7 +812,7 @@ async function castPanelVote({ approval, run, deciderId, decision, trimmedReason
         const userStore = require('../stores/userStore');
         const { parseGroupIds } = require('../auth/orgMembership');
         const u = await userStore.getUser(deciderId);
-        voterName = u?.name || u?.email || null;
+        voterName = userDisplayName(u);
         groupIds = u ? parseGroupIds(u).map(String) : [];
     } catch { /* seat matching falls back to personal seats only */ }
     const viewer = { userId: deciderId, groupIds };
@@ -1054,7 +1060,7 @@ async function validateApprovalAssignees(definition, ownerId) {
 
 module.exports = {
     decide, withdraw, canDecide, canView, ensureApprovalForRun, validateApprovalAssignees,
-    isRunless,
+    isRunless, userDisplayName,
     // Panel machinery — the routes render progress; tests pin the rulebook.
     hasPanel, panelProgress, voteSummary, seatIndexFor,
     // Stage machinery — the routes need to know whose turn it is.

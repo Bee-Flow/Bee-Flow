@@ -144,7 +144,7 @@ function clampLimit(limit) {
 async function withingsCall(userId, path, action, params) {
     const auth = await automationAuth.getProviderAuth(userId, 'withings');
     if (!auth?.accessToken) {
-        throw new Error('Withings is not connected. Connect it in Settings → Integrations.');
+        throw new Error('Withings is not connected. Connect it in Settings → Connections.');
     }
 
     const form = new URLSearchParams({ action });

@@ -1227,7 +1227,7 @@ const DiagramPaneInner = forwardRef(function DiagramPaneInner({
                                 data-layers-toggle
                                 onClick={onToggleFlowlets}
                                 aria-pressed={!!flowletsOpen}
-                                title="Flowlets — manage reusable sub-flows"
+                                title={t('automations.diagram_pane.flowlets_manage_reusable_sub_flows', 'Flowlets — manage reusable sub-flows')}
                                 className={`inline-flex items-center gap-1.5 px-2.5 py-[6px] rounded-lg border border-[var(--border-default)] shadow-sm text-[12px] font-medium text-[var(--text-primary)] transition ${
                                     flowletsOpen ? 'bg-[var(--bg-tertiary)]' : 'bg-[var(--bg-card)] hover:bg-[var(--bg-tertiary)]'
                                 }`}

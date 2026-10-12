@@ -119,7 +119,7 @@ async function processAttachments(attachments = [], lastMsg, userId = null, opts
             // batch. `r.text` here may already be a truncated review text (an
             // incomplete scan under fail_open), which is exactly what gets shown.
             r = await resolveAttachmentAsk({
-                text: r.text, findings: r.findings, filename, provider, orgShield, conversationId, userId, emit, registerDecision,
+                text: r.text, findings: r.findings, summary: r.summary, filename, provider, orgShield, conversationId, userId, emit, registerDecision,
             });
         }
         if (r.action === 'block') {

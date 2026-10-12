@@ -39,7 +39,7 @@ function Tags() {
         const res = await authFetch(`${API_BASE}/api/support-inbox/tags`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: name.trim(), color }),
         });
-        if (!res.ok) { const e = await res.json().catch(() => ({})); setError(e.error || 'Create failed'); return; }
+        if (!res.ok) { const e = await res.json().catch(() => ({})); setError(e.error || t('studio_misc.errors.create_failed', 'Create failed')); return; }
         setName(''); await load();
     };
     const remove = async (id) => {
@@ -90,7 +90,7 @@ function Canned() {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ title: form.title.trim(), shortcut: form.shortcut.trim() || null, body: form.body }),
         });
-        if (!res.ok) { const e = await res.json().catch(() => ({})); setError(e.error || 'Create failed'); return; }
+        if (!res.ok) { const e = await res.json().catch(() => ({})); setError(e.error || t('studio_misc.errors.create_failed', 'Create failed')); return; }
         setForm({ title: '', shortcut: '', body: '' }); setAdding(false); await load();
     };
     const remove = async (id) => {

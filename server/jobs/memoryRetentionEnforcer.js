@@ -10,7 +10,22 @@
  *      active memories not confirmed within the org's declared retention
  *      window → status='expired'. Never instructions, never a DELETE, bounded
  *      per pass so one tenant cannot hold the pool.
- *   3. Heartbeat on `compliance_settings.last_retention_run_at` so the
+ *   3. HARD DELETE — two different things, two different rules:
+ *      a. HISTORY, on every install: rows with status `superseded` for longer
+ *         than HARD_DELETE_DAYS (90) are deleted for real, with their
+ *         memory_sources rows. They are not live memories; they are kept that
+ *         long only so the "Remembered" chip's Undo can restore a replaced
+ *         fact. Aged from valid_to. On the first run after an upgrade, legacy
+ *         superseded rows have the valid_to the store backfilled from their
+ *         updated_at, so they age from the day they were really replaced.
+ *      b. RESTORABLE memories (`archived`, `expired`), ONLY for an org that
+ *         switched retention on (`memory_retention_enabled === true`), and
+ *         only after THAT org's `default_retention_days` (min 60, as the age
+ *         sweep), measured from archived_at / valid_to / updated_at. An
+ *         archived row is a memory the person can restore; deleting it on an
+ *         install that never opted in would be silent data loss.
+ *      Both batched and capped per run; idempotent (a second run finds nothing).
+ *   4. Heartbeat on `compliance_settings.last_retention_run_at` so the
  *      Art-5(1)(e) compliance check can verify the job is alive.
  *
  * ── The policy, and why it fails towards leaving data alone ────────────────
@@ -39,7 +54,7 @@
  * broken. Sequential execution to avoid pool contention.
  */
 
-const { run } = require('../db');
+const { run, getOne } = require('../db');
 const complianceStore = require('../stores/complianceStore');
 const userStore = require('../stores/userStore');
 const { recordJobRun } = require('../telemetry/metrics');
@@ -60,6 +75,12 @@ const MIN_RETENTION_DAYS = 60;
 
 /** Rows one org's age sweep may expire per pass. */
 const AGE_SWEEP_LIMIT = 5000;
+
+/** Days a superseded row (history) is kept before it is deleted, on every install. */
+const HARD_DELETE_DAYS = 90;
+/** Rows per DELETE statement, and per run in total (the rest waits for tomorrow). */
+const HARD_DELETE_BATCH = 1000;
+const HARD_DELETE_RUN_CAP = 10000;
 
 let _timer = null;
 let _running = false;
@@ -145,6 +166,78 @@ async function _sweepByAge(orgIds) {
     return total;
 }
 
+// Superseded rows are history: one statement removes them and their
+// memory_sources, which have no foreign key to cascade. Aged from valid_to
+// (backfilled from updated_at for legacy rows).
+const HARD_DELETE_SQL = `
+    WITH doomed AS (
+        SELECT id FROM user_memories
+        WHERE status = 'superseded'
+          AND COALESCE(valid_to, updated_at, created_at) < NOW() - ($1::int * INTERVAL '1 day')
+        ORDER BY id
+        LIMIT $2
+    ),
+    gone AS (DELETE FROM user_memories WHERE id IN (SELECT id FROM doomed) RETURNING id),
+    src AS (DELETE FROM memory_sources WHERE memory_id IN (SELECT id FROM gone))
+    SELECT COUNT(*)::int AS n FROM gone
+`;
+
+// Archived and expired rows are restorable memories: only for one org (through
+// the owning user), with that org's window. $1 org, $2 days, $3 batch.
+const RESTORABLE_DELETE_SQL = `
+    WITH doomed AS (
+        SELECT m.id FROM user_memories m
+        JOIN users u ON u.id = m.user_id
+        WHERE u."organizationId" = $1
+          AND m.status IN ('archived', 'expired')
+          AND COALESCE(m.archived_at, m.valid_to, m.updated_at, m.created_at) < NOW() - ($2::int * INTERVAL '1 day')
+        ORDER BY m.id
+        LIMIT $3
+    ),
+    gone AS (DELETE FROM user_memories WHERE id IN (SELECT id FROM doomed) RETURNING id),
+    src AS (DELETE FROM memory_sources WHERE memory_id IN (SELECT id FROM gone))
+    SELECT COUNT(*)::int AS n FROM gone
+`;
+
+/** Batches of one statement until a short batch or the per-run cap. */
+async function _deleteInBatches(sql, leadingParams, budget) {
+    let total = 0;
+    while (total < budget) {
+        const res = await getOne(sql, [...leadingParams, HARD_DELETE_BATCH]);
+        const n = res?.n || 0;
+        total += n;
+        if (n < HARD_DELETE_BATCH) break;
+    }
+    return total;
+}
+
+/** 3a. Hard delete of old history (superseded). Returns the number deleted. */
+async function _hardDeleteHistory() {
+    try {
+        return await _deleteInBatches(HARD_DELETE_SQL, [String(HARD_DELETE_DAYS)], HARD_DELETE_RUN_CAP);
+    } catch (e) {
+        log.warn('[MemoryRetentionEnforcer] hard delete failed:', e.message);
+        return 0;
+    }
+}
+
+/** 3b. Hard delete of archived/expired rows, per org, only where retention is on. */
+async function _hardDeleteRestorable(orgIds) {
+    let total = 0;
+    for (const orgId of orgIds) {
+        const policy = await getRetentionPolicy(orgId);
+        if (!policy.enabled) continue;
+        try {
+            const n = await _deleteInBatches(RESTORABLE_DELETE_SQL, [orgId, String(policy.days)], HARD_DELETE_RUN_CAP);
+            total += n;
+            if (n > 0) log.info(`[MemoryRetentionEnforcer] org "${orgId}": deleted ${n} archived/expired memories older than ${policy.days} days`);
+        } catch (e) {
+            log.warn(`[MemoryRetentionEnforcer] restorable delete for "${orgId}" failed:`, e.message);
+        }
+    }
+    return total;
+}
+
 async function _listOrgIds() {
     const orgIds = new Set(['default']);
     try {
@@ -175,8 +268,9 @@ async function runOnce() {
         const expired = await _expireMemories();
         const orgIds = await _listOrgIds();
         const aged = await _sweepByAge(orgIds);
+        const deleted = await _hardDeleteHistory() + await _hardDeleteRestorable(orgIds);
         await _stampHeartbeats(orgIds);
-        log.info(`[MemoryRetentionEnforcer] swept in ${Date.now() - started} ms — expired ${expired} by deadline, ${aged} by age`);
+        log.info(`[MemoryRetentionEnforcer] swept in ${Date.now() - started} ms — expired ${expired} by deadline, ${aged} by age, deleted ${deleted} old history rows`);
     } catch (e) {
         ok = false;
         throw e;
@@ -211,4 +305,5 @@ module.exports = {
     start, stop, runOnce,
     getRetentionPolicy,
     DEFAULT_RETENTION_DAYS, MIN_RETENTION_DAYS, AGE_SWEEP_LIMIT,
+    HARD_DELETE_DAYS, HARD_DELETE_BATCH, HARD_DELETE_RUN_CAP, HARD_DELETE_SQL, RESTORABLE_DELETE_SQL,
 };

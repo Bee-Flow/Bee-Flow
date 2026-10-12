@@ -157,6 +157,7 @@ The server image runs as `node` (uid 1000). Two consequences:
 | `docker-compose.local.yml` | Override on top of `docker-compose.yml` for local runs (Postgres on host port 5433, fixed dev session secret, auto-restart). |
 | `docker-compose.dev.yml` | Development with the source mounted into the containers for hot reload. |
 | `docker-compose.services.yml` | Backing services only (database, storage, Redis), with frontend and backend running on the host. |
+| `docker-compose.hub.local.yml` | Bee Flow-internal, local-only override on top of the registry stack for module-hub development — flips the server to `NODE_ENV=development`; never use on a real deployment. |
 | `docker-compose.security.override.yml` | Opt-in layer that enables the security-scan worker on the registry stack. |
 
 Each file starts with a header comment that explains its use.

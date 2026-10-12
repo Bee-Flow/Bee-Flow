@@ -234,7 +234,7 @@ const UNCONVERTED = new Map<string, number>([
     ['src/features/cowork', 17],
     ['src/features/coworkHub', 20],
     ['src/features/documents', 10],
-    ['src/features/integrations', 135],
+    ['src/features/integrations', 134],
     // 54 -> 49: the add sheet's link door (AddUrlForm) went through t() when
     // it learned to add https:// itself.
     // 49 -> 45: the scanner's camera-off screen went through t() when it
@@ -421,7 +421,6 @@ const SAME_WORDS_OWN_KEY = new Map<string, string>([
     ['mobile.chat.skill_count', "automations.*_skills_plural are the plural halves of an AI step's skill count; this counts a chat's skills"],
     ['mobile.chat.trace_steps', OTHER_STEPS],
     ['mobile.compliance.check_history', "automations.versions.history is an automation's version history; this is a compliance check's"],
-    ['mobile.forms.fill.copied', OTHER_COPIED],
     ['mobile.forms.fill.untitled', VERSION_SETTING],
     ['mobile.forms.more', OTHER_MORE],
     ['mobile.kb_documents.title', OTHER_DOCUMENTS],

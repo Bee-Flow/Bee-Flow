@@ -6,6 +6,7 @@ import useAutomationApi from '../../../../../hooks/useAutomationApi';
 import { walkPath, walkRelativePath, previewValue, suggestKeyFromPath } from '../../../../../utils/bindingHelpers';
 import JsonTreePicker from '../../mapping/JsonTreePicker';
 import PathField from '../../mapping/PathField';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 
 /**
  * Settings editor for the parse_json step.
@@ -44,6 +45,7 @@ export function parseSampleSource(sourceValue) {
 }
 
 export default function ParseJsonFields({ step, draft, set, groups = [], onFocusField, previewSample, errorSections = new Set() }) {
+    const { t } = useTranslation();
     const api = useAutomationApi();
     const fields = Array.isArray(draft.fields) ? draft.fields : [];
     const aiMode = draft.mode === 'ai';
@@ -176,11 +178,10 @@ export default function ParseJsonFields({ step, draft, set, groups = [], onFocus
                 "Pick fields from it"). Existing steps keep working untouched;
                 this banner just points authors at the current home. */}
             <div className="mb-2 rounded border border-[var(--border-default)] bg-[var(--bg-secondary)]/60 px-2.5 py-1.5 text-[11px] text-[var(--text-secondary)]">
-                This step type has moved into <span className="font-medium text-[var(--text-primary)]">Edit data</span> — this existing step keeps working.
-                For new extractions, add an Edit data step and use “Pick fields from it”.
+                {t('automations.parse_json_fields.this_step_type_has_moved_into', 'This step type has moved into')} <span className="font-medium text-[var(--text-primary)]">{t('automations.parse_json_fields.edit_data', 'Edit data')}</span> {t('automations.parse_json_fields.this_existing_step_keeps_working_for', '— this existing step keeps working. For new extractions, add an Edit data step and use “Pick fields from it”.')}
             </div>
-            <AccordionSection stepType="parse_json" sectionKey="source" title="Source" defaultOpen forceOpen={errorSections.has('source')}>
-                <FormRow label="Source" hint="Where the JSON comes from. Empty = the previous step's output. Text is parsed as JSON automatically.">
+            <AccordionSection stepType="parse_json" sectionKey="source" title={t('automations.parse_json_fields.source', 'Source')} defaultOpen forceOpen={errorSections.has('source')}>
+                <FormRow label={t('automations.parse_json_fields.source', 'Source')} hint={t('automations.parse_json_fields.where_the_json_comes_from_empty', 'Where the JSON comes from. Empty = the previous step\'s output. Text is parsed as JSON automatically.')}>
                     <PathField
                         value={draft.sourceRef || ''}
                         onChange={(next) => set('sourceRef', next)}
@@ -194,25 +195,25 @@ export default function ParseJsonFields({ step, draft, set, groups = [], onFocus
                             onClick={() => set('sourceRef', `${nearest.basePath}.body`)}
                             className="mt-1 text-xs font-medium text-[var(--accent)] hover:underline"
                         >
-                            Use HTTP response body
+                            {t('automations.parse_json_fields.use_http_response_body', 'Use HTTP response body')}
                         </button>
                     )}
                 </FormRow>
                 <FormRow
-                    label="Group by list"
-                    hint="Optional. Point this at a list to get one row per entry — field paths are then relative to a single entry, and the output becomes items + count. Leave empty for one flat set of values."
+                    label={t('automations.parse_json_fields.group_by_list', 'Group by list')}
+                    hint={t('automations.parse_json_fields.optional_point_this_at_a_list', 'Optional. Point this at a list to get one row per entry — field paths are then relative to a single entry, and the output becomes items + count. Leave empty for one flat set of values.')}
                 >
                     <input
                         type="text"
                         value={draft.itemsRef || ''}
                         onChange={(e) => set('itemsRef', e.target.value)}
-                        placeholder="results"
-                        aria-label="Group by list"
+                        placeholder={t('automations.parse_json_fields.results', 'results')}
+                        aria-label={t('automations.parse_json_fields.group_by_list', 'Group by list')}
                         className={inputClass() + ' font-mono'}
                     />
                     {groupCandidates.length > 0 && !itemsRef && (
                         <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                            <span className="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">lists found</span>
+                            <span className="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">{t('automations.parse_json_fields.lists_found', 'lists found')}</span>
                             {groupCandidates.map(c => (
                                 <button
                                     key={c}
@@ -227,21 +228,21 @@ export default function ParseJsonFields({ step, draft, set, groups = [], onFocus
                     )}
                     {groupRefBroken && (
                         <div className="mt-1 text-[10px] text-amber-500">
-                            This path is not a list in the sample — the step will fail at run time.
+                            {t('automations.parse_json_fields.this_path_is_not_a_list', 'This path is not a list in the sample — the step will fail at run time.')}
                         </div>
                     )}
                     {grouped && (
                         <div className="mt-1 text-[10px] text-[var(--text-tertiary)]">
-                            {groupItems.length} {groupItems.length === 1 ? 'entry' : 'entries'} — one output row each. Bind downstream as <span className="font-mono">steps.{step.id}.output.items</span>.
+                            {groupItems.length} {groupItems.length === 1 ? 'entry' : 'entries'} {t('automations.parse_json_fields.one_output_row_each_bind_downstream', '— one output row each. Bind downstream as')} <span className="font-mono">steps.{step.id}.output.items</span>.
                         </div>
                     )}
                 </FormRow>
             </AccordionSection>
 
-            <AccordionSection stepType="parse_json" sectionKey="fields" title="Fields" defaultOpen forceOpen={errorSections.has('fields')}>
+            <AccordionSection stepType="parse_json" sectionKey="fields" title={t('automations.parse_json_fields.fields', 'Fields')} defaultOpen forceOpen={errorSections.has('fields')}>
                 {fields.length === 0 && (
                     <div className="text-xs text-[var(--text-tertiary)] italic mb-2">
-                        No fields yet — add one, pick from the sample below, or describe what you want and map with AI.
+                        {t('automations.parse_json_fields.no_fields_yet_add_one_pick', 'No fields yet — add one, pick from the sample below, or describe what you want and map with AI.')}
                     </div>
                 )}
                 {fields.map((f, i) => {
@@ -265,7 +266,7 @@ export default function ParseJsonFields({ step, draft, set, groups = [], onFocus
                                     value={f?.name || ''}
                                     onChange={(e) => updateField(i, { name: e.target.value })}
                                     placeholder="field_name"
-                                    aria-label="Field name"
+                                    aria-label={t('automations.parse_json_fields.field_name', 'Field name')}
                                     className={inputClass() + ' w-36 shrink-0 font-mono'}
                                 />
                                 <input
@@ -275,13 +276,13 @@ export default function ParseJsonFields({ step, draft, set, groups = [], onFocus
                                     onFocus={() => { pathFocusRef.current = i; }}
                                     onBlur={() => setTimeout(() => { if (pathFocusRef.current === i) pathFocusRef.current = null; }, 150)}
                                     placeholder="order.customer.email"
-                                    aria-label="Field path"
+                                    aria-label={t('automations.parse_json_fields.field_path', 'Field path')}
                                     className={inputClass() + ' flex-1 font-mono'}
                                 />
                                 <button
                                     type="button"
                                     onClick={() => removeField(i)}
-                                    title="Remove field"
+                                    title={t('automations.parse_json_fields.remove_field', 'Remove field')}
                                     className="p-1.5 rounded text-[var(--text-tertiary)] hover:text-red-500 hover:bg-[var(--bg-tertiary)] transition"
                                 >
                                     <X size={14} />
@@ -292,8 +293,8 @@ export default function ParseJsonFields({ step, draft, set, groups = [], onFocus
                                     type="text"
                                     value={f?.fallback === undefined ? '' : (typeof f.fallback === 'string' ? f.fallback : JSON.stringify(f.fallback))}
                                     onChange={(e) => setFallback(i, e.target.value)}
-                                    placeholder="fallback (optional)"
-                                    aria-label="Field fallback"
+                                    placeholder={t('automations.parse_json_fields.fallback_optional', 'fallback (optional)')}
+                                    aria-label={t('automations.parse_json_fields.field_fallback', 'Field fallback')}
                                     className={inputClass() + ' w-36 shrink-0'}
                                 />
                                 <textarea
@@ -301,12 +302,12 @@ export default function ParseJsonFields({ step, draft, set, groups = [], onFocus
                                     value={f?.description || ''}
                                     onChange={(e) => updateField(i, { description: e.target.value })}
                                     placeholder={aiMode ? 'Description (required in AI mode)' : 'Description (optional)'}
-                                    aria-label="Field description"
+                                    aria-label={t('automations.parse_json_fields.field_description', 'Field description')}
                                     className={textareaClass() + ' flex-1'}
                                 />
                             </div>
                             {unverified.has(f?.name) && (
-                                <div className="text-[10px] text-amber-500">not found in sample</div>
+                                <div className="text-[10px] text-amber-500">{t('automations.parse_json_fields.not_found_in_sample', 'not found in sample')}</div>
                             )}
                             {previewUsable && (
                                 <div className={`text-[10px] flex items-center gap-1.5 ${resolved === undefined ? 'text-amber-500' : 'text-[var(--text-tertiary)]'}`}>
@@ -316,7 +317,7 @@ export default function ParseJsonFields({ step, draft, set, groups = [], onFocus
                                     </span>
                                     {matched !== null && (
                                         <span className={matched === 0 ? 'text-amber-500' : ''}>
-                                            · filled in {matched}/{groupItems.length}
+                                            {t('automations.parse_json_fields.filled_in', '· filled in')} {matched}/{groupItems.length}
                                         </span>
                                     )}
                                 </div>
@@ -329,12 +330,12 @@ export default function ParseJsonFields({ step, draft, set, groups = [], onFocus
                     onClick={addField}
                     className="flex items-center gap-1 text-xs text-[var(--accent)] hover:opacity-80 transition"
                 >
-                    <Plus size={12} /> Add field
+                    <Plus size={12} /> {t('automations.parse_json_fields.add_field', 'Add field')}
                 </button>
 
                 {previewUsable && (
                     <div className="mt-3 space-y-1">
-                        <div className="text-[11px] font-medium text-[var(--text-secondary)]">Pick from sample</div>
+                        <div className="text-[11px] font-medium text-[var(--text-secondary)]">{t('automations.parse_json_fields.pick_from_sample', 'Pick from sample')}</div>
                         <div className="text-[10px] text-[var(--text-tertiary)]">
                             {grouped
                                 ? 'Showing the first entry — clicked paths apply to every entry.'
@@ -345,12 +346,12 @@ export default function ParseJsonFields({ step, draft, set, groups = [], onFocus
                 )}
 
                 <div className="mt-3 space-y-1.5">
-                    <div className="text-[11px] font-medium text-[var(--text-secondary)]">Map with AI</div>
+                    <div className="text-[11px] font-medium text-[var(--text-secondary)]">{t('automations.parse_json_fields.map_with_ai', 'Map with AI')}</div>
                     <textarea
                         rows={2}
                         value={instruction}
                         onChange={(e) => setInstruction(e.target.value)}
-                        placeholder="Describe the fields you want, e.g. the customer's email and the total of each order line."
+                        placeholder={t('automations.parse_json_fields.describe_the_fields_you_want_e', 'Describe the fields you want, e.g. the customer\'s email and the total of each order line.')}
                         className={textareaClass()}
                     />
                     <button
@@ -363,7 +364,7 @@ export default function ParseJsonFields({ step, draft, set, groups = [], onFocus
                     </button>
                     {!usableSample && (
                         <div className="text-[10px] text-[var(--text-tertiary)]">
-                            Run or pin the previous step's output first.
+                            {t('automations.parse_json_fields.run_or_pin_the_previous_step', 'Run or pin the previous step\'s output first.')}
                         </div>
                     )}
                     {mapError && (
@@ -372,20 +373,18 @@ export default function ParseJsonFields({ step, draft, set, groups = [], onFocus
                 </div>
             </AccordionSection>
 
-            <AccordionSection stepType="parse_json" sectionKey="options" title="Options" defaultOpen={aiMode} forceOpen={errorSections.has('options')}>
-                <FormRow label="Extraction">
+            <AccordionSection stepType="parse_json" sectionKey="options" title={t('automations.parse_json_fields.options', 'Options')} defaultOpen={aiMode} forceOpen={errorSections.has('options')}>
+                <FormRow label={t('automations.parse_json_fields.extraction', 'Extraction')}>
                     <label className="flex items-center gap-2 text-sm text-[var(--text-primary)]">
                         <input
                             type="checkbox"
                             checked={aiMode}
                             onChange={(e) => set('mode', e.target.checked ? 'ai' : 'paths')}
                         />
-                        Extract with AI on every run
+                        {t('automations.parse_json_fields.extract_with_ai_on_every_run', 'Extract with AI on every run')}
                     </label>
                     <div className="text-xs text-[var(--text-tertiary)] mt-1">
-                        For payloads whose shape changes run to run. Uses the fast AI model on every run
-                        (token cost); each field needs a description. Otherwise leave off — path
-                        extraction is instant and free.
+                        {t('automations.parse_json_fields.for_payloads_whose_shape_changes_run', 'For payloads whose shape changes run to run. Uses the fast AI model on every run (token cost); each field needs a description. Otherwise leave off — path extraction is instant and free.')}
                     </div>
                 </FormRow>
             </AccordionSection>

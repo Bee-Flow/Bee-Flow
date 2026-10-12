@@ -1,5 +1,6 @@
 import { Braces, Lock, Plus, Trash2, TriangleAlert } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
+import useTranslation from '../../../../../hooks/useTranslation';
 import ConfirmDialog from '../../../../shared/ConfirmDialog';
 import FormField from '../../../../shared/FormField';
 import IconButton from '../../../../shared/IconButton';
@@ -26,24 +27,32 @@ import { collectVariableUsage, declarableUnknowns, describeSite } from '../state
  * branch to get wrong.
  */
 
-const TYPE_LABELS = {
-    text: 'Text', number: 'Number', yesno: 'Yes / no', date: 'Date',
-    record: 'A record', list: 'A list', any: 'Anything',
+const typeLabel = (t, type) => {
+    switch (type) {
+        case 'text': return t('studio_apps_edit.variables.type_text', 'Text');
+        case 'number': return t('studio_apps_edit.variables.type_number', 'Number');
+        case 'yesno': return t('studio_apps_edit.variables.type_yesno', 'Yes / no');
+        case 'date': return t('studio_apps_edit.variables.type_date', 'Date');
+        case 'record': return t('studio_apps_edit.variables.type_record', 'A record');
+        case 'list': return t('studio_apps_edit.variables.type_list', 'A list');
+        case 'any': return t('studio_apps_edit.variables.type_any', 'Anything');
+        default: return type;
+    }
 };
 
 /** Why a name is refused, in the words of someone who has to fix it. */
-function nameProblem(name, taken) {
+function nameProblem(name, taken, t) {
     const trimmed = String(name || '').trim();
-    if (!trimmed) return 'Give it a name.';
+    if (!trimmed) return t('studio_apps_edit.variables.problem_name', 'Give it a name.');
     if (RESERVED_VARIABLE_NAMES.includes(trimmed)) {
         return trimmed === 'filters'
-            ? '“filters” belongs to the filter bar — add a filter bar and read vars.filters.<field>.'
-            : `“${trimmed}” is a reserved word.`;
+            ? t('studio_apps_edit.variables.problem_filters', '“filters” belongs to the filter bar — add a filter bar and read vars.filters.<field>.')
+            : t('studio_apps_edit.variables.problem_reserved', '“{name}” is a reserved word.', { name: trimmed });
     }
     if (!VARIABLE_NAME_RE.test(trimmed)) {
-        return 'One word: a letter or _ first, then letters, digits or _. A formula has to be able to write vars.<name>.';
+        return t('studio_apps_edit.variables.problem_shape', 'One word: a letter or _ first, then letters, digits or _. A formula has to be able to write vars.<name>.');
     }
-    if (taken.includes(trimmed)) return 'Another variable already has that name.';
+    if (taken.includes(trimmed)) return t('studio_apps_edit.variables.problem_taken', 'Another variable already has that name.');
     return null;
 }
 
@@ -56,6 +65,7 @@ function uniqueName(taken) {
 }
 
 export default function VariablesManager({ definition, onCommit, onRevealNode = null, disabled = false }) {
+    const { t } = useTranslation();
     const variables = listVariables(definition);
     const usage = useMemo(() => collectVariableUsage(definition), [definition]);
     const [confirmDelete, setConfirmDelete] = useState(null);
@@ -70,7 +80,7 @@ export default function VariablesManager({ definition, onCommit, onRevealNode = 
     const commitName = (from, raw) => {
         const to = String(raw || '').trim();
         if (to === from) { setNameErrors((p) => ({ ...p, [from]: null })); return; }
-        const problem = nameProblem(to, names.filter((n) => n !== from));
+        const problem = nameProblem(to, names.filter((n) => n !== from), t);
         if (problem) { setNameErrors((p) => ({ ...p, [from]: problem })); return; }
         setNameErrors((p) => ({ ...p, [from]: null }));
         onCommit(renameVariable(definition, from, to));
@@ -100,10 +110,9 @@ export default function VariablesManager({ definition, onCommit, onRevealNode = 
     return (
         <div className="flex flex-col gap-4">
             <p className="text-xs text-[var(--text-secondary)]">
-                A variable is a named value your screens and actions share. Formulas read it as{' '}
-                <code className="font-mono text-[var(--text-primary)]">vars.name</code>. Giving one a starting
-                value means a list filtered on it filters straight away, instead of showing everything until
-                something sets it.
+                {t('studio_apps_edit.variables.intro_a', 'A variable is a named value your screens and actions share. Formulas read it as')}{' '}
+                <code className="font-mono text-[var(--text-primary)]">vars.name</code>.{' '}
+                {t('studio_apps_edit.variables.intro_b', 'Giving one a starting value means a list filtered on it filters straight away, instead of showing everything until something sets it.')}
             </p>
 
             {unknowns.length ? (
@@ -114,12 +123,11 @@ export default function VariablesManager({ definition, onCommit, onRevealNode = 
                     <span className="flex items-center gap-1.5 text-xs font-medium text-[var(--text-primary)]">
                         <TriangleAlert className="w-3.5 h-3.5 shrink-0 text-[var(--warning)]" aria-hidden="true" />
                         {unknowns.length === 1
-                            ? 'One formula reads a variable that does not exist'
-                            : `${unknowns.length} formulas read variables that do not exist`}
+                            ? t('studio_apps_edit.variables.unknown_one', 'One formula reads a variable that does not exist')
+                            : t('studio_apps_edit.variables.unknown_many', '{n} formulas read variables that do not exist', { n: unknowns.length })}
                     </span>
                     <p className="text-[11px] text-[var(--text-secondary)]">
-                        Nothing gives {unknowns.map((n) => `vars.${n}`).join(', ')} a value, so it resolves to
-                        nothing — and a filter using it is dropped, which shows every row instead of none.
+                        {t('studio_apps_edit.variables.unknown_help', 'Nothing gives {names} a value, so it resolves to nothing — and a filter using it is dropped, which shows every row instead of none.', { names: unknowns.map((n) => `vars.${n}`).join(', ') })}
                     </p>
                     <button
                         type="button"
@@ -133,14 +141,14 @@ export default function VariablesManager({ definition, onCommit, onRevealNode = 
                         }}
                         className="self-start px-2.5 py-1 text-[11px] font-medium rounded border border-[var(--border-default)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)]"
                     >
-                        {unknowns.length === 1 ? 'Declare it' : 'Declare them all'}
+                        {unknowns.length === 1 ? t('studio_apps_edit.variables.declare_one', 'Declare it') : t('studio_apps_edit.variables.declare_all', 'Declare them all')}
                     </button>
                 </div>
             ) : null}
 
             {variables.length === 0 ? (
                 <p className="text-xs text-[var(--text-secondary)]">
-                    No variables yet.
+                    {t('studio_apps_edit.variables.none', 'No variables yet.')}
                 </p>
             ) : null}
 
@@ -158,10 +166,10 @@ export default function VariablesManager({ definition, onCommit, onRevealNode = 
                             <div className="flex items-start gap-2">
                                 <div className="flex-1 min-w-0">
                                     <FormField
-                                        label="Name"
+                                        label={t('studio_apps_edit.variables.name', 'Name')}
                                         hint={locked
-                                            ? 'In use, so the name is fixed — nothing rewrites the formulas that read it.'
-                                            : 'How a formula refers to it: vars.<name>.'}
+                                            ? t('studio_apps_edit.variables.name_locked', 'In use, so the name is fixed — nothing rewrites the formulas that read it.')
+                                            : t('studio_apps_edit.variables.name_hint', 'How a formula refers to it: vars.<name>.')}
                                         error={problem || undefined}
                                     >
                                         <div className="flex items-center gap-1.5">
@@ -173,7 +181,7 @@ export default function VariablesManager({ definition, onCommit, onRevealNode = 
                                                 onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
                                                 disabled={disabled || locked}
                                                 spellCheck={false}
-                                                aria-label={`Name of ${variable.name}`}
+                                                aria-label={t('studio_apps_edit.variables.name_aria', 'Name of {name}', { name: variable.name })}
                                             />
                                             {locked ? (
                                                 <Lock className="w-3.5 h-3.5 shrink-0 text-[var(--text-tertiary)]" aria-hidden="true" />
@@ -184,14 +192,14 @@ export default function VariablesManager({ definition, onCommit, onRevealNode = 
                                 <div className="flex items-center gap-1.5 pt-6 shrink-0">
                                     <span
                                         className="text-[11px] text-[var(--text-secondary)] whitespace-nowrap"
-                                        title={used ? 'Read or written this many times' : 'Nothing uses this yet'}
+                                        title={used ? t('studio_apps_edit.variables.used_title', 'Read or written this many times') : t('studio_apps_edit.variables.unused_title', 'Nothing uses this yet')}
                                     >
-                                        {used ? `used ${used}×` : 'unused'}
+                                        {used ? t('studio_apps_edit.variables.used', 'used {n}×', { n: used }) : t('studio_apps_edit.variables.unused', 'unused')}
                                     </span>
                                     {/* Never behind a hover: destructiveAffordances.test.js
                                         scans for exactly that. */}
                                     <IconButton
-                                        ariaLabel={`Delete ${variable.name}`}
+                                        ariaLabel={t('studio_apps_edit.variables.delete_aria', 'Delete {name}', { name: variable.name })}
                                         variant="danger"
                                         size="sm"
                                         disabled={disabled}
@@ -203,7 +211,7 @@ export default function VariablesManager({ definition, onCommit, onRevealNode = 
                             </div>
 
                             <div className="grid grid-cols-2 gap-2">
-                                <FormField label="Shown as">
+                                <FormField label={t('studio_apps_edit.variables.shown_as', 'Shown as')}>
                                     <input
                                         type="text"
                                         className={INPUT_CLS}
@@ -211,10 +219,10 @@ export default function VariablesManager({ definition, onCommit, onRevealNode = 
                                         onChange={(e) => patch(variable.name, { label: e.target.value })}
                                         placeholder={variable.name}
                                         disabled={disabled}
-                                        aria-label={`Label of ${variable.name}`}
+                                        aria-label={t('studio_apps_edit.variables.label_aria', 'Label of {name}', { name: variable.name })}
                                     />
                                 </FormField>
-                                <FormField label="Holds">
+                                <FormField label={t('studio_apps_edit.variables.holds', 'Holds')}>
                                     <select
                                         className={INPUT_CLS}
                                         value={variable.type}
@@ -226,10 +234,10 @@ export default function VariablesManager({ definition, onCommit, onRevealNode = 
                                             patch(variable.name, { type, default: coerceVariableDefault(type, variable.default).value });
                                         }}
                                         disabled={disabled}
-                                        aria-label={`Type of ${variable.name}`}
+                                        aria-label={t('studio_apps_edit.variables.type_aria', 'Type of {name}', { name: variable.name })}
                                     >
-                                        {VARIABLE_TYPES.map((t) => (
-                                            <option key={t} value={t}>{TYPE_LABELS[t] || t}</option>
+                                        {VARIABLE_TYPES.map((type) => (
+                                            <option key={type} value={type}>{typeLabel(t, type)}</option>
                                         ))}
                                     </select>
                                 </FormField>
@@ -241,15 +249,15 @@ export default function VariablesManager({ definition, onCommit, onRevealNode = 
                                 disabled={disabled}
                             />
 
-                            <FormField label="What it is for" hint="Shown to whoever edits this app next.">
+                            <FormField label={t('studio_apps_edit.variables.purpose', 'What it is for')} hint={t('studio_apps_edit.variables.purpose_hint', 'Shown to whoever edits this app next.')}>
                                 <input
                                     type="text"
                                     className={INPUT_CLS}
                                     value={variable.description ?? ''}
                                     onChange={(e) => patch(variable.name, { description: e.target.value })}
-                                    placeholder="Which status the list shows"
+                                    placeholder={t('studio_apps_edit.variables.purpose_example', 'Which status the list shows')}
                                     disabled={disabled}
-                                    aria-label={`Description of ${variable.name}`}
+                                    aria-label={t('studio_apps_edit.variables.description_aria', 'Description of {name}', { name: variable.name })}
                                 />
                             </FormField>
 
@@ -268,23 +276,25 @@ export default function VariablesManager({ definition, onCommit, onRevealNode = 
                 type="button"
                 onClick={addVariable}
                 disabled={disabled || atCeiling}
-                title={atCeiling ? `An app can hold ${MAX_VARIABLES} variables.` : undefined}
+                title={atCeiling ? t('studio_apps_edit.variables.ceiling', 'An app can hold {max} variables.', { max: MAX_VARIABLES }) : undefined}
                 className="self-start inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-dashed border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)]"
             >
-                <Plus className="w-3.5 h-3.5" aria-hidden="true" /> New variable
+                <Plus className="w-3.5 h-3.5" aria-hidden="true" /> {t('studio_apps_edit.variables.new', 'New variable')}
             </button>
 
             <ConfirmDialog
                 open={!!confirmDelete}
-                title={`Delete “${confirmDelete}”?`}
+                title={t('studio_apps_edit.variables.delete_title', 'Delete “{name}”?', { name: confirmDelete })}
                 description={
                     confirmDelete
-                        ? `${deleteSites.length} place${deleteSites.length === 1 ? '' : 's'} still use it, and will start resolving to nothing:\n\n`
+                        ? `${deleteSites.length === 1
+                            ? t('studio_apps_edit.variables.delete_sites_one', '1 place still uses it, and will start resolving to nothing:')
+                            : t('studio_apps_edit.variables.delete_sites_many', '{n} places still use it, and will start resolving to nothing:', { n: deleteSites.length })}\n\n`
                           + deleteSites.slice(0, 5).map((s) => `• ${describeSite(s)}`).join('\n')
-                          + (deleteSites.length > 5 ? `\n• …and ${deleteSites.length - 5} more` : '')
+                          + (deleteSites.length > 5 ? `\n• ${t('studio_apps_edit.variables.and_more', '…and {n} more', { n: deleteSites.length - 5 })}` : '')
                         : ''
                 }
-                confirmLabel="Delete anyway"
+                confirmLabel={t('studio_apps_edit.variables.delete_anyway', 'Delete anyway')}
                 destructive
                 onConfirm={() => doDelete(confirmDelete)}
                 onCancel={() => setConfirmDelete(null)}
@@ -295,9 +305,10 @@ export default function VariablesManager({ definition, onCommit, onRevealNode = 
 
 /** The starting-value control, following the declared type. */
 function DefaultField({ variable, onChange, disabled }) {
+    const { t } = useTranslation();
     const { name, type } = variable;
-    const label = 'Starts out as';
-    const aria = `Starting value of ${name}`;
+    const label = t('studio_apps_edit.variables.starts_as', 'Starts out as');
+    const aria = t('studio_apps_edit.variables.start_aria', 'Starting value of {name}', { name });
 
     if (type === 'yesno') {
         return (
@@ -327,7 +338,7 @@ function DefaultField({ variable, onChange, disabled }) {
     }
     if (type === 'date') {
         return (
-            <FormField label={label} hint="Left empty means “no date yet”. Use the today function where you read it if you want today.">
+            <FormField label={label} hint={t('studio_apps_edit.variables.date_hint', 'Left empty means “no date yet”. Use the today function where you read it if you want today.')}>
                 <input
                     type="date"
                     className={INPUT_CLS}
@@ -361,13 +372,14 @@ function DefaultField({ variable, onChange, disabled }) {
  * when it parses — typing `{` must not blow away what was there.
  */
 function JsonDefaultField({ variable, onChange, disabled, label, aria }) {
+    const { t } = useTranslation();
     const [text, setText] = useState(() => {
         try { return JSON.stringify(variable.default ?? null); } catch { return 'null'; }
     });
     const [error, setError] = useState(null);
 
     return (
-        <FormField label={label} hint="Written as JSON." error={error || undefined}>
+        <FormField label={label} hint={t('studio_apps_edit.variables.json_hint', 'Written as JSON.')} error={error || undefined}>
             <div className="flex items-stretch gap-1.5">
                 <input
                     type="text"
@@ -380,7 +392,7 @@ function JsonDefaultField({ variable, onChange, disabled, label, aria }) {
                             setError(null);
                             onChange(parsed);
                         } catch {
-                            setError('Not valid JSON yet.');
+                            setError(t('studio_apps_edit.variables.json_invalid', 'Not valid JSON yet.'));
                         }
                     }}
                     disabled={disabled}
@@ -397,6 +409,7 @@ function JsonDefaultField({ variable, onChange, disabled, label, aria }) {
 
 /** Where a variable is used, each row jumping to the place. */
 function UsageList({ sites, onRevealNode }) {
+    const { t } = useTranslation();
     const shown = sites.slice(0, 5);
     return (
         <div className="flex flex-col gap-1 pt-1 border-t border-[var(--border-subtle)]">
@@ -412,7 +425,7 @@ function UsageList({ sites, onRevealNode }) {
                 </button>
             ))}
             {sites.length > shown.length ? (
-                <span className="text-[11px] text-[var(--text-tertiary)]">…and {sites.length - shown.length} more</span>
+                <span className="text-[11px] text-[var(--text-tertiary)]">{t('studio_apps_edit.variables.and_more', '…and {n} more', { n: sites.length - shown.length })}</span>
             ) : null}
         </div>
     );

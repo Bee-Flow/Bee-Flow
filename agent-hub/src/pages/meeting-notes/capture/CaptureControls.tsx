@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import useTranslation from '../../../hooks/useTranslation';
 import { ChevronDown, ChevronUp, Settings2 } from 'lucide-react';
 import { LANGUAGES } from '../../../config/meetingNotesConfig';
 import { useRecorder } from '../hooks/RecorderContext';
@@ -7,6 +8,7 @@ import { useRecorder } from '../hooks/RecorderContext';
 // transcription provider. The component still accepts `serverDefault` /
 // `localEnabled` for API compatibility but ignores them.
 export default function CaptureControls({ compact = false }: { compact?: boolean }) {
+    const { t } = useTranslation();
     const [expanded, setExpanded] = useState(false);
     const { settings, setSettings } = useRecorder();
 
@@ -34,11 +36,11 @@ export default function CaptureControls({ compact = false }: { compact?: boolean
                 nothing can answer from text, into assigning each ID to one of a
                 known handful. Buried behind a collapsed panel nobody opens, it
                 would never get filled in, and the naming would stay guesswork. */}
-            <Field label="Who's in the meeting? (improves speaker names)">
+            <Field label={t('meeting_notes.capture_attendees_label', "Who's in the meeting? (improves speaker names)")}>
                 <input
                     value={settings.attendees}
                     onChange={(e) => setSettings((s) => ({ ...s, attendees: e.target.value }))}
-                    placeholder="Tom, Gerard, René…"
+                    placeholder={t('meeting_notes.capture_attendees_ph', 'Tom, Gerard, René…')}
                     className="w-full px-3 py-2 rounded-lg text-sm border outline-none"
                     style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                 />
@@ -48,7 +50,7 @@ export default function CaptureControls({ compact = false }: { compact?: boolean
                 Used by providers that accept a speaker hint (pyannoteAI, Azure
                 Whisper) to sharpen diarization; harmlessly ignored by others. */}
             <div className="mt-2">
-                <Field label="Number of speakers (optional — Auto detects)">
+                <Field label={t('meeting_notes.capture_num_speakers_label', 'Number of speakers (optional — Auto detects)')}>
                     <input
                         type="number"
                         min="1"
@@ -56,7 +58,7 @@ export default function CaptureControls({ compact = false }: { compact?: boolean
                         inputMode="numeric"
                         value={settings.numSpeakers}
                         onChange={(e) => setSettings((s) => ({ ...s, numSpeakers: e.target.value.replace(/[^0-9]/g, '') }))}
-                        placeholder="Auto"
+                        placeholder={t('meeting_notes.capture_num_speakers_ph', 'Auto')}
                         className="w-28 px-3 py-2 rounded-lg text-sm border outline-none"
                         style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                     />
@@ -76,14 +78,14 @@ export default function CaptureControls({ compact = false }: { compact?: boolean
                         speech model is used), so silently defaulting to Dutch
                         behind a panel nobody opens is how an English meeting
                         gets transcribed as Dutch without anyone noticing. */}
-                    Advanced — {activeLanguageLabel}
-                    {settings.contextTerms ? ', glossary set' : ''}
+                    {t('meeting_notes.capture_advanced', 'Advanced — {language}', { language: activeLanguageLabel })}
+                    {settings.contextTerms ? t('meeting_notes.capture_glossary_set', ', glossary set') : ''}
                 </span>
                 {expanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
             </button>
             {expanded && (
                 <div className={`mt-2 grid gap-3 ${compact ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
-                    <Field label="Language">
+                    <Field label={t('meeting_notes.capture_language_label', 'Language')}>
                         <select
                             value={settings.language}
                             onChange={(e) => setSettings((s) => ({ ...s, language: e.target.value }))}
@@ -102,11 +104,11 @@ export default function CaptureControls({ compact = false }: { compact?: boolean
                             ))}
                         </select>
                     </Field>
-                    <Field label="Glossary (optional)">
+                    <Field label={t('meeting_notes.capture_glossary_label', 'Glossary (optional)')}>
                         <input
                             value={settings.contextTerms}
                             onChange={(e) => setSettings((s) => ({ ...s, contextTerms: e.target.value }))}
-                            placeholder="AFAS, Bflow, N8N…"
+                            placeholder={t('meeting_notes.capture_glossary_ph', 'AFAS, Bflow, N8N…')}
                             className="w-full px-3 py-2 rounded-lg text-sm border outline-none"
                             style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                         />

@@ -30,6 +30,11 @@ export interface Route {
     mode: 'branch' | 'items';
     style: RouteStyle;
     matchMode: MatchMode;
+    /**
+     * Switch shapes only (BFSF-485): a list switch with exactly one rule case is
+     * "One output" whose non-matching items go to Otherwise.
+     */
+    keepRest?: boolean;
     /** The list worked through, in items mode. */
     source: string;
     /** The value compared against each rule, in value style. */
@@ -104,9 +109,12 @@ export function readRoute(step: RouteStepLike | null | undefined): Route {
     }
     if (step && type === 'switch') {
         const cases = Array.isArray(step.cases) ? step.cases : [];
+        const listMode = typeof step.arrayRef === 'string';
+        const style = readStyle(step, cases);
         return {
-            mode: typeof step.arrayRef === 'string' ? 'items' : 'branch',
-            style: readStyle(step, cases),
+            mode: listMode ? 'items' : 'branch',
+            style,
+            keepRest: listMode && style === 'rules' && cases.length === 1,
             matchMode: readMatchMode(step),
             source: str(step.arrayRef),
             matchOn: str(step.expr),
@@ -144,6 +152,32 @@ function switchFields(route: Partial<Route>, rules: RouteRule[]) {
     };
 }
 
+/** The one-output list route with the box ticked: a list switch with one case, so Otherwise is a port. */
+function writeKeepRest(route: Partial<Route>, first: RouteRule): Record<string, unknown> {
+    return {
+        type: 'switch',
+        arrayRef: route.source || '',
+        expr: '',
+        cases: [{ name: first.name || 'Output 1', expr: first.expr || '' }],
+        defaultBranch: undefined,
+        routeStyle: 'rules',
+        matchMode: undefined,
+        maxItems: maxItemsField(route),
+    };
+}
+
+/** Items mode: one rule is a Filter (or, with the box ticked, a one-case list switch); more is a list switch. */
+function writeItemsRoute(route: Partial<Route>, rules: RouteRule[], first: RouteRule | null | undefined, oneRule: boolean): Record<string, unknown> {
+    if (oneRule && route.keepRest && first) return writeKeepRest(route, first);
+    if (oneRule) {
+        return {
+            type: 'filter', arrayRef: route.source || '', expr: first?.expr || '', maxItems: maxItemsField(route),
+            cases: undefined, defaultBranch: undefined, routeStyle: undefined, matchMode: undefined,
+        };
+    }
+    return { ...switchFields(route, rules), arrayRef: route.source || '', maxItems: maxItemsField(route) };
+}
+
 /**
  * The unified model → the step fields to persist, INCLUDING `type`. Keys that
  * do not belong to the chosen type are set to `undefined`, so the patch merge
@@ -153,15 +187,7 @@ export function writeRoute(route: Partial<Route>): Record<string, unknown> {
     const rules = usableRules(route);
     const first = rules[0] || (Array.isArray(route?.rules) ? route.rules[0] : null);
     const oneRule = rules.length <= 1 && route.style === 'rules';
-    if (route.mode === 'items') {
-        if (oneRule) {
-            return {
-                type: 'filter', arrayRef: route.source || '', expr: first?.expr || '', maxItems: maxItemsField(route),
-                cases: undefined, defaultBranch: undefined, routeStyle: undefined, matchMode: undefined,
-            };
-        }
-        return { ...switchFields(route, rules), arrayRef: route.source || '', maxItems: maxItemsField(route) };
-    }
+    if (route.mode === 'items') return writeItemsRoute(route, rules, first, oneRule);
     if (oneRule) {
         return {
             type: 'condition', expr: first?.expr || '',

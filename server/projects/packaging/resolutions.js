@@ -207,6 +207,22 @@ function applyStepResolutions(definition, ref, resolutions) {
                     kind: 'approver', ref, stepId: approver.stepId, layerKey: approver.layerKey,
                     why: 'already_seated',
                 });
+            } else if (Array.isArray(config.stages) && config.stages.length > 0) {
+                // A staged chain whose seats scrub.js emptied: the installer's pick
+                // goes into each emptied stage. Setting `assignee` next to `stages`
+                // would be refused (approval.stages_conflict) on top of the empty
+                // stages (approval.stages_invalid), and the routine could not be
+                // activated although an approver was chosen.
+                const emptied = config.stages.filter(st => isObject(st) && Array.isArray(st.approvers) && st.approvers.length === 0);
+                if (emptied.length === 0) {
+                    ignored.push({
+                        kind: 'approver', ref, stepId: approver.stepId, layerKey: approver.layerKey,
+                        why: 'already_seated',
+                    });
+                } else {
+                    for (const st of emptied) st.approvers = [{ ...approver.seat }];
+                    applied.push({ kind: 'approver', ref, stepId: approver.stepId, layerKey: approver.layerKey });
+                }
             } else {
                 // `assignee` and nothing else: a single approver is the only
                 // seat shape that needs no second choice from the installer,

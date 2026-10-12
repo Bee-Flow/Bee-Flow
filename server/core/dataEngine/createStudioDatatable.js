@@ -9,8 +9,13 @@
  * one, else their account). An org table needs `manage_datatables`, which
  * the caller has checked and passes as `hasManageDatatables`.
  *
+ * `exactKey`: the key is a reservation the caller made earlier (the builder's
+ * Apply). A taken key then answers `key_taken` instead of being made unique,
+ * so the caller can tell "my own earlier attempt created it" from "a stranger
+ * has that key" and never ends up with a second copy of the table.
+ *
  * @param {{ ownerUserId:string, principal:object, name:string, key?:string, description?:string,
- *           fields:Array, hasManageDatatables?:boolean }} p
+ *           fields:Array, hasManageDatatables?:boolean, exactKey?:boolean }} p
  * @returns {Promise<{ ok:true, table:{ id, key, name, scope, fields } } | { ok:false, code, error }>}
  */
 
@@ -31,7 +36,7 @@ function defaultDeps() {
     };
 }
 
-async function createStudioDatatable({ ownerUserId, principal, name, key = null, description = '', fields, hasManageDatatables = false }, deps = defaultDeps()) {
+async function createStudioDatatable({ ownerUserId, principal, name, key = null, description = '', fields, hasManageDatatables = false, exactKey = false }, deps = defaultDeps()) {
     const { db, datatableStore, datatableDbStore, normalizeFields, migrationPlan, ddlForTable, assertDatatableQuota, datatableAccess } = deps;
     const title = String(name || '').trim();
     if (!title) return { ok: false, code: 'name_required', error: 'The table needs a name.' };
@@ -43,6 +48,9 @@ async function createStudioDatatable({ ownerUserId, principal, name, key = null,
     const existing = await datatableStore.listDatatablesForScope(scope);
     const usedKeys = new Set((existing || []).map((t) => t && t.key).filter(Boolean));
     const wantedKey = typeof key === 'string' && /^[a-z][a-z0-9_]*$/.test(key) ? key : null;
+    if (exactKey && wantedKey && usedKeys.has(wantedKey)) {
+        return { ok: false, code: 'key_taken', error: `A table with the key "${wantedKey}" already exists.` };
+    }
     const finalKey = wantedKey && !usedKeys.has(wantedKey) ? wantedKey : keyFromTitle(wantedKey || title, 0, usedKeys);
     const norm = normalizeFields((Array.isArray(fields) ? fields : []).map((f) => ({ ...f })), []);
     if (!norm.ok) return { ok: false, code: 'schema_invalid', error: norm.error };
@@ -69,6 +77,9 @@ async function createStudioDatatable({ ownerUserId, principal, name, key = null,
         }));
     } catch (err) {
         try { datatableDbStore.invalidate(scopeKey); } catch { /* best effort */ }
+        // The quota error carries its own code; collapsing it to create_failed
+        // hid "the workspace is full" behind a generic failure.
+        if (err && err.code === 'quota_exceeded') return { ok: false, code: 'quota', error: err.message };
         const taken = /uq_datatables_scope_key|already exists|duplicate key/i.test(String(err && err.message));
         return { ok: false, code: taken ? 'key_taken' : 'create_failed', error: err && err.message ? err.message : String(err) };
     }

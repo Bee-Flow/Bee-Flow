@@ -24,13 +24,13 @@ interface KindRow {
 }
 
 export const TRIGGER_KINDS: readonly KindRow[] = [
-    { value: 'manual', label: msg('mobile.flow.trigger.kind_manual', 'Manual — runs only when you click Run'), primaryOnly: true },
-    { value: 'form', label: msg('mobile.flow.trigger.kind_form', 'Form — a public page people fill in'), primaryOnly: true },
-    { value: 'schedule', label: msg('mobile.flow.trigger.kind_schedule', 'Schedule — runs on a timer'), primaryOnly: false },
-    { value: 'webhook', label: msg('mobile.flow.trigger.kind_webhook', 'Webhook — inbound HTTPS POST'), primaryOnly: false },
-    { value: 'app_event', label: msg('mobile.flow.trigger.kind_app_event', 'App event — e.g. new Gmail email'), primaryOnly: false },
-    { value: 'agent_call', label: msg('mobile.flow.trigger.kind_agent_call', 'Agent — callable from chat'), primaryOnly: true },
-    { value: 'app_trigger', label: msg('mobile.flow.trigger.kind_app_trigger', 'Studio App — called by an app action'), primaryOnly: true },
+    { value: 'manual', label: msg('automations.trigger_editors.manual_runs_only_when_you_click', 'Manual — runs only when you click Run'), primaryOnly: true },
+    { value: 'form', label: msg('automations.trigger_editors.form_a_public_page_people_fill', 'Form — a public page people fill in'), primaryOnly: true },
+    { value: 'schedule', label: msg('automations.trigger_editors.schedule_runs_on_a_timer', 'Schedule — runs on a timer'), primaryOnly: false },
+    { value: 'webhook', label: msg('automations.trigger_editors.webhook_inbound_https_post', 'Webhook — inbound HTTPS POST'), primaryOnly: false },
+    { value: 'app_event', label: msg('automations.trigger_editors.app_event_e_g_new_gmail', 'App event — e.g. new Gmail email'), primaryOnly: false },
+    { value: 'agent_call', label: msg('automations.trigger_editors.agent_callable_from_chat', 'Agent — callable from chat'), primaryOnly: true },
+    { value: 'app_trigger', label: msg('automations.trigger_editors.studio_app_called_by_an_app', 'Studio App — called by an app action'), primaryOnly: true },
 ];
 
 /** The kinds this node may be switched to; a stored kind it may not be stays, disabled. */
@@ -66,13 +66,13 @@ export function kindTitle(kind: string): Msg {
         case 'schedule':
             return msg('mobile.flow.trigger.title_schedule', 'Schedule');
         case 'app_trigger':
-            return msg('mobile.flow.trigger.title_app_inputs', 'App inputs');
+            return msg('automations.trigger_editors.app_inputs', 'App inputs');
         case 'webhook':
             return msg('mobile.flow.trigger.title_endpoint', 'Endpoint');
         case 'form':
             return msg('mobile.flow.trigger.title_form', 'Form');
         default:
-            return msg('mobile.flow.trigger.title_event', 'Event');
+            return msg('automations.trigger_editors.event', 'Event');
     }
 }
 

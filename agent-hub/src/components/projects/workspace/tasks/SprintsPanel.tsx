@@ -13,7 +13,7 @@ import { useTranslation, type TranslateFn } from '../../../../hooks/useTranslati
 import scopedStorage from '../../../../utils/scopedStorage';
 import EmptyState from '../../../shared/EmptyState';
 import type { useChatPeople } from '../chat/chatPeople';
-import { GhostButton, Notice } from '../workspaceUi';
+import { GhostButton, Notice, Skeleton } from '../workspaceUi';
 import SprintCreateForm from './SprintCreateForm';
 import SprintDetail from './SprintDetail';
 import { sprintName } from './taskPlanning';
@@ -27,26 +27,11 @@ function inSprint(task: ProjectTask, sprint: Sprint): boolean {
     return task.sprintId === sprint.id || sprintName(task) === sprint.name;
 }
 
-const BAR = 'block h-2.5 animate-pulse rounded-full bg-[var(--bg-secondary)]';
-
-/** Pulsing placeholders while the sprints load, echoing the list and the detail. */
+/** Placeholders while the sprints load. */
 function SprintsSkeleton({ label }: { label: string }) {
     return (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-[260px_minmax(0,1fr)]" role="status" aria-label={label} data-testid="sprints-skeleton">
-            <div className={`${CARD} divide-y divide-[var(--border-subtle)]`}>
-                {['w-1/2', 'w-2/3', 'w-2/5'].map(width => (
-                    <div key={width} className="space-y-2 px-3 py-3" aria-hidden="true">
-                        <span className={`${BAR} h-3 ${width}`} />
-                        <span className={`${BAR} w-3/4`} />
-                        <span className={`${BAR} h-1 w-full`} />
-                    </div>
-                ))}
-            </div>
-            <div className="hidden space-y-3 md:block" aria-hidden="true">
-                <span className={`${BAR} h-4 w-1/3`} />
-                <span className={`${BAR} w-1/2`} />
-                <div className={`${CARD} h-40`} />
-            </div>
+        <div className={`${CARD} px-3 py-3`}>
+            <Skeleton rows={3} variant="lines" label={label} testId="sprints-skeleton" />
         </div>
     );
 }

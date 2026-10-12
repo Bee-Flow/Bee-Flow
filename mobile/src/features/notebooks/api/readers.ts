@@ -53,6 +53,7 @@ export const readNotebook: (raw: unknown) => Notebook = shapeOf({
     instructions: field.str(''),
     knowledgeBaseIds: field.strArray,
     settings: field.record<Record<string, unknown>>({}),
+    cryptoContext: field.recordOrNull,
     documentContent: field.str(''),
     documentMd: field.strOrNull,
     documentFormat: field.str(''),

@@ -2,7 +2,16 @@
 
 import type { TranslateFn } from '@/core/i18n';
 
-import { actionLabel, categoriesLabel, categoryLabel, countriesOf, surfaceLabel } from './activity';
+import {
+    actionLabel,
+    categoriesLabel,
+    categoryLabel,
+    countriesOf,
+    isSpecialCategory,
+    namesSpecialCategory,
+    surfaceLabel,
+    withholdSpecialCategories,
+} from './activity';
 import { describeClamps, describeClampsOnLoad } from './clamps';
 import { normaliseDoc } from './fields';
 import { presetFor } from './piiCatalog';
@@ -132,5 +141,40 @@ describe('activity labels', () => {
             { code: 'NL', name: 'NL', isEu: true, isLocal: false, total: 5, piiEvents: 0 },
             { code: 'local', name: 'local', isEu: false, isLocal: true, total: 1, piiEvents: 0 },
         ]);
+    });
+});
+
+describe('health is an organisation total only (GDPR Art. 9)', () => {
+    it('knows every spelling of a health category, and nothing else', () => {
+        for (const v of ['MedicalCondition', 'Medication', 'HealthInsuranceNumber', 'Medical Condition', 'medical_condition', 'health', ' Medical ']) {
+            expect(isSpecialCategory(v)).toBe(true);
+        }
+        for (const v of ['Email', 'Person', 'NationalIdentificationNumber', 'scan_timeout', 'healthcare', '', null, undefined]) {
+            expect(isSpecialCategory(v)).toBe(false);
+        }
+    });
+
+    it('strips health labels from rows that carry a person, and leaves out a row that named only health', () => {
+        const rows = [
+            { id: 1, userName: 'Bea', categories: 'MedicalCondition,Email' },
+            { id: 2, userName: 'Bea', categories: 'Medication' },
+            { id: 3, userName: 'Cas', categories: 'Person, Email' },
+            { id: 4, userName: 'Cas', categories: '' },
+        ];
+        const before = JSON.stringify(rows);
+        expect(withholdSpecialCategories(rows, 'categories')).toEqual([
+            { id: 1, userName: 'Bea', categories: 'Email' },
+            { id: 3, userName: 'Cas', categories: 'Person, Email' },
+            { id: 4, userName: 'Cas', categories: '' },
+        ]);
+        // Copied, never changed in place; an untouched row is the same row.
+        expect(JSON.stringify(rows)).toBe(before);
+        expect(withholdSpecialCategories(rows, 'categories')[1]).toBe(rows[2]);
+    });
+
+    it('says when the window\'s totals name a health category', () => {
+        expect(namesSpecialCategory([{ category: 'Email', count: 4 }, { category: 'MedicalCondition', count: 2 }])).toBe(true);
+        expect(namesSpecialCategory([{ category: 'Email', count: 4 }, { category: 'Medication', count: 0 }])).toBe(false);
+        expect(namesSpecialCategory([])).toBe(false);
     });
 });

@@ -1,16 +1,17 @@
 import React, { useSyncExternalStore } from 'react';
+import Dropdown from './Dropdown';
+import { useTranslation } from '../../../../hooks/useTranslation';
+import scopedStorage from '../../../../utils/scopedStorage';
 import AppIcon from '../../../icons/AppIcon';
 import Tooltip from '../../../shared/Tooltip';
-import Dropdown from './Dropdown';
-import scopedStorage from '../../../../utils/scopedStorage';
 
 // Preview device presets — a pure max-width on the stage's iframe wrapper.
 // No postMessage / renderer change: the marketing site is responsive, so
 // narrowing the frame IS the mobile preview.
 export const DEVICES = [
-    { key: 'desktop', width: null, icon: 'Monitor',    title: 'Desktop preview' },
-    { key: 'tablet',  width: 768,  icon: 'Tablet',     title: 'Tablet preview (768px)' },
-    { key: 'mobile',  width: 390,  icon: 'Smartphone', title: 'Mobile preview (390px)' },
+    { key: 'desktop', width: null, icon: 'Monitor',    title: 'Desktop preview', titleKey: 'cms_site.site.shell.device_desktop' },
+    { key: 'tablet',  width: 768,  icon: 'Tablet',     title: 'Tablet preview (768px)', titleKey: 'cms_site.site.shell.device_tablet' },
+    { key: 'mobile',  width: 390,  icon: 'Smartphone', title: 'Mobile preview (390px)', titleKey: 'cms_site.site.shell.device_mobile' },
 ];
 
 // ── Stage viewport store (WS3-P5) ───────────────────────────────────
@@ -23,7 +24,7 @@ export const DEVICES = [
 // rotation is session-only (a glance, not a setting).
 
 export const ZOOM_LEVELS = [
-    { value: 'fit',  label: 'Fit' },
+    { value: 'fit',  label: 'Fit', labelKey: 'cms_site.site.shell.zoom_fit' },
     { value: '0.5',  label: '50%' },
     { value: '0.75', label: '75%' },
     { value: '1',    label: '100%' },
@@ -66,16 +67,18 @@ export function toggleStageRotate() {
 }
 
 export default function DeviceToggle({ value, onChange }) {
+    const { t } = useTranslation();
     const { zoom } = useStageViewport();
-    const zoomLabel = (ZOOM_LEVELS.find(z => z.value === zoom) || ZOOM_LEVELS[3]).label;
+    const zoomEntry = ZOOM_LEVELS.find(z => z.value === zoom) || ZOOM_LEVELS[3];
+    const zoomLabel = zoomEntry.labelKey ? t(zoomEntry.labelKey, zoomEntry.label) : zoomEntry.label;
     return (
         <div className="flex items-center gap-0.5 p-0.5 rounded-md border border-[var(--border-subtle)] bg-[var(--bg-tertiary)]">
             {DEVICES.map(d => (
-                <Tooltip key={d.key} content={d.title}>
+                <Tooltip key={d.key} content={t(d.titleKey, d.title)}>
                     <button
                         type="button"
                         onClick={() => onChange(d.key)}
-                        aria-label={d.title}
+                        aria-label={t(d.titleKey, d.title)}
                         className={`p-1 rounded ${value === d.key
                             ? 'bg-[var(--bg-secondary)] text-[var(--text-primary)] shadow-sm'
                             : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}
@@ -91,8 +94,8 @@ export default function DeviceToggle({ value, onChange }) {
                 trigger={() => (
                     <button
                         type="button"
-                        aria-label="Preview zoom"
-                        title="Preview zoom"
+                        aria-label={t('cms_site.site.shell.zoom', 'Preview zoom')}
+                        title={t('cms_site.site.shell.zoom', 'Preview zoom')}
                         className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
                     >
                         {zoomLabel}
@@ -110,7 +113,7 @@ export default function DeviceToggle({ value, onChange }) {
                                     className={`w-full flex items-center justify-between px-3 py-1.5 text-xs text-left hover:bg-[var(--bg-tertiary)]
                                         ${z.value === zoom ? 'text-[var(--accent-primary)]' : 'text-[var(--text-secondary)]'}`}
                                 >
-                                    {z.label}
+                                    {z.labelKey ? t(z.labelKey, z.label) : z.label}
                                     {z.value === zoom ? <AppIcon name="Check" className="w-3 h-3" /> : null}
                                 </button>
                             </li>

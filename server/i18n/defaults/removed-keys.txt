@@ -2894,3 +2894,39 @@ webpages.data.routine_never_ran
 webpages.data.routine_reads
 webpages.data.routine_untitled
 webpages.data.routine_writes
+
+# Privacy Shield (2026-10): steps 3 and 4 became two panes. The flow drawing
+# above the two cards, the strip's PATH caption and "AI model" end marker, and
+# the explainer's "Open the two checks" links went with the shared pane; the
+# step 1 read-out dropped its noun (shield_shell.summary_kinds_of).
+admin.shield_hiw_open_outbound
+admin.shield_hiw_open_processing
+admin.shield_pipeline_in
+admin.shield_pipeline_out
+shield_shell.path_label
+shield_shell.summary_kinds
+shield_checks.flow_label
+shield_checks.flow_look
+shield_checks.flow_kinds
+shield_checks.flow_every
+shield_checks.flow_unlicensed
+shield_checks.flow_inside
+shield_checks.flow_done
+shield_checks.flow_outside
+shield_checks.flow_off
+shield_checks.flow_on
+shield_checks.flow_tools_skip
+shield_checks.flow_tools_follow
+shield_checks.tools_gap_after_count
+shield_checks.tools_gap_no_count
+
+# Privacy Shield "What happened" (2026-10): the map leads the pane; the prose
+# paragraph above it and the sentence under the period went.
+shield_activity.in_short_passed
+shield_activity.in_short_passed_one
+shield_activity.in_short_sentence
+shield_activity.in_short_sentence_no_tool
+shield_activity.in_short_sentence_plain
+shield_activity.in_short_unchecked
+shield_activity.in_short_unchecked_one
+shield_activity.subtitle

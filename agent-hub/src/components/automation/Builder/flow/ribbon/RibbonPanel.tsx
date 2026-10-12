@@ -2,10 +2,10 @@ import useTranslation from '../../../../../hooks/useTranslation';
 import SuggestedPanel from './SuggestedPanel';
 import AiPanel from './AiPanel';
 import CommandsPanel from './CommandsPanel';
-import { NextcloudPanel, OtherAppsPanel } from './AppsPanels';
+import { SuitePanel, OtherAppsPanel } from './AppsPanels';
 import type { OpenState } from './AppCommands';
-import { CATEGORY_DEFS } from './ribbonCategories';
-import type { RibbonCategoryId, RibbonSections, StepPayload } from './ribbonCategories';
+import { CATEGORY_DEFS, SUITE_TABS, isSuiteTab } from './ribbonCategories';
+import type { RibbonApp, RibbonCategoryId, RibbonSections, StepPayload } from './ribbonCategories';
 import { planBlocksRow, planRow } from './ribbonRows';
 import type { RowTab } from './ribbonRows';
 import type { FitCard, FrequentItem } from './fitsAfter';
@@ -25,10 +25,10 @@ interface Props extends OpenState {
     onAdd: (payload: StepPayload) => void;
 }
 
-const STEP_TABS: Record<string, { items: (s: RibbonSections) => RibbonSections['logic']; testId: string }> = {
-    logic: { items: s => s.logic, testId: 'ribbon-logic' },
-    people: { items: s => s.people, testId: 'ribbon-people' },
-    data: { items: s => s.data, testId: 'ribbon-data' },
+const STEP_TABS: Record<string, { items: (s: RibbonSections) => RibbonSections['logic']; apps: (s: RibbonSections) => RibbonApp[]; testId: string }> = {
+    logic: { items: s => s.logic, apps: s => s.nativeApps.logic, testId: 'ribbon-logic' },
+    people: { items: s => s.people, apps: () => [], testId: 'ribbon-people' },
+    data: { items: s => s.data, apps: s => s.nativeApps.data, testId: 'ribbon-data' },
 };
 
 /**
@@ -48,7 +48,21 @@ export default function RibbonPanel({ category, sections, anchor, cards, frequen
                 key={category}
                 segments={planRow(step.items(sections), category as RowTab, def?.origin || null, t)}
                 title={title}
+                apps={step.apps(sections)}
                 testId={step.testId}
+                enabled={open}
+                onAdd={onAdd}
+                {...openProps}
+            />
+        );
+    }
+    if (isSuiteTab(category)) {
+        return (
+            <SuitePanel
+                key={category}
+                category={SUITE_TABS[category]}
+                apps={sections.suiteApps[category]}
+                testId={`ribbon-${category}`}
                 enabled={open}
                 onAdd={onAdd}
                 {...openProps}
@@ -59,11 +73,9 @@ export default function RibbonPanel({ category, sections, anchor, cards, frequen
         case 'suggested':
             return <SuggestedPanel anchor={anchor} cards={cards} frequent={frequent} onAdd={onAdd} />;
         case 'ai':
-            return <AiPanel key="ai" items={sections.ai} agents={agents} skills={skills} enabled={open} onAdd={onAdd} {...openProps} />;
-        case 'nextcloud':
-            return <NextcloudPanel key="nextcloud" apps={sections.nextcloudApps} enabled={open} onAdd={onAdd} {...openProps} />;
+            return <AiPanel key="ai" items={sections.ai} agents={agents} skills={skills} apps={sections.nativeApps.ai} enabled={open} onAdd={onAdd} {...openProps} />;
         case 'other_apps':
-            return <OtherAppsPanel key="other_apps" categories={sections.otherAppCategories} webAndCode={sections.webAndCode} enabled={open} onAdd={onAdd} {...openProps} />;
+            return <OtherAppsPanel key="other_apps" categories={sections.otherAppCategories} enabled={open} onAdd={onAdd} {...openProps} />;
         default:
             return (
                 <CommandsPanel

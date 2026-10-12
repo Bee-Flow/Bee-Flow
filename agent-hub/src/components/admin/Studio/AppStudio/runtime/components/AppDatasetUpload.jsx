@@ -1,5 +1,6 @@
 import { Dna, Loader2, UploadCloud, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import useTranslation from '../../../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../../../utils/helpers';
 import { useDataContext } from '../DataContext';
 import { useFormField } from '../formContext';
@@ -31,9 +32,10 @@ function pctLabel(p) {
 }
 
 export default function AppDatasetUpload({ node }) {
+    const { t } = useTranslation();
     const { mode } = useRuntime();
     const { appId } = useDataContext();
-    const { name, label = 'Genome file', required = false, buttonLabel = null, allowExisting = true } = node.props || {};
+    const { name, label = t('studio_apps_runtime.dataset_upload.label', 'Genome file'), required = false, buttonLabel = null, allowExisting = true } = node.props || {};
     const { value, setValue, error } = useFormField({ name, defaultValue: null, required, label });
     const fireChange = useInputChange(node, name);
     const id = `${node.id}-input`;
@@ -79,7 +81,7 @@ export default function AppDatasetUpload({ node }) {
             try {
                 const res = await authFetch(`${API_BASE}/api/studio-apps/${encodeURIComponent(appId)}/large-datasets/${encodeURIComponent(datasetId)}`);
                 const ds = await res.json().catch(() => ({}));
-                if (!res.ok) throw new Error(ds.error || 'status check failed');
+                if (!res.ok) throw new Error(ds.error || t('studio_apps_runtime.dataset_upload.status_check_failed', 'status check failed'));
                 if (ds.status === 'ready') {
                     setPhase('idle');
                     setProgress(null);
@@ -90,7 +92,7 @@ export default function AppDatasetUpload({ node }) {
                 if (ds.status === 'failed') {
                     setPhase('idle');
                     setProgress(null);
-                    setUploadError(ds.error || 'The file could not be indexed.');
+                    setUploadError(ds.error || t('studio_apps_runtime.dataset_upload.index_failed', 'The file could not be indexed.'));
                     return;
                 }
                 setProgress({ pct: ds.progressPct, note: ds.progressNote || 'indexing' });
@@ -98,7 +100,7 @@ export default function AppDatasetUpload({ node }) {
             pollRef.current = setTimeout(tick, POLL_MS);
         };
         tick();
-    }, [appId, commit, refreshExisting]);
+    }, [appId, commit, refreshExisting, t]);
 
     const handleFile = async (file) => {
         if (!live || !file) return;
@@ -115,7 +117,7 @@ export default function AppDatasetUpload({ node }) {
         } catch (err) {
             setPhase('idle');
             setProgress(null);
-            setUploadError(err.message || 'Upload failed.');
+            setUploadError(err.message || t('studio_apps_runtime.dataset_upload.upload_failed', 'Upload failed.'));
         }
     };
 
@@ -127,7 +129,7 @@ export default function AppDatasetUpload({ node }) {
             <div className="flex flex-col gap-2">
                 {allowExisting && existing.length > 0 && !busy ? (
                     <select
-                        aria-label={`${label} — pick an existing dataset`}
+                        aria-label={t('studio_apps_runtime.dataset_upload.pick_existing', '{label} — pick an existing dataset', { label })}
                         value={selected?.datasetId || ''}
                         onChange={(e) => {
                             const ds = existing.find((d) => d.id === e.target.value);
@@ -136,10 +138,10 @@ export default function AppDatasetUpload({ node }) {
                         className="px-3 py-2 text-sm border outline-none"
                         style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', borderRadius: 'var(--app-radius)', color: 'var(--text-primary)' }}
                     >
-                        <option value="">Pick a dataset…</option>
+                        <option value="">{t('studio_apps_runtime.dataset_upload.pick', 'Pick a dataset…')}</option>
                         {existing.map((d) => (
                             <option key={d.id} value={d.id}>
-                                {d.name}{d.build ? ` (${d.build})` : ''}{d.variantCount ? ` — ${Number(d.variantCount).toLocaleString()} variants` : ''}
+                                {d.name}{d.build ? ` (${d.build})` : ''}{d.variantCount ? ` — ${t('studio_apps_runtime.dataset_upload.variants', '{n} variants', { n: Number(d.variantCount).toLocaleString() })}` : ''}
                             </option>
                         ))}
                     </select>
@@ -151,9 +153,12 @@ export default function AppDatasetUpload({ node }) {
                 >
                     {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" /> : <UploadCloud className="w-3.5 h-3.5" aria-hidden="true" />}
                     <span>
-                        {phase === 'uploading' ? `Uploading… ${pctLabel(progress?.pct)}`
-                            : phase === 'ingesting' ? `Indexing… ${progress?.pct != null ? pctLabel(progress.pct) : ''} ${progress?.note || ''}`.trim()
-                                : (buttonLabel || 'Upload a genome file (.vcf / .vcf.gz)')}
+                        {phase === 'uploading' ? t('studio_apps_runtime.dataset_upload.uploading', 'Uploading… {pct}', { pct: pctLabel(progress?.pct) })
+                            : phase === 'ingesting' ? t('studio_apps_runtime.dataset_upload.indexing', 'Indexing… {pct} {note}', {
+                                pct: progress?.pct != null ? pctLabel(progress.pct) : '',
+                                note: progress?.note || '',
+                            }).trim()
+                                : (buttonLabel || t('studio_apps_runtime.dataset_upload.button', 'Upload a genome file (.vcf / .vcf.gz)'))}
                     </span>
                     <input
                         id={id}
@@ -185,7 +190,7 @@ export default function AppDatasetUpload({ node }) {
                         <button
                             type="button"
                             onClick={() => commit(null)}
-                            aria-label={`Clear ${selected.name}`}
+                            aria-label={t('studio_apps_runtime.dataset_upload.clear', 'Clear {name}', { name: selected.name })}
                             className="ml-1 shrink-0"
                             style={{ color: 'var(--text-muted)' }}
                         >

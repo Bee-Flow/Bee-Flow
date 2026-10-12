@@ -5,7 +5,7 @@ import ToggleCard from '../../parts/ToggleCard';
 import type { ChecksFields, TranslateFn } from './checksTypes';
 
 /**
- * Check ②'s own switch, and — while it is on — what it does when it finds
+ * Step 4's own switch, and — while it is on — what it does when it finds
  * something and whether it also shows up when it finds nothing.
  *
  * The description stays mode-neutral: "the person sees what will be sent" is

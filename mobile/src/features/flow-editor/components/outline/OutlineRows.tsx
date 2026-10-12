@@ -89,7 +89,7 @@ function AddSlot({ row }: { row: Row<'add'> }) {
             onPress={() => onAdd(row.target)}
             disabled={locked}
             accessibilityRole="button"
-            accessibilityLabel={t('mobile.flow.insert_step', 'Insert a step here')}
+            accessibilityLabel={t('automations.edges.insert_a_step_here', 'Insert a step here')}
             accessibilityState={{ disabled: locked }}
             style={[indentFor(styles, row.depth), styles.add]}
         >

@@ -3,12 +3,18 @@ import { registerStream, releaseStream, detachStream } from './streamRegistry';
 import { createContentFlusher, type ContentFlusher } from './useChatEngine/contentFlusher';
 import { toHistoryAttachment } from './useChatEngine/historyAttachment';
 import { dispatchSSEEvent } from './useChatEngine/sseEvents';
+import { chatSignalsSurfaceFor, resolveTurnEndpoint, type ChatSignalsTurnSurface } from './useChatEngine/turnEndpoint';
 import { WORK_EVENT_KINDS, extractMdHeading, summarizeWorkItem, type WorkItem } from './useChatEngine/workSummary';
 import type { ChatAttachment } from './useChatEngine/historyAttachment';
 import type { ChatMessage, SseDispatchIds, SseEventData } from './useChatEngine/types';
 import useTranslation from './useTranslation';
 import { API_BASE, generateMessageId, authFetch } from '../utils/helpers';
+import { logger } from '../utils/logger';
 import scopedStorage from '../utils/scopedStorage';
+import { readStoredMemoryFlags, type MemoryLock } from '../utils/memoryMode';
+
+/** Slack before a turn's start when the chip asks what the turn saved. */
+const MEMORY_SINCE_SLACK_MS = 3000;
 
 // Re-exported so the module's public surface is unchanged — the colocated unit
 // tests (and any other consumer) keep importing these from './useChatEngine'.
@@ -90,6 +96,20 @@ export interface UseChatEngineOptions {
      */
     reloadConversation?: () => Promise<ChatMessage[] | null | undefined>;
     testChat?: TestChatMode | null;
+    /**
+     * Chat signals: the fields to add to a turn on a counted endpoint (the
+     * notice marker, and the opt-out when the person chose it). Asked only
+     * for the endpoint the turn really goes to; a host that shows no notice
+     * passes nothing, so its turns carry no marker and are not counted.
+     */
+    getChatSignalsPayload?: (surface: ChatSignalsTurnSurface) => Record<string, unknown> | null;
+    /**
+     * Only the main chat passes this. It switches on the "Remembered" chip: a
+     * finished turn that could save memories gets a `memoryWatch` the message
+     * row polls on. It answers why the person's memory is locked (paused by
+     * them, off for the organisation), in which case nothing is watched.
+     */
+    getMemoryLock?: () => MemoryLock;
 }
 
 /**
@@ -120,6 +140,8 @@ export default function useChatEngine({
     onSessionSkillsChanged,
     reloadConversation,
     testChat = null,
+    getChatSignalsPayload,
+    getMemoryLock,
 }: UseChatEngineOptions) {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -240,6 +262,13 @@ export default function useChatEngine({
     const onGammaPreviewRef = useRef(onGammaPreview);
     useEffect(() => { onGammaPreviewRef.current = onGammaPreview; }, [onGammaPreview]);
 
+    const getChatSignalsPayloadRef = useRef(getChatSignalsPayload);
+    useEffect(() => { getChatSignalsPayloadRef.current = getChatSignalsPayload; }, [getChatSignalsPayload]);
+    const getMemoryLockRef = useRef(getMemoryLock);
+    // Server clock minus browser clock, learned from the `Date` header of the last turn.
+    const serverSkewMsRef = useRef(0);
+    useEffect(() => { getMemoryLockRef.current = getMemoryLock; }, [getMemoryLock]);
+
     // Cleanup abort controller on unmount. Mount-only effect — the ref
     // always points at the current controller, so we don't need to re-run.
     useEffect(() => {
@@ -332,6 +361,14 @@ export default function useChatEngine({
         registerStream(streamKey, controller);
         setIsLoading(true);
 
+        // The memory chip asks the server for what this turn saved "since" a moment.
+        // Three seconds of slack cover clock skew between this browser and the
+        // server; once the response arrives its `Date` header (whole seconds)
+        // corrects the skew, so a badly set clock cannot shift the window.
+        const turnStartMs = Date.now();
+        let turnStartedAt = new Date(turnStartMs - MEMORY_SINCE_SLACK_MS).toISOString();
+        let turnConversationId: string | undefined = currentConversation?.id || directMode?.conversationId;
+
         const msgId = generateMessageId();
         const newMessage = {
             id: msgId,
@@ -342,7 +379,14 @@ export default function useChatEngine({
             isHidden
         };
 
-        setMessages(prev => [...prev, newMessage]);
+        // A new turn closes the previous turn's chip window: its polling stops and
+        // whatever the server saves from now on belongs to this turn.
+        {
+            const until = new Date(turnStartMs + serverSkewMsRef.current).toISOString();
+            setMessages(prev => [...prev.map(m => (m.memoryWatch && !m.memoryWatch.until
+                ? { ...m, memoryWatch: { ...m.memoryWatch, until } }
+                : m)), newMessage]);
+        }
 
         const assistantMsgId = generateMessageId();
         const placeholder = {
@@ -456,11 +500,17 @@ export default function useChatEngine({
             // When unset, the server falls back to the tier default.
             const reasoningEffort = scopedStorage.getItem('reasoningEffort') || null;
 
-            let url, payload;
+            let payload;
+            // One path for the request and for the chat-signals marker below.
+            const turnPath = resolveTurnEndpoint({
+                isDirectMode: !!isDirectMode,
+                customEndpoint: directMode?.customEndpoint,
+                agentId: selectedAgent?.id,
+            });
+            const url = `${API_BASE}${turnPath}`;
 
             if (isDirectMode) {
                 // Direct chat mode — post to custom endpoint or /ai/chat/direct/stream
-                url = directMode.customEndpoint ? `${API_BASE}${directMode.customEndpoint}` : `${API_BASE}/ai/chat/direct/stream`;
                 // History rule:
                 //   - Edit/retry flow: send `historyOverride` so the server can
                 //     truncate the conversation to the edit point.
@@ -501,10 +551,7 @@ export default function useChatEngine({
                         const v = scopedStorage.getItem('webSearchEnabled');
                         return v === null ? true : v === 'true';
                     })(),
-                    memoryWriteEnabled: (() => {
-                        const v = scopedStorage.getItem('memoryWriteEnabled');
-                        return v === null ? true : v === 'true';
-                    })(),
+                    ...readStoredMemoryFlags(),
                     ...(chatProjectId ? { projectId: chatProjectId } : {}),
                     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
                     ...(typeof directMode.getExtraPayload === 'function' ? directMode.getExtraPayload() : {}),
@@ -514,7 +561,6 @@ export default function useChatEngine({
             } else {
                 // Agent chat mode — post to /agents/:id/chat/stream
                 const wsPayload = getNotebookPayload?.() || {};
-                url = `${API_BASE}/agents/${selectedAgent?.id}/chat/stream`;
                 payload = {
                     message: text,
                     agentId: selectedAgent?.id,
@@ -522,10 +568,7 @@ export default function useChatEngine({
                     attachments,
                     isHidden,
                     stream: true,
-                    memoryWriteEnabled: (() => {
-                        const v = scopedStorage.getItem('memoryWriteEnabled');
-                        return v === null ? true : v === 'true';
-                    })(),
+                    ...readStoredMemoryFlags(),
                     webSearchEnabled: (() => {
                         const v = scopedStorage.getItem('webSearchEnabled');
                         return v === null ? true : v === 'true';
@@ -588,12 +631,25 @@ export default function useChatEngine({
                 if (testChatRef.current?.enabled) toolDecisionsRef.current = {};
             }
 
+            // Chat signals: only a counted endpoint asks for the marker, and a
+            // test chat is never counted, so it carries none.
+            const signalsSurface = testChatRef.current?.enabled ? null : chatSignalsSurfaceFor(turnPath);
+            const signalsExtra = signalsSurface ? getChatSignalsPayloadRef.current?.(signalsSurface) ?? null : null;
+            if (signalsExtra) Object.assign(payload, signalsExtra);
+
             const response = await authFetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
                 signal: controller.signal
             });
+
+            const serverNow = Date.parse(response.headers?.get?.('Date') ?? '');
+            if (Number.isFinite(serverNow)) {
+                // The header has whole-second resolution, so it is at most 1 s behind.
+                serverSkewMsRef.current = serverNow - Date.now();
+                turnStartedAt = new Date(serverNow - MEMORY_SINCE_SLACK_MS).toISOString();
+            }
 
             if (response.status === 403 || response.status === 401) {
                 // Permissions were revoked while the user had the agent open.
@@ -645,6 +701,9 @@ export default function useChatEngine({
                             producedWork = true;
                         }
                         if (currentEvent === 'done') sawDone = true;
+                        if ((currentEvent === 'done' || currentEvent === 'conversation_created') && typeof data.conversationId === 'string') {
+                            turnConversationId = data.conversationId;
+                        }
 
                         // Capture WHAT was produced (kind + best-known title) so the
                         // interrupted/error notices can name it. Latest event wins; a
@@ -676,7 +735,7 @@ export default function useChatEngine({
                             workRef
                         });
                     } catch (e) {
-                        console.debug('[useChatEngine] SSE event parse skipped', currentEvent, e);
+                        logger.debug('[useChatEngine] SSE event parse skipped', currentEvent, e);
                     }
                 }
             };
@@ -727,8 +786,16 @@ export default function useChatEngine({
                 finishAbnormally();
             } else {
                 setIsLoading(false);
+                // Watch for memories this turn saved, unless it could not have
+                // saved any: writing was off, memory is locked, or it is a test chat.
+                const canWatch = !!getMemoryLockRef.current && !testChatRef.current?.enabled
+                    && !directMode?.customEndpoint
+                    && !!turnConversationId
+                    && readStoredMemoryFlags().memoryWriteEnabled
+                    && getMemoryLockRef.current() === null;
+                const memoryWatch = canWatch ? { conversationId: turnConversationId as string, since: turnStartedAt } : null;
                 setMessages(prev => prev.map(m =>
-                    m.id === assistantMsgId ? { ...m, isStreaming: false } : m
+                    m.id === assistantMsgId ? { ...m, isStreaming: false, ...(memoryWatch ? { memoryWatch } : {}) } : m
                 ));
             }
 
@@ -740,7 +807,7 @@ export default function useChatEngine({
             if (err.name !== 'AbortError' && sawDone) {
                 // The turn already finished on the server. Close the message out
                 // quietly rather than appending a notice to a complete answer.
-                console.debug('[useChatEngine] stream teardown after done', err);
+                logger.debug('[useChatEngine] stream teardown after done', err);
                 setMessages(prev => prev.map(m =>
                     m.id === assistantMsgId ? { ...m, isStreaming: false } : m
                 ));

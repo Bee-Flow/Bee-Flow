@@ -317,6 +317,18 @@ test('the login gate follows the tier the org actually chose', async () => {
     });
 });
 
+test('an SSO user is asked for an encryption PIN on zk only, never on managed', async () => {
+    await withUsers(IN_ORG, async () => {
+        const { isSsoPinRequiredForUser } = require('./encryptionAvailability');
+        entitledOrgs.add('org-a');
+        for (const [tier, expected] of [['none', false], ['managed', false], ['zk', true]]) {
+            orgTiers.set('org-a', tier);
+            invalidatePolicyCache();
+            assert.strictEqual(await isSsoPinRequiredForUser('u-in-org'), expected, `tier '${tier}'`);
+        }
+    });
+});
+
 test('entitlement is checked first, so a lapsed org stops deriving keys', async () => {
     // Its tier column still says zk — an org keeps whatever it selected — but
     // the plan no longer includes encryption, so no new key may be minted.

@@ -23,13 +23,24 @@ const path = require('path');
 const SERVER = path.resolve(__dirname, '..');
 
 // ── Stub the store so this is a pure unit test (no DB, no Redis) ─────
-const fx = { users: {}, groups: [], roles: [] };
+// betaEveryone: org id → the org_beta_everyone value (undefined = null =
+// never chosen). roleOverrides: org id → the Roles screen's stored choices.
+const fx = { users: {}, groups: [], roles: [], betaEveryone: {}, roleOverrides: {} };
+
+// The real merge rule, fed from the fixture instead of the config table.
+// permissions.js requires './orgRolePolicy' at CALL time (after the resolve
+// hook below is gone), so the module's own exports are pointed at the fixture
+// rather than swapped for a mock id.
+const realOrgRolePolicy = require(path.join(SERVER, 'auth', 'orgRolePolicy.js'));
+realOrgRolePolicy.getOrgRoleOverrides = async (orgId) => fx.roleOverrides[orgId] || {};
+realOrgRolePolicy.resolveOrgRolePermissions = async (orgId, defaults) => realOrgRolePolicy.mergeRolePermissions(defaults, fx.roleOverrides[orgId] || {});
 
 const MOCKS = {
     '../stores/userStore': {
         getUser: async (id) => fx.users[id] || null,
         getAllGroups: async () => fx.groups,
         getAllRoles: async () => fx.roles,
+        getOrgBetaEveryone: async (orgId) => (fx.betaEveryone[orgId] === undefined ? null : fx.betaEveryone[orgId]),
     },
     '../db': { getRedis: () => null },
 };
@@ -141,6 +152,9 @@ describe('a group capability grant implies its UI permission', () => {
             { id: 'g-other', organizationId: 'orgA', granted_capabilities: ['gmail'] },
         ];
         fx.roles = [];
+        // Meeting Notes for the granted group only: NOT on for All members.
+        fx.betaEveryone = { orgA: [] };
+        fx.roleOverrides = {};
         for (const id of Object.keys(fx.users)) {
             try { invalidatePermissionCache(id); } catch (_) { /* best effort */ }
         }
@@ -160,5 +174,86 @@ describe('a group capability grant implies its UI permission', () => {
         seedGroups();
         const perms = await resolveUserPermissionsForAudit('bystander');
         assert.ok(!perms.includes('use_meeting_notes'), `got ${JSON.stringify(perms)}`);
+    });
+});
+
+// The org-wide "All members" grant of the same beta implies the permission too,
+// unless the org's Roles screen has decided the member's role (precedence in
+// permissions.orgWideGrantImpliedPermissions). This is the customer report:
+// Meeting Notes ON for All members, and a Member still saw no Meeting Notes.
+describe('an "All members" capability grant implies its UI permission', () => {
+    function seedOrgWide({ everyone, overrides = {} }) {
+        fx.users = {
+            member: { id: 'member', role: 'user', orgRole: 'member', groups: [], organizationId: 'orgA' },
+            scribe: { id: 'scribe', role: 'user', orgRole: 'member', groups: ['g-meet'], organizationId: 'orgA' },
+            outsider: { id: 'outsider', role: 'user', orgRole: 'member', groups: [], organizationId: 'orgB' },
+        };
+        fx.groups = [{ id: 'g-meet', organizationId: 'orgA', granted_capabilities: ['meeting_notes'] }];
+        fx.roles = [];
+        fx.betaEveryone = { orgA: everyone, orgB: [] };
+        fx.roleOverrides = overrides;
+        for (const id of Object.keys(fx.users)) {
+            try { invalidatePermissionCache(id); } catch (_) { /* best effort */ }
+        }
+    }
+
+    test('Meeting Notes on for All members gives a plain member use_meeting_notes', async () => {
+        seedOrgWide({ everyone: ['meeting_notes'] });
+        const perms = await resolveUserPermissionsForAudit('member');
+        assert.ok(perms.includes('use_meeting_notes'), `got ${JSON.stringify(perms)}`);
+    });
+
+    test('an org that never chose (null) counts as everyone, like buildOrgGrant', async () => {
+        seedOrgWide({ everyone: undefined });
+        assert.ok((await resolveUserPermissionsForAudit('member')).includes('use_meeting_notes'));
+    });
+
+    test('off for All members: a member outside the granted group does not get it', async () => {
+        seedOrgWide({ everyone: [] });
+        assert.ok(!(await resolveUserPermissionsForAudit('member')).includes('use_meeting_notes'));
+    });
+
+    test('the grant of ANOTHER org implies nothing here', async () => {
+        seedOrgWide({ everyone: ['meeting_notes'] });
+        assert.ok(!(await resolveUserPermissionsForAudit('outsider')).includes('use_meeting_notes'));
+    });
+
+    test('the Roles screen withdraws it: a stored Member choice without it wins over All members', async () => {
+        seedOrgWide({ everyone: ['meeting_notes'], overrides: { orgA: { member: ['use_notebooks', 'use_forms'] } } });
+        const perms = await resolveUserPermissionsForAudit('member');
+        assert.ok(!perms.includes('use_meeting_notes'), `got ${JSON.stringify(perms)}`);
+        assert.ok(perms.includes('use_notebooks'), 'the stored choice itself still applies');
+    });
+
+    test('a stored Member choice that ticks it keeps it', async () => {
+        seedOrgWide({ everyone: [], overrides: { orgA: { member: ['use_meeting_notes'] } } });
+        assert.ok((await resolveUserPermissionsForAudit('member')).includes('use_meeting_notes'));
+    });
+
+    test('a GROUP grant still implies it, also when the Roles screen withdrew it for the role', async () => {
+        seedOrgWide({ everyone: [], overrides: { orgA: { member: [] } } });
+        assert.ok((await resolveUserPermissionsForAudit('scribe')).includes('use_meeting_notes'));
+    });
+
+    test('a failed read of the everyone-list implies nothing (fails closed)', async () => {
+        seedOrgWide({ everyone: ['meeting_notes'] });
+        const original = MOCKS['../stores/userStore'].getOrgBetaEveryone;
+        MOCKS['../stores/userStore'].getOrgBetaEveryone = async () => { throw new Error('db down'); };
+        try {
+            assert.ok(!(await resolveUserPermissionsForAudit('member')).includes('use_meeting_notes'));
+        } finally {
+            MOCKS['../stores/userStore'].getOrgBetaEveryone = original;
+        }
+    });
+
+    test('orgRoleImpliedFill: unedited roles gain the implied permissions, edited roles keep their list', () => {
+        const out = permissions.orgRoleImpliedFill(
+            { member: ['use_notebooks'], agent_admin: ['use_meeting_notes'] },
+            { agent_admin: ['use_meeting_notes'], dpo: [] },
+            ['use_meeting_notes'],
+        );
+        assert.deepEqual(out, { member: ['use_notebooks', 'use_meeting_notes'], agent_admin: ['use_meeting_notes'] });
+        const edited = permissions.orgRoleImpliedFill({ member: ['use_forms'] }, { member: ['use_forms'] }, ['use_meeting_notes']);
+        assert.deepEqual(edited, { member: ['use_forms'] });
     });
 });

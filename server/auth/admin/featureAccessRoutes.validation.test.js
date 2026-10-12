@@ -61,6 +61,8 @@ const MOCKS = {
         setOrgGrantedCapabilities: async (...a) => { touched.push({ what: 'setOrgGrantedCapabilities', args: a }); return true; },
         getOrgBetaEveryone: async () => fx.betaEveryone,
         setOrgBetaEveryone: async (...a) => { touched.push({ what: 'setOrgBetaEveryone', args: a }); return true; },
+        getOrgEveryoneRevoked: async () => null,
+        setOrgEveryoneRevoked: async (...a) => { touched.push({ what: 'setOrgEveryoneRevoked', args: a }); return true; },
         updateGroup: async (...a) => { touched.push({ what: 'updateGroup', args: a }); return true; },
         logAccessAudit: async () => {},
     },
@@ -100,7 +102,7 @@ for (const [request, exportsObj] of Object.entries(MOCKS)) {
 }
 const originalResolve = Module._resolveFilename;
 Module._resolveFilename = function (request, parent, ...rest) {
-    if (parent && /admin[\\/]featureAccessRoutes\.js$/.test(parent.filename)
+    if (parent && /admin[\\/](?:featureAccessRoutes|orgAccessCarryOver)\.js$/.test(parent.filename)
         && Object.prototype.hasOwnProperty.call(MOCK_IDS, request)) {
         return MOCK_IDS[request];
     }
@@ -269,5 +271,26 @@ describe('group-scoped betas in the Access matrix', () => {
         const res = await dispatch({ method: 'PUT', url: '/groups/finance/access', body: { granted: ['meeting_notes'] } });
         assert.deepStrictEqual(res.body.granted, []);
         assert.strictEqual(stored('invalidateAllPermissionCaches').length, 0, 'nothing implied changed');
+    });
+
+    // The "All members" grant implies use_meeting_notes as well
+    // (permissions.orgWideGrantImpliedPermissions), so flipping it must not
+    // leave members on a cached permission set for the TTL.
+    test('switching it on for All members refreshes permission caches', async () => {
+        fx.betaEveryone = [];
+        await dispatch({ method: 'PUT', url: '/organizations/orgA/org-access', body: { granted: ['meeting_notes'] } });
+        assert.strictEqual(stored('invalidateAllPermissionCaches').length, 1);
+    });
+
+    test('switching it off for All members refreshes permission caches (null = everyone before)', async () => {
+        fx.betaEveryone = null;
+        await dispatch({ method: 'PUT', url: '/organizations/orgA/org-access', body: { granted: ['webpages'] } });
+        assert.strictEqual(stored('invalidateAllPermissionCaches').length, 1);
+    });
+
+    test('a save that leaves it as it was does not', async () => {
+        fx.betaEveryone = ['meeting_notes'];
+        await dispatch({ method: 'PUT', url: '/organizations/orgA/org-access', body: { granted: ['meeting_notes', 'webpages'] } });
+        assert.strictEqual(stored('invalidateAllPermissionCaches').length, 0);
     });
 });

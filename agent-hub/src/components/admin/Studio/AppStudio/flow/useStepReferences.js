@@ -5,6 +5,7 @@ import {
     screenOptions, tableOptions,
 } from './stepReferences';
 import useAutomationApi from '../../../../../hooks/useAutomationApi';
+import useTranslation from '../../../../../hooks/useTranslation';
 import { listTemplates } from '../../../../../pages/documents/documentsApi';
 import { API_BASE, authFetch } from '../../../../../utils/helpers';
 import useAppTables, { fieldsForTable } from '../bi/useAppTables';
@@ -35,6 +36,7 @@ async function fetchDatasets(appId) {
 }
 
 export default function useStepReferences(definition) {
+    const { t } = useTranslation();
     const chrome = useEditorChrome();
     const appId = chrome?.appId || null;
 
@@ -89,7 +91,7 @@ export default function useStepReferences(definition) {
             dataset: datasetOptions(datasetQuery.data),
             automation: automationOptions(automationQuery.data),
             connector: connectorOptions(connectors),
-            document: documentOptions(documentQuery.data),
+            document: documentOptions(documentQuery.data, t),
         };
         return {
             options,
@@ -101,5 +103,5 @@ export default function useStepReferences(definition) {
             ),
             appId,
         };
-    }, [definition, rawTables, datasetQuery.data, automationQuery.data, connectors, documentQuery.data, appId]);
+    }, [definition, rawTables, datasetQuery.data, automationQuery.data, connectors, documentQuery.data, appId, t]);
 }

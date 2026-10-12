@@ -39,6 +39,7 @@ const TURN_SHAPE = {
     reasoningEffort: text('reasoningEffort', 40).nullish(),
     webSearchEnabled: onOff('webSearchEnabled').nullish(),
     memoryWriteEnabled: onOff('memoryWriteEnabled').nullish(),
+    memoryReadEnabled: onOff('memoryReadEnabled').nullish(),
     disabledMedia: bag('disabledMedia').nullish(),
 };
 
@@ -51,10 +52,19 @@ const DirectTurnBody = orEmpty(z.object({
     notebookspaceSelection: text('notebookspaceSelection', 1_000_000).nullish(),
     notebookspaceAvailable: onOff('notebookspaceAvailable').nullish(),
     projectId: text('projectId', 200).nullish(),
+    // The Studio document open next to the chat. Shape is checked again in
+    // core/documents/aiDocumentScope.js; a bad value is ignored, not refused.
+    sidePanelDocument: z.unknown().optional(),
     systemPrompt: text('systemPrompt', 200_000).nullish(),
     activeSkillIds: list('activeSkillIds').nullish(),
     activatedSessionSkillIds: list('activatedSessionSkillIds').nullish(),
     knowledgeBaseIds: list('knowledgeBaseIds').nullish(),
+    // Chat signals (core/privacy/chatSignals.js): the notice marker the
+    // composer sends when it showed the chat-signals line for exactly this
+    // configuration (`direct@<version>`), and the person's "don't count my
+    // chat turns" switch. A turn without the marker is not counted.
+    chatSignalsNotice: text('chatSignalsNotice', 120).nullish(),
+    chatSignalsOptOut: onOff('chatSignalsOptOut').nullish(),
 }, { invalid_type_error: 'A chat turn is a JSON object.' }).passthrough());
 
 /**

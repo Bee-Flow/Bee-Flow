@@ -18,6 +18,55 @@ const log = require('../../telemetry/log');
 const { toV1BaseUrl } = require('../../utils/azureUrl');
 
 /**
+ * One embedding request, retried while the failure is temporary.
+ *
+ * A large document is hundreds of batches in a row, and a provider's
+ * per-minute quota (Azure's TPM, OpenAI's RPM) answers 429 somewhere in the
+ * middle. Without a retry that one batch threw the whole document over to
+ * the CPU embedder, whose 384-dimension vectors cannot be stored next to
+ * the provider's ("expected 1536 dimensions, not 384"). A 429, a 5xx or a
+ * timeout is waited out (Retry-After when the provider sends one); any
+ * other status is a real error and fails at once.
+ */
+const RETRY_DELAYS_MS = [2000, 5000, 15000, 30000];
+const MAX_RETRY_AFTER_MS = 60000;
+let sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function retryAfterMs(res) {
+    const raw = res?.headers?.get?.('retry-after');
+    if (!raw) return null;
+    const secs = Number(raw);
+    if (Number.isFinite(secs)) return Math.min(Math.max(secs, 0) * 1000, MAX_RETRY_AFTER_MS);
+    const at = Date.parse(raw);
+    return Number.isFinite(at) ? Math.min(Math.max(at - Date.now(), 0), MAX_RETRY_AFTER_MS) : null;
+}
+
+async function postEmbedBatch(url, init, label) {
+    for (let attempt = 0; ; attempt++) {
+        const last = attempt >= RETRY_DELAYS_MS.length;
+        let res;
+        try {
+            res = await fetch(url, { ...init, signal: AbortSignal.timeout(30000) });
+        } catch (err) {
+            // Timeout or connection reset: temporary by nature.
+            if (last) throw err;
+            log.warn(`[Embed] ${label} request failed (${err.message}); retry ${attempt + 1}/${RETRY_DELAYS_MS.length}`);
+            await sleep(RETRY_DELAYS_MS[attempt]);
+            continue;
+        }
+        if (res.ok) return res.json();
+        const errTxt = await res.text();
+        const temporary = res.status === 429 || res.status >= 500;
+        if (!temporary || last) {
+            throw new Error(`${label} embed ${res.status}: ${errTxt.slice(0, 200)}`);
+        }
+        const wait = retryAfterMs(res) ?? RETRY_DELAYS_MS[attempt];
+        log.warn(`[Embed] ${label} answered ${res.status}; retry ${attempt + 1}/${RETRY_DELAYS_MS.length} in ${wait} ms`);
+        await sleep(wait);
+    }
+}
+
+/**
  * Generate embeddings via Azure OpenAI (legacy direct config).
  *
  * @param {string[]} texts — array of text strings to embed
@@ -37,22 +86,14 @@ async function azureEmbed(texts, endpoint, apiKey, model) {
     for (let i = 0; i < texts.length; i += BATCH_SIZE) {
         const batch = texts.slice(i, i + BATCH_SIZE);
 
-        const res = await fetch(url, {
+        const data = await postEmbedBatch(url, {
             method: 'POST',
             headers: {
                 'api-key': apiKey,
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({ model, input: batch }),
-            signal: AbortSignal.timeout(30000),
-        });
-
-        if (!res.ok) {
-            const errText = await res.text();
-            throw new Error(`Azure embedding failed (${res.status}): ${errText}`);
-        }
-
-        const data = await res.json();
+        }, 'Azure');
         const sorted = data.data
             .sort((a, b) => a.index - b.index)
             .map(item => item.embedding);
@@ -111,6 +152,9 @@ async function dispatchEmbedTexts(texts, options = {}) {
     if (!Array.isArray(texts) || texts.length === 0) return { vectors: [], source: null, model: null };
     const kind = options.kind === 'query' ? 'query' : 'passage';
     const strict = options.strict === true;
+    // Why the configured provider was passed over, for a caller that cannot
+    // use a fallback's vectors and has to say why (core/kb/localKBIngest.js).
+    let providerError = null;
 
     // (1) Configured global provider via resolveEmbedTarget
     try {
@@ -146,12 +190,7 @@ async function dispatchEmbedTexts(texts, options = {}) {
                         ...(target.apiKey ? { Authorization: `Bearer ${target.apiKey}` } : {}),
                     };
                 const body = JSON.stringify({ model: target.modelId, input: batch });
-                const res = await fetch(url, { method: 'POST', headers, body, signal: AbortSignal.timeout(30000) });
-                if (!res.ok) {
-                    const errTxt = await res.text();
-                    throw new Error(`${target.providerName || target.providerType || 'provider'} embed ${res.status}: ${errTxt.slice(0, 200)}`);
-                }
-                const data = await res.json();
+                const data = await postEmbedBatch(url, { method: 'POST', headers, body }, target.providerName || target.providerType || 'provider');
                 const sorted = (data.data || []).sort((a, b) => a.index - b.index).map(e => e.embedding);
                 out.push(...sorted);
             }
@@ -161,6 +200,7 @@ async function dispatchEmbedTexts(texts, options = {}) {
         }
     } catch (err) {
         if (strict) throw err;
+        providerError = err.message;
         log.warn(`[Embed] Configured provider embed failed (${err.message}); falling through to Azure/CPU`);
     }
     if (strict) throw new Error('No usable embedding provider is configured');
@@ -174,7 +214,7 @@ async function dispatchEmbedTexts(texts, options = {}) {
             const out = await azureEmbed(texts, azureEndpoint, azureKey, azureModel);
             log.info(`[Embed] Embeddings via legacy Azure config / ${azureModel} (dim=${out[0]?.length})`);
             recordEmbedCall({ source: 'azure', status: 'ok' });
-            return { vectors: out, source: 'azure', model: azureModel };
+            return { vectors: out, source: 'azure', model: azureModel, providerError };
         } catch (err) {
             log.warn(`[Embed] Legacy Azure embed failed (${err.message}); falling through to CPU`);
         }
@@ -187,14 +227,14 @@ async function dispatchEmbedTexts(texts, options = {}) {
         if (vectors.length > 0) {
             log.info(`[Embed] Embeddings via in-process CPU embedder (dim=${vectors[0]?.length})`);
             recordEmbedCall({ source: 'cpu', status: 'ok' });
-            return { vectors, source: 'cpu', model: 'multilingual-e5-small' };
+            return { vectors, source: 'cpu', model: 'multilingual-e5-small', providerError };
         }
     } catch (err) {
         log.warn(`[Embed] CPU embed failed (${err.message})`);
     }
 
     recordEmbedCall({ source: 'none', status: 'error' });
-    return { vectors: [], source: null, model: null };
+    return { vectors: [], source: null, model: null, providerError };
 }
 
 // An embedding call is a model call, whoever runs it (kb_search, the memory
@@ -206,4 +246,6 @@ module.exports = {
     dispatchEmbedTexts: (texts, options) => outsideProbe(() => dispatchEmbedTexts(texts, options)),
     azureEmbed: (texts, endpoint, apiKey, model) => outsideProbe(() => azureEmbed(texts, endpoint, apiKey, model)),
     applyModelPrefix,
+    // Tests replace the backoff wait so a retry costs no wall-clock time.
+    _setSleepForTests: (fn) => { sleep = fn; },
 };

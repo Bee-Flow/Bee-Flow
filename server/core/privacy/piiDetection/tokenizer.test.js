@@ -139,13 +139,15 @@ test('a tab-separated contact row keeps every cell, with the split name cells to
 
 test('a contact row: an undetected "Surname, First name" display name gets the split cells\' token', () => {
     const text = 'Van Leeuwen, Ruben\nRuben\nvan\nLeeuwen\nZwolle';
-    // The detector found the split cells, as one span over three lines. That
-    // span swallowing its cells is BFSF-299 and not asserted on here.
+    // The detector found the split cells, as one span over three lines. Since
+    // BFSF-299 that span is cut per cell: each name cell gets its own token,
+    // the bare "van" cell identifies nobody and stays, and no line is merged.
     const { tokenizedText, tokenMap } = tokenizeText(text, [span(text, 'Ruben\nvan\nLeeuwen')]);
 
     assert.ok(!/Ruben|Leeuwen/.test(tokenizedText), `plain name left: ${tokenizedText}`);
-    assert.strictEqual(Object.keys(tokenMap).length, 1, JSON.stringify(tokenMap));
-    assert.ok(tokenizedText.startsWith('Van [person_1], [person_1]\n'), tokenizedText);
+    assert.deepStrictEqual(Object.values(tokenMap).sort(), ['Leeuwen', 'Ruben'], JSON.stringify(tokenMap));
+    assert.strictEqual(count(tokenizedText, '\n'), count(text, '\n'), 'no cell may be merged away');
+    assert.strictEqual(tokenizedText.split('\n')[2], 'van');
 });
 
 test('a surname in an organisation name that was not detected as one is replaced too', () => {
@@ -161,4 +163,15 @@ test('a detected organisation keeps its own token; its words are not swept into 
     ]);
     assert.strictEqual(tokenizedText, '[person_1] werkt bij [organization_1].');
     assert.deepStrictEqual(tokenMap, { '[person_1]': 'Femke Mulder', '[organization_1]': 'Mulder Advies' });
+});
+
+test('a placeholder is the category id in lower case plus an index (the documented format)', () => {
+    // docs/docs/features/privacy-shield.md shows these: an IBAN is not `[iban_1]`.
+    const text = 'IBAN NL91ABNA0417164300, bel 0612345678.';
+    const { tokenizedText, tokenMap } = tokenizeText(text, [
+        span(text, 'NL91ABNA0417164300', 'InternationalBankingAccountNumber'),
+        span(text, '0612345678', 'PhoneNumber'),
+    ]);
+    assert.strictEqual(tokenizedText, 'IBAN [internationalbankingaccountnumber_1], bel [phonenumber_1].');
+    assert.deepStrictEqual(Object.keys(tokenMap).sort(), ['[internationalbankingaccountnumber_1]', '[phonenumber_1]']);
 });

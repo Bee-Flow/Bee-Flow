@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { SECTIONS } from './constants';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 const ACCENT_BAR = {
     blue:    'bg-blue-500',
@@ -21,14 +22,24 @@ const ACCENT_ICON = {
 };
 
 export function SubscriptionsShell({ active, onChange, children }) {
+    const { t } = useTranslation();
     const [mobileOpen, setMobileOpen] = useState(false);
+    const SECTION_LABELS = {
+        plans: t('admin_subscriptions.shell_plans', 'Plans'),
+        organizations: t('admin_subscriptions.shell_orgs', 'Orgs'),
+        grants: t('admin_subscriptions.shell_grants', 'Grants'),
+        access: t('admin_subscriptions.shell_access', 'Access'),
+        promos: t('admin_subscriptions.shell_promos', 'Promos'),
+        settings: t('admin_subscriptions.shell_stripe', 'Stripe'),
+        audit: t('admin_subscriptions.shell_audit', 'Audit'),
+    };
 
     return (
         <div className="flex h-full overflow-hidden bg-[var(--bg-primary)]">
             {/* Sidebar — desktop ≥ md, drawer-style on mobile via top bar */}
             <aside className="hidden md:flex md:w-[220px] shrink-0 flex-col gap-1 px-3 py-4 bg-[var(--bg-secondary)] border-r border-[var(--border-default)]">
                 <div className="px-3 mb-3">
-                    <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">Subscriptions</div>
+                    <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">{t('admin_subscriptions.shell_title', 'Subscriptions')}</div>
                 </div>
                 {SECTIONS.map(sec => {
                     const Icon = sec.icon;
@@ -45,7 +56,7 @@ export function SubscriptionsShell({ active, onChange, children }) {
                         >
                             {isActive && <span className={`absolute left-0 top-1.5 bottom-1.5 w-1 rounded-full ${ACCENT_BAR[sec.accent]}`} />}
                             <Icon className={`w-4 h-4 shrink-0 ${isActive ? ACCENT_ICON[sec.accent] : 'text-[var(--text-muted)] group-hover:text-[var(--text-secondary)]'}`} />
-                            <span className="text-[13px] font-semibold">{sec.label}</span>
+                            <span className="text-[13px] font-semibold">{SECTION_LABELS[sec.id] ?? sec.label}</span>
                         </button>
                     );
                 })}
@@ -68,7 +79,7 @@ export function SubscriptionsShell({ active, onChange, children }) {
                                 }`}
                             >
                                 <Icon className="w-3.5 h-3.5" />
-                                {sec.label}
+                                {SECTION_LABELS[sec.id] ?? sec.label}
                             </button>
                         );
                     })}

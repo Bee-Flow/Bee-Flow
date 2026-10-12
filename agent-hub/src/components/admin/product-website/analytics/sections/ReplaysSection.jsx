@@ -14,23 +14,26 @@
  * would mean a new dependency and re-implementing a video player; that is
  * deliberately deferred, and the UI says so rather than pretending.
  */
-import React, { useMemo, useState } from 'react';
 import { Video, ShieldAlert, ExternalLink, Monitor, Globe, Play, Users } from 'lucide-react';
-import { useAnalyticsQuery } from '../useAnalyticsQuery';
+import React, { useMemo, useState } from 'react';
+import { useTranslation } from '../../../../../hooks/useTranslation';
+import { sessionSignals } from '../model';
+import { rich } from '../rich';
 import {
     ACCENT, SERIES, Card, Empty, ErrorNote, Skeleton, StatGrid, StatTile,
     fmt, fmtDurationMs, fmtAgo,
 } from '../ui';
-import { sessionSignals } from '../model';
+import { useAnalyticsQuery } from '../useAnalyticsQuery';
 
 const FILTERS = [
-    { id: 'all', label: 'All' },
-    { id: 'engaged', label: 'Engaged' },
-    { id: 'recorded', label: 'Recorded' },
-    { id: 'bounced', label: 'Bounced' },
+    { id: 'all', labelKey: 'cms_site.analytics.replays.filter_all', label: 'All' },
+    { id: 'engaged', labelKey: 'cms_site.analytics.replays.filter_engaged', label: 'Engaged' },
+    { id: 'recorded', labelKey: 'cms_site.analytics.replays.filter_recorded', label: 'Recorded' },
+    { id: 'bounced', labelKey: 'cms_site.analytics.replays.filter_bounced', label: 'Bounced' },
 ];
 
 export default function ReplaysSection({ scope, site, settings, onOpenSettings, onDrill }) {
+    const { t } = useTranslation();
     const [filter, setFilter] = useState('all');
     const recording = !!site?.recording;
 
@@ -54,10 +57,10 @@ export default function ReplaysSection({ scope, site, settings, onOpenSettings, 
         return list
             .map(s => {
                 const replay = bySession.get(s.id) || null;
-                return { session: s, replay, ...sessionSignals(s, { events: Number(s.events) || 0, replay }) };
+                return { session: s, replay, ...sessionSignals(s, { events: Number(s.events) || 0, replay, t }) };
             })
             .sort((a, b) => b.score - a.score || Date.parse(b.session.lastAt) - Date.parse(a.session.lastAt));
-    }, [sessions.payload, replays.payload]);
+    }, [sessions.payload, replays.payload, t]);
 
     const shown = useMemo(() => rows.filter(r => {
         if (filter === 'engaged') return r.events > 0 || r.views >= 4;
@@ -86,15 +89,15 @@ export default function ReplaysSection({ scope, site, settings, onOpenSettings, 
             <RecordingStrip recording={recording} totals={totals} site={site} onOpenSettings={onOpenSettings} />
 
             <StatGrid>
-                <StatTile icon={Users} label="Sessions" value={fmt(totals.sessions)} color={ACCENT} />
-                <StatTile icon={Monitor} label="Avg. length" value={fmtDurationMs(totals.avg)} color={SERIES.secondary} />
-                <StatTile icon={Play} label="Interacted" value={fmt(totals.engaged)} color={SERIES.primary}
-                    subtitle="clicked or submitted something" />
-                <StatTile icon={Video} label="Recorded" value={fmt(totals.recorded)} color={SERIES.warn}
-                    subtitle={totals.sessions ? `${Math.round((totals.recorded / totals.sessions) * 100)}% of sessions` : undefined} />
+                <StatTile icon={Users} label={t('cms_site.analytics.replays.sessions', 'Sessions')} value={fmt(totals.sessions)} color={ACCENT} />
+                <StatTile icon={Monitor} label={t('cms_site.analytics.replays.avg_length', 'Avg. length')} value={fmtDurationMs(totals.avg)} color={SERIES.secondary} />
+                <StatTile icon={Play} label={t('cms_site.analytics.replays.interacted', 'Interacted')} value={fmt(totals.engaged)} color={SERIES.primary}
+                    subtitle={t('cms_site.analytics.replays.interacted_hint', 'clicked or submitted something')} />
+                <StatTile icon={Video} label={t('cms_site.analytics.replays.recorded', 'Recorded')} value={fmt(totals.recorded)} color={SERIES.warn}
+                    subtitle={totals.sessions ? t('cms_site.analytics.replays.recorded_pct', '{pct}% of sessions', { pct: Math.round((totals.recorded / totals.sessions) * 100) }) : undefined} />
             </StatGrid>
 
-            <Card title="Visits" icon={Users} action={
+            <Card title={t('cms_site.analytics.replays.visits', 'Visits')} icon={Users} action={
                 <div style={{ display: 'flex', gap: 4 }}>
                     {FILTERS.map(f => (
                         <button key={f.id} onClick={() => setFilter(f.id)} style={{
@@ -102,14 +105,14 @@ export default function ReplaysSection({ scope, site, settings, onOpenSettings, 
                             border: `1px solid ${filter === f.id ? `${ACCENT}66` : 'var(--border-subtle, rgba(255,255,255,0.1))'}`,
                             background: filter === f.id ? `${ACCENT}14` : 'transparent',
                             color: filter === f.id ? ACCENT : 'var(--text-muted, #888)',
-                        }}>{f.label}</button>
+                        }}>{t(f.labelKey, f.label)}</button>
                     ))}
                 </div>
             }>
                 {shown.length === 0 ? (
                     <Empty text={filter === 'all'
-                        ? 'No sessions in this period.'
-                        : 'No sessions match that filter in this period.'} />
+                        ? t('cms_site.analytics.replays.no_sessions', 'No sessions in this period.')
+                        : t('cms_site.analytics.replays.no_match', 'No sessions match that filter in this period.')} />
                 ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 5, maxHeight: 560, overflowY: 'auto' }}>
                         {shown.slice(0, 100).map(r => (
@@ -119,14 +122,14 @@ export default function ReplaysSection({ scope, site, settings, onOpenSettings, 
                 )}
                 {shown.length > 100 && (
                     <p style={{ fontSize: 11, color: 'var(--text-muted, #777)', margin: '10px 0 0' }}>
-                        Showing the 100 most notable of {fmt(shown.length)} — narrow the date range to see the rest.
+                        {t('cms_site.analytics.replays.showing', 'Showing the 100 most notable of {n} — narrow the date range to see the rest.', { n: fmt(shown.length) })}
                     </p>
                 )}
             </Card>
 
             {recording && (
                 <p style={{ fontSize: 11, color: 'var(--text-muted, #777)', margin: 0 }}>
-                    Playback opens in Umami — the player itself is not embedded here.
+                    {t('cms_site.analytics.replays.playback', 'Playback opens in Umami — the player itself is not embedded here.')}
                 </p>
             )}
         </div>
@@ -134,6 +137,7 @@ export default function ReplaysSection({ scope, site, settings, onOpenSettings, 
 }
 
 function SessionRow({ row, base, websiteId, onDrill }) {
+    const { t } = useTranslation();
     const { session: s, replay, reasons, duration, views, events } = row;
     const href = replay && base && websiteId
         ? `${base}/websites/${websiteId}/replays/${replay.id}`
@@ -148,7 +152,7 @@ function SessionRow({ row, base, websiteId, onDrill }) {
             <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
                     <span style={{ fontSize: 12, color: 'var(--text-primary, #fff)' }}>
-                        {fmtAgo(s.lastAt)}
+                        {fmtAgo(s.lastAt, undefined, t)}
                     </span>
                     {reasons.map(rs => (
                         <span key={rs} style={{
@@ -161,7 +165,7 @@ function SessionRow({ row, base, websiteId, onDrill }) {
                 <div style={{ fontSize: 11, color: 'var(--text-muted, #888)', display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 2 }}>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                         <Monitor style={{ width: 11, height: 11 }} />
-                        {[s.browser, s.os, s.device].filter(Boolean).join(' · ') || 'unknown device'}
+                        {[s.browser, s.os, s.device].filter(Boolean).join(' · ') || t('cms_site.analytics.replays.unknown_device', 'unknown device')}
                         {s.screen ? ` · ${s.screen}` : ''}
                     </span>
                     {s.country && (
@@ -175,8 +179,8 @@ function SessionRow({ row, base, websiteId, onDrill }) {
                         </button>
                     )}
                     <span>
-                        {fmtDurationMs(duration)} · {fmt(views)} page{views === 1 ? '' : 's'}
-                        {events > 0 ? ` · ${fmt(events)} interaction${events === 1 ? '' : 's'}` : ''}
+                        {fmtDurationMs(duration)} · {views === 1 ? t('cms_site.analytics.replays.page_one', '{n} page', { n: fmt(views) }) : t('cms_site.analytics.replays.page_many', '{n} pages', { n: fmt(views) })}
+                        {events > 0 ? ` · ${events === 1 ? t('cms_site.analytics.replays.interaction_one', '{n} interaction', { n: fmt(events) }) : t('cms_site.analytics.replays.interaction_many', '{n} interactions', { n: fmt(events) })}` : ''}
                     </span>
                 </div>
             </div>
@@ -186,10 +190,10 @@ function SessionRow({ row, base, websiteId, onDrill }) {
                     fontSize: 11, fontWeight: 700, color: ACCENT, textDecoration: 'none',
                     border: `1px solid ${ACCENT}44`, borderRadius: 7, padding: '4px 9px',
                 }}>
-                    Play <ExternalLink style={{ width: 11, height: 11 }} />
+                    {t('cms_site.analytics.replays.play', 'Play')} <ExternalLink style={{ width: 11, height: 11 }} />
                 </a>
             ) : (
-                <span style={{ fontSize: 10, color: 'var(--text-muted, #666)', flexShrink: 0 }}>not recorded</span>
+                <span style={{ fontSize: 10, color: 'var(--text-muted, #666)', flexShrink: 0 }}>{t('cms_site.analytics.replays.not_recorded', 'not recorded')}</span>
             )}
         </div>
     );
@@ -200,6 +204,7 @@ function SessionRow({ row, base, websiteId, onDrill }) {
  * this tab has to answer, before anything else on it makes sense.
  */
 function RecordingStrip({ recording, totals, site, onOpenSettings }) {
+    const { t } = useTranslation();
     if (!recording) {
         return (
             <div style={{
@@ -209,15 +214,15 @@ function RecordingStrip({ recording, totals, site, onOpenSettings }) {
             }}>
                 <ShieldAlert style={{ width: 14, height: 14, marginTop: 1, flexShrink: 0 }} />
                 <span style={{ flex: 1 }}>
-                    <strong>Session recording is off for {site?.name ? `“${site.name}”` : 'this site'}.</strong>{' '}
-                    Every visit below is still being counted — recording only adds replay and heatmaps on top.
-                    It captures clicks, scrolling and page structure, so it runs only for visitors who accepted
-                    your cookie banner, in every consent mode, and form inputs are masked.
+                    <strong>{site?.name
+                        ? t('cms_site.analytics.replays.off_named', 'Session recording is off for “{name}”.', { name: site.name })
+                        : t('cms_site.analytics.replays.off_site', 'Session recording is off for this site.')}</strong>{' '}
+                    {t('cms_site.analytics.replays.off_body', 'Every visit below is still being counted — recording only adds replay and heatmaps on top. It captures clicks, scrolling and page structure, so it runs only for visitors who accepted your cookie banner, in every consent mode, and form inputs are masked.')}
                 </span>
                 <button onClick={onOpenSettings} style={{
                     flexShrink: 0, padding: '6px 12px', borderRadius: 8, background: '#f59e0b',
                     color: '#2a1a00', border: 'none', fontSize: 11, fontWeight: 800, cursor: 'pointer',
-                }}>Turn it on</button>
+                }}>{t('cms_site.analytics.replays.turn_on', 'Turn it on')}</button>
             </div>
         );
     }
@@ -232,15 +237,17 @@ function RecordingStrip({ recording, totals, site, onOpenSettings }) {
         }}>
             <span style={{ width: 7, height: 7, borderRadius: 99, background: ACCENT, flexShrink: 0 }} />
             <span style={{ flex: 1 }}>
-                Recording on, inputs masked · <strong style={{ color: 'var(--text-primary, #fff)' }}>
-                    {fmt(totals.recorded)} of {fmt(totals.sessions)}
-                </strong> sessions recorded ({pct}%). The rest declined the cookie banner — that is expected,
-                not a fault.
+                {rich(t('cms_site.analytics.replays.on_status', 'Recording on, inputs masked · {count} sessions recorded ({pct}%). The rest declined the cookie banner — that is expected, not a fault.'), {
+                    count: <strong style={{ color: 'var(--text-primary, #fff)' }}>
+                        {t('cms_site.analytics.replays.on_count', '{recorded} of {total}', { recorded: fmt(totals.recorded), total: fmt(totals.sessions) })}
+                    </strong>,
+                    pct,
+                })}
             </span>
             <button onClick={onOpenSettings} style={{
                 background: 'transparent', border: 'none', color: ACCENT,
                 fontSize: 11, fontWeight: 700, cursor: 'pointer', flexShrink: 0,
-            }}>Recording settings →</button>
+            }}>{t('cms_site.analytics.replays.settings_link', 'Recording settings →')}</button>
         </div>
     );
 }

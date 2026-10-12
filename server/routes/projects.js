@@ -19,7 +19,10 @@
  * Members (members are project_shares; "owner" is implicit via projects.owner_id):
  * GET    /:id/members               → list owner + members          (viewer+)
  * PUT    /:id/members/:memberId     → change a member's role        (owner)
- * DELETE /:id/members/:memberId     → remove a member or self-leave (owner OR self)
+ * DELETE /:id/members/:memberId     → remove a member or self-leave (owner OR self; the owner cannot leave)
+ * POST   /:id/transfer-owner        → hand the project to a member    (owner, or an org admin)
+ * PUT    /:id/mute                  → mute this project's notifications for me   (viewer+)
+ * DELETE /:id/mute                  → unmute                                     (viewer+)
  *
  * Activity feed:
  * GET    /:id/activity?limit=&offset=  (viewer+)
@@ -40,6 +43,8 @@ const express = require('express');
 const log = require('../telemetry/log');
 const router = express.Router();
 const projectStore = require('../stores/projectStore');
+const notificationPrefsStore = require('../stores/notificationPrefsStore');
+const { makeCollabNotifier } = require('../projects/collabNotify');
 const membership = require('../projects/membership');
 const { buildProjectGraph } = require('../projects/graph');
 const { findRelatedParts } = require('../projects/relatedParts');
@@ -51,6 +56,15 @@ const { validate } = require('../core/http/validate');
 const { HttpError, notFound } = require('../core/http/errors');
 const S = require('./projects/schemas');
 const { orgScope } = require('../auth/orgScope');
+const { isOrgAdminForOrg } = require('../auth/admin/orgAdminGuards');
+
+// The bell for membership changes. Best effort: the change stands whether or not anyone is told.
+const collabNotifier = makeCollabNotifier();
+async function tellCollab(what, send) {
+    try { await send(collabNotifier); } catch (err) {
+        log.warn(`[Projects] ${what} not notified: ${err && err.message}`);
+    }
+}
 
 // Single shared budget across all membership mutations (invite / role change /
 // removal / unshare). Keeps a runaway client or accidental spam loop from
@@ -281,7 +295,8 @@ router.get('/', validate({ query: S.ListQuery }), async (req, res) => {
         const userId = getUserId(req);
         if (!userId) return res.status(401).json({ error: 'Not authenticated' });
         const kind = req.query.kind || undefined;
-        const projects = await projectStore.listUserProjects(userId, await getUserGroups(req), { kind });
+        const includeArchived = req.query.includeArchived === '1';
+        const projects = await projectStore.listUserProjects(userId, await getUserGroups(req), { kind, includeArchived });
         res.json(projects);
     } catch (err) {
         log.error('[Projects] List error:', err.message);
@@ -385,7 +400,10 @@ router.get('/summary', validate({ query: S.SummaryQuery }), async (req, res) => 
 
         // Solutions only, plus the legacy rows nobody has classified yet: a
         // collaborative project is not a Solution and gets no card here.
-        const all = await projectStore.listUserProjects(userId, groups, { kind: 'solution' });
+        // Archived Solutions get no card; they are counted so the overview can say so.
+        const everything = await projectStore.listUserProjects(userId, groups, { kind: 'solution', includeArchived: true });
+        const all = everything.filter(p => !p.archivedAt);
+        const archived = everything.length - all.length;
 
         const wanted = String(req.query.ids || '').split(',').map(s => s.trim()).filter(Boolean);
         const picked = wanted.length ? all.filter(p => wanted.includes(p.id)) : all;
@@ -422,6 +440,7 @@ router.get('/summary', validate({ query: S.SummaryQuery }), async (req, res) => 
         res.json({
             ...result,
             operatedStages,
+            archived,
             unavailable: operatedFailed ? [...result.unavailable, 'operatedStages'] : result.unavailable,
             hasMore: picked.length > projects.length,
         });
@@ -454,7 +473,9 @@ router.get('/:id', requireRole('viewer'), async (req, res) => {
         const project = await projectStore.getProject(req.params.id);
         if (!project) return res.status(404).json({ error: 'Not found' });
         const shares = await projectStore.getProjectShares(project.id);
-        res.json({ ...project, shares, role: req.projectRole });
+        // The caller's own mute state; best-effort, a failing read must not hide the project.
+        const muted = await notificationPrefsStore.isMuted(getUserId(req), project.id).catch(() => false);
+        res.json({ ...project, shares, role: req.projectRole, muted: muted === true });
     } catch (err) {
         log.error('[Projects] Get error:', err.message);
         // Raw err.message can carry SQL text, column names and constraint names.
@@ -470,8 +491,13 @@ router.put('/:id', requireRole('editor'), validate({ body: S.UpdateBody }), asyn
         const before = await projectStore.getProject(req.params.id);
         if (!before) return res.status(404).json({ error: 'Not found' });
 
-        const { name, description, customInstructions, color, icon, extractMemories } = req.body;
+        const { name, description, customInstructions, color, icon, extractMemories, editorsCanInvite } = req.body;
         let { knowledgeBaseIds } = req.body;
+
+        // Who may invite is the owner's call, not an editor's.
+        if (editorsCanInvite !== undefined && req.projectRole !== 'owner') {
+            throw new HttpError(403, 'owner_only_setting', 'Only the owner can change who may invite people.');
+        }
 
         const lenError = validateLengths({ name, description, customInstructions });
         if (lenError) return res.status(400).json({ error: lenError });
@@ -496,7 +522,7 @@ router.put('/:id', requireRole('editor'), validate({ body: S.UpdateBody }), asyn
         // version keep the old last-write-wins behaviour.
         const expectedVersion = req.body.version ?? req.get('If-Match');
         const updated = await projectStore.updateProject(req.params.id, {
-            name, description, customInstructions, color, icon, knowledgeBaseIds, extractMemories,
+            name, description, customInstructions, color, icon, knowledgeBaseIds, extractMemories, editorsCanInvite,
         }, { expectedVersion: expectedVersion === undefined ? undefined : Number(expectedVersion) });
 
         if (updated && updated.conflict) {
@@ -511,7 +537,7 @@ router.put('/:id', requireRole('editor'), validate({ body: S.UpdateBody }), asyn
 
         // Log activity — diff what changed.
         const changes = {};
-        for (const key of ['name', 'description', 'color', 'icon', 'extractMemories']) {
+        for (const key of ['name', 'description', 'color', 'icon', 'extractMemories', 'editorsCanInvite']) {
             if (req.body[key] !== undefined && before[key] !== updated[key]) {
                 changes[key] = { from: before[key], to: updated[key] };
             }
@@ -567,8 +593,32 @@ router.use('/', require('./projects/kind').makeKindRouter({
     recordProjectChange,
 }));
 
-// DELETE /:id — delete project (owner only)
-router.delete('/:id', requireRole('owner'), async (req, res) => {
+// POST /:id/archive and /:id/restore — the owner closes a project (read-only for everyone, hidden from
+// the default list) and opens it again. Both are idempotent and pass `allowArchived`, as does DELETE.
+router.post('/:id/archive', requireRole('owner', { allowArchived: true }), validate({ body: S.ArchiveBody }), async (req, res) => {
+    const userId = getUserId(req);
+    const project = req.project || await projectStore.getProject(req.params.id);
+    if (!project) throw notFound();
+    if (project.archivedAt) return res.json({ success: true, archivedAt: project.archivedAt });
+    const updated = await projectStore.setArchived(project.id, userId);
+    await recordProjectChange(project.id, userId, 'project_archived', {});
+    signalProjectChanged(project, 'settings');
+    res.json({ success: true, archivedAt: updated?.archivedAt || null });
+});
+
+router.post('/:id/restore', requireRole('owner', { allowArchived: true }), validate({ body: S.ArchiveBody }), async (req, res) => {
+    const userId = getUserId(req);
+    const project = req.project || await projectStore.getProject(req.params.id);
+    if (!project) throw notFound();
+    if (!project.archivedAt) return res.json({ success: true, archivedAt: null });
+    await projectStore.setArchived(project.id, null);
+    await recordProjectChange(project.id, userId, 'project_restored', {});
+    signalProjectChanged(project, 'settings');
+    res.json({ success: true, archivedAt: null });
+});
+
+// DELETE /:id — delete project (owner only; also while archived)
+router.delete('/:id', requireRole('owner', { allowArchived: true }), async (req, res) => {
     const projectId = req.params.id;
 
     // A conversation shared into the project cannot outlive it: its rows are
@@ -602,8 +652,10 @@ router.delete('/:id', requireRole('owner'), async (req, res) => {
 
 // ── Shares (legacy) — kept for back-compat, aliased to /members semantics ──
 
-// POST /:id/share — share with user or group (owner only)
-router.post('/:id/share', memberMutationLimiter, requireRole('owner'), validate({ body: S.ShareBody }), async (req, res) => {
+// POST /:id/share — share with user or group. The owner always; an editor only
+// while the project allows it (editorsCanInvite), only as viewer or editor, and
+// never over someone already on the project (that is a role change: owner only).
+router.post('/:id/share', memberMutationLimiter, requireRole('editor'), validate({ body: S.ShareBody }), async (req, res) => {
     try {
         const userId = getUserId(req);
         const { sharedWithType, sharedWithId, permission } = req.body;
@@ -624,6 +676,15 @@ router.post('/:id/share', memberMutationLimiter, requireRole('owner'), validate(
         // Compare normalised values instead: '' is a real bucket, and only an
         // equally org-less counterpart matches it.
         const project = await projectStore.getProject(req.params.id);
+        if (!project) throw notFound();
+        if (req.projectRole !== 'owner') {
+            if (!project.editorsCanInvite) {
+                throw new HttpError(403, 'invite_not_allowed', 'The owner has not allowed editors to invite people.');
+            }
+            const existing = (await projectStore.getProjectShares(req.params.id))
+                .some(s => s.sharedWithType === sharedWithType && s.sharedWithId === sharedWithId);
+            if (existing) throw new HttpError(403, 'owner_only_role_change', 'Only the owner can change the role of someone already on the project.');
+        }
         const projectOrg = await projectOrgOf(project);
         if (sharedWithType === 'group') {
             const targetGroup = await userStore.getGroup(sharedWithId);
@@ -644,9 +705,11 @@ router.post('/:id/share', memberMutationLimiter, requireRole('owner'), validate(
             targetType: sharedWithType, targetId: sharedWithId, role,
         });
         signalProjectChanged(project, 'members');
+        await tellCollab('share', (n) => n.added({ project, actorId: userId, sharedWithType, sharedWithId, role }));
         const shares = await projectStore.getProjectShares(req.params.id);
         res.json({ shareId, shares });
     } catch (err) {
+        if (err instanceof HttpError) throw err;
         log.error('[Projects] Share error:', err.message);
         // Raw err.message can carry SQL text, column names and constraint names.
         // The console.error above keeps the detail for operators.
@@ -668,7 +731,11 @@ router.delete('/:id/share/:shareId', memberMutationLimiter, requireRole('owner')
         await recordProjectChange(req.params.id, userId, 'member_removed', {
             targetType: share.sharedWithType, targetId: share.sharedWithId,
         });
-        if (ok) signalProjectChanged(await projectStore.getProject(req.params.id), 'members');
+        const projectNow = await projectStore.getProject(req.params.id);
+        if (ok) signalProjectChanged(projectNow, 'members');
+        if (ok && projectNow && share.sharedWithType === 'user') {
+            await tellCollab('removal', (n) => n.removed({ project: projectNow, actorId: userId, userId: share.sharedWithId }));
+        }
         const shares = await projectStore.getProjectShares(req.params.id);
         res.json({ success: ok, shares });
     } catch (err) {
@@ -700,6 +767,55 @@ router.get('/:id/members', requireRole('viewer'), async (req, res) => {
     res.json({ ownerId: project.ownerId, organizationId: await projectOrgOf(project), members: shares, people, groups });
 });
 
+// GET /:id/principals — who can be invited (viewer+): people and groups of the project's own organisation,
+// `q` a case-insensitive part of the name (2+ characters). Id, name and avatar only, never an e-mail address
+// (the getOrgMembersForDirectory precedent, routes/automation/sharing.js). One-segment-deeper than `/:id`,
+// so nothing above can swallow it.
+const PRINCIPALS_MAX = 20;
+router.get('/:id/principals', requireRole('viewer'), validate({ query: S.PrincipalsQuery }), async (req, res) => {
+    const project = await projectStore.getProject(req.params.id);
+    if (!project) throw notFound();
+    const orgId = await projectOrgOf(project);
+    if (!orgId) return res.json({ users: [], groups: [] });
+    const needle = String(req.query.q || '').trim().toLowerCase();
+    const matches = (label) => !needle || String(label).toLowerCase().includes(needle);
+
+    const members = await Promise.resolve(userStore.getOrgMembersForDirectory(orgId)).catch((err) => {
+        log.warn('[Projects] principals: directory unavailable:', err.message);
+        return [];
+    });
+    const people = (members || [])
+        // The fallback chain ends in the username, which an SSO login makes an e-mail address: never let one out.
+        .map(u => { const label = displayNameOf(u); return { row: u, name: label && !String(label).includes('@') ? label : String(u.id) }; })
+        .filter(p => matches(p.name))
+        .slice(0, PRINCIPALS_MAX);
+
+    // The directory carries no picture itself: one batched read over the people on screen.
+    const pictures = new Map();
+    if (people.length && typeof userStore.getUserAvatarsByIds === 'function') {
+        try {
+            for (const r of await userStore.getUserAvatarsByIds(people.map(p => p.row.id))) pictures.set(String(r.id), r);
+        } catch (err) { log.warn('[Projects] principals: avatars unavailable:', err.message); }
+    }
+    const users = people.map(({ row, name }) => {
+        const picture = pictures.has(String(row.id)) ? memberAvatar(project.id, String(row.id), pictures.get(String(row.id))) : null;
+        return { id: String(row.id), name, avatar: picture ? { type: picture.avatarType, value: picture.avatar } : null };
+    });
+
+    const orgGroups = (await Promise.resolve(userStore.getAllGroups()).catch(() => []) || [])
+        .filter(g => String(g.organizationId || '') === orgId && matches(g.name || g.id))
+        .slice(0, PRINCIPALS_MAX);
+    let counts = new Map();
+    if (orgGroups.length) {
+        try { counts = await require('../stores/automationStore').countGroupMembers(orgId, orgGroups.map(g => String(g.id))); }
+        catch (err) { log.warn('[Projects] principals: member count failed:', err.message); }
+    }
+    res.json({
+        users,
+        groups: orgGroups.map(g => ({ id: String(g.id), name: g.name || String(g.id), memberCount: counts.get(String(g.id)) ?? 0 })),
+    });
+});
+
 // PUT /:id/members/:memberId — change role (owner only)
 router.put('/:id/members/:memberId', memberMutationLimiter, requireRole('owner'), validate({ body: S.MemberRoleBody }), async (req, res) => {
     try {
@@ -718,7 +834,11 @@ router.put('/:id/members/:memberId', memberMutationLimiter, requireRole('owner')
             targetType: before.sharedWithType, targetId: before.sharedWithId,
             from: before.permission, to: normalized,
         });
-        signalProjectChanged(await projectStore.getProject(req.params.id), 'members');
+        const projectNow = await projectStore.getProject(req.params.id);
+        signalProjectChanged(projectNow, 'members');
+        if (projectNow && before.sharedWithType === 'user') {
+            await tellCollab('role change', (n) => n.roleChanged({ project: projectNow, actorId: userId, userId: before.sharedWithId, from: before.permission, to: normalized }));
+        }
         res.json({ success: true });
     } catch (err) {
         log.error('[Projects] Update member error:', err.message);
@@ -726,6 +846,50 @@ router.put('/:id/members/:memberId', memberMutationLimiter, requireRole('owner')
         // The console.error above keeps the detail for operators.
         res.status(500).json({ error: 'Request failed' });
     }
+});
+
+// POST /:id/transfer-owner — hand the project to another member. The owner chooses what they stay as
+// (keepMeAs, default editor). An org admin who is not the owner may do it too, to rescue a project whose
+// owner is gone; the absent owner then keeps no seat (keepFromAs forced to 'none'). The gate is viewer+, so
+// the rescue covers an admin who already has at least viewer access; an admin with no access at all gets the
+// gate's 404 (accepted for this wave). The store checks the owner inside the write: a stale expectedOwnerId
+// (or a concurrent transfer) is a 409 owner_changed and nothing is written.
+router.post('/:id/transfer-owner', memberMutationLimiter, requireRole('viewer'), validate({ body: S.TransferBody }), async (req, res) => {
+    const userId = getUserId(req);
+    if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+    const project = await projectStore.getProject(req.params.id);
+    if (!project) throw notFound();
+
+    const projectOrg = await projectOrgOf(project);
+    const isOwner = project.ownerId === userId;
+    const byOrgAdmin = !isOwner;
+    if (byOrgAdmin && !(await isOrgAdminForOrg(req, projectOrg))) {
+        throw new HttpError(403, 'owner_only', 'Only the owner or an organisation admin can transfer this project.');
+    }
+
+    const { toUserId, keepMeAs, expectedOwnerId } = req.body;
+    if (expectedOwnerId && expectedOwnerId !== project.ownerId) {
+        throw new HttpError(409, 'owner_changed', 'The owner of this project changed in the meantime. Reload and try again.');
+    }
+    if (toUserId === project.ownerId) throw new HttpError(400, 'already_owner', 'That person already owns this project.');
+
+    const targetRole = await projectStore.getProjectRole(toUserId, project.id, await resolveUserGroups(toUserId));
+    if (!targetRole) throw new HttpError(400, 'not_a_member', 'Only a member of this project can become its owner. Add them first.');
+    if (!await belongsToProjectOrg(toUserId, projectOrg)) {
+        throw new HttpError(400, 'not_in_organisation', 'That person does not belong to this project\'s organisation.');
+    }
+
+    const fromUserId = project.ownerId;
+    const keepFromAs = byOrgAdmin ? 'none' : (keepMeAs || 'editor');
+    const moved = await projectStore.transferOwner({ projectId: project.id, fromUserId, toUserId, keepFromAs });
+    if (!moved.ok) {
+        throw new HttpError(409, 'owner_changed', 'The owner of this project changed in the meantime. Reload and try again.');
+    }
+
+    await recordProjectChange(project.id, userId, 'owner_changed', { from: fromUserId, to: toUserId, byOrgAdmin });
+    signalProjectChanged(project, 'members');
+    await tellCollab('owner change', (n) => n.ownerChanged({ project, actorId: userId, fromUserId, toUserId }));
+    res.json({ success: true, ownerId: toUserId, keptAs: keepFromAs });
 });
 
 // DELETE /:id/members/:memberId — owner removes OR member self-leaves
@@ -742,6 +906,10 @@ router.delete('/:id/members/:memberId', memberMutationLimiter, async (req, res) 
         const isOwner = project.ownerId === userId;
         const isSelf = share.sharedWithType === 'user' && share.sharedWithId === userId;
         if (!isOwner && !isSelf) return res.status(403).json({ error: 'Forbidden' });
+        // The owner cannot walk away from their own project: hand it over first.
+        if (isOwner && isSelf) {
+            throw new HttpError(409, 'transfer_first', 'Transfer the project to someone else before leaving it.');
+        }
 
         const ok = await projectStore.unshareProject(req.params.memberId);
         await recordProjectChange(req.params.id, userId, 'member_removed', {
@@ -750,6 +918,9 @@ router.delete('/:id/members/:memberId', memberMutationLimiter, async (req, res) 
         });
         if (ok) signalProjectChanged(project, 'members');
         if (ok && share.sharedWithType === 'user') {
+            await tellCollab(isSelf ? 'leave' : 'removal', (n) => (isSelf
+                ? n.left({ project, userId })
+                : n.removed({ project, actorId: userId, userId: share.sharedWithId })));
             // Someone who left holds no tasks here any more; best-effort, the removal stands.
             try { await require('../stores/projectMemberColorStore').clearFor(req.params.id, share.sharedWithId); } catch (err) {
                 log.warn('[Projects] could not clear a removed member\'s colour:', err.message);
@@ -760,6 +931,7 @@ router.delete('/:id/members/:memberId', memberMutationLimiter, async (req, res) 
         }
         res.json({ success: ok });
     } catch (err) {
+        if (err instanceof HttpError) throw err;
         log.error('[Projects] Remove member error:', err.message);
         // Raw err.message can carry SQL text, column names and constraint names.
         // The console.error above keeps the detail for operators.
@@ -789,6 +961,18 @@ router.get('/:id/avatars/:userId', requireRole('viewer'), async (req, res) => {
         'Content-Security-Policy': "default-src 'none'; sandbox",
     });
     res.send(Buffer.from(match[2].replace(/\s+/g, ''), 'base64'));
+});
+
+// ── Mute: stop the bell and the mail for this project (mine only) ─
+
+router.put('/:id/mute', requireRole('viewer'), validate({ body: S.MuteBody }), async (req, res) => {
+    await notificationPrefsStore.setMuted(getUserId(req), req.params.id, true);
+    res.json({ muted: true });
+});
+
+router.delete('/:id/mute', requireRole('viewer'), async (req, res) => {
+    await notificationPrefsStore.setMuted(getUserId(req), req.params.id, false);
+    res.json({ muted: false });
 });
 
 // ── Activity feed ────────────────────────────────────────

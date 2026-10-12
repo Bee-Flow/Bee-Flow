@@ -1,4 +1,5 @@
 import CadThumb from './CadThumb';
+import useTranslation from '../../../../../../hooks/useTranslation';
 import renderInlineMarkdown from '../markdownInline';
 import { resolveBinding, walkPath } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
@@ -67,8 +68,9 @@ export function FieldValue({ value, format }) {
 }
 
 export default function AppRecordDetail({ node }) {
+    const { t } = useTranslation();
     const { actionState, dataState, scope } = useRuntime();
-    const { fields = [], columns = 2, emptyText = 'No record selected.', layout = 'stacked' } = node.props || {};
+    const { fields = [], columns = 2, emptyText = t('studio_apps_runtime.record_detail.empty', 'No record selected.'), layout = 'stacked' } = node.props || {};
     const { value: source, isLoading, error, errorCode } = useStickyBinding(
         resolveBinding(node.props?.source, { actionState, dataState, scope }),
     );

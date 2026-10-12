@@ -48,14 +48,28 @@ export function deepOverlay(base, real) {
 }
 
 /**
+ * What of a stored output the builder may treat as the step's real data.
+ * A truncation sentinel is not data — except its `preview`: a shape-preserving
+ * copy of the payload (every level kept, long lists cut to their first items,
+ * server/automation/payloadTruncation.js), which keeps the deep fields of a
+ * big output pickable. Undefined when there is nothing usable.
+ */
+function usableOutput(v) {
+    if (v == null) return undefined;
+    if (!isTruncatedOutput(v)) return v;
+    return v.preview != null ? v.preview : undefined;
+}
+
+/**
  * The freshest real output per node id.
  *
  *   - Only ids that exist in the definition (trigger, secondary triggers,
  *     steps) — rows for deleted steps linger in the builder stream state and
  *     must not resurrect them.
  *   - Run rows: primary rows only (no `parentStepId` sub-rows from layer
- *     calls), non-null and non-truncated output. First match wins, matching
- *     the long-standing NodeDetailView lookup semantics.
+ *     calls), non-null output; a truncated one counts by its preview only.
+ *     First match wins, matching the long-standing NodeDetailView lookup
+ *     semantics.
  *   - Pinned output (stored on the step in the definition) OVERRIDES a run
  *     row — a pin is the user saying "this is the data I'm building against".
  */
@@ -71,13 +85,13 @@ export function buildRealOutputMap(definition, runSteps) {
 
     for (const r of (runSteps || [])) {
         if (!r || r.parentStepId || !knownIds.has(r.stepId)) continue;
-        if (r.output == null || isTruncatedOutput(r.output)) continue;
-        if (!map.has(r.stepId)) map.set(r.stepId, r.output);
+        const out = usableOutput(r.output);
+        if (out !== undefined && !map.has(r.stepId)) map.set(r.stepId, out);
     }
 
     for (const node of nodes) {
-        if (node.pinnedOutput == null || isTruncatedOutput(node.pinnedOutput)) continue;
-        map.set(node.id, node.pinnedOutput);
+        const out = usableOutput(node.pinnedOutput);
+        if (out !== undefined) map.set(node.id, out);
     }
 
     return map;

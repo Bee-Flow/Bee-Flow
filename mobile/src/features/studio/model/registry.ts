@@ -170,7 +170,12 @@ export const STUDIO_SECTIONS: readonly StudioSection[] = [
         labelKey: 'studio.tab.playbooks', labelFallback: 'Playbooks',
         descKey: 'studio.tab.playbooks_desc',
         descFallback: 'Watch the AI build a table, an automation and an app — one phase at a time',
-        requires: { license: ['automations', 'app_studio'], canUse: ['automations', 'app_studio'] },
+        // The role legs are the two things a playbook builds: an automation and an app.
+        requires: {
+            license: ['automations', 'app_studio'],
+            canUse: ['automations', 'app_studio'],
+            perms: ['use_automations', 'manage_apps'],
+        },
         gateCapability: 'app_studio', lockOn: 'disable',
         create: create('playbook', 'Playbook', route('/playbooks?new=1')),
         target: route('/playbooks', under('/playbooks')),
@@ -191,7 +196,8 @@ export const STUDIO_SECTIONS: readonly StudioSection[] = [
         id: 'runs', segment: 'runs', category: 'bundle', icon: 'History', kind: null, countKey: 'runs',
         labelKey: 'runs.title', labelFallback: 'Runs & log',
         descKey: 'runs.tab_desc', descFallback: 'Every time an automation fired, and what happened',
-        requires: AUTOMATIONS,
+        // use_automations, like Automations: the log is what your automations did.
+        requires: { ...AUTOMATIONS, perms: ['use_automations'] },
         gateCapability: 'automations', lockOn: 'disable',
         // The org-wide log with its facets. A run has no page of its own: a
         // row opens its automation's runs (/automations/<id>/runs).

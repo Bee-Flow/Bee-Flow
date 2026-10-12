@@ -73,7 +73,7 @@ describe('pills', () => {
         expect(buildPill({ source: 'trigger', fieldPath: 'subject', raw: '{{trigger.output.subject}}', path: 'trigger.output.subject' }).textContent)
             .toBe('Trigger▸ Subject');
         expect(buildPill({ source: 'loop', itemVar: 'item', fieldPath: '', raw: '{{loop.item}}', path: 'loop.item' }).textContent)
-            .toBe('Loop item · item');
+            .toBe('Each item');
     });
 
     it('marks a reference to a deleted step instead of hiding it', () => {

@@ -104,7 +104,7 @@ const LEGACY_PRACTICE_TOPICS = {
         summary: 'Connect a service once, then enable the matching tool per agent.',
         facts: [
             'Connecting an integration (email, calendar, drive) is step one; an agent also needs the matching TOOL switched on before it can act on it.',
-            'Integrations are connected in Settings → Integrations.',
+            'Integrations are connected in Settings → Connections.',
         ],
     },
     'using-memory': {

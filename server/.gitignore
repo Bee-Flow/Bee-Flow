@@ -92,6 +92,10 @@ pgdata/
 .pytest_cache/
 .coverage
 htmlcov/
+# written by the sharded CI test run (scripts/run-tests.mjs --shard)
+coverage-shard/
+coverage-shards/
+shard-files.json
 tmp/
 
 # ── Deploy scripts (operator-specific, often contain creds) ─────

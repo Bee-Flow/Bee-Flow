@@ -102,7 +102,7 @@ function OrgSharing({ table, canEdit, onChanged }) {
     // shows, which may be one step ahead of it while a group is being picked.
     const audience = audienceOf(table);
     const shownAudience = audienceDraft || audience;
-    const access = describeAccess(table, groupNames);
+    const access = describeAccess(table, groupNames, t);
 
     // The draft is spent the moment the table itself moves.
     useEffect(() => { setAudienceDraft(null); }, [audience, table.id]);
@@ -139,7 +139,7 @@ function OrgSharing({ table, canEdit, onChanged }) {
     /** Hold the descriptor until the person has read who gains access. */
     const askThenPatch = (question, descriptor) => setConfirm({ question, descriptor });
 
-    const namesOf = (ids) => joinNames((ids || []).map(g => groupNames.get(g) || g));
+    const namesOf = (ids) => joinNames((ids || []).map(g => groupNames.get(g) || g), t);
     // Say the write half too when it is on, because then "can read" is the
     // smaller half of what is being handed over.
     const andWrite = table.writeMode === 'audience'

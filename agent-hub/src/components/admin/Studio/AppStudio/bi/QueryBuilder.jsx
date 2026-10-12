@@ -5,6 +5,7 @@ import ChartDataPanel, { deriveChartMapping } from './ChartDataPanel';
 import FilterRowsEditor, { NO_VALUE_OPS } from './FilterRowsEditor';
 import useAppTables, { fieldsForTable } from './useAppTables';
 import useDatasets from './useDatasets';
+import useTranslation from '../../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../../utils/helpers';
 import Modal from '../../../../shared/Modal';
 import toast from '../../../../shared/Toast';
@@ -29,21 +30,23 @@ import { DEFAULT_RUNTIME, RuntimeProvider } from '../runtime/RuntimeContext';
  * compileAggregate consumes (its closed FILTER_OPS vocabulary).
  */
 
+// `label` is the English default, `labelKey` its translation key: render
+// with t(x.labelKey, x.label).
 export const AGGS = [
-    { value: 'count', label: 'Count' },
-    { value: 'sum', label: 'Sum' },
-    { value: 'avg', label: 'Average' },
-    { value: 'min', label: 'Lowest' },
-    { value: 'max', label: 'Highest' },
+    { value: 'count', label: 'Count', labelKey: 'studio_apps_bi.query.agg_count' },
+    { value: 'sum', label: 'Sum', labelKey: 'studio_apps_bi.query.agg_sum' },
+    { value: 'avg', label: 'Average', labelKey: 'studio_apps_bi.query.agg_avg' },
+    { value: 'min', label: 'Lowest', labelKey: 'studio_apps_bi.query.agg_min' },
+    { value: 'max', label: 'Highest', labelKey: 'studio_apps_bi.query.agg_max' },
 ];
 
 export const DATE_BUCKETS = [
-    { value: '', label: 'Exact' },
-    { value: 'day', label: 'By day' },
-    { value: 'week', label: 'By week' },
-    { value: 'month', label: 'By month' },
-    { value: 'quarter', label: 'By quarter' },
-    { value: 'year', label: 'By year' },
+    { value: '', label: 'Exact', labelKey: 'studio_apps_bi.query.bucket_exact' },
+    { value: 'day', label: 'By day', labelKey: 'studio_apps_bi.query.bucket_day' },
+    { value: 'week', label: 'By week', labelKey: 'studio_apps_bi.query.bucket_week' },
+    { value: 'month', label: 'By month', labelKey: 'studio_apps_bi.query.bucket_month' },
+    { value: 'quarter', label: 'By quarter', labelKey: 'studio_apps_bi.query.bucket_quarter' },
+    { value: 'year', label: 'By year', labelKey: 'studio_apps_bi.query.bucket_year' },
 ];
 
 const DATE_TYPES = new Set(['date', 'datetime']);
@@ -87,10 +90,10 @@ export function parseUserNumber(input) {
 }
 
 /** "Sum of Amount" — the row header for one measure, in plain words. */
-function measureSentence(a, fieldName) {
-    const verb = AGGS.find((x) => x.value === a.agg)?.label || 'Sum';
-    if (a.agg === 'count' && !a.field) return 'Count of every row';
-    return `${verb} of ${fieldName(a.field) || '…'}`;
+function measureSentence(a, fieldName, t) {
+    const agg = AGGS.find((x) => x.value === a.agg) || AGGS[1];
+    if (a.agg === 'count' && !a.field) return t('studio_apps_bi.query.count_every_row', 'Count of every row');
+    return t('studio_apps_bi.query.measure_of', '{agg} of {field}', { agg: t(agg.labelKey, agg.label), field: fieldName(a.field) || '…' });
 }
 
 /** Constrain a human label to the compiler's alias grammar (ALIAS_RE). */
@@ -146,7 +149,7 @@ export function buildDescriptor(tableId, fields, groupBy, aggregates, filters) {
     };
 }
 
-async function runPreview(appId, payload) {
+async function runPreview(appId, payload, t) {
     const res = await authFetch(`${API_BASE}/api/studio-apps/${encodeURIComponent(appId)}/data/query`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -155,11 +158,12 @@ async function runPreview(appId, payload) {
     if (res.status === 404) return { rows: [] };
     let body = null;
     try { body = await res.json(); } catch { body = null; }
-    if (!res.ok) throw new Error(body?.error || `Preview failed (${res.status})`);
+    if (!res.ok) throw new Error(body?.error || t('studio_apps_bi.query.preview_failed_status', 'Preview failed ({status})', { status: res.status }));
     return { rows: Array.isArray(body?.rows) ? body.rows : [] };
 }
 
 export default function QueryBuilder({ open, onClose, appId, componentType = 'chart', onSave, onOpenTables = null }) {
+    const { t } = useTranslation();
     const { tables, isLoading: tablesLoading } = useAppTables(open ? appId : null);
     const { saveDataset, saving } = useDatasets(appId);
 
@@ -223,7 +227,7 @@ export default function QueryBuilder({ open, onClose, appId, componentType = 'ch
     }, [debouncedKey]);
     const preview = useQuery({
         queryKey: ['studio-app-query-preview', appId, debouncedKey],
-        queryFn: () => runPreview(appId, JSON.parse(debouncedKey)),
+        queryFn: () => runPreview(appId, JSON.parse(debouncedKey), t),
         enabled: !!open && !!appId && debouncedValid,
         retry: false,
         staleTime: 10_000,
@@ -258,7 +262,7 @@ export default function QueryBuilder({ open, onClose, appId, componentType = 'ch
         style: { height: 'md' },
     }), [effectiveMapping, previewRows]);
 
-    const currentTable = tables.find((t) => t.id === tableId) || null;
+    const currentTable = tables.find((tb) => tb.id === tableId) || null;
 
     // The chart mapping is read off the preview columns, so it is only real
     // once the preview for THIS query has landed — saving mid-refetch would
@@ -269,33 +273,33 @@ export default function QueryBuilder({ open, onClose, appId, componentType = 'ch
         if (!valid || previewPending) return;
         try {
             const res = await saveDataset({
-                name: name.trim() || (currentTable?.name ? `${currentTable.name} view` : 'View'),
+                name: name.trim() || (currentTable?.name ? t('studio_apps_bi.query.view_named', '{table} view', { table: currentTable.name }) : t('studio_apps_bi.query.view', 'View')),
                 tableId,
                 source: { kind: 'aggregate' },
                 descriptor,
                 cacheTtlSeconds: 60,
             });
             const dataset = res?.dataset;
-            if (!dataset?.id) throw new Error('This view could not be saved.');
+            if (!dataset?.id) throw new Error(t('studio_apps_bi.query.save_failed', 'This view could not be saved.'));
             const chart = componentType === 'chart' && effectiveMapping.xKey ? effectiveMapping : null;
             onSave?.({ datasetId: dataset.id, chart });
-            toast.success('Saved.');
+            toast.success(t('studio_apps_bi.query.saved', 'Saved.'));
             onClose?.();
         } catch (err) {
-            toast.error(err?.message || 'Could not save this view.');
+            toast.error(err?.message || t('studio_apps_bi.query.save_failed_generic', 'Could not save this view.'));
         }
-    }, [valid, previewPending, saveDataset, name, currentTable, tableId, descriptor, onSave, componentType, effectiveMapping, onClose]);
+    }, [valid, previewPending, saveDataset, name, currentTable, tableId, descriptor, onSave, componentType, effectiveMapping, onClose, t]);
 
     return (
         <Modal
             open={open}
             onClose={onClose}
             size="xl"
-            title={componentType === 'chart' ? 'What should this chart show?' : 'What should this show?'}
-            description="Pick a table, then choose what you want to see."
+            title={componentType === 'chart' ? t('studio_apps_bi.query.title_chart', 'What should this chart show?') : t('studio_apps_bi.query.title', 'What should this show?')}
+            description={t('studio_apps_bi.query.description', 'Pick a table, then choose what you want to see.')}
             footer={(
                 <>
-                    <button type="button" onClick={onClose} className="px-3 py-1.5 rounded-md text-sm font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]">Cancel</button>
+                    <button type="button" onClick={onClose} className="px-3 py-1.5 rounded-md text-sm font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]">{t('studio_apps_bi.common.cancel', 'Cancel')}</button>
                     <button
                         type="button"
                         onClick={handleSave}
@@ -304,7 +308,7 @@ export default function QueryBuilder({ open, onClose, appId, componentType = 'ch
                         style={{ background: 'var(--accent-primary)' }}
                     >
                         {saving || previewPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                        Use this
+                        {t('studio_apps_bi.query.use_this', 'Use this')}
                     </button>
                 </>
             )}
@@ -315,7 +319,7 @@ export default function QueryBuilder({ open, onClose, appId, componentType = 'ch
                 </div>
             ) : tables.length === 0 ? (
                 <div className="py-10 text-center text-sm text-[var(--text-muted)]">
-                    <p className="mb-3">There are no tables in this app yet — a table is where its information lives.</p>
+                    <p className="mb-3">{t('studio_apps_bi.query.no_tables', 'There are no tables in this app yet — a table is where its information lives.')}</p>
                     {onOpenTables ? (
                         <button
                             type="button"
@@ -323,10 +327,10 @@ export default function QueryBuilder({ open, onClose, appId, componentType = 'ch
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold text-white"
                             style={{ background: 'var(--accent-primary)' }}
                         >
-                            <Table2 className="w-4 h-4" aria-hidden="true" /> Add a table
+                            <Table2 className="w-4 h-4" aria-hidden="true" /> {t('studio_apps_bi.query.add_table', 'Add a table')}
                         </button>
                     ) : (
-                        <p>Add one with the Data button in the toolbar first.</p>
+                        <p>{t('studio_apps_bi.query.add_table_hint', 'Add one with the Data button in the toolbar first.')}</p>
                     )}
                 </div>
             ) : (
@@ -334,29 +338,29 @@ export default function QueryBuilder({ open, onClose, appId, componentType = 'ch
                     {/* ── LEFT: query configuration ── */}
                     <div className="flex flex-col gap-4 min-w-0">
                         <label className="flex flex-col gap-1">
-                            <span className="text-xs font-medium text-[var(--text-secondary)]">Which table?</span>
-                            <select className={inputCls} value={tableId} onChange={(e) => changeTable(e.target.value)} aria-label="Which table">
-                                {tables.map((t) => <option key={t.id} value={t.id}>{t.name || t.key}</option>)}
+                            <span className="text-xs font-medium text-[var(--text-secondary)]">{t('studio_apps_bi.query.which_table', 'Which table?')}</span>
+                            <select className={inputCls} value={tableId} onChange={(e) => changeTable(e.target.value)} aria-label={t('studio_apps_bi.query.which_table_aria', 'Which table')}>
+                                {tables.map((tb) => <option key={tb.id} value={tb.id}>{tb.name || tb.key}</option>)}
                             </select>
                         </label>
 
                         <fieldset className="min-w-0">
                             <RepeatableList
-                                label="Break it down by"
+                                label={t('studio_apps_bi.query.break_down', 'Break it down by')}
                                 items={groupBy}
                                 onChange={setGroupBy}
                                 makeNew={() => ({ field: '', bucket: '' })}
-                                addLabel="Add a breakdown"
-                                itemLabel={(g) => fieldName(g.field) || 'Pick a column'}
+                                addLabel={t('studio_apps_bi.query.add_breakdown', 'Add a breakdown')}
+                                itemLabel={(g) => fieldName(g.field) || t('studio_apps_bi.query.pick_column_label', 'Pick a column')}
                                 renderItem={(g, update) => (
                                     <div className="flex flex-col gap-2">
-                                        <select className={inputCls} value={g.field || ''} onChange={(e) => update({ ...g, field: e.target.value, bucket: '' })} aria-label="Break down by">
-                                            <option value="">Pick a column…</option>
+                                        <select className={inputCls} value={g.field || ''} onChange={(e) => update({ ...g, field: e.target.value, bucket: '' })} aria-label={t('studio_apps_bi.query.break_down_by', 'Break down by')}>
+                                            <option value="">{t('studio_apps_bi.chart.pick_column', 'Pick a column…')}</option>
                                             {fields.map((f) => <option key={f.key} value={f.key}>{f.name || f.key}</option>)}
                                         </select>
                                         {DATE_TYPES.has(fieldType(g.field)) ? (
-                                            <select className={inputCls} value={g.bucket || ''} onChange={(e) => update({ ...g, bucket: e.target.value })} aria-label="Group dates">
-                                                {DATE_BUCKETS.map((b) => <option key={b.value} value={b.value}>{b.label}</option>)}
+                                            <select className={inputCls} value={g.bucket || ''} onChange={(e) => update({ ...g, bucket: e.target.value })} aria-label={t('studio_apps_bi.query.group_dates', 'Group dates')}>
+                                                {DATE_BUCKETS.map((b) => <option key={b.value} value={b.value}>{t(b.labelKey, b.label)}</option>)}
                                             </select>
                                         ) : null}
                                     </div>
@@ -366,12 +370,12 @@ export default function QueryBuilder({ open, onClose, appId, componentType = 'ch
 
                         <fieldset className="min-w-0">
                             <RepeatableList
-                                label="What do you want to see?"
+                                label={t('studio_apps_bi.query.what_to_see', 'What do you want to see?')}
                                 items={aggregates}
                                 onChange={setAggregates}
                                 makeNew={() => ({ agg: 'sum', field: '', label: '' })}
-                                addLabel="Add a number"
-                                itemLabel={(a) => a.label || measureSentence(a, fieldName)}
+                                addLabel={t('studio_apps_bi.query.add_number', 'Add a number')}
+                                itemLabel={(a) => a.label || measureSentence(a, fieldName, t)}
                                 renderItem={(a, update) => (
                                     <div className="flex flex-col gap-2">
                                         <div className="flex items-center gap-2 min-w-0">
@@ -379,48 +383,48 @@ export default function QueryBuilder({ open, onClose, appId, componentType = 'ch
                                                 className={inputCls}
                                                 value={a.agg || 'sum'}
                                                 onChange={(e) => update({ ...a, agg: e.target.value, ...(e.target.value === 'count' ? { field: '' } : {}) })}
-                                                aria-label="What to work out"
+                                                aria-label={t('studio_apps_bi.query.what_to_work_out', 'What to work out')}
                                             >
-                                                {AGGS.map((x) => <option key={x.value} value={x.value}>{x.label}</option>)}
+                                                {AGGS.map((x) => <option key={x.value} value={x.value}>{t(x.labelKey, x.label)}</option>)}
                                             </select>
-                                            <span className="shrink-0 text-xs text-[var(--text-secondary)]">of</span>
-                                            <select className={inputCls} value={a.field || ''} onChange={(e) => update({ ...a, field: e.target.value })} aria-label="Which column" disabled={a.agg === 'count'}>
-                                                <option value="">{a.agg === 'count' ? 'every row' : 'Pick a column…'}</option>
+                                            <span className="shrink-0 text-xs text-[var(--text-secondary)]">{t('studio_apps_bi.query.of', 'of')}</span>
+                                            <select className={inputCls} value={a.field || ''} onChange={(e) => update({ ...a, field: e.target.value })} aria-label={t('studio_apps_bi.query.which_column', 'Which column')} disabled={a.agg === 'count'}>
+                                                <option value="">{a.agg === 'count' ? t('studio_apps_bi.query.every_row', 'every row') : t('studio_apps_bi.chart.pick_column', 'Pick a column…')}</option>
                                                 {fields.map((f) => <option key={f.key} value={f.key}>{f.name || f.key}</option>)}
                                             </select>
                                         </div>
-                                        <input type="text" className={inputCls} value={a.label || ''} onChange={(e) => update({ ...a, label: e.target.value })} placeholder="Call it something else (optional)" spellCheck={false} />
+                                        <input type="text" className={inputCls} value={a.label || ''} onChange={(e) => update({ ...a, label: e.target.value })} placeholder={t('studio_apps_bi.query.call_it', 'Call it something else (optional)')} spellCheck={false} />
                                     </div>
                                 )}
                             />
                         </fieldset>
 
-                        <FilterRowsEditor fields={fields} filters={filters} onChange={setFilters} label="Only count rows where" />
+                        <FilterRowsEditor fields={fields} filters={filters} onChange={setFilters} label={t('studio_apps_bi.query.only_count_where', 'Only count rows where')} />
 
 
                         <label className="flex flex-col gap-1">
-                            <span className="text-xs font-medium text-[var(--text-secondary)]">Name this view</span>
-                            <input type="text" className={inputCls} value={name} onChange={(e) => setName(e.target.value)} placeholder={currentTable?.name ? `${currentTable.name} view` : 'View'} />
+                            <span className="text-xs font-medium text-[var(--text-secondary)]">{t('studio_apps_bi.query.name_view', 'Name this view')}</span>
+                            <input type="text" className={inputCls} value={name} onChange={(e) => setName(e.target.value)} placeholder={currentTable?.name ? t('studio_apps_bi.query.view_named', '{table} view', { table: currentTable.name }) : t('studio_apps_bi.query.view', 'View')} />
                         </label>
                     </div>
 
                     {/* ── RIGHT: live preview ── */}
                     <div className="flex flex-col gap-4 min-w-0">
                         <div className="min-w-0">
-                            <div className="text-xs font-medium text-[var(--text-secondary)] mb-1.5">Preview</div>
+                            <div className="text-xs font-medium text-[var(--text-secondary)] mb-1.5">{t('studio_apps_bi.query.preview', 'Preview')}</div>
                             <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-tertiary)] p-3 min-h-[120px]">
                                 {unknownFields.length ? (
                                     <p className="text-xs" style={{ color: 'var(--error)' }}>
-                                        This table has no {unknownFields.map((k) => fieldName(k)).join(', ')} column any more. Pick another column above (or remove that row).
+                                        {t('studio_apps_bi.query.unknown_fields', 'This table has no {fields} column any more. Pick another column above (or remove that row).', { fields: unknownFields.map((k) => fieldName(k)).join(', ') })}
                                     </p>
                                 ) : !valid ? (
-                                    <p className="text-xs text-[var(--text-muted)]">Choose what you want to see to get a preview.</p>
+                                    <p className="text-xs text-[var(--text-muted)]">{t('studio_apps_bi.query.choose_for_preview', 'Choose what you want to see to get a preview.')}</p>
                                 ) : preview.isLoading ? (
-                                    <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]"><Loader2 className="w-4 h-4 animate-spin" /> Running…</div>
+                                    <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]"><Loader2 className="w-4 h-4 animate-spin" /> {t('studio_apps_bi.query.running', 'Running…')}</div>
                                 ) : preview.isError ? (
-                                    <p className="text-xs" style={{ color: 'var(--error)' }}>{preview.error?.message || 'Preview failed.'}</p>
+                                    <p className="text-xs" style={{ color: 'var(--error)' }}>{preview.error?.message || t('studio_apps_bi.query.preview_failed', 'Preview failed.')}</p>
                                 ) : previewRows.length === 0 ? (
-                                    <p className="text-xs text-[var(--text-muted)]">No rows match this query.</p>
+                                    <p className="text-xs text-[var(--text-muted)]">{t('studio_apps_bi.query.no_rows', 'No rows match this query.')}</p>
                                 ) : (
                                     <div className="overflow-x-auto">
                                         <table className="w-full text-xs border-collapse">
@@ -442,7 +446,7 @@ export default function QueryBuilder({ open, onClose, appId, componentType = 'ch
                                             </tbody>
                                         </table>
                                         {previewRows.length > PREVIEW_ROWS ? (
-                                            <p className="text-[11px] text-[var(--text-muted)] mt-1">+{previewRows.length - PREVIEW_ROWS} more rows</p>
+                                            <p className="text-[11px] text-[var(--text-muted)] mt-1">{t('studio_apps_bi.query.more_rows', '+{n} more rows', { n: previewRows.length - PREVIEW_ROWS })}</p>
                                         ) : null}
                                     </div>
                                 )}
@@ -483,6 +487,7 @@ function formatCell(v) {
  * definition for symmetry; they're unused here and safely ignored.)
  */
 export function ConfigureDataButton({ patch, componentType = 'chart', disabled = false }) {
+    const { t } = useTranslation();
     const chrome = useEditorChrome();
     const appId = chrome?.appId ?? null;
     const [open, setOpen] = useState(false);
@@ -513,9 +518,9 @@ export function ConfigureDataButton({ patch, componentType = 'chart', disabled =
                 onClick={() => setOpen(true)}
                 className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium border border-[var(--border-default)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] hover:border-[var(--accent-primary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-                <Database className="w-4 h-4" aria-hidden="true" /> Configure data
+                <Database className="w-4 h-4" aria-hidden="true" /> {t('studio_apps_bi.query.configure_data', 'Configure data')}
             </button>
-            {!appId ? <p className="text-[11px] text-[var(--text-muted)]">Open the app to build a dataset.</p> : null}
+            {!appId ? <p className="text-[11px] text-[var(--text-muted)]">{t('studio_apps_bi.query.open_app', 'Open the app to build a dataset.')}</p> : null}
             {open && appId ? (
                 <QueryBuilder
                     open={open}

@@ -335,15 +335,47 @@ function extractTierWord(content, tiers) {
 }
 
 /**
+ * Whether a Privacy Shield covers this turn. A shield that cannot be resolved
+ * counts as on: the cost is a heuristic tier choice, the alternative is
+ * unmasked text at a provider.
+ * @param {string|null} userOrgId
+ * @param {string|null} userId
+ * @returns {Promise<boolean>}
+ */
+async function isShieldOn(userOrgId, userId) {
+    try {
+        const shield = await require('../privacy/orgShield').resolveShieldFor({ orgId: userOrgId, userId });
+        return !!shield?.enabled;
+    } catch (_) {
+        return true;
+    }
+}
+
+/**
+ * Whether a model runs on a self-hosted runtime, by its STORED provider type.
+ * @param {string} modelId
+ * @returns {Promise<boolean>}
+ */
+async function isLocalModel(modelId) {
+    try {
+        const provider = await require('../aiAgent').getProviderForModel(modelId);
+        return require('../providers/localModels').isLocalProviderType(provider?.providerType);
+    } catch (_) {
+        return false;
+    }
+}
+
+/**
  * Classify a message using heuristic shortcut → cache → LLM.
  *
  * @param {string} message
  * @param {Object} tiers - Tier config map (key → { modelId, ... })
  * @param {Object} [opts]
- * @param {string|null} [opts.userOrgId] - Org ID for EU-mode tier overrides
+ * @param {string|null} [opts.userOrgId] - Org ID for EU-mode tier overrides and the Privacy Shield
+ * @param {string|null} [opts.userId] - User ID, for a personal account's own Privacy Shield
  * @returns {Promise<{tier: string, method: string, reason: string}>}
  */
-async function classifyWithLLM(message, tiers, { userOrgId = null } = {}) {
+async function classifyWithLLM(message, tiers, { userOrgId = null, userId = null } = {}) {
     if (!tiers) {
         const { getEUAwareTiers } = require('./modelResolver');
         tiers = await getEUAwareTiers({ userOrgId });
@@ -396,9 +428,15 @@ async function classifyWithLLM(message, tiers, { userOrgId = null } = {}) {
         return out;
     }
 
-    if (!classifyModel) {
+    // The LLM stage sends the RAW message, and it runs before any chat's
+    // Privacy Shield gate. With a shield on, the unmasked text may go to an
+    // in-tenant (local runtime) classifier only; otherwise the heuristic
+    // decides. Decided on the STORED provider type, never a URL guess.
+    const shieldOn = classifyModel ? await isShieldOn(userOrgId, userId) : false;
+    const classifierIsLocal = shieldOn ? await isLocalModel(classifyModel) : false;
+    if (!classifyModel || (shieldOn && !classifierIsLocal)) {
         const tier = tiers[heuristic.tier]?.modelId ? heuristic.tier : 'fast';
-        log.info(`[Classifier] heuristic (no classifier model): tier="${tier}" (${heuristic.reason})`);
+        log.info(`[Classifier] heuristic (${classifyModel ? 'privacy shield on, external classifier' : 'no classifier model'}): tier="${tier}" (${heuristic.reason})`);
         return { tier, method: 'heuristic', reason: heuristic.reason };
     }
 
@@ -432,14 +470,14 @@ async function classifyWithLLM(message, tiers, { userOrgId = null } = {}) {
         }
 
         if (suggested && tiers[suggested]?.modelId) {
-            const preview = msgText.substring(0, 80);
-            log.info(`[Classifier] llm (model=${classifyModel}): tier="${suggested}" for: "${preview}"`);
+            // Shape only: the message is user content.
+            log.info(`[Classifier] llm (model=${classifyModel}): tier="${suggested}" (${msgText.length} chars)`);
             const out = { tier: suggested, method: 'llm', reason: `LLM classified as ${suggested}` };
             cacheSet(cacheKey, { tier: out.tier, reason: out.reason });
             return out;
         }
 
-        log.info(`[Classifier] LLM returned invalid tier: "${raw.slice(0, 120)}", falling back`);
+        log.info(`[Classifier] LLM returned invalid tier (${raw.length} chars), falling back`);
     } catch (err) {
         log.info(`[Classifier] LLM failed: ${err.message}, falling back to heuristic`);
     }

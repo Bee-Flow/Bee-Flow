@@ -18,7 +18,8 @@ import useConfirm from '../../../shared/useConfirm';
 import type { AgentSummary } from '../homeQueries';
 import { projectErrorText } from '../projectErrorText';
 import { StudioSectionHeader } from '../studioParts';
-import { SELECT_CLASS } from '../workspaceUi';
+import ItemViewers from '../ItemViewers';
+import { SelectField } from '../workspaceUi';
 import AiModeSelector, { aiModeBadge, aiModeHint, effectiveMode } from './AiModeSelector';
 
 // A .jsx module whose `= null` defaults would type the props as null-only.
@@ -45,16 +46,16 @@ function AgentSelect({ chat, agents, onChange }: { chat: TeamChat; agents: Agent
     const { t } = useTranslation();
     const known = !chat.agentId || agents.some(a => a.id === chat.agentId);
     return (
-        <select
+        <SelectField
             value={chat.agentId || ''}
             onChange={e => onChange(e.target.value || null)}
             aria-label={t('project_chat.agent_label', 'Who answers')}
-            className={`${SELECT_CLASS} max-w-[11rem] flex-shrink-0`}
+            className="max-w-[11rem]" wrapperClassName="relative inline-block flex-shrink-0"
         >
             <option value="">{t('project_chat.ai_assistant', 'AI assistant')}</option>
             {!known && <option value={chat.agentId || ''} disabled>{t('project_chat.agent_other', 'An agent chosen by a colleague')}</option>}
             {agents.map(a => <option key={a.id} value={a.id}>{a.name || a.id}</option>)}
-        </select>
+        </SelectField>
     );
 }
 
@@ -179,6 +180,7 @@ export default function TeamChatHeader(props: TeamChatHeaderProps) {
                         {canEdit && chat.aiMode !== 'off' && <AgentSelect chat={chat} agents={agents} onChange={agentId => patch({ agentId })} />}
                     </div>
                 </details>
+                <ItemViewers type="chat" id={chat.id} />
                 <AutoPausedChip chat={chat} />
                 <ModeWithdrawnChip chat={chat} />
             </div>

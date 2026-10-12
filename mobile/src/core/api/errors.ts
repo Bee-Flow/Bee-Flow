@@ -144,7 +144,7 @@ export function describeError(error: unknown): DescribedError {
     }
     if (error instanceof ApiError) return describeApiError(error);
     return {
-        title: translate('mobile.error.unknown_title', 'Something went wrong'),
+        title: translate('forms.public_error_title', 'Something went wrong'),
         message: (error as Error)?.message || translate('mobile.error.unknown_message', 'Try again.'),
         retryable: true,
     };

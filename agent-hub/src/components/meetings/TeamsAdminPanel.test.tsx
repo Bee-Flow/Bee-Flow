@@ -41,4 +41,11 @@ describe('TeamsAdminPanel', () => {
         expect(state.save.mutateAsync).toHaveBeenCalledWith(expect.objectContaining({ autoImport: true, autoRecordConfig: true, language: 'en' }));
         expect(await screen.findByText('Saved')).toBeTruthy();
     });
+
+    it('names each switch by its row title', () => {
+        render(<TeamsAdminPanel user={{ organizationId: 'orgA' }} />);
+        expect(screen.getByRole('button', { name: 'Auto-import recorded Teams meetings', pressed: false })).toBeTruthy();
+        expect(screen.getByRole('button', { name: 'Switch on Teams recording for meetings members organise', pressed: true })).toBeTruthy();
+        expect(screen.getByRole('combobox', { name: 'Default language' })).toBeTruthy();
+    });
 });

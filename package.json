@@ -3,7 +3,7 @@
   "private": true,
   "description": "Root workspace for the Bee Flow AI monorepo: dev orchestration, image builds, and secret-scan scripts. The deployable services live in their own directories (see REPO-STRUCTURE.md).",
   "engines": {
-    "node": ">=22.12.0 <23.0.0"
+    "node": ">=22.15.0 <23.0.0"
   },
   "packageManager": "npm@10.9.0",
   "scripts": {
@@ -37,6 +37,7 @@
     "lint:gitleaks": "./scripts/scan-secrets.sh",
     "lint:checks": "node scripts/check-required-checks.mjs",
     "lint:workflows": "node scripts/check-workflow-concurrency.mjs",
+    "lint:legal-catalogue": "node scripts/check-legal-catalogue.mjs",
     "i18n:gen": "node scripts/gen-i18n-defaults.mjs",
     "learn-media:fetch": "node scripts/learn-media-fetch.mjs",
     "gen:shared": "node scripts/gen-shared-mirror.mjs",
@@ -47,5 +48,8 @@
   "devDependencies": {
     "concurrently": "^10.0.5",
     "jscpd": "^5.3.2"
+  },
+  "overrides": {
+    "shell-quote": "^1.12.0"
   }
 }

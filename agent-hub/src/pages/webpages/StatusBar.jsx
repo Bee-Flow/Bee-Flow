@@ -1,5 +1,6 @@
 import React from 'react';
 import { Download, History } from 'lucide-react';
+import { useTranslation } from '../../hooks/useTranslation';
 import SaveStatus from './SaveStatus';
 
 const LANG_LABELS = { html: 'HTML', css: 'CSS', js: 'JavaScript' };
@@ -41,6 +42,7 @@ export default function StatusBar({
     onVersions,
     onRetrySave,
 }) {
+    const { t } = useTranslation();
     return (
         <div
             className="flex items-center shrink-0 px-2 gap-3 text-[11px] select-none"
@@ -54,12 +56,12 @@ export default function StatusBar({
             {/* Cursor / file metadata — hidden when no file is open */}
             {activeFile ? (
                 <>
-                    <span>Ln {cursor?.line ?? 1}, Col {cursor?.col ?? 1}</span>
+                    <span>{t('webpages.status_cursor', 'Ln {line}, Col {col}', { line: cursor?.line ?? 1, col: cursor?.col ?? 1 })}</span>
                     <span>{labelForActiveFile(activeFile)}</span>
                     <span>{fmtSize(fileSize ?? 0)}</span>
                 </>
             ) : (
-                <span style={{ opacity: 0.85 }}>Preview · click a file to edit</span>
+                <span style={{ opacity: 0.85 }}>{t('webpages.status_preview_hint', 'Preview · click a file to edit')}</span>
             )}
 
             {/* Spacer */}
@@ -69,15 +71,15 @@ export default function StatusBar({
             <button
                 onClick={onVersions}
                 className="flex items-center gap-1 opacity-80 hover:opacity-100 transition-opacity"
-                title="Version history"
+                title={t('webpages.status_version_history', 'Version history')}
             >
-                <History size={12} /> History
+                <History size={12} /> {t('webpages.tab.history', 'History')}
             </button>
 
             <button
                 onClick={onDownload}
                 className="flex items-center gap-1 opacity-80 hover:opacity-100 transition-opacity"
-                title="Download as ZIP"
+                title={t('webpages.status_download_zip', 'Download as ZIP')}
             >
                 <Download size={12} /> ZIP
             </button>

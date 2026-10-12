@@ -24,7 +24,8 @@
 'use strict';
 
 const crypto = require('crypto');
-const { run, getOne, getAll, withTransaction } = require('../../db');
+const contentCrypto = require('../lib/documentCrypto');
+const { run, getOne, getAll, withTransaction } = contentCrypto.readingDb(require('../../db'));
 const managedParts = require('../lib/managedParts');
 const log = require('../../telemetry/log');
 const versions = require('../documentVersions');
@@ -267,19 +268,21 @@ function carriedFields(fields) {
 async function writeManagedTemplate(client, { id = null, ownerId, orgId = null, projectId, fields }, { managedWrite = null } = {}) {
     await documentStore().initDB();
     if (!projectId || !ownerId) throw failure('A template needs a project and an owner.', 422, 'document_invalid');
+    client = contentCrypto.readingClient(client);
     await assertManaged(projectId, ['content'], { managedWrite, client });
     const carried = carriedFields(fields);
     const { mapRow } = documentStore();
     const versionId = crypto.randomUUID();
     if (!id) {
         const newId = crypto.randomUUID();
+        const stored = await contentCrypto.sealFields({ body_html: carried.bodyHtml, css: carried.css, settings: carried.settings }, { type: 'document', id: newId, userId: ownerId, organizationId: orgId, projectId }, contentCrypto.DOCUMENT_FIELDS);
         await client.query(
             `INSERT INTO studio_documents
                 (id, user_id, organization_id, name, doc_type, description, body_html, css, settings, kind, visibility,
                  folder_id, categories, version_id, baseline_version_id, solution_project_id, updated_by)
              VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'private',NULL,'[]'::jsonb,$11,$11,$12,$2)`,
-            [newId, ownerId, orgId || null, carried.name, carried.docType, carried.description, carried.bodyHtml,
-                carried.css, JSON.stringify(carried.settings), carried.kind, versionId, projectId],
+            [newId, ownerId, orgId || null, carried.name, carried.docType, carried.description, stored.body_html,
+                stored.css, JSON.stringify(stored.settings), carried.kind, versionId, projectId],
         );
         const { rows } = await client.query('SELECT * FROM studio_documents WHERE id = $1', [newId]);
         await versions.writeRevision(client, mapRow(rows[0]), { summary: 'Deployed', source: 'import', actorId: ownerId });
@@ -289,12 +292,13 @@ async function writeManagedTemplate(client, { id = null, ownerId, orgId = null, 
         'SELECT * FROM studio_documents WHERE id = $1 AND solution_project_id = $2 FOR UPDATE', [id, projectId]);
     if (!lockedRows[0]) throw failure('Template not found in this stage.', 404, 'document_not_found');
     const previous = mapRow(lockedRows[0]);
+    const stored = await contentCrypto.sealFields({ body_html: carried.bodyHtml, css: carried.css, settings: carried.settings }, { ...contentCrypto.resourceOf(lockedRows[0]), projectId }, contentCrypto.DOCUMENT_FIELDS);
     const { rows } = await client.query(
         `UPDATE studio_documents SET name=$2, doc_type=$3, description=$4, body_html=$5, css=$6, settings=$7, kind=$8,
                 version_id=$9, updated_by=$10, updated_at=NOW()
           WHERE id=$1 RETURNING *`,
-        [id, carried.name, carried.docType, carried.description, carried.bodyHtml, carried.css,
-            JSON.stringify(carried.settings), carried.kind, versionId, ownerId],
+        [id, carried.name, carried.docType, carried.description, stored.body_html, stored.css,
+            JSON.stringify(stored.settings), carried.kind, versionId, ownerId],
     );
     await versions.writeRevision(client, mapRow(rows[0]), { summary: 'Deployed', source: 'import', actorId: ownerId }, previous);
     return { id, versionId, created: false };

@@ -1,8 +1,9 @@
 /**
  * The Nextcloud pages this screen opens (the other panels of the web's
  * Nextcloud page): pairing a new Nextcloud for an NC-bound org or the
- * platform operator, and the Talk and Google Meet meeting-notes settings
- * under the Meeting Notes licence.
+ * platform operator, and the Talk meeting-notes settings under the Meeting
+ * Notes licence. Google Meet's meeting-notes settings are not here: Meet does
+ * not need a Nextcloud, so they open from Meeting templates, as on the web.
  */
 
 import { useRouter } from 'expo-router';
@@ -26,10 +27,7 @@ export function NcLinksGroup({ pairing, meetingNotes }: { pairing: boolean; meet
                 />
             ) : null}
             {meetingNotes ? (
-                <>
-                    <ListRow testID="nc-talk" title={t('mobile.orgIntegrations.talk_title', 'Talk Meeting Notes')} chevron onPress={() => router.push('/org/nextcloud/talk')} />
-                    <ListRow testID="nc-meet" title={t('mobile.orgIntegrations.meet_title', 'Google Meet Meeting Notes')} chevron onPress={() => router.push('/org/nextcloud/meet')} />
-                </>
+                <ListRow testID="nc-talk" title={t('mobile.orgIntegrations.talk_title', 'Talk Meeting Notes')} chevron onPress={() => router.push('/org/nextcloud/talk')} />
             ) : null}
         </Group>
     );

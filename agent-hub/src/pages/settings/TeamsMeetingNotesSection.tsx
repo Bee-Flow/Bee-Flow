@@ -94,7 +94,12 @@ export default function TeamsMeetingNotesSection() {
                             title={t('settings.teams_notes_auto_import', 'Auto-import my recorded Teams meetings')}
                             desc={t('settings.teams_notes_auto_import_desc', 'When a Teams meeting you organised has a recording, create a Meeting Note automatically. Only meetings you organise can be imported.')}
                         >
-                            <Toggle on={!!cfg.autoImport} onClick={() => setCfg((c) => ({ ...c, autoImport: !c.autoImport }))} disabled={busy} />
+                            <Toggle
+                                on={!!cfg.autoImport}
+                                onClick={() => setCfg((c) => ({ ...c, autoImport: !c.autoImport }))}
+                                disabled={busy}
+                                ariaLabel={t('settings.teams_notes_auto_import', 'Auto-import my recorded Teams meetings')}
+                            />
                         </Row>
                         <Row
                             title={t('settings.teams_notes_auto_record', 'Also switch on Teams recording for meetings I organise')}
@@ -102,7 +107,12 @@ export default function TeamsMeetingNotesSection() {
                                 ? t('settings.teams_notes_auto_record_desc', 'When you turn recording on for a meeting, Bee Flow sets Teams to record it automatically. Teams shows everyone in the call that it is being recorded.')
                                 : t('settings.teams_notes_auto_record_noscope', 'Needs the permission to change your Teams meetings — reconnect Microsoft 365 to grant it.')}
                         >
-                            <Toggle on={!!cfg.autoRecordConfig} onClick={() => setCfg((c) => ({ ...c, autoRecordConfig: !c.autoRecordConfig }))} disabled={busy || !connection.hasMeetingWriteScope} />
+                            <Toggle
+                                on={!!cfg.autoRecordConfig}
+                                onClick={() => setCfg((c) => ({ ...c, autoRecordConfig: !c.autoRecordConfig }))}
+                                disabled={busy || !connection.hasMeetingWriteScope}
+                                ariaLabel={t('settings.teams_notes_auto_record', 'Also switch on Teams recording for meetings I organise')}
+                            />
                         </Row>
                         <Row
                             title={t('settings.teams_notes_language', 'Default language')}

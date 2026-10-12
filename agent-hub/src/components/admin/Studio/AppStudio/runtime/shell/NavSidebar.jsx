@@ -2,6 +2,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import Brand from './Brand';
 import UserMenu from './UserMenu';
+import useTranslation from '../../../../../../hooks/useTranslation';
 import AppIcon from '../../../../../icons/AppIcon';
 
 /**
@@ -32,6 +33,7 @@ function readCollapsed(storageKey) {
 }
 
 export default function NavSidebar({ definition, model, screenId, onNavigate, viewer, appId = null, onExit = null, railed = false }) {
+    const { t } = useTranslation();
     const storageKey = (appId && !railed) ? `appStudio.nav.collapsed.${appId}` : null;
     const [userCollapsed, setCollapsed] = useState(() => readCollapsed(storageKey));
     const collapsed = railed || userCollapsed;
@@ -108,7 +110,7 @@ export default function NavSidebar({ definition, model, screenId, onNavigate, vi
 
             <nav
                 className="flex-1 min-h-0 overflow-y-auto px-2 py-1 flex flex-col gap-0.5"
-                aria-label="App screens"
+                aria-label={t('studio_apps_runtime.nav.app_screens', 'App screens')}
                 onKeyDown={onKeyDown}
             >
                 {model.ungrouped.map(renderItem)}
@@ -142,14 +144,18 @@ export default function NavSidebar({ definition, model, screenId, onNavigate, vi
                     <button
                         type="button"
                         onClick={toggleCollapsed}
-                        aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'}
-                        title={collapsed ? 'Expand navigation' : 'Collapse navigation'}
+                        aria-label={collapsed
+                            ? t('studio_apps_runtime.nav.expand_navigation', 'Expand navigation')
+                            : t('studio_apps_runtime.nav.collapse_navigation', 'Collapse navigation')}
+                        title={collapsed
+                            ? t('studio_apps_runtime.nav.expand_navigation', 'Expand navigation')
+                            : t('studio_apps_runtime.nav.collapse_navigation', 'Collapse navigation')}
                         className="app-nav-item flex w-full items-center gap-2 px-3 py-1.5 text-sm"
                     >
                         {collapsed
                             ? <ChevronRight className="w-4 h-4 shrink-0" aria-hidden="true" />
                             : <ChevronLeft className="w-4 h-4 shrink-0" aria-hidden="true" />}
-                        <span className="app-nav-item-label">Collapse</span>
+                        <span className="app-nav-item-label">{t('studio_apps_runtime.nav.collapse', 'Collapse')}</span>
                     </button>
                 )}
             </div>

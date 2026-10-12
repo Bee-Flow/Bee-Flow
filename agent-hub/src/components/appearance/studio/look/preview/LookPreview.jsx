@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import LookPreviewIframe from './LookPreviewIframe';
 import LookPreviewToolbar from './LookPreviewToolbar';
 import { PREVIEW_SURFACES } from './previewSurfaces';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 
 /**
  * Right-rail preview chrome. Wraps the iframe in a soft rounded card so the
@@ -10,6 +11,7 @@ import { PREVIEW_SURFACES } from './previewSurfaces';
  *   draftPayload — theme payload sent to the iframe (form + saved wallpaper)
  */
 export default function LookPreview({ draftPayload }) {
+    const { t } = useTranslation();
     const [activeId, setActiveId] = useState(PREVIEW_SURFACES[0].id);
     const [reloadCount, setReloadCount] = useState(0);
     const surface = useMemo(
@@ -23,15 +25,15 @@ export default function LookPreview({ draftPayload }) {
         <aside
             className="h-full flex flex-col p-4 gap-3"
             style={{ background: 'var(--bg-primary)' }}
-            aria-label="Live theme preview"
+            aria-label={t('appearance.look_preview_live_theme_preview', 'Live theme preview')}
         >
             <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
                     <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                        Live preview
+                        {t('appearance.look_preview_live_preview', 'Live preview')}
                     </h3>
                     <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                        Real app, signed in as you. Clicks hit the backend.
+                        {t('appearance.look_preview_real_app_signed_in_as_you_clicks_hit', 'Real app, signed in as you. Clicks hit the backend.')}
                     </p>
                 </div>
                 <span
@@ -45,7 +47,7 @@ export default function LookPreview({ draftPayload }) {
                         className="w-1.5 h-1.5 rounded-full"
                         style={{ background: 'var(--accent-primary)' }}
                     />
-                    Live
+                    {t('appearance.look_preview_live', 'Live')}
                 </span>
             </div>
 

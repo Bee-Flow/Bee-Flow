@@ -30,6 +30,7 @@ const router = makeSheetRouter({
             if (!doc) return null;
             if (userId === 'owner') return doc;
             if (userId === 'viewer') return { ...doc, projectRole: 'viewer' };
+            if (userId === 'sharedViewer') return { ...doc, sharingRole: 'viewer' };
             if (userId === 'editor') return { ...doc, projectRole: 'editor' };
             return null;
         },
@@ -250,4 +251,17 @@ test('a viewer cannot change tabs', async () => {
     assert.strictEqual((await as('viewer', 'POST', '/s1/sheet/tabs', { name: 'X' })).status, 403);
     assert.strictEqual((await as('viewer', 'PATCH', '/s1/sheet/tabs/t1', { name: 'X' })).status, 403);
     assert.strictEqual((await as('viewer', 'DELETE', '/s1/sheet/tabs/t1')).status, 403);
+});
+
+
+test('a directly shared spreadsheet is read-only even without a project role', async () => {
+    const user = { id: 'sharedViewer', organizationId: 'org1' };
+    const read = await api.call('GET', '/api/studio-documents/s1/sheet', { user });
+    assert.strictEqual(read.status, 200);
+    assert.strictEqual(read.body.readOnly, true);
+    const previousWrites = state.writes.length;
+    const write = await api.call('PATCH', '/api/studio-documents/s1/sheet', { user, body: { cells: { A1: 'Changed' } } });
+    assert.strictEqual(write.status, 403);
+    assert.strictEqual(write.body.code, 'document_read_only');
+    assert.strictEqual(state.writes.length, previousWrites);
 });

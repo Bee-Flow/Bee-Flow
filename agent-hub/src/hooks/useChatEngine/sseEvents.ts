@@ -821,6 +821,16 @@ export function dispatchSSEEvent(
             }
             break;
 
+        // The memories this turn drew on. Sent once, only when non-empty.
+        case 'memory_used':
+            if (Array.isArray(data?.items) && data.items.length > 0) {
+                const items = data.items;
+                setMessages(prev => prev.map(m => (
+                    m.id === assistantMsgId ? { ...m, memoryUsed: items } : m
+                )));
+            }
+            break;
+
         // De attributie-pass van een TESTCHAT (A4): welke `doesNot`-regels van
         // de rol dit antwoord zichtbaar volgde. Een MENING, geen notulen — de
         // chiprij toont hem daarom apart (zie AnswerChips.jsx).
@@ -894,6 +904,16 @@ export function dispatchSSEEvent(
             try {
                 window.dispatchEvent(new CustomEvent('beeflow:document-updated', {
                     detail: { documentId: data.documentId, name: data.name, url: data.url },
+                }));
+            } catch (_) {}
+            break;
+
+        // The AI proposed changes to a page instead of writing them: tell the
+        // open editor's suggestions list (api/queries/suggestions.ts).
+        case 'document_suggestions':
+            try {
+                window.dispatchEvent(new CustomEvent('beeflow:document-suggestions', {
+                    detail: { documentId: data.documentId, batchId: data.batchId, count: data.count },
                 }));
             } catch (_) {}
             break;

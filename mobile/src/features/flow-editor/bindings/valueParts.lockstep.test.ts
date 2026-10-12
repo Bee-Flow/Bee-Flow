@@ -28,6 +28,9 @@ const BINDINGS: unknown[] = [
     { kind: 'expr', value: 'parseJson(secrets.x)' }, { kind: 'expr', value: 'unknownFn(item.x)' },
     { kind: 'expr', value: 'item.x + 1' }, { kind: 'expr', value: 'count(item.list)' }, { kind: 'expr', value: 'join(x.y, "a")' },
     { kind: 'weird' },
+    // Engine string escapes the old copied decoder did not know.
+    { kind: 'expr', value: 'join(item.tags, "\\u2022 ")' }, { kind: 'expr', value: 'join(item.tags, "\\r\\n")' },
+    { kind: 'expr', value: "yesNoText(item.ok, '\\u2713', \"\\f\\b\")" }, { kind: 'expr', value: 'parseJson(item.body, "[\\"a\\u2022b\\"]")' },
 ];
 
 describe('valueParts', () => {
@@ -67,7 +70,12 @@ describe('valueParts', () => {
         expect(vp.describeDataPath(path)).toStrictEqual(webVp.describeDataPath?.(path));
     });
 
-    it.each(['', 'a\\b', 'say "hi"', 'line\nbreak', 'tab\t', null])('escapeExprString(%p)', (s) => {
+    it('a string argument reads as the engine reads it', () => {
+        expect(vp.parseValue({ kind: 'expr', value: 'join(item.tags, "\\u2022 ")' }).transformArg).toBe('\u2022 ');
+        expect(vp.parseValue({ kind: 'expr', value: "join(item.tags, '\\r\\n')" }).transformArg).toBe('\r\n');
+    });
+
+    it.each(['', 'a\\b', 'say "hi"', 'line\nbreak', 'cr\r\nlf', 'tab\t', null])('escapeExprString(%p)', (s) => {
         expect(vp.escapeExprString(s)).toBe(webVp.escapeExprString?.(s));
     });
 
@@ -103,6 +111,9 @@ describe('refTokens', () => {
         'mysteps.x.output', 'vars.trigger', 'x.loop.y', 'loop.item.name + loop.row', 'trigger', 'trigger.output',
         'Hi {{steps.a.output.name}}, see {{ trigger.output.link }} and {{ lower(x) }}',
         '{{loop.item}}', '{{unknown.path}}', 'steps.a.output[*].x', 'steps.a.output.results[0].id', null, 42,
+        // Digit and unicode names after a dot, as the engine reads them.
+        'steps.a.output.items.0.price * steps.a.output.items.0.qty', 'loop.row.cells.1 + 1', 'steps.a.output.naam.prénom + "x"',
+        'steps.a.output.total-steps.b.output.tax', 'steps.a.output.content-type * 2', 'steps.s1.output.items[i].x',
     ];
 
     it.each(TEXTS)('parseRefTokens(%p)', (text) => {

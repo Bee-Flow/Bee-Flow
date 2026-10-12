@@ -39,6 +39,14 @@ export interface Project {
     filesKbId?: string | null;
     createdAt?: string;
     updatedAt?: string;
+    /** Set while the project is archived: read-only for everybody, hidden from the rail. */
+    archivedAt?: string | null;
+    /** The user id of whoever archived it. */
+    archivedBy?: string | null;
+    /** Whether editors may invite people (the server's default is true). */
+    editorsCanInvite?: boolean;
+    /** I muted this project's notifications (when the server says so; there is no other read for it). */
+    muted?: boolean;
 }
 
 export interface ProjectForm {
@@ -50,6 +58,10 @@ export interface ProjectForm {
     knowledgeBaseIds?: string[];
     extractMemories?: boolean;
     kind?: ProjectKind;
+    /** Owner only. */
+    editorsCanInvite?: boolean;
+    /** I muted this project's notifications (when the server says so; there is no other read for it). */
+    muted?: boolean;
 }
 
 export interface ProjectShare {
@@ -127,7 +139,10 @@ export interface MyProjectChat {
 
 export const projectKeys = {
     all: ['projects'] as const,
-    list: (kind?: ProjectKind) => ['projects', 'list', kind ?? 'all'] as const,
+    list: (kind?: ProjectKind, includeArchived = false) => (includeArchived
+        ? ['projects', 'list', kind ?? 'all', 'with-archived'] as const
+        : ['projects', 'list', kind ?? 'all'] as const),
+    principals: (id: string, q: string) => ['projects', id, 'principals', q] as const,
     project: (id: string) => ['projects', id] as const,
     detail: (id: string) => ['projects', id, 'detail'] as const,
     members: (id: string) => ['projects', id, 'members'] as const,
@@ -161,12 +176,14 @@ export const retryUnlessRefused = (failures: number, error: unknown): boolean =>
 
 // ── Projects ────────────────────────────────────────────────────────────────
 
-export function useProjectsQuery(kind: ProjectKind = 'workspace', enabled = true) {
+/** `options` may be the old `enabled` boolean. `includeArchived` lists archived projects too (they carry `archivedAt`). */
+export function useProjectsQuery(kind: ProjectKind = 'workspace', options: boolean | { enabled?: boolean; includeArchived?: boolean } = true) {
+    const { enabled = true, includeArchived = false } = typeof options === 'boolean' ? { enabled: options } : options;
     return useQuery<Project[], Error>({
-        queryKey: projectKeys.list(kind),
+        queryKey: projectKeys.list(kind, includeArchived),
         enabled,
         queryFn: async ({ signal }) => {
-            const rows = await apiClient.get<Project[]>('/api/projects', { signal, query: { kind } });
+            const rows = await apiClient.get<Project[]>('/api/projects', { signal, query: includeArchived ? { kind, includeArchived: '1' } : { kind } });
             return Array.isArray(rows) ? rows : [];
         },
     });
@@ -241,6 +258,24 @@ export function useDeleteProject() {
     });
 }
 
+function useArchiveMutation(projectId: string, action: 'archive' | 'restore', fallback: string) {
+    const qc = useQueryClient();
+    return useMutation<void, Error, void>({
+        mutationFn: async () => {
+            try {
+                await apiClient.post(`/api/projects/${enc(projectId)}/${action}`, {}, { retry: false });
+            } catch (e) {
+                throw toProjectError(e, fallback);
+            }
+        },
+        onSuccess: () => qc.invalidateQueries({ queryKey: projectKeys.all }),
+    });
+}
+
+/** Owner: close the project (read-only for everybody, out of the rail). */
+export const useArchiveProject = (projectId: string) => useArchiveMutation(projectId, 'archive', 'Could not archive the project');
+export const useRestoreProject = (projectId: string) => useArchiveMutation(projectId, 'restore', 'Could not restore the project');
+
 /** Classify a project from before the split (kind `null`), or correct the
  *  upgrade's guess once (`kindGuessed`). Owner only; the server refuses once
  *  the owner's kind is set, and while the project holds what the other side
@@ -303,6 +338,49 @@ export function useInviteMember(projectId: string) {
     return useMemberMutation<InviteForm>(projectId,
         (form) => apiClient.post(`/api/projects/${enc(projectId)}/share`, form, { retry: false }),
         'Could not invite this member');
+}
+
+/** A person or group the invite picker can offer. The server never sends an e-mail address. */
+export interface ProjectPrincipals {
+    users: Array<{ id: string; name: string; avatar?: { type?: string; value?: string } | null }>;
+    groups: Array<{ id: string; name: string; memberCount: number }>;
+}
+
+/** Search the project's organisation for people and groups to invite; waits for 2+ characters. */
+export function useProjectPrincipals(projectId: string | null | undefined, q: string) {
+    const needle = q.trim();
+    return useQuery<ProjectPrincipals, Error>({
+        queryKey: projectKeys.principals(projectId || '', needle),
+        enabled: !!projectId && needle.length >= 2,
+        staleTime: 30_000,
+        retry: retryUnlessRefused,
+        queryFn: async ({ signal }) => {
+            const body = await apiClient.get<Partial<ProjectPrincipals>>(`/api/projects/${enc(projectId!)}/principals`, { signal, query: { q: needle }, retry: false });
+            return { users: Array.isArray(body?.users) ? body!.users! : [], groups: Array.isArray(body?.groups) ? body!.groups! : [] };
+        },
+    });
+}
+
+export interface TransferOwnerForm { toUserId: string; keepMeAs: 'editor' | 'viewer' | 'none'; expectedOwnerId?: string }
+
+/** Hand the project to a member (owner, or an organisation admin as a rescue). 409 `owner_changed` when the owner moved meanwhile. */
+export function useTransferOwner(projectId: string) {
+    const qc = useQueryClient();
+    return useMutation<void, Error, TransferOwnerForm>({
+        mutationFn: async (form) => {
+            try {
+                await apiClient.post(`/api/projects/${enc(projectId)}/transfer-owner`, form, { retry: false });
+            } catch (e) {
+                throw toProjectError(e, 'Could not transfer the project');
+            }
+        },
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: projectKeys.detail(projectId) });
+            qc.invalidateQueries({ queryKey: projectKeys.members(projectId) });
+            qc.invalidateQueries({ queryKey: projectKeys.activity(projectId) });
+            qc.invalidateQueries({ queryKey: ['projects', 'list'] });
+        },
+    });
 }
 
 export function useChangeMemberRole(projectId: string) {

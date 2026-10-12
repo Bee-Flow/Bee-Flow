@@ -652,6 +652,9 @@ async function agentToolsForStep({ binding, ctx, extraTools = [], extraToolsStar
                 // De grants blijven staan; alleen de kennislijst wordt leeg
                 // gemaakt, en dat kan alleen versmallen.
                 agentConfig: _catalogConfig(gatedBinding),
+                // The automations bound to THIS agent are the ones the step may
+                // start; the step has no other route to an agent_call automation.
+                agentId: binding.agentId || null,
                 // Apps the step's skills enable (only when useTools is on; the
                 // caller filtered them). Bypasses the personal app toggle only,
                 // exactly as in chat; org and group grants still decide.

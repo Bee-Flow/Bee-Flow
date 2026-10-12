@@ -12,8 +12,12 @@
  *   essential | important, no reference    → fail
  *   class not set                          → warn ("classify")
  *
- * The article reference is indicative — the Dutch implementing act may number
- * the registration duty differently; legal confirms before the copy ships.
+ * The article cited is the Directive's, Art. 3(4): Member States must require
+ * essential and important entities to submit the registration data. The Dutch
+ * implementing act, the Cyberbeveiligingswet (Stb. 2026, 187, BWBR0052872),
+ * is in force since 15 Aug 2026; its matching article has not been verified.
+ * Do not cite a Cbw article number until it has been read on
+ * wetten.overheid.nl.
  */
 
 const complianceStore = require('../../../stores/complianceStore');

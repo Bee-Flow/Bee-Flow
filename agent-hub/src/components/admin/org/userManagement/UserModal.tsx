@@ -59,7 +59,7 @@ export default function UserModal({
             <div className="space-y-4">
                 {/* Avatar Picker */}
                 <div>
-                    <label className="block text-sm font-medium mb-2 text-[var(--text-primary)]">Avatar</label>
+                    <label className="block text-sm font-medium mb-2 text-[var(--text-primary)]">{t('admin_org.user_modal_avatar', 'Avatar')}</label>
                     <div className="flex items-center gap-4">
                         {/* Avatar preview */}
                         <div className="w-16 h-16 rounded-full flex items-center justify-center overflow-hidden border-2 border-[var(--border-default)] bg-[var(--bg-tertiary)]">
@@ -75,17 +75,17 @@ export default function UserModal({
                         <div className="flex flex-col gap-2">
                             <div className="flex gap-2">
                                 <button type="button" onClick={() => setShowEmojiPicker(!showEmojiPicker)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all bg-[var(--bg-tertiary)] text-[var(--text-primary)] ${showEmojiPicker ? 'ring-2 ring-[var(--accent-primary)]' : ''}`}>
-                                    <Smile className="w-4 h-4" /> Emoji
+                                    <Smile className="w-4 h-4" /> {t('admin_org.user_modal_emoji', 'Emoji')}
                                 </button>
                                 <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium cursor-pointer bg-[var(--bg-tertiary)] text-[var(--text-primary)]">
-                                    <Image className="w-4 h-4" /> Upload
+                                    <Image className="w-4 h-4" /> {t('admin_org.user_modal_upload', 'Upload')}
                                     <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" className="hidden" onChange={(e) => {
                                         const file = e.target.files?.[0];
                                         if (file) onUploadAvatar(file);
                                     }} />
                                 </label>
                                 {(userData.avatar) && (
-                                    <button type="button" onClick={onRemoveAvatar} className="px-3 py-1.5 rounded-lg text-sm font-medium text-[var(--text-muted)]">Remove</button>
+                                    <button type="button" onClick={onRemoveAvatar} className="px-3 py-1.5 rounded-lg text-sm font-medium text-[var(--text-muted)]">{t('admin_org.user_modal_remove', 'Remove')}</button>
                                 )}
                             </div>
                         </div>
@@ -99,29 +99,29 @@ export default function UserModal({
                         </div>
                     )}
                 </div>
-                {!showEditUser && <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">Username</label><input type="text" value={userData.username} onChange={e => setUserData(p => ({ ...p, username: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder="johndoe" /></div>}
-                <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">Display Name</label><input type="text" value={userData.displayName} onChange={e => setUserData(p => ({ ...p, displayName: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder="John Doe" /></div>
+                {!showEditUser && <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.user_modal_username', 'Username')}</label><input type="text" value={userData.username} onChange={e => setUserData(p => ({ ...p, username: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder={t('admin_org.user_modal_username_ph', 'johndoe')} /></div>}
+                <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.user_modal_display_name', 'Display Name')}</label><input type="text" value={userData.displayName} onChange={e => setUserData(p => ({ ...p, displayName: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder={t('admin_org.user_modal_display_name_ph', 'John Doe')} /></div>
                 <div className="grid grid-cols-2 gap-4">
-                    <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">First Name</label><input type="text" value={userData.firstName} onChange={e => setUserData(p => ({ ...p, firstName: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder="John" /></div>
-                    <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">Last Name</label><input type="text" value={userData.lastName} onChange={e => setUserData(p => ({ ...p, lastName: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder="Doe" /></div>
+                    <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.user_modal_first_name', 'First Name')}</label><input type="text" value={userData.firstName} onChange={e => setUserData(p => ({ ...p, firstName: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder={t('admin_org.user_modal_first_name_ph', 'John')} /></div>
+                    <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.user_modal_last_name', 'Last Name')}</label><input type="text" value={userData.lastName} onChange={e => setUserData(p => ({ ...p, lastName: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder={t('admin_org.user_modal_last_name_ph', 'Doe')} /></div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                    <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">Email</label><input type="email" value={userData.email} onChange={e => setUserData(p => ({ ...p, email: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder="john@example.com" /></div>
-                    <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">Phone</label><input type="tel" value={userData.phone} onChange={e => setUserData(p => ({ ...p, phone: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder="+1 555 123 4567" /></div>
+                    <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.user_modal_email', 'Email')}</label><input type="email" value={userData.email} onChange={e => setUserData(p => ({ ...p, email: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder="john@example.com" /></div>
+                    <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.user_modal_phone', 'Phone')}</label><input type="tel" value={userData.phone} onChange={e => setUserData(p => ({ ...p, phone: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder="+1 555 123 4567" /></div>
                 </div>
-                <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{showEditUser ? 'New Password (blank to keep)' : 'Password'}</label><input type="password" value={userData.password} onChange={e => setUserData(p => ({ ...p, password: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder="••••••••" /></div>
+                <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{showEditUser ? t('admin_org.user_modal_password_new', 'New Password (blank to keep)') : t('admin_org.user_modal_password', 'Password')}</label><input type="password" value={userData.password} onChange={e => setUserData(p => ({ ...p, password: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder="••••••••" /></div>
                 {/* ── Organisation Assignment ── */}
                 <div className="p-4 rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)]">
                     <div className="flex items-center gap-2 mb-3">
                         <Building className="w-4 h-4 text-[#8b5cf6]" />
-                        <label className="text-sm font-semibold text-[var(--text-primary)]">Organisation Assignment</label>
+                        <label className="text-sm font-semibold text-[var(--text-primary)]">{t('admin_org.user_modal_org_assignment', 'Organisation Assignment')}</label>
                     </div>
 
                     {/* Org selector — operators only. Tenant membership is not an
                         org admin's to change (the server answers 403
                         cross_org_move_denied), so they see it, they cannot set it. */}
                     <div className="mb-3">
-                        <label className="block text-xs font-medium mb-1 text-[var(--text-muted)]">Organisation</label>
+                        <label className="block text-xs font-medium mb-1 text-[var(--text-muted)]">{t('admin_org.user_modal_organisation', 'Organisation')}</label>
                         {!isPlatformAdmin ? (
                             <div
                                 className="w-full px-3 py-2 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-secondary)] text-[var(--text-muted)]"
@@ -148,7 +148,7 @@ export default function UserModal({
                                     }}
                                     className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none appearance-none cursor-pointer focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]"
                                 >
-                                    <option value="">— No organisation —</option>
+                                    <option value="">{t('admin.sec_no_organisation', '— No organisation —')}</option>
                                     {organizations.map(org => (
                                         <option key={org.id} value={org.id}>{org.name}</option>
                                     ))}
@@ -161,7 +161,7 @@ export default function UserModal({
                     {/* Org role selector */}
                     {userData.organizationId && (
                         <div>
-                            <label className="block text-xs font-medium mb-1.5 text-[var(--text-muted)]">Organisation Role</label>
+                            <label className="block text-xs font-medium mb-1.5 text-[var(--text-muted)]">{t('admin_org.user_modal_org_role', 'Organisation Role')}</label>
                             <div className="grid grid-cols-2 gap-2">
                                 {ORG_ROLES.map((r) => {
                                     const isSelected = userData.orgRole === r.id;
@@ -188,18 +188,18 @@ export default function UserModal({
                     )}
 
                     {!userData.organizationId && (
-                        <p className="text-xs text-[var(--text-muted)]">Select an organisation to assign this user and set their role.</p>
+                        <p className="text-xs text-[var(--text-muted)]">{t('admin_org.user_modal_select_org', 'Select an organisation to assign this user and set their role.')}</p>
                     )}
                 </div>
 
                 {/* ── Groups ── */}
                 <div>
-                    <label className="block text-sm font-medium mb-2 text-[var(--text-primary)]">Groups</label>
+                    <label className="block text-sm font-medium mb-2 text-[var(--text-primary)]">{t('admin_org.user_modal_groups', 'Groups')}</label>
                     <div className="max-h-48 overflow-auto p-2 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-primary)]">
                         {/* Global Groups */}
                         {groups.filter(g => !g.organizationId).length > 0 && (
                             <div className="mb-2">
-                                <div className="text-xs font-semibold uppercase tracking-wider mb-1.5 px-1 text-[var(--text-muted)]">Global Groups</div>
+                                <div className="text-xs font-semibold uppercase tracking-wider mb-1.5 px-1 text-[var(--text-muted)]">{t('admin_org.user_modal_global_groups', 'Global Groups')}</div>
                                 <div className="space-y-0.5">
                                     {groups.filter(g => !g.organizationId).map(g => (
                                         <label key={g.id} className="flex items-center gap-2.5 cursor-pointer px-2 py-1.5 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors">
@@ -234,7 +234,7 @@ export default function UserModal({
                                 </div>
                             );
                         })}
-                        {groups.length === 0 && <p className="text-sm px-2 py-1 text-[var(--text-muted)]">No groups available</p>}
+                        {groups.length === 0 && <p className="text-sm px-2 py-1 text-[var(--text-muted)]">{t('admin_org.user_modal_no_groups', 'No groups available')}</p>}
                     </div>
                 </div>
             </div>

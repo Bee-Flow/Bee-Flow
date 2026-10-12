@@ -629,6 +629,29 @@ test('output falls back to the last top-level step when the run row has no outpu
     assert.strictEqual(r.body.status, 'success');
 });
 
+test('an answer too large to keep says so (_outputTooLarge) instead of passing as "no output"', async () => {
+    // Over the 256 KB row cap AND over the full-copy limit: the row holds only
+    // the truncation sentinel, with no kept copy to swap in. deriveRunOutcome
+    // reports that as outputTooLarge; the app must hear it, or a list bound
+    // to the answer is just empty with nothing saying why.
+    const { truncatePayload } = require('../automation/payloadTruncation');
+    const big = truncatePayload({ value: Array.from({ length: 300 }, (_, i) => ({ id: `m${i}`, body: 'x'.repeat(900) })) });
+    assert.strictEqual(big.truncated, true, 'the fixture is over the cap');
+    runnerImpl = async () => ({ id: 'run-big', status: 'success', error: null });
+    stepsByRun.set('run-big', [{ runId: 'run-big', stepId: 's1', stepType: 'integration_action', parentStepId: null, attempts: 1, output: big.value }]);
+    const app = makeApp({ actionsPub: { act1: RUN_ACTION } });
+    const r = await dispatch({ url: `/${app.id}/actions/act1/run`, orgIds: [ORG], body: {} });
+    assert.strictEqual(r.statusCode, 200);
+    assert.strictEqual(r.body.output, null, 'never the sentinel as if it were data');
+    assert.strictEqual(r.body._outputTooLarge, true);
+
+    // A run whose answer fit carries no such field: the body stays byte-identical.
+    runnerImpl = async () => ({ id: 'run-small', status: 'success', error: null });
+    stepsByRun.set('run-small', [{ runId: 'run-small', stepId: 's1', stepType: 'integration_action', parentStepId: null, output: { ok: 1 } }]);
+    const small = await dispatch({ url: `/${app.id}/actions/act1/run`, orgIds: [ORG], body: {} });
+    assert.ok(!('_outputTooLarge' in small.body));
+});
+
 test('output is null for a failed run (no step derivation)', async () => {
     runnerImpl = async () => ({ id: 'run-f', status: 'error', error: 'boom' });
     stepsByRun.set('run-f', [{ stepId: 's1', stepType: 'integration_action', parentStepId: null, output: { partial: true } }]);

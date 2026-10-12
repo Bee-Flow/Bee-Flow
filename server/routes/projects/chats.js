@@ -118,6 +118,7 @@ function excerptOf(text) {
  * @param {object}   [deps.participation]       { onHumanMessage, cancelContainer } (projects/participation)
  * @param {object}   [deps.policy]              { resolveOrgPolicy } (projects/participation/policy)
  * @param {object}   [deps.participationStore]  { recordFeedback, feedbackFor } (stores/projectAiParticipationStore)
+ * @param {object}   [deps.collabNotifier]      { chatMentioned } (projects/collabNotify): the bell for a mention
  * @param {Function} [deps.signalProjectChanged]  (project, reason) => void (routes/projects/complianceSignal)
  * @param {Function} [deps.now]
  * @param {Function} [deps.newId]
@@ -141,6 +142,9 @@ function makeProjectChatsRouter(deps = {}) {
             log.warn(`[ProjectChat] task links to ${kind} ${id} not dropped: ${err && err.message}`);
         }
     }
+    let defaultCollabNotifier = null;
+    const collabNotifier = () => deps.collabNotifier
+        || (defaultCollabNotifier || (defaultCollabNotifier = require('../../projects/collabNotify').makeCollabNotifier()));
     const chatCrypto = () => deps.chatCrypto || require('../../projects/chatCrypto');
     let defaultAssistant = null;
     const assistant = () => deps.assistant
@@ -433,6 +437,10 @@ function makeProjectChatsRouter(deps = {}) {
             await emit(project.id, chatEvent('chat.message.created', userId, chat.id, { messageId: stored.id, seq: stored.seq, authorKind: 'user' }));
             if (kept.length > 0) {
                 await emit(project.id, chatEvent('chat.mention', userId, chat.id, { messageId: stored.id, mentionedUserIds: kept }));
+                // Best effort: the bell carries the project and the writer's name, never the message.
+                try { await collabNotifier().chatMentioned({ project, actorId: userId, mentionedUserIds: kept, chatId: chat.id }); } catch (err) {
+                    log.warn(`[ProjectChat] mention not notified: ${err && err.message}`);
+                }
             }
 
             const { decideAiTrigger, mentionsAssistant } = require('../../projects/chatAssistant');

@@ -3,7 +3,8 @@
  *
  * Scans each published agent's system prompt, starter prompts and config for
  * explicit disclosure phrasing. Supports one-click auto-fix that prepends an
- * AI-disclosure sentence (locale-aware) to each affected agent's system prompt.
+ * AI-disclosure sentence (English, or Dutch when the install default language
+ * is Dutch) to each affected agent's system prompt.
  * The auto-fix is captured in the compliance_evidence chain so it can be
  * audited and rolled back.
  *
@@ -58,6 +59,7 @@
 const { getAll, run } = require('../../../db');
 const { classifyDisclosure, applyVerdict } = require('../../../core/privacy/disclosureClassifier');
 const log = require('../../../telemetry/log');
+const pd = require('../../projects/projectData');
 
 const DISCLOSURE_PATTERNS = [
     /\bI['’]?m an AI\b/i,
@@ -116,6 +118,25 @@ function _prepend(sentence, prompt) {
     return `${sentence}\n\n${prompt || ''}`.trim();
 }
 
+/**
+ * The install's default UI language, two letters, else 'en' — the language
+ * the disclosure sentence is written in when an agent carries none (agents
+ * have no language column, so that is every agent today). The same source as
+ * compliance/marking.js, but read straight from config: languageStore seeds
+ * the locale list with a write on first read, and an auto-fix must not write
+ * configuration as a side effect.
+ */
+async function _defaultLocale() {
+    try {
+        const locales = await require('../../../stores/configStore').getConfig('i18n_locales');
+        const def = Array.isArray(locales) ? locales.find(l => l && l.isDefault) : null;
+        const code = def && typeof def.code === 'string' ? def.code.toLowerCase().slice(0, 2) : '';
+        return code || 'en';
+    } catch {
+        return 'en';
+    }
+}
+
 // SQLSTATEs that genuinely mean "this install has no agent register yet":
 // undefined_table / undefined_column. Anything else (a dropped connection, a
 // statement timeout, a permission error) is a FAILED READ and must never be
@@ -146,10 +167,13 @@ async function _missingForOrg(orgId, { consult = false, classify = classifyDiscl
         // the concept columns come along as draft_* so the fix can patch both.
         //
         // Org scoping is done in SQL: an agent that belongs to no organisation
-        // (organization_id IS NULL) is a platform-wide object, not this org's,
+        // (organization_id IS NULL) is a platform-wide object, not a tenant's,
         // and it used to be counted for EVERY org — putting its id and name
-        // into every tenant's immutable evidence chain (BFSF-441). A tenant's
-        // verdict now covers exactly the agents that tenant owns. The JS filter
+        // into every tenant's immutable evidence chain (BFSF-441). Only
+        // org-less users see such an agent, and the scheduler sweeps them as
+        // the 'default' bucket, so that bucket judges it (projectData.orgMatch:
+        // COALESCE(NULLIF(organization_id, ''), 'default')); a real tenant's
+        // verdict covers exactly the agents that tenant owns. The JS filter
         // below mirrors the predicate so a store/stub that ignores parameters
         // cannot widen the scope again.
         agents = await getAll(`
@@ -161,7 +185,7 @@ async function _missingForOrg(orgId, { consult = false, classify = classifyDiscl
                    COALESCE(published_config::text, config::text) AS config,
                    organization_id,
                    NULL::text AS language
-            FROM agents WHERE is_published = TRUE${orgId ? ' AND organization_id = $1' : ''}
+            FROM agents WHERE is_published = TRUE${orgId ? ` AND ${pd.orgMatch('organization_id')}` : ''}
         `, orgId ? [orgId] : []);
     } catch (e) {
         if (NOT_PROVISIONED.has(e?.code)) {
@@ -177,7 +201,7 @@ async function _missingForOrg(orgId, { consult = false, classify = classifyDiscl
     // to learn from it and a call about it would be pure cost.
     const passed = [];
     for (const a of agents) {
-        if (orgId && a.organization_id !== orgId) continue;
+        if (orgId && (a.organization_id || pd.NO_ORG_ORG_ID) !== orgId) continue;
         relevant.push(a);
         const haystack = [
             a.system_prompt || '',
@@ -298,11 +322,12 @@ module.exports = {
     },
 
     /**
-     * One-click remediation. Prepends a locale-aware disclosure sentence to
-     * the system prompt of every agent that's missing one — to the concept
-     * AND, when the agent has one, to the published prompt. The original
-     * (effective) prompt is preserved in the evidence row so the change can
-     * be inspected and reverted if needed.
+     * One-click remediation. Prepends a disclosure sentence to the system
+     * prompt of every agent that's missing one — to the concept AND, when the
+     * agent has one, to the published prompt. The sentence is Dutch when the
+     * install default language is Dutch (_defaultLocale), English otherwise.
+     * The original (effective) prompt is preserved in the evidence row so the
+     * change can be inspected and reverted if needed.
      */
     async autoFix(orgId, { actorId } = {}) {
         // NO `consult` — see the header. What this writes must be the same on
@@ -320,9 +345,10 @@ module.exports = {
         if (missing.length === 0) {
             return { changed: 0, summary: 'No agents required a disclosure fix.', agents: [] };
         }
+        const fallback = await _defaultLocale();
         const changed = [];
         for (const a of missing) {
-            const lang = (a.language || '').toLowerCase().startsWith('nl') ? 'nl' : 'en';
+            const lang = String(a.language || fallback).toLowerCase().startsWith('nl') ? 'nl' : 'en';
             const sentence = DISCLOSURE_SENTENCE[lang];
             const newDraft = _prepend(sentence, a.draft_system_prompt);
             const hasPublished = a.published_system_prompt !== null && a.published_system_prompt !== undefined;

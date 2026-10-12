@@ -80,8 +80,13 @@ describe('JSON text, against ParseJsonFields.jsx', () => {
         ];
         expect(jsonCandidates({ listMode: false, elementSample: null, groups, eachRow: 'each row' }).map((c) => c.path)).toEqual(['steps.a.output.raw', 'steps.b.output.note']);
         expect(jsonCandidates({ listMode: true, elementSample: { body: '{"a":1}', n: 1 }, groups, eachRow: 'each row' })).toEqual([{ path: 'item.body', label: 'each row · Body', preferred: true }]);
-        expect(addJsonField({ id: 1 }, 'item.body', 'a["x"]')).toEqual({ id: 1, [web.suggestFieldName('a["x"]', ['id'])]: { kind: 'expr', value: `parseJson(item.body, 'a["x"]')` } });
-        expect(addJsonField({ id: 1 }, 'item.body', 'user.id')).toEqual({ id: 1, id_2: { kind: 'expr', value: 'parseJson(item.body, "user.id")' } });
+        // JSON text the run reads directly: a plain path, one pill, any key.
+        expect(addJsonField({ id: 1 }, 'item.body', 'a["x y"]', '{"a":{"x y":1}}')).toEqual({ id: 1, [web.suggestFieldName('a["x y"]', ['id'])]: { kind: 'ref', path: 'item.body.a["x y"]' } });
+        expect(addJsonField({ id: 1 }, 'item.body', 'user.id', '{"user":{"id":7}}')).toEqual({ id: 1, id_2: { kind: 'ref', path: 'item.body.user.id' } });
+        // JSON inside prose (or no sample): parseJson, with the path an escaped literal that runs.
+        expect(addJsonField({ id: 1 }, 'item.body', 'a["x"]')).toEqual({ id: 1, [web.suggestFieldName('a["x"]', ['id'])]: { kind: 'expr', value: 'parseJson(item.body, "a[\\"x\\"]")' } });
+        expect(addJsonField({ id: 1 }, 'item.body', 'user.id', 'Here: {"user":{"id":7}}')).toEqual({ id: 1, id_2: { kind: 'expr', value: 'parseJson(item.body, "user.id")' } });
+        expect(jsonCandidates({ listMode: true, elementSample: { 'raw-json': '{"a":1}' }, groups, eachRow: 'each row' })[0]?.path).toBe('item["raw-json"]');
     });
 
     it('lists a payload as rows to pick from, a list by its first item or each', () => {

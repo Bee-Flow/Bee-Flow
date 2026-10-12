@@ -435,3 +435,58 @@ test('ai + itemsRef: empty fields → empty items envelope, no model call', asyn
     assert.deepStrictEqual(r.output, { items: [], count: 0 });
     assert.strictEqual(llmState.calls.length, 0);
 });
+
+// ── JSON the way models write it (shared/expr/path.mjs extractJsonText) ─────
+//
+// A schemaless AI step answers ```json … ``` one run and "Sure! Here is the
+// JSON: {…}" the next. Plain JSON.parse failed the run whenever the model
+// fenced its answer, and a payload encoded twice gave all-null fields.
+
+const LENIENT = { customer: { name: 'Acme', contacts: [{ email: 'a@acme.test' }] } };
+const lenientStep = {
+    id: 'p1', type: 'parse_json', sourceRef: 'steps.ai.output.answer',
+    fields: [{ name: 'name', path: 'customer.name' }, { name: 'email', path: 'customer.contacts[0].email' }],
+};
+const answerState = (answer) => baseState({ steps: { ai: { output: { answer } } } });
+
+test('paths: a ```json fenced, prose-wrapped or double-encoded source parses', async () => {
+    const want = { name: 'Acme', email: 'a@acme.test' };
+    for (const answer of [
+        '```json\n' + JSON.stringify(LENIENT, null, 2) + '\n```',
+        `Sure! Here is the JSON:\n${JSON.stringify(LENIENT)}\nLet me know if you need more.`,
+        JSON.stringify(JSON.stringify(LENIENT)),
+    ]) {
+        const r = await execParseJson(lenientStep, baseCtx, answerState(answer), 'live');
+        assert.deepStrictEqual(r.output, want, answer.slice(0, 30));
+    }
+});
+
+test('paths: a source without any JSON in it still fails loudly', async () => {
+    await assert.rejects(
+        () => execParseJson(lenientStep, baseCtx, answerState('I could not find a customer in this mail.'), 'live'),
+        /parse_json: source is not valid JSON/,
+    );
+});
+
+test('paths: an error page or cut-off answer with a stray JSON fragment still fails loudly', async () => {
+    // execHttpRequest returns a 4xx/5xx body instead of throwing, so this text
+    // does reach parse_json; it must take the error path, not succeed with nulls.
+    for (const text of [
+        'Rate limited [429], retry later',
+        'Upstream error {} occurred',
+        '<html><script>var cfg = {};</script><body>502 Bad Gateway</body></html>',
+        '{"id": 7, "customer": {"id": 99, "email": "c@x.test"}, "lines": [{"id": 1, "sk',
+    ]) {
+        await assert.rejects(
+            () => execParseJson(lenientStep, baseCtx, answerState(text), 'live'),
+            /parse_json: source is not valid JSON/,
+            text,
+        );
+    }
+});
+
+test('paths: field paths read into JSON text nested inside the parsed value', async () => {
+    const s = { ...lenientStep, fields: [{ name: 'name', path: 'Message.customer.name' }] };
+    const r = await execParseJson(s, baseCtx, answerState(JSON.stringify({ Message: JSON.stringify(LENIENT) })), 'live');
+    assert.deepStrictEqual(r.output, { name: 'Acme' });
+});

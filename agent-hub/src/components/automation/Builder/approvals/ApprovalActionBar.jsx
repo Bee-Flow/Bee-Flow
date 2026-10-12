@@ -3,6 +3,7 @@ import React from 'react';
 import ApprovalDecisionControls from '../../../admin/Studio/Approvals/ApprovalDecisionControls';
 import useAutomationApi from '../../../../hooks/useAutomationApi';
 import { toast } from '../../../shared/Toast';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 /**
  * Inline action bar for a step that's paused awaiting human approval — the
@@ -23,6 +24,7 @@ import { toast } from '../../../shared/Toast';
  *   onResolved() — optional callback fired after a successful decision
  */
 export default function ApprovalActionBar({ runId, stepId, prompt, fields = null, onResolved }) {
+    const { t } = useTranslation();
     const api = useAutomationApi();
 
     const decide = async (decision, reason, answers) => {
@@ -55,7 +57,7 @@ export default function ApprovalActionBar({ runId, stepId, prompt, fields = null
                 <ShieldQuestion size={14} className="mt-0.5 text-amber-600 dark:text-amber-400 shrink-0" />
                 <div className="flex-1 min-w-0">
                     <div className="text-[12px] font-medium text-amber-700 dark:text-amber-300">
-                        Waiting for your approval
+                        {t('automations.approval_action_bar.waiting_for_your_approval', 'Waiting for your approval')}
                     </div>
                     <div
                         className="text-[12px] text-[var(--text-primary)] mt-1 whitespace-pre-wrap break-words"
@@ -64,7 +66,7 @@ export default function ApprovalActionBar({ runId, stepId, prompt, fields = null
                         {question}
                     </div>
                     <div className="text-[11px] text-[var(--text-secondary)] mt-1">
-                        Approve and the run continues from the next step. Reject and the run stops here.
+                        {t('automations.approval_action_bar.approve_and_the_run_continues_from', 'Approve and the run continues from the next step. Reject and the run stops here.')}
                     </div>
                 </div>
             </div>

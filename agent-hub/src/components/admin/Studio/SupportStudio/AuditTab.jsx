@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { RefreshCw } from 'lucide-react';
 import useTranslation from '../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
-import { metaFor, CATEGORY_IDS, CATEGORY_META } from './auditMeta';
+import { metaFor, categoryLabel, CATEGORY_IDS } from './auditMeta';
 
 /**
  * AuditTab — organisation-wide audit trail of every support interaction
@@ -53,7 +53,7 @@ export default function AuditTab({ inboxes = [], onOpenThread }) {
                 <Field label={t('support.audit.actor', 'Actor')}>
                     <select value={filters.actor} onChange={e => setFilters(f => ({ ...f, actor: e.target.value }))} className={SELECT}>
                         <option value="">{t('support.audit.all_actors', 'Everyone')}</option>
-                        {CATEGORY_IDS.map(k => <option key={k} value={k}>{CATEGORY_META[k].label}</option>)}
+                        {CATEGORY_IDS.map(k => <option key={k} value={k}>{categoryLabel(k, t)}</option>)}
                     </select>
                 </Field>
                 <Field label={t('support.audit.from', 'From')}>
@@ -72,7 +72,7 @@ export default function AuditTab({ inboxes = [], onOpenThread }) {
                     <div className="p-6 text-center text-sm text-[var(--text-tertiary)]">{t('support.audit.empty', 'No audit events match these filters.')}</div>
                 )}
                 {events.map(ev => {
-                    const m = metaFor(ev);
+                    const m = metaFor(ev, t);
                     const Icon = m.Icon;
                     return (
                         <div key={ev.id} className={`flex items-start gap-3 px-4 py-2.5 ${ev.thread_id && onOpenThread ? 'cursor-pointer hover:bg-[var(--bg-secondary)]' : ''}`}
@@ -81,7 +81,7 @@ export default function AuditTab({ inboxes = [], onOpenThread }) {
                             <div className="min-w-0 flex-1">
                                 <div className="flex items-center gap-2 flex-wrap">
                                     <span className="text-sm text-[var(--text-primary)]">{m.label}</span>
-                                    <span className={`text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded border ${m.chip}`}>{m.label && CATEGORY_META[m.category].label}</span>
+                                    <span className={`text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded border ${m.chip}`}>{m.label && m.categoryLabel}</span>
                                     {m.summary && <span className="text-xs text-[var(--text-tertiary)] truncate">· {m.summary}</span>}
                                 </div>
                                 <div className="text-[11px] text-[var(--text-tertiary)] mt-0.5">

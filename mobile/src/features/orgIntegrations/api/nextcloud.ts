@@ -1,6 +1,7 @@
 /**
  * Nextcloud Sync, pairing a new Nextcloud, and the Talk and Google Meet
- * meeting-notes settings (the web shows all four on its Nextcloud Sync page).
+ * meeting-notes settings (the web shows the first three on its Nextcloud Sync
+ * page and Google Meet's on Meeting Templates; Meet needs no Nextcloud).
  *
  * Verified against:
  * - server/routes/admin/ncSync.js (mounted under /auth) — GET/PUT

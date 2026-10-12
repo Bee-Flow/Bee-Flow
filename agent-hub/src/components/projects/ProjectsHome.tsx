@@ -4,7 +4,7 @@
 // action), a toolbar, a card grid — and an empty state that explains what a
 // project is for, because a blank page with a "New" button does not.
 
-import { FolderOpen, Plus, Search, Users } from 'lucide-react';
+import { Archive, FolderOpen, Plus, Search, Users } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import type { Project, ProjectRole } from '../../api/queries/projects';
 import useRelativeTime from '../../hooks/useRelativeTime';
@@ -13,10 +13,12 @@ import SegmentedControl from '../shared/SegmentedControl';
 import { projectIcon, projectTileStyle } from './workspace/projectVisuals';
 import { FilterPills, RequireTier, StudioSectionHeader } from './workspace/studioParts';
 import type { AppUserLike } from './workspace/types';
-import { ErrorText, INPUT_CLASS, PrimaryButton, SecondaryButton } from './workspace/workspaceUi';
+import { ErrorText, INPUT_CLASS, PrimaryButton, SecondaryButton, Skeleton } from './workspace/workspaceUi';
 
 export interface ProjectsHomeProps {
     projects: Project[];
+    /** Archived projects (`archivedAt` set), for the "Archived" pill. The main list never holds them. */
+    archivedProjects?: Project[];
     loading?: boolean;
     error?: string | null;
     user: AppUserLike | null;
@@ -25,7 +27,7 @@ export interface ProjectsHomeProps {
     onClose: () => void;
 }
 
-type Filter = 'all' | 'mine' | 'shared';
+type Filter = 'all' | 'mine' | 'shared' | 'archived';
 type Sort = 'recent' | 'az';
 
 /** The caller's role in a list row. Unknown stays unknown: it is neither "mine" nor "shared". */
@@ -45,6 +47,7 @@ function useVisibleProjects(projects: Project[], userId: string | undefined, que
         const q = query.trim().toLowerCase();
         const rows = projects.filter((p) => {
             const role = listRole(p, userId);
+            if (filter === 'archived') return !q || `${p.name || ''} ${p.description || ''}`.toLowerCase().includes(q);
             if (filter === 'mine' && role !== 'owner') return false;
             if (filter === 'shared' && (role === null || role === 'owner')) return false;
             return !q || `${p.name || ''} ${p.description || ''}`.toLowerCase().includes(q);
@@ -93,7 +96,15 @@ function ProjectCard({ project, role, onOpen }: { project: Project; role: Projec
             <span className={`line-clamp-2 text-[12.5px] leading-snug min-h-[2.5em] ${project.description ? 'text-[var(--text-secondary)]' : 'text-[var(--text-tertiary)] italic'}`}>
                 {project.description || t('project_home.list.no_description', 'No description')}
             </span>
-            <RoleBadge role={role} />
+            <span className="flex items-center gap-2 flex-wrap">
+                <RoleBadge role={role} />
+                {project.archivedAt && (
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[11px] font-medium border border-[var(--border-default)] text-[var(--text-secondary)]" data-testid={`project-archived-chip-${project.id}`}>
+                        <Archive className="w-3 h-3" aria-hidden="true" />
+                        {t('project_home.archived.chip', 'Archived')}
+                    </span>
+                )}
+            </span>
         </button>
     );
 }
@@ -151,6 +162,9 @@ function Toolbar({ query, setQuery, filter, setFilter, sort, setSort, counts }: 
                     { value: 'all', label: t('project_home.list.filter_all', 'All'), count: counts.all },
                     { value: 'mine', label: t('project_home.list.filter_mine', 'Mine'), count: counts.mine },
                     { value: 'shared', label: t('project_home.list.filter_shared', 'Shared with me'), count: counts.shared },
+                    ...(counts.archived > 0 || filter === 'archived'
+                        ? [{ value: 'archived' as const, label: t('project_home.list.filter_archived', 'Archived'), count: counts.archived }]
+                        : []),
                 ]}
             />
             <div className="flex-1" />
@@ -172,7 +186,9 @@ function NoMatches({ filter, query, onClear }: { filter: Filter; query: string; 
     const { t } = useTranslation();
     let text = t('project_home.list.no_match', 'No projects match “{q}”.', { q: query.trim() });
     if (!query.trim()) {
-        text = filter === 'shared'
+        text = filter === 'archived'
+            ? t('project_home.list.none_archived', 'No archived projects.')
+            : filter === 'shared'
             ? t('project_home.list.none_shared', 'Nobody has shared a project with you yet.')
             : t('project_home.list.none_mine', 'You do not own any projects yet.');
     }
@@ -184,21 +200,23 @@ function NoMatches({ filter, query, onClear }: { filter: Filter; query: string; 
     );
 }
 
-function ProjectsHomeInner({ projects, loading, error, user, onSelectProject, onCreateProject, onClose }: ProjectsHomeProps) {
+function ProjectsHomeInner({ projects, archivedProjects, loading, error, user, onSelectProject, onCreateProject, onClose }: ProjectsHomeProps) {
     const { t } = useTranslation();
     const [query, setQuery] = useState('');
     const [filter, setFilter] = useState<Filter>('all');
     const [sort, setSort] = useState<Sort>('recent');
     const list = Array.isArray(projects) ? projects : [];
-    const visible = useVisibleProjects(list, user?.id, query, filter, sort);
+    const archivedList = useMemo(() => (Array.isArray(archivedProjects) ? archivedProjects : []).filter((p) => !!p.archivedAt), [archivedProjects]);
+    const visible = useVisibleProjects(filter === 'archived' ? archivedList : list, user?.id, query, filter, sort);
     const counts = useMemo(() => ({
         all: list.length,
+        archived: archivedList.length,
         mine: list.filter((p) => listRole(p, user?.id) === 'owner').length,
         shared: list.filter((p) => { const r = listRole(p, user?.id); return r !== null && r !== 'owner'; }).length,
-    }), [list, user?.id]);
+    }), [list, archivedList, user?.id]);
 
     let body: React.ReactNode;
-    if (loading && list.length === 0) body = <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" aria-busy="true">{[0, 1, 2].map((i) => <div key={i} className="h-32 rounded-xl bg-[var(--bg-tertiary)] animate-pulse" />)}</div>;
+    if (loading && list.length === 0) body = <Skeleton rows={3} variant="cards" label={t('project_home.loading', 'Loading…')} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" barClassName="!h-32" />;
     else if (error && list.length === 0) body = <ErrorText testId="projects-error">{t('project_home.list.load_failed', 'Could not load your projects: {error}', { error })}</ErrorText>;
     else if (list.length === 0) body = <FirstProject onCreate={onCreateProject} />;
     else if (visible.length === 0) body = <NoMatches filter={filter} query={query} onClear={() => { setQuery(''); setFilter('all'); }} />;

@@ -113,7 +113,7 @@ export function WebpageScreen({ pageId, tab }: { pageId: string; tab?: string })
                 error: page.error ?? new Error(t('mobile.webpages.gone', 'This page no longer exists.')),
                 refetch: page.refetch,
             }}
-            header={(detail) => (detail ? null : <ScreenHeader title={t('mobile.webpages.page', 'Page')} />)}
+            header={(detail) => (detail ? null : <ScreenHeader title={t('automations.trigger_editors.page', 'Page')} />)}
         >
             {(detail) => <WebpageBody pageId={pageId} detail={detail} requested={tab} />}
         </QueryScreen>

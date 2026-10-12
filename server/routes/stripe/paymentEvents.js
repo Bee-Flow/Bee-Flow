@@ -6,7 +6,7 @@
 
 const stripeService = require('../../services/stripeService');
 const userStore = require('../../stores/userStore');
-const { findSubscriptionTargetBySubId, stripOverriddenFields } = require('./webhookShared');
+const { findSubscriptionTargetBySubId, findSubscriptionTargetByCustomerId, stripOverriddenFields } = require('./webhookShared');
 const appPaths = require('../../utils/appPaths');
 const log = require('../../telemetry/log');
 
@@ -102,7 +102,19 @@ async function handleInvoicePaid(invoice) {
     const subId = invoice.subscription;
     if (!subId) return;
     const target = await findSubscriptionTargetBySubId(subId);
-    if (!target) return;
+    if (!target) {
+        // Stripe does not order events: for a new subscription invoice.paid can
+        // beat checkout.session.completed / customer.subscription.created, so no
+        // local row carries this subscription id yet. The event is recorded in
+        // the idempotency ledger and never redelivered, so the confirmation must
+        // go out now. Status and payment_status are left to the events that
+        // create the row.
+        if (invoice.billing_reason === 'subscription_create' && Number(invoice.amount_paid) > 0) {
+            const early = await _resolveEarlyConfirmationTarget(invoice);
+            if (early) await _sendSubscriptionConfirmationEmailOnce({ target: early, invoice, subId });
+        }
+        return;
+    }
 
     const updateData = { status: 'active', payment_status: 'paid' };
     const strippedUpdate = stripOverriddenFields(updateData);
@@ -123,6 +135,117 @@ async function handleInvoicePaid(invoice) {
             await userStore.logSubscriptionAudit('manual_override_respected', 'consumer', target.id, 'stripe_webhook', null, { event: 'invoice.paid', invoice_id: invoice.id });
         }
         log.info(`[Stripe Webhook] stripe.invoice.paid scope=consumer user=${target.id} applied=${result.applied}`);
+    }
+
+    // The first paid invoice of a subscription is the "payment successful"
+    // moment: confirm it to the customer (renewals do not re-send).
+    if (invoice.billing_reason === 'subscription_create' && Number(invoice.amount_paid) > 0) {
+        await _sendSubscriptionConfirmationEmailOnce({ target, invoice, subId });
+    }
+}
+
+/**
+ * Who to confirm a first payment to when no local row holds the subscription id
+ * yet: the metadata Stripe copied from our checkout onto the subscription, then
+ * the Stripe customer id. Null when neither names a subscriber.
+ */
+async function _resolveEarlyConfirmationTarget(invoice) {
+    try {
+        const meta = invoice.subscription_details?.metadata || null;
+        if (meta?.beeflow_subscriber_type === 'consumer' && meta.beeflow_user_id) {
+            return { scope: 'consumer', id: meta.beeflow_user_id };
+        }
+        if (meta?.beeflow_subscriber_type !== 'consumer' && meta?.beeflow_org_id) {
+            return { scope: 'organization', id: meta.beeflow_org_id };
+        }
+        return await findSubscriptionTargetByCustomerId(invoice.customer);
+    } catch (e) {
+        log.warn('[Stripe Webhook] early subscription confirmation target lookup failed:', e.message);
+        return null;
+    }
+}
+
+/**
+ * Idempotent customer confirmation after the first successful payment.
+ * Claims a per-subscription slot first, so a webhook redelivery never sends
+ * twice. Failures are swallowed: a notification must never 5xx Stripe.
+ */
+async function _sendSubscriptionConfirmationEmailOnce({ target, invoice, subId }) {
+    try {
+        const targetType = target.scope === 'organization' ? 'organization' : 'consumer';
+        const claimed = await userStore.claimNotification(
+            targetType, target.id, `subscription_confirmation:${subId}`,
+            null, { sub_id: subId, invoice_id: invoice.id },
+        );
+        if (!claimed) return;
+
+        let recipientEmail = null;
+        let displayName = null;
+        let orgName = null;
+        if (target.scope === 'consumer') {
+            const u = await userStore.getUser(target.id).catch(() => null);
+            recipientEmail = u?.email || null;
+            displayName = u?.displayName || u?.username || null;
+        } else {
+            const org = await userStore.getOrganization(target.id).catch(() => null);
+            orgName = org?.name || null;
+            recipientEmail = org?.email || null;
+            try {
+                const { getAll } = require('../../db');
+                const admins = await getAll(
+                    `SELECT email FROM users WHERE "organizationId" = $1 AND (role = 'admin' OR "orgRole" IN ('org_admin', 'admin')) AND email IS NOT NULL AND email <> '' LIMIT 1`,
+                    [target.id],
+                );
+                if (admins?.[0]?.email) recipientEmail = admins[0].email;
+            } catch (_) { /* tolerate */ }
+        }
+        if (!recipientEmail) return;
+
+        const line = invoice.lines?.data?.[0] || null;
+        const price = line?.price || null;
+        let planName = null;
+        let interval = price?.recurring?.interval === 'year' ? 'yearly' : (price?.recurring?.interval ? 'monthly' : null);
+        try {
+            const plans = await userStore.getAllPlans();
+            const plan = price?.id ? plans.find(p => p.stripe_price_id && p.stripe_price_id === price.id) : null;
+            if (plan) {
+                planName = plan.name;
+                interval = plan.billing_interval || interval;
+            }
+        } catch (_) { /* fall back to Stripe's own data */ }
+        if (!planName) planName = price?.nickname || line?.description || 'Subscription';
+
+        const periodEnd = line?.period?.end;
+        const nextBillingIso = periodEnd ? new Date(periodEnd * 1000).toISOString() : null;
+
+        let portalUrl = `${appPaths.clientHost()}${appPaths.legacyBillingSettingsPath()}`;
+        if (!invoice.hosted_invoice_url) {
+            try {
+                if (invoice.customer) {
+                    const portal = await stripeService.createPortalSession(invoice.customer, portalUrl);
+                    if (portal?.url) portalUrl = portal.url;
+                }
+            } catch (_) { /* fall back to the settings page */ }
+        }
+
+        const { sendSubscriptionConfirmationEmail } = require('../../utils/emailService');
+        const result = await sendSubscriptionConfirmationEmail({
+            email: recipientEmail,
+            displayName,
+            orgName,
+            planName,
+            amount: Number(invoice.amount_paid) / 100,
+            currency: invoice.currency || 'eur',
+            interval,
+            nextBillingIso,
+            invoiceUrl: invoice.hosted_invoice_url || null,
+            portalUrl,
+        });
+        if (!result?.success) {
+            log.warn(`[Stripe Webhook] subscription confirmation email failed: ${result?.error || 'unknown'}`);
+        }
+    } catch (e) {
+        log.warn('[Stripe Webhook] _sendSubscriptionConfirmationEmailOnce error:', e.message);
     }
 }
 
@@ -305,6 +428,7 @@ module.exports = {
     handleChargeRefunded,
     handleChargeDisputeCreated,
     handleInvoicePaid,
+    _sendSubscriptionConfirmationEmailOnce,
     DUNNING_MAX_ATTEMPTS,
     handleInvoicePaymentFailed,
     _sendFinalDunningEmailOnce,

@@ -7,6 +7,11 @@
  *      threshold as the GDPR Art. 5(1)(e) check so the two never disagree.
  *   2. Erasure-request fulfilment from the DSR ledger: an overdue deletion
  *      request means data marked for erasure is demonstrably still present.
+ *      Overdue is read from every open request (listOpenWithDeadlines), not
+ *      only from the 12-month statistics window, which filters on created_at
+ *      and so dropped an erasure request that was still open after a year.
+ *      The deadline is the request's own due_at: one calendar month from
+ *      receipt, or three months when extended (dsrStore, GDPR Art. 12(3)).
  */
 
 const complianceStore = require('../../../stores/complianceStore');
@@ -31,19 +36,26 @@ module.exports = {
         const heartbeatOk = heartbeatAgeMs < 26 * 3600 * 1000; // 26h allowance for clock drift
 
         let stats = null;
+        let openRows = null;
+        // The SQLSTATE only: a driver message can quote the row it failed on.
         let ledgerError = null;
         try {
             stats = await dsrStore.getSlaStats(orgId, 'deletion', 365);
+            openRows = await dsrStore.listOpenWithDeadlines(orgId);
         } catch (e) {
-            ledgerError = e.message;
+            ledgerError = e?.code || 'unknown';
         }
+        const nowMs = Date.now();
+        const overdueOpen = (openRows || []).filter(r => r.request_type === 'deletion'
+            && r.due_at && new Date(r.due_at).getTime() < nowMs).length;
+        const overdue = Math.max(stats?.overdue || 0, overdueOpen);
 
         const evidence = {
             heartbeat: lastRun ? settings.last_retention_run_at : null,
             heartbeat_age_hours: lastRun ? Math.round(heartbeatAgeMs / 3600000) : null,
             deletion_requests_total: stats ? stats.total : null,
             deletion_requests_open: stats ? stats.open : null,
-            deletion_requests_overdue: stats ? stats.overdue : null,
+            deletion_requests_overdue: stats || openRows ? overdue : null,
             deletion_requests_fulfilled: stats ? stats.fulfilled : null,
             dsr_ledger_error: ledgerError || undefined,
         };
@@ -57,11 +69,11 @@ module.exports = {
                     : 'The retention enforcer has never run — expired data is not being deleted automatically. Restart the server or enable the retention job.',
             };
         }
-        if (stats && stats.overdue > 0) {
+        if (overdue > 0) {
             return {
                 status: 'fail',
                 evidence,
-                details: `${stats.overdue} deletion request(s) are past the 30-day deadline — data marked for erasure is still present.`,
+                details: `${overdue} deletion request(s) are past their deadline (one month from receipt, or three months when extended) — data marked for erasure is still present.`,
             };
         }
         if (ledgerError) {

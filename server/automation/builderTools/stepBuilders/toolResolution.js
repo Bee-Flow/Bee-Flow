@@ -133,16 +133,21 @@ function unknownToolError(tool, draftWrap, { label = null } = {}) {
         }
     }
     if (draftWrap && draftWrap._inputSchemasByTool && draftWrap._inputSchemasByTool[tool]) return null;
-    const { isBuiltinStepType, builderToolForStepType } = require('../../builtinStepTools');
+    const { isBuiltinStepType, builderToolForStepType, ALIASES } = require('../../builtinStepTools');
     if (!isBuiltinStepType(tool)) return null;
     const right = builderToolForStepType(tool);
+    const type = Object.hasOwn(ALIASES, tool) ? ALIASES[tool] : tool;
+    // The small-model menu has no builder_replace_step; builder_update_step
+    // performs the type change there (stepEditing.typeChangeFromPatch).
+    const offered = draftWrap && draftWrap._offeredTools;
+    const replaceOffered = !(offered instanceof Set) || offered.has('builder_replace_step');
     // An explicit _fixHint is mandatory: applyToolCall stamps every errored
     // result that lacks one with "invalid input binding", which would send the
     // model off fixing a binding it got right.
     return {
         error: `"${tool}" is a built-in step type, not a catalog tool — builder_add_action only creates integration_action steps.`,
         _fixHint: right
-            ? `Call ${right} instead, with the same afterStepId / branch arguments.`
+            ? `Call ${right} instead, with the same afterStepId / branch arguments. To turn an EXISTING step into this type, use ${replaceOffered ? `builder_replace_step({stepId, newType:"${type}", spec})` : `builder_update_step({stepId, patch:{type:"${type}", …}})`}.`
             : `There is no add tool for "${tool}" — pick a real tool name from the catalog instead.`,
     };
 }

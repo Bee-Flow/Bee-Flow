@@ -2,14 +2,14 @@ import { Layers } from 'lucide-react';
 import { stepDragProps } from '../stepDrag';
 import { CmdButton } from './jsComponents';
 import useTranslation from '../../../../../hooks/useTranslation';
-import { DRAG_HINT, DRAG_HINT_KEY } from './AppCommands';
+import { DRAG_HINT, DRAG_HINT_KEY, nativeAppPills } from './AppCommands';
 import type { OpenState } from './AppCommands';
 import PillRow from './PillRow';
 import type { RowPill } from './PillRow';
 import { DropdownPill } from './MenuPanel';
 import { FamilyIcon, itemRow } from './menuRows';
 import { FAMILY_TEXT } from './ribbonCategories';
-import type { PaletteItem, StepPayload } from './ribbonCategories';
+import type { PaletteItem, RibbonApp, StepPayload } from './ribbonCategories';
 import type { MenuPillPlan, SegmentPlan } from './ribbonRows';
 
 type AddFn = (payload: StepPayload) => void;
@@ -83,18 +83,25 @@ interface Props extends OpenState {
     segments: SegmentPlan[];
     /** The tab's name: the heading of its folded steps in "More". */
     title: string;
+    /** Bee Flow's own tools that live on this tab, after its steps. */
+    apps?: RibbonApp[];
     testId: string;
     enabled: boolean;
     empty?: string | null;
     onAdd: AddFn;
 }
 
-/** A step tab (Logic, People, Data & documents, My building blocks) as one row of pills. */
-export default function CommandsPanel({ segments, title, testId, enabled, empty = null, onAdd, openKey, setOpenKey }: Props) {
+/**
+ * A step tab (Logic, People, Data & documents, My building blocks) as one row
+ * of pills, with the Bee Flow tools that do the same job as its last segment.
+ */
+export default function CommandsPanel({ segments, title, apps = [], testId, enabled, empty = null, onAdd, openKey, setOpenKey }: Props) {
+    const { t } = useTranslation();
     const open = { openKey, setOpenKey };
+    const tools = nativeAppPills(apps, title, { onAdd, t, ...open });
     return (
         <PillRow
-            segments={planPills(segments, title, onAdd, open)}
+            segments={[...planPills(segments, title, onAdd, open), ...(tools.length > 0 ? [tools] : [])]}
             testId={testId}
             enabled={enabled}
             empty={empty}

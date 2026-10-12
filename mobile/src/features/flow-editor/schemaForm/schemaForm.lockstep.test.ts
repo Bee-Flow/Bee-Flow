@@ -115,7 +115,7 @@ describe('the state updaters cut from the component', () => {
     it('updateField / renameField / removeField', () => {
         for (const keepEmptyFields of [false, true]) {
             let out: unknown = null;
-            const scope = { inputs: INPUTS, keepEmptyFields, autoMappedKeys: [], setConsumed: () => {}, onChange: (n: unknown) => { out = n; }, isEmptyBinding: webPartition.isEmptyBinding };
+            const scope = { inputs: INPUTS, keepEmptyFields, autoMappedKeys: [], aiMappedKeys: ['a'], setConsumed: () => {}, onChange: (n: unknown) => { out = n; }, isEmptyBinding: webPartition.isEmptyBinding };
             const update = evaluate(`const updateField = ${cut('const updateField = (key, binding) =>').slice('const updateField = '.length)};`, 'updateField', scope);
             for (const binding of [null, { kind: 'literal', value: '' }, { kind: 'expr', value: 'x' }]) {
                 update('a', binding);
@@ -139,11 +139,17 @@ describe('the state updaters cut from the component', () => {
         const body = /onAdoptPath=\{(\(path, suggested\) => \{[\s\S]*?\n {20}\})\}/.exec(SRC)?.[1] as string;
         expect(body).toBeTruthy();
         for (const [k, suggested] of [['b', 'subject'], ['a', 'subject'], ['b', 'c'], ['b', '']] as const) {
-            let out: unknown = null;
-            const adopt = evaluate(`const adopt = ${body};`, 'adopt', { inputs: INPUTS, k, onChange: (n: unknown) => { out = n; }, isEmptyBinding: webPartition.isEmptyBinding });
-            adopt('steps.x.output.subject', suggested);
-            expect(rows.adoptPathIntoRow(INPUTS, k, 'steps.x.output.subject', suggested)).toStrictEqual(out);
+            // A picked path is stored in the canonical spelling, quoted keys included.
+            for (const path of ['steps.x.output.subject', "steps.x.output['first name']", ' steps.x.output.headers[name="a,b"] ']) {
+                let out: unknown = null;
+                const adopt = evaluate(`const adopt = ${body};`, 'adopt', {
+                    inputs: INPUTS, k, onChange: (n: unknown) => { out = n; }, isEmptyBinding: webPartition.isEmptyBinding, canonicalRefPath: webHelpers.canonicalRefPath,
+                });
+                adopt(path, suggested);
+                expect(rows.adoptPathIntoRow(INPUTS, k, path, suggested)).toStrictEqual(out);
+            }
         }
+        expect(rows.adoptPathIntoRow(INPUTS, 'b', "steps.x.output['first name']", 'name').name).toStrictEqual({ kind: 'ref', path: 'steps.x.output["first name"]' });
     });
 });
 
@@ -160,6 +166,7 @@ describe('the port on its own', () => {
         expect(rows.addFieldFromPath({ subject: 1 }, ' steps.a.output.subject ')).toStrictEqual({
             inputs: { subject: 1, subject2: { kind: 'ref', path: 'steps.a.output.subject' } }, key: 'subject2',
         });
+        expect(rows.addFieldFromPath({}, " steps.a.output['x-y'] ").inputs).toStrictEqual({ x_y: { kind: 'ref', path: 'steps.a.output["x-y"]' } });
         expect(rows.updateInput(null, 'x', null, true)).toStrictEqual({ x: { kind: 'literal', value: '' } });
         expect(rows.removeInput(null, 'x')).toStrictEqual({});
         expect(rows.renameInput(null, 'x', 'y')).toStrictEqual({});

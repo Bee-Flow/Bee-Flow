@@ -1,5 +1,6 @@
 import { ArrowDownRight, ArrowUpRight, Minus } from 'lucide-react';
 import { Line, LineChart } from 'recharts';
+import useTranslation from '../../../../../../hooks/useTranslation';
 import AppIcon from '../../../../../icons/AppIcon';
 import { chartColorAt } from '../chartPalette';
 import { hoverable } from '../hoverable';
@@ -84,9 +85,10 @@ function DeltaChip({ delta, deltaFormat, positiveIsGood }) {
 }
 
 export default function AppStat({ node }) {
+    const { t } = useTranslation();
     const { actionState, dataState, scope } = useRuntime();
     const {
-        label = 'Metric', caption = null, icon = null,
+        label = t('studio_apps_runtime.stat.metric', 'Metric'), caption = null, icon = null,
         deltaFormat = 'number', positiveIsGood = true,
     } = node.props || {};
     const bag = { actionState, dataState, scope };

@@ -563,7 +563,7 @@ const handlers = {
 async function fetchHomes() {
     if (!config.uid) {
         throw new Error(
-            'Scenes need a linked app account. Add your Smart Life app account UID (TUYA_UID) under Settings → Integrations.'
+            'Scenes need a linked app account. Add your Smart Life app account UID (TUYA_UID) under Settings → Connections.'
         );
     }
     const result = await request('GET', `/v1.0/users/${encodeURIComponent(config.uid)}/homes`);

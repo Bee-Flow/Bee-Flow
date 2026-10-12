@@ -8,7 +8,7 @@
 
 import { translate as t } from '@/core/i18n';
 
-import { suggestKeyFromPath } from '../bindings/bindingHelpers';
+import { canonicalRefPath, suggestKeyFromPath } from '../bindings/bindingHelpers';
 import { isEmptyBinding } from '../bindings/partitionInputs';
 import type { Binding, BindingValue } from '../bindings/types';
 
@@ -88,7 +88,7 @@ export function commitPendingRow(inputs: Inputs | null | undefined, row: Pending
 /** "Add field from a previous step": a named ref field, the name from the path's last segment. */
 export function addFieldFromPath(inputs: Inputs | null | undefined, path: unknown, pending: readonly PendingRow[] = []): { inputs: Inputs; key: string } {
     const key = uniqueKey([...Object.keys(inputs || {}), ...pending.map((p) => p.key)], suggestKeyFromPath(path));
-    return { inputs: { ...(inputs || {}), [key]: { kind: 'ref', path: String(path || '').trim() } }, key };
+    return { inputs: { ...(inputs || {}), [key]: { kind: 'ref', path: canonicalRefPath(path) } }, key };
 }
 
 /**
@@ -101,7 +101,7 @@ export function adoptPathIntoRow(inputs: Inputs | null | undefined, rowKey: stri
     const nextKey = suggested && !Object.prototype.hasOwnProperty.call(current, suggested) ? suggested : `${suggested || 'field'}_2`;
     const next: Inputs = {};
     for (const [k, v] of Object.entries(current)) {
-        if (k === rowKey) next[nextKey] = isEmptyBinding(current[rowKey]) ? { kind: 'ref', path } : v;
+        if (k === rowKey) next[nextKey] = isEmptyBinding(current[rowKey]) ? { kind: 'ref', path: canonicalRefPath(path) } : v;
         else next[k] = v;
     }
     return next;

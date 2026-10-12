@@ -7,26 +7,27 @@ const NOW = new Date(2026, 8, 14, 12).getTime();
 const row = (daysAgo, overall, extra = {}) => ({ captured_at: new Date(NOW - daysAgo * DAY_MS).toISOString(), overall_score: overall, ...extra });
 
 describe('MiniBars — twelve bars, one emphasised, a signed caption', () => {
-    it('renders 12 bars whose heights are the bucketed scores, the last in the tone colour, the rest bg-tertiary', () => {
+    it('renders 12 bars whose heights are the bucketed scores, the last in the tone colour, the rest on the border token', () => {
         render(<MiniBars history={[row(85, 70), row(1, 79)]} now={NOW} />);
         const bars = screen.getAllByTestId('mini-bars-bar');
         expect(bars).toHaveLength(12);
         expect(bars[0].style.height).toBe('70%');
         expect(bars[11].style.height).toBe('79%');
         expect(bars[11].style.background).toBe('var(--warning)'); // 79 → warning tone, derived from the last value
-        for (const b of bars.slice(0, 11)) expect(b.style.background).toBe('var(--bg-tertiary)');
+        // --border-default, not --bg-tertiary: the grey bars vanished into a dark card.
+        for (const b of bars.slice(0, 11)) expect(b.style.background).toBe('var(--border-default)');
         expect(bars[5]).toHaveAttribute('data-fill', 'carried');
         expect(screen.getByTestId('mini-bars')).toHaveAttribute('data-tone', 'warning');
     });
 
-    it('caption: "{days} days · {delta}" with a signed delta, or the caller’s own caption', () => {
+    it('caption: "{delta} pts in {days} days" with a signed delta, or the caller’s own caption', () => {
         const { rerender } = render(<MiniBars history={[row(85, 70), row(1, 79)]} now={NOW} />);
-        expect(screen.getByTestId('mini-bars-caption')).toHaveTextContent('90 days · +9');
+        expect(screen.getByTestId('mini-bars-caption')).toHaveTextContent('+9 pts in 90 days');
         rerender(<MiniBars history={[row(85, 66), row(1, 58)]} now={NOW} />);
-        expect(screen.getByTestId('mini-bars-caption')).toHaveTextContent('90 days · −8');
+        expect(screen.getByTestId('mini-bars-caption')).toHaveTextContent('−8 pts in 90 days');
         rerender(<MiniBars history={[row(20, 40), row(1, 44)]} now={NOW} days={30} bars={6} />);
         expect(screen.getAllByTestId('mini-bars-bar')).toHaveLength(6);
-        expect(screen.getByTestId('mini-bars-caption')).toHaveTextContent('30 days · +4');
+        expect(screen.getByTestId('mini-bars-caption')).toHaveTextContent('+4 pts in 30 days');
         rerender(<MiniBars history={[row(1, 88)]} now={NOW} caption="ISMS since 10 Jun · 96 days" />);
         expect(screen.getByTestId('mini-bars-caption')).toHaveTextContent('ISMS since 10 Jun · 96 days');
     });

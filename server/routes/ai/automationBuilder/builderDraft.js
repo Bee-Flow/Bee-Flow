@@ -32,6 +32,9 @@ async function loadOrCreateDraft({ userId, builderSessionId, automationId, seedM
                 userId,
                 builderSessionId: builderSessionId || a.createdFromChatId || `bs_${Date.now().toString(36)}`,
                 automationId: a.id,
+                // The automation's organisation: where a table the assistant
+                // creates must live (datatableCreateAccess checks it).
+                orgId: a.organizationId || null,
                 title: a.title,
                 description: a.description,
                 def: a.definition && Object.keys(a.definition).length ? a.definition : emptyDefinition(),

@@ -1,6 +1,7 @@
-import { createElement as h } from 'react';
+import { cloneElement, createElement as h, isValidElement, useId } from 'react';
 import { PRIMARY_ACTION_STYLE } from '../../../../shared/StudioSectionHeader';
 import { TONES } from '../../../../shared/statusTone';
+import { formatDay, formatDayTime } from '../../shared/formatDates';
 
 /**
  * auditForms — the vocabulary and the form atoms the four ISMS-process tabs
@@ -73,16 +74,18 @@ export function userName(orgUsers, id) {
     return u ? (u.displayName || u.email || u.id) : id;
 }
 
-export function fmtDate(value) {
-    if (!value) return '—';
-    const ms = new Date(value).getTime();
-    return Number.isNaN(ms) ? '—' : new Date(ms).toLocaleDateString();
+/**
+ * "19 Aug" / "3 Mar 2025" (formatDates.formatDay), '—' for no date. `locale`
+ * is the app's language (useTranslation's resolvedLocale), never the
+ * browser's: a Dutch screen in an English browser writes "19 aug".
+ */
+export function fmtDate(value, locale) {
+    return formatDay(value, locale) || '—';
 }
 
-export function fmtStamp(value) {
-    if (!value) return '—';
-    const ms = new Date(value).getTime();
-    return Number.isNaN(ms) ? '—' : new Date(ms).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+/** "19 Aug 20:38", 24-hour (formatDates.formatDayTime), '—' for no date. */
+export function fmtStamp(value, locale) {
+    return formatDayTime(value, locale) || '—';
 }
 
 /** `YYYY-MM-DD` for a date input — '' when there is no date. */
@@ -105,15 +108,22 @@ export function userOptionLabel(u) {
 
 /* ───────────────────────── form atoms ───────────────────────── */
 
-export const INPUT_CLASS = 'w-full rounded-[10px] border border-[var(--border-default)] bg-[var(--bg-card)] px-2.5 py-1.5 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--accent-primary)]';
+export const INPUT_CLASS = 'w-full rounded-[10px] border border-[var(--border-default)] bg-[var(--bg-card)] px-2.5 py-1.5 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--text-secondary)] focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]';
 export const LABEL_CLASS = 'text-[10px] uppercase tracking-[.08em] font-semibold text-[var(--text-tertiary)]';
 
+/**
+ * A labelled control. `hint` is helper text UNDER the control (not part of
+ * the uppercase label), tied to it with aria-describedby so a screen reader
+ * reads it after the label instead of inside it.
+ */
 export function Field({ label, hint, children, className = '', testId }) {
-    return h('label', { className: `flex flex-col gap-1 min-w-0 ${className}`, 'data-testid': testId },
-        h('span', { className: LABEL_CLASS },
-            label,
-            hint ? h('span', { className: 'normal-case tracking-normal font-normal' }, ` · ${hint}`) : null),
-        children);
+    const hintId = useId();
+    const control = hint && isValidElement(children) ? cloneElement(children, { 'aria-describedby': hintId }) : children;
+    return h('div', { className: `flex flex-col gap-1 min-w-0 ${className}`, 'data-testid': testId },
+        h('label', { className: 'flex flex-col gap-1 min-w-0' },
+            h('span', { className: LABEL_CLASS }, label),
+            control),
+        hint ? h('span', { id: hintId, className: 'text-[11px] leading-snug text-[var(--text-tertiary)]', 'data-testid': testId ? `${testId}-hint` : undefined }, hint) : null);
 }
 
 export function TextInput({ value, onChange, className = '', ...rest }) {
@@ -200,16 +210,31 @@ export function Intro({ children, testId }) {
 }
 
 /**
+ * The one page frame of the Compliance Center: 14px padding, 20/16px once the
+ * page is 1100px wide, 14px between blocks, 12px text. Every page uses it, so
+ * no two pages sit at different distances from the rail.
+ */
+export const PAGE_FRAME = 'p-3.5 @[1100px]/cpage:px-5 @[1100px]/cpage:py-4 flex flex-col gap-3.5 text-xs';
+
+/**
  * RegisterLayout — the redesign's register frame: a toolbar row (intro +
  * filters + the ONE primary action), the table in a scrolling pane, and the
- * SideDrawer beside it on desktop / over it on a phone. `drawer` is the
- * already-built SideDrawer element (or null).
+ * SideDrawer. `drawer` is the already-built SideDrawer element (or null).
+ *
+ * Where the drawer goes is `drawerMode` (useDrawerMode): 'inline' beside the
+ * table, 'overlay' over it (rendered outside the row, absolute over the
+ * frame, behind SideDrawer's scrim), 'modal' on a phone. `frameRef` is the
+ * ref useDrawerMode returns: it sits on the row that holds table and drawer,
+ * the width the decision is about. Without `drawerMode` the old rule holds:
+ * modal on a phone, inline otherwise.
  */
-export function RegisterLayout({ toolbar, children, drawer, isMobile = false, testId }) {
-    return h('div', { className: 'relative h-full min-h-0 flex flex-col gap-3 p-3.5', 'data-testid': testId },
+export function RegisterLayout({ toolbar, children, drawer, isMobile = false, drawerMode = undefined, frameRef = undefined, testId }) {
+    const mode = drawerMode ?? (isMobile ? 'modal' : 'inline');
+    const beside = mode === 'inline';
+    return h('div', { className: `relative h-full min-h-0 ${PAGE_FRAME}`, 'data-testid': testId, 'data-drawer-mode': drawer ? mode : undefined },
         toolbar ? h('div', { className: 'flex flex-wrap items-center gap-2' }, toolbar) : null,
-        h('div', { className: 'flex-1 min-h-0 flex gap-3 items-start' },
+        h('div', { ref: frameRef, className: 'flex-1 min-h-0 flex gap-3 items-start' },
             h('div', { className: 'flex-1 min-w-0 min-h-0 overflow-y-auto flex flex-col gap-3' }, children),
-            !isMobile ? drawer : null),
-        isMobile ? drawer : null);
+            beside ? drawer : null),
+        beside ? null : drawer);
 }

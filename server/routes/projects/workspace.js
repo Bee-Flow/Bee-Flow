@@ -207,7 +207,7 @@ function makeWorkspaceRouter(deps = {}) {
     // be told somebody is here because they were ten minutes ago.
     router.post('/:id/presence', requireRole('viewer'), presenceLimiter, validate({ body: S.PresenceBody }), async (req, res) => {
         try {
-            await publishTransient(req.params.id, { kind: 'presence.online', actorId: userIdOf(req) });
+            await publishTransient(req.params.id, { kind: 'presence.online', actorId: userIdOf(req), target: req.body.target || null });
             res.json({ ok: true });
         } catch (err) {
             // Presence is decoration. Never fail a request over it.

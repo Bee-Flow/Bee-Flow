@@ -1,7 +1,8 @@
 import { Copy, Layers, Trash2 } from 'lucide-react';
 import React, { useState } from 'react';
+import useTranslation from '../../../../../hooks/useTranslation';
 import { SelectField } from './panels/kit';
-import { STYLE_KNOBS, getKnobsForType, clampKnob, knobLabel } from './styleKnobMeta';
+import { STYLE_KNOBS, getKnobsForType, clampKnob, knobLabel, valueLabel } from './styleKnobMeta';
 import TokenColorField from './TokenColorField';
 import ConfirmDialog from '../../../../shared/ConfirmDialog';
 import IconButton from '../../../../shared/IconButton';
@@ -20,21 +21,11 @@ import { duplicateNode, findNode, removeNode, updateNodeStyle } from '../state/d
  * it; setting it writes the same value to every node.
  */
 
-const VALUE_LABELS = {
-    sm: 'S', md: 'M', lg: 'L', start: 'Left', center: 'Center', end: 'Right',
-    regular: 'Regular', medium: 'Medium', semibold: 'Semibold',
-    auto: 'Auto', none: 'None', full: 'Full',
-    surface: 'Surface', tint: 'Tint', panel: 'Panel', gradient: 'Gradient',
-};
 const INHERIT = '__inherit';
 
-function valueLabel(v) {
-    if (v in VALUE_LABELS) return VALUE_LABELS[v];
-    return String(v).charAt(0).toUpperCase() + String(v).slice(1);
-}
-function enumOptions(knob) {
+function enumOptions(t, knob) {
     return STYLE_KNOBS[knob].values.map((v) => (
-        v === null ? { value: INHERIT, label: 'Inherit' } : { value: v, label: valueLabel(v) }
+        v === null ? { value: INHERIT, label: t('studio_apps_insp.multi.inherit', 'Inherit') } : { value: v, label: valueLabel(v, t) }
     ));
 }
 
@@ -58,6 +49,8 @@ export function sharedValue(nodes, knob) {
 }
 
 export default function MultiInspector({ definition, ids, onCommit, disabled, dispatch }) {
+    const { t } = useTranslation();
+    const mixedSuffix = t('studio_apps_insp.multi.mixed_suffix', ' · Mixed');
     const nodes = (ids || [])
         .map((id) => findNode(definition, id)?.node)
         .filter(Boolean);
@@ -102,12 +95,12 @@ export default function MultiInspector({ definition, ids, onCommit, disabled, di
             <header className="flex items-center gap-2">
                 <Layers className="w-4 h-4 shrink-0 text-[var(--text-tertiary)]" />
                 <h2 className="text-sm font-semibold text-[var(--text-primary)] truncate flex-1">
-                    {nodes.length} selected
+                    {t('studio_apps_insp.multi.selected', '{count} selected', { count: nodes.length })}
                 </h2>
-                <IconButton ariaLabel="Duplicate selected" onClick={doDuplicate} disabled={disabled}>
+                <IconButton ariaLabel={t('studio_apps_insp.multi.duplicate_selected', 'Duplicate selected')} onClick={doDuplicate} disabled={disabled}>
                     <Copy />
                 </IconButton>
-                <IconButton ariaLabel="Delete selected" variant="danger" onClick={bulkRemove} disabled={disabled}>
+                <IconButton ariaLabel={t('studio_apps_insp.multi.delete_selected', 'Delete selected')} variant="danger" onClick={bulkRemove} disabled={disabled}>
                     <Trash2 />
                 </IconButton>
             </header>
@@ -124,20 +117,20 @@ export default function MultiInspector({ definition, ids, onCommit, disabled, di
                             return (
                                 <Slider
                                     key={knob}
-                                    label={`${knobLabel(knob)}${mixed ? ' · Mixed' : ''}`}
+                                    label={`${knobLabel(knob, t)}${mixed ? mixedSuffix : ''}`}
                                     value={Number.isFinite(shared) ? shared : spec.default}
                                     onChange={(v) => commitKnob(knob, v)}
                                     min={spec.min}
                                     max={spec.max}
                                     step={spec.step}
-                                    suffix={knob === 'span' ? ' col' : ''}
+                                    suffix={knob === 'span' ? t('studio_apps_insp.multi.col_suffix', ' col') : ''}
                                     disabled={disabled}
                                 />
                             );
                         }
                         if (spec.type === 'colorOrRole') {
                             return (
-                                <FormField key={knob} label={`${knobLabel(knob)}${mixed ? ' · Mixed' : ''}`}>
+                                <FormField key={knob} label={`${knobLabel(knob, t)}${mixed ? mixedSuffix : ''}`}>
                                     <TokenColorField
                                         value={mixed ? null : shared}
                                         onChange={(v) => commitKnob(knob, v)}
@@ -153,30 +146,30 @@ export default function MultiInspector({ definition, ids, onCommit, disabled, di
                         // placeholder until one value is picked for all.
                         if (knob === 'background') {
                             const opts = mixed
-                                ? [{ value: '', label: 'Mixed', disabled: true }, ...enumOptions(knob)]
-                                : enumOptions(knob);
+                                ? [{ value: '', label: t('studio_apps_insp.multi.mixed', 'Mixed'), disabled: true }, ...enumOptions(t, knob)]
+                                : enumOptions(t, knob);
                             return (
                                 <SelectField
                                     key={knob}
-                                    label={`${knobLabel(knob)}${mixed ? ' · Mixed' : ''}`}
+                                    label={`${knobLabel(knob, t)}${mixed ? mixedSuffix : ''}`}
                                     value={mixed ? '' : shared}
                                     onChange={(v) => commitKnob(knob, v)}
                                     options={opts}
                                     disabled={disabled}
-                                    ariaLabel={knobLabel(knob)}
+                                    ariaLabel={knobLabel(knob, t)}
                                 />
                             );
                         }
                         return (
-                            <FormField key={knob} label={`${knobLabel(knob)}${mixed ? ' · Mixed' : ''}`}>
+                            <FormField key={knob} label={`${knobLabel(knob, t)}${mixed ? mixedSuffix : ''}`}>
                                 <SegmentedControl
                                     value={mixed ? null : (shared === null ? INHERIT : shared)}
                                     onChange={(v) => commitKnob(knob, v === INHERIT ? null : v)}
-                                    options={enumOptions(knob)}
+                                    options={enumOptions(t, knob)}
                                     size="sm"
                                     fullWidth
                                     disabled={disabled}
-                                    ariaLabel={knobLabel(knob)}
+                                    ariaLabel={knobLabel(knob, t)}
                                 />
                             </FormField>
                         );
@@ -184,20 +177,19 @@ export default function MultiInspector({ definition, ids, onCommit, disabled, di
                 </div>
             ) : (
                 <p className="text-xs text-[var(--text-tertiary)]">
-                    These components don&rsquo;t share adjustable style options. Use the toolbar to duplicate or delete
-                    them together.
+                    {t('studio_apps_insp.multi.no_common_knobs', 'These components don’t share adjustable style options. Use the toolbar to duplicate or delete them together.')}
                 </p>
             )}
 
             <ConfirmDialog
                 open={confirming}
-                title={`Delete ${nodes.length} components?`}
+                title={t('studio_apps_insp.multi.delete_title', 'Delete {count} components?', { count: nodes.length })}
                 description={
                     withChildren.length === 1
-                        ? 'One of them holds other components — everything inside it will be deleted too.'
-                        : `${withChildren.length} of them hold other components — everything inside those will be deleted too.`
+                        ? t('studio_apps_insp.multi.delete_one_holds', 'One of them holds other components — everything inside it will be deleted too.')
+                        : t('studio_apps_insp.multi.delete_many_hold', '{count} of them hold other components — everything inside those will be deleted too.', { count: withChildren.length })
                 }
-                confirmLabel="Delete"
+                confirmLabel={t('studio_apps_insp.multi.delete', 'Delete')}
                 destructive
                 onConfirm={doRemove}
                 onCancel={() => setConfirming(false)}

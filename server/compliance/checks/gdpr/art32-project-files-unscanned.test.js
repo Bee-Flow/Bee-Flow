@@ -74,6 +74,15 @@ test('unreadable shield or tables are warnings or not provisioned, never a pass'
     assert.strictEqual(broken.status, 'warn');
 });
 
+test('an unreadable shield records the error class and code, never the driver message', async () => {
+    const pgError = Object.assign(new Error('invalid input syntax for type uuid: "jan@example.com"'), { code: '22P02' });
+    const r = await check.evaluate('org1', null, deps({ shieldScansFiles: async () => { throw pgError; } }));
+    assert.strictEqual(r.status, 'warn');
+    assert.deepStrictEqual(r.evidence, { error: 'shield_unreadable', sql_state: '22P02' });
+    assert.ok(!JSON.stringify(r).includes('jan@example.com'), 'neither the evidence nor the details quote the message');
+    assert.match(r.details, /could not be read \(Error \(code 22P02\)\)/);
+});
+
 test('the auto-fix rescans a bounded batch of this org\'s unscanned files, optionally one project', async () => {
     rescanned.length = 0;
     const r = await check.autoFix('org1', {}, deps());

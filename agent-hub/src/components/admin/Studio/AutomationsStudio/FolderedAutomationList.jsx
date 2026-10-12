@@ -145,7 +145,7 @@ export default function FolderedAutomationList({
             >
                 {loose.map(renderRow)}
                 {looseTarget && loose.length === 0 && (
-                    <div className="text-[10px] text-[var(--text-tertiary)] italic px-2 py-2">Drop here to take it out of its folder.</div>
+                    <div className="text-[10px] text-[var(--text-tertiary)] italic px-2 py-2">{t('studio_misc.folders.drop_here', 'Drop here to take it out of its folder.')}</div>
                 )}
             </div>
 
@@ -168,7 +168,9 @@ export default function FolderedAutomationList({
                                 type="button"
                                 onClick={() => toggle(f.id)}
                                 aria-expanded={isOpen}
-                                aria-label={`${isOpen ? 'Collapse' : 'Expand'} ${f.name}`}
+                                aria-label={isOpen
+                                    ? t('studio_misc.folders.collapse_named', 'Collapse {name}', { name: f.name })
+                                    : t('studio_misc.folders.expand_named', 'Expand {name}', { name: f.name })}
                                 className="flex items-center gap-1 flex-1 min-w-0 text-left text-[var(--text-secondary)]"
                             >
                                 {isOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
@@ -177,7 +179,7 @@ export default function FolderedAutomationList({
                                     <input
                                         autoFocus
                                         value={draftName}
-                                        aria-label="Folder name"
+                                        aria-label={t('studio_misc.folders.folder_name', 'Folder name')}
                                         onChange={(e) => setDraftName(e.target.value)}
                                         onClick={(e) => e.stopPropagation()}
                                         onKeyDown={(e) => {
@@ -194,8 +196,8 @@ export default function FolderedAutomationList({
                             </button>
                             <button
                                 type="button"
-                                title="Rename this folder"
-                                aria-label={`Rename ${f.name}`}
+                                title={t('studio_misc.folders.rename_title', 'Rename this folder')}
+                                aria-label={t('studio_misc.folders.rename_named', 'Rename {name}', { name: f.name })}
                                 onClick={() => startRename(f)}
                                 className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
                             >
@@ -203,8 +205,8 @@ export default function FolderedAutomationList({
                             </button>
                             <button
                                 type="button"
-                                title="Remove this folder — the automations in it stay"
-                                aria-label={`Delete ${f.name}`}
+                                title={t('studio_misc.folders.remove_title', 'Remove this folder — the automations in it stay')}
+                                aria-label={t('studio_misc.folders.delete_named', 'Delete {name}', { name: f.name })}
                                 onClick={() => setPendingDelete(f)}
                                 className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-[var(--text-tertiary)] hover:text-red-500"
                             >
@@ -214,7 +216,7 @@ export default function FolderedAutomationList({
                         {isOpen && (
                             <div className="ml-3 border-l border-[var(--border-default)] pl-1">
                                 {rows.length === 0
-                                    ? <div className="text-[10px] text-[var(--text-tertiary)] italic px-2 py-1">Empty — drag an automation here.</div>
+                                    ? <div className="text-[10px] text-[var(--text-tertiary)] italic px-2 py-1">{t('studio_misc.folders.empty', 'Empty — drag an automation here.')}</div>
                                     : rows.map(renderRow)}
                             </div>
                         )}
@@ -238,8 +240,8 @@ export default function FolderedAutomationList({
                     <input
                         autoFocus
                         value={newName}
-                        aria-label="New folder name"
-                        placeholder="Folder name"
+                        aria-label={t('studio_misc.folders.new_folder_name', 'New folder name')}
+                        placeholder={t('studio_misc.folders.folder_name', 'Folder name')}
                         onChange={(e) => setNewName(e.target.value)}
                         onKeyDown={(e) => {
                             if (e.key === 'Enter') commitCreate();
@@ -255,7 +257,7 @@ export default function FolderedAutomationList({
                     onClick={() => setCreating(true)}
                     className="mt-1 flex items-center gap-1 w-full text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] px-2 py-1 rounded transition"
                 >
-                    <FolderPlus size={12} /> New folder
+                    <FolderPlus size={12} /> {t('studio_misc.folders.new_folder', 'New folder')}
                 </button>
             ))}
 
@@ -281,12 +283,13 @@ export default function FolderedAutomationList({
  * find out by trying it.
  */
 function ConfirmRemoveFolder({ folder, count, onConfirm, onCancel }) {
+    const { t } = useTranslation();
     return (
         <Modal
             open
             onClose={onCancel}
             size="sm"
-            label="Remove folder"
+            label={t('studio_misc.folders.remove_folder', 'Remove folder')}
             // A removal confirm must not vanish on a click beside it.
             disableBackdropClose
             footer={
@@ -296,25 +299,27 @@ function ConfirmRemoveFolder({ folder, count, onConfirm, onCancel }) {
                         onClick={onCancel}
                         className="px-3 py-1.5 rounded-md text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] transition"
                     >
-                        Cancel
+                        {t('studio_misc.folders.cancel', 'Cancel')}
                     </button>
                     <button
                         type="button"
                         onClick={onConfirm}
                         className="px-3 py-1.5 rounded-md text-xs font-medium bg-red-500 text-white hover:bg-red-600 transition"
                     >
-                        Remove folder
+                        {t('studio_misc.folders.remove_folder', 'Remove folder')}
                     </button>
                 </>
             }
         >
             <p className="text-sm font-semibold text-[var(--text-primary)] mb-1">
-                Remove “{folder.name}”?
+                {t('studio_misc.folders.remove_named', 'Remove “{name}”?', { name: folder.name })}
             </p>
             <p className="text-xs text-[var(--text-secondary)]">
                 {count > 0
-                    ? `The ${count} automation${count === 1 ? '' : 's'} in it will stay — they move back to the top of the list.`
-                    : 'The folder is empty.'}
+                    ? (count === 1
+                        ? t('studio_misc.folders.stay_one', 'The 1 automation in it will stay — they move back to the top of the list.')
+                        : t('studio_misc.folders.stay_many', 'The {n} automations in it will stay — they move back to the top of the list.', { n: count }))
+                    : t('studio_misc.folders.folder_empty', 'The folder is empty.')}
             </p>
         </Modal>
     );
@@ -328,6 +333,7 @@ function ConfirmRemoveFolder({ folder, count, onConfirm, onCancel }) {
  * parent closing.
  */
 export function MoveToFolderDialog({ automation, folders, onPick, onClose }) {
+    const { t } = useTranslation();
     if (!automation) return null;
     const itemClass = (active) => `w-full text-left px-2 py-1.5 rounded text-xs transition hover:bg-[var(--bg-secondary)] ${
         active ? 'text-[var(--accent)] font-medium' : 'text-[var(--text-primary)]'
@@ -337,18 +343,18 @@ export function MoveToFolderDialog({ automation, folders, onPick, onClose }) {
             open
             onClose={onClose}
             size="sm"
-            label="Move to folder"
+            label={t('studio_misc.folders.move_to_folder', 'Move to folder')}
             className="max-h-[60vh]"
         >
             <div className="p-1.5">
                 <div className="flex items-center justify-between px-1.5 py-1">
-                    <span className="text-xs font-semibold text-[var(--text-primary)]">Move to folder</span>
-                    <button type="button" aria-label="Close" onClick={onClose} className="p-0.5 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)]">
+                    <span className="text-xs font-semibold text-[var(--text-primary)]">{t('studio_misc.folders.move_to_folder', 'Move to folder')}</span>
+                    <button type="button" aria-label={t('studio_misc.folders.close', 'Close')} onClick={onClose} className="p-0.5 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)]">
                         <X size={12} />
                     </button>
                 </div>
                 <button type="button" onClick={() => onPick(null)} className={itemClass(!automation.folderId)}>
-                    No folder
+                    {t('studio_misc.folders.no_folder', 'No folder')}
                 </button>
                 {(folders || []).map(f => (
                     <button key={f.id} type="button" onClick={() => onPick(f.id)} className={itemClass(automation.folderId === f.id)}>
@@ -357,7 +363,7 @@ export function MoveToFolderDialog({ automation, folders, onPick, onClose }) {
                 ))}
                 {(folders || []).length === 0 && (
                     <div className="text-[11px] text-[var(--text-tertiary)] italic px-2 py-2">
-                        No folders yet — make one in the sidebar.
+                        {t('studio_misc.folders.none_yet', 'No folders yet — make one in the sidebar.')}
                     </div>
                 )}
             </div>

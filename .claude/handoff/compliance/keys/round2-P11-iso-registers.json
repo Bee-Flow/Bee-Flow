@@ -1,0 +1,30 @@
+{
+  "en": {
+    "compliance.risk_actions_n": "· {n} actions",
+    "compliance.risk_actions_n_one": "· 1 action",
+    "compliance.soa_justification_prefix": "Justification: {text}",
+    "compliance.soa_no_live_check_title": "No live check covers this control",
+    "compliance.pol_status_published_v": "Published · v{n}",
+    "compliance.pol_status_draft": "Draft",
+    "compliance.pol_review_overdue": "review overdue {date}",
+    "compliance.pol_publish_confirm": "Publish v{n}? {acks} members will be asked to acknowledge again.",
+    "compliance.pol_publish_confirm_one": "Publish v{n}? 1 member will be asked to acknowledge again.",
+    "compliance.pol_publish_confirm_first": "Publish v{n}? Members will be asked to acknowledge this version.",
+    "compliance.pol_publish_go": "Publish v{n}",
+    "compliance.pol_publish_nothing": "Nothing changed since the published version"
+  },
+  "nl": {
+    "compliance.risk_actions_n": "· {n} acties",
+    "compliance.risk_actions_n_one": "· 1 actie",
+    "compliance.soa_justification_prefix": "Motivatie: {text}",
+    "compliance.soa_no_live_check_title": "Geen live check voor deze control",
+    "compliance.pol_status_published_v": "Gepubliceerd · v{n}",
+    "compliance.pol_status_draft": "Concept",
+    "compliance.pol_review_overdue": "herziening verlopen {date}",
+    "compliance.pol_publish_confirm": "v{n} publiceren? {acks} medewerkers moeten opnieuw bevestigen.",
+    "compliance.pol_publish_confirm_one": "v{n} publiceren? 1 medewerker moet opnieuw bevestigen.",
+    "compliance.pol_publish_confirm_first": "v{n} publiceren? Medewerkers wordt gevraagd deze versie te bevestigen.",
+    "compliance.pol_publish_go": "v{n} publiceren",
+    "compliance.pol_publish_nothing": "Niets gewijzigd sinds de gepubliceerde versie"
+  }
+}

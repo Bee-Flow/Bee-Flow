@@ -39,7 +39,8 @@ import useTranslation from '../../hooks/useTranslation';
  *              Callers fold their own words with `OBJHEAD_FOLD.label`.
  *   < 1180px   the segment strip folds into ONE menu button (the current
  *              tab's name + a chevron, a portalled `AnchoredMenu`), and
- *              action words fold with `OBJHEAD_FOLD.action`.
+ *              action words fold with `OBJHEAD_FOLD.action`. A header beside
+ *              a wide rail passes `tabsFold="compact"`: the strip holds to 900px.
  *
  * jsdom lays nothing out, so StudioSectionHeader.responsiveFold.test.jsx
  * pins the container name and both stages as SOURCE. Tailwind only emits a
@@ -74,6 +75,10 @@ import useTranslation from '../../hooks/useTranslation';
  *               "Used by" is always the last tab (artboard 1b)
  *   activeTab   id of the current tab
  *   onTab       (id) => void
+ *   tabsFold    'compact' folds the tab strip into its menu below 900px
+ *               instead of 1180px; omitted → the 1180 fold
+ *   titleMin    true never shrinks the name (it still truncates at its
+ *               max width), so a crowded row cannot squeeze it to nothing
  *   capsule     node — the visibility capsule slot (left of the primary)
  *   primary     node — the ONE primary action / status pill
  *   extras      node — anything after the primary (overflow menus, help)
@@ -96,6 +101,13 @@ export const OBJHEAD = 'objhead';
 export const OBJHEAD_FOLD = Object.freeze({
     label: '@max-[1440px]/objhead:hidden',
     action: '@max-[1180px]/objhead:hidden',
+    compact: '@max-[900px]/objhead:hidden',
+});
+
+/** The strip / menu pair of each tab fold (literals: Tailwind must read them whole). */
+const TAB_FOLD = Object.freeze({
+    default: Object.freeze({ strip: 'flex-shrink-0 @max-[1180px]/objhead:hidden', menu: 'hidden @max-[1180px]/objhead:block' }),
+    compact: Object.freeze({ strip: 'flex-shrink-0 @max-[900px]/objhead:hidden', menu: 'hidden @max-[900px]/objhead:block' }),
 });
 
 /** The theme's filled-button recipe a caller-supplied `primary` must wear. */
@@ -322,10 +334,11 @@ function BackButton({ onBack, label }) {
  * 103-105), with its narrow-width menu twin. The strip and the menu are BOTH
  * in the DOM; the container query decides which one paints.
  */
-function TabsSlot({ tabs, activeTab, onTab, t }) {
+function TabsSlot({ tabs, activeTab, onTab, fold, t }) {
+    const cls = TAB_FOLD[fold] || TAB_FOLD.default;
     return (
         <>
-            <div className="flex-shrink-0 @max-[1180px]/objhead:hidden">
+            <div className={cls.strip}>
                 <SegmentedControl
                     size="sm"
                     ariaLabel={t('studio.header.tabs', 'Sections')}
@@ -335,7 +348,7 @@ function TabsSlot({ tabs, activeTab, onTab, t }) {
                 />
             </div>
             {/* Narrow: the same tabs as one menu. */}
-            <div className="hidden @max-[1180px]/objhead:block">
+            <div className={cls.menu}>
                 <TabMenu tabs={tabs} activeTab={activeTab} onTab={onTab} t={t} />
             </div>
             <div className="flex-1 min-w-0" aria-hidden="true" />
@@ -368,6 +381,8 @@ export default function StudioSectionHeader({
     tabs,
     activeTab,
     onTab,
+    tabsFold,
+    titleMin,
     capsule,
     primary,
     extras,
@@ -383,19 +398,19 @@ export default function StudioSectionHeader({
         // One 48px row that never wraps (artboard 1b). Fit stages read the
         // ROW's own width (a named @container, the BuilderHeader recipe):
         //   <1440px  tab labels fold to icons, the name gets less room
-        //   <1180px  the segment strip folds into one menu button
+        //   <1180px  the segment strip folds into one menu (compact: <900px)
         <div
             className={`@container/objhead flex items-center gap-x-2.5 px-3 h-12 flex-nowrap min-w-0 border-b border-[var(--border-default)] bg-[var(--bg-secondary)] ${className}`.trim()}
             data-testid={testId}
         >
             {onBack && <BackButton onBack={onBack} label={backLabel || t('studio.header.back', 'Back')} />}
             <KindTile kind={kind} icon={icon} />
-            <div className="min-w-0 max-w-[22rem] @max-[1440px]/objhead:max-w-[12rem] flex items-center gap-2">
+            <div className={`${titleMin ? 'shrink-0' : 'min-w-0'} max-w-[22rem] @max-[1440px]/objhead:max-w-[12rem] flex items-center gap-2`}>
                 <Title title={title} onRename={onRename} renameRequest={renameRequest} t={t} />
             </div>
             <StatusChip chip={statusChip} />
             <div className="flex-1 min-w-0" aria-hidden="true" />
-            {tabList.length > 0 && <TabsSlot tabs={tabList} activeTab={activeTab} onTab={onTab} t={t} />}
+            {tabList.length > 0 && <TabsSlot tabs={tabList} activeTab={activeTab} onTab={onTab} fold={tabsFold} t={t} />}
             <ActionCluster capsule={capsule} primary={primary} extras={extras} />
         </div>
     );

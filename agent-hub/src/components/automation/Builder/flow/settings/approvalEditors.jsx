@@ -64,6 +64,7 @@ const splitChoices = (text) => text.split(',').map(x => x.trim()).filter(Boolean
  * and same cure as the form builder's "Choices (one per line)" box.
  */
 export function ApprovalChoicesInput({ options, onChange }) {
+    const { t } = useTranslation();
     const joined = joinChoices(options);
     const [text, setText] = useState(joined);
     // Our own echo round-trips to the same list; only an edit from outside (an
@@ -77,7 +78,7 @@ export function ApprovalChoicesInput({ options, onChange }) {
                 setText(e.target.value);
                 onChange(splitChoices(e.target.value).map(x => ({ value: x, label: x })));
             }}
-            placeholder="Choices, comma-separated"
+            placeholder={t('automations.approval_editors.choices_comma_separated', 'Choices, comma-separated')}
             className={controlSurfaceClass('w-full px-2 py-1.5 text-sm')}
         />
     );
@@ -289,15 +290,14 @@ function ApprovalFields({ draft, set, onFocusField, previewSample, errorSections
 
     return (
         <>
-            <AccordionSection stepType="approval" sectionKey="config" title="What to approve" defaultOpen forceOpen={errorSections.has('config')}>
+            <AccordionSection stepType="approval" sectionKey="config" title={t('automations.approval_editors.what_to_approve', 'What to approve')} defaultOpen forceOpen={errorSections.has('config')}>
                 <p className="mb-2 text-xs text-[var(--text-tertiary)]">
-                    The run stops here until someone decides. Approve and it continues from the next
-                    step. Reject and the run ends — nothing after this step runs.
+                    {t('automations.approval_editors.the_run_stops_here_until_someone', 'The run stops here until someone decides. Approve and it continues from the next step. Reject and the run ends — nothing after this step runs.')}
                 </p>
                 <FormRow
-                    label="Question for the approver"
+                    label={t('automations.approval_editors.question_for_the_approver', 'Question for the approver')}
                     required
-                    hint="What the person is asked. Use {{ }} to pull in values from earlier steps, so they can see what they are deciding on."
+                    hint={t('automations.approval_editors.what_the_person_is_asked_use', 'What the person is asked. Use {{ }} to pull in values from earlier steps, so they can see what they are deciding on.')}
                 >
                     <TemplateField
                         value={draft.prompt || ''}
@@ -305,12 +305,12 @@ function ApprovalFields({ draft, set, onFocusField, previewSample, errorSections
                         rows={3}
                         onFocusField={onFocusField}
                         previewSample={previewSample}
-                        placeholder="Send the {{steps.quote.output.total}} quote to {{trigger.output.client}}?"
+                        placeholder={t('automations.approval_editors.send_the_quote_to', 'Send the {{steps.quote.output.total}} quote to {{trigger.output.client}}?')}
                     />
                 </FormRow>
                 <FormRow
-                    label="More information"
-                    hint="Shown under the question. Give the approver the context they need — amounts, recipients, the drafted text. Markdown works."
+                    label={t('automations.approval_editors.more_information', 'More information')}
+                    hint={t('automations.approval_editors.shown_under_the_question_give_the', 'Shown under the question. Give the approver the context they need — amounts, recipients, the drafted text. Markdown works.')}
                 >
                     <TemplateField
                         value={draft.details || ''}
@@ -323,8 +323,8 @@ function ApprovalFields({ draft, set, onFocusField, previewSample, errorSections
                     />
                 </FormRow>
                 <FormRow
-                    label="Documents to show"
-                    hint="Files earlier steps produced (a generated PDF or Word document) that the approver can download before deciding. Up to 5."
+                    label={t('automations.approval_editors.documents_to_show', 'Documents to show')}
+                    hint={t('automations.approval_editors.files_earlier_steps_produced_a_generated', 'Files earlier steps produced (a generated PDF or Word document) that the approver can download before deciding. Up to 5.')}
                 >
                     <div className="space-y-1.5">
                         {attachments.map((att, i) => (
@@ -343,12 +343,12 @@ function ApprovalFields({ draft, set, onFocusField, previewSample, errorSections
                                     type="text"
                                     value={att.label || ''}
                                     onChange={(e) => setAttachment(i, { label: e.target.value })}
-                                    placeholder="Shown name (optional)"
+                                    placeholder={t('automations.approval_editors.shown_name_optional', 'Shown name (optional)')}
                                     className={controlSurfaceClass('w-40 shrink-0 px-2 py-1.5 text-sm')}
                                 />
                                 <button
                                     type="button"
-                                    aria-label="Remove document"
+                                    aria-label={t('automations.approval_editors.remove_document', 'Remove document')}
                                     onClick={() => set('attachments', attachments.filter((_, idx) => idx !== i))}
                                     className="p-1.5 text-[var(--text-tertiary)] hover:text-red-500 transition"
                                 >
@@ -362,14 +362,14 @@ function ApprovalFields({ draft, set, onFocusField, previewSample, errorSections
                                 onClick={() => set('attachments', [...attachments, { binding: '', label: '' }])}
                                 className="inline-flex items-center gap-1 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition"
                             >
-                                <Plus size={12} /> Add a document
+                                <Plus size={12} /> {t('automations.approval_editors.add_a_document', 'Add a document')}
                             </button>
                         )}
                     </div>
                 </FormRow>
                 <FormRow
-                    label="Questions for the approver"
-                    hint="Extra answers collected with the decision — later steps can use them as this step's output.answers. Up to 20."
+                    label={t('automations.approval_editors.questions_for_the_approver', 'Questions for the approver')}
+                    hint={t('automations.approval_editors.extra_answers_collected_with_the_decision', 'Extra answers collected with the decision — later steps can use them as this step\'s output.answers. Up to 20.')}
                 >
                     <div className="space-y-1.5">
                         {questions.map((q, i) => (
@@ -387,22 +387,22 @@ function ApprovalFields({ draft, set, onFocusField, previewSample, errorSections
                                         const name = approvalQuestionName(q, i, questions);
                                         if (name !== q.name) setQuestion(i, { name });
                                     }}
-                                    placeholder="Question label"
+                                    placeholder={t('automations.approval_editors.question_label', 'Question label')}
                                     className={controlSurfaceClass('flex-1 min-w-[8rem] px-2 py-1.5 text-sm')}
                                 />
                                 <select
                                     value={q.type || 'text'}
                                     onChange={(e) => setQuestion(i, { type: e.target.value })}
-                                    aria-label="Answer type"
+                                    aria-label={t('automations.approval_editors.answer_type', 'Answer type')}
                                     className={controlSurfaceClass('w-auto shrink-0 px-2 py-1.5 text-sm')}
                                 >
-                                    <option value="text">Short text</option>
-                                    <option value="textarea">Long text</option>
-                                    <option value="number">Number</option>
-                                    <option value="date">Date</option>
-                                    <option value="select">Choice</option>
+                                    <option value="text">{t('automations.approval_editors.short_text', 'Short text')}</option>
+                                    <option value="textarea">{t('automations.approval_editors.long_text', 'Long text')}</option>
+                                    <option value="number">{t('automations.approval_editors.number', 'Number')}</option>
+                                    <option value="date">{t('automations.approval_editors.date', 'Date')}</option>
+                                    <option value="select">{t('automations.approval_editors.choice', 'Choice')}</option>
                                     <option value="checkbox">Yes/no</option>
-                                    <option value="email">Email</option>
+                                    <option value="email">{t('automations.approval_editors.email', 'Email')}</option>
                                 </select>
                                 <label className="inline-flex items-center gap-1 text-xs text-[var(--text-secondary)]">
                                     <input
@@ -411,11 +411,11 @@ function ApprovalFields({ draft, set, onFocusField, previewSample, errorSections
                                         onChange={(e) => setQuestion(i, { required: e.target.checked })}
                                         className="h-3.5 w-3.5"
                                     />
-                                    required
+                                    {t('automations.approval_editors.required', 'required')}
                                 </label>
                                 <button
                                     type="button"
-                                    aria-label="Remove question"
+                                    aria-label={t('automations.approval_editors.remove_question', 'Remove question')}
                                     onClick={() => set('approvalFields', questions.filter((_, idx) => idx !== i))}
                                     className="p-1.5 text-[var(--text-tertiary)] hover:text-red-500 transition"
                                 >
@@ -452,7 +452,7 @@ function ApprovalFields({ draft, set, onFocusField, previewSample, errorSections
                                     so it falls back to the prospective mint — which is also
                                     exactly what touching the label box will store. */}
                                 <p className="w-full text-[11px] text-[var(--text-tertiary)]">
-                                    Later steps read this answer as{' '}
+                                    {t('automations.approval_editors.later_steps_read_this_answer_as', 'Later steps read this answer as')}{' '}
                                     <code>output.answers.{storedQuestionName(q) || approvalQuestionName(q, i, questions)}</code>
                                 </p>
                             </div>
@@ -473,13 +473,13 @@ function ApprovalFields({ draft, set, onFocusField, previewSample, errorSections
                                 }}
                                 className="inline-flex items-center gap-1 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition"
                             >
-                                <Plus size={12} /> Add a question
+                                <Plus size={12} /> {t('automations.approval_editors.add_a_question', 'Add a question')}
                             </button>
                         )}
                     </div>
                 </FormRow>
             </AccordionSection>
-            <AccordionSection stepType="approval" sectionKey="waiting" title="Deadline" defaultOpen forceOpen={errorSections.has('waiting')}>
+            <AccordionSection stepType="approval" sectionKey="waiting" title={t('automations.approval_editors.deadline', 'Deadline')} defaultOpen forceOpen={errorSections.has('waiting')}>
                 {stagesActive && (
                     <ApprovalStagesEditor
                         stages={stages}
@@ -493,17 +493,17 @@ function ApprovalFields({ draft, set, onFocusField, previewSample, errorSections
                 )}
                 {!stagesActive && !panelActive && (
                     <FormRow
-                        label="Who decides"
-                        hint="A person or group in your organisation. They get the notification; the first decision wins. Leave empty and you decide."
+                        label={t('automations.approval_editors.who_decides', 'Who decides')}
+                        hint={t('automations.approval_editors.a_person_or_group_in_your', 'A person or group in your organisation. They get the notification; the first decision wins. Leave empty and you decide.')}
                     >
                         <div className="flex items-center gap-2">
                             <select
                                 value={assigneeValue}
                                 onChange={onAssignee}
                                 className={controlSurfaceClass('px-2 py-1.5 text-sm flex-1')}
-                                aria-label="Who decides"
+                                aria-label={t('automations.approval_editors.who_decides', 'Who decides')}
                             >
-                                <option value="">Me (the owner)</option>
+                                <option value="">{t('automations.approval_editors.me_the_owner', 'Me (the owner)')}</option>
                                 <DirectoryOptions directory={directory} />
                             </select>
                             <button
@@ -516,15 +516,15 @@ function ApprovalFields({ draft, set, onFocusField, previewSample, errorSections
                                 }}
                                 className="shrink-0 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] underline underline-offset-2 transition"
                             >
-                                + More approvers
+                                {t('automations.approval_editors.more_approvers', '+ More approvers')}
                             </button>
                         </div>
                     </FormRow>
                 )}
                 {!stagesActive && panelActive && (
                     <FormRow
-                        label="Approvers"
-                        hint="Up to 10 seats — a person, or a group whose first voting member fills the seat. How the votes resolve is set below. Remove every seat to go back to a single approver."
+                        label={t('automations.approval_editors.approvers', 'Approvers')}
+                        hint={t('automations.approval_editors.up_to_10_seats_a_person', 'Up to 10 seats — a person, or a group whose first voting member fills the seat. How the votes resolve is set below. Remove every seat to go back to a single approver.')}
                     >
                         <div className="space-y-1.5">
                             {panelSeats.map((seat, i) => (
@@ -535,7 +535,7 @@ function ApprovalFields({ draft, set, onFocusField, previewSample, errorSections
                                         className={controlSurfaceClass('px-2 py-1.5 text-sm flex-1')}
                                         aria-label={`Approver seat ${i + 1}`}
                                     >
-                                        <option value="">— pick a person or group —</option>
+                                        <option value="">{t('automations.approval_editors.pick_a_person_or_group', '— pick a person or group —')}</option>
                                         <DirectoryOptions directory={directory} />
                                     </select>
                                     <button
@@ -554,7 +554,7 @@ function ApprovalFields({ draft, set, onFocusField, previewSample, errorSections
                                     onClick={() => set('approvers', [...panelSeats, null])}
                                     className="text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] underline underline-offset-2 transition"
                                 >
-                                    + Add approver
+                                    {t('automations.approval_editors.add_approver', '+ Add approver')}
                                 </button>
                             )}
                         </div>
@@ -562,26 +562,26 @@ function ApprovalFields({ draft, set, onFocusField, previewSample, errorSections
                 )}
                 {!stagesActive && panelActive && realSeatCount >= 2 && (
                     <FormRow
-                        label="Decision rule"
-                        hint="How the votes become one answer. With “everyone”, one reject declines immediately — the requester hears fast."
+                        label={t('automations.approval_editors.decision_rule', 'Decision rule')}
+                        hint={t('automations.approval_editors.how_the_votes_become_one_answer', 'How the votes become one answer. With “everyone”, one reject declines immediately — the requester hears fast.')}
                     >
                         <div className="flex items-center gap-2">
                             <select
                                 value={draft.rule || 'all'}
                                 onChange={(e) => set('rule', e.target.value)}
                                 className={controlSurfaceClass('px-2 py-1.5 text-sm flex-1')}
-                                aria-label="Decision rule"
+                                aria-label={t('automations.approval_editors.decision_rule', 'Decision rule')}
                             >
-                                <option value="all">Everyone must approve</option>
-                                <option value="first">First to respond decides</option>
-                                <option value="quorum">At least N approvals</option>
+                                <option value="all">{t('automations.approval_editors.everyone_must_approve', 'Everyone must approve')}</option>
+                                <option value="first">{t('automations.approval_editors.first_to_respond_decides', 'First to respond decides')}</option>
+                                <option value="quorum">{t('automations.approval_editors.at_least_n_approvals', 'At least N approvals')}</option>
                             </select>
                             {(draft.rule || 'all') === 'quorum' && (
                                 <select
                                     value={String(Math.min(Math.max(Number(draft.quorum) || 2, 1), realSeatCount))}
                                     onChange={(e) => set('quorum', Number(e.target.value))}
                                     className={controlSurfaceClass('px-2 py-1.5 text-sm')}
-                                    aria-label="Approvals needed"
+                                    aria-label={t('automations.approval_editors.approvals_needed', 'Approvals needed')}
                                 >
                                     {Array.from({ length: realSeatCount }, (_, i) => i + 1).map(n => (
                                         <option key={n} value={String(n)}>{`${n} of ${realSeatCount}`}</option>
@@ -593,8 +593,8 @@ function ApprovalFields({ draft, set, onFocusField, previewSample, errorSections
                 )}
                 {!stagesActive && (
                     <FormRow
-                        label="Final sign-off"
-                        hint="Optional second stage: once the approver(s) say yes, this person or group has the last word — only then does the run continue."
+                        label={t('automations.approval_editors.final_sign_off', 'Final sign-off')}
+                        hint={t('automations.approval_editors.optional_second_stage_once_the_approver', 'Optional second stage: once the approver(s) say yes, this person or group has the last word — only then does the run continue.')}
                     >
                         <select
                             value={draft.finalApprover?.userId ? `u:${draft.finalApprover.userId}` : (draft.finalApprover?.groupId ? `g:${draft.finalApprover.groupId}` : '')}
@@ -604,9 +604,9 @@ function ApprovalFields({ draft, set, onFocusField, previewSample, errorSections
                                 set('finalApprover', v.slice(0, 1) === 'u' ? { userId: v.slice(2) } : { groupId: v.slice(2) });
                             }}
                             className={controlSurfaceClass('px-2 py-1.5 text-sm')}
-                            aria-label="Final sign-off"
+                            aria-label={t('automations.approval_editors.final_sign_off', 'Final sign-off')}
                         >
-                            <option value="">No final sign-off</option>
+                            <option value="">{t('automations.approval_editors.no_final_sign_off', 'No final sign-off')}</option>
                             <DirectoryOptions directory={directory} />
                         </select>
                     </FormRow>
@@ -626,14 +626,14 @@ function ApprovalFields({ draft, set, onFocusField, previewSample, errorSections
                     </div>
                 )}
                 <FormRow
-                    label="Decide within"
+                    label={t('automations.approval_editors.decide_within', 'Decide within')}
                     hint={'If nobody decides in time, the run is closed as expired. Pick "No deadline" to let it wait as long as it needs.'}
                 >
                     <select
                         value={String(hours)}
                         onChange={(e) => set('expiresInHours', Number(e.target.value))}
                         className={controlSurfaceClass('px-2 py-1.5 text-sm')}
-                        aria-label="Approval deadline"
+                        aria-label={t('automations.approval_editors.approval_deadline', 'Approval deadline')}
                     >
                         {choices.map(c => (
                             <option key={c.value} value={String(c.value)}>{c.label}</option>
@@ -641,16 +641,16 @@ function ApprovalFields({ draft, set, onFocusField, previewSample, errorSections
                     </select>
                 </FormRow>
                 <FormRow
-                    label="Remind after"
-                    hint="Nudge the approver again if nobody has decided by then. Must be earlier than the deadline."
+                    label={t('automations.approval_editors.remind_after', 'Remind after')}
+                    hint={t('automations.approval_editors.nudge_the_approver_again_if_nobody', 'Nudge the approver again if nobody has decided by then. Must be earlier than the deadline.')}
                 >
                     <select
                         value={String(draft.remindAfterHours || '')}
                         onChange={(e) => set('remindAfterHours', e.target.value ? Number(e.target.value) : '')}
                         className={controlSurfaceClass('px-2 py-1.5 text-sm')}
-                        aria-label="Reminder delay"
+                        aria-label={t('automations.approval_editors.reminder_delay', 'Reminder delay')}
                     >
-                        <option value="">No reminder</option>
+                        <option value="">{t('automations.approval_editors.no_reminder', 'No reminder')}</option>
                         {APPROVAL_CLOCK_CHOICES.map(c => (
                             <option key={c.value} value={String(c.value)}>{c.label}</option>
                         ))}
@@ -658,8 +658,8 @@ function ApprovalFields({ draft, set, onFocusField, previewSample, errorSections
                 </FormRow>
                 {!stagesActive && !panelActive && (
                 <FormRow
-                    label="Escalate to"
-                    hint="If nobody decides, this person or group ALSO gains the right to decide — the original approver keeps theirs."
+                    label={t('automations.approval_editors.escalate_to', 'Escalate to')}
+                    hint={t('automations.approval_editors.if_nobody_decides_this_person_or', 'If nobody decides, this person or group ALSO gains the right to decide — the original approver keeps theirs.')}
                 >
                     <div className="flex items-center gap-2">
                         <select
@@ -671,9 +671,9 @@ function ApprovalFields({ draft, set, onFocusField, previewSample, errorSections
                                 if (!draft.escalateAfterHours) set('escalateAfterHours', 24);
                             }}
                             className={controlSurfaceClass('px-2 py-1.5 text-sm flex-1')}
-                            aria-label="Escalate to"
+                            aria-label={t('automations.approval_editors.escalate_to', 'Escalate to')}
                         >
-                            <option value="">No escalation</option>
+                            <option value="">{t('automations.approval_editors.no_escalation', 'No escalation')}</option>
                             {(directory?.members || []).map(m => (
                                 <option key={m.id} value={`u:${m.id}`}>{m.name}</option>
                             ))}
@@ -690,7 +690,7 @@ function ApprovalFields({ draft, set, onFocusField, previewSample, errorSections
                                 value={String(draft.escalateAfterHours || 24)}
                                 onChange={(e) => set('escalateAfterHours', Number(e.target.value))}
                                 className={controlSurfaceClass('px-2 py-1.5 text-sm')}
-                                aria-label="Escalation delay"
+                                aria-label={t('automations.approval_editors.escalation_delay', 'Escalation delay')}
                             >
                                 {APPROVAL_CLOCK_CHOICES.map(c => (
                                     <option key={c.value} value={String(c.value)}>{`after ${c.label}`}</option>

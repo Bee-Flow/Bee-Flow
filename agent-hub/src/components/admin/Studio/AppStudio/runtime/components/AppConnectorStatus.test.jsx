@@ -76,7 +76,7 @@ describe('AppConnectorStatus', () => {
         }));
         const { container } = renderCard();
         expect(await screen.findByText(/Not connected/)).toBeInTheDocument();
-        expect(screen.getByText(/Settings → Integrations/)).toBeInTheDocument();
+        expect(screen.getByText(/Settings → Connections/)).toBeInTheDocument();
         expect(container.querySelector('[data-connected]')).toBeNull();
     });
 

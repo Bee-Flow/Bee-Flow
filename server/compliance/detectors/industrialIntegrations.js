@@ -44,6 +44,7 @@
  */
 
 const db = require('../../db');
+const { errorLabel } = require('../lib/errorShape');
 
 const HEURISTICS_VERSION = '1.0.0';
 const ACTIVITY_WINDOW_DAYS = 90;
@@ -80,7 +81,10 @@ const PORTS = {
     8883: { label: 'MQTT (TLS)', confidence: 'low' },
     102: { label: 'Siemens S7 / ISO-TSAP', confidence: 'high' },
     44818: { label: 'EtherNet/IP', confidence: 'high' },
-    2222: { label: 'EtherNet/IP (implicit)', confidence: 'high' },
+    // Low, not high: 2222 is also the most common alternative SSH/SFTP port,
+    // and a backup job on sftp://host:2222 is not a PLC. On its own it only
+    // hints; with an EtherNet/IP keyword or the 44818 port it is high.
+    2222: { label: 'EtherNet/IP (implicit)', confidence: 'low' },
     20000: { label: 'DNP3', confidence: 'high' },
     47808: { label: 'BACnet', confidence: 'high' },
     48898: { label: 'Beckhoff ADS', confidence: 'high' },
@@ -89,6 +93,9 @@ const PORTS = {
     34963: { label: 'PROFINET RT', confidence: 'high' },
     34964: { label: 'PROFINET RT', confidence: 'high' },
 };
+
+// Schemes whose port is never an industrial-protocol port, whatever its number.
+const NON_INDUSTRIAL_SCHEMES = new Set(['ssh', 'sftp', 'scp', 'ftp', 'ftps', 'git', 'rsync', 'smtp', 'smtps', 'imap', 'imaps']);
 
 const VENDOR_HOST_RE = /(?:^|\.)(?:mindsphere\.io|insights-hub\.[a-z.]+|thingworx\.[a-z.]+|ignitionautomation\.[a-z.]+|ptc\.io|kepware\.com|inductiveautomation\.com|thingsboard\.cloud|thingsboard\.io)$/i;
 
@@ -160,7 +167,9 @@ function scanText(text, opts = {}) {
         const scheme = m[1].toLowerCase();
         const { host, port } = _hostAndPort(m[2]);
         if (SCHEMES[scheme]) add('scheme', `${scheme}://${host}${port ? `:${port}` : ''}`);
-        if (port !== null && PORTS[port]) add('port', `${host}:${port}`);
+        // A port inside a URL whose scheme names a non-industrial protocol is
+        // that protocol's port, whatever number it has (sftp://host:2222).
+        if (port !== null && PORTS[port] && !NON_INDUSTRIAL_SCHEMES.has(scheme)) add('port', `${host}:${port}`);
         if (host && VENDOR_HOST_RE.test(host)) add('host', host);
     }
 
@@ -273,7 +282,9 @@ async function _source(name, skipped, fn) {
     try {
         return await fn();
     } catch (e) {
-        skipped.push({ source: name, reason: _isNotProvisioned(e) ? 'not provisioned' : `query failed: ${String(e?.message || e).slice(0, 120)}` });
+        // Class and SQLSTATE only: a driver message can quote row values, and
+        // `skipped` enters the evidence chain (lib/errorShape.js).
+        skipped.push({ source: name, reason: _isNotProvisioned(e) ? 'not provisioned' : `query failed: ${errorLabel(e)}` });
         return null;
     }
 }

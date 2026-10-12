@@ -95,7 +95,7 @@ export function KbDocumentList({
                             'mobile.knowledge.no_documents_hint',
                             'Upload a file, scan a page, or point it at a web address. Text is extracted and indexed on your server — then you can ask about it.',
                         )}
-                        actionLabel={onAdd ? t('mobile.knowledge.add_document', 'Add a document') : undefined}
+                        actionLabel={onAdd ? t('automations.approval_editors.add_a_document', 'Add a document') : undefined}
                         onAction={onAdd}
                     />
                 )

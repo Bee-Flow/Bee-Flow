@@ -498,7 +498,7 @@ async function executeCustomIntegrationTool(prefixedName, args, {
                     provider,
                 });
                 if (!resolution.available || !resolution.connectionId) {
-                    return fail('No credentials connected for this integration. Add them under Settings → Integrations.');
+                    return fail('No credentials connected for this integration. Add them under Settings → Connections.');
                 }
                 connection = await connStore.getConnectionWithSecret(resolution.connectionId);
             }

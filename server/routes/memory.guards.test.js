@@ -28,27 +28,39 @@ const fx = {
     created: [],
     updated: [],
     memories: {},
-    similar: null,       // what findSimilarMemory returns
-    confirmed: [],
+    written: [],         // memoryWriter.writeMemory calls
+    writeResult: () => ({ action: 'created', id: 'w' }),
     importItems: [],     // what the stubbed LLM "extracts"
+    policy: { read: true, write: true, reason: 'enabled' },   // what the memory gate answers
 };
 
 const MOCKS = {
+    '../agents/memory/memoryWriter': {
+        detectSensitiveIdentifier: require('../agents/memory/memoryWriter.js').detectSensitiveIdentifier,
+        looksArt9: require('../agents/memory/memoryWriter.js').looksArt9,
+        writeMemory: async (candidate, ctx) => { fx.written.push({ candidate, ctx }); return fx.writeResult(candidate); },
+    },
+    '../core/memory/memoryPolicy': { resolveMemoryPolicy: async () => fx.policy },
     '../stores/memoryStore': {
         getMemoryById: async (id) => fx.memories[id] || null,
         createMemory: async (...args) => { fx.created.push(args); return 'new-id'; },
         updateMemory: async (id, content, summary, importance) => {
             fx.updated.push({ id, content, summary, importance });
         },
-        findSimilarMemory: async () => fx.similar,
-        confirmMemory: async (id) => { fx.confirmed.push(id); },
         deleteMemory: async () => {},
+        getMemoriesByIds: async (ids) => ids.map((id) => fx.memories[id]).filter(Boolean),
+        deleteMemoriesByIds: async (ids) => ids.length,
         getMemories: async () => [],
         getMemoriesForAgent: async () => [],
         getMemoriesForProject: async () => [],
         searchUserMemories: async () => ({ items: [], total: 0, limit: 50, offset: 0 }),
         getMemoryStats: async () => ({ total: 0 }),
         clearAllMemories: async () => {},
+    },
+    '../stores/memoryQueries': {
+        ...require('../stores/memoryQueries.js'),
+        listMemories: async (userId, f) => ({ items: [], total: 0, limit: f.limit, offset: f.offset }),
+        presentMemories: async (rows) => rows,
     },
     '../auth/projectAccess': { hasProjectRole: async () => true },
     '../auth': {
@@ -86,9 +98,10 @@ function resetFx() {
     fx.created.length = 0;
     fx.updated.length = 0;
     fx.memories = {};
-    fx.similar = null;
-    fx.confirmed.length = 0;
+    fx.written.length = 0;
+    fx.writeResult = () => ({ action: 'created', id: 'w' });
     fx.importItems = [];
+    fx.policy = { read: true, write: true, reason: 'enabled' };
 }
 
 // A schema refusal travels as an error to the terminal handler, so the
@@ -216,24 +229,52 @@ test('import caps how many memories one paste can create', async () => {
 
     const res = await dispatch({ method: 'POST', url: '/import', body: { text: 'blob' }, session: BOB });
     assert.strictEqual(res.statusCode, 200);
-    assert.strictEqual(fx.created.length, 100, 'at most 100 inserts');
+    assert.strictEqual(fx.written.length, 100, 'at most 100 inserts');
     assert.strictEqual(res.body.imported, 100);
     assert.strictEqual(res.body.skipped, 150, 'the remainder is reported, not silently dropped');
 });
 
-test('import de-dupes against memories that already exist', async () => {
-    // Re-pasting the same export used to double the memory count: createMemory
-    // was called without subject/attribute, so canonical dedupe never fired and
-    // findSimilarMemory was never consulted on this path at all.
+test('import is refused with 403 memory_disabled when memory is off, and writes nothing', async () => {
     resetFx();
-    fx.importItems = [{ type: 'fact', content: 'I live in Utrecht' }];
-    fx.similar = { id: 'existing-1' };
+    fx.policy = { read: false, write: false, reason: 'org_disabled' };
+    fx.importItems = [{ type: 'fact', content: 'should never be stored' }];
 
     const res = await dispatch({ method: 'POST', url: '/import', body: { text: 'blob' }, session: BOB });
-    assert.deepStrictEqual(fx.created, [], 'no duplicate row');
-    assert.deepStrictEqual(fx.confirmed, ['existing-1'], 'the existing memory is confirmed instead');
-    assert.strictEqual(res.body.imported, 0);
-    assert.strictEqual(res.body.skipped, 1);
+    assert.strictEqual(res.statusCode, 403);
+    assert.strictEqual(res.body.code, 'memory_disabled');
+    assert.strictEqual(fx.written.length, 0);
+});
+
+test('import writes every item through the memory writer as origin imported, never createMemory', async () => {
+    // createMemory used to be called directly: no secret drop, no art. 9 gate.
+    resetFx();
+    fx.importItems = [{ type: 'preference', content: 'I like short answers' }];
+
+    const res = await dispatch({ method: 'POST', url: '/import', body: { text: 'blob' }, session: { user: { id: 'bob', organizationId: 'org1' } } });
+    assert.strictEqual(res.body.imported, 1);
+    assert.deepStrictEqual(fx.created, [], 'no direct createMemory');
+    assert.deepStrictEqual(fx.written[0].candidate, { type: 'preference', content: 'I like short answers' });
+    assert.deepStrictEqual(fx.written[0].ctx, { origin: 'imported', userId: 'bob', orgId: 'org1' });
+});
+
+test('import reports what the writer refused or confirmed, by reason', async () => {
+    resetFx();
+    fx.importItems = [
+        { type: 'fact', content: 'My IBAN is NL91 ABNA 0417 1643 00' },
+        { type: 'fact', content: 'I have diabetes' },
+        { type: 'fact', content: 'I live in Utrecht' },
+        { type: 'fact', content: 'I like tea' },
+    ];
+    fx.writeResult = (c) => (/IBAN/.test(c.content) ? { action: 'rejected', reason: 'sensitive_identifier' }
+        : /diabetes/.test(c.content) ? { action: 'rejected', reason: 'art9_no_consent' }
+            : /Utrecht/.test(c.content) ? { action: 'confirmed', id: 'old' }
+                : { action: 'created', id: 'n' });
+
+    const res = await dispatch({ method: 'POST', url: '/import', body: { text: 'blob' }, session: BOB });
+    assert.strictEqual(res.body.imported, 1);
+    assert.strictEqual(res.body.skipped, 3, 'skipped stays the total (a number) for older clients');
+    assert.deepStrictEqual(res.body.skippedBy, { sensitive: 1, identifier: 1, duplicate: 1 });
+    assert.deepStrictEqual(res.body.items, [{ type: 'fact', content: 'I like tea' }]);
 });
 
 test('import de-dupes within a single paste', async () => {
@@ -243,8 +284,9 @@ test('import de-dupes within a single paste', async () => {
         { type: 'fact', content: '  i live in   UTRECHT ' },
     ];
 
-    await dispatch({ method: 'POST', url: '/import', body: { text: 'blob' }, session: BOB });
-    assert.strictEqual(fx.created.length, 1, 'case and whitespace do not make it a new memory');
+    const res = await dispatch({ method: 'POST', url: '/import', body: { text: 'blob' }, session: BOB });
+    assert.strictEqual(fx.written.length, 1, 'case and whitespace do not make it a new memory');
+    assert.strictEqual(res.body.skippedBy.duplicate, 1);
 });
 
 test('import coerces an unknown type rather than rejecting the whole paste', async () => {
@@ -252,8 +294,8 @@ test('import coerces an unknown type rather than rejecting the whole paste', asy
     fx.importItems = [{ type: 'nonsense', content: 'something true' }];
 
     await dispatch({ method: 'POST', url: '/import', body: { text: 'blob' }, session: BOB });
-    assert.strictEqual(fx.created.length, 1);
-    assert.strictEqual(fx.created[0][2], 'fact', 'unknown types land in fact');
+    assert.strictEqual(fx.written.length, 1);
+    assert.strictEqual(fx.written[0].candidate.type, 'fact', 'unknown types land in fact');
 });
 
 test('import still enforces the byte limit, not a character limit', async () => {

@@ -10,12 +10,11 @@ import {
 } from '../../../../api/queries/projectTasks';
 import useTranslation from '../../../../hooks/useTranslation';
 import Modal from '../../../shared/Modal';
-import useConfirm from '../../../shared/useConfirm';
 import CommentsPanel from '../../../comments/CommentsPanel';
 import { useChatPeople } from '../chat/chatPeople';
 import type { ProjectRole } from '../../../../api/queries/projects';
 import type { WorkspaceUser } from '../types';
-import { ErrorText, PrimaryButton, SecondaryButton } from '../workspaceUi';
+import { ErrorText, GhostButton, PrimaryButton, SecondaryButton } from '../workspaceUi';
 import { ChecklistEditor, MAX_LABELS, TypeIcon, typeLabel } from './TaskFields';
 import TaskProperties from './TaskProperties';
 import { LinkedResources, RelatedTasks, SubItems } from './TaskRelations';
@@ -120,22 +119,38 @@ function useParentOptions(task: ProjectTask | null | undefined, taskPool: Projec
     return taskPool.filter(candidate => candidate.id !== task?.id && !descendants.has(candidate.id) && canContainWorkItem(workItemType(candidate), itemType));
 }
 
-/** Ask before a change is thrown away: on close, and when the page itself is left. */
+/**
+ * Closing with unsaved changes does not open a second dialog over this one: the
+ * action waits in `pending` and the dialog shows an inline Save / Discard bar.
+ * The page being left is guarded by the browser's own prompt.
+ */
 function useDirtyGuard(dirty: boolean, canEdit: boolean, busy: boolean, onClose: () => void) {
-    const { t } = useTranslation();
-    const { confirm, confirmDialog } = useConfirm();
+    const [pending, setPending] = useState<(() => void) | null>(null);
     useEffect(() => {
         if (!dirty || !canEdit) return undefined;
         const guard = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ''; };
         window.addEventListener('beforeunload', guard);
         return () => window.removeEventListener('beforeunload', guard);
     }, [dirty, canEdit]);
-    const requestClose = async (action = onClose) => {
+    const requestClose = (action: () => void = onClose) => {
         if (busy) return;
-        if (canEdit && dirty && !await confirm({ title: t('project_tasks.discard_title', 'Discard task changes?'), description: t('project_tasks.discard_hint', 'Your unsaved changes to this task will be lost.'), confirmLabel: t('project_tasks.discard', 'Discard changes'), cancelLabel: t('project_tasks.keep_editing', 'Keep editing'), destructive: true })) return;
+        if (canEdit && dirty) { setPending(() => action); return; }
         action();
     };
-    return { requestClose, confirmDialog };
+    return { requestClose, pending, keepEditing: () => setPending(null) };
+}
+
+/** The bar that replaces a confirm: what to do with the unsaved changes. */
+function UnsavedBar({ formId, busy, onDiscard, onKeep }: { formId: string; busy: boolean; onDiscard: () => void; onKeep: () => void }) {
+    const { t } = useTranslation();
+    return (
+        <div role="alert" data-testid="task-unsaved-bar" className="flex items-center gap-2 w-full px-3 py-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)]">
+            <span className="flex-1 min-w-0 text-[13px] text-[var(--text-primary)]">{t('project_home.unsaved_changes', 'Unsaved changes')}</span>
+            <GhostButton onClick={onKeep} disabled={busy}>{t('project_tasks.keep_editing', 'Keep editing')}</GhostButton>
+            <SecondaryButton onClick={onDiscard} disabled={busy} data-testid="task-unsaved-discard">{t('project_home.discard', 'Discard')}</SecondaryButton>
+            <PrimaryButton type="submit" form={formId} busy={busy} data-testid="task-unsaved-save">{t('project_chat.save', 'Save')}</PrimaryButton>
+        </div>
+    );
 }
 
 export default function TaskDialog(props: TaskDialogProps) {
@@ -169,7 +184,7 @@ export default function TaskDialog(props: TaskDialogProps) {
     const labelsOverflow = plannedLabels.length > MAX_LABELS;
     const input: TaskInput = { title: clean, description, status, priority, itemType, parentTaskId, storyPoints: points, labels: plannedLabels, checklist, assigneeIds, links, startDate: startDate || null, dueDate: dueDate || null };
     const initial = useRef(JSON.stringify(input));
-    const { requestClose, confirmDialog } = useDirtyGuard(JSON.stringify(input) !== initial.current, canEdit, busy, onClose);
+    const { requestClose, pending, keepEditing } = useDirtyGuard(JSON.stringify(input) !== initial.current, canEdit, busy, onClose);
     const invalidDates = !!(startDate && dueDate && startDate > dueDate);
     const newTitles: Record<WorkItemType, string> = {
         epic: t('project_tasks.new_epic', 'New epic'),
@@ -182,7 +197,7 @@ export default function TaskDialog(props: TaskDialogProps) {
         if (!clean || locked || invalidDates) return;
         onSubmit(input, openedAs.current ? changedFields(openedAs.current, input) : input);
     };
-    const openLink = onOpenLink ? (l: TaskLink) => void requestClose(() => onOpenLink(l)) : undefined;
+    const openLink = onOpenLink ? (l: TaskLink) => requestClose(() => onOpenLink(l)) : undefined;
     const changeType = (nextType: WorkItemType) => {
         setItemType(nextType);
         if (parentTaskId && !taskPool.some(option => option.id === parentTaskId && canContainWorkItem(workItemType(option), nextType))) setParentTaskId(null);
@@ -191,15 +206,17 @@ export default function TaskDialog(props: TaskDialogProps) {
     const name = task ? t('project_tasks.edit_title', 'Task') : newTitles[itemType];
 
     return (
-        <><Modal open onClose={() => void requestClose()} size="auto" className="project-task-dialog max-w-[960px] overflow-hidden" disableEscapeClose={busy} disableBackdropClose={busy}
+        <Modal open onClose={() => requestClose()} size="auto" className="project-task-dialog max-w-[960px] overflow-hidden" disableEscapeClose={busy} disableBackdropClose={busy}
             headerActions={(
-                <button type="button" onClick={() => void requestClose()} disabled={busy} className={`${ICON_BUTTON} -my-1`} aria-label={t('project_tasks.close', 'Close')} title={t('project_tasks.close', 'Close')}>
+                <button type="button" onClick={() => requestClose()} disabled={busy} className={`${ICON_BUTTON} -my-1`} aria-label={t('project_tasks.close', 'Close')} title={t('project_tasks.close', 'Close')}>
                     <X className="w-4 h-4" aria-hidden="true" />
                 </button>
             )}
             title={<TaskHeading name={name} itemType={itemType} trail={trail} editing={!!task} />}
             footer={(
-                <div className="flex items-center gap-2 w-full">
+                <div className="flex flex-col gap-2 w-full">
+                    {pending && <UnsavedBar formId={`${ids}-form`} busy={busy} onDiscard={pending} onKeep={keepEditing} />}
+                    <div className="flex items-center gap-2 w-full">
                     {task && onDelete && canEdit && (
                         <button type="button" onClick={onDelete} disabled={busy} aria-label={t('project_tasks.delete', 'Delete')} title={t('project_tasks.delete', 'Delete')}
                             className={`${ICON_BUTTON} !text-[var(--error-ink)] hover:!bg-[color-mix(in_srgb,var(--error)_10%,transparent)]`}>
@@ -207,12 +224,13 @@ export default function TaskDialog(props: TaskDialogProps) {
                         </button>
                     )}
                     <span className="flex-1" />
-                    <SecondaryButton onClick={() => void requestClose()} disabled={busy}>{canEdit ? t('project_content.cancel', 'Cancel') : t('project_tasks.close', 'Close')}</SecondaryButton>
+                    <SecondaryButton onClick={() => requestClose()} disabled={busy}>{canEdit ? t('project_content.cancel', 'Cancel') : t('project_tasks.close', 'Close')}</SecondaryButton>
                     {canEdit && (
                         <PrimaryButton type="submit" form={`${ids}-form`} busy={busy} disabled={!clean || invalidDates || labelsOverflow}>
                             {task ? t('project_chat.save', 'Save') : t('project_tasks.create', 'Create task')}
                         </PrimaryButton>
                     )}
+                    </div>
                 </div>
             )}>
             <div className="-mx-5 -my-4 grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_260px] min-h-full">
@@ -257,6 +275,6 @@ export default function TaskDialog(props: TaskDialogProps) {
                         labelSuggestions={props.labelSuggestions} onOpen={openLink} />
                 </aside>
             </div>
-        </Modal>{confirmDialog}</>
+        </Modal>
     );
 }

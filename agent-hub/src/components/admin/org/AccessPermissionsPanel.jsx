@@ -1,9 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ShieldCheck, Crown, Building2, Loader2 } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import CeilingSection from './access/CeilingSection';
+import GroupAccessMatrix from './GroupAccessMatrix';
+import { useTranslation } from '../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import { useEntitlements } from '../../licensing/EntitlementsContext';
-import GroupAccessMatrix from './GroupAccessMatrix';
-import CeilingSection from './access/CeilingSection';
 
 /**
  * AccessPermissionsPanel — the hub for configuring beta / integration / core
@@ -24,6 +25,7 @@ const EMERALD = '#10b981';
 const BLUE = '#3b82f6';
 
 export default function AccessPermissionsPanel({ user, activeSection = 'grants', onNavigate }) {
+    const { t } = useTranslation();
     const isSuperAdmin = !!(user?.isAdmin || user?.role === 'admin' || (user?.permissions || []).includes('all'));
     const { mode, reload: reloadEntitlements } = useEntitlements();
 
@@ -86,7 +88,7 @@ export default function AccessPermissionsPanel({ user, activeSection = 'grants',
         if (noOrg) {
             return (
                 <div className="rounded-2xl p-5 text-sm" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
-                    No organisations found.
+                    {t('admin_org.access_panel_no_orgs', 'No organisations found.')}
                 </div>
             );
         }
@@ -123,7 +125,7 @@ export default function AccessPermissionsPanel({ user, activeSection = 'grants',
             {isSuperAdmin && orgs && orgs.length > 0 ? (
                 <div className="flex items-center gap-2.5 px-4 py-2.5 border-b flex-shrink-0" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)' }}>
                     <Building2 className="w-4 h-4 flex-shrink-0" style={{ color: BLUE }} />
-                    <label className="text-sm" style={{ color: 'var(--text-secondary)' }}>Organisation</label>
+                    <label className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('admin_org.access_panel_organisation', 'Organisation')}</label>
                     <select
                         value={orgId || ''}
                         onChange={e => selectOrg(e.target.value)}

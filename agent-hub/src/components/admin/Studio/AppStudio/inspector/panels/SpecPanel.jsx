@@ -3,6 +3,7 @@ import React from 'react';
 import BindingField from './BindingField';
 import ExpressionInput from '../logic/ExpressionInput';
 import { TextField, TextAreaField, NumberField, IconField, usePatch } from './kit';
+import useTranslation from '../../../../../../hooks/useTranslation';
 import FormField from '../../../../../shared/FormField';
 import Toggle from '../../../../../shared/Toggle';
 import { RepeatableList, inputCls } from '../../../../product-website/fields';
@@ -97,6 +98,7 @@ function newListItem(itemShape) {
 }
 
 function ItemField({ itemKey, fs, value, onChange }) {
+    const { t } = useTranslation();
     if (fs.type === 'enum') {
         return (
             <select
@@ -106,7 +108,7 @@ function ItemField({ itemKey, fs, value, onChange }) {
                 aria-label={humanize(itemKey)}
             >
                 {(fs.values || []).map((v) => (
-                    <option key={String(v)} value={v ?? ''}>{v === null ? '(default)' : String(v)}</option>
+                    <option key={String(v)} value={v ?? ''}>{v === null ? t('studio_apps_panels.spec.default_option', '(default)') : String(v)}</option>
                 ))}
             </select>
         );
@@ -155,6 +157,7 @@ function ItemField({ itemKey, fs, value, onChange }) {
 }
 
 export function SpecListField({ label, itemShape, items, onChange, disabled }) {
+    const { t } = useTranslation();
     const shapeEntries = Object.entries(itemShape || {}).filter(([, fs]) => fs.type !== 'list');
     const labelKey = shapeEntries[0]?.[0];
     return (
@@ -164,7 +167,7 @@ export function SpecListField({ label, itemShape, items, onChange, disabled }) {
                 items={Array.isArray(items) ? items : []}
                 onChange={onChange}
                 makeNew={() => newListItem(itemShape)}
-                addLabel={`Add ${label.toLowerCase().replace(/s$/, '')}`}
+                addLabel={t('studio_apps_panels.spec.add_item', 'Add {item}', { item: label.toLowerCase().replace(/s$/, '') })}
                 collapsible
                 itemLabel={(item) => (labelKey ? String(item?.[labelKey] ?? '') : '')}
                 renderItem={(item, update) => (
@@ -188,6 +191,7 @@ export function SpecListField({ label, itemShape, items, onChange, disabled }) {
 // ── one prop → one control ───────────────────────────────────────────────────
 
 function SpecField({ propKey, fs, value, patch, definition, node, disabled }) {
+    const { t } = useTranslation();
     const label = humanize(propKey);
     const commit = (v) => patch({ [propKey]: v });
 
@@ -237,7 +241,7 @@ function SpecField({ propKey, fs, value, patch, definition, node, disabled }) {
                         aria-label={label}
                     >
                         {(fs.values || []).map((v) => (
-                            <option key={String(v)} value={v ?? ''}>{v === null ? '(default)' : String(v)}</option>
+                            <option key={String(v)} value={v ?? ''}>{v === null ? t('studio_apps_panels.spec.default_option', '(default)') : String(v)}</option>
                         ))}
                     </select>
                 </FormField>
@@ -260,7 +264,7 @@ function SpecField({ propKey, fs, value, patch, definition, node, disabled }) {
                     label={label}
                     value={Array.isArray(value) ? value.join(', ') : (value ?? '')}
                     onChange={(v) => commit(String(v).split(',').map((s) => s.trim()).filter(Boolean))}
-                    hint="Comma-separated values"
+                    hint={t('studio_apps_panels.spec.comma_separated', 'Comma-separated values')}
                     disabled={disabled}
                 />
             );
@@ -268,14 +272,14 @@ function SpecField({ propKey, fs, value, patch, definition, node, disabled }) {
             // Was a plain TextField: no picker, no parse check, no preview —
             // the author had to know both the syntax and the scope by heart.
             return (
-                <FormField label={label} hint="Worked out on the page while it runs.">
+                <FormField label={label} hint={t('studio_apps_panels.spec.formula_hint', 'Worked out on the page while it runs.')}>
                     <ExpressionInput
                         value={value || ''}
                         onChange={(v) => commit(v || null)}
                         definition={definition}
                         node={node}
                         ariaLabel={label}
-                        placeholder="e.g. currentUser.name"
+                        placeholder={t('studio_apps_panels.spec.formula_placeholder', 'e.g. currentUser.name')}
                         disabled={disabled}
                     />
                 </FormField>

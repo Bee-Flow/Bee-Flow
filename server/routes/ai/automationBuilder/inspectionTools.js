@@ -58,7 +58,14 @@ async function inspect(name, args, wrap, { store, pii }) {
     }
     if (name === 'builder_inspect_mapping') return {
         stepId: step.id, settings: step.settings || {}, input: step.input || step.inputs || null,
-        sources: steps.slice(0, at).map(s => ({ id: s.id, label: s.label || s.type || s.kind, type: s.type, outputSchema: s.outputSchema || s.responseSchema || null })),
+        sources: steps.slice(0, at).map(s => ({
+            id: s.id, label: s.label || s.type || s.kind, type: s.type, outputSchema: s.outputSchema || s.responseSchema || null,
+            // A code step's outputSchema describes what its code RETURNS, and
+            // that sits under output.result (automation/codeOutput.js). Without
+            // saying so the schema read as the step's output itself, and the
+            // model bound steps.<code>.output.<field>, which is empty at run time.
+            ...(s.type === 'code' ? { readAt: `steps.${s.id}.output.result` } : {}),
+        })),
         hint: 'Read builder_inspect_run for real values. A schema is not proof a field has a value at runtime.',
     };
     if (!wrap.automationId) return { error: 'This automation has no saved runs yet.' };
@@ -68,7 +75,11 @@ async function inspect(name, args, wrap, { store, pii }) {
     const run = runs?.[0];
     if (!run) return { error: 'This automation has no runs yet.' };
     const rows = await store.getRunSteps(run.id);
-    const row = rows.find(r => r.stepId === args.stepId);
+    // A flowlet's steps are recorded under the step that called it
+    // (`<callStepId>/<stepId>`, execFlow.execCallLayer); a test of the
+    // flowlet's own steps records them bare.
+    const row = rows.find(r => r.stepId === args.stepId)
+        || (args.scope ? rows.find(r => typeof r.stepId === 'string' && r.stepId.endsWith(`/${args.stepId}`)) : null);
     if (!row) return { error: 'This step did not run in the latest execution.' };
     return { stepId: args.stepId, runId: run.id, status: row.status,
         ...(await maskedRunValues({ input: row.input ?? null, output: row.output ?? null }, pii)) };

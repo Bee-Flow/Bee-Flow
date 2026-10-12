@@ -198,12 +198,12 @@ function makeSheetRouter(deps = {}) {
         const { doc, tabs } = await sheetFor(req);
         const tab = resolveTab(tabs, req.query.tab);
         const sheet = await cells().readSheet(doc.userId, tab.datatableId);
-        res.json({ ...sheet, tabs, activeTab: tab.id, readOnly: doc.projectRole === 'viewer' });
+        res.json({ ...sheet, tabs, activeTab: tab.id, readOnly: (doc.projectRole === 'viewer' || doc.sharingRole === 'viewer') });
     }));
 
     router.patch('/:id/sheet', requireAuth, validate({ body: WriteBody }), handle(async (req, res) => {
         const { doc, tabs } = await sheetFor(req);
-        if (doc.projectRole === 'viewer') throw forbidden('document_read_only', 'You can read this spreadsheet, but only the project\'s editors can change it.');
+        if ((doc.projectRole === 'viewer' || doc.sharingRole === 'viewer')) throw forbidden('document_read_only', 'You can read this spreadsheet, but only its editors can change it.');
         const tab = resolveTab(tabs, req.query.tab);
         const saved = await cells().writeCells(doc.userId, tab.datatableId, req.body.cells);
         res.json({ ok: true, cells: saved.cells, tabs, activeTab: tab.id });
@@ -222,7 +222,7 @@ function makeSheetRouter(deps = {}) {
 
     router.post('/:id/sheet/tabs', requireAuth, validate({ body: TabCreateBody }), handle(async (req, res) => {
         const { doc, tabs } = await sheetFor(req);
-        if (doc.projectRole === 'viewer') throw forbidden('document_read_only', 'You can read this spreadsheet, but only the project\'s editors can change it.');
+        if ((doc.projectRole === 'viewer' || doc.sharingRole === 'viewer')) throw forbidden('document_read_only', 'You can read this spreadsheet, but only its editors can change it.');
         const name = (req.body.name || '').trim() || `Sheet${tabs.length + 1}`;
         const table = await cells().createSheetTable({ ownerUserId: doc.userId, name });
         const tab = { id: newTabId(), name, datatableId: table.id };
@@ -237,7 +237,7 @@ function makeSheetRouter(deps = {}) {
 
     router.patch('/:id/sheet/tabs/:tabId', requireAuth, validate({ body: TabRenameBody }), handle(async (req, res) => {
         const { doc, tabs } = await sheetFor(req);
-        if (doc.projectRole === 'viewer') throw forbidden('document_read_only', 'You can read this spreadsheet, but only the project\'s editors can change it.');
+        if ((doc.projectRole === 'viewer' || doc.sharingRole === 'viewer')) throw forbidden('document_read_only', 'You can read this spreadsheet, but only its editors can change it.');
         const idx = tabs.findIndex((t) => t.id === req.params.tabId);
         if (idx === -1) throw new HttpError(404, 'sheet_tab_not_found', 'This tab does not exist.');
         tabs[idx] = { ...tabs[idx], name: req.body.name.trim() };
@@ -251,7 +251,7 @@ function makeSheetRouter(deps = {}) {
 
     router.delete('/:id/sheet/tabs/:tabId', requireAuth, handle(async (req, res) => {
         const { doc, tabs } = await sheetFor(req);
-        if (doc.projectRole === 'viewer') throw forbidden('document_read_only', 'You can read this spreadsheet, but only the project\'s editors can change it.');
+        if ((doc.projectRole === 'viewer' || doc.sharingRole === 'viewer')) throw forbidden('document_read_only', 'You can read this spreadsheet, but only its editors can change it.');
         if (tabs.length === 1) throw new HttpError(422, 'sheet_last_tab', 'A spreadsheet must keep at least one tab.');
         const idx = tabs.findIndex((t) => t.id === req.params.tabId);
         if (idx === -1) throw new HttpError(404, 'sheet_tab_not_found', 'This tab does not exist.');

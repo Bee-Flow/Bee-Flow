@@ -12,7 +12,7 @@ import useTranslation from '../../../../hooks/useTranslation';
 import { projectErrorText } from '../projectErrorText';
 import { toast } from '../../../shared/Toast';
 import useConfirm from '../../../shared/useConfirm';
-import { SecondaryButton, SectionCard, SectionError } from './contentUi';
+import { Card, GhostButton, Notice, SecondaryButton } from '../workspaceUi';
 import { formatFileSize } from './labels';
 import useFileUploads, { type UploadRow } from './useFileUploads';
 
@@ -144,7 +144,7 @@ function FileList({ status, files, emptyText, onRetry, row }: {
 }) {
     const { t } = useTranslation();
     if (status === 'loading') return <p role="status" className="px-2 py-3 text-sm text-[var(--text-tertiary)]">{t('project_content.files_loading', 'Loading files…')}</p>;
-    if (status === 'error') return <SectionError message={t('project_content.files_error', 'The files of this project could not be loaded.')} onRetry={onRetry} />;
+    if (status === 'error') return <Notice tone="error" role="alert" icon={AlertTriangle} action={onRetry && <GhostButton onClick={onRetry}>{t('project_content.retry', 'Try again')}</GhostButton>}>{t('project_content.files_error', 'The files of this project could not be loaded.')}</Notice>;
     if (!files.length) return <p className="px-2 py-4 text-center text-sm text-[var(--text-tertiary)]">{emptyText}</p>;
     return <ul data-testid="project-files-list">{files.map(row)}</ul>;
 }
@@ -177,10 +177,10 @@ export default function FilesSection({ projectId, canEdit, uploaderName, openPic
     ) : null;
 
     return (
-        <SectionCard
+        <Card as="h3"
             title={t('project_content.files_title', 'Files')}
             description={t('project_content.files_desc', 'Files every member can use: chats in this project answer from them. Up to 20 MB each.')}
-            actions={actions}
+            action={actions}
             testId="project-files-section"
         >
             <UploadRows rows={uploads.rows} onDismiss={uploads.dismiss} />
@@ -197,6 +197,6 @@ export default function FilesSection({ projectId, canEdit, uploaderName, openPic
                 />
             </DropZone>
             {removal.confirmDialog}
-        </SectionCard>
+        </Card>
     );
 }

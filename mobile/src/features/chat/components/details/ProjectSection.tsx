@@ -48,7 +48,7 @@ export function ProjectSection({ details }: { details: ChatDetails }) {
                 <Card padded={false}>
                     <SettingRow
                         label={t('mobile.chat.details.no_project', 'No project')}
-                        value={current ? undefined : t('mobile.chat.details.project_current', 'Current')}
+                        value={current ? undefined : t('automations.flowlets_panel.current', 'Current')}
                         icon={<Icon name="CircleMinus" size={18} color={theme.colors.textMuted} />}
                         disabled={!current || moveToProject.isPending}
                         onPress={() => moveToProject.mutate(null)}
@@ -58,7 +58,7 @@ export function ProjectSection({ details }: { details: ChatDetails }) {
                             <Divider inset={theme.spacing.lg} />
                             <SettingRow
                                 label={project.name}
-                                value={project.id === currentId ? t('mobile.chat.details.project_current', 'Current') : undefined}
+                                value={project.id === currentId ? t('automations.flowlets_panel.current', 'Current') : undefined}
                                 icon={
                                     <View
                                         style={[styles.swatch, { backgroundColor: project.color || theme.colors.bgTertiary }]}

@@ -2,6 +2,7 @@ import React from 'react';
 import { GitFork } from 'lucide-react';
 import StepNodeBase, { NodeChip } from './StepNodeBase';
 import { nodeDefaultLabel, nodeHelp, nodeTypeLabel } from '../nodeDefs';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 
 /**
  * The parallel step on the canvas — "do these together instead of one after
@@ -116,6 +117,7 @@ export function parallelSummary(step) {
 }
 
 export default function ParallelNode({ id, data }) {
+    const { t } = useTranslation();
     const { step, runStep, issues, onAddAfter } = data;
     const branches = parallelBranches(step);
     const stepCount = parallelStepCount(step);
@@ -134,7 +136,7 @@ export default function ParallelNode({ id, data }) {
 
     const badges = (
         <NodeChip tone={step?.failOnAnyBranchError ? 'warn' : 'neutral'} title={title}>
-            ⇉ {branches.length} branch{branches.length === 1 ? '' : 'es'}
+            ⇉ {branches.length} {t('automations.parallel_node.branch', 'branch')}{branches.length === 1 ? '' : 'es'}
         </NodeChip>
     );
 

@@ -31,6 +31,17 @@ const { test, before, beforeEach, after } = require('node:test');
 const assert = require('node:assert');
 
 const { createRecordingDb } = require('../testUtils/mockDb');
+
+// Build spec 2.6: the chat signals settings, in SETTINGS_FIELDS order.
+const CHAT_MONITORING_COLUMNS = [
+    'chat_monitoring_enabled', 'chat_monitoring_surfaces', 'chat_monitoring_signals',
+    'chat_monitoring_effective_from', 'chat_monitoring_retention_days', 'chat_monitoring_legal_basis',
+    'chat_monitoring_lia_at', 'chat_monitoring_works_council', 'chat_monitoring_works_council_reason',
+    'chat_monitoring_works_council_at', 'chat_monitoring_works_council_scope', 'chat_monitoring_dpia_ref',
+    'chat_monitoring_dpia_at', 'chat_monitoring_dpia_risk_level', 'chat_monitoring_dpo_advice_at',
+    'chat_monitoring_prior_consultation_at', 'chat_monitoring_notice_url', 'chat_monitoring_notice_published_at',
+    'chat_monitoring_enabled_at', 'chat_monitoring_enabled_by',
+];
 const { installResolveStub } = require('../testUtils/stubRequire');
 
 const settingsRows = [];
@@ -245,6 +256,8 @@ test('every SETTINGS_FIELDS entry has a distinct column and a known kind; new on
         'accessibility_statement_url', 'accessibility_conformance_level', 'accessibility_conformance_at',
         'incident_customer_contacts', 'dora_customer_notice_hours', 'dora_contract_clauses_confirmed_at', 'dora_contract_clauses_confirmed_by', 'dora_contract_template_url',
         'machinery_manual_subjects',
+        // Chat signals (build spec 2.6): owner columns of routes/compliance/chatMonitoring.
+        ...CHAT_MONITORING_COLUMNS,
     ]) {
         assert.ok(seen.has(col), `contract column ${col} is writable`);
     }
@@ -388,12 +401,43 @@ test('SETTINGS_REQUEST_DENY names exactly the owner-written columns, and every o
     assert.deepStrictEqual([...store.SETTINGS_REQUEST_DENY], [
         'enabled_frameworks', 'framework_relevance',
         'ai_content_marking_enabled_at', 'ai_content_marking_enabled_by',
+        ...CHAT_MONITORING_COLUMNS,
     ]);
     const cols = new Set(store.SETTINGS_FIELDS.map(f => f.col));
     for (const col of store.SETTINGS_REQUEST_DENY) {
         assert.ok(cols.has(col), `${col} is still a writable column (DDL + read shape)`);
         assert.ok(store.SETTINGS_FIELDS.find(f => f.col === col).owner, `${col} declares its owner`);
     }
+});
+
+test('the chat signals columns: twenty, each owned by the chat monitoring route, each with DDL', () => {
+    const fields = store.SETTINGS_FIELDS.filter(f => f.col.startsWith('chat_monitoring_'));
+    assert.deepStrictEqual(fields.map(f => f.col), CHAT_MONITORING_COLUMNS);
+    for (const f of fields) {
+        assert.equal(f.owner, 'routes/compliance/chatMonitoring', `${f.col} is owned by the route`);
+        assert.ok(f.ddl, `${f.col} has DDL`);
+    }
+    const retention = fields.find(f => f.col === 'chat_monitoring_retention_days');
+    assert.deepStrictEqual([retention.min, retention.max], [30, 90]);
+    const empty = store.SETTINGS_FIELDS.find(f => f.col === 'chat_monitoring_enabled');
+    assert.equal(empty.fallback, false, 'off unless the route says otherwise');
+});
+
+test('sanitizeSettingsPatch drops every chat_monitoring_* key, also from a Playbooks-shaped plan body', () => {
+    const forged = Object.fromEntries(CHAT_MONITORING_COLUMNS.map(c => [c, c.endsWith('_enabled') ? true : 'x']));
+    assert.deepStrictEqual(store.sanitizeSettingsPatch({ ...forged, dpo_name: 'Dana' }), { dpo_name: 'Dana' });
+    // A model-planned body that the Playbooks resolver posts to PUT /settings:
+    // the switch, its surfaces and a forged start date must not get through.
+    const plan = {
+        dpo_email: 'dpo@example.org',
+        chat_monitoring_enabled: true,
+        chat_monitoring_surfaces: ['direct', 'agent'],
+        chat_monitoring_signals: ['outcomes', 'kinds'],
+        chat_monitoring_effective_from: '2020-01-01T00:00:00Z',
+        chat_monitoring_works_council: 'not_applicable',
+        chat_monitoring_enabled_by: 'planner',
+    };
+    assert.deepStrictEqual(store.sanitizeSettingsPatch(plan), { dpo_email: 'dpo@example.org' });
 });
 
 test('a body cannot forge the AI Act Art. 50(2) attestation stamp', () => {

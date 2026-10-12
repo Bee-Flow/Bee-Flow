@@ -2,6 +2,10 @@ import React, { useMemo } from 'react';
 import { VariablePickerProvider } from '../../../../../automation/Builder/mapping/VariablePickerContext';
 import { coerceVariableDefault, seedVariableDefaults } from '../../runtime/appVariables';
 import APP_COMPONENT_TYPES from '../../runtime/componentRegistry';
+import useTranslation from '../../../../../../hooks/useTranslation';
+
+// Stand-in for t() when a caller has none (tests, non-UI callers): the English text.
+const plainEnglish = (_key, en) => en;
 
 /**
  * App Studio inspector — the variable source for every formula/condition field.
@@ -114,14 +118,14 @@ function referencedSources(definition) {
 }
 
 /** What the picker should call an action, so the list is not a wall of ids. */
-const ACTION_KIND_LABELS = {
-    run_automation: 'automation',
-    ai_extract: 'AI · extract',
-    ai_generate: 'AI · generate',
-    kb_query: 'AI · knowledge base',
-    send_email: 'e-mail',
-    sequence: 'flow',
-};
+const actionKindLabels = (t) => ({
+    run_automation: t('studio_apps_insp.scope.kind_automation', 'automation'),
+    ai_extract: t('studio_apps_insp.scope.kind_ai_extract', 'AI · extract'),
+    ai_generate: t('studio_apps_insp.scope.kind_ai_generate', 'AI · generate'),
+    kb_query: t('studio_apps_insp.scope.kind_kb_query', 'AI · knowledge base'),
+    send_email: t('studio_apps_insp.scope.kind_send_email', 'e-mail'),
+    sequence: t('studio_apps_insp.scope.kind_sequence', 'flow'),
+});
 
 function datasetIds(definition) {
     const ds = definition?.datasets;
@@ -137,7 +141,8 @@ function datasetIds(definition) {
  * Pure — reused by StudioScopeProvider AND by ConditionField (which must hand
  * the same previewSample down to the ConditionBuilder for datatype inference).
  */
-export function buildStudioScope(definition, node, previewSampleOverride = null, extraGroups = null) {
+export function buildStudioScope(definition, node, previewSampleOverride = null, extraGroups = null, t = plainEnglish) {
+    const kindLabels = actionKindLabels(t);
     const { screen } = node ? locate(definition, node.id) : { screen: null };
     const fields = formFields(definition, node);
     // EVERY action, not only run_automation. The runtime publishes every kind's
@@ -147,11 +152,11 @@ export function buildStudioScope(definition, node, previewSampleOverride = null,
     const actionEntries = Object.entries(definition?.actions || {});
     const dsIds = datasetIds(definition);
     const { tableIds, connectorIds } = referencedSources(definition);
-    const screenName = screen?.name || definition?.screens?.[0]?.name || 'Screen';
+    const screenName = screen?.name || definition?.screens?.[0]?.name || t('studio_apps_insp.scope.screen_fallback', 'Screen');
 
     const groups = [
         {
-            id: 'currentUser', label: 'Current user', kind: 'trigger', basePath: 'currentUser',
+            id: 'currentUser', label: t('studio_apps_insp.scope.current_user', 'Current user'), kind: 'trigger', basePath: 'currentUser',
             fields: [
                 { key: 'id', path: 'currentUser.id', sample: SAMPLE_USER.id },
                 { key: 'name', path: 'currentUser.name', sample: SAMPLE_USER.name },
@@ -159,7 +164,7 @@ export function buildStudioScope(definition, node, previewSampleOverride = null,
             ],
         },
         {
-            id: 'item', label: 'Repeat item', kind: 'loop', basePath: 'item',
+            id: 'item', label: t('studio_apps_insp.scope.repeat_item', 'Repeat item'), kind: 'loop', basePath: 'item',
             fields: [
                 { key: 'item', path: 'item', sample: 'the current item' },
                 { key: 'index', path: 'index', sample: 0 },
@@ -169,7 +174,7 @@ export function buildStudioScope(definition, node, previewSampleOverride = null,
 
     if (fields.length) {
         groups.push({
-            id: 'form', label: 'Form', kind: 'integration_action', basePath: 'form',
+            id: 'form', label: t('studio_apps_insp.scope.form', 'Form'), kind: 'integration_action', basePath: 'form',
             fields: fields.map((f) => ({
                 key: f.name,
                 path: `form.${f.name}`,
@@ -183,7 +188,7 @@ export function buildStudioScope(definition, node, previewSampleOverride = null,
     }
 
     groups.push({
-        id: 'screen', label: 'Screen', kind: 'code', basePath: 'screen',
+        id: 'screen', label: t('studio_apps_insp.scope.screen', 'Screen'), kind: 'code', basePath: 'screen',
         fields: [
             { key: 'name', path: 'screen.name', sample: screenName },
             { key: 'params', path: 'screen.params', sample: {} },
@@ -194,10 +199,10 @@ export function buildStudioScope(definition, node, previewSampleOverride = null,
     // overdue?" had to be written blind.
     const nowIso = new Date().toISOString();
     groups.push({
-        id: 'clock', label: 'Date & time', kind: 'code', basePath: 'now',
+        id: 'clock', label: t('studio_apps_insp.scope.date_time', 'Date & time'), kind: 'code', basePath: 'now',
         fields: [
-            { key: 'now', path: 'now', label: 'Now (timestamp)', sample: nowIso },
-            { key: 'today', path: 'today', label: 'Today (date)', sample: nowIso.slice(0, 10) },
+            { key: 'now', path: 'now', label: t('studio_apps_insp.scope.now', 'Now (timestamp)'), sample: nowIso },
+            { key: 'today', path: 'today', label: t('studio_apps_insp.scope.today', 'Today (date)'), sample: nowIso.slice(0, 10) },
         ],
     });
 
@@ -217,7 +222,7 @@ export function buildStudioScope(definition, node, previewSampleOverride = null,
      */
     const declared = Array.isArray(definition?.variables) ? definition.variables : [];
     groups.push({
-        id: 'vars', label: 'Variables', kind: 'code', basePath: 'vars',
+        id: 'vars', label: t('studio_apps_insp.scope.variables', 'Variables'), kind: 'code', basePath: 'vars',
         fields: [
             // Built-in: a filter_bar publishes its controls as vars.filters.<name>.
             { key: 'filters', path: 'vars.filters', sample: {} },
@@ -234,11 +239,11 @@ export function buildStudioScope(definition, node, previewSampleOverride = null,
 
     if (actionEntries.length) {
         groups.push({
-            id: 'actions', label: 'Actions', kind: 'ai_step', basePath: 'actions',
+            id: 'actions', label: t('studio_apps_insp.scope.actions', 'Actions'), kind: 'ai_step', basePath: 'actions',
             fields: actionEntries.map(([id, a]) => ({
                 key: id,
                 path: `actions.${id}.result`,
-                label: ACTION_KIND_LABELS[a?.kind] ? `${id} (${ACTION_KIND_LABELS[a.kind]})` : id,
+                label: kindLabels[a?.kind] ? `${id} (${kindLabels[a.kind]})` : id,
                 sample: null,
                 // An AI action declares the shape it returns, so its fields are
                 // pickable instead of guessable.
@@ -249,21 +254,21 @@ export function buildStudioScope(definition, node, previewSampleOverride = null,
 
     if (dsIds.length) {
         groups.push({
-            id: 'datasets', label: 'Datasets', kind: 'integration_action', basePath: 'datasets',
+            id: 'datasets', label: t('studio_apps_insp.scope.datasets', 'Datasets'), kind: 'integration_action', basePath: 'datasets',
             fields: dsIds.map((id) => ({ key: id, path: `datasets.${id}`, sample: null })),
         });
     }
 
     if (tableIds.length) {
         groups.push({
-            id: 'records', label: 'Tables', kind: 'integration_action', basePath: 'records',
+            id: 'records', label: t('studio_apps_insp.scope.tables', 'Tables'), kind: 'integration_action', basePath: 'records',
             fields: tableIds.map((id) => ({ key: id, path: `records.${id}`, sample: [] })),
         });
     }
 
     if (connectorIds.length) {
         groups.push({
-            id: 'connectors', label: 'Connections', kind: 'integration_action', basePath: 'connectors',
+            id: 'connectors', label: t('studio_apps_insp.scope.connections', 'Connections'), kind: 'integration_action', basePath: 'connectors',
             fields: connectorIds.map((id) => ({ key: id, path: `connectors.${id}`, sample: null })),
         });
     }
@@ -310,15 +315,17 @@ function aiResultChildren(id, action) {
  * rule, so it is opt-in rather than a permanent entry that previews as
  * undefined everywhere else. ValidationRuleEditor is the one caller.
  */
-export const VALUE_GROUP = {
-    id: 'value', label: 'This field', kind: 'code', basePath: 'value',
-    fields: [{ key: 'value', path: 'value', label: 'The value being checked', sample: '' }],
-};
+export const valueGroup = (t = plainEnglish) => ({
+    id: 'value', label: t('studio_apps_insp.scope.this_field', 'This field'), kind: 'code', basePath: 'value',
+    fields: [{ key: 'value', path: 'value', label: t('studio_apps_insp.scope.value_checked', 'The value being checked'), sample: '' }],
+});
+export const VALUE_GROUP = valueGroup();
 
 export default function StudioScopeProvider({ definition, node, previewSample = null, extraGroups = null, children }) {
+    const { t } = useTranslation();
     const { groups, previewSample: sample } = useMemo(
-        () => buildStudioScope(definition, node, previewSample, extraGroups),
-        [definition, node, previewSample, extraGroups],
+        () => buildStudioScope(definition, node, previewSample, extraGroups, t),
+        [definition, node, previewSample, extraGroups, t],
     );
     return (
         <VariablePickerProvider groups={groups} previewSample={sample}>

@@ -250,3 +250,31 @@ test('null, string and block contents keep their Responses shape', () => {
     assert.strictEqual(input[1].content, '');
     assert.strictEqual(input[2].content, 'klaar');
 });
+
+test('invalid tool-call arguments become valid JSON and a lone surrogate in tool output becomes U+FFFD', () => {
+    const provider = new OpenAIProvider();
+    const input = provider.toResponsesInput([
+        { role: 'user', content: 'go' },
+        { role: 'assistant', content: null, tool_calls: [
+            { id: 'call_1', type: 'function', function: { name: 'a', arguments: '{"q":"abc' } },
+            { id: 'call_2', type: 'function', function: { name: 'b', arguments: '' } },
+        ] },
+        { role: 'tool', tool_call_id: 'call_1', content: 'doc \uD83D tail' },
+        { role: 'tool', tool_call_id: 'call_2', content: 'ok' },
+    ]);
+    for (const c of input.filter(i => i.type === 'function_call')) {
+        assert.doesNotThrow(() => JSON.parse(c.arguments), c.arguments);
+    }
+    const outputs = input.filter(i => i.type === 'function_call_output');
+    assert.strictEqual(outputs[0].output, 'doc � tail');
+});
+
+test('a lone surrogate in message content never reaches Responses input', () => {
+    const provider = new OpenAIProvider();
+    const input = provider.toResponsesInput([
+        { role: 'system', content: 'sys\uD83D' },
+        { role: 'user', content: 'hi\uDE00' },
+        { role: 'assistant', content: 'yo\uD83D' },
+    ]);
+    assert.ok(input.every(i => !/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/.test(JSON.stringify(i.content))));
+});

@@ -4,8 +4,8 @@ import React, { useId } from 'react';
  * A numbered check: the dark number, a title with a one-line subtitle, and
  * the check's settings as flush rows beneath a hairline.
  *
- * The number is the same ① / ② the flow card above draws, so an admin can
- * match a box in the path to the card that configures it.
+ * The number is the step's number on the path strip (3 or 4), so an admin can
+ * match the step they clicked to the card that configures it.
  */
 export function CheckCard({
     n, title, subtitle, footer, children,

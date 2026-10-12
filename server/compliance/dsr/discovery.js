@@ -223,6 +223,9 @@ const PROJECT_PARTICIPATION_SQL = Object.freeze({
     // blanked but keeps its author id, so it still counts.
     project_comments: `SELECT COUNT(*)::int AS n FROM project_comments c JOIN projects p ON p.id = c.project_id
                        WHERE ${PROJECT_ORG} AND c.author_user_id = $2`,
+    // Suggestions on documents made in their name (sealed, counted by id).
+    document_suggestions: `SELECT COUNT(*)::int AS n FROM document_suggestions s
+                           WHERE COALESCE(NULLIF(s.organization_id, ''), 'default') = $1 AND s.author_user_id = $2`,
 });
 
 /**

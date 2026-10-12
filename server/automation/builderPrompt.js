@@ -12,9 +12,14 @@
  * Few-shot helpers prepend short worked dialogues to the message history
  * when the model profile requests them (see builderModelProfiles.js).
  */
-const { renderCatalog, renderCatalogSlim, renderDatatablesBlock, renderDocumentsBlock } = require('./builderPrompt/catalogRender');
+const {
+    renderCatalog, renderCatalogSlim, renderDatatablesBlock, renderDocumentsBlock, renderPickerBlocks, renderAgentsBlock, renderKnowledgeBasesBlock, emptyCatalogLine,
+} = require('./builderPrompt/catalogRender');
 const { buildFewShotMessages } = require('./builderPrompt/fewShotExamples');
 const { renderTriggerBlockLean } = require('./builderPrompt/triggerBlock');
+const { CONDITION_RULES_HINT } = require('./builderTools/ruleExamples');
+const { canvasOnlyMenu, BATCH_STEP_TYPES, ARRAY_OP_FAMILY } = require('./builderTools/stepTypeTable');
+const { leanBatchTypes } = require('./builderTools/schemaProjection');
 
 
 // The name a draft has until somebody names it. The same literal lives in
@@ -35,7 +40,7 @@ function buildFullSystemPrompt({ catalog, codeStepEnabled }) {
     // '' when the caller could not build the list (nothing is said), the
     // "none" line when the user has no tables — see renderDatatablesBlock.
     // canCreate: the full menu carries builder_create_datatable.
-    const datatablesBlock = renderDatatablesBlock(catalog?.datatables, { canCreate: true });
+    const datatablesBlock = renderDatatablesBlock(catalog?.datatables, { canCreate: true, requireChoice: !!catalog?.datatableRequireChoice });
     // The designed documents a fill_document step may point at — same
     // three-way rendering, same reason (see renderDocumentsBlock).
     const documentsBlock = renderDocumentsBlock(catalog?.documents);
@@ -111,8 +116,8 @@ the AI context, use the \`sourceHandle\` pattern:
   1. \`builder_propose_trigger\` → \`mail.new\` with \`filter: { hasAttachment: true }\`.
   2. \`builder_add_action\` → \`gmail_read_attachment\` with
      \`messageId: trigger.output.messageId\`,
-     \`attachmentId: trigger.output.attachments.0.attachmentId\`,
-     \`filename: trigger.output.attachments.0.filename\`.
+     \`attachmentId: trigger.output.attachments[0].attachmentId\`,
+     \`filename: trigger.output.attachments[0].filename\`.
      The step returns \`{ content, sourceHandle, ... }\`.
   3. \`builder_add_ai_step\` → classify the \`content\` (e.g. is this an invoice?
      supplier / year / month). Set an \`outputSchema\` like
@@ -124,7 +129,7 @@ the AI context, use the \`sourceHandle\` pattern:
      \`output.folderId\`.
   6. \`builder_add_action\` → \`drive_upload_file\` with
      \`sourceHandle: { kind: "ref", path: "steps.<read>.output.sourceHandle" }\`,
-     \`name: trigger.output.attachments.0.filename\`,
+     \`name: trigger.output.attachments[0].filename\`,
      \`parentFolderId\` bound to the deepest folder step. NEVER bind the raw
      \`content\` / base64 of an attachment — always use the handle.
 
@@ -221,6 +226,8 @@ draft is a typed DAG of steps:
                      explicit upstream integration_action. Split instructions: put the
                      role/persona/tone/output-style in \`systemPrompt\` and the concrete
                      per-run task + data references in \`prompt\`.
+                     \`agentId\` runs the step as one of the user's agents: an id from the
+                     "Agents you may use" block in the context, never one you invented.
   condition        — branch on a restricted JS expression
   loop             — run MULTIPLE steps once per item of an upstream array
                      (for a SINGLE step per item, use per-step \`forEach\` instead — see below)
@@ -233,6 +240,13 @@ draft is a typed DAG of steps:
                      response is JSON. Bind lists to data — arrayRef and
                      repeat_for_each need a real array, so a string never works.
                      No parseJson() needed for a JSON API.
+                     QUERY PARAMETERS: pass them as \`query\`, never hand-encoded into the url
+                     (no %5B%5D by hand). {mode:"json", json:'{"builder":[{"orderByDesc":"created_at"},
+                     {"with":["categories"]},{"paginate":{{steps.start.output.pageSize}}}]}'} or
+                     {mode:"fields", items:[{key:"page", value:"{{trigger.output.page}}"}]}.
+                     Nested objects and arrays are serialised for you (builder[0][paginate]=5).
+                     Keep the url for scheme, host and path, and bind the dynamic parts (the
+                     domain, a page size) to earlier step outputs instead of hard-coding them.
   generate_document — render text into a real PDF or Word file: builder_add_generate_document.
                      Reach for this whenever the user says "a PDF", "a Word document", or wants
                      something DOWNLOADABLE. \`content\` is a template, normally one reference to
@@ -290,10 +304,10 @@ draft is a typed DAG of steps:
                      \`arrayRef\` to work through a LIST — every row gets the fields
                      (the row is \`item\` in exprs) plus whole-table operations
                      (rowId, groupId, rename, keep, remove, sort); output {items,count}.
-                     Read values out of JSON text with the expr function
-                     parseJson(text, "path") — e.g. parseJson(steps.h.output.body,
-                     "order.total"). Free at run time — prefer this over an ai_step
-                     for restructuring data.
+                     JSON text is read by its path directly
+                     (steps.h.output.body.order.total); in an expr,
+                     parseJson(text, "order.total") does the same. Free at run
+                     time — prefer this over an ai_step for restructuring data.
   datetime         — date/time op (now, parse, format, addDays/Hours/Minutes, diff, extract)
   wait             — pause for N seconds (1..86400)
   approval         — pause until a PERSON approves or rejects: builder_add_approval.
@@ -320,13 +334,29 @@ draft is a typed DAG of steps:
                      what the run did. Never place one inside a loop, a parallel branch or a
                      flowlet.
   stop_error       — halt the run with a custom error message (template-interpolated)
-  return_to_app    — TERMINAL. End the run and hand the Studio App that started it what to do
-                     next: a screen to open (with the id of a record), a message to show, and
-                     what to refresh. Only meaningful under an app_trigger automation, and never
-                     inside a loop, a parallel branch or a flowlet. Like stop_error, NOTHING
-                     after it ever runs — do not wire anything to its output.
+  guard            — PRIVACY SHIELD. Scan one value for personal data with the same detector the
+                     organisation's Privacy Shield uses, and BRANCH on the answer (then = found,
+                     else = clean; grow the branches like a condition's: afterStepId = the guard,
+                     branch "then" | "else"). Only in a batch (type "guard"); \`sourceRef\` is a ref PATH
+                     STRING, not a binding object: {sourceRef:"steps.$read.output.content"}.
+                     \`stopOnFound\` ends the run when something is found, \`maskOnFound\` adds an
+                     irreversible masked copy (output.masked), \`hideOnFound\` ("Check + Hide")
+                     adds a reversible one (output.text). \`categories\` / \`confidence\` can only
+                     TIGHTEN the organisation's settings. A detector that could not run counts as
+                     "found" when the organisation fails closed - never as clean. Use it before a
+                     document leaves for Drive, a ticket or a model.
+  tokenize         — PRIVACY SHIELD. Replace personal data in one value with reversible
+                     placeholders ([email_1]) and keep the mapping for the run:
+                     {type:"tokenize", spec:{sourceRef:"steps.$read.output.content"}} → output.text.
+                     Put it BEFORE an ai_step that does not need the real values; the real values
+                     come back by themselves when the AI reply or a tool result re-enters the run.
+  untokenize       — PRIVACY SHIELD. Put the real values back here, on purpose
+                     ({type:"untokenize", spec:{sourceRef:"steps.$tok.output.text"}} → output.text,
+                     output.restored, output.unresolved). Only for a tokenized value carried
+                     forward without passing an AI reply or tool result (a set step, a table
+                     row); most automations need none.
   switch           — multi-way branch by case name (preferred over chained conditions)
-  array_op         — filter/limit/dedupe/aggregate/summarize over an upstream array
+  array_op         — filter/limit/dedupe/aggregate/summarize/flatten over an upstream array
   datatable        — read or write rows of an organisation-scoped DATATABLE: WORKING DATA a
                      automation leaves behind for a later run or for a different automation
                      (knowledge_write below also outlives the run, but stores TEXT an agent
@@ -341,8 +371,14 @@ draft is a typed DAG of steps:
                      values are keyed by column KEY. A write needs a table marked writable —
                      one the AUTOMATION'S OWNER may write to; never invent an id. A table that
                      does not exist yet is CREATED first, at design time, with
-                     builder_create_datatable({name, fields:[{name,type}]}) — the id it
-                     returns is then the datatableId. There is no sql field.
+                     builder_create_datatable({name, fields:[{name,type}]}) — in a preview it
+                     is staged with a "pending:<n>" id and created when the user applies — the
+                     id it returns is then the datatableId. An EXISTING table the user did not
+                     name is asked about first (builder_ask_questions {datatableIds}).
+                     Nextcloud Tables (nextcloud_tables_* actions) are not Bee Flow datatables;
+                     to turn such a step into a datatable step use builder_replace_step({stepId,
+                     newType:"datatable", spec:{op, datatableId, datatableKey, values}}) — same
+                     id, same wiring. There is no sql field.
   knowledge_write  — WRITE text into a KNOWLEDGE BASE, so an agent can answer from it later:
                      builder_add_knowledge_write({knowledgeBaseId, content, title, sourceUri}).
                      The other step whose effect outlives the run — but where a datatable row
@@ -355,15 +391,17 @@ draft is a typed DAG of steps:
                      subject ("ticket:{{loop.t.id}}") — the same one REPLACES its document
                      instead of adding a second, and without it a nightly automation leaves a new
                      document every night. knowledgeBaseId must name a base the AUTOMATION'S OWNER
-                     may MANAGE (reading a base is not permission to add to it). There is no
-                     catalog of bases here: use only an id the user has shown you, never one you
-                     invented, and if they need a base that does not exist yet, say so and stop.
+                     may MANAGE (reading a base is not permission to add to it): take it from the
+                     "Knowledge bases you may use" block in the context (a WRITABLE one), never an
+                     id you invented, and if they need a base that does not exist yet, say so and stop.
   call_layer       — run an inline Flowlet (a named sub-flow stored in definition.layers)
   note             — a free-floating sticky-note annotation: builder_add_note({text}). It
                      NEVER runs and is NEVER wired to anything (no afterStepId/branch — do
                      not try to chain it). Use it to explain WHY a branch exists or leave a
                      TODO for whoever opens the automation next — not a substitute for a real
                      step, and never a place to put data the run needs.
+
+${canvasOnlyMenu()}
 
 ## Work in BATCHES — one reply, many tool calls
 
@@ -387,8 +425,9 @@ reply — always bundle it with the work it describes.
 
 ## How you build (the canonical workflow)
 
-1. **Understand**. If the user's request is ambiguous, ask ONE short
-   clarifying question. Otherwise proceed.
+1. **Understand**. If the user's request is ambiguous and the work mode
+   offers \`builder_ask_questions\`, ask ALL open questions in one call;
+   otherwise ask ONE short clarifying question. Otherwise proceed.
 2. **Trigger first**. Always start a fresh draft with \`builder_propose_trigger\`.
    - Recurring time-based work → \`kind:"schedule"\` with cron + tz.
    - "When a new email arrives" / "every time I get an email" / "on incoming mail"
@@ -403,6 +442,12 @@ reply — always bundle it with the work it describes.
      threadId. The tool auto-fills \`to\` and \`subject\` from the original
      when replyToMessageId is set, so you can omit those.
    - One-off / on-demand work → \`kind:"manual"\`.
+   - "Let an agent / the assistant do X" → \`kind:"agent_call"\`: the automation is a tool an AI agent calls.
+     Set \`toolName\` (lower-case, underscores), a \`description\` saying when an agent should call it, and
+     declare EVERY argument in \`params:[{name,type,required,description}]\`. Each arrives as
+     \`trigger.output.<name>\` (there is no \`trigger.payload\`). The builder cannot choose which agents may
+     call it: after building, tell the person to link the automation to an agent under "Who can call this" in the trigger panel.
+     To change the declaration later use \`builder_update_trigger\` (it keeps the label and wiring).
 3. **Discover & inspect on demand**. The catalog below lists each app's
    actions with a one-line description and an INPUT COUNT only — not the
    parameter names or output shape. Call
@@ -432,12 +477,22 @@ reply — always bundle it with the work it describes.
        Right:  \`{ kind: "ref", path: "trigger.output.from" }\`
        Right:  \`{ kind: "ref", path: "steps.ai_47.output.replyText" }\`
        Right:  \`{ kind: "template", value: "Re: {{trigger.output.subject}}" }\`
+   - Path grammar: \`.name\` for a plain key; \`[0]\` for an index (\`[-1]\` = last,
+     never \`.0\`); \`[*]\` for every element (\`results[*].id\` = all ids);
+     \`["Story Points"]\` for a key with spaces, dashes or dots;
+     \`[name="Subject"]\` for the entry of a name/value list (mail headers, tags).
+     JSON text (an HTTP body, an AI answer) is read straight through —
+     \`steps.h.output.body.items[0].id\` — no parse step. A forEach step's
+     \`output.results[*]\` entries are \`{index, item, output, status}\`: its
+     result sits under \`output\`, the item it ran on under \`item\`. A path that
+     does not exist gets a "did you mean" (refused when the step's output is
+     fully known); a fix that keeps the meaning is applied and named in \`_warnings\`.
    - For a Gmail \`mail.new\` trigger, the available output fields are:
      \`messageId, threadId, from, to, cc, subject, snippet, labelIds, date,
      hasAttachment, attachments[{filename, mimeType, size, attachmentId}]\`.
      Always reference them as \`trigger.output.<field>\`. The \`attachments\`
      array is pre-populated — branch on \`trigger.output.hasAttachment\` and
-     bind \`trigger.output.attachments.0.attachmentId\` directly to
+     bind \`trigger.output.attachments[0].attachmentId\` directly to
      \`gmail_read_attachment\`; no extra \`gmail_read\` step is needed.
    - Inside a loop body, refer to the current item as \`loop.<itemVar>\`.
 5. **Edit IN PLACE**. To change an existing step, call \`builder_update_step({stepId, patch})\`
@@ -544,7 +599,7 @@ that REPLACES the primary.
     Only the primary can be manual / form / agent_call / app_trigger.
   - Test each root on its own: \`builder_request_dry_run({triggerStepId:"<triggerId>",
     triggerPayload:{…}})\`. \`builder_update_trigger({triggerId, patch})\` edits a filter /
-    cron / label in place (the primary too); \`builder_remove_step({stepId:"<triggerId>"})\`
+    cron / label / declared inputs (agent_call params, form fields) in place (the primary too); \`builder_remove_step({stepId:"<triggerId>"})\`
     removes an additional trigger.
 
 ## Plan & delegate (for anything non-trivial)
@@ -552,13 +607,15 @@ that REPLACES the primary.
 You can think and work like a team lead — plan the build, then delegate
 whole flowlets to focused sub-agents instead of hand-placing every step.
 
-- PLAN FIRST. For any multi-step request, call \`builder_set_plan({todos:[{text}]})\`
+- CHECKLIST FIRST (when building). For any multi-step request, call \`builder_set_plan({todos:[{text}]})\`
   with a short ordered checklist BEFORE building (e.g. "Add Gmail trigger",
   "Add the steps", "Dry-run") — in the SAME reply as your first build calls.
   Update progress with \`builder_set_plan({markDone:[indices]})\` bundled into
   the same reply as your next real tool call — NEVER spend a reply on the
   plan alone; milestones (built / dry-run passed) are enough. The user
   watches this as a live checklist. (It does not change the automation.)
+  In the Plan first work mode the plan is a written plan for the user to review
+  instead; the work-mode note decides, and the checklist is only for building.
 - DELEGATE ONLY REAL SUB-FLOWS. Use \`builder_generate_layer({title, instruction, params, outputFields})\`
   / \`builder_generate_layers({layers:[…]})\` (up to 3 sub-agents in parallel)
   ONLY when the automation decomposes into two or more INDEPENDENT
@@ -632,7 +689,7 @@ When something must happen for EACH item of an upstream array, pick the lighter 
   next step's \`forEach\` at that array keeps the per-item link: \`loop.<v>.item\` is the original
   and \`loop.<v>.output\` is that item's result from the step before. A failed item has
   \`status:"error"\` and no \`output\`, so filter first:
-  \`builder_add_array_op({op:"filter", arrayRef:"steps.<prev>.output.results", expr:"item.status === 'success'"})\`.
+  \`builder_add_array_op({op:"filter", arrayRef:"steps.<prev>.output.results", expr:"equals(item.status, \\"success\\")"})\`.
 - **A \`loop\` step** is for the rare shape where two steps need the SAME source item without one
   consuming the other's results, or where a body step branches. Note the failure semantics differ:
   a \`loop\` aborts entirely on the first failing item; \`forEach\` collects the error, continues,
@@ -640,6 +697,19 @@ When something must happen for EACH item of an upstream array, pick the lighter 
 
 Default to per-step \`forEach\` — do NOT wrap one step in a loop, and do not reach for a loop
 merely because the work has several stages per item.
+**A bulk tool beats a forEach of single calls**: every forEach item is its own API request, a
+bulk tool does the whole list in one or two. Read many emails with ONE \`gmail_read_many\`
+(\`messageIds:{kind:"ref",path:"steps.<search>.output.results[*].id"}\`; \`outlook_read_many\` for
+Outlook) instead of \`gmail_read\` per email; it reads at most 100, so keep the search's
+\`maxResults\` at 100 or less. Label, mark read or archive them with ONE \`gmail_bulk_modify\` instead
+of \`gmail_modify_labels\` / \`gmail_mark_read\` / \`gmail_archive\` per email, bound to the emails that
+were actually read: \`messageIds:{kind:"ref",path:"steps.<readMany>.output.messages[*].id"}\`. Keep
+\`forEach\` for work that really is one call per item, such as \`gmail_read_attachment\` over
+\`steps.<readMany>.output.messages[*].attachments\`.
+A table of attachments WITH their email's fields (one row per attachment, its sender and subject on
+every row): \`builder_add_array_op({op:"flatten", arrayRef:"steps.<readMany>.output.messages", childField:"attachments"})\`,
+then \`forEach\` over \`steps.<flat>.output.items\` (the item has \`attachmentId\`, \`messageId\`, \`filename\`,
+\`from\`, \`subject\`). Google Sheets append still needs \`forEach\` per row.
 Catalog actions that return a list are marked \`[list]\`; if unsure what array a tool yields,
 call \`builder_inspect_tool\` (its \`iterableFields\` names the arrays you can iterate over).
 
@@ -664,6 +734,11 @@ call \`builder_inspect_tool\` (its \`iterableFields\` names the arrays you can i
   thenStepId/elseStepId to wire EXISTING steps. For a \`switch\`, pass
   \`caseName\` (or the switch's \`nextStepIds\` map) when appending a branch
   step, or that case dead-ends.
+- A condition decides ONCE for the whole run; to keep the matching items
+  of a list use builder_add_filter (or a switch with arrayRef) and continue
+  on its output.items. A condition that reads \`list[*]\` sends every item
+  the same way, so the steps after it still process all of them.
+- Condition, filter and switch rules: ${CONDITION_RULES_HINT}
 - Inserting INTO an existing chain: \`afterStepId\` alone adds the new step
   BESIDE the anchor's current successor (the old edge stays, so both run in
   parallel and nothing downstream can depend on the new step). Pass
@@ -694,7 +769,7 @@ call \`builder_inspect_tool\` (its \`iterableFields\` names the arrays you can i
 ${webpagesGuidance}${driveGuidance}
 ${datatablesBlock ? `${datatablesBlock}\n\n` : ''}${documentsBlock ? `${documentsBlock}\n\n` : ''}## Catalog (only these are available)
 
-${apps || '_(user has no integrations connected)_'}
+${apps || emptyCatalogLine(catalog)}
 
 Begin now.`;
 }
@@ -747,7 +822,7 @@ ${agentDraftState}`;
  *
  * @returns {string|null} null when no preference is set at all
  */
-function renderTurnPreferences({ userTimezone, webSearchEnabled, disabledMedia, allowedModelTiers } = {}) {
+function renderTurnPreferences({ userTimezone, webSearchEnabled, webResearchLine, disabledMedia, allowedModelTiers } = {}) {
     const lines = [];
     if (typeof userTimezone === 'string' && userTimezone.trim()) {
         lines.push(`- All times use the user's timezone: ${userTimezone.trim()}.`);
@@ -760,11 +835,38 @@ function renderTurnPreferences({ userTimezone, webSearchEnabled, disabledMedia, 
             ? '- Web search: ENABLED — you may propose `agent_search` as a step when the automation needs current information from the web.'
             : '- Web search: DISABLED — avoid proposing `agent_search` steps unless the user explicitly asks for web-based data.');
     }
+    // Whether the builder ITSELF can search this turn (webResearch.js). Apart
+    // from the line above, which is about steps in the automation: without it
+    // the model told users to search for API documentation themselves.
+    if (typeof webResearchLine === 'string' && webResearchLine) lines.push(webResearchLine);
     for (const [k, v] of Object.entries(disabledMedia || {})) {
         if (v) lines.push(`- The user disabled ${k} generation. Do not propose ${k}-related actions.`);
     }
     if (!lines.length) return null;
     return `## This turn\n\n${lines.join('\n')}`;
+}
+
+/**
+ * The notice that tells the model it holds the REDUCED menu, and what that
+ * leaves out. Derived from the same two lists the menu is built from (the batch
+ * types of stepTypeTable.js and the lean projection's LEAN_BATCH_TYPES), so it
+ * cannot say a step type is missing that the menu serves, or the opposite. A
+ * small model never saw the full prompt: without this line it does not know
+ * that a document, a switch or a wait EXISTS, and builds the rest silently.
+ * Static text: it belongs in the system prompt, which stays the same for every
+ * user and session of the band.
+ */
+function leanMenuNotice({ codeStepEnabled = false } = {}) {
+    const buildable = leanBatchTypes({ codeStepEnabled });
+    // Disabled code steps are said once, by the code rule ("DISABLED"); they are
+    // not listed a second time as a gap of the menu.
+    const covered = new Set([...buildable, 'code', ...(buildable.includes('array_op') ? ARRAY_OP_FAMILY : [])]);
+    const missing = BATCH_STEP_TYPES.filter(t => !covered.has(t));
+    return `## This is the reduced menu
+
+You hold the compact tool menu. Step types you can build: ${buildable.join(', ')} (array_op also covers ${ARRAY_OP_FAMILY.join(', ')}). NOT on this menu: ${missing.join(', ')}, flowlets and additional triggers. If the request needs one of those, build everything else, then say in ONE sentence of your summary which part the user must add on the canvas, or that a larger model can build it. Never claim a step you could not create.
+
+`;
 }
 
 /**
@@ -804,7 +906,7 @@ function buildLeanSystemPrompt({ catalog, codeStepEnabled, batchTools = false, c
     const apps = dynamicCatalog ? '' : renderCatalogSlim(catalog);
     // Same three-way rendering as the full prompt (see renderDatatablesBlock).
     // canCreate: the core menu carries builder_create_datatable too.
-    const datatablesBlock = dynamicCatalog ? '' : renderDatatablesBlock(catalog?.datatables, { canCreate: true });
+    const datatablesBlock = dynamicCatalog ? '' : renderDatatablesBlock(catalog?.datatables, { canCreate: true, requireChoice: !!catalog?.datatableRequireChoice });
     const documentsBlock = dynamicCatalog ? '' : renderDocumentsBlock(catalog?.documents);
 
     // The dry-run repair the menu serves: the lean projection drops the
@@ -836,15 +938,15 @@ You may emit SEVERAL tool calls in one reply — they execute in order. Typical 
     const loopBullets = fullMenu
         ? `   - PREFER \`forEach\` ON THE STEP over a \`loop\` container. Set \`forEach:{overRef:"steps.<id>.output.<array>", itemVar:"item"}\` on the step itself (integration_action / ai_step / code / notification / set / http_request / datatable / knowledge_write) and reference the item as \`loop.<itemVar>\`. It reads as one node on the canvas instead of a nested block.
    - CHAIN per-item work with forEach — you almost never need a \`loop\`. A \`forEach\` step publishes \`steps.<id>.output.results\`, one entry per item carrying \`{index, item, output, status}\`. Point the NEXT step's \`forEach\` at that array and per-item correlation is preserved: \`loop.<v>.item\` is the original item and \`loop.<v>.output\` is that same item's result from the previous step. So "read each file, then extract from each file" is TWO flat forEach steps, not a loop.
-   - A failed item's entry has \`status:"error"\` and NO \`output\` key. Before chaining, drop them: \`builder_add_array_op({op:"filter", arrayRef:"steps.<prev>.output.results", expr:"item.status === 'success'"})\` and point the next \`forEach\` at that filter's \`output.items\`.
+   - A failed item's entry has \`status:"error"\` and NO \`output\` key. Before chaining, drop them: \`builder_add_array_op({op:"filter", arrayRef:"steps.<prev>.output.results", expr:"equals(item.status, \\"success\\")"})\` and point the next \`forEach\` at that filter's \`output.items\`.
    - A \`loop\` container is for the rare case where two steps must read the SAME source item without one consuming the other's results, or where a body step branches. It is also ALL-OR-NOTHING: one failing item aborts the whole loop, while \`forEach\` records the failure, carries on, and only fails if every item failed. Prefer \`forEach\`. Never wrap a single step in a loop.`
-        : `   - There is no loop container on this menu. Per-item work is \`forEach\` on the step (\`forEach:{overRef:"steps.<id>.output.<array>", itemVar:"f"}\`, the item is \`loop.f\`); a forEach step publishes \`steps.<id>.output.results\`, one entry per item as \`{index, item, output, status}\`. Chain: the next step's forEach points at \`steps.<prev>.output.results\` and reads \`loop.<v>.output.<field>\` — "read each file, then extract from each file" is TWO flat forEach steps. Failed items have \`status:"error"\` and no \`output\` — drop them first with \`builder_add_array_op({op:"filter", arrayRef:"steps.<prev>.output.results", expr:"item.status === 'success'"})\` and point the next forEach at that filter's \`output.items\`.`;
+        : `   - There is no loop container on this menu. Per-item work is \`forEach\` on the step (\`forEach:{overRef:"steps.<id>.output.<array>", itemVar:"f"}\`, the item is \`loop.f\`); a forEach step publishes \`steps.<id>.output.results\`, one entry per item as \`{index, item, output, status}\`. Chain: the next step's forEach points at \`steps.<prev>.output.results\` and reads \`loop.<v>.output.<field>\` — "read each file, then extract from each file" is TWO flat forEach steps. Failed items have \`status:"error"\` and no \`output\` — drop them first with \`builder_add_array_op({op:"filter", arrayRef:"steps.<prev>.output.results", expr:"equals(item.status, \\"success\\")"})\` and point the next forEach at that filter's \`output.items\`.`;
 
     // Which trigger fired. The full menu can branch on it with a switch and
     // can add flowlets, whose own trigger is their input contract.
     const triggerKinds = fullMenu
         ? `\`trigger.kind\` (app_event | schedule | webhook | form | manual | agent_call | app_trigger), \`trigger.id\`, \`trigger.provider\` + \`trigger.event\` (app events, e.g. "gmail" + "mail.new"), \`trigger.firedAt\`, \`trigger.schedule.cron\`, and \`trigger.source\` (how THIS run was started — "manual" for a test run of any trigger). When a step is reachable from several triggers, branch on them: \`builder_add_switch({expr:"trigger.event", …})\` or \`builder_add_condition({expr:"trigger.kind == \\"schedule\\""})\`. Inside a flowlet these are NOT available (a flowlet's trigger is its own input contract) — pass them in as params.`
-        : `\`trigger.kind\` (app_event | schedule | webhook | form | manual), \`trigger.provider\` + \`trigger.event\` (app events, e.g. "gmail" + "mail.new"), \`trigger.firedAt\`, \`trigger.schedule.cron\`, and \`trigger.source\` (how THIS run was started — "manual" for a test run of any trigger).`;
+        : `\`trigger.kind\` (app_event | schedule | webhook | form | manual | agent_call | app_trigger), \`trigger.provider\` + \`trigger.event\` (app events, e.g. "gmail" + "mail.new"), \`trigger.firedAt\`, \`trigger.schedule.cron\`, and \`trigger.source\` (how THIS run was started — "manual" for a test run of any trigger).`;
 
     // The sections only the full menu serves.
     const fullMenuSections = fullMenu ? `## Flowlets (inline sub-flows)
@@ -895,7 +997,8 @@ Extra entry points: \`builder_add_trigger({kind:"app_event"|"schedule"|"webhook"
           + '(HTTPS, private addresses blocked, a few calls per run); CPU and wall clock clamped (~1s / 5s by default); '
           + '`ctx.secrets()` throws, so a credential arrives through `inputs` or via `ctx.integrations.<tool>`. '
           + 'Declare every input the code reads in a JSDoc block on main, `@param {type} inputs.<name> - <short description>`: '
-          + 'the step shows these as a form, and its `inputs` are bound by those names.'
+          + 'the step shows these as a form, and its `inputs` are bound by those names. '
+          + 'What main returns is read under `steps.<id>.output.result` (a returned object\'s field: `steps.<id>.output.result.<field>`).'
         : 'Code steps are DISABLED — never propose them.';
 
     // Where the per-user blocks are, when they are not here.
@@ -903,19 +1006,19 @@ Extra entry points: \`builder_add_trigger({kind:"app_event"|"schedule"|"webhook"
         ? 'The catalog, your datatables and documents are in the message right before the user\'s — the ONLY tools/tables you may propose.'
         : `${datatablesBlock ? `${datatablesBlock}\n\n` : ''}${documentsBlock ? `${documentsBlock}\n\n` : ''}## Catalog (the ONLY tools you may propose)
 
-${apps || '_(user has no integrations connected)_'}`;
+${apps || emptyCatalogLine(catalog)}`;
 
     return `You are the BeeFlow Automation Builder. Your only output channel is the structured \`builder_*\` tools — do NOT describe steps in prose, call the tool.
 ${batchSection}
 ## Workflow
 
-1. Call \`builder_propose_trigger\` first (kind: schedule | manual | webhook | form | app_event — see "## Triggers").
+1. Call \`builder_propose_trigger\` first (kind: schedule | manual | webhook | form | app_event | agent_call | app_trigger — see "## Triggers").
 2. The catalog lists action names + an input COUNT only. Before adding an \`integration_action\` with required inputs (or whose output you'll chain), call \`builder_inspect_tool({tools:[…]})\` ONCE with every tool you'll use to get the exact param names + output shape — don't guess. (Adding a non-trivial action without inspecting it first is rejected — the rejection inlines the schema; resend the corrected call.)
 3. Add the steps.${batchTools ? ' DEFAULT: ONE `builder_add_steps` call carrying the WHOLE chain — every step of a 6-step automation in a single call, cross-referenced by tempId (`steps.$a.output.x`, `afterStepId:"$a"`). Entries apply in order; if entry i fails, the entries before it STAY built and the error tells you which index failed and what to resend. Resend only from that index — built entries are never added twice. Reach for a single `builder_add_*` call only to append ONE step to a draft that already exists.' : ''} ${perTypeTools}
 ${loopBullets}
    - For an \`ai_step\`, split instructions: put the role/persona/tone/output-style in \`systemPrompt\` and the concrete per-run task + data references in \`prompt\`. Leave \`systemPrompt\` off for trivial one-off transforms.
    - EXTRACTION IS NOT AN ai_step. To pull named fields out of text (an invoice, an e-mail, a PDF's text) use a \`data_extraction\` step (\`builder_add_data_extraction\`, or type "data_extraction" in a batch): \`source\` is one binding to the text and \`fields\` [{name,type,description,required}] IS the output shape — both at the TOP LEVEL of the step, there is no \`inputs\` map here — no outputSchema — and the output is \`steps.<id>.output.<name>\` (null when absent). Use an \`ai_step\` for judgement and writing.
-   - DATATABLES. Table exists in the "Datatables you may use" block → \`add_row\` into it with its id AND key. Table missing → \`builder_create_datatable({name, fields:[{name,type}]})\` first (design time, not a step — a create-table step does not exist), then \`add_row\` with the returned id/key. \`values\` keys = column keys (lowercase with underscores: "Excl. btw" → \`excl_btw\`), values = \`{kind:"ref"}\` bindings, one row per item via forEach over the extraction's \`output.results\`. Name extraction fields after the destination columns. For a Nextcloud Tables row name the table by its exact title when you do not know its id: \`tableId:{kind:"literal", value:"Facturen"}\` — do not guess a number.
+   - DATATABLES. Table exists AND the user named it (or the flow uses it) → \`add_row\` into it with its id AND key; an existing table they did not name → ask with \`builder_ask_questions {datatableIds}\`. Table missing → \`builder_create_datatable({name, fields:[{name,type}]})\` first (design time, not a step — a create-table step does not exist; in a preview it is staged with a "pending:<n>" id and created when the user applies), then \`add_row\` with the returned id/key. \`values\` keys = column keys (lowercase with underscores: "Excl. btw" → \`excl_btw\`), values = \`{kind:"ref"}\` bindings, one row per item via forEach over the extraction's \`output.results\`. Name extraction fields after the destination columns. For a Nextcloud Tables row name the table by its exact title when you do not know its id: \`tableId:{kind:"literal", value:"Facturen"}\` — do not guess a number. Nextcloud Tables (\`nextcloud_tables_*\` actions) are not Bee Flow datatables; to turn such a step into a datatable step use \`builder_update_step({stepId, patch:{type:"datatable", op, datatableId, datatableKey, values}})\` — same id, same wiring.
 4. To CHANGE a step, use \`builder_update_step({stepId, patch})\` — it keeps the id and wiring. To MOVE a step, or put it on a condition's other branch, patch its position the same way: \`builder_update_step({stepId, patch:{afterStepId:"<id>", branch:"else"}})\` — same id, same refs. NEVER delete and re-add a step to edit or move it (that mints a new id and breaks downstream refs).
 5. Call \`builder_summarise\` so the user can see the plan, in the same reply as the dry run.
 6. Call \`builder_request_dry_run\` to test. Read errors. Fix every failing step with ${repairCall} and rerun — all in the SAME reply. Dry-run \`_hint\` keys are ground truth: rebind to them.
@@ -932,6 +1035,7 @@ EVERY tool input value must be a binding object — never a bare string/number:
 
 Ref paths MUST start with one of: \`trigger\`, \`steps\`, \`vars\`, \`secrets\`, \`loop\`.
 Field names alone (e.g. \`"from"\`, \`"subject"\`) are NOT valid paths — prepend \`trigger.output.\`.
+Path grammar: \`[0]\` = an index (never \`.0\`), \`[*]\` = every element, \`["Story Points"]\` = an awkward key, \`[name="Subject"]\` = the entry of a name/value list (mail headers). JSON text is read straight through (\`steps.h.output.body.items[0].id\`). A forEach step's \`results[*]\` entry is \`{index, item, output, status}\`. A wrong path gets a "did you mean" (refused when the output is fully known).
 Prefer \`{kind:"ref"}\` over \`{{templates}}\` wherever a binding object is accepted; a \`{{…}}\` template belongs only in fields that ARE template strings (notification title/body, http url/body, approval prompt), one reference each.
 
 Beside \`trigger.output.*\`, every run knows WHICH trigger fired: ${triggerKinds}
@@ -940,17 +1044,17 @@ Forwarding a mail attachment to Drive? Pass the \`sourceHandle\` returned by \`g
 
 ## Placing steps
 
-\`afterStepId\` = the anchor (default: the last step; in a batch, the previous entry). \`branch\`: "then" | "else" on a condition, "error" = runs only when afterStepId fails. \`splice:true\` inserts between the anchor and its successor instead of beside it. \`forEach:{overRef, itemVar}\` runs the step per item; the item is \`loop.<itemVar>\`. Grow a condition branch by appending with \`afterStepId\` = the condition id (auto-labels "then" first, "else" second); pass \`branch\` to override.${switchRule}
+\`afterStepId\` = the anchor (default: the last step; in a batch, the previous entry). \`branch\`: "then" | "else" on a condition, "error" = runs only when afterStepId fails. \`splice:true\` inserts between the anchor and its successor instead of beside it. \`forEach:{overRef, itemVar}\` runs the step per item; the item is \`loop.<itemVar>\`. Grow a condition branch by appending with \`afterStepId\` = the condition id (auto-labels "then" first, "else" second); pass \`branch\` to override.${switchRule} A condition decides ONCE for the whole run; to keep the matching items of a list use \`builder_add_array_op({op:"filter"})\` and continue on its \`output.items\`. One row per item of a list inside each item (an attachment with its email's fields) is \`op:"flatten"\` with \`childField\`. Rules: contains(item.subject, "invoice"), equals(item.status, "open"), anyOf(item.attachments[*].filename, "endsWith", ".pdf"); text helpers ignore upper/lower case, never lower()/upper().
 
 ${renderTriggerBlockLean()}
 
-${fullMenuSections}## Naming
+${fullMenuSections}${fullMenu ? '' : leanMenuNotice({ codeStepEnabled })}## Naming
 
 Your FIRST reply on a new draft names the automation: \`builder_set_metadata({title, description})\` bundled with \`builder_set_plan\` and \`builder_propose_trigger\`. Title ≤ 60 chars, in the user's language, saying what the automation does; description one sentence. A title stated in the request is used verbatim. An automation that reaches \`builder_finalize\` as "Untitled automation" is a defect.
 
 ${planHeading}
 
-For any multi-step build: call \`builder_set_plan({todos:[{text}]})\` first with a short checklist, then update progress with \`builder_set_plan({markDone:[indices]})\` in the same reply as your next build call — never as its own reply. THE USER WATCHES THIS CHECKLIST TICK OFF LIVE, so a plan that never gets marked done reads as a build that never progressed: every reply that finishes a checklist item must carry its \`markDone\`. The tool hands you back the whole list with each item's index and a \`next\` field — mark what you just finished and work on \`next\`, and never re-derive the plan from the user's message.${delegateHalf}
+In the Plan first work mode the plan is a written plan for the user to review instead; the work-mode note decides. For any multi-step build: call \`builder_set_plan({todos:[{text}]})\` first with a short checklist, then update progress with \`builder_set_plan({markDone:[indices]})\` in the same reply as your next build call — never as its own reply. THE USER WATCHES THIS CHECKLIST TICK OFF LIVE, so a plan that never gets marked done reads as a build that never progressed: every reply that finishes a checklist item must carry its \`markDone\`. The tool hands you back the whole list with each item's index and a \`next\` field — mark what you just finished and work on \`next\`, and never re-derive the plan from the user's message.${delegateHalf}
 
 ## Hard rules
 
@@ -978,18 +1082,34 @@ Begin now.`;
 function renderCatalogContextMessage({ catalog } = {}) {
     if (!catalog) return null;
     const apps = renderCatalogSlim(catalog);
-    const datatablesBlock = renderDatatablesBlock(catalog.datatables, { canCreate: true });
+    const datatablesBlock = renderDatatablesBlock(catalog.datatables, { canCreate: true, requireChoice: !!catalog?.datatableRequireChoice });
     const documentsBlock = renderDocumentsBlock(catalog.documents);
     return [
-        `## Catalog (the ONLY tools you may propose)\n\n${apps || '_(user has no integrations connected)_'}`,
+        `## Catalog (the ONLY tools you may propose)\n\n${apps || emptyCatalogLine(catalog)}`,
         datatablesBlock || null,
         documentsBlock || null,
     ].filter(Boolean).join('\n\n');
 }
 
+/**
+ * The id lists the model fills ids from — agents, knowledge bases, the user's
+ * own app_event providers — for the late dynamic message of EVERY band.
+ *
+ * Deliberately not a part of the system prompt, not even for the cloud bands
+ * that keep the app catalog there: these lists change when somebody creates or
+ * shares an agent, and the system prompt is the front of the prompt cache. In
+ * the dynamic message they cost one re-read per turn, like the draft state.
+ * Null when the caller built none (no catalog, or a surface that never asked).
+ */
+function renderPickerContextMessage({ catalog } = {}) {
+    const text = renderPickerBlocks(catalog);
+    return text || null;
+}
+
 module.exports = {
     buildFullSystemPrompt,
     buildLeanSystemPrompt,
+    renderPickerContextMessage,
     renderCatalogContextMessage,
     renderDraftStateSystemMessage,
     renderTurnPreferences,
@@ -1004,6 +1124,9 @@ module.exports = {
     renderDatatablesBlock,
     // …and the "Documents you may fill" block, for the same reason.
     renderDocumentsBlock,
+    // …and the agents / knowledge bases blocks, for the same reason.
+    renderAgentsBlock,
+    renderKnowledgeBasesBlock,
     // Backwards compatibility: callers that still import buildSystemPrompt
     // get the full variant (current behaviour preserved exactly).
     buildSystemPrompt: buildFullSystemPrompt,

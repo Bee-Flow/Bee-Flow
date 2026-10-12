@@ -44,11 +44,22 @@ const log = require('../telemetry/log');
 
 // True iff the request's Nextcloud uid is THIS org's recorded NC admin. Used to
 // let the org admin past the NC_ONBOARDING_PENDING gate so onboarding can never
-// deadlock. Match is an exact equality on the stable nc_admin_uid — reqNcUid
-// derives from the connector-set X-Beeflow-NC-Uid header / the tenant-key-signed
-// JWT `sub`, so a non-admin cannot spoof it without being signed in as the admin.
+// deadlock. Match is an exact equality on the stable nc_admin_uid. reqNcUid
+// comes from _resolveRequesterNcUid: the tenant-key-signed JWT `sub` wins; the
+// unsigned X-Beeflow-NC-Uid header is only a last-resort fallback (BFSF-377).
 function _isOrgAdminRequester(org, reqNcUid) {
     return !!(org && org.nc_admin_uid && reqNcUid && reqNcUid === org.nc_admin_uid);
+}
+
+// The signed `sub` claim always wins over the unsigned header.
+function _resolveRequesterNcUid(req, payload) {
+    return String(payload?.sub || req?.headers?.['x-beeflow-nc-uid'] || '').trim();
+}
+
+// The NC identity stored on the session: the user row's own nc_uid, then the
+// signed `sub`, and only last the unsigned header (BFSF-377).
+function _resolveSessionNcUid(user, req, payload) {
+    return user?.nc_uid || _resolveRequesterNcUid(req, payload) || null;
 }
 
 const TENANT_KEY_PREFIX = 'connector_tenant_key_';
@@ -415,14 +426,15 @@ async function connectorJwtMiddleware(req, res, next) {
             // fall into the NC_ONBOARDING_PENDING gate below and can never finish
             // onboarding — a permanent 403 lockout for the whole org.
             //
-            // Two trusted signals, both un-spoofable by a non-admin: (1) the
+            // Two signals: (1) the
             // tenant-key-signed `nc_admin` JWT claim, set by the connector from the
             // user's real Nextcloud `admin`-group membership — this is what lets
             // EVERY NC admin onboard, not just the one captured at bootstrap; and
             // (2) an exact match on the org's recorded nc_admin_uid (the bootstrap
-            // admin) as a fallback for connectors that predate the claim. Either
+            // admin) as a fallback for connectors that predate the claim (matched against the
+            // SIGNED `sub`; the unsigned header is only used when `sub` is absent). Either
             // way we re-establish their org_admin row idempotently and continue.
-            const reqNcUid = String(req.headers['x-beeflow-nc-uid'] || payload.sub || '').trim();
+            const reqNcUid = _resolveRequesterNcUid(req, payload);
             if (payload.nc_admin === true || _isOrgAdminRequester(org, reqNcUid)) {
                 try {
                     const { ensureOrgAdminUser } = require('./connectorBootstrap').helpers;
@@ -617,7 +629,7 @@ async function connectorJwtMiddleware(req, res, next) {
             }
         }
 
-        const ncUid = user.nc_uid || req.headers['x-beeflow-nc-uid'] || payload.sub || null;
+        const ncUid = _resolveSessionNcUid(user, req, payload);
         const sessionUser = {
             id: user.id,
             email: user.email,
@@ -699,5 +711,7 @@ module.exports = connectorJwtMiddleware;
 module.exports.invalidateTenantKeyCache = invalidateTenantKeyCache;
 module.exports._verifyHs256 = _verifyHs256; // exported for tests
 module.exports._isOrgAdminRequester = _isOrgAdminRequester; // exported for tests
+module.exports._resolveRequesterNcUid = _resolveRequesterNcUid; // exported for tests
+module.exports._resolveSessionNcUid = _resolveSessionNcUid; // exported for tests
 module.exports._resolveTenant = _resolveTenant; // shared with /connector/status (phone-home) — single two-pass key resolver
 module.exports._unverifiedEmailDomain = _unverifiedEmailDomain; // exported for tests

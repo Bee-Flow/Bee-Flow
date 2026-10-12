@@ -22,6 +22,7 @@ import { useProjectTasksQuery } from '../../../../api/queries/projectTasks';
 import type { WorkspaceUser } from '../types';
 import { GhostButton, LoadingRow, Notice, SecondaryButton } from '../workspaceUi';
 import type { BaseMessageContext } from './ChatMessageList';
+import ConnectionBand from '../ConnectionBand';
 import ChatComposer, { type ComposerDraft } from './ChatComposer';
 import ChatMessageList from './ChatMessageList';
 import ChatSearchBar from './ChatSearchBar';
@@ -271,6 +272,7 @@ function TeamChatView({ chat, projectId, project, role, currentUser, onBack, onN
                 <ChatMessageList projectId={projectId} chatId={chat.id} base={base} footer={live.threadId ? undefined : typingLine}
                     unreadCount={unreadAtOpen} onStarter={writable ? text => setPrefill({ text, nonce: Date.now() }) : undefined} />
                 <AiNotice text={mainNotice} onDismiss={dismissNotice} />
+                <ConnectionBand className="px-3 pb-2" />
                 {writable ? (
                     <ChatComposer draftKey={draftKey(me, chat.id)} candidates={names.candidates} aiEnabled={chat.aiMode !== 'off'} reply={replyChip} tier={tier}
                         onCancelReply={() => setReply(null)} onTyping={() => notifyTyping(chat.id)} onEditLastOwn={onEditLastOwn} prefill={prefill}

@@ -4,9 +4,9 @@ import {
 import React, { useMemo, useState } from 'react';
 import ContextMenu from './ContextMenu';
 import {
-    GROUPS, NO_FOLDER, SORTS, STATUS_LABEL, TRIGGER_KINDS, TRIGGER_LABEL, VIEWS,
+    GROUPS, NO_FOLDER, SORTS, TRIGGER_KINDS, VIEWS,
     countFolders, countStates, countTriggers, filterRows, groupRows, isFailing, sortRows,
-    stepCountOf, triggerKindOf, triggerTextOf,
+    statusLabelOf, stepCountOf, triggerKindOf, triggerLabelOf, triggerTextOf,
 } from './overviewModel';
 import OverviewToolbar from './OverviewToolbar';
 import { buildAutomationMenuItems } from './automationMenuItems';
@@ -92,6 +92,7 @@ export default function AutomationsOverview({
     onCreateFolder = null,
     canCreate = true,
 }) {
+    const { t } = useTranslation();
     const [view, setViewState] = useState(() => readStored(VIEW_KEY, VIEWS, 'list'));
     const [sort, setSortState] = useState(() => readStored(SORT_KEY, SORTS, 'updated'));
     const [groupBy, setGroupState] = useState(() => readStored(GROUP_KEY, GROUPS, 'status'));
@@ -129,8 +130,8 @@ export default function AutomationsOverview({
         [automations, state, trigger, effectiveFolder, folders, activeRunIds, sort],
     );
     const lanes = useMemo(
-        () => (view === 'board' ? groupRows(rows, groupBy, { folders }) : null),
-        [view, rows, groupBy, folders],
+        () => (view === 'board' ? groupRows(rows, groupBy, { folders, t }) : null),
+        [view, rows, groupBy, folders, t],
     );
 
     const filtering = String(query || '').trim() !== '';
@@ -138,48 +139,48 @@ export default function AutomationsOverview({
     const clearFilters = () => { setState('all'); setTrigger('all'); setFolder('all'); };
 
     const stateOptions = [
-        { value: 'all', label: 'All', count: stateCounts.all },
-        { value: 'live', label: 'Live', count: stateCounts.live, tone: 'success' },
-        { value: 'paused', label: 'Paused', count: stateCounts.paused, tone: 'muted' },
-        { value: 'draft', label: 'Draft', count: stateCounts.draft },
-        { value: 'failing', label: 'Failing', count: stateCounts.failing, tone: 'error' },
-        { value: 'running', label: 'Running', count: stateCounts.running },
+        { value: 'all', label: t('studio_misc.overview.filter_all', 'All'), count: stateCounts.all },
+        { value: 'live', label: statusLabelOf('live', t), count: stateCounts.live, tone: 'success' },
+        { value: 'paused', label: statusLabelOf('paused', t), count: stateCounts.paused, tone: 'muted' },
+        { value: 'draft', label: statusLabelOf('draft', t), count: stateCounts.draft },
+        { value: 'failing', label: t('studio_misc.overview.filter_failing', 'Failing'), count: stateCounts.failing, tone: 'error' },
+        { value: 'running', label: t('studio_misc.overview.filter_running', 'Running'), count: stateCounts.running },
     ];
     // A trigger kind nobody uses is not a filter worth offering.
     const triggerOptions = [
-        { value: 'all', label: 'Any trigger', count: triggerCounts.all },
-        ...TRIGGER_KINDS.filter(k => triggerCounts[k]).map(k => ({ value: k, label: TRIGGER_LABEL[k], count: triggerCounts[k] })),
+        { value: 'all', label: t('studio_misc.overview.filter_any_trigger', 'Any trigger'), count: triggerCounts.all },
+        ...TRIGGER_KINDS.filter(k => triggerCounts[k]).map(k => ({ value: k, label: triggerLabelOf(k, t), count: triggerCounts[k] })),
     ];
     // Folders always keep their pill, even at 0 — an empty folder is still a
     // place to file into. Only offered at all when the library HAS folders.
     const folderOptions = folders.length === 0 ? [] : [
-        { value: 'all', label: 'Any folder', count: folderCounts.all },
-        { value: NO_FOLDER, label: 'No folder', count: folderCounts[NO_FOLDER] },
-        ...folders.map(f => ({ value: f.id, label: f.name || 'Untitled folder', count: folderCounts[f.id] })),
+        { value: 'all', label: t('studio_misc.overview.filter_any_folder', 'Any folder'), count: folderCounts.all },
+        { value: NO_FOLDER, label: t('studio_misc.overview.no_folder', 'No folder'), count: folderCounts[NO_FOLDER] },
+        ...folders.map(f => ({ value: f.id, label: f.name || t('studio_misc.overview.untitled_folder', 'Untitled folder'), count: folderCounts[f.id] })),
     ];
 
     let body;
     if (loading && automations.length === 0) {
-        body = <p className="text-xs text-[var(--text-tertiary)] px-4 py-6 m-0">Loading…</p>;
+        body = <p className="text-xs text-[var(--text-tertiary)] px-4 py-6 m-0">{t('studio_misc.overview.loading', 'Loading…')}</p>;
     } else if (automations.length === 0 && !filtering) {
         body = (
             <EmptyState
                 icon={<Workflow className="w-12 h-12" />}
-                title="No automations yet"
-                description="Describe repeating work to the AI, pick a template, or build one step by step. Everything you make shows up here."
-                action={onCreate && canCreate ? { label: 'New automation', icon: <Plus size={14} />, onClick: onCreate } : undefined}
+                title={t('studio_misc.overview.empty_title', 'No automations yet')}
+                description={t('studio_misc.overview.empty_description', 'Describe repeating work to the AI, pick a template, or build one step by step. Everything you make shows up here.')}
+                action={onCreate && canCreate ? { label: t('studio_misc.overview.new_automation', 'New automation'), icon: <Plus size={14} />, onClick: onCreate } : undefined}
             />
         );
     } else if (rows.length === 0) {
         body = (
             <div className="px-4 py-10 text-center text-sm text-[var(--text-secondary)]">
                 {filtering && !narrowed
-                    ? <>No automation matches “{query.trim()}”.</>
+                    ? <>{t('studio_misc.overview.no_match_query', 'No automation matches “{query}”.', { query: query.trim() })}</>
                     : (
                         <>
-                            Nothing matches these filters.{' '}
+                            {t('studio_misc.overview.no_match_filters', 'Nothing matches these filters.')}{' '}
                             <button type="button" onClick={clearFilters} className="underline text-[var(--text-primary)]">
-                                Clear filters
+                                {t('studio_misc.overview.clear_filters', 'Clear filters')}
                             </button>
                         </>
                     )}
@@ -288,6 +289,7 @@ function NewFolderDialog({ onCreate, onClose }) {
 
 /** Live / Paused / Draft — the pill's vocabulary, at row size. */
 function LifecycleChip({ automation }) {
+    const { t } = useTranslation();
     const status = lifecycleOf(automation);
     const live = status === 'live';
     return (
@@ -306,7 +308,7 @@ function LifecycleChip({ automation }) {
                         ? { background: 'transparent', boxShadow: 'inset 0 0 0 1.5px var(--text-tertiary)' }
                         : { background: 'var(--text-tertiary)' }}
             />
-            {STATUS_LABEL[status]}
+            {statusLabelOf(status, t)}
         </span>
     );
 }
@@ -322,7 +324,7 @@ function OutcomeChip({ automation, liveRunning, t }) {
             </span>
         );
     }
-    if (!automation.lastStatus) return <span className="text-xs text-[var(--text-tertiary)]">Never ran</span>;
+    if (!automation.lastStatus) return <span className="text-xs text-[var(--text-tertiary)]">{t('studio_misc.overview.never_ran', 'Never ran')}</span>;
     const tok = tokenFor(automation.lastStatus);
     const Icon = tok.icon;
     return (
@@ -355,6 +357,7 @@ function tileStyle(automation) {
 
 /** The kebab + its menu — one per row/card/tile, opened on click or right-click. */
 function useRowMenu(props) {
+    const { t } = useTranslation();
     const [pos, setPos] = useState(null);
     const items = useMemo(() => buildAutomationMenuItems({
         isAutomation: true,
@@ -366,7 +369,8 @@ function useRowMenu(props) {
         onMoveToFolder: props?.onMoveToFolder,
         onCopyId: props?.onCopyId,
         onDelete: props?.onDelete,
-    }), [props]);
+        t,
+    }), [props, t]);
     const onContextMenu = (e) => {
         if (!items.length) return;
         e.preventDefault();
@@ -382,8 +386,8 @@ function useRowMenu(props) {
         <button
             type="button"
             onClick={onKebab}
-            title="More options"
-            aria-label="More options"
+            title={t('studio_misc.overview.more_options', 'More options')}
+            aria-label={t('studio_misc.overview.more_options', 'More options')}
             className="opacity-60 group-hover:opacity-100 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] rounded p-0.5 transition"
         >
             <MoreVertical size={14} aria-hidden="true" />
@@ -392,7 +396,7 @@ function useRowMenu(props) {
     return { onContextMenu, kebab, menu };
 }
 
-const TITLE = (a) => a.title || 'Untitled automation';
+const TITLE = (a, t) => a.title || t('studio_misc.overview.untitled_automation', 'Untitled automation');
 
 // ── List ─────────────────────────────────────────────────────────────
 
@@ -411,6 +415,13 @@ const WITH_NEXT_RUN = 'hidden @[76rem]/overview:block';
 const WITH_UPDATED = 'hidden @[100rem]/overview:block';
 
 // Which sort a column header stands for; a header without one is not sortable.
+/** "3 steps" / "1 step". */
+function stepsLabel(t, n) {
+    return n === 1
+        ? t('studio_misc.overview.steps_one', '{n} step', { n })
+        : t('studio_misc.overview.steps_many', '{n} steps', { n });
+}
+
 const COL_SORT = { name: 'name', status: 'status', lastRun: 'lastRun', nextRun: 'nextRun', updated: 'updated' };
 
 // Ascending reads naturally for a name and for "what runs next"; the other
@@ -438,16 +449,16 @@ function SortHead({ col, sort, onSort, className = '', children }) {
 function ListView({ rows, rowProps, activeRunIds, sort, onSort }) {
     const { t } = useTranslation();
     return (
-        <div role="table" aria-label="Automations" className={`${COLUMN} min-w-[34rem]`}>
+        <div role="table" aria-label={t('studio_misc.overview.col_automations', 'Automations')} className={`${COLUMN} min-w-[34rem]`}>
             <div
                 role="row"
                 className={`${LIST_GRID} gap-3 px-4 py-2 border-b border-[var(--border-default)] text-[10px] uppercase tracking-[.08em] font-semibold text-[var(--text-tertiary)] sticky top-0 bg-[var(--bg-primary)] z-[1]`}
             >
-                <SortHead col="name" sort={sort} onSort={onSort}>Automation</SortHead>
-                <span className={WITH_TRIGGER}>Trigger</span>
-                <SortHead col="status" sort={sort} onSort={onSort}>Status</SortHead>
-                <SortHead col="lastRun" sort={sort} onSort={onSort}>Last run</SortHead>
-                <SortHead col="nextRun" sort={sort} onSort={onSort} className="hidden @[76rem]/overview:inline-flex">Next run</SortHead>
+                <SortHead col="name" sort={sort} onSort={onSort}>{t('studio_misc.overview.col_automation', 'Automation')}</SortHead>
+                <span className={WITH_TRIGGER}>{t('studio_misc.overview.col_trigger', 'Trigger')}</span>
+                <SortHead col="status" sort={sort} onSort={onSort}>{t('studio_misc.overview.col_status', 'Status')}</SortHead>
+                <SortHead col="lastRun" sort={sort} onSort={onSort}>{t('studio_misc.overview.col_last_run', 'Last run')}</SortHead>
+                <SortHead col="nextRun" sort={sort} onSort={onSort} className="hidden @[76rem]/overview:inline-flex">{t('studio_misc.overview.col_next_run', 'Next run')}</SortHead>
                 <SortHead col="updated" sort={sort} onSort={onSort} className="hidden @[100rem]/overview:inline-flex">
                     {t('automations.overview.colUpdated', 'Updated')}
                 </SortHead>
@@ -460,9 +471,10 @@ function ListView({ rows, rowProps, activeRunIds, sort, onSort }) {
 
 /** The first cell: the trigger tile, the name and one line about it. */
 function NameCell({ automation: a, liveRunning, onSelect }) {
+    const { t } = useTranslation();
     const description = (a.description || '').trim();
     const steps = stepCountOf(a);
-    const stepsText = steps != null ? `${steps} step${steps === 1 ? '' : 's'}` : '';
+    const stepsText = steps != null ? stepsLabel(t, steps) : '';
     return (
         <button type="button" onClick={onSelect} className="text-left min-w-0 flex items-center gap-3">
             <span className="inline-flex h-7 w-7 items-center justify-center rounded-md shrink-0" style={tileStyle(a)}>
@@ -474,7 +486,7 @@ function NameCell({ automation: a, liveRunning, onSelect }) {
                 alone is wider than the column. */}
             <span className="flex-1 min-w-0 flex flex-col @[76rem]/overview:flex-row @[76rem]/overview:items-baseline @[76rem]/overview:gap-2">
                 <span className="min-w-0 flex items-center gap-2 @[76rem]/overview:shrink-0 @[76rem]/overview:max-w-full">
-                    <span className="text-[13px] font-medium truncate text-[var(--text-primary)]" title={TITLE(a)}>{TITLE(a)}</span>
+                    <span className="text-[13px] font-medium truncate text-[var(--text-primary)]" title={TITLE(a, t)}>{TITLE(a, t)}</span>
                     {liveRunning && <span className={`h-1.5 w-1.5 rounded-full animate-pulse ${STATUS_TOKENS.running.solid} bg-current shrink-0`} aria-hidden="true" />}
                 </span>
                 <span className="min-w-0 @[76rem]/overview:flex-1 text-xs text-[var(--text-tertiary)] truncate" title={description || undefined}>
@@ -502,7 +514,7 @@ function ListRow({ automation: a, props, liveRunning }) {
                 }`}
             >
                 <NameCell automation={a} liveRunning={liveRunning} onSelect={props?.onSelect} />
-                <span className={`text-xs text-[var(--text-secondary)] truncate ${WITH_TRIGGER}`} title={triggerTextOf(a)}>{triggerTextOf(a)}</span>
+                <span className={`text-xs text-[var(--text-secondary)] truncate ${WITH_TRIGGER}`} title={triggerTextOf(a, t)}>{triggerTextOf(a, t)}</span>
                 <LifecycleChip automation={a} />
                 <span className="flex items-center gap-2 min-w-0">
                     <OutcomeChip automation={a} liveRunning={liveRunning} t={t} />
@@ -565,10 +577,10 @@ function Card({ automation: a, props, liveRunning, compact = false, hideLifecycl
                     </span>
                     <div className="flex-1 min-w-0 pt-0.5">
                         <div className="flex items-center gap-1.5">
-                            <span className="text-sm font-semibold truncate text-[var(--text-primary)]">{TITLE(a)}</span>
+                            <span className="text-sm font-semibold truncate text-[var(--text-primary)]">{TITLE(a, t)}</span>
                             {liveRunning && <span className={`h-1.5 w-1.5 rounded-full animate-pulse ${STATUS_TOKENS.running.solid} bg-current shrink-0`} aria-hidden="true" />}
                         </div>
-                        <div className="text-xs mt-0.5 truncate text-[var(--text-tertiary)]" title={triggerTextOf(a)}>{triggerTextOf(a)}</div>
+                        <div className="text-xs mt-0.5 truncate text-[var(--text-tertiary)]" title={triggerTextOf(a, t)}>{triggerTextOf(a, t)}</div>
                     </div>
                     <span className="-mr-1 -mt-1">{kebab}</span>
                 </div>
@@ -582,10 +594,10 @@ function Card({ automation: a, props, liveRunning, compact = false, hideLifecycl
                     </span>
                     <span className="text-[10.5px] text-[var(--text-tertiary)] truncate">
                         {a.nextRunAt && a.isActive
-                            ? `Next ${formatNextRun(a.nextRunAt)}`
+                            ? t('studio_misc.overview.next_at', 'Next {when}', { when: formatNextRun(a.nextRunAt) })
                             : a.lastRunAt
-                                ? `Ran ${rel(a.lastRunAt)}`
-                                : steps != null ? `${steps} step${steps === 1 ? '' : 's'}` : ''}
+                                ? t('studio_misc.overview.ran_at', 'Ran {when}', { when: rel(a.lastRunAt) })
+                                : steps != null ? stepsLabel(t, steps) : ''}
                     </span>
                 </div>
             </div>
@@ -597,6 +609,7 @@ function Card({ automation: a, props, liveRunning, compact = false, hideLifecycl
 // ── Board ────────────────────────────────────────────────────────────
 
 function BoardView({ lanes, groupBy, rowProps, activeRunIds }) {
+    const { t } = useTranslation();
     // In a status board the lane already says Live / Paused / Draft; a chip
     // repeating it on every tile is noise.
     const hideLifecycle = groupBy === 'status';
@@ -619,7 +632,7 @@ function BoardView({ lanes, groupBy, rowProps, activeRunIds }) {
                     </header>
                     <div className="flex-1 min-h-0 overflow-y-auto px-2 pb-2 space-y-2">
                         {lane.rows.length === 0
-                            ? <p className="text-[11px] text-[var(--text-tertiary)] px-1 py-3 m-0 text-center">Nothing here</p>
+                            ? <p className="text-[11px] text-[var(--text-tertiary)] px-1 py-3 m-0 text-center">{t('studio_misc.overview.nothing_here', 'Nothing here')}</p>
                             : lane.rows.map(a => <Card key={a.id} automation={a} props={rowProps?.(a)} liveRunning={!!activeRunIds?.has?.(a.id)} compact hideLifecycle={hideLifecycle} />)}
                     </div>
                 </section>

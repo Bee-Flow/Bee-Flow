@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import AppIcon from '../../../icons/AppIcon';
-import { Toggle } from '../fields';
-import { BLOCK_EDITORS } from '../editors';
-import BlockStyleEditor from '../BlockStyleEditor';
-import SeoSection from './SeoSection';
+import { useTranslation } from '../../../../hooks/useTranslation';
 import { slugIssues } from '../../../../utils/cmsPublicRouting';
+import AppIcon from '../../../icons/AppIcon';
+import BlockStyleEditor from '../BlockStyleEditor';
+import { BLOCK_EDITORS } from '../editors';
+import { Toggle } from '../fields';
+import SeoSection from './SeoSection';
 
 function SubTabBtn({ label, active, onClick }) {
     return (
@@ -49,6 +50,7 @@ function MetaToggle({ label, value, onChange }) {
 // block the commit (the server rejects reserved and would silently
 // -2-suffix a duplicate); `_` slugs warn but stay allowed (legacy data).
 function SlugField({ value, allSlugs, onCommit }) {
+    const { t } = useTranslation();
     const [draft, setDraft] = useState(value || '');
     useEffect(() => { setDraft(value || ''); }, [value]);
 
@@ -64,7 +66,7 @@ function SlugField({ value, allSlugs, onCommit }) {
 
     return (
         <div className="flex flex-col gap-0.5">
-            <span className="text-[10px] text-[var(--text-muted)]">URL slug</span>
+            <span className="text-[10px] text-[var(--text-muted)]">{t('cms_site.site.inspector.url_slug', 'URL slug')}</span>
             <input
                 type="text"
                 value={draft}
@@ -79,7 +81,7 @@ function SlugField({ value, allSlugs, onCommit }) {
             />
             {issue ? (
                 <p className={`text-[10px] leading-tight ${issue.blocking ? 'text-red-400' : 'text-amber-500/90'}`}>
-                    ⚠ {issue.message}{issue.blocking ? ' (Esc reverts)' : ''}
+                    ⚠ {issue.message}{issue.blocking ? t('cms_site.site.inspector.esc_reverts', ' (Esc reverts)') : ''}
                 </p>
             ) : null}
         </div>
@@ -93,6 +95,7 @@ function SlugField({ value, allSlugs, onCommit }) {
  * PageDoc save. Same wiring as before, wider column.
  */
 export function PageMetaSection({ page, allSlugs, onMetaChange, onSeoChange }) {
+    const { t } = useTranslation();
     const [open, setOpen] = useState(false);
 
     return (
@@ -104,22 +107,22 @@ export function PageMetaSection({ page, allSlugs, onMetaChange, onSeoChange }) {
             >
                 <span className="flex items-center gap-2">
                     <AppIcon name={page.isHomepage ? 'Home' : 'FileText'} className="w-3.5 h-3.5" />
-                    <span className="font-medium">{page.title || '(untitled)'}</span>
+                    <span className="font-medium">{page.title || t('cms_site.site.inspector.untitled', '(untitled)')}</span>
                     <span className="text-[var(--text-muted)]">/{page.slug}</span>
                 </span>
                 <span className="flex items-center gap-1.5">
-                    <span className="text-[10px] text-[var(--text-muted)]">Page settings & SEO</span>
+                    <span className="text-[10px] text-[var(--text-muted)]">{t('cms_site.site.inspector.page_settings', 'Page settings & SEO')}</span>
                     <AppIcon name={open ? 'ChevronUp' : 'ChevronDown'} className="w-3.5 h-3.5" />
                 </span>
             </button>
             {open && (
                 <div className="px-4 pb-3 space-y-2 max-h-[60vh] overflow-y-auto">
-                    <MetaInput label="Page title" value={page.title} onChange={v => onMetaChange('title', v)} />
+                    <MetaInput label={t('cms_site.site.inspector.page_title', 'Page title')} value={page.title} onChange={v => onMetaChange('title', v)} />
                     <SlugField value={page.slug} allSlugs={allSlugs} onCommit={v => onMetaChange('slug', v)} />
                     <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1">
-                        <MetaToggle label="Hide header" value={page.hideHeader} onChange={v => onMetaChange('hideHeader', v)} />
-                        <MetaToggle label="Hide footer" value={page.hideFooter} onChange={v => onMetaChange('hideFooter', v)} />
-                        <MetaToggle label="Exclude from analytics" value={page.noAnalytics} onChange={v => onMetaChange('noAnalytics', v)} />
+                        <MetaToggle label={t('cms_site.site.inspector.hide_header', 'Hide header')} value={page.hideHeader} onChange={v => onMetaChange('hideHeader', v)} />
+                        <MetaToggle label={t('cms_site.site.inspector.hide_footer', 'Hide footer')} value={page.hideFooter} onChange={v => onMetaChange('hideFooter', v)} />
+                        <MetaToggle label={t('cms_site.site.inspector.no_analytics', 'Exclude from analytics')} value={page.noAnalytics} onChange={v => onMetaChange('noAnalytics', v)} />
                     </div>
                     {/* SEO — metaTitle/metaDescription/ogImage/noIndex +
                         SERP/social previews. Same onSeoChange → debounced
@@ -151,6 +154,7 @@ export default function PageInspector({
     onBlockStyleChange,     // (nextStyle)
     onToggleBlock,          // (blockId)
 }) {
+    const { t } = useTranslation();
     const BlockEditor = activeBlock ? BLOCK_EDITORS[activeBlock.type]?.component : null;
 
     return (
@@ -181,8 +185,8 @@ export default function PageInspector({
 
                         {/* Content / Style sub-tabs */}
                         <div className="px-4 mt-3 flex items-center border-b border-[var(--border-subtle)]">
-                            <SubTabBtn label="Content" active={blockEditorTab === 'content'} onClick={() => onBlockEditorTab('content')} />
-                            <SubTabBtn label="Style" active={blockEditorTab === 'style'} onClick={() => onBlockEditorTab('style')} />
+                            <SubTabBtn label={t('cms_site.site.inspector.tab_content', 'Content')} active={blockEditorTab === 'content'} onClick={() => onBlockEditorTab('content')} />
+                            <SubTabBtn label={t('cms_site.site.inspector.tab_style', 'Style')} active={blockEditorTab === 'style'} onClick={() => onBlockEditorTab('style')} />
                         </div>
 
                         {blockEditorTab === 'content' ? (
@@ -207,8 +211,8 @@ export default function PageInspector({
                 ) : (
                     <p className="text-xs text-[var(--text-muted)] text-center py-8 px-4">
                         {page.blocks?.length
-                            ? 'Select a block to edit its settings, or click text in the preview.'
-                            : 'Add a block to get started.'}
+                            ? t('cms_site.site.inspector.select_block', 'Select a block to edit its settings, or click text in the preview.')
+                            : t('cms_site.site.inspector.add_block', 'Add a block to get started.')}
                     </p>
                 )}
             </div>
@@ -216,7 +220,7 @@ export default function PageInspector({
             {/* hint */}
             <div className="px-4 py-2 border-t border-[var(--border-subtle)] shrink-0">
                 <p className="text-xs text-[var(--text-muted)]">
-                    Click any text in the preview to edit inline.
+                    {t('cms_site.site.inspector.inline_hint', 'Click any text in the preview to edit inline.')}
                 </p>
             </div>
         </div>

@@ -6,7 +6,10 @@
  * CSIRT / ENISA single reporting platform in three steps:
  *   • early warning        within 24 h of becoming aware,
  *   • vulnerability notice within 72 h,
- *   • final report         within 14 days after a corrective measure is available.
+ *   • final report         within 14 days after a corrective measure is
+ *                          available (vulnerability, Art. 14(2)(c)), or one
+ *                          month after the incident notification (severe
+ *                          incident, Art. 14(4)(c)).
  *
  * The incident register (compliance_incidents) is the working proof: CRA-regime
  * rows (`kind='vulnerability'` or 'CRA' ∈ `regimes`) carry `early_warning_*` and
@@ -27,10 +30,13 @@
 const db = require('../../../db');
 const complianceStore = require('../../../stores/complianceStore');
 const incidentStore = require('../../../stores/incidentStore');
+const { addCalendarMonths } = require('../../../utils/calendarMonths');
 
 const EARLY_WARNING_HOURS = 24;
 const NOTIFICATION_HOURS = 72;
 const FINAL_REPORT_DAYS = 14;
+// Art. 14(4)(c): a severe incident's final report, one month after the notification.
+const INCIDENT_FINAL_REPORT_MONTHS = 1;
 const DUE_SOON_HOURS = 6;
 const SAMPLE_LIMIT = 10;
 const ROW_LIMIT = 200;
@@ -80,6 +86,18 @@ async function _openCraIncidents(orgId) {
 }
 
 /**
+ * The final-report fallback when the register has no due column: 14 days for
+ * a vulnerability; for a severe incident (any other kind) one month after the
+ * notification, or after the latest lawful notification (detected + 72 h)
+ * while none is recorded.
+ */
+function _fallbackFinalDue(row, detected) {
+    if (!row.kind || row.kind === 'vulnerability') return detected + FINAL_REPORT_DAYS * 86400e3;
+    const from = _ts(row.authority_notified_at) ?? detected + NOTIFICATION_HOURS * 3600e3;
+    return addCalendarMonths(new Date(from), INCIDENT_FINAL_REPORT_MONTHS).getTime();
+}
+
+/**
  * Per-row clock state. Due timestamps fall back to detected_at + the legal
  * window when the register has no explicit due column filled in.
  */
@@ -98,7 +116,7 @@ function _clocksFor(row, now) {
         },
         {
             clock: 'final_report',
-            due_at: _ts(row.final_report_due_at) ?? detected + FINAL_REPORT_DAYS * 86400e3,
+            due_at: _ts(row.final_report_due_at) ?? _fallbackFinalDue(row, detected),
             sent_at: _ts(row.final_report_sent_at),
         },
     ];
@@ -135,11 +153,17 @@ module.exports = {
             };
         }
         const craRole = settings.cra_role || null;
-        if (craRole === 'user_only') {
+        // Art. 14 binds manufacturers. An importer or distributor informs the
+        // manufacturer (and, on a significant risk, the market surveillance
+        // authority) under Art. 19 and 20 — it runs no CSIRT/ENISA clocks. An
+        // undeclared role keeps the clocks: the conservative reading.
+        if (craRole === 'user_only' || craRole === 'distributor') {
             return {
                 status: 'not_applicable',
                 evidence: { cra_role: craRole },
-                details: 'This organisation only uses products with digital elements and does not manufacture or distribute them — Art. 14 reporting duties fall on the manufacturer.',
+                details: craRole === 'distributor'
+                    ? 'This organisation imports or distributes products with digital elements: the Art. 14 reporting clocks bind the manufacturer. Importers and distributors inform the manufacturer of a vulnerability without undue delay, and the market surveillance authority when there is a significant cybersecurity risk (CRA Art. 19 and 20). One that places a product under its own name or trademark, or substantially modifies it, is a manufacturer (Art. 21): declare that role instead.'
+                    : 'This organisation only uses products with digital elements and does not manufacture or distribute them — Art. 14 reporting duties fall on the manufacturer.',
             };
         }
 
@@ -200,7 +224,12 @@ module.exports = {
             open_cra_incidents: rows.length,
             actively_exploited: exploited,
             clocks: summary,
-            windows: { early_warning_hours: EARLY_WARNING_HOURS, notification_hours: NOTIFICATION_HOURS, final_report_days: FINAL_REPORT_DAYS },
+            windows: {
+                early_warning_hours: EARLY_WARNING_HOURS,
+                notification_hours: NOTIFICATION_HOURS,
+                final_report_days: FINAL_REPORT_DAYS,
+                incident_final_report_months: INCIDENT_FINAL_REPORT_MONTHS,
+            },
             overdue_sample: overdueSample,
             reporting_channel_set: channelSet,
             psirt_contact_set: psirtSet,
@@ -211,7 +240,7 @@ module.exports = {
             const parts = [];
             if (summary.early_warning.overdue) parts.push(`${summary.early_warning.overdue} past the 24-hour early warning`);
             if (summary.notification.overdue) parts.push(`${summary.notification.overdue} past the 72-hour notification`);
-            if (summary.final_report.overdue) parts.push(`${summary.final_report.overdue} past the 14-day final report`);
+            if (summary.final_report.overdue) parts.push(`${summary.final_report.overdue} past the final report (14 days for a vulnerability, one month after the notification for a severe incident)`);
             return {
                 status: 'fail',
                 evidence,
@@ -233,10 +262,10 @@ module.exports = {
             status: 'pass',
             evidence,
             details: rows.length > 0
-                ? `Reporting process operational: ${rows.length} open CRA-regime incident(s), all inside their 24 h / 72 h / 14 d windows; channel, PSIRT contact and procedure in place.`
+                ? `Reporting process operational: ${rows.length} open CRA-regime incident(s), all inside their 24 h / 72 h / final-report windows; channel, PSIRT contact and procedure in place.`
                 : 'Reporting process ready: channel, PSIRT contact and vulnerability procedure in place; no CRA-regime incident is open.',
         };
     },
 };
 
-module.exports._test = { _clocksFor, _hasCraRegime, EARLY_WARNING_HOURS, NOTIFICATION_HOURS, FINAL_REPORT_DAYS, DUE_SOON_HOURS };
+module.exports._test = { _clocksFor, _hasCraRegime, EARLY_WARNING_HOURS, NOTIFICATION_HOURS, FINAL_REPORT_DAYS, INCIDENT_FINAL_REPORT_MONTHS, DUE_SOON_HOURS };

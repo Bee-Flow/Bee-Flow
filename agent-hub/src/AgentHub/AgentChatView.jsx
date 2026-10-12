@@ -1,4 +1,5 @@
 import { EyeOff, Menu, MoreVertical, Pencil, PenLine } from 'lucide-react';
+import DocumentsHeaderButton from './DocumentsHeaderButton';
 import EmptyChatState from './EmptyChatState';
 import InputArea from '../components/chat/InputArea';
 import MessageItem from '../components/chat/MessageItem';
@@ -8,10 +9,11 @@ import CoworkModeToggle from '../components/cowork/CoworkModeToggle';
 import WelcomeScreen from '../components/shell/WelcomeScreen';
 import { isImageAvatar, pickAgentAvatar, resolveAvatarSrc } from '../utils/agentAvatar';
 import { lazy } from '../utils/lazyWithReload';
+import { useTranslation } from '../hooks/useTranslation';
 
 const WebpagePickerPopover = lazy(() => import('../components/webpages/WebpagePickerPopover'));
 
-// The agent-chat pane: header (avatar, agent menu, Cowork switch, notebook /
+// The agent-chat pane: header (avatar, agent menu, Cowork switch, documents /
 // webpage buttons) plus the chat pane and side panels. Moved verbatim from
 // the `selectedAgent` branch of AgentHub.jsx's main ternary; all state stays
 // in AgentHub and arrives via props.
@@ -20,7 +22,8 @@ const AgentChatView = ({
     showAgentMenu, setShowAgentMenu,
     handleNewChat, handleToggleFavorite, handleUnpublishAgent,
     coworkMode, setCoworkModeForAgent, conversationStarted,
-    notebooksEnabled, inCoworkMode, toggleNotebookPanel, showNotebook,
+    notebooksEnabled, inCoworkMode,
+    sidePanelDocumentId, openDocumentInSidePanel, closeDocumentPanel,
     canUseWebpagesSide, webpageButtonRef, sidePanelWebpageId, closeWebpagePanel,
     webpagePickerOpen, setWebpagePickerOpen, openWebpageInSidePanel,
     messagesContainerRef, messagesEndRef, shouldForceScrollRef,
@@ -30,7 +33,37 @@ const AgentChatView = ({
     currentConversation, retryMessage, editAndRegenerate, modelTiers,
     renderSidePanels,
     activeProject = null, onOpenActiveProject, onLeaveActiveProject,
+    // useChatSignals() from useAgentHubData: the chat-signals notice for the
+    // endpoint this chat posts to, and the person's own switch. Both composers
+    // below get it, so the empty state and the conversation say the same.
+    chatSignals = null,
 }) => {
+    const { t } = useTranslation();
+    // The empty state and the conversation render the same composer.
+    const composerProps = {
+        onSendMessage: (text, attachments, parentId) => {
+            shouldForceScrollRef.current = true;
+            sendMessage(text, attachments, parentId, false);
+        },
+        onStopGenerating: stopGenerating,
+        isLoading,
+        selectedAgent,
+        agentIntegrations: selectedAgent?.config?.enabledIntegrations || null,
+        isMobile,
+        input: chatInput,
+        setInput: setChatInput,
+        user,
+        activeSkillIds,
+        agentAttachedSkillIds,
+        onToggleSkill: handleToggleSkill,
+        messages,
+        onVoiceTurnComplete: handleVoiceTurnComplete,
+        chatSignalsNotice: chatSignals?.notice ?? null,
+        onChatSignalsCounted: chatSignals?.setCounted ?? null,
+        cowork: coworkComposer,
+        coworkMode,
+        onCoworkModeChange: (mode) => setCoworkModeForAgent(mode, selectedAgent?.id),
+    };
     return (
                     <>
                         {/* New Inline Header for Agent */}
@@ -77,7 +110,7 @@ const AgentChatView = ({
                                                     style={{ color: 'var(--text-primary)' }}
                                                 >
                                                     <PenLine className="w-4 h-4" />
-                                                    New Chat
+                                                    {t('sidebar.new_chat', 'New Chat')}
                                                 </button>
                                                 <button
                                                     onClick={() => { handleToggleFavorite(selectedAgent.id); setShowAgentMenu(false); }}
@@ -95,7 +128,7 @@ const AgentChatView = ({
                                                             style={{ color: 'var(--text-primary)' }}
                                                         >
                                                             <Pencil className="w-4 h-4" />
-                                                            Edit Agent
+                                                            {t('agent.edit_agent', 'Edit Agent')}
                                                         </button>
                                                         )}
                                                         <button
@@ -104,7 +137,7 @@ const AgentChatView = ({
                                                             style={{ color: 'var(--error, #ef4444)' }}
                                                         >
                                                             <EyeOff className="w-4 h-4" />
-                                                            Unpublish Agent
+                                                            {t('agent.chat_menu_unpublish_agent', 'Unpublish Agent')}
                                                         </button>
                                                     </>
                                                 )}
@@ -136,14 +169,12 @@ const AgentChatView = ({
                                 />
                             </div>
                             <div className="flex items-center gap-2 relative">
-                                {!isMobile && notebooksEnabled && !inCoworkMode && (
-                                    <button
-                                        onClick={toggleNotebookPanel}
-                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors border text-xs font-medium ${showNotebook ? 'bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] border-[var(--accent-primary)]/30' : 'bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border-[var(--border-subtle)]'}`}
-                                        title={showNotebook ? 'Close Notebook' : 'Open Notebook'}
-                                    >
-                                        📓 {showNotebook ? 'Close' : 'Notebook'}
-                                    </button>
+                                {!isMobile && !inCoworkMode && (
+                                    <DocumentsHeaderButton
+                                        sidePanelDocumentId={sidePanelDocumentId}
+                                        openDocumentInSidePanel={openDocumentInSidePanel}
+                                        closeDocumentPanel={closeDocumentPanel}
+                                    />
                                 )}
                                 {!isMobile && canUseWebpagesSide && !inCoworkMode && (
                                     <>
@@ -173,7 +204,7 @@ const AgentChatView = ({
                         <div className="flex-1 flex overflow-hidden">
                             {/* Chat Pane */}
                             <div className="flex-1 flex flex-col min-w-0 border-r" style={{ borderColor: 'var(--border-subtle)' }}>
-                                <div ref={messagesContainerRef} className={`flex-1 overflow-y-auto ${isMobile ? 'p-2' : 'p-4'} custom-scrollbar`}>
+                                <div ref={messagesContainerRef} className={`flex-1 overflow-y-auto overflow-x-hidden ${isMobile ? 'p-2' : 'p-4'} custom-scrollbar`}>
                                     {messages.length === 0 ? (
                                         <EmptyChatState>
                                             <WelcomeScreen
@@ -183,28 +214,7 @@ const AgentChatView = ({
                                                 shieldApplies
                                                 onNavigate={onNavigate}
                                             >
-                                                <InputArea
-                                                    onSendMessage={(text, attachments, parentId) => {
-                                                        shouldForceScrollRef.current = true;
-                                                        sendMessage(text, attachments, parentId, false);
-                                                    }}
-                                                    onStopGenerating={stopGenerating}
-                                                    isLoading={isLoading}
-                                                    selectedAgent={selectedAgent}
-                                                    agentIntegrations={selectedAgent?.config?.enabledIntegrations || null}
-                                                    isMobile={isMobile}
-                                                    input={chatInput}
-                                                    setInput={setChatInput}
-                                                    user={user}
-                                                    activeSkillIds={activeSkillIds}
-                                                    agentAttachedSkillIds={agentAttachedSkillIds}
-                                                    onToggleSkill={handleToggleSkill}
-                                                    messages={messages}
-                                                    onVoiceTurnComplete={handleVoiceTurnComplete}
-                                                    cowork={coworkComposer}
-                                                    coworkMode={coworkMode}
-                                                    onCoworkModeChange={(mode) => setCoworkModeForAgent(mode, selectedAgent?.id)}
-                                                />
+                                                <InputArea {...composerProps} />
                                             </WelcomeScreen>
                                         </EmptyChatState>
                                     ) : (
@@ -235,28 +245,7 @@ const AgentChatView = ({
                                 {messages.length > 0 && isReadOnlySharedChat(currentConversation) && <SharedChatReadOnly />}
                                 {messages.length > 0 && !isReadOnlySharedChat(currentConversation) && (
                                     <div className="w-full flex flex-col shrink-0">
-                                        <InputArea
-                                            onSendMessage={(text, attachments, parentId) => {
-                                                shouldForceScrollRef.current = true;
-                                                sendMessage(text, attachments, parentId, false);
-                                            }}
-                                            onStopGenerating={stopGenerating}
-                                            isLoading={isLoading}
-                                            selectedAgent={selectedAgent}
-                                            agentIntegrations={selectedAgent?.config?.enabledIntegrations || null}
-                                            input={chatInput}
-                                            isMobile={isMobile}
-                                            setInput={setChatInput}
-                                            user={user}
-                                            activeSkillIds={activeSkillIds}
-                                            agentAttachedSkillIds={agentAttachedSkillIds}
-                                            onToggleSkill={handleToggleSkill}
-                                            messages={messages}
-                                            onVoiceTurnComplete={handleVoiceTurnComplete}
-                                            cowork={coworkComposer}
-                                            coworkMode={coworkMode}
-                                            onCoworkModeChange={(mode) => setCoworkModeForAgent(mode, selectedAgent?.id)}
-                                        />
+                                        <InputArea {...composerProps} />
                                     </div>
                                 )}
                             </div>

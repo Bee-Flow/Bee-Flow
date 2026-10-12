@@ -1,17 +1,20 @@
-import React, { useEffect, useState } from 'react';
 import { Timer } from 'lucide-react';
-import useTranslation from '../../hooks/useTranslation';
-import { TONES, toneOfClock } from './statusTone';
+import React, { useEffect, useState } from 'react';
 import { clockState, isClockState, normalisePct } from './deadlineMath';
+import { TONES, toneOfClock } from './statusTone';
+import useTranslation from '../../hooks/useTranslation';
 
 /**
  * DeadlineClock — the one termijn-component of the Compliance Center
  * (artboards 1a/1c/1h and the rail): 30 days, 72 hours, 24 hours, one look.
  *
  * Four variants, one vocabulary:
- *   row     the 104px column of a register table / the Deadlines card —
+ *   row     the 104px column of a register table / the Deadlines card:
  *           11px semibold label in the tone's INK with a Timer glyph, then a
- *           3px bar filled to the elapsed share in the tone's RAW colour;
+ *           3px bar filled to the elapsed share in the tone's RAW colour. The
+ *           label is the COMPACT form ("3 d left", "31 d overdue", "5 h left")
+ *           so the column never truncates it; the full sentence is the
+ *           title and what a screen reader hears;
  *   block   the drawer's headline (1c) — padded box on an 8 % tint of the
  *           raw tone, 15px/700 label, 4px bar, optional meta line as children
  *           ("received 12 Aug 14:02 · due 11 Sep · not extended");
@@ -31,9 +34,20 @@ import { clockState, isClockState, normalisePct } from './deadlineMath';
  * ("completed in 18 days", "no open deadline"), the rail variant renders
  * nothing at all for them — a rail row shows OPEN clocks.
  *
+ * One unit and plural rule: `n === 1` reads the `_one` keys ("1 day left",
+ * never "1 days"), and an hours clock overdue by more than 48 h counts in
+ * days (deadlineMath).
+ *
+ * `quietUntilMs`: a clock that is still further away than this draws in
+ * neutral ink (Training: a due date 200 days out is a fact, not a warning).
+ * Urgent and overdue clocks are never quiet.
+ *
  * `useNow(60 s)` keeps the labels right without a refetch; a 72-hour clock
- * that still said "still 41 hours" an hour later would be lying.
+ * that still said "41 hours left" an hour later would be lying.
  */
+
+/** A quiet clock: readable neutral ink, a bar that does not shout. */
+const QUIET = Object.freeze({ raw: 'var(--text-tertiary)', ink: 'var(--text-secondary)' });
 
 /** The wall clock, re-read every `intervalMs` (0 or less: read once). */
 export function useNow(intervalMs = 60_000) {
@@ -55,19 +69,45 @@ export function clockLabel(t, { state, unit, value, completedInDays }, doneLabel
     if (state === 'done') {
         if (doneLabel) return doneLabel;
         if (completedInDays !== null && completedInDays !== undefined) {
-            return t('compliance.clock_done_in_days', 'completed in {days} days', { days: completedInDays });
+            return completedInDays === 1
+                ? t('compliance.clock_done_in_days_one', 'completed in 1 day', { days: 1 })
+                : t('compliance.clock_done_in_days', 'completed in {days} days', { days: completedInDays });
         }
         return t('compliance.clock_done', 'completed');
     }
     const n = value ?? 0;
+    const one = n === 1;
     if (state === 'overdue') {
-        return unit === 'hours'
-            ? t('compliance.clock_hours_overdue', 'overdue by {hours} hours', { hours: n })
+        if (unit === 'hours') {
+            return one
+                ? t('compliance.clock_hours_overdue_one', 'overdue by 1 hour', { hours: 1 })
+                : t('compliance.clock_hours_overdue', 'overdue by {hours} hours', { hours: n });
+        }
+        return one
+            ? t('compliance.clock_days_overdue_one', 'overdue by 1 day', { days: 1 })
             : t('compliance.clock_days_overdue', 'overdue by {days} days', { days: n });
     }
+    if (unit === 'hours') {
+        return one
+            ? t('compliance.clock_hours_left_one', '1 hour left', { hours: 1 })
+            : t('compliance.clock_hours_left', '{hours} hours left', { hours: n });
+    }
+    return one
+        ? t('compliance.clock_days_left_one', '1 day left', { days: 1 })
+        : t('compliance.clock_days_left', '{days} days left', { days: n });
+}
+
+/** The row's compact form for an OPEN clock: "3 d left", "31 d overdue", "5 h left". */
+export function clockRowLabel(t, { state, unit, value }) {
+    const n = value ?? 0;
+    if (state === 'overdue') {
+        return unit === 'hours'
+            ? t('compliance.clock_row_hours_overdue', '{hours} h overdue', { hours: n })
+            : t('compliance.clock_row_days_overdue', '{days} d overdue', { days: n });
+    }
     return unit === 'hours'
-        ? t('compliance.clock_hours_left', 'still {hours} hours', { hours: n })
-        : t('compliance.clock_days_left', 'still {days} days', { days: n });
+        ? t('compliance.clock_row_hours_left', '{hours} h left', { hours: n })
+        : t('compliance.clock_row_days_left', '{days} d left', { days: n });
 }
 
 /** The rail's short form: a bare day count, or "{n} h". */
@@ -84,7 +124,7 @@ export function resolveClock({ dueAt, startedAt, doneAt, state, pct, urgentBelow
     const serverPct = normalisePct(pct);
     const resolvedState = isClockState(state) ? state : math.state;
     // A server 'done'/'none' with local numbers still attached would print
-    // "still 3 days" under a closed clock — the closed states draw no number.
+    // "3 days left" under a closed clock: the closed states draw no number.
     const closed = resolvedState === 'done' || resolvedState === 'none';
     return {
         ...math,
@@ -100,6 +140,7 @@ export default function DeadlineClock({
     state = undefined,
     pct = undefined,
     urgentBelowMs = undefined,
+    quietUntilMs = undefined,
     variant = 'row',
     doneLabel = undefined,
     className = '',
@@ -109,8 +150,10 @@ export default function DeadlineClock({
     const { t } = useTranslation();
     const now = useNow();
     const clock = resolveClock({ dueAt, startedAt, doneAt, state, pct, urgentBelowMs, now });
-    const tone = toneOfClock(clock.state);
-    const { raw, ink } = TONES[tone];
+    // Far away and fine: neutral ink, a quiet bar. Never for urgent/overdue.
+    const quiet = clock.state === 'ok' && Number.isFinite(quietUntilMs) && clock.remainingMs !== null && clock.remainingMs > quietUntilMs;
+    const tone = quiet ? 'neutral' : toneOfClock(clock.state);
+    const { raw, ink } = quiet ? QUIET : TONES[tone];
     const label = clockLabel(t, clock, doneLabel);
     const closed = clock.state === 'done' || clock.state === 'none';
     const data = {
@@ -118,6 +161,7 @@ export default function DeadlineClock({
         'data-state': clock.state,
         'data-unit': clock.unit || undefined,
         'data-tone': tone,
+        'data-quiet': quiet || undefined,
     };
 
     if (variant === 'rail') {
@@ -173,10 +217,11 @@ export default function DeadlineClock({
         );
     }
     return (
-        <div {...data} className={`flex flex-col gap-1 min-w-0 ${className}`.trim()}>
+        <div {...data} title={label} className={`flex flex-col gap-1 min-w-0 ${className}`.trim()}>
             <div className="flex items-center gap-1 text-[11px] font-semibold whitespace-nowrap" style={{ color: ink }}>
                 <Timer size={11} aria-hidden="true" className="flex-shrink-0" />
-                <span className="truncate">{label}</span>
+                <span className="truncate" aria-hidden="true" data-testid={testId ? `${testId}-short` : undefined}>{clockRowLabel(t, clock)}</span>
+                <span className="sr-only">{label}</span>
             </div>
             <div className="h-[3px] rounded-sm overflow-hidden bg-[var(--bg-tertiary)]" aria-hidden="true">
                 <div className="h-full" data-testid={testId ? `${testId}-bar` : undefined} style={{ width: `${clock.pct * 100}%`, background: raw }} />

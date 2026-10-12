@@ -50,11 +50,11 @@ describe('buildOutlineRows', () => {
             'T trg',
             '+ on trg>cond_1',
             'S cond_1',
-            '  L match',
+            '  L Match',
             '  + on cond_1>act_a:then',
             '  S act_a',
             '  + on act_a>notif_1 (end)',
-            '  L otherwise',
+            '  L Otherwise',
             '  + on cond_1>act_b:else',
             '  S act_b',
             '  + on act_b>notif_1 (end)',
@@ -65,7 +65,7 @@ describe('buildOutlineRows', () => {
 
     it('names switch lanes by case, keeps legacy case spellings, and adds the error path', () => {
         const out = lines(buildOutlineRows(switchy));
-        expect(out.filter((l) => l.trim().startsWith('L'))).toEqual(['  L gold', '  L silver', '  L bronze', '  L otherwise', '  L On error']);
+        expect(out.filter((l) => l.trim().startsWith('L'))).toEqual(['  L gold', '  L silver', '  L bronze', '  L Otherwise', '  L On error']);
         // The error path goes to the join itself: a "+" on that edge, nothing drawn twice.
         expect(out).toContain('  + on sw>end:on_error (end)');
         expect(out.filter((l) => l.trim() === 'S end')).toHaveLength(1);
@@ -100,7 +100,7 @@ describe('buildOutlineRows', () => {
         const out = lines(buildOutlineRows(tangled));
         expect(out).toContain('J back to y');
         expect(out.filter((l) => l === 'S y')).toHaveLength(1);
-        expect(out.slice(-3)).toEqual(['# Not connected', 'S loose', '+ after loose (end)']);
+        expect(out.slice(-5)).toEqual(['# Not connected', 'S loose', '+ after loose (end)', 'S mf_flatten', '+ after mf_flatten (end)']);
     });
 
     it('offers only a trigger slot on a graph without one', () => {

@@ -50,7 +50,7 @@ const ASSEMBLY_MOCKS = {
     '../../../core/agentRuntime/phaseEvents': { emitPhase: noop, emitPhaseEnd: noop, withPhase: async (s, p, fn) => fn() },
     './systemPrompt': { DEFAULT_SYSTEM_PROMPT: 'You are a helpful assistant.' },
     './shared': { encryptionOpts: () => ({}) },
-    '../../../core/llm/promptStyle': { buildWritingStyleAddendum: () => '' },
+    '../../../core/llm/promptStyle': { buildWritingStyleAddendum: () => '', buildResponseLanguageRule: () => '' },
     '../../../auth/projectAccess': { resolveRequestedProject: async () => null },
     '../../../core/agentRuntime/knowledgeSearch': { quickKBSearch: async () => [] },
     '../../../core/kb/kbSelection': { resolveUsableKbIds: async () => [] },

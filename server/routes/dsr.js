@@ -334,7 +334,8 @@ router.post('/requests', publicSubmitLimiter, validate({ body: PublicIntakeBody 
             created_at: created.created_at,
             due_at: created.due_at,
             status_url: `/api/dsr/requests/${created.id}/public`,
-            ack: 'Your request has been received. We will respond within 30 days as required by GDPR.',
+            // Art. 12(3): one calendar month from receipt (`due_at`), not 30 days.
+            ack: 'Your request has been received. We will respond within one month, as GDPR Art. 12(3) requires.',
         });
     } catch (e) {
         res.status(400).json({ error: e.message });
@@ -697,15 +698,10 @@ router.post('/requests/:id/fulfil', requireAuth, requirePermission('admin_compli
             }
         }
 
-        // Re-run the matching SLA check so the score reflects the fulfilment
-        // immediately instead of after the next 6-hour sweep.
-        try {
-            const runner = require('../compliance/runner');
-            const checkId = updated?.request_type === 'deletion'
-                ? 'GDPR-Art17-dsr-deletion'
-                : 'GDPR-Art15-dsr-access';
-            runner.runOne(orgId, checkId, { runType: 'event' }).catch(() => {});
-        } catch (_) { /* compliance module is best-effort */ }
+        // The DSR_FULFILLED handler (compliance/events.js) re-runs the matching
+        // SLA check, so the score reflects the fulfilment immediately instead
+        // of after the next 6-hour sweep. Running it here as well wrote every
+        // fulfilment twice into the results and the evidence chain.
         complianceEvents.emit(complianceEvents.EVENTS.DSR_FULFILLED, { orgId, requestType: updated.request_type, requestId: id, status });
         res.json(listRow(updated));
     } catch (e) {

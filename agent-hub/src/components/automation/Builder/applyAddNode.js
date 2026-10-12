@@ -321,6 +321,10 @@ export function buildStepFromPayload(payload, position) {
     } else if (payload.kind === 'dedupe') {
         baseStep.arrayRef = '';
         baseStep.label = payload.label || 'Remove duplicates';
+    } else if (payload.kind === 'flatten') {
+        baseStep.arrayRef = '';
+        baseStep.keepEmpty = false;
+        baseStep.label = payload.label || 'Flatten a list';
     } else if (payload.kind === 'aggregate') {
         baseStep.arrayRef = '';
         baseStep.field = '';

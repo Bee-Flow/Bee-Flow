@@ -14,6 +14,7 @@
 // hidden per consumer via `tabs` / `showFile` / `showDrive` / `showSitemap`.
 
 import React from 'react';
+import { useTranslation } from '../../hooks/useTranslation';
 
 const DEFAULT_TABS = [
     { id: 'text', label: '📝 Text' },
@@ -35,6 +36,7 @@ export default function KBIngestPanel({
     showDrive = true,
     showSitemap = true,
 }) {
+    const { t } = useTranslation();
     const {
         kbInputMode, setKbInputMode,
         kbTextContent, setKbTextContent, kbTextTitle, setKbTextTitle,
@@ -65,10 +67,10 @@ export default function KBIngestPanel({
             {kbInputMode === 'text' && (
                 <div className="space-y-2">
                     <input value={kbTextTitle} onChange={e => setKbTextTitle(e.target.value)}
-                        placeholder="Title (optional)" className="w-full px-3 py-2 rounded-lg border text-xs"
+                        placeholder={t('knowledge.kbingest_title_optional', 'Title (optional)')} className="w-full px-3 py-2 rounded-lg border text-xs"
                         style={fieldStyle} />
                     <textarea value={kbTextContent} onChange={e => setKbTextContent(e.target.value)}
-                        placeholder="Paste text content here..." rows={3}
+                        placeholder={t('knowledge.kbingest_paste_text_content_here', 'Paste text content here...')} rows={3}
                         className="w-full px-3 py-2 rounded-lg border text-xs"
                         style={fieldStyle} />
                 </div>
@@ -86,11 +88,11 @@ export default function KBIngestPanel({
                             <label className="flex items-center gap-1.5 cursor-pointer">
                                 <input type="checkbox" checked={sitemapMode} onChange={e => setSitemapMode(e.target.checked)}
                                     className="rounded border-gray-500" />
-                                <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>🗺️ Import from sitemap</span>
+                                <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('knowledge.kbingest_import_from_sitemap', '🗺️ Import from sitemap')}</span>
                             </label>
                             {sitemapMode && (
                                 <div className="flex items-center gap-1">
-                                    <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Max pages:</span>
+                                    <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{t('knowledge.kbingest_max_pages', 'Max pages:')}</span>
                                     <input type="number" value={sitemapMaxPages}
                                         onChange={e => setSitemapMaxPages(Math.max(1, Math.min(200, parseInt(e.target.value) || 50)))}
                                         className="w-14 px-1.5 py-0.5 rounded border text-xs text-center"
@@ -109,18 +111,18 @@ export default function KBIngestPanel({
                         <button onClick={() => setN8nIngestMode('data')}
                             className={`flex-1 py-1 px-2 text-[11px] font-medium rounded-md transition-all ${n8nIngestMode === 'data' ? 'bg-[var(--bg-primary)] shadow-sm' : 'opacity-70 hover:opacity-100'}`}
                             style={{ color: n8nIngestMode === 'data' ? 'var(--text-primary)' : 'var(--text-muted)' }}>
-                            Execute & Ingest Output Data
+                            {t('knowledge.kbingest_execute_ingest_output_data', 'Execute & Ingest Output Data')}
                         </button>
                         <button onClick={() => setN8nIngestMode('definition')}
                             className={`flex-1 py-1 px-2 text-[11px] font-medium rounded-md transition-all ${n8nIngestMode === 'definition' ? 'bg-[var(--bg-primary)] shadow-sm' : 'opacity-70 hover:opacity-100'}`}
                             style={{ color: n8nIngestMode === 'definition' ? 'var(--text-primary)' : 'var(--text-muted)' }}>
-                            Import Workflow Definition
+                            {t('knowledge.kbingest_import_workflow_definition', 'Import Workflow Definition')}
                         </button>
                     </div>
                     <div className="space-y-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
                         {n8nWorkflows.length === 0 ? (
                             <div className="text-xs p-3 text-center rounded border border-dashed" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}>
-                                No n8n workflows enabled for KB ingestion. Enable them in your Organisation settings.
+                                {t('knowledge.kbingest_no_n8n_workflows_enabled_for_kb', 'No n8n workflows enabled for KB ingestion. Enable them in your Organisation settings.')}
                             </div>
                         ) : (
                             n8nWorkflows.map(wf => (
@@ -155,7 +157,7 @@ export default function KBIngestPanel({
                             <label className="cursor-pointer px-3 py-1.5 rounded-lg text-xs font-medium border flex items-center gap-1.5 hover:bg-[var(--bg-tertiary)] transition-colors"
                                 style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}>
                                 <input type="file" accept=".pdf,.txt,.md,.docx,.csv" className="hidden" onChange={ingestFile} disabled={kbIngesting} />
-                                📎 File
+                                {t('knowledge.kbingest_file', '📎 File')}
                             </label>
                         )}
                         {showDrive && driveConnected && (
@@ -170,7 +172,7 @@ export default function KBIngestPanel({
                                     <path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc" />
                                     <path d="m73.4 26.5-10.1-17.5c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 23.5h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00" />
                                 </svg>
-                                Drive
+                                {t('knowledge.kbingest_drive', 'Drive')}
                             </button>
                         )}
                         <button onClick={submit}

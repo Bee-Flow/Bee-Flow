@@ -16,6 +16,11 @@ import ObjectivesTab from './audits/ObjectivesTab';
  * `tab` comes from the header (`sections.js` declares
  * `tabs: ['audits','reviews','ncs','objectives']`); an unknown or missing tab
  * falls back to the first one, so a stale `?tab=` never renders a blank page.
+ *
+ * The create action of the active tab sits in the section header: each tab
+ * hands it up through `setHeaderActions` (useHeaderPrimary) and keeps only
+ * its one-line intro in the toolbar. Every tab opens its drawer through
+ * useDrawerMode and draws its states with RegisterStatePill.
  */
 
 export const AUDIT_TABS = Object.freeze(['audits', 'reviews', 'ncs', 'objectives']);
@@ -32,7 +37,7 @@ export function resolveTab(tab) {
     return AUDIT_TABS.includes(tab) ? tab : AUDIT_TABS[0];
 }
 
-export default function AuditsPage({ tab, data = {}, isMobile = false, focusId = null }) {
+export default function AuditsPage({ tab, data = {}, isMobile = false, focusId = null, setHeaderActions = undefined }) {
     const active = resolveTab(tab);
     const Tab = TAB_COMPONENTS[active];
     const audit = data.audit || {};
@@ -40,7 +45,7 @@ export default function AuditsPage({ tab, data = {}, isMobile = false, focusId =
 
     return (
         <div className="h-full min-h-0 flex flex-col" data-testid="audits-page" data-tab={active}>
-            <Tab audit={audit} orgUsers={orgUsers} isMobile={isMobile} focusId={focusId} />
+            <Tab audit={audit} orgUsers={orgUsers} isMobile={isMobile} focusId={focusId} setHeaderActions={setHeaderActions} />
         </div>
     );
 }

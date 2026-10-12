@@ -146,7 +146,7 @@ describe('NodeDetailView', () => {
         it('hides advanced sections but keeps the primary ones', () => {
             render(<NodeDetailView {...quickProps()} />);
             expect(screen.getByText('Inputs')).toBeTruthy();
-            expect(screen.queryByText('Advanced')).toBeNull();
+            expect(screen.queryByText('Run once per item')).toBeNull();
             expect(screen.queryByText('Structured output')).toBeNull();
         });
 
@@ -161,7 +161,7 @@ describe('NodeDetailView', () => {
             // switching the MODE — it must not swap the window for the
             // three-column workspace (the old "More options" did, and still
             // left the sections hidden).
-            fireEvent.click(screen.getByText(/Show all options \(2\)/));
+            fireEvent.click(screen.getByText(/Show advanced options \(2\)/));
             expect(onModeChange).toHaveBeenCalledWith('advanced');
         });
 
@@ -194,7 +194,7 @@ describe('NodeDetailView', () => {
             render(<NodeDetailView {...quickProps({
                 validation: { errors: [{ code: 'ai_step.model_tier', path: 'steps[s1].modelTier', message: 'bad tier' }], warnings: [] },
             })} />);
-            expect(screen.getByText('Advanced')).toBeTruthy();
+            expect(screen.getByText('Run once per item')).toBeTruthy();
         });
     });
 
@@ -336,16 +336,16 @@ describe('NodeDetailView', () => {
         // A user who chose Simple keeps the simple form even in the big
         // window — mode owns content, density owns window size.
         render(<NodeDetailView {...baseProps({ density: 'full', mode: 'simple', onModeChange: vi.fn() })} />);
-        expect(screen.queryByText('Advanced')).toBeNull();
+        expect(screen.queryByText('Run once per item')).toBeNull();
         expect(screen.getByText('Inputs')).toBeTruthy();
     });
 
-    it('switching to All options reveals the hidden sections in place', () => {
+    it('switching to Advanced reveals the hidden settings in place', () => {
         const onModeChange = vi.fn();
         const { rerender } = render(<NodeDetailView {...baseProps({ density: 'quick', mode: 'simple', onModeChange })} />);
-        expect(screen.queryByText('Advanced')).toBeNull();
+        expect(screen.queryByText('Run once per item')).toBeNull();
         rerender(<NodeDetailView {...baseProps({ density: 'quick', mode: 'advanced', onModeChange })} />);
-        expect(screen.getByText('Advanced')).toBeTruthy();
+        expect(screen.getByText('Run once per item')).toBeTruthy();
         // The counted link now reads the other way and the count drains.
         expect(screen.getByText('Show fewer options')).toBeTruthy();
     });

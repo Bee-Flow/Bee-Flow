@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import { BookOpen, CalendarDays, Pin, Search, X } from 'lucide-react';
-import { ITEM_TYPES, useProjectFileContent, useProjectPins, useProjectSearch, useSetProjectPin, type ProjectItem } from '../../../api/queries/projectDiscovery';
+import React from 'react';
+import { CalendarDays, X } from 'lucide-react';
+import { useProjectFileContent, useProjectPins, useSetProjectPin, type ProjectItem } from '../../../api/queries/projectDiscovery';
 import { useProjectTasksQuery } from '../../../api/queries/projectTasks';
 import useTranslation from '../../../hooks/useTranslation';
 import { canEditProject, type WorkspaceTabProps, type OpenThreadTarget } from './types';
-import { Card, ErrorText, GhostButton, INPUT_CLASS, LoadingRow, SecondaryButton, SELECT_CLASS } from './workspaceUi';
+import { Card, ErrorText, GhostButton, LoadingRow, SecondaryButton } from './workspaceUi';
 import { projectErrorText } from './projectErrorText';
 import { formatDue, isOverdue } from './tasks/taskText';
 
@@ -82,38 +82,4 @@ export function MyProjectTasks({ projectId, currentUser, onOpenTab }: Pick<Works
         </ul>}
         {tasks.length > 5 && <p className="m-0 mt-1 text-[11px] text-[var(--text-tertiary)]">{t('project_home.more_tasks', '{n} more in Tasks', { n: tasks.length - 5 })}</p>}
     </Card>;
-}
-export default function ProjectDiscovery(props: Pick<WorkspaceTabProps, 'projectId' | 'project' | 'role' | 'onOpenTab'> & { onOpenThread?: (thread: OpenThreadTarget) => void }) {
-    const { t } = useTranslation();
-    const [open, setOpen] = useState(false);
-    const [search, setSearch] = useState('');
-    const [q, setQ] = useState('');
-    const [type, setType] = useState('');
-    useEffect(() => { const timer = setTimeout(() => setQ(search), 250); return () => clearTimeout(timer); }, [search]);
-    const results = useProjectSearch(props.projectId, q, type, open);
-    const pins = useProjectPins(props.projectId);
-    const pin = useSetProjectPin(props.projectId);
-    return <div className="border-b border-[var(--border-subtle)] px-3 py-2 bg-[var(--bg-primary)] text-[var(--text-primary)]">
-        <div className="flex gap-2">
-            <SecondaryButton onClick={() => setOpen(!open)} aria-expanded={open}><Search className="w-4 h-4" />{t('project_home.search_project', 'Search this project')}</SecondaryButton>
-            <SecondaryButton onClick={() => props.onOpenTab?.('knowledge')}><BookOpen className="w-4 h-4" />{t('project_home.ai_context', 'AI context')}</SecondaryButton>
-        </div>
-        {open && <section className="py-3 space-y-2" aria-label={t('project_home.search_project', 'Search this project')}>
-            <div className="flex gap-2"><input autoFocus type="search" className={INPUT_CLASS} value={search} onChange={e => setSearch(e.target.value)} placeholder={t('project_home.search_project', 'Search this project')} aria-label={t('project_home.search_project', 'Search this project')} /><select className={SELECT_CLASS} value={type} onChange={e => setType(e.target.value)} aria-label={t('project_content.type', 'Type')}><option value="">{t('project_home.all_types', 'All types')}</option>{ITEM_TYPES.map(type => <option key={type} value={type}>{t(`project_home.item.${type}`, type)}</option>)}</select></div>
-            <p className="text-xs text-[var(--text-secondary)]">{t('project_home.search_scope', 'Search titles, file names and task descriptions. Message contents are not searched.')}</p>
-            {results.isPending && <LoadingRow label={t('project_home.loading', 'Loading…')} />}
-            {(results.error || pin.error) && <ErrorText>{projectErrorText(t, results.error || pin.error)}</ErrorText>}
-            <div className="max-h-[40vh] overflow-auto">
-                {!results.isError && results.data?.pages.flatMap(p => p?.items || []).map(item => {
-                    const pinned = pins.data?.items.some(p => p.type === item.type && p.id === item.id) || false;
-                    return <div key={`${item.type}:${item.id}`} className="flex items-center gap-2 py-2 border-b border-[var(--border-subtle)]">
-                        <button className="text-left flex-1 min-w-0 text-sm hover:underline" onClick={() => { if (item.threadType) props.onOpenThread?.({ id: item.id, type: item.threadType, agentId: item.agentId || null }); else props.onOpenTab?.(itemTab(item), item.id); setOpen(false); }}>{item.title || t('project_home.untitled', 'Untitled')}<span className="block text-xs text-[var(--text-secondary)]">{t(`project_home.item.${item.type}`, item.type)}</span></button>
-                        {canEditProject(props.role) && <SecondaryButton disabled={pin.isPending || !pins.data} aria-pressed={pinned} onClick={() => pin.mutate({ item, pinned: !pinned })} aria-label={pinned ? t('project_home.unpin', 'Unpin') : t('project_home.pin', 'Pin for everyone')}><Pin className={`w-4 h-4 ${pinned ? 'fill-current' : ''}`} /></SecondaryButton>}
-                    </div>;
-                })}
-                {results.data?.pages[0]?.items.length === 0 && <p className="text-sm">{t('project_content.no_matches', 'Nothing matches your search.')}</p>}
-                {results.hasNextPage && <SecondaryButton busy={results.isFetchingNextPage} onClick={() => results.fetchNextPage()}>{t('project_home.activity.load_more', 'Load more')}</SecondaryButton>}
-            </div>
-        </section>}
-    </div>;
 }

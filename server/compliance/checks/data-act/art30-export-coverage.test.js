@@ -80,6 +80,9 @@ test('a held kind without any export route → fail, named as a product gap', as
     assert.deepEqual(r.evidence.unmounted_routes, []);
     assert.match(r.details, /2 of 3 held data kind\(s\) cannot be exported/);
     assert.match(r.details, /no export endpoint exists for agents, knowledge_bases \(product gap\)/);
+    // Art. 30(1) is IaaS functional equivalence; porting all exportable data is Art. 23(c) / 25(2)(a),(e).
+    assert.match(r.details, /Art\. 23\(c\) and Art\. 25\(2\)\(a\),\(e\) require all exportable data/);
+    assert.doesNotMatch(r.details, /Art\. 30 requires/);
     assert.ok(!/conversations/.test(r.details), 'a gap kind with nothing held is not a failure');
 });
 
@@ -123,6 +126,7 @@ test('a kind with NO export route whose count failed can never be a pass — it 
     assert.deepEqual(r.evidence.kinds_unknown_uncoverable, ['agents']);
     assert.match(r.details, /agents/, 'the verdict names the kind that could not be counted');
     assert.match(r.details, /could not be counted/);
+    assert.match(r.details, /export coverage \(Art\. 23\(c\), 25\(2\)\(e\)\) is not established/);
     assert.deepEqual(r.evidence.uncovered, [], 'nothing is claimed as a proven gap either');
 });
 

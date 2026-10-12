@@ -13,7 +13,13 @@
 const test = require('node:test');
 const assert = require('node:assert');
 
-const { NL_TRANSLATIONS } = require('./add-nl-routines-nodes-translations');
+const { NL_TRANSLATIONS: ROUTINES_NL } = require('./add-nl-routines-nodes-translations');
+const { NL_TRANSLATIONS: FLATTEN_NL } = require('./add-nl-flatten-node-translations');
+
+// A node added later may carry its catalog keys in its own migration
+// (Flatten a list does); the catalog is the union of them.
+const nodeKeysOf = (map) => Object.fromEntries(Object.entries(map).filter(([k]) => k.startsWith('automations.node.')));
+const NL_TRANSLATIONS = { ...ROUTINES_NL, ...nodeKeysOf(FLATTEN_NL) };
 const { GUI_DEFAULTS } = require('../i18n/defaults/en');
 
 const enKeys = Object.keys(GUI_DEFAULTS).filter(k => k.startsWith('automations.node.'));

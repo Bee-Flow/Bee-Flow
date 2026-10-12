@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { BookOpen, FolderKanban, Sparkles, FileDown, Maximize2, LayoutList, Check, AlertTriangle, Loader2 } from 'lucide-react';
+import { useTranslation } from '../../hooks/useTranslation';
 
 /**
  * FeatureKillSwitches — the global platform feature flags
@@ -25,6 +26,7 @@ const FLAGS = [
 ];
 
 export default function FeatureKillSwitches() {
+    const { t } = useTranslation();
     const [flags, setFlags] = useState(() => {
         const init = {};
         for (const f of FLAGS) init[f.key] = true;
@@ -81,9 +83,9 @@ export default function FeatureKillSwitches() {
         <div className="rounded-2xl border overflow-hidden" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>
             <div className="px-6 py-4 border-b flex items-center justify-between" style={{ borderColor: 'var(--border-subtle)' }}>
                 <div>
-                    <h3 className="font-semibold" style={{ color: 'var(--text-primary)' }}>Feature Flags</h3>
+                    <h3 className="font-semibold" style={{ color: 'var(--text-primary)' }}>{t('integ.feature_kill_switches_feature_flags', 'Feature Flags')}</h3>
                     <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                        Enable or disable platform features globally. Changes take effect on next page load for all users.
+                        {t('integ.feature_kill_switches_enable_or_disable_platform_features', 'Enable or disable platform features globally. Changes take effect on next page load for all users.')}
                     </p>
                 </div>
                 {message ? (

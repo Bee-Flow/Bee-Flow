@@ -25,8 +25,8 @@ Bee Flow connects to Microsoft 365 via OAuth 2.0 against Microsoft Graph.
 
 | Integration ID | Graph scopes | Tools |
 |----------------|--------------|-------|
-| `outlook` | `Mail.Read`, `Mail.ReadWrite`, `Mail.Send`, `User.Read` | `outlook_search`, `outlook_read`, `outlook_compose`, `outlook_send`, `outlook_reply` |
-| `outlook-readonly` | `Mail.Read`, `User.Read` | `outlook_search`, `outlook_read` |
+| `outlook` | `Mail.Read`, `Mail.ReadWrite`, `Mail.Send`, `User.Read` | `outlook_search`, `outlook_list_recent`, `outlook_read`, `outlook_read_many`, `outlook_compose` |
+| `outlook-readonly` | `Mail.Read`, `User.Read` | `outlook_search`, `outlook_list_recent`, `outlook_read`, `outlook_read_many` |
 | `ms-calendar` | `Calendars.ReadWrite` | `mscal_list`, `mscal_search`, `mscal_create`, `mscal_update`, `mscal_delete` |
 | `ms-contacts` | `Contacts.Read` | `mscontacts_list`, `mscontacts_search` |
 | `onedrive` | `Files.Read.All`, `Files.ReadWrite` | `onedrive_list`, `onedrive_search`, `onedrive_read`, `onedrive_upload` |
@@ -42,6 +42,8 @@ The two Outlook flavours exist for orgs that want a strict-read-only audit-frien
 - Reply preserves conversation thread (`conversationId`).
 - Drafts go to `/me/mailFolders/drafts/messages`.
 - Attachments via `/me/messages/{id}/attachments`.
+- **Many emails at once** — `outlook_read_many` reads up to 100 emails through Graph [JSON batching](https://learn.microsoft.com/en-us/graph/json-batching) (20 per request), plus the attachment lists of those that have any, instead of one call per email in a *for each*.
+- **Throttling** — every Graph call waits out a 429 for as long as its `Retry-After` says (at most 30 seconds, up to three times) and sends again; a 503 or 504 is only retried for reads, never for a request that sends mail or creates an event. Outlook allows 10,000 requests per 10 minutes per mailbox, and a batch of 20 still counts as 20.
 
 ### MS Calendar
 

@@ -122,6 +122,10 @@ export default function OrgIntegrationCacheEditor({ orgId }) {
             }
             toast.success(t('admin.integration_cache.cleared', 'Stored answers deleted'));
             await load();
+        } catch {
+            // A dropped request must not look like nothing happened: the
+            // answers are still stored, and the admin has to know that.
+            toast.error(t('admin.integration_cache.clear_failed', 'Could not clear the stored answers'));
         } finally {
             setClearing(false);
         }
@@ -301,7 +305,7 @@ export default function OrgIntegrationCacheEditor({ orgId }) {
                     type="button"
                     onClick={handleSave}
                     disabled={!isDirty || saving}
-                    className="inline-flex items-center gap-2 rounded-lg bg-[var(--accent-primary,#0284c7)] px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+                    className="inline-flex items-center gap-2 rounded-lg bg-[var(--accent-primary)] px-3 py-2 text-sm font-medium text-[var(--accent-primary-fg)] disabled:opacity-50"
                 >
                     {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />}
                     {t('common.save', 'Save')}

@@ -15,6 +15,7 @@ const agentStore = require('../../../stores/agentStore');
 const configStore = require('../../../stores/configStore');
 const testChatMod = require('../testChat');
 const { sanitizeError } = require('../../privacy/errorSanitizer');
+const { findWireProblems } = require('../../../utils/messageUtils');
 const { emitPhase } = require('../phaseEvents');
 const { isTruncatedStop, truncationRetryMessages, emptyReplyRetryMessages } = require('../../llm/toolLoop');
 const { resolveProjectContext } = require('../contextEnrichment');
@@ -95,7 +96,7 @@ async function chatWithAgentStreamImpl(agentId, userId, userMessage, userAuth = 
     const {
         dlpShield, regexConfig, webSearchGuardEnabled,
         webSearchGuardPiiCategories, _eventWrapper, _ut, _captureRaw,
-        _kbSources, _seenChunkIds,
+        _kbSources, _seenChunkIds, memoryPolicy, memoryUsed,
     } = _preflight;
     let {
         systemPrompt, volatileSystemPrompt, moderationViolation, guardrailViolation,
@@ -496,12 +497,16 @@ async function chatWithAgentStreamImpl(agentId, userId, userMessage, userAuth = 
                 messages, persistDurable, isEphemeral, agent, agentId, userId,
                 guardrailViolation, processedUserMessage, userMessage, userAuth,
                 extractMemoriesEnabled, validProjectId, modelToUse, toolCalls,
-                _serializeConversationWrite,
+                _serializeConversationWrite, memoryPolicy, memoryUsed,
             });
         } catch (error) {
             // Classify the error for better logging and user-facing messages
             const classified = error._classified || classifyStreamError(error);
             log.error(`[Agent Stream] Error (${classified.errorType}):`, error.message);
+            if (classified.errorType === 'invalid_request_body') {
+                // Indexes and kinds only, never content.
+                log.warn('[Agent Stream] Request body rejected as unparseable; wire problems in sent messages:', JSON.stringify(findWireProblems(messages)));
+            }
             terminationStore.logTermination({
                 ..._terminationBase(),
                 termination_type: 'error',

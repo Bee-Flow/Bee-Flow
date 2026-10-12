@@ -19,6 +19,7 @@ import GuardNode from './nodes/GuardNode';
 import HttpRequestNode from './nodes/HttpRequestNode';
 import GenerateDocumentNode from './nodes/GenerateDocumentNode';
 import FillDocumentNode from './nodes/FillDocumentNode';
+import FlattenNode from './nodes/FlattenNode';
 import SlideNode from './nodes/SlideNode';
 import PresentationNode from './nodes/PresentationNode';
 import IntegrationActionNode from './nodes/IntegrationActionNode';
@@ -81,6 +82,7 @@ export const NODE_TYPES = {
     untokenize:         UntokenizeNode,
     limit:              LimitNode,
     dedupe:             DedupeNode,
+    flatten:            FlattenNode,
     aggregate:          AggregateNode,
     datatable:          DatatableNode,
     knowledge_write:    KnowledgeWriteNode,

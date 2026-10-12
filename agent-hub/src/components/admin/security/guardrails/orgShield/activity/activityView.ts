@@ -9,6 +9,12 @@
  * the map's kind pills and region groups, the destinations) ignores its own
  * axis, so choosing something there highlights it rather than emptying the
  * panel.
+ *
+ * Health (GDPR Art. 9, specialCategories.ts) is the exception to "every
+ * readout is a control": it is counted from the window's totals only, shows
+ * in "Kinds of data found" as a row that cannot be picked, and is left out of
+ * the map's kind pills (which only set the filter) and of every count over
+ * the rows (which carry a person).
  */
 
 import type { EgressMapFilters, KindCount, DestinationType } from './egressMap/egressMapContract';
@@ -19,6 +25,7 @@ import { deriveFindings, type Finding } from './shieldFindings';
 import { destinationsFromRows } from './shieldRows';
 import { daySpan } from './shieldDates';
 import { sampleCoverage, type Coverage, type StreamRow } from './shieldStream';
+import { isSpecialCategory, withoutSpecialCategories } from './specialCategories';
 import { aggregateTotals, daySeries, dayStacks, guardFinds, sampleTotals, type DayStack, type Totals } from './shieldTotals';
 import type { Region } from '../shieldPalette';
 
@@ -39,7 +46,13 @@ export interface ViewInput {
     placeLabel: (row: Raw) => string;
 }
 
-export interface RankEntry { value: string; label: string; count: number }
+export interface RankEntry {
+    value: string;
+    label: string;
+    count: number;
+    /** An organisation total that is not a filter (a health category): shown, never picked. */
+    totalOnly?: true;
+}
 
 export interface ActivityView {
     stream: StreamRow[];
@@ -58,6 +71,8 @@ export interface ActivityView {
     kinds: RankEntry[];
     /** `kinds` was counted over the loaded rows (a filter is on), not the whole window. */
     kindsSampled: boolean;
+    /** The window's totals name a health category, shown as a total only: say why it cannot be picked. */
+    specialTotalOnly: boolean;
     places: RankEntry[];
     people: RankEntry[];
     mapDests: Raw[];
@@ -120,13 +135,19 @@ function ranks(input: ViewInput, stream: StreamRow[], filters: Filters, catLabel
     // Unfiltered, the kinds are the window's (the rows are at most the latest
     // 200 per ledger); places and people have no window-wide rollup at this
     // grain, so the pane says when they are counted over a capped sample.
+    // Health is a window total or nothing: never counted over the rows, which
+    // carry a person (the server strips it from them anyway).
     const kindsSampled = countMode(omitFilters(filters, ['kind'])) === 'sample';
+    const windowed = windowKinds([input.guard.top_categories || [], input.integ.pii_categories || []]);
     const kinds = kindsSampled
-        ? rank(over('kind'), (r: StreamRow) => r.found, 7)
-        : windowKinds([input.guard.top_categories || [], input.integ.pii_categories || []]).slice(0, 7);
+        ? rank(over('kind'), (r: StreamRow) => withoutSpecialCategories(r.found), 7)
+        : windowed.slice(0, 7);
     return {
-        kinds: kinds.map(({ value, count }: { value: string; count: number }) => ({ value, label: catLabel(value), count })),
+        kinds: kinds.map(({ value, count }: { value: string; count: number }): RankEntry => (
+            isSpecialCategory(value) ? { value, label: catLabel(value), count, totalOnly: true } : { value, label: catLabel(value), count }
+        )),
         kindsSampled,
+        specialTotalOnly: windowed.some(k => isSpecialCategory(k.value)),
         places: rank(over('place'), (r: StreamRow) => r.place, 5)
             .map(({ value, count }: { value: string; count: number }) => ({ value, label: value, count })),
         people: rank(over('person').filter(r => r.found.length > 0), (r: StreamRow) => r.person, 5)
@@ -167,10 +188,13 @@ function mapData(input: ViewInput, stream: StreamRow[], filters: Filters, catLab
     const regionBase = omitFilters(filters, ['dest', 'region']);
     // The pills' counts are the window's calls while nothing else is chosen;
     // `hostKinds` (the pins' grey-out and the tooltip) stays per sampled host.
+    // The pills only set the kind filter, so a health category, which is
+    // never a filter, gets no pill: its total is in "Kinds of data found".
     const counted = countMode(kindFilters) === 'aggregate'
         ? windowKinds([input.integ.pii_categories || []])
         : rank(base, (r: StreamRow) => r.found, 100);
     const kindCounts: KindCount[] = counted
+        .filter(({ value }: { value: string }) => !isSpecialCategory(value))
         .map(({ value, count }: { value: string; count: number }) => ({ id: value, label: catLabel(value), n: count }));
     const regionTotals: Record<Region, number> = countMode(regionBase) === 'aggregate'
         ? aggregateTotals(input.guard, input.integ).regions

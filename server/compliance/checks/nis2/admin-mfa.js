@@ -5,8 +5,10 @@
  * either have TOTP enabled on the account (users.mfa_enabled) or sign in
  * through an SSO provider that enforces MFA. The platform cannot see what the
  * identity provider enforces, so SSO coverage needs BOTH a configured provider
- * (configStore 'providers' / 'oauth', as ISO A.8.5 reads it) AND the admin
- * attestation `sso_enforces_mfa` in compliance settings.
+ * (configStore 'providers' / 'oauth', judged by lib/ssoProviders.js, the
+ * predicate ISO A.8.5 uses too: a client id AND a secret; no writer ever sets
+ * a provider's `enabled` flag, so requiring it read working SSO as absent)
+ * AND the admin attestation `sso_enforces_mfa` in compliance settings.
  *
  * Evidence names counts and opaque user ids only — never e-mail addresses or
  * display names (BFSF-441).
@@ -15,6 +17,7 @@
 const { getAll } = require('../../../db');
 const complianceStore = require('../../../stores/complianceStore');
 const configStore = require('../../../stores/configStore');
+const { configuredSsoProviders } = require('../../lib/ssoProviders');
 
 // users."orgRole" values that make someone an org admin (auth/permissions.js
 // ORG_ADMIN_VARIANTS: the current 'org_admin' and the legacy 'admin').
@@ -28,16 +31,16 @@ function _notRelevant(settings) {
 }
 
 async function _ssoProviders() {
-    const enabled = [];
     try {
-        const providers = (await configStore.getConfig('providers')) || {};
-        for (const [name, p] of Object.entries(providers)) {
-            if (p && p.enabled && p.clientId) enabled.push(name);
-        }
-        const oauth = (await configStore.getConfig('oauth')) || {};
-        if (oauth.nextcloudUrl && oauth.clientId) enabled.push('nextcloud');
-    } catch { /* config store unreachable — treated as "no SSO" */ }
-    return enabled;
+        return configuredSsoProviders(
+            await configStore.getConfig('providers'),
+            await configStore.getConfig('oauth'),
+        );
+    } catch {
+        // Config store unreachable: treated as "no SSO", the stricter reading
+        // (admins then need TOTP to count as covered).
+        return [];
+    }
 }
 
 module.exports = {

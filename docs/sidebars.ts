@@ -64,7 +64,9 @@ const sidebars: SidebarsConfig = {
           label: 'Operations',
           items: [
             'self-hosting/env',
+            'self-hosting/learning-videos',
             'self-hosting/upgrades',
+            'self-hosting/azure-sso-release-upgrade',
           ],
         },
       ],
@@ -116,6 +118,7 @@ const sidebars: SidebarsConfig = {
             'studio/approvals',
             'studio/apps-mcp',
             'studio/automations-mcp',
+            'studio/cms-mcp',
             'studio/components',
             'studio/datatables',
             'studio/forms',
@@ -233,6 +236,7 @@ const sidebars: SidebarsConfig = {
           label: 'Compliance',
           items: [
             'admin/audit-and-compliance',
+            'admin/chat-signals',
           ],
         },
       ],

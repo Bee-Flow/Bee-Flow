@@ -33,6 +33,7 @@ import {
     MapPin, Map, Home, Truck, Coffee, Printer, Calculator, Activity,
     Smile,
 } from 'lucide-react';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 // [name, component] pairs — order here = order in the picker grid.
 const ICON_DEFS = [
@@ -83,6 +84,7 @@ export function IconPicker({
     buttonClassName = '',
     align = 'left',            // 'left' | 'right'
 }) {
+    const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     const [query, setQuery] = useState('');
     const ref = useRef(null);
@@ -121,7 +123,7 @@ export function IconPicker({
                         type="text"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
-                        placeholder="Search symbols…"
+                        placeholder={t('automations.step_icons.search_symbols', 'Search symbols…')}
                         className={inputClass()}
                     />
                 </div>
@@ -142,7 +144,7 @@ export function IconPicker({
                         </button>
                     ))}
                     {results.length === 0 && (
-                        <div className="col-span-7 text-center text-xs text-[var(--text-tertiary)] py-4">No matches</div>
+                        <div className="col-span-7 text-center text-xs text-[var(--text-tertiary)] py-4">{t('automations.step_icons.no_matches', 'No matches')}</div>
                     )}
                 </div>
                 <div className="p-2 border-t border-[var(--border-default)]">
@@ -152,7 +154,7 @@ export function IconPicker({
                         disabled={!value}
                         className="w-full px-3 py-1.5 rounded-lg text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-40 transition"
                     >
-                        Default (no symbol)
+                        {t('automations.step_icons.default_no_symbol', 'Default (no symbol)')}
                     </button>
                 </div>
             </AnchoredMenu>

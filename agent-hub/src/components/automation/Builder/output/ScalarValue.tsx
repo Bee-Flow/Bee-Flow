@@ -3,6 +3,7 @@ import { AlertTriangle, ListTree } from 'lucide-react';
 import JsonTreeJs from '../debug/JsonTree';
 import { mapAttrs, type MapCtx } from './mapAttrs';
 import { scalarText } from './valueHelpers';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 interface JsonTreeProps {
     value: unknown;
@@ -42,10 +43,11 @@ export function Empty({ children }: { children: ReactNode }) {
 
 /** A web-service response the runtime had to cut short. */
 export function ClipWarning() {
+    const { t } = useTranslation();
     return (
         <div className="mb-1.5 flex items-start gap-1.5 rounded border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-700 dark:text-amber-300">
             <AlertTriangle size={12} className="mt-0.5 shrink-0" />
-            <span>This response was cut short. What is below is only the part that came back.</span>
+            <span>{t('automations.scalar_value.this_response_was_cut_short_what', 'This response was cut short. What is below is only the part that came back.')}</span>
         </div>
     );
 }
@@ -53,6 +55,7 @@ export function ClipWarning() {
 interface ScalarProps { value: unknown; emptyMessage?: string; map?: MapCtx | null }
 
 export function Scalar({ value, emptyMessage = '—', map = null }: ScalarProps) {
+    const { t } = useTranslation();
     const [expanded, setExpanded] = useState(false);
     // `undefined` = never parsed; `null` = parsed, and it was not JSON after all.
     const [parsed, setParsed] = useState<unknown>(undefined);
@@ -96,11 +99,11 @@ export function Scalar({ value, emptyMessage = '—', map = null }: ScalarProps)
                     onClick={(e) => { e.stopPropagation(); openTree(); }}
                     className="ml-1.5 text-[10px] text-[var(--accent)] hover:underline align-baseline inline-flex items-center gap-0.5"
                 >
-                    <ListTree size={10} /> Show as tree
+                    <ListTree size={10} /> {t('automations.scalar_value.show_as_tree', 'Show as tree')}
                 </button>
             )}
             {parsed === null && (
-                <span className="ml-1.5 text-[10px] text-[var(--text-tertiary)]">Not valid JSON</span>
+                <span className="ml-1.5 text-[10px] text-[var(--text-tertiary)]">{t('automations.scalar_value.not_valid_json', 'Not valid JSON')}</span>
             )}
         </span>
     );
@@ -108,6 +111,7 @@ export function Scalar({ value, emptyMessage = '—', map = null }: ScalarProps)
 
 /** A string that parsed, shown as the collapsible tree it really is. */
 function ScalarTree({ value, onBack }: { value: unknown; onBack: () => void }) {
+    const { t } = useTranslation();
     return (
         <div className="min-w-0">
             <button
@@ -115,7 +119,7 @@ function ScalarTree({ value, onBack }: { value: unknown; onBack: () => void }) {
                 onClick={(e) => { e.stopPropagation(); onBack(); }}
                 className="mb-1 text-[10px] text-[var(--accent)] hover:underline"
             >
-                Show as text
+                {t('automations.scalar_value.show_as_text', 'Show as text')}
             </button>
             {/* A definite height: JsonTree brings its own scroller, and its
                 `h-full` needs something to resolve against. */}

@@ -18,6 +18,14 @@ FROM mcr.microsoft.com/playwright:v1.59.1-noble@sha256:b0ab6f3cb99aa7803adbc14d9
 
 WORKDIR /runner
 
+# openssl only, not a full upgrade: the base's other OS packages are the ones
+# Playwright tested its browsers against. Ubuntu shipped the fixes for
+# CVE-2026-45447 and CVE-2026-84782 after the pinned base digest, and the
+# release container gate fails on a fixable HIGH/CRITICAL finding.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends --only-upgrade openssl libssl3t64 \
+    && rm -rf /var/lib/apt/lists/*
+
 # Browsers are already baked into the base image — never re-download them.
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 # Generated specs `import { test } from '@playwright/test'` while running with
@@ -25,8 +33,23 @@ ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 # the spec file lives under the bind-mounted /work.
 ENV NODE_PATH=/runner/node_modules
 
-COPY package.json ./
-RUN npm install --no-audit --no-fund --omit=dev
+COPY package*.json ./
+
+# `npm ci` never rewrites the lockfile, so this layer is only rebuilt when
+# package*.json changes; a lockfile out of sync with package.json fails loudly.
+# Same flaky-link tolerance as server/Dockerfile: npm's defaults give up on one
+# stalled socket halfway through a fresh install.
+#
+# npm itself leaves in the same layer: it is only needed for this install, and
+# the copy the base bundles (tar, minimatch, brace-expansion, sigstore, …) is
+# what the release container gate failed on. Nothing at runtime uses it:
+# entrypoint.js starts the Playwright CLI with node directly, and
+# scripts/check-release-container.sh asserts npm/npx are gone.
+RUN --mount=type=cache,target=/root/.npm \
+    NPM_CONFIG_FETCH_RETRIES=5 NPM_CONFIG_FETCH_RETRY_MINTIMEOUT=20000 \
+    NPM_CONFIG_FETCH_RETRY_MAXTIMEOUT=120000 NPM_CONFIG_FETCH_TIMEOUT=600000 \
+    npm ci --omit=dev --no-audit --no-fund \
+    && rm -rf /usr/lib/node_modules/npm /usr/bin/npm /usr/bin/npx
 
 COPY entrypoint.js ./
 

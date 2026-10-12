@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import useTranslation from '../../../../../../hooks/useTranslation';
 
 /**
  * UserMenu — who is looking at this app. A small initials button that opens
@@ -23,6 +24,7 @@ function initialsOf(viewer) {
 }
 
 export default function UserMenu({ viewer, onExit = null, collapsed = false, direction = 'down' }) {
+    const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     const rootRef = useRef(null);
 
@@ -46,7 +48,7 @@ export default function UserMenu({ viewer, onExit = null, collapsed = false, dir
 
     if (!viewer) return null;
 
-    const roleBadge = viewer.isOwner ? 'Eigenaar' : (viewer.roleKey || null);
+    const roleBadge = viewer.isOwner ? t('studio_apps_runtime.user_menu.owner', 'Owner') : (viewer.roleKey || null);
     const popPosition = direction === 'up'
         ? 'bottom-full left-0 mb-1'
         : 'top-full right-0 mt-1';
@@ -58,7 +60,9 @@ export default function UserMenu({ viewer, onExit = null, collapsed = false, dir
                 onClick={() => setOpen((v) => !v)}
                 aria-haspopup="menu"
                 aria-expanded={open}
-                aria-label={`Account: ${viewer.name || viewer.email || 'viewer'}`}
+                aria-label={t('studio_apps_runtime.user_menu.account', 'Account: {name}', {
+                    name: viewer.name || viewer.email || t('studio_apps_runtime.user_menu.viewer', 'viewer'),
+                })}
                 className="flex items-center gap-2 rounded-md px-1.5 py-1 text-sm min-w-0 app-nav-hover"
                 style={{ color: 'var(--text-secondary)' }}
             >
@@ -103,7 +107,7 @@ export default function UserMenu({ viewer, onExit = null, collapsed = false, dir
                             className="flex w-full items-center px-3 py-1.5 text-sm text-left app-nav-hover"
                             style={{ color: 'var(--text-primary)' }}
                         >
-                            Alle apps
+                            {t('studio_apps_runtime.user_menu.all_apps', 'All apps')}
                         </button>
                     ) : null}
                 </div>

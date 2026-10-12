@@ -683,9 +683,24 @@ function run(cells, targets, options = {}) {
     const scalarText = (args) => { arity(args, 1, 1); return toText(evalNode(args[0])); };
 
     // --- criteria helpers for *IF / *IFS functions ----------------------------
+    // `*` any run, `?` one character, case-insensitive — WITHOUT a RegExp.
+    // The pattern is what the author typed into a criterion, and as a regex
+    // "*a*a*a*…" became ^.*a.*a.*a.*$, which backtracks polynomially on a
+    // long cell (on the server too, where automations evaluate sheets). This
+    // is the linear two-pointer match: one remembered `*`, O(text × pattern)
+    // at worst.
     function matchesWildcard(text, pattern) {
-        const re = pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*').replace(/\?/g, '.');
-        return new RegExp(`^${re}$`, 'i').test(text);
+        const t = String(text).toLowerCase();
+        const p = String(pattern).toLowerCase();
+        let i = 0, j = 0, star = -1, mark = 0;
+        while (i < t.length) {
+            if (j < p.length && (p[j] === '?' || p[j] === t[i])) { i++; j++; }
+            else if (j < p.length && p[j] === '*') { star = j++; mark = i; }
+            else if (star !== -1) { j = star + 1; i = ++mark; }
+            else return false;
+        }
+        while (j < p.length && p[j] === '*') j++;
+        return j === p.length;
     }
     function matchCriterion(value, criterion) {
         if (criterion === null || criterion === undefined) return value === null || value === undefined || value === '';

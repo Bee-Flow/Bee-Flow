@@ -23,11 +23,11 @@ const LIST_KEYS = ['items', 'results', 'rows', 'records', 'messages', 'values', 
 const LONG_TEXT = 60;
 
 function recordsLabel(n: number): string {
-    return n === 1 ? t('mobile.flow.summary.one_record', '1 record') : t('mobile.flow.summary.records', '{n} records', { n });
+    return n === 1 ? t('automations.canvas_legend.1_record', '1 record') : t('mobile.flow.summary.records', '{n} records', { n });
 }
 
 function itemsLabel(n: number): string {
-    return n === 1 ? t('mobile.flow.summary.one_item', '1 item') : t('automations.canvas.result.items', '{n} items', { n });
+    return n === 1 ? t('automations.builder.one_item', '1 item') : t('automations.canvas.result.items', '{n} items', { n });
 }
 
 /** Is every element (that we sampled) an object? Then it reads as records. */

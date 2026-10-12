@@ -103,7 +103,7 @@ test('FROZEN_LEGACY: every notification/email link shape, verbatim', () => {
         [p.webpageEditorPath('wp1'), '/app/studio/webpages/wp1'], // side-panel AI context
         [p.accountLicenseSettingsPath(), '/app/settings/account/license'], // Stripe checkout return (BFSF-244)
         [p.orgLicenseSettingsPath(), '/app/settings/organisation/license'], // Stripe checkout return (BFSF-244)
-        [p.settingsTabPath('license'), '/app/settings?tab=license'], // Stripe portal return
+        [p.settingsTabPath('license'), '/app/settings?tab=license'], // legacy Stripe portal return (portal now returns to the licence paths above)
     ];
     const drifted = frozen.filter(([actual, expected]) => actual !== expected)
         .map(([actual, expected]) => `${expected} → ${actual}`);
