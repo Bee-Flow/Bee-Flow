@@ -335,3 +335,21 @@ test('review: the prompt asks for ids only and defaults to KEEP', () => {
     assert.match(REVIEW_SYSTEM_PROMPT, /When unsure: KEEP/);
     assert.match(REVIEW_SYSTEM_PROMPT, /Never repeat or quote/);
 });
+
+test('review: kept memories the model flags as special-category data are tagged art9, junk is not', async () => {
+    const health = 'User needs low-histamine diet recommendations due to MCAS';
+    const rows = mk([health, 'User communicates in Dutch and expects responses in Dutch', JUNK[0]]);
+    const tagged = [];
+    const rw = reviewWorld(rows, {
+        judge: (items) => JSON.stringify({ results: items.map((i) => ({ id: i.id, keep: i.content !== JUNK[0], sensitive: i.content === health || i.content === JUNK[0] })) }),
+    });
+    rw.w.deps.markSensitive = async (ids) => { tagged.push(...ids); return ids.length; };
+    await rw.run();
+    assert.deepEqual(tagged, [rows[0].id], 'only the kept health memory is tagged; an archived row needs no tag');
+});
+
+test('review: the prompt and schema ask for the sensitive flag', () => {
+    const { REVIEW_SYSTEM_PROMPT, parseSensitive } = require('./memoryConsolidation');
+    assert.match(REVIEW_SYSTEM_PROMPT, /art\. 9/);
+    assert.deepEqual([...parseSensitive('{"results":[{"id":"a","keep":true,"sensitive":true},{"id":"x","keep":true,"sensitive":true},{"id":"b","keep":true,"sensitive":"yes"}]}', new Set(['a', 'b']))], ['a']);
+});

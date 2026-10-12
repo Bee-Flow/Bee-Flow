@@ -1111,7 +1111,7 @@ async function executeToolRound({
                 }
 
                 // Save conversation after tool execution (so tool calls are persisted)
-                log.info('[AgentStream] Saving conversation with tool calls:', JSON.stringify(durableMessages.slice(-3), null, 2));
+                log.info(`[AgentStream] Saving conversation with tool calls: ${durableMessages.length} messages`);
                 await persistDurable();
 
     // Why the loop should stop, or null to keep going. A reason rather than a

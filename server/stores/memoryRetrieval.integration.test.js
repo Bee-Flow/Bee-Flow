@@ -154,6 +154,12 @@ describe('memory retrieval on Postgres + pgvector', { skip: !URL_ && 'MEMORY_TES
             assert.equal(out[1].id, bike, 'cycling is second (cos 0.32 is above the floor)');
         });
 
+        test('a vector hit is marked relevant on the SQL path (search mode returns it, no profile padding)', async () => {
+            const out = await store.findRelevantMemories(A, null, 'which beverage is preferred', 800, null, { search: true });
+            assert.ok(out.some(m => m.id === tea), 'the SQL path keeps the relevance flag');
+            assert.ok(out.every(m => m.why === 'relevant'));
+        });
+
         test('the candidate SQL: the cosine floor keeps orthogonal rows out of the vec leg', async () => {
             const { sql, params, legs } = retrieval.buildCandidateQuery({
                 userId: A, dim: DIM, queryVector: embedText('beverage'), queryText: '',

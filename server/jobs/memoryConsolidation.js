@@ -60,7 +60,9 @@ ARCHIVE (keep=false) if it is any of:
 
 When unsure: KEEP.
 
-Answer with JSON only: {"results":[{"id":"<id>","keep":true|false}]}. One entry per memory, ids copied exactly. Never repeat or quote the memory text.`;
+Also set sensitive=true when a memory reveals special-category personal data (GDPR art. 9) about a person: health, diagnoses, diet for medical reasons, medication, religion or belief, political opinion, sexual orientation or sex life, ethnic origin, trade union membership, genetic or biometric data. Otherwise sensitive=false.
+
+Answer with JSON only: {"results":[{"id":"<id>","keep":true|false,"sensitive":true|false}]}. One entry per memory, ids copied exactly. Never repeat or quote the memory text.`;
 
 const REVIEW_SCHEMA = {
     type: 'json_schema',
@@ -74,8 +76,8 @@ const REVIEW_SCHEMA = {
                     type: 'array',
                     items: {
                         type: 'object',
-                        properties: { id: { type: 'string' }, keep: { type: 'boolean' } },
-                        required: ['id', 'keep'],
+                        properties: { id: { type: 'string' }, keep: { type: 'boolean' }, sensitive: { type: 'boolean' } },
+                        required: ['id', 'keep', 'sensitive'],
                         additionalProperties: false,
                     },
                 },
@@ -101,6 +103,20 @@ function parseReview(raw, allowedIds) {
         if (!r || typeof r.id !== 'string' || typeof r.keep !== 'boolean') continue;
         if (!allowedIds.has(r.id) || out.has(r.id)) continue;
         out.set(r.id, r.keep);
+    }
+    return out;
+}
+
+/** Ids the model flagged as special-category data (only an explicit `sensitive: true` counts). */
+function parseSensitive(raw, allowedIds) {
+    let parsed;
+    try { parsed = JSON.parse(String(raw || '').trim()); } catch (_) {
+        const m = String(raw || '').match(/\{[\s\S]*\}/);
+        try { parsed = m ? JSON.parse(m[0]) : null; } catch (_e) { parsed = null; }
+    }
+    const out = new Set();
+    for (const r of (parsed && Array.isArray(parsed.results)) ? parsed.results : []) {
+        if (r && typeof r.id === 'string' && allowedIds.has(r.id) && r.sensitive === true) out.add(r.id);
     }
     return out;
 }
@@ -181,6 +197,11 @@ function realDeps() {
         findSimilarMemories: (...a) => store().findSimilarMemories(...a),
         supersede: (o, n) => lifecycle().supersede(o, n),
         archive: (ids, userId) => lifecycle().archive(ids, userId),
+        // Legacy rows were never classified: tag them so retrieval keeps them out
+        // of prompts unless the user opted in to sensitive topics.
+        markSensitive: async (ids, userId) => (await db().run(
+            `UPDATE user_memories SET sensitivity = 'art9' WHERE user_id = $1 AND id = ANY($2::text[]) AND COALESCE(sensitivity, 'none') <> 'art9'`,
+            [userId, ids]))?.rowCount || 0,
         getCursor: async () => {
             try { const v = await config().getConfig(CURSOR_KEY); return typeof v === 'string' ? v : ''; } catch (_) { return ''; }
         },
@@ -284,6 +305,8 @@ function createConsolidation(overrides = {}) {
             if (!verdicts || verdicts.size === 0) continue;
             const drop = [...verdicts].filter(([, keep]) => !keep).map(([id]) => id);
             if (drop.length > 0) out.archived += await d.archive(drop, userId);
+            const sensitive = [...parseSensitive(answer, new Set(batch.map((r) => r.id)))].filter((id) => verdicts.get(id) === true);
+            if (sensitive.length > 0 && d.markSensitive) out.sensitive = (out.sensitive || 0) + await d.markSensitive(sensitive, userId);
             await d.markReviewed([...verdicts.keys()], userId);
         }
         return out;
@@ -354,4 +377,5 @@ function stop() {
     if (_timer) { clearInterval(_timer); _timer = null; }
 }
 
-module.exports = { createConsolidation, start, stop, runOnce, FIRST_RUN_DELAY_MS, REVIEW_SYSTEM_PROMPT, REVIEW_BATCH, REVIEW_ROWS_PER_USER, REVIEW_ROWS_PER_RUN, parseReview, MERGE_AT, STALE_DAYS, STALE_IMPORTANCE };
+module.exports = {
+    parseSensitive, createConsolidation, start, stop, runOnce, FIRST_RUN_DELAY_MS, REVIEW_SYSTEM_PROMPT, REVIEW_BATCH, REVIEW_ROWS_PER_USER, REVIEW_ROWS_PER_RUN, parseReview, MERGE_AT, STALE_DAYS, STALE_IMPORTANCE };
