@@ -94,7 +94,7 @@ function GroupEditor({ group, parameters, onChange, depth }: { group: Group; par
             {childrenOf(group).map((child, index) => (
                 <View key={index} style={styles.block}>
                     <RuleEditor value={child} parameters={parameters} depth={depth + 1} onChange={(next) => onChange(setChild(group, index, next))} />
-                    <Button label={t('mobile.studio_documents.rule.remove', 'Remove condition')} onPress={() => onChange(removeChild(group, index))} variant="ghost" size="sm" />
+                    <Button label={t('automations.condition_builder_row.remove_condition', 'Remove condition')} onPress={() => onChange(removeChild(group, index))} variant="ghost" size="sm" />
                 </View>
             ))}
             <View style={styles.actions}>
@@ -120,7 +120,7 @@ export function RuleEditor({ value, parameters, onChange, depth = 0 }: RuleEdito
     if (!value) {
         return (
             <Button
-                label={t('mobile.studio_documents.rule.add', 'Add condition')}
+                label={t('automations.condition_builder.add_condition', 'Add condition')}
                 iconName="Plus"
                 variant="secondary"
                 disabled={!parameters.length}
@@ -135,7 +135,7 @@ export function RuleEditor({ value, parameters, onChange, depth = 0 }: RuleEdito
     return (
         <View style={styles.block}>
             <RuleCard rule={value} parameters={parameters} onChange={onChange} />
-            <Button label={t('mobile.studio_documents.rule.remove', 'Remove condition')} onPress={() => onChange(null)} variant="ghost" size="sm" />
+            <Button label={t('automations.condition_builder_row.remove_condition', 'Remove condition')} onPress={() => onChange(null)} variant="ghost" size="sm" />
         </View>
     );
 }

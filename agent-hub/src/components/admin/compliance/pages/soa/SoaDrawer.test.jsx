@@ -1,5 +1,6 @@
 import React from 'react';
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import SoaDrawer from './SoaDrawer';
 import { indexChecks } from './soaThemes';
@@ -50,7 +51,7 @@ describe('SoaDrawer — the approved rule', () => {
         expect(screen.queryByTestId('soa-drawer-approved-hint')).toBeNull();
         fireEvent.click(approved);
         expect(approved.getAttribute('aria-checked')).toBe('true');
-        fireEvent.click(screen.getByTestId('soa-drawer-save'));
+        fireEvent.click(screen.getByTestId('soa-drawer-actions-primary'));
         expect(onSave).toHaveBeenCalledWith('A.5.20', {
             status: 'approved', applicable: true, justification: null, how_met: 'DPA per processor', owner_user_id: 'u2',
         });
@@ -80,7 +81,7 @@ describe('SoaDrawer — the justification rule', () => {
         const onSave = vi.fn();
         render(<SoaDrawer control={control()} checksById={byId('pass')} orgUsers={USERS} onSave={onSave} onClose={vi.fn()} navigate={vi.fn()} />);
         fireEvent.click(screen.getByTestId('soa-drawer-decision-excluded'));
-        const save = screen.getByTestId('soa-drawer-save');
+        const save = screen.getByTestId('soa-drawer-actions-primary');
         expect(save).toBeDisabled();
         expect(screen.getByTestId('soa-drawer-justification-hint')).toBeTruthy();
         fireEvent.change(screen.getByTestId('soa-drawer-justification'), { target: { value: '   ' } });
@@ -98,7 +99,7 @@ describe('SoaDrawer — the justification rule', () => {
         expect(screen.getByTestId('soa-drawer-decision-excluded').getAttribute('aria-checked')).toBe('true');
         expect(screen.getByTestId('soa-drawer-stamp').textContent).toMatch(/Last changed .* by T\. Smit/);
         fireEvent.click(screen.getByTestId('soa-drawer-decision-reviewed'));
-        fireEvent.click(screen.getByTestId('soa-drawer-save'));
+        fireEvent.click(screen.getByTestId('soa-drawer-actions-primary'));
         expect(onSave).toHaveBeenCalledWith('A.5.20', expect.objectContaining({ applicable: true, status: 'reviewed' }));
     });
 });
@@ -118,5 +119,35 @@ describe('SoaDrawer — owner and stamps', () => {
         unmount();
         render(<SoaDrawer control={control({ entry: null })} checksById={byId('pass')} orgUsers={USERS} onSave={vi.fn()} onClose={vi.fn()} navigate={vi.fn()} />);
         expect(screen.getByTestId('soa-drawer-stamp').textContent).toMatch(/No row yet/);
+    });
+
+    it('the stamp is one line; why it is stamped is its tooltip, which the keyboard reaches too', async () => {
+        const user = userEvent.setup();
+        render(<SoaDrawer control={control()} checksById={byId('pass')} orgUsers={USERS} onSave={vi.fn()} onClose={vi.fn()} navigate={vi.fn()} />);
+        const stamp = screen.getByTestId('soa-drawer-stamp');
+        expect(stamp.textContent).toMatch(/^Added 10 Jun( 2026)? \(template\) · never changed\.$/);
+        expect(stamp.textContent).not.toMatch(/travels into the SoA PDF/);
+        expect(stamp.querySelector('.truncate')).not.toBeNull();
+        expect(screen.queryByRole('tooltip')).toBeNull();
+        for (let i = 0; i < 30 && document.activeElement !== stamp; i++) await user.tab();
+        expect(document.activeElement).toBe(stamp);
+        const tip = await screen.findByRole('tooltip');
+        expect(tip.textContent).toMatch(/travels into the SoA PDF/);
+        expect(tip.textContent).toMatch(/never changed/);
+    });
+});
+
+describe('SoaDrawer — the footer', () => {
+    it('Save is the DrawerFooter primary, under the stamp', async () => {
+        const user = userEvent.setup();
+        const onSave = vi.fn();
+        render(<SoaDrawer control={control()} checksById={byId('pass')} orgUsers={USERS} onSave={onSave} onClose={vi.fn()} navigate={vi.fn()} />);
+        const footer = screen.getByTestId('soa-drawer-footer');
+        const actions = within(footer).getByTestId('soa-drawer-actions');
+        expect(within(footer).getByTestId('soa-drawer-stamp').compareDocumentPosition(actions) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        const save = within(actions).getByTestId('soa-drawer-actions-primary');
+        expect(save.textContent).toMatch(/Save/);
+        await user.click(save);
+        expect(onSave).toHaveBeenCalledWith('A.5.20', expect.objectContaining({ status: 'todo', owner_user_id: 'u2' }));
     });
 });

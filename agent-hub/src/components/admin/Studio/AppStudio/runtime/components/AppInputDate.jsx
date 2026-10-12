@@ -1,4 +1,5 @@
 import { todayIso } from './localDate';
+import useTranslation from '../../../../../../hooks/useTranslation';
 import { useFormField } from '../formContext';
 import { Field, INPUT_CLASS, inputStyle } from '../uiBits';
 import useInputChange from '../useInputChange';
@@ -7,7 +8,8 @@ import useValueFrom from '../useValueFrom';
 /** App Studio runtime — 'input_date'. Spec: server/appStudio/componentSpecs.js. */
 
 export default function AppInputDate({ node }) {
-    const { name, label = 'Date', required = false, defaultValue = null } = node.props || {};
+    const { t } = useTranslation();
+    const { name, label = t('studio_apps_runtime.inputs.date', 'Date'), required = false, defaultValue = null } = node.props || {};
     // defaultValue is null | 'today' | an ISO date (allowIsoDate in the spec).
     const seeded = defaultValue === 'today' ? todayIso() : defaultValue;
     const { value, setValue, error } = useFormField({ name, defaultValue: seeded, required, label });

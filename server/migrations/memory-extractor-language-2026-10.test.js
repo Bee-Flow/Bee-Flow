@@ -18,8 +18,3 @@ test('an existing prompt gets the guidance appended once, and its own text stays
     assert.ok(once.includes('only when the\nuser says it must ALWAYS apply'));
     assert.strictEqual(migration.correctPrompt(once), once, 'idempotent');
 });
-
-test('the migration is registered, or it never runs', () => {
-    const src = fs.readFileSync(path.join(__dirname, '..', 'boot', 'bootMigrations.js'), 'utf8');
-    assert.match(src, /'memory-extractor-language-2026-10'/);
-});

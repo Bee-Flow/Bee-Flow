@@ -94,3 +94,24 @@ test('modern Claude uses native JSON for a closed classification schema', () => 
     assert.equal(params.output_config.effort, 'low');
     assert.equal(params.tool_choice, undefined);
 });
+
+test('_buildSdkParams: Haiku 5.x never forwards temperature (it 400s on it)', () => {
+    const params = p._buildSdkParams('claude-haiku-5-5', MSGS, { temperature: 0 });
+    assert.strictEqual(params.temperature, undefined);
+    assert.strictEqual(p._buildSdkParams('claude-haiku-4-5', MSGS, { temperature: 0 }).temperature, 0, 'Haiku 4.5 still takes it');
+});
+
+test('_buildSdkParams: numeric and length constraints are stripped from a json_schema response format', () => {
+    const schema = { type: 'object', properties: {
+        confidence: { type: 'number', minimum: 0.8, maximum: 1, description: 'kept' },
+        name: { type: 'string', maxLength: 20 },
+        items: { type: 'array', items: { type: 'object', properties: { n: { type: 'integer', minimum: 0 } } } },
+    }, required: ['confidence'] };
+    const params = p._buildSdkParams('claude-haiku-5-5', MSGS, { responseFormat: { type: 'json_schema', json_schema: { schema } } });
+    const sent = params.output_config.format.schema;
+    assert.deepStrictEqual(sent.properties.confidence, { type: 'number', description: 'kept' });
+    assert.deepStrictEqual(sent.properties.name, { type: 'string' });
+    assert.deepStrictEqual(sent.properties.items.items.properties.n, { type: 'integer' });
+    assert.deepStrictEqual(sent.required, ['confidence']);
+    assert.strictEqual(schema.properties.confidence.minimum, 0.8, 'the caller\'s schema is not mutated');
+});

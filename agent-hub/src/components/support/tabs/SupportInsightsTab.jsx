@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { authFetch, API_BASE } from '../../../utils/helpers';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 function fmtDuration(secs) {
     if (secs == null) return '—';
@@ -19,6 +20,7 @@ function Stat({ label, value, sub }) {
 }
 
 export default function SupportInsightsTab() {
+    const { t } = useTranslation();
     const [data, setData] = useState(null);
     const [error, setError] = useState(null);
 
@@ -33,12 +35,12 @@ export default function SupportInsightsTab() {
     }, []);
 
     if (error) return <div className="p-6 text-sm" style={{ color: '#dc2626' }}>{error}</div>;
-    if (!data) return <div className="p-6 text-sm" style={{ color: 'var(--text-muted)' }}>Loading insights…</div>;
+    if (!data) return <div className="p-6 text-sm" style={{ color: 'var(--text-muted)' }}>{t('support.support_insights_loading_insights', 'Loading insights…')}</div>;
 
     const { csat, handling } = data;
     return (
         <div className="max-w-3xl mx-auto p-4">
-            <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>Insights</h3>
+            <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>{t('support.support_insights_insights', 'Insights')}</h3>
             <div className="grid grid-cols-3 gap-3 mb-3">
                 <Stat label="CSAT (7d avg)" value={csat.avg7d != null ? `${csat.avg7d}/5` : '—'} />
                 <Stat label="CSAT (30d avg)" value={csat.avg30d != null ? `${csat.avg30d}/5` : '—'} />

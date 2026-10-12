@@ -396,13 +396,13 @@ describe('OutputView — a web-service response with a parsed body', () => {
 describe('OutputView — a JSON string is structure, not 372014 characters', () => {
     beforeEach(() => cleanup());
 
-    it('offers a tree for a body that parses', () => {
+    it('shows a body that parses as the structure it encodes, not as text', () => {
+        // It used to wait behind a "Show as tree" button; JSON text at any
+        // level now reads as the records and tables it holds.
         render(<OutputView value={JSON.stringify({ tasks: [{ title: 'one' }] })} />);
-        fireEvent.click(screen.getByText('Show as tree'));
-        expect(screen.getByText('tasks:')).toBeTruthy();
-        // …and back again.
-        fireEvent.click(screen.getByText('Show as text'));
-        expect(screen.queryByText('tasks:')).toBeNull();
+        expect(screen.getByText('Title')).toBeTruthy();
+        expect(screen.getByText('one')).toBeTruthy();
+        expect(screen.queryByText('Show as tree')).toBeNull();
     });
 
     it('leaves ordinary text alone', () => {

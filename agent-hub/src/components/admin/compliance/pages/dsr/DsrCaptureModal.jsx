@@ -97,7 +97,7 @@ export default function DsrCaptureModal({ open = false, onClose, onCapture, busy
             onClose={onClose}
             size="md"
             title={t('compliance.dsr_capture_title', 'Record a request')}
-            description={t('compliance.dsr_capture_desc', 'For a request that arrived by e-mail, phone or letter. The 30-day clock starts at receipt.')}
+            description={t('compliance.dsr_capture_desc', 'For a request that arrived by e-mail, phone or letter. The one-month clock starts at receipt.')}
             footer={(
                 <>
                     <button type="button" onClick={onClose} className="h-8 px-3 rounded-[10px] border border-[var(--border-default)] bg-[var(--bg-card)] text-[12px] font-medium text-[var(--text-primary)]">

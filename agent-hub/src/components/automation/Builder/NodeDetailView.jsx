@@ -51,6 +51,7 @@ export default function NodeDetailView({
     onRenameBinding = null,
     // (stepId, step) => boolean|undefined. The shell's edit (BuildTab.onInsertStepBefore).
     onInsertStepBefore = null,
+    onFollowRoute = null, // (routeId, stepIds) => void: BuildTab.onFollowRoute ("Use what this Condition keeps").
     validation, modelTiers = {}, onExecuteStep, onRetryFromStep,
     runInFlight = false, executingStep = false, onClose,
     // 'quick' | 'full': how BIG the window is. Owned by the shell.
@@ -80,10 +81,10 @@ export default function NodeDetailView({
     const {
         catalog, isSecondaryTrigger, wiredCaseNames, stepEdges, groups, previewSample,
         stepTypeById, stepNumberById, usedPaths, stepIssues,
-        describedSample, emptyFormAnswers, loopContext, inSummary, outSummary,
+        describedSample, emptyFormAnswers, loopContext, inSummary, outSummary, routeFollow, wholeRun,
     } = useNodeDetailData({
         step, runStep, runSteps, definition, rootDefinition, validation,
-        catalog: catalogProp, realOutputById,
+        catalog: catalogProp, realOutputById, onFollowRoute,
     });
     const stepLabelById = useMemo(() => buildStepLabelMap(definition), [definition]);
 
@@ -303,16 +304,18 @@ export default function NodeDetailView({
                                 {/* "runs 4× · one per bank" (artboard 2b): a step in a loop runs once per item. */}
                                 {loopContext && (
                                     <span className="shrink-0 px-[7px] rounded-full text-[11px] font-semibold leading-[18px] bg-[color-mix(in_srgb,var(--type-loop)_16%,transparent)] text-[var(--type-loop)]" data-testid="ndv-runs-pill">
-                                        {loopContext.listLabel
-                                            ? t('automations.ndv.runs_n_times_per', 'runs {n}× · one per {list}', { n: loopContext.runs, list: loopContext.listLabel })
-                                            : t('automations.ndv.runs_n_times', 'runs {n}×', { n: loopContext.runs })}
+                                        {loopContext.itemNoun
+                                            ? t('automations.ndv.runs_n_times_per_item', 'runs {n}× · once per {item}', { n: loopContext.runs, item: loopContext.itemNoun })
+                                            : loopContext.listLabel
+                                                ? t('automations.ndv.runs_n_times_per', 'runs {n}× · one per {list}', { n: loopContext.runs, list: loopContext.listLabel })
+                                                : t('automations.ndv.runs_n_times', 'runs {n}×', { n: loopContext.runs })}
                                     </span>
                                 )}
                                 {onModeChange && !isTrigger && <FormModeToggle mode={effectiveMode} onChange={onModeChange} size="sm" />}
                             </NdvColumnHeader>
                         )}
                         <FormDensityContext.Provider value={densityValue}>
-                            <VariablePickerProvider groups={groups} previewSample={previewSample} stepLabelById={stepLabelById} stepTypeById={stepTypeById}>
+                            <VariablePickerProvider groups={groups} previewSample={previewSample} stepLabelById={stepLabelById} stepTypeById={stepTypeById} definition={definition}>
                                 <SettingsHost
                                     key={step.id}
                                     footerLeft={footerInfo}
@@ -336,6 +339,7 @@ export default function NodeDetailView({
                                     onTestSubmit={onTestSubmit}
                                     onRenameField={onRenameField}
                                     onInsertUpstreamStep={onInsertUpstreamStep}
+                                    routeFollow={routeFollow} wholeRun={wholeRun}
                                     onExpandOnCanvas={onExpandOnCanvas}
                                     runStep={runStep}
                                 />

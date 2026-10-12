@@ -68,13 +68,13 @@ export const ORGANISATION: Destination[] = [
     },
     {
         id: 'integrations',
-        i18nKey: 'settings.integrations',
-        label: 'Integrations',
+        i18nKey: 'settings.connections',
+        label: 'Connections',
         hint: 'Connect Google, Microsoft and the rest',
         icon: 'Link',
         href: '/integrations',
         group: 'Organisation',
-        keywords: ['google', 'microsoft', 'gmail', 'outlook', 'connect', 'oauth', 'nextcloud'],
+        keywords: ['google', 'microsoft', 'gmail', 'outlook', 'connect', 'oauth', 'nextcloud', 'integrations'],
     },
     {
         id: 'usage',

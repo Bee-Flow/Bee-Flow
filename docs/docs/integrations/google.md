@@ -27,7 +27,7 @@ For org-wide Workspace deployments, register Bee Flow as an internal app in the 
 
 | Integration ID | Scope(s) | Tools |
 |----------------|----------|-------|
-| `gmail` | `gmail.readonly`, `gmail.compose`, `gmail.send` | `gmail_search`, `gmail_read`, `gmail_read_attachment`, `gmail_compose`, `gmail_send`, `gmail_reply` |
+| `gmail` | `gmail.readonly`, `gmail.compose`, `gmail.send` | `gmail_search`, `gmail_read`, `gmail_read_many`, `gmail_read_attachment`, `gmail_compose`, `gmail_create_draft`, `gmail_list_labels`, `gmail_modify_labels`, `gmail_bulk_modify`, `gmail_mark_read`, `gmail_mark_unread`, `gmail_archive`, `gmail_trash` |
 | `google-calendar` | `calendar` | `gcal_list`, `gcal_search`, `gcal_create_event`, `gcal_update_event`, `gcal_delete_event` |
 | `google-drive` | `drive.readonly`, `drive.file` | `gdrive_list`, `gdrive_search`, `gdrive_read`, `gdrive_upload` |
 | `google-docs` | `documents.readonly` | `gdocs_read`, `gdocs_create`, `gdocs_update` |
@@ -45,6 +45,8 @@ The minimum-scope principle applies: Bee Flow asks only for what's needed by the
 - **Reading** — `gmail_search` accepts the same query syntax as the Gmail UI (`from:alice subject:invoice newer_than:7d`).
 - **Composing** — `gmail_compose` creates a draft. Sending requires `gmail.send` scope and an explicit `gmail_send` call. This split is intentional — agents can suggest replies without auto-sending.
 - **Replies** — `gmail_reply` preserves `In-Reply-To` and `References` headers so threading works.
+- **Many emails at once** — in an automation, read a whole search result with `gmail_read_many` (up to 100 emails, sent to Gmail as [batches](https://developers.google.com/workspace/gmail/api/guides/batch) of 50) and change them with `gmail_bulk_modify` (labels, read/unread, archive: up to 1,000 emails in one request), instead of one call per email in a *for each*. Every email still counts toward Gmail's per-user quota, but the round trips drop from one per email to one or two per list. Label names are looked up once a minute per run, not once per email.
+- **Rate limits** — when Google says a mailbox is over its rate limit (429, or 403 `userRateLimitExceeded` / `rateLimitExceeded`), Bee Flow waits (its `Retry-After` when given, otherwise about 1, 2 and 4 seconds) and tries again. A request that sends an email is never repeated.
 
 ### Calendar
 
@@ -124,7 +126,7 @@ Meeting Notes adds two scopes to the Google connection:
 | `meetings.space.readonly` | Read conference records, recording metadata and the participant roster. Google classifies this scope as *sensitive*. |
 | `meetings.space.settings` | Pre-configure auto-recording on meetings you organize (`spaces.patch`). |
 
-**Connections made before this feature shipped don't have these scopes yet.** Affected users see an "Update needed" badge in **Settings → Integrations** and a reconnect banner in the Upcoming tab. One click on **Re-authorize** runs an incremental consent — existing Gmail / Calendar / Drive grants are kept, only the Meet scopes are added. Users who sign in *with* Google (SSO) re-consent automatically at their next login.
+**Connections made before this feature shipped don't have these scopes yet.** Affected users see an "Update needed" badge in **Settings → Connections** and a reconnect banner in the Upcoming tab. One click on **Re-authorize** runs an incremental consent — existing Gmail / Calendar / Drive grants are kept, only the Meet scopes are added. Users who sign in *with* Google (SSO) re-consent automatically at their next login.
 
 ### Upcoming tab & auto-recording
 
@@ -139,7 +141,7 @@ Stable codes shown in the Upcoming tab and import panel:
 
 | Code | Meaning | Fix |
 |---|---|---|
-| `not_connected` | No Google connection | Connect in Settings → Integrations. |
+| `not_connected` | No Google connection | Connect in Settings → Connections. |
 | `needs_meet_scopes` | Connection predates the Meet scopes | Re-authorize (one click, incremental consent). |
 | `needs_reauth` | Refresh token revoked / expired | Reconnect; pending imports resume automatically. |
 | `no_recording` | Meeting ended but was never recorded | Expected and quiet — nothing to import. |
@@ -173,7 +175,7 @@ All bodies retrieved from Gmail / Drive / Docs flow through the Privacy Shield. 
 
 | Error | Cause | Fix |
 |-------|-------|-----|
-| `invalid_grant` on refresh | Token revoked / user changed password | User reconnects in Settings → Integrations. |
+| `invalid_grant` on refresh | Token revoked / user changed password | User reconnects in Settings → Connections. |
 | `403 insufficient scope` | App requested fewer scopes than the tool needs | Add the scope and have the user reconnect. |
 | `429 quota exceeded` | Per-day API quota | Raise quota in Google Cloud Console or throttle. |
 | `Drive item too large` | Over the server's fixed 20 MB JSON body limit | Not tunable — skip the body and use metadata only, or split the file. |

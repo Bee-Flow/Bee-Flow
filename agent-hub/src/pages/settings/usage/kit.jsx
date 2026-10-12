@@ -13,6 +13,7 @@
 
 import { AlertTriangle, ChevronRight } from 'lucide-react';
 import React, { useState } from 'react';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 // ── Spacing tokens ───────────────────────────────────────────────────────────
 // One value per role, applied everywhere, to resolve the old 14-vs-16 outer-gap
@@ -312,7 +313,9 @@ export const FilterChipBar = ({ value, onChange, options, size = 'md' }) => {
 
 // ── DrillChip ────────────────────────────────────────────────────────────────
 // The removable "axis: label ✕" filter chip used by Safety + Integrations.
-export const DrillChip = ({ axis, label, onClear }) => (
+export const DrillChip = ({ axis, label, onClear }) => {
+    const { t } = useTranslation();
+    return (
     <div style={{ marginBottom: 8 }}>
         <span style={{
             display: 'inline-flex', alignItems: 'center', gap: 8, padding: '5px 6px 5px 10px', borderRadius: 99,
@@ -320,14 +323,15 @@ export const DrillChip = ({ axis, label, onClear }) => (
         }}>
             <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#0ea5e9' }}>{axis}</span>
             <span style={{ fontWeight: 700, textTransform: 'capitalize' }}>{String(label || '').replace(/_/g, ' ')}</span>
-            <button onClick={onClear} aria-label="Clear filter" style={{
+            <button onClick={onClear} aria-label={t('usage.kit.clear_filter', 'Clear filter')} style={{
                 width: 18, height: 18, borderRadius: '50%', border: 'none', cursor: 'pointer',
                 background: 'var(--bg-secondary)', color: 'var(--text-secondary)',
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11,
             }}>✕</button>
         </span>
     </div>
-);
+    );
+};
 
 // ── ShowMore ─────────────────────────────────────────────────────────────────
 export const ShowMore = ({ remaining, onMore, label = 'Show more' }) => (

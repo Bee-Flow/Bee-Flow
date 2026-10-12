@@ -118,12 +118,7 @@ MCP rows read **"Configure your credentials for {toolCount} tools"** → once fi
 `/app/settings/organisation/nextcloud-sync`, label **"Nextcloud Sync"** (`settings.nextcloud_sync`).
 Visible only when the org is NC-bound (`user.ncOrg.instanceId`) **or** the viewer is a super-admin.
 Contains, in order:
-1. `OrgNcPairingPanel` — heading **"Pair a new Nextcloud"**, button **"Generate pairing code"**,
-   empty state **"No active pairing codes. Generated codes live for 15 minutes and disappear after
-   use."**, expander **"How to use this code on the new Nextcloud"** with the `occ
-   app_api:app:setenv bee_flow BEEFLOW_PAIRING_CODE <CODE>` recipe. Revoke confirm: *"Revoke this
-   pairing code? Anyone who has it will no longer be able to use it."*
-2. `NextcloudSyncPanel` — heading **"Nextcloud Sync"**, **"Sync now"** button, a four-stat row
+1. `NextcloudSyncPanel` — heading **"Nextcloud Sync"**, **"Sync now"** button, a four-stat row
    **Instance / Sync mode / Active users / Last sync**, then sections
    **"Sync mode"** (radio: *Mirror everything* — "Every Nextcloud user is automatically created in
    Bee Flow."; *Selective groups*; *Manual only*), **"New user default status"**
@@ -132,7 +127,16 @@ Contains, in order:
    everything'."), **"Synced users (n)"**, and **Save**.
    Non-NC orgs get: **"Nextcloud sync is only available for organisations bound to a Nextcloud
    instance."**
-3. `MeetingNotesAdminPanel`, `GoogleMeetAdminPanel` (adjacent features, same page).
+2. `OrgNcPairingPanel` — heading **"Pair a new Nextcloud"**, button **"Generate pairing code"**,
+   empty state **"No active pairing codes. Generated codes live for 15 minutes and disappear after
+   use."**, expander **"How to use this code on the new Nextcloud"** with the `occ
+   app_api:app:setenv bee_flow BEEFLOW_PAIRING_CODE <CODE>` recipe. Revoke confirm: *"Revoke this
+   pairing code? Anyone who has it will no longer be able to use it."*
+3. `MeetingNotesAdminPanel` (Talk Meeting Notes; Talk only exists with a Nextcloud).
+
+The org-level Google Meet and Microsoft Teams meeting-notes panels (`GoogleMeetAdminPanel`,
+`TeamsAdminPanel`) are NOT here: they need no Nextcloud, so they sit under
+**Settings → Organisation → Meeting Templates**, after the summary templates.
 
 `OrgNcIntegrationsPanel` (shown under *Integration settings*, section 2.1) — heading
 **"Nextcloud integrations"**, lead *"Choose which Nextcloud tools your agents may use, and exclude
@@ -148,7 +152,7 @@ No synced groups → *"No Nextcloud groups synced yet. Sync runs automatically e
 `/app/settings/organisation/github-sync`, label **"GitHub Sync"** (`settings.github_sync`).
 **The menu row only appears once `GET /api/integrations/github/status` says `connected:true`** —
 i.e. after someone connected a GitHub PAT on the personal Connections screen.
-States: **"GitHub Not Connected"** ("Connect your GitHub account in Settings → Integrations first,
+States: **"GitHub Not Connected"** ("Connect your GitHub account in Settings → Connections first,
 then return here to configure sync."); **"Set Up Agent Sync"** with **"Configure Repository"**;
 the form **"Repository Configuration"** with fields **Repository Owner** (`your-username`),
 **Repository Name** (`beeflow-agents`), **Branch** (`main`) and an **"Auto-sync"** toggle

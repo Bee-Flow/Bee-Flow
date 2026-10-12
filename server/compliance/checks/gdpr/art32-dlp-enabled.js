@@ -2,8 +2,9 @@
  * GDPR Art. 32 — DLP (Data Loss Prevention) active and working.
  *
  * Three signals, evaluated in order:
- *   1. CONFIG  — regex guardrails + PII detection + moderation enabled
- *               (per-org Privacy Shield or global ai config).
+ *   1. CONFIG  — regex guardrails + PII detection enabled (per-org Privacy
+ *               Shield or global ai config). Content moderation was the third
+ *               layer until the Azure Content Safety backend was dropped.
  *   2. ACTIVITY — at least one guardrail_events row in the last 30 days
  *               when AI traffic is observed. "Configured but silent" is
  *               degraded to warn — strongly suggests it isn't wired up.
@@ -13,6 +14,9 @@
 
 const { getOne } = require('../../../db');
 const configStore = require('../../../stores/configStore');
+
+/** The layers a fully configured DLP has: regex guardrails and PII detection. */
+const DLP_LAYERS = 2;
 
 async function _guardrailStats(orgId) {
     try {
@@ -78,7 +82,7 @@ module.exports = {
         const configCoverage = [regexEnabled, piiEnabled].filter(Boolean).length;
 
         let status;
-        if (configCoverage === 2) status = 'pass';
+        if (configCoverage === DLP_LAYERS) status = 'pass';
         else if (configCoverage === 1) status = 'warn';
         else status = 'fail';
 
@@ -103,11 +107,14 @@ module.exports = {
             }
         }
 
+        // Compare against the number of layers that exist, never a literal: the
+        // literal stayed at 3 after moderation was removed, so a fully
+        // configured PASS read "DLP is partially enabled".
         const baseDetails =
-            configCoverage === 3
-                ? 'Regex guardrails, PII detection and content moderation are all enabled.'
+            configCoverage === DLP_LAYERS
+                ? 'Regex guardrails and PII detection are both enabled.'
                 : configCoverage >= 1
-                    ? 'DLP is partially enabled. Open Security → Guardrails and turn on the missing layers (regex collections, PII detection, moderation).'
+                    ? `DLP is partially enabled. Open Security → Guardrails and turn on ${regexEnabled ? 'PII detection' : 'a regex collection'}.`
                     : 'No DLP protection active. Sensitive data can leave the system unchecked.';
 
         return {

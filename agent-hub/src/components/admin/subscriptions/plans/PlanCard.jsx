@@ -1,5 +1,6 @@
 import { Building2, Users, Star, Pencil, Trash2, CreditCard, TrendingUp, Loader2, Cloud } from 'lucide-react';
 import React from 'react';
+import { useTranslation } from '../../../../hooks/useTranslation';
 import { Button } from '../../../shared/Button';
 import { CURRENCY_SYMBOL } from '../constants';
 import { Badge } from '../ui/Badge';
@@ -8,6 +9,7 @@ import { IconButton } from '../ui/IconButton';
 import { StatRow, StatGrid } from '../ui/StatRow';
 
 export function PlanCard({ plan, onEdit, onDelete, onSyncStripe, syncing }) {
+    const { t } = useTranslation();
     const isConsumer = plan.plan_type === 'consumer';
     const sym = CURRENCY_SYMBOL[plan.currency] || '€';
     const metered = plan.billing_model === 'metered';
@@ -22,22 +24,22 @@ export function PlanCard({ plan, onEdit, onDelete, onSyncStripe, syncing }) {
                 <div className="min-w-0">
                     <div className="flex items-center gap-1.5 mb-1.5">
                         <Badge tone={isConsumer ? 'success' : 'sky'} icon={isConsumer ? Users : Building2} size="sm">
-                            {isConsumer ? 'Consumer' : 'Org'}
+                            {isConsumer ? t('admin_subscriptions.plan_card_consumer', 'Consumer') : t('admin_subscriptions.plan_card_org', 'Org')}
                         </Badge>
                         {perSeat && (
-                            <Badge tone="teal" icon={Users} size="sm">Per seat</Badge>
+                            <Badge tone="teal" icon={Users} size="sm">{t('admin_subscriptions.plan_card_per_seat', 'Per seat')}</Badge>
                         )}
                         {isFree && (
-                            <Badge tone="success" size="sm">Free</Badge>
+                            <Badge tone="success" size="sm">{t('admin_subscriptions.plan_card_free', 'Free')}</Badge>
                         )}
                         {plan.is_default && (
-                            <Badge tone="warning" icon={Star} size="sm">Default</Badge>
+                            <Badge tone="warning" icon={Star} size="sm">{t('admin_subscriptions.plan_card_default', 'Default')}</Badge>
                         )}
                         {plan.is_public && (
-                            <Badge tone="info" size="sm">Public</Badge>
+                            <Badge tone="info" size="sm">{t('admin_subscriptions.plan_card_public', 'Public')}</Badge>
                         )}
                         {plan.nc_only && (
-                            <Badge tone="sky" icon={Cloud} size="sm">Nextcloud only</Badge>
+                            <Badge tone="sky" icon={Cloud} size="sm">{t('admin_subscriptions.plan_card_nc_only', 'Nextcloud only')}</Badge>
                         )}
                     </div>
                     <h3 className="text-[15px] font-bold text-[var(--text-primary)] leading-tight truncate">{plan.name}</h3>
@@ -51,20 +53,20 @@ export function PlanCard({ plan, onEdit, onDelete, onSyncStripe, syncing }) {
                     <div className="flex items-baseline gap-2">
                         <TrendingUp className="w-5 h-5 self-center text-emerald-400" />
                         <span className="text-[22px] font-extrabold text-emerald-400 leading-none">
-                            PAYG · +{Number(plan.markup_percent ?? 0).toFixed(plan.markup_percent % 1 === 0 ? 0 : 1)}%
+                            {t('admin_subscriptions.plan_card_payg', 'PAYG · +{percent}%', { percent: Number(plan.markup_percent ?? 0).toFixed(plan.markup_percent % 1 === 0 ? 0 : 1) })}
                         </span>
-                        <span className="text-[11.5px] text-[var(--text-muted)]">metered / {plan.billing_interval || 'month'}</span>
+                        <span className="text-[11.5px] text-[var(--text-muted)]">{t('admin_subscriptions.plan_card_metered', 'metered / {interval}', { interval: plan.billing_interval || t('admin_subscriptions.plan_card_month', 'month') })}</span>
                     </div>
                 ) : plan.price != null ? (
                     <div className="flex items-baseline gap-2">
                         <span className="text-[26px] font-extrabold text-[var(--text-primary)] leading-none">{sym}{plan.price.toFixed(2)}</span>
-                        <span className="text-[12px] text-[var(--text-muted)]">/ {perSeat ? 'seat / month' : (plan.billing_interval || 'month')}</span>
+                        <span className="text-[12px] text-[var(--text-muted)]">/ {perSeat ? t('admin_subscriptions.plan_card_seat_month', 'seat / month') : (plan.billing_interval || t('admin_subscriptions.plan_card_month', 'month'))}</span>
                         {plan.trial_days > 0 && (
-                            <Badge tone="success" size="sm" className="ml-auto">{plan.trial_days}d trial</Badge>
+                            <Badge tone="success" size="sm" className="ml-auto">{t('admin_subscriptions.plan_card_trial_days', '{days}d trial', { days: plan.trial_days })}</Badge>
                         )}
                     </div>
                 ) : (
-                    <div className="text-[14px] font-semibold text-[var(--text-muted)]">Free / Internal</div>
+                    <div className="text-[14px] font-semibold text-[var(--text-muted)]">{t('admin_subscriptions.plan_card_free_internal', 'Free / Internal')}</div>
                 )}
             </div>
 
@@ -75,10 +77,10 @@ export function PlanCard({ plan, onEdit, onDelete, onSyncStripe, syncing }) {
 
             {/* Key limits — cost cap + capacity */}
             <StatGrid className="mb-4">
-                <StatRow label="Cost cap" value={plan.max_cost_per_month} unit="€" />
-                <StatRow label="Users"    value={plan.max_users} />
+                <StatRow label={t('admin_subscriptions.plan_card_cost_cap', 'Cost cap')} value={plan.max_cost_per_month} unit="€" />
+                <StatRow label={t('admin_subscriptions.plan_card_users', 'Users')} value={plan.max_users} />
                 <StatRow label="Agents"   value={plan.max_agents} />
-                <StatRow label="KB"       value={plan.max_knowledge_sources} />
+                <StatRow label={t('admin_subscriptions.plan_card_kb', 'KB')} value={plan.max_knowledge_sources} />
             </StatGrid>
 
             {/* Stripe sync status — only relevant for paid plans */}
@@ -87,7 +89,7 @@ export function PlanCard({ plan, onEdit, onDelete, onSyncStripe, syncing }) {
                     {plan.stripe_price_id ? (
                         <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-400">
                             <CreditCard className="w-3.5 h-3.5" />
-                            Stripe synced
+                            {t('admin_subscriptions.plan_card_synced', 'Stripe synced')}
                         </span>
                     ) : (
                         <Button
@@ -98,7 +100,7 @@ export function PlanCard({ plan, onEdit, onDelete, onSyncStripe, syncing }) {
                             busy={syncing}
                             className={syncing ? '[&>svg]:animate-spin' : ''}
                         >
-                            {syncing ? 'Syncing…' : 'Sync to Stripe'}
+                            {syncing ? t('admin_subscriptions.plan_card_syncing', 'Syncing…') : t('admin_subscriptions.plan_card_sync', 'Sync to Stripe')}
                         </Button>
                     )}
                 </div>
@@ -107,9 +109,9 @@ export function PlanCard({ plan, onEdit, onDelete, onSyncStripe, syncing }) {
             {/* Actions */}
             <div className="mt-auto flex items-center gap-2 pt-3 border-t border-[var(--border-default)]">
                 <Button variant="secondary" icon={Pencil} onClick={onEdit} className="flex-1">
-                    Edit
+                    {t('admin_subscriptions.plan_card_edit', 'Edit')}
                 </Button>
-                <IconButton icon={Trash2} variant="danger" title="Delete plan" onClick={onDelete} />
+                <IconButton icon={Trash2} variant="danger" title={t('admin_subscriptions.plan_card_delete', 'Delete plan')} onClick={onDelete} />
             </div>
         </Card>
     );

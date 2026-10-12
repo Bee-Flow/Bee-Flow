@@ -5,6 +5,8 @@ import type { RunStepRecord } from '../../../../api/queries/automation/runs';
 import OutputView from '../OutputView';
 import type { IoField, IoKind } from './runIo';
 import { configFields, humanKey, ioFields, mainList } from './runIo';
+import BindingWarnings from './BindingWarnings';
+import { stepBindingWarnings } from './bindingMisses';
 
 const KIND_ICON: Record<IoKind, typeof Hash> = {
     number: Hash, list: Table2, record: Braces, text: Type, flag: ToggleLeft, empty: Circle,
@@ -39,18 +41,21 @@ const LISTS = 'grid grid-cols-1 content-start shrink-0 border-b border-[var(--bo
 const SECOND_LIST = 'border-t border-[var(--border-default)] @[600px]/runio:border-t-0 @[600px]/runio:border-l @[1100px]/runio:border-l-0 @[1100px]/runio:border-t';
 
 /** Got in / Passed on for one step, and its output as a table. */
-export default function RunIo({ step, label, stepDef = null, labelById = null }: {
+export default function RunIo({ step, label, stepDef = null, labelById = null, typeById = null }: {
     step: RunStepRecord | null;
     label: string;
     /** The step as this run's version defined it (BFSF-456): what it was set up to do. */
     stepDef?: Record<string, unknown> | null;
     labelById?: Map<string, string> | null;
+    /** Step id → type, so a path into a Condition's outputs names the output. */
+    typeById?: Map<string, string> | null;
 }) {
     const { t } = useTranslation();
     const settings = useMemo(() => configFields(t, stepDef, labelById), [t, stepDef, labelById]);
     const inFields = useMemo(() => ioFields(t, step?.input), [t, step]);
     const outFields = useMemo(() => ioFields(t, step?.output), [t, step]);
     const list = useMemo(() => mainList(step?.output, step?.stepType), [step]);
+    const misses = useMemo(() => stepBindingWarnings(step), [step]);
 
     if (!step) {
         return <div className="p-4 text-xs text-[var(--text-tertiary)]">{t('runs.tab.pick_step', 'Pick a step to see what it got and passed on.')}</div>;
@@ -69,6 +74,8 @@ export default function RunIo({ step, label, stepDef = null, labelById = null }:
                     )}
                 </div>
                 <div className="px-4 py-3 flex flex-col gap-2 flex-1 min-h-[320px] min-w-0 @[1100px]/runio:min-h-0">
+                    {/* An input that came up empty is why an output looks wrong. */}
+                    <BindingWarnings warnings={misses} labelById={labelById} typeById={typeById} />
                     <div className="flex items-center gap-2">
                         <span className="font-semibold text-[var(--text-primary)] truncate">{tableTitle}</span>
                         {list && (

@@ -174,6 +174,8 @@ const NL_TRANSLATIONS = {
     'automations.builder.foreach_blocked_nested': 'Elke rij bevat hier zelf nog een lijst — kies liever één waarde binnen de rij.',
     'automations.builder.foreach_set_note': 'Deze stap draait nu één keer per rij — {n} runs.',
     'automations.builder.foreach_set_note_one': 'Deze stap draait nu één keer per rij — 1 run.',
+    'automations.builder.foreach_deepened_note': 'Deze stap draait nu één keer per {item}, over alle eerdere samen.',
+    'automations.builder.foreach_deepened_orphans': 'Controleer {fields}: daar is in het nieuwe item niets voor.',
     'automations.builder.json_view_open': 'Bewerken als JSON',
     'automations.builder.json_view_close': 'JSON-weergave sluiten',
     'automations.builder.mode_advanced': 'Geavanceerd',

@@ -24,7 +24,7 @@ import KeepDraftCard from './KeepDraftCard';
 // Subtrees lifted out of this file verbatim — each one owns markup only; every
 // piece of state still lives on this component's fiber and is threaded down.
 import AnswerChips from './AnswerChips';
-import CitationOverlay from '../../../pages/notebooks/CitationOverlay';
+import CitationOverlay from '../../../pages/documents/notebook/CitationOverlay';
 import { GeneratedImages, GeneratedAudio, GeneratedVideos, GeneratedFiles } from './GeneratedMedia';
 import HowIGotThisAnswer from './HowIGotThisAnswer';
 import MessageActionsRow from './MessageActionsRow';
@@ -645,6 +645,16 @@ const MessageItem = ({
                     />
                 )}
 
+                {/* What memory did for this answer: what it read, and what it saved. */}
+                {!isUser && !isTool && !msg.isStreaming && (
+                    <>
+                        <MemoryUsedDisclosure items={memoryUsedOf(msg)} />
+                        {msg.memoryWatch && (
+                            <RememberedChip conversationId={msg.memoryWatch.conversationId} since={msg.memoryWatch.since} until={msg.memoryWatch.until} />
+                        )}
+                    </>
+                )}
+
                 {/* How I got this answer — comprehensive collapsed section */}
                 {!simpleMode && !isUser && !isTool && !msg.isStreaming && msg.content && (
                     /* Sources only count towards "is there anything to show"
@@ -824,6 +834,8 @@ const MessageItem = ({
 // conversation. The boundary is inside React.memo so the identity wrapping is
 // preserved.
 import { MessageErrorBoundary } from '../../shell/ErrorBoundary';
+import MemoryUsedDisclosure, { memoryUsedOf } from '../memory/MemoryUsedDisclosure';
+import RememberedChip from '../memory/RememberedChip';
 
 const MemoMessageItem = React.memo(MessageItem);
 

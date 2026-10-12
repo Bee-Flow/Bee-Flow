@@ -57,6 +57,19 @@ describe('toggleFilter', () => {
     it('ignores an axis it does not know', () => {
         expect(toggleFilter({}, 'nonsense', 'x')).toEqual({});
     });
+
+    it('never sets a health category as the kind: it is an organisation total, not a filter (GDPR Art. 9)', () => {
+        // A health filter would narrow the people panel to the people with
+        // health data — the per-person view the server refuses outright.
+        const on = { person: 'u1' };
+        for (const kind of ['MedicalCondition', 'Medication', 'HealthInsuranceNumber', 'Medical Condition', 'health']) {
+            expect(toggleFilter(on, 'kind', kind), kind).toBe(on);
+            expect(toggleFilter({}, 'kind', kind), kind).toEqual({});
+        }
+        // Another kind, and a health-looking value on another axis, still work.
+        expect(toggleFilter(on, 'kind', 'Email')).toEqual({ person: 'u1', kind: 'Email' });
+        expect(toggleFilter({}, 'place', 'Medication')).toEqual({ place: 'Medication' });
+    });
 });
 
 describe('removeFilter', () => {

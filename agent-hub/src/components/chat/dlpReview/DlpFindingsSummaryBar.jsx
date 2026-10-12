@@ -7,6 +7,10 @@ import React, { useMemo } from 'react';
 import DlpCategoryBadge from './DlpCategoryBadge';
 import { useTranslation } from '../../../hooks/useTranslation';
 
+// An org's own data type ("Your own data") has an id for a category (cdt_…) that
+// no built-in category knows; the server sends its name as the finding's label.
+export const customLabel = (span) => (span.source === 'custom' && span.label ? span.label : undefined);
+
 export default function DlpFindingsSummaryBar({ spans }) {
     const { t } = useTranslation();
     const autoCount = spans.filter(s => s.source !== 'manual').length;
@@ -15,7 +19,7 @@ export default function DlpFindingsSummaryBar({ spans }) {
     const categories = useMemo(() => {
         const seen = new Map();
         for (const s of spans) {
-            if (!seen.has(s.category)) seen.set(s.category, { category: s.category, source: s.source, confidenceBand: s.confidenceBand });
+            if (!seen.has(s.category)) seen.set(s.category, { category: s.category, source: s.source, confidenceBand: s.confidenceBand, label: s.label });
         }
         return [...seen.values()];
     }, [spans]);
@@ -37,7 +41,7 @@ export default function DlpFindingsSummaryBar({ spans }) {
             </p>
             <div className="flex flex-wrap gap-1.5">
                 {categories.map(c => (
-                    <DlpCategoryBadge key={c.category} categoryId={c.category} source={c.source} confidenceBand={c.confidenceBand} compact />
+                    <DlpCategoryBadge key={c.category} categoryId={c.category} source={c.source} confidenceBand={c.confidenceBand} label={customLabel(c)} compact />
                 ))}
             </div>
         </div>

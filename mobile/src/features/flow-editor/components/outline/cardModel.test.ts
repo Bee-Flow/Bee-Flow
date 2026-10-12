@@ -106,8 +106,8 @@ describe('the data a card names', () => {
         expect(card('ai_1')?.list).toBeNull();
     });
 
-    it('names the references in a rule it cannot put in words', () => {
-        expect(card('cond')?.sub).toBe('‹Summarise ▸ Score› * 2 > ‹Trigger ▸ Cap›');
+    it('calls a rule it cannot put in words a custom rule, never code (C1)', () => {
+        expect(card('cond')?.sub).toBe('Custom rule');
     });
 
     it('names a long question before cutting it, so the cut never leaves half a {{…', () => {

@@ -5,6 +5,8 @@ import ExecutionsPanel from '../../admin/Studio/Executions/ExecutionsPanel';
 import { BuilderConfirmProvider } from './BuilderConfirmContext';
 import BuilderHeader from './BuilderHeader';
 import { deepEqual } from '../../../utils/deepEqual';
+import { reviewedProposal } from './chat/proposalChanges';
+import { hasPendingDatatableRefs } from './chat/pendingTables';
 import useTranslation from '../../../hooks/useTranslation';
 import { toast } from '../../shared/Toast';
 import BuildTab from './BuildTab';
@@ -71,8 +73,9 @@ import scopedStorage from '../../../utils/scopedStorage';
 import { declaresManaged, managedOf, managedRefusalOf } from '../../shared/managedPart';
 import ManagedPartBanner from '../../shared/ManagedPartBanner';
 import useConfirm from '../../shared/useConfirm';
+import { followUpPlanId } from './chat/planBuild';
 
-export default function BuilderShell({ automationId, onBack, onOpenList = null, user, initialChatInput = '', autoSendInput = null, onAutomationIdResolved = null, initialScopeKey = null, onScopeChange = null, mode = 'automation', onPublished = null, initialTab = null, initialRunId = null, initialRunStepId = null, onBuilderStateChange = null, initialAppRef = null,
+export default function BuilderShell({ automationId, onBack, onOpenList = null, onExportJson = null, user, initialChatInput = '', autoSendInput = null, onAutomationIdResolved = null, initialScopeKey = null, onScopeChange = null, mode = 'automation', onPublished = null, initialTab = null, initialRunId = null, initialRunStepId = null, onBuilderStateChange = null, initialAppRef = null,
     // Hosting hooks for a page that DRIVES the builder (Studio Playbooks):
     //   onTurnEnd({ finalized, aborted, error, automationId, messageCount })
     //     fires once per turn when the stream stops — the only way a host can
@@ -174,6 +177,10 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
     }, [setNdvDensity]);
     const closeNdv = useCallback(() => setNdvStepId(null), []);
     const [busy, setBusy] = useState(false);
+    // An Apply in flight (it may be creating tables): blocks a second Apply and the composer.
+    const [applyingProposal, setApplyingProposal] = useState(false);
+    // Bumped after Apply created tables, so the canvas refetches the catalog and names them.
+    const [catalogNonce, setCatalogNonce] = useState(0);
     const [error, setError] = useState(null);
 
     // Executing a step does NOT open its editor. Hitting ▶ on the canvas is a
@@ -447,14 +454,21 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
         setError(null);
         const webSearchEnabled = scopedStorage.getItem('webSearchEnabled') !== 'false';
         const disabledMedia = scopedStorage.getJSON('disabledMedia', {}) || {};
-        turnBaseRef.current = workMode === 'build' || options.approvedPlanId ? structuredClone(effectiveDef || normalizeDefinitionShape(null)) : null;
+        // Until the approved plan is done every message continues it ("continue",
+        // "fix X", the answer to a question the build asked); only then does the
+        // user's own work mode apply to the next request again.
+        const approvedPlanId = options.approvedPlanId || followUpPlanId({ plan: state.reviewPlan, questionsPlanId: state.reviewQuestionsPlanId, answering: !!options.answers });
+        turnBaseRef.current = workMode === 'build' || approvedPlanId ? structuredClone(effectiveDef || normalizeDefinitionShape(null)) : null;
         send({
             message: text,
+            // Set when the text answers the builder's questions: the chat shows
+            // the structured list, the model gets the text.
+            answers: options.answers || null,
             targetAutomationId,
-            workMode: options.approvedPlanId ? 'plan' : workMode,
-            approvedPlanId: options.approvedPlanId || null,
+            workMode: approvedPlanId ? 'plan' : workMode,
+            approvedPlanId,
             alwaysPlanLarge: !!alwaysPlanLarge && !autoSendInput && !forcedTier,
-            pauseAfterStep: !!options.pauseAfterStep,
+            pauseAfterStep: options.pauseAfterStep ?? (!!approvedPlanId && !!state.reviewPlan?.pauseAfterStep),
             selectedStepId: assistantContext?.id || ndvStepId || null,
             modelTier: tierForSend,
             attachments: attachments || [],
@@ -1217,31 +1231,60 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
             ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
             : 'bg-amber-500/15 text-amber-600 dark:text-amber-400';
 
+    // Records the review action on the server. Returns the parsed answer (the
+    // Apply of a proposal with new tables carries the definition with the real
+    // table ids, `createdDatatables`; a Discard `keptDatatables`), or null when
+    // it was refused: then the server's message is shown and nothing is dismissed.
     const clearReview = async (action, revisionId) => {
         try {
         const aid = state.automationId || serverAutomation?.id;
+        let body = { ok: true };
         if (aid && revisionId) {
             const response = await authFetch(`${API_BASE}/api/automation/builder/session/${encodeURIComponent(aid)}/review`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, revisionId }),
             });
-            if (!response.ok) { toast.error(t('automations.assistant.review_changed', 'The saved review has changed. Reload the latest revision.')); return false; }
+            body = await response.json().catch(() => ({}));
+            if (!response.ok) { toast.error(body?.message || body?.error || t('automations.assistant.review_changed', 'The saved review has changed. Reload the latest revision.')); return null; }
         }
         if (action === 'rejectPlan') dismissPlan(); else dismissProposal();
-        return true;
-        } catch (error) { toast.error(error.message || String(error)); return false; }
+        const kept = Array.isArray(body?.keptDatatables) ? body.keptDatatables : [];
+        if (kept.length) toast.info(t('automations.assistant.tables_kept', 'Already created and kept in Studio → Datatables: {names}', { names: kept.map(k => k.name).join(', ') }));
+        return body || { ok: true };
+        } catch (error) { toast.error(error.message || String(error)); return null; }
     };
 
-    const applyProposal = async (reviewedDefinition) => {
+    // `excluded` is the Set of fields the user unticked on the proposal card.
+    // They are reverted on the definition the SERVER answers with: when the
+    // proposal creates tables, only that one points at the real table ids.
+    const applyProposal = async (excluded) => {
         const proposal = state.proposal;
-        if (!proposal || state.running) return;
+        if (!proposal || state.running || applyingProposal) return;
         if (!deepEqual(effectiveDef, proposal.baseDefinition) && !(isBlankDefinition(effectiveDef) && isBlankDefinition(proposal.baseDefinition))) {
             toast.error(t('automations.assistant.stale_proposal', 'The flow has changed since this proposal. Ask the assistant for an updated proposal.'));
             return;
         }
-        if (!await clearReview('discardProposal', proposal.id)) return;
-        onVisualEditRoot(reviewedDefinition?.steps ? reviewedDefinition : proposal.definition);
+        setApplyingProposal(true);
+        let res;
+        try { res = await clearReview('applyProposal', proposal.id); }
+        finally { setApplyingProposal(false); }
+        if (!res) return;
+        const definition = reviewedProposal({ ...proposal, definition: res.definition ?? proposal.definition }, excluded instanceof Set ? excluded : new Set());
+        if (hasPendingDatatableRefs(definition)) {
+            toast.error(t('automations.assistant.apply_failed', 'The proposal could not be applied. Nothing was changed.'));
+            return;
+        }
+        onVisualEditRoot(definition);
         if (proposal.title || proposal.description != null) await onSaveAutomation({ title: proposal.title || serverAutomation?.title, description: proposal.description || '' });
-        toast.success(t('automations.assistant.applied', 'Proposal applied. Undo reverts the flow changes.'));
+        const created = Array.isArray(res.createdDatatables) ? res.createdDatatables : [];
+        if (created.length) {
+            const names = created.map(c => `"${c.name}"`).join(', ');
+            toast.success(created.length > 1
+                ? t('automations.assistant.applied_tables_plural', 'Proposal applied and tables {names} created. Undo reverts the flow changes; the tables stay in Studio → Datatables.', { names })
+                : t('automations.assistant.applied_tables', 'Proposal applied and table {names} created. Undo reverts the flow changes; the table stays in Studio → Datatables.', { names }));
+            setCatalogNonce(n => n + 1);
+        } else {
+            toast.success(t('automations.assistant.applied', 'Proposal applied. Undo reverts the flow changes.'));
+        }
     };
 
     const triggerKind = effectiveDef?.trigger?.kind || serverAutomation?.triggerType;
@@ -1270,7 +1313,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
     // both cases. The view's id stays `build`; only its label reads "Editor".
     const headerProps = {
         title, triggerKind, isActive, isDraft, statusLabel, statusBadgeClass, canActivate,
-        canDiagnose: isAppEventTrigger, busy, onBack, backLabel, onOpenList, onActivate, onDeactivate,
+        canDiagnose: isAppEventTrigger, busy, onBack, backLabel, onOpenList, onExportJson: isStep ? null : onExportJson, onActivate, onDeactivate,
         onDryRun, onRunLive, onDiagnose, onRename, mode,
         onAssistant: isStep || readOnly ? null : () => askAssistant(), assistantOpen: assistantOpen && !readOnly,
         triggers: secondaryTriggerOptions, primaryTriggerLabel,
@@ -1379,6 +1422,8 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
                         onClearAssistantContext={() => setAssistantContext(null)}
                         onAskAssistant={readOnly ? null : askAssistant}
                         onApplyProposal={applyProposal}
+                        applyingProposal={applyingProposal}
+                        catalogNonce={catalogNonce}
                         onDiscardProposal={() => clearReview('discardProposal', state.proposal?.id)}
                         onRejectPlan={() => clearReview('rejectPlan', state.reviewPlan?.id)}
                         onApprovePlan={(pauseAfterStep) => onSend(t('automations.assistant.approved_prompt', 'I approve this plan. Build it and report any deviations.'), [], { approvedPlanId: state.reviewPlan?.id, pauseAfterStep })}
@@ -1459,14 +1504,14 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
                         // that has no server row yet.
                         tab === 'history' && (
                             <div className="h-full flex flex-col items-center justify-center gap-2 px-6 text-center">
-                                <div className="text-sm text-[var(--text-primary)] font-medium">This automation hasn't run yet.</div>
-                                <div className="text-xs text-[var(--text-secondary)]">Run a test to see what happens, step by step.</div>
+                                <div className="text-sm text-[var(--text-primary)] font-medium">{t('automations.builder_shell.this_automation_hasn_t_run_yet', 'This automation hasn\'t run yet.')}</div>
+                                <div className="text-xs text-[var(--text-secondary)]">{t('automations.builder_shell.run_a_test_to_see_what', 'Run a test to see what happens, step by step.')}</div>
                                 <button
                                     type="button"
                                     onClick={() => { setTab('build'); onDryRun?.(); }}
                                     className="mt-1 inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition"
                                 >
-                                    Run a test
+                                    {t('automations.builder_shell.run_a_test', 'Run a test')}
                                 </button>
                             </div>
                         )

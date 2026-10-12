@@ -58,7 +58,7 @@ function Advanced(props: QuestionCardProps) {
             {open ? (
                 <>
                     <TextSlot
-                        label={t('mobile.flow.form.placeholder', 'Placeholder')}
+                        label={t('automations.form_builder_fields.placeholder', 'Placeholder')}
                         value={field.placeholder}
                         onChange={(placeholder) => props.onChange({ placeholder })}
                         allowVariables={props.allowVariables}
@@ -86,7 +86,7 @@ function TypeSpecific(props: QuestionCardProps) {
         return (
             <>
                 <TextSlot
-                    label={t('mobile.flow.form.file_to_offer', 'File to offer')}
+                    label={t('automations.form_builder_fields.file_to_offer', 'File to offer')}
                     value={field.fileId}
                     onChange={(fileId) => onChange({ fileId })}
                     allowVariables={props.allowVariables}
@@ -120,7 +120,7 @@ function TypeSpecific(props: QuestionCardProps) {
     return (
         <>
             <TextField
-                label={t('mobile.flow.form.accepted_types', 'Accepted types')}
+                label={t('automations.form_builder_fields.accepted_types', 'Accepted types')}
                 value={typeof field.accept === 'string' ? field.accept : ''}
                 onChangeText={(accept) => onChange({ accept })}
                 placeholder={ACCEPT_EXAMPLE}
@@ -129,7 +129,7 @@ function TypeSpecific(props: QuestionCardProps) {
                 editable={!props.disabled}
             />
             <NumberField
-                label={t('mobile.flow.form.max_mb', 'Max MB')}
+                label={t('automations.form_builder_fields.max_mb', 'Max MB')}
                 value={field.maxSizeMb ?? 10}
                 min={1}
                 max={25}
@@ -160,12 +160,12 @@ export function QuestionCard(props: QuestionCardProps) {
                 value={field.label}
                 onChange={(label) => onChange({ label })}
                 allowVariables={props.allowVariables}
-                placeholder={t('mobile.flow.form.question_placeholder', 'What do you want to ask?')}
+                placeholder={t('automations.form_builder_fields.what_to_ask', 'What do you want to ask?')}
                 disabled={disabled}
                 testID={`question-${index + 1}-label`}
             />
             <SelectField
-                label={t('mobile.flow.form.answer_type', 'Answer type')}
+                label={t('automations.approval_editors.answer_type', 'Answer type')}
                 value={field.type || 'text'}
                 options={FIELD_TYPES.map((o) => ({ value: o.value, label: say(t, o.label) }))}
                 onChange={(type) => onChange({ type })}

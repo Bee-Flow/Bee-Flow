@@ -40,7 +40,7 @@ export interface TreeWords {
 export function treeWords(t: Translate): TreeWords {
     return {
         // The web's words for the same counts: a step's result chip, and its fields in the mapping panel.
-        items: (n) => (n === 1 ? t('mobile.flow.output.one_item', '1 item') : t('automations.canvas.result.items', '{n} items', { n })),
+        items: (n) => (n === 1 ? t('automations.builder.one_item', '1 item') : t('automations.canvas.result.items', '{n} items', { n })),
         fields: (n) => (n === 1 ? t('automations.mapping.one_field', '1 field') : t('automations.mapping.n_fields', '{n} fields', { n })),
         yes: t('common.yes', 'Yes'),
         no: t('common.no', 'No'),

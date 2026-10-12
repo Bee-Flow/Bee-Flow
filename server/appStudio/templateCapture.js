@@ -572,6 +572,15 @@ function captureTemplate({
     if (approverSeatsRemoved) requires.push({ kind: 'approver', count: approverSeatsRemoved });
 
     const warnings = [];
+    // The canonicaliser drops a stage with no approvers, so a staged approval
+    // does not survive the seat scrub on this path (unlike a Blueprint or an
+    // automation export, which keep the emptied stage). Say so rather than let
+    // the chain vanish behind the generic "seats removed" count.
+    const stagesEmptied = scrubbed.filter(r => r.rule === RULES.APP_APPROVER_IDENTITY
+        && typeof r.field === 'string' && r.field.startsWith('stages.')).length;
+    if (stagesEmptied) {
+        warnings.push(`${stagesEmptied} approval stage(s) removed together with their approvers: a stage cannot exist without somebody to decide it. Rebuild the approval chain after installing.`);
+    }
     // Only the file path can drop anything here (buildSeed reads rows this
     // installation just handed it). Silence would read as "the template had no
     // rows", which is a different and much more confusing thing than "nine rows

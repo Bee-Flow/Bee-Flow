@@ -164,3 +164,14 @@ test('a detected organisation keeps its own token; its words are not swept into 
     assert.strictEqual(tokenizedText, '[person_1] werkt bij [organization_1].');
     assert.deepStrictEqual(tokenMap, { '[person_1]': 'Femke Mulder', '[organization_1]': 'Mulder Advies' });
 });
+
+test('a placeholder is the category id in lower case plus an index (the documented format)', () => {
+    // docs/docs/features/privacy-shield.md shows these: an IBAN is not `[iban_1]`.
+    const text = 'IBAN NL91ABNA0417164300, bel 0612345678.';
+    const { tokenizedText, tokenMap } = tokenizeText(text, [
+        span(text, 'NL91ABNA0417164300', 'InternationalBankingAccountNumber'),
+        span(text, '0612345678', 'PhoneNumber'),
+    ]);
+    assert.strictEqual(tokenizedText, 'IBAN [internationalbankingaccountnumber_1], bel [phonenumber_1].');
+    assert.deepStrictEqual(Object.keys(tokenMap).sort(), ['[internationalbankingaccountnumber_1]', '[phonenumber_1]']);
+});

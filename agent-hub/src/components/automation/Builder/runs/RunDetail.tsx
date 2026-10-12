@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import type { RunRowData, RunStepRecord } from '../../../../api/queries/automation/runs';
 import { useRun, useRunSteps } from '../../../../api/queries/automation/runs';
 import { buildRunStepLabelMap, buildRunStepMap, runStepLabel } from '../flow/displayHelpers';
+import { runStepTypeMap } from './bindingMisses';
 import { latestSteps } from './runIo';
 import RunDetailHeader from './RunDetailHeader';
 import RunTimeline from './RunTimeline';
@@ -38,6 +39,7 @@ export default function RunDetail({
     const definition = stepsQuery.data?.definition ?? null;
     const labelById = useMemo(() => buildRunStepLabelMap(definition), [definition]);
     const stepById = useMemo(() => buildRunStepMap(definition), [definition]);
+    const typeById = useMemo(() => runStepTypeMap(definition), [definition]);
     const rows = useMemo(() => latestSteps(steps), [steps]);
     const step = focusStep(rows, selectedStepId);
 
@@ -58,6 +60,7 @@ export default function RunDetail({
                     label={step ? String(runStepLabel(labelById, step.stepId)) : ''}
                     stepDef={step ? stepById.get(step.stepId) ?? null : null}
                     labelById={labelById}
+                    typeById={typeById}
                 />
             </div>
         </div>

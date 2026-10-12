@@ -1,6 +1,6 @@
 import { Search, ArrowLeft, X, MousePointer2, MessageCircleQuestion } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
-import { countInUse } from './boundPaths';
+import { countFieldsInUse } from './fieldInUse';
 import { filterGroups } from './filterFields';
 import InputNodeSection from './InputNodeSection';
 import { FieldRow } from './VariableTree';
@@ -187,7 +187,7 @@ export default function InputDataPanel({
                         group={g}
                         family={familyOfGroup(g, stepTypeById)}
                         number={stepNumberById?.get?.(g.id) ?? null}
-                        used={countInUse(g.fields, usedPaths)}
+                        used={countFieldsInUse(g.fields, usedPaths)}
                         usedPaths={usedPaths}
                         previewSample={previewSample}
                         onPick={onPick}

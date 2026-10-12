@@ -1,5 +1,6 @@
 import { Loader2, Paperclip, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import useTranslation from '../../../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../../../utils/helpers';
 import { useDataContext } from '../DataContext';
 import { useFormField } from '../formContext';
@@ -57,16 +58,17 @@ export function entryHref(entry, appId) {
 
 // The guard's 409 (quota) / 422 (scan) answers deserve product copy; other
 // failures surface the server's own message.
-function friendlyUploadError(status, serverMessage) {
-    if (status === 409) return "This app's file storage is full — remove old files or ask the owner to clean up.";
-    if (status === 422) return 'The file failed a malware scan and was refused.';
-    return serverMessage || `Upload failed (${status})`;
+function friendlyUploadError(status, serverMessage, t) {
+    if (status === 409) return t('studio_apps_runtime.inputs.file_storage_full', "This app's file storage is full — remove old files or ask the owner to clean up.");
+    if (status === 422) return t('studio_apps_runtime.inputs.file_malware', 'The file failed a malware scan and was refused.');
+    return serverMessage || t('studio_apps_runtime.inputs.file_upload_failed_status', 'Upload failed ({status})', { status });
 }
 
 export default function AppInputFile({ node }) {
+    const { t } = useTranslation();
     const { mode } = useRuntime();
     const { appId } = useDataContext();
-    const { name, label = 'File', accept = null, multiple = false, required = false, buttonLabel = null } = node.props || {};
+    const { name, label = t('studio_apps_runtime.inputs.file', 'File'), accept = null, multiple = false, required = false, buttonLabel = null } = node.props || {};
     const { value, setValue, error } = useFormField({
         name, defaultValue: multiple ? [] : null, required, label,
     });
@@ -127,12 +129,12 @@ export default function AppInputFile({ node }) {
                 fd.append('file', file);
                 const res = await authFetch(`${API_BASE}/api/studio-apps/${encodeURIComponent(appId)}/data/attachments`, { method: 'POST', body: fd });
                 const data = await res.json().catch(() => ({}));
-                if (!res.ok) throw new Error(friendlyUploadError(res.status, data.error));
+                if (!res.ok) throw new Error(friendlyUploadError(res.status, data.error, t));
                 // The route answers { success, attachment: { id, mime, size, … } };
                 // tolerate a flat body too. NEVER swallow a missing id — that
                 // silently dropped the file (upload 200'd, nothing listed).
                 const att = (data && typeof data.attachment === 'object' && data.attachment) ? data.attachment : data;
-                if (!att || !att.id) throw new Error('The file uploaded but the server returned no file id.');
+                if (!att || !att.id) throw new Error(t('studio_apps_runtime.inputs.file_no_id', 'The file uploaded but the server returned no file id.'));
                 uploaded.push({
                     kind: 'studio_attachment',
                     fileId: att.id,
@@ -143,7 +145,7 @@ export default function AppInputFile({ node }) {
                 rememberPreview(att.id, file);
             }
         } catch (err) {
-            setUploadError(err.message || 'Upload failed.');
+            setUploadError(err.message || t('studio_apps_runtime.inputs.file_upload_failed', 'Upload failed.'));
         } finally {
             if (uploaded.length) {
                 const next = multiple ? [...entries, ...uploaded] : uploaded[0];
@@ -186,14 +188,13 @@ export default function AppInputFile({ node }) {
                     style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', borderRadius: 'var(--app-radius)', color: 'var(--text-primary)', opacity: canUpload || mode !== 'run' ? undefined : 0.6 }}
                 >
                     {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" /> : <Paperclip className="w-3.5 h-3.5" aria-hidden="true" />}
-                    {/* The runtime carries no i18n on purpose — it is bundled
-                        standalone for server-side rendering — so an app written
-                        in another language says so through `buttonLabel` rather
-                        than shipping English into the middle of its own copy.
-                        The uploading state stays the built-in word: it is
-                        transient, and an author renaming a button is not
-                        thinking about it. */}
-                    <span>{uploading ? 'Uploading…' : (buttonLabel || (multiple ? 'Choose files' : 'Choose a file'))}</span>
+                    {/* An app written in another language names the button through
+                        `buttonLabel`; the built-in wording follows the viewer's language. */}
+                    <span>{uploading
+                        ? t('studio_apps_runtime.inputs.file_uploading', 'Uploading…')
+                        : (buttonLabel || (multiple
+                            ? t('studio_apps_runtime.inputs.file_choose_files', 'Choose files')
+                            : t('studio_apps_runtime.inputs.file_choose_file', 'Choose a file')))}</span>
                     <input
                         id={id}
                         name={name}
@@ -264,7 +265,7 @@ export default function AppInputFile({ node }) {
                                     <button
                                         type="button"
                                         onClick={() => removeAt(i)}
-                                        aria-label={`Remove ${display}`}
+                                        aria-label={t('studio_apps_runtime.inputs.file_remove', 'Remove {name}', { name: display })}
                                         className="ml-auto shrink-0"
                                         style={{ color: 'var(--text-muted)' }}
                                     >

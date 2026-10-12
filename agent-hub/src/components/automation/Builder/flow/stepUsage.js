@@ -182,6 +182,11 @@ export const TRANSITION_RULES = {
         { key: 'step:notification', w: 0.6 },
         { key: 'step:condition', w: 0.5 },
     ],
+    flatten: [
+        { key: 'step:filter', w: 0.9 },
+        { key: 'action:gmail_read_attachment', w: 0.8 },
+        { key: 'step:loop', w: 0.6 },
+    ],
     filter: [
         { key: 'step:loop', w: 0.8 },
         { key: 'step:aggregate', w: 0.7 },

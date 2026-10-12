@@ -8,7 +8,8 @@ import { COUNTRIES } from '../../subscriptions/access/countries';
 
 // ── Organisation Info section (Branding + Legal) — extracted verbatim from OrgInfoPanel. ──
 const OrgInfoSection = ({ t, isNcOrg, ncOrg, orgData, setOrgData, handleLogoUpload, handleLogoRemove }) => (
-                    <div className="max-w-xl mx-auto space-y-8 animate-fadeIn">
+                    <div className="max-w-3xl space-y-8 animate-fadeIn">
+                        <h2 className="text-lg font-semibold text-[var(--text-primary)]">{t('settings.org_info', 'Organisation Info')}</h2>
                         {/* NC binding banner — read-only summary of which Nextcloud
                             instance owns this org's identity. Reminds admins that
                             users come from NC and points them to the Sync panel. */}
@@ -27,19 +28,19 @@ const OrgInfoSection = ({ t, isNcOrg, ncOrg, orgData, setOrgData, handleLogoUplo
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <p className="text-[13px] font-semibold mb-0.5" style={{ color: 'var(--text-primary)' }}>
-                                        Provisioned through Nextcloud
+                                        {t('admin_org.org_info_nc_title', 'Provisioned through Nextcloud')}
                                     </p>
                                     <p className="text-[12px] mb-2" style={{ color: 'var(--text-muted)' }}>
-                                        User accounts and authentication are managed by your Nextcloud instance. Sign-in method and allowed-domain settings are not shown here.
+                                        {t('admin_org.org_info_nc_desc', 'User accounts and authentication are managed by your Nextcloud instance. Sign-in method and allowed-domain settings are not shown here.')}
                                     </p>
                                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
                                         {ncOrg.baseUrl && (
-                                            <span><span className="opacity-70">Instance:</span> <code className="px-1 rounded" style={{ background: 'var(--bg-tertiary)' }}>{ncOrg.baseUrl}</code></span>
+                                            <span><span className="opacity-70">{t('admin_org.org_info_nc_instance', 'Instance:')}</span> <code className="px-1 rounded" style={{ background: 'var(--bg-tertiary)' }}>{ncOrg.baseUrl}</code></span>
                                         )}
                                         {ncOrg.adminUid && (
-                                            <span><span className="opacity-70">Bootstrap admin:</span> <code className="px-1 rounded" style={{ background: 'var(--bg-tertiary)' }}>{ncOrg.adminUid}</code></span>
+                                            <span><span className="opacity-70">{t('admin_org.org_info_nc_bootstrap', 'Bootstrap admin:')}</span> <code className="px-1 rounded" style={{ background: 'var(--bg-tertiary)' }}>{ncOrg.adminUid}</code></span>
                                         )}
-                                        <span><span className="opacity-70">Sync:</span> {(ncOrg.syncMode || 'mirror_all').replace('_', ' ')}</span>
+                                        <span><span className="opacity-70">{t('admin_org.org_info_nc_sync', 'Sync:')}</span> {(ncOrg.syncMode || 'mirror_all').replace('_', ' ')}</span>
                                     </div>
                                 </div>
                             </div>
@@ -47,7 +48,7 @@ const OrgInfoSection = ({ t, isNcOrg, ncOrg, orgData, setOrgData, handleLogoUplo
                         {/* ── Branding section ── */}
                         <div className="space-y-5">
                             <div>
-                                <h2 className="text-lg font-bold text-[var(--text-primary)]">{t('org.branding')}</h2>
+                                <h3 className="text-base font-semibold text-[var(--text-primary)]">{t('org.branding')}</h3>
                                 <p className="text-sm text-[var(--text-muted)] mt-0.5">{t('org.branding_subtitle')}</p>
                             </div>
                             <Field label={t('org.logo')} hint={t('org.logo_hint')}>
@@ -55,7 +56,7 @@ const OrgInfoSection = ({ t, isNcOrg, ncOrg, orgData, setOrgData, handleLogoUplo
                                     {orgData.logo ? (
                                         <img
                                             src={orgData.logo.startsWith('/') ? `${API_BASE}${orgData.logo}` : orgData.logo}
-                                            alt="Logo"
+                                            alt={t('admin_org.org_info_logo_alt', 'Logo')}
                                             className="w-20 h-20 object-contain rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-tertiary)] p-2"
                                         />
                                     ) : (
@@ -64,13 +65,13 @@ const OrgInfoSection = ({ t, isNcOrg, ncOrg, orgData, setOrgData, handleLogoUplo
                                         </div>
                                     )}
                                     <div className="flex flex-col gap-2">
-                                        <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-[var(--accent-primary)] text-white hover:opacity-90 transition-opacity">
+                                        <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-[var(--accent-primary)] text-[var(--accent-primary-fg)] hover:opacity-90 transition-opacity">
                                             <Upload className="w-4 h-4" />
                                             {t('org.upload_logo')}
                                             <input type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" className="hidden" onChange={handleLogoUpload} />
                                         </label>
                                         {orgData.logo && (
-                                            <button onClick={handleLogoRemove} className="text-xs text-[var(--text-muted)] hover:text-red-500 transition-colors text-left">
+                                            <button type="button" onClick={handleLogoRemove} className="text-xs text-[var(--text-muted)] hover:text-red-500 transition-colors text-left">
                                                 {t('org.remove_logo')}
                                             </button>
                                         )}
@@ -107,7 +108,7 @@ const OrgInfoSection = ({ t, isNcOrg, ncOrg, orgData, setOrgData, handleLogoUplo
                                 {/* ── Legal & Invoicing section ── */}
                                 <div className="space-y-5">
                                     <div>
-                                        <h2 className="text-lg font-bold text-[var(--text-primary)]">{t('org.legal_invoicing')}</h2>
+                                        <h3 className="text-base font-semibold text-[var(--text-primary)]">{t('org.legal_invoicing')}</h3>
                                         <p className="text-sm text-[var(--text-muted)] mt-0.5">{t('org.legal_subtitle')}</p>
                                     </div>
                                     <Field label={t('org.street')} hint={t('org.billing_address_hint')}>

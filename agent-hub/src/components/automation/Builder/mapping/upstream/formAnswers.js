@@ -6,6 +6,8 @@
  * the trigger produces, one page later". The `app_pick` answer is the part
  * neither could write out for itself, so it lives here and both read it.
  */
+import { appendKey } from '@shared/expr/path.mjs';
+import { fieldFor } from './fieldTree';
 import { pickSourceById } from '../../flow/pickSourceCatalog';
 
 /**
@@ -57,6 +59,6 @@ export function describeFormPage(node) {
         kind: 'form_page',
         basePath: base,
         sample: Object.fromEntries(fields.map(f => [f.name, sampleFor(f)])),
-        fields: fields.map(f => ({ key: f.name, path: `${base}.${f.name}`, sample: sampleFor(f) })),
+        fields: fields.map(f => fieldFor(f.name, appendKey(base, f.name), sampleFor(f))),
     };
 }

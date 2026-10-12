@@ -1,4 +1,4 @@
-import { mayNavigate } from '../utils/unsavedNavigation';
+import { whenMayNavigate } from '../utils/unsavedNavigation';
 import { useCallback } from 'react';
 import {
     PAGE_ROUTES,
@@ -6,6 +6,7 @@ import {
     mobilePageKey,
     parseAdminPath,
     parseOrgSettingsPath,
+    documentRoutePath,
 } from './appRoutes';
 import { isProjectsPage, projectRouteFromPage } from './projectNavigation';
 import { parseStudioQuery, sectionFromRaw, segmentForSection } from '../components/admin/Studio/studioRoutes';
@@ -23,6 +24,7 @@ export function useNavigateToPage({
     setAdminPath,
     setOrgSettingsPath,
     setInitialCoworkId,
+    setInitialDocumentId = () => {},
     setShowProfileMenu,
     setShowAgentDesigner,
     setShowAgentWizard,
@@ -37,8 +39,7 @@ export function useNavigateToPage({
     setShowProjects = () => {},
     setInitialProjectRoute = () => {},
 }) {
-    const navigateToPage = useCallback((page, { replace = false } = {}) => {
-        if (!mayNavigate()) return;
+    const navigateToPage = useCallback((page, { replace = false } = {}) => whenMayNavigate(() => {
         // Mobile access control: on phones, any destination that isn't chat or
         // user-settings bounces to the app home. Belt-and-suspenders with
         // MobileRouteGuard (which catches deep-links/refresh + resize). Close
@@ -232,7 +233,13 @@ export function useNavigateToPage({
             setAdminPath(parseAdminPath(path));
             setShowProfileMenu(false);
             setShowStudio(false);
-            window.history.pushState({ page: 'admin' }, '', path);
+            // The Compliance Center hands over its header tab in the path
+            // ('admin/compliance/frameworks?tab=calendar') and asks for
+            // `replace` when it redirects a legacy link, so Back skips it.
+            // A tab switch on the same page already rewrote the URL: no
+            // second, identical history entry.
+            if (replace) window.history.replaceState({ page: 'admin' }, '', path);
+            else if (window.location.pathname + window.location.search !== path) window.history.pushState({ page: 'admin' }, '', path);
             return;
         }
         // Support org-settings sub-paths like 'org-settings/agents'
@@ -244,6 +251,22 @@ export function useNavigateToPage({
             setShowStudio(false);
             setShowProfileMenu(false);
             window.history.pushState({ page: 'orgSettings' }, '', path);
+            return;
+        }
+        // The member library uses the normal workspace, without Studio panels.
+        if (page === 'documents' || page.startsWith('documents/')) {
+            const documentId = page.startsWith('documents/') ? page.slice('documents/'.length) : null;
+            setInitialDocumentId(documentId);
+            setCurrentPage('documents');
+            setShowStudio(false);
+            setShowSettings(false);
+            setShowAgentDesigner(false);
+            setShowAgentWizard(false);
+            setShowSkillsPanel(false);
+            setShowProfileMenu(false);
+            const path = documentRoutePath(documentId);
+            if (replace) window.history.replaceState({ page: 'documents' }, '', path);
+            else if (window.location.pathname !== path) window.history.pushState({ page: 'documents' }, '', path);
             return;
         }
         // Notebooks — a notebook is a document type and lives in Studio →
@@ -346,7 +369,7 @@ export function useNavigateToPage({
         setShowSkillsPanel(false);
         const path = PAGE_ROUTES[page] || '/';
         window.history.pushState({ page }, '', path);
-    }, []);
+    }), []);
 
     return navigateToPage;
 }

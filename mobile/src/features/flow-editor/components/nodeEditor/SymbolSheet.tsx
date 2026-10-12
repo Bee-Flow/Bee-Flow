@@ -44,10 +44,10 @@ export function SymbolSheet({
         <Sheet
             visible={visible}
             onClose={onClose}
-            title={t('mobile.flow.ndv.symbol_title', 'Choose a symbol for this step')}
+            title={t('automations.settings_form.choose_a_symbol_for_this_step', 'Choose a symbol for this step')}
             footer={<Button variant="secondary" label={t('mobile.flow.ndv.symbol_default', 'Default')} onPress={() => pick('')} disabled={!value} />}
         >
-            <SearchField value={query} onChangeText={setQuery} placeholder={t('mobile.flow.ndv.symbol_search', 'Search symbols…')} />
+            <SearchField value={query} onChangeText={setQuery} placeholder={t('automations.step_icons.search_symbols', 'Search symbols…')} />
             <View style={styles.grid}>
                 {results.map((name) => (
                     <Pressable
@@ -65,7 +65,7 @@ export function SymbolSheet({
             </View>
             {results.length === 0 ? (
                 <Text variant="caption" tone="tertiary" center>
-                    {t('mobile.flow.ndv.symbol_none', 'No matches')}
+                    {t('automations.step_icons.no_matches', 'No matches')}
                 </Text>
             ) : null}
         </Sheet>

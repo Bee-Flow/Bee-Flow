@@ -8,6 +8,7 @@ import StageRail from './pipeline/StageRail';
 import { getPipeline, stageFromSearch } from './pipeline/stagesApi';
 import StageStatus from './pipeline/StageStatus';
 import { useStageLabel } from './pipeline/StageSwitcher';
+import Notice from './Notice';
 import ProjectAudienceCapsule from './ProjectAudienceCapsule';
 import ProjectFlowTab from './ProjectFlowTab';
 import ProjectOverviewTab from './ProjectOverviewTab';
@@ -98,17 +99,29 @@ function SolutionDetailView({
         if (tab === 'versions') fetchReleases();
     }, [tab, fetchActivity, fetchGraph, fetchReleases]);
 
+    // A refused or failed removal is said out loud: the listing stays truthful
+    // (the row is still there), but a Remove button that does nothing, silently,
+    // is not an answer.
+    const [removeError, setRemoveError] = useState(null);
     const removeResource = async (kind, item) => {
+        setRemoveError(null);
         try {
-            await authFetch(`${API_BASE}/api/projects/${project.id}/resources`, {
+            const res = await authFetch(`${API_BASE}/api/projects/${project.id}/resources`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ kind, id: item.id, attach: false }),
             });
+            if (!res.ok) {
+                const body = await res.json().catch(() => null);
+                setRemoveError(body?.error || t('solutions.remove_failed', 'That could not be removed from the Solution.'));
+                return;
+            }
             fetchResources();
             fetchGraph();
             fetchCompleteness();
-        } catch { /* the listing still shows it, which is the truth */ }
+        } catch {
+            setRemoveError(t('solutions.remove_failed', 'That could not be removed from the Solution.'));
+        }
     };
 
     const rename = async (next) => {
@@ -253,6 +266,9 @@ function SolutionDetailView({
                     {!isStage && tab === 'pipeline' && pipeline?.dev && (
                         <VariablesDeclarations solutionId={project.id} canEdit={canEdit} />
                     )}
+                    {tab === 'content' && removeError && (
+                        <Notice tone="error" testId="solution-remove-error">{removeError}</Notice>
+                    )}
                     {tab === 'content' && (
                         <SolutionContentTable
                             projectId={dataId}
@@ -284,7 +300,7 @@ function SolutionDetailView({
                         <ProjectOverviewTab
                             resources={data.resources}
                             loading={data.resourcesLoading}
-                            activity={data.activity}
+                            activity={data.activityFailed ? null : data.activity}
                             activeRuns={data.runs}
                             onOpenTab={() => setTab('content')}
                             formatActivity={humanizeActivity}

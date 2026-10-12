@@ -1,7 +1,7 @@
 import { ExternalLink, FlaskConical, Trash2, Users, Workflow, X } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import ActionChoiceCards from './ActionChoiceCards';
-import { EffectEditor, NavigateParamsEditor, ReturnedEcho, TONE_OPTIONS } from './ActionEffectEditors';
+import { EffectEditor, NavigateParamsEditor, ReturnedEcho, toneOptions } from './ActionEffectEditors';
 import { EDITOR_BY_KIND, defaultActionForKind } from './actionKindCatalog';
 import { describeAction } from './actionLabels';
 import { joinNames, stepCount } from './actionRefs';
@@ -217,12 +217,12 @@ function EventWiring({ event, node, definition, onCommit, onTestActionResult, di
                         value={actionId || ''}
                         onChange={(e) => onSelectAction(e.target.value)}
                         disabled={disabled}
-                        aria-label={`Action for ${event}`}
+                        aria-label={t('studio_apps_insp.actions.action_for', 'Action for {event}', { event })}
                     >
-                        <option value="">{actionId ? 'Nothing happens' : 'Choose what happens…'}</option>
-                        <option value={NEW_ACTION}>New action…</option>
+                        <option value="">{actionId ? t('studio_apps_insp.actions.nothing_happens', 'Nothing happens') : t('studio_apps_insp.actions.choose_what_happens', 'Choose what happens…')}</option>
+                        <option value={NEW_ACTION}>{t('studio_apps_insp.actions.new_action', 'New action…')}</option>
                         {choices.length ? (
-                            <optgroup label="Reuse something this app already does">
+                            <optgroup label={t('studio_apps_insp.actions.reuse_group', 'Reuse something this app already does')}>
                                 {choices.map((c) => (
                                     <option key={c.id} value={c.id}>{c.label}</option>
                                 ))}
@@ -230,7 +230,7 @@ function EventWiring({ event, node, definition, onCommit, onTestActionResult, di
                         ) : null}
                     </select>
                     {action ? (
-                        <IconButton ariaLabel="Delete action" onClick={requestDelete} disabled={disabled} variant="danger">
+                        <IconButton ariaLabel={t('studio_apps_insp.actions.delete_action', 'Delete action')} onClick={requestDelete} disabled={disabled} variant="danger">
                             <Trash2 />
                         </IconButton>
                     ) : null}
@@ -244,8 +244,9 @@ function EventWiring({ event, node, definition, onCommit, onTestActionResult, di
                             <p className="flex items-start gap-1.5 text-xs text-amber-600">
                                 <Users className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                                 <span>
-                                    This is shared with {sharedWith.length} other component{sharedWith.length === 1 ? '' : 's'}
-                                    {' '}({joinNames(sharedWith)}) — changes affect all of them.
+                                    {sharedWith.length === 1
+                                        ? t('studio_apps_insp.actions.shared_with_one', 'This is shared with {count} other component ({names}) — changes affect all of them.', { count: sharedWith.length, names: joinNames(sharedWith) })
+                                        : t('studio_apps_insp.actions.shared_with_many', 'This is shared with {count} other components ({names}) — changes affect all of them.', { count: sharedWith.length, names: joinNames(sharedWith) })}
                                 </span>
                             </p>
                             <button
@@ -254,7 +255,7 @@ function EventWiring({ event, node, definition, onCommit, onTestActionResult, di
                                 disabled={disabled}
                                 className="self-start px-2.5 py-1 text-xs rounded-md border border-amber-500/50 text-amber-600 hover:bg-amber-500/10 transition-colors disabled:opacity-50"
                             >
-                                Only for this one
+                                {t('studio_apps_insp.actions.only_this_one', 'Only for this one')}
                             </button>
                         </div>
                     ) : null}
@@ -281,7 +282,9 @@ function EventWiring({ event, node, definition, onCommit, onTestActionResult, di
                     {action.kind === 'sequence' ? (
                         <div className="flex flex-col gap-1.5 rounded-md border border-[var(--border-subtle)] p-2.5">
                             <span className="text-xs text-[var(--text-primary)]">
-                                {stepCount(action)} step{stepCount(action) === 1 ? '' : 's'}, run in order.
+                                {stepCount(action) === 1
+                                    ? t('studio_apps_insp.actions.steps_one', '{count} step, run in order.', { count: stepCount(action) })
+                                    : t('studio_apps_insp.actions.steps_many', '{count} steps, run in order.', { count: stepCount(action) })}
                             </span>
                             <button
                                 type="button"
@@ -289,7 +292,7 @@ function EventWiring({ event, node, definition, onCommit, onTestActionResult, di
                                 disabled={disabled}
                                 className="self-start inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md border border-[var(--border-default)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)]"
                             >
-                                <Workflow className="w-3.5 h-3.5" aria-hidden="true" /> Edit the flow
+                                <Workflow className="w-3.5 h-3.5" aria-hidden="true" /> {t('app_studio.inspector.edit_the_flow', 'Edit the flow')}
                             </button>
                         </div>
                     ) : null}
@@ -358,7 +361,7 @@ function EventWiring({ event, node, definition, onCommit, onTestActionResult, di
                                                 disabled={disabled}
                                                 className="px-3 py-1.5 text-xs rounded-md border border-dashed border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors disabled:opacity-50"
                                             >
-                                                + Add parameter
+                                                {t('studio_apps_insp.actions.add_parameter', '+ Add parameter')}
                                             </button>
                                         </div>
                                     </Disclosure>
@@ -371,14 +374,14 @@ function EventWiring({ event, node, definition, onCommit, onTestActionResult, di
                                     <Disclosure title={t('app_studio.inspector.all_options', 'All options')}>
                                         <div className="flex flex-col gap-2">
                                             <EffectEditor
-                                                label="On success"
+                                                label={t('studio_apps_insp.actions.on_success', 'On success')}
                                                 effect={action.onSuccess}
                                                 screens={screens}
                                                 onChange={(e) => setEffect('onSuccess', e)}
                                                 disabled={disabled}
                                             />
                                             <EffectEditor
-                                                label="On error"
+                                                label={t('studio_apps_insp.actions.on_error', 'On error')}
                                                 effect={action.onError}
                                                 screens={screens}
                                                 onChange={(e) => setEffect('onError', e)}
@@ -422,9 +425,9 @@ function EventWiring({ event, node, definition, onCommit, onTestActionResult, di
                             ) : null}
                             <ConfirmDialog
                                 open={confirmTest}
-                                title={`Run “${titleFor(action.automationId) || 'this automation'}” now?`}
-                                description="This is the real run, not a rehearsal — anything it sends or writes actually happens."
-                                confirmLabel="Run it"
+                                title={t('studio_apps_insp.actions.run_now_title', 'Run “{name}” now?', { name: titleFor(action.automationId) || t('studio_apps_insp.actions.this_automation', 'this automation') })}
+                                description={t('studio_apps_insp.actions.run_now_description', 'This is the real run, not a rehearsal — anything it sends or writes actually happens.')}
+                                confirmLabel={t('studio_apps_insp.actions.run_it', 'Run it')}
                                 onConfirm={runTest}
                                 onCancel={() => setConfirmTest(false)}
                             />
@@ -433,9 +436,9 @@ function EventWiring({ event, node, definition, onCommit, onTestActionResult, di
                                 <div className="rounded-md border border-[var(--border-subtle)] overflow-hidden">
                                     <div className="flex items-center justify-between px-2.5 py-1.5 bg-[var(--bg-tertiary)]">
                                         <span className={`text-[11px] font-semibold uppercase tracking-wide ${test.status === 'error' ? 'text-rose-500' : 'text-emerald-500'}`}>
-                                            {test.status === 'error' ? 'Test failed' : 'Test result'}
+                                            {test.status === 'error' ? t('studio_apps_insp.actions.test_failed', 'Test failed') : t('studio_apps_insp.actions.test_result', 'Test result')}
                                         </span>
-                                        <IconButton ariaLabel="Dismiss test result" onClick={() => setTest(null)} size="sm">
+                                        <IconButton ariaLabel={t('studio_apps_insp.actions.dismiss_test_result', 'Dismiss test result')} onClick={() => setTest(null)} size="sm">
                                             <X />
                                         </IconButton>
                                     </div>
@@ -486,13 +489,13 @@ function EventWiring({ event, node, definition, onCommit, onTestActionResult, di
 
                     {action.kind === 'navigate' && (
                         <>
-                            <FormField label="Screen">
+                            <FormField label={t('studio_apps_insp.actions.screen', 'Screen')}>
                                 <select
                                     className={INPUT_CLS}
                                     value={action.screenId || ''}
                                     onChange={(e) => commitAction({ ...action, screenId: e.target.value })}
                                     disabled={disabled}
-                                    aria-label="Target screen"
+                                    aria-label={t('studio_apps_insp.actions.target_screen', 'Target screen')}
                                 >
                                     {screens.map((s) => (
                                         <option key={s.id} value={s.id}>{s.name || s.id}</option>
@@ -512,25 +515,25 @@ function EventWiring({ event, node, definition, onCommit, onTestActionResult, di
 
                     {action.kind === 'toast' && (
                         <>
-                            <FormField label="Message">
+                            <FormField label={t('studio_apps_insp.actions.message', 'Message')}>
                                 <input
                                     type="text"
                                     className={INPUT_CLS}
                                     value={action.message || ''}
                                     onChange={(e) => commitAction({ ...action, message: e.target.value })}
-                                    placeholder="What should the message say?"
+                                    placeholder={t('studio_apps_insp.actions.message_placeholder', 'What should the message say?')}
                                     disabled={disabled}
                                 />
                             </FormField>
-                            <FormField label="Tone">
+                            <FormField label={t('studio_apps_insp.actions.tone', 'Tone')}>
                                 <SegmentedControl
                                     value={action.tone || 'info'}
                                     onChange={(tone) => commitAction({ ...action, tone })}
-                                    options={TONE_OPTIONS}
+                                    options={toneOptions(t)}
                                     size="sm"
                                     fullWidth
                                     disabled={disabled}
-                                    ariaLabel="Message tone"
+                                    ariaLabel={t('studio_apps_insp.actions.message_tone', 'Message tone')}
                                 />
                             </FormField>
                         </>
@@ -538,19 +541,19 @@ function EventWiring({ event, node, definition, onCommit, onTestActionResult, di
 
                     {action.kind === 'open_url' && (
                         <>
-                            <FormField label="URL" hint="Must be an https URL.">
+                            <FormField label={t('studio_apps_insp.actions.url', 'URL')} hint={t('studio_apps_insp.actions.url_hint', 'Must be an https URL.')}>
                                 <input
                                     type="text"
                                     className={INPUT_CLS}
                                     value={action.url || ''}
                                     onChange={(e) => commitAction({ ...action, url: e.target.value })}
-                                    placeholder="https://…"
+                                    placeholder={t('studio_apps_insp.actions.url_placeholder', 'https://…')}
                                     disabled={disabled}
                                     spellCheck={false}
                                 />
                             </FormField>
                             <Toggle
-                                label="Open in a new tab"
+                                label={t('studio_apps_insp.actions.open_new_tab', 'Open in a new tab')}
                                 checked={action.newTab !== false}
                                 onChange={(v) => commitAction({ ...action, newTab: v })}
                                 disabled={disabled}
@@ -582,19 +585,21 @@ function EventWiring({ event, node, definition, onCommit, onTestActionResult, di
             {action ? (
             <ConfirmDialog
                 open={confirmDelete}
-                title={`Delete “${describeAction(actionId, action, definition, titleFor)}”?`}
+                title={t('studio_apps_insp.actions.delete_title', 'Delete “{name}”?', { name: describeAction(actionId, action, definition, titleFor, t) })}
                 description={(
                     <>
                         {sharedWith.length ? (
-                            <>It stops happening on {joinNames(sharedWith)} too. </>
+                            <>{t('studio_apps_insp.actions.delete_shared', 'It stops happening on {names} too.', { names: joinNames(sharedWith) })} </>
                         ) : null}
                         {resultShownBy.length ? (
-                            <>{joinNames(resultShownBy)} show{resultShownBy.length === 1 ? 's' : ''} what it produced, and will be left empty. </>
+                            <>{resultShownBy.length === 1
+                                ? t('studio_apps_insp.actions.delete_result_one', '{names} shows what it produced, and will be left empty.', { names: joinNames(resultShownBy) })
+                                : t('studio_apps_insp.actions.delete_result_many', '{names} show what it produced, and will be left empty.', { names: joinNames(resultShownBy) })} </>
                         ) : null}
-                        This can&apos;t be undone.
+                        {t('studio_apps_insp.actions.cannot_undo', "This can't be undone.")}
                     </>
                 )}
-                confirmLabel="Delete everywhere"
+                confirmLabel={t('studio_apps_insp.actions.delete_everywhere', 'Delete everywhere')}
                 destructive
                 onConfirm={onDeleteAction}
                 onCancel={() => setConfirmDelete(false)}
@@ -606,9 +611,9 @@ function EventWiring({ event, node, definition, onCommit, onTestActionResult, di
                 select, with no warning. */}
             <ConfirmDialog
                 open={!!confirmFlatten}
-                title="Keep only one step?"
-                description={`This flow has ${stepCount(action)} steps. Changing it back to a single action keeps none of them.`}
-                confirmLabel="Discard the other steps"
+                title={t('studio_apps_insp.actions.flatten_title', 'Keep only one step?')}
+                description={t('studio_apps_insp.actions.flatten_description', 'This flow has {count} steps. Changing it back to a single action keeps none of them.', { count: stepCount(action) })}
+                confirmLabel={t('studio_apps_insp.actions.flatten_confirm', 'Discard the other steps')}
                 destructive
                 onConfirm={() => {
                     commitAction(defaultActionForKind(confirmFlatten, definition, formFields));
@@ -620,8 +625,8 @@ function EventWiring({ event, node, definition, onCommit, onTestActionResult, di
             <Modal
                 open={!!flowFor}
                 onClose={() => setFlowFor(null)}
-                title="What happens, step by step"
-                description="Each step runs in order. A branch runs only the path it takes."
+                title={t('studio_apps_insp.actions.flow_title', 'What happens, step by step')}
+                description={t('studio_apps_insp.actions.flow_description', 'Each step runs in order. A branch runs only the path it takes.')}
                 size="full"
             >
                 {flowFor ? (

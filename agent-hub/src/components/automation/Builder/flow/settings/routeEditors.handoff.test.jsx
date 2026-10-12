@@ -114,7 +114,8 @@ describe('Condition editor — the semantic handoff', () => {
         nameAnswers('complaint, question, something else');
         await screen.findByRole('button', { name: /Add the step/i });
         // The node still has the single output it opened with.
-        expect(screen.getByText('This node has 1 output.')).toBeTruthy();
+        // A whole-run Condition: its one output, and the else port as “Otherwise”.
+        expect(screen.getByText('This node has 1 output plus “Otherwise”.')).toBeTruthy();
         expect(onInsertUpstreamStep).not.toHaveBeenCalled();
         expect(onPatch).not.toHaveBeenCalled();
     });
@@ -138,9 +139,9 @@ describe('Condition editor — the semantic handoff', () => {
         expect(patch.type).toBe('switch');
         expect(patch.matchMode).toBe('all');
         expect(patch.cases).toEqual([
-            { name: 'complaint', expr: `steps.${inserted.id}.output.${field} == "complaint"` },
-            { name: 'question', expr: `steps.${inserted.id}.output.${field} == "question"` },
-            { name: 'something_else', expr: `steps.${inserted.id}.output.${field} == "something else"` },
+            { name: 'complaint', expr: `equals(steps.${inserted.id}.output.${field}, "complaint")` },
+            { name: 'question', expr: `equals(steps.${inserted.id}.output.${field}, "question")` },
+            { name: 'something_else', expr: `equals(steps.${inserted.id}.output.${field}, "something else")` },
         ]);
     });
 
@@ -163,8 +164,8 @@ describe('Condition editor — the semantic handoff', () => {
         // every rule below read undefined, forever, silently.
         expect(patch.arrayRef).toBe(`steps.${inserted.id}.output.results`);
         expect(patch.cases).toEqual([
-            { name: 'complaint', expr: `item.output.${field} == "complaint"` },
-            { name: 'something_else', expr: `item.output.${field} == "something else"` },
+            { name: 'complaint', expr: `equals(item.output.${field}, "complaint")` },
+            { name: 'something_else', expr: `equals(item.output.${field}, "something else")` },
         ]);
     });
 
@@ -188,7 +189,8 @@ describe('Condition editor — the semantic handoff', () => {
         fireEvent.click(await screen.findByRole('button', { name: /Add the step/i }));
         // Rules naming a step that was never added would be the empty branch
         // this feature exists to remove, arriving through its own front door.
-        expect(screen.getByText('This node has 1 output.')).toBeTruthy();
+        // A whole-run Condition: its one output, and the else port as “Otherwise”.
+        expect(screen.getByText('This node has 1 output plus “Otherwise”.')).toBeTruthy();
         expect(onPatch).not.toHaveBeenCalled();
     });
 });

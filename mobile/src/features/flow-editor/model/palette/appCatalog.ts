@@ -29,7 +29,7 @@ export const APP_CATEGORIES: Readonly<Record<string, readonly [string, number?]>
     'image-gen': [AI], 'music-gen': [AI], 'video-gen': [AI], elevenlabs: [AI], 'agent-search': [AI],
     'browser-fetch': [AI], transcription: [AI], 'kb-search': [AI],
     fireflies: ['Productivity'], gamma: ['Productivity'], 'afas-profit': ['Productivity'], nmbrs: ['Productivity'],
-    vplan: ['Productivity'], signrequest: ['Productivity'],
+    vplan: ['Productivity'], signrequest: ['Productivity'], 'scaleway-billing': ['Productivity'],
     youtrack: ['Developer'], github: ['Developer'],
     n8n: ['Automation'], webpages: ['Automation'],
     linkedin: ['Social'], withings: ['Health'],
@@ -54,12 +54,15 @@ const PREFIX_TO_INTEGRATION: readonly (readonly [string, string])[] = (
         ['outlook_', 'outlook'], ['onedrive_', 'onedrive'], ['fireflies_', 'fireflies'], ['youtrack_', 'youtrack'],
         ['signrequest_', 'signrequest'], ['gamma_', 'gamma'], ['afas_', 'afas_profit'], ['nmbrs_', 'nmbrs'],
         ['linkedin_', 'linkedin'], ['github_', 'github'], ['generate_', 'media_gen'], ['maps_', 'maps'],
-        ['transcribe_', 'transcription'],
+        ['transcribe_', 'transcription'], ['memory_', 'memory'], ['webpage_', 'webpages'], ['webpages_', 'webpages'],
     ] as [string, string][]
 ).sort((a, b) => b[0].length - a[0].length);
 
 const STATIC_TOOL_TO_INTEGRATION: Readonly<Record<string, string>> = {
-    agent_search: 'web_search', web_search: 'web_search', kb_search: 'kb_search',
+    agent_search: 'web_search', web_search: 'web_search', kb_search: 'kb_search', kb_fetch: 'kb_search',
+    knowledge_base_ingest: 'kb_ingest', automation_runs_summary: 'automation_evolution',
+    automation_propose_evolution: 'automation_evolution', automation_apply_evolution: 'automation_evolution',
+    create_presentation: 'presentation_builder',
     send_email: 'email', read_emails: 'email', search_emails: 'email',
     read_calendar: 'calendar', create_calendar_event: 'calendar',
     search_maps: 'maps', get_directions: 'maps',

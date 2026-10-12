@@ -33,9 +33,9 @@ function KeyList({ keys, options, onChange, addLabel, disabled }: { keys: unknow
         <>
             {rows.map((k, i) => (
                 <React.Fragment key={i}>
-                    <SuggestText value={k} onChange={(v) => onChange(setKeyAt(keys, i, v))} suggestions={options} label={t('mobile.flow.set.column', 'Column')} disabled={disabled} />
+                    <SuggestText value={k} onChange={(v) => onChange(setKeyAt(keys, i, v))} suggestions={options} label={t('automations.set_operations_editor.column_2', 'Column')} disabled={disabled} />
                     {rows.length > 1 && !disabled ? (
-                        <IconButton icon={<Icon name="Trash2" size={14} />} accessibilityLabel={t('mobile.flow.set.remove_column', 'Remove column')} onPress={() => onChange(removeAt(rows, i))} />
+                        <IconButton icon={<Icon name="Trash2" size={14} />} accessibilityLabel={t('automations.set_operations_editor.remove_column', 'Remove column')} onPress={() => onChange(removeAt(rows, i))} />
                     ) : null}
                 </React.Fragment>
             ))}
@@ -64,29 +64,29 @@ function OpBody({ op, options, onChange, disabled }: CardProps) {
         case 'rowId':
             return (
                 <>
-                    <CommitText label={t('mobile.flow.set.number_into', 'Put the number in')} value={target} onCommit={(v) => onChange({ target: v })} placeholder={ROW_ID_EXAMPLE} warning={warn(target)} disabled={disabled} />
-                    <NumberField label={t('mobile.flow.set.start_at', 'Start at')} value={op.start ?? 1} onChange={(start) => onChange({ start })} allowBlank disabled={disabled} />
+                    <CommitText label={t('automations.set_operations_editor.put_the_number_in', 'Put the number in')} value={target} onCommit={(v) => onChange({ target: v })} placeholder={ROW_ID_EXAMPLE} warning={warn(target)} disabled={disabled} />
+                    <NumberField label={t('automations.set_operations_editor.start_at', 'Start at')} value={op.start ?? 1} onChange={(start) => onChange({ start })} allowBlank disabled={disabled} />
                 </>
             );
         case 'groupId':
             return (
                 <>
                     <Text variant="label" tone="tertiary">
-                        {t('mobile.flow.set.match_when_equal', 'Rows match when these are equal')}
+                        {t('automations.set_operations_editor.rows_match_when_these_are_equal', 'Rows match when these are equal')}
                     </Text>
                     <KeyList keys={op.keys} options={options} onChange={(keys) => onChange({ keys })} addLabel={t('mobile.flow.set.add_another_column', 'Add another column')} disabled={disabled} />
-                    <CommitText label={t('mobile.flow.set.shared_id_into', 'Put the shared ID in')} value={target} onCommit={(v) => onChange({ target: v })} placeholder={GROUP_ID_EXAMPLE} warning={warn(target)} disabled={disabled} />
-                    <Note>{t('mobile.flow.set.group_hint', 'Rows with the same value(s) get the same number, in order of first appearance. Text matches ignore upper/lower case.')}</Note>
+                    <CommitText label={t('automations.set_operations_editor.put_the_shared_id_in', 'Put the shared ID in')} value={target} onCommit={(v) => onChange({ target: v })} placeholder={GROUP_ID_EXAMPLE} warning={warn(target)} disabled={disabled} />
+                    <Note>{t('automations.set_operations_editor.rows_with_the_same_value_s', 'Rows with the same value(s) get the same number, in order of first appearance. Text matches ignore upper/lower case.')}</Note>
                 </>
             );
         case 'rename':
             return (
                 <>
-                    <SuggestText value={text(op.from)} onChange={(from) => onChange({ from })} suggestions={options} label={t('mobile.flow.set.rename', 'Rename')} prompt={t('mobile.flow.set.current_name', 'current name')} disabled={disabled} />
+                    <SuggestText value={text(op.from)} onChange={(from) => onChange({ from })} suggestions={options} label={t('mobile.flow.set.rename', 'Rename')} prompt={t('automations.set_operations_editor.current_name', 'current name')} disabled={disabled} />
                     <CommitText
                         value={text(op.to)}
                         onCommit={(to) => onChange({ to })}
-                        placeholder={t('mobile.flow.set.new_name', 'new name')}
+                        placeholder={t('automations.set_operations_editor.new_name', 'new name')}
                         warning={op.to !== op.from ? warn(op.to) : null}
                         disabled={disabled}
                     />
@@ -105,12 +105,12 @@ function OpBody({ op, options, onChange, disabled }: CardProps) {
         case 'sort':
             return (
                 <>
-                    <SuggestText value={text(op.key)} onChange={(key) => onChange({ key })} suggestions={options} label={t('mobile.flow.set.sort_by', 'Sort by')} prompt={t('mobile.flow.set.column_to_sort', 'column to sort by')} disabled={disabled} />
+                    <SuggestText value={text(op.key)} onChange={(key) => onChange({ key })} suggestions={options} label={t('automations.set_operations_editor.sort_by', 'Sort by')} prompt={t('automations.set_operations_editor.column_to_sort_by', 'column to sort by')} disabled={disabled} />
                     <SelectField
                         value={op.direction === 'desc' ? 'desc' : 'asc'}
                         options={[
-                            { value: 'asc', label: t('mobile.flow.set.asc', 'A → Z / low → high') },
-                            { value: 'desc', label: t('mobile.flow.set.desc', 'Z → A / high → low') },
+                            { value: 'asc', label: t('automations.set_operations_editor.a_z_low_high', 'A → Z / low → high') },
+                            { value: 'desc', label: t('automations.set_operations_editor.z_a_high_low', 'Z → A / high → low') },
                         ]}
                         onChange={(direction) => onChange({ direction })}
                         disabled={disabled}
@@ -127,7 +127,7 @@ export function SetOperationsEditor({ ops, onChange, baseColumns, disabled = fal
     const [menu, setMenu] = useState(false);
     return (
         <>
-            {ops.length === 0 ? <Note>{t('mobile.flow.set.no_ops', 'Nothing yet — number the rows, give matching rows a shared ID, rename, keep/remove or sort.')}</Note> : null}
+            {ops.length === 0 ? <Note>{t('automations.set_operations_editor.nothing_yet_number_the_rows_give', 'Nothing yet — number the rows, give matching rows a shared ID, rename, keep/remove or sort.')}</Note> : null}
             {ops.map((op, i) => {
                 const def = opDef(op.op);
                 return (
@@ -137,7 +137,7 @@ export function SetOperationsEditor({ ops, onChange, baseColumns, disabled = fal
                         onMoveUp={i > 0 ? () => onChange(moveAt(ops, i, -1)) : null}
                         onMoveDown={i < ops.length - 1 ? () => onChange(moveAt(ops, i, 1)) : null}
                         onRemove={() => onChange(removeAt(ops, i))}
-                        removeLabel={t('mobile.flow.set.remove_op', 'Remove operation')}
+                        removeLabel={t('automations.set_operations_editor.remove_operation', 'Remove operation')}
                         disabled={disabled}
                         testID={`set-op-${i + 1}`}
                     >
@@ -145,8 +145,8 @@ export function SetOperationsEditor({ ops, onChange, baseColumns, disabled = fal
                     </RowCard>
                 );
             })}
-            <AddButton label={t('mobile.flow.set.add_tool', 'Add a table tool')} onPress={() => setMenu(true)} disabled={disabled} testID="set-op-add" />
-            <Sheet visible={menu} onClose={() => setMenu(false)} title={t('mobile.flow.set.add_tool', 'Add a table tool')}>
+            <AddButton label={t('automations.set_operations_editor.add_a_table_tool', 'Add a table tool')} onPress={() => setMenu(true)} disabled={disabled} testID="set-op-add" />
+            <Sheet visible={menu} onClose={() => setMenu(false)} title={t('automations.set_operations_editor.add_a_table_tool', 'Add a table tool')}>
                 {SET_OP_DEFS.map((def) => (
                     <OptionRow
                         key={def.op}

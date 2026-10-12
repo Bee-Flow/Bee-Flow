@@ -53,4 +53,6 @@ module.exports = {
     "privacy.sensitivity_finds_more": "finds more",
     "privacy.sensitivity_slider_label": "Detection sensitivity",
     "privacy.sensitivity_valuetext": "{pct}% — lower finds more",
+    // Hardcoded literals converted (2026-10)
+    'privacy.pii_action_picker_label': 'Action on detection',
 };

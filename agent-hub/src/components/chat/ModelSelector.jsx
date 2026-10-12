@@ -330,7 +330,7 @@ export default function ModelSelector({ models, value, onChange, defaultLabel, c
 
                         {filtered.length === 0 && search && (
                             <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
-                                No models matching "{search}"
+                                {t('chat.model_selector_no_match', 'No models matching "{query}"', { query: search })}
                             </div>
                         )}
                     </div>

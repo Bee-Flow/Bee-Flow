@@ -15,6 +15,25 @@
  * (or a legacy project that is not classified yet) holds documents; a Studio
  * Solution is refused with 409, as membership.isAllowedIn says.
  *
+ * POST /:id/documents also takes two options besides `starterId`:
+ *   docType 'spreadsheet'  a spreadsheet. Its cells live in a datatable that is
+ *                          made first (as Studio's startSheet does) and dropped
+ *                          again when the document cannot be made. It sits behind
+ *                          the Studio sheet gate (studioDocuments/sheetGate.js),
+ *                          run only for this type, after the role gate and the
+ *                          project checks: 403 `sheets_unavailable`, 503
+ *                          `sheets_unknown`, and nothing is created.
+ *   templateId             one of the CALLER's templates (their own, or shared
+ *                          with them), copied into a private project document
+ *                          from an explicit allow-list (docType, description,
+ *                          body, css, settings without sampleValues and
+ *                          sectionOverrides, plus `source`); categories, folder,
+ *                          visibility and kind are never copied. A template that
+ *                          is missing, not readable, not a template or a
+ *                          spreadsheet is 404 `template_not_found`.
+ * A spreadsheet cannot combine with starterId or templateId, nor templateId with
+ * starterId: 400.
+ *
  * A notebook made here is a notebook all the same, opened only through
  * /api/notebooks: the same module, capability, feature and `use_notebooks`
  * gates stand in front of its create (routes/projects/notebookGate.js), after
@@ -43,7 +62,9 @@ const S = require('./contentSchemas');
  * @param {Function} [deps.requireProjectRole]  (minRole) => middleware named requireProjectRoleMw
  * @param {Function} [deps.getProject]          (id) => project | null
  * @param {Function} [deps.getUser]             (id) => user | null (its organizationId)
- * @param {object}   [deps.documents]           stores/documentStore surface ({ createDocument })
+ * @param {object}   [deps.documents]           stores/documentStore surface ({ createDocument, getDocument })
+ * @param {object}   [deps.cells]               core/documents/sheetCells surface ({ createSheetTable, dropSheetTable })
+ * @param {Function} [deps.requireSheets]       the sheet gate (studioDocuments/sheetGate.makeSheetGate())
  * @param {object}   [deps.notebooks]           stores/notebookStore surface ({ createNotebook })
  * @param {Function} [deps.starters]            (locale) => document starters
  * @param {object}   [deps.membership]          projects/membership surface ({ isAllowedIn })
@@ -73,6 +94,14 @@ function makeContentRouter(deps = {}) {
         .perUserRateLimit({ windowMs: 60_000, max: 30, name: 'project-content-create' });
 
     const requireNotebooks = deps.requireNotebooks || require('./notebookGate').makeNotebookGate();
+
+    /** @type {Function|null} */
+    let boundSheetGate = null;
+    const requireSheets = (req, res, next) => {
+        if (!boundSheetGate) boundSheetGate = deps.requireSheets || require('../studioDocuments/sheetGate').makeSheetGate();
+        return boundSheetGate(req, res, next);
+    };
+    const cells = () => deps.cells || require('../../core/documents/sheetCells');
 
     const userIdOf = (req) => req.session?.user?.id;
 
@@ -127,7 +156,10 @@ function makeContentRouter(deps = {}) {
 
     router.post('/:id/documents', requireRole('editor'), createLimiter, validate({ body: S.NewDocumentBody }), async (req, res) => {
         const userId = userIdOf(req);
-        const { name, docType, starterId, locale } = req.body;
+        const { name, docType, starterId, templateId, locale } = req.body;
+        const isSheet = docType === 'spreadsheet';
+        if (templateId && starterId) throw badRequest('bad_request', 'Pass either templateId or starterId, not both.');
+        if (isSheet && (templateId || starterId)) throw badRequest('bad_request', 'A spreadsheet cannot be made from a template or a starter.');
         let starter = null;
         if (starterId) {
             starter = (starters(locale) || []).find((s) => s.id === starterId) || null;
@@ -135,27 +167,53 @@ function makeContentRouter(deps = {}) {
         }
         const { project } = await loadTarget(req, 'document', 'documents');
 
+        // Project content is a plain, private document of its owner: a starter
+        // or template is a TEMPLATE in the library, and templates and team
+        // sharing are the library's business, not the project's.
+        // loadTarget has checked the creator belongs to the project's organisation.
+        const base = { userId, name, kind: 'document', visibility: 'private', projectId: project.id, projectOrgChecked: true };
+
         let document;
-        try {
-            document = await documents().createDocument({
-                userId,
-                name,
-                docType: docType || starter?.docType,
-                description: starter?.description,
-                bodyHtml: starter?.bodyHtml,
-                css: starter?.css,
-                settings: starter?.settings,
-                // Project content is a plain, private document of its owner: a
-                // starter is a TEMPLATE in the library, and templates and team
-                // sharing are the library's business, not the project's.
-                kind: 'document',
-                visibility: 'private',
-                projectId: project.id,
-                // loadTarget has checked the creator belongs to the project's organisation.
-                projectOrgChecked: true,
+        if (isSheet) {
+            // The sheet gate, as a promise inside the handler (the Studio duplicateSheet way).
+            await new Promise((resolve, reject) => {
+                Promise.resolve().then(() => requireSheets(req, res, (err) => (err ? reject(err) : resolve(undefined)))).catch(reject);
             });
-        } catch (err) {
-            throw fromStoreError(err);
+            const table = await cells().createSheetTable({ ownerUserId: userId, name });
+            try {
+                document = await documents().createDocument({ ...base, docType: 'spreadsheet', sheetTableId: table.id });
+            } catch (err) {
+                await cells().dropSheetTable(userId, table.id).catch(() => undefined);
+                throw fromStoreError(err);
+            }
+        } else if (templateId) {
+            // The store returns only what the caller may read; say nothing about the rest.
+            const tpl = await documents().getDocument(templateId, userId);
+            if (!tpl || tpl.kind !== 'template' || tpl.docType === 'spreadsheet') throw notFound('template_not_found', 'Template not found');
+            // An explicit allow-list: never categories, folder, visibility or kind.
+            const settings = { ...tpl.settings, source: { documentId: tpl.id, versionId: tpl.versionId } };
+            delete settings.sampleValues;
+            delete settings.sectionOverrides;
+            try {
+                document = await documents().createDocument({
+                    ...base, docType: tpl.docType, description: tpl.description, bodyHtml: tpl.bodyHtml, css: tpl.css, settings,
+                });
+            } catch (err) {
+                throw fromStoreError(err);
+            }
+        } else {
+            try {
+                document = await documents().createDocument({
+                    ...base,
+                    docType: docType || starter?.docType,
+                    description: starter?.description,
+                    bodyHtml: starter?.bodyHtml,
+                    css: starter?.css,
+                    settings: starter?.settings,
+                });
+            } catch (err) {
+                throw fromStoreError(err);
+            }
         }
 
         await recordCreated(project.id, userId, 'document', document.id);

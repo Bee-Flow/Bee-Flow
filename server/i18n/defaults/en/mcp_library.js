@@ -114,7 +114,7 @@ module.exports = {
     'mcp_library.me.title': "MCP servers from your organisation",
     'mcp_library.n_tools': "{count} tool",
     'mcp_library.n_tools_plural': "{count} tools",
-    'mcp_library.nav': "MCP library",
+    'mcp_library.nav': "MCP Library",
     'mcp_library.no_match': "No server matches.",
     'mcp_library.official': "Official",
     'mcp_library.policy.allowlist': "Official servers and approved hosts",

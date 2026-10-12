@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { AlertCircle, Loader2, Check } from 'lucide-react';
+import useTranslation from '../../hooks/useTranslation';
 
 /**
  * Shared save-status chip — the one answer to "is my work saved?".
@@ -36,6 +37,7 @@ export default function SaveStatus({
     className = '',
     showWhenIdle = false,
 }) {
+    const { t } = useTranslation();
     // "just now" must not still say "just now" ten minutes later. Only ticks
     // while there is a timestamp on screen to go stale.
     const [, tick] = useState(0);
@@ -53,7 +55,7 @@ export default function SaveStatus({
         if (!showsAge) return null;
         return (
             <span role="status" aria-live="polite" className={base} style={{ fontSize: size, color: MUTED }}>
-                <Check size={iconSize} /> Saved {fmtTime(lastSavedAt)}
+                <Check size={iconSize} /> {t('common.saved_at', 'Saved {time}', { time: fmtTime(lastSavedAt) })}
             </span>
         );
     }
@@ -61,13 +63,13 @@ export default function SaveStatus({
     if (saveState === 'saving') {
         return (
             <span role="status" aria-live="polite" className={base} style={{ fontSize: size, color: MUTED }}>
-                <Loader2 size={iconSize} className="animate-spin" /> Saving…
+                <Loader2 size={iconSize} className="animate-spin" /> {t('common.saving', 'Saving…')}
             </span>
         );
     }
 
     if (saveState === 'error') {
-        const content = <><AlertCircle size={iconSize} /> Save failed{onRetry ? ' — retry' : ''}</>;
+        const content = <><AlertCircle size={iconSize} /> {onRetry ? t('common.save_failed_retry', 'Save failed — retry') : t('common.save_failed', 'Save failed')}</>;
         const style = { fontSize: size, color: DANGER };
         return onRetry ? (
             <button
@@ -76,7 +78,7 @@ export default function SaveStatus({
                 aria-live="assertive"
                 className={`${base} hover:underline`}
                 style={{ ...style, cursor: 'pointer' }}
-                title="Retry save"
+                title={t('common.retry_save', 'Retry save')}
             >
                 {content}
             </button>
@@ -88,7 +90,7 @@ export default function SaveStatus({
     // saved
     return (
         <span role="status" aria-live="polite" className={base} style={{ fontSize: size, color: MUTED }}>
-            <Check size={iconSize} /> Saved {fmtTime(lastSavedAt)}
+            <Check size={iconSize} /> {t('common.saved_at', 'Saved {time}', { time: fmtTime(lastSavedAt) })}
         </span>
     );
 }

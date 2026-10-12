@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import React from 'react';
 
@@ -261,20 +262,51 @@ describe('PublicFormPage — multi-page', () => {
 
         expect(await screen.findByText('All done', {}, { timeout: 4000 })).toBeTruthy();
         expect(screen.getByText('We created ticket T-9.')).toBeTruthy();
-        // …and the finished journey drops ?s=, so a reload starts fresh.
+        // …and the finished journey KEEPS ?s=, so a reload brings the result
+        // back instead of losing it (BFSF-419).
+        expect(new URLSearchParams(window.location.search).get('s')).toBe(SESSION);
+    });
+
+    it('reopening a finished journey shows its result again (BFSF-419)', async () => {
+        window.history.replaceState(null, '', `/f/${TOKEN}?s=${SESSION}`);
+        const f = mockFetch({
+            ...multiLoad,
+            [`GET /${TOKEN}/s/${SESSION}`]: poll({ state: 'done', ending: { title: 'Your blog post', description: 'The post itself.', theme: FORM.theme } }),
+        });
+        vi.stubGlobal('fetch', f);
+        render(<PublicFormPage token={TOKEN} />);
+
+        expect(await screen.findByText('Your blog post')).toBeTruthy();
+        expect(screen.getByText('The post itself.')).toBeTruthy();
+        // Page one was never asked for: the result is what comes back.
+        expect(f.mock.calls.map(c => String(c[0])).some(u => u.endsWith(TOKEN))).toBe(false);
+    });
+
+    it('"Start again" leaves the finished journey for a fresh page one', async () => {
+        window.history.replaceState(null, '', `/f/${TOKEN}?s=${SESSION}`);
+        vi.stubGlobal('fetch', mockFetch({
+            ...multiLoad,
+            [`GET /${TOKEN}/s/${SESSION}`]: poll({ state: 'done', ending: { title: 'All done', description: 'Ticket T-9', theme: FORM.theme } }),
+        }));
+        render(<PublicFormPage token={TOKEN} />);
+        await screen.findByText('All done');
+
+        await userEvent.click(screen.getByTestId('form-start-again'));
+
+        expect(await screen.findByText('Contact us')).toBeTruthy();
         expect(new URLSearchParams(window.location.search).get('s')).toBeNull();
     });
 
     /**
      * The closing page is where a produced document lands, and it is also the
-     * page that has just dropped `?s=` so a reload starts fresh. Those two
+     * page where the journey ends and stops tracking a live session. Those two
      * facts collided: the download URL is scoped to the session, so clearing it
      * left the button with no target. The anchor fell back to `href="#"`, which
      * makes the browser save the CURRENT PAGE under the document's name — a
      * 6 KB index.html called test.pdf, which Chrome refuses to open and Word
      * reports as unreadable content.
      */
-    it('still links the download after the journey drops its session', async () => {
+    it('still links the download after the journey ends', async () => {
         const ending = {
             title: 'All done',
             description: 'Here is what we made.',
@@ -298,8 +330,6 @@ describe('PublicFormPage — multi-page', () => {
             `/api/automation/form/${TOKEN}/s/${SESSION}/file/file_9`,
         );
         expect(link.getAttribute('href')).not.toBe('#');
-        // The session is still gone from the URL — both things have to be true.
-        expect(new URLSearchParams(window.location.search).get('s')).toBeNull();
     });
 
     it('a run with no closing page still ends politely', async () => {

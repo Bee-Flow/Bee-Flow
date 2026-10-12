@@ -29,7 +29,7 @@ const INDEX_SRC = fs.readFileSync(path.join(SERVER_ROOT, 'index.js'), 'utf8');
 // project_comments and notebook_versions joined with wave 2 (comments on
 // project content, notebook version history): both held, neither exportable yet.
 const GAP_KINDS = ['agents', 'knowledge_bases', 'conversations', 'ai_webpages', 'form_submissions',
-    'team_chats', 'project_files', 'studio_documents', 'project_workspaces', 'project_comments', 'notebook_versions'];
+    'team_chats', 'project_files', 'studio_documents', 'project_workspaces', 'project_comments', 'document_suggestions', 'notebook_versions'];
 
 /** A real Postgres (pglite) with the project store's own schema. */
 async function projectPg() {

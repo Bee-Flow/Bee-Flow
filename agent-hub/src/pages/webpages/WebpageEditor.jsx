@@ -1,4 +1,5 @@
 import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from '../../hooks/useTranslation';
 import { lazy } from '../../utils/lazyWithReload';
 
 const MonacoEditor = lazy(() =>
@@ -77,6 +78,7 @@ export default function WebpageEditor({
     onCursorChange,
     decorations = null,
 }) {
+    const { t } = useTranslation();
     const editorRef = useRef(null);
     const [monacoFailed, setMonacoFailed] = useState(false);
 
@@ -120,7 +122,7 @@ export default function WebpageEditor({
                         spellCheck={false}
                     />
                 ) : (
-                    <Suspense fallback={<div className="p-4 text-xs" style={{ color: 'var(--vsc-fg-muted)' }}>Loading editor…</div>}>
+                    <Suspense fallback={<div className="p-4 text-xs" style={{ color: 'var(--vsc-fg-muted)' }}>{t('webpages.editor_loading', 'Loading editor…')}</div>}>
                         <MonacoEditor
                             height="100%"
                             language={language}

@@ -11,8 +11,10 @@ import { canEditProject, type StartChat } from './types';
 import { ErrorText, PrimaryButton } from './workspaceUi';
 
 export const MAX_FIRST_MESSAGE = 20000;
-export default function ProjectComposer({ project, role, onOpenTeamChat }: {
+export default function ProjectComposer({ project, role, readOnly = false, onOpenTeamChat }: {
     project: Project; role: ProjectRole; onStartChat: StartChat; onOpenTeamChat: (chatId: string) => void;
+    /** The project is archived: nothing can be started. */
+    readOnly?: boolean;
 }) {
     const { t } = useTranslation();
     const [text, setText] = useState('');
@@ -31,6 +33,7 @@ export default function ProjectComposer({ project, role, onOpenTeamChat }: {
         } catch (e) { setError(projectErrorText(t, e)); }
     };
     if (project.kind === 'solution') return <p data-testid="composer-solution">{t('project_home.composer.solution', 'A Studio Solution holds no chats. Start chats in a project.')}</p>;
+    if (readOnly) return <p className="text-sm text-[var(--text-secondary)]" data-testid="composer-archived">{t('project_home.archived.read_only', 'This project is archived and read-only. Restore it to change anything.')}</p>;
     if (!canEditProject(role)) return <p className="text-sm text-[var(--text-secondary)]" data-testid="composer-readonly">{t('project_home.composer.readonly', 'You can read everything in this project. Ask the owner for editor access to start chats and add work.')}</p>;
     return <section className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-card)] shadow-sm overflow-hidden" data-testid="project-composer">
         <div className="px-5 pt-5 flex items-center gap-2 text-[var(--text-primary)] font-semibold"><MessageSquare className="w-5 h-5" aria-hidden="true" />{t('project_chat.start_together', 'Start a conversation')}</div>

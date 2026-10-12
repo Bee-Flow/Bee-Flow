@@ -5,6 +5,7 @@ import { humanizeFieldKey } from '../displayHelpers';
 import StepNodeBase from './StepNodeBase';
 import { useNodeRuntime } from '../NodeRuntimeContext';
 import { STEP_NODE_DEFAULT } from '../stepMeta';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 
 /**
  * A "call_block" node — runs a reusable Step (a standalone kind='block' row)
@@ -13,6 +14,7 @@ import { STEP_NODE_DEFAULT } from '../stepMeta';
  * editor provides onOpenBlock via NodeRuntimeContext.
  */
 export default function CallStepNode({ id, data }) {
+    const { t } = useTranslation();
     const { step, runStep, issues, onAddAfter } = data;
     const { onOpenBlock, blockSummaries } = useNodeRuntime();
     const inputs = step.inputs && typeof step.inputs === 'object' ? Object.keys(step.inputs) : [];
@@ -24,8 +26,8 @@ export default function CallStepNode({ id, data }) {
             type="button"
             onClick={(e) => { e.stopPropagation(); onOpenBlock(step.blockId); }}
             onMouseDown={(e) => e.stopPropagation()}
-            aria-label="Open Step"
-            title="Open this Step in its own builder"
+            aria-label={t('automations.call_step_node.open_step', 'Open Step')}
+            title={t('automations.call_step_node.open_this_step_in_its_own', 'Open this Step in its own builder')}
             className="h-5 w-5 rounded-md flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
         >
             <SquareArrowOutUpRight size={11} />

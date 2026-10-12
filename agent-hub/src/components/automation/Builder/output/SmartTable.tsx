@@ -1,18 +1,31 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import type { OutputColumn } from './columns';
+import { canOpen } from './levels';
+import { cellOf } from './perItem';
 import SmartCell from './SmartCell';
 import type { OutputColumnsState } from './useOutputColumns';
-import { getByDotted } from './valueHelpers';
 
 /** Rows the drawer shows before "+ n more" hands over to the large view. */
 const NARROW_ROWS = 20;
 
+// The wide suggestion's extra columns show only from 1100px of table width,
+// where all of them fit beside the pinned column (the other cells capped at
+// 240px). The pinned column never collapses: below 1100px it keeps 120px and
+// the other cells give way (110px, 160px from 620px, 240px from 860px), so
+// the four suggested columns fit side by side from 450px of table width.
+const WIDE_ONLY = 'hidden @min-[1100px]/smt:table-cell';
+const PINNED = 'w-full max-w-0 min-w-[120px] @min-[1100px]/smt:min-w-[160px]';
+const OTHER_TD = 'whitespace-nowrap text-[var(--text-tertiary)] max-w-[110px] @min-[620px]/smt:max-w-[160px] @min-[860px]/smt:max-w-[240px]';
+
 interface SmartTableProps {
     rows: unknown[];
     cols: OutputColumnsState;
-    /** Open the large view, optionally on one row. */
-    onExpand?: ((rowIndex?: number) => void) | null;
+    /**
+     * Open the large view: at the top, on one row's details, or (with a
+     * list's column key) straight on the list that row holds.
+     */
+    onExpand?: ((rowIndex?: number, listKey?: string) => void) | null;
 }
 
 /**
@@ -21,7 +34,7 @@ interface SmartTableProps {
  * line that says which, and the rest of the rows one click away in the large
  * view. Where the column is wide (@container/smt, the table's own width) it
  * shows the large view's suggestion instead of the narrow one: the room is
- * there, so the table uses it.
+ * there, so the table uses it (WIDE_ONLY).
  */
 export default function SmartTable({ rows, cols, onExpand = null }: SmartTableProps) {
     const { t } = useTranslation();
@@ -37,7 +50,7 @@ export default function SmartTable({ rows, cols, onExpand = null }: SmartTablePr
     const shownCols = keys.map(k => byKey.get(k)).filter((c): c is OutputColumn => !!c);
     const shown = rows.slice(0, NARROW_ROWS);
     const more = rows.length - shown.length;
-    const techNames = technical.slice(0, 2).map(c => c.key).join(', ');
+    const techNames = technical.slice(0, 2).map(c => c.label.toLowerCase()).join(', ');
 
     return (
         <div className="@container/smt rounded-[10px] border border-[var(--border-default)] bg-[var(--bg-card)] overflow-hidden text-xs" data-testid="output-smart-table">
@@ -50,7 +63,7 @@ export default function SmartTable({ rows, cols, onExpand = null }: SmartTablePr
                                     key={c.key}
                                     scope="col"
                                     data-wide-only={wideOnly(c.key) || undefined}
-                                    className={`px-3 py-[7px] font-semibold text-[var(--text-secondary)] whitespace-nowrap ${wideOnly(c.key) ? 'hidden @min-[860px]/smt:table-cell' : ''} ${i === 0 ? 'text-left w-full max-w-0' : (c.kind === 'number' || c.role === 'amount' ? 'text-right' : 'text-left')}`}
+                                    className={`px-3 py-[7px] font-semibold text-[var(--text-secondary)] whitespace-nowrap ${wideOnly(c.key) ? WIDE_ONLY : ''} ${i === 0 ? `text-left ${PINNED}` : (c.kind === 'number' || c.role === 'amount' ? 'text-right' : 'text-left')}`}
                                 >
                                     <span className="block truncate">{c.label}</span>
                                 </th>
@@ -67,9 +80,9 @@ export default function SmartTable({ rows, cols, onExpand = null }: SmartTablePr
                                 {shownCols.map((c, i) => (
                                     <td
                                         key={c.key}
-                                        className={`px-3 py-[7px] align-middle ${wideOnly(c.key) ? 'hidden @min-[860px]/smt:table-cell' : ''} ${i === 0 ? 'w-full max-w-0 text-[var(--text-primary)]' : 'whitespace-nowrap text-[var(--text-tertiary)] max-w-[180px] @min-[860px]/smt:max-w-[300px]'}`}
+                                        className={`px-3 py-[7px] align-middle ${wideOnly(c.key) ? WIDE_ONLY : ''} ${i === 0 ? `${PINNED} text-[var(--text-primary)]` : OTHER_TD}`}
                                     >
-                                        <SmartCell value={getByDotted(r, c.key)} col={c} />
+                                        <Cell row={r} ri={ri} col={c} pinned={i === 0} onExpand={onExpand} />
                                     </td>
                                 ))}
                             </tr>
@@ -99,4 +112,19 @@ export default function SmartTable({ rows, cols, onExpand = null }: SmartTablePr
             )}
         </div>
     );
+}
+
+interface CellProps {
+    row: unknown;
+    ri: number;
+    col: OutputColumn;
+    pinned: boolean;
+    onExpand: SmartTableProps['onExpand'];
+}
+
+/** One cell; a list of records in it opens the large view on that list. */
+function Cell({ row, ri, col, pinned, onExpand }: CellProps) {
+    const value = cellOf(row, col, pinned);
+    const open = onExpand && canOpen(value) ? () => onExpand(ri, col.key) : undefined;
+    return <SmartCell value={value} col={col} onOpen={open} openKey={open ? `${ri}:${col.key}` : undefined} pinned={pinned} />;
 }

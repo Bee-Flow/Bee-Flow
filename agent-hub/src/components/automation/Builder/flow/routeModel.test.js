@@ -309,3 +309,53 @@ describe('uniqueRuleName', () => {
         expect(uniqueRuleName(rules, 'rule1')).toBe('rule1_2');
     });
 });
+
+/**
+ * BFSF-485 — "Send what doesn't match to “Otherwise”" on a one-output list
+ * Condition. The runtime is unchanged: the editor writes a list switch with
+ * exactly one rule case (ports: the case + Otherwise) and reads that shape
+ * back as One output with the box ticked.
+ */
+describe('keepRest (BFSF-485)', () => {
+    const KEEP_REST_SWITCH = {
+        id: 'k1', type: 'switch', arrayRef: 'steps.g.output.results', routeStyle: 'rules',
+        cases: [{ name: 'Output 1', expr: 'contains(item.name, "Reiskosten")' }],
+    };
+
+    it('a list switch with exactly one rule case reads as one output that keeps the rest', () => {
+        const route = readRoute(KEEP_REST_SWITCH);
+        expect(route).toMatchObject({ mode: 'items', keepRest: true, source: KEEP_REST_SWITCH.arrayRef });
+        expect(route.rules).toHaveLength(1);
+    });
+
+    it('round-trips byte for byte as a list switch with one case', () => {
+        const out = writeRoute(readRoute(KEEP_REST_SWITCH));
+        expect(out).toMatchObject({
+            type: 'switch', arrayRef: KEEP_REST_SWITCH.arrayRef, routeStyle: 'rules', expr: '',
+            cases: KEEP_REST_SWITCH.cases,
+        });
+        expect(out.defaultBranch).toBeUndefined();
+        expect(out.matchMode).toBeUndefined();
+    });
+
+    it('ticking the box turns a filter into that switch; unticking turns it back', () => {
+        const on = writeRoute({ ...readRoute(FILTER), keepRest: true });
+        expect(on).toMatchObject({ type: 'switch', arrayRef: FILTER.arrayRef, cases: [{ name: 'keep', expr: FILTER.expr }] });
+        const off = writeRoute({ ...readRoute({ ...FILTER, ...on }), keepRest: false });
+        expect(off).toMatchObject({ type: 'filter', arrayRef: FILTER.arrayRef, expr: FILTER.expr });
+        expect(off.cases).toBeUndefined();
+    });
+
+    it('is never read from a whole-run switch, a value switch or a switch with several cases', () => {
+        expect(readRoute({ ...KEEP_REST_SWITCH, arrayRef: undefined }).keepRest).toBe(false);
+        expect(readRoute({ ...KEEP_REST_SWITCH, routeStyle: 'value', cases: [{ name: 'a', value: 'x' }] }).keepRest).toBe(false);
+        expect(readRoute({ ...RULE_SWITCH, arrayRef: 'steps.g.output.results' }).keepRest).toBe(false);
+        expect(readRoute(FILTER).keepRest).toBeUndefined();
+    });
+
+    it('means nothing with several rules or in whole-run mode', () => {
+        const several = writeRoute({ ...readRoute({ ...RULE_SWITCH, arrayRef: 'steps.g.output.results' }), keepRest: true });
+        expect(several.cases).toHaveLength(2);
+        expect(writeRoute({ ...readRoute(CONDITION), keepRest: true }).type).toBe('condition');
+    });
+});

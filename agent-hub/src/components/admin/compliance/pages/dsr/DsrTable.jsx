@@ -6,25 +6,30 @@
  * The list never holds a full e-mail address (BFSF-441): whatever the server
  * sent, `maskEmail` runs over it before it reaches the DOM.
  */
+import { FileText, Globe, Mail, MessageSquare, Phone } from 'lucide-react';
 import React, { useMemo } from 'react';
-import { Check, FileText, Globe, Mail, MessageSquare, Phone } from 'lucide-react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import DataTable, { TableCell, TableRow } from '../../../../shared/DataTable';
-import DeadlineClock, { useNow } from '../../../../shared/DeadlineClock';
-import { TONES } from '../../../../shared/statusTone';
-import StatusPill from '../../shared/StatusPill';
-import { maskEmail } from '../../shared/maskEmail';
-import { formatCalDate, intlLocale } from '../../shared/calendarMath';
 import {
     articleOf, channelOf, clockPropsOf, identityOf, isClosed, receivedAtOf, stateOf, typeKeyOf,
 } from './dsrArticles';
+import { useTranslation } from '../../../../../hooks/useTranslation';
+import DataTable, { TableCell, TableRow } from '../../../../shared/DataTable';
+import DeadlineClock, { useNow } from '../../../../shared/DeadlineClock';
+import { clockState } from '../../../../shared/deadlineMath';
+import { formatCalDate, intlLocale } from '../../shared/calendarMath';
+import { maskEmail } from '../../shared/maskEmail';
+import RegisterStatePill from '../../shared/RegisterStatePill';
 
+/**
+ * The register is always sorted by deadline (sortByDeadline): the Deadline
+ * header says so with a ↓ and aria-sort, instead of a separate "By deadline"
+ * note in the toolbar.
+ */
 export const DSR_COLUMNS = Object.freeze([
-    { id: 'deadline', width: '118px', labelKey: 'compliance.dsr_col_deadline', en: 'Deadline' },
+    { id: 'deadline', width: '118px', labelKey: 'compliance.dsr_col_deadline', en: 'Deadline', ariaSort: 'ascending' },
     { id: 'request', width: '1fr', labelKey: 'compliance.dsr_col_request', en: 'Request' },
     { id: 'received', width: '104px', labelKey: 'compliance.dsr_col_received', en: 'Received' },
     { id: 'via', width: '110px', labelKey: 'compliance.dsr_col_via', en: 'Via' },
-    { id: 'status', width: '84px', labelKey: 'compliance.dsr_col_status', en: 'Status' },
+    { id: 'status', width: '96px', labelKey: 'compliance.dsr_col_status', en: 'Status' },
 ]);
 
 const CHANNEL = Object.freeze({
@@ -124,32 +129,16 @@ export function ChannelLabel({ channel, className = '' }) {
     );
 }
 
+/** The lifecycle state, drawn like every register's (RegisterStatePill): urgency stays with the clock. */
 export function DsrStatePill({ state, testId = 'dsr-state' }) {
     const { t } = useTranslation();
-    const label = stateLabel(t, state);
-    if (state === 'fulfilled') {
-        return (
-            <span data-testid={testId} data-state={state} className="inline-flex items-center gap-1 text-[11px] font-semibold" style={{ color: TONES.success.ink }}>
-                <Check size={11} aria-hidden="true" />{label}
-            </span>
-        );
-    }
-    if (state === 'rejected') {
-        return <span data-testid={testId} data-state={state} className="text-[11px] text-[var(--text-tertiary)]">{label}</span>;
-    }
-    if (state === 'pending') {
-        return (
-            <span data-testid={testId} data-state={state} className="inline-flex items-center text-[11px] px-2 py-[1px] rounded-full text-[var(--text-secondary)]"
-                style={{ border: '1px dashed var(--text-tertiary)' }}>
-                {label}
-            </span>
-        );
-    }
-    return (
-        <span data-testid={testId} data-state={state} className="contents">
-            <StatusPill tone="neutral" testId={`${testId}-pill`} className="py-[1px]">{label}</StatusPill>
-        </span>
-    );
+    return <RegisterStatePill state={state} testId={testId}>{stateLabel(t, state)}</RegisterStatePill>;
+}
+
+/** The row's stripe follows the clock's urgency only: red when overdue, amber when urgent, none otherwise. */
+export function accentOf(row, now) {
+    const { state } = clockState({ ...clockPropsOf(row), now });
+    return state === 'overdue' ? 'error' : state === 'urgent' ? 'warning' : null;
 }
 
 function RequestLines({ row, closed, t }) {
@@ -181,7 +170,12 @@ export default function DsrTable({
     const { t, resolvedLocale, locale } = useTranslation();
     const lang = resolvedLocale || locale;
     const now = useNow();
-    const columns = useMemo(() => DSR_COLUMNS.map(c => ({ id: c.id, width: c.width, label: t(c.labelKey, c.en) })), [t]);
+    const columns = useMemo(() => DSR_COLUMNS.map(c => ({
+        id: c.id,
+        width: c.width,
+        ariaSort: c.ariaSort,
+        label: c.ariaSort ? <>{t(c.labelKey, c.en)} <span aria-hidden="true">↓</span></> : t(c.labelKey, c.en),
+    })), [t]);
 
     const renderRow = (row, ctx) => {
         const closed = isClosed(row);
@@ -192,6 +186,7 @@ export default function DsrTable({
                 key={row.id}
                 columns={ctx.columns}
                 selected={selected}
+                accent={accentOf(row, now)}
                 onClick={onSelect ? () => onSelect(row) : undefined}
                 className={closed ? 'text-[var(--text-tertiary)]' : ''}
                 testId={`${testId}-row-${row.id}`}
@@ -219,14 +214,13 @@ export default function DsrTable({
                 type="button"
                 onClick={onSelect ? () => onSelect(row) : undefined}
                 aria-selected={selected || undefined}
-                className={`w-full text-left grid grid-cols-[1fr_104px] gap-3 items-center px-3.5 py-2.5 border-b border-[var(--border-default)] text-xs ${selected ? 'bg-[var(--bg-secondary)]' : ''} ${closed ? 'text-[var(--text-tertiary)]' : ''}`}
-                style={selected ? { boxShadow: 'inset 3px 0 0 var(--kind-compliance)' } : undefined}
+                className={`w-full text-left grid grid-cols-[1fr_104px] gap-3 items-center px-3.5 py-2.5 border-b border-[var(--border-default)] text-xs ${selected ? 'bg-[var(--bg-secondary)] shadow-[inset_3px_0_0_var(--kind-compliance)]' : ''} ${closed ? 'text-[var(--text-tertiary)]' : ''}`}
                 data-testid={`${testId}-card-${row.id}`}
             >
                 <div className="min-w-0 flex flex-col gap-1">
                     <RequestLines row={row} closed={closed} t={t} />
-                    <div className="flex items-center gap-2 text-[11px] text-[var(--text-tertiary)]">
-                        <span>{formatReceived(t, receivedAtOf(row), now, lang)}</span>
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-[var(--text-tertiary)]">
+                        <span className="whitespace-nowrap">{formatReceived(t, receivedAtOf(row), now, lang)}</span>
                         <ChannelLabel channel={channelOf(row)} />
                         <DsrStatePill state={stateOf(row)} testId={`${testId}-state-${row.id}`} />
                     </div>

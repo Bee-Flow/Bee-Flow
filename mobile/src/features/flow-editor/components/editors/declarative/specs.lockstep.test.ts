@@ -73,6 +73,7 @@ const WEB: Record<string, string[]> = {
     call_layer: ['flow/settings/actionEditors/flowletCallFields.jsx', 'flow/CallContractFields.jsx'],
     note: ['flow/nodes/NoteNode.jsx'],
     integration_action: ['flow/settings/actionEditors/integrationActionFields.jsx'],
+    flatten: ['flow/settings/FlattenFields.tsx', 'flow/settings/FlattenColumnsPanel.tsx', 'flow/settings/collectionEditors.jsx'],
 };
 /** The editor function a type's spec stands in for, where several share one file. */
 const FN: Record<string, string> = {

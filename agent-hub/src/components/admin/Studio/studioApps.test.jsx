@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
     STUDIO_APPS, STUDIO_CATEGORIES, DEFAULT_STUDIO_CATEGORY,
     groupStudioApps, makeCanUse, resolveStudioNav, studioLockHint, createAutomationDraft,
-    createFormAutomation, firstOpenStudioSection,
+    createFormAutomation, firstOpenStudioSection, studioPermissionHeld,
 } from './studioApps';
 import studioAppsSource from './studioApps.jsx?raw';
 import EN_DEFAULTS from '../../../i18n/en-defaults';
@@ -295,15 +295,20 @@ describe('gates — legacy canSee* truth tables', () => {
         // Community has automations; app_studio is the ceiling. Either half
         // missing (licence OR canUse) closes the door, so a member who may
         // build automations but not apps never sees a playbook start and fail
-        // at phase four.
+        // at phase four. The same goes for the role: use_automations AND
+        // manage_apps, the permissions of the two things a playbook builds.
         const gate = app('playbooks').gate;
-        const both = { features: ['automations', 'app_studio'], canUseIds: ['automations', 'app_studio'] };
+        const perms = ['use_automations', 'manage_apps'];
+        const both = { features: ['automations', 'app_studio'], canUseIds: ['automations', 'app_studio'], perms };
         expect(gate(ctx(both))).toBe(true);
-        expect(gate(ctx({ features: ['automations'], canUseIds: ['automations'] }))).toBe(false);
-        expect(gate(ctx({ features: ['app_studio'], canUseIds: ['app_studio'] }))).toBe(false);
-        expect(gate(ctx({ features: ['automations', 'app_studio'], canUseIds: ['automations'] }))).toBe(false);
-        expect(gate(ctx({ features: ['automations'], canUseIds: ['automations', 'app_studio'] }))).toBe(false);
+        expect(gate(ctx({ ...both, perms: ['use_automations'] }))).toBe(false);
+        expect(gate(ctx({ ...both, perms: ['manage_apps'] }))).toBe(false);
+        expect(gate(ctx({ features: ['automations'], canUseIds: ['automations'], perms }))).toBe(false);
+        expect(gate(ctx({ features: ['app_studio'], canUseIds: ['app_studio'], perms }))).toBe(false);
+        expect(gate(ctx({ features: ['automations', 'app_studio'], canUseIds: ['automations'], perms }))).toBe(false);
+        expect(gate(ctx({ features: ['automations'], canUseIds: ['automations', 'app_studio'], perms }))).toBe(false);
         expect(gate(ctx())).toBe(false);
+        expect(app('playbooks').permission).toEqual(['use_automations', 'manage_apps']);
         // Locks on the HIGHER ceiling: the hint a Community org reads is about App Studio.
         expect(app('playbooks').gateCapability).toBe('app_studio');
         expect(app('playbooks').lockOn).toBe('disable');
@@ -433,6 +438,17 @@ describe('resolveStudioNav — hide vs. lock', () => {
         expect(resolveStudioNav([hiding], ctx({ locks: { x: 'ceiling' } }))).toEqual([]);
     });
 
+    it('a failed gate whose PERMISSION is missing hides, even with a lock reason to show', () => {
+        // An upgrade would not open it for this person either.
+        const permissioned = { ...failing, permission: 'use_x' };
+        expect(resolveStudioNav([permissioned], ctx({ locks: { x: 'ceiling' } }))).toEqual([]);
+        expect(resolveStudioNav([permissioned], ctx({ locks: { x: 'ceiling' }, perms: ['use_x'] }))[0].locked).toBe('ceiling');
+        // Every permission of an array must be held.
+        const two = { ...failing, permission: ['use_x', 'use_y'] };
+        expect(resolveStudioNav([two], ctx({ locks: { x: 'ceiling' }, perms: ['use_x'] }))).toEqual([]);
+        expect(resolveStudioNav([two], ctx({ locks: { x: 'ceiling' }, perms: ['use_x', 'use_y'] }))).toHaveLength(1);
+    });
+
     it('survives a ctx without lockReason (older callers) by hiding', () => {
         const legacy = { user: {}, hasLicenseFeature: () => false, canUse: () => false, hasPermission: () => false };
         expect(resolveStudioNav([failing, passing], legacy).map((a) => a.id)).toEqual(['p']);
@@ -456,6 +472,38 @@ describe('resolveStudioNav — hide vs. lock', () => {
         // Approvals hides on its licence (lockOn defaults to hide) — the
         // caller's hiddenFromNav filter never even sees it.
         expect(nav.find((a) => a.id === 'approvals')).toBeUndefined();
+    });
+});
+
+describe('`permission` — the gate\'s role leg, declared', () => {
+    // resolveStudioNav (lock vs hide) and the shell's direct-URL guard read
+    // `permission`; the sidebar reads the gate. If the two ever disagreed, a
+    // member could be shown a locked row for a section their role does not
+    // open, or be refused a section the sidebar lists.
+    const licensed = { features: ALL_FEATURES, canUseIds: ALL_FEATURES, canIds: [...ALL_FEATURES, 'skills'] };
+
+    it.each(STUDIO_APPS.map((a) => [a.id, a]))('%s: declares exactly the permissions its gate asks for', (_id, a) => {
+        const declared = a.permission == null ? [] : [].concat(a.permission);
+        const open = a.gate(ctx({ ...licensed, perms: ALL_PERMS }));
+        expect(open).toBe(true);
+        // Dropping any declared permission closes the gate…
+        for (const p of declared) {
+            expect(a.gate(ctx({ ...licensed, perms: ALL_PERMS.filter((x) => x !== p) })), p).toBe(false);
+        }
+        // …and holding ONLY the declared ones opens it: no undeclared leg.
+        expect(a.gate(ctx({ ...licensed, perms: declared }))).toBe(true);
+    });
+
+    it('studioPermissionHeld: no declaration or no resolver is a yes, a throwing resolver a no', () => {
+        expect(studioPermissionHeld({ id: 'd' }, () => false)).toBe(true);
+        expect(studioPermissionHeld({ id: 'x', permission: 'use_x' }, undefined)).toBe(true);
+        expect(studioPermissionHeld({ id: 'x', permission: 'use_x' }, (p) => p === 'use_x')).toBe(true);
+        expect(studioPermissionHeld({ id: 'x', permission: ['use_x', 'use_y'] }, (p) => p === 'use_x')).toBe(false);
+        expect(studioPermissionHeld({ id: 'x', permission: 'use_x' }, () => { throw new Error('boom'); })).toBe(false);
+    });
+
+    it('only Documents opts out of earning a Studio row (topLevelEntrance)', () => {
+        expect(STUDIO_APPS.filter((a) => a.topLevelEntrance).map((a) => a.id)).toEqual(['documents']);
     });
 });
 

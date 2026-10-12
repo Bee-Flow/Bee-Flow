@@ -1,6 +1,7 @@
 import { Loader2, AlertTriangle, RotateCw, LogIn } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { buildPreviewUrl } from './previewSurfaces';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 
 const READY_TIMEOUT_MS = 8000;
 const BROADCAST_DEBOUNCE_MS = 50;
@@ -14,6 +15,7 @@ const BROADCAST_DEBOUNCE_MS = 50;
  * navigate within a single iframe to avoid leaking React state.
  */
 export default function LookPreviewIframe({ surface, draftPayload, onReload }) {
+    const { t } = useTranslation();
     const iframeRef = useRef(null);
     const versionRef = useRef(0);
     const debounceRef = useRef(null);
@@ -108,7 +110,7 @@ export default function LookPreviewIframe({ surface, draftPayload, onReload }) {
                 <Overlay>
                     <Loader2 className="w-6 h-6 animate-spin" style={{ color: 'var(--text-muted)' }} />
                     <p className="text-sm mt-3" style={{ color: 'var(--text-muted)' }}>
-                        Loading {surface.label.toLowerCase()} preview…
+                        {t('appearance.look_preview_iframe_loading_value_preview', 'Loading {value} preview…', { value: surface.label.toLowerCase() })}
                     </p>
                 </Overlay>
             )}
@@ -117,7 +119,7 @@ export default function LookPreviewIframe({ surface, draftPayload, onReload }) {
                 <Overlay>
                     <AlertTriangle className="w-7 h-7" style={{ color: 'var(--warning, #f59e0b)' }} />
                     <p className="text-sm mt-3 max-w-xs text-center" style={{ color: 'var(--text-primary)' }}>
-                        Preview took longer than 8 seconds to load.
+                        {t('appearance.look_preview_iframe_preview_took_longer_than_8_seconds_to', 'Preview took longer than 8 seconds to load.')}
                     </p>
                     <RetryButton onClick={retry} />
                 </Overlay>
@@ -127,7 +129,7 @@ export default function LookPreviewIframe({ surface, draftPayload, onReload }) {
                 <Overlay>
                     <LogIn className="w-7 h-7" style={{ color: 'var(--text-muted)' }} />
                     <p className="text-sm mt-3 max-w-xs text-center" style={{ color: 'var(--text-primary)' }}>
-                        Sign-in expired inside the preview. Sign back in and reload.
+                        {t('appearance.look_preview_iframe_sign_in_expired_inside_the_preview', 'Sign-in expired inside the preview. Sign back in and reload.')}
                     </p>
                     <RetryButton onClick={retry} />
                 </Overlay>
@@ -158,6 +160,7 @@ function Overlay({ children }) {
 }
 
 function RetryButton({ onClick }) {
+    const { t } = useTranslation();
     return (
         <button
             type="button"
@@ -169,7 +172,7 @@ function RetryButton({ onClick }) {
                 background: 'var(--bg-card)',
             }}
         >
-            <RotateCw className="w-4 h-4" /> Reload preview
+            <RotateCw className="w-4 h-4" /> {t('appearance.look_preview_iframe_reload_preview', 'Reload preview')}
         </button>
     );
 }

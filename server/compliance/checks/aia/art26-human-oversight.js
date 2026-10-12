@@ -1,11 +1,16 @@
 /**
  * EU AI Act Art. 26 — deployer obligations: human oversight for high-risk use
- * (obligations phasing in from Aug 2026).
+ * (applies with Annex III from 2 Dec 2027, Regulation (EU) 2026/1744).
  *
  * Per-source over the same high-risk agent population as GDPR Art. 35 (shared
  * heuristic — see art35-dpia-high-risk.js). A subject passes when its current
- * DPIA questionnaire names WHO oversees the agent's output
- * (answers.human_oversight); attestation-mode DPIAs without that answer warn.
+ * DPIA names WHO oversees the agent output (answers.human_oversight); a
+ * current DPIA without that answer warns, a missing or expired one fails.
+ *
+ * The list is the WHOLE high-risk population (art35._highRiskAgents throws on
+ * a failed read instead of answering []), so the check retires the slot of an
+ * agent that left it (retiresVanished) instead of keeping its last fail or
+ * warn in the table, the rail and the score for good.
  */
 
 const dpiaStore = require('../../../stores/dpiaStore');
@@ -22,6 +27,9 @@ module.exports = {
     descriptionKey: 'compliance.checks.aia_art26.desc',
     remediationKey: 'compliance.checks.aia_art26.fix',
     remediationLink: 'admin/compliance/dpia',
+
+    retiresVanished: true,
+    retiredDetails: 'No longer flagged as a high-risk agent, unpublished or deleted.',
 
     async listSubjects(orgId) {
         return art35._highRiskAgents(orgId);
@@ -44,7 +52,9 @@ module.exports = {
             };
         }
         const answers = dpia.answers && typeof dpia.answers === 'object' ? dpia.answers : {};
-        const oversight = String(answers.human_oversight || '').trim();
+        // A string only: the DPIA route accepts any JSON value, and `true` or
+        // `{}` stringify to "true" / "[object Object]", which is not a person.
+        const oversight = typeof answers.human_oversight === 'string' ? answers.human_oversight.trim() : '';
         if (!oversight) {
             return {
                 status: 'warn',
@@ -54,8 +64,10 @@ module.exports = {
         }
         return {
             status: 'pass',
-            evidence: { ...evidence, human_oversight: oversight },
-            details: `Human oversight recorded for "${subject.label}": ${oversight}`,
+            // The answer itself usually names a person ("Recruiter Jan checks
+            // every result"); the evidence chain keeps only that one exists.
+            evidence: { ...evidence, human_oversight_recorded: true },
+            details: `Human oversight recorded for "${subject.label}" (see its DPIA).`,
         };
     },
 };

@@ -9,6 +9,7 @@
  */
 
 const isoEvidenceStore = require('../../../stores/isoEvidenceStore');
+const { readConnector, snapshotFor } = require('../../lib/connectorEvidence');
 
 module.exports = {
     id: 'ISO27001-A.6.5-offboarding-feed',
@@ -25,7 +26,9 @@ module.exports = {
     remediationLink: 'admin/compliance/iso_connectors',
 
     async evaluate(orgId) {
-        const config = await isoEvidenceStore.getConfig(orgId, 'afas').catch(() => null);
+        const read = await readConnector(isoEvidenceStore, orgId, 'afas');
+        if (read.failed) return read.failed;
+        const { config, snaps } = read;
         if (!config?.enabled) {
             return {
                 status: 'not_applicable',
@@ -33,21 +36,24 @@ module.exports = {
                 details: 'AFAS connector not enabled — link an AppConnector token and pick your employee GetConnector under ISO 27001 → Connectors.',
             };
         }
-        const snaps = await isoEvidenceStore.listLatestSnapshots(orgId, 'afas').catch(() => []);
-        if (!snaps.length) {
+        // The GetConnector name as the connector trims it into the subject.
+        const snap = snapshotFor(snaps, String(config.settings?.connector || '').trim());
+        if (!snap) {
             return {
                 status: 'warn',
                 evidence: { connector: 'afas', enabled: true, snapshots: 0 },
-                details: 'Connector enabled but no snapshot yet — run a sweep or check the AFAS token and GetConnector settings.',
+                details: 'Connector enabled but no snapshot for the configured GetConnector yet — run a sweep or check the AFAS token and GetConnector settings.',
             };
         }
-        const p = snaps[0].payload || {};
+        const p = snap.payload || {};
         const rows = Number(p.rows ?? p.employees) || 0;
         const evidence = {
-            connector: p.connector || snaps[0].subject_id,
+            connector: p.connector || snap.subject_id,
             rows,
+            // The connector reads one page: a full page means "at least".
+            truncated: !!p.truncated,
             fields: Array.isArray(p.fields) ? p.fields.length : 0,
-            fetched_at: snaps[0].fetched_at,
+            fetched_at: snap.fetched_at,
         };
         if (rows === 0) {
             return {
@@ -59,7 +65,7 @@ module.exports = {
         return {
             status: 'pass',
             evidence,
-            details: `HR feed "${evidence.connector}" returns ${rows} row(s) — an authoritative employee population backs joiner/leaver reviews.`,
+            details: `HR feed "${evidence.connector}" returns ${p.truncated ? `at least ${rows}` : rows} row(s) — an authoritative employee population backs joiner/leaver reviews.`,
         };
     },
 };

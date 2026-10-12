@@ -17,14 +17,15 @@
  * shell hides both controls. Showing a "Last 7 days" picker over a live feed
  * that ignores it is just a lie with a dropdown.
  */
-import React, { useMemo } from 'react';
 import { Activity, Eye, Globe, FileText, Share2, Zap, Radio } from 'lucide-react';
-import { useAnalyticsQuery } from '../useAnalyticsQuery';
+import React, { useMemo } from 'react';
+import { useTranslation } from '../../../../../hooks/useTranslation';
+import MinuteBars from '../charts/MinuteBars';
 import {
     ACCENT, SERIES, Card, Empty, ErrorNote, Skeleton, SkeletonGrid,
     StatGrid, StatTile, BarList, mapToRows, fmtAgo, fmt,
 } from '../ui';
-import MinuteBars from '../charts/MinuteBars';
+import { useAnalyticsQuery } from '../useAnalyticsQuery';
 import { parseBucket, floorTo } from '../window';
 
 const POLL_MS = 5000;
@@ -54,6 +55,7 @@ function toMinuteStrip(series) {
 }
 
 export default function RealtimeSection({ scope, onDrill }) {
+    const { t } = useTranslation();
     const { payload, loading, error, reload } = useAnalyticsQuery('query', 'realtime', scope, { pollMs: POLL_MS });
     const active = useAnalyticsQuery('query', 'active', scope, { pollMs: POLL_MS });
 
@@ -84,45 +86,45 @@ export default function RealtimeSection({ scope, onDrill }) {
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <StatGrid>
-                <StatTile icon={Activity} label="Online now" color={ACCENT}
+                <StatTile icon={Activity} label={t('cms_site.analytics.realtime.online', 'Online now')} color={ACCENT}
                     value={onlineNow != null ? fmt(onlineNow) : '—'}
-                    subtitle="active in the last 5 minutes" />
-                <StatTile icon={Eye} label="Pageviews" value={fmt(totals.views || 0)} color={SERIES.secondary}
-                    subtitle={`last ${WINDOW_MIN} minutes`} />
-                <StatTile icon={Users2} label="Visitors" value={fmt(totals.visitors || 0)} color={SERIES.primary}
-                    subtitle={`last ${WINDOW_MIN} minutes`} />
-                <StatTile icon={Zap} label="Events" value={fmt(totals.events || 0)} color={SERIES.warn}
-                    subtitle="clicks, form submits" />
+                    subtitle={t('cms_site.analytics.realtime.active_5', 'active in the last 5 minutes')} />
+                <StatTile icon={Eye} label={t('cms_site.analytics.realtime.pageviews', 'Pageviews')} value={fmt(totals.views || 0)} color={SERIES.secondary}
+                    subtitle={t('cms_site.analytics.realtime.last_minutes', 'last {n} minutes', { n: WINDOW_MIN })} />
+                <StatTile icon={Users2} label={t('cms_site.analytics.realtime.visitors', 'Visitors')} value={fmt(totals.visitors || 0)} color={SERIES.primary}
+                    subtitle={t('cms_site.analytics.realtime.last_minutes', 'last {n} minutes', { n: WINDOW_MIN })} />
+                <StatTile icon={Zap} label={t('cms_site.analytics.realtime.events', 'Events')} value={fmt(totals.events || 0)} color={SERIES.warn}
+                    subtitle={t('cms_site.analytics.realtime.events_hint', 'clicks, form submits')} />
             </StatGrid>
 
-            <Card title="The last half hour" icon={Radio} action={<LiveDot />}>
+            <Card title={t('cms_site.analytics.realtime.half_hour', 'The last half hour')} icon={Radio} action={<LiveDot />}>
                 <MinuteBars
                     buckets={strip}
                     color={ACCENT}
                     overlayColor={SERIES.secondary}
-                    caption="bars = pageviews · overlay = visitors"
+                    caption={t('cms_site.analytics.realtime.caption', 'bars = pageviews · overlay = visitors')}
                     height={84}
                 />
             </Card>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12 }}>
-                <Card title="Pages being read" icon={FileText}>
+                <Card title={t('cms_site.analytics.realtime.pages', 'Pages being read')} icon={FileText}>
                     <BarList rows={urls} onDrill={(v) => onDrill('path', v)}
-                        emptyText="Nobody on the site right now." />
+                        emptyText={t('cms_site.analytics.realtime.no_pages', 'Nobody on the site right now.')} />
                 </Card>
-                <Card title="Arriving from" icon={Share2}>
+                <Card title={t('cms_site.analytics.realtime.referrers', 'Arriving from')} icon={Share2}>
                     <BarList rows={referrers} onDrill={(v) => onDrill('referrer', v)}
-                        emptyText="Everyone came direct." />
+                        emptyText={t('cms_site.analytics.realtime.no_referrers', 'Everyone came direct.')} />
                 </Card>
-                <Card title="Countries" icon={Globe}>
+                <Card title={t('cms_site.analytics.realtime.countries', 'Countries')} icon={Globe}>
                     <BarList rows={countries} onDrill={(v) => onDrill('country', v)}
-                        emptyText="No location data — this needs a GeoLite2 database on the Umami container." />
+                        emptyText={t('cms_site.analytics.realtime.no_countries', 'No location data — this needs a GeoLite2 database on the Umami container.')} />
                 </Card>
             </div>
 
-            <Card title="Happening now" icon={Activity} action={<LiveDot />}>
+            <Card title={t('cms_site.analytics.realtime.now', 'Happening now')} icon={Activity} action={<LiveDot />}>
                 {events.length === 0 ? (
-                    <Empty text="No activity yet. Open your published site in another tab to see it appear here." />
+                    <Empty text={t('cms_site.analytics.realtime.no_activity', 'No activity yet. Open your published site in another tab to see it appear here.')} />
                 ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 5, maxHeight: 380, overflowY: 'auto' }}>
                         {events.slice(0, 60).map((e, i) => (
@@ -132,7 +134,7 @@ export default function RealtimeSection({ scope, onDrill }) {
                 )}
                 {custom.length > 0 && (
                     <p style={{ fontSize: 11, color: 'var(--text-muted, #777)', margin: '10px 0 0' }}>
-                        {fmt(custom.length)} of these are interactions, not just page loads.
+                        {t('cms_site.analytics.realtime.interactions', '{n} of these are interactions, not just page loads.', { n: fmt(custom.length) })}
                     </p>
                 )}
             </Card>
@@ -141,6 +143,7 @@ export default function RealtimeSection({ scope, onDrill }) {
 }
 
 function ActivityRow({ event: e, onDrill }) {
+    const { t } = useTranslation();
     const isEvent = !!e.eventName;
     return (
         <div style={{
@@ -156,7 +159,7 @@ function ActivityRow({ event: e, onDrill }) {
             )}
             <button
                 onClick={() => e.urlPath && onDrill?.('path', e.urlPath)}
-                title={e.urlPath ? `Filter by ${e.urlPath}` : undefined}
+                title={e.urlPath ? t('cms_site.analytics.common.filter_by', 'Filter by {value}', { value: e.urlPath }) : undefined}
                 style={{
                     flex: 1, minWidth: 0, textAlign: 'left', background: 'transparent', border: 'none',
                     padding: 0, cursor: e.urlPath ? 'pointer' : 'default',
@@ -168,20 +171,21 @@ function ActivityRow({ event: e, onDrill }) {
                 {[e.browser, e.os, e.country].filter(Boolean).join(' · ')}
             </span>
             <span style={{ fontSize: 11, color: 'var(--text-muted, #777)', flexShrink: 0, minWidth: 62, textAlign: 'right' }}>
-                {fmtAgo(e.createdAt)}
+                {fmtAgo(e.createdAt, undefined, t)}
             </span>
         </div>
     );
 }
 
 function LiveDot() {
+    const { t } = useTranslation();
     return (
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--text-muted, #888)' }}>
             <span style={{
                 width: 7, height: 7, borderRadius: 99, background: ACCENT, display: 'inline-block',
                 animation: 'bf-analytics-pulse 1.6s ease-in-out infinite',
             }} />
-            live · every {POLL_MS / 1000}s
+            {t('cms_site.analytics.realtime.live_every', 'live · every {n}s', { n: POLL_MS / 1000 })}
         </span>
     );
 }

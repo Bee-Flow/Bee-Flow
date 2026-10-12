@@ -430,7 +430,7 @@ router.post('/:id/data/connectors/:connectorId/verify', requireAuth, connectorSy
         });
 
         const HINTS = {
-            shared_mailbox_denied: 'Your Microsoft administrator must give you Full Access to this mailbox, and the connection needs the Mail.Read.Shared permission — reconnect Microsoft in Settings → Integrations.',
+            shared_mailbox_denied: 'Your Microsoft administrator must give you Full Access to this mailbox, and the connection needs the Mail.Read.Shared permission — reconnect Microsoft in Settings → Connections.',
             mailbox_not_found: 'No mailbox with that address exists in your organisation.',
             alias_not_found: 'This address is not a send-as alias on your Gmail account. Gmail cannot open another mailbox, so the address must be delivered to yours and verified as an alias.',
             alias_not_verified: 'This send-as alias is not verified yet — confirm it in Gmail settings first.',

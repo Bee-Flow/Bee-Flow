@@ -91,6 +91,7 @@ function applySetLayerContract(draft, args) {
     if (!layer) {
         return { error: `Unknown layerKey "${layerKey || ''}". Existing flowlets: ${Object.keys(draft.layers || {}).join(', ') || '(none — create one with builder_create_layer)'}.` };
     }
+    const contractNotes = [];
     if (args.params !== undefined) {
         if (!Array.isArray(args.params)) return { error: 'params must be an array of { name, type, required? }.' };
         layer.trigger = layer.trigger || { id: 'trg', type: 'trigger', kind: 'layer_input' };
@@ -134,8 +135,9 @@ function applySetLayerContract(draft, args) {
             layer.steps.push(outStep);
             layer.edges.push({ from: prevLast, to: outStep.id });
         }
-        const { inputs: bound, error } = validateAndFixBindings(args.outputs, layer);
+        const { inputs: bound, error, notes } = validateAndFixBindings(args.outputs, layer);
         if (error) return { error };
+        if (notes) contractNotes.push(...notes.map(n => n.replace(/^inputs\./, 'outputs.')));
         outStep.fields = {
             ...(outStep.fields && typeof outStep.fields === 'object' && !Array.isArray(outStep.fields) ? outStep.fields : {}),
             ...bound,
@@ -146,6 +148,7 @@ function applySetLayerContract(draft, args) {
         layerKey,
         params: layer.trigger?.params || [],
         outputFields: Object.keys(outStep?.fields || {}),
+        ...(contractNotes.length ? { _warnings: contractNotes } : {}),
     };
 }
 
@@ -171,7 +174,7 @@ function applyAddCallLayer(draft, args, { graph = draft, scope = null } = {}) {
     if (scope && layerClosureKeys(layers, args.layerKey).has(scope)) {
         return { error: `Recursive flowlet call rejected: flowlet "${args.layerKey}" (transitively) calls "${scope}", which is the flowlet you are adding this step to.` };
     }
-    const { inputs, error } = validateAndFixBindings(args.inputs || {}, graph);
+    const { inputs, error, notes } = validateAndFixBindings(args.inputs || {}, graph);
     if (error) return { error };
     const step = {
         id: newId('cl'),
@@ -181,7 +184,7 @@ function applyAddCallLayer(draft, args, { graph = draft, scope = null } = {}) {
         label: args.label || target.title || 'Call layer',
     };
     appendAfter(graph, args.afterStepId, step, { branch: args.branch, caseName: args.caseName, splice: args.splice === true });
-    return { added: step };
+    return { added: step, ...(notes ? { _warnings: notes } : {}) };
 }
 
 module.exports = {

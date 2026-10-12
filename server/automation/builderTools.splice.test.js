@@ -114,3 +114,91 @@ test('every tool that offers afterStepId also offers splice', () => {
         assert.strictEqual(props.splice?.type, 'boolean', `${t.function.name} lacks splice`);
     }
 });
+
+// ── W8: a Condition that works through a list, spliced in ───────────────────
+
+// "Read many" → "Read attachment" (once per attachment of each mail), the
+// shape of the demo "Fabrikam attachments by type".
+function mailDraft() {
+    return {
+        userId: 'u_test',
+        def: {
+            trigger: { id: 'trg', type: 'trigger', kind: 'manual' },
+            steps: [
+                { id: 'rm', type: 'integration_action', tool: 'gmail_read_many', inputs: {}, label: 'Read many',
+                    pinnedOutput: { messages: [{ id: 'm1', from: 'billing@fabrikam.example', attachments: [{ id: 'a1', filename: 'invoice.pdf', mimeType: 'application/pdf' }] }] } },
+                { id: 'ra', type: 'integration_action', tool: 'gmail_read_attachment', label: 'Read attachment',
+                    forEach: { overRef: 'steps.rm.output.messages[*].attachments', itemVar: 'att', parents: [{ itemVar: 'msg', overRef: 'steps.rm.output.messages' }] },
+                    inputs: { attachmentId: { kind: 'ref', path: 'loop.att.id' } } },
+            ],
+            edges: [{ from: 'trg', to: 'rm' }, { from: 'rm', to: 'ra' }],
+        },
+    };
+}
+
+test('a filter spliced between Read many and Read attachment re-points Read attachment and says so', async () => {
+    const dw = mailDraft();
+    const res = await applyToolCall('builder_add_array_op', {
+        op: 'filter', afterStepId: 'rm', splice: true, arrayRef: 'steps.rm.output.messages', expr: 'contains(item.from, "fabrikam")',
+    }, dw);
+    assert.ok(!res.error, res.error);
+    const f = res.added.id;
+    assert.deepStrictEqual(edges(dw), [`${f}>ra`, `rm>${f}`, 'trg>rm'].sort());
+    const ra = dw.def.steps.find(s => s.id === 'ra');
+    assert.strictEqual(ra.forEach.overRef, `steps.${f}.output.items[*].attachments`);
+    assert.deepStrictEqual(ra.forEach.parents, [{ itemVar: 'msg', overRef: `steps.${f}.output.items` }]);
+    assert.ok(res._warnings.includes(`Re-pointed ra to read what ${f} keeps: steps.${f}.output.items[*].attachments (it read steps.rm.output.messages).`),
+        JSON.stringify(res._warnings));
+});
+
+test('builder_add_filter with splice does the same', async () => {
+    const dw = mailDraft();
+    const res = await applyToolCall('builder_add_filter', { afterStepId: 'rm', splice: true, arrayRef: 'steps.rm.output.messages', expr: 'true' }, dw);
+    assert.ok(!res.error, res.error);
+    assert.strictEqual(dw.def.steps.find(s => s.id === 'ra').forEach.overRef, `steps.${res.added.id}.output.items[*].attachments`);
+});
+
+test('a list switch can be spliced: the old successor moves to its first case and reads it', async () => {
+    const dw = mailDraft();
+    const res = await applyToolCall('builder_add_switch', {
+        afterStepId: 'rm', splice: true, arrayRef: 'steps.rm.output.messages[*].attachments',
+        cases: [{ name: 'pdf', expr: 'equals(fileType(item), "pdf")' }, { name: 'word', expr: 'equals(fileType(item), "word")' }],
+    }, dw);
+    assert.ok(!res.error, res.error);
+    const sw = res.added.id;
+    assert.deepStrictEqual(dw.def.edges.find(e => e.from === sw), { from: sw, to: 'ra', label: 'case:pdf', caseName: 'pdf' });
+    const ra = dw.def.steps.find(s => s.id === 'ra');
+    assert.strictEqual(ra.forEach.overRef, `steps.${sw}.output.matchesByCase.pdf`);
+    assert.ok(res._warnings.some(w => w.startsWith(`Re-pointed ra to read what ${sw} sends down output "pdf"`)), JSON.stringify(res._warnings));
+});
+
+test('a switch without arrayRef is still refused on splice, before anything changes', async () => {
+    const dw = mailDraft();
+    const before = JSON.stringify(dw.def);
+    const res = await applyToolCall('builder_add_switch', { afterStepId: 'rm', splice: true, expr: 'item.kind', cases: [{ name: 'a', value: 'a' }] }, dw);
+    assert.match(res.error, /splice is not supported when the new step is a switch without arrayRef/);
+    assert.strictEqual(JSON.stringify(dw.def), before);
+});
+
+test('a step added after a list Condition reads its output (W2, afterStepId)', async () => {
+    const dw = mailDraft();
+    const filt = await applyToolCall('builder_add_array_op', { op: 'filter', afterStepId: 'rm', arrayRef: 'steps.rm.output.messages', expr: 'true' }, dw);
+    const f = filt.added.id;
+    const res = await applyToolCall('builder_add_notification', {
+        afterStepId: f, title: 'Mail', body: 'First: {{steps.rm.output.messages[0].from}}',
+    }, dw);
+    assert.ok(!res.error, res.error);
+    assert.strictEqual(res.added.body, `First: {{steps.${f}.output.items[0].from}}`, 'the echo shows the stored step');
+    assert.ok(res._warnings.some(w => w.startsWith(`Re-pointed ${res.added.id} to read what ${f} keeps`)));
+});
+
+test('builder_update_step moving a step after a list Condition re-points it (W8 move)', async () => {
+    const dw = mailDraft();
+    const filt = await applyToolCall('builder_add_array_op', { op: 'filter', afterStepId: 'rm', arrayRef: 'steps.rm.output.messages', expr: 'true' }, dw);
+    const f = filt.added.id;
+    // ra still hangs off rm (the filter was added beside it); move it after the filter.
+    const res = await applyToolCall('builder_update_step', { stepId: 'ra', patch: { afterStepId: f } }, dw);
+    assert.ok(!res.error, res.error);
+    assert.strictEqual(res.updated.forEach.overRef, `steps.${f}.output.items[*].attachments`);
+    assert.ok(res._warnings.some(w => w.startsWith(`Re-pointed ra to read what ${f} keeps`)), JSON.stringify(res));
+});

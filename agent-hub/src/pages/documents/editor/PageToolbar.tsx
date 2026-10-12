@@ -1,7 +1,7 @@
 // The toolbar of a page: back, name, live presence (or the save status of a
 // page saved by revision), and the side panels, print and download.
 
-import { ArrowLeft, Download, History, ListTree, Loader2, Maximize2, MessageSquare, Printer, Search, X } from 'lucide-react';
+import { ArrowLeft, Download, History, ListTree, Loader2, Maximize2, MessageSquare, Printer, Search, Sparkles, X } from 'lucide-react';
 import React from 'react';
 import CollabPresence from '../../../editor/react/CollabPresence';
 import type { CollabHandle } from '../../../editor/collab/useCollab';
@@ -21,6 +21,8 @@ export interface PageToolbarProps {
     side: SidePanel;
     onSide: (panel: SidePanel) => void;
     canComment: boolean;
+    /** Suggestions the AI made that nobody has accepted or rejected yet. */
+    openSuggestions?: number;
     downloading: boolean;
     onLeave: () => void;
     onRename: (name: string) => void;
@@ -51,6 +53,11 @@ export default function PageToolbar(props: PageToolbarProps) {
             <button type="button" className={TOOL_BUTTON} onClick={props.onFind} title={t('documents.find.label', 'Find in document')}>
                 <Search size={14} aria-hidden="true" /><span className="sr-only">{t('documents.find.label', 'Find in document')}</span>
             </button>
+            {(props.openSuggestions ?? 0) > 0 || side === 'suggestions' ? (
+                <button type="button" className={cls(side === 'suggestions')} aria-pressed={side === 'suggestions'} onClick={() => toggle('suggestions')} data-testid="document-suggestions-toggle">
+                    <Sparkles size={14} aria-hidden="true" />{t('suggestions.open_count', 'Suggestions ({count})', { count: props.openSuggestions ?? 0 })}
+                </button>
+            ) : null}
             {props.canComment && (
                 <button type="button" className={cls(side === 'comments')} aria-pressed={side === 'comments'} onClick={() => toggle('comments')} data-testid="document-comments-toggle">
                     <MessageSquare size={14} aria-hidden="true" />{t('documents.comments', 'Comments')}

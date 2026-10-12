@@ -366,7 +366,7 @@ function buildCatalogSections() {
     const bindingLines = [
         `Binding-typed props accept EXACTLY these shapes (kind is the discriminator):`,
         `  { "kind": "static", "value": <any JSON> } — fixed data.`,
-        `  { "kind": "actionResult", "actionId": "<act_…>", "path": "rows" } — the last result of an action; path is dot-separated, numeric indices as plain segments (items.0.name), no brackets.`,
+        `  { "kind": "actionResult", "actionId": "<act_…>", "path": "rows" } — the last result of an action; path is dot-separated, [0] for an index, ["key"] for awkward keys (items[0]["Unit price"]).`,
         `  { "kind": "formula", "expr": "<expr>" } — computed from live scope. Roots: ${FORMULA_SCOPE_ROOTS.join(', ')}. Callable names + operators: see ### Formulas.`,
         `  { "kind": "record", "tableId": "<tbl_…>", "recordId"?, "filter"?, "sort"?, "limit"?, "path"? } — ONE row from an app data table (first match).`,
         `  { "kind": "records", "tableId": "<tbl_…>", "filter"?, "sort"?, "limit"? } — an array of rows from an app data table.`,

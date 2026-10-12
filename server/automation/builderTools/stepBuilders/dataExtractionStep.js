@@ -8,6 +8,9 @@
 const { newId, appendAfter } = require('../draftGraph');
 const { validateAndFixBindings, sanitizeForEach, unboundLoopVarError } = require('../bindings');
 const { checkLoopRef } = require('../outputFields');
+const { canonicalAiPath, hasPlaceholder, placeholdersOf } = require('../aiPaths');
+const { replaceTemplate } = require('../../expr');
+const { refHead, REF_ROOTS } = require('../../validate/refPaths');
 const {
     DATA_EXTRACTION_FIELD_TYPES, DATA_EXTRACTION_FIELD_NAME_RE,
     DATA_EXTRACTION_MAX_FIELDS, DATA_EXTRACTION_MAX_INSTRUCTIONS_CHARS,
@@ -64,7 +67,7 @@ function sanitizeDataExtractionFields(raw) {
  * A bare ref-looking string is upgraded to a ref rather than frozen as the
  * literal words "steps.x.output.y".
  */
-function sanitizeDataExtractionSource(raw, draft) {
+function sanitizeDataExtractionSource(raw, draft, draftWrap) {
     if (raw === undefined || raw === null || raw === '') {
         return {
             error: 'source is required — bind it to the text to read, at the TOP LEVEL of the step (a data_extraction has no inputs map), e.g. source:{kind:"ref", path:"steps.read.output.content"} (or loop.<itemVar>.output.content inside a forEach).',
@@ -74,10 +77,14 @@ function sanitizeDataExtractionSource(raw, draft) {
         };
     }
     let candidate = raw;
-    if (typeof raw === 'string' && !/\{\{[^}]+\}\}/.test(raw) && /^\s*(trigger|steps|vars|loop|secrets)\./.test(raw)) {
-        candidate = { kind: 'ref', path: raw.trim() };
+    if (typeof raw === 'string' && !hasPlaceholder(raw)) {
+        // A data root followed by a segment (`steps.x…`, `steps["x"]…`), read
+        // with the runner's grammar.
+        const t = raw.trim();
+        const { root } = refHead(t);
+        if (root && REF_ROOTS.has(root) && (t[root.length] === '.' || t[root.length] === '[')) candidate = { kind: 'ref', path: t };
     }
-    const { inputs, error } = validateAndFixBindings({ source: candidate }, draft);
+    const { inputs, error, notes } = validateAndFixBindings({ source: candidate }, draft, { draftWrap });
     if (error) return { error: error.replace(/inputs\.source/g, 'source') };
     const source = inputs.source;
     if (source && source.kind === 'literal') {
@@ -85,28 +92,22 @@ function sanitizeDataExtractionSource(raw, draft) {
     }
     const where = fileLocationField(source);
     if (where) {
-        const v = /^loop\.([A-Za-z_$][\w$]*)/.exec(where)?.[1] || 'f';
+        const head = refHead(where);
+        const v = head.root === 'loop' && head.second ? head.second : 'f';
         return {
             error: `source is bound to "${where}" — that is the file's LOCATION, not its text; the extraction model would read the words of a path. Read the file first: an integration_action (e.g. nextcloud_read_file) with path:{kind:"ref",path:"${where}"} and forEach over the listing, then bind this step's source to loop.${v}.output.content with forEach over THAT step's output.results.`,
             _fixHint: 'Reject reason: source points at a file path instead of file text. Add the read step and bind source to its content — the fields were fine.',
         };
     }
-    return { source };
+    return { source, notes: (notes || []).map(n => n.replace(/^inputs\.source/, 'source')) };
 }
 
-// Mirrors bindings.js _normalizeRefPath (private there) and
-// outputFields.normalizeRefPath: the ways weaker models mangle a path. Two
-// placeholders that differ only in spelling ({{ $loop.f.content }} and
-// {{loop.f.content}}) are ONE candidate, not two.
+// The path a placeholder holds, in the one spelling bindings.js stores
+// (aiPaths.js — brackets kept): two placeholders that differ only in
+// spelling ({{ $loop.f.content }} and {{loop.f.content}}) are ONE candidate.
 function normalizePlaceholderPath(path) {
     if (typeof path !== 'string') return null;
-    const p = path
-        .trim()
-        .replace(/^\$+/, '')
-        .replace(/\[\s*['"]?([^\]'"]+)['"]?\s*\]/g, '.$1')
-        .replace(/^\.+/, '')
-        .replace(/\s*\.\s*/g, '.')
-        .replace(/\.{2,}/g, '.');
+    const p = canonicalAiPath(path.trim().replace(/^\$+/, ''));
     return p || null;
 }
 
@@ -200,7 +201,8 @@ function loopItemSourceError(chk, forEach, draftWrap) {
             : `an action that reads the file's text, with path:{kind:"ref", path:"loop.${v}.path"}`;
         advice = ` Read the file first: ${readStep} and forEach:{overRef:"${overRef}", itemVar:"${v}"}; then give THIS step forEach:{overRef:"steps.<read>.output.results", itemVar:"r"} (steps.$read… inside a batch) and source:{kind:"ref", path:"loop.r.output.content"}.`;
     } else {
-        advice = ` Bind source to one of those fields (source:{kind:"ref", path:"loop.${v}.<field>"}), or to the output of a step that produces the text, with a forEach over that step's results.`;
+        const dym = Array.isArray(chk.suggestions) && chk.suggestions.length ? ` Did you mean ${chk.suggestions.join(' or ')}?` : '';
+        advice = `${dym} Bind source to one of those fields (source:{kind:"ref", path:"loop.${v}.<field>"}), or to the output of a step that produces the text, with a forEach over that step's results.`;
     }
     return {
         error: `source reads "${chk.at}", but the forEach item is an entry of ${overRef}${toolTag}, which has no "${chk.missing}" — ${has}.${advice}`,
@@ -220,16 +222,18 @@ function loopItemSourceError(chk, forEach, draftWrap) {
  */
 function applyAddDataExtraction(draft, rawArgs, draftWrap) {
     const { args, notes, promptRefs } = translateDataExtractionVocabulary(rawArgs || {});
-    const { forEach, error: feErr } = sanitizeForEach(args.forEach, draft);
+    const { forEach, error: feErr, notes: feNotes } = sanitizeForEach(args.forEach, draft, draftWrap);
     if (feErr) return { error: feErr };
+    if (feNotes) notes.push(...feNotes);
     let raw = args.source;
     if (raw === undefined || raw === null || raw === '') {
         const derived = deriveDataExtractionSource({ promptRefs, forEach });
         if (derived && derived.error) return derived;
         if (derived) { raw = derived.source; notes.push(derived.note); }
     }
-    const src = sanitizeDataExtractionSource(raw, draft);
+    const src = sanitizeDataExtractionSource(raw, draft, draftWrap);
     if (src.error) return { error: src.error, ...(src._fixHint ? { _fixHint: src._fixHint } : {}) };
+    notes.push(...src.notes);
     let source = src.source;
     // The one binding this step has, checked against what its forEach item
     // actually looks like — repaired when the model skipped a fan-out's
@@ -343,7 +347,7 @@ function translateAiStepVocabulary(args) {
     const notes = [];
     const out = { ...args };
     const promptRefs = typeof out.prompt === 'string'
-        ? [...out.prompt.matchAll(/\{\{\s*([^}]+?)\s*\}\}/g)].map(m => m[1].trim())
+        ? placeholdersOf(out.prompt)
         : [];
     const schema = out.outputSchema;
     if (!Array.isArray(out.fields) && schema && typeof schema === 'object' && !Array.isArray(schema)) {
@@ -366,7 +370,7 @@ function translateAiStepVocabulary(args) {
     if (typeof out.prompt === 'string' && (out.instructions === undefined || out.instructions === null || out.instructions === '')) {
         // The text itself arrives through `source`; a {{…}} placeholder in
         // the prompt would otherwise be pasted into the hint as dead words.
-        const hint = out.prompt.replace(/\{\{[^}]*\}\}/g, '').replace(/[ \t]+\n/g, '\n').trim();
+        const hint = replaceTemplate(out.prompt, () => '').replace(/[ \t]+\n/g, '\n').trim();
         if (hint) out.instructions = hint;
         notes.push('prompt is ai_step vocabulary — data_extraction reads `source` and takes at most a short `instructions` hint; the prompt text was kept as instructions with its {{…}} placeholders removed.');
     }

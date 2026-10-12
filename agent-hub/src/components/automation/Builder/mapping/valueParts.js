@@ -17,38 +17,33 @@
  * back `supported: false` and the editor keeps its hands off it (it renders
  * the humanised read-only form plus an "edit as formula" escape).
  *
- * Pure module: no React, no DOM. The paths and quoting rules mirror
- * utils/bindingHelpers (which owns the binding <-> input-text mapping) and
- * mapping/refTokens (which owns ref classification for chips).
+ * Pure module: no React, no DOM. Paths are read with the runtime's grammar
+ * (utils/bindingHelpers, over shared/expr/path.mjs) and chips are classified
+ * by mapping/refTokens. A path that goes into a FORMULA (`lower(…)`,
+ * `join(…)`) is written in its canonical spelling, the one the expression
+ * engine reads as the same path: `headers.content-type` resolves as a key in a
+ * template, but inside `lower(…)` it would be a subtraction.
  */
-import { bindingFromInput, INLINE_STEP_PATH_RE } from '../../../../utils/bindingHelpers';
-import { humanizeFieldTail } from '../flow/displayHelpers';
-import { classifyRef, resolveChipLabel } from './refTokens';
+import { compile, parseExpr } from '@shared/expr/engine.mjs';
+import { parseJsonText, scanTemplate } from '@shared/expr/path.mjs';
+import { classifyRef, fieldTailLabel, resolveChipLabel } from './refTokens';
+import { bindingFromInput, canonicalRefPath, INLINE_STEP_PATH_RE, refPathTokens } from '../../../../utils/bindingHelpers';
 
 /** Roots a user can PICK. `secrets` is deliberately absent — never a chip. */
 const DATA_ROOTS = new Set(['steps', 'trigger', 'vars', 'loop', 'item', '_index']);
-
-// A clean dotted/bracketed path, the same shape isCleanPath accepts.
-const PLAIN_PATH_RE = /^[A-Za-z_$][A-Za-z0-9_$]*(?:\.[A-Za-z0-9_$]+|\[[^\]]*\])*$/;
-// …or a sub-step of an expanded flowlet (`steps.<callId>/<subId>…`).
-const PATH_RE = { test: (s) => PLAIN_PATH_RE.test(s) || INLINE_STEP_PATH_RE.test(s) };
-
-const TEMPLATE_TOKEN = /\{\{([^}]*)\}\}/g;
-
-// `parseJson(<source path>)` / `parseJson(<source path>, "<path in the json>")`
-// — the exact shape JsonExtractSection writes. NOTE: the expression language
-// DOES decode backslash escapes inside string literals (engine.mjs tokenizer:
-// \n → newline, \t → tab, \<any> → that char) — an earlier version of this
-// comment claimed otherwise. This regex still accepts only escape-free
-// arguments, which is fine: JsonExtractSection never writes escapes into a
-// JSON path. join()'s separator DOES need them — see JOIN_CALL below.
-const JSON_CALL = /^parseJson\(\s*([^,()]+?)\s*(?:,\s*(["'])([^"']*)\2\s*)?\)$/;
 
 // `fn(<path>, "<arg>")` and `fn(<path>, "<arg>", "<arg2>")` — the transforms
 // that carry string arguments: join's separator, formatNumber's style,
 // formatDate's notation, yesNoText's two words. Arguments are engine string
 // literals, escapes and all (a newline separator is stored as `join(p, "\n")`).
 const STR = '(?:"((?:[^"\\\\]|\\\\.)*)"|\'((?:[^\'\\\\]|\\\\.)*)\')';
+
+// `parseJson(<source path>)` / `parseJson(<source path>, "<path in the json>")`
+// — the shape JsonExtractSection and "Pick fields from it" write. The JSON
+// path is an engine string literal with escapes (`"[\"first-name\"]"`): a
+// bracket-quoted key needs them, and a chip that only knew escape-free paths
+// fell back to "Custom formula" for every such pick.
+const JSON_CALL = new RegExp(`^parseJson\\(\\s*([^,()]+?)\\s*(?:,\\s*${STR}\\s*)?\\)$`);
 const ARG1_CALL = new RegExp(`^([A-Za-z_$][A-Za-z0-9_$]*)\\(\\s*([^,()]+?)\\s*,\\s*${STR}\\s*\\)$`);
 const ARG2_CALL = new RegExp(`^([A-Za-z_$][A-Za-z0-9_$]*)\\(\\s*([^,()]+?)\\s*,\\s*${STR}\\s*,\\s*${STR}\\s*\\)$`);
 
@@ -74,23 +69,22 @@ export function escapeExprString(s) {
         .replace(/\\/g, '\\\\')
         .replace(/"/g, '\\"')
         .replace(/\n/g, '\\n')
+        .replace(/\r/g, '\\r')
         .replace(/\t/g, '\\t');
 }
 
-/** Mirror of the engine tokenizer's escape decoding (engine.mjs). */
-function decodeExprString(s) {
-    let out = '';
-    const src = String(s ?? '');
-    for (let i = 0; i < src.length; i++) {
-        if (src[i] === '\\' && i + 1 < src.length) {
-            const n = src[i + 1];
-            out += n === 'n' ? '\n' : n === 't' ? '\t' : n;
-            i++;
-        } else {
-            out += src[i];
-        }
-    }
-    return out;
+/**
+ * A string argument the call patterns captured (the body of a double- or a
+ * single-quoted literal), read by the expression engine's own tokenizer: the
+ * editor shows exactly the text the run uses (`\u2022` a bullet, `\r\n` a
+ * Windows line break). A copy of the decoding fell behind the engine once
+ * and turned `"\u2022 "` into "u2022 " on the next edit.
+ */
+function stringArg(doubleQuoted, singleQuoted) {
+    const body = doubleQuoted ?? singleQuoted;
+    if (body == null) return '';
+    const q = doubleQuoted != null ? '"' : "'";
+    try { return String(parseExpr(`${q}${body}${q}`).v ?? ''); } catch { return body; }
 }
 
 /**
@@ -135,12 +129,31 @@ const ARG2_TRANSFORMS = new Set(['yesNoText']);
 /** The transform ids VALUE_TRANSFORMS offers, in order — for the pickers. */
 export const TRANSFORM_BY_ID = Object.fromEntries(VALUE_TRANSFORMS.map(t => [t.id, t]));
 
-/** Is this a data path the picker could have produced? */
+/** Is this a data path the picker could have produced? (The runtime's path grammar.) */
 export function isDataPath(s) {
-    const text = String(s ?? '').trim();
-    if (!text || !PATH_RE.test(text)) return false;
-    return DATA_ROOTS.has(text.split(/[.[]/)[0]);
+    const tokens = refPathTokens(String(s ?? ''));
+    return !!tokens && DATA_ROOTS.has(tokens[0].key);
 }
+
+/**
+ * A data path inside a FORMULA: one the expression engine itself reads as
+ * that path — `fields["Story Points"]` yes, `headers.content-type` no (the
+ * engine subtracts there, so showing it as a field would hide what runs).
+ */
+function isExprDataPath(s) {
+    const src = String(s ?? '').trim();
+    if (!isDataPath(src)) return false;
+    if (INLINE_STEP_PATH_RE.test(src)) return true;
+    let ast;
+    try { ast = compile(src).ast; } catch { return false; }
+    const literalIndex = (e) => e.kind === 'str' || (e.kind === 'num' && Number.isInteger(e.v))
+        || (e.kind === 'unop' && e.op === '-' && e.a?.kind === 'num' && Number.isInteger(e.a.v));
+    return ast.kind === 'path' && ast.segments.every(seg => seg.kind === 'name' || seg.kind === 'wildcard'
+        || seg.kind === 'match' || (seg.kind === 'index' && literalIndex(seg.expr)));
+}
+
+/** A picked path as a formula operand: the canonical spelling every engine reads. */
+const operand = (path) => canonicalRefPath(path);
 
 /**
  * Binding -> visual parts.
@@ -171,30 +184,30 @@ export function parseValue(binding) {
     if (binding.kind === 'expr') {
         const src = String(binding.value || '').trim();
         if (!src) return yes([]);
-        if (isDataPath(src)) return yes([{ type: 'data', path: src }]);
+        if (isExprDataPath(src)) return yes([{ type: 'data', path: src }]);
         // A field placed by "Pick fields from it" — shown as a chip like any
         // other pick, because to the user that is exactly what it was.
         const json = JSON_CALL.exec(src);
-        if (json && isDataPath(json[1])) {
-            return yes([{ type: 'json', path: json[1].trim(), jsonPath: json[3] ?? '' }]);
+        if (json && isExprDataPath(json[1])) {
+            return yes([{ type: 'json', path: json[1].trim(), jsonPath: stringArg(json[2], json[3]) }]);
         }
         // The argument-carrying calls first — their extra arguments would trip
         // the single-argument matcher below. Two args (yesNoText's yes/no
         // words) before one (join's separator, formatNumber's style,
         // formatDate's notation).
         const two = ARG2_CALL.exec(src);
-        if (two && ARG2_TRANSFORMS.has(two[1]) && isDataPath(two[2])) {
+        if (two && ARG2_TRANSFORMS.has(two[1]) && isExprDataPath(two[2])) {
             return yes(
                 [{ type: 'data', path: two[2].trim() }], two[1],
-                decodeExprString(two[3] ?? two[4] ?? ''), decodeExprString(two[5] ?? two[6] ?? ''),
+                stringArg(two[3], two[4]), stringArg(two[5], two[6]),
             );
         }
         const one = ARG1_CALL.exec(src);
-        if (one && ARG1_TRANSFORMS.has(one[1]) && isDataPath(one[2])) {
-            return yes([{ type: 'data', path: one[2].trim() }], one[1], decodeExprString(one[3] ?? one[4] ?? ''));
+        if (one && ARG1_TRANSFORMS.has(one[1]) && isExprDataPath(one[2])) {
+            return yes([{ type: 'data', path: one[2].trim() }], one[1], stringArg(one[3], one[4]));
         }
         const call = /^([A-Za-z_$][A-Za-z0-9_$]*)\(([^()]*)\)$/.exec(src);
-        if (call && TRANSFORM_IDS.has(call[1]) && isDataPath(call[2])) {
+        if (call && TRANSFORM_IDS.has(call[1]) && isExprDataPath(call[2])) {
             return yes([{ type: 'data', path: call[2].trim() }], call[1]);
         }
         return no(src);
@@ -204,20 +217,15 @@ export function parseValue(binding) {
 
 function parseTemplate(source) {
     const parts = [];
-    TEMPLATE_TOKEN.lastIndex = 0;
-    let last = 0;
-    let m;
-    while ((m = TEMPLATE_TOKEN.exec(source))) {
-        const inner = m[1].trim();
+    // The runtime's own placeholder scan (quote-aware: `{{ x["a}}b"] }}` is one).
+    for (const p of scanTemplate(source)) {
+        if (p.type === 'text') { parts.push({ type: 'text', text: p.value }); continue; }
         // A `{{ }}` holding anything but a plain pickable path (a function
         // call, an operator) is somebody's hand-written template — leave it be
         // rather than round-tripping it into something subtly different.
-        if (!isDataPath(inner)) return { supported: false, parts: [], transform: null, transformArg: null, transformArg2: null, text: source };
-        if (m.index > last) parts.push({ type: 'text', text: source.slice(last, m.index) });
-        parts.push({ type: 'data', path: inner });
-        last = m.index + m[0].length;
+        if (!isDataPath(p.inner)) return { supported: false, parts: [], transform: null, transformArg: null, transformArg2: null, text: source };
+        parts.push({ type: 'data', path: p.inner });
     }
-    if (last < source.length) parts.push({ type: 'text', text: source.slice(last) });
     return { supported: true, parts, transform: null, transformArg: null, transformArg2: null, text: '' };
 }
 
@@ -258,9 +266,8 @@ export function buildValue(parts, transform = null, transformArg = null, transfo
     // with anything (no add buttons on a JSON chip); this is the belt.
     const json = kept.find(p => p.type === 'json');
     if (json) {
-        if (!json.jsonPath) return { kind: 'expr', value: `parseJson(${json.path})` };
-        const quote = json.jsonPath.includes('"') ? "'" : '"';
-        return { kind: 'expr', value: `parseJson(${json.path}, ${quote}${json.jsonPath}${quote})` };
+        if (!json.jsonPath) return { kind: 'expr', value: `parseJson(${operand(json.path)})` };
+        return { kind: 'expr', value: `parseJson(${operand(json.path)}, "${escapeExprString(json.jsonPath)}")` };
     }
 
     if (kept.length === 1) {
@@ -270,14 +277,14 @@ export function buildValue(parts, transform = null, transformArg = null, transfo
             const spec = TRANSFORM_BY_ID[transform];
             const a = escapeExprString(transformArg ?? spec?.argDefault ?? '');
             const b = escapeExprString(transformArg2 ?? spec?.arg2Default ?? '');
-            return { kind: 'expr', value: `${transform}(${only.path}, "${a}", "${b}")` };
+            return { kind: 'expr', value: `${transform}(${operand(only.path)}, "${a}", "${b}")` };
         }
         if (transform && ARG1_TRANSFORMS.has(transform)) {
             const fallback = transform === 'join' ? ', ' : (TRANSFORM_BY_ID[transform]?.argDefault ?? '');
-            return { kind: 'expr', value: `${transform}(${only.path}, "${escapeExprString(transformArg ?? fallback)}")` };
+            return { kind: 'expr', value: `${transform}(${operand(only.path)}, "${escapeExprString(transformArg ?? fallback)}")` };
         }
         if (transform && TRANSFORM_IDS.has(transform)) {
-            return { kind: 'expr', value: `${transform}(${only.path})` };
+            return { kind: 'expr', value: `${transform}(${operand(only.path)})` };
         }
         return bindingFromInput(only.path, 'expression');
     }
@@ -304,18 +311,21 @@ export function describeDataPath(path, stepLabelById = null) {
         // surface that didn't pass one. Either way the id itself is never shown:
         // "Previous step ▸ Total" tells the user as much as `act_4d4307a` does,
         // and the exact path stays in the chip's title for whoever needs it.
-        return { name: missing ? 'Previous step' : name, suffix: humanizeFieldTail(suffix), missing, source: ref.source };
+        return { name: missing ? 'Previous step' : name, suffix: fieldTailLabel(suffix), missing, source: ref.source };
     }
-    const root = raw.split(/[.[]/)[0];
+    const tokens = refPathTokens(raw);
+    const root = tokens ? tokens[0].key : raw.split(/[.[]/)[0];
+    // The field's own key, read through the grammar: `item["Order date"]`
+    // names "Order date", not the quoted spelling.
+    const restLabel = () => (tokens && tokens.length > 1 ? fieldTailLabel(canonicalRefPath(raw).slice(String(root).length).replace(/^\./, '')) : '');
     if (root === 'item') {
-        const tail = raw.slice(4).replace(/^\./, '');
-        return { name: 'Current row', suffix: humanizeFieldTail(tail), missing: false, source: 'item' };
+        return { name: 'Current row', suffix: restLabel(), missing: false, source: 'item' };
     }
     if (raw === '_index') {
         return { name: 'Row number', suffix: '', missing: false, source: 'item' };
     }
     if (root === 'vars') {
-        return { name: 'Variable', suffix: humanizeFieldTail(raw.slice(5)), missing: false, source: 'vars' };
+        return { name: 'Variable', suffix: restLabel(), missing: false, source: 'vars' };
     }
     return { name: raw, suffix: '', missing: false, source: 'steps' };
 }
@@ -323,4 +333,25 @@ export function describeDataPath(path, stepLabelById = null) {
 /** Label for a transform id (for the chip). */
 export function transformLabel(id) {
     return VALUE_TRANSFORMS.find(t => t.id === id)?.label || id;
+}
+
+/**
+ * A field picked out of JSON text ("Pick fields from it"), as the binding
+ * that reads it. The run reads JSON text as the value it encodes
+ * (shared/expr/path.mjs), so when the source IS JSON text — or already an
+ * object — the pick is a plain path: one chip, any key
+ * (`steps.http.output.body.data["first name"]`). `parseJson(source, "path")`
+ * stays for what only its lenient extraction finds — JSON inside prose, such
+ * as an AI answer with a sentence around it — with the path written as an
+ * escaped string literal, so a key holding quotes still runs.
+ */
+export function jsonPickBinding(sourcePath, relPath, sourceValue) {
+    const rel = String(relPath ?? '').trim();
+    const readable = (typeof sourceValue === 'string' && parseJsonText(sourceValue) !== undefined)
+        || (sourceValue !== null && typeof sourceValue === 'object');
+    if (rel && readable) {
+        const full = `${String(sourcePath ?? '').trim()}${rel.startsWith('[') ? '' : '.'}${rel}`;
+        if (isDataPath(full)) return { kind: 'ref', path: canonicalRefPath(full) };
+    }
+    return buildValue([{ type: 'json', path: String(sourcePath ?? '').trim(), jsonPath: rel }]);
 }

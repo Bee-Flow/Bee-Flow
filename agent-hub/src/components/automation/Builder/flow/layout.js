@@ -15,6 +15,8 @@ import { isInlineId, parseInlineId, toDisplayPosition } from './inlineFlowlets';
  * second copy of a name the canvas already shows.
  */
 const PORT_LABELLED_TYPES = new Set(['condition', 'guard', 'switch', 'loop']);
+// The Condition's two shapes whose ports carry names an edge chip could cover.
+const NAMED_PORT_TYPES = new Set(['condition', 'switch']);
 
 // Default box a fresh note gets before anyone drags a corner (BFSF-411) —
 // generous enough to hold a sentence or two without the user's first act
@@ -367,6 +369,8 @@ export function buildLayout(def, { runByStep, issuesByStep, onAddAfter = null, o
                     caseIndex,
                     // Fan-out lane for parallel edges between the same pair.
                     ...(parallelCount > 1 ? { parallelIndex, parallelCount } : {}),
+                    // Its source prints port names: the data chip keeps clear of them (edgeChip.ts).
+                    ...(NAMED_PORT_TYPES.has(typeById.get(e.from)) ? { fromPortLabels: true } : {}),
                     // How much data travelled down THIS connection on the last
                     // run ("201 records", "3 items"). Hitting ▶ on a node no
                     // longer opens its editor, so this is where the answer to

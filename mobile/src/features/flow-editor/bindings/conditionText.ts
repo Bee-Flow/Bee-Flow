@@ -6,20 +6,42 @@
  */
 
 import type { BindingValue } from './types';
-import { isCleanPath, renderBindingValue } from '../model/route/bindingText';
+import { isCleanPath } from './walkPath';
+import { renderBindingValue } from '../model/route/bindingText';
 
-// A binding as an expression's right-hand side: the Condition node's model owns it.
+// One copy of "a binding as an expression fragment", beside the condition
+// model that writes with it (it sits below this layer).
 export { renderBindingValue };
 
 // Longest first, so `>=` is never read as `>`.
 const COND_OPS = ['===', '!==', '==', '!=', '>=', '<=', '>', '<'];
 const OP_CHARS = new Set(['=', '!', '<', '>']);
 
+/** Is position `at` inside a quoted string of `text`? */
+function insideQuotes(text: string, at: number): boolean {
+    let quote: string | null = null;
+    for (let i = 0; i < at; i++) {
+        const c = text.charAt(i);
+        if (quote) {
+            if (c === '\\') i++;
+            else if (c === quote) quote = null;
+        } else if (c === '"' || c === "'") {
+            quote = c;
+        }
+    }
+    return quote !== null;
+}
+
 function findOperator(text: string, op: string): number {
     let from = 0;
     while (from < text.length) {
         const idx = text.indexOf(op, from);
         if (idx === -1) return -1;
+        // Inside a quoted key (`fields["a > b"]`) an operator is text.
+        if (insideQuotes(text, idx)) {
+            from = idx + 1;
+            continue;
+        }
         const before = idx > 0 ? text.charAt(idx - 1) : ' ';
         const after = idx + op.length < text.length ? text.charAt(idx + op.length) : ' ';
         // Surrounded by other operator characters: part of a longer operator.

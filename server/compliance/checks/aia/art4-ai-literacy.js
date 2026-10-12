@@ -1,8 +1,10 @@
 /**
  * EU AI Act Art. 4 — AI literacy (applies since 2 Feb 2025).
  *
- * Providers AND deployers must ensure a sufficient level of AI literacy in
- * the people operating AI systems on their behalf. The tool cannot verify
+ * Providers AND deployers must take measures that support the AI literacy of
+ * the people operating AI systems on their behalf (Art. 4 as amended by
+ * Regulation (EU) 2026/1744 — no level has to be guaranteed; before, they had
+ * to "ensure a sufficient level"). The tool cannot verify
  * training happened — this is an annual attestation, optionally with a link
  * to the training material.
  */
@@ -31,7 +33,7 @@ module.exports = {
             return {
                 status: 'warn',
                 evidence,
-                details: 'No AI-literacy attestation on record. Art. 4 (in force since Feb 2025) requires staff operating AI systems to have a sufficient level of AI literacy — confirm your training/measures under Compliance → Settings.',
+                details: 'No AI-literacy attestation on record. Art. 4 (in force since Feb 2025) requires measures that support the AI literacy of staff operating AI systems — confirm your training/measures under Compliance → Settings.',
             };
         }
         const ageDays = (Date.now() - confirmedAt.getTime()) / 86400000;

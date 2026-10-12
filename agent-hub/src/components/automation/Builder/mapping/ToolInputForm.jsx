@@ -7,9 +7,10 @@ import ToolParamField from './toolInput/ToolParamField';
 import useVariablePicker from './useVariablePicker';
 import VariablePicker from './VariablePicker';
 import { useVariablePickerContext } from './VariablePickerContext';
-import { suggestKeyFromPath } from '../../../../utils/bindingHelpers';
+import { canonicalRefPath, suggestKeyFromPath } from '../../../../utils/bindingHelpers';
 import { useFormMode } from '../flow/settings/formDensity';
 import { actionButtonClass, subLabelClass } from '../flow/settings/formStyles';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 /**
  * Schema-driven inputs editor for a step's `inputs` map.
@@ -66,6 +67,9 @@ export default function ToolInputForm({
     // have no schema, so expectedShapeFor(undefined) === 'unknown' and the
     // chooser never fires there.
     onRequestForEach = null,
+    // A value from a list inside the current item moves the step's forEach
+    // to that list (deepenForEach.ts); only while the step runs per item.
+    deepenForEach = null,
     // Round 4 (artboards 4a/4b), all optional and schema mode only:
     //   suggestions  { [key]: { binding, label, source } } for EMPTY required
     //                settings: a matching upstream field, else a safe default
@@ -76,7 +80,11 @@ export default function ToolInputForm({
     tool = null,
     problemKey = null,
     problemText = null,
+    // Keys the Auto-map wand's AI fallback filled (useAiAutoMap's aiKeys):
+    // their pill reads "auto · AI" instead of "auto".
+    aiMappedKeys = [],
 }) {
+    const { t } = useTranslation();
     const properties = inputSchema?.properties || null;
     const required = useMemo(() => new Set(inputSchema?.required || []), [inputSchema]);
 
@@ -95,7 +103,11 @@ export default function ToolInputForm({
     // Locally suppress the "auto" pill once the user edits that field. Resets
     // when the step changes (SettingsForm re-keys this subtree by step.id).
     const [consumed, setConsumed] = useState(() => new Set());
-    const isAuto = (key) => autoMappedKeys.includes(key) && !consumed.has(key);
+    const isAuto = (key) => {
+        if (consumed.has(key)) return false;
+        if (aiMappedKeys.includes(key)) return 'ai';
+        return autoMappedKeys.includes(key);
+    };
 
     // Newly-added custom rows are held LOCALLY until they have a name + value.
     // For tool/AI inputs (keepEmptyFields=false) `buildPatch`'s sanitizeInputs
@@ -145,7 +157,7 @@ export default function ToolInputForm({
     ));
 
     const updateField = (key, binding) => {
-        if (autoMappedKeys.includes(key)) setConsumed(s => new Set(s).add(key));
+        if (autoMappedKeys.includes(key) || aiMappedKeys.includes(key)) setConsumed(s => new Set(s).add(key));
         const next = { ...(inputs || {}) };
         if (isEmptyBinding(binding) && !keepEmptyFields) {
             delete next[key];
@@ -198,7 +210,7 @@ export default function ToolInputForm({
     const upstreamCtx = useVariablePickerContext();
     const addFieldFromUpstream = (path) => {
         const key = uniqueKey(suggestKeyFromPath(path));
-        onChange?.({ ...(inputs || {}), [key]: { kind: 'ref', path: String(path || '').trim() } });
+        onChange?.({ ...(inputs || {}), [key]: { kind: 'ref', path: canonicalRefPath(path) } });
         upstreamPicker.closePicker();
     };
     const AddFromStepButton = keepEmptyFields ? (
@@ -208,14 +220,14 @@ export default function ToolInputForm({
                 onClick={(e) => upstreamPicker.openPicker(e.currentTarget)}
                 className="flex items-center gap-1 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
             >
-                <Workflow size={12} /> Add field from a previous step
+                <Workflow size={12} /> {t('automations.tool_input_form.add_field_from_a_previous_step', 'Add field from a previous step')}
             </button>
             <VariablePicker
                 {...upstreamPicker.pickerProps}
                 groups={upstreamCtx.groups}
                 previewSample={previewSample ?? upstreamCtx.previewSample}
                 onPick={addFieldFromUpstream}
-                title="Add field from a previous step"
+                title={t('automations.tool_input_form.add_field_from_a_previous_step', 'Add field from a previous step')}
             />
         </>
     ) : null;
@@ -224,10 +236,10 @@ export default function ToolInputForm({
         <button
             type="button"
             onClick={onAutoMap}
-            title="Auto-map empty inputs from upstream steps"
+            title={t('automations.tool_input_form.auto_map_empty_inputs_from_upstream', 'Auto-map empty inputs from upstream steps')}
             className={actionButtonClass()}
         >
-            <Sparkles size={12} /> Auto-map
+            <Sparkles size={12} /> {t('automations.tool_input_form.auto_map', 'Auto-map')}
         </button>
     ) : null;
 
@@ -251,6 +263,7 @@ export default function ToolInputForm({
                 previewSample={previewSample}
                 autoMapped={isAuto(key)}
                 onRequestForEach={onRequestForEach}
+                deepenForEach={deepenForEach}
                 suggestion={suggestions?.[key] || null}
                 tool={tool}
                 problem={problemKey === key ? problemText : null}
@@ -277,7 +290,7 @@ export default function ToolInputForm({
                 {(extras.length > 0 || pending.length > 0) && (
                     <div className="pt-2 border-t border-[var(--border-default)] space-y-2">
                         <div className={subLabelClass()}>
-                            Extra inputs (not in tool schema)
+                            {t('automations.tool_input_form.extra_inputs_not_in_tool_schema', 'Extra inputs (not in tool schema)')}
                         </div>
                         {extras.map(k => (
                             <GenericRow
@@ -302,7 +315,7 @@ export default function ToolInputForm({
                         onClick={addField}
                         className="flex items-center gap-1 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                     >
-                        <Plus size={12} /> Add custom field
+                        <Plus size={12} /> {t('automations.tool_input_form.add_custom_field', 'Add custom field')}
                     </button>
                 )}
             </div>
@@ -316,7 +329,7 @@ export default function ToolInputForm({
             {WandButton && <div className="flex justify-end">{WandButton}</div>}
             {entries.length === 0 && pending.length === 0 && (
                 <div className="text-[11px] text-[var(--text-tertiary)] italic">
-                    No inputs yet. Add a field below.
+                    {t('automations.tool_input_form.no_inputs_yet_add_a_field', 'No inputs yet. Add a field below.')}
                 </div>
             )}
             {entries.map(([k, v]) => (
@@ -343,7 +356,7 @@ export default function ToolInputForm({
                         const cur = (inputs || {})[k];
                         const next = {};
                         for (const [ek, ev] of Object.entries(inputs || {})) {
-                            if (ek === k) next[nextKey] = isEmptyBinding(cur) ? { kind: 'ref', path } : ev;
+                            if (ek === k) next[nextKey] = isEmptyBinding(cur) ? { kind: 'ref', path: canonicalRefPath(path) } : ev;
                             else next[ek] = ev;
                         }
                         onChange?.(next);
@@ -362,7 +375,7 @@ export default function ToolInputForm({
                         onClick={addField}
                         className="flex items-center gap-1 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                     >
-                        <Plus size={12} /> Add field
+                        <Plus size={12} /> {t('automations.tool_input_form.add_field', 'Add field')}
                     </button>
                     {AddFromStepButton}
                 </div>

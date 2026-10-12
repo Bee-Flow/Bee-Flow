@@ -48,7 +48,7 @@ async function getGroup(groupId) {
 
 async function createGroup(groupData) {
     await initDB();
-    const { id, organizationId, name, description, permissions, roles, allowedAgentTypes, azureGroupId, source, lastSyncedAt, orgRole } = groupData;
+    const { id, organizationId, name, description, permissions, roles, allowedAgentTypes, azureGroupId, azureTenantId, source, lastSyncedAt, orgRole } = groupData;
     const ex = await getOne('SELECT id FROM groups WHERE id = $1', [id]);
     if (ex) return false;
     try {
@@ -56,8 +56,8 @@ async function createGroup(groupData) {
         // immediately have a sensible role baseline. The legacy default of
         // '' meant org-admins had to manually pick a role for every synced
         // group before users in those groups could do anything.
-        await run('INSERT INTO groups (id, "organizationId", name, description, permissions, roles, "userCount", "allowedAgentTypes", "azureGroupId", "source", "lastSyncedAt", "orgRole") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)',
-            [id, organizationId || null, name, description || '', JSON.stringify(permissions || []), JSON.stringify(roles || []), 0, JSON.stringify(allowedAgentTypes || []), azureGroupId || null, source || 'manual', lastSyncedAt || null, orgRole || 'member']);
+        await run('INSERT INTO groups (id, "organizationId", name, description, permissions, roles, "userCount", "allowedAgentTypes", "azureGroupId", "source", "lastSyncedAt", "orgRole", "azureTenantId") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)',
+            [id, organizationId || null, name, description || '', JSON.stringify(permissions || []), JSON.stringify(roles || []), 0, JSON.stringify(allowedAgentTypes || []), azureGroupId || null, source || 'manual', lastSyncedAt || null, orgRole || 'member', azureTenantId || null]);
         return true;
     } catch (e) { log.error(e); return false; }
 }
@@ -66,7 +66,7 @@ async function updateGroup(groupId, updates) {
     await initDB();
     const ex = await getOne('SELECT id FROM groups WHERE id = $1', [groupId]);
     if (!ex) return false;
-    const colMap = { name: 'name', description: 'description', azureGroupId: 'azureGroupId', source: 'source', lastSyncedAt: 'lastSyncedAt', orgRole: 'orgRole' };
+    const colMap = { name: 'name', description: 'description', azureGroupId: 'azureGroupId', azureTenantId: 'azureTenantId', source: 'source', lastSyncedAt: 'lastSyncedAt', orgRole: 'orgRole' };
     const updateMap = {};
     for (const k of Object.keys(colMap)) { if (updates[k] !== undefined) updateMap[k] = updates[k]; }
     if (updates.organizationId !== undefined) updateMap.organizationId = updates.organizationId;
@@ -124,21 +124,24 @@ async function deleteGroup(groupId) {
         await run(`DELETE FROM project_shares WHERE shared_with_type = 'group' AND shared_with_id = $1`, [groupId]);
     } catch (e) { /* table may not exist yet on a fresh install */ }
 
+    // Caller-supplied group ids must not re-grant old document shares if reused.
+    await require('../lib/documentSharing').revokeGroupShares(groupId);
     const { rowCount } = await run('DELETE FROM groups WHERE id = $1', [groupId]);
     return rowCount > 0;
 }
 
 // ── Azure AD Lookup Helpers ─────────────────────────────
-async function getGroupByAzureId(azureGroupId) {
+async function getGroupByAzureId(azureGroupId, azureTenantId, organizationId) {
+    if (!azureTenantId || !organizationId) return null;
     await initDB();
-    return await getOne('SELECT * FROM groups WHERE "azureGroupId" = $1', [azureGroupId]);
+    return await getOne('SELECT * FROM groups WHERE LOWER("azureGroupId")=LOWER($1) AND LOWER("azureTenantId")=LOWER($2) AND "organizationId"=$3', [azureGroupId, azureTenantId, organizationId]);
 }
 
-async function getUserByAzureId(azureUserId) {
+async function getUserByAzureId(azureUserId, azureTenantId) {
+    if (!azureTenantId) return null;
     await initDB();
-    const row = await getOne('SELECT * FROM users WHERE "azureUserId" = $1', [azureUserId]);
-    if (!row) return null;
-    return { ...row, groups: parseJSON(row.groups, []) };
+    const row = await getOne('SELECT * FROM users WHERE LOWER("azureUserId")=LOWER($1) AND LOWER("azureTenantId")=LOWER($2)', [azureUserId, azureTenantId]);
+    return row ? { ...row, groups: parseJSON(row.groups, []) } : null;
 }
 
 async function initDefaultGroups() {

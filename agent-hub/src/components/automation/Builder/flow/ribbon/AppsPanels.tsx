@@ -1,56 +1,40 @@
 import { isSuite } from '../appsRibbonLayout';
 import { categoryGlyphFor } from '../appGlyphs';
 import useTranslation from '../../../../../hooks/useTranslation';
-import { AppCommand, CategoryPill } from './AppCommands';
+import { CategoryPill, appPill } from './AppCommands';
 import type { OpenState } from './AppCommands';
-import { ItemPill } from './CommandsPanel';
 import PillRow from './PillRow';
 import type { RowPill } from './PillRow';
-import { appRow, itemRow } from './menuRows';
-import type { AppCategory, PaletteItem, RibbonApp, StepPayload } from './ribbonCategories';
-import { NEXTCLOUD_CATEGORY } from './ribbonCategories';
+import { appRow } from './menuRows';
+import type { AppCategory, RibbonApp, StepPayload } from './ribbonCategories';
 
 type AddFn = (payload: StepPayload) => void;
-type Translate = (key: string, fallback?: string, params?: Record<string, unknown>) => string;
 
-interface PillContext extends OpenState {
-    onAdd: AddFn;
-    t: Translate;
-}
-
-/**
- * An app as a row pill; folded, it is an app row in "More" (opening its
- * actions there). `pooled`: no header names its vendor, so the full name shows.
- */
-function appPill(app: RibbonApp, where: { category: string; foldTitle: string; pooled: boolean }, { onAdd, t, ...open }: PillContext): RowPill {
-    return {
-        key: `app:${app.id}`,
-        node: <AppCommand app={app} category={where.category} pooled={where.pooled} onAdd={onAdd} {...open} />,
-        fold: { key: `apps:${where.foldTitle}`, title: where.foldTitle, rows: [appRow(app, t, where.pooled)] },
-        origins: [`app:${app.integrationId}`],
-    };
-}
-
-interface NextcloudPanelProps extends OpenState {
+interface SuitePanelProps extends OpenState {
+    /** The integration category: Nextcloud, Google Workspace or Microsoft 365. */
+    category: string;
     apps: RibbonApp[];
+    testId: string;
     enabled: boolean;
     onAdd: AddFn;
 }
 
 /**
- * Nextcloud apps: every app of the one suite as a pill (the model the other
- * tabs follow). Too many for the row, and the last ones fold into "More",
- * which then stands in for them as `more:Nextcloud` for the build film.
+ * A vendor suite's tab (Nextcloud apps, Google Workspace, Microsoft 365):
+ * every app of the one suite as a pill (the model the other tabs follow), by
+ * its short name, since the tab names the vendor. Too many for the row, and
+ * the last ones fold into "More", which then stands in for them as
+ * `more:<category>` for the build film.
  */
-export function NextcloudPanel({ apps, enabled, onAdd, openKey, setOpenKey }: NextcloudPanelProps) {
+export function SuitePanel({ category, apps, testId, enabled, onAdd, openKey, setOpenKey }: SuitePanelProps) {
     const { t } = useTranslation();
     const open = { openKey, setOpenKey };
     return (
         <PillRow
-            segments={[apps.map(app => appPill(app, { category: NEXTCLOUD_CATEGORY, foldTitle: NEXTCLOUD_CATEGORY, pooled: false }, { onAdd, t, ...open }))]}
-            testId="ribbon-nextcloud"
+            segments={[apps.map(app => appPill(app, { category, foldTitle: category, pooled: false }, { onAdd, t, ...open }))]}
+            testId={testId}
             enabled={enabled}
-            moreOrigins={[`more:${NEXTCLOUD_CATEGORY}`]}
+            moreOrigins={[`more:${category}`]}
             moreFilterLabel={(n) => t('automations.ribbon.filter_apps', 'Filter {n} apps…', { n })}
             onAdd={onAdd}
             {...open}
@@ -60,31 +44,25 @@ export function NextcloudPanel({ apps, enabled, onAdd, openKey, setOpenKey }: Ne
 
 interface OtherAppsPanelProps extends OpenState {
     categories: AppCategory[];
-    webAndCode: PaletteItem[];
     enabled: boolean;
     onAdd: AddFn;
 }
 
 /**
- * Every other app, on ONE row: HTTP request and Code first (the way out to
- * anything without an app), then each suite (three apps or more,
- * flow/appsRibbonLayout.js) as one pill listing its apps, then the loose apps
- * of the smaller categories under their full names. What does not fit folds
- * into "More".
+ * Every outside app without a tab of its own, on ONE row: each category of
+ * three apps or more (flow/appsRibbonLayout.js) as one pill listing its apps,
+ * then the loose apps of the smaller categories under their full names. What
+ * does not fit folds into "More". Bee Flow's own steps and tools are not
+ * here: Call a web service and Code sit on Logic, the tools on the tab of the
+ * job they do (NATIVE_APP_HOME).
  */
-export function OtherAppsPanel({ categories, webAndCode, enabled, onAdd, openKey, setOpenKey }: OtherAppsPanelProps) {
+export function OtherAppsPanel({ categories, enabled, onAdd, openKey, setOpenKey }: OtherAppsPanelProps) {
     const { t } = useTranslation();
     const open = { openKey, setOpenKey };
-    const webTitle = t('automations.ribbon.web_and_code', 'Web & code');
     const suites = categories.filter(c => isSuite(c) && c.apps.length > 0);
     const loose = categories.filter(c => !isSuite(c)).flatMap(c => c.apps.map(app => ({ app, category: c.category })));
     const looseTitle = suites.length > 0 ? t('automations.ribbon.more_apps', 'More apps') : t('automations.ribbon.apps', 'Apps');
 
-    const web: RowPill[] = webAndCode.map(item => ({
-        key: item.id,
-        node: <ItemPill item={item} onAdd={onAdd} />,
-        fold: { key: 'web', title: webTitle, rows: [itemRow(item)] },
-    }));
     const suitePills: RowPill[] = suites.map(({ category, apps }) => ({
         key: `cat:${category}`,
         node: <CategoryPill category={category} apps={apps} glyph={categoryGlyphFor(category)} onAdd={onAdd} {...open} />,
@@ -95,7 +73,7 @@ export function OtherAppsPanel({ categories, webAndCode, enabled, onAdd, openKey
 
     return (
         <PillRow
-            segments={[web, suitePills, loosePills]}
+            segments={[suitePills, loosePills]}
             testId="ribbon-other-apps"
             enabled={enabled}
             moreFilterLabel={(n) => t('automations.ribbon.filter_apps', 'Filter {n} apps…', { n })}

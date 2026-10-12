@@ -11,14 +11,16 @@
  */
 
 import { translate as t } from '@/core/i18n';
+import { appendKey, getPath } from '@/shared/expr';
 
+import { firstItemPreview } from '../deepFields';
 import { isObj } from '../json';
-import type { Catalog, FlowDefinition, FlowNode, ToolOutputMap, TriggerOutputEntry, VariableField, VariableGroup } from '../types';
+import type { Catalog, FlowDefinition, FlowNode, ToolOutputMap, TriggerOutputEntry, VariableGroup } from '../types';
 import { describeNode } from './describeNode';
+import { forEachOutputPath, perIterationField, rebaseFields } from './forEachShape';
 import { collectUpstream } from './graphWalk';
-import { describeForEachItem } from './loops';
+import { describeForEachItem, describeForEachParents, listItemFields } from './loops';
 import { overlayGroupWithReal } from './realOverlay';
-import { resolveElementSample, sampleToFields } from './sampleFields';
 import { describeTriggerMeta, triggerMetaSample } from './triggers';
 
 /** Tool name → its catalog output sample and schema. */
@@ -35,25 +37,20 @@ export function buildToolOutputMap(catalog: Catalog | null | undefined): ToolOut
 
 /**
  * A step that runs once per item returns the forEach envelope, so every field
- * becomes `…output.results[*].output.<key>`; a scalar's sample is wrapped as
- * `[value]` and marked `perIteration` (BFSF-369), and the counters surface.
+ * MOVES under `…output.results[*].output`, children and quoting kept; a
+ * single value's sample becomes `[value]`, marked `perIteration` (BFSF-369),
+ * and the counters surface.
  */
 function wrapGroupForEach(group: VariableGroup): VariableGroup {
     const base = group.basePath;
-    const flattened: VariableField[] = (group.fields || [])
-        .filter((f) => f && f.key)
-        .map((f) => (Array.isArray(f.sample)
-            ? { key: f.key, path: `${base}.results[*].output.${f.key}`, sample: f.sample }
-            : { key: f.key, path: `${base}.results[*].output.${f.key}`, sample: [f.sample], perIteration: true }));
+    const moved = rebaseFields((group.fields || []).filter((f) => f && f.path), base, forEachOutputPath(base)).map(perIterationField);
     return {
         ...group,
         forEach: true,
         sample: { iterations: 0, succeeded: 0, failed: 0, results: [{ index: 0, item: {}, output: group.sample || {}, status: 'success' }] },
         fields: [
-            { key: 'iterations', path: `${base}.iterations`, sample: 0 },
-            { key: 'succeeded', path: `${base}.succeeded`, sample: 0 },
-            { key: 'failed', path: `${base}.failed`, sample: 0 },
-            ...flattened,
+            ...['iterations', 'succeeded', 'failed'].map((k) => ({ key: k, path: appendKey(base, k), sample: 0 })),
+            ...moved,
         ],
     };
 }
@@ -83,7 +80,8 @@ function describeWalked(node: FlowNode, ctx: WalkContext): VariableGroup | null 
     if (g && !node.__isTrigger && node.forEach?.overRef) g = wrapGroupForEach(g);
     if (!g) return null;
     const real = ctx.realOutputById?.get(node.id);
-    return real !== undefined ? overlayGroupWithReal(g, real) : g;
+    // A pin is handed downstream as it is, so its own shape counts; a stale run's does not.
+    return real !== undefined ? overlayGroupWithReal(g, real, { pinned: node.pinnedOutput != null }) : g;
 }
 
 interface WalkContext {
@@ -137,14 +135,21 @@ export function computeUpstreamGroups(
         if (meta) groups.push(meta);
     }
     const cur = (definition.steps || []).find((s) => s.id === currentStepId);
-    if (cur?.forEach?.overRef) groups.push(describeForEachItem(cur, definition, ctx.toolToOutput, ctx.root));
+    // A step running per INNER item keeps its outer items (`forEach.parents`), right before the current one.
+    if (cur?.forEach?.overRef) {
+        groups.push(...describeForEachParents(cur, definition, ctx.toolToOutput, ctx.root));
+        groups.push(describeForEachItem(cur, definition, ctx.toolToOutput, ctx.root));
+    }
     return groups.filter((g) => !isOwnContainer(g.id, currentStepId));
 }
 
 function loopItemGroup(loopStep: FlowNode, previewSample: unknown): VariableGroup {
     const itemVar = loopStep.itemVar || 'item';
     const batched = Math.max(1, Number(loopStep.batchSize) || 1) > 1;
-    const elementSample = resolveElementSample(loopStep.overRef, previewSample) || {};
+    // The item the first iteration binds (its gaps filled from the other rows), not a blend of every row.
+    const overRef = typeof loopStep.overRef === 'string' ? loopStep.overRef.trim() : '';
+    const list = overRef && previewSample ? getPath(previewSample, overRef) : undefined;
+    const elementSample = firstItemPreview(list) || {};
     const label = batched
         ? t('mobile.flow.group.current_batch', 'Current batch (loop.{name})', { name: itemVar })
         : t('mobile.flow.group.current_item', 'Current item (loop.{name})', { name: itemVar });
@@ -154,7 +159,7 @@ function loopItemGroup(loopStep: FlowNode, previewSample: unknown): VariableGrou
         kind: 'loop',
         basePath: `loop.${itemVar}`,
         sample: batched ? [elementSample] : elementSample,
-        fields: batched || !isObj(elementSample) ? [] : sampleToFields(elementSample, `loop.${itemVar}`),
+        fields: batched || !isObj(elementSample) ? [] : listItemFields(list, `loop.${itemVar}`),
     };
 }
 

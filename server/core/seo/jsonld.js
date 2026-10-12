@@ -104,7 +104,7 @@ function breadcrumbs({ origin, localePrefix, slug, title }) {
  */
 function buildJsonLd(ctx) {
     const { origin, siteName, url, title, description, locale, slug, localePrefix,
-        logoUrl, sameAs, blocks, isProductPage } = ctx;
+        logoUrl, sameAs, blocks, isProductPage, extraNodes, breadcrumbTrail } = ctx;
 
     const graph = [
         organization({ siteName, origin, logoUrl, sameAs }),
@@ -115,8 +115,19 @@ function buildJsonLd(ctx) {
     const faq = faqPage(blocks);
     if (faq) graph.push(faq);
 
-    const crumbs = breadcrumbs({ origin, localePrefix, slug, title });
+    // Deeper pages (a blog post) pass their own trail: Home › Blog › Post.
+    const crumbs = Array.isArray(breadcrumbTrail) && breadcrumbTrail.length
+        ? {
+            '@type': 'BreadcrumbList',
+            itemListElement: breadcrumbTrail.map((c, i) => ({
+                '@type': 'ListItem', position: i + 1, name: c.name, item: `${origin}${c.path}`,
+            })),
+        }
+        : breadcrumbs({ origin, localePrefix, slug, title });
     if (crumbs) graph.push(crumbs);
+    for (const node of Array.isArray(extraNodes) ? extraNodes : []) {
+        if (node && typeof node === 'object') graph.push(node);
+    }
 
     return { '@context': 'https://schema.org', '@graph': graph };
 }

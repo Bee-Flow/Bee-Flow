@@ -2,6 +2,7 @@ import React from 'react';
 import { TextField } from '../fields';
 import { InlineHint } from '../primitives';
 import { set, SectionHeaderFields } from './shared';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 // ── GitHub stats ──────────────────────────────────────────────────────
 //
@@ -11,21 +12,22 @@ import { set, SectionHeaderFields } from './shared';
 // section renders a plain repo link instead of empty digits.
 
 export function GitHubStatsEditor({ data = {}, onChange }) {
+    const { t } = useTranslation();
     return (
         <>
-            <InlineHint>Stars and releases are fetched live — nothing here goes stale.</InlineHint>
+            <InlineHint>{t('cms_site.blocks.git_hub_stats.stars_and_releases_are_fetched_live', 'Stars and releases are fetched live — nothing here goes stale.')}</InlineHint>
             <SectionHeaderFields data={data} onChange={onChange} persistScope="github-stats" />
             <TextField
-                label="Repository URL"
+                label={t('cms_site.blocks.git_hub_stats.repository_url', 'Repository URL')}
                 value={data.repoUrl || ''}
                 onChange={v => onChange(set(data, 'repoUrl', v))}
                 placeholder="https://github.com/owner/repo"
             />
             <TextField
-                label="Link label"
+                label={t('cms_site.blocks.git_hub_stats.link_label', 'Link label')}
                 value={data.linkLabel || ''}
                 onChange={v => onChange(set(data, 'linkLabel', v))}
-                placeholder="Source on GitHub"
+                placeholder={t('cms_site.blocks.git_hub_stats.source_on_github', 'Source on GitHub')}
             />
         </>
     );

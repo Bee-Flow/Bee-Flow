@@ -63,6 +63,9 @@ export default function useSheet(id: string) {
     const usedRows = useMemo(() => usedRowsOf(cells, data?.rows ?? 0), [cells, data]);
 
     const historyRef = useRef<ReturnType<typeof useSheetHistory> | null>(null);
+    // The AI changed this sheet while a cell edit was unsaved: read it again once that edit is saved.
+    const staleRef = useRef(false);
+    const refreshRef = useRef<() => Promise<void>>(() => Promise.resolve());
 
     const flush = useCallback((): Promise<void> => {
         if (timer.current) { clearTimeout(timer.current); timer.current = null; }
@@ -86,6 +89,7 @@ export default function useSheet(id: string) {
                 }
                 setStatus('saved');
                 setSavedAt(new Date());
+                if (staleRef.current) { staleRef.current = false; refreshRef.current().catch(() => undefined); }
             } catch (e) {
                 setStatus('error');
                 setError(e instanceof Error ? e : new Error(String(e)));
@@ -112,6 +116,19 @@ export default function useSheet(id: string) {
     historyRef.current = history;
 
     const { applySaved, refresh } = useServerCells(idRef, activeTabRef, pending, setEdits, setSavedAt, query.refetch);
+
+    refreshRef.current = refresh;
+
+    // The AI wrote to this document (chat tool): take its cells, but never under an unsaved edit.
+    useEffect(() => {
+        const onUpdated = (e: Event) => {
+            if ((e as CustomEvent).detail?.documentId !== idRef.current) return;
+            if (timer.current || running.current || Object.keys(pending.current).length) { staleRef.current = true; return; }
+            refreshRef.current().catch(() => undefined);
+        };
+        window.addEventListener('beeflow:document-updated', onUpdated);
+        return () => window.removeEventListener('beeflow:document-updated', onUpdated);
+    }, []);
 
     // Leaving or closing the page sends what is still queued.
     useEffect(() => {

@@ -40,3 +40,12 @@ test('renderTextFormat emits the event_loop_delay_ms lines', () => {
 test('resetEventLoopDelay does not throw', () => {
     assert.doesNotThrow(() => metrics.resetEventLoopDelay());
 });
+
+test('distinct route series are capped; the rest fold into __overflow__ (BFSF-468)', () => {
+    for (let i = 0; i < metrics.MAX_HTTP_SERIES + 5; i++) {
+        metrics.recordHttp({ method: 'GET', route: `/cap-test/${i}`, status: 200, ms: 1 });
+    }
+    const keys = Object.keys(metrics.snapshot().counters).filter(k => k.startsWith('http_requests_total'));
+    assert.ok(keys.length <= metrics.MAX_HTTP_SERIES + 2, `bounded, got ${keys.length}`);
+    assert.ok(keys.some(k => k.includes(`route=${metrics.OVERFLOW_ROUTE}`)), 'overflow series exists');
+});

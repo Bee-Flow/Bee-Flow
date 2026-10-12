@@ -77,3 +77,25 @@ describe('an edit request from outside', () => {
         expect(screen.queryByRole('textbox', { name: 'Edit message' })).not.toBeInTheDocument();
     });
 });
+
+describe('the AI answer in the house style', () => {
+    const answer: TeamChatMessage = { ...message, id: 'a1', authorKind: 'assistant', authorUserId: null, content: 'Here is the answer' };
+
+    it('wears the 26 px agent tile and has no bubble', () => {
+        render(<ol><ChatMessageGroup group={group(answer)} ctx={ctx()} /></ol>);
+        const tile = screen.getByTestId('assistant-avatar');
+        expect(tile.className).toContain('w-[26px]');
+        expect(tile).toHaveStyle({ color: 'var(--type-ai)' });
+        expect(screen.getByTestId('team-chat-message-a1').className).not.toMatch(/rounded-2xl|bg-/);
+    });
+
+    it('offers Copy even to a reader who cannot post', () => {
+        render(<ol><ChatMessageGroup group={group(answer)} ctx={ctx({ canPost: false })} /></ol>);
+        expect(screen.getByRole('button', { name: 'Copy' })).toBeInTheDocument();
+    });
+
+    it('sits on the same 760 px column as the composer', () => {
+        render(<ol><ChatMessageGroup group={group(answer)} ctx={ctx()} /></ol>);
+        expect(screen.getByTestId('team-chat-group').className).toContain('max-w-[760px]');
+    });
+});

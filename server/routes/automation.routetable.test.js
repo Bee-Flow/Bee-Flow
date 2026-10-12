@@ -101,6 +101,9 @@ const EXPECTED = [
     // BFSF-419 Track 1's generic fallback: the closing page's OWN TEXT (no
     // generate_document step, so no fileId to key off), into a new notebook.
     'POST /form/:token/s/:sid/notebook',
+    // BFSF-419: the same result as a Word/PDF download, and as a new webpage.
+    'GET /form/:token/s/:sid/export/:format',
+    'POST /form/:token/s/:sid/webpage',
     'POST /form/:token/s/:sid',
     'USE:requireAuth',
     'USE:anonymous',
@@ -233,6 +236,10 @@ const EXPECTED = [
     'PUT /:id/shares',
     'POST /:id/transfer-owner',
     'GET /:id/principals',
+    // Which agents may call an agent_call automation (routes/automation/agentBindings.js).
+    'GET /:id/agent-bindings',
+    'GET /by-agent/:agentId/automation-ids',
+    'PUT /:id/agent-bindings',
     // Handoff 5, notification settings read (routes/automation/notifications.js).
     'GET /:id/notifications',
     // Handoff 5, the AI Act check and the readiness checklist

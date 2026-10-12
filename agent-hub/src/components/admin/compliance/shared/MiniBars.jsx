@@ -10,10 +10,12 @@ import { bucketHistory, formatDelta } from './miniBarsMath';
  * pretending to a per-sweep precision the reader cannot use at 26px.
  *
  * Dataviz notes: change-over-time as bars is fine at twelve points; every
- * bar is `--bg-tertiary` except the LAST, which wears the framework's tone
+ * bar is `--border-default` except the LAST, which wears the framework's tone
  * (`TONES[tone].raw`) as the single "today" emphasis; the caption carries
  * the numbers in text tokens, never in the series colour. The bars have no
  * axis and no hover — the number lives in the ring beside them.
+ * (`--bg-tertiary` disappeared into a dark card; the border token is drawn to
+ * be visible against the card in every theme.)
  *
  * Bucketing (last value per window, carry-forward, empty history → twelve
  * zero bars) is `miniBarsMath.bucketHistory`, tested on its own.
@@ -25,7 +27,7 @@ import { bucketHistory, formatDelta } from './miniBarsMath';
  *                (legacy columns as fallback); omitted → overall_score
  *   days / bars  the window (90) and the bucket count (12)
  *   tone         arc tone for the last bar; defaults to toneOfScore(last)
- *   caption      overrides the "{days} days · {delta}" caption (the ISO card
+ *   caption      overrides the "{delta} pts in {days} days" caption (the ISO card
  *                says "ISMS sinds 10 jun · 96 dagen" instead)
  *   now          injectable clock for tests
  */
@@ -44,7 +46,7 @@ export default function MiniBars({
     const text = caption
         ?? (delta === null
             ? t('compliance.ovw_trend_none', '{days} days · no trend yet', { days: buckets.days })
-            : t('compliance.ovw_trend', '{days} days · {delta}', { days: buckets.days, delta }));
+            : t('compliance.ovw_trend_caption', '{delta} pts in {days} days', { days: buckets.days, delta }));
 
     return (
         <div className={`flex items-end gap-[10px] ${className}`} data-testid={testId} data-tone={resolvedTone}>
@@ -57,7 +59,7 @@ export default function MiniBars({
                         className="flex-1 rounded-[1px]"
                         style={{
                             height: `${v}%`,
-                            background: i === lastIdx ? TONES[resolvedTone].raw : 'var(--bg-tertiary)',
+                            background: i === lastIdx ? TONES[resolvedTone].raw : 'var(--border-default)',
                         }}
                     />
                 ))}

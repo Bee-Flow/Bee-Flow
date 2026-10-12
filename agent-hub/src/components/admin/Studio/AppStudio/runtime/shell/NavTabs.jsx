@@ -1,5 +1,6 @@
 import { ChevronDown } from 'lucide-react';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import useTranslation from '../../../../../../hooks/useTranslation';
 import AppIcon from '../../../../../icons/AppIcon';
 
 /**
@@ -32,6 +33,7 @@ function TabLabel({ screen }) {
 }
 
 export default function NavTabs({ screens, screenId, onNavigate }) {
+    const { t } = useTranslation();
     const navRef = useRef(null);
     const measureRefs = useRef([]);
     const moreMeasureRef = useRef(null);
@@ -94,7 +96,7 @@ export default function NavTabs({ screens, screenId, onNavigate }) {
         <nav
             ref={navRef}
             className="relative hidden sm:flex items-center gap-1 self-stretch flex-1 min-w-0"
-            aria-label="App screens"
+            aria-label={t('studio_apps_runtime.nav.app_screens', 'App screens')}
         >
             {/* Measure row: every tab + the "Meer" button, never interactive. */}
             <div
@@ -112,7 +114,7 @@ export default function NavTabs({ screens, screenId, onNavigate }) {
                     </span>
                 ))}
                 <span ref={moreMeasureRef} className={TAB_CLS}>
-                    <span>Meer</span>
+                    <span>{t('studio_apps_runtime.nav.more', 'More')}</span>
                     <ChevronDown className="w-3.5 h-3.5" />
                 </span>
             </div>
@@ -143,7 +145,7 @@ export default function NavTabs({ screens, screenId, onNavigate }) {
                         className={TAB_CLS}
                         style={tabStyle(overflowActive)}
                     >
-                        <span>Meer</span>
+                        <span>{t('studio_apps_runtime.nav.more', 'More')}</span>
                         <ChevronDown className="w-3.5 h-3.5" aria-hidden="true" />
                     </button>
                     {menuOpen ? (

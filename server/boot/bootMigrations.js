@@ -38,6 +38,7 @@ const fs = require('node:fs');
  * Elk idempotent; de reden staat erbij zodat niemand ze "opruimt".
  */
 const LOOSE_MIGRATIONS = [
+    'microsoft-sso-hardening-2026-10',
     // Vouwt subscription_plans.allowed_mcp_servers in allowed_integrations en
     // verhuist legacy mcp:<id>-grants; no-op zodra beide leeg zijn.
     'mcp-as-integration-2026-06',
@@ -100,10 +101,17 @@ const LOOSE_MIGRATIONS = [
     // wissing mogelijk). Eerst memory_sources, dan user_memories; 0 rijen na
     // de eerste run. Slaat over zolang de tabel nog niet bestaat.
     'memory-guest-purge-2026-08',
+    // Memory control: wist de plaintext kopie van het chatbericht in
+    // memory_sources.message_content (werd nergens gelezen). Idempotent.
+    'memory-sources-strip-2026-10',
+    // Memory: an earlier backfill labelled extractor rows without evidence as
+    // user-written; rows with a memory_sources link go back to inferred.
+    'memory-origin-repair-2026-10',
     // BFSF-387: appends "reply language is not a preference" to the seeded
     // extractor prompt (alwaysUpdate: false, so the .md never reaches an
     // existing install). Append-only, operator edits stay; no-op once present.
     'memory-extractor-language-2026-10',
+    'memory-extractor-sensitivity-2026-10',
     // BFSF-272 follow-up: merges case-insensitive duplicate agent categories
     // into the oldest row per (org, LOWER(name)), re-points their agents with
     // a rev bump, and builds idx_agent_categories_org_lname in the same
@@ -123,6 +131,15 @@ const LOOSE_MIGRATIONS = [
     // (they served one person's mail-derived scan to colleagues). Skips a
     // table that does not exist yet; a no-op once no org: rows are left.
     'suggestion-user-scope-2026-10',
+    // Which agents may call an agent_call automation became a table
+    // (automation_agent_bindings). Binds an active agent_call automation to the
+    // agents its OWNER already chose per agent (config.tools.automations or a
+    // persona hand-off); everything else stays unbound, so nothing gets wider.
+    // Runs once: the ledger records it, and a marker table written together with
+    // the inserts holds even when the ledger replays it (changed checksum,
+    // unreadable ledger, --force), so an owner who unlinks an agent later never
+    // gets it back. Throws while a table is missing, so the next boot retries.
+    'automation-agent-bindings-backfill-2026-10',
 ];
 
 /**
@@ -131,6 +148,7 @@ const LOOSE_MIGRATIONS = [
  * draaien is een harde eis (read-modify-write van dezelfde rij).
  */
 const NL_TRANSLATIONS = [
+    'add-nl-microsoft-identity-translations',
     'add-nl-signup-mfa-reset-auth-translations',
     'add-nl-signup-welcome-neutral-translation',
     'add-nl-login-email-relabel',
@@ -163,8 +181,10 @@ const NL_TRANSLATIONS = [
     'add-nl-gmeet-integrations-translations', // Google Meet-import bij Meeting Notes
     'add-nl-bfsf-sweep-translations',      // geconsolideerde BFSF-bugsweep-strings (2026-07)
     'add-nl-vplan-translations',           // vPlan-integratiekaart
+    'add-nl-scaleway-billing-translations', // Scaleway Billing integration card
     'add-nl-builder-redesign-translations', // builder-canvas, stappenlade, mismatch-vragen (Track R)
     'add-nl-builder-values-translations',  // de waarde-editor: lijstkeuze, slotchrome, invoegen (Track R)
+    'add-nl-builder-mapping-translations', // geneste data: per item binnen een lijst, AI-koppelen, lege koppelingen in een run
     'add-nl-solution-install-wizard-translations', // de installatiewizard: inhoud, koppelen, toegang (Track O)
     'add-nl-solution-overview-translations', // het Solutions-overzicht: tabs, kaarten, wat niet gelezen kon worden (Track O)
     'add-nl-solution-overview-2-translations', // het Solutions-overzicht, vervolg: zoeken en filteren, lege staat, skills en sjablonen tellen
@@ -172,6 +192,7 @@ const NL_TRANSLATIONS = [
     'add-nl-app-studio-builder-translations', // de App Studio-bouwfilm: activiteitsrijen, bouwbanner, ghost-cel, chatkolom
     'add-nl-playbooks-translations',           // Studio → Playbooks: gefaseerde AI-bouw met pauzes voor akkoord
     'add-nl-compliance-center-translations',  // Compliance Center-redesign: rail, headers, registers, kaders, ladder, checks (data-gedreven)
+    'add-nl-chat-monitoring-translations',    // Chat signals: the Compliance Settings card, the notice in the chat and the embed, the three checks
     'add-nl-learning-center-translations',     // Learning Center-redesign: rail, curriculumkaart, cursustabel, Behaald, spelerchrome
     'add-nl-privacy-shield-redesign-translations', // Privacy Shield-redesign ronde 2: pijplijnstrip, categorie-matrix, de twee checks naast elkaar, What happened als kruisfilter
     'add-nl-privacy-shield-v3-translations',   // Privacy Shield ronde 3: kop met detectiestatus en PATH-strip, Overview-reviewkaart, één matrix, stroomkaart van de twee checks, What happened als één log
@@ -190,10 +211,40 @@ const NL_TRANSLATIONS = [
     'add-nl-collaboration-wave2-editor-versions-translations',     // Collaboration round 2: editing together, versions and compare, comments, since your last visit, AI that joins by itself, notebooks
     'add-nl-collaboration-wave2-documents-compliance-translations', // Collaboration round 2: documents library, pages, designed documents and presentations, compliance checks for projects
     'add-nl-agent-schedules-translations',     // Agent builder: the schedules panel (Cowork items that run as this agent, formerly scheduled agent runs)
+    'add-nl-project-rail-translations',         // Project rail: switch project (with the current name), recent projects, search in this project
+    'add-nl-project-collab-client-translations', // Project collaboration client: invite by name, transfer ownership, archive and restore
     'add-nl-project-tasks-translations',       // Project tasks: list and board, priority, labels, checklist, tasks from a meeting, comments; team chat threads and tagged items
+    'add-nl-project-collab-translations',      // Project collaboration: bell texts for mentions, members, owner and task notifications
+    'add-nl-project-golf3-translations',        // Project workspace: Undo toasts, unsaved-changes bar of the task dialog, connection status band
+    'add-nl-project-golf4-translations',        // Project chat composers: accessible names of the shared composer box
     'add-nl-learning-foundations-translations', // Leerstof van de Bee Flow Basis-cursus (BFSF-474): lessen, quizzen, sims, de introtour en de actiechecklijsten
     'add-nl-notebooks-as-documents-translations', // A notebook as a document type: in the Documents library, and the notebook workspace's header and sources rail
+    'add-nl-document-sharing-translations', // Sharing every document type with organisation, users and groups
+    'add-nl-document-encryption-translations', // Documents: unlock-encryption prompt and the encryption error sentences
     'add-nl-spreadsheet-documents-translations', // Spreadsheets in Documents: the type in the library and gallery, the grid editor and its formula errors
+    'add-nl-condition-node-translations', // Condition node: rule rows, File type, outputs and Otherwise, Suggest outputs, follow-the-route and whole-list notices, Filter a list
+    'add-nl-flatten-node-translations', // Flatten a list: the step card, Simple editor sentences, Choose fields, More options, run sentences
+    'update-nl-legal-register-2026-10', // Legal register review of 6 Oct 2026: corrected framework, milestone and check Dutch (old shipped text only), new milestones, "Legal status checked" chip and Sources
+    'update-nl-compliance-detect-2026-10', // Compliance round 2 detection and legal wording: one-month DSR clock, CRA notification, DORA/Data Act/EAA/PLD/Machinery terms, encryption levels (old shipped text only), two new milestones; after the legal register review, whose Dutch it partly replaces
+    'update-nl-compliance-ui-2026-10', // Compliance Center UI round 2: Dutch for the strings the eleven UI packages added, and reworded Dutch where the English changed meaning (old shipped text only)
+    'add-nl-hardcoded-admin-2026-10-translations', // Admin screens (subscriptions, organisation, AI configuration, monitoring, languages, SSO): Dutch for strings that used to be hard-coded English
+    'add-nl-hardcoded-pages-shell-2026-10-translations', // Dutch for the user-facing text agent-hub used to hard-code in English: pages, shell, chat footer, meetings, renderers
+    'add-nl-hardcoded-integrations-agents-2026-10-translations', // Hard-coded English literals converted to keys: integrations, agents, appearance, support, knowledge, setup wizards
+    'add-nl-hardcoded-automation-builder-2026-10-translations', // Automation builder: Dutch for the strings that used to be hard-coded English (panels, step editors, trigger filters, pickers, output views)
+    'add-nl-hardcoded-website-admin-2026-10-translations', // Website admin (Product Website builder) and Component Studio: strings that had no key
+    'add-nl-hardcoded-studio-admin-2026-10-translations', // Studio screens (App Studio, Automations, Executions, Solutions, Support): Dutch for literals that now go through t()
+    'add-nl-mcp-access-2026-10-translations',     // MCP access: named MCP tokens (Settings → Security) and the organisation's MCP access policy
+    'add-nl-ui-complete-2026-10-translations',    // Every UI string without Dutch (2026-10): agent studio, knowledge, skills, meetings, webpages, cowork, admin, chat, ...
+    'add-nl-learn-content-2026-10-translations',  // Learning Center lesson content for every course but Foundations (2026-10)
+    'add-nl-builder-fixes-2026-10',            // Builder fixes Oct 2026: HTTP query parameters and cURL import, who can call an automation as an agent tool, assistant questions/plans/tables, Studio no-access
+    'add-nl-cms-blog-translations',            // Website blog: editor Blog entry, Markdown toolbar, Latest posts block, and the public /nl/blog labels
+    'update-nl-memory-2026-10',                // Memory: Dutch for the memory manager, chat controls, org Memory admin page and Settings lines; "Conversation memory" becomes "Context in lange gesprekken" (old shipped text only)
+    // Corrects keys an earlier catalogue shipped as English: after every catalogue above, so its Dutch wins.
+    'add-nl-fix-english-2026-10-translations',
+    // Settings menu clean-up: "Instellingen → Integraties" becomes "Instellingen → Koppelingen",
+    // "Organisatie-instellingen → …" the real menu path, and the relabelled rows (old shipped text only).
+    // After the memory catalogue, whose "Context in lange gesprekken" it rewords.
+    'update-nl-settings-nav-2026-10',
     // Last, after every catalogue: stored translations follow the routine →
     // automation keys, and shipped Dutch "routine" becomes "automatisering".
     'rename-routine-i18n-2026-10',

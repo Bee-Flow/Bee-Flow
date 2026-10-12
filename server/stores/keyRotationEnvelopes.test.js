@@ -253,3 +253,19 @@ test('the transcript DEK envelope is bound to its organisation', () => {
     assert.strictEqual(unwrapDEK(sealed, ork, transcriptDekAad('org-b')), null,
         'another org must not open it');
 });
+
+test('BFSF-463: only a missing table/column is skipped; any other error aborts the pass', async () => {
+    const quiet = { log() {}, error() {} };
+    const { runPass, state } = rotate.createPassRunner(quiet);
+    await runPass('absent table', async () => { throw Object.assign(new Error('relation "x" does not exist'), { code: '42P01' }); });
+    await runPass('absent column', async () => { throw Object.assign(new Error('column'), { code: '42703' }); });
+    assert.equal(state.aborted, 0);
+    // Message text that merely LOOKS like a missing table must not count.
+    await runPass('connection dropped', async () => { throw new Error('table/column missing? Connection terminated'); });
+    await runPass('timeout', async () => { throw Object.assign(new Error('statement timeout'), { code: '57014' }); });
+    assert.equal(state.aborted, 2);
+    assert.deepEqual(state.abortedLabels, ['connection dropped', 'timeout']);
+    await runPass('ok', async () => {});
+    assert.equal(state.aborted, 2);
+    assert.equal(rotate.isMissingSchemaError(null), false);
+});

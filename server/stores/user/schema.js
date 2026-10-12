@@ -287,9 +287,13 @@ async function _initDB() {
         // Any org row that predates the column gets the safe value explicitly,
         // rather than relying on the DEFAULT having applied.
         `UPDATE organizations SET "encryption_tier" = 'none' WHERE "encryption_tier" IS NULL`,
+        // NULL only, never '[]': '[]' is what an admin's deliberate "all three off"
+        // is stored as, and this runs on EVERY boot, so matching it turned that
+        // choice back on at the next restart. The column DEFAULT already seeds
+        // ADDed columns and new orgs, so a '[]' left over is a decision, not a gap.
         `UPDATE organizations
             SET "org_granted_capabilities" = '["notebooks","projects","component_designer"]'
-            WHERE "org_granted_capabilities" = '[]' OR "org_granted_capabilities" IS NULL`,
+            WHERE "org_granted_capabilities" IS NULL`,
 
         // org_available_capabilities = the per-org ACCESS MENU set by the super-admin:
         // which matrix capabilities (within the plan/license ceiling) this org may use.
@@ -307,6 +311,17 @@ async function _initDB() {
         // org_enabled_beta_features: that column holds stale arrays that would
         // silently switch betas off for whole organisations if it were read again.
         `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS "org_beta_everyone" TEXT DEFAULT NULL`,
+
+        // org_everyone_revoked = SELF-HOSTED only: the matrix-togglable core and
+        // (non-group-scoped) beta capability ids the org admin switched OFF for
+        // "All members". Groups can still grant them (buildGroupGrant). NULL =
+        // nothing revoked, which is exactly the single-switch behaviour from
+        // before this column existed, so no install changes on upgrade. A
+        // deny-list on purpose: a feature added to the org's access menu later
+        // must default to ON for everyone, as it always did. Cloud ignores it
+        // (org_granted_capabilities leads there). Deliberately NOT
+        // org_enabled_beta_features: stale arrays, see org_beta_everyone above.
+        `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS "org_everyone_revoked" TEXT DEFAULT NULL`,
 
         // One-shot backfill: any org that already has a super-admin allow-list
         // gets that list copied into the new "enabled" column so today's
@@ -328,6 +343,22 @@ async function _initDB() {
         },
 
         // ── Azure AD Group Sync columns ──
+        `ALTER TABLE users ADD COLUMN IF NOT EXISTS "azureTenantId" TEXT`,
+        `ALTER TABLE groups ADD COLUMN IF NOT EXISTS "azureTenantId" TEXT`,
+        `CREATE TABLE IF NOT EXISTS microsoft_sso_link_requests (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(), tenant_id TEXT NOT NULL, object_id TEXT NOT NULL,
+            email TEXT NOT NULL DEFAULT '', expires_at TIMESTAMPTZ NOT NULL,
+            UNIQUE (tenant_id, object_id))`,
+        `CREATE TABLE IF NOT EXISTS azure_sync_memberships (
+            user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            group_id TEXT NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+            organization_id TEXT NOT NULL, tenant_id TEXT NOT NULL,
+            PRIMARY KEY (user_id,group_id))`,
+        `CREATE TABLE IF NOT EXISTS microsoft_sso_binding_audit (
+            id BIGSERIAL PRIMARY KEY, actor_id TEXT NOT NULL, user_id TEXT NOT NULL,
+            tenant_id TEXT, object_id TEXT, action TEXT NOT NULL CHECK (action IN ('bind','unbind','migrate')),
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`,
+        `CREATE INDEX IF NOT EXISTS idx_microsoft_sso_binding_revision ON microsoft_sso_binding_audit(user_id,id DESC)`,
         `ALTER TABLE groups ADD COLUMN IF NOT EXISTS "azureGroupId" TEXT`,
         `ALTER TABLE groups ADD COLUMN IF NOT EXISTS "source" TEXT DEFAULT 'manual'`,
         `ALTER TABLE groups ADD COLUMN IF NOT EXISTS "lastSyncedAt" TEXT`,
@@ -345,6 +376,8 @@ async function _initDB() {
         // transitional NC opt-out (enable-wins) so existing deployments don't loosen.
         `ALTER TABLE groups ADD COLUMN IF NOT EXISTS "granted_capabilities" TEXT DEFAULT '[]'`,
         `ALTER TABLE users ADD COLUMN IF NOT EXISTS "azureUserId" TEXT`,
+        `CREATE UNIQUE INDEX IF NOT EXISTS idx_users_microsoft_identity ON users (LOWER("azureTenantId"), LOWER("azureUserId")) WHERE "azureTenantId" IS NOT NULL AND "azureUserId" IS NOT NULL`,
+        `CREATE UNIQUE INDEX IF NOT EXISTS idx_groups_microsoft_identity ON groups ("organizationId", LOWER("azureTenantId"), LOWER("azureGroupId")) WHERE "azureTenantId" IS NOT NULL AND "azureGroupId" IS NOT NULL`,
     ]);
 
     await runDdl('userSchema', [

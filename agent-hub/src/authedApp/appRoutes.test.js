@@ -36,9 +36,13 @@ import {
     isApprovalsPageArg,
     isApprovalsStudioPath,
     parseCoworkUrl,
+    parseDocumentUrl,
+    documentRoutePath,
     parseAgentUrl,
     parseDirectChatUrl,
+    parseAdminPath,
     usesStudioRail,
+    usesProjectRail,
 } from './appRoutes';
 import { parseStudioUrl } from '../components/admin/Studio/studioRoutes';
 
@@ -61,6 +65,7 @@ describe('PAGE_ROUTES is frozen', () => {
             cowork: '/app/cowork',
             apps: '/app/apps',
             forms: '/app/forms',
+            documents: '/app/documents',
             reports: '/app/reports',
             components: '/app/components',
             meetingNotes: '/app/meeting-notes',
@@ -109,6 +114,40 @@ describe('PAGE_ROUTES is frozen', () => {
     });
 });
 
+describe('member documents routing', () => {
+    it('keeps member links in the ordinary workspace and Studio links in Studio', () => {
+        expect(pageFromPath('/app/documents/d1')).toBe('documents');
+        expect(pageFromPath('/app/documents/notebook/n1')).toBe('documents');
+        expect(usesStudioRail('documents')).toBe(false);
+        expect(pageFromPath('/app/studio/documents/d1')).toBe('studio');
+        expect(pageFromPath('/app/notebooks/n1')).toBe('studio');
+    });
+
+    it('round-trips document and notebook references, including URL escaping', () => {
+        expect(documentRoutePath()).toBe('/app/documents');
+        expect(parseDocumentUrl('/app/documents')).toBeNull();
+        for (const ref of ['d1', 'notebook/n1', 'notebook/name with spaces', 'doc#1']) {
+            expect(parseDocumentUrl(documentRoutePath(ref))).toBe(ref);
+        }
+        expect(parseDocumentUrl('/app/documents/%invalid')).toBeNull();
+        expect(parseDocumentUrl('/app/studio/documents/d1')).toBeNull();
+    });
+});
+
+describe('usesProjectRail — the project rail flag', () => {
+    it('is true on the projects page with a project open', () => {
+        expect(usesProjectRail('projects', '1a4834b9')).toBe(true);
+    });
+    it('is false on the list, the create form and other pages', () => {
+        expect(usesProjectRail('projects', null)).toBe(false);
+        expect(usesProjectRail('projects', undefined)).toBe(false);
+        expect(usesProjectRail('projects', '')).toBe(false);
+        expect(usesProjectRail('projects', 'new')).toBe(false);
+        expect(usesProjectRail('agents', 'x')).toBe(false);
+        expect(usesProjectRail('projects/1a4834b9', '1a4834b9')).toBe(false);
+    });
+});
+
 describe('usesStudioRail — the rail flag (H1)', () => {
     it('is true for Studio and nothing else', () => {
         // A FLAG, not a route: it answers a chrome question about a page key
@@ -152,7 +191,7 @@ const FROZEN_LEGACY = [
     ['/app/settings/learning', 'settings', 'jobs/learningNudge.js'],
     ['/app/settings/account/license?checkout=success', 'settings', 'Stripe checkout return (BFSF-244)'],
     ['/app/settings/organisation/license?checkout=cancelled', 'settings', 'Stripe checkout return (BFSF-244)'],
-    ['/app/settings?tab=license', 'settings', 'Stripe portal return'],
+    ['/app/settings?tab=license', 'settings', 'legacy Stripe portal return (minted before the portal returned to /settings/*/license)'],
     ['/app/admin/security/users', 'admin', 'auth/connectorJwt.js pending-user bell'],
     ['/app/admin/support/th1', 'admin', 'issueEgress (BFSF-441 ticket ref), supportIssueSync'],
     ['/app/admin?tab=support&thread=t1', 'admin', 'routes/support/shared.js staff email'],
@@ -319,5 +358,16 @@ describe('mobile allow-list is frozen', () => {
         expect(mobilePageKey('studio/approvals/apr_1')).toBe(
             isApprovalsStudioPath('/app/studio/approvals/apr_1') ? 'approvals' : 'studio',
         );
+    });
+});
+
+describe('parseAdminPath — the query is never a segment', () => {
+    it('reads the segments of an admin path with or without a query', () => {
+        expect(parseAdminPath('/app/admin/compliance/incidents/i1')).toEqual({ seg1: 'compliance', seg2: 'incidents', seg3: 'i1' });
+        // In-app navigation hands over the page string with the hub's header tab.
+        expect(parseAdminPath('/app/admin/compliance/frameworks?tab=calendar')).toEqual({ seg1: 'compliance', seg2: 'frameworks', seg3: '' });
+        expect(parseAdminPath('/app/admin/compliance/gdpr/GDPR-Art30?tab=checks#x')).toEqual({ seg1: 'compliance', seg2: 'gdpr', seg3: 'GDPR-Art30' });
+        expect(parseAdminPath('/app/admin?tab=support')).toEqual({ seg1: '', seg2: '', seg3: '' });
+        expect(parseAdminPath('/app/agents')).toEqual({ seg1: '', seg2: '', seg3: '' });
     });
 });

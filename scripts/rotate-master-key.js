@@ -110,6 +110,13 @@ const ORG_VAULT_TAG = 'routine-vault-v1';
 const DEFAULT_ORG_SENTINEL = '__default_org__';
 function deriveOrgVaultKey(master, orgId) {
     return crypto.createHmac('sha256', master)
+        .update(`beeflow:routine-vault:v1:org:${orgId}`)
+        .digest();
+}
+// What builds from 2026-10-04 until the fix derived (orgVault.js MISDERIVED_LABEL).
+// Read-only: a row sealed that way is rotated onto the right label.
+function deriveMisderivedOrgVaultKey(master, orgId) {
+    return crypto.createHmac('sha256', master)
         .update(`beeflow:automation-vault:v1:org:${orgId}`)
         .digest();
 }
@@ -162,6 +169,34 @@ function encrypt(plaintext, key, orgId = null) {
     };
     if (orgId) env.keyContext = orgId;
     return JSON.stringify(env);
+}
+
+// A pass that finds its table/column absent (older schema) has nothing to
+// rotate and is skipped quietly. ANY other error (dropped connection, statement
+// timeout, a failing UPDATE) means rows were left under the OLD master: the
+// pass is counted as aborted and the script must exit non-zero, or the operator
+// promotes NEW over a table split across two masters.
+// pg codes: 42P01 undefined_table, 42703 undefined_column.
+function isMissingSchemaError(e) {
+    return !!e && (e.code === '42P01' || e.code === '42703');
+}
+
+function createPassRunner(logger = console) {
+    const state = { aborted: 0, abortedLabels: [] };
+    async function runPass(label, fn) {
+        try {
+            await fn();
+        } catch (e) {
+            if (isMissingSchemaError(e)) {
+                logger.log(`[rotate] ${label}: not present on this schema, skipped.`);
+                return;
+            }
+            logger.error(`[rotate] ${label} pass ABORTED mid-rotation: ${e && e.message}`);
+            state.aborted++;
+            state.abortedLabels.push(label);
+        }
+    }
+    return { runPass, state };
 }
 
 // 32-bit advisory-lock key — `crc32('beeflow:master-key-rotation')`. Any
@@ -256,8 +291,11 @@ async function main() {
     // ── Sibling tables sealed with the DEFAULT-context configStore envelope ──
     // These use configStore.encryptValue/decryptValue (no org context), so the
     // derived key is deriveKey(master, null). Rows that decrypt with neither
-    // master were broken BEFORE this rotation (they don't block promotion, but
-    // for mfa_secret they mean the user needs the admin 2FA-reset).
+    // master were broken BEFORE this rotation. They count in columnUnreadable and
+    // trigger the exit-2 gate below (do not remove it); for mfa_secret they also
+    // mean the user needs the admin 2FA-reset.
+    const { runPass, state: passState } = createPassRunner(console);
+    let columnUnreadable = 0;
     async function rotateEnvelopeColumn({ table, idCol, valueCol, label, quoteId = false }) {
         const { rows: colRows } = await client.query(
             `SELECT ${idCol} AS id, ${valueCol} AS value FROM ${table} WHERE ${valueCol} IS NOT NULL AND ${valueCol} <> ''`
@@ -282,6 +320,7 @@ async function main() {
                 if (tryDecrypt(envelope, keyNew) !== null) { colAlreadyNew++; continue; }
                 console.error(`[rotate] UNREADABLE ${label} for ${idCol}=${quoteId ? JSON.stringify(row.id) : row.id} — broken before this rotation.`);
                 colUnreadable++;
+                columnUnreadable++;
             } else {
                 // Plaintext legacy value — seal it with NEW (default context).
                 await client.query(`UPDATE ${table} SET ${valueCol} = $1 WHERE ${idCol} = $2`, [encrypt(String(row.value), deriveKey(newMaster, null)), row.id]);
@@ -291,16 +330,12 @@ async function main() {
         console.log(`[rotate] ${label} done — rotated=${colRotated} already_new=${colAlreadyNew} plaintext_sealed=${colPlain} unreadable=${colUnreadable}`);
     }
 
-    try {
+    await runPass('users.mfa_secret', async () => {
         await rotateEnvelopeColumn({ table: 'users', idCol: 'id', valueCol: 'mfa_secret', label: 'users.mfa_secret', quoteId: true });
-    } catch (e) {
-        console.error('[rotate] users.mfa_secret pass failed (table/column missing?):', e.message);
-    }
-    try {
+    });
+    await runPass('webpage_public_shares.token_cipher', async () => {
         await rotateEnvelopeColumn({ table: 'webpage_public_shares', idCol: 'id', valueCol: 'token_cipher', label: 'webpage_public_shares.token_cipher' });
-    } catch (e) {
-        console.error('[rotate] webpage_public_shares.token_cipher pass failed (table/column missing?):', e.message);
-    }
+    });
 
     // ── orgVault ('routine-vault-v1') columns ───────────────────────
     // Keyed per ORG, from the row's own org_id (empty → the same sentinel
@@ -324,7 +359,7 @@ async function main() {
                 let envelope;
                 try { envelope = JSON.parse(raw); } catch (_) { envelope = null; }
                 if (!envelope || envelope._encrypted !== ORG_VAULT_TAG) { skipped++; continue; }
-                const oldPt = tryDecrypt(envelope, keyOld);
+                const oldPt = tryDecrypt(envelope, keyOld) ?? tryDecrypt(envelope, deriveMisderivedOrgVaultKey(oldMaster, orgId));
                 if (oldPt !== null) {
                     await client.query(
                         `UPDATE ${table} SET ${col} = $1 WHERE ${idCol} = $2`,
@@ -336,29 +371,25 @@ async function main() {
                 if (tryDecrypt(envelope, keyNew) !== null) { alreadyNew++; continue; }
                 console.error(`[rotate] UNREADABLE ${label}.${col} for ${idCol}=${JSON.stringify(row.id)} (org=${orgId}) — broken before this rotation.`);
                 unread++;
+                vaultUnreadable++;
             }
         }
-        vaultUnreadable += unread;
         console.log(`[rotate] ${label} done — rotated=${rot} already_new=${alreadyNew} not_sealed=${skipped} unreadable=${unread}`);
     }
 
-    try {
+    await runPass('integration_connections', async () => {
         await rotateOrgVaultColumns({
             table: 'integration_connections', idCol: 'id', orgCol: 'org_id',
             valueCols: ['secret'], label: 'integration_connections',
         });
-    } catch (e) {
-        console.error('[rotate] integration_connections pass failed (table missing?):', e.message);
-    }
-    try {
+    });
+    await runPass('automation_credentials', async () => {
         await rotateOrgVaultColumns({
             table: 'automation_credentials', idCol: 'id', orgCol: 'org_id',
             valueCols: ['access_token', 'refresh_token'], label: 'automation_credentials',
         });
-    } catch (e) {
-        console.error('[rotate] automation_credentials pass failed (table missing?):', e.message);
-    }
-    try {
+    });
+    await runPass('organizations.org_root_key', async () => {
         // The org IS its own key context here, so idCol and orgCol are the same
         // column. This row wraps every user DEK in the org — see the inventory
         // note at the top of this file for what skipping it costs.
@@ -366,24 +397,20 @@ async function main() {
             table: 'organizations', idCol: 'id', orgCol: 'id',
             valueCols: ['org_root_key'], label: 'organizations',
         });
-    } catch (e) {
-        console.error('[rotate] organizations.org_root_key pass failed (table/column missing?):', e.message);
-    }
-    try {
+    });
+    await runPass('voiceprints.voiceprint_enc', async () => {
         // upsertVoiceprint refuses a row without an organization, so the
         // sentinel branch above is unreachable here — it stays for uniformity.
         await rotateOrgVaultColumns({
             table: 'voiceprints', idCol: 'id', orgCol: 'organization_id',
             valueCols: ['voiceprint_enc'], label: 'voiceprints',
         });
-    } catch (e) {
-        console.error('[rotate] voiceprints.voiceprint_enc pass failed (table missing?):', e.message);
-    }
+    });
 
     // ── users."appPassword" ('appcred-v1', single global key) ───────
     // Untagged v1 blobs are rotated straight to the tagged v2 envelope, so
     // after this pass every row is discoverable by future rotations.
-    try {
+    await runPass('users.appPassword', async () => {
         const { rows: apRows } = await client.query(
             `SELECT id, "appPassword" AS value FROM users WHERE "appPassword" IS NOT NULL AND "appPassword" <> ''`
         );
@@ -417,22 +444,26 @@ async function main() {
                     continue;
                 }
             }
-            console.error(`[rotate] UNREADABLE users."appPassword" for id=${JSON.stringify(row.id)} — user must re-save it in Settings → Integrations.`);
+            console.error(`[rotate] UNREADABLE users."appPassword" for id=${JSON.stringify(row.id)} — user must re-save it in Settings → Connections.`);
             unread++;
+            vaultUnreadable++;
         }
-        vaultUnreadable += unread;
         console.log(`[rotate] users.appPassword done — rotated=${rot} already_new=${alreadyNew} upgraded_from_legacy=${upgraded} unreadable=${unread}`);
-    } catch (e) {
-        console.error('[rotate] users.appPassword pass failed (column missing?):', e.message);
-    }
+    });
     // Release the advisory lock explicitly. Releasing the client to the pool
     // does NOT auto-release session locks (the client may be reused).
     try { await client.query('SELECT pg_advisory_unlock($1)', [ROTATION_LOCK_KEY]); } catch (_) { /* ignore */ }
     client.release();
-    if (unreadable > 0 || vaultUnreadable > 0) {
-        console.error(`[rotate] ${unreadable + vaultUnreadable} row(s) could not be decrypted with either master. Investigate before promoting NEW.`);
+    if (passState.aborted > 0) {
+        console.error(`[rotate] ${passState.aborted} pass(es) ABORTED mid-rotation (${passState.abortedLabels.join(', ')}): some rows may still be sealed under the OLD master. Fix the cause and re-run (idempotent) BEFORE promoting NEW.`);
+    }
+    const totalUnreadable = unreadable + vaultUnreadable + columnUnreadable;
+    if (totalUnreadable > 0) {
+        console.error(`[rotate] ${totalUnreadable} row(s) could not be decrypted with either master. Investigate before promoting NEW.`);
+    }
+    if (totalUnreadable > 0 || passState.aborted > 0) {
         await pool.end();
-        process.exit(2);
+        process.exit(totalUnreadable > 0 ? 2 : 4);
     }
     await pool.end();
 }
@@ -458,4 +489,6 @@ module.exports = {
     ORG_VAULT_TAG,
     APP_PWD_TAG,
     DEFAULT_ORG_SENTINEL,
+    isMissingSchemaError,
+    createPassRunner,
 };

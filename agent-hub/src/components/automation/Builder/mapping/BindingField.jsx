@@ -1,4 +1,5 @@
 import { compile as compileExpr } from '@shared/expr/engine.mjs';
+import { scanTemplate } from '@shared/expr/path.mjs';
 import { ChevronDown, ChevronRight, Eye, FunctionSquare, Type, Sparkles } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { onBindingDragOver, getBindingDropPath } from './bindingDnd';
@@ -11,15 +12,21 @@ import { pathListShape } from './listShape';
 import { detectMismatch, kindAtPath, remediesFor } from './mismatch';
 import MismatchResolver from './MismatchResolver';
 import RefTokenInput from './RefTokenInput';
+import { useSlotListAs } from './slotListAs';
 import useVariablePicker from './useVariablePicker';
+import { JsonPendingNote, PathAsTextNote } from './ValueNotes';
 import VariablePicker from './VariablePicker';
 import { useVariablePickerContext } from './VariablePickerContext';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import {
     inputFromBinding,
     bindingFromInput,
+    canonicalRefPath,
+    detectTemplate,
     isCleanPath,
-    TEMPLATE_RE,
+    isStructuredBinding,
+    refPathTokens,
+    structuredFromText,
     formatPathForInsert,
     getAutocompleteTokenFromPrefix,
 } from '../../../../utils/bindingHelpers';
@@ -78,6 +85,9 @@ export default function BindingField({
     expectKind = null,
     // (forEach|null) => void — lets the chooser offer "run once per row".
     onRequestForEach = null,
+    // How the run writes a list into this slot's text ('text' | 'json');
+    // defaults to the step's own (slotListAs, provided by SettingsForm).
+    listAs = null,
 }) {
     const rowLabel = useFormRowLabel();
     const seed = inputFromBinding(value);
@@ -109,23 +119,48 @@ export default function BindingField({
     // (see server/automation/bind.js resolveValue).
     const lastEmittedRef = useRef(null);
 
+    // A STRUCTURED value (a bare map of bindings, an object or array literal)
+    // can only be edited here as JSON text. Re-reading that text as a text
+    // binding turned the whole structure into one string on the first
+    // keystroke — the tool received `{"Datum":{"kind":"ref",…}}` instead of
+    // values. Edits are parsed back into the same shape instead, and a text
+    // that is not valid JSON yet is simply not saved (the note says so).
+    const structuredOrigin = useRef(isStructuredBinding(value) ? value : null);
+    const [jsonPending, setJsonPending] = useState(false);
+
     // Sync from outside (AI patch / undo / load). Intentional setState
     // from useEffect — we're syncing local UI state with the controlled
     // `value` prop.
     useEffect(() => {
         if (lastEmittedRef.current !== null && deepEqualBinding(value, lastEmittedRef.current)) return;
         lastEmittedRef.current = null;
+        structuredOrigin.current = isStructuredBinding(value) ? value : null;
         const s = inputFromBinding(value);
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setMode(s.mode);
         setText(s.text);
+        setJsonPending(false);
     }, [value]);
 
     const emit = (nextText, nextMode) => {
         setText(nextText);
+        if (structuredOrigin.current && nextMode === 'fixed') {
+            const parsed = structuredFromText(nextText, structuredOrigin.current);
+            setJsonPending(!parsed);
+            if (!parsed) return;
+            lastEmittedRef.current = parsed;
+            onChange?.(parsed);
+            return;
+        }
         const next = bindingFromInput(nextText, nextMode);
         lastEmittedRef.current = next;
         onChange?.(next);
+    };
+    // Let go of the structure on purpose (the note's "Clear it").
+    const clearStructured = () => {
+        structuredOrigin.current = null;
+        setJsonPending(false);
+        emit('', mode);
     };
 
     // Inline autocomplete (expression mode): typing a rooted partial path
@@ -263,7 +298,13 @@ export default function BindingField({
     };
 
     const binding = bindingFromInput(text, mode);
-    const preview = previewBinding(binding, effectivePreviewSample);
+    const slotListAs = useSlotListAs();
+    const preview = previewBinding(binding, effectivePreviewSample, { listAs: listAs || slotListAs });
+    // A plain-text value that IS a path (`steps.jira.output.fields["Story
+    // Points"]` as text): the run sends those characters, not the value they
+    // name. What an old Formula → Text flip used to leave behind; offered as a
+    // one-click fix in either mode, because Simple mode has no Formula switch.
+    const pathAsText = mode === 'fixed' && binding.kind === 'literal' && looksLikeReference(binding.value);
     const bindingMismatch = binding.kind === 'ref' && detectMismatch({ actualKind: kindAtPath(binding.path, effectivePreviewSample), expectedKind: expectKind });
 
     // Parse-check the expression as the user types, using the client-side
@@ -275,6 +316,10 @@ export default function BindingField({
         if (mode !== 'expression') return null;
         const src = String(text || '').trim();
         if (!src) return null;
+        // A whole path is stored as a ref and read with the path grammar
+        // (`trigger.output.Größe`, `items.0.id`), which the formula checker
+        // would flag although it runs.
+        if (bindingFromInput(src, 'expression').kind === 'ref') return null;
         try { compileExpr(src); return null; }
         catch (e) { return `${t('automations.builder.expr_invalid', 'Not valid yet')} — ${e.message}`; }
     }, [mode, text, t]);
@@ -391,6 +436,8 @@ export default function BindingField({
                     {helpOpen && <ExpressionHelpBody />}
                 </div>
             )}
+            {jsonPending && <JsonPendingNote onClear={clearStructured} />}
+            {pathAsText && <PathAsTextNote onUse={() => emit(`{{${canonicalRefPath(binding.value)}}}`, 'fixed')} />}
             {/* Still empty and required: say what would fit and how many upstream
                 fields do (artboard 2a). Only with a known kind — a custom row has
                 no schema and gets no promise. */}
@@ -492,22 +539,44 @@ export default function BindingField({
  *   text  -> expression:  `{{ steps.a.output.x }}`  ->  `steps.a.output.x`
  *   expression -> text:   `steps.a.output.x`        ->  `{{steps.a.output.x}}`
  * Everything else (mixed templates, computed expressions) is returned as-is.
+ *
+ * "A single reference" is any path the runtime reads — `fields["Story
+ * Points"]`, `output["@odata.context"]`, `[0]`, `[*]`, a match segment — and it
+ * comes out in the canonical spelling, which both a template and the
+ * expression engine read as that same path. A quoted key used to fall outside
+ * the old identifier-only check and was left as bare text, which Text mode
+ * then stored as the literal path string: a run that sends the path's
+ * characters instead of its value.
  */
 export function translateForMode(text, nextMode) {
     const s = String(text ?? '');
     if (nextMode === 'expression') {
-        const m = /^\s*\{\{\s*([^}]+?)\s*\}\}\s*$/.exec(s);
-        return m ? m[1] : s;
+        const parts = scanTemplate(s);
+        const refs = parts.filter(p => p.type === 'ref');
+        const alone = parts.every(p => p.type === 'ref' || !p.value.trim());
+        if (refs.length !== 1 || !alone) return s;
+        const inner = refs[0].inner;
+        return refPathTokens(inner) ? canonicalRefPath(inner) : inner;
     }
     const bare = s.trim();
-    if (!bare || TEMPLATE_RE.test(s)) return s;
-    const root = bare.split(/[.[]/)[0];
-    return isCleanPath(bare) && WRAPPABLE_ROOTS.has(root) ? `{{${bare}}}` : s;
+    if (!bare || detectTemplate(s)) return s;
+    return looksLikeReference(bare, { bareRoot: true }) ? `{{${canonicalRefPath(bare)}}}` : s;
 }
 
 // Roots whose values a `{{ }}` interpolation can reach at run time. `item` and
 // `_index` are the per-row scope of a list-mode Edit data step.
 const WRAPPABLE_ROOTS = new Set(['trigger', 'steps', 'vars', 'secrets', 'loop', 'item', '_index']);
+
+/**
+ * Is this text one whole path under a root a `{{ }}` can reach? A bare root
+ * word counts only when asked: flipping `trigger` to Text means the trigger,
+ * but a value that merely READS "item" is a word, not a forgotten reference.
+ */
+function looksLikeReference(text, { bareRoot = false } = {}) {
+    if (typeof text !== 'string' || !isCleanPath(text)) return false;
+    const tokens = refPathTokens(text);
+    return !!tokens && WRAPPABLE_ROOTS.has(tokens[0].key) && (bareRoot || tokens.length > 1);
+}
 
 /**
  * Structural equality for two binding objects. Used to recognise the parent

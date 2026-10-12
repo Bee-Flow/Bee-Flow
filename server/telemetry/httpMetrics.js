@@ -74,7 +74,19 @@ function observe(name, labels, ms) {
     durations.set(key, d);
 }
 
+// Hard cap on distinct (method, route) series. Route labels are templated, but
+// a bug or an unforeseen id shape must not grow the maps without bound
+// (BFSF-468): past the cap, new combinations fold into one overflow series.
+const MAX_HTTP_SERIES = 1000;
+const OVERFLOW_ROUTE = '__overflow__';
+const httpSeries = new Set();
+
 function recordHttp({ method, route, status, ms }) {
+    const seriesKey = `${method} ${route}`;
+    if (!httpSeries.has(seriesKey)) {
+        if (httpSeries.size >= MAX_HTTP_SERIES) route = OVERFLOW_ROUTE;
+        else httpSeries.add(seriesKey);
+    }
     const cls = `${Math.floor((status || 0) / 100)}xx`;
     inc('http_requests_total', { method, route, status: cls });
     observe('http_request_duration_ms', { method, route }, ms);
@@ -133,6 +145,8 @@ function snapshot() {
 module.exports = {
     HTTP_SLOW_MS,
     DB_SLOW_MS,
+    MAX_HTTP_SERIES,
+    OVERFLOW_ROUTE,
     recordHttp,
     recordQuery,
     recordCache,

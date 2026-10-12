@@ -73,6 +73,7 @@
  */
 
 const { isObject } = require('../helpers');
+const { findRefPaths } = require('../refPaths');
 const { AI_STEP_TYPES } = require('../../automationGraph');
 const { kindFromName } = require('../../../core/privacy/personalColumns');
 const { classifyStep, SHIELD_TYPES: FLOW_SHIELD_TYPES } = require('../../../core/privacy/dataFlow');
@@ -99,18 +100,29 @@ const AI_TYPES = new Set(AI_STEP_TYPES);
 const SHIELD_TYPES = new Set([...FLOW_SHIELD_TYPES].filter(t => t !== 'untokenize'));
 
 /**
- * A reference path as the runner reads one: a root, then dotted segments.
- * Matches the `{kind:'ref', path}` form, the `{{…}}` inside a template, and
- * the bare-string fields (`sourceRef`, `overRef`, `arrayRef`,
- * `data_extraction.source`) alike, because it runs over the step's JSON rather
- * than over a per-type list of binding fields. That list already exists in
- * `referenceScoping.js` and a second copy of it here would be a second thing
- * to forget when a step type is added — and a compliance rule that silently
- * stops looking at a whole step type is worse than no rule.
+ * The roots of a reference path that can carry a person's data. Paths are
+ * found in every string of the step (refPaths.findRefPaths, the runner's own
+ * reader) — the `{kind:'ref', path}` form, the `{{…}}` inside a template, the
+ * bare-string fields (`sourceRef`, `overRef`, `arrayRef`,
+ * `data_extraction.source`) and expressions alike — rather than over a
+ * per-type list of binding fields. That list already exists in
+ * `refSurfaces.js` and a second copy of it here would be a second thing to
+ * forget when a step type is added — and a compliance rule that silently
+ * stops looking at a whole step type is worse than no rule. Read with the
+ * shared grammar, a bracketed key (`output["e-mail"]`) is a field like any
+ * other; the old dotted-identifier regex stopped at the bracket.
  *
  * `secrets` is left out: it is a credential, not a person.
  */
-const PATH_RE = /\b(trigger|steps|vars|loop)((?:\.[A-Za-z_$][A-Za-z0-9_$]*)+)/g;
+const PERSONAL_ROOTS = ['trigger', 'steps', 'vars', 'loop'];
+
+/** Every string inside a value, depth first. */
+function stringsIn(value, out = []) {
+    if (typeof value === 'string') out.push(value);
+    else if (Array.isArray(value)) for (const v of value) stringsIn(v, out);
+    else if (isObject(value)) for (const v of Object.values(value)) stringsIn(v, out);
+    return out;
+}
 
 /**
  * Segments that address the SHAPE of an upstream answer rather than a field of
@@ -207,14 +219,13 @@ function personalReadsOf(step, stepsById) {
     const found = new Map();      // field name → { field, where }
     for (const key of Object.keys(step)) {
         if (NON_BINDING_KEYS.has(key)) continue;
-        let text;
-        try { text = JSON.stringify(step[key]); } catch (_) { continue; }
-        if (!text) continue;
-        PATH_RE.lastIndex = 0;
-        let m;
-        while ((m = PATH_RE.exec(text)) !== null) {
-            const root = m[1];
-            const segments = m[2].slice(1).split('.');
+        const paths = [];
+        for (const text of stringsIn(step[key])) paths.push(...findRefPaths(text, PERSONAL_ROOTS));
+        for (const tokens of paths) {
+            const root = tokens[0].key;
+            // The keys a path names; positions, `[*]` and match segments
+            // select elements, they do not name a field.
+            const segments = tokens.slice(1).filter(t => t.type === 'prop' && typeof t.key === 'string').map(t => t.key);
             // For `steps` and `loop` the first segment is the step id / the
             // loop's item variable, never a field. A loop called `customer`
             // would otherwise read as personal data on its own.

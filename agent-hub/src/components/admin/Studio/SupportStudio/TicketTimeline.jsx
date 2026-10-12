@@ -35,7 +35,7 @@ export default function TicketTimeline({ threadId, teammates = [] }) {
     return (
         <div className="flex flex-col gap-2 py-1">
             {events.map(ev => {
-                const m = metaFor(ev);
+                const m = metaFor(ev, t);
                 const Icon = m.Icon;
                 const who = ev.actor_user_id ? nameFor(ev.actor_user_id) : m.label;
                 return (

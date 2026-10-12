@@ -34,7 +34,7 @@ export function LadderOutcomeStep({ ladder }: { ladder: AiActLadder }) {
                     </Text>
                 ) : null}
                 <Text variant="caption" tone="secondary">
-                    {t('compliance.ladder_outcome_note', 'Recorded in the model inventory (Art. 53) and as a processing activity in the processing register; the "AI notice" and "marking" checks keep running automatically.')}
+                    {t('compliance.ladder_outcome_note', 'Recorded with the model inventory and as a processing activity in the processing register; the "AI notice" and "marking" checks keep running automatically.')}
                 </Text>
             </View>
             {stamp ? (

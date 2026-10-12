@@ -97,7 +97,7 @@ const SignupStepOrg = ({ signupData, setSignupData, signupOrgs, handleSignupNext
                     </div>
                     <div>
                         <label className={labelClass}>{t('signup.tagline')}</label>
-                        <input type="text" value={signupData.orgTagline} onChange={e => setSignupData(p => ({ ...p, orgTagline: e.target.value }))} className={inputClassSimple} placeholder="Slim werken met AI" />
+                        <input type="text" value={signupData.orgTagline} onChange={e => setSignupData(p => ({ ...p, orgTagline: e.target.value }))} className={inputClassSimple} placeholder={t('signup.tagline_placeholder', 'Working smarter with AI')} />
                     </div>
                     <div>
                         <label className={labelClass}>{t('signup.description_label')}</label>

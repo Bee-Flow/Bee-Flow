@@ -4,10 +4,8 @@ import React, { useMemo } from 'react';
 import ActivityTab from './activity/ActivityTab';
 import useShieldEvidence from './activity/useShieldEvidence';
 import { derivePosture } from './orgShieldPosture';
-import { buildStripItems, dirtyChips, emphasisOf } from './orgShieldStrip';
-import {
-    ALL_TAB_IDS, DEFAULT_TAB, TAB_IDS, isChecksTab, normaliseTab,
-} from './orgShieldTabs';
+import { buildStripItems, dirtyChips } from './orgShieldStrip';
+import { ALL_TAB_IDS, DEFAULT_TAB, TAB_IDS, normaliseTab } from './orgShieldTabs';
 import { builtInOnly } from './ownData/ownDataModel';
 import OwnDataTab from './ownData/OwnDataTab';
 import HowItWorksPanel from './parts/HowItWorksPanel';
@@ -169,10 +167,8 @@ const OrgShieldEditor = ({ orgId = null, allowOrgPicker = false, readOnly = fals
         <ShieldPipeline
             items={tabItems}
             value={tab}
-            emphasis={emphasisOf(tab)}
             onChange={setTab}
             ariaLabel={t('admin.shield_tabs_label', 'Privacy Shield sections')}
-            t={t}
         />
     );
 
@@ -300,14 +296,14 @@ const OrgShieldEditor = ({ orgId = null, allowOrgPicker = false, readOnly = fals
                                 t={t}
                             />
                         )}
-                        {isChecksTab(tab) && (
+                        {(tab === 'processing' || tab === 'outbound') && (
                             <ChecksTab
+                                step={tab}
                                 f={f}
                                 readOnly={readOnly}
                                 licence={licence}
                                 env={env}
                                 evidence={evidence}
-                                emphasis={tab}
                                 onGoTo={setTab}
                                 t={t}
                             />

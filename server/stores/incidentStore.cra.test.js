@@ -12,6 +12,7 @@ const assert = require('node:assert');
 
 const { createRecordingDb } = require('../testUtils/mockDb');
 const { installResolveStub } = require('../testUtils/stubRequire');
+const { addCalendarMonths } = require('../utils/calendarMonths');
 
 const rows = [];
 let nextId = 1;
@@ -74,6 +75,10 @@ const mock = createRecordingDb({
             // becomes NULL once every clock is met), so it needs its own rule.
             const dl = set.match(/deadline_at = \$(\d+)/);
             if (dl) hit.deadline_at = params[Number(dl[1]) - 1];
+            // A CRA severe incident's final report is re-dated from the
+            // notification (plain overwrite as well).
+            const fr = set.match(/final_report_due_at = \$(\d+)/);
+            if (fr) hit.final_report_due_at = params[Number(fr[1]) - 1];
             return { rows: [], rowCount: 1 };
         }
         // The three reads the equality matcher cannot decide — they turn on
@@ -200,6 +205,21 @@ function evalWhere(expr, row, params) {
         const bound = NOW.getTime() + (m[3] ? Number(m[3]) * (/^day/i.test(m[4]) ? 24 : 1) * H : 0);
         return _cmp(v, m[2], bound);
     }
+    // `regimes @> '["GDPR"]'::jsonb`: the row's regimes hold every listed one.
+    if ((m = /^([a-z_]+) @> '(\[[^']*\])'::jsonb$/i.exec(t))) {
+        const want = JSON.parse(m[2]);
+        const have = Array.isArray(row[m[1]]) ? row[m[1]] : [];
+        return want.every(w => have.includes(w));
+    }
+    // `detected_at + INTERVAL '72 hours' < NOW() [+ INTERVAL '24 hours']`: a
+    // clock computed from a column, against the pinned NOW.
+    if ((m = /^([a-z_]+) \+ INTERVAL '(\d+) (hours?|days?)' (<|<=|>|>=) NOW\(\)(?:\s*\+\s*INTERVAL '(\d+) (hours?|days?)')?$/i.exec(t))) {
+        const v = _ts(row[m[1]]);
+        if (v == null) return false;
+        const span = (n, unit) => Number(n) * (/^day/i.test(unit) ? 24 : 1) * H;
+        const bound = NOW.getTime() + (m[5] ? span(m[5], m[6]) : 0);
+        return _cmp(v + span(m[2], m[3]), m[4], bound);
+    }
     throw new Error(`the test double cannot evaluate the SQL term "${t}" — teach it, do not skip it`);
 }
 
@@ -276,6 +296,24 @@ test('computeClocks: CRA → 24 h / 72 h / +14 d', () => {
     assert.strictEqual(hoursAfter(c.notification_due_at), 72);
     assert.strictEqual(hoursAfter(c.final_report_due_at), 14 * 24);
     assert.strictEqual(hoursAfter(c.deadline_at), 24);
+});
+
+test('computeClocks: a CRA severe incident\'s final report is one month after the notification, not 14 days (Art. 14(4)(c))', () => {
+    // Not notified yet: from the latest lawful notification, detected + 72 h.
+    const open = store.computeClocks(T0, { regimes: ['CRA'], kind: 'security_incident' });
+    assert.strictEqual(open.final_report_due_at.toISOString(), '2026-10-13T10:00:00.000Z');
+    assert.strictEqual(hoursAfter(open.early_warning_due_at), 24, 'the early warning and the notification are unchanged');
+    assert.strictEqual(hoursAfter(open.notification_due_at), 72);
+    // Notified: one calendar month from that stamp, clamped at a short month.
+    const notified = store.computeClocks(T0, { regimes: ['CRA'], kind: 'breach', notifiedAt: '2026-09-11T08:00:00.000Z' });
+    assert.strictEqual(notified.final_report_due_at.toISOString(), '2026-10-11T08:00:00.000Z');
+    const jan = store.computeClocks('2027-01-30T10:00:00.000Z', { regimes: ['CRA'], kind: 'security_incident', notifiedAt: '2027-01-31T09:00:00.000Z' });
+    assert.strictEqual(jan.final_report_due_at.toISOString(), '2027-02-28T09:00:00.000Z', 'never an overflow into March');
+    // A vulnerability keeps the 14-day clock (Art. 14(2)(c)), and so does a call without a kind.
+    assert.strictEqual(hoursAfter(store.computeClocks(T0, { regimes: ['CRA'], kind: 'vulnerability' }).final_report_due_at), 14 * 24);
+    // On a NIS2 + CRA incident the earlier NIS2 final report still wins.
+    const mixed = store.computeClocks(T0, { regimes: ['NIS2', 'CRA'], kind: 'security_incident' });
+    assert.strictEqual(mixed.final_report_due_at.toISOString(), '2026-10-10T10:00:00.000Z');
 });
 
 test('computeClocks: DORA → customer notice after the org window (default 4 h), and that is the deadline', () => {
@@ -611,6 +649,25 @@ test('getDeadlineStats: vulnerabilities_open counts every not-closed vulnerabili
     assert.strictEqual(s.vulnerabilities_open, 2, 'reported still counts, closed does not, another org never does');
 });
 
+test('getDeadlineStats: the Art. 33 counts run from detected_at + 72 h, for GDPR incidents only', async () => {
+    // A GDPR+NIS2 incident at hour 25: its 24 h early warning is past due, so
+    // the roll-up deadline_at is overdue, but the 72 h Art. 33 deadline is not.
+    putRow({ regimes: ['GDPR', 'NIS2'], detected_at: AT(-25 * H), deadline_at: AT(-H) });
+    // A CRA-only vulnerability past its early warning is never a GDPR matter.
+    putRow({ kind: 'vulnerability', regimes: ['CRA'], detected_at: AT(-80 * H), deadline_at: AT(-56 * H) });
+    // GDPR incidents a second past detected_at + 72 h, exactly on it, and 22 h before it.
+    putRow({ regimes: ['GDPR'], detected_at: AT(-72 * H - SECOND), deadline_at: AT(-SECOND) });
+    putRow({ regimes: ['GDPR'], detected_at: AT(-72 * H), deadline_at: AT(0) });
+    putRow({ regimes: ['GDPR'], detected_at: AT(-50 * H), deadline_at: AT(22 * H) });
+    // Notified long after its 72 h: no longer overdue.
+    putRow({ regimes: ['GDPR'], status: 'early_warning_sent', detected_at: AT(-100 * H), authority_notified_at: AT(-30 * H), deadline_at: null });
+
+    const s = await store.getDeadlineStats('orgA');
+    assert.strictEqual(s.overdue_unnotified, 3, 'the roll-up: the early warning, the CRA clock and the late GDPR row');
+    assert.strictEqual(s.gdpr_overdue_unnotified, 1, 'only the GDPR row a second past detected_at + 72 h');
+    assert.strictEqual(s.gdpr_nearing_deadline, 2, 'the row on the dot and the one 22 h out; the GDPR+NIS2 row is 47 h out');
+});
+
 test('listNeedingAttention: the notifier picks up everything due inside 24 hours, and stops exactly at the edge', async () => {
     const overdue = putRow({ deadline_at: AT(-3 * H) });
     const inside = putRow({ deadline_at: AT(24 * H - SECOND) });
@@ -635,6 +692,31 @@ test('hasRecentAutoIncident asks per org and per source inside the window', asyn
 });
 
 // ── updateIncident's server-side stamps ──────────────────────────────────
+
+test('a CRA severe incident is created with the one-month final clock and re-dated when the notification is stamped', async () => {
+    const row = await store.createIncident({
+        organization_id: 'orgA', title: 'Ransomware on the build server', kind: 'security_incident', regimes: ['CRA'],
+        detected_at: T0.toISOString(),
+    });
+    const stored = rows.find(r => r.id === row.id);
+    assert.strictEqual(new Date(stored.final_report_due_at).toISOString(), '2026-10-13T10:00:00.000Z', 'detected + 72 h + 1 month, not + 14 d');
+    mock.reset();
+    await store.updateIncident('orgA', row.id, { status: 'authority_notified' }, 'u-7');
+    assert.ok(stored.authority_notified_at instanceof Date);
+    const expected = addCalendarMonths(stored.authority_notified_at, 1);
+    assert.strictEqual(new Date(stored.final_report_due_at).toISOString(), expected.toISOString(), 'one month from the recorded notification');
+    const writes = mutations().filter(m => /final_report_due_at = \$3/.test(m.sql));
+    assert.strictEqual(writes.length, 1);
+    assert.match(writes[0].sql, /WHERE organization_id = \$1 AND id = \$2/);
+    assert.strictEqual(writes[0].params[0], 'orgA');
+});
+
+test('a CRA vulnerability keeps its 14-day final clock through the notification stamp', async () => {
+    const row = await seed();
+    await store.updateIncident('orgA', row.id, { status: 'authority_notified' }, 'u-7');
+    assert.strictEqual(hoursAfter(row.final_report_due_at), 14 * 24);
+    assert.ok(!mutations().some(m => /final_report_due_at = \$3/.test(m.sql)), 'never re-dated');
+});
 
 test('updateIncident: status=authority_notified stamps the time and the actor itself, first-wins', async () => {
     const row = await seed({ kind: 'breach', regimes: ['GDPR'] });
@@ -742,6 +824,45 @@ test('backfillDeadlines is safe to run twice: the second pass writes nothing', a
     assert.strictEqual(second.scanned, 1, 'the row it cleared has left the candidate set for good');
     assert.strictEqual(finished.deadline_at, null);
     assert.deepStrictEqual(rows.map(r => (r.deadline_at ? new Date(r.deadline_at).getTime() : null)), after);
+});
+
+test('backfillCraIncidentFinals re-dates severe incidents stored with the 14-day clock, once', async () => {
+    const severe = putRow({
+        kind: 'security_incident', regimes: ['CRA'], status: 'early_warning_sent', detected_at: T0,
+        early_warning_due_at: new Date(T0.getTime() + 24 * H), early_warning_sent_at: new Date(T0.getTime() + 20 * H),
+        authority_notified_at: new Date('2026-09-12T09:00:00.000Z'),
+        final_report_due_at: new Date(T0.getTime() + 14 * D),
+        deadline_at: new Date(T0.getTime() + 14 * D),
+    });
+    const vuln = putRow({
+        kind: 'vulnerability', regimes: ['CRA'], detected_at: T0,
+        final_report_due_at: new Date(T0.getTime() + 14 * D), deadline_at: new Date(T0.getTime() + 24 * H),
+    });
+    const filed = putRow({
+        kind: 'breach', regimes: ['CRA'], detected_at: T0, final_report_sent_at: new Date(T0.getTime() + 5 * D),
+        final_report_due_at: new Date(T0.getTime() + 14 * D), deadline_at: null,
+    });
+    mock.reset();
+
+    const res = await store.backfillCraIncidentFinals();
+    assert.deepStrictEqual(res, { scanned: 1, moved: 1 }, 'only the unfiled severe incident is a candidate');
+    assert.strictEqual(new Date(severe.final_report_due_at).toISOString(), '2026-10-12T09:00:00.000Z', 'one month after the notification');
+    assert.strictEqual(new Date(severe.deadline_at).toISOString(), '2026-10-12T09:00:00.000Z', 'the roll-up follows');
+    assert.strictEqual(hoursAfter(vuln.final_report_due_at), 14 * 24, 'a vulnerability keeps its clock');
+    assert.strictEqual(hoursAfter(filed.final_report_due_at), 14 * 24, 'a filed final report is history');
+    for (const w of mutations()) {
+        assert.match(w.sql, /WHERE organization_id = \$1 AND id = \$2/);
+        assert.ok(!/updated_at/.test(w.sql), 'a derived clock correction is not an edit of the incident');
+    }
+
+    mock.reset();
+    const second = await store.backfillCraIncidentFinals();
+    assert.strictEqual(second.moved, 0);
+    assert.strictEqual(mutations().length, 0, 'a second run writes nothing');
+});
+
+test('the CRA final-report backfill runs inside the boot step', () => {
+    assert.match(bootReads, /WHERE id > \$1[\s\S]*kind <> 'vulnerability'[\s\S]*regimes @> '\["CRA"\]'::jsonb/);
 });
 
 test('constants exported for the routes and the checks', () => {

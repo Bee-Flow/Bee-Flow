@@ -108,18 +108,9 @@ function OrgAcademyOverview() {
 
     return (
         <div>
-            <div className="mb-4 flex items-start justify-between gap-4">
-                <div>
-                    <div className="flex items-center gap-2 mb-1">
-                        <GraduationCap className="w-5 h-5" style={{ color: 'var(--accent-primary)' }} />
-                        <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
-                            {t('settings.academy', 'Academy')}
-                        </h2>
-                    </div>
-                    <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                        {t('org.academy.subtitle', 'Course progress, badges and certificates across your team.')}
-                    </p>
-                </div>
+            {/* The page title sits above the tabs (OrgAcademyPanel); this tab
+                keeps only its own Refresh. */}
+            <div className="mb-4 flex justify-end">
                 <button onClick={load} disabled={loading}
                     className="px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-1.5 border transition-colors hover:bg-[var(--bg-tertiary)] disabled:opacity-40"
                     style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)', background: 'transparent' }}
@@ -262,6 +253,15 @@ export default function OrgAcademyPanel() {
 
     return (
         <div>
+            <header className="mb-4">
+                <h2 className="flex items-center gap-2 text-lg font-semibold text-[var(--text-primary)]">
+                    <GraduationCap className="w-5 h-5 text-[var(--accent-primary)]" aria-hidden="true" />
+                    {t('settings.academy', 'Academy')}
+                </h2>
+                <p className="mt-1 text-sm text-[var(--text-muted)]">
+                    {t('org.academy.subtitle', 'Course progress, badges and certificates across your team.')}
+                </p>
+            </header>
             <Tabs
                 value={tab}
                 onChange={setTab}

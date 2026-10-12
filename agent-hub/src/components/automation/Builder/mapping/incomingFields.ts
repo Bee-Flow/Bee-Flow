@@ -4,19 +4,30 @@
 // event, cron, etag…) behind "Technical details". Pure, so the rule has a
 // test of its own and the panel only draws it.
 
-/** Keys that describe the plumbing of a record rather than its content. */
+/**
+ * Keys that describe the plumbing of a record rather than its content. A
+ * file's or an attachment's content type is NOT plumbing: "is it a PDF" is
+ * exactly what a step after it asks, so `contentType` / `mimeType` stay in view.
+ */
 const SYSTEM_KEYS = new Set([
     'kind', 'source', 'id', '_id', 'uuid', 'provider', 'event', 'eventtype', 'cron', 'etag',
     'fileid', 'nodeid', 'instanceid', 'orgid', 'ownerid', 'userid', 'runid', 'triggerid',
-    'permissions', 'headers', 'raw', 'meta', 'metadata', 'mimetype', 'contenttype', 'checksum',
+    'permissions', 'headers', 'raw', 'meta', 'metadata', 'checksum',
     'hash', 'webhookid', 'deliveryid', 'signature', 'firedat',
 ]);
+
+/**
+ * Protocol annotations an API adds to every record: Microsoft Graph's
+ * `@odata.type`, `@odata.etag`, `@odata.mediaContentType`, `@odata.context`,
+ * GraphQL's `__typename`, a JSON schema's `$schema`.
+ */
+const PROTOCOL_KEY_RE = /^(@odata\.|odata\.|@context$|\$schema$|__typename$)/i;
 
 /** Is this a system field that belongs under "Technical details"? */
 export function isSystemField(key: unknown): boolean {
     const k = String(key || '');
     if (!k) return false;
-    if (k.startsWith('_')) return true;
+    if (k.startsWith('_') || PROTOCOL_KEY_RE.test(k)) return true;
     return SYSTEM_KEYS.has(k.toLowerCase().replace(/[_-]/g, ''));
 }
 

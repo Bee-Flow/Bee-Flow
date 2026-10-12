@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
+import useTranslation from '../../../hooks/useTranslation';
 import { Loader2, Merge, Undo2, Sparkles } from 'lucide-react';
 import Modal from '../../../components/shared/Modal';
 import { formatSpeakerLabel } from '../lib/format';
@@ -17,6 +18,7 @@ import { buildSpeakerColorMap, speakerColor } from '../lib/playerData';
  * On save we collapse those into the route payload { renames, merges }.
  */
 export default function SpeakerEditor({ open, onClose, meeting, onSave, onAutoDetect }) {
+    const { t } = useTranslation();
     const speakers = useMemo(() => Array.isArray(meeting?.speakers) ? meeting.speakers : [], [meeting]);
     // Shared rank-based colors — a merge preview naturally shows the target's color.
     const colorMap = useMemo(() => buildSpeakerColorMap(speakers), [speakers]);
@@ -188,8 +190,8 @@ export default function SpeakerEditor({ open, onClose, meeting, onSave, onAutoDe
         <Modal
             open={open}
             onClose={onClose}
-            title="Edit speakers"
-            description="Rename a speaker, or merge two speakers into one. Changes apply to the transcript, speaker list and exports."
+            title={t('meeting_notes.edit_speakers', 'Edit speakers')}
+            description={t('meeting_notes.speaker_editor_desc', 'Rename a speaker, or merge two speakers into one. Changes apply to the transcript, speaker list and exports.')}
             size="md"
             footer={
                 <div className="flex items-center justify-end gap-2">
@@ -200,7 +202,7 @@ export default function SpeakerEditor({ open, onClose, meeting, onSave, onAutoDe
                         className="px-3 py-1.5 rounded-lg text-sm"
                         style={{ color: 'var(--text-secondary)' }}
                     >
-                        Cancel
+                        {t('common.cancel', 'Cancel')}
                     </button>
                     <button
                         type="button"
@@ -210,7 +212,7 @@ export default function SpeakerEditor({ open, onClose, meeting, onSave, onAutoDe
                         style={{ background: 'var(--accent-primary)' }}
                     >
                         {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                        Save changes
+                        {t('meeting_notes.save_speaker_changes', 'Save changes')}
                     </button>
                 </div>
             }
@@ -220,16 +222,16 @@ export default function SpeakerEditor({ open, onClose, meeting, onSave, onAutoDe
                     <div className="rounded-lg border p-3 mb-1" style={{ background: 'color-mix(in srgb, var(--accent-primary) 5%, var(--bg-secondary))', borderColor: 'var(--border-default)' }}>
                         <div className="flex items-center gap-1.5 text-[13px] font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
                             <Sparkles className="w-3.5 h-3.5" style={{ color: 'var(--accent-primary)' }} />
-                            Auto-detect names
+                            {t('meeting_notes.speaker_autodetect', 'Auto-detect names')}
                         </div>
                         <p className="text-[11px] mb-2" style={{ color: 'var(--text-muted)' }}>
-                            Let AI map the speakers to real names using the transcript. Add who was in the meeting to make it reliable.
+                            {t('meeting_notes.speaker_autodetect_desc', 'Let AI map the speakers to real names using the transcript. Add who was in the meeting to make it reliable.')}
                         </p>
                         <div className="flex items-center gap-2">
                             <input
                                 value={autoNames}
                                 onChange={(e) => setAutoNames(e.target.value)}
-                                placeholder="Gerard, Tom, René… (optional)"
+                                placeholder={t('meeting_notes.speaker_autodetect_ph', 'Gerard, Tom, René… (optional)')}
                                 className="flex-1 px-3 py-1.5 rounded-lg text-sm border outline-none"
                                 style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                             />
@@ -241,14 +243,14 @@ export default function SpeakerEditor({ open, onClose, meeting, onSave, onAutoDe
                                 style={{ background: 'var(--accent-primary)' }}
                             >
                                 {autoDetecting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-                                Detect
+                                {t('meeting_notes.speaker_detect', 'Detect')}
                             </button>
                         </div>
                     </div>
                 )}
                 {rows.length === 0 && (
                     <div className="text-sm text-center py-6" style={{ color: 'var(--text-muted)' }}>
-                        No speakers yet.
+                        {t('meeting_notes.speaker_none', 'No speakers yet.')}
                     </div>
                 )}
                 {rows.map((row) => {
@@ -279,16 +281,16 @@ export default function SpeakerEditor({ open, onClose, meeting, onSave, onAutoDe
                                         // Undo the most recent merge into this target — remove every
                                         // mergedInto entry whose target is this row's id.
                                         const sourcesToUndo = Object.entries(mergedInto)
-                                            .filter(([, t]) => resolveTarget(t) === row.targetId)
+                                            .filter(([, tid]) => resolveTarget(tid) === row.targetId)
                                             .map(([s]) => s);
                                         sourcesToUndo.forEach(undoMerge);
                                     }}
-                                    title="Undo merge"
+                                    title={t('meeting_notes.speaker_undo_merge', 'Undo merge')}
                                     className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium border"
                                     style={{ background: 'transparent', borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
                                 >
                                     <Undo2 className="w-3 h-3" />
-                                    Undo
+                                    {t('meeting_notes.speaker_undo', 'Undo')}
                                 </button>
                             ) : (
                                 <MergeSelect
@@ -305,6 +307,7 @@ export default function SpeakerEditor({ open, onClose, meeting, onSave, onAutoDe
 }
 
 function MergeSelect({ others, onPick }) {
+    const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     const ref = React.useRef(null);
 
@@ -326,7 +329,7 @@ function MergeSelect({ others, onPick }) {
                 style={{ background: 'transparent', borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
             >
                 <Merge className="w-3 h-3" />
-                Merge with…
+                {t('meeting_notes.merge_with', 'Merge with…')}
             </button>
             {open && (
                 <div

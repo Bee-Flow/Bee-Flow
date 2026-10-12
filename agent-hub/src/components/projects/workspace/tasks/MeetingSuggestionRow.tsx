@@ -6,7 +6,7 @@ import { ChevronRight, Sparkles } from 'lucide-react';
 import React, { useId, useState } from 'react';
 import { TASK_PRIORITIES, type ChecklistItem, type MeetingTaskSuggestion, type TaskPriority } from '../../../../api/queries/projectTasks';
 import { useTranslation } from '../../../../hooks/useTranslation';
-import { Avatar } from '../workspaceUi';
+import { Avatar, SelectField } from '../workspaceUi';
 import { CHIP_CLASS, LabelChip, PriorityIcon } from './TaskFields';
 import { priorityLabel } from './taskText';
 import { INLINE_CONTROL } from './taskDialogParts';
@@ -106,20 +106,20 @@ export default function MeetingSuggestionRow({ s, row, people, onChange }: {
                 <div className="flex flex-wrap items-center gap-x-1 gap-y-1 -ml-1.5">
                     <span className="inline-flex items-center">
                         {person && <Avatar name={person.name} size="sm" picture={person.avatar} color={person.color} className="!w-5 !h-5 !text-[9px] ring-0 ml-1" />}
-                        <select className={`${INLINE_CONTROL} max-w-[11rem] ${row.assigneeId ? '' : 'text-[var(--text-tertiary)]'}`} value={row.assigneeId} disabled={off}
+                        <SelectField bare className={`${INLINE_CONTROL} max-w-[11rem] ${row.assigneeId ? '' : 'text-[var(--text-tertiary)]'}`} value={row.assigneeId} disabled={off}
                             onChange={e => onChange({ assigneeId: e.target.value })} aria-label={t('project_tasks.assignees', 'Assigned to')}>
                             <option value="">{t('project_tasks.who_unassigned', 'Not given to anyone')}</option>
                             {people.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                        </select>
+                        </SelectField>
                     </span>
                     <input type="date" className={`${INLINE_CONTROL} tabular-nums ${row.dueDate ? '' : 'text-[var(--text-tertiary)]'}`} value={row.dueDate} disabled={off}
                         onChange={e => onChange({ dueDate: e.target.value })} aria-label={t('project_tasks.due_label', 'Due date')} />
                     <span className="relative inline-flex items-center">
                         {(row.priority === 'high' || row.priority === 'urgent') && <span className="absolute left-1.5 flex pointer-events-none"><PriorityIcon priority={row.priority} className="w-3 h-3" /></span>}
-                        <select className={`${INLINE_CONTROL} ${row.priority === 'high' || row.priority === 'urgent' ? 'pl-5' : ''}`} value={row.priority} disabled={off}
+                        <SelectField bare className={`${INLINE_CONTROL} ${row.priority === 'high' || row.priority === 'urgent' ? 'pl-5' : ''}`} value={row.priority} disabled={off}
                             onChange={e => onChange({ priority: e.target.value as TaskPriority })} aria-label={t('project_tasks.priority_label', 'Priority')}>
                             {TASK_PRIORITIES.map(p => <option key={p} value={p}>{priorityLabel(t, p)}</option>)}
-                        </select>
+                        </SelectField>
                     </span>
                     <StateChips s={s} row={row} />
                 </div>

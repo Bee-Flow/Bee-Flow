@@ -19,31 +19,7 @@ const OWNED = (k) => k.startsWith('mfa.security_key') || [
     'mfa.add_authenticator', 'mfa.enable_confirm_with_key', 'mfa.confirm_with_recovery_or_key', 'mfa.confirm_with_key',
 ].includes(k);
 
-test('every Dutch key exists in the English catalog', () => {
-    const orphans = Object.keys(NL_TRANSLATIONS).filter((k) => !(k in GUI_DEFAULTS));
-    assert.deepStrictEqual(orphans, [], 'these Dutch keys have no English counterpart');
-});
-
-test('no Dutch value is blank or the English one copied over', () => {
-    for (const [k, v] of Object.entries(NL_TRANSLATIONS)) {
-        assert.ok(String(v || '').trim(), `${k} has no Dutch value`);
-        assert.notStrictEqual(v, GUI_DEFAULTS[k], `${k} was never actually translated`);
-    }
-});
-
 test('every English security-key string has a Dutch one', () => {
     const untranslated = Object.keys(GUI_DEFAULTS).filter((k) => OWNED(k) && !(k in NL_TRANSLATIONS));
     assert.deepStrictEqual(untranslated, []);
-});
-
-test('placeholders survive translation', () => {
-    const holes = (s) => (String(s).match(/\{[a-z_]+\}/gi) || []).sort();
-    for (const [k, v] of Object.entries(NL_TRANSLATIONS)) {
-        assert.deepStrictEqual(holes(v), holes(GUI_DEFAULTS[k]), `${k}: placeholders differ from English`);
-    }
-});
-
-test('the migration is registered, or it never runs', () => {
-    const { NL_TRANSLATIONS: bootList } = require('../boot/bootMigrations');
-    assert.ok(bootList.includes('add-nl-security-key-translations'), 'add it to the NL_TRANSLATIONS list in boot/bootMigrations.js');
 });

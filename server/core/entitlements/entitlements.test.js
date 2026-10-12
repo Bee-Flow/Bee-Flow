@@ -151,6 +151,7 @@ function baseMocks() {
     userStore.getOrgGrantedCapabilities = async () => ['notebooks'];
     userStore.getOrgAvailableCapabilities = async () => null; // null ⇒ unrestricted (full ceiling)
     userStore.getOrgBetaEveryone = async () => null;          // null ⇒ group-scoped betas go to everyone
+    userStore.getOrgEveryoneRevoked = async () => null;       // null ⇒ nothing revoked for All members (self-hosted)
     userStore.getSingleOrgId = async () => null;              // default: not single-tenant
     userStore.getOrganization = async () => ({ enabledIntegrations: null });
     planEnt.getOrgCaps = async () => ({ integrations: null, betaFeatures: null });
@@ -497,6 +498,48 @@ before(async () => {
     await resolve('gsReadFails', () => {
         selfHostedEnterprise();
         userStore.getOrgBetaEveryone = async () => { throw new Error('db down'); };
+    }, AS_USER);
+
+    // SELF-HOSTED "All members" switch-off (org_everyone_revoked, a deny-list).
+    // A user without groups sees the everyone grant alone; a user in a group
+    // that grants the revoked id gets it back through the group layer.
+    const NO_GROUPS = () => {
+        selfHostedEnterprise();
+        userStore.getAllGroups = async () => ([]);
+        userStore.getUser = async () => ({ id: 'u1', organizationId: 'o1', groups: [], role: 'user' });
+    };
+    await resolve('rvNull', NO_GROUPS, AS_USER);
+    await resolve('rvCore', () => {
+        NO_GROUPS();
+        userStore.getOrgEveryoneRevoked = async () => ['projects'];
+    }, AS_USER);
+    await resolve('rvCoreViaGroup', () => {
+        selfHostedEnterprise();
+        userStore.getOrgEveryoneRevoked = async () => ['projects'];
+        userStore.getAllGroups = async () => ([{ id: 'g1', organizationId: 'o1', granted_capabilities: ['projects'] }]);
+    }, AS_USER);
+    await resolve('rvBeta', () => {
+        NO_GROUPS();
+        userStore.getOrgEveryoneRevoked = async () => ['webpages'];
+    }, AS_USER);
+    await resolve('rvBetaViaGroup', () => {
+        selfHostedEnterprise();
+        userStore.getOrgEveryoneRevoked = async () => ['webpages'];
+        userStore.getAllGroups = async () => ([{ id: 'g1', organizationId: 'o1', granted_capabilities: ['webpages'] }]);
+    }, AS_USER);
+    // Revoking a non-togglable core id (or garbage) changes nothing.
+    await resolve('rvInfra', () => {
+        NO_GROUPS();
+        userStore.getOrgEveryoneRevoked = async () => [NON_TOGGLABLE_CORE, 'does_not_exist'];
+    }, AS_USER);
+    // Cloud ignores the list entirely.
+    await resolve('rvCloud', () => {
+        userStore.getOrgEveryoneRevoked = async () => ['notebooks', 'webpages'];
+    }, AS_USER);
+    // Unreadable list fails OPEN: nothing is switched off by a transient error.
+    await resolve('rvReadFails', () => {
+        NO_GROUPS();
+        userStore.getOrgEveryoneRevoked = async () => { throw new Error('db down'); };
     }, AS_USER);
 
     // degraded: tier lookup throws → degraded snapshot
@@ -938,6 +981,53 @@ describe('group-scoped betas (meeting_notes) follow org_beta_everyone', () => {
     it('an unreadable list fails closed (groups only)', () => {
         assert.ok(!S.gsReadFails.effective.beta.includes('meeting_notes'));
         assert.ok(S.gsReadFails.effective.beta.includes('webpages'), 'other betas are unaffected');
+    });
+});
+
+const NON_TOGGLABLE_CORE = (caps.find(c => c.kind === 'core' && !c.groupTogglable) || {}).id;
+
+describe('self-hosted: "All members" switch-off (org_everyone_revoked)', () => {
+    it('fixture: projects is togglable core, webpages a non-scoped beta, and a non-togglable core id exists', () => {
+        assert.strictEqual(registry.getCapability('projects').groupTogglable, true);
+        assert.strictEqual(registry.getCapability('webpages').groupScoped, false);
+        assert.ok(NON_TOGGLABLE_CORE, 'registry has a non-togglable core capability');
+    });
+    it('a NULL list is today\'s behaviour: togglable core and betas are on for everyone', () => {
+        assert.ok(S.rvNull.orgEnabled.core.includes('projects'));
+        assert.ok(S.rvNull.effective.core.includes('projects'));
+        assert.ok(S.rvNull.orgEnabled.beta.includes('webpages'));
+        assert.ok(S.rvNull.effective.beta.includes('webpages'));
+    });
+    it('a revoked core id is off for a user without groups, still in the ceiling', () => {
+        assert.ok(!S.rvCore.orgEnabled.core.includes('projects'));
+        assert.ok(!S.rvCore.effective.core.includes('projects'));
+        assert.ok(S.rvCore.ceiling.core.includes('projects'));
+        assert.ok(S.rvCore.effective.core.includes('notebooks'), 'other core ids are untouched');
+    });
+    it('a group that grants the revoked core id still hands it out', () => {
+        assert.ok(!S.rvCoreViaGroup.orgEnabled.core.includes('projects'));
+        assert.ok(S.rvCoreViaGroup.effective.core.includes('projects'));
+    });
+    it('a revoked beta is off for a user without groups', () => {
+        assert.ok(!S.rvBeta.orgEnabled.beta.includes('webpages'));
+        assert.ok(!S.rvBeta.effective.beta.includes('webpages'));
+        assert.ok(S.rvBeta.ceiling.beta.includes('webpages'));
+    });
+    it('a group that grants the revoked beta still hands it out', () => {
+        assert.ok(!S.rvBetaViaGroup.orgEnabled.beta.includes('webpages'));
+        assert.ok(S.rvBetaViaGroup.effective.beta.includes('webpages'));
+    });
+    it('non-togglable core is never revoked', () => {
+        assert.ok(S.rvInfra.orgEnabled.core.includes(NON_TOGGLABLE_CORE));
+        assert.ok(S.rvInfra.effective.core.includes('projects'));
+    });
+    it('cloud ignores the list', () => {
+        assert.ok(S.rvCloud.effective.beta.includes('webpages'));
+        assert.ok(S.rvCloud.orgEnabled.core.includes('notebooks'), 'cloud core still follows org_granted_capabilities');
+    });
+    it('an unreadable list fails open: nothing is switched off', () => {
+        assert.ok(S.rvReadFails.effective.core.includes('projects'));
+        assert.ok(S.rvReadFails.effective.beta.includes('webpages'));
     });
 });
 

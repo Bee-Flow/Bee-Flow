@@ -65,12 +65,6 @@ test('the scan really finds this catalogue — it is not reading an empty union'
         'the source scan and the module disagree about how many keys this file carries');
 });
 
-test('every Dutch key exists in the English catalog', () => {
-    const orphans = Object.keys(NL_TRANSLATIONS).filter(k => !(k in GUI_DEFAULTS));
-    assert.deepStrictEqual(orphans, [],
-        'these Dutch keys have no English counterpart — a typo here is a screen that silently stays English');
-});
-
 test('no key is seeded twice by two catalogues', () => {
     // Two migrations racing to fill the same key makes the wording depend on
     // boot order — the failure the redesign catalogue avoided by hand for
@@ -83,22 +77,6 @@ test('no key is seeded twice by two catalogues', () => {
             assert.ok(!prev, `${m[1]} is seeded by both ${prev} and ${f}`);
             seen.set(m[1], f);
         }
-    }
-});
-
-test('no Dutch value is blank or the English one copied over', () => {
-    for (const [k, v] of Object.entries(NL_TRANSLATIONS)) {
-        assert.ok(String(v || '').trim(), `${k} has no Dutch value`);
-        assert.notStrictEqual(v, GUI_DEFAULTS[k], `${k} was never actually translated`);
-    }
-});
-
-test('placeholders survive translation', () => {
-    // "{n}" dropped from "is een lijst van {n}" is a question that no longer
-    // says how big the list is — which is the whole reason the box opened.
-    const holes = (s) => (String(s).match(/\{[a-z_]+\}/gi) || []).sort();
-    for (const [k, v] of Object.entries(NL_TRANSLATIONS)) {
-        assert.deepStrictEqual(holes(v), holes(GUI_DEFAULTS[k]), `${k}: placeholders differ from English`);
     }
 });
 

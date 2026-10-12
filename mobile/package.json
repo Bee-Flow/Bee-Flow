@@ -22,6 +22,7 @@
         "verify": "npm run typecheck && npm run lint && npm test && npm run verify:native",
         "verify:native": "expo prebuild --platform android --no-install --clean && expo export --platform android --output-dir .verify-bundle",
         "lint": "eslint . --max-warnings 0",
+        "lint:cached": "eslint . --max-warnings 0 --cache --cache-strategy content --cache-location .eslintcache",
         "typecheck": "tsc --noEmit",
         "test": "jest --ci",
         "test:watch": "jest --watch",

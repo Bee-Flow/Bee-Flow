@@ -313,7 +313,7 @@ async function setEmailTemplate(locale, templateId, fields) {
  */
 async function getEffectiveEmailTemplate(templateId, locale) {
     const { getDefaultEmailTemplate, EMAIL_TEMPLATE_FIELDS } = require('../i18n/defaults/emailTemplates');
-    const base = getDefaultEmailTemplate(templateId);
+    const base = getDefaultEmailTemplate(templateId, locale);
     if (!base) return null;
     if (!locale) return base;
 

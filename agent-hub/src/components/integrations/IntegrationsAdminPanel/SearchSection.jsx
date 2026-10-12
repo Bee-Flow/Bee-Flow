@@ -4,6 +4,7 @@
 import { Check, Loader2, Settings } from 'lucide-react';
 import React from 'react';
 import { API_BASE, authFetch } from '../../../utils/helpers';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 export default function SearchSection({
     searchProvider, setSearchProvider,
@@ -15,6 +16,7 @@ export default function SearchSection({
     agentSearchDefaults, setAgentSearchDefaults, savingSearchDefaults, setSavingSearchDefaults,
     setMessage,
 }) {
+    const { t } = useTranslation();
     return (
             <div className="p-6">
             <div className="max-w-4xl mx-auto space-y-8">
@@ -22,17 +24,17 @@ export default function SearchSection({
                 <div className="rounded-2xl border overflow-hidden" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>
                     <div className="px-6 py-4 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
                         <h3 className="font-semibold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
-                            <Settings className="w-4 h-4" /> Agent Search Configuration
+                            <Settings className="w-4 h-4" /> {t('integ.search_agent_search_configuration', 'Agent Search Configuration')}
                         </h3>
                         <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                            Configure your self-hosted Agent Search service.
+                            {t('integ.search_configure_your_self_hosted_agent', 'Configure your self-hosted Agent Search service.')}
                         </p>
                     </div>
                     <div className="p-6 space-y-4">
                         {/* Search Provider Selector */}
                         <div>
                             <label className="text-sm font-medium flex items-center gap-2 mb-2" style={{ color: 'var(--text-primary)' }}>
-                                Search Provider
+                                {t('integ.search_search_provider', 'Search Provider')}
                             </label>
                             <div className="flex gap-2">
                                 <select
@@ -57,14 +59,14 @@ export default function SearchSection({
                                     className="flex-1 px-3 py-2 rounded-lg text-sm border outline-none focus:ring-2 transition-all"
                                     style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--accent-primary)' }}
                                 >
-                                    <option value="agent-search">Self-hosted (Agent Search + Serper)</option>
-                                    <option value="node-search">Cloud-only (Serper + provider APIs)</option>
-                                    <option value="bing">Azure Bing Web Search</option>
-                                    <option value="disabled">Disabled</option>
+                                    <option value="agent-search">{t('integ.search_self_hosted_agent_search_serper', 'Self-hosted (Agent Search + Serper)')}</option>
+                                    <option value="node-search">{t('integ.search_cloud_only_serper_provider_apis', 'Cloud-only (Serper + provider APIs)')}</option>
+                                    <option value="bing">{t('integ.search_azure_bing_web_search', 'Azure Bing Web Search')}</option>
+                                    <option value="disabled">{t('integ.search_disabled', 'Disabled')}</option>
                                 </select>
                             </div>
                             <p className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>
-                                Choose which search provider powers web search for AI agents. Select "Disabled" to turn off web search entirely.
+                                {t('integ.search_choose_which_search_provider_powers', 'Choose which search provider powers web search for AI agents. Select "Disabled" to turn off web search entirely.')}
                             </p>
                         </div>
 
@@ -73,8 +75,9 @@ export default function SearchSection({
                             <>
                                 <div className="pt-3 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
                                     <label className="text-sm font-medium flex items-center gap-2 mb-2" style={{ color: 'var(--text-primary)' }}>
-                                        Bing Search API Key
-                                        {hasBingSearchKey && <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-500">Configured</span>}
+                                        {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */}
+                                        {t('integ.search_bing_search_api_key', 'Bing Search API Key')}
+                                        {hasBingSearchKey && <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-500">{t('integ.search_configured', 'Configured')}</span>}
                                     </label>
                                     <div className="flex gap-2">
                                         <input
@@ -110,27 +113,27 @@ export default function SearchSection({
                                             style={{ background: 'var(--accent-primary)', color: '#fff' }}
                                         >
                                             {savingBingKey ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                                            Save
+                                            {t('integ.search_save', 'Save')}
                                         </button>
                                     </div>
                                     <p className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>
-                                        Get your key from <a href="https://portal.azure.com/#create/microsoft.bingsearch" target="_blank" rel="noopener noreferrer" className="underline" style={{ color: 'var(--accent-primary)' }}>Azure Portal → Bing Search v7</a>.
+                                        {t('integ.search_get_your_key_from', 'Get your key from')} <a href="https://portal.azure.com/#create/microsoft.bingsearch" target="_blank" rel="noopener noreferrer" className="underline" style={{ color: 'var(--accent-primary)' }}>{t('integ.search_azure_portal_bing_search_v7', 'Azure Portal → Bing Search v7')}</a>.
                                     </p>
                                 </div>
                                 <div>
                                     <label className="text-sm font-medium flex items-center gap-2 mb-2" style={{ color: 'var(--text-primary)' }}>
-                                        Market (optional)
+                                        {t('integ.search_market_optional', 'Market (optional)')}
                                     </label>
                                     <input
                                         type="text"
                                         value={bingSearchMarket}
                                         onChange={e => setBingSearchMarket(e.target.value)}
-                                        placeholder="e.g. nl-NL, en-US (leave empty for auto)"
+                                        placeholder={t('integ.search_e_g_nl_nl_en_us_leave_empty_for_auto', 'e.g. nl-NL, en-US (leave empty for auto)')}
                                         className="w-full px-3 py-2 rounded-lg text-sm border outline-none focus:ring-2 transition-all"
                                         style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--accent-primary)' }}
                                     />
                                     <p className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>
-                                        Set the market for locale-aware results (e.g. nl-NL for Dutch). Leave empty for auto-detection.
+                                        {t('integ.search_set_the_market_for_locale_aware', 'Set the market for locale-aware results (e.g. nl-NL for Dutch). Leave empty for auto-detection.')}
                                     </p>
                                 </div>
                             </>
@@ -141,14 +144,14 @@ export default function SearchSection({
                             <div className="space-y-4">
                                 <div>
                                     <label className="text-sm font-medium flex items-center gap-2 mb-2" style={{ color: 'var(--text-primary)' }}>
-                                        Agent Search Service URL
-                                        {hasAgentSearchUrl && <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-500">Configured</span>}
+                                        {t('integ.search_agent_search_service_url', 'Agent Search Service URL')}
+                                        {hasAgentSearchUrl && <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-500">{t('integ.search_configured', 'Configured')}</span>}
                                     </label>
                                     <div className="px-3 py-2 rounded-lg text-sm border" style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
-                                        {agentSearchUrl || <span style={{ color: 'var(--text-muted)' }}>Not configured — set SEARCH_SERVICE_URL env var</span>}
+                                        {agentSearchUrl || <span style={{ color: 'var(--text-muted)' }}>{t('integ.search_not_configured_set_search_service_url', 'Not configured — set SEARCH_SERVICE_URL env var')}</span>}
                                     </div>
                                     <p className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>
-                                        Controlled by the <code>SEARCH_SERVICE_URL</code> environment variable on the server.
+                                        {t('integ.search_controlled_by_the', 'Controlled by the')} <code>SEARCH_SERVICE_URL</code> {t('integ.search_environment_variable_on_the_server', 'environment variable on the server.')}
                                     </p>
                                 </div>
                             </div>
@@ -157,7 +160,7 @@ export default function SearchSection({
                         {/* Node-search hint — only when node-search */}
                         {searchProvider === 'node-search' && (
                             <div className="px-3 py-2.5 rounded-lg text-sm border" style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
-                                No GPU service required — the search loop (SERP, page fetch, embed, rerank, cleanup) runs in this server using the providers configured under <strong>AI Configuratie → Web Search Inference</strong>.
+                                {t('integ.search_no_gpu_service_required_the_search', 'No GPU service required — the search loop (SERP, page fetch, embed, rerank, cleanup) runs in this server using the providers configured under')} <strong>{t('integ.search_ai_configuratie_web_search_inference', 'AI Configuratie → Web Search Inference')}</strong>.
                             </div>
                         )}
 
@@ -166,8 +169,9 @@ export default function SearchSection({
                             <div className="space-y-4">
                                 <div className="pt-3 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
                                     <label className="text-sm font-medium flex items-center gap-2 mb-2" style={{ color: 'var(--text-primary)' }}>
-                                        Serper.dev API Key
-                                        {hasSerperKey && <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-500">Configured</span>}
+                                        {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */}
+                                        {t('integ.search_serper_dev_api_key', 'Serper.dev API Key')}
+                                        {hasSerperKey && <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-500">{t('integ.search_configured', 'Configured')}</span>}
                                     </label>
                                     <div className="flex gap-2">
                                         <input
@@ -203,11 +207,12 @@ export default function SearchSection({
                                             style={{ background: 'var(--accent-primary)', color: '#fff' }}
                                         >
                                             {savingSerperKey ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                                            Save
+                                            {t('integ.search_save', 'Save')}
                                         </button>
                                     </div>
                                     <p className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>
-                                        Get your API key from <a href="https://serper.dev" target="_blank" rel="noopener noreferrer" className="underline" style={{ color: 'var(--accent-primary)' }}>serper.dev</a>. Used by the search service for Google web search results.
+                                        {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */}
+                                        {t('integ.search_get_your_api_key_from', 'Get your API key from')} <a href="https://serper.dev" target="_blank" rel="noopener noreferrer" className="underline" style={{ color: 'var(--accent-primary)' }}>serper.dev</a>{t('integ.search_used_by_the_search_service_for_google', '. Used by the search service for Google web search results.')}
                                     </p>
                                 </div>
                             </div>
@@ -216,23 +221,23 @@ export default function SearchSection({
                         {(searchProvider === 'agent-search' || searchProvider === 'node-search') && (
                             <div className="mt-4 pt-3 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
                                 <label className="text-sm font-medium flex items-center gap-2 mb-3" style={{ color: 'var(--text-primary)' }}>
-                                    <Settings className="w-4 h-4" /> Agent Search Default Options
+                                    <Settings className="w-4 h-4" /> {t('integ.search_agent_search_default_options', 'Agent Search Default Options')}
                                 </label>
 
                                 {/* Global settings */}
                                 <div className="grid grid-cols-2 gap-3 mb-4">
                                     <div>
-                                        <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Default Mode</label>
+                                        <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>{t('integ.search_default_mode', 'Default Mode')}</label>
                                         <select
                                             value={agentSearchDefaults.mode}
                                             onChange={e => setAgentSearchDefaults(p => ({ ...p, mode: e.target.value }))}
                                             className="w-full px-3 py-2 rounded-lg text-sm border outline-none"
                                             style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                                         >
-                                            <option value="web">Web (full pages + reranking)</option>
-                                            <option value="web_fast">Web Fast (snippets only)</option>
-                                            <option value="kb">Knowledge Base</option>
-                                            <option value="auto">Auto (KB + web fallback)</option>
+                                            <option value="web">{t('integ.search_web_full_pages_reranking', 'Web (full pages + reranking)')}</option>
+                                            <option value="web_fast">{t('integ.search_web_fast_snippets_only', 'Web Fast (snippets only)')}</option>
+                                            <option value="kb">{t('integ.search_knowledge_base', 'Knowledge Base')}</option>
+                                            <option value="auto">{t('integ.search_auto_kb_web_fallback', 'Auto (KB + web fallback)')}</option>
                                         </select>
                                     </div>
                                     <div className="flex items-end pb-1">
@@ -243,7 +248,7 @@ export default function SearchSection({
                                                 onChange={e => setAgentSearchDefaults(p => ({ ...p, include_citations: e.target.checked }))}
                                                 className="rounded"
                                             />
-                                            <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Include citations</span>
+                                            <span className="text-sm" style={{ color: 'var(--text-primary)' }}>{t('integ.search_include_citations', 'Include citations')}</span>
                                         </label>
                                     </div>
                                 </div>
@@ -251,12 +256,12 @@ export default function SearchSection({
                                 {/* Web Mode Settings */}
                                 <div className="rounded-lg border p-3 mb-3" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }}>
                                     <div className="text-xs font-semibold uppercase tracking-wider mb-2 flex items-center gap-2" style={{ color: 'var(--accent-primary)' }}>
-                                        🌐 Web Mode
-                                        <span className="font-normal normal-case" style={{ color: 'var(--text-muted)' }}>— full page content + reranking</span>
+                                        {t('integ.search_web_mode', '🌐 Web Mode')}
+                                        <span className="font-normal normal-case" style={{ color: 'var(--text-muted)' }}>{t('integ.search_full_page_content_reranking', '— full page content + reranking')}</span>
                                     </div>
                                     <div className="grid grid-cols-4 gap-3">
                                         <div>
-                                            <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Max Results</label>
+                                            <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>{t('integ.search_max_results', 'Max Results')}</label>
                                             <input
                                                 type="number" min="1" max="10"
                                                 value={agentSearchDefaults.web?.max_results || 5}
@@ -266,7 +271,7 @@ export default function SearchSection({
                                             />
                                         </div>
                                         <div>
-                                            <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Fetch Top N</label>
+                                            <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>{t('integ.search_fetch_top_n', 'Fetch Top N')}</label>
                                             <input
                                                 type="number" min="1" max="5"
                                                 value={agentSearchDefaults.web?.fetch_top_n || 3}
@@ -276,7 +281,7 @@ export default function SearchSection({
                                             />
                                         </div>
                                         <div>
-                                            <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Max Tokens</label>
+                                            <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>{t('integ.search_max_tokens', 'Max Tokens')}</label>
                                             <input
                                                 type="number" min="500" max="5000" step="100"
                                                 value={agentSearchDefaults.web?.max_tokens_markdown || 2000}
@@ -286,16 +291,16 @@ export default function SearchSection({
                                             />
                                         </div>
                                         <div>
-                                            <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Detail Level</label>
+                                            <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>{t('integ.search_detail_level', 'Detail Level')}</label>
                                             <select
                                                 value={agentSearchDefaults.web?.detail_level || 'detailed'}
                                                 onChange={e => setAgentSearchDefaults(p => ({ ...p, web: { ...p.web, detail_level: e.target.value } }))}
                                                 className="w-full px-3 py-2 rounded-lg text-sm border outline-none"
                                                 style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                                             >
-                                                <option value="basic">Basic (compact)</option>
-                                                <option value="detailed">Detailed (default)</option>
-                                                <option value="highly_detailed">Highly Detailed</option>
+                                                <option value="basic">{t('integ.search_basic_compact', 'Basic (compact)')}</option>
+                                                <option value="detailed">{t('integ.search_detailed_default', 'Detailed (default)')}</option>
+                                                <option value="highly_detailed">{t('integ.search_highly_detailed', 'Highly Detailed')}</option>
                                             </select>
                                         </div>
                                     </div>
@@ -304,12 +309,12 @@ export default function SearchSection({
                                 {/* Web Fast Mode Settings */}
                                 <div className="rounded-lg border p-3 mb-3" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }}>
                                     <div className="text-xs font-semibold uppercase tracking-wider mb-2 flex items-center gap-2" style={{ color: '#f59e0b' }}>
-                                        ⚡ Web Fast Mode
-                                        <span className="font-normal normal-case" style={{ color: 'var(--text-muted)' }}>— snippets + AI synthesis</span>
+                                        {t('integ.search_web_fast_mode', '⚡ Web Fast Mode')}
+                                        <span className="font-normal normal-case" style={{ color: 'var(--text-muted)' }}>{t('integ.search_snippets_ai_synthesis', '— snippets + AI synthesis')}</span>
                                     </div>
                                     <div className="grid grid-cols-3 gap-3">
                                         <div>
-                                            <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Max Results</label>
+                                            <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>{t('integ.search_max_results', 'Max Results')}</label>
                                             <input
                                                 type="number" min="1" max="20"
                                                 value={agentSearchDefaults.web_fast?.max_results || 10}
@@ -319,7 +324,7 @@ export default function SearchSection({
                                             />
                                         </div>
                                         <div>
-                                            <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Max Tokens</label>
+                                            <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>{t('integ.search_max_tokens', 'Max Tokens')}</label>
                                             <input
                                                 type="number" min="500" max="5000" step="100"
                                                 value={agentSearchDefaults.web_fast?.max_tokens_markdown || 1500}
@@ -329,16 +334,16 @@ export default function SearchSection({
                                             />
                                         </div>
                                         <div>
-                                            <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Detail Level</label>
+                                            <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>{t('integ.search_detail_level', 'Detail Level')}</label>
                                             <select
                                                 value={agentSearchDefaults.web_fast?.detail_level || 'detailed'}
                                                 onChange={e => setAgentSearchDefaults(p => ({ ...p, web_fast: { ...p.web_fast, detail_level: e.target.value } }))}
                                                 className="w-full px-3 py-2 rounded-lg text-sm border outline-none"
                                                 style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                                             >
-                                                <option value="basic">Basic (compact)</option>
-                                                <option value="detailed">Detailed (default)</option>
-                                                <option value="highly_detailed">Highly Detailed</option>
+                                                <option value="basic">{t('integ.search_basic_compact', 'Basic (compact)')}</option>
+                                                <option value="detailed">{t('integ.search_detailed_default', 'Detailed (default)')}</option>
+                                                <option value="highly_detailed">{t('integ.search_highly_detailed', 'Highly Detailed')}</option>
                                             </select>
                                         </div>
                                     </div>
@@ -367,7 +372,7 @@ export default function SearchSection({
                                         style={{ background: 'var(--accent-primary)', color: '#fff' }}
                                     >
                                         {savingSearchDefaults ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                                        Save Defaults
+                                        {t('integ.search_save_defaults', 'Save Defaults')}
                                     </button>
                                 </div>
                             </div>

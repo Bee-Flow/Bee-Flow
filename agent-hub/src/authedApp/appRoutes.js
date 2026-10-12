@@ -34,6 +34,8 @@ export const PAGE_ROUTES = {
     // detail page of its own — its public address IS the page — so rows here
     // open /f/<token> rather than a /app/forms/:id.
     forms: '/app/forms',
+    // The member library keeps the normal sidebar and omits Studio management.
+    documents: '/app/documents',
     reports: '/app/reports',
     components: '/app/components',
     // Kept for /app/meeting-notes backward-compat — the page now renders
@@ -129,6 +131,17 @@ export function usesStudioRail(page, section = null) {
     return true;
 }
 
+// Inside one project (/app/projects/:id*) the workspace swaps its global
+// sidebar for the project's own 240px rail
+// (components/projects/workspace/ProjectRail.tsx), exactly as Studio does above.
+// The page key is only ever the bare 'projects' for every /app/projects* URL;
+// WHICH project (if any) is open lives in the project route, so the caller
+// passes its id. The list (no id) and the create form ('new') keep the
+// ordinary sidebar: there is no project to show.
+export function usesProjectRail(page, projectId) {
+    return page === 'projects' && typeof projectId === 'string' && projectId !== '' && projectId !== 'new';
+}
+
 // Reduce a navigateToPage() argument (which may be a bare key, a 'studio/agents'
 // path form, or an 'agentDesigner:<id>' form) to the canonical page key used by
 // MOBILE_ALLOWED_PAGES. Mirrors the alias handling inside navigateToPage().
@@ -147,6 +160,18 @@ export function mobilePageKey(page) {
 const PATH_TO_PAGE = Object.fromEntries(
     Object.entries(PAGE_ROUTES).map(([page, path]) => [path, page])
 );
+
+/** The member library's selected document, including notebook/<id> references. */
+export function parseDocumentUrl(pathname) {
+    const ref = pathname.match(/^\/app\/documents\/(.+?)\/?$/)?.[1];
+    if (!ref) return null;
+    try { return ref.split('/').map(decodeURIComponent).join('/'); }
+    catch { return null; }
+}
+
+export function documentRoutePath(ref = null) {
+    return ref ? `${PAGE_ROUTES.documents}/${ref.split('/').map(encodeURIComponent).join('/')}` : PAGE_ROUTES.documents;
+}
 
 export function pageFromPath(pathname) {
     // Root → agents (redirect to /app)
@@ -187,6 +212,7 @@ export function pageFromPath(pathname) {
     // bookmarks and the old sidebar entry still land somewhere.
     if (pathname === '/app/cowork' || pathname.startsWith('/app/cowork/')) return 'cowork';
     if (pathname === '/app/work' || pathname.startsWith('/app/work/')) return 'cowork';
+    if (pathname.startsWith('/app/documents/')) return 'documents';
     // Legacy /app/notebooks[/:id] → Studio's Documents section, where notebooks
     // live now (parseStudioUrl maps the id). Before the generic /app/* match.
     if (pathname === '/app/notebooks' || pathname.startsWith('/app/notebooks/')) return 'studio';
@@ -251,9 +277,12 @@ export function pageFromPath(pathname) {
     return 'agents';
 }
 
-// Parse /app/admin/{seg1}/{seg2}/{seg3} from the URL
+// Parse /app/admin/{seg1}/{seg2}/{seg3} from the URL. The query and hash are
+// never part of a segment: in-app navigation hands over the whole page string
+// ('admin/compliance/frameworks?tab=calendar'), and 'frameworks?tab=calendar'
+// is not a section.
 export function parseAdminPath(pathname) {
-    const match = pathname.match(/^\/(?:app\/)?admin(?:\/([^/]+))?(?:\/([^/]+))?(?:\/([^/]+))?/);
+    const match = String(pathname || '').match(/^\/(?:app\/)?admin(?:\/([^/?#]+))?(?:\/([^/?#]+))?(?:\/([^/?#]+))?/);
     return {
         seg1: match?.[1] || '',
         seg2: match?.[2] || '',

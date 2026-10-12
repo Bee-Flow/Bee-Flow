@@ -1,5 +1,6 @@
 import React from 'react';
 import { TextField, usePatch } from './kit';
+import useTranslation from '../../../../../../hooks/useTranslation';
 import { registerInspector } from '../registry';
 import Toggle from '../../../../../shared/Toggle';
 
@@ -17,42 +18,42 @@ import Toggle from '../../../../../shared/Toggle';
  */
 export default function InputPersonInspector({ node, definition, onCommit, disabled = false }) {
     const props = node.props || {};
+    const { t } = useTranslation();
     const patch = usePatch(node, definition, onCommit);
 
     return (
         <div className="flex flex-col gap-4">
             <TextField
-                label="Field name"
+                label={t('studio_apps_panels.common.field_name', 'Field name')}
                 value={props.name}
                 onChange={(v) => patch({ name: v })}
-                hint={`Submits the user id. Also publishes ${props.name || 'person'}_label with the display name — write both, so the row can show who it belongs to.`}
+                hint={t('studio_apps_panels.input_person.field_name_hint', 'Submits the user id. Also publishes {name}_label with the display name — write both, so the row can show who it belongs to.', { name: props.name || 'person' })}
                 disabled={disabled}
             />
-            <TextField label="Label" value={props.label} onChange={(v) => patch({ label: v })} disabled={disabled} />
+            <TextField label={t('studio_apps_panels.common.label', 'Label')} value={props.label} onChange={(v) => patch({ label: v })} disabled={disabled} />
             <Toggle
-                label="Offer “Me”"
+                label={t('studio_apps_panels.input_person.offer_me', 'Offer “Me”')}
                 checked={props.allowMe !== false}
                 onChange={(v) => patch({ allowMe: v })}
                 disabled={disabled}
                 size="sm"
             />
             <Toggle
-                label="Allow several people"
+                label={t('studio_apps_panels.input_person.multiple', 'Allow several people')}
                 checked={!!props.multiple}
                 onChange={(v) => patch({ multiple: v })}
                 disabled={disabled}
                 size="sm"
             />
             <Toggle
-                label="Required"
+                label={t('studio_apps_panels.common.required', 'Required')}
                 checked={!!props.required}
                 onChange={(v) => patch({ required: v })}
                 disabled={disabled}
                 size="sm"
             />
             <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                The list is your organisation’s members. It stays empty until this app is
-                allowed to read the directory — turn that on in the app’s Data settings.
+                {t('studio_apps_panels.input_person.directory_note', 'The list is your organisation’s members. It stays empty until this app is allowed to read the directory — turn that on in the app’s Data settings.')}
             </p>
         </div>
     );

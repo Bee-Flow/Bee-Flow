@@ -9,6 +9,7 @@ const { isSideEffect } = require('../../sideEffectMap');
 const { fieldsAtRef, topLevelFieldsOf, describeItem } = require('../outputFields');
 const { iterableFieldsOf } = require('../../outputSchemas');
 const { findStepAnywhere, lastStepId, allTriggerIds } = require('../draftGraph');
+const { splitLast, pathKeys, appendKey } = require('../../expr');
 
 // ── Tool schemas (injected to the LLM) ─────────────────
 
@@ -71,6 +72,7 @@ function listFieldsOfStep(step) {
     if (step.forEach && typeof step.forEach === 'object' && typeof step.forEach.overRef === 'string') return ['results'];
     if (step.type === 'integration_action') return typeof step.tool === 'string' ? iterableFieldsOf(step.tool) : [];
     if (['filter', 'limit', 'dedupe', 'set'].includes(step.type) && typeof step.arrayRef === 'string') return ['items'];
+    if (step.type === 'flatten') return ['items'];
     return [];
 }
 
@@ -173,7 +175,10 @@ function boundInputNote(b, res, forEach) {
     if (b.from === 'trigger') {
         return `input "${b.key}" was not bound — bound to ${b.path} (the trigger payload has it). Write the binding yourself next time.`;
     }
-    const half = /^loop\.[^.]+\.(output|item)\./.exec(b.path)?.[1];
+    // `loop.<var>.output.<f>` / `loop.<var>.item.<f>`: which half of the
+    // fan-out entry the binding reads, by the run's grammar.
+    const keys = pathKeys(b.path) || [];
+    const half = keys[0] === 'loop' && keys.length > 3 && (keys[2] === 'output' || keys[2] === 'item') ? keys[2] : undefined;
     const shape = res && res.source === 'fanout'
         ? `is {index, item, output, status}; ${half} has: ${listNames(half === 'item' ? res.itemFields : res.outputFields)}`
         : `has: ${listNames(res ? res.fields : null)}`;
@@ -243,7 +248,7 @@ function requiredInputError(tool, missing, forEach, candidates, graph, draftWrap
             _fixHint: 'Reject reason: a required input is missing. Add the binding you mean (named above) and resend the same step — the other bindings were fine.',
             // Two ways to bind it is not one exact edit; only the plain case
             // carries a patch.
-            ...(patchable && !feFor ? { _suggestedPatch: { ops: [{ op: 'set', path: `inputs.${up.key}`, value: { kind: 'ref', path: up.path } }] } } : {}),
+            ...(patchable && !feFor ? { _suggestedPatch: { ops: [{ op: 'set', path: appendKey('inputs', up.key), value: { kind: 'ref', path: up.path } }] } } : {}),
         };
     }
 
@@ -256,7 +261,7 @@ function requiredInputError(tool, missing, forEach, candidates, graph, draftWrap
             // — unboundLoopVarError), so the patch carries both edits.
             ...(patchable ? { _suggestedPatch: { ops: [
                 { op: 'set', path: 'forEach', value: { overRef: fe.overRef, itemVar: fe.itemVar } },
-                { op: 'set', path: `inputs.${fe.key}`, value: { kind: 'ref', path: fe.path } },
+                { op: 'set', path: appendKey('inputs', fe.key), value: { kind: 'ref', path: fe.path } },
             ] } } : {}),
         };
     }
@@ -280,8 +285,10 @@ const FILE_LOCATION_FIELDS = new Set(['path', 'fileId', 'file_id', 'size', 'modi
 function fileLocationField(source) {
     if (!source || source.kind !== 'ref' || typeof source.path !== 'string') return null;
     const p = source.path.trim();
-    const last = p.split('.').pop();
-    return FILE_LOCATION_FIELDS.has(last) ? p : null;
+    // The last KEY as the runner reads it: `files[0]["path"]` ends in `path`,
+    // `["file.path"].text` ends in `text`.
+    const last = splitLast(p)?.last;
+    return typeof last === 'string' && FILE_LOCATION_FIELDS.has(last) ? p : null;
 }
 
 // The {{…}} template form of a binding — what the step fields that store TEXT

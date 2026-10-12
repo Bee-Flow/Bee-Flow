@@ -42,7 +42,7 @@ function fieldMenu(t: TranslateFn, schema: OutputSchema | null, field: OutputFie
             selected: field.kind === kind,
             onPress: () => onChange(setOutputFieldKind(schema, field.key, kind)),
         })),
-        { id: 'remove', label: t('mobile.skills.remove_field', 'Remove field'), icon: 'Trash2' as const, destructive: true, onPress: () => onChange(removeOutputField(schema, field.key)) },
+        { id: 'remove', label: t('automations.generic_row.remove_field', 'Remove field'), icon: 'Trash2' as const, destructive: true, onPress: () => onChange(removeOutputField(schema, field.key)) },
     ];
 }
 
@@ -56,7 +56,7 @@ function AddField({ schema, onChange }: { schema: OutputSchema | null; onChange:
     return (
         <View style={styles.add}>
             <TextField
-                label={t('mobile.skills.field_key', 'Field name')}
+                label={t('automations.parse_json_fields.field_name', 'Field name')}
                 value={key}
                 onChangeText={setKey}
                 autoCapitalize="none"

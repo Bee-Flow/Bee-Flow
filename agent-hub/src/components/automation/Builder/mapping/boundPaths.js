@@ -2,34 +2,66 @@
  * boundPaths — which upstream paths a step already uses (artboard 2b:
  * "2 fields · 1 already in use").
  *
- * Pure. Scans the step's own configuration — every binding, template,
- * expression and bare path string it carries — for the reference roots the
- * runtime knows (`trigger.output…`, `steps.<id>.output…`, `loop.<var>…`) and
- * returns them as a Set. Deliberately syntactic: it reads the same text the
- * server's binder reads, so a path counts as "in use" exactly when the run
- * would resolve it.
+ * Pure. Reads every string the step's own configuration carries — each
+ * binding, template, expression and bare path (a loop's `overRef`) — with the
+ * runtime's grammar (shared/expr/path.mjs, through bindingHelpers/refTokens),
+ * and returns the references rooted at `trigger.output…`, `steps.<id>.output…`
+ * or `loop.<var>…` as a Set of CANONICAL paths. A path counts as "in use"
+ * exactly when the run would read it, whichever spelling (`['k']`, `["k"]`,
+ * `.content-type`) the binding and the variable tree happen to use. This used
+ * to be a regex over the step's JSON text, where every quote is escaped, so a
+ * bracket-quoted field was never marked.
  */
-const REF_RE = /(?:steps\.[A-Za-z0-9_-]+(?:\/[A-Za-z0-9_-]+)*\.output|trigger\.output|loop\.[A-Za-z0-9_]+)(?:\.[A-Za-z0-9_]+|\[\*\]|\[\d+\]|\["[^"]*"\])*/g;
+import { scanTemplate } from '@shared/expr/path.mjs';
+import { classifyRef, scanExprPaths } from './refTokens';
+import { canonicalRefPath, detectTemplate, isCleanPath } from '../../../../utils/bindingHelpers';
 
-/** Every reference path written anywhere in `step` (excluding its id/position). */
+const USE_ROOTS = ['steps', 'trigger', 'loop'];
+
+/** A reference to an upstream value (not the bare `trigger` root), canonical; null otherwise. */
+function referenceOf(path) {
+    const ref = classifyRef(path);
+    if (!ref || (ref.source === 'trigger' && !/^\s*trigger\s*(?:\.\s*output|\[)/.test(path))) return null;
+    return canonicalRefPath(path);
+}
+
+/** Every reference one string holds: a template's placeholders, a whole path, or the paths in a formula. */
+function referencesIn(text, out) {
+    const add = (p) => { const c = referenceOf(p); if (c) out.add(c); };
+    if (detectTemplate(text)) {
+        for (const part of scanTemplate(text)) if (part.type === 'ref') add(part.inner);
+        return;
+    }
+    if (isCleanPath(text.trim())) { add(text); return; }
+    for (const part of scanExprPaths(text, USE_ROOTS)) if (part.path != null) add(part.path);
+}
+
+/** Every reference path written anywhere in `step` (excluding its id/position/label). */
 export function usedPathsIn(step) {
     const out = new Set();
     if (!step || typeof step !== 'object') return out;
     // Keep the position and identity out: they never hold a reference, and a
     // step whose label happens to read "steps.x.output" is not a binding.
-    const { id, position, label, ...rest } = step; // eslint-disable-line no-unused-vars
-    let text = '';
-    try { text = JSON.stringify(rest) || ''; } catch { return out; }
-    for (const m of text.matchAll(REF_RE)) out.add(m[0]);
+    const { id, position, label, ...rest } = step;
+    const seen = new WeakSet();
+    const walk = (v) => {
+        if (typeof v === 'string') { referencesIn(v, out); return; }
+        if (!v || typeof v !== 'object' || seen.has(v)) return;
+        seen.add(v);
+        for (const child of Array.isArray(v) ? v : Object.values(v)) walk(child);
+    };
+    walk(rest);
     return out;
 }
 
-/** Is `path` (or one of its parents) among the used paths? */
+/** Is `path` (or one of its parents) among the used paths? Spelling-agnostic. */
 export function pathInUse(path, used) {
     if (!used || !path) return false;
     if (used.has(path)) return true;
+    const c = canonicalRefPath(path);
+    if (used.has(c)) return true;
     // `steps.a.output.results` is in use when `steps.a.output.results[*].subject` is.
-    for (const p of used) if (p.startsWith(`${path}.`) || p.startsWith(`${path}[`)) return true;
+    for (const p of used) if (p.startsWith(`${c}.`) || p.startsWith(`${c}[`)) return true;
     return false;
 }
 

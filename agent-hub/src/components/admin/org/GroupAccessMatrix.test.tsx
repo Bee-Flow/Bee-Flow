@@ -93,3 +93,23 @@ it('a group inherits the group-scoped beta once All members has it', async () =>
     expect(meeting).toBeChecked();
     expect(meeting).toBeDisabled();
 });
+
+// Settings → Organisation → Integrations titles the page itself (h2 plus the
+// selected "Integration access" tab), so the matrix there drops its own heading
+// rather than repeat it; Access & Permissions keeps the default heading.
+it('shows its "Access & Permissions" heading by default', async () => {
+    render(<GroupAccessMatrix heading={undefined} subtitle={undefined} />);
+    expect(await screen.findByRole('heading', { level: 2, name: 'Access & Permissions' })).toBeInTheDocument();
+});
+
+it('with hideHeading, drops the heading but keeps the intro line and the save status', async () => {
+    const user = userEvent.setup();
+    render(<GroupAccessMatrix heading={undefined} subtitle="Give an integration to a group." hideHeading />);
+    await screen.findByTitle('Meeting Notes');
+
+    expect(screen.queryByRole('heading', { level: 2 })).toBeNull();
+    expect(screen.getByText('Give an integration to a group.')).toBeInTheDocument();
+
+    await user.click(toggleOf('Meeting Notes'));
+    expect(await screen.findByText('Saved', {}, { timeout: 2000 })).toBeInTheDocument();
+});

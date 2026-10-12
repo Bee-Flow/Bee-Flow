@@ -46,12 +46,12 @@ module.exports = async function isoWorkplaceConnectors() {
     });
     await t('warn when enabled but never swept', async () => {
         resetState();
-        _state.isoConnectorConfigs['afas'] = { enabled: true };
+        _state.isoConnectorConfigs['afas'] = { enabled: true, settings: { connector: 'Profit_Employees' } };
         assertStatus(await checks.isoOffboardingFeed.evaluate('x'), 'warn', 'no snapshot yet');
     });
     await t('warn when the feed answers but returns zero rows', async () => {
         resetState();
-        _state.isoConnectorConfigs['afas'] = { enabled: true };
+        _state.isoConnectorConfigs['afas'] = { enabled: true, settings: { connector: 'Profit_Employees' } };
         _state.isoSnapshots['afas'] = [{
             subject_id: 'Profit_Employees',
             fetched_at: new Date().toISOString(),
@@ -61,7 +61,7 @@ module.exports = async function isoWorkplaceConnectors() {
     });
     await t('pass when employee rows exist', async () => {
         resetState();
-        _state.isoConnectorConfigs['afas'] = { enabled: true };
+        _state.isoConnectorConfigs['afas'] = { enabled: true, settings: { connector: 'Profit_Employees' } };
         _state.isoSnapshots['afas'] = [{
             subject_id: 'Profit_Employees',
             fetched_at: new Date().toISOString(),
@@ -77,12 +77,12 @@ module.exports = async function isoWorkplaceConnectors() {
     });
     await t('warn when enabled but never swept', async () => {
         resetState();
-        _state.isoConnectorConfigs['youtrack'] = { enabled: true };
+        _state.isoConnectorConfigs['youtrack'] = { enabled: true, settings: { project: 'OPS' } };
         assertStatus(await checks.isoTicketedChanges.evaluate('x'), 'warn', 'no snapshot yet');
     });
     await t('warn when the project shows no activity in 30 days', async () => {
         resetState();
-        _state.isoConnectorConfigs['youtrack'] = { enabled: true };
+        _state.isoConnectorConfigs['youtrack'] = { enabled: true, settings: { project: 'OPS' } };
         _state.isoSnapshots['youtrack'] = [{
             subject_id: 'OPS',
             fetched_at: new Date().toISOString(),
@@ -92,7 +92,7 @@ module.exports = async function isoWorkplaceConnectors() {
     });
     await t('pass with recent ticket activity', async () => {
         resetState();
-        _state.isoConnectorConfigs['youtrack'] = { enabled: true };
+        _state.isoConnectorConfigs['youtrack'] = { enabled: true, settings: { project: 'OPS' } };
         _state.isoSnapshots['youtrack'] = [{
             subject_id: 'OPS',
             fetched_at: new Date().toISOString(),

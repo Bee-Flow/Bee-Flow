@@ -1,5 +1,6 @@
 import React from 'react';
 import { RefreshCw } from 'lucide-react';
+import useTranslation from '../../../../../hooks/useTranslation';
 
 /**
  * "This app was updated" — the missing half of publishing.
@@ -13,6 +14,7 @@ import { RefreshCw } from 'lucide-react';
  * yanking the app out from under someone mid-form is its own bug.
  */
 export default function AppVersionBanner({ onReload }) {
+    const { t } = useTranslation();
     return (
         <div
             className="shrink-0 mx-4 mt-3 flex items-center gap-3 border px-3 py-2 text-sm"
@@ -26,14 +28,14 @@ export default function AppVersionBanner({ onReload }) {
             data-app-version-banner="true"
         >
             <RefreshCw className="w-4 h-4 shrink-0" style={{ color: 'var(--app-primary)' }} aria-hidden="true" />
-            <span className="flex-1 min-w-0">A newer version of this app has been published.</span>
+            <span className="flex-1 min-w-0">{t('studio_apps_runtime.version_banner.newer_version', 'A newer version of this app has been published.')}</span>
             <button
                 type="button"
                 onClick={onReload}
                 className="px-2.5 py-1 text-xs font-medium border"
                 style={{ borderColor: 'var(--app-primary)', color: 'var(--app-primary)', borderRadius: 'var(--app-radius)' }}
             >
-                Reload
+                {t('studio_apps_runtime.version_banner.reload', 'Reload')}
             </button>
         </div>
     );

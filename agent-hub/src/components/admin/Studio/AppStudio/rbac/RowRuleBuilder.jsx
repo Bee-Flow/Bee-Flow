@@ -12,6 +12,7 @@ import {
     ruleFields,
     valueKindOf,
 } from './rowRuleModel';
+import useTranslation from '../../../../../hooks/useTranslation';
 import { optionPairs } from '../tables/rowValues';
 
 /**
@@ -32,13 +33,13 @@ const selectStyle = {
     color: 'var(--text-primary)',
 };
 
-const JOINS = [
-    { value: 'and', label: 'all of these' },
-    { value: 'or', label: 'any of these' },
-];
-
 export default function RowRuleBuilder({ table, join = 'and', conditions = [], onChange, disabled = false }) {
-    const fields = ruleFields(table);
+    const { t } = useTranslation();
+    const fields = ruleFields(table, t);
+    const joins = [
+        { value: 'and', label: t('studio_apps_edit.rule_builder.join_all', 'all of these') },
+        { value: 'or', label: t('studio_apps_edit.rule_builder.join_any', 'any of these') },
+    ];
 
     const emit = (next) => onChange?.({ join, conditions, ...next });
     const setCondition = (index, patch) => {
@@ -58,7 +59,7 @@ export default function RowRuleBuilder({ table, join = 'and', conditions = [], o
                     style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                 >
                     <Wand2 className="h-3.5 w-3.5" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
-                    Only rows they added themselves
+                    {t('studio_apps_edit.rule_builder.own_rows', 'Only rows they added themselves')}
                 </button>
                 <button
                     type="button"
@@ -68,7 +69,7 @@ export default function RowRuleBuilder({ table, join = 'and', conditions = [], o
                     style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                 >
                     <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-                    Add a condition
+                    {t('studio_apps_edit.rule_builder.add_condition', 'Add a condition')}
                 </button>
             </div>
         );
@@ -78,21 +79,21 @@ export default function RowRuleBuilder({ table, join = 'and', conditions = [], o
         <div data-testid="row-rule-builder" className="flex flex-col gap-2">
             {conditions.length > 1 ? (
                 <div className="flex flex-wrap items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
-                    <span>They see a row when</span>
+                    <span>{t('studio_apps_edit.rule_builder.they_see', 'They see a row when')}</span>
                     <select
                         value={join}
                         onChange={(e) => emit({ join: e.target.value })}
                         disabled={disabled}
-                        aria-label="Match all or any"
+                        aria-label={t('studio_apps_edit.rule_builder.match_aria', 'Match all or any')}
                         className={selectClass}
                         style={selectStyle}
                     >
-                        {JOINS.map((j) => <option key={j.value} value={j.value}>{j.label}</option>)}
+                        {joins.map((j) => <option key={j.value} value={j.value}>{j.label}</option>)}
                     </select>
-                    <span>are true:</span>
+                    <span>{t('studio_apps_edit.rule_builder.are_true', 'are true:')}</span>
                     {join === 'or' ? (
                         <span style={{ color: 'var(--text-tertiary)' }}>
-                            One match is enough, so each extra condition shows them more rows, not fewer.
+                            {t('studio_apps_edit.rule_builder.or_hint', 'One match is enough, so each extra condition shows them more rows, not fewer.')}
                         </span>
                     ) : null}
                 </div>
@@ -120,11 +121,11 @@ export default function RowRuleBuilder({ table, join = 'and', conditions = [], o
                     style={{ color: 'var(--text-secondary)' }}
                 >
                     <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-                    Add a condition
+                    {t('studio_apps_edit.rule_builder.add_condition', 'Add a condition')}
                 </button>
                 {hasEmptyCheck({ conditions }) ? (
                     <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
-                        Blank means the column holds empty text. Rows where it was never filled in at all stay out either way.
+                        {t('studio_apps_edit.rule_builder.blank_hint', 'Blank means the column holds empty text. Rows where it was never filled in at all stay out either way.')}
                     </span>
                 ) : null}
             </div>
@@ -134,8 +135,9 @@ export default function RowRuleBuilder({ table, join = 'and', conditions = [], o
 
 /** One [column] [test] [compare with] row, plus what it is still missing. */
 function ConditionRow({ table, fields, condition, index, disabled, onPatch, onRemove }) {
+    const { t } = useTranslation();
     const field = findRuleField(table, condition.field);
-    const problem = conditionProblem(condition, table);
+    const problem = conditionProblem(condition, table, t);
     const needsValue = condition.op !== 'empty' && condition.op !== 'notEmpty';
     const num = index + 1;
 
@@ -149,23 +151,23 @@ function ConditionRow({ table, fields, condition, index, disabled, onPatch, onRe
                         if (next) onPatch(retypeCondition(condition, next));
                     }}
                     disabled={disabled}
-                    aria-label={`Column, condition ${num}`}
+                    aria-label={t('studio_apps_edit.rule_builder.column_aria', 'Column, condition {n}', { n: num })}
                     className={selectClass}
                     style={selectStyle}
                 >
                     {/* A column that was renamed away still shows, so the rule is not silently re-pointed. */}
-                    {field ? null : <option value={condition.field}>{condition.field || 'Pick a column'}</option>}
+                    {field ? null : <option value={condition.field}>{condition.field || t('studio_apps_edit.rule_builder.pick_column', 'Pick a column')}</option>}
                     {fields.map((f) => <option key={f.key} value={f.key}>{f.name}</option>)}
                 </select>
                 <select
                     value={condition.op}
                     onChange={(e) => onPatch({ op: e.target.value })}
                     disabled={disabled}
-                    aria-label={`Test, condition ${num}`}
+                    aria-label={t('studio_apps_edit.rule_builder.test_aria', 'Test, condition {n}', { n: num })}
                     className={selectClass}
                     style={selectStyle}
                 >
-                    {operatorsForField(field, condition.op).map((o) => (
+                    {operatorsForField(field, condition.op, t).map((o) => (
                         <option key={o.op} value={o.op}>{o.label}</option>
                     ))}
                 </select>
@@ -174,11 +176,11 @@ function ConditionRow({ table, fields, condition, index, disabled, onPatch, onRe
                         value={condition.source}
                         onChange={(e) => onPatch({ source: e.target.value })}
                         disabled={disabled}
-                        aria-label={`Compare with, condition ${num}`}
+                        aria-label={t('studio_apps_edit.rule_builder.compare_aria', 'Compare with, condition {n}', { n: num })}
                         className={selectClass}
                         style={selectStyle}
                     >
-                        {COMPARE_SOURCES.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+                        {COMPARE_SOURCES.map((s) => <option key={s.id} value={s.id}>{t(s.labelKey, s.label)}</option>)}
                     </select>
                 ) : null}
                 {needsValue && condition.source === 'value' ? (
@@ -187,7 +189,7 @@ function ConditionRow({ table, fields, condition, index, disabled, onPatch, onRe
                         field={field}
                         value={condition.value}
                         disabled={disabled}
-                        label={`Value, condition ${num}`}
+                        label={t('studio_apps_edit.rule_builder.value_aria', 'Value, condition {n}', { n: num })}
                         onChange={(value) => onPatch({ value })}
                     />
                 ) : null}
@@ -195,7 +197,7 @@ function ConditionRow({ table, fields, condition, index, disabled, onPatch, onRe
                     type="button"
                     onClick={onRemove}
                     disabled={disabled}
-                    aria-label={`Remove condition ${num}`}
+                    aria-label={t('studio_apps_edit.rule_builder.remove_aria', 'Remove condition {n}', { n: num })}
                     className="rounded p-1 hover:bg-rose-500/10 disabled:opacity-50"
                     style={{ color: 'var(--text-tertiary)' }}
                 >
@@ -210,10 +212,10 @@ function ConditionRow({ table, fields, condition, index, disabled, onPatch, onRe
 }
 
 const INPUT_TYPES = { number: 'number', date: 'date', datetime: 'datetime-local' };
-const PLACEHOLDERS = { number: '0', text: 'type the value' };
 
 /** The typed value control for the picked column. */
 function ValueControl({ kind, field, value, onChange, label, disabled }) {
+    const { t } = useTranslation();
     const v = value ?? '';
     const common = {
         disabled,
@@ -226,8 +228,8 @@ function ValueControl({ kind, field, value, onChange, label, disabled }) {
     if (kind === 'yesno') {
         return (
             <select {...common} value={v === true || v === 'true' ? 'true' : 'false'}>
-                <option value="true">yes</option>
-                <option value="false">no</option>
+                <option value="true">{t('studio_apps_edit.rule_builder.yes', 'yes')}</option>
+                <option value="false">{t('studio_apps_edit.rule_builder.no', 'no')}</option>
             </select>
         );
     }
@@ -243,7 +245,7 @@ function ValueControl({ kind, field, value, onChange, label, disabled }) {
         const extra = v !== '' && !options.some((o) => o.value === v) ? [{ value: v, label: v }] : [];
         return (
             <select {...common} value={v}>
-                <option value="">Pick one…</option>
+                <option value="">{t('studio_apps_edit.rule_builder.pick_one', 'Pick one…')}</option>
                 {[...options, ...extra].map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
         );
@@ -254,7 +256,7 @@ function ValueControl({ kind, field, value, onChange, label, disabled }) {
             type={INPUT_TYPES[kind] || 'text'}
             // A leading minus would parse as arithmetic, which a row rule may not contain.
             min={kind === 'number' ? '0' : undefined}
-            placeholder={PLACEHOLDERS[kind]}
+            placeholder={kind === 'number' ? '0' : (kind === 'text' ? t('studio_apps_edit.rule_builder.type_value', 'type the value') : undefined)}
             value={v}
         />
     );

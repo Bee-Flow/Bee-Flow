@@ -1,10 +1,10 @@
-import React from 'react';
-import { ArrowUpRight, CalendarCheck, CalendarClock, PenLine, ScanSearch } from 'lucide-react';
+import { ArrowUpRight, CalendarClock, PenLine, ScanSearch } from 'lucide-react';
+import React, { useId } from 'react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import { TONES, toneOfScore, headlineKeyOfScore, HEADLINE_FALLBACK } from '../../../../shared/statusTone';
-import ScoreRing from '../../shared/ScoreRing';
-import MiniBars from '../../shared/MiniBars';
 import { formatCalDate } from '../../shared/calendarMath';
+import MiniBars from '../../shared/MiniBars';
+import ScoreRing from '../../shared/ScoreRing';
 
 /**
  * FrameworkScoreCard — one framework's score on the Overview (artboard 1a,
@@ -20,9 +20,16 @@ import { formatCalDate } from '../../shared/calendarMath';
  *   soa           { approved, total } | null  — ISO shows this instead of the attested chip
  *   history       GET /score-history rows (MiniBars)
  *   inForceSince  'YYYY-MM-DD' | null, law: 'UAVG' | 'ISO/IEC 27001:2022' | null
- *   nextMilestone { date, label } | null  — the AI Act's right footer slot
+ *                 → the card's title and accessible description (also in the
+ *                 framework header chip and Timeline › Sources): background,
+ *                 not something to act on
+ *   nextMilestone { date, label } | null  — the one footer line, it is actionable
  *   placeholder   true on the not-set-up path: dashed border, no numbers, `placeholderNote`
- *   unit          'checks' | 'controls' — the breakdown noun
+ *   unit          'checks' | 'controls' — the breakdown noun (aria-label/title of the breakdown)
+ *
+ * Four layers, not six: the head (ring, name, headline, one breakdown line
+ * with only the non-zero buckets, problems first), one plain verification
+ * line, the trend and — only when there is one — the next milestone.
  */
 export default function FrameworkScoreCard({
     frameworkId, name, icon: Icon, score = null, verification = null, soa = null, history = [],
@@ -30,6 +37,7 @@ export default function FrameworkScoreCard({
     unit = 'checks', onOpen, className = '', testId = 'fw-score-card',
 }) {
     const { t, resolvedLocale, locale } = useTranslation();
+    const descId = useId();
     const lang = resolvedLocale || locale || 'en';
     const value = placeholder ? null : (score?.score ?? null);
     const tone = toneOfScore(value);
@@ -48,7 +56,18 @@ export default function FrameworkScoreCard({
     const attested = verification?.attestation ? { total: verification.attestation.total || 0, pass: verification.attestation.pass || 0 } : null;
 
     const inForce = inForceSince ? formatCalDate(inForceSince, { locale: lang, year: 'always' }) : null;
+    const inForceText = inForce
+        ? (law ? t('compliance.fw_card_in_force', 'In force since {date} · {law}', { date: inForce, law })
+            : t('compliance.ovw_in_force_nolaw', 'In force since {date}', { date: inForce }))
+        : (law || null);
     const nextDate = nextMilestone?.date ? formatCalDate(nextMilestone.date, { locale: lang, year: 'auto' }) : null;
+    const described = !placeholder && !!inForceText;
+    const breakdown = breakdownVars(score);
+    const breakdownFull = breakdown
+        ? (unit === 'controls'
+            ? t('compliance.ovw_breakdown_controls', '{total} controls · {pass} passing · {warn} attention · {fail} failing · {na} n/a', breakdown)
+            : t('compliance.ovw_breakdown', '{total} checks · {pass} passing · {warn} attention · {fail} failing · {na} n/a', breakdown))
+        : null;
 
     return (
         <div
@@ -57,6 +76,8 @@ export default function FrameworkScoreCard({
             onClick={open}
             onKeyDown={placeholder ? undefined : onKey}
             aria-label={placeholder ? undefined : name}
+            aria-describedby={described ? descId : undefined}
+            title={described ? inForceText : undefined}
             data-testid={testId}
             data-framework={frameworkId}
             data-tone={tone}
@@ -79,11 +100,14 @@ export default function FrameworkScoreCard({
                             <div className="mt-0.5 text-xs font-medium" style={{ color: TONES[tone].ink }} data-testid={`${testId}-headline`}>
                                 {t(headlineKey, HEADLINE_FALLBACK[headlineKey])}
                             </div>
-                            {breakdownVars(score) ? (
-                                <div className="mt-0.5 text-[11px] text-[var(--text-tertiary)] tabular-nums" data-testid={`${testId}-breakdown`}>
-                                    {unit === 'controls'
-                                        ? t('compliance.ovw_breakdown_controls', '{total} controls · {pass} passing · {warn} attention · {fail} failing · {na} n/a', breakdownVars(score))
-                                        : t('compliance.ovw_breakdown', '{total} checks · {pass} passing · {warn} attention · {fail} failing · {na} n/a', breakdownVars(score))}
+                            {breakdown ? (
+                                <div
+                                    className="mt-0.5 text-[11px] text-[var(--text-tertiary)] tabular-nums"
+                                    data-testid={`${testId}-breakdown`}
+                                    title={breakdownFull}
+                                >
+                                    <span aria-hidden="true">{shortBreakdown(breakdown, t)}</span>
+                                    <span className="sr-only">{breakdownFull}</span>
                                 </div>
                             ) : null}
                         </>
@@ -94,53 +118,78 @@ export default function FrameworkScoreCard({
                 )}
             </div>
 
-            {/* verification chips + trend */}
+            {/* verification: one plain line, the glyphs say which is which */}
             {!placeholder && (
-                <div className="flex flex-wrap items-center gap-1.5" data-testid={`${testId}-chips`}>
-                    {auto && auto.total > 0 ? (
-                        <CountChip kind="automated" testId={`${testId}-chip-auto`}>
-                            {t('compliance.ovw_auto_ok', 'automated: {ok}/{n} passing', { ok: auto.pass, n: auto.total })}
-                        </CountChip>
-                    ) : null}
-                    {soa ? (
-                        soa.total != null && soa.approved != null ? (
-                            <CountChip kind="attestation" testId={`${testId}-chip-soa`}>
-                                {t('compliance.ovw_soa_approved', 'SoA {approved}/{total} approved', { approved: soa.approved, total: soa.total })}
-                            </CountChip>
-                        ) : null
-                    ) : attested && attested.total > 0 ? (
-                        <CountChip kind="attestation" testId={`${testId}-chip-attested`}>
-                            {t('compliance.ovw_attested_ok', 'self-attested: {ok}/{n} passing', { ok: attested.pass, n: attested.total })}
-                        </CountChip>
-                    ) : null}
-                </div>
+                <VerificationLine auto={auto} attested={attested} soa={soa} t={t} testId={testId} />
             )}
             {!placeholder && (
                 <MiniBars history={history} frameworkId={frameworkId} tone={tone} testId={`${testId}-bars`} />
             )}
 
-            {/* footer */}
-            {!placeholder && (inForce || law || nextDate) ? (
-                <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--border-default)] pt-2.5 text-[11px] text-[var(--text-tertiary)]" data-testid={`${testId}-footer`}>
-                    {(inForce || law) ? (
-                        <span className="inline-flex min-w-0 items-center gap-1.5">
-                            <CalendarCheck size={11} aria-hidden />
-                            <span className="truncate">
-                                {inForce
-                                    ? (law ? t('compliance.ovw_in_force', 'In force since {date} · {law}', { date: inForce, law })
-                                        : t('compliance.ovw_in_force_nolaw', 'In force since {date}', { date: inForce }))
-                                    : law}
-                            </span>
-                        </span>
-                    ) : <span />}
-                    {nextDate ? (
-                        <span className="inline-flex min-w-0 items-center gap-1.5 font-medium" style={{ color: TONES.warning.ink }} data-testid={`${testId}-next`}>
-                            <CalendarClock size={11} aria-hidden />
-                            <span className="truncate">{t('compliance.ovw_next_milestone', 'next: {date} · {title}', { date: nextDate, title: nextMilestone.label || '' })}</span>
-                        </span>
-                    ) : null}
+            {/* footer: only what you can act on */}
+            {!placeholder && nextDate ? (
+                <div className="flex min-w-0 items-center gap-1.5 border-t border-[var(--border-default)] pt-2.5 text-[11px] font-medium" style={{ color: TONES.warning.ink }} data-testid={`${testId}-next`} title={nextMilestone.label || undefined}>
+                    <CalendarClock size={11} aria-hidden className="shrink-0" />
+                    <span className="truncate">{t('compliance.ovw_next_milestone', 'next: {date} · {title}', { date: nextDate, title: nextMilestone.label || '' })}</span>
                 </div>
             ) : null}
+            {described ? <span id={descId} className="sr-only" data-testid={`${testId}-in-force`}>{inForceText}</span> : null}
+        </div>
+    );
+}
+
+const BUCKETS = Object.freeze([
+    Object.freeze({ field: 'fail', key: 'compliance.ovw_bucket_fail', en: '{n} failing' }),
+    Object.freeze({ field: 'warn', key: 'compliance.ovw_bucket_warn', en: '{n} attention' }),
+    Object.freeze({ field: 'pass', key: 'compliance.ovw_bucket_pass', en: '{n} passing' }),
+]);
+
+/**
+ * "1 failing · 1 attention · 27 passing": only the buckets that hold
+ * something, problems first. The total and n/a stay in the title and in what
+ * a screen reader hears; a card that only has n/a results says so.
+ */
+function shortBreakdown(vars, t) {
+    const parts = BUCKETS.filter(b => vars[b.field] > 0).map(b => t(b.key, b.en, { n: vars[b.field] }));
+    if (parts.length === 0 && vars.na > 0) parts.push(t('compliance.ovw_bucket_na', '{n} n/a', { n: vars.na }));
+    return parts.join(' · ');
+}
+
+/** "21/22 automated · 6/7 self-attested" (or "SoA 32/93 approved"), glyphs instead of pill borders. */
+function VerificationLine({ auto, attested, soa, t, testId }) {
+    const parts = [];
+    if (auto && auto.total > 0) {
+        parts.push({
+            id: 'auto', Glyph: ScanSearch,
+            text: t('compliance.ovw_verif_auto', '{ok}/{n} automated', { ok: auto.pass, n: auto.total }),
+            full: t('compliance.ovw_auto_ok', 'automated: {ok}/{n} passing', { ok: auto.pass, n: auto.total }),
+        });
+    }
+    if (soa) {
+        if (soa.total != null && soa.approved != null) {
+            const text = t('compliance.ovw_soa_approved', 'SoA {approved}/{total} approved', { approved: soa.approved, total: soa.total });
+            parts.push({ id: 'soa', Glyph: PenLine, text, full: text });
+        }
+    } else if (attested && attested.total > 0) {
+        parts.push({
+            id: 'attested', Glyph: PenLine,
+            text: t('compliance.ovw_verif_attested', '{ok}/{n} self-attested', { ok: attested.pass, n: attested.total }),
+            full: t('compliance.ovw_attested_ok', 'self-attested: {ok}/{n} passing', { ok: attested.pass, n: attested.total }),
+        });
+    }
+    if (!parts.length) return null;
+    return (
+        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] text-[var(--text-tertiary)] tabular-nums" data-testid={`${testId}-verification`}>
+            {parts.map((part, i) => (
+                <React.Fragment key={part.id}>
+                    {i > 0 ? <span aria-hidden="true">·</span> : null}
+                    <span className="inline-flex items-center gap-1 whitespace-nowrap" title={part.full} data-testid={`${testId}-verif-${part.id}`} data-verification={part.id === 'auto' ? 'automated' : 'attestation'}>
+                        <part.Glyph size={11} aria-hidden="true" />
+                        <span aria-hidden="true">{part.text}</span>
+                        <span className="sr-only">{part.full}</span>
+                    </span>
+                </React.Fragment>
+            ))}
         </div>
     );
 }
@@ -164,21 +213,4 @@ function breakdownVars(score) {
     const { pass, warn, fail, na } = score;
     if ([pass, warn, fail, na].some(n => typeof n !== 'number')) return null;
     return { total: typeof score.total === 'number' ? score.total : pass + warn + fail + na, pass, warn, fail, na };
-}
-
-/** VerificationChip styling with a count as its label (solid = automated, dashed = attested). */
-export function CountChip({ kind, children, testId }) {
-    const dashed = kind === 'attestation';
-    const Glyph = dashed ? PenLine : ScanSearch;
-    return (
-        <span
-            data-testid={testId}
-            data-verification={kind}
-            className="inline-flex items-center gap-1 rounded-full px-2 py-[2px] text-[10px] font-medium text-[var(--text-secondary)] tabular-nums"
-            style={{ border: dashed ? '1px dashed var(--text-tertiary)' : '1px solid var(--border-default)' }}
-        >
-            <Glyph size={10} aria-hidden />
-            {children}
-        </span>
-    );
 }

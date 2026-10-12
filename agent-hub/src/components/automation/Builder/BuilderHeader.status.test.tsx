@@ -72,6 +72,15 @@ describe('BuilderHeader: status wording', () => {
         expect(screen.getByTestId('live-status').hasAttribute('title')).toBe(false);
     });
 
+    it('a phone-width bar folds the status to its dot and the primary to its icon, keeping both names', () => {
+        // Under 640px the words ran under the view menu (390px screenshot).
+        setup(NEVER);
+        expect(screen.getByText('Draft · never live').className).toContain('@max-[640px]/bar:sr-only');
+        const activate = screen.getByRole('button', { name: /Activate/ });
+        expect(activate.querySelector('span')?.className).toContain('@max-[640px]/bar:sr-only');
+        expect(screen.getByTestId('trigger-tile').className).toContain('@max-[640px]/bar:hidden');
+    });
+
     it('a paused automation reads "Paused"', () => {
         setup(PAUSED);
         expect(screen.getByTestId('live-status').textContent).toBe('Paused');
@@ -141,5 +150,22 @@ describe('BuilderHeader: the primary action per state', () => {
         setup(rowWithoutPending);
         expect(await screen.findByRole('button', { name: 'Make v5 live' })).toBeTruthy();
         expect(screen.getByTestId('live-pending').textContent).toBe('editing v5 · 1 change not live yet');
+    });
+});
+
+describe('BuilderHeader: workflow actions menu (BFSF-405)', () => {
+    it('exports the open workflow from the editor header', async () => {
+        const onExportJson = vi.fn();
+        setup(LIVE, { onExportJson });
+        const user = userEvent.setup();
+        await user.click(screen.getByRole('button', { name: 'Workflow actions' }));
+        await user.click(screen.getByRole('menuitem', { name: 'Export JSON' }));
+        expect(onExportJson).toHaveBeenCalledTimes(1);
+        expect(screen.queryByRole('menu')).toBeNull();
+    });
+
+    it('shows no menu when the host offers no export', () => {
+        setup(LIVE);
+        expect(screen.queryByRole('button', { name: 'Workflow actions' })).toBeNull();
     });
 });

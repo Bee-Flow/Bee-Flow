@@ -3,6 +3,25 @@
  * parser; the counters it fills are read back by /api/admin/metrics.
  */
 
+const UNMATCHED_ROUTE = '__unmatched__';
+
+function _normalizeRoute(req) {
+    // No matched route (404s, scanners, static misses): never fall back to
+    // the raw path, or every probed URL becomes its own metric series
+    // (BFSF-468).
+    if (!req.route) return UNMATCHED_ROUTE;
+    // A matched route defined with a RegExp or an array has no template
+    // string: label it by its mount point plus a fixed marker.
+    const routePath = typeof req.route.path === 'string' ? req.route.path : '/__regex__';
+    const full = (req.baseUrl || '') + routePath;
+    const norm = full.split('/').filter(Boolean).map(seg => {
+        if (/^\d+$/.test(seg)) return ':id';
+        if (/^[0-9a-fA-F-]{8,}$/.test(seg)) return ':id';
+        if (seg.length > 24) return ':id';
+        return seg;
+    }).join('/');
+    return '/' + norm;
+}
 function mountRequestTiming(app) {
     // ── Request-timing instrumentation ─────────────────────────────────────────────
     // Records per-route latency into httpMetrics (exposed at /api/admin/metrics).
@@ -11,17 +30,6 @@ function mountRequestTiming(app) {
     // Long-lived SSE streams are skipped — their duration is the stream length, not
     // request-handling latency, and would swamp the histogram.
     const httpMetrics = require('../telemetry/httpMetrics');
-    function _normalizeRoute(req) {
-        let full = (req.baseUrl || '') + ((req.route && req.route.path && typeof req.route.path === 'string') ? req.route.path : '');
-        if (!full) full = req.path || '';
-        const norm = full.split('/').filter(Boolean).map(seg => {
-            if (/^\d+$/.test(seg)) return ':id';
-            if (/^[0-9a-fA-F-]{8,}$/.test(seg)) return ':id';
-            if (seg.length > 24) return ':id';
-            return seg;
-        }).join('/');
-        return '/' + norm;
-    }
     app.use((req, res, next) => {
         const start = process.hrtime.bigint();
         res.on('finish', () => {
@@ -36,4 +44,4 @@ function mountRequestTiming(app) {
     });
 }
 
-module.exports = { mountRequestTiming };
+module.exports = { mountRequestTiming, UNMATCHED_ROUTE, _normalizeRoute };

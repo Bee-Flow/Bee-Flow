@@ -44,8 +44,9 @@ export function nodeOwnText(node, max = 40) {
  * Falls back to the raw type — an unknown type is better named by its id than
  * by nothing.
  */
-export function nodeTypeLabel(node) {
-    return getComponentEntry(node?.type)?.label || node?.type || 'Component';
+export function nodeTypeLabel(node, t = null) {
+    return getComponentEntry(node?.type)?.label || node?.type
+        || (t ? t('studio_apps_insp.node.component', 'Component') : 'Component');
 }
 
 /**

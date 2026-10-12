@@ -62,4 +62,15 @@ describe('Tabs', () => {
         fireEvent.keyDown(a, { key: 'ArrowRight' });
         expect(onChange).toHaveBeenLastCalledWith('c');
     });
+
+    it('keeps exactly one tab stop: the selected tab, or the first enabled one when none is selected', async () => {
+        const { rerender } = render(<Tabs value="orgs" onChange={() => {}} items={items} />);
+        const stops = () => screen.getAllByRole('tab').filter(t => t.tabIndex === 0).map(t => t.textContent);
+        expect(stops()).toEqual(['Organizations']);
+        // A URL-only section: the value matches no tab.
+        rerender(<Tabs value={'hidden' as 'plans'} onChange={() => {}} items={[{ id: 'plans', label: 'Plans', disabled: true }, ...items.slice(1)]} />);
+        expect(stops()).toEqual(['Organizations']);
+        await userEvent.tab();
+        expect(screen.getByRole('tab', { name: 'Organizations' })).toHaveFocus();
+    });
 });

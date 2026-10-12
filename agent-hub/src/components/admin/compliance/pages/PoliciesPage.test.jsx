@@ -1,5 +1,6 @@
 import React from 'react';
-import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import PoliciesPage, { isReviewOverdue } from './PoliciesPage';
 
@@ -54,11 +55,47 @@ function pageProps(over = {}) {
 }
 
 describe('PoliciesPage', () => {
-    it('lists every document with its slug, version and status', () => {
+    it('lists every document without a slug column; the status is said once, in the pill, with the version', () => {
         render(<PoliciesPage {...pageProps()} />);
-        expect(screen.getByTestId('policies-row-information-security-policy')).toBeTruthy();
-        expect(screen.getByTestId('policies-status-information-security-policy').textContent).toContain('Published');
-        expect(screen.getByTestId('policies-status-access-control').textContent).toContain('Draft');
+        const header = screen.getByTestId('policies-table-header');
+        expect(within(header).getAllByRole('columnheader').map(c => c.textContent)).toEqual(['Title', 'Acknowledged', 'Status', 'Owner', 'Review due']);
+        const row = screen.getByTestId('policies-row-information-security-policy');
+        expect(row.textContent).not.toContain('information-security-policy');
+        expect(screen.getByTestId('policies-status-information-security-policy').textContent).toBe('Published · v3');
+        expect(screen.getByTestId('policies-status-information-security-policy').dataset.state).toBe('published');
+        expect(screen.getByTestId('policies-status-access-control').textContent).toBe('Draft');
+        // No second "Published v3" under the title.
+        expect(row.textContent.match(/Published/g)).toHaveLength(1);
+    });
+
+    it('Owner and Review due have their own columns, which fold below 900px into the line under the title', () => {
+        render(<PoliciesPage {...pageProps()} />);
+        expect(screen.getByTestId('policies-owner-information-security-policy').textContent).toBe('T. Smit');
+        expect(screen.getByTestId('policies-clock-information-security-policy')).toBeTruthy();
+        const header = screen.getByTestId('policies-table-header');
+        expect(header.style.getPropertyValue('--ct-cols-900')).toBe('1fr 110px 130px');
+        // The folded copy is only shown while the columns are folded.
+        const folded = screen.getByTestId('policies-folded-information-security-policy');
+        expect(folded.className).toMatch(/\bhidden\b/);
+        expect(folded.textContent).toMatch(/T\. Smit · Review due 1 Jan/);
+    });
+
+    it('the line under the title carries only exceptions, so a red stripe has its reason on the row', () => {
+        const docs = {
+            documents: [
+                ...DOCS.documents,
+                { slug: 'supplier', title: 'Supplier security policy', status: 'published', current_version: 1, ack_count: 1, edited: true, owner_user_id: 'u2', review_due_at: '2026-01-05' },
+            ],
+            missing_seeds: [],
+        };
+        render(<PoliciesPage {...pageProps({ policies: { docs } })} />);
+        const overdue = screen.getByTestId('policies-row-supplier');
+        expect(overdue.getAttribute('data-accent')).toBe('error');
+        expect(screen.getByTestId('policies-overdue-supplier').textContent).toMatch(/review overdue 5 Jan/);
+        expect(screen.getByTestId('policies-meta-supplier').className).not.toMatch(/\bhidden\b/);
+        // A published, customised, in-date document has no visible meta line.
+        expect(screen.getByTestId('policies-meta-information-security-policy').className).toMatch(/\bhidden\b/);
+        expect(screen.queryByTestId('policies-overdue-information-security-policy')).toBeNull();
     });
 
     it('marks a template that was never customised', () => {
@@ -95,10 +132,11 @@ describe('PoliciesPage', () => {
         expect(screen.queryByTestId('policies-seed')).toBeNull();
     });
 
-    it('calls the hook seed handler', () => {
+    it('calls the hook seed handler', async () => {
+        const user = userEvent.setup();
         const seed = vi.fn();
         render(<PoliciesPage {...pageProps({ policies: { seed } })} />);
-        fireEvent.click(screen.getByTestId('policies-seed'));
+        await user.click(screen.getByTestId('policies-seed'));
         expect(seed).toHaveBeenCalled();
     });
 
@@ -138,14 +176,18 @@ describe('PoliciesPage', () => {
         expect(save).toHaveBeenCalledWith('access-control', expect.objectContaining({ body: 'Our own words', review_due_at: '2027-03-03' }));
     });
 
-    it('publish saves first and then publishes', async () => {
+    it('publish asks first, then saves and publishes', async () => {
+        const user = userEvent.setup();
         const order = [];
         const save = vi.fn(async () => { order.push('save'); });
         const publish = vi.fn(async () => { order.push('publish'); });
         render(<PoliciesPage {...pageProps({ policies: { save, publish } })} />);
-        fireEvent.click(screen.getByTestId('policies-row-access-control'));
+        await user.click(screen.getByTestId('policies-row-access-control'));
         await waitFor(() => expect(screen.getByTestId('policy-drawer-publish')).toBeTruthy());
-        fireEvent.click(screen.getByTestId('policy-drawer-publish'));
+        await user.click(screen.getByTestId('policy-drawer-publish'));
+        expect(publish).not.toHaveBeenCalled();
+        expect(screen.getByTestId('policy-drawer-confirm-text').textContent).toBe('Publish v1? Members will be asked to acknowledge this version.');
+        await user.click(screen.getByTestId('policy-drawer-confirm-go'));
         await waitFor(() => expect(publish).toHaveBeenCalledWith('access-control'));
         expect(order).toEqual(['save', 'publish']);
     });
@@ -179,6 +221,18 @@ describe('PoliciesPage', () => {
 });
 
 describe('PoliciesPage — phone (artboard 1h)', () => {
+    it('a card shows the status pill, the acknowledgements, the owner and the warning, with no padding of its own', () => {
+        render(<PoliciesPage {...pageProps({ isMobile: true })} />);
+        const published = screen.getByTestId('policies-card-information-security-policy');
+        expect(published.textContent).toMatch(/Published · v3/);
+        expect(published.textContent).toMatch(/1 \/ 2/);
+        expect(published.textContent).toMatch(/T\. Smit/);
+        expect(published.className).not.toMatch(/\bpx-/);
+        const draft = screen.getByTestId('policies-card-access-control');
+        expect(draft.textContent).toMatch(/Draft/);
+        expect(within(draft).getByTestId('policies-untouched-access-control')).toBeTruthy();
+    });
+
     it('the drawer is a right-side modal; desktop keeps the inline card', () => {
         const { unmount } = render(<PoliciesPage {...pageProps({ isMobile: true })} />);
         fireEvent.click(screen.getByTestId('policies-card-information-security-policy'));

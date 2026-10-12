@@ -151,7 +151,7 @@ export function VersionDiffSheet(props: VersionDiffSheetProps) {
                 onClose={() => setPicking(false)}
                 title={t('mobile.flow.versions.compare_title', 'Compare with')}
                 items={[
-                    { id: 'current', label: t('mobile.flow.versions.current_word', 'Current'), selected: !compareWith, onPress: () => setCompareWith(null) },
+                    { id: 'current', label: t('automations.flowlets_panel.current', 'Current'), selected: !compareWith, onPress: () => setCompareWith(null) },
                     ...versions.filter((v) => v.id !== version.id).slice(0, COMPARE_CHOICES).map((v) => ({
                         id: v.id, label: `v${v.version}`, selected: compareWith?.id === v.id, onPress: () => setCompareWith(v),
                     })),

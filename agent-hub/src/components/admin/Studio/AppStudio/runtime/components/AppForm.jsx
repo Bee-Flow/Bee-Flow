@@ -1,6 +1,7 @@
 import { tryEvaluate } from '@shared/expr/engine.mjs';
 import { Loader2, RotateCcw } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import useTranslation from '../../../../../../hooks/useTranslation';
 import { FormContext, registerFormReset } from '../formContext';
 import { resolveBinding } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
@@ -88,18 +89,18 @@ function ruleFails(rule, value, fieldScope) {
 }
 
 /** The author's message, or sensible copy generated from the rule itself. */
-function ruleMessage(rule) {
+function ruleMessage(rule, t) {
     if (typeof rule?.message === 'string' && rule.message.trim()) return rule.message;
     switch (ruleKind(rule)) {
-        case 'required': return 'This field is required.';
-        case 'email': return 'Enter a valid email address.';
-        case 'url': return 'Enter a valid URL.';
-        case 'minLength': return `Enter at least ${rule.value} characters.`;
-        case 'maxLength': return `Enter at most ${rule.value} characters.`;
-        case 'min': return `Enter ${rule.value} or more.`;
-        case 'max': return `Enter ${rule.value} or less.`;
-        case 'pattern': return 'This value is not in the expected format.';
-        default: return 'This value is not valid.';
+        case 'required': return t('studio_apps_runtime.form.required', 'This field is required.');
+        case 'email': return t('studio_apps_runtime.form.invalid_email', 'Enter a valid email address.');
+        case 'url': return t('studio_apps_runtime.form.invalid_url', 'Enter a valid URL.');
+        case 'minLength': return t('studio_apps_runtime.form.min_length', 'Enter at least {n} characters.', { n: rule.value });
+        case 'maxLength': return t('studio_apps_runtime.form.max_length', 'Enter at most {n} characters.', { n: rule.value });
+        case 'min': return t('studio_apps_runtime.form.min', 'Enter {n} or more.', { n: rule.value });
+        case 'max': return t('studio_apps_runtime.form.max', 'Enter {n} or less.', { n: rule.value });
+        case 'pattern': return t('studio_apps_runtime.form.pattern', 'This value is not in the expected format.');
+        default: return t('studio_apps_runtime.form.invalid', 'This value is not valid.');
     }
 }
 
@@ -165,8 +166,9 @@ export default function AppForm({ node, children }) {
 }
 
 function FormBody({ node, children }) {
+    const { t } = useTranslation();
     const { mode, runAction, actionState, registerFormValue, scope } = useRuntime();
-    const { submitLabel = 'Submit', showReset = false, showSubmit = true } = node.props || {};
+    const { submitLabel = t('studio_apps_runtime.form.submit', 'Submit'), showReset = false, showSubmit = true } = node.props || {};
     const formName = node.props?.name || node.id;
     const [values, setValues] = useState({});
     const [errors, setErrors] = useState({});
@@ -224,12 +226,12 @@ function FormBody({ node, children }) {
             // screen; without this the form did not, so an optional field
             // submitted EMPTY under a visible "Enter a number".
             if (meta.invalid) {
-                nextErrors[name] = meta.invalidMessage || 'This value is not valid.';
+                nextErrors[name] = meta.invalidMessage || t('studio_apps_runtime.form.invalid', 'This value is not valid.');
                 continue;
             }
             const v = values[name];
             if (meta.required && isEmptyValue(v)) {
-                nextErrors[name] = 'This field is required.';
+                nextErrors[name] = t('studio_apps_runtime.form.required', 'This field is required.');
                 continue;
             }
             const rules = validations.get(name);
@@ -239,7 +241,7 @@ function FormBody({ node, children }) {
             const fieldScope = { ...scope, form: values, value: v };
             for (const rule of rules) {
                 if (!ruleFails(rule, v, fieldScope)) continue;
-                nextErrors[name] = ruleMessage(rule);
+                nextErrors[name] = ruleMessage(rule, t);
                 break;
             }
         }
@@ -296,7 +298,7 @@ function FormBody({ node, children }) {
                                 // enabled button that did nothing at all when
                                 // clicked. Saying so beats swallowing the click.
                                 disabled={pending || !node.onSubmit}
-                                title={node.onSubmit ? undefined : 'This form has no submit action yet.'}
+                                title={node.onSubmit ? undefined : t('studio_apps_runtime.form.no_submit', 'This form has no submit action yet.')}
                                 data-app-submit-inert={node.onSubmit ? undefined : 'true'}
                                 className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-medium disabled:opacity-60"
                                 style={{
@@ -319,7 +321,7 @@ function FormBody({ node, children }) {
                                 style={{ color: 'var(--text-secondary)', borderRadius: 'var(--app-radius)' }}
                             >
                                 <RotateCcw className="w-3.5 h-3.5" aria-hidden="true" />
-                                <span>Reset</span>
+                                <span>{t('studio_apps_runtime.form.reset', 'Reset')}</span>
                             </button>
                         ) : null}
                     </div>

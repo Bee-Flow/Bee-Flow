@@ -42,11 +42,11 @@ export default function CanvasLegend() {
                 {t('automations.canvas.legend_title', 'Legend')}
             </div>
             <div className={row}>
-                <span className="px-1.5 rounded-full border border-[var(--border-default)] bg-[var(--bg-secondary)] font-semibold text-[var(--text-primary)] whitespace-nowrap">1 record</span>
+                <span className="px-1.5 rounded-full border border-[var(--border-default)] bg-[var(--bg-secondary)] font-semibold text-[var(--text-primary)] whitespace-nowrap">{t('automations.canvas_legend.1_record', '1 record')}</span>
                 <span>{t('automations.canvas.legend_data', 'data that travels down the line')}</span>
             </div>
             <div className={row}>
-                <span className="px-1.5 rounded-full font-semibold whitespace-nowrap" style={{ background: typeTint('branch', 16), color: typeColorVar('branch') }}>match</span>
+                <span className="px-1.5 rounded-full font-semibold whitespace-nowrap" style={{ background: typeTint('branch', 16), color: typeColorVar('branch') }}>{t('automations.canvas_legend.match', 'match')}</span>
                 <span>{t('automations.canvas.legend_branch', 'a branch label — the run follows labels only')}</span>
             </div>
             <div className={row}>

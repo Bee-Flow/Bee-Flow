@@ -51,14 +51,14 @@ export function FormTriggerFields({ step, draft, set, ctx }: StepEditorProps) {
             <>
                 <Note>
                     {t(
-                        'mobile.flow.trigger.form_intro',
+                        'automations.form_trigger_fields.a_form_trigger_publishes_a_page',
                         'A form trigger publishes a page for the colleagues it is shared with — who that is, you set under Studio → Forms → Share. Every submission runs this automation once.',
                     )}
                 </Note>
                 <Button
                     size="sm"
                     iconName="Plus"
-                    label={t('mobile.flow.trigger.create_form', 'Create the form')}
+                    label={t('automations.form_trigger_fields.create_the_form', 'Create the form')}
                     onPress={() => set('form', defaultFormDeclaration())}
                     disabled={ctx.disabled}
                     testID="form-create"

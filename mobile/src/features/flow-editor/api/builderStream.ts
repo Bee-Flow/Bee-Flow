@@ -235,6 +235,12 @@ export function builderFrames(callbacks: () => BuilderFrameCallbacks): FrameAdap
         prompt_progress: IGNORE,
         usage: IGNORE,
 
+        // The answer about the composer's Web search toggle (requested,
+        // available, reason). The web disables its switch with it; the phone
+        // has no switch (it always asks, builder.ts), so there is nothing to
+        // disable and the server's gates decide either way.
+        web_search: IGNORE,
+
         // The web's work modes (discuss / approve / plan, workMode in
         // chatStream.js): a reviewed plan, the model's clarifying questions,
         // and a staged proposal to accept or discard. The phone sends no

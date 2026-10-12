@@ -12,11 +12,24 @@
  * is refreshed in place so the very next builder_add_datatable can target
  * the new id. It is a side effect outside the draft: a second call with the
  * same name answers with the table that exists, never a second table.
+ *
+ * THREE MODES (draftWrap flags set by the chat route; MCP sets none):
+ *  - direct (Build directly, MCP): the table is made now, after the same
+ *    access check POST /api/datatables applies (datatableCreateAccess).
+ *  - staged (_stageDatatables: a preview): nothing is created; the table goes
+ *    into the proposal with a "pending:<n>" id (pendingDatatables) and is
+ *    made when the user presses Apply (createPendingDatatable below).
+ *  - plan-scoped (_planDatatables, a build that executes an approved plan):
+ *    only tables the plan lists may be created.
  */
 
 'use strict';
 
 const { keyFromTitle } = require('../../core/dataEngine/sources/mirror/keys');
+const { checkDatatableCreate } = require('./datatableCreateAccess');
+const { stagePendingDatatable } = require('./pendingDatatables');
+const { choiceRequiredError } = require('./datatableApproval');
+const { normaliseKey } = require('./datatableRefs');
 
 const MAX_FIELDS = 40;
 const FIELD_TYPES = ['text', 'richtext', 'number', 'date', 'datetime', 'bool', 'select', 'multiselect', 'file'];
@@ -31,6 +44,9 @@ function defaultDeps() {
             return hasPermission(userId, Permissions.MANAGE_DATATABLES).catch(() => false);
         },
         catalogFor: (userId) => require('../builderDatatableCatalog').buildDatatableCatalogForUser(userId),
+        normalizeFields: (...a) => require('../../core/dataEngine/dataModel/datatableFields').normalizeFields(...a),
+        defaultCreateScope: (principal) => require('../../auth/datatableAccess').defaultCreateScope(principal),
+        evaluateForRequest: (req) => require('../../learning/requireTraining').evaluateForRequest(req),
     };
 }
 
@@ -70,11 +86,35 @@ function normaliseFieldArgs(raw, notes) {
  * @param {object} args       { name, fields:[{key?, name, type, options?}], description?, key? }
  */
 async function applyCreateDatatable(draftWrap, args, deps = defaultDeps()) {
+    // An injected deps object may name only what its test needs; the rest are
+    // lazy requires, so merging costs nothing until one is called.
+    deps = { ...defaultDeps(), ...deps };
     const a = args && typeof args === 'object' ? args : {};
     const name = String(a.name || a.title || '').trim();
     if (!name) return { error: 'name is required — the table\'s title as the person will see it in Studio > Datatables.', _fixHint: 'Pass name:"<title>" and fields:[{name, type}].' };
     const notes = [];
-    const fields = normaliseFieldArgs(a.fields || a.columns, notes);
+    let fields = normaliseFieldArgs(a.fields || a.columns, notes);
+
+    // A preview never creates: the table is proposed together with the flow.
+    if (draftWrap._stageDatatables) {
+        if (!fields.length) return { error: 'fields must list at least one column: [{name, type}] with type text | number | date | datetime | bool | select (with options) | multiselect | file.', _fixHint: 'Name the columns the automation will write.' };
+        return stagePendingDatatable(draftWrap, a, {
+            normaliseFieldArgs, normalizeFields: deps.normalizeFields, keyFromTitle, normaliseKey,
+        });
+    }
+
+    // A build that executes an approved plan creates the tables THAT plan
+    // lists, no others: the user approved those names and columns.
+    if (Array.isArray(draftWrap._planDatatables)) {
+        const planned = draftWrap._planDatatables.find((t) => t && normaliseKey(t.name) === normaliseKey(name));
+        if (!planned) {
+            return {
+                error: `"${name}" is not in the approved plan, so no table was created.`,
+                _fixHint: 'Create only the tables the plan lists; ask the user before changing the plan\'s scope.',
+            };
+        }
+        if (!fields.length && Array.isArray(planned.fields)) fields = normaliseFieldArgs(planned.fields, notes);
+    }
     if (!fields.length) return { error: 'fields must list at least one column: [{name, type}] with type text | number | date | datetime | bool | select (with options) | multiselect | file.', _fixHint: 'Name the columns the automation will write.' };
     const ownerId = draftWrap && draftWrap.userId;
     // The owner is the person building the draft (draftWrap.userId, set by
@@ -83,9 +123,15 @@ async function applyCreateDatatable(draftWrap, args, deps = defaultDeps()) {
     if (!ownerId) return { error: 'The automation has no owner yet — save the draft first.', _fixHint: 'Save the draft first (any mutation) — the owner is the person building it; no tool argument sets it.' };
 
     // Idempotent on the name: the catalog already lists it → that is the table.
+    // In a work mode the user must have chosen that table first (a name that
+    // collides with someone's real data is not consent to write into it).
     const catalog = Array.isArray(draftWrap._datatables) ? draftWrap._datatables : [];
     const same = catalog.find((t) => t && String(t.name || '').trim().toLowerCase() === name.toLowerCase());
     if (same) {
+        const approved = draftWrap._approvedDatatableIds;
+        if (approved instanceof Set && !approved.has(same.id) && !same.pending) {
+            return choiceRequiredError(same, draftWrap, { op: 'add_row', sameName: true });
+        }
         return {
             datatableId: same.id, datatableKey: same.key, name: same.name,
             fields: (same.columns || []).map((c) => ({ key: c.key, type: c.type })),
@@ -94,13 +140,31 @@ async function applyCreateDatatable(draftWrap, args, deps = defaultDeps()) {
         };
     }
 
-    let principal;
-    try { principal = await deps.resolvePrincipal(ownerId); } catch (e) { principal = null; }
-    if (!principal || principal.identityError) return { error: 'The owner\'s identity could not be read right now — this is an availability problem, not your arguments.', _fixHint: 'Try once more; if it persists, tell the user.' };
-    const hasManage = await deps.hasManageDatatables(ownerId);
+    // The same gate POST /api/datatables applies: scope, manage_datatables,
+    // the organisation match and the training rule.
+    const access = await checkDatatableCreate(
+        { userId: ownerId, req: draftWrap._req || null, automationOrgId: draftWrap.orgId || null },
+        {
+            resolveDatatablePrincipalForUser: deps.resolvePrincipal,
+            defaultCreateScope: deps.defaultCreateScope,
+            hasPermission: (userId) => deps.hasManageDatatables(userId),
+            manageDatatablesPermission: () => 'manage_datatables',
+            evaluateForRequest: deps.evaluateForRequest,
+        },
+    );
+    if (!access.ok) {
+        const hints = {
+            identity_unavailable: 'Try once more; if it persists, tell the user.',
+            manage_datatables_required: 'The owner may not create organisation tables (manage_datatables) — tell the user, or write into a table that exists.',
+            datatable_org_mismatch: 'Tell the user; write into a table that exists instead.',
+            training_required: 'Tell the user the required training comes first; write into a table that exists instead.',
+        };
+        return { error: access.message, code: access.code, _fixHint: hints[access.code] || 'Tell the user the table could not be created.' };
+    }
+    const { principal, hasManage } = access;
     const result = await deps.createStudioDatatable({
         ownerUserId: ownerId, principal, name, key: typeof a.key === 'string' ? a.key : null,
-        description: typeof a.description === 'string' ? a.description : `Aangemaakt door de automatiseringsbouwer voor "${name}"`,
+        description: typeof a.description === 'string' ? a.description : defaultDescription(name),
         fields, hasManageDatatables: hasManage,
     });
     if (!result.ok) {
@@ -108,6 +172,7 @@ async function applyCreateDatatable(draftWrap, args, deps = defaultDeps()) {
             manage_datatables_required: 'The owner may not create organisation tables (manage_datatables) — tell the user, or write into a table that exists.',
             schema_invalid: 'Fix the column list: every column needs a name and one of the field types.',
             key_taken: 'A table with that key exists — pass another name or key.',
+            quota: 'The workspace is at its table limit — tell the user, or write into a table that exists.',
         };
         return { error: result.error, code: result.code, _fixHint: hints[result.code] || 'Tell the user the table could not be created.' };
     }
@@ -120,6 +185,10 @@ async function applyCreateDatatable(draftWrap, args, deps = defaultDeps()) {
         const fresh = await deps.catalogFor(ownerId);
         if (Array.isArray(fresh) && fresh.some((t) => t.id === table.id)) draftWrap._datatables = fresh;
     } catch { /* the in-place entry stands */ }
+    // The assistant made this table for the user's request, so binding steps
+    // to it needs no further consent; the ids are remembered across turns.
+    if (draftWrap._approvedDatatableIds instanceof Set) draftWrap._approvedDatatableIds.add(table.id);
+    if (Array.isArray(draftWrap._createdDatatableIds)) draftWrap._createdDatatableIds.push(table.id);
     return {
         datatableId: table.id,
         datatableKey: table.key,
@@ -131,4 +200,24 @@ async function applyCreateDatatable(draftWrap, args, deps = defaultDeps()) {
     };
 }
 
-module.exports = { applyCreateDatatable, normaliseFieldArgs, FIELD_TYPES };
+// Shown to people in Studio > Datatables, so it is plain English like the rest
+// of the product copy.
+const defaultDescription = (name) => `Created by the automation builder for "${name}"`;
+
+/**
+ * Create a table that was STAGED in a proposal, at the user's Apply. `entry`
+ * is the pendingDatatables record; `key` the key reserved for it, which must
+ * come out exactly (exactKey) so a retry can tell its own earlier attempt from
+ * a stranger's table. `principal` and `hasManage` come from the Apply access
+ * check, which also decides the scope.
+ */
+async function createPendingDatatable(ownerId, entry, { key, principal, hasManage }, deps = defaultDeps()) {
+    deps = { ...defaultDeps(), ...deps };
+    return deps.createStudioDatatable({
+        ownerUserId: ownerId, principal, name: entry.name, key, exactKey: true,
+        description: entry.description || defaultDescription(entry.name),
+        fields: entry.fields, hasManageDatatables: hasManage,
+    });
+}
+
+module.exports = { applyCreateDatatable, createPendingDatatable, normaliseFieldArgs, FIELD_TYPES };

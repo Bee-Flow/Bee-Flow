@@ -27,7 +27,7 @@ const { FILTER_OPS, KEY_RE } = require('../../../core/dataEngine/dataModel/vocab
 const {
     KNOWLEDGE_WRITE_DUPLICATE_STRATEGIES,
     DATATABLE_OPS, DATATABLE_WRITE_OPS, DATATABLE_FILTERED_OPS,
-    DATATABLE_MAX_FILTERS, DATATABLE_MAX_LIMIT, DATATABLE_MATCH_MODES,
+    DATATABLE_MAX_FILTERS, DATATABLE_MAX_LIMIT, DATATABLE_MATCH_MODES, PENDING_DATATABLE_RE,
 } = require('../constants');
 
 function checkKnowledgeWrite(ctx, step, at) {
@@ -112,6 +112,14 @@ function checkDatatable(ctx, step, at) {
                 : `Step ${step.id}: pick which datatable to use.`, hint: wanted
                 ? `Pick the table called "${wanted}" from the list, or create it — an imported automation never carries another workspace's table.`
                 : 'Choose a table from the list.' });
+        }
+        // A table the builder only PROPOSED. Always an error here; the builder's
+        // own preview filters this out for the refs it staged (chatStream), and
+        // anywhere else (a PUT, a live run) it is the backstop that keeps a
+        // never-created table out of a saved automation. Deliberately not a
+        // completeness code: it must block at stage 'draft' too.
+        if (typeof step.datatableId === 'string' && PENDING_DATATABLE_RE.test(step.datatableId)) {
+            pushE({ code: 'datatable.table_pending', severity: 'error', ref: step.datatableId, path: at + '.datatableId', message: `Step ${step.id}: its table "${step.datatableKey || step.datatableId}" has not been created yet.`, hint: 'Apply the assistant\'s proposal that creates it, or pick an existing table.' });
         }
         if (!step.op) {
             pushE({ code: 'datatable.op_missing', severity: 'error', path: at + '.op', message: `Step ${step.id}: choose what to do with the table.`, hint: 'Find rows, add a row, add or update a row, update rows, or delete rows.' });

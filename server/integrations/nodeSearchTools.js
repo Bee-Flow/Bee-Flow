@@ -367,4 +367,7 @@ ${sourcesList}
 
 module.exports = {
     executeNodeSearchTool,
+    stripHtml,
+    PAGE_FETCH_TIMEOUT_MS,
+    PAGE_BYTE_CAP,
 };

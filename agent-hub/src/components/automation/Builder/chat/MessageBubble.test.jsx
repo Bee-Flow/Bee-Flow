@@ -7,7 +7,7 @@
 import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import MessageBubble, { readsAsMarkdown } from './MessageBubble';
+import MessageBubble, { readsAsMarkdown, isToolOnlyTurn } from './MessageBubble';
 
 vi.mock('../../../../hooks/useTranslation', () => ({
     useTranslation: () => ({ t: (_k, d) => d }),
@@ -68,5 +68,60 @@ describe('MessageBubble', () => {
             <MessageBubble msg={{ role: 'assistant', content: '', toolCalls, isStreaming: false }} liveRun={liveRun} />,
         );
         expect(settled.textContent).not.toContain('Testing the automation…');
+    });
+});
+
+describe('MessageBubble: a turn that only asked questions', () => {
+    const asked = [{ name: 'builder_ask_questions', arguments: { questions: [] }, result: { ok: true } }];
+
+    it('draws no empty padded box for an assistant message that is only tool calls', () => {
+        const { container } = render(<MessageBubble msg={{ role: 'assistant', content: '', toolCalls: asked }} activity={<div data-testid="act" />} />);
+        expect(container.querySelector('.p-4')).toBeNull();
+        expect(screen.getByTestId('act')).toBeTruthy();
+    });
+
+    it('still draws the bubble when there is text, or when nothing has arrived yet', () => {
+        const { container, rerender } = render(<MessageBubble msg={{ role: 'assistant', content: 'One question first.', toolCalls: asked }} activity={null} />);
+        expect(container.querySelector('.p-4')?.textContent).toBe('One question first.');
+        rerender(<MessageBubble msg={{ role: 'assistant', content: '', toolCalls: [], isStreaming: true }} activity={null} />);
+        expect(container.querySelector('.p-4')).toBeTruthy();
+    });
+
+    it('isToolOnlyTurn: whitespace is no text, a user message is never hidden', () => {
+        expect(isToolOnlyTurn({ role: 'assistant', content: ' \n', toolCalls: asked })).toBe(true);
+        expect(isToolOnlyTurn({ role: 'assistant', content: '', toolCalls: [] })).toBe(false);
+        expect(isToolOnlyTurn({ role: 'user', content: '', toolCalls: asked })).toBe(false);
+    });
+});
+
+describe('MessageBubble: the answers to the builder\'s questions', () => {
+    const answers = [
+        { prompt: 'Which **trigger** starts it?\n- webhook\n- schedule', answer: 'A `webhook` call' },
+        { prompt: 'Send on weekends?', answer: 'No' },
+    ];
+
+    it('shows a compact Q/A list from the structured field, with the marks rendered and no list or document', () => {
+        const { container } = render(<MessageBubble msg={{ role: 'user', content: 'Q: ignored\nA: ignored', answers }} />);
+        expect(container.querySelector('dl[aria-label="Your answers"]')).toBeTruthy();
+        expect(container.querySelectorAll('dt')).toHaveLength(2);
+        expect(container.querySelectorAll('dd')).toHaveLength(2);
+        expect(container.querySelector('dt strong')?.textContent).toBe('trigger');
+        expect(container.querySelector('dd code')?.textContent).toBe('webhook');
+        expect(container.querySelector('ul, ol, li, h1, h2')).toBeNull();
+        expect(container.textContent).not.toContain('Q: ignored');
+        expect(container.textContent).not.toContain('**');
+    });
+
+    it('shows the same list for a conversation restored from the server, where only the text is left', () => {
+        const text = 'Q: Which trigger starts it? - webhook - schedule\nA: A webhook call\n\nQ: Send on weekends?\nA: No';
+        const { container } = render(<MessageBubble msg={{ role: 'user', content: text }} />);
+        expect(container.querySelectorAll('dt')).toHaveLength(2);
+        expect(container.querySelectorAll('dd')[1].textContent).toBe('No');
+    });
+
+    it('does not turn an ordinary message that starts with "Q:" into a list', () => {
+        const { container } = render(<MessageBubble msg={{ role: 'user', content: 'Q: can you do this?' }} />);
+        expect(container.querySelector('dl')).toBeNull();
+        expect(screen.getByText('Q: can you do this?')).toBeTruthy();
     });
 });

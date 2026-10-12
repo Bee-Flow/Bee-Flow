@@ -37,7 +37,7 @@ export function TriggerEditor(editor: StepEditorProps) {
     const kind = typeof draft.kind === 'string' && draft.kind ? draft.kind : 'manual';
     if (kind === 'layer_input') {
         return (
-            <Band editor={editor} sectionKey="inputs" title={t('mobile.flow.section.inputs', 'Inputs')} defaultOpen>
+            <Band editor={editor} sectionKey="inputs" title={t('automations.ai_step_editors.inputs', 'Inputs')} defaultOpen>
                 <LayerInputFields {...editor} />
             </Band>
         );
@@ -47,7 +47,7 @@ export function TriggerEditor(editor: StepEditorProps) {
     return (
         <>
             <SelectField
-                label={t('mobile.flow.trigger.kind', 'Trigger kind')}
+                label={t('automations.trigger_editors.trigger_kind', 'Trigger kind')}
                 hint={
                     secondary
                         ? t(

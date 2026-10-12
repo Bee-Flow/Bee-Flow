@@ -29,7 +29,7 @@ require.cache[runnerPath] = {
     exports: new Proxy({}, { get: (_t, prop) => () => { throw new Error(`counts.js must not call runner.${String(prop)}`); } }),
 };
 
-const { createCountsRouter, KIND_KEYS, CACHE_TTL_MS, invalidate, toneOfScore } = require('./counts');
+const { createCountsRouter, KIND_KEYS, CACHE_TTL_MS, invalidate, toneOfScore, nextIncidentClock, hoursLeft } = require('./counts');
 
 const NOW = Date.parse('2026-09-14T12:00:00Z');
 const H = 3600_000;
@@ -181,11 +181,12 @@ test('full body: every key of the §1.2 shape, tones per score, ISO keys present
     // 3 active; 7 candidates; nis2 (30 d) + cra (3 d) recently in force; nis2 + pld locked
     assert.deepEqual(body.frameworks_summary, { active: 3, candidates: 7, recently_in_force: 2, locked: 2 });
     assert.deepEqual(body.dsr, { open: 4, overdue: 1, due_soon: 1 });
-    assert.deepEqual(body.incidents, { open: 1, next_deadline_at: at(NOW + 41 * H + 30 * 60_000), hours_left: 41, vulnerabilities_open: null });
+    // 41.5 h left reads "42 h" — the client's deadlineMath rounding, not a floor.
+    assert.deepEqual(body.incidents, { open: 1, next_deadline_at: at(NOW + 41 * H + 30 * 60_000), next_stage: 'authority', hours_left: 42, vulnerabilities_open: null });
     assert.deepEqual(body.ropa, { last_reviewed_at: at(NOW - 10 * D) });
     assert.deepEqual(body.dpia, { todo: 1 });
     assert.deepEqual(body.risks, { total: 12, high: 2 });
-    assert.deepEqual(body.soa, { approved: 9, total: 93 });
+    assert.deepEqual(body.soa, { approved: 9, total: 93, todo: 61 });
     assert.deepEqual(body.policies, { total: 2, review_due: 1 });
     assert.deepEqual(body.audits, { planned: 1 });
     assert.deepEqual(body.training, { done: 41, total: 44 });
@@ -312,14 +313,14 @@ test('one failing store drops ONE key, the body is served, and that partial body
     const warn = console.warn; console.warn = () => {};
     try {
         let fail = true;
-        const deps = makeDeps({ soaStore: { getStats: async () => { if (fail) throw new Error('db down'); return { total: 93, approved: 9 }; } } });
+        const deps = makeDeps({ soaStore: { getStats: async () => { if (fail) throw new Error('db down'); return { total: 93, approved: 9, todo: 61 }; } } });
         await listen(mount(deps));
         const b1 = await (await get()).json();
         assert.ok(!('soa' in b1));
         assert.deepEqual(b1.risks, { total: 12, high: 2 }, 'the rest is there');
         fail = false;
         const b2 = await (await get()).json();
-        assert.deepEqual(b2.soa, { approved: 9, total: 93 }, 'recounted on the next request — nothing was cached');
+        assert.deepEqual(b2.soa, { approved: 9, total: 93, todo: 61 }, 'recounted on the next request — nothing was cached');
         assert.equal(deps._calls.latest, 2);
     } finally { console.warn = warn; }
 });
@@ -392,4 +393,48 @@ test('toneOfScore thresholds: good ≥ 80, warn ≥ 60, bad below, none for null
     assert.equal(toneOfScore(59), 'bad');
     assert.equal(toneOfScore(0), 'bad');
     assert.equal(toneOfScore(null), 'none');
+});
+
+test('incidents: a DORA customer-notice clock 1 h out beats a 52 h authority clock, and names its stage', async () => {
+    const clocks = [
+        // GDPR breach: authority clock 52 h out.
+        { id: 1, deadline_at: at(NOW + 52 * H), authority_notified_at: null },
+        // GDPR + DORA ICT incident: the store rolls deadline_at up to the
+        // customer notice (1 h out); the authority clock (69 h) is its own.
+        { id: 2, deadline_at: at(NOW + H), authority_notified_at: null, customer_notice_due_at: at(NOW + H), customer_notified_at: null },
+    ];
+    await listen(mount(makeDeps({
+        incidentStore: {
+            getDeadlineStats: async () => ({ open: 2, vulnerabilities_open: 0 }),
+            listOpenClocks: async () => clocks,
+        },
+    })));
+    const body = await (await get()).json();
+    assert.deepEqual(body.incidents, { open: 2, next_deadline_at: at(NOW + H), next_stage: 'customer_notice', hours_left: 1, vulnerabilities_open: null });
+});
+
+test('nextIncidentClock skips a stamped clock, keeps the open stages of a notified incident, and ignores junk', () => {
+    // Authority notified: the old code dropped the whole row, and with it the
+    // DORA customer notice that is still running.
+    assert.deepEqual(nextIncidentClock([
+        { deadline_at: at(NOW + 3 * H), authority_notified_at: at(NOW - H), customer_notice_due_at: at(NOW + 3 * H), customer_notified_at: null },
+    ]), { at: NOW + 3 * H, stage: 'customer_notice' });
+    // CRA: the early warning is sent, the full report is the next clock.
+    assert.deepEqual(nextIncidentClock([
+        { deadline_at: at(NOW + 14 * D), early_warning_due_at: at(NOW - H), early_warning_sent_at: at(NOW - 2 * H),
+          final_report_due_at: at(NOW + 14 * D), final_report_sent_at: null, authority_notified_at: at(NOW - H) },
+    ]), { at: NOW + 14 * D, stage: 'final_report' });
+    // An open early warning wins its tie with the rolled-up deadline_at.
+    assert.equal(nextIncidentClock([{ deadline_at: at(NOW + 4 * H), early_warning_due_at: at(NOW + 4 * H) }]).stage, 'early_warning');
+    assert.equal(nextIncidentClock([{ deadline_at: 'not a date' }, null]), null);
+    assert.equal(nextIncidentClock([]), null);
+    assert.equal(nextIncidentClock(null), null);
+});
+
+test('hoursLeft rounds away from zero, like the client clock', () => {
+    assert.equal(hoursLeft(52 * H + 60_000), 53);
+    assert.equal(hoursLeft(H), 1);
+    assert.equal(hoursLeft(30 * 60_000), 1);
+    assert.equal(hoursLeft(0), 0);
+    assert.equal(hoursLeft(-90 * 60_000), -2);
 });

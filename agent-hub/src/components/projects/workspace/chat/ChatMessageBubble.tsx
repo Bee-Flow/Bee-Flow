@@ -199,7 +199,8 @@ function Actions({ message, ctx, onEditStart }: { message: TeamChatMessage; ctx:
     const canEdit = mine && ctx.canPost;
     // The server lets an editor delete their own message, and the owner any.
     const canDelete = (mine && ctx.canPost) || ctx.isProjectOwner;
-    if (message.deleted || (!ctx.canPost && !canDelete)) return null;
+    // Copy is for everyone who can read the message; the other actions need the right to post or delete.
+    if (message.deleted || (!ctx.canPost && !canDelete && !message.content)) return null;
     const onCopy = async () => {
         try {
             await navigator.clipboard.writeText(message.content);
@@ -276,11 +277,12 @@ function MessageBody({ message, ctx }: { message: TeamChatMessage; ctx: MessageC
 
 /**
  * What a message sits in: what a person wrote is a bubble (theirs on the right, tinted with the project's colour;
- * a colleague's on the left, in grey), the AI's answer is its wide card, a notice is not a bubble at all.
+ * a colleague's on the left, in that colleague's colour), the AI's answer has no bubble at all.
  */
 function bubbleFor(message: TeamChatMessage, ctx: MessageContext): { className: string; style?: React.CSSProperties } {
     if (message.authorKind !== 'user') {
-        return { className: 'rounded-lg px-2 py-1 -mx-2 hover:bg-[color-mix(in_srgb,var(--accent-primary)_5%,var(--bg-secondary))] transition-colors' };
+        // The AI's answer and a notice have no bubble: text on the page, as in the AI chat.
+        return { className: 'py-0.5' };
     }
     const mine = !!ctx.currentUserId && message.authorUserId === ctx.currentUserId;
     // A person's colour is only a wash: the bubble stays quiet, and the text keeps the theme's ink.

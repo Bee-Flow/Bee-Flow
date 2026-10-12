@@ -59,7 +59,9 @@ function branchEdgeFor(draft, fromId, toId, { branch, caseName } = {}) {
         return edge;
     }
     const pred = (draft.steps || []).find(s => s.id === fromId);
-    if (pred && pred.type === 'condition') {
+    // A guard branches exactly like a condition: then = personal data found,
+    // else = clean (core/automationRunner/execFlow.js treats the two alike).
+    if (pred && (pred.type === 'condition' || pred.type === 'guard')) {
         let label = (branch === 'then' || branch === 'else') ? branch : null;
         if (!label) {
             const labels = new Set((draft.edges || []).filter(e => e.from === fromId).map(e => e.label));
@@ -87,9 +89,21 @@ function branchEdgeFor(draft, fromId, toId, { branch, caseName } = {}) {
  */
 function layerAwareAnchor(graph, afterStepId, newStepId) {
     const out = Array.isArray(graph.steps) ? graph.steps.find(s => s && s.type === 'layer_output') : null;
-    // No output, or an explicit anchor on a real (non-output) step → respect it.
-    if (!out || (afterStepId && afterStepId !== out.id)) {
-        return afterStepId || lastStepId(graph);
+    if (!out) return afterStepId || lastStepId(graph);
+    if (afterStepId && afterStepId !== out.id) {
+        // An explicit anchor on a real step is respected — but when that step
+        // is the one feeding the Return, "after it" is still before the
+        // Return. Leaving its plain edge into the Return in place made the new
+        // step a parallel branch BESIDE the Return: `builder_add_code_step
+        // ({afterStepId:"trg"})` in a fresh flowlet gave trg→out and trg→code,
+        // the Return ran before the code and the flowlet returned an empty
+        // record. A labelled edge (a then/else/case branch, on_error) is a
+        // deliberate route and stays where it is.
+        const feed = Array.isArray(graph.edges)
+            ? graph.edges.find(e => e && e.from === afterStepId && e.to === out.id && (!e.label || e.label === 'on_success'))
+            : null;
+        if (feed) feed.from = newStepId;
+        return afterStepId;
     }
     const feed = Array.isArray(graph.edges) ? graph.edges.find(e => e && e.to === out.id) : null;
     const anchor = feed ? feed.from : (graph.trigger?.id || lastStepId(graph));
@@ -113,13 +127,16 @@ function layerAwareAnchor(graph, afterStepId, newStepId) {
  * are a different path, not a successor. A moved edge is relabelled for its
  * new origin: plain when the new step is not branching, `then` when the new
  * step is a condition (the old successor becomes its true-branch; the author
- * grows the else-branch afterwards). A switch cannot be spliced in — there is
- * no case to hand the old successor to — so the caller gets an error and
- * wires `nextStepIds` explicitly instead.
+ * grows the else-branch afterwards), and its FIRST output when the new step is
+ * a switch that works through a list (`arrayRef`): that is where the canvas
+ * keeps the connection when a Condition grows from one output to several. A
+ * switch without a list has no output to hand the old successor to, so the
+ * caller gets an error and wires `nextStepIds` explicitly instead.
  */
 function spliceSuccessors(draft, anchorId, step, newEdge) {
-    if (step.type === 'switch') {
-        throw new Error('splice is not supported when the new step is a switch — add it with nextStepIds and remove the old edge instead.');
+    const firstCase = step.type === 'switch' ? spliceCaseOf(step) : null;
+    if (step.type === 'switch' && !firstCase) {
+        throw new Error('splice is not supported when the new step is a switch without arrayRef — add it with nextStepIds and remove the old edge instead.');
     }
     const label = newEdge.label || null;
     let moved = 0;
@@ -129,11 +146,19 @@ function spliceSuccessors(draft, anchorId, step, newEdge) {
         if ((e.label || null) !== label) continue;
         e.from = step.id;
         delete e.caseName;
-        if (step.type === 'condition') e.label = 'then';
+        if (step.type === 'condition' || step.type === 'guard') e.label = 'then';
+        else if (firstCase) { e.label = `case:${firstCase}`; e.caseName = firstCase; }
         else delete e.label;
         moved++;
     }
     return moved;
+}
+
+/** The output a spliced-in list switch hands the old successor to: its first case; null when it has none or no list. */
+function spliceCaseOf(step) {
+    if (typeof step.arrayRef !== 'string' || !step.arrayRef.trim()) return null;
+    const first = (Array.isArray(step.cases) ? step.cases : []).find(c => c && typeof c.name === 'string' && c.name);
+    return first ? first.name : null;
 }
 
 function appendAfter(draft, afterStepId, step, opts = {}) {
@@ -263,7 +288,8 @@ function reconcileOutgoingEdges(graph, oldStep, newStep) {
     const notes = [];
     if (stripped.length) notes.push(`Stripped now-invalid branch labels on outgoing edges: ${stripped.join(', ')}.`);
     if (dropIdx.size) notes.push(`Dropped on_error edge(s) — a ${newStep.type} step cannot carry one.`);
-    if (!wasBranching && nowBranching) {
+    const unlabelled = (graph.edges || []).some(e => e.from === id && !e.label);
+    if (!wasBranching && nowBranching && unlabelled) {
         notes.push(`This step is now branching (${newStep.type}) but its outgoing edge(s) are unlabelled — set branch targets so they don't dead-end (re-wire with builder_add_* branch/caseName, or builder_remove_step + re-add).`);
     }
     return notes.length ? notes.join(' ') : null;
@@ -388,6 +414,7 @@ module.exports = {
     layerAwareAnchor,
     appendAfter,
     spliceSuccessors,
+    spliceCaseOf,
     moveStepAfter,
     applyWireErrorBranch,
     ERROR_BRANCH_FORBIDDEN_SOURCES,

@@ -43,11 +43,19 @@ export const ENTRY_SUFFIX = '__entry__';
 
 function isObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
 
+/**
+ * Translate with `t` when there is one; otherwise the English default
+ * (tests, non-React callers), interpolated the same way.
+ */
+const tr = (t, key, en, params) => (t
+    ? t(key, en, params)
+    : en.replace(/\{(\w+)\}/g, (m, k) => (params && k in params ? String(params[k]) : m)));
+
 /** "When it is Paid" — or the position, while nobody has said what it matches. */
-function caseLabel(c, i) {
+function caseLabel(c, i, t) {
     const v = c?.value;
-    if (v === '' || v === null || v === undefined) return `Case ${i + 1}`;
-    return `When it is ${v}`;
+    if (v === '' || v === null || v === undefined) return tr(t, 'studio_apps_edit.step_graph.case_n', 'Case {n}', { n: i + 1 });
+    return tr(t, 'studio_apps_edit.step_graph.when_it_is', 'When it is {value}', { value: v });
 }
 
 /**
@@ -55,16 +63,16 @@ function caseLabel(c, i) {
  * flattenSteps walks, so a reader can line the two up.
  * → [{ key, label, steps }]
  */
-export function scopesOf(step) {
+export function scopesOf(step, t = null) {
     if (!isObject(step)) return [];
     switch (step.kind) {
         case 'condition':
             return [
-                { key: 'then', label: 'Yes', steps: step.then },
-                { key: 'else', label: 'No', steps: step.else },
+                { key: 'then', label: tr(t, 'studio_apps_edit.step_graph.yes', 'Yes'), steps: step.then },
+                { key: 'else', label: tr(t, 'studio_apps_edit.step_graph.no', 'No'), steps: step.else },
             ];
         case 'loop':
-            return [{ key: 'body', label: 'For each', steps: step.steps }];
+            return [{ key: 'body', label: tr(t, 'studio_apps_edit.step_graph.for_each', 'For each'), steps: step.steps }];
         case 'switch': {
             const cases = Array.isArray(step.cases) ? step.cases : [];
             // Keyed by POSITION, not by the case's value: canonicalize keeps
@@ -75,10 +83,10 @@ export function scopesOf(step) {
             return [
                 ...cases.map((c, i) => ({
                     key: `case:${i}`,
-                    label: caseLabel(c, i),
+                    label: caseLabel(c, i, t),
                     steps: c?.steps,
                 })),
-                { key: 'case:default', label: 'Otherwise', steps: step.default },
+                { key: 'case:default', label: tr(t, 'studio_apps_edit.step_graph.otherwise', 'Otherwise'), steps: step.default },
             ];
         }
         default:
@@ -124,7 +132,7 @@ export function sameScope(a, b) {
  * `isEntry` marks a container scope's pill — a real node the canvas can draw
  * and connect from, but not a step: it never comes back out.
  */
-export function stepsToGraph(action) {
+export function stepsToGraph(action, t = null) {
     const nodes = [];
     const edges = [];
 
@@ -146,7 +154,7 @@ export function stepsToGraph(action) {
             if (previousId) edges.push({ id: `${previousId}->${id}`, from: previousId, to: id, label: null });
             previousId = id;
 
-            for (const scope of scopesOf(step)) {
+            for (const scope of scopesOf(step, t)) {
                 walk(scope.steps, makeId(id, scope.key), id, scope.key, scope.label);
             }
         });
@@ -233,21 +241,21 @@ export function graphToSteps(nodes, edges) {
  * `stepIndex` meaning the same thing on both sides of the wire.
  * → { ok: true } | { ok: false, reason }
  */
-export function canConnect(from, to, edges, nodes) {
-    if (from === to) return { ok: false, reason: 'A step cannot follow itself.' };
+export function canConnect(from, to, edges, nodes, t = null) {
+    if (from === to) return { ok: false, reason: tr(t, 'studio_apps_edit.step_graph.no_self', 'A step cannot follow itself.') };
     if (!sameScope(from, to)) {
-        return { ok: false, reason: 'Steps can only be connected inside the same branch.' };
+        return { ok: false, reason: tr(t, 'studio_apps_edit.step_graph.same_branch', 'Steps can only be connected inside the same branch.') };
     }
     const target = nodes.find((n) => n.id === to);
-    if (target?.isEntry) return { ok: false, reason: 'A branch always starts at its own entry point.' };
+    if (target?.isEntry) return { ok: false, reason: tr(t, 'studio_apps_edit.step_graph.entry_point', 'A branch always starts at its own entry point.') };
     if (edges.some((e) => e.to === to)) {
-        return { ok: false, reason: 'A step can only follow one other step — disconnect the existing one first.' };
+        return { ok: false, reason: tr(t, 'studio_apps_edit.step_graph.one_incoming', 'A step can only follow one other step — disconnect the existing one first.') };
     }
     if (edges.some((e) => e.from === from)) {
-        return { ok: false, reason: 'This step already leads somewhere — disconnect that first.' };
+        return { ok: false, reason: tr(t, 'studio_apps_edit.step_graph.one_outgoing', 'This step already leads somewhere — disconnect that first.') };
     }
     if (createsCycle(from, to, edges)) {
-        return { ok: false, reason: 'That would loop back on itself.' };
+        return { ok: false, reason: tr(t, 'studio_apps_edit.step_graph.cycle', 'That would loop back on itself.') };
     }
     return { ok: true };
 }

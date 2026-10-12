@@ -23,7 +23,10 @@ function describeSourcesForPrompt({ maxEventsPerProvider = 12 } = {}) {
     const eventList = sources.map(({ src, events }) => {
         const ids = events.map(e => e.id);
         const shown = ids.slice(0, maxEventsPerProvider);
-        const more = ids.length > shown.length ? ', …' : '';
+        // The count, not a bare ellipsis: a model reading "…" cannot tell one
+        // event more from forty. The chat builder also gets every event of the
+        // providers THIS user has, in its per-turn context (catalogRender).
+        const more = ids.length > shown.length ? `, …+${ids.length - shown.length} more` : '';
         return `${src.id}.{${shown.join(', ')}${more}}`;
     }).join('; ');
 

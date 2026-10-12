@@ -19,7 +19,9 @@
  */
 import { Brain, Globe, LayoutGrid, Paperclip, Phone } from 'lucide-react';
 
+import { nextMemoryMode } from '../../../utils/memoryMode';
 import scopedStorage from '../../../utils/scopedStorage';
+import { memoryHint } from '../memory/memoryModeCopy';
 
 export function buildComposerTools({
     t,
@@ -33,11 +35,13 @@ export function buildComposerTools({
     canWebSearch,
     webSearchEnabled,
     webSearchBlocked,
+    webSearchUnavailable = null,
     setWebSearchEnabled,
     simpleMode,
     showTierSlider,
-    memoryWriteEnabled,
-    toggleMemoryWrite,
+    memoryMode,
+    changeMemoryMode,
+    memoryLock = null,
     voiceReady,
     voiceMode,
     setVoiceMode,
@@ -71,10 +75,11 @@ export function buildComposerTools({
         canWebSearch && {
             id: 'web-search', group: 'mode', kind: 'toggle', icon: Globe,
             label: t('chat.composer.tools_web_search', 'Web search'),
-            on: webSearchEnabled && !webSearchBlocked,
-            dot: webSearchEnabled && !webSearchBlocked,
-            disabled: webSearchBlocked,
-            hint: t(
+            on: webSearchEnabled && !webSearchBlocked && !webSearchUnavailable,
+            dot: webSearchEnabled && !webSearchBlocked && !webSearchUnavailable,
+            disabled: webSearchBlocked || !!webSearchUnavailable,
+            // The server's reason wins: it is the one that actually refused.
+            hint: webSearchUnavailable || t(
                 webSearchBlocked ? 'chat.composer.tools_web_search_blocked' : 'chat.composer.tools_web_search_hint',
                 webSearchBlocked
                     ? 'Web search disabled by organisation policy (files attached)'
@@ -92,13 +97,11 @@ export function buildComposerTools({
         !simpleMode && !showTierSlider && {
             id: 'memory', group: 'mode', kind: 'toggle', icon: Brain,
             label: t('chat.composer.tools_memory', 'Memory'),
-            on: memoryWriteEnabled,
-            dot: !memoryWriteEnabled,
-            hint: t(
-                memoryWriteEnabled ? 'chat.composer.tools_memory_on' : 'chat.composer.tools_memory_off',
-                memoryWriteEnabled ? 'Saving new memories from this chat' : 'Memory saving paused',
-            ),
-            onSelect: toggleMemoryWrite,
+            on: memoryMode === 'on' && !memoryLock,
+            dot: memoryMode !== 'on' || !!memoryLock,
+            disabled: !!memoryLock,
+            hint: memoryHint(t, memoryMode, memoryLock),
+            onSelect: () => changeMemoryMode(nextMemoryMode(memoryMode)),
         },
         !simpleMode && voiceReady && {
             id: 'voice', group: 'mode', kind: 'toggle', icon: Phone,

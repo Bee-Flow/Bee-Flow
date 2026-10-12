@@ -44,6 +44,28 @@ describe('VerificationChip — measured vs declared must never look alike', () =
         expect(chip).toHaveTextContent('Self-attested');
     });
 
+    it('compact: automated is only its glyph, with the label for screen readers and the hint as title', () => {
+        render(<VerificationChip verification="automated" compact />);
+        const chip = screen.getByTestId('verification-chip');
+        expect(chip).toHaveAttribute('data-compact', 'true');
+        expect(chip.style.border).toBe('');
+        expect(chip.querySelectorAll('svg')).toHaveLength(1);
+        expect(chip.querySelector('.sr-only')).toHaveTextContent('Verified automatically');
+        expect(chip).toHaveAttribute('title', 'This result is evaluated from live system state and telemetry.');
+    });
+
+    it('compact keeps the bordered chip for the exceptions: attestation (dashed) and hybrid', () => {
+        const { rerender } = render(<VerificationChip verification="attestation" compact />);
+        let chip = screen.getByTestId('verification-chip');
+        expect(chip.style.border).toBe('1px dashed var(--text-tertiary)');
+        expect(chip).toHaveTextContent('Self-attested');
+        expect(chip).not.toHaveAttribute('data-compact');
+        rerender(<VerificationChip verification="hybrid" compact />);
+        chip = screen.getByTestId('verification-chip');
+        expect(chip.style.border).toBe('1px solid var(--border-default)');
+        expect(chip).toHaveTextContent('Verified + attested');
+    });
+
     it('an unknown or missing verification renders nothing, and the kind list is the contract vocabulary', () => {
         const { container, rerender } = render(<VerificationChip verification="manual" />);
         expect(container).toBeEmptyDOMElement();

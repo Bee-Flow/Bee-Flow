@@ -16,6 +16,7 @@ import { View, type ViewStyle } from 'react-native';
 import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import type { BindingValue, JsonSchema } from '@/features/flow-editor/bindings';
+import type { ForEachConfig } from '@/features/flow-editor/bindings/deepenForEach';
 import { buildSchemaFormModel, updateInput, type Inputs, type SchemaFormField } from '@/features/flow-editor/schemaForm';
 import { Button } from '@/shared/ui';
 
@@ -34,6 +35,13 @@ export interface JsonSchemaFormProps {
     /** Inputs the schema does not declare may be added (additionalProperties). */
     allowExtra?: boolean;
     disabled?: boolean;
+    /**
+     * The step's current forEach. The host runs the step once per inner item
+     * when a value from a list inside a list lands in an input
+     * (bindings/deepenInputs.ts), so such a pick goes in as its path; without
+     * it, any pick that could deepen does.
+     */
+    forEach?: ForEachConfig | null;
 }
 
 /** An enum option as the value a picker shows, and the stored literal back. */
@@ -42,7 +50,20 @@ export function enumValue(binding: unknown): string {
     return b && b.kind === 'literal' && b.value != null ? String(b.value) : '';
 }
 
-function SchemaField({ field, onChange, disabled }: { field: SchemaFormField; onChange: (b: BindingValue) => void; disabled: boolean }) {
+interface SchemaFieldProps {
+    field: SchemaFormField;
+    onChange: (b: BindingValue) => void;
+    disabled: boolean;
+    forEach?: ForEachConfig | null;
+}
+
+/** A one-value input shapes a list, table or record picked into it, as the web's ValueBuilder does. */
+function shapingFor(field: SchemaFormField, forEach: ForEachConfig | null | undefined) {
+    if (field.expectShape !== 'scalar') return null;
+    return { slot: field.label, expectKind: field.expectKind, expectShape: field.expectShape, deepen: forEach === undefined ? {} : { forEach } };
+}
+
+function SchemaField({ field, onChange, disabled, forEach }: SchemaFieldProps) {
     const t = useTranslation();
     const auto = field.autoMapped ? t('mobile.flow.input.auto', 'Filled in automatically') : null;
     const hint = [field.hint, auto].filter(Boolean).join(' · ') || null;
@@ -74,6 +95,7 @@ function SchemaField({ field, onChange, disabled }: { field: SchemaFormField; on
             onChange={(b) => onChange(b as BindingValue)}
             disabled={disabled}
             testID={`input-${field.key}`}
+            shaping={shapingFor(field, forEach)}
         />
     );
 }
@@ -124,7 +146,7 @@ export function JsonSchemaForm(props: JsonSchemaFormProps) {
         setConsumed((prev) => new Set(prev).add(key));
         onChange(updateInput(current, key, b));
     };
-    const field = (f: SchemaFormField) => <SchemaField key={f.key} field={f} onChange={set(f.key)} disabled={disabled} />;
+    const field = (f: SchemaFormField) => <SchemaField key={f.key} field={f} onChange={set(f.key)} disabled={disabled} forEach={props.forEach} />;
     const autoMap = <AutoMapButton onPress={disabled ? undefined : onAutoMap} />;
 
     if (model.mode === 'generic') {

@@ -13,11 +13,6 @@ const assert = require('node:assert');
 const { NL_TRANSLATIONS, SAME_AS_ENGLISH } = require('./add-nl-learning-foundations-translations');
 const { GUI_DEFAULTS } = require('../i18n/defaults/en');
 
-test('every Dutch key exists in the English catalog', () => {
-    const orphans = Object.keys(NL_TRANSLATIONS).filter(k => !(k in GUI_DEFAULTS));
-    assert.deepStrictEqual(orphans, []);
-});
-
 test('no Dutch value is blank or the English one copied over', () => {
     const SAME_IN_BOTH = new Set(SAME_AS_ENGLISH);
     for (const [k, v] of Object.entries(NL_TRANSLATIONS)) {

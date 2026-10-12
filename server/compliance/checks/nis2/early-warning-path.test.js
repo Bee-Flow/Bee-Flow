@@ -75,6 +75,13 @@ test('register without the NIS2 columns (42703) → warn not provisioned, readin
     noPii(r);
 });
 
+test('an e-mail address typed as reported_via never reaches the evidence', async () => {
+    fx.incidents = [incident(1, { reported_via: 'mail to contact@ncsc.example.org' })];
+    const r = await check.evaluate(ORG);
+    noPii(r);
+    assert.equal(r.evidence.incidents[0].reported_via, 'email');
+});
+
 test('ready: channel + CSIRT + recipients, no open incident → pass; contact never in evidence', async () => {
     const r = await check.evaluate(ORG);
     assert.equal(r.status, 'pass');
@@ -138,7 +145,9 @@ test('every clock NULL on every open incident → still warn, with all of them c
     const r = await check.evaluate(ORG);
     assert.equal(r.status, 'warn');
     assert.equal(r.evidence.unknown_clock_count, 2);
-    assert.equal(r.evidence.clocks_unknown, 6);
+    // The 72 h notification is computed from detected_at, so only the early
+    // warning and the final report are unknown per incident.
+    assert.equal(r.evidence.clocks_unknown, 4);
     assert.equal(r.evidence.overdue_count, 0);
 });
 
@@ -159,12 +168,31 @@ test('early warning overdue without a stamp → fail', async () => {
 });
 
 test('72 h notification overdue without authority_notified_at → fail; stamped → not overdue', async () => {
-    fx.incidents = [incident(1, { early_warning_sent_at: inAt(-1), deadline_at: inAt(-1) })];
+    fx.incidents = [incident(1, { detected_at: inAt(-73), early_warning_sent_at: inAt(-60), deadline_at: inAt(-1) })];
     assert.equal((await check.evaluate(ORG)).status, 'fail');
-    fx.incidents = [incident(1, { early_warning_sent_at: inAt(-1), deadline_at: inAt(-1), authority_notified_at: inAt(-2), status: 'authority_notified' })];
+    fx.incidents = [incident(1, { detected_at: inAt(-73), early_warning_sent_at: inAt(-60), deadline_at: inAt(-1), authority_notified_at: inAt(-2), status: 'authority_notified' })];
     const r = await check.evaluate(ORG);
     assert.equal(r.status, 'pass');
     assert.equal(r.evidence.incidents[0].clocks.notification.state, 'sent');
+});
+
+test('the notification clock is 72 h from detection, not the row\'s earliest deadline', async () => {
+    // A NIS2 + DORA incident: deadline_at holds the 4 h DORA customer notice,
+    // which has passed. That is not a missed NIS2 notification — the 72 h
+    // clock still runs.
+    fx.incidents = [incident(1, { regimes: ['NIS2', 'DORA'], detected_at: inAt(-6), early_warning_due_at: inAt(18), deadline_at: inAt(-2) })];
+    const r = await check.evaluate(ORG);
+    const clock = r.evidence.incidents[0].clocks.notification;
+    assert.equal(clock.state, 'running');
+    assert.equal(new Date(clock.due_at).getTime(), new Date(fx.incidents[0].detected_at).getTime() + 72 * HOUR);
+    assert.equal(r.status, 'pass');
+});
+
+test('no detected_at → the notification clock is unknown, never met', async () => {
+    fx.incidents = [incident(1, { detected_at: null })];
+    const r = await check.evaluate(ORG);
+    assert.equal(r.evidence.incidents[0].clocks.notification.state, 'no_clock');
+    assert.equal(r.status, 'warn');
 });
 
 test('final report overdue → fail', async () => {

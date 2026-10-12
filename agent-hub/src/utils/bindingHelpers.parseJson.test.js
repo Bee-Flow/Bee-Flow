@@ -58,8 +58,9 @@ describe('walkRelativePath — server parity', () => {
     });
 
     it('non-string weirdness is rejected safely', () => {
-        // A bare-digit key fails REF_RE's identifier rule — bracket form works.
-        expect(walkRelativePath(0, { 0: 'zero' })).toBeUndefined();
+        // A bare-digit key reads as key "0" (shared/expr/path.mjs: `items.0.x`,
+        // the shape older AI-built paths have, resolves) — bracket form too.
+        expect(walkRelativePath(0, { 0: 'zero' })).toBe('zero');
         expect(walkRelativePath('[0]', ['zero'])).toBe('zero');
         // A malformed path (unclosed bracket) → undefined, no throw.
         expect(walkRelativePath('items[0', { items: ['x'] })).toBeUndefined();

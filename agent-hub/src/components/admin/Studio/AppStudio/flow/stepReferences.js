@@ -31,15 +31,15 @@ export const REFERENCE_FIELDS = {
     documentId: 'document',
 };
 
-/** The label a picker shows when the field is not set yet. */
+/** The label a picker shows when the field is not set yet: { key, en } per reference kind. */
 export const REFERENCE_PLACEHOLDERS = {
-    screen: 'Pick a screen…',
-    modal: 'Pick a dialog…',
-    table: 'Pick a table…',
-    dataset: 'Pick a saved view…',
-    automation: 'Pick an automation…',
-    connector: 'Pick a connection…',
-    document: 'Pick a document…',
+    screen: { key: 'studio_apps_edit.step_refs.pick_screen', en: 'Pick a screen…' },
+    modal: { key: 'studio_apps_edit.step_refs.pick_dialog', en: 'Pick a dialog…' },
+    table: { key: 'studio_apps_edit.step_refs.pick_table', en: 'Pick a table…' },
+    dataset: { key: 'studio_apps_edit.step_refs.pick_dataset', en: 'Pick a saved view…' },
+    automation: { key: 'studio_apps_edit.step_refs.pick_automation', en: 'Pick an automation…' },
+    connector: { key: 'studio_apps_edit.step_refs.pick_connector', en: 'Pick a connection…' },
+    document: { key: 'studio_apps_edit.step_refs.pick_document', en: 'Pick a document…' },
 };
 
 /**
@@ -47,26 +47,36 @@ export const REFERENCE_PLACEHOLDERS = {
  * because "no options" on its own reads as a broken screen.
  */
 export const REFERENCE_EMPTY_HINTS = {
-    screen: 'This app has no other screens yet.',
-    modal: 'This app has no dialogs yet — add a Dialog component to a screen first.',
-    table: 'This app has no tables yet — make one under Data first.',
-    dataset: 'No saved views yet — save one from the query builder first.',
-    automation: 'No automations yet.',
-    connector: 'No connections yet — add one under Data · Connections first.',
-    document: 'No designed documents yet — make the invoice, quote or letter in Studio → Documents first.',
+    screen: { key: 'studio_apps_edit.step_refs.empty_screen', en: 'This app has no other screens yet.' },
+    modal: { key: 'studio_apps_edit.step_refs.empty_dialog', en: 'This app has no dialogs yet — add a Dialog component to a screen first.' },
+    table: { key: 'studio_apps_edit.step_refs.empty_table', en: 'This app has no tables yet — make one under Data first.' },
+    dataset: { key: 'studio_apps_edit.step_refs.empty_dataset', en: 'No saved views yet — save one from the query builder first.' },
+    automation: { key: 'studio_apps_edit.step_refs.empty_automation', en: 'No automations yet.' },
+    connector: { key: 'studio_apps_edit.step_refs.empty_connector', en: 'No connections yet — add one under Data · Connections first.' },
+    document: { key: 'studio_apps_edit.step_refs.empty_document', en: 'No designed documents yet — make the invoice, quote or letter in Studio → Documents first.' },
 };
+
+/** A { key, en } entry from the tables above, translated (English without `t`). */
+export function referenceText(entry, t = null) {
+    if (!entry) return '';
+    return t ? t(entry.key, entry.en) : entry.en;
+}
 
 /**
  * Documents as { id, label }. The count of placeholders rides in the label: an
  * author picking between "Factuur" and "Factuur (oud)" needs to see which one
  * still has holes to fill, and the alternative is opening both in another tab.
  */
-export function documentOptions(documents) {
+export function documentOptions(documents, t = null) {
     return (Array.isArray(documents) ? documents : [])
         .filter((d) => d && typeof d.id === 'string')
         .map((d) => ({
             id: d.id,
-            label: d.placeholders?.length ? `${d.name} · ${d.placeholders.length} placeholder(s)` : d.name,
+            label: d.placeholders?.length
+                ? (t
+                    ? t('studio_apps_edit.step_refs.document_placeholders', '{name} · {n} placeholder(s)', { name: d.name, n: d.placeholders.length })
+                    : `${d.name} · ${d.placeholders.length} placeholder(s)`)
+                : d.name,
         }));
 }
 

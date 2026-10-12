@@ -8,6 +8,7 @@
  */
 
 const isoEvidenceStore = require('../../../stores/isoEvidenceStore');
+const { snapshotFor } = require('../../lib/connectorEvidence');
 
 module.exports = {
     id: 'ISO27001-A.8.32-ticketed-changes',
@@ -32,22 +33,25 @@ module.exports = {
             };
         }
         const snaps = await isoEvidenceStore.listLatestSnapshots(orgId, 'youtrack').catch(() => []);
-        if (!snaps.length) {
+        // The project as the connector trims it into the subject; a project
+        // that was configured before keeps its last snapshot in the list.
+        const snap = snapshotFor(snaps, String(config.settings?.project || '').trim());
+        if (!snap) {
             return {
                 status: 'warn',
                 evidence: { connector: 'youtrack', enabled: true, snapshots: 0 },
-                details: 'Connector enabled but no snapshot yet — run a sweep or check the base URL, token and project.',
+                details: 'Connector enabled but no snapshot for the configured project yet — run a sweep or check the base URL, token and project.',
             };
         }
-        const p = snaps[0].payload || {};
+        const p = snap.payload || {};
         const recent = Number(p.recent_issues) || 0;
         const resolved = Number(p.resolved_recent) || 0;
         const evidence = {
-            project: p.project || snaps[0].subject_id,
+            project: p.project || snap.subject_id,
             window_days: p.window_days || 30,
             recent_issues: recent,
             resolved_recent: resolved,
-            fetched_at: snaps[0].fetched_at,
+            fetched_at: snap.fetched_at,
         };
         if (recent === 0) {
             return {

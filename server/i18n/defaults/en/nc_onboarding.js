@@ -1,0 +1,35 @@
+// English GUI defaults — namespace "nc_onboarding": every key whose part before the first "." is "nc_onboarding".
+// Merged into GUI_DEFAULTS by ./index.js. The frontend copy (agent-hub/src/i18n/en-defaults.js)
+// is GENERATED from these files: after an edit, run `npm run i18n:gen`.
+module.exports = {
+    // ── Hard-coded literals converted 2026-10 (integrations, agents, appearance, support, knowledge, wizards) ──
+    'nc_onboarding.nc_onboarding_wizard_tell_us_a_bit_about_your_organisation': 'Tell us a bit about your organisation. We pre-filled what Nextcloud already knows; the rest is optional and can be edited later.',
+    'nc_onboarding.nc_onboarding_wizard_organisation_name': 'Organisation name *',
+    'nc_onboarding.nc_onboarding_wizard_billing_email': 'Billing email',
+    'nc_onboarding.nc_onboarding_wizard_tagline': 'Tagline',
+    'nc_onboarding.nc_onboarding_wizard_one_line_that_describes_your_team': 'One line that describes your team',
+    'nc_onboarding.nc_onboarding_wizard_phone': 'Phone',
+    'nc_onboarding.nc_onboarding_wizard_website': 'Website',
+    'nc_onboarding.nc_onboarding_wizard_address': 'Address',
+    'nc_onboarding.nc_onboarding_wizard_chamber_of_commerce_kvk': 'Chamber of Commerce (KVK)',
+    'nc_onboarding.nc_onboarding_wizard_vat': 'VAT',
+    'nc_onboarding.nc_onboarding_wizard_bee_flow': 'Bee Flow',
+    'nc_onboarding.nc_onboarding_wizard_step_of': 'Step {current} of {total}',
+    'nc_onboarding.nc_onboarding_wizard_bee_flow_is_now_connected_to_your': 'Bee Flow is now connected to your Nextcloud instance. We\'ll walk you through a few quick decisions about how Bee Flow runs and how it handles your team and their data.',
+    'nc_onboarding.nc_onboarding_wizard_no_credentials_app_passwords_or_oauth': 'No credentials, app passwords, or OAuth clients required — Nextcloud handles authentication, and Bee Flow uses the AppAPI shared secret to act on each user\'s behalf.',
+    'nc_onboarding.nc_onboarding_wizard_who_gets_a_bee_flow_account': 'Who gets a Bee Flow account?',
+    'nc_onboarding.nc_onboarding_wizard_groups_to_sync_1_required': 'Groups to sync (≥1 required)',
+    'nc_onboarding.nc_onboarding_wizard_excluded_groups_members_never_mirrored': 'Excluded groups (members never mirrored)',
+    'nc_onboarding.nc_onboarding_wizard_new_user_default_status': 'New user default status',
+    'nc_onboarding.nc_onboarding_wizard_enable_privacy_shield': 'Enable Privacy Shield',
+    'nc_onboarding.nc_onboarding_wizard_detects_pii_emails_phone_numbers_ibans': 'Detects PII (emails, phone numbers, IBANs, etc.) before messages reach the AI. Runs locally, in-process — no third-party services.',
+    'nc_onboarding.nc_onboarding_wizard_action_on_detection': 'Action on detection',
+    'nc_onboarding.nc_onboarding_wizard_categories_to_detect_count_count_2': 'Categories to detect ({count}/{count_2})',
+    'nc_onboarding.nc_onboarding_wizard_review_your_choices_and_finish_setup': 'Review your choices and finish setup. You can change any of this later under Settings → Organisation.',
+    'nc_onboarding.nc_onboarding_wizard_sync_mode': 'Sync mode:',
+    'nc_onboarding.nc_onboarding_wizard_privacy_shield': 'Privacy Shield:',
+    'nc_onboarding.nc_onboarding_wizard_your_subscription_is_managed': 'Your subscription is managed separately under',
+    'nc_onboarding.nc_onboarding_wizard_settings_organisation_license_usage': 'Settings → Organisation → License & Usage',
+    'nc_onboarding.nc_onboarding_wizard_back': 'Back',
+    'nc_onboarding.nc_onboarding_wizard_next': 'Next',
+};

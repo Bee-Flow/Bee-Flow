@@ -8,8 +8,9 @@
  * Rename follows the edge; delete drops it. Pure.
  */
 
-import { edgeKey } from '../branchEdges';
-import type { FlowDefinition, FlowEdge, FlowStep, FlowTrigger, SwitchCase } from '../types';
+import { followRouteEdit, isListRoute, relabelSwitchEdges, type RouteDefinition } from '@/shared/expr';
+
+import type { FlowDefinition, FlowStep, FlowTrigger, SwitchCase } from '../types';
 import { reconcileRouteEdges } from './routeEdges';
 
 /** A case name that does not collide with any existing case. */
@@ -23,32 +24,11 @@ export function uniqueCaseName(cases: readonly SwitchCase[] | null | undefined, 
     return name;
 }
 
-const namesOf = (cases: unknown) =>
-    (Array.isArray(cases) ? (cases as SwitchCase[]) : []).map((c) => c?.name).filter((n): n is string => !!n);
-
-function caseOf(e: FlowEdge): string | null {
-    if (e.caseName != null) return e.caseName;
-    if (typeof e.label === 'string' && e.label.startsWith('case:')) return e.label.slice(5);
-    return null;
-}
-
-/** Positional renames (same index, new name) and the names that are gone. */
-function diffCases(prev: string[], next: string[]) {
-    const renames = new Map<string, string>();
-    if (prev.length === next.length) {
-        prev.forEach((name, i) => {
-            if (name !== next[i]) renames.set(name, next[i] as string);
-        });
-    }
-    const nextNames = new Set(next);
-    const removed = new Set(prev.filter((n) => !nextNames.has(n) && !renames.has(n)));
-    return { renames, removed };
-}
-
 /**
  * Re-point a switch's outgoing edges (and its defaultBranch) after its cases
- * changed. Renames are applied as ONE map in one pass (an A↔B swap cannot
- * chain); removed cases take their edges; `case:default` is never touched.
+ * changed: the shared relabelSwitchEdges, so the phone, the canvas and the AI
+ * builder agree. A case renamed in place moves its edges; a reorder moves
+ * nothing; removed cases take their edges; `case:default` is never touched.
  */
 export function reconcileSwitchEdges<T extends Partial<FlowDefinition> | null | undefined>(
     definition: T,
@@ -56,42 +36,28 @@ export function reconcileSwitchEdges<T extends Partial<FlowDefinition> | null | 
     prevCases: unknown,
     nextCases: unknown,
 ): T {
-    if (!definition || !stepId) return definition;
-    const { renames, removed } = diffCases(namesOf(prevCases), namesOf(nextCases));
-    if (renames.size === 0 && removed.size === 0) return definition;
-
-    const seen = new Set<string>();
-    const edges: FlowEdge[] = [];
-    for (const e of definition.edges || []) {
-        let out = e;
-        const name = e.from === stepId ? caseOf(e) : null;
-        if (name != null && name !== 'default') {
-            if (removed.has(name)) continue;
-            const renamed = renames.get(name);
-            if (renamed) out = { ...e, label: `case:${renamed}`, caseName: renamed };
-        }
-        const key = edgeKey(out);
-        if (seen.has(key)) continue;
-        seen.add(key);
-        edges.push(out);
-    }
-
-    const healStep = (s: FlowStep): FlowStep => {
-        if (!s || s.id !== stepId || typeof s.defaultBranch !== 'string' || !s.defaultBranch) return s;
-        if (renames.has(s.defaultBranch)) return { ...s, defaultBranch: renames.get(s.defaultBranch) };
-        if (removed.has(s.defaultBranch)) return { ...s, defaultBranch: null };
-        return s;
-    };
-    return { ...definition, edges, steps: (definition.steps || []).map(healStep) };
+    return relabelSwitchEdges(definition as T & RouteDefinition, stepId, prevCases, nextCases) as T;
 }
 
 type AnyStep = (FlowStep | FlowTrigger) & { cases?: unknown };
 
 /**
+ * The steps that read a Condition's outputs follow its change (shared
+ * routeFollow.mjs): a list Condition's one output becoming several re-points the connected step
+ * from `items` to the first output's list, a renamed output carries its
+ * readers along, a list moved one level in takes the inner `[*].<key>` off.
+ */
+function followRoute<T extends Partial<FlowDefinition>>(definition: T, step: AnyStep, merged: AnyStep): T {
+    if (!isListRoute(step) && !isListRoute(merged)) return definition;
+    return followRouteEdit(definition, step.id, step).definition as T;
+}
+
+/**
  * Merge one node's patch into the whole (scoped) definition — the single
  * implementation behind every save of a node editor. When the patch changes
  * the step's TYPE, or a switch's `cases`, the edges are healed in the SAME
- * definition object, so the save is atomic and one undo restores both.
+ * definition object, so the save is atomic and one undo restores both — and
+ * so do the references of the steps that read a Condition's outputs.
  */
 export function mergeStepPatchIntoDefinition<T extends Partial<FlowDefinition>>(
     definition: T,
@@ -111,5 +77,5 @@ export function mergeStepPatchIntoDefinition<T extends Partial<FlowDefinition>>(
     } else if (step.type === 'switch' && patch && Array.isArray(patch.cases)) {
         next = reconcileSwitchEdges(next, step.id, step.cases || [], patch.cases);
     }
-    return next;
+    return followRoute(next, step, merged);
 }

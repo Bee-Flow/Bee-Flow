@@ -1,8 +1,11 @@
 /**
  * Compliance Deadline Notifier — daily nudges for the statutory clocks:
- *   1. Incidents: GDPR/NIS2 72-hour Art. 33 window (legacy sweep) plus the
- *      CRA Art. 14 clocks — early warning (24 h) within 6 h / overdue and the
- *      full report (72 h) within 24 h / overdue — skipping stamped ones.
+ *   1. Incidents: the authority clock of the non-CRA regimes (legacy sweep,
+ *      CRA-only rows excluded), labelled per regime the way
+ *      compliance/deadlines.js cites it (GDPR Art. 33, NIS2 Art. 23(4), DORA
+ *      Art. 30(3)(b)), plus the CRA Art. 14 clocks — early warning (24 h)
+ *      within 6 h / overdue, the notification (72 h) within 24 h / overdue
+ *      and the final report within 24 h / overdue — skipping stamped ones.
  *   2. Open DSRs on `due_at` (Art. 12(3)): due in 5 days, due tomorrow,
  *      overdue (daily) — each tier fires ONCE per request through
  *      compliance_notify_log (complianceStore.markNotified).
@@ -22,6 +25,7 @@
 const { recordJobRun } = require('../telemetry/metrics');
 const { complianceSectionPath, complianceIncidentPath } = require('../utils/appPaths');
 const log = require('../telemetry/log');
+const { REGIME_ARTICLE } = require('../compliance/deadlines');
 
 const INTERVAL_MS = 24 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
@@ -34,9 +38,18 @@ const DSR_TIERS = Object.freeze([
     { key: 'due_1d', withinMs: 1 * DAY_MS },
     { key: 'due_5d', withinMs: 5 * DAY_MS },
 ]);
+/**
+ * CRA Art. 14 tiers. A tier's due date is its `dueCol`, or `fromCol` +
+ * `afterMs` for the notification, which has no column of its own (detected +
+ * 72 h, met by the authority notification stamp — the same pair as
+ * incidentStore.nextOpenDeadline). The final report's label carries no window:
+ * 14 days for a vulnerability, one month after the notification for a severe
+ * incident, and `final_report_due_at` already holds the right one.
+ */
 const CRA_TIERS = Object.freeze([
     { key: 'cra_early_warning', dueCol: 'early_warning_due_at', sentCol: 'early_warning_sent_at', withinMs: 6 * HOUR_MS, label: 'CRA early warning (24 h)' },
-    { key: 'cra_full_report', dueCol: 'final_report_due_at', sentCol: 'final_report_sent_at', withinMs: 24 * HOUR_MS, label: 'CRA vulnerability report (72 h)' },
+    { key: 'cra_notification', fromCol: 'detected_at', afterMs: 72 * HOUR_MS, sentCol: 'authority_notified_at', withinMs: 24 * HOUR_MS, label: 'CRA notification (72 h)' },
+    { key: 'cra_full_report', dueCol: 'final_report_due_at', sentCol: 'final_report_sent_at', withinMs: 24 * HOUR_MS, label: 'CRA final report' },
 ]);
 const MILESTONE_OFFSETS_DAYS = Object.freeze([30, 7, 0]);
 const ATTESTATION_WINDOW_DAYS = 30;
@@ -100,18 +113,46 @@ async function _claim(d, orgId, subjectKind, subjectId, offsetKey) {
 
 // ── 1. Incidents ─────────────────────────────────────────────────────────
 
+/** The row's regimes; an absent or unreadable list is the column default (CRA for a vulnerability). */
+function _regimesOf(inc) {
+    let list = inc.regimes;
+    if (typeof list === 'string') { try { list = JSON.parse(list || '[]'); } catch { list = []; } }
+    list = Array.isArray(list) ? list.map(r => String(r).toUpperCase()) : [];
+    return list.length ? list : [inc.kind === 'vulnerability' ? 'CRA' : 'GDPR'];
+}
+
+/**
+ * The citation of a row's authority clock: one article per non-CRA regime,
+ * from compliance/deadlines.js REGIME_ARTICLE, so a NIS2-only row cites
+ * NIS2 Art. 23(4) and never GDPR Art. 33. `deadline_at` is the earliest of
+ * those clocks (24 h for a NIS2 early warning, 72 h for GDPR, the DORA
+ * customer notice), so the label names no fixed number of hours.
+ */
+function _authorityArticle(regimes) {
+    const cited = regimes.filter(r => r !== 'CRA').map(r => REGIME_ARTICLE[r]).filter(Boolean);
+    return cited.length ? cited.join(' · ') : REGIME_ARTICLE.GDPR;
+}
+
 async function _sweepIncidents(d, orgId, nowMs) {
-    // Legacy 72 h Art. 33 sweep (GDPR/NIS2) — the store decides what needs attention.
+    // Legacy authority-clock sweep (GDPR / NIS2 / DORA): the store decides
+    // what needs attention; the notice cites each regime's own article.
     try {
         const incidents = d.incidentStore.listNeedingAttention ? await d.incidentStore.listNeedingAttention(orgId) : [];
         for (const inc of incidents || []) {
+            const regimes = _regimesOf(inc);
+            // A CRA-only row has no authority clock here: its clocks are the
+            // CRA tiers below, which would otherwise fire alongside this nudge.
+            if (regimes.every(r => r === 'CRA')) continue;
+            const article = _authorityArticle(regimes);
             const overdue = new Date(inc.deadline_at).getTime() < nowMs;
+            // The claim keys keep their historical art33_* names, so a row
+            // already nudged under them is not nudged again.
             const key = overdue ? `art33_overdue:${dayKey(nowMs)}` : 'art33_24h';
             if (!(await _claim(d, orgId, 'incident', inc.id, key))) continue;
             await _notifyAdmins(d,
                 orgId,
-                overdue ? 'Incident past the 72-hour Art. 33 deadline' : 'Incident approaching the 72-hour Art. 33 deadline',
-                `Incident #${inc.id} ${overdue ? 'passed' : 'reaches'} its authority-notification deadline ${overdue ? '' : 'within 24 hours '}(${new Date(inc.deadline_at).toLocaleString()}). Record the notification or close the incident with an assessment.`,
+                overdue ? `Incident past its notification deadline (${article})` : `Incident approaching its notification deadline (${article})`,
+                `Incident #${inc.id} ${overdue ? 'passed' : 'reaches'} its notification deadline ${overdue ? '' : 'within 24 hours '}(${new Date(inc.deadline_at).toLocaleString()}). Record the notification or close the incident with an assessment.`,
                 complianceIncidentPath(inc.id),
             );
         }
@@ -124,12 +165,12 @@ async function _sweepIncidents(d, orgId, nowMs) {
     let clocks = [];
     try { clocks = await d.incidentStore.listOpenClocks(orgId); } catch { return; }
     for (const inc of clocks || []) {
-        const regimes = Array.isArray(inc.regimes) ? inc.regimes : (() => { try { return JSON.parse(inc.regimes || '[]'); } catch { return []; } })();
-        const isCra = inc.kind === 'vulnerability' || regimes.includes('CRA');
+        const isCra = inc.kind === 'vulnerability' || _regimesOf(inc).includes('CRA');
         if (!isCra) continue;
         for (const tier of CRA_TIERS) {
             if (inc[tier.sentCol]) continue;                // already reported — clock satisfied
-            const due = inc[tier.dueCol] ? new Date(inc[tier.dueCol]).getTime() : NaN;
+            const col = tier.dueCol || tier.fromCol;
+            const due = inc[col] ? new Date(inc[col]).getTime() + (tier.afterMs || 0) : NaN;
             if (!Number.isFinite(due)) continue;
             const overdue = due <= nowMs;
             if (!overdue && due - nowMs > tier.withinMs) continue;

@@ -1,57 +1,8 @@
-# ══════════════════════════════════════════════════════════════════
-# Release to Docker Hub — manual mirror of an existing GHCR release
-# ══════════════════════════════════════════════════════════════════
-#
-# WHAT THIS DOES: copies images that build-push-ghcr.yml ALREADY built and
-# pushed to ghcr.io/bee-flow, retagging them under a Docker Hub namespace. It
-# never builds anything. The bits on Docker Hub are byte-identical to the bits
-# on GHCR — same digest, same multi-arch index, same provenance.
-#
-# WHY A COPY AND NOT A BUILD: a rebuild from the same commit is not the same
-# image (timestamps, base-image drift, a dependency that moved). Two registries
-# claiming the same version with different digests is the kind of thing you only
-# discover during an incident. So GHCR stays the thing that gets built, and this
-# is a mirror.
-#
-# The source is resolved to a DIGEST before anything is pushed: `:prod` is a
-# moving tag, and a release that starts mid-way through someone else's push
-# would otherwise mix two builds.
-#
-# ── Dry run is the discovery tool ──
-# build-push-ghcr.yml is path-filtered, so a service only carries a :prod tag if
-# it was selected or changed in some prod release — several never have been. A
-# DRY RUN therefore reports missing sources and carries on, so one run tells you
-# exactly what is publishable today. A real run refuses instead: a half-mirrored
-# release, three services on the new version and two still on the old, is worse
-# than no release at all.
-#
-# ── license-server is not mirrorable ──
-# It mints and signs the JWT licences. Its source is private and is not built
-# from this repository, but its images sit in the same ghcr.io/bee-flow
-# namespace for our own deploys, and they must never appear on a public
-# registry — the block below is deliberate and not an oversight to "fix" (or
-# delete as dead code) when someone passes it in `services`.
-#
-# ── Namespace ──
-# docker.io/beeflowapp/<service>. The bare `beeflow` and `beeflowai` names were
-# both registered years ago by accounts that have never published an image;
-# Docker Hub does not reclaim dormant usernames without a trademark claim, so
-# the account is `beeflowapp`. It is read from the secret rather than hardcoded,
-# but note that changing it later breaks every existing self-host install —
-# REGISTRY=docker.io/<ns> is baked into their compose invocation.
-#
-# ── One-time setup ──
-#   1. Docker Hub account, then Account settings → Personal access tokens →
-#      Generate, with the "Read & Write" scope.
-#   2. Repo secrets: DOCKERHUB_USERNAME (the account name) and DOCKERHUB_TOKEN
-#      (the PAT — NOT your password).
-#   3. Optional repo VARIABLE DOCKERHUB_NAMESPACE if images should live under an
-#      org rather than the account (defaults to DOCKERHUB_USERNAME).
-#   4. Pre-create each repository on Docker Hub as PUBLIC. A push can create the
-#      repo for you, but the visibility it gets depends on your account default —
-#      and a self-host image that silently lands private is a broken install for
-#      every customer.
-# ══════════════════════════════════════════════════════════════════
+# Mirror the immutable images of a published, validated production release.
+# Before registry writes, recheck dependency reviews, all selected container
+# digests and their runtime prerequisites. A dry run only discovers tag presence.
+# Configure DOCKERHUB_USERNAME, DOCKERHUB_TOKEN and optional DOCKERHUB_NAMESPACE
+# in the release environment. The private license-server is never mirrorable.
 
 name: Release to Docker Hub
 
@@ -65,11 +16,15 @@ on:
         default: ''
         required: false
       source_tag:
-        description: 'GHCR tag to copy FROM (prod = the last production release)'
+        description: 'GHCR tag used only for dry-run discovery; real mirrors use approved_release digests'
         type: choice
         options: [prod, latest, dev]
         default: prod
         required: true
+      approved_release:
+        description: 'Published GitHub release containing validated image digests and staging acceptance. Blank selects the latest release; required evidence for real mirrors.'
+        default: ''
+        required: false
       services:
         description: '"published" (server,agent-hub,guard — the repos that exist on Docker Hub), "all" (adds pii,search-api,whisperx,search-inference-gpu,reranker,install-wizard,pwt-runner — several have no image yet, so pair it with a dry run), or a comma-separated list'
         default: published
@@ -110,6 +65,12 @@ jobs:
       contents: read
       packages: read      # pull from ghcr.io/bee-flow
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
       # A published version has to correspond to something reviewable. Prod
       # images are only ever built from main, so mirroring from anywhere else
       # would put a tag on Docker Hub that main cannot account for.
@@ -124,10 +85,8 @@ jobs:
           exit 1
 
       # ── Resolve the version to publish under ─────────────────────────────
-      # Left blank, it comes from the latest GitHub Release, which the prod
-      # channel of build-push-ghcr.yml creates as `prod-YYYY.MM.DD-<run>`. That
-      # tag IS the release coordinate for these images, so there is nothing to
-      # invent and nothing to keep in sync by hand.
+      # Left blank, use the latest release published by promote-release.yml.
+      # The associated evidence selects the exact source digests.
       #
       # The `prod-` prefix is dropped: on Docker Hub every published tag is a
       # production release, so the prefix carries no information there.
@@ -140,15 +99,20 @@ jobs:
       - id: version
         env:
           INPUT_VERSION: ${{ inputs.version }}
+          APPROVED_RELEASE: ${{ inputs.approved_release }}
+          DRY_RUN: ${{ inputs.dry_run }}
           GH_TOKEN: ${{ github.token }}
         run: |
           set -uo pipefail
 
           V="$(echo "${INPUT_VERSION:-}" | tr -d '[:space:]')"
           FROM="the version input"
+          TAG="${APPROVED_RELEASE:-}"
+          if [[ -z "$TAG" && ( -z "$V" || "$DRY_RUN" != "true" ) ]]; then
+            TAG="$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest" --jq '.tag_name')"
+          fi
 
           if [[ -z "$V" ]]; then
-            TAG="$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest" --jq '.tag_name' 2>/dev/null || true)"
             if [[ -z "$TAG" || "$TAG" == "null" ]]; then
               echo "::error::no version given, and no GitHub Release exists to derive one from — pass one explicitly"
               exit 1
@@ -165,7 +129,21 @@ jobs:
           fi
 
           echo "version=${V}" >> "$GITHUB_OUTPUT"
+          echo "approved_release=${TAG}" >> "$GITHUB_OUTPUT"
           echo "::notice::publishing as '${V}' — from ${FROM}"
+
+      - name: Require production release evidence before a real mirror
+        if: ${{ !inputs.dry_run }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          APPROVED_RELEASE: ${{ steps.version.outputs.approved_release }}
+        run: |
+          set -euo pipefail
+          [[ "$APPROVED_RELEASE" =~ ^[A-Za-z0-9_][A-Za-z0-9._-]{0,127}$ ]]
+          gh release view "$APPROVED_RELEASE" --json isDraft,isPrerelease --jq 'if .isDraft or .isPrerelease then error("A published production release is required") else true end'
+          gh release download "$APPROVED_RELEASE" --pattern release-candidate.json --pattern staging-acceptance.json --dir "$RUNNER_TEMP/approved-release"
+          node scripts/release-manifest.mjs verify "$RUNNER_TEMP/approved-release/release-candidate.json" "$RUNNER_TEMP/approved-release/staging-acceptance.json"
+          node scripts/audit-ratchet.mjs --release
 
       # crane, not `docker buildx imagetools create`.
       #
@@ -251,7 +229,12 @@ jobs:
               exit 1
             fi
 
-            SRC="${SOURCE_PREFIX}/${svc}:${SOURCE_TAG}"
+            if [[ "${DRY_RUN}" == "true" ]]; then
+              SRC="${SOURCE_PREFIX}/${svc}:${SOURCE_TAG}"
+            else
+              # Every selected image comes from the approved immutable manifest.
+              SRC="$(jq -er --arg image "${SOURCE_PREFIX}/${svc}" '.images[] | select(.image == $image) | .image + "@" + .digest' "$RUNNER_TEMP/approved-release/release-candidate.json")" || exit 1
+            fi
             DIGEST="$(crane digest "$SRC" 2>/dev/null || true)"
             if [[ -z "$DIGEST" ]]; then
               # A dry run's job is to REPORT what is publishable, so a missing
@@ -298,9 +281,28 @@ jobs:
             echo "${DELIM}"
           } >> "$GITHUB_OUTPUT"
 
+      - name: Recheck every immutable source before Docker Hub writes
+        if: ${{ !inputs.dry_run }}
+        env:
+          RESOLVED: ${{ steps.plan.outputs.resolved }}
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl -sSfL -o "$RUNNER_TEMP/trivy.tar.gz" https://github.com/aquasecurity/trivy/releases/download/v0.75.0/trivy_0.75.0_Linux-64bit.tar.gz
+          echo "c6e65abddb348e25f10549df887045629cf28cc72453cd1c63acb717316b3f3f  $RUNNER_TEMP/trivy.tar.gz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/trivy.tar.gz" -C "$RUNNER_TEMP" trivy
+          while IFS= read -r source; do
+            [[ -z "$source" ]] && continue
+            service="${source%%@*}"
+            image="${SOURCE_PREFIX}/${source}"
+            "$RUNNER_TEMP/trivy" image --scanners vuln --severity HIGH,CRITICAL --format json --output "$RUNNER_TEMP/container-scan.json" "$image"
+            bash scripts/check-release-container.sh "$service" "$image"
+            CONTAINER_RUNTIME_VERIFIED=true node scripts/container-release-gate.mjs "$RUNNER_TEMP/container-scan.json" "$image"
+          done <<< "$RESOLVED"
+
       # ── Copy each manifest to Docker Hub ─────────────────────────────────
-      # `imagetools create` copies the whole multi-arch index, so a single call
-      # per service preserves every platform GHCR holds.
+      # crane preserves the original multi-architecture manifest digest.
       - name: Mirror to Docker Hub
         env:
           NAMESPACE: ${{ vars.DOCKERHUB_NAMESPACE || secrets.DOCKERHUB_USERNAME }}

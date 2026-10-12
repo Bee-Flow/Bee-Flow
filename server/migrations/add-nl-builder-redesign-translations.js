@@ -450,6 +450,10 @@ const SAME_AS_ENGLISH = [
     // hetzelfde woord, dus een seed hier is niet van onvertaald te
     // onderscheiden.
     'automations.ribbon.apps',
+    // "Google Workspace" and "Microsoft 365", the ribbon tabs of those two
+    // suites: product names, written exactly the same in Dutch.
+    'automations.ribbon.cat_google',
+    'automations.ribbon.cat_microsoft',
     // "Lus · per bank · 2 stappen" — the artboard's own middle clause. Dutch
     // uses the same preposition, so seeding it would pin a value nobody can
     // tell apart from an untranslated one.

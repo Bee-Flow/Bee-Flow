@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 /**
  * LookSectionNav — left-rail table of contents for the Look editor. Highlights
@@ -14,10 +15,11 @@ export default function LookSectionNav({
     onJump,
     orientation = 'vertical',
 }) {
+    const { t } = useTranslation();
     const isVertical = orientation === 'vertical';
     return (
         <nav
-            aria-label="Look editor sections"
+            aria-label={t('appearance.look_section_nav_look_editor_sections', 'Look editor sections')}
             className={
                 'shrink-0 ' +
                 (isVertical

@@ -94,7 +94,7 @@ describe('WebpageAppsPanel', () => {
         expect(youtrackOption.disabled).toBe(true);
         // Select it anyway (programmatically) → the inline connect guidance appears.
         fireEvent.change(appSelect, { target: { value: 'youtrack' } });
-        const link = await screen.findByRole('link', { name: /Connect it in Settings → Integrations/ });
+        const link = await screen.findByRole('link', { name: /Connect it in Settings → Connections/ });
         expect(link.getAttribute('href')).toContain('/app/settings/integrations?return=');
     });
 

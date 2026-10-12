@@ -406,7 +406,7 @@ export default function CoworkPage({ user = null, isMobile = false, initialCowor
                                 ) : (
                                     <p className="mt-6 text-[13px] flex items-center gap-2 justify-center" style={{ color: 'var(--text-tertiary)' }}>
                                         <CalendarClock className="w-4 h-4 flex-shrink-0" />
-                                        Or pick something on the left to see when it runs and how every run went.
+                                        {t('cowork.pick_left', 'Or pick something on the left to see when it runs and how every run went.')}
                                     </p>
                                 )}
                             </div>

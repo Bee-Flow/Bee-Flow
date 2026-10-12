@@ -4,6 +4,7 @@
 import { Check, Loader2, Mail, Send } from 'lucide-react';
 import React from 'react';
 import { API_BASE, authFetch } from '../../../utils/helpers';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 export default function EmailSection({
     hasServiceEmail, serviceEmailAddress, disconnectServiceEmail, savingServiceEmail,
@@ -12,6 +13,7 @@ export default function EmailSection({
     testEmailRecipient, setTestEmailRecipient, testingServiceEmail, setTestingServiceEmail,
     setMessage,
 }) {
+    const { t } = useTranslation();
     return (
             <div className="p-6">
             <div className="max-w-4xl mx-auto space-y-8">
@@ -20,22 +22,22 @@ export default function EmailSection({
                     <div className="px-6 py-4 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
                         <h3 className="font-semibold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
                             <Mail className="w-4 h-4" style={{ color: '#ea4335' }} />
-                            Service Email (Gmail)
-                            {hasServiceEmail && <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-500">Configured</span>}
+                            {t('integ.email_service_email_gmail', 'Service Email (Gmail)')}
+                            {hasServiceEmail && <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-500">{t('integ.email_configured', 'Configured')}</span>}
                         </h3>
                         <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                            Configure a Gmail service account to send emails to customers from the platform.
+                            {t('integ.email_configure_a_gmail_service_account_to', 'Configure a Gmail service account to send emails to customers from the platform.')}
                         </p>
                         <p className="text-xs mt-1.5 flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
                             <Mail className="w-3.5 h-3.5 shrink-0" />
-                            <span>The layout &amp; text of the account <strong>verification</strong> and <strong>welcome</strong> emails are configured per language under <span style={{ color: 'var(--text-secondary)' }}>Admin → Languages → Email Templates</span>.</span>
+                            <span>{t('integ.email_the_layout_text_of_the_account', 'The layout & text of the account')} <strong>{t('integ.email_verification', 'verification')}</strong> {t('integ.email_and', 'and')} <strong>{t('integ.email_welcome', 'welcome')}</strong> {t('integ.email_emails_are_configured_per_language', 'emails are configured per language under')} <span style={{ color: 'var(--text-secondary)' }}>{t('integ.email_admin_languages_email_templates', 'Admin → Languages → Email Templates')}</span>.</span>
                         </p>
                     </div>
                     <div className="p-6 space-y-3">
                         {hasServiceEmail ? (
                             <>
                                 <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Connected account:</span>
+                                    <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('integ.email_connected_account', 'Connected account:')}</span>
                                     <span className="text-sm font-medium px-2 py-1 rounded-lg" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border-default)' }}>
                                         {serviceEmailAddress || 'Google account'}
                                     </span>
@@ -45,7 +47,7 @@ export default function EmailSection({
                                         className="text-xs px-2.5 py-1 rounded-lg font-medium transition-all disabled:opacity-50"
                                         style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}
                                     >
-                                        Disconnect
+                                        {t('integ.email_disconnect', 'Disconnect')}
                                     </button>
                                 </div>
                                 <div className="flex gap-2">
@@ -53,7 +55,7 @@ export default function EmailSection({
                                         type="text"
                                         value={serviceEmailDisplayName}
                                         onChange={e => setServiceEmailDisplayName(e.target.value)}
-                                        placeholder="Display Name (e.g. BeeFlow)"
+                                        placeholder={t('integ.email_display_name_e_g_beeflow', 'Display Name (e.g. BeeFlow)')}
                                         className="flex-1 px-3 py-2 rounded-lg text-sm border outline-none focus:ring-2 transition-all"
                                         style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--accent-primary)' }}
                                     />
@@ -64,7 +66,7 @@ export default function EmailSection({
                                         style={{ background: 'var(--accent-primary)', color: '#fff' }}
                                     >
                                         {savingServiceEmail ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                                        Save
+                                        {t('integ.email_save', 'Save')}
                                     </button>
                                     <button
                                         onClick={() => setShowTestEmail(!showTestEmail)}
@@ -72,7 +74,7 @@ export default function EmailSection({
                                         style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}
                                     >
                                         <Send className="w-3.5 h-3.5" />
-                                        Send Test Email
+                                        {t('integ.email_send_test_email', 'Send Test Email')}
                                     </button>
                                 </div>
                             </>
@@ -84,7 +86,7 @@ export default function EmailSection({
                                 style={{ background: 'var(--accent-primary)', color: '#fff' }}
                             >
                                 {connectingServiceEmail ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
-                                Connect Google account
+                                {t('integ.email_connect_google_account', 'Connect Google account')}
                             </button>
                         )}
                         {/* Test Email inline form */}
@@ -134,12 +136,12 @@ export default function EmailSection({
                                     style={{ background: '#10b981', color: '#fff' }}
                                 >
                                     {testingServiceEmail ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                                    Send
+                                    {t('integ.email_send', 'Send')}
                                 </button>
                             </div>
                         )}
                         <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                            Connects a Google account via <strong>OAuth</strong> and sends through the <strong>Gmail API over HTTPS</strong> — no SMTP, no App Password, and unaffected by cloud SMTP-port blocks. The connected account is the sender; approve the “Send email on your behalf” permission when prompted.
+                            {t('integ.email_connects_a_google_account_via', 'Connects a Google account via')} <strong>{t('integ.email_oauth', 'OAuth')}</strong> {t('integ.email_and_sends_through_the', 'and sends through the')} <strong>{t('integ.email_gmail_api_over_https', 'Gmail API over HTTPS')}</strong> {t('integ.email_no_smtp_no_app_password_and_unaffected', '— no SMTP, no App Password, and unaffected by cloud SMTP-port blocks. The connected account is the sender; approve the “Send email on your behalf” permission when prompted.')}
                         </p>
                     </div>
                 </div>

@@ -126,3 +126,21 @@ test('license-server builds from LICENSE_SERVER_SRC in .env, resolved against th
     assert.ok(callsOf(res.calls, 'up')[0].args.includes('license-server'));
     assert.match(res.stdout, /verified: license-server is running ghcr\.io\/bee-flow\/license-server:dev/);
 });
+
+// FAST_DEV skips the Nextcloud /embed/ shell: fine for dev, never for a prd image.
+
+test('FAST_DEV=1 refuses a prd agent-hub build before docker builds anything', { skip }, (t) => {
+    const dir = repo(t);
+    const res = run(dir, 'scripts/build-images.sh', ['build', 'prd', 'agent-hub'], { FAST_DEV: '1' });
+    assert.notStrictEqual(res.status, 0, res.stdout);
+    assert.match(res.stderr, /FAST_DEV=1 skips the Nextcloud embed build; refusing/);
+    assert.strictEqual(callsOf(res.calls, 'build').length, 0);
+});
+
+test('FAST_DEV=1 still passes BUILD_EMBED=false for a dev agent-hub build', { skip }, (t) => {
+    const dir = repo(t);
+    const res = run(dir, 'scripts/build-images.sh', ['build', 'dev', 'agent-hub'], { FAST_DEV: '1' });
+    assert.strictEqual(res.status, 0, res.stderr + res.stdout);
+    const [b] = callsOf(res.calls, 'build');
+    assert.ok(b.args.includes('BUILD_EMBED=false'), b.args.join(' '));
+});

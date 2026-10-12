@@ -9,6 +9,11 @@
  *   - server/routes/usage.js — GET /api/usage/guardrails/{overview,recent} and
  *     /integrations/{overview,egress}: UsageQuery (days, interval, limit),
  *     org-admin only (usageMonitoringAuth.js), org from the session.
+ *
+ * The activity reads send the window and the row cap, never `user` and never
+ * `pii`: the server answers a health category next to a person (or on a route
+ * that lists people) with 400 special_category_per_person, and health is an
+ * organisation total only (model/activity.ts).
  */
 
 import { api } from '@/core/api/client';
@@ -24,6 +29,7 @@ import {
     readShieldDoc,
     readShieldEnv,
 } from './readers';
+import { withholdSpecialCategories } from '../model/activity';
 import type { ShieldActivity } from '../model/activityTypes';
 import type { GuardStatus, ShieldDoc, ShieldEnv, ShieldSaveResult } from '../model/types';
 
@@ -51,7 +57,11 @@ export async function getShieldEnv(signal?: AbortSignal): Promise<ShieldEnv> {
     return readShieldEnv(config, eu);
 }
 
-/** The window the web's Activity tab offers (7, 30 or 90 days); detail rows cap at 200. */
+/**
+ * The window the web's Activity tab offers (7, 30 or 90 days); detail rows cap
+ * at 200. The rows carry a person, so they keep no health label: the server
+ * strips them, and this does too for a server from before it did.
+ */
 export async function getShieldActivity(days: number, signal?: AbortSignal): Promise<ShieldActivity> {
     const query = { days, interval: 'day' };
     const detail = { ...query, limit: 200 };
@@ -64,7 +74,7 @@ export async function getShieldActivity(days: number, signal?: AbortSignal): Pro
     return {
         guard: readGuardOverview(guard),
         integrations: readIntegrationOverview(integrations),
-        events: readGuardEvents(events),
-        egress: readEgress(egress),
+        events: withholdSpecialCategories(readGuardEvents(events), 'categories'),
+        egress: withholdSpecialCategories(readEgress(egress), 'piiCategories'),
     };
 }

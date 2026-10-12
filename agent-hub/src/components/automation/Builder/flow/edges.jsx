@@ -3,6 +3,7 @@ import useTranslation from '../../../../hooks/useTranslation';
 import { BaseEdge, EdgeLabelRenderer, getSmoothStepPath, useReactFlow, useViewport } from '@xyflow/react';
 import { Palette, Plus, X } from 'lucide-react';
 import React, { useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { chipPlacement, compactChipText } from './edgeChip';
 import { EDGE_COLOR_KEYS, resolveEdgeColor } from './edgeColors';
 import { hopPath } from './edgeHops';
 import { useEdgeCrossingVersion, useEdgeCrossings } from './EdgeCrossingContext';
@@ -120,6 +121,10 @@ export function LabelledEdge({ id, source, target, sourceX, sourceY, targetX, ta
     // read as two unrelated things.
     const { zoom } = useViewport();
     const controlScale = Math.min(2, Math.max(0.5, 1 / (zoom || 1)));
+    // Out of a node with named ports, the resting chip keeps clear of them;
+    // where the gap is too narrow for the whole chip it shows its count alone
+    // (edgeChip.ts) and the whole label returns on hover.
+    const chipAt = chipPlacement({ labelX, labelY, sourceX, sourceY, targetX }, !!data?.fromPortLabels, controlScale);
     const kind = data?.kind || null;
     const editable = !!data?.editable;
     const dataSummary = data?.dataSummary || null;
@@ -261,6 +266,8 @@ export function LabelledEdge({ id, source, target, sourceX, sourceY, targetX, ta
     }, [latched, dismiss]);
 
     const active = editable && (hovered || latched);
+    // The count-only chip (edgeChip.ts) only at rest: pointing at the line shows the whole label.
+    const compactChip = !!dataSummary && chipAt.compact && !anchor && !hovered && !latched;
 
     // The invisible hit band is measured in SCREEN pixels: a fixed flow-unit
     // width shrank to 12px at 0.5× zoom, and fitView lands below 1× on most
@@ -339,10 +346,16 @@ export function LabelledEdge({ id, source, target, sourceX, sourceY, targetX, ta
                             // anchor is already on this lane's own band.
                             transform: anchor
                                 ? `translate(-50%, -50%) translate(${anchor.x}px, ${anchor.y}px) scale(${controlScale})`
-                                : `translate(-50%, -50%) translate(${labelX + chipDx}px, ${labelY}px) scale(${controlScale})`,
+                                : chipAt.align === 'start'
+                                    ? `translate(0, -50%) translate(${chipAt.x}px, ${chipAt.y}px) scale(${controlScale})`
+                                    : `translate(-50%, -50%) translate(${chipAt.x + chipDx}px, ${chipAt.y}px) scale(${controlScale})`,
+                            // A cluster that starts at a port grows rightwards, zoom included.
+                            ...(!anchor && chipAt.align === 'start' ? { transformOrigin: 'left center' } : null),
                             // Inert unless there is something to interact with,
                             // so a plain label chip never occludes the line.
-                            pointerEvents: (editable || dataSummary) ? 'all' : 'none',
+                            // A count-only chip at rest is squeezed against the next card: its
+                            // invisible siblings must not swallow clicks meant for that card.
+                            pointerEvents: (editable || dataSummary) && !compactChip ? 'all' : 'none',
                             // Above the cards. The label layer carries no
                             // z-index of its own and is painted BEFORE the node
                             // layer, so a chip that does overlap a card vanishes
@@ -400,9 +413,11 @@ export function LabelledEdge({ id, source, target, sourceX, sourceY, targetX, ta
                                 type="button"
                                 onClick={(e) => { e.stopPropagation(); data?.onInspect?.(source); }}
                                 title={data?.piiTooltip || dataSummary.title || `Last run sent ${dataSummary.label} to the next step — click to see the data`}
-                                className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full border bg-[var(--bg-primary)] text-[var(--text-secondary)] border-[var(--border-default)] shadow-sm hover:text-[var(--text-primary)] hover:border-[var(--accent)] tabular-nums whitespace-nowrap"
+                                aria-label={compactChip ? dataSummary.label : undefined}
+                                data-compact={compactChip ? 'true' : undefined}
+                                className="pointer-events-auto text-[10px] font-semibold px-1.5 py-0.5 rounded-full border bg-[var(--bg-primary)] text-[var(--text-secondary)] border-[var(--border-default)] shadow-sm hover:text-[var(--text-primary)] hover:border-[var(--accent)] tabular-nums whitespace-nowrap"
                             >
-                                {dataSummary.label}
+                                {compactChip ? compactChipText(dataSummary) : dataSummary.label}
                             </button>
                         )}
                         {/* label/caseName = the DEFINITION row's identity
@@ -429,8 +444,8 @@ export function LabelledEdge({ id, source, target, sourceX, sourceY, targetX, ta
                                 })}
                                 <button
                                     type="button"
-                                    title="Automatic colour"
-                                    aria-label="Automatic colour"
+                                    title={t('automations.edges.automatic_colour', 'Automatic colour')}
+                                    aria-label={t('automations.edges.automatic_colour', 'Automatic colour')}
                                     onClick={(e) => { e.stopPropagation(); data?.onSetColor?.({ ...identity(), color: null }); setSwatchesOpen(false); }}
                                     className={`w-3 h-3 rounded-full border border-[var(--text-tertiary)] bg-[var(--bg-primary)] shadow-sm hover:scale-125 transition relative overflow-hidden ${data?.defColor ? '' : 'ring-2 ring-offset-1 ring-[var(--text-primary)]'}`}
                                 >
@@ -445,9 +460,9 @@ export function LabelledEdge({ id, source, target, sourceX, sourceY, targetX, ta
                                     all. The other two appear on hover. */}
                                 <button
                                     type="button"
-                                    title="Insert a step here"
+                                    title={t('automations.edges.insert_a_step_here', 'Insert a step here')}
                                     onClick={(e) => { e.stopPropagation(); data?.onInsert?.(identity()); }}
-                                    style={{ opacity: active ? 1 : 0.35, transition: 'opacity 120ms ease' }}
+                                    style={{ opacity: active ? 1 : (compactChip ? 0 : 0.35), transition: 'opacity 120ms ease' }}
                                     className="flex items-center justify-center w-5 h-5 rounded-full bg-[var(--accent)] text-white shadow-sm hover:opacity-90"
                                 >
                                     <Plus size={12} strokeWidth={2.5} />
@@ -463,8 +478,8 @@ export function LabelledEdge({ id, source, target, sourceX, sourceY, targetX, ta
                                 {data?.onSetColor && (
                                     <button
                                         type="button"
-                                        title="Colour this connection"
-                                        aria-label="Colour this connection"
+                                        title={t('automations.edges.colour_this_connection', 'Colour this connection')}
+                                        aria-label={t('automations.edges.colour_this_connection', 'Colour this connection')}
                                         onClick={(e) => { e.stopPropagation(); setSwatchesOpen(true); }}
                                         style={{ opacity: active ? 1 : 0, pointerEvents: active ? 'all' : 'none', transition: 'opacity 120ms ease' }}
                                         className="flex items-center justify-center w-5 h-5 rounded-full bg-[var(--bg-primary)] border border-[var(--border-default)] text-[var(--text-secondary)] shadow-sm hover:text-[var(--text-primary)] hover:border-[var(--accent)]"
@@ -475,7 +490,7 @@ export function LabelledEdge({ id, source, target, sourceX, sourceY, targetX, ta
                                 {data?.onDelete && (
                                     <button
                                         type="button"
-                                        title="Remove this connection"
+                                        title={t('automations.edges.remove_this_connection', 'Remove this connection')}
                                         onClick={(e) => { e.stopPropagation(); data.onDelete(identity()); }}
                                         style={{ opacity: active ? 1 : 0, pointerEvents: active ? 'all' : 'none', transition: 'opacity 120ms ease' }}
                                         className="flex items-center justify-center w-5 h-5 rounded-full bg-[var(--bg-primary)] border border-[var(--border-default)] text-[var(--text-secondary)] shadow-sm hover:text-red-500 hover:border-red-400"

@@ -72,6 +72,21 @@ export const ANNEX_III_ARTICLES = Object.freeze({
 });
 
 /**
+ * The ten Annex III answers for a row saved before the ten questions existed,
+ * which carries one `{ answer, category }` for all of them. A 'no' covered
+ * every area, so it still reads as ten noes. A 'yes' never did: copying it to
+ * all ten would have "Record as self-declared" attest biometrics, law
+ * enforcement and migration for an insurance quote. It sets only the area it
+ * named, when that is a known one, and otherwise leaves all ten open.
+ */
+export function legacyAnnexAnswers(annexIii) {
+    const answer = annexIii?.answer;
+    if (answer === 'no') return Object.fromEntries(ANNEX_III_CATEGORIES.map(id => [id, 'no']));
+    if (answer === 'yes' && ANNEX_III_CATEGORIES.includes(annexIii.category)) return { [annexIii.category]: 'yes' };
+    return {};
+}
+
+/**
  * The single Annex III answer a per-domain map adds up to — the client copy of
  * `compliance/aiAct/annexIii.answerFromDomains`, and the one rule that makes
  * four answers unable to masquerade as a declaration:

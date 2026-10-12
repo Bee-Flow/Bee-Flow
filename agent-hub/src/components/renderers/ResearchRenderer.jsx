@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from '../../hooks/useTranslation';
 import { ExternalLink, ChevronDown, ChevronRight, Lightbulb, AlertTriangle, CheckCircle, Info } from 'lucide-react';
 import MarkdownRenderer from './MarkdownRenderer';
 
@@ -91,6 +92,7 @@ import MarkdownRenderer from './MarkdownRenderer';
  * ═══════════════════════════════════════════════════════════════
  */
 const ResearchRenderer = ({ data }) => {
+    const { t } = useTranslation();
     const [collapsedSources, setCollapsedSources] = useState(false);
 
     if (!data || !data.blocks) return null;
@@ -258,7 +260,7 @@ const ResearchRenderer = ({ data }) => {
                             {collapsedSources
                                 ? <ChevronRight className="w-4 h-4" />
                                 : <ChevronDown className="w-4 h-4" />}
-                            📚 Sources ({sources.length})
+                            📚 {t('chat.renderers.research_sources', 'Sources ({count})', { count: sources.length })}
                         </button>
                         {!collapsedSources && (
                             <div style={{

@@ -1,4 +1,5 @@
 import React from 'react';
+import useTranslation from '../../../../../../hooks/useTranslation';
 import { RepeatableList, inputCls } from '../../../../product-website/fields';
 import { updateNodeProps } from '../../state/definitionOps';
 import { actionOptions } from '../actionLabels';
@@ -42,6 +43,7 @@ function mirrorForEach(def, nodeId, binding) {
 
 export default function RepeaterInspector({ node, definition, onCommit, disabled = false }) {
     const props = node.props || {};
+    const { t } = useTranslation();
     // A raw 'act_a1b2c3' told the author nothing — naming each action the way
     // the Actions accordion names it is the difference between choosing and guessing.
     const actions = actionOptions(definition);
@@ -57,34 +59,34 @@ export default function RepeaterInspector({ node, definition, onCommit, disabled
     return (
         <div className="flex flex-col gap-4">
             <BindingField
-                label="Source"
+                label={t('studio_apps_panels.common.source', 'Source')}
                 value={props.source}
                 onChange={setSource}
                 definition={definition}
-                hint="An array — the child components repeat once per item. `item` and `index` are in scope inside."
+                hint={t('studio_apps_panels.repeater.source_hint', 'An array — the child components repeat once per item. `item` and `index` are in scope inside.')}
                 placeholder='[{"name":"…"}]'
                 disabled={disabled}
             />
             <fieldset disabled={disabled} className="min-w-0">
                 <RepeatableList
-                    label="Item actions"
+                    label={t('studio_apps_panels.repeater.item_actions', 'Item actions')}
                     items={props.itemActions || []}
                     onChange={(itemActions) => patch({ itemActions })}
                     makeNew={() => ({ label: '', actionId: actionIds[0] || '' })}
-                    addLabel="Add item action"
+                    addLabel={t('studio_apps_panels.repeater.add_item_action', 'Add item action')}
                     itemLabel={(a) => a.label}
                     renderItem={(a, update) => (
                         <div className="flex flex-col gap-2">
-                            <input type="text" className={inputCls} value={a.label || ''} onChange={(e) => update({ ...a, label: e.target.value })} placeholder="Button label" />
-                            <select className={inputCls} value={a.actionId || ''} onChange={(e) => update({ ...a, actionId: e.target.value })} aria-label="Item action">
-                                <option value="">Pick an action…</option>
+                            <input type="text" className={inputCls} value={a.label || ''} onChange={(e) => update({ ...a, label: e.target.value })} placeholder={t('studio_apps_panels.common.button_label', 'Button label')} />
+                            <select className={inputCls} value={a.actionId || ''} onChange={(e) => update({ ...a, actionId: e.target.value })} aria-label={t('studio_apps_panels.repeater.item_action', 'Item action')}>
+                                <option value="">{t('studio_apps_panels.common.pick_action', 'Pick an action…')}</option>
                                 {actions.map((a) => <option key={a.id} value={a.id}>{a.label}</option>)}
                             </select>
                         </div>
                     )}
                 />
             </fieldset>
-            <TextField label="Empty text" value={props.emptyText} onChange={(v) => patch({ emptyText: v })} disabled={disabled} />
+            <TextField label={t('studio_apps_panels.common.empty_text', 'Empty text')} value={props.emptyText} onChange={(v) => patch({ emptyText: v })} disabled={disabled} />
         </div>
     );
 }

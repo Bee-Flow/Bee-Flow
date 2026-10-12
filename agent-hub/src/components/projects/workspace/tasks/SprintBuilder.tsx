@@ -10,7 +10,7 @@ import { useAssignSprintItems, useCreateSprint } from '../../../../api/queries/p
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { toast } from '../../../shared/Toast';
 import { projectErrorText } from '../projectErrorText';
-import { GhostButton, PrimaryButton } from '../workspaceUi';
+import { GhostButton, PrimaryButton, SelectField } from '../workspaceUi';
 import type { useChatPeople } from '../chat/chatPeople';
 import PokerPanel from './PokerPanel';
 import { SPRINT_WEEKS } from './SprintCreateForm';
@@ -123,9 +123,9 @@ function BuilderSummary({ projectId, canEdit, backlog, picked, setPicked, unesti
                     <label className={FIELD_LABEL}><span>{t('project_tasks.start_label', 'Start date')}</span>
                         <input className={SMALL_INPUT} type="date" value={startDate} onChange={e => setStartDate(e.target.value)} /></label>
                     <label className={FIELD_LABEL}><span>{t('project_tasks.sprint_length', 'Length')}</span>
-                        <select className={`${SMALL_INPUT} pr-7`} value={weeks} onChange={e => setWeeks(Number(e.target.value))}>
+                        <SelectField bare wrapperClassName="relative block" className={SMALL_INPUT} value={weeks} onChange={e => setWeeks(Number(e.target.value))}>
                             {SPRINT_WEEKS.map(w => <option key={w} value={w}>{t('project_tasks.sprint_weeks', '{count} weeks', { count: w })}</option>)}
-                        </select></label>
+                        </SelectField></label>
                 </div>
             </div>
 

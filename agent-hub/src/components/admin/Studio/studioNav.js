@@ -1,4 +1,5 @@
-import { makeCanUse, resolveStudioNav, STUDIO_APPS } from './studioApps';
+import { firstOpenStudioSection, makeCanUse, resolveStudioNav, STUDIO_APPS, studioPermissionHeld } from './studioApps';
+import { isStudioStart } from './studioStart';
 
 /**
  * The two steps between "the registry" and "the rows a person sees", in one
@@ -51,6 +52,86 @@ export function studioGateContext({
  */
 export function studioNavSections(apps, ctx) {
     return resolveStudioNav(apps, ctx).filter((app) => !app.hiddenFromNav);
+}
+
+/**
+ * Who had Studio before sections opened per permission: an admin, or someone
+ * whose role builds agents or skills. Builders keep exactly the Studio they
+ * had — every section their gates pass, the locked signposts, Documents and
+ * the Start screen — so this is kept as its own answer rather than folded
+ * into the section count below.
+ */
+export function isStudioBuilder(user) {
+    const perms = user?.permissions || [];
+    return !!user?.isAdmin || perms.includes('all')
+        || perms.includes('manage_agents') || perms.includes('manage_skills')
+        || user?.orgRole === 'admin' || user?.orgRole === 'org_admin';
+}
+
+/**
+ * The sections that earn someone a Studio entry: open (a locked row is a
+ * signpost, not a door) and not reachable from a sidebar row of their own
+ * (Documents, `topLevelEntrance`). A member whose role opens Meeting Notes
+ * gets Studio for it; a member whose role opens nothing in Studio does not get
+ * a Studio holding only Documents.
+ */
+export function studioEntrySections(sections) {
+    return (sections || []).filter((s) => s && !s.locked && !s.topLevelEntrance);
+}
+
+/**
+ * Does this person get Studio at all (the sidebar row, the rail)? A builder
+ * as before, and now also anyone with at least one section of their own.
+ * `sections` is the studioNavSections output — every gate already applied,
+ * so a section counts only when its licence, programme AND permission pass.
+ * Simple Mode and phone width are the caller's (Sidebar.jsx).
+ */
+export function canSeeStudio({ user, sections }) {
+    return isStudioBuilder(user) || studioEntrySections(sections).length > 0;
+}
+
+/**
+ * Where the Studio row lands. A builder: the first open section, as before.
+ * Anyone else: the first section that earned them Studio — never Documents,
+ * which they have a row for, and never a fallback they may not open (null).
+ */
+export function studioLanding({ user, sections, fallback = STUDIO_APPS[0] }) {
+    return isStudioBuilder(user)
+        ? firstOpenStudioSection(sections, fallback)
+        : firstOpenStudioSection(studioEntrySections(sections), null);
+}
+
+/**
+ * May the shell render `section` for this person? The sidebar and the rail
+ * only LIST what passes; this is the same answer for a direct URL, so a
+ * section that is hidden from someone cannot be reached by typing its address.
+ *
+ *   - Start is a builder's dashboard (the map, the makers figure, the "New"
+ *     menu over every kind): someone who has Studio for one or two sections
+ *     lands on their first section instead.
+ *   - A section whose PERMISSION leg fails is refused. Only that leg: a
+ *     licence or capability miss still renders, and the section's own
+ *     upgrade panel or the server's 403 says why — exactly as before, and
+ *     without bouncing anyone while the entitlements are still loading.
+ *   - `hiddenFromNav` sections (Approvals) are not refused here: they have
+ *     their own entrance, e-mail and bell deep links land on them, and the
+ *     section decides itself what an assignee may see.
+ *   - An unknown id or a runtime module (no `permission`) renders as before.
+ *
+ * Returns { allowed, redirectTo } — redirectTo is the urlSegment of the first
+ * section this person may open, or null when there is none (the shell then
+ * shows its no-access state).
+ */
+export function studioSectionAccess({ section, apps, user, hasPermission, sections }) {
+    const allowed = { allowed: true, redirectTo: null };
+    const refuse = () => {
+        const to = studioLanding({ user, sections, fallback: null });
+        return { allowed: false, redirectTo: to ? to.urlSegment : null };
+    };
+    if (isStudioStart(section)) return isStudioBuilder(user) ? allowed : refuse();
+    const app = (apps || []).find((a) => a?.id === section);
+    if (!app || app.hiddenFromNav) return allowed;
+    return studioPermissionHeld(app, hasPermission) ? allowed : refuse();
 }
 
 /**

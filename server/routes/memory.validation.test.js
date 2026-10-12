@@ -36,6 +36,8 @@ const MOCKS = {
         createMemory: async (...args) => { touched.push({ what: 'createMemory', args }); return 'new-id'; },
         updateMemory: async (...args) => { touched.push({ what: 'updateMemory', args }); return true; },
         deleteMemory: async (...args) => { rec('deleteMemory')(...args); },
+        getMemoriesByIds: async (ids) => ids.filter((id) => id === 'm1').map(() => ({ ...STORED })),
+        deleteMemoriesByIds: async (ids) => { rec('deleteMemoriesByIds')(ids); return ids.length; },
         clearAllMemories: async (...args) => { rec('clearAllMemories')(...args); },
         searchUserMemories: async (userId, opts) => {
             touched.push({ what: 'searchUserMemories', args: [userId, opts] });
@@ -43,6 +45,22 @@ const MOCKS = {
         },
         getMemoryStats: async () => ({ total: 0 }),
         getMemories: async () => [],
+    },
+    '../stores/memoryQueries': {
+        ...require('../stores/memoryQueries.js'),
+        listMemories: async (userId, f) => {
+            touched.push({ what: 'listMemories', args: [userId, f] });
+            return { items: [], total: 0, limit: f.limit, offset: f.offset };
+        },
+        presentMemories: async (rows) => rows,
+        setType: async (rows, type) => { touched.push({ what: 'setType', args: [rows.map((r) => r.id), type] }); return rows.length; },
+        listRecent: async (...args) => { touched.push({ what: 'listRecent', args }); return []; },
+        listReview: async (...args) => { touched.push({ what: 'listReview', args }); return { items: [], total: 0 }; },
+        deleteByConversation: async (...args) => { touched.push({ what: 'deleteByConversation', args }); return 0; },
+    },
+    '../core/memory/memoryPolicy': {
+        resolveMemoryPolicy: async () => ({ read: true, write: true, reason: 'enabled' }),
+        getOrgMemorySettings: async () => ({ enabled: true, sensitiveOptInAllowed: false, maxPerUser: 1000 }),
     },
     '../auth/projectAccess': { hasProjectRole: async () => true },
     '../auth': { requireAuth: pass },
@@ -133,10 +151,47 @@ test('clear names a project with a real id, or not at all: a blank one is never 
 
 // ── PUT /:id ────────────────────────────────────────────────────────
 
-test('a type change is refused with the reason, instead of a success that changed nothing', async () => {
+test('a type change is applied, not refused: the blind index follows through setType', async () => {
     const res = await dispatch({ method: 'PUT', url: '/m1', body: { type: 'instruction' } });
-    refusedAt(res, 'body.type');
-    assert.match(res.body.error, /type cannot be changed/);
+    assert.strictEqual(res.statusCode, 200);
+    assert.deepStrictEqual(lastCall('setType').args, [['m1'], 'instruction']);
+    assert.ok(!touched.some((t) => t.what === 'updateMemory'), 'a type-only change does not rewrite the text');
+});
+
+test('a type outside the vocabulary, or a PUT that changes nothing, is refused', async () => {
+    refusedAt(await dispatch({ method: 'PUT', url: '/m1', body: { type: 'schedule_coverage' } }), 'body.type');
+    refusedAt(await dispatch({ method: 'PUT', url: '/m1', body: {} }), 'body');
+});
+
+test('bulk-update takes a list of ids and a real type, and nothing else', async () => {
+    refusedAt(await dispatch({ method: 'POST', url: '/bulk-update', body: { ids: ['m1'] } }), 'body.type');
+    refusedAt(await dispatch({ method: 'POST', url: '/bulk-update', body: { ids: [], type: 'fact' } }), 'body.ids');
+    refusedAt(await dispatch({ method: 'POST', url: '/bulk-update', body: { ids: ['m1'], type: 'fact', importance: 1 } }), 'body');
+    const ok = await dispatch({ method: 'POST', url: '/bulk-update', body: { ids: ['m1'], type: 'fact' } });
+    assert.strictEqual(ok.statusCode, 200);
+    assert.strictEqual(ok.body.updated, 1);
+});
+
+test('the new list filters are closed vocabularies', async () => {
+    for (const q of ['scope=team', 'status=superseded', 'sort=random', 'origin=guess']) {
+        const [k] = q.split('=');
+        refusedAt(await dispatch({ method: 'GET', url: `/?${q}` }), `query.${k}`);
+    }
+});
+
+test('recent needs a conversation id and an ISO moment', async () => {
+    refusedAt(await dispatch({ method: 'GET', url: '/recent' }), 'query.conversationId');
+    refusedAt(await dispatch({ method: 'GET', url: '/recent?conversationId=c1&since=yesterday' }), 'query.since');
+    const ok = await dispatch({ method: 'GET', url: '/recent?conversationId=c1&since=2026-10-10T10:00:00Z' });
+    assert.strictEqual(ok.statusCode, 200);
+    assert.deepStrictEqual(lastCall('listRecent').args, ['bob', 'c1', '2026-10-10T10:00:00.000Z']);
+});
+
+test('review paging is clamped and strict', async () => {
+    refusedAt(await dispatch({ method: 'GET', url: '/review?page=2' }), 'query');
+    const ok = await dispatch({ method: 'GET', url: '/review?limit=999' });
+    assert.strictEqual(ok.statusCode, 200);
+    assert.deepStrictEqual(lastCall('listReview').args, ['bob', { limit: 200, offset: 0 }]);
 });
 
 test('changing only the importance keeps the stored summary', async () => {
@@ -195,7 +250,10 @@ test('paging: not a number is refused, out of range is clamped, the product\'s o
     refusedAt(await dispatch({ method: 'GET', url: '/?limit=all' }), 'query.limit');
     const res = await dispatch({ method: 'GET', url: '/?limit=500&offset=0&type=schedule_coverage&search=%20kaas%20' });
     assert.strictEqual(res.statusCode, 200);
-    assert.deepStrictEqual(lastCall('searchUserMemories').args[1], { limit: 200, offset: 0, search: 'kaas', type: 'schedule_coverage' });
+    const f = lastCall('listMemories').args[1];
+    assert.deepStrictEqual(
+        [f.limit, f.offset, f.search, f.type, f.scanLimit, f.scope],
+        [200, 0, 'kaas', 'schedule_coverage', 1000, 'personal']);
 });
 
 // ── the rest ────────────────────────────────────────────────────────

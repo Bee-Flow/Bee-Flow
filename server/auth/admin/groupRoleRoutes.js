@@ -16,7 +16,7 @@ const userStore = require('../../stores/userStore');
 // — a 500 where the org-scoped group list should have been. That fails closed
 // rather than leaking other tenants' groups, but it left the sharing pickers
 // that read this endpoint permanently empty.
-const { requireAuth, requireAdmin, requireSuperAdmin, requirePrimaryOrgAdmin, getUserPermissions, invalidateAllPermissionCaches, resolveUserOrgIds, SYSTEM_PERMISSIONS, getOrgRolePermissions } = require('../permissions');
+const { requireAuth, requireAdmin, requireSuperAdmin, requirePrimaryOrgAdmin, getUserPermissions, invalidateAllPermissionCaches, resolveUserOrgIds, SYSTEM_PERMISSIONS, getOrgRolePermissions, orgWideGrantImpliedPermissions, orgRoleImpliedFill } = require('../permissions');
 const orgRolePolicy = require('../orgRolePolicy');
 const { validate } = require('../../core/http/validate');
 const { z } = require('zod');
@@ -636,7 +636,15 @@ router.get('/org-roles', requireAdmin, async (req, res) => {
     const orgId = req.session?.user?.organizationId
         || (await userStore.getUser(req.session?.user?.id).catch(() => null))?.organizationId
         || null;
-    const mapping = await orgRolePolicy.resolveOrgRolePermissions(orgId, getOrgRolePermissions());
+    const resolved = await orgRolePolicy.resolveOrgRolePermissions(orgId, getOrgRolePermissions());
+    // A role the org never edited also carries what its "All members" grants
+    // imply (Meeting Notes on for everyone → use_meeting_notes), because that
+    // is what its members resolve to. Showing the shipped default instead
+    // would make the first save of that role withdraw it unseen. See
+    // orgWideGrantImpliedPermissions for the precedence.
+    const mapping = orgId
+        ? orgRoleImpliedFill(resolved, await orgRolePolicy.getOrgRoleOverrides(orgId), await orgWideGrantImpliedPermissions(orgId))
+        : resolved;
     res.json({
         roles: Object.entries(mapping).map(([id, permissions]) => ({ id, permissions })),
         // Which of them this screen may actually change. Sent rather than

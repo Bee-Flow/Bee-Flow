@@ -80,18 +80,18 @@ export function DurationField({
                     onBlur={() => setTyped(null)}
                     editable={!disabled}
                     keyboardType="decimal-pad"
-                    accessibilityLabel={t('mobile.flow.wait.duration', 'Wait duration')}
+                    accessibilityLabel={t('automations.collection_editors.wait_duration', 'Wait duration')}
                     containerStyle={styles.input}
                     testID={testID ? `${testID}-input` : undefined}
                 />
                 <Segmented
                     value={unit}
                     onChange={onUnit}
-                    accessibilityLabel={t('mobile.flow.wait.unit', 'Duration unit')}
+                    accessibilityLabel={t('automations.collection_editors.duration_unit', 'Duration unit')}
                     options={[
-                        { value: 'seconds', label: t('mobile.flow.wait.seconds', 'seconds'), disabled },
+                        { value: 'seconds', label: t('automations.collection_editors.seconds', 'seconds'), disabled },
                         { value: 'minutes', label: t('automations.settings.minutes', 'minutes'), disabled },
-                        { value: 'hours', label: t('mobile.flow.wait.hours', 'hours'), disabled },
+                        { value: 'hours', label: t('automations.collection_editors.hours', 'hours'), disabled },
                     ]}
                 />
             </View>

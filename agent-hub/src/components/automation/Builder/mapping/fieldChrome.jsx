@@ -24,22 +24,36 @@ export function FieldLabelRow({ label, required = false, expectKind = null, hint
     return (
         <div className="flex items-center gap-1">
             <label className={fieldLabelClass()}>{label}</label>
-            {required && <span className={requiredMarkClass()} title="Required">*</span>}
+            {required && <span className={requiredMarkClass()} title={t('automations.field_chrome.required', 'Required')}>*</span>}
             {expectWord && expectKind !== 'text' && (
                 <span className="ml-1 text-[10px] font-normal normal-case tracking-normal text-[var(--text-tertiary)]" data-testid="binding-expects">
                     · {t('automations.builder.expects_kind', 'expects: {kind}', { kind: expectWord })}
                 </span>
             )}
             <FieldHint title={label}>{hint}</FieldHint>
-            {autoMapped && (
-                <span
-                    className="ml-auto text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--accent)]/15 text-[var(--accent)] uppercase tracking-wide"
-                    title="Auto-mapped from an upstream step — edit to override"
-                >
-                    auto
-                </span>
-            )}
+            {autoMapped && <AutoMappedPill kind={autoMapped} className="ml-auto" />}
         </div>
+    );
+}
+
+/**
+ * The calm "auto" pill on a slot the Auto-map wand filled. `kind === 'ai'`:
+ * its AI fallback chose this one, not the deterministic matcher — same pill,
+ * but it says so, because an AI pick is the one worth a second look.
+ */
+export function AutoMappedPill({ kind = true, className = '', title = null }) {
+    const { t } = useTranslation();
+    const ai = kind === 'ai';
+    return (
+        <span
+            className={`${className} text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--accent)]/15 text-[var(--accent)] uppercase tracking-wide`}
+            title={ai
+                ? t('automations.builder.auto_mapped_ai_title', 'Mapped by AI from an upstream step — check it, edit to override')
+                : (title || 'Auto-mapped from an upstream step — edit to override')}
+            data-testid={ai ? 'auto-mapped-ai' : undefined}
+        >
+            {ai ? t('automations.builder.auto_mapped_ai', 'auto · AI') : 'auto'}
+        </span>
     );
 }
 

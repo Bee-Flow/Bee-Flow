@@ -53,7 +53,12 @@ const mcpBuilder = require('../appStudio/mcpBuilder');
 // No validate() middleware here, for the reason routes/mcpServer.js gives:
 // the envelope is JSON-RPC's, and so is every refusal. classifyRpc and
 // parseToolCall are those refusals, shared by all three MCP surfaces.
-const { authenticateToken, PROTOCOL_VERSION, classifyRpc, parseToolCall, INVALID_REQUEST } = require('./mcpServer');
+const { PROTOCOL_VERSION, classifyRpc, parseToolCall, INVALID_REQUEST } = require('./mcpServer');
+// Imported as authenticateMcp...: the access-registry sweep recognises a handler
+// that authenticates by the name of its check, and this IS the credential gate.
+const { gateRequest: authenticateMcpRequest, rpcDenied } = require('../auth/mcpAccess/gate');
+const { batchTooLarge, rpcBatchTooLarge } = require('../auth/mcpAccess/batch');
+const { scopeAllowsTool, filterToolsByScope } = require('../auth/mcpAccess/scopes');
 const log = require('../telemetry/log');
 
 const router = express.Router();
@@ -106,7 +111,17 @@ async function assertCapability(userId) {
     return ok;
 }
 
-async function handleRpc(message, userId) {
+/**
+ * @param {{ token?: { scopes?: object } }|null} [access]  what the access gate
+ *        resolved for this request. Its token's scopes narrow tools/list and
+ *        are re-checked on tools/call. Absent (unit tests calling this
+ *        directly) = no narrowing.
+ * @param {{ entitled?: (userId: string) => Promise<boolean> }} [deps]  test
+ *        seam for the entitlement check, which needs the database.
+ */
+async function handleRpc(message, userId, access = null, deps = {}) {
+    const scopes = access?.token?.scopes || null;
+    const entitled = deps.entitled || assertCapability;
     const call = classifyRpc(message);
     if (call.kind === 'invalid') return rpcError(call.id, -32600, INVALID_REQUEST);
     if (call.kind !== 'request') return null; // notifications and client responses get no answer
@@ -128,12 +143,13 @@ async function handleRpc(message, userId) {
             return null; // notification — no response
 
         case 'tools/list': {
-            if (!await assertCapability(userId)) {
+            if (!await entitled(userId)) {
                 // An empty list rather than an error: a client that cannot use
                 // the tools should show none, not fail to connect.
                 return rpcResult(id, { tools: [] });
             }
-            return rpcResult(id, { tools: mcpBuilder.buildToolList() });
+            const listed = mcpBuilder.buildToolList();
+            return rpcResult(id, { tools: scopes ? filterToolsByScope(scopes, 'studio', listed) : listed });
         }
 
         case 'tools/call': {
@@ -141,7 +157,18 @@ async function handleRpc(message, userId) {
             if (toolCall.error) return rpcError(id, -32602, toolCall.error);
             const { name, args } = toolCall;
 
-            if (!await assertCapability(userId)) {
+            // The token's own scope, on top of the account's entitlement below.
+            if (scopes) {
+                const tool = mcpBuilder.buildToolList().find((t) => t.name === name);
+                if (!scopeAllowsTool(scopes, 'studio', name, { readOnly: tool?.annotations?.readOnlyHint === true })) {
+                    return rpcResult(id, {
+                        content: [{ type: 'text', text: `Tool "${name}" is not available to this token.` }],
+                        isError: true,
+                    });
+                }
+            }
+
+            if (!await entitled(userId)) {
                 return rpcResult(id, {
                     content: [{ type: 'text', text: 'App Studio is not available on this account (the app_studio capability is not licensed for it).' }],
                     isError: true,
@@ -178,18 +205,17 @@ async function handleRpc(message, userId) {
 // a whole screen's worth of nodes, and the definition ceiling is 512kb before
 // JSON overhead.
 router.post('/', express.json({ limit: '8mb' }), async (req, res) => {
-    const userId = await authenticateToken(req.headers.authorization);
-    if (!userId) {
-        res.set('WWW-Authenticate', 'Bearer realm="bee-flow"');
-        return res.status(401).json(rpcError(null, -32001, 'Unauthorized'));
-    }
+    const access = await authenticateMcpRequest(req, 'studio');
+    if (!access.ok) return rpcDenied(res, access.status, null, access.retryAfter);
+    const userId = access.user.id;
 
+    if (batchTooLarge(req.body)) return rpcBatchTooLarge(res);
     const body = req.body;
     const messages = Array.isArray(body) ? body : [body];
     const responses = [];
     for (const message of messages) {
         try {
-            const out = await handleRpc(message, userId);
+            const out = await handleRpc(message, userId, access);
             if (out) responses.push(out);
         } catch (err) {
             log.error('[studio-mcp] handler error:', err.message);
@@ -204,14 +230,14 @@ router.post('/', express.json({ limit: '8mb' }), async (req, res) => {
 // Same honest answer as /mcp: no SSE stream is opened, so say so instead of
 // leaving a probing client hanging.
 router.get('/', async (req, res) => {
-    const userId = await authenticateToken(req.headers.authorization);
-    if (!userId) {
-        res.set('WWW-Authenticate', 'Bearer realm="bee-flow"');
-        return res.status(401).json(rpcError(null, -32001, 'Unauthorized'));
-    }
+    const access = await authenticateMcpRequest(req, 'studio');
+    if (!access.ok) return rpcDenied(res, access.status, null, access.retryAfter);
     return res.status(405).json(rpcError(null, -32000, 'This MCP endpoint is POST-only; it does not open an SSE stream.'));
 });
 
 module.exports = router;
 module.exports.handleRpc = handleRpc;
 module.exports.INSTRUCTIONS = INSTRUCTIONS;
+// The same capability test, for routes/mcpTokens.js: a token may not carry the
+// studio server for a user this check would refuse.
+module.exports.assertCapability = assertCapability;

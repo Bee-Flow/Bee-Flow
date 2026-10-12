@@ -31,11 +31,16 @@ const TEMPLATES = [
         tags: ['gmail', 'nextcloud', 'ai'],
         definition: {
             trigger: { id: 'trg', type: 'trigger', kind: 'app_event', appEvent: { provider: 'gmail', event: 'mail.new', filter: { hasAttachment: true, subjectContains: 'invoice' } } },
+            // The trigger lists each attachment as {attachmentId, filename, …},
+            // never its bytes: gmail_read_attachment returns a sourceHandle the
+            // upload forwards (the template used to upload
+            // `attachments.0.data`, a field no mail carries).
             steps: [
+                step('read', 'integration_action', { tool: 'gmail_read_attachment', label: 'Read the attachment', inputs: { messageId: { kind: 'ref', path: 'trigger.output.messageId' }, attachmentId: { kind: 'ref', path: 'trigger.output.attachments[0].attachmentId' }, filename: { kind: 'ref', path: 'trigger.output.attachments[0].filename' } } }),
                 step('extract', 'ai_step', { prompt: 'Extract amount, currency, vendor and dueDate from this email. Return JSON.', inputs: { body: { kind: 'ref', path: 'trigger.output.snippet' } }, outputSchema: { type: 'object', properties: { amount: { type: 'number' }, currency: { type: 'string' }, vendor: { type: 'string' }, dueDate: { type: 'string' } } } }),
-                step('upload', 'integration_action', { tool: 'nextcloud_upload_file', label: 'Upload to /Invoices', inputs: { path: { kind: 'template', value: '/Invoices/{{trigger.output.subject}}.pdf' }, content: { kind: 'ref', path: 'trigger.output.attachments.0.data' } } }),
+                step('upload', 'integration_action', { tool: 'nextcloud_upload_file', label: 'Upload to /Invoices', inputs: { path: { kind: 'template', value: '/Invoices/{{trigger.output.subject}}.pdf' }, sourceHandle: { kind: 'ref', path: 'steps.read.output.sourceHandle' } } }),
             ],
-            edges: [{ from: 'trg', to: 'extract' }, { from: 'extract', to: 'upload' }],
+            edges: [{ from: 'trg', to: 'read' }, { from: 'read', to: 'extract' }, { from: 'extract', to: 'upload' }],
         },
     },
     {
@@ -53,8 +58,8 @@ const TEMPLATES = [
                     label: 'Lees bijlage',
                     inputs: {
                         messageId: { kind: 'ref', path: 'trigger.output.messageId' },
-                        attachmentId: { kind: 'ref', path: 'trigger.output.attachments.0.attachmentId' },
-                        filename: { kind: 'ref', path: 'trigger.output.attachments.0.filename' },
+                        attachmentId: { kind: 'ref', path: 'trigger.output.attachments[0].attachmentId' },
+                        filename: { kind: 'ref', path: 'trigger.output.attachments[0].filename' },
                     },
                 }),
                 step('classify', 'ai_step', {
@@ -93,7 +98,7 @@ const TEMPLATES = [
                     tool: 'drive_upload_file',
                     label: 'Upload bijlage naar Drive',
                     inputs: {
-                        name: { kind: 'ref', path: 'trigger.output.attachments.0.filename' },
+                        name: { kind: 'ref', path: 'trigger.output.attachments[0].filename' },
                         parentFolderId: { kind: 'ref', path: 'steps.mkSupp.output.folderId' },
                         sourceHandle: { kind: 'ref', path: 'steps.read.output.sourceHandle' },
                     },
@@ -107,6 +112,37 @@ const TEMPLATES = [
                 { from: 'mkYear', to: 'mkMonth' },
                 { from: 'mkMonth', to: 'mkSupp' },
                 { from: 'mkSupp', to: 'upload' },
+            ],
+        },
+    },
+    {
+        id: 'scaleway-invoices-to-nextcloud',
+        title: 'Scaleway-facturen naar Nextcloud',
+        description: 'Bij elke nieuwe Scaleway-factuur de PDF ophalen en opslaan in Nextcloud onder /Facturen/Scaleway.',
+        category: 'Files',
+        icon: 'FileText',
+        tags: ['scaleway-billing', 'nextcloud'],
+        definition: {
+            trigger: { id: 'trg', type: 'trigger', kind: 'app_event', appEvent: { provider: 'scaleway-billing', event: 'invoice.new' } },
+            steps: [
+                step('download', 'integration_action', {
+                    tool: 'scaleway_download_invoice',
+                    label: 'Haal de factuur-PDF op',
+                    inputs: { invoiceId: { kind: 'ref', path: 'trigger.output.id' } },
+                }),
+                step('upload', 'integration_action', {
+                    tool: 'nextcloud_upload_file',
+                    label: 'Upload naar /Facturen/Scaleway',
+                    inputs: {
+                        path: { kind: 'template', value: '/Facturen/Scaleway/{{trigger.output.fileName}}' },
+                        sourceHandle: { kind: 'ref', path: 'steps.download.output.sourceHandle' },
+                    },
+                }),
+            ],
+            edges: [
+                { from: 'trg', to: 'download' },
+                // nextcloud_upload_file creates /Facturen/Scaleway when it is missing.
+                { from: 'download', to: 'upload' },
             ],
         },
     },
@@ -477,6 +513,7 @@ function coarseIntegrationFromTool(tool) {
     if (tool.startsWith('webpage')) return 'webpages';
     if (tool.startsWith('knowledge_base')) return 'kb-ingest';
     if (tool.startsWith('support_')) return 'support';
+    if (tool.startsWith('scaleway_')) return 'scaleway-billing';
     return String(tool).split('_')[0] || null;
 }
 

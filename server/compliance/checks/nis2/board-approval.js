@@ -92,6 +92,7 @@ module.exports = {
                 SELECT held_at, jsonb_array_length(COALESCE(attendees, '[]'::jsonb)) AS attendees_count
                 FROM iso_management_reviews
                 WHERE organization_id = $1
+                  AND held_at <= NOW()
                   AND jsonb_array_length(COALESCE(attendees, '[]'::jsonb)) > 0
                 ORDER BY held_at DESC
                 LIMIT 1

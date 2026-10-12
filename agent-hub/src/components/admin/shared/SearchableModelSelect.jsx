@@ -20,17 +20,19 @@
 import React, { useState, useId, useRef } from 'react';
 import { getModelMeta, getModelDisplayName, getModelFamily } from '../../../utils/modelMeta';
 import Modal from '../../shared/Modal';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 const SearchableModelSelect = ({
     value,
     label,
     groups,
     onChange,
-    title = 'Select Model',
-    clearLabel = '— Not configured —',
+    title = undefined,
+    clearLabel = undefined,
     hiddenIds = [],
     onToggleHidden,
 }) => {
+    const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     const [search, setSearch] = useState('');
     const [activeProvider, setActiveProvider] = useState(null);   // null = all
@@ -119,9 +121,11 @@ const SearchableModelSelect = ({
                     {/* Header */}
                     <div className="flex items-center justify-between px-5 pt-5 pb-3">
                         <div>
-                            <h3 id={titleId} className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{title}</h3>
+                            <h3 id={titleId} className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{title ?? t('admin_shared.model_select_title', 'Select Model')}</h3>
                             <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                                {totalResults} model{totalResults !== 1 ? 's' : ''}{search ? ` matching "${search}"` : ' available'}
+                                {search
+                                    ? (totalResults === 1 ? t('admin_shared.model_select_count_match_one', '{count} model matching "{search}"', { count: totalResults, search }) : t('admin_shared.model_select_count_match_many', '{count} models matching "{search}"', { count: totalResults, search }))
+                                    : (totalResults === 1 ? t('admin_shared.model_select_count_one', '{count} model available', { count: totalResults }) : t('admin_shared.model_select_count_many', '{count} models available', { count: totalResults }))}
                             </p>
                         </div>
                         <button
@@ -145,7 +149,7 @@ const SearchableModelSelect = ({
                                 type="text"
                                 value={search}
                                 onChange={e => setSearch(e.target.value)}
-                                placeholder="Search by name, ID, or category..."
+                                placeholder={t('admin_shared.model_select_search_ph', 'Search by name, ID, or category...')}
                                 className="w-full pl-10 pr-4 py-2.5 rounded-xl border outline-none text-sm"
                                 style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                             />
@@ -156,7 +160,7 @@ const SearchableModelSelect = ({
                     <div className="px-5 pb-3 space-y-2">
                         {/* Provider filter */}
                         <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-[10px] font-semibold uppercase tracking-wider mr-1" style={{ color: 'var(--text-muted)' }}>Provider</span>
+                            <span className="text-[10px] font-semibold uppercase tracking-wider mr-1" style={{ color: 'var(--text-muted)' }}>{t('admin_shared.model_select_provider', 'Provider')}</span>
                             <button
                                 type="button"
                                 onClick={() => setActiveProvider(null)}
@@ -165,7 +169,7 @@ const SearchableModelSelect = ({
                                     background: !activeProvider ? 'var(--accent-primary)' : 'var(--bg-tertiary)',
                                     color: !activeProvider ? '#fff' : 'var(--text-muted)',
                                 }}
-                            >All</button>
+                            >{t('admin_shared.model_select_all', 'All')}</button>
                             {providerNames.map(p => (
                                 <button
                                     key={p}
@@ -182,7 +186,7 @@ const SearchableModelSelect = ({
                         {/* Hidden toggle — only render when there's something to manage */}
                         {(hiddenCount > 0 || onToggleHidden) && (
                             <div className="flex items-center gap-1.5 flex-wrap">
-                                <span className="text-[10px] font-semibold uppercase tracking-wider mr-1" style={{ color: 'var(--text-muted)' }}>Hidden</span>
+                                <span className="text-[10px] font-semibold uppercase tracking-wider mr-1" style={{ color: 'var(--text-muted)' }}>{t('admin_shared.model_select_hidden', 'Hidden')}</span>
                                 <button
                                     type="button"
                                     onClick={() => setShowHidden(s => !s)}
@@ -191,16 +195,16 @@ const SearchableModelSelect = ({
                                         background: showHidden ? 'var(--accent-primary)' : 'var(--bg-tertiary)',
                                         color: showHidden ? '#fff' : 'var(--text-muted)',
                                     }}
-                                    title={hiddenCount === 0 ? 'No models hidden yet' : `${hiddenCount} model${hiddenCount === 1 ? '' : 's'} hidden`}
+                                    title={hiddenCount === 0 ? t('admin_shared.model_select_none_hidden', 'No models hidden yet') : hiddenCount === 1 ? t('admin_shared.model_select_hidden_one', '{count} model hidden', { count: hiddenCount }) : t('admin_shared.model_select_hidden_many', '{count} models hidden', { count: hiddenCount })}
                                 >
-                                    {showHidden ? `Showing hidden (${hiddenCount})` : `Show hidden (${hiddenCount})`}
+                                    {showHidden ? t('admin_shared.model_select_showing_hidden', 'Showing hidden ({count})', { count: hiddenCount }) : t('admin_shared.model_select_show_hidden', 'Show hidden ({count})', { count: hiddenCount })}
                                 </button>
                             </div>
                         )}
                         {/* Family filter */}
                         {familyList.length > 1 && (
                             <div className="flex items-center gap-1.5 flex-wrap">
-                                <span className="text-[10px] font-semibold uppercase tracking-wider mr-1" style={{ color: 'var(--text-muted)' }}>Family</span>
+                                <span className="text-[10px] font-semibold uppercase tracking-wider mr-1" style={{ color: 'var(--text-muted)' }}>{t('admin_shared.model_select_family', 'Family')}</span>
                                 <button
                                     type="button"
                                     onClick={() => setActiveFamily(null)}
@@ -209,7 +213,7 @@ const SearchableModelSelect = ({
                                         background: !activeFamily ? 'var(--accent-primary)' : 'var(--bg-tertiary)',
                                         color: !activeFamily ? '#fff' : 'var(--text-muted)',
                                     }}
-                                >All</button>
+                                >{t('admin_shared.model_select_all', 'All')}</button>
                                 {familyList.map(f => (
                                     <button
                                         key={f}
@@ -235,7 +239,7 @@ const SearchableModelSelect = ({
                             className="w-full text-left px-4 py-2.5 rounded-lg text-sm hover:bg-white/5 transition-colors mb-1"
                             style={{ color: 'var(--text-muted)' }}
                         >
-                            {clearLabel}
+                            {clearLabel ?? `— ${t('admin_shared.model_select_not_configured', 'Not configured')} —`}
                         </button>
 
                         {Object.entries(filteredGroups).map(([provName, models]) => (
@@ -283,7 +287,7 @@ const SearchableModelSelect = ({
                                                         <div className="font-medium flex items-center gap-2">
                                                             <span className="truncate">{displayName}</span>
                                                             {isHidden && (
-                                                                <span className="text-[9px] px-1.5 py-0.5 rounded-full font-medium shrink-0" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>Hidden</span>
+                                                                <span className="text-[9px] px-1.5 py-0.5 rounded-full font-medium shrink-0" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>{t('admin_shared.model_select_hidden', 'Hidden')}</span>
                                                             )}
                                                         </div>
                                                         {displayName !== m.id && (
@@ -307,7 +311,7 @@ const SearchableModelSelect = ({
                                                         onClick={(e) => { e.stopPropagation(); onToggleHidden(m.id); }}
                                                         className="px-3 flex items-center justify-center hover:bg-white/10 rounded-r-lg transition-colors shrink-0"
                                                         style={{ color: 'var(--text-muted)' }}
-                                                        title={isHidden ? 'Show this model in tier pickers' : 'Hide this model from tier pickers'}
+                                                        title={isHidden ? t('admin_shared.model_select_show_in_tiers', 'Show this model in tier pickers') : t('admin_shared.model_select_hide_from_tiers', 'Hide this model from tier pickers')}
                                                     >
                                                         {isHidden ? (
                                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -330,8 +334,8 @@ const SearchableModelSelect = ({
 
                         {totalResults === 0 && (
                             <div className="px-4 py-12 text-center" style={{ color: 'var(--text-muted)' }}>
-                                <p className="text-lg mb-1">No models found</p>
-                                <p className="text-sm">{providerNames.length === 0 ? 'Configure a provider in the Providers tab first.' : 'Try a different search term'}</p>
+                                <p className="text-lg mb-1">{t('admin_shared.model_select_no_models', 'No models found')}</p>
+                                <p className="text-sm">{providerNames.length === 0 ? t('admin_shared.model_select_no_provider', 'Configure a provider in the Providers tab first.') : t('admin_shared.model_select_try_other', 'Try a different search term')}</p>
                             </div>
                         )}
                     </div>

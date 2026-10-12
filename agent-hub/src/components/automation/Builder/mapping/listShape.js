@@ -27,11 +27,13 @@
  * the array into the surrounding text, which is the exact silent failure this
  * module exists to prevent.
  */
-import { humanizeFieldTail } from '../flow/displayHelpers';
-import { summariseData } from '../flow/dataSummary';
+import { formatPath, parsePath } from '@shared/expr/path.mjs';
 import { suggestItemVar } from './upstream';
+import { lastPathKey } from './upstream/fieldTree';
 import { describeDataPath, escapeExprString } from './valueParts';
 import { walkPath, walkRelativePath } from '../../../../utils/bindingHelpers';
+import { summariseData } from '../flow/dataSummary';
+import { humanizeFieldTail } from '../flow/displayHelpers';
 
 const WILDCARD = '[*]';
 
@@ -40,10 +42,24 @@ const WILDCARD = '[*]';
  * `steps.g.output.results[*].subject` →
  *   { arrayPath: 'steps.g.output.results', tail: '.subject' }
  * The tail is sliced VERBATIM (leading `.` or `[` kept), so bracket-quoted
- * keys (`[*]["content-type"]`) survive re-assembly untouched.
+ * keys (`[*]["content-type"]`) survive re-assembly untouched. The wildcard is
+ * found in the PARSED path, so a quoted key that merely contains `[*]` (or a
+ * `]`) is not mistaken for one; a path the grammar cannot read falls back to
+ * the text.
  */
 export function splitColumnPath(path) {
     const s = String(path || '');
+    const tokens = parsePath(s);
+    if (tokens) {
+        const i = tokens.findIndex(t => t.type === 'wild');
+        if (i < 0) return { arrayPath: s, tail: '' };
+        const arrayPath = formatPath(tokens.slice(0, i));
+        const head = `${arrayPath}${WILDCARD}`;
+        // Canonical spelling (what discovery writes): slice verbatim.
+        if (s.startsWith(head)) return { arrayPath, tail: s.slice(head.length) };
+        const rest = formatPath([{ type: 'prop', key: '$' }, ...tokens.slice(i + 1)]).slice(1);
+        return { arrayPath, tail: rest };
+    }
     const i = s.indexOf(WILDCARD);
     if (i < 0) return { arrayPath: s, tail: '' };
     return { arrayPath: s.slice(0, i), tail: s.slice(i + WILDCARD.length) };
@@ -161,7 +177,7 @@ export function fieldListShape(field, sampleRoot) {
 export function forEachPickFor(path, sampleRoot, { itemVar } = {}) {
     const raw = String(path || '').trim();
     const { arrayPath, tail } = splitColumnPath(raw);
-    const lastSeg = arrayPath.replace(/\[[^\]]*\]/g, '').split('.').filter(Boolean).pop() || 'item';
+    const lastSeg = lastPathKey(arrayPath) || 'item';
     const v = (itemVar || suggestItemVar(lastSeg) || 'item').replace(/[^A-Za-z0-9_]/g, '') || 'item';
     return {
         forEach: { overRef: arrayPath, itemVar: v, maxIterations: 100 },

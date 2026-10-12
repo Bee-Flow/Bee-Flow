@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Settings2 } from 'lucide-react';
 import { VIEW_OPTIONS } from './gridViewPrefs';
+import useTranslation from '../../../../../../hooks/useTranslation';
 
 /**
  * The reader's own controls for one grid: how tall the rows are, how they are
@@ -11,14 +12,40 @@ import { VIEW_OPTIONS } from './gridViewPrefs';
  * permanently above every table would cost more attention than they save.
  */
 
-const LABELS = {
-    density: { label: 'Row height', options: { compact: 'Tight', comfortable: 'Normal', spacious: 'Roomy' } },
-    look: { label: 'Row separation', options: { default: 'Lines', striped: 'Stripes', minimal: 'Space', cards: 'Cards' } },
-    clamp: { label: 'Long text', options: { 1: '1 line', 2: '2 lines', 3: '3 lines', off: 'Full' } },
-};
+const LABEL_KEYS = ['density', 'look', 'clamp'];
+
+const labelsFor = (t) => ({
+    density: {
+        label: t('studio_apps_runtime.view_menu.row_height', 'Row height'),
+        options: {
+            compact: t('studio_apps_runtime.view_menu.density_tight', 'Tight'),
+            comfortable: t('studio_apps_runtime.view_menu.density_normal', 'Normal'),
+            spacious: t('studio_apps_runtime.view_menu.density_roomy', 'Roomy'),
+        },
+    },
+    look: {
+        label: t('studio_apps_runtime.view_menu.row_separation', 'Row separation'),
+        options: {
+            default: t('studio_apps_runtime.view_menu.look_lines', 'Lines'),
+            striped: t('studio_apps_runtime.view_menu.look_stripes', 'Stripes'),
+            minimal: t('studio_apps_runtime.view_menu.look_space', 'Space'),
+            cards: t('studio_apps_runtime.view_menu.look_cards', 'Cards'),
+        },
+    },
+    clamp: {
+        label: t('studio_apps_runtime.view_menu.long_text', 'Long text'),
+        options: {
+            1: t('studio_apps_runtime.view_menu.clamp_1', '1 line'),
+            2: t('studio_apps_runtime.view_menu.clamp_2', '2 lines'),
+            3: t('studio_apps_runtime.view_menu.clamp_3', '3 lines'),
+            off: t('studio_apps_runtime.view_menu.clamp_full', 'Full'),
+        },
+    },
+});
 
 function Segmented({ groupKey, value, onChange }) {
-    const meta = LABELS[groupKey];
+    const { t } = useTranslation();
+    const meta = labelsFor(t)[groupKey];
     return (
         <div className="flex flex-col gap-1">
             <span className="text-[11px] font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
@@ -57,6 +84,7 @@ function Segmented({ groupKey, value, onChange }) {
 }
 
 export default function GridViewMenu({ view, onChange, onReset, hasOverrides }) {
+    const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     const wrapRef = useRef(null);
 
@@ -79,7 +107,7 @@ export default function GridViewMenu({ view, onChange, onReset, hasOverrides }) 
                 onClick={() => setOpen((v) => !v)}
                 aria-expanded={open}
                 aria-haspopup="dialog"
-                title="How this table is shown"
+                title={t('studio_apps_runtime.view_menu.title', 'How this table is shown')}
                 className="inline-flex items-center gap-1.5 px-2 py-1.5 text-xs font-medium border"
                 style={{
                     background: hasOverrides ? 'var(--app-primary-soft)' : 'var(--bg-primary)',
@@ -89,13 +117,13 @@ export default function GridViewMenu({ view, onChange, onReset, hasOverrides }) 
                 }}
             >
                 <Settings2 className="w-3.5 h-3.5" aria-hidden="true" />
-                <span>View</span>
+                <span>{t('studio_apps_runtime.view_menu.view', 'View')}</span>
             </button>
 
             {open ? (
                 <div
                     role="dialog"
-                    aria-label="Table view settings"
+                    aria-label={t('studio_apps_runtime.view_menu.settings', 'Table view settings')}
                     className="absolute right-0 z-20 mt-1 flex flex-col gap-3 border p-3 shadow-lg"
                     style={{
                         background: 'var(--bg-card)',
@@ -104,12 +132,12 @@ export default function GridViewMenu({ view, onChange, onReset, hasOverrides }) 
                         minWidth: 260,
                     }}
                 >
-                    {Object.keys(LABELS).map((key) => (
+                    {LABEL_KEYS.map((key) => (
                         <Segmented key={key} groupKey={key} value={view[key]} onChange={(v) => onChange(key, v)} />
                     ))}
                     <div className="flex items-center justify-between gap-3 pt-1">
                         <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                            Only changes how you see it.
+                            {t('studio_apps_runtime.view_menu.only_you', 'Only changes how you see it.')}
                         </span>
                         <button
                             type="button"
@@ -118,7 +146,7 @@ export default function GridViewMenu({ view, onChange, onReset, hasOverrides }) 
                             className="px-2 py-1 text-xs font-medium disabled:opacity-40"
                             style={{ color: 'var(--text-secondary)' }}
                         >
-                            Reset
+                            {t('studio_apps_runtime.view_menu.reset', 'Reset')}
                         </button>
                     </div>
                 </div>

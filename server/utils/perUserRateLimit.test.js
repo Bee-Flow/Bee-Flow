@@ -176,3 +176,23 @@ test('a Redis failure falls open to the memory window WITH the cost intact', asy
     assert.equal(await invoke(mw, { ...req(), cost: 9 }, fakeRes()), 'next');
     assert.equal(await invoke(mw, { ...req(), cost: 4 }, fakeRes()), 'denied', 'the fallback charges the cost too');
 });
+
+test('a request costing more than the whole budget is denied without throwing (BFSF-454)', async () => {
+    const mw = perUserRateLimit({ windowMs: 60_000, max: 5, costFn: (r) => r.cost });
+    const res = fakeRes();
+    assert.equal(await invoke(mw, { ...req(), cost: 9 }, res), 'denied');
+    assert.equal(res.headers['Retry-After'], '60');
+});
+
+test('check() resolves after the async Redis path decides (BFSF-459)', async () => {
+    let count = 0;
+    const redis = {
+        incr: async () => { await new Promise(r => setTimeout(r, 5)); return ++count; },
+        pexpire: async () => 1,
+    };
+    const mw = perUserRateLimit({ windowMs: 60_000, max: 1, name: 'chk', _redis: redis });
+    assert.equal(await mw.check(req(), fakeRes()), true);
+    const res = fakeRes();
+    assert.equal(await mw.check(req(), res), false);
+    assert.equal(res.statusCode, 429);
+});

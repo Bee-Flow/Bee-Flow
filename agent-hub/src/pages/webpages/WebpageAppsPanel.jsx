@@ -19,7 +19,7 @@ import { API_BASE, authFetch } from '../../utils/helpers';
  *   2. Add new ones from the apps the author ALREADY has access to — the same
  *      strict catalog the automations builder uses (GET /api/automation/
  *      catalog). Apps the author hasn't connected are greyed out with a
- *      Connect deep link to Settings → Integrations (with a ?return= back
+ *      Connect deep link to Settings → Connections (with a ?return= back
  *      here); the server also refuses such grants with 409
  *      connection_required, so a stale catalog can't produce a broken grant.
  *
@@ -60,7 +60,7 @@ function StatusPill({ available }) {
     );
 }
 
-/** Settings → Integrations deep link that lands the author back on this page. */
+/** Settings → Connections deep link that lands the author back on this page. */
 function connectHref(webpageId) {
     return `/app/settings/integrations?return=${encodeURIComponent(`/app/studio/webpages/${webpageId}`)}`;
 }
@@ -179,7 +179,7 @@ function AddAppForm({ webpageId, catalog, onGranted, onError }) {
                     <AlertTriangle size={12} className="mt-0.5 shrink-0" />
                     <span>
                         {t('webpages.apps.app_not_connected', "{name} isn't connected to your account.", { name: app.label || app.id })}{' '}
-                        <ConnectLink webpageId={webpageId}>{t('webpages.apps.connect_in_settings', 'Connect it in Settings → Integrations')}</ConnectLink>{' '}
+                        <ConnectLink webpageId={webpageId}>{t('webpages.apps.connect_in_settings', 'Connect it in Settings → Connections')}</ConnectLink>{' '}
                         {t('webpages.apps.come_back', 'and come back — this list updates when you return.')}
                     </span>
                 </p>

@@ -51,3 +51,25 @@ test('rows without location_state fall back on the old flags', () => {
     const r = assessTransfers([{ operator: 'openai', is_eu: false, is_local: false, calls: 12 }], new Set());
     assert.equal(r.status, 'fail');
 });
+
+test('the fail counts operators, not operator × country rows, and claims "data", not "personal data"', () => {
+    // The ledger rows are grouped per operator AND country, and the art44
+    // query has no PII filter: one operator in two countries used to read
+    // "2 operator(s) routed personal data".
+    const rows = [
+        { operator: 'Amazon AWS', location_state: 'outside', country_code: 'US', calls: 5 },
+        { operator: 'Amazon AWS', location_state: 'outside', country_code: 'SG', calls: 3 },
+    ];
+    const r = assessTransfers(rows, new Set());
+    assert.equal(r.status, 'fail');
+    assert.match(r.details, /^1 operator\(s\)/);
+    assert.doesNotMatch(r.details, /personal data/);
+    assert.equal(r.evidence.non_eu_unconfirmed_operators, 1);
+    // The SCC toggle is on the processing register, not on Settings.
+    assert.match(r.details, /Compliance → Processing register/);
+    assert.doesNotMatch(r.details, /Compliance → Settings/);
+
+    const ok = assessTransfers(rows, new Set(['amazon aws']));
+    assert.equal(ok.status, 'pass');
+    assert.match(ok.details, /^1 non-EU operator\(s\) in use/);
+});

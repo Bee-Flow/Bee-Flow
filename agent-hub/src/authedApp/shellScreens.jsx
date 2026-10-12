@@ -147,22 +147,23 @@ export function ServerUnavailableScreen({ useOrgBrand, orgLogo, bootstrapDiagnos
 
 // No-organisation gate for SSO users without org membership.
 export function NoOrganizationScreen({ handleLogout }) {
+    const { t } = useTranslation();
     return (
         <div className="h-screen flex items-center justify-center p-4" style={{ background: 'linear-gradient(160deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-tertiary) 100%)' }}>
             <div className="w-full max-w-md">
                 <div className="backdrop-blur-xl rounded-3xl p-8 shadow-2xl border relative overflow-hidden text-center" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)' }}>
                     <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-[var(--border-default)] to-transparent" />
                     <div className="w-20 h-20 mx-auto mb-5 rounded-full overflow-hidden shadow-xl ring-4 ring-[var(--border-subtle)]">
-                        <img src={beeFlowLogo} alt="Bee Flow" className="w-full h-full object-cover" />
+                        <img src={beeFlowLogo} alt={t('app.shell_logo_alt', 'Bee Flow')} className="w-full h-full object-cover" />
                     </div>
                     <div className="w-14 h-14 mx-auto mb-4 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(245, 158, 11, 0.1)' }}>
                         <svg className="w-7 h-7" fill="none" stroke="#f59e0b" viewBox="0 0 24 24" strokeWidth={1.5}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
                         </svg>
                     </div>
-                    <h2 className="text-lg font-bold mb-2" style={{ color: 'var(--text-primary)' }}>No Organisation Found</h2>
+                    <h2 className="text-lg font-bold mb-2" style={{ color: 'var(--text-primary)' }}>{t('app.shell_no_org_title', 'No Organisation Found')}</h2>
                     <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)', lineHeight: '1.6' }}>
-                        Your account is not linked to any organisation yet. Please ask your administrator to create an account for you, or sign up with a new organisation.
+                        {t('app.shell_no_org_body', 'Your account is not linked to any organisation yet. Please ask your administrator to create an account for you, or sign up with a new organisation.')}
                     </p>
                     <div className="flex gap-3">
                         <button
@@ -170,14 +171,14 @@ export function NoOrganizationScreen({ handleLogout }) {
                             className="flex-1 py-2.5 rounded-xl font-medium text-sm border transition-colors hover:bg-[var(--bg-tertiary)]"
                             style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                         >
-                            Sign Out
+                            {t('sidebar.sign_out', 'Sign Out')}
                         </button>
                         <button
                             onClick={() => { handleLogout(); setTimeout(() => { window.location.href = '/?signup=1'; }, 300); }}
                             className="flex-1 py-2.5 rounded-xl font-semibold text-sm text-white"
                             style={{ background: 'var(--accent-primary)' }}
                         >
-                            Sign Up Instead
+                            {t('app.shell_sign_up_instead', 'Sign Up Instead')}
                         </button>
                     </div>
                 </div>
@@ -188,24 +189,25 @@ export function NoOrganizationScreen({ handleLogout }) {
 
 // Pending-approval gate for SSO users awaiting admin approval.
 export function PendingApprovalScreen({ user, handleLogout }) {
+    const { t } = useTranslation();
     return (
         <div className="h-screen flex items-center justify-center p-4" style={{ background: 'linear-gradient(160deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-tertiary) 100%)' }}>
             <div className="w-full max-w-md">
                 <div className="backdrop-blur-xl rounded-3xl p-8 shadow-2xl border relative overflow-hidden text-center" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)' }}>
                     <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-[var(--border-default)] to-transparent" />
                     <div className="w-20 h-20 mx-auto mb-5 rounded-full overflow-hidden shadow-xl ring-4 ring-[var(--border-subtle)]">
-                        <img src={beeFlowLogo} alt="Bee Flow" className="w-full h-full object-cover" />
+                        <img src={beeFlowLogo} alt={t('app.shell_logo_alt', 'Bee Flow')} className="w-full h-full object-cover" />
                     </div>
                     <div className="w-14 h-14 mx-auto mb-4 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(59, 130, 246, 0.1)' }}>
                         <svg className="w-7 h-7" fill="none" stroke="#3b82f6" viewBox="0 0 24 24" strokeWidth={1.5}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                     </div>
-                    <h2 className="text-lg font-bold mb-2" style={{ color: 'var(--text-primary)' }}>Awaiting Approval</h2>
+                    <h2 className="text-lg font-bold mb-2" style={{ color: 'var(--text-primary)' }}>{t('app.shell_awaiting_approval_title', 'Awaiting Approval')}</h2>
                     <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)', lineHeight: '1.6' }}>
                         {user?.isConsumerAccount
-                            ? 'Your account has been created and is being reviewed. An administrator will approve your access shortly.'
-                            : 'Your account has been created and linked to an organisation, but it needs to be approved by an administrator before you can access the platform.'
+                            ? t('app.shell_awaiting_approval_consumer', 'Your account has been created and is being reviewed. An administrator will approve your access shortly.')
+                            : t('app.shell_awaiting_approval_org', 'Your account has been created and linked to an organisation, but it needs to be approved by an administrator before you can access the platform.')
                         }
                     </p>
                     <button
@@ -213,7 +215,7 @@ export function PendingApprovalScreen({ user, handleLogout }) {
                         className="w-full py-2.5 rounded-xl font-medium text-sm border transition-colors hover:bg-[var(--bg-tertiary)]"
                         style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                     >
-                        Sign Out
+                        {t('sidebar.sign_out', 'Sign Out')}
                     </button>
                 </div>
             </div>

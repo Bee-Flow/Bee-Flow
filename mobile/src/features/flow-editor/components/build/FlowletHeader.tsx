@@ -18,7 +18,7 @@ export function FlowletHeader({ title, automation, onRename }: { title: string; 
             title={title}
             status={<Badge label={t('automations.node.call_layer.typeLabel', 'Flowlet')} tone="neutral" />}
             onTitlePress={onRename}
-            titleHint={t('mobile.flow.flowlets.rename', 'Rename flowlet')}
+            titleHint={t('automations.flowlets_panel.rename_flowlet', 'Rename flowlet')}
             backLabel={t('mobile.flow.flowlets.back_to', 'Back to {name}', { name: automation })}
         />
     );

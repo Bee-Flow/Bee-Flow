@@ -640,8 +640,27 @@ async function deleteAgent(id, ownerId, opts = {}) {
     // Grab org_id before deleting so we can notify sync
     const agent = await getOne('SELECT organization_id FROM agents WHERE id = $1', [id]);
     const { rowCount } = await run('DELETE FROM agents WHERE id = $1 AND owner_id = $2', [id, ownerId]);
+    if (rowCount > 0) await dropAutomationBindings(id);
     if (rowCount > 0 && agent?.organization_id) _notifySync(agent.organization_id, id, 'deleted');
     return rowCount > 0;
+}
+
+/**
+ * An agent that is gone can no longer be called by anything, so the grants that
+ * named it (automation_agent_bindings, automation/agentBinding.js) go with it.
+ * `agent_id` there is a soft reference, not a foreign key, so nothing cascades.
+ * Best effort and probe-first: the table belongs to the automation store, which
+ * may not have booted yet, and a failed sweep must never fail the delete (the
+ * runtime ignores a binding whose agent is gone either way).
+ */
+async function dropAutomationBindings(agentId) {
+    try {
+        const probe = await getOne(`SELECT to_regclass('public.automation_agent_bindings') AS t`);
+        if (!probe || !probe.t) return;
+        await run('DELETE FROM automation_agent_bindings WHERE agent_id = $1', [agentId]);
+    } catch (e) {
+        log.warn(`[AgentCrud] could not drop the automation bindings of deleted agent ${agentId}: ${e.message}`);
+    }
 }
 
 async function forceDeleteAgent(id, opts = {}) {
@@ -650,6 +669,7 @@ async function forceDeleteAgent(id, opts = {}) {
     await run('DELETE FROM agent_tools WHERE agent_id = $1', [id]);
     await run('DELETE FROM agent_conversations WHERE agent_id = $1', [id]);
     const { rowCount } = await run('DELETE FROM agents WHERE id = $1', [id]);
+    if (rowCount > 0) await dropAutomationBindings(id);
     return rowCount > 0;
 }
 

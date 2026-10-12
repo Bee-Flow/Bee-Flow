@@ -1,5 +1,6 @@
 import { ScrollText, ChevronDown, ChevronRight, AlertTriangle, RefreshCw } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
+import { useTranslation } from '../../../../hooks/useTranslation';
 import EmptyState from '../../../shared/EmptyState';
 import { useResource, apiJson } from '../hooks/useApi';
 import { Dot } from '../ui/Badge';
@@ -20,12 +21,8 @@ const ACTION_TONE = {
     license_issuance_succeeded: 'success',
 };
 
-const ENTITY_TYPES = [
-    { value: 'plan',         label: 'Plans' },
-    { value: 'subscription', label: 'Subscriptions' },
-];
-
 function LogRow({ log, unresolvedFailureIds, onRetryDone }) {
+    const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     const [retrying, setRetrying] = useState(false);
     const [retryError, setRetryError] = useState(null);
@@ -45,7 +42,7 @@ function LogRow({ log, unresolvedFailureIds, onRetryDone }) {
             await apiJson(`/api/subscriptions/${scope}/${log.target_id}/reissue-license`, { method: 'POST' });
             if (onRetryDone) await onRetryDone();
         } catch (err) {
-            setRetryError(err.message || 'Retry failed');
+            setRetryError(err.message || t('admin_subscriptions.audit_retry_failed_default', 'Retry failed'));
         } finally {
             setRetrying(false);
         }
@@ -69,14 +66,14 @@ function LogRow({ log, unresolvedFailureIds, onRetryDone }) {
                         </span>
                     </div>
                     <div className="mt-0.5 text-[11.5px] text-[var(--text-muted)]">
-                        by <strong className="text-[var(--text-secondary)] font-semibold">{log.changed_by || 'system'}</strong>{' • '}
+                        {t('admin_subscriptions.audit_by', 'by {name}', { name: log.changed_by || t('admin_subscriptions.audit_system', 'system') })}{' • '}
                         {new Date(log.created_at).toLocaleString()}
                     </div>
                     {!open && summary && (
                         <div className="mt-1 text-[11px] text-[var(--text-muted)] truncate max-w-full">{summary}</div>
                     )}
                     {retryError && (
-                        <div className="mt-1 text-[11px] text-rose-400">Retry failed: {retryError}</div>
+                        <div className="mt-1 text-[11px] text-rose-400">{t('admin_subscriptions.audit_retry_failed', 'Retry failed: {error}', { error: retryError })}</div>
                     )}
                 </div>
                 {showRetry && (
@@ -87,7 +84,7 @@ function LogRow({ log, unresolvedFailureIds, onRetryDone }) {
                         className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-rose-500/10 text-rose-300 border border-rose-500/30 hover:bg-rose-500/20 disabled:opacity-50"
                     >
                         <RefreshCw className={`w-3.5 h-3.5 ${retrying ? 'animate-spin' : ''}`} />
-                        {retrying ? 'Retrying…' : 'Retry'}
+                        {retrying ? t('admin_subscriptions.audit_retrying', 'Retrying…') : t('admin_subscriptions.audit_retry', 'Retry')}
                     </button>
                 )}
                 {hasDetails && (
@@ -106,6 +103,11 @@ function LogRow({ log, unresolvedFailureIds, onRetryDone }) {
 }
 
 export function AuditView() {
+    const { t } = useTranslation();
+    const ENTITY_TYPES = [
+        { value: 'plan',         label: t('admin_subscriptions.audit_plans', 'Plans') },
+        { value: 'subscription', label: t('admin_subscriptions.audit_subscriptions', 'Subscriptions') },
+    ];
     const { data: logs = [], loading, reload: reloadLogs } = useResource('/api/subscriptions/audit?limit=100', { initial: [] });
     const { data: failures = [], reload: reloadFailures } = useResource('/api/subscriptions/license-issuance-failures?limit=200', { initial: [] });
     const [query, setQuery]       = useState('');
@@ -137,9 +139,9 @@ export function AuditView() {
     return (
         <div className="px-6 py-6 max-w-3xl mx-auto">
             <SectionHeader
-                title="Subscription Audit Log"
-                description="Track all subscription plan and organization changes."
-                action={<SearchInput value={query} onChange={setQuery} placeholder="Filter by action, target, user…" className="w-72" />}
+                title={t('admin_subscriptions.audit_title', 'Subscription Audit Log')}
+                description={t('admin_subscriptions.audit_desc', 'Track all subscription plan and organization changes.')}
+                action={<SearchInput value={query} onChange={setQuery} placeholder={t('admin_subscriptions.audit_filter', 'Filter by action, target, user…')} className="w-72" />}
             />
 
             {unresolvedFailureIds.size > 0 && (
@@ -148,10 +150,12 @@ export function AuditView() {
                         <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
                         <div className="flex-1 min-w-0">
                             <div className="text-[13px] font-semibold text-[var(--text-primary)]">
-                                {unresolvedFailureIds.size} unresolved license-issuance failure{unresolvedFailureIds.size === 1 ? '' : 's'}
+                                {unresolvedFailureIds.size === 1
+                                    ? t('admin_subscriptions.audit_failures_one', '{count} unresolved license-issuance failure', { count: unresolvedFailureIds.size })
+                                    : t('admin_subscriptions.audit_failures_many', '{count} unresolved license-issuance failures', { count: unresolvedFailureIds.size })}
                             </div>
                             <div className="mt-0.5 text-[11.5px] text-[var(--text-muted)]">
-                                Customers paid but didn&apos;t receive a license JWT. Use the Retry button on a failure row to re-attempt issuance.
+                                {t('admin_subscriptions.audit_failures_hint', 'Customers paid but didn\'t receive a license JWT. Use the Retry button on a failure row to re-attempt issuance.')}
                             </div>
                         </div>
                     </div>
@@ -166,12 +170,12 @@ export function AuditView() {
             />
 
             {loading ? (
-                <Spinner label="Loading audit log…" />
+                <Spinner label={t('admin_subscriptions.audit_loading', 'Loading audit log…')} />
             ) : visible.length === 0 ? (
                 <EmptyState
                     icon={<ScrollText className="w-6 h-6" />}
-                    title="No audit log entries"
-                    description={query || entity ? 'No entries match the current filter.' : 'Changes to plans and subscriptions will appear here.'}
+                    title={t('admin_subscriptions.audit_empty', 'No audit log entries')}
+                    description={query || entity ? t('admin_subscriptions.audit_empty_filtered', 'No entries match the current filter.') : t('admin_subscriptions.audit_empty_desc', 'Changes to plans and subscriptions will appear here.')}
                 />
             ) : (
                 <div className="flex flex-col gap-2">

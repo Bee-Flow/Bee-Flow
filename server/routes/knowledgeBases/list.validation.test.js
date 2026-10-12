@@ -46,6 +46,7 @@ const MOCKS = {
     '../../core/kb/fetchGuard': { guardedFetch: async () => null },
     '../../support/kbAccess': { canAccessKB: async () => true, resolveIsOrgAdmin: async () => false },
     '../../core/kb/sources/ensureSource': { ensureKbSource: async () => null },
+    '../../stores/kbSources': { countsByKb: async () => ({ kb1: { sourceCount: 2, autoRefreshCount: 1, lastRefreshAt: null } }) },
     '../../telemetry/log': { info() {}, warn() {}, error() {}, debug() {} },
 };
 
@@ -178,4 +179,19 @@ test('includeAuto=true includes auto-created bases, as 1 always did', async () =
     assert.strictEqual((await filterFor('/?includeAuto=0')).sourceKind, 'manual');
     touched.length = 0;
     assert.strictEqual((await filterFor('/?includeAuto=')).sourceKind, 'manual', 'empty is absent, as before');
+});
+
+// ── The list carries the source aggregates ──────────────────────────
+// Without them the Knowledge list said "0 sources · no sources yet" on every base.
+
+test('GET / adds sourceCount and the other K1 aggregates', async () => {
+    const res = await dispatch('/');
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(res.body[0].sourceCount, 2);
+    assert.strictEqual(res.body[0].autoRefreshCount, 1);
+});
+
+test('GET /published is decorated the same way', async () => {
+    const res = await dispatch('/published');
+    assert.strictEqual(res.body[0].sourceCount, 2);
 });

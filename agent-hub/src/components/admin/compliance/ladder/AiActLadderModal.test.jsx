@@ -1,5 +1,5 @@
-import React from 'react';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('../../../../utils/helpers', () => ({ authFetch: vi.fn() }));
@@ -8,9 +8,10 @@ vi.mock('../../../shared/Toast', () => {
     return { default: toast, toast };
 });
 
+import AiActLadderModal from './AiActLadderModal';
+import { legacyAnnexAnswers } from './ladderOutcome';
 import { authFetch } from '../../../../utils/helpers';
 import toast from '../../../shared/Toast';
-import AiActLadderModal from './AiActLadderModal';
 import { API } from '../data/api';
 
 // The artboard's day: 14 Sep 2026 → 79 days to 2 Dec 2026.
@@ -80,7 +81,7 @@ describe('AiActLadderModal — step verdicts from the signals (artboard 1f)', ()
     it('header, subtitle and "Contains AI" banner read the signals; steps 1 and 3 start unanswered', () => {
         render(<AiActLadderModal open onClose={() => {}} kind="automation" target={quote} data={hookData()} now={NOW} />);
         expect(screen.getByText('Does the AI Act apply to this automation?')).toBeTruthy();
-        expect(screen.getByText('Offerte berekenen · 7 steps · 1 AI steps · customer-facing via a form')).toBeTruthy();
+        expect(screen.getByText('Offerte berekenen · 7 steps · 1 AI step · customer-facing via a form')).toBeTruthy();
         const banner = screen.getByTestId('ladder-contains-ai');
         expect(banner.getAttribute('data-contains-ai')).toBe('true');
         expect(banner.textContent).toContain('yes — step "Foto\'s beoordelen" is an AI step.');
@@ -151,7 +152,7 @@ describe('AiActLadderModal — step verdicts from the signals (artboard 1f)', ()
         expect(box.getAttribute('data-outcome')).toBe('transparency');
         expect(box.textContent).toContain('Outcome: the AI Act applies — Art. 4 (literacy) and Art. 50 (transparency). Not high-risk.');
         expect(box.textContent).toContain('Art. 50 still open: content marking.');
-        expect(box.textContent).toContain('Recorded in the model inventory (Art. 53)');
+        expect(box.textContent).toContain('Recorded with the model inventory');
         expect(screen.getByTestId('ladder-record').hasAttribute('disabled')).toBe(false);
     });
 
@@ -266,7 +267,46 @@ describe('AiActLadderModal — actions', () => {
         // would silently un-declare every assessment already on file.
         expect(screen.getByTestId('ladder-step-3').getAttribute('data-state')).toBe('done');
         expect(screen.getAllByTestId('ladder-annex-question').every(r => r.getAttribute('data-answer') === 'no')).toBe(true);
+        expect(screen.queryByTestId('ladder-legacy-yes-note')).toBeNull();
         expect(screen.getByTestId('ladder-saved-stamp').textContent).toBe('Last declared 1 Sep 2026, valid until 1 Sep 2027.');
+    });
+
+    it('a legacy "yes" with a known category pre-ticks only that area, with a note to pick the rest', () => {
+        const data = hookData({
+            assessment: {
+                outcome: 'high_risk', attested_by: 'u1', attested_at: '2026-01-10T09:00:00Z', expires_at: '2027-01-10T09:00:00Z', current: true,
+                answers: { art5: { answer: 'no', practices: [] }, annex_iii: { answer: 'yes', category: 'insurance' } },
+            },
+        });
+        render(<AiActLadderModal open onClose={() => {}} kind="automation" target={quote} data={data} now={NOW} />);
+        const byDomain = Object.fromEntries(screen.getAllByTestId('ladder-annex-question')
+            .map(r => [r.getAttribute('data-domain'), r.getAttribute('data-answer')]));
+        expect(byDomain.insurance).toBe('yes');
+        // Never biometrics, law enforcement or migration on the strength of one old "yes".
+        expect(Object.entries(byDomain).filter(([id]) => id !== 'insurance').every(([, v]) => v === 'open')).toBe(true);
+        expect(screen.getByTestId('ladder-legacy-yes-note').textContent).toBe('Declared high-risk earlier — pick the area(s) to confirm');
+        expect(screen.getByTestId('ladder-step-3-verdict').textContent).toBe('Yes');
+    });
+
+    it('a legacy "yes" without a known category leaves all ten open, still with the note', () => {
+        const data = hookData({
+            assessment: {
+                outcome: 'high_risk', attested_at: '2026-01-10T09:00:00Z', expires_at: '2027-01-10T09:00:00Z', current: true,
+                answers: { art5: { answer: 'no', practices: [] }, annex_iii: { answer: 'yes', category: 'astrology' } },
+            },
+        });
+        render(<AiActLadderModal open onClose={() => {}} kind="automation" target={quote} data={data} now={NOW} />);
+        expect(screen.getAllByTestId('ladder-annex-question').every(r => r.getAttribute('data-answer') === 'open')).toBe(true);
+        expect(screen.getByTestId('ladder-legacy-yes-note')).toBeTruthy();
+        expect(screen.getByTestId('ladder-step-3-verdict').textContent).toBe('0 of 10 answered');
+    });
+
+    it('legacyAnnexAnswers: no → ten noes, yes + known area → that one, anything else → none', () => {
+        expect(Object.values(legacyAnnexAnswers({ answer: 'no', category: null }))).toEqual(Array(10).fill('no'));
+        expect(legacyAnnexAnswers({ answer: 'yes', category: 'insurance' })).toEqual({ insurance: 'yes' });
+        expect(legacyAnnexAnswers({ answer: 'yes', category: null })).toEqual({});
+        expect(legacyAnnexAnswers({ answer: 'yes', category: 'toString' })).toEqual({});
+        expect(legacyAnnexAnswers(undefined)).toEqual({});
     });
 
     it('a saved declaration with per-domain answers reads them back one by one', () => {
@@ -300,7 +340,7 @@ describe('AiActLadderModal — standalone (owns the hook) and the 404 fallback',
         await waitFor(() => expect(authFetch).toHaveBeenCalledWith(`${API}/ai-act/assessments/automation/a1`, expect.objectContaining({ credentials: 'include' })));
         await waitFor(() => expect(screen.getByTestId('ladder-contains-ai').getAttribute('data-contains-ai')).toBe('true'));
         // summarize (s4) is not counted: one AI step, seven steps, via the form.
-        expect(screen.getByText('Offerte berekenen · 7 steps · 1 AI steps · customer-facing via a form')).toBeTruthy();
+        expect(screen.getByText('Offerte berekenen · 7 steps · 1 AI step · customer-facing via a form')).toBeTruthy();
         // Client-side the disclosure is unknown → neutral, and marking unknown → neutral with the Enable button still offered.
         expect(screen.getByTestId('ladder-card-disclosure').getAttribute('data-tone')).toBe('neutral');
         expect(screen.getByTestId('ladder-card-marking').getAttribute('data-tone')).toBe('neutral');

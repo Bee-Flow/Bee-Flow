@@ -22,6 +22,8 @@ const NewDocumentBody = bodyOf({
     docType: worded(DOC_TYPE_TEXT).refine((v) => docTypes().includes(v), DOC_TYPE_TEXT).optional(),
     starterId: worded('starterId is the id of a document starter.').trim().min(1, 'starterId is the id of a document starter.')
         .max(100, 'starterId is the id of a document starter.').optional(),
+    templateId: worded('templateId is the id of one of your templates.').trim().min(1, 'templateId is the id of one of your templates.')
+        .max(100, 'templateId is the id of one of your templates.').optional(),
     locale: worded('locale is a language code, like en or nl.').trim().min(2, 'locale is a language code, like en or nl.')
         .max(20, 'locale is a language code, like en or nl.').optional(),
 }, 'A new project document');

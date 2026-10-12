@@ -14,8 +14,17 @@
  * resumes after a form page or an approval rebuilds runState from these rows,
  * and without that copy the step came back as a silent hole.
  *
+ * The sentinel also carries a SHAPE-PRESERVING `preview` of the value (see
+ * shapePreview): long strings shortened, long lists cut to their first
+ * elements, depth kept. Every reader of run steps gets the sentinel (the
+ * editor's field discovery, the AI builder's hints), and with only a 1 KB
+ * head of the text they never saw the deep fields of a big nested output, so
+ * those fields could not be mapped. The preview is bounded (PREVIEW_MAX_BYTES)
+ * and is never the whole payload.
+ *
  * Public:
  *   truncatePayload(value, opts?) → { value, truncated, originalBytes }
+ *   shapePreview(value, opts?)    → { preview, previewCut } | null
  *   isTruncatedOutput(value)      → true for the persisted sentinel
  *   fullOutputRefOf(value)        → the sentinel's { runId, stepId, attempts }, or null
  *   fullOutputMaxBytes(env?)      → the largest output whose full copy is kept
@@ -31,6 +40,74 @@ const FULL_OUTPUT_REF = 'fullOutputRef';
 // 8 MiB of serialized JSON. Stored gzipped, so the row is typically a fraction
 // of that; above it the sentinel is all there is, as before.
 const DEFAULT_FULL_OUTPUT_MAX_BYTES = 8 * 1024 * 1024;
+
+// The preview's own budget: far under the row cap, enough for the shape of
+// a page of mails with parts inside parts.
+const PREVIEW_MAX_BYTES = 48 * 1024;
+// Coarser and coarser until the preview fits: list elements kept, characters
+// kept of a long string, keys kept of a wide record.
+const PREVIEW_LEVELS = [
+    { items: 5, chars: 200, keys: 200 },
+    { items: 3, chars: 120, keys: 100 },
+    { items: 2, chars: 60, keys: 60 },
+    { items: 1, chars: 40, keys: 40 },
+    { items: 1, chars: 16, keys: 20 },
+];
+// Deeper than any real payload; a guard against self-similar junk.
+const PREVIEW_MAX_DEPTH = 64;
+
+/**
+ * The value with its shape intact and its bulk gone, for a payload too big
+ * to keep: `{ preview, previewCut }`, or null when even the coarsest preview
+ * does not fit `maxBytes`.
+ *
+ *   - a list keeps its first elements (each previewed the same way); its
+ *     original length goes in `previewCut` under the list's path;
+ *   - a record keeps its keys (the first few hundred of a very wide one,
+ *     the key count then in `previewCut`);
+ *   - long text is cut with '…'; text that IS JSON (an HTTP body, an AI
+ *     answer) stays JSON text of its own preview, so the runtime's "JSON
+ *     text reads as its value" still finds every field in it;
+ *   - numbers, booleans and null stay as they are.
+ *
+ * Paths in `previewCut` are the canonical paths the builder writes
+ * (shared/expr/path.mjs appendKey), relative to the value; `$` is the value
+ * itself. Pure; never throws.
+ */
+function shapePreview(value, opts = {}) {
+    const maxBytes = opts.maxBytes || PREVIEW_MAX_BYTES;
+    const { appendKey, parseJsonText } = require('./expr');
+    for (const level of PREVIEW_LEVELS) {
+        const cut = {};
+        const walk = (v, path, depth) => {
+            if (v === null || typeof v !== 'object') {
+                if (typeof v !== 'string' || v.length <= level.chars) return v;
+                const parsed = parseJsonText(v);
+                if (parsed !== undefined) {
+                    try { return JSON.stringify(walk(parsed, path, depth)); } catch { /* fall through */ }
+                }
+                return `${v.slice(0, level.chars)}…`;
+            }
+            if (depth >= PREVIEW_MAX_DEPTH) return Array.isArray(v) ? [] : {};
+            if (Array.isArray(v)) {
+                if (v.length > level.items) cut[path || '$'] = v.length;
+                return v.slice(0, level.items).map((el, i) => walk(el, appendKey(path, i), depth + 1));
+            }
+            const keys = Object.keys(v);
+            if (keys.length > level.keys) cut[path || '$'] = keys.length;
+            const out = {};
+            for (const k of keys.slice(0, level.keys)) out[k] = walk(v[k], appendKey(path, k), depth + 1);
+            return out;
+        };
+        try {
+            const preview = walk(value, '', 0);
+            const result = { preview, previewCut: cut };
+            const bytes = Buffer.byteLength(JSON.stringify(result), 'utf8');
+            if (bytes <= maxBytes) return result;
+        } catch { /* a cycle or a getter that throws: try coarser, then give up */ }
+    }
+    return null;
+}
 
 function truncatePayload(value, opts = {}) {
     const maxBytes = opts.maxBytes || DEFAULT_MAX_BYTES;
@@ -50,11 +127,13 @@ function truncatePayload(value, opts = {}) {
     // the store keeps a full copy beside the row and adds `fullOutputRef`
     // (stores/automationStore/runFullOutputs.persistableOutput, BFSF-435).
     const headSample = serialized.slice(0, Math.min(serialized.length, 1024));
+    const shape = shapePreview(value);
     return {
         value: {
             [TRUNCATED_MARKER]: true,
             originalBytes,
             headSample,
+            ...(shape ? { preview: shape.preview, previewCut: shape.previewCut } : {}),
         },
         truncated: true,
         originalBytes,
@@ -116,6 +195,6 @@ function fullOutputMaxBytes(env = process.env) {
 }
 
 module.exports = {
-    truncatePayload, isTruncatedOutput, fullOutputRefOf, fullOutputMaxBytes,
-    DEFAULT_MAX_BYTES, TRUNCATED_MARKER, FULL_OUTPUT_REF, DEFAULT_FULL_OUTPUT_MAX_BYTES,
+    truncatePayload, isTruncatedOutput, fullOutputRefOf, fullOutputMaxBytes, shapePreview,
+    DEFAULT_MAX_BYTES, TRUNCATED_MARKER, FULL_OUTPUT_REF, DEFAULT_FULL_OUTPUT_MAX_BYTES, PREVIEW_MAX_BYTES,
 };
