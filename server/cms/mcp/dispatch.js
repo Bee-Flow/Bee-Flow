@@ -268,6 +268,23 @@ function createCmsMcp(deps) {
         return { result: out };
     }
 
+    /**
+     * The renderer reads a block translation from `blocks[id].content` only
+     * (stores/cms/effective.js), so anything else would save fine and then
+     * silently show the default language. Reject it up front instead.
+     */
+    function blockOverrideShapeError(blocks) {
+        if (blocks === undefined) return null;
+        if (!isPlainObject(blocks)) return 'override.blocks must be an object keyed by block id.';
+        for (const [blockId, ov] of Object.entries(blocks)) {
+            const label = blockId.slice(0, 60);
+            if (!isPlainObject(ov) || !isPlainObject(ov.content)) return `override.blocks["${label}"] has no content object.`;
+            const extra = Object.keys(ov).filter((k) => k !== 'content');
+            if (extra.length) return `override.blocks["${label}"] has keys outside content (${extra.slice(0, 5).join(', ')}).`;
+        }
+        return null;
+    }
+
     async function setLocaleOverride(args) {
         const locale = String(args.locale || '').toLowerCase();
         if (!cmsStore.isValidLocale(locale)) return err(`"${String(args.locale).slice(0, 20)}" is not a language code such as "en", "nl" or "pt-br".`);
@@ -282,8 +299,12 @@ function createCmsMcp(deps) {
             else await cmsStore.deleteSiteLocaleOverride(site.siteId, locale);
             return { result: { siteId: site.siteId, locale, pageId, removed: true } };
         }
-        if (!isPlainObject(args.override)) return err('override must be an object.', { _fixHint: 'Site level: {header, footer, pageTitles}. Page level: {blocks:{<blockId>:{…}}, seo:{metaTitle,metaDescription}}. Read the current one with cms_get_locale_overrides.' });
+        if (!isPlainObject(args.override)) return err('override must be an object.', { _fixHint: 'Site level: {header, footer, pageTitles}. Page level: {blocks:{<blockId>:{content:{…}}}, seo:{metaTitle,metaDescription}}. Read the current one with cms_get_locale_overrides.' });
         if (JSON.stringify(args.override).length > OVERRIDE_MAX_CHARS) return err('The override is too large.');
+        if (pageId) {
+            const shapeError = blockOverrideShapeError(args.override.blocks);
+            if (shapeError) return err(shapeError, { _fixHint: 'Put each block\'s text under `content`: {blocks:{"blk_…":{content:{title:"…", items:[{body:"…"}]}}}}. Without it the renderer ignores the translation.' });
+        }
         if (pageId) await cmsStore.setPageLocaleOverride(site.siteId, pageId, locale, args.override);
         else await cmsStore.setSiteLocaleOverride(site.siteId, locale, args.override);
         return { result: { siteId: site.siteId, locale, pageId, saved: true } };
