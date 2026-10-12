@@ -79,7 +79,7 @@ Postgres instance.
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `SERVICES_API_KEY` | (none) | Shared secret for calls to the bundled sidecars (guard-service, search-service). The guard-service enforces it on every request except `/health` once set there — note it has **no** `GUARD_` prefix on that side. |
+| `SERVICES_API_KEY` | (none) | Shared secret for calls to the bundled sidecars (guard-service, classify-service). The guard-service enforces it on every request except `/health` once set there — note it has **no** `GUARD_` prefix on that side. |
 | `PII_SERVICE_URL` | (none — opt-in) | Guard-service base URL, e.g. `http://guard-service:8100`. Unset means PII detection is disabled entirely. |
 | `PII_SERVICE_API_KEY` | falls back to `SERVICES_API_KEY` | Sent as `X-API-Key` to the guard; must match the guard's own `SERVICES_API_KEY`. |
 | `GUARD_SERVICE_URL` | (none — opt-in) | Sidecar health probe for `/api/guard/health`; returns `not-configured` when unset. |

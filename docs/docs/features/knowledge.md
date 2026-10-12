@@ -13,7 +13,7 @@ KB ingestion + retrieval can run in either of two backends. Both expose the same
 | Backend | Storage | Pipeline | Best for |
 |---|---|---|---|
 | **Local (in-process)** — default | Postgres `kb_chunks` table with pgvector | Chunk + embed via global provider (or CPU fallback) + pgvector + BM25 (FTS) + RRF + reranker | Self-hosted setups, no GPU box |
-| **Remote search-service** | External Postgres / Qdrant on the search-service host | Same pipeline but on a dedicated GPU machine | High-throughput tenants, BGE-M3 GPU embeddings |
+| **Remote search-service** | External Postgres / Qdrant on the search-service host | Same pipeline, run by a search service at `SEARCH_SERVICE_URL` | Tenants served by a hosted search service |
 
 Pick under **Admin → AI Configuratie → Limits & Self-host → Knowledge-base provider** (Auto / Local / Remote). See [Limits & Self-host](../admin/limits-and-self-host.md) for switching, vector-dim reconciliation, and re-ingest semantics.
 
@@ -73,7 +73,7 @@ There is **no search mode to choose** — not per instance, not per knowledge ba
 
 1. **Vector and keyword retrieval run in parallel**, always. The vector leg is a pgvector cosine scan; the keyword leg is a Postgres full-text query, tried as an AND-join first and retried as an OR-join when AND finds nothing. Neither leg is optional: a failure in one is logged and returns no rows, and the other still answers. The vector leg is simply absent if pgvector is unavailable or the query could not be embedded.
 2. **The two result sets are fused with RRF** (Reciprocal Rank Fusion) into one ranking, with a table-of-contents demotion and a heading boost applied on top.
-3. **The top candidates go through the reranker chain**, in a fixed order of preference: Azure Cohere reranker → in-process CPU cross-encoder → local GPU sidecar (`RERANKER_URL`). Each falls through to the next on failure, and if none is reachable the RRF ordering is used as-is.
+3. **The top candidates go through the reranker chain**, in a fixed order of preference: Azure Cohere reranker → in-process CPU cross-encoder → an external reranker you run (`RERANKER_URL`). Each falls through to the next on failure, and if none is reachable the RRF ordering is used as-is.
 
 So keyword retrieval and reranking are not features you switch on. The CPU cross-encoder is on unless an admin sets `cpu_reranker_enabled = false`; everything else about the ordering is automatic. The remote search-service backend runs the same pipeline — vector + full-text → merge → dedupe → rerank.
 

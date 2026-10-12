@@ -21,7 +21,7 @@
 # worse than no alert, because it looks like coverage.
 #
 # CADENCE: weekly for what ships to customers — server, agent-hub, mobile, and
-# the two PII detectors (see the Python section) — monthly for the rest:
+# the PII detector (see the Python section) — monthly for the rest:
 # tooling, satellites, the other sidecars, the actions and the base images.
 # Every scheduled run can open, refresh or supersede PRs, and each of those is
 # a CI run; a weekly satellite paid for up to four a month without moving
@@ -230,11 +230,10 @@ updates:
     labels: [dependencies]
 
   # ── Python sidecars ───────────────────────────────────────────────
-  # guard-service and pii-service handle personal data by definition — they are
-  # the PII detectors — so their dependencies carry the same weight as the
-  # server's, not less because they are "just a sidecar". So those two stay
-  # weekly, with the server; search-service, reranker and whisperx-service are
-  # monthly (CADENCE, in the header).
+  # guard-service handles personal data by definition — it is the PII
+  # detector — so its dependencies carry the same weight as the server's, not
+  # less because it is "just a sidecar". So it stays weekly, with the server
+  # (CADENCE, in the header).
   - package-ecosystem: pip
     directory: /guard-service
     schedule: { interval: weekly, day: wednesday, time: "05:00", timezone: Europe/Amsterdam }
@@ -254,23 +253,8 @@ updates:
         update-types: ["version-update:semver-major"]
     labels: [dependencies, security]
 
-  - package-ecosystem: pip
-    directory: /pii-service
-    schedule: { interval: weekly, day: wednesday, time: "05:00", timezone: Europe/Amsterdam }
-    open-pull-requests-limit: 3
-    rebase-strategy: disabled
-    groups:
-      pii-service-patch-minor:
-        patterns: ["*"]
-        update-types: [minor, patch]
-    ignore:
-      # transformers 5.17 and tokenizers 0.23 require huggingface-hub<2.0 (#11).
-      - dependency-name: huggingface-hub
-        update-types: ["version-update:semver-major"]
-    labels: [dependencies, security]
-
   # classify-service reads customer text too (it scores it against labels),
-  # so it keeps the PII detectors' weekly cadence.
+  # so it keeps the PII detector's weekly cadence.
   - package-ecosystem: pip
     directory: /classify-service
     schedule: { interval: weekly, day: wednesday, time: "05:00", timezone: Europe/Amsterdam }
@@ -285,48 +269,6 @@ updates:
       - dependency-name: huggingface-hub
         update-types: ["version-update:semver-major"]
     labels: [dependencies, security]
-
-  # search-service, reranker and whisperx-service build from uv.lock
-  # (`uv export --locked` in their Dockerfiles). Under the pip updater a PR only
-  # moved pyproject.toml, left uv.lock behind, and broke the image build after
-  # merge while CI stayed green (#6, #9, #12). The uv updater moves both.
-  - package-ecosystem: uv
-    directory: /search-service
-    schedule: { interval: monthly, time: "05:00", timezone: Europe/Amsterdam }
-    open-pull-requests-limit: 3
-    rebase-strategy: disabled
-    groups:
-      search-service-patch-minor:
-        patterns: ["*"]
-        update-types: [minor, patch]
-    labels: [dependencies]
-
-  - package-ecosystem: uv
-    directory: /reranker
-    schedule: { interval: monthly }
-    open-pull-requests-limit: 2
-    rebase-strategy: disabled
-    groups:
-      reranker-patch-minor:
-        patterns: ["*"]
-        update-types: [minor, patch]
-    labels: [dependencies]
-
-  - package-ecosystem: uv
-    directory: /whisperx-service
-    schedule: { interval: monthly }
-    open-pull-requests-limit: 2
-    rebase-strategy: disabled
-    groups:
-      whisperx-patch-minor:
-        patterns: ["*"]
-        update-types: [minor, patch]
-    ignore:
-      # whisperx 3.3.1 (locked) pins pyannote.audio==3.3.2; pyannote 4 needs
-      # torch>=2.8 while this service caps torch/torchaudio <2.6 (#10). It moves
-      # with whisperx, torch and torchaudio as one upgrade.
-      - dependency-name: pyannote-audio
-    labels: [dependencies]
 
   # ── The supply chain of the build itself ──────────────────────────
   # A compromised action runs with the workflow's token. The secret-scan
@@ -360,26 +302,18 @@ updates:
   # ── Base images ───────────────────────────────────────────────────
   # Every FROM is pinned to a digest, so a base image only moves when one of
   # these PRs lands. One directory per Dockerfile location; a directory with
-  # several Dockerfiles (search-service, pii-service, whisperx-service) is one
-  # entry. guard-service/tools/candidate_shim builds FROM ghcr.io/bee-flow/guard:dev,
+  # several Dockerfiles is one entry. guard-service/tools/candidate_shim builds FROM ghcr.io/bee-flow/guard:dev,
   # a moving tag of our own, and is deliberately not listed.
   - package-ecosystem: docker
     directories:
       - /server
       - /server/pwt-runner
-      - /server/webpage-runner
       - /server/terminal-runner
       - /hub-module-sdk/modules/security_scan/assets/terminal-runner
       - /agent-hub
       - /nextcloud-connector
-      - /install-wizard
-      - /nc-login-mini
       - /guard-service
-      - /pii-service
       - /classify-service
-      - /search-service
-      - /reranker
-      - /whisperx-service
     # Monthly, with the satellites. No advisory feed covers a base image, so it
     # never gets a security-update PR and this entry is the only thing that
     # moves one. When image-scan.yml reports a HIGH or CRITICAL that a newer

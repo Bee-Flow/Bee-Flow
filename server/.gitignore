@@ -17,10 +17,6 @@ __pycache__/
 .env.production
 .env.staging
 .env.services
-.env.portainer*
-.install-env*
-.install-config*
-.install-log*
 
 # ── SSH Keys & Credentials ──────────────────────────────────────
 *.ppk

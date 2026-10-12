@@ -330,7 +330,7 @@ const indexHtmlPath = path.join(publicDir, 'index.html');
 // Force no-store on index.html: it carries the hashed asset reference,
 // so a stale copy in browser/NC-proxy disk cache pins users to an old
 // SPA bundle. Hashed assets under /assets/ keep their long-cache.
-app.get('*', (_req, res) => {
+app.get('/{*splat}', (_req, res) => {
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
     res.set('Pragma', 'no-cache');
     res.set('Expires', '0');

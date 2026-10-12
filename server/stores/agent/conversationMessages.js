@@ -35,7 +35,7 @@
  *   a crashed write never leaves a conversation message-less.
  */
 
-const { v4: uuidv4 } = require('uuid');
+const { randomUUID } = require('crypto');
 const { run, getOne, getAll, exec, getClient } = require('../../db');
 const { makeStoreInit } = require('../lib/storeInit');
 const { runDdl } = require('../lib/_ddl');
@@ -182,7 +182,7 @@ function messagesToRows(conversationId, type, messages, ctx = PLAINTEXT_CONTEXT,
         );
 
         return {
-            id: m.id || uuidv4(),
+            id: m.id || randomUUID(),
             conversation_id: conversationId,
             conversation_type: type,
             role: m.role || 'user',

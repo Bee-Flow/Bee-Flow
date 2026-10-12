@@ -567,7 +567,7 @@ const home = {
             media: media(KEYS.architecture, 'Bee Flow service architecture', 'browser'),
             code: {
                 language: 'bash',
-                snippet: 'git clone https://github.com/Bee-Flow/Bee-Flow\ncd Bee-Flow\n./selfhost.sh\n\n# add optional services when you need them\nPROFILES="core search guard" ./selfhost.sh',
+                snippet: 'git clone https://github.com/Bee-Flow/Bee-Flow\ncd Bee-Flow\n./selfhost.sh\n\n# add optional services when you need them\nPROFILES="core guard" ./selfhost.sh',
             },
         }),
         b('steps', {
@@ -740,7 +740,7 @@ const platform = {
             layers: [
                 { label: 'Agent Hub — React 19 SPA', tags: ['Chat', 'Studio', 'Admin', 'Product website'] },
                 { label: 'Server — Node 22 / Express 5', tags: ['Agent runtime', 'Automations', 'RAG', 'MCP', 'Licensing', 'CMS'] },
-                { label: 'Optional services', tags: ['Guard (PII)', 'Search', 'Reranker', 'WhisperX', 'Headless browser'] },
+                { label: 'Optional services', tags: ['Guard (PII)', 'Classify', 'Local LLM (Ollama)', 'Headless browser'] },
                 { label: 'Data', tags: ['PostgreSQL + pgvector', 'S3-compatible storage', 'Redis'] },
             ],
         }),
@@ -1105,20 +1105,19 @@ const selfHosting = {
             media: media(KEYS.hive, '', 'browser'),
             code: {
                 language: 'bash',
-                snippet: '# core stack: server, frontend, PostgreSQL, object storage\n./selfhost.sh\n\n# add web search and the privacy guard\nPROFILES="core search guard" ./selfhost.sh\n\n# day-to-day\n./selfhost.sh --status\n./selfhost.sh --logs\n./selfhost.sh --stop',
+                snippet: '# core stack: server, frontend, PostgreSQL, object storage\n./selfhost.sh\n\n# add the privacy guard\nPROFILES="core guard" ./selfhost.sh\n\n# day-to-day\n./selfhost.sh --status\n./selfhost.sh --logs\n./selfhost.sh --stop',
             },
         }),
         b('steps', {
             eyebrow: 'Pick your install',
-            title: 'Six supported ways in',
+            title: 'Five supported ways in',
             variant: 'chapters',
             items: [
                 { number: '1', title: 'The one-line script', example: './selfhost.sh', body: 'Public images from the registry, no login. Best for a first evaluation and perfectly fine for a small team in production.', media: media('', '') },
-                { number: '2', title: 'Docker Compose, your way', example: 'docker compose --profile core --profile guard up -d', body: 'Eight profiles — core, search, search-gpu, search-llm, guard, whisperx, pii and analytics. Run only the services you actually want, and keep the GPU ones off a CPU box.', media: media('', '') },
+                { number: '2', title: 'Docker Compose, your way', example: 'docker compose --profile core --profile guard up -d', body: 'Five profiles — core, guard, classify, local-llm and analytics. Run only the services you actually want.', media: media('', '') },
                 { number: '3', title: 'Kubernetes', example: 'kubectl apply -k deploy/', body: 'Eleven manifests covering the namespace, config, secrets, both app services, storage, the guard, ingress, network policy and analytics. Manual manifests today — a Helm chart is not shipped yet.', media: media('', '') },
                 { number: '4', title: 'Nextcloud App Store', example: '', body: 'Install Bee Flow as a Nextcloud ExApp and it inherits your existing users, groups and files. The connector is AGPL-3.0, as the App Store requires.', media: media('', '') },
-                { number: '5', title: 'Portainer or the install wizard', example: '', body: 'A stack file for Portainer, and a browser-based wizard for teams that would rather answer questions than edit YAML.', media: media('', '') },
-                { number: '6', title: 'No Docker at all', example: 'npm run dev:all', body: 'A local install script for Linux, macOS and Windows that runs the server and frontend directly against a local PostgreSQL. Handy for development and for auditing what the thing does.', media: media('', '') },
+                { number: '5', title: 'No Docker at all', example: 'npm run dev:all', body: 'A local install script for Linux, macOS and Windows that runs the server and frontend directly against a local PostgreSQL. Handy for development and for auditing what the thing does.', media: media('', '') },
             ],
         }),
         b('features', {
@@ -1160,7 +1159,7 @@ const selfHosting = {
             layers: [
                 { label: 'Always', tags: ['server', 'agent-hub', 'PostgreSQL + pgvector', 'object storage'] },
                 { label: 'Recommended', tags: ['Redis (multi-replica)', 'guard-service (Privacy Shield)'] },
-                { label: 'Optional', tags: ['search-service', 'reranker', 'whisperx (GPU)', 'headless browser', 'analytics'] },
+                { label: 'Optional', tags: ['classify-service', 'local LLM (Ollama)', 'headless browser', 'analytics'] },
             ],
         }),
         b('faq', {

@@ -163,6 +163,23 @@ describe('dependencies that are installed but unused', () => {
      */
     const sourceRoots = [path.join(MOBILE, 'src'), path.join(MOBILE, 'app'), path.join(MOBILE, 'modules')];
 
+    /**
+     * Source text with comments removed. A guard that searched the raw text let
+     * `expo-blur` through for months: nothing imported it, but a comment in
+     * theme/tokens.ts mentioned the name, and a substring match is satisfied by
+     * a comment. Only code (an import, a require, a plugin string) counts.
+     * `//` after a `:` is left alone so URLs inside strings survive.
+     */
+    function stripComments(text: string): string {
+        return text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
+    }
+
+    /** Is the package named as a module specifier ('name', "name", 'name/sub')? */
+    function isReferenced(source: string, name: string): boolean {
+        const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        return new RegExp(`['"\`]${escaped}(['"\`/])`).test(source);
+    }
+
     function allSource(): string {
         const parts: string[] = [];
         const walk = (dir: string) => {
@@ -170,13 +187,16 @@ describe('dependencies that are installed but unused', () => {
             for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
                 const full = path.join(dir, entry.name);
                 if (entry.isDirectory()) walk(full);
-                else if (/\.(ts|tsx|js|jsx)$/.test(entry.name)) parts.push(fs.readFileSync(full, 'utf8'));
+                // Tests (and their mocks) do not ship in the APK: a package only a test
+                // names is still dead weight in the build.
+                else if (/\.(ts|tsx|js|jsx)$/.test(entry.name) && !/\.test\.[jt]sx?$/.test(entry.name))
+                    parts.push(stripComments(fs.readFileSync(full, 'utf8')));
             }
         };
         sourceRoots.forEach(walk);
-        for (const name of ['app.config.ts', 'metro.config.js', 'babel.config.js', 'jest.setup.js']) {
+        for (const name of ['app.config.ts', 'metro.config.js', 'babel.config.js']) {
             const full = path.join(MOBILE, name);
-            if (fs.existsSync(full)) parts.push(fs.readFileSync(full, 'utf8'));
+            if (fs.existsSync(full)) parts.push(stripComments(fs.readFileSync(full, 'utf8')));
         }
         return parts.join('\n');
     }
@@ -211,12 +231,19 @@ describe('dependencies that are installed but unused', () => {
         'react-native-reanimated',
     ]);
 
+    it('the guard sees code, not comments (expo-blur regression)', () => {
+        const source = stripComments("// uses 'expo-blur' here\n/* import 'expo-blur' */\nimport x from 'expo-image';");
+        expect(isReferenced(source, 'expo-blur')).toBe(false);
+        expect(isReferenced(source, 'expo-image')).toBe(true);
+        expect(isReferenced("require(\"expo-image/build/x\")", 'expo-image')).toBe(true);
+    });
+
     it('imports every dependency that ships native code', () => {
         const source = allSource();
         const unused = Object.keys(pkg.dependencies ?? {})
             .filter((name) => !NOT_IMPORTED_BY_NAME.has(name))
             .filter(shipsNativeCode)
-            .filter((name) => !source.includes(name));
+            .filter((name) => !isReferenced(source, name));
         // A native dependency nothing imports still gets compiled into the APK.
         // If one is genuinely needed without being imported, add it to
         // NOT_IMPORTED_BY_NAME with a reason rather than deleting this test.

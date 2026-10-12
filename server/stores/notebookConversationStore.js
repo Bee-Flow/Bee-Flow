@@ -32,7 +32,7 @@
  * current policy would strand whichever set the last toggle didn't match.
  */
 
-const { v4: uuidv4 } = require('uuid');
+const { randomUUID } = require('crypto');
 const { run, getOne, exec } = require('../db');
 const { makeStoreInit } = require('./lib/storeInit');
 const { runDdl } = require('./lib/_ddl');
@@ -124,7 +124,7 @@ async function getOrCreate(notebookId, userId) {
     await initDB();
     let row = await _getRow(notebookId, userId);
     if (!row) {
-        const id = uuidv4();
+        const id = randomUUID();
         await run(
             `INSERT INTO notebook_conversations (id, notebook_id, user_id, messages_json)
              VALUES ($1, $2, $3, '[]')

@@ -92,10 +92,9 @@ jobs:
           git rev-list --first-parent --max-count=500 "$SHA" > "$RUNNER_TEMP/commits.txt"
 
           # server, agent-hub and pwt-runner must be found; the rest ship when
-          # this repository has built them. whisperx is left out on purpose,
-          # as in build-push-ghcr.yml's prod run: it is released by hand.
+          # this repository has built them.
           REQUIRED="server agent-hub pwt-runner"
-          SERVICES="server agent-hub pwt-runner guard classify pii search-api reranker install-wizard"
+          SERVICES="server agent-hub pwt-runner guard classify"
           : > "$RUNNER_TEMP/plan.txt"
           for svc in $SERVICES; do
             if ! crane ls "${IMAGE_PREFIX}/${svc}" > "$RUNNER_TEMP/tags.txt" 2>/dev/null; then

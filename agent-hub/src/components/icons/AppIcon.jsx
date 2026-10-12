@@ -38,8 +38,11 @@ let loadPromise = null;
 const subscribers = new Set();
 function loadFullSet() {
     if (!loadPromise) {
-        loadPromise = import('lucide-react').then((m) => {
-            fullSet = m;
+        // lucide-react 1.x dropped its brand icons (Github, Twitter, Slack...);
+        // ./brandIcons keeps their glyphs, so names already stored in content
+        // still resolve. Loaded with the barrel, never on the first-load path.
+        loadPromise = Promise.all([import('lucide-react'), import('./brandIcons')]).then(([m, brands]) => {
+            fullSet = { get: (n) => m[n] || brands.BRAND_ICONS[n] };
             subscribers.forEach((fn) => fn());
             subscribers.clear();
         }).catch(() => { /* stays null — fallback icon renders */ });
@@ -57,7 +60,7 @@ function useLazyIcon(name, wanted) {
         return () => { subscribers.delete(bump); };
     }, [wanted, bump]);
     if (!wanted) return null;
-    return fullSet ? (fullSet[name] || null) : undefined; // undefined = loading
+    return fullSet ? (fullSet.get(name) || null) : undefined; // undefined = loading
 }
 
 export const AppIcon = React.forwardRef(({ name, className = '', style = {}, fallback, ...rest }, ref) => {

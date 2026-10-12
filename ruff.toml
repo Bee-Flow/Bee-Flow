@@ -1,6 +1,6 @@
 # Python lint/complexity budgets for the Bee Flow FastAPI services.
 # Run install-free with:
-#   uvx ruff check guard-service pii-service classify-service reranker search-service whisperx-service
+#   uvx ruff check guard-service classify-service
 # CI: the python-lint job in .github/workflows/ci.yml runs `ruff check` and
 # `ruff format --check` as a gate. The findings that predate the gate carry a
 # `# noqa`; remove the comment when the function is fixed, never add a new one.

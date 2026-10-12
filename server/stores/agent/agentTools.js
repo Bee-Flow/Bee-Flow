@@ -3,14 +3,14 @@
  * Agent Tools - Manage which components an agent can use + param configs
  */
 
-const { v4: uuidv4 } = require('uuid');
+const { randomUUID } = require('crypto');
 const { run, getAll, getOne } = require('../../db');
 const { initDB } = require('./initSchema');
 const log = require('../../telemetry/log');
 
 async function addAgentTool(agentId, componentId, params = null) {
     await initDB();
-    const id = uuidv4();
+    const id = randomUUID();
     log.info('[AgentTools] Adding tool:', componentId, 'with params:', params);
     await run('INSERT INTO agent_tools (id, agent_id, component_id, params_json) VALUES ($1,$2,$3,$4) ON CONFLICT DO NOTHING', [id, agentId, componentId, params ? JSON.stringify(params) : null]);
 }

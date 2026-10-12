@@ -3,7 +3,7 @@ import {motion} from 'framer-motion';
 import Link from '@docusaurus/Link';
 import styles from './styles.module.css';
 
-export default function CallToAction(): JSX.Element {
+export default function CallToAction(): React.JSX.Element {
   return (
     <section className={styles.section}>
       <motion.div

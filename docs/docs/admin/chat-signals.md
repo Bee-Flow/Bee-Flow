@@ -210,7 +210,7 @@ pauses until the new start. People are told before anything new is counted.
 line in neutral styling says what is counted, for example: "Your organisation counts
 how the Privacy Shield handled messages here. The count does not keep what you wrote or
 who wrote it." With kinds of data on, the line says so too. Before the start date it
-says "From {date}, …". Next to it are a **Notice** link (your staff notice) and the
+says "From `{date}`, …". Next to it are a **Notice** link (your staff notice) and the
 button **Don't count my chat turns**. A one-time banner announces each new
 configuration; it closes with "Got it". The line itself is always there.
 

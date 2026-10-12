@@ -265,9 +265,15 @@ if (process.env.REDIS_URL) {
         const _redisIsTls = process.env.REDIS_URL.startsWith('rediss://');
         _sessionRedisClient = createClient({
             url: process.env.REDIS_URL,
-            ...(_redisIsTls ? {
-                socket: { tls: true, rejectUnauthorized: process.env.REDIS_TLS_STRICT === '1' }
-            } : {})
+            // node-redis 6 changed three defaults (RESP3 instead of RESP2, a
+            // 5 s command timeout, a 30 s keep-alive delay). Pinned to the v5
+            // values so the session cache behaves exactly as before.
+            RESP: 2,
+            commandOptions: { timeout: undefined },
+            socket: {
+                keepAliveInitialDelay: 5000,
+                ...(_redisIsTls ? { tls: true, rejectUnauthorized: process.env.REDIS_TLS_STRICT === '1' } : {})
+            }
         });
         _sessionRedisClient.on('error', (err) => log.warn('[Sessions] Redis error:', err.message));
         _sessionRedisClient.connect().then(() => {
@@ -1088,8 +1094,9 @@ async function startServer() {
     // own gate). The proxy mount (http-proxy-middleware + the WS 'upgrade'
     // listener) is additionally only required — not just gated internally —
     // when the flag is on, so installs that never touch this feature never
-    // load that dependency. See server/webpage-runner/README.md before
-    // enabling in production: this needs a security review first.
+    // load that dependency. No runner image is built from this repository
+    // any more; enabling it in production needs its own image and a security
+    // review first.
     const webpageRuntimeManager = require('./services/webpageRuntimeManager');
     webpageRuntimeManager.startReaper();
     if (webpageRuntimeManager.isEnabled()) {

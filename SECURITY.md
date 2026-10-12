@@ -25,9 +25,8 @@ include, per component:
   open redirects, clickjacking, CSRF on state-changing client code
 - **`nextcloud-connector/`** — the ExApp reverse proxy and its signed-fetch
   authentication against Nextcloud
-- **`guard-service/`, `pii-service/`, `search-service/`, `whisperx-service/`,
-  `reranker/`** (Python sidecars) — input handling of untrusted documents,
-  audio and web content
+- **`guard-service/`, `classify-service/`** (Python sidecars) — input
+  handling of untrusted text and documents
 - **`server/license/`**: licence-key (JWT) verification. The issuing license
   server is private and not in this repository
 - Supply-chain risks (compromised npm/PyPI dependencies) in any component

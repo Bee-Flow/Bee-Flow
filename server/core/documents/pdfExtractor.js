@@ -3,8 +3,8 @@
  * PDF Text Extractor
  * 
  * Uses pdfjs-dist to extract text from PDF buffers.
- * pdfjs-dist is the Mozilla PDF.js library — we use `require()`
- * to load it from Node.js CommonJS context.
+ * pdfjs-dist is the Mozilla PDF.js library — it ships as ESM, so we load
+ * it with a dynamic `import()` from this CommonJS module.
  */
 const log = require('../../telemetry/log');
 

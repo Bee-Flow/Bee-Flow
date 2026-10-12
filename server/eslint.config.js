@@ -84,7 +84,6 @@ module.exports = [
             'migrateDb.js',
             'pwt-runner/**',
             'terminal-runner/**',
-            'webpage-runner/**',
             'mcpServers/**',
             'testUtils/**',
             '**/*.test.js',

@@ -26,7 +26,7 @@
  *     verified BEFORE the socket is ever handed to the proxy — never upgrade
  *     first and check after.
  *
- * Known limitation (documented in server/webpage-runner/README.md): a project
+ * Known limitation: a project
  * that ships its OWN vite.config.js won't automatically read VITE_BASE_PATH,
  * so its root-relative asset URLs may 404 behind this sub-path proxy until
  * it's updated to set `base` itself.

@@ -24,7 +24,7 @@
  */
 
 const { makeStoreInit } = require('./lib/storeInit');
-const { v4: uuidv4 } = require('uuid');
+const { randomUUID } = require('crypto');
 
 const VERSION_KINDS = new Set(['autosave', 'published', 'pre_refine']);
 const AUTOSAVE_KEEP = 50;
@@ -70,7 +70,7 @@ function createVersionStore(db, { tag = 'VersionStore' } = {}) {
     async function createVersion(agentId, agentType, snapshot, userId = null, changeSummary = null, opts = {}) {
         await initDB();
         const kind = VERSION_KINDS.has(opts?.kind) ? opts.kind : 'autosave';
-        const id = uuidv4();
+        const id = randomUUID();
         const last = await getOne('SELECT MAX(version_number) as max_ver FROM agent_versions WHERE agent_id = $1', [agentId]);
         const versionNumber = (last?.max_ver || 0) + 1;
         if (!changeSummary && snapshot) {

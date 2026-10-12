@@ -24,7 +24,7 @@ token.
 :::note
 There is no user-facing API-key scheme. An earlier version of this page documented `bfk_` keys and
 an **Organisation → API keys** panel; neither exists in the product. For scripted access, use the
-connector JWT flow below. (`apiKeyAuth` in the codebase guards only the internal search sidecar.)
+connector JWT flow below. (`apiKeyAuth` in the codebase guards only the internal `/api/search` surface.)
 :::
 
 ## Username / password
@@ -89,7 +89,7 @@ when the page is on a subdomain of it, so one key serves both `example.com` and
 `www.example.com`. Set `WEBAUTHN_RP_ID` to choose that parent explicitly. Changing it later makes
 existing keys unusable (their holders fall back to their other factors or recovery codes).
 
-The first admin password is set during the install wizard via `POST /auth/setup`. After that, additional users sign up through `POST /auth/signup` (if signup is enabled) or are invited by an admin.
+The first admin password is set during first-run setup via `POST /auth/setup`. After that, additional users sign up through `POST /auth/signup` (if signup is enabled) or are invited by an admin.
 
 ## Nextcloud session
 

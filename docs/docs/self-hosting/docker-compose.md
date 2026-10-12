@@ -30,7 +30,7 @@ Pulls prebuilt **public** images from `ghcr.io/bee-flow` — no registry login, 
 Add optional sidecars by passing profiles:
 
 ```bash
-PROFILES="core search guard" ./selfhost.sh   # adds knowledge search + PII guard
+PROFILES="core guard" ./selfhost.sh   # adds the PII guard
 ```
 
 To run models on your own hardware instead of a cloud API, add the `local-llm`
@@ -112,14 +112,8 @@ opt-in per Nextcloud and is reversible (a bad URL rolls back to the previous tar
 
 ## Manual / advanced installs {#manual}
 
-- **Build from source:** clone the repo and use `docker-compose.install.yml` with `--build` instead of
-  the registry compose file.
-- **Credentialed wizard:** `install-from-registry.sh` launches a graphical wizard that pulls from a
-  private registry (requires a `.credentials` file). Prefer `selfhost.sh` for the public path.
-  The wizard's update check sends the registry credentials over HTTPS with a verified certificate
-  only. For a registry with a self-signed certificate, add `REGISTRY_INSECURE_TLS=1` to
-  `.credentials`; for a plain-HTTP registry, add `REGISTRY_ALLOW_HTTP=1`. The HTTP request never
-  carries the credentials, so it only reports updates from a registry that allows anonymous reads.
+- **Build from source:** clone the repo and use `docker-compose.yml` (it builds the server, web UI,
+  guard and browser images from your checkout) instead of the registry compose file.
 
 ## Reverse proxy + TLS
 

@@ -81,7 +81,7 @@ cmd_spa() {
 
 cmd_up() {
     echo "▶ Ensuring Bee Flow stack is up (postgres, redis, rustfs, server, agent-hub)…"
-    run_docker "cd '${REPO}' && docker compose -f docker-compose.dev.yml up -d postgres rustfs server agent-hub search-redis"
+    run_docker "cd '${REPO}' && docker compose -f docker-compose.dev.yml up -d postgres rustfs server agent-hub redis"
 
     echo "▶ Ensuring connector container is on NC network…"
     run_docker "docker network connect '${NC_NETWORK}' '${SERVER_CONTAINER}' 2>&1 | grep -v 'already exists' || true"

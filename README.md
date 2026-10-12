@@ -149,14 +149,9 @@ The server image runs as `node` (uid 1000). Two consequences:
 
 | File | Purpose |
 |---|---|
-| `docker-compose.from-registry.yml` | Self-host from the prebuilt public images. This is what `./selfhost.sh` uses. Profile-based (`core`, `search`, `guard`, `whisperx`, `pii`, …). |
-| `docker-compose.dockerhub.yml` | Minimal self-contained stack from Docker Hub images: this file plus a `.env` is the whole install. |
-| `docker-compose.portainer.yml` | Stack to paste into Portainer, pulling the public images (see `.env.portainer.example`). |
-| `docker-compose.install.yml` | Profile-based stack generated and used by the Install Wizard. |
-| `docker-compose.yml` | Builds server, agent-hub, guard-service and reranker from this checkout. |
-| `docker-compose.local.yml` | Override on top of `docker-compose.yml` for local runs (Postgres on host port 5433, fixed dev session secret, auto-restart). |
+| `docker-compose.from-registry.yml` | Self-host from the prebuilt public images. This is what `./selfhost.sh` uses. Profile-based (`core`, `guard`, `classify`, `local-llm`, `analytics`). |
+| `docker-compose.yml` | Builds server, agent-hub, guard-service and the browser sidecar from this checkout. |
 | `docker-compose.dev.yml` | Development with the source mounted into the containers for hot reload. |
-| `docker-compose.services.yml` | Backing services only (database, storage, Redis), with frontend and backend running on the host. |
 | `docker-compose.hub.local.yml` | Bee Flow-internal, local-only override on top of the registry stack for module-hub development — flips the server to `NODE_ENV=development`; never use on a real deployment. |
 | `docker-compose.security.override.yml` | Opt-in layer that enables the security-scan worker on the registry stack. |
 
@@ -191,8 +186,7 @@ host port `55432`, writes a `.env` with a fresh `SESSION_SECRET` and runs the da
   step.
 - The ports (`55432`, `3101`, `5276`) are deliberately unusual so they don't clash with other servers you
   may run. Change them in `.env` if you like.
-- Optional services (object storage, Redis, transcription, PII detection, search and reranking, GPU
-  inference) are not needed for the core experience. Start one with
+- Optional services (object storage, Redis) are not needed for the core experience. Start one with
   `docker compose -f docker-compose.dev.yml up -d <service>`.
 </details>
 
@@ -221,8 +215,7 @@ Embeddings, reranking, PII detection and transcription can all run on your own s
 - **Frontend:** a React single-page app (Vite, Tailwind CSS).
 - **Backend:** Node.js and Express for the API, streaming chat and automations.
 - **Storage:** PostgreSQL with `pgvector`, S3-compatible object storage (RustFS) and Redis.
-- **Sidecars:** small Python services for PII detection, reranking, search and document extraction,
-  transcription and topic classification. Each is optional.
+- **Sidecars:** small Python services for PII detection and topic classification. Each is optional.
 
 The repository layout is described in [REPO-STRUCTURE.md](./REPO-STRUCTURE.md).
 

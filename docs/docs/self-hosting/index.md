@@ -32,7 +32,7 @@ licence](docker-compose.md#activate-a-licence); pricing and keys are at [beeflow
 | Redis 7 | `redis:7-alpine` | recommended |
 | Bee Flow Nextcloud connector | NC App Store (`bee_flow`) | optional |
 | Guard service (PII detection) | `ghcr.io/bee-flow/guard:latest` | optional |
-| Search service (KB ingestion + reranking) | `ghcr.io/bee-flow/search-api:latest` | optional |
+| Classify service (topic classifier) | `ghcr.io/bee-flow/classify:latest` | optional |
 
 The minimum useful deployment is **server + Postgres + object storage** (the `core` profile). Add Redis
 as soon as you scale to >1 server replica or many concurrent users.
@@ -65,7 +65,7 @@ The `ghcr.io/bee-flow/*` images are also mirrored on [Docker Hub](docker-hub.md)
       │            │               │
       ▼            ▼               ▼
 ┌──────────┐  ┌────────┐  ┌─────────────────┐
-│ Postgres │  │ Redis  │  │ guard / search  │
+│ Postgres │  │ Redis  │  │ guard / classify│
 │  15      │  │  7     │  │ services        │
 └──────────┘  └────────┘  └─────────────────┘
 ```

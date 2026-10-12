@@ -57,7 +57,7 @@ function runStartupChecks() {
         }
     }
 
-    // Run first-boot setup from INIT_* env vars (set by install wizard)
+    // Run first-boot setup from INIT_* env vars (set by the installer or deployment env)
     const { runBootInit } = require('../boot-init');
     runBootInit().catch(err => log.error('[boot-init] Fatal:', err));
 

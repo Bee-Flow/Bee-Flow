@@ -16,7 +16,6 @@ import { authFetch } from '../utils/helpers';
  * Consumers of these ids, all of which must keep working:
  *   - e2e/tests/global-setup.ts               username, password, login-submit-button
  *   - e2e/tests/generated/login-navigation.spec.ts   the same three
- *   - playwright-tests/support/login.ts       the same three
  *   - e2e/context/app-map.md                  documents PART of the list
  *
  * Let op de laatste: app-map.md noemt vandaag alleen username, password,
@@ -24,7 +23,7 @@ import { authFetch } from '../utils/helpers';
  * er bovendien bij dat de SSO-ids "on the full form only" staan — terwijl deze
  * karakterisatie ze óók op de ingeklapte weergave pint. De overige ids die dit
  * bestand vastlegt (login-other-methods, root-password, confirm-password, de
- * mfa-* en recovery-* ids) staan NERGENS in e2e/ of playwright-tests/. Dit
+ * mfa-* en recovery-* ids) staan NERGENS in e2e/. Dit
  * bestand is dus de bredere waarheid; app-map.md loopt achter en ligt buiten
  * het schrijfgebied van de karakterisatie.
  *
@@ -35,8 +34,7 @@ import { authFetch } from '../utils/helpers';
  * The one-time gates that stand AFTER submit are pinned where they live:
  * `encryption-recovery-key` / `encryption-recovery-saved` in
  * EncryptionSetup.test.jsx (the "I've saved my recovery key" gate that
- * global-setup's DISMISS_BUTTONS and playwright-tests/support/gates.ts click
- * through), and the enrollment gate in login/MfaSetupGate.test.jsx.
+ * global-setup's DISMISS_BUTTONS clicks through), and the enrollment gate in login/MfaSetupGate.test.jsx.
  */
 vi.mock('../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn(), setSessionToken: vi.fn() }));
 vi.mock('../hooks/useTranslation', () => import('@/test/useTranslationMock'));
@@ -232,7 +230,7 @@ describe('the gates that stand between submit and the app shell', () => {
     });
 
     // wrat: the red error block carries no test id and no role, so
-    // playwright-tests/support/login.ts can only recognise a rejected login by
+    // an e2e login helper can only recognise a rejected login by
     // matching English prose (/login failed|invalid (email|credentials)|incorrect password/i). Half of
     // that prose comes from the server and half from the i18n dictionary, so a
     // translated stack turns a rejected login into a 60-second timeout with a

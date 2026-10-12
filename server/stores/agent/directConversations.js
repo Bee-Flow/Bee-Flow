@@ -7,7 +7,7 @@
  *   - Writes go to both; blob kept for rollback safety.
  */
 
-const { v4: uuidv4 } = require('uuid');
+const { randomUUID } = require('crypto');
 const { run, getOne, getAll } = require('../../db');
 const { initDB } = require('./initSchema');
 const convMessages = require('./conversationMessages');
@@ -290,7 +290,7 @@ function _missingKbColumn(err) {
  */
 async function createDirectConversation(userId, modelTier = 'fast', knowledgeBaseIds = []) {
     await initDB();
-    const id = uuidv4();
+    const id = randomUUID();
     const ctx = await resolveCrypto({ userId });
     const title = sealTitle('New Chat', id, 'direct', ctx);
     const kbIds = normaliseKbIds(knowledgeBaseIds);

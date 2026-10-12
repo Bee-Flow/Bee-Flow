@@ -80,7 +80,7 @@ export default [
 
             'react-refresh/only-export-components': [
                 'warn',
-                { allowConstantExport: true },
+                { allowConstantExport: true, allowCompoundComponents: true },
             ],
 
             // A JSX element name is not a reference as far as core `no-undef`

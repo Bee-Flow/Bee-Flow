@@ -12,7 +12,7 @@ const personas = [
   {role: 'DPO / Compliance', goal: 'Review the data flow', cta: 'Privacy & data flow', href: '/connector/privacy'},
 ];
 
-export default function WhoFor(): JSX.Element {
+export default function WhoFor(): React.JSX.Element {
   return (
     <section className={styles.section}>
       <div className={styles.heading}>

@@ -30,10 +30,7 @@ sbom/
 .env.dev
 .env.test
 .env.selfhost
-.env.dockerhub
-.env.portainer
 server/.env
-search-service/.env
 guard-service/.env
 
 # Seed/test users — bcrypt hashes are offline-crackable, never commit
@@ -151,18 +148,8 @@ tmp/
 htmlcov/
 .env.services
 
-# ── Portainer / Local Deploy ─────────────────────────────────
-portainer-stack*.yml
-.env.portainer*
-# Whitelist the template file: it has no real secrets, just placeholders.
-!.env.portainer.example
+# ── Local Deploy ─────────────────────────────────────────────
 init-multi-db.sh
-
-# ── Install Wizard runtime artifacts (.install-env.json holds generated secrets) ──
-.install-env*
-.install-config*
-.install-log*
-# Keep docker-compose.install.yml tracked — it's the canonical compose, no secrets.
 
 # ── Coverage reports ──────────────────────────────────────────
 **/coverage/

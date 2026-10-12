@@ -187,8 +187,8 @@ COPY --chmod=a+rX,go-w . .
 #                inherits this owner.
 #   /components  the Component Designer's components and their npm installs
 #                (core/cms/componentManager.js). Bind-mounted by
-#                docker-compose.yml, -from-registry and -install; in Kubernetes,
-#                Portainer and the dockerhub compose file it is this directory.
+#                docker-compose.yml and -from-registry; in Kubernetes it is
+#                this directory.
 #   /tmp, $HOME  scratch files, and the docker and npm caches (/home/node).
 # Two of them hold code the server runs. /components on purpose: writing
 # component code is what the designer is for, behind the component_designer

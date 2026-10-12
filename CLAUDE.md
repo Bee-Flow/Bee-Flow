@@ -15,10 +15,6 @@ line says otherwise.
 | `mobile/` | Expo / React Native | Native Android client (APK). Not a WebView wrapper |
 | `guard-service/` | Python FastAPI (GLiNER) | PII detection (CPU) |
 | `classify-service/` | Python FastAPI | Zero-shot topic classification |
-| `reranker/` | Python FastAPI (torch) | Cross-encoder search reranking |
-| `search-service/` | Python FastAPI | Web/document extraction and knowledge-base chunking |
-| `whisperx-service/` | Python FastAPI (WhisperX) | Audio transcription and diarisation |
-| `pii-service/` | Python | Additional PII service |
 | `nextcloud-connector/` | Node | Nextcloud ExApp wrapper (AGPL) |
 | `hub-module-sdk/` | Node | Build, pack and sign Bee Flow Hub modules |
 | `docs/` | Docusaurus (TS) | Documentation site |

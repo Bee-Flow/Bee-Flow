@@ -2,21 +2,16 @@
 # BeeFlow — Registry-Based Docker Compose
 # ══════════════════════════════════════════════════════════════════
 #
-# Mirror of docker-compose.install.yml but uses pre-built images
-# from the public GitHub Container Registry (ghcr.io/bee-flow) instead
-# of local builds. No login required — the images are public.
+# Uses pre-built images from the public GitHub Container Registry
+# (ghcr.io/bee-flow) instead of local builds. No login required — the
+# images are public.
 #
 # Canonical self-host path: ./selfhost.sh (generates .env + brings this up).
 # No source checkout required — only this file, .env, and docker/init-db.sh.
 #
 # Profiles:
 #   core       — PostgreSQL, RustFS, server, agent-hub (always required)
-#   search     — Search API, search-postgres, search-redis
-#   search-gpu — GPU inference for embeddings + reranking
-#   search-llm — vLLM cleanup LLM (Qwen 2B)
 #   guard      — Guard API + guard-redis (CPU PII detection via GLiNER)
-#   whisperx   — WhisperX speech-to-text (GPU required)
-#   pii        — Standalone PII detection service
 #   classify   — Zero-shot topic classifier behind the Condition node's
 #                "is about" rule (GLiClass, CPU only; model baked in the image)
 #   local-llm  — Ollama, for running open-weight chat models on your own
@@ -245,26 +240,28 @@ services:
       - PII_GUARD_WINDOW_BUDGET_MS=${PII_GUARD_WINDOW_BUDGET_MS:-60000}
       - PII_GUARD_SCAN_DEADLINE_MS=${PII_GUARD_SCAN_DEADLINE_MS:-300000}
       - PII_GUARD_WINDOW_CONCURRENCY=${PII_GUARD_WINDOW_CONCURRENCY:-1}
-      - SEARCH_SERVICE_URL=http://search-api:8000
+      # Search is self-hosted INSIDE this server at /api/search
+      # (routes/search.js); no separate container needed.
+      - SEARCH_SERVICE_URL=http://localhost:${SERVER_PORT:-3001}/api/search
       # Internal base for the Umami analytics API (profile: analytics).
       # Empty by default — the server then falls back to the public URL from
       # the admin settings, which only works when that URL is reachable from
       # inside the container. Set UMAMI_URL=http://umami:3000 in .env when
       # running the bundled analytics profile.
       - UMAMI_URL=${UMAMI_URL:-}
-      # Redis (session cache) lives in the `search` profile. On a core-only
-      # install it isn't running, so default to empty — the server then uses
-      # Postgres-backed sessions and skips Redis entirely (graceful). Pointing
-      # at a missing host instead causes a connect-retry storm that exhausts
-      # the PG pool. Set REDIS_URL (or run --profile search) to enable caching.
+      # No Redis runs in the `core` profile, so default to empty — the server
+      # then uses Postgres-backed sessions and skips Redis entirely (graceful).
+      # Pointing at a missing host instead causes a connect-retry storm that
+      # exhausts the PG pool. Set REDIS_URL to enable caching (with
+      # --profile guard, redis://guard-redis:6379/0 works: the guard uses db 1).
       - REDIS_URL=${REDIS_URL:-}
       - RUSTFS_ENDPOINT=http://rustfs:9000
       - RUSTFS_ACCESS_KEY=${RUSTFS_ACCESS_KEY:-beeflow}
       - RUSTFS_SECRET_KEY=${RUSTFS_SECRET_KEY:?err}
-      # Default: the compose-profile whisperx service. Overridable from .env so
-      # the server can point at an out-of-stack WhisperX (e.g. the experimental
-      # ROCm container, reached via http://host.docker.internal:8787).
-      - WHISPERX_URL=${WHISPERX_URL:-http://whisperx:8787}
+      # Empty by default: no WhisperX container ships with this stack. Set it
+      # in .env to an out-of-stack WhisperX (e.g. http://host.docker.internal:8787)
+      # or configure the URL in Admin instead.
+      - WHISPERX_URL=${WHISPERX_URL:-}
       - SERVICES_API_KEY=${SERVICES_API_KEY:-}
       # ── OpenObserve telemetry + usage-push (ALL optional; empty = disabled) ──
       # Set these (e.g. in your .env) to stream OTel traces/metrics and per-org /
@@ -302,12 +299,10 @@ services:
     volumes:
       - beeflow-data:/app/data
       - ./components:/components
-      - ./workflows:/workflows
       - /var/run/docker.sock:/var/run/docker.sock
 
     networks:
       - beeflow-network
-      - search-network
       - beeflow-browser-network
     restart: unless-stopped
     depends_on:
@@ -405,167 +400,6 @@ services:
         max-file: "3"
 
   # ════════════════════════════════════════════════════════════════
-  # SEARCH SERVICE (profile: search)
-  # ════════════════════════════════════════════════════════════════
-
-  # ── Search PostgreSQL (with pgvector) ──────────────────────────
-  search-postgres:
-    image: pgvector/pgvector:pg16
-    container_name: search-postgres
-    profiles: [ "search" ]
-    environment:
-      POSTGRES_USER: ${SEARCH_DB_USER:-search}
-      POSTGRES_PASSWORD: ${SEARCH_DB_PASSWORD:-search}
-      POSTGRES_DB: ${SEARCH_DB_NAME:-search_kb}
-    volumes:
-      - search-pgdata:/var/lib/postgresql/data
-    networks:
-      - search-network
-    restart: unless-stopped
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${SEARCH_DB_USER:-search} -d ${SEARCH_DB_NAME:-search_kb}" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 5s
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  # ── Search Redis ───────────────────────────────────────────────
-  search-redis:
-    image: redis:7-alpine
-    container_name: search-redis
-    profiles: [ "search" ]
-    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
-    volumes:
-      - search-redis-data:/data
-    networks:
-      - search-network
-    restart: unless-stopped
-    healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
-      interval: 10s
-      timeout: 3s
-      retries: 3
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  # ── Search API (FastAPI) ───────────────────────────────────────
-  search-api:
-    image: ${REGISTRY:-ghcr.io/bee-flow}/search-api:${TAG:-latest}
-    container_name: search-api
-    profiles: [ "search" ]
-    ports:
-      - "127.0.0.1:${SEARCH_API_PORT:-8000}:8000"
-    environment:
-      SEARCH_DEBUG: ${SEARCH_DEBUG:-false}
-      SEARCH_LOG_LEVEL: ${SEARCH_LOG_LEVEL:-INFO}
-      SEARCH_DATABASE_URL: postgresql://${SEARCH_DB_USER:-search}:${SEARCH_DB_PASSWORD:-search}@search-postgres:5432/${SEARCH_DB_NAME:-search_kb}
-      SEARCH_REDIS_URL: redis://search-redis:6379/0
-      SEARCH_SERPER_API_KEY: ${SEARCH_SERPER_API_KEY:-}
-      SEARCH_SERPER_TIMEOUT: ${SEARCH_SERPER_TIMEOUT:-5.0}
-      SEARCH_SERPER_COUNTRY: ${SEARCH_SERPER_COUNTRY:-}
-      SEARCH_SERPER_LANG: ${SEARCH_SERPER_LANG:-}
-      SEARCH_INFERENCE_ENABLED: "true"
-      SEARCH_EMBED_API_URL: http://inference-gpu:8001/v1
-      SEARCH_RERANK_API_URL: http://inference-gpu:8001/v1
-      SEARCH_CLEANUP_API_URL: ${SEARCH_CLEANUP_API_URL:-http://inference-llm:8003/v1}
-      SERVICES_API_KEY: ${SERVICES_API_KEY:-}
-    networks:
-      - search-network
-    restart: unless-stopped
-    depends_on:
-      search-postgres:
-        condition: service_healthy
-      search-redis:
-        condition: service_healthy
-    healthcheck:
-      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 15s
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  # ════════════════════════════════════════════════════════════════
-  # SEARCH GPU INFERENCE (profile: search-gpu)
-  # ════════════════════════════════════════════════════════════════
-
-  inference-gpu:
-    image: ${REGISTRY:-ghcr.io/bee-flow}/search-inference-gpu:${TAG:-latest}
-    container_name: search-inference-gpu
-    profiles: [ "search-gpu" ]
-    environment:
-      EMBED_MODEL: BAAI/bge-m3
-      EMBED_DIMENSIONS: "1024"
-      RERANK_MODEL: BAAI/bge-reranker-v2-m3
-      PORT: "8001"
-      HF_HOME: /data/huggingface
-      DEVICE: "auto"
-      SERVICES_API_KEY: ${SERVICES_API_KEY:-}
-    volumes:
-      - search-hf-cache:/data/huggingface
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [ gpu ]
-    networks:
-      - search-network
-    restart: unless-stopped
-    healthcheck:
-      test: [ "CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')" ]
-      interval: 30s
-      timeout: 10s
-      retries: 10
-      start_period: 300s
-
-  # ════════════════════════════════════════════════════════════════
-  # SEARCH CLEANUP LLM (profile: search-llm)
-  # ════════════════════════════════════════════════════════════════
-
-  inference-llm:
-    image: vllm/vllm-openai:v0.8.0
-    container_name: search-inference-llm
-    profiles: [ "search-llm" ]
-    command:
-      - "--model"
-      - "Qwen/Qwen3.5-2B"
-      - "--port"
-      - "8003"
-      - "--max-model-len"
-      - "4096"
-      - "--dtype"
-      - "auto"
-      - "--gpu-memory-utilization"
-      - "0.20"
-    environment:
-      - HUGGING_FACE_HUB_TOKEN=${HF_TOKEN}
-      - HF_TOKEN=${HF_TOKEN}
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [ gpu ]
-    networks:
-      - search-network
-    restart: unless-stopped
-
-  # ════════════════════════════════════════════════════════════════
   # GUARD SERVICE (profile: guard)
   # ════════════════════════════════════════════════════════════════
 
@@ -650,7 +484,6 @@ services:
         condition: service_healthy
     networks:
       - beeflow-network
-      - search-network
     restart: unless-stopped
     healthcheck:
       test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8100/health')" ]
@@ -680,45 +513,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-
-  # ════════════════════════════════════════════════════════════════
-  # WHISPERX TRANSCRIPTION (profile: whisperx)
-  # ════════════════════════════════════════════════════════════════
-
-  whisperx:
-    image: ${REGISTRY:-ghcr.io/bee-flow}/whisperx:${TAG:-latest}
-    container_name: whisperx-service
-    profiles: [ "whisperx" ]
-    ports:
-      # Loopback-only: this API has no authentication, so it must not answer
-      # on every interface. The server reaches it over the compose network
-      # (WHISPERX_URL=http://whisperx:8787) regardless of this mapping.
-      - "127.0.0.1:8787:8787"
-    environment:
-      - HF_TOKEN=${HF_TOKEN}
-      - WHISPER_MODEL=large-v3
-      - SERVICES_API_KEY=${SERVICES_API_KEY:-}
-    volumes:
-      - whisperx-cache:/cache
-    # Without this the service lands on the compose default network while the
-    # server (whose env hardcodes WHISPERX_URL=http://whisperx:8787) lives on
-    # beeflow-network — the integration silently never connects.
-    networks:
-      - beeflow-network
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [ gpu ]
-    restart: unless-stopped
     logging:
       driver: json-file
       options:
@@ -768,33 +562,6 @@ services:
     #           count: all
     #           capabilities: [ gpu ]
     restart: unless-stopped
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  # ════════════════════════════════════════════════════════════════
-  # PII SERVICE (profile: pii)
-  # ════════════════════════════════════════════════════════════════
-
-  pii-service:
-    image: ${REGISTRY:-ghcr.io/bee-flow}/pii:${TAG:-latest}
-    container_name: beeflow-pii
-    profiles: [ "pii" ]
-    ports:
-      - "127.0.0.1:8200:8200"
-    volumes:
-      - pii-model-cache:/cache/huggingface
-    networks:
-      - beeflow-network
-    restart: unless-stopped
-    healthcheck:
-      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8200/health')" ]
-      interval: 30s
-      timeout: 10s
-      start_period: 120s
-      retries: 3
     logging:
       driver: json-file
       options:
@@ -909,25 +676,12 @@ volumes:
     name: rustfs-data
   rustfs-logs:
     name: rustfs-logs
-  # Search
-  search-pgdata:
-    name: search-pgdata
-  search-redis-data:
-    name: search-redis-data
-  search-hf-cache:
-    name: search-hf-cache
   # Guard
   guard-redis-data:
     name: guard-redis-data
-  # WhisperX
-  whisperx-cache:
-    name: whisperx-cache
-  # PII
+  # Local LLM
   ollama-models:
     driver: local
-
-  pii-model-cache:
-    name: pii-model-cache
 
 # ════════════════════════════════════════════════════════════════
 # NETWORKS
@@ -939,5 +693,3 @@ networks:
   # Only the server and the browser sidecar. See the `browser` service.
   beeflow-browser-network:
     name: beeflow-browser-network
-  search-network:
-    name: search-network

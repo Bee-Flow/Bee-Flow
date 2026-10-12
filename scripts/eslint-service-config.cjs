@@ -1,5 +1,5 @@
 // The ESLint flat config shared by the small Node services:
-// nextcloud-connector, hub-module-sdk, install-wizard and nc-login-mini.
+// nextcloud-connector and hub-module-sdk.
 // Each package's eslint.config.js calls serviceConfig() with its own
 // `globals` (the root has no node_modules of its own to resolve it from).
 //

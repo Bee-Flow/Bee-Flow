@@ -40,6 +40,7 @@ const { captureSolution } = require('../../projects/packaging/capture');
 const log = require('../../telemetry/log');
 const { validate } = require('../../core/http/validate');
 const { HttpError } = require('../../core/http/errors');
+const { contentDisposition } = require('../../core/http/contentDisposition');
 const publication = require('../../projects/packaging/publication');
 const S = require('./schemas');
 
@@ -551,7 +552,9 @@ router.get('/:id/package/releases/:releaseId', blueprintPackaging, requireProjec
             orgName: await organizationNameFor(project?.organizationId),
             version: release.version,
         });
-        res.attachment(`${name}-v${release.version}.blueprint.json`);
+        // Quoted filename (+ RFC 5987 filename*) like every other download route;
+        // res.attachment() stopped quoting token-safe names with Express 5.3.
+        res.setHeader('Content-Disposition', contentDisposition(`${name}-v${release.version}.blueprint.json`));
         res.type('application/json');
         // nosemgrep: javascript.express.security.audit.xss.direct-response-write.direct-response-write -- a JSON file sent as an attachment with an application/json type; nothing is rendered as HTML
         return res.send(JSON.stringify(file, null, 2));

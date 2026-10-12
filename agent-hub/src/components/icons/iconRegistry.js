@@ -34,10 +34,10 @@ import {
     Cloud, Code, Coins, Cookie, Copy, Cpu, CreditCard, Crosshair, Database,
     Download, ExternalLink, EyeOff, FileAudio, FileCheck, FileDown,
     FileJson, FileSearch, FileText, FileWarning, Flag, FlaskConical,
-    Folder, FolderOpen, FolderSync, Gauge, Gavel, Gift, GitBranch, GitCompare, Github, Globe, Globe2,
+    Folder, FolderOpen, FolderSync, Gauge, Gavel, Gift, GitBranch, GitCompare, Globe, Globe2,
     GripVertical, HardDrive, HelpCircle, Home, Image, Import, Kanban,
     KeyRound, Landmark, Languages, Layers, LayoutGrid, LayoutPanelLeft,
-    LayoutTemplate, Library, LifeBuoy, Linkedin, ListChecks, ListOrdered,
+    LayoutTemplate, Library, LifeBuoy, ListChecks, ListOrdered,
     Lock, Mail, Map, MapPin, Megaphone, MessageCircleQuestion,
     MessageSquare, MessageSquareQuote, MessagesSquare, Mic, Milestone,
     Monitor, MonitorPlay, MoreHorizontal, MoreVertical, MousePointerClick,
@@ -48,6 +48,8 @@ import {
     Star, Stethoscope, Store, Table, Target, TerminalSquare, TestTube, Ticket, Trash2,
     Type, Upload, UserCheck, Users, Video, Wand2, WifiOff, Workflow, Wrench, X, Zap
 } from 'lucide-react';
+// lucide-react 1.x dropped its brand icons; these two keep their original glyphs.
+import { Github, Linkedin } from './brandIcons';
 
 export const ICON_REGISTRY = {
     AppWindow, ArrowRight, AudioLines, Ban, BarChart3, Bell, Blocks,
@@ -56,10 +58,10 @@ export const ICON_REGISTRY = {
     Cloud, Code, Coins, Cookie, Copy, Cpu, CreditCard, Crosshair, Database,
     Download, ExternalLink, EyeOff, FileAudio, FileCheck, FileDown,
     FileJson, FileSearch, FileText, FileWarning, Flag, FlaskConical,
-    Folder, FolderOpen, FolderSync, Gauge, Gavel, Gift, GitBranch, GitCompare, Github, Globe, Globe2,
+    Folder, FolderOpen, FolderSync, Gauge, Gavel, Gift, GitBranch, GitCompare, Globe, Globe2,
     GripVertical, HardDrive, HelpCircle, Home, Image, Import, Kanban,
     KeyRound, Landmark, Languages, Layers, LayoutGrid, LayoutPanelLeft,
-    LayoutTemplate, Library, LifeBuoy, Linkedin, ListChecks, ListOrdered,
+    LayoutTemplate, Library, LifeBuoy, ListChecks, ListOrdered,
     Lock, Mail, Map, MapPin, Megaphone, MessageCircleQuestion,
     MessageSquare, MessageSquareQuote, MessagesSquare, Mic, Milestone,
     Monitor, MonitorPlay, MoreHorizontal, MoreVertical, MousePointerClick,
@@ -69,6 +71,7 @@ export const ICON_REGISTRY = {
     Settings2, Share2, Shield, ShieldAlert, ShieldCheck, Sparkles, Square,
     Star, Stethoscope, Store, Table, Target, TerminalSquare, TestTube, Ticket, Trash2,
     Type, Upload, UserCheck, Users, Video, Wand2, WifiOff, Workflow, Wrench, X, Zap,
+    Github, Linkedin,
 };
 
 // AppIcon's last resort when even the lazy full set has no such export.

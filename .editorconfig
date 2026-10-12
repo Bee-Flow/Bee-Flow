@@ -17,7 +17,7 @@ indent_style = space
 indent_size = 4
 
 # The docs site and the Playwright suites use 2-space indentation.
-[{docs,e2e,playwright-tests}/**.{js,jsx,ts,tsx,mjs,cjs}]
+[{docs,e2e}/**.{js,jsx,ts,tsx,mjs,cjs}]
 indent_size = 2
 
 [*.py]

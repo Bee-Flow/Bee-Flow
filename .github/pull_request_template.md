@@ -7,7 +7,7 @@
 - [ ] Tests pass for the modules touched:
   - server: `cd server && npm test`
   - agent-hub: `cd agent-hub && npm run test:run && npm run typecheck && npm run lint`
-  - Python services: `uvx ruff check guard-service pii-service reranker search-service whisperx-service`
+  - Python services: `uvx ruff check guard-service classify-service`
 - [ ] New/changed behavior is covered by a colocated test (`x.js` ↔ `x.test.js`)
 - [ ] Secret scans are clean: `npm run lint:gitleaks && npm run lint:secrets`
 - [ ] No new high/critical dependency advisories: `npm run lint:deps` (CI runs the same ratchet; see `.github/security/audit-baseline.json`)

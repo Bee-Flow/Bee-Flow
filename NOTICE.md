@@ -26,8 +26,7 @@ AGPL applies to the connector source as published in [nextcloud-connector/](next
 
 - The Bee Flow server (`server/`),
 - The Bee Flow frontend (`agent-hub/`),
-- The install wizard (`install-wizard/`),
-- The Python sidecar services (`guard-service/`, `pii-service/`, `classify-service/`, `search-service/`, `whisperx-service/`, `reranker/`),
+- The Python sidecar services (`guard-service/`, `classify-service/`),
 - The components (`components/`).
 
 These components are licensed under the Sustainable Use License v1.0.
@@ -104,8 +103,6 @@ The following models can be loaded by Bee Flow when the corresponding feature is
 | `knowledgator/gliclass-multilang-mini` | [classify-service/](classify-service/) (baked into the image), loaded with the `gliclass` library (Apache 2.0) | Apache 2.0 |
 | `openai/privacy-filter` | [server/core/localPiiDetection.js](server/core/localPiiDetection.js) | Apache 2.0 |
 | `Xenova/whisper-base` | [server/core/voice/localWhisper.js](server/core/voice/localWhisper.js) | MIT (OpenAI Whisper) |
-| `Qwen/Qwen3-Embedding-4B` | [search-service/app/config.py](search-service/app/config.py) | Apache 2.0 / Tongyi Qianwen |
-| `BAAI/bge-reranker-v2-m3` | [search-service/app/config.py](search-service/app/config.py) | Apache 2.0 / MIT |
 
 ---
 

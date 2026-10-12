@@ -24,7 +24,6 @@ mkdir -p "${SBOM_DIR}"
 WORKSPACES=(
     "server"
     "agent-hub"
-    "install-wizard"
     "nextcloud-connector"
 )
 
@@ -98,9 +97,6 @@ done
     echo "| \`urchade/gliner_multi_pii-v1\` | [guard-service/](guard-service/) | Apache 2.0 | https://huggingface.co/urchade/gliner_multi_pii-v1 |"
     echo "| \`openai/privacy-filter\` | [server/core/localPiiDetection.js](server/core/localPiiDetection.js) | Apache 2.0 | https://huggingface.co/openai |"
     echo "| \`Xenova/whisper-base\` | [server/core/voice/localWhisper.js](server/core/voice/localWhisper.js) | MIT (OpenAI Whisper) | https://huggingface.co/Xenova/whisper-base |"
-    echo "| \`Qwen/Qwen3-Embedding-4B\` | [search-service/app/config.py](search-service/app/config.py) | Apache 2.0 / Tongyi Qianwen | https://huggingface.co/Qwen/Qwen3-Embedding-4B |"
-    echo "| \`BAAI/bge-reranker-v2-m3\` | [search-service/app/config.py](search-service/app/config.py) | Apache 2.0 / MIT | https://huggingface.co/BAAI/bge-reranker-v2-m3 |"
-    echo "| \`cross-encoder/mmarco-mMiniLMv2-L12-H384-v1\` | [reranker/reranker.py](reranker/reranker.py) (fallback) | Apache 2.0 | https://huggingface.co/cross-encoder/mmarco-mMiniLMv2-L12-H384-v1 |"
     echo
     echo "## Proprietary SDKs"
     echo

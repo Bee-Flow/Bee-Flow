@@ -7,7 +7,7 @@ import WhoFor from '@site/src/components/WhoFor';
 import IntegrationsStrip from '@site/src/components/IntegrationsStrip';
 import CallToAction from '@site/src/components/CallToAction';
 
-export default function Home(): JSX.Element {
+export default function Home(): React.JSX.Element {
   return (
     <Layout
       title="Bee Flow — AI workspace for Nextcloud"

@@ -5,7 +5,7 @@
 
 const { run, getOne, getAll, exec } = require('../db');
 const { makeStoreInit } = require('./lib/storeInit');
-const { v4: uuidv4 } = require('uuid');
+const { randomUUID } = require('crypto');
 const log = require('../telemetry/log');
 
 const initDB = makeStoreInit('WorkflowStore', _initDB);
@@ -74,7 +74,7 @@ async function _initDB() {
 
 async function createFolder(name, parentId, ownerId) {
     await initDB();
-    const id = uuidv4();
+    const id = randomUUID();
     await run('INSERT INTO folders (id, name, parent_id, owner_id) VALUES ($1, $2, $3, $4)', [id, name, parentId || null, ownerId]);
     return { id, name, parentId, ownerId };
 }
@@ -125,7 +125,7 @@ async function deleteFolder(id, userId) {
 
 async function createWorkflow(data, ownerId) {
     await initDB();
-    const id = data.id || uuidv4();
+    const id = data.id || randomUUID();
     await run(`
         INSERT INTO workflows (id, name, description, folder_id, owner_id, nodes_json, edges_json, viewport_json, is_public)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
@@ -245,7 +245,7 @@ async function shareResource(resourceType, resourceId, sharedBy, sharedWith, per
         await run('UPDATE shares SET permission = $1 WHERE id = $2', [permission, existing.id]);
         return { id: existing.id, updated: true };
     }
-    const id = uuidv4();
+    const id = randomUUID();
     await run('INSERT INTO shares (id, resource_type, resource_id, shared_by, shared_with, permission) VALUES ($1, $2, $3, $4, $5, $6)', [id, resourceType, resourceId, sharedBy, sharedWith, permission]);
     return { id, created: true };
 }
@@ -276,7 +276,7 @@ async function migrateFromJson(workflows, defaultOwnerId) {
                 INSERT INTO workflows (id, name, description, folder_id, owner_id, nodes_json, edges_json, viewport_json, is_public)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, FALSE)
                 ON CONFLICT(id) DO NOTHING
-            `, [wf.id || uuidv4(), wf.name || 'Migrated Workflow', wf.description || '', null, defaultOwnerId,
+            `, [wf.id || randomUUID(), wf.name || 'Migrated Workflow', wf.description || '', null, defaultOwnerId,
             JSON.stringify(wf.nodes || []), JSON.stringify(wf.edges || []), JSON.stringify(wf.viewport || {})]);
         } catch (e) {
             log.error('Migration error for workflow:', wf.id, e.message);
@@ -289,7 +289,7 @@ async function migrateFromJson(workflows, defaultOwnerId) {
 
 async function createExecution(workflowId, workflowName, userId, triggerType = 'manual', workflow = null) {
     await initDB();
-    const id = uuidv4();
+    const id = randomUUID();
     const startedAt = new Date().toISOString();
     await run(`
         INSERT INTO execution_history (id, workflow_id, workflow_name, user_id, status, started_at, trigger_type, workflow_json)

@@ -22,7 +22,7 @@ const integrations = [
   'LinkedIn',
 ];
 
-export default function IntegrationsStrip(): JSX.Element {
+export default function IntegrationsStrip(): React.JSX.Element {
   return (
     <section className={styles.strip} aria-label="Supported integrations">
       <div className={styles.label}>Works with the apps you already use</div>

@@ -27,7 +27,7 @@ import { defineConfig } from 'vite'
  * index.html, and a library build has neither.
  */
 export default defineConfig(() => {
-    const pkg = JSON.parse(readFileSync(path.resolve(__dirname, 'package.json'), 'utf8'));
+    const pkg = JSON.parse(readFileSync(path.resolve(import.meta.dirname, 'package.json'), 'utf8'));
 
     return {
         plugins: [react()],
@@ -38,8 +38,8 @@ export default defineConfig(() => {
         resolve: {
             // Keep in lockstep with vite.config.js — the bundled sources use both.
             alias: {
-                '@': path.resolve(__dirname, 'src'),
-                '@shared': path.resolve(__dirname, 'src/shared'),
+                '@': path.resolve(import.meta.dirname, 'src'),
+                '@shared': path.resolve(import.meta.dirname, 'src/shared'),
             },
         },
         define: {
@@ -64,13 +64,13 @@ export default defineConfig(() => {
             // exactly two files.
             cssCodeSplit: false,
             lib: {
-                entry: path.resolve(__dirname, 'src/appRuntimeHeadless.jsx'),
+                entry: path.resolve(import.meta.dirname, 'src/appRuntimeHeadless.jsx'),
                 formats: ['es'],
                 fileName: () => 'app-runtime.mjs',
                 cssFileName: 'app-runtime',
             },
-            rollupOptions: {
-                output: { inlineDynamicImports: true },
+            rolldownOptions: {
+                output: { codeSplitting: false },
             },
         },
     };

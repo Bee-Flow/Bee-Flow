@@ -99,8 +99,6 @@ jobs:
       guard-unit: ${{ steps.filter.outputs.guard-unit || steps.all.outputs.all }}
       nextcloud: ${{ steps.filter.outputs.nextcloud || steps.all.outputs.all }}
       hub-module-sdk: ${{ steps.filter.outputs.hub-module-sdk || steps.all.outputs.all }}
-      install-wizard: ${{ steps.filter.outputs.install-wizard || steps.all.outputs.all }}
-      nc-login-mini: ${{ steps.filter.outputs.nc-login-mini || steps.all.outputs.all }}
       e2e: ${{ steps.filter.outputs.e2e || steps.all.outputs.all }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -321,11 +319,7 @@ jobs:
               - 'agent-hub/src/utils/{appVersion.ts,cmsPublicRouting.js,helpers.js,sseStream.js,storageMigrations.js}'
             python:
               - 'guard-service/**'
-              - 'pii-service/**'
               - 'classify-service/**'
-              - 'reranker/**'
-              - 'search-service/**'
-              - 'whisperx-service/**'
               - 'ruff.toml'
               - 'scripts/coverage-ratchet.mjs'
               - '.github/workflows/ci.yml'
@@ -363,18 +357,6 @@ jobs:
               - '.github/workflows/ci.yml'
             hub-module-sdk:
               - 'hub-module-sdk/**'
-              - '.nvmrc'
-              - 'scripts/{eslint-budget,coverage-ratchet,entry-point}.mjs'
-              - 'scripts/eslint-service-config.cjs'
-              - '.github/workflows/ci.yml'
-            install-wizard:
-              - 'install-wizard/**'
-              - '.nvmrc'
-              - 'scripts/{eslint-budget,coverage-ratchet,entry-point}.mjs'
-              - 'scripts/eslint-service-config.cjs'
-              - '.github/workflows/ci.yml'
-            nc-login-mini:
-              - 'nc-login-mini/**'
               - '.nvmrc'
               - 'scripts/{eslint-budget,coverage-ratchet,entry-point}.mjs'
               - 'scripts/eslint-service-config.cjs'
@@ -1089,13 +1071,12 @@ jobs:
       - name: Install ruff
         run: pip install --no-cache-dir ruff==0.16.4
       - name: ruff check
-        run: ruff check guard-service pii-service classify-service reranker search-service whisperx-service --output-format=github
+        run: ruff check guard-service classify-service --output-format=github
       - name: ruff format --check
-        run: ruff format --check guard-service pii-service classify-service reranker search-service whisperx-service
+        run: ruff format --check guard-service classify-service
 
-  # The sidecar suites exercise parsing, request models, the auth middleware,
-  # the fetch guard, KB search and the upload limits: no model, no torch, no
-  # running Postgres or Redis (search-service/tests/fakes.py). Each service
+  # The sidecar suites exercise parsing, request models and the auth
+  # middleware: no model, no torch. Each service
   # lists what its tests import in its own requirements-dev.txt, at the pins
   # its image ships, and each suite installs its own file right before it
   # runs: dependabot bumps one service at a time, and one combined install
@@ -1115,39 +1096,13 @@ jobs:
           python-version: '3.12'
           cache: pip
           cache-dependency-path: |
-            pii-service/requirements-dev.txt
             classify-service/requirements-dev.txt
-            search-service/requirements-dev.txt
-            reranker/requirements-dev.txt
-            whisperx-service/requirements-dev.txt
-      - name: pii-service unit tests
-        run: |
-          pip install -r pii-service/requirements-dev.txt
-          python -m pytest pii-service/tests --cov=pii-service/app --cov-report=term --cov-report=xml:coverage-pii.xml --cov-report=json:coverage-pii.json
-          node scripts/coverage-ratchet.mjs pii-service --summary coverage-pii.json
       # FakeClassifier only: no torch, no gliclass, no model (tests/conftest.py).
       - name: classify-service unit tests
         run: |
           pip install -r classify-service/requirements-dev.txt
           python -m pytest classify-service/tests --cov=classify-service/app --cov-report=term --cov-report=xml:coverage-classify.xml --cov-report=json:coverage-classify.json
           node scripts/coverage-ratchet.mjs classify-service --summary coverage-classify.json
-      - name: search-service unit tests
-        run: |
-          pip install -r search-service/requirements-dev.txt
-          python -m pytest search-service/tests --cov=search-service/app --cov-report=term --cov-report=xml:coverage-search.xml --cov-report=json:coverage-search.json
-          node scripts/coverage-ratchet.mjs search-service --summary coverage-search.json
-      # One module each, with the tests beside it: the service's own
-      # pyproject.toml omits */tests/* so only the module counts.
-      - name: reranker unit tests
-        run: |
-          pip install -r reranker/requirements-dev.txt
-          python -m pytest reranker/tests --cov=reranker --cov-config=reranker/pyproject.toml --cov-report=term --cov-report=xml:coverage-reranker.xml --cov-report=json:coverage-reranker.json
-          node scripts/coverage-ratchet.mjs reranker --summary coverage-reranker.json
-      - name: whisperx-service unit tests
-        run: |
-          pip install -r whisperx-service/requirements-dev.txt
-          python -m pytest whisperx-service/tests --cov=whisperx-service --cov-config=whisperx-service/pyproject.toml --cov-report=term --cov-report=xml:coverage-whisperx.xml --cov-report=json:coverage-whisperx.json
-          node scripts/coverage-ratchet.mjs whisperx-service --summary coverage-whisperx.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: ${{ !cancelled() }}
         with:
@@ -1259,7 +1214,6 @@ jobs:
       needs.changes.outputs.server == 'true' || needs.changes.outputs.frontend == 'true'
       || needs.changes.outputs.mobile == 'true' || needs.changes.outputs.python == 'true'
       || needs.changes.outputs.nextcloud == 'true' || needs.changes.outputs.hub-module-sdk == 'true'
-      || needs.changes.outputs.install-wizard == 'true' || needs.changes.outputs.nc-login-mini == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -1392,54 +1346,6 @@ jobs:
       - name: Coverage floor
         run: node ../scripts/coverage-ratchet.mjs hub-module-sdk
 
-  install-wizard:
-    name: Install wizard
-    needs: changes
-    if: needs.changes.outputs.install-wizard == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    defaults:
-      run:
-        working-directory: install-wizard
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-          cache-dependency-path: install-wizard/package-lock.json
-      - run: npm ci
-      - name: Lint (errors fail, warnings budgeted)
-        run: node ../scripts/eslint-budget.mjs install-wizard
-      - name: Unit tests (with coverage)
-        run: npm run test:coverage
-      - name: Coverage floor
-        run: node ../scripts/coverage-ratchet.mjs install-wizard
-
-  nc-login-mini:
-    name: NC login mini (ExApp)
-    needs: changes
-    if: needs.changes.outputs.nc-login-mini == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    defaults:
-      run:
-        working-directory: nc-login-mini
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-          cache-dependency-path: nc-login-mini/package-lock.json
-      - run: npm ci
-      - name: Lint (errors fail, warnings budgeted)
-        run: node ../scripts/eslint-budget.mjs nc-login-mini
-      - name: Unit tests (with coverage)
-        run: npm run test:coverage
-      - name: Coverage floor
-        run: node ../scripts/coverage-ratchet.mjs nc-login-mini
-
   # ── E2E spec freshness ────────────────────────────────────────────────
   # The specs under e2e/tests are GENERATED from the scenario Markdown
   # (e2e/runner/gen.mjs); gen:check fails when the two drift. Until now the
@@ -1481,7 +1387,7 @@ jobs:
     # condition picks only the name; the job still runs always(). This exact
     # form is what scripts/check-required-checks.mjs reads (TWO-WAY NAMES).
     name: ${{ github.event.pull_request.draft == true && 'checks-passed (draft)' || 'checks-passed' }}
-    needs: [changes, server, server-checks, server-shard, server-coverage, frontend, frontend-typecheck, frontend-build, mobile, python-lint, python-tests, guard, guard-model-eval, nextcloud-connector, nextcloud-server, hub-module-sdk, install-wizard, nc-login-mini, duplication, frontend-tests, frontend-tests-server-deps, frontend-coverage, e2e-specs]
+    needs: [changes, server, server-checks, server-shard, server-coverage, frontend, frontend-typecheck, frontend-build, mobile, python-lint, python-tests, guard, guard-model-eval, nextcloud-connector, nextcloud-server, hub-module-sdk, duplication, frontend-tests, frontend-tests-server-deps, frontend-coverage, e2e-specs]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5

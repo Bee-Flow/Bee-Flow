@@ -24,7 +24,6 @@
 # the build jobs / promote wiring in .github/workflows/build-push-ghcr.yml
 # (changes outputs: server, agent-hub, pwt-runner → images server,
 # agent-hub, pwt-runner; the `browser` service runs pwt-runner).
-# search-api is not in the stack: the product no longer uses it.
 # ══════════════════════════════════════════════════════════════════
 set -euo pipefail
 

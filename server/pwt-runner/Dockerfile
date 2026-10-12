@@ -2,7 +2,7 @@
 #
 # Each Studio test run executes inside a short-lived container built from this
 # image. The base ships Chromium + all OS deps baked in and matches the server's
-# pinned Playwright version (1.59.1), so we never download browsers at runtime.
+# pinned Playwright version (1.64.0), so we never download browsers at runtime.
 # The same image also backs the long-lived shared `bf-browser` singleton that
 # the server drives for PDF export, thumbnails, and SPA ingestion.
 #
@@ -14,7 +14,7 @@
 # IMPORTANT: this version MUST match the `playwright` version the server
 # installs (server/package.json). Playwright's connect() handshake rejects a
 # client/server minor-version mismatch (HTTP 428). Bump both together.
-FROM mcr.microsoft.com/playwright:v1.59.1-noble@sha256:b0ab6f3cb99aa7803adbc14d9027ec1785fc6e433b97e134e0f8fe61683b6b53
+FROM mcr.microsoft.com/playwright:v1.64.0-noble@sha256:06a9939e57531807f8d5fd76ce44b53165ffb7d7501d87ab10e285c20b1e971f
 
 WORKDIR /runner
 

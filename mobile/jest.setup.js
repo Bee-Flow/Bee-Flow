@@ -91,6 +91,16 @@ jest.mock('expo-constants', () => ({
     },
 }));
 
+// expo 57.0.28 asks the native module registry whether this is Expo Go, and
+// jest-expo's registry answers for every name, so expo-notifications printed its
+// "removed from Expo Go" warning on import in every suite that reaches it. The
+// app ships as a development-build APK; tests are not Expo Go.
+jest.mock('expo/src/environment/ExpoGo', () => ({
+    __esModule: true,
+    isRunningInExpoGo: () => false,
+    getExpoGoProjectConfig: () => null,
+}));
+
 jest.mock('@react-native-community/netinfo', () => ({
     __esModule: true,
     default: {

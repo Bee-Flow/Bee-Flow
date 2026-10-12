@@ -48,12 +48,18 @@ Optional sidecars (used when configured):
 | Sidecar | Image | Purpose |
 |---------|-------|---------|
 | Guard service | `ghcr.io/bee-flow/guard-service` | Local CPU PII detection (GLiNER multi-PII). Probed at `GUARD_SERVICE_URL`. |
-| PII service | `ghcr.io/bee-flow/pii-service` | Alternative Python PII sidecar (GLiNER multi PII v1, Apache-2.0). Opt-in via `PII_SERVICE_URL`. |
-| Search service | `ghcr.io/bee-flow/search-service` | GPU-backed KB ingestion, embedding, reranking. Opt-in via `SEARCH_SERVICE_URL` — the default KB pipeline runs entirely in-process. |
-| Reranker | `ghcr.io/bee-flow/reranker` | vLLM cross-encoder for re-ranking KB hits. Opt-in via `RERANKER_URL`; CPU reranker covers most deployments. |
-| WhisperX service | `ghcr.io/bee-flow/whisperx-service` | GPU speech-to-text for the voice / meeting-notes pipeline. |
+| Classify service | `ghcr.io/bee-flow/classify` | Zero-shot topic classifier for the Condition node's "is about" rule (CPU). Opt-in via `CLASSIFY_SERVICE_URL`. |
 
 The server itself runs fine with none of these. Each sidecar plugs in at a single env var.
+
+Bee Flow publishes no images for the following; the server can still talk to a service you run yourself.
+The default knowledge-base pipeline, web search and reranking all run in-process.
+
+| Service | Env var | Purpose |
+|---------|---------|---------|
+| Remote search service | `SEARCH_SERVICE_URL` | KB ingestion/search over HTTP. The self-host compose files point it at the server's own `/api/search`. |
+| Reranker | `RERANKER_URL` | Optional external cross-encoder for re-ranking KB hits; the in-process CPU reranker covers most deployments. |
+| WhisperX | `WHISPERX_URL` | Speech-to-text and diarisation for the voice / meeting-notes pipeline. |
 
 ## Data plane
 
@@ -62,7 +68,7 @@ The server itself runs fine with none of these. Each sidecar plugs in at a singl
 | Durable state | Postgres 16+ — users, orgs, agents, conversations, KB chunks (or pointers), automation runs, audit log |
 | Cache + sessions | Redis 7 (optional but recommended) |
 | Message bus | Postgres `LISTEN/NOTIFY` for in-process events; Redis pub/sub for cross-replica |
-| Vector index | pgvector (default) or external (Qdrant via search-service) |
+| Vector index | pgvector (default) or external (via a remote search service) |
 | Object storage | Disk on the server (small images) or S3-compatible if configured |
 | Audit log | Postgres tables; SIEM webhook for off-host shipping |
 
@@ -118,10 +124,6 @@ The server itself runs fine with none of these. Each sidecar plugs in at a singl
 | `Bee-Flow/connector` | NC ExApp (Node.js + Express, Docker) | AGPL-3.0 |
 | `Bee-Flow/docs` | This site | CC-BY-4.0 + MIT |
 | `Bee-Flow/guard-service` | PII guard sidecar (Python + FastAPI) | Apache-2.0 |
-| `Bee-Flow/pii-service` | Alternative PII sidecar (Python + FastAPI) | Apache-2.0 |
-| `Bee-Flow/search-service` | KB ingestion / search sidecar (Python) | SUL |
-| `Bee-Flow/reranker` | vLLM cross-encoder sidecar | SUL |
-| `Bee-Flow/whisperx-service` | Speech-to-text sidecar (Python) | SUL |
 | License server (private repository) | Licence-key minting service and module hub | **PRIVATE** (Bee Flow B.V.) |
 
 ## Key request flow — a chat turn

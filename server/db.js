@@ -92,6 +92,11 @@ function _redisOptions(url) {
     return {
         maxRetriesPerRequest: 3,
         lazyConnect: true,
+        // ioredis 6 changed two defaults: RESP3 instead of RESP2, and a 30 s
+        // TCP keep-alive instead of none. Pinned to the v5 values so reply
+        // shapes and socket behaviour stay exactly as they were.
+        protocol: 2,
+        keepAlive: 0,
         // Keep reconnecting after an outage, backing off to 30 s. Giving
         // up (returning null) left a dead client for the rest of the
         // process: every cross-replica publish failed and the live feeds

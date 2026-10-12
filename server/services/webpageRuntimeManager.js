@@ -5,9 +5,9 @@
  * │ STATUS: GATED + INERT BY DEFAULT. This module never starts a container   │
  * │ unless WEBPAGE_FULL_RUNTIME_ENABLED=1 AND a Docker daemon is reachable.   │
  * │ It is NOT wired into server startup or any request path yet. Enabling it  │
- * │ in production REQUIRES a dedicated security review (see                   │
- * │ server/webpage-runner/README.md). Tom owns the deploy — this file only    │
- * │ provides the reviewable implementation.                                   │
+ * │ in production REQUIRES a dedicated security review. No runner image is    │
+ * │ built from this repository any more (server/webpage-runner was removed): │
+ * │ the image must be supplied via WEBPAGE_RUNNER_IMAGE.                      │
  * └─────────────────────────────────────────────────────────────────────────┘
  *
  * When a project's settings.runtime === 'full', its app runs a real Vite dev
@@ -185,7 +185,7 @@ async function resolveImage(docker) {
     if (await imageExists(docker, LOCAL_IMAGE_TAG)) { _resolvedImage = LOCAL_IMAGE_TAG; return LOCAL_IMAGE_TAG; }
     // Registry pull (cloud) — falls through to a local build (self-host/air-gapped)
     // performed out-of-band; we do NOT build implicitly here to avoid a slow,
-    // surprising first request. Ops builds the image (see webpage-runner/README).
+    // surprising first request. Ops supplies the image (WEBPAGE_RUNNER_IMAGE).
     const registry = process.env.WEBPAGE_RUNNER_REGISTRY_IMAGE || 'ghcr.io/bee-flow/webpage-runner:latest';
     try {
         await new Promise((resolve, reject) => {
@@ -197,7 +197,7 @@ async function resolveImage(docker) {
         _resolvedImage = registry;
         return registry;
     } catch (e) {
-        throw new Error(`webpage-runner image unavailable. Build it (server/webpage-runner) or set WEBPAGE_RUNNER_IMAGE. (${e.message})`);
+        throw new Error(`webpage-runner image unavailable. Set WEBPAGE_RUNNER_IMAGE. (${e.message})`);
     }
 }
 
@@ -358,15 +358,15 @@ async function createRuntime({ webpageId, userId, orgId }) {
         name,
         Image: image,
         // Allowlisted env ONLY — never spread process.env (secret-leak guard).
-        // VITE_BASE_PATH tells the project's dev server (via
-        // server/webpage-runner/vite.config.js, when a project ships no
+        // VITE_BASE_PATH tells the project's dev server (via the runner image's
+        // vite.config.js, when a project ships no
         // vite.config of its own) to emit asset/HMR URLs prefixed with the
         // exact path the reverse proxy (server/routes/webpagesFullTierProxy.js)
         // mounts this webpage at — without it, root-relative asset URLs in the
         // served HTML resolve against the wrong origin path once behind a
         // sub-path proxy. A project with its OWN vite.config.js won't read
-        // this automatically; that's a documented limitation (see the
-        // webpage-runner README) until such projects are taught to.
+        // this automatically; that's a known limitation until such projects
+        // are taught to.
         Env: [`PORT=${DEV_PORT}`, `HOST=0.0.0.0`, 'NODE_ENV=development', 'CI=1', `VITE_BASE_PATH=${fullTierBasePath(webpageId)}`],
         Labels: runtimeLabels(webpageId, orgId),
         WorkingDir: '/project',

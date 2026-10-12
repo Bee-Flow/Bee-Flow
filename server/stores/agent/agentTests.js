@@ -41,7 +41,7 @@
  * Run: cd server && node --test --test-force-exit stores/agent/agentTests.pg.test.js
  */
 
-const { v4: uuidv4 } = require('uuid');
+const { randomUUID } = require('crypto');
 const { pool } = require('../../db');
 const { initDB } = require('./initSchema');
 const { buildUpdate } = require('../lib/sqlBuilder');
@@ -159,7 +159,7 @@ async function createTest(agentId, test, { db = pool } = {}) {
     const question = typeof test?.question === 'string' ? test.question : '';
     if (!question.trim()) throw new Error('createTest: question is required');
     await _ready(db);
-    const id = uuidv4();
+    const id = randomUUID();
     const r = await db.query(
         `INSERT INTO agent_tests (id, agent_id, name, question, expect, from_conversation_id, written_by, suggested_by)
          VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7::jsonb, $8)
@@ -233,7 +233,7 @@ async function recordTestRun(run, { db = pool } = {}) {
     await _ready(db);
     const total = Math.max(0, Math.trunc(Number(run.total) || 0));
     const passed = Math.max(0, Math.min(Math.trunc(Number(run.passed) || 0), total));
-    const id = uuidv4();
+    const id = randomUUID();
     const r = await db.query(
         `INSERT INTO agent_test_runs (id, agent_id, version, results, passed, total)
          VALUES ($1, $2, $3, $4::jsonb, $5, $6)

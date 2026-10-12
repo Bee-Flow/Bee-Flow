@@ -42,7 +42,6 @@
  */
 
 const crypto = require('crypto');
-const { v4: uuidv4 } = require('uuid');
 const { run, getOne, getAll, exec } = require('../db');
 const { makeStoreInit } = require('./lib/storeInit');
 const { encryptField, decryptField } = require('./lib/fieldEnvelope');
@@ -336,7 +335,7 @@ async function recordTokens(userId, tokenMap, orgId = undefined) {
                 `INSERT INTO pii_vault_entries (id, user_id, category, token, norm_key, value_enc)
                  VALUES ($1, $2, $3, $4, $5, $6)
                  ON CONFLICT DO NOTHING`,
-                [uuidv4(), userId, category, token, normKey, valueEnc]
+                [crypto.randomUUID(), userId, category, token, normKey, valueEnc]
             );
             if ((res?.rowCount ?? 0) > 0) {
                 result.stored++;

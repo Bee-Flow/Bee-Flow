@@ -26,7 +26,7 @@ const CACHE_TTL_SECONDS = 15 * 60; // 15 min — same order as session prune int
  * Wrap a connect-pg-simple store with a Redis read-through cache.
  *
  * @param {object} pgStore    - Instance of connect-pg-simple
- * @param {object} redis      - ioredis or node-redis client (already connected)
+ * @param {object} redis      - node-redis client (already connected), as created in index.js
  * @returns {object}          - A drop-in session store replacement
  */
 function wrapWithRedisCache(pgStore, redis) {
@@ -61,7 +61,9 @@ function wrapWithRedisCache(pgStore, redis) {
     async function cacheSet(sid, session, ttl) {
         try {
             const t = ttl || CACHE_TTL_SECONDS;
-            await redis.set(key(sid), JSON.stringify(session), 'EX', t);
+            // node-redis form. The ioredis form ('EX', t) is silently ignored by
+            // node-redis, which left cached sessions without any TTL.
+            await redis.set(key(sid), JSON.stringify(session), { EX: t });
         } catch (e) {
             log.warn('[SessionCache] Redis SET error:', e.message);
         }

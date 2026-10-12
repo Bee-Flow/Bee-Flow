@@ -35,7 +35,7 @@ Where KB chunk ingestion + retrieval happens.
 |---|---|
 | **Auto** (default) | Local in-process pipeline if no `SEARCH_SERVICE_URL` env var is set, remote service if it is. Safe default for both fresh installs and upgrades. |
 | **Local (in-process)** | Chunk + embed + store + retrieve all happen inside the Node server using pgvector. Embeddings come from your configured global Embeddings model (or the in-process CPU embedder as fallback). Reranking uses Azure Cohere if configured, then the CPU cross-encoder, then RRF. |
-| **Remote search-service** | Forward `/kb/ingest/json` and `/tools/kb-search` to an external `SEARCH_SERVICE_URL` (e.g. `https://services.beeflow.nl`). Required for legacy GPU-backed deployments. |
+| **Remote search-service** | Forward `/kb/ingest/json` and `/tools/kb-search` to an external `SEARCH_SERVICE_URL` (e.g. `https://services.beeflow.nl`). Only needed when a search service other than this server runs the pipeline. |
 
 ### Switching providers when KBs already have data
 
@@ -63,10 +63,10 @@ Order of preference inside KB search:
 
 1. **Azure Cohere reranker** — if `azure_reranker_endpoint` + key are configured, used exclusively.
 2. **CPU cross-encoder** — when this toggle is enabled and Azure is not.
-3. **Local GPU vLLM sidecar** — if `RERANKER_URL` env var is set, used after CPU.
+3. **External reranker** — if `RERANKER_URL` env var is set, used after CPU.
 4. **RRF passthrough** — if all of the above are unavailable.
 
-Disabling this toggle skips step 2 entirely; useful when you have a faster GPU sidecar or when CPU pressure on the host is a concern.
+Disabling this toggle skips step 2 entirely; useful when you have a faster external reranker or when CPU pressure on the host is a concern.
 
 ## Setup status card
 

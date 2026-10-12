@@ -1,7 +1,7 @@
 /**
  * Boot Initializer — First-boot setup from INIT_* environment variables
  * 
- * When the install wizard deploys BeeFlow, it passes secrets as INIT_* env vars
+ * When an installer or deployment (install-local.py, compose env, Kubernetes) deploys BeeFlow, it passes secrets as INIT_* env vars
  * in docker-compose. On first boot, this module reads them and configures the
  * server directly using internal APIs — no HTTP calls, no auth, no timing issues.
  * 

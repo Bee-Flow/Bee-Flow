@@ -1,14 +1,14 @@
-# Still a requirements file while reranker, search-service and
-# whisperx-service moved to pyproject.toml + uv.lock. gliner needs torch, and
+# Still a requirements file (the other Python services use pyproject.toml +
+# uv.lock). gliner needs torch, and
 # the Dockerfile installs the CPU build from download.pytorch.org in the layer
 # above this one, so pip finds it already satisfied. A lock resolved against
 # PyPI instead records torch 2.14 plus fifteen nvidia-* CUDA packages — a
 # different and far larger image — and the CPU wheel index that would keep it
 # honest is not readable from the pinning box. This service waits for a box
 # that can read download.pytorch.org.
-fastapi==0.142.2
+fastapi==0.143.0
 uvicorn[standard]==0.54.0
-pydantic==2.13.5
+pydantic==2.14.1
 pydantic-settings==2.15.0
 httpx==0.28.1
 redis==8.1.0
@@ -30,9 +30,9 @@ gliner[onnx]==0.2.29
 # tokenizers internals, so these move only with a gate run too. torch is
 # pinned in the Dockerfile, where the CPU build is installed.
 transformers==5.16.1
-tokenizers==0.23.2
+tokenizers==0.23.3
 huggingface_hub==1.33.0
 # ONNX runtime for fp32 CPU inference (much faster than fp32 PyTorch; we do
 # NOT INT8-quantize — that collapsed person-name recall, BFSF-269)
-onnx==1.23.1
-onnxruntime==1.30.0
+onnx==1.23.2
+onnxruntime==1.31.0

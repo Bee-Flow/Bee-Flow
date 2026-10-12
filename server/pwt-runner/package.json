@@ -5,7 +5,7 @@
   "description": "Throwaway Playwright runner used by Bee Flow Studio Tests.",
   "license": "SEE LICENSE IN LICENSE.md",
   "dependencies": {
-    "@playwright/test": "1.59.1",
-    "playwright": "1.59.1"
+    "@playwright/test": "1.64.0",
+    "playwright": "1.64.0"
   }
 }

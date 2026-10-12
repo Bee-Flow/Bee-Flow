@@ -65,7 +65,6 @@ INIT_CHAT_MODEL_TIERS={"fast":{"modelId":"claude-haiku-4-5-20251001"},"standard"
 # Not required by the core profile — set empty to silence docker
 # compose "variable is not set" interpolation warnings.
 OPAQUE_SERVER_SETUP=
-HF_TOKEN=
 EOF
 chmod 600 "$ENV_FILE"
 

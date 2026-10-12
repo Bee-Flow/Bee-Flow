@@ -13,9 +13,8 @@ The full text of that license is in [server/LICENSE.md](server/LICENSE.md) (iden
 | [desktop/](desktop/) | Sustainable Use License v1.0 | Desktop client (Linux, macOS, Windows); a shell around the frontend SPA. |
 | [mobile/](mobile/) | Sustainable Use License v1.0 | Android client, distributed as an APK. |
 | [nextcloud-connector/](nextcloud-connector/) | AGPL-3.0-or-later | Required by the Nextcloud App Store for ExApps. The connector is a separate program that communicates with `server/` over HTTP/JWT only — see [NOTICE.md](NOTICE.md) for the AGPL-isolation argument. |
-| [install-wizard/](install-wizard/) | Sustainable Use License v1.0 | First-run setup wizard. |
 | [components/](components/) | Sustainable Use License v1.0 | n8n-compatible component nodes shipped by Bee Flow. |
-| [guard-service/](guard-service/), [pii-service/](pii-service/), [search-service/](search-service/), [whisperx-service/](whisperx-service/), [reranker/](reranker/) | Sustainable Use License v1.0 | Optional Python sidecar services. |
+| [guard-service/](guard-service/), [classify-service/](classify-service/) | Sustainable Use License v1.0 | Optional Python sidecar services. |
 
 ## Plain English summary of the Sustainable Use License
 

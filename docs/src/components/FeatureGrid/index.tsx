@@ -7,7 +7,7 @@ type Feature = {
   title: string;
   body: string;
   href: string;
-  icon: JSX.Element;
+  icon: React.JSX.Element;
 };
 
 const Icon = {
@@ -88,7 +88,7 @@ const features: Feature[] = [
   },
 ];
 
-export default function FeatureGrid(): JSX.Element {
+export default function FeatureGrid(): React.JSX.Element {
   return (
     <section className={styles.section}>
       <div className={styles.heading}>

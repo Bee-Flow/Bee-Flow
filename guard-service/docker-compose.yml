@@ -23,7 +23,7 @@ services:
         condition: service_healthy
     networks:
       - guard-network
-      - search-network
+      - beeflow-network
     restart: unless-stopped
     healthcheck:
       test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8100/health')" ]
@@ -55,6 +55,9 @@ volumes:
 networks:
   guard-network:
     name: guard-network
-  search-network:
+  # The main stack's network (docker-compose.yml), so the server reaches the
+  # guard by name. External: start the main stack first, or
+  # `docker network create beeflow-network`.
+  beeflow-network:
     external: true
-    name: search-network
+    name: beeflow-network

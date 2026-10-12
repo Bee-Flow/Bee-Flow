@@ -30,9 +30,7 @@ The images are the same public ones the compose install pulls — per service, f
 | PostgreSQL + pgvector | `pgvector/pgvector:pg15` | `5432` | StatefulSet, or a managed Postgres with the `pgvector` extension. |
 | Object storage | `rustfs/rustfs` (or any S3) | `9000` | Required — documents and meeting recordings live here. |
 | Guard (optional) | `ghcr.io/bee-flow/guard` | `8100` | Privacy Shield PII detection. CPU, ~1.2 GB model at start-up. |
-| Search (optional) | `ghcr.io/bee-flow/search-api` | `8000` | KB ingestion/search sidecar; needs its own Postgres + Redis (see the compose `search` profile). |
-| WhisperX (optional) | `ghcr.io/bee-flow/whisperx` | `8787` | Transcription. GPU required. |
-| PII service (optional) | `ghcr.io/bee-flow/pii` | `8200` | Standalone PII sidecar. |
+| Classify (optional) | `ghcr.io/bee-flow/classify` | `8300` | Zero-shot topic classifier for the Condition node. CPU only. |
 
 Run the **server and web UI on the same image tag**, and upgrade them together — see
 [Upgrades](upgrades.md) for how versions and immutable tags work. (There is no image called
@@ -162,8 +160,8 @@ tags:
 ## If you build this out
 
 The gaps you will need to fill yourself: storage classes and PVCs (Postgres, object storage),
-network policies, an init Job for the three databases, resource limits (the guard and search
-sidecars are the memory-hungry ones), and TLS. None of that is Bee Flow-specific.
+network policies, an init Job for the three databases, resource limits (the guard is the
+memory-hungry sidecar), and TLS. None of that is Bee Flow-specific.
 
 If you get a clean, reusable setup working and want it cross-linked here, open an issue at
 [Bee-Flow/Bee-Flow](https://github.com/Bee-Flow/Bee-Flow/issues).
