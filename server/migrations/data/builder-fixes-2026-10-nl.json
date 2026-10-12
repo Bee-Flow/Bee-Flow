@@ -112,7 +112,15 @@
     "automations.assistant.plan_built": "Dit plan is gebouwd.",
     "automations.assistant.plan_paused": "Het bouwen is gepauzeerd. Ga verder om de volgende stap toe te staan.",
     "automations.assistant.plan_comment_prompt": "Opmerking bij plan v{version}, {section} {n}: \"{line}\" — ",
-    "automations.assistant.plan_waiting": "De flow blijft ongewijzigd tot je dit plan goedkeurt."
+    "automations.assistant.plan_waiting": "De flow blijft ongewijzigd tot je dit plan goedkeurt.",
+    "apps.public_load_failed_body": "Probeer het over een paar minuten opnieuw.",
+    "apps.public_load_failed_title": "De pagina kon niet worden geladen",
+    "apps.public_not_found_body": "De link klopt niet, of hij is ingetrokken. Vraag de afzender om een nieuwe link.",
+    "apps.public_not_found_title": "Deze pagina bestaat niet (meer)",
+    "apps.public_retry": "Opnieuw proberen",
+    "automations.route_editors.move_output_down": "Uitvoer omlaag verplaatsen",
+    "automations.route_editors.move_output_up": "Uitvoer omhoog verplaatsen",
+    "solutions.remove_failed": "Dit kon niet uit de Solution worden verwijderd."
   },
   "sameAsEnglish": [
     "http_query.json",

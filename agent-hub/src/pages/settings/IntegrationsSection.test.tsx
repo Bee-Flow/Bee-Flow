@@ -4,7 +4,7 @@
 // group without rows draws nothing; the organisation's n8n set-up is not part
 // of this personal page; a row says whether it is open; and the named-
 // connection form offers only the providers the page lists.
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBackend } from '@/test/mcpLibraryKit';
@@ -118,5 +118,20 @@ describe('IntegrationsSection (Settings → Connections)', () => {
         expect(options).toContain('YouTrack');
         expect(options).toContain('HTTP API (custom)');
         expect(options.length).toBe(10);
+    });
+
+    it('ignores OAuth callback messages from a foreign origin (LinkedIn, Withings)', async () => {
+        entitle('withings', 'linkedin');
+        api.on('GET', '/api/integrations/withings/status', { body: { configured: true, connected: false } });
+        const onSaved = vi.fn();
+        render(withQueryClient(<IntegrationsSection statuses={{}} onSaved={onSaved} user={{}} />));
+        await screen.findByText('Add a connection');
+        const post = (data: object, origin: string) =>
+            act(() => { window.dispatchEvent(new MessageEvent('message', { data, origin })); });
+        post({ type: 'linkedin-callback', success: true }, 'https://evil.example');
+        post({ type: 'withings-callback', success: true }, 'https://evil.example');
+        expect(onSaved).not.toHaveBeenCalled();
+        post({ type: 'linkedin-callback', success: true }, window.location.origin);
+        expect(onSaved).toHaveBeenCalledTimes(1);
     });
 });

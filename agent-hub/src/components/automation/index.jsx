@@ -424,6 +424,13 @@ export default function AITasksDesigner({ initialTaskId = null, initialStepId = 
                 onBuilderStateChange={pushBuilderState}
                 onBack={() => { setBuilderAutomationId(null); setBuilderInitialTab(null); setOpeningBuilder(false); setPresetChatInput(''); setAutoSendInput(null); setPatternOrigin(null); }}
                 onOpenList={() => setListFlyoutOpen(true)}
+                // Workflow-level action inside the editor (BFSF-405); only a
+                // persisted automation can be exported.
+                onExportJson={selectedAutomationId
+                    ? () => exportAutomationJson(
+                        automations.find(a => a.id === selectedAutomationId) || { id: selectedAutomationId, title: '' },
+                    )
+                    : undefined}
                 // Carry the lazily-created id up so the URL/refresh path
                 // can reopen a brand-new automation. Never changes the
                 // BuilderShell `key`, so it doesn't remount mid-build.

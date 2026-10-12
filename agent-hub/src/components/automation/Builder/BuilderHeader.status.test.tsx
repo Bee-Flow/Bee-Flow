@@ -152,3 +152,20 @@ describe('BuilderHeader: the primary action per state', () => {
         expect(screen.getByTestId('live-pending').textContent).toBe('editing v5 · 1 change not live yet');
     });
 });
+
+describe('BuilderHeader: workflow actions menu (BFSF-405)', () => {
+    it('exports the open workflow from the editor header', async () => {
+        const onExportJson = vi.fn();
+        setup(LIVE, { onExportJson });
+        const user = userEvent.setup();
+        await user.click(screen.getByRole('button', { name: 'Workflow actions' }));
+        await user.click(screen.getByRole('menuitem', { name: 'Export JSON' }));
+        expect(onExportJson).toHaveBeenCalledTimes(1);
+        expect(screen.queryByRole('menu')).toBeNull();
+    });
+
+    it('shows no menu when the host offers no export', () => {
+        setup(LIVE);
+        expect(screen.queryByRole('button', { name: 'Workflow actions' })).toBeNull();
+    });
+});
