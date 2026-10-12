@@ -280,11 +280,24 @@ function createScreenshotRenderer(overrides = null) {
     const deps = overrides ? { ...overrides } : defaultDeps();
 
     /** The content to photograph, or an `unavailable` reason. */
-    async function resolveContent({ siteId, pageId, slug, state, locale }) {
+    async function resolveContent({ siteId, pageId, slug, state, locale, postSlug, blog }) {
         const { cmsStore } = deps;
         const defaultLocale = await cmsStore.getDefaultLocale();
         const wanted = locale ? String(locale).toLowerCase() : defaultLocale;
         if (!cmsStore.isValidLocale(wanted)) return unavailable(`"${locale}" is not a language code such as "en" or "nl".`);
+
+        // Blog: a post (any status in the draft) or the index.
+        const wantedPost = normaliseSlug(postSlug);
+        if (wantedPost || blog === true) {
+            const eff = await cmsStore.getEffectiveBlog(siteId, {
+                state, view: wantedPost ? 'post' : 'index', postSlug: wantedPost, locale: wanted,
+            });
+            if (!eff) return unavailable('this site has never been published, so there is no published version to show; use state "draft".');
+            if (!eff.found || !eff.page) {
+                return unavailable(`there is no post "${wantedPost.slice(0, 60)}" in the ${state === 'published' ? 'published (and visible)' : 'draft'} version of this site; cms_list_posts lists the slugs.`);
+            }
+            return { eff, entrySlug: eff.page.slug, locale: wanted, defaultLocale };
+        }
 
         let site;
         if (state === 'published') {
@@ -322,11 +335,16 @@ function createScreenshotRenderer(overrides = null) {
     /** The full HTML document for the chosen content, plus whether the shell was reachable. */
     async function composeDocument({ eff, entrySlug, locale, defaultLocale }) {
         const siteName = (eff.header && eff.header.logoText) || 'Bee Flow';
-        const head = deps.buildHead({
-            origin: FAKE_ORIGIN, slug: entrySlug, locale, defaultLocale, locales: [locale],
-            page: eff.page, design: eff.design || {}, siteName,
-        });
-        const body = deps.renderBlocks(eff.page.blocks, { fallbackTitle: eff.page.title });
+        const blogSeo = eff.blog ? (deps.blogSeo || require('../../core/seo/blog')) : null;
+        const head = blogSeo
+            ? blogSeo.buildBlogHead({ origin: FAKE_ORIGIN, eff, locale, defaultLocale, locales: [locale], siteName })
+            : deps.buildHead({
+                origin: FAKE_ORIGIN, slug: entrySlug, locale, defaultLocale, locales: [locale],
+                page: eff.page, design: eff.design || {}, siteName,
+            });
+        const body = blogSeo
+            ? blogSeo.renderBlogBody(eff)
+            : deps.renderBlocks(eff.page.blocks, { fallbackTitle: eff.page.title });
         const payload = {
             enabled: true,
             found: true,
@@ -375,7 +393,7 @@ function createScreenshotRenderer(overrides = null) {
     }
 
     /**
-     * @param {{ siteId: string, pageId?: string, slug?: string, state?: 'draft'|'published',
+     * @param {{ siteId: string, pageId?: string, slug?: string, postSlug?: string, blog?: boolean, state?: 'draft'|'published',
      *           locale?: string, viewport?: 'desktop'|'tablet'|'mobile', fullPage?: boolean, offsetY?: number }} args
      */
     async function render(args) {

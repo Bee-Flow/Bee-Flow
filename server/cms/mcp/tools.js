@@ -20,6 +20,8 @@
 
 'use strict';
 
+const { BLOG_TOOLS } = require('./blog');
+
 const SITE_ID_PROP = Object.freeze({
     type: 'string',
     description: 'The site to act on (pj_… id from cms_list_sites). Omit it to use the live site.',
@@ -195,13 +197,15 @@ const MCP_ONLY_TOOLS = [
     },
     {
         name: 'cms_screenshot',
-        description: 'Take a screenshot of a page, rendered like a visitor sees it, and LOOK at it. state "draft" shows your unpublished edits, "published" what is live. Pick the page by pageId or slug (omit both for the homepage). viewport desktop (1280 wide), tablet (834) or mobile (390). By default you get the top of the page; offsetY scrolls down by that many pixels, fullPage:true gives a scaled-down overview of the whole page. The result says whether the real site bundle rendered it or only the server markup. At most 24 per 10 minutes.',
+        description: 'Take a screenshot of a page, rendered like a visitor sees it, and LOOK at it. state "draft" shows your unpublished edits, "published" what is live. Pick the page by pageId or slug (omit both for the homepage); for the blog pass postSlug (one post, any status in draft) or blog:true (the /blog index). viewport desktop (1280 wide), tablet (834) or mobile (390). By default you get the top of the page; offsetY scrolls down by that many pixels, fullPage:true gives a scaled-down overview of the whole page. The result says whether the real site bundle rendered it or only the server markup. At most 24 per 10 minutes.',
         parameters: {
             type: 'object',
             properties: {
                 siteId: SITE_ID_PROP,
                 pageId: { type: 'string' },
                 slug: { type: 'string', description: 'The page slug, e.g. "pricing". Empty = homepage.' },
+                postSlug: { type: 'string', description: 'A blog post slug (shows /blog/<postSlug>). Overrides pageId/slug.' },
+                blog: { type: 'boolean', description: 'Show the blog index (/blog) instead of a page.' },
                 state: { type: 'string', enum: ['draft', 'published'], description: 'Default draft.' },
                 locale: LOCALE_PROP,
                 viewport: { type: 'string', enum: ['desktop', 'tablet', 'mobile'], description: 'Default desktop.' },
@@ -282,6 +286,8 @@ const MCP_ONLY_TOOLS = [
         publish: true,
         destructive: true,
     },
+    // Blog posts: cms/mcp/blog.js (list, get, create, update, delete, translate, index settings).
+    ...BLOG_TOOLS,
 ];
 
 /**

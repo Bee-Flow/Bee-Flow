@@ -68,6 +68,7 @@ touching the current draft.
 | Pages and blocks | `cms_list_site`, `cms_get_page`, `cms_create_page`, `cms_update_page_meta`, `cms_update_page_seo`, `cms_add_blocks`, `cms_update_block`, `cms_remove_block`, `cms_reorder_blocks`, `cms_set_homepage`, `cms_reorder_pages`, `cms_delete_page` |
 | Site chrome | `cms_update_header_nav`, `cms_get_site_settings`, `cms_update_site_settings` (header, footer, cookie banner, announcement bar, Google Analytics id, site name), `cms_update_design` (colours, fonts, layout) |
 | Translations | `cms_get_locale_overrides`, `cms_set_locale_override` |
+| Blog | `cms_list_posts`, `cms_get_post`, `cms_create_post`, `cms_update_post`, `cms_delete_post`, `cms_set_post_translation`, `cms_update_blog_settings` (see [Blog posts](#blog-posts)) |
 | Media | `cms_list_assets`, `cms_request_upload`, `cms_upload_status` |
 | Check | `cms_screenshot` |
 | Publish | `cms_publish`, `cms_set_live_site` (need the publishing scope) |
@@ -77,6 +78,49 @@ CMS builder uses, with the same validation, and every other write goes through t
 same stores and validators as the admin panel. After an edit the result carries
 `validation` warnings (an empty page, a link to a page that does not exist, a
 low-contrast colour pair), and a rejected call carries a `_fixHint`.
+
+## Blog posts
+
+Every site has a blog: the index at `/blog` (newest first, a tag filter at
+`/blog?tag=…`, paging at `?page=2`), each post at `/blog/<slug>`, translations at
+`/<locale>/blog/<slug>`, and an RSS feed at `/blog/feed.xml`. Posts appear in the
+sitemap and carry their own search and social tags (`BlogPosting` structured data,
+`og:type` article). A **Latest posts** block shows the newest posts on any page.
+
+A post is a draft edit like everything else: it goes live with the next
+`cms_publish`, and only when its status is `published` (or `scheduled` and its
+`publishedAt` has passed — a scheduled post appears by itself on time, no second
+publish needed). A `draft` post is never part of the published site.
+
+| Tool | What it does |
+| --- | --- |
+| `cms_list_posts` | Posts newest first (no bodies), filterable by status, tag or a search word; also returns the blog page settings. |
+| `cms_get_post` | One post in full by `postId` or `slug`, with its translations (or one language with `locale`). |
+| `cms_create_post` | A new post; only `title` is required. Slug is derived and made unique. |
+| `cms_update_post` | Change any field; `seo` is merged. The body is replaced whole with `body`, edited in place with `bodyEdits` (`[{find, replace}]`, each `find` must occur exactly once, up to 20 per call, all-or-nothing) or extended with `appendBody`. |
+| `cms_delete_post` | Delete a post and its translations from the draft. |
+| `cms_set_post_translation` | Replace one language's translation (`title`, `excerpt`, `body`, `coverAlt`, `seo.metaTitle`, `seo.metaDescription`); `remove: true` deletes it. Empty fields fall back to the original. |
+| `cms_update_blog_settings` | The blog page heading and intro per language, and posts per page. |
+
+**Body format.** The body is Markdown: `##` sections (the title is already the
+page heading), bold, italic, lists, quotes, code, tables, links and images. Use the
+asset URL from `cms_request_upload` / `cms_list_assets` for images. Raw HTML is shown
+as text, never rendered, and only `https://`, `http://`, `mailto:` (links), site
+paths, `#anchors` and asset URLs survive as links — a `javascript:` or `data:` URL
+is dropped. Results carry `warnings` when that happens, or when a post lacks an
+excerpt or an alt text. Limits: title 200 characters, excerpt 500, body 100,000,
+10 tags, 1,000 posts per site.
+
+**Author.** `authorName` is free text shown publicly ("By …"); it is not linked to an
+account, and posts store no user id. Do not put an e-mail address in it.
+
+Look at a post with `cms_screenshot {postSlug: "…"}` (in `draft` state any status is
+shown, with a "Draft" badge) or at the index with `cms_screenshot {blog: true}`.
+
+Creating and deleting a post are written to the access audit log
+(`cms.post.create.mcp`, `cms.post.delete.mcp`) with the post id and slug only. Blog
+writes have their own budget of 120 per ten minutes per user on top of the endpoint's
+rate limit.
 
 ## Uploading photos and videos
 
@@ -125,7 +169,8 @@ from outside: a client that talks to the server port directly can claim any addr
 `state` `draft` (your unpublished edits) or `published`, a `viewport` (`desktop`
 1280 px, `tablet` 834 px, `mobile` 390 px), a `locale`, and `fullPage` for a
 scaled-down overview of a long page or `offsetY` to look further down at full
-size. At most 24 per ten minutes per user.
+size. At most 24 per ten minutes per user. For the blog, pass `postSlug` (one post)
+or `blog: true` (the `/blog` index) instead of a page.
 
 The page is rendered by the shared, network-isolated browser from the same
 server-side pipeline that serves visitors, with the real site bundle, so React

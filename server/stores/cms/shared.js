@@ -213,6 +213,31 @@ function sanitizeAnalytics(a) {
     };
 }
 
+// Sanitize the site-level `blog` settings: the blog index heading and intro,
+// one string per language (the same per-locale text blob the cookie banner and
+// announcement bar use, so a translation needs no override row), and how many
+// posts an index page shows. Always returns a complete shape.
+const BLOG_TEXT_MAX = { title: 120, description: 500 };
+function sanitizeBlogSettings(b) {
+    const src = isPlainObject(b) ? b : {};
+    const perLocale = (v, max) => {
+        const out = {};
+        if (!isPlainObject(v)) return out;
+        for (const [loc, text] of Object.entries(v)) {
+            if (!/^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/.test(loc) || typeof text !== 'string') continue;
+            if (Object.keys(out).length >= 40) break;
+            out[loc] = text.replace(/[\u0000-\u001F\u007F]/g, ' ').trim().slice(0, max);
+        }
+        return out;
+    };
+    const n = Number(src.postsPerPage);
+    return {
+        title: perLocale(src.title, BLOG_TEXT_MAX.title),
+        description: perLocale(src.description, BLOG_TEXT_MAX.description),
+        postsPerPage: Number.isInteger(n) && n >= 1 && n <= 50 ? n : 10,
+    };
+}
+
 // ── Key builders (every key is project-scoped except the index) ──────
 
 function projectKey(siteId)                        { return `${KEY_PROJECT_PFX}${siteId}`; }
@@ -227,6 +252,6 @@ module.exports = {
     SITE_VERSION, PAGE_VERSION, LOCALE_OVERRIDE_VERSION, INDEX_VERSION, PUBLISHED_VERSION,
     newId, isPlainObject, clone, deepMerge, mergeLocaleContent,
     normalizeSlug, isReservedSlug, assertSiteId,
-    sanitizeDesign, sanitizeAnalytics,
+    sanitizeDesign, sanitizeAnalytics, sanitizeBlogSettings,
     projectKey, projectLocaleKey, pageKey, pageLocaleKey, publishedKey,
 };

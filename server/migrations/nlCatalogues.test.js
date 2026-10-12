@@ -134,6 +134,7 @@ for (const name of withTable) {
 const SOLE_OWNER = [
     'add-nl-builder-fixes-2026-10',
     'add-nl-builder-handoff5-translations',
+    'add-nl-cms-blog-translations',
     'add-nl-hardcoded-admin-2026-10-translations',
     'add-nl-hardcoded-automation-builder-2026-10-translations',
     'add-nl-hardcoded-integrations-agents-2026-10-translations',
