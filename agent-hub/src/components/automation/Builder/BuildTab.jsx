@@ -9,7 +9,6 @@ import BuilderHeader from './BuilderHeader';
 import CanvasPlanPanel from './CanvasPlanPanel';
 
 import { AutomationSummary, AssistantWelcome, RunProgressBanner, MessageBubble, BuilderWaitingCard } from './chat/index';
-import { modelKeyFor, recordTtft } from './chat/timeToFirstToken';
 import { addedStepsOf, describeToolCall } from './chat/toolCallDisplay';
 import { webSearchUnavailableHint } from './chat/webSearchStatus';
 import DiagramPane, { applyAddNode } from './DiagramPane';
@@ -1099,18 +1098,6 @@ export default function BuildTab({
             || (tailMsg.thinkingParts && tailMsg.thinkingParts.length)
             || (tailMsg.toolCalls && tailMsg.toolCalls.length)));
     const waitingForFirstToken = !!state.running && !state.turn?.firstEventAt && nothingStreamedYet;
-    const waitModelKey = modelKeyFor(state.turn, selectedTier);
-    // File the measured silence once per turn, under the model that ran it,
-    // so the NEXT wait can say "usually about 2m 10s". Keyed on `sentAt`:
-    // `state.turn` is replaced copy-on-write by every later event too, and
-    // without the guard each ping after the first token would file it again.
-    const ttftFiledForRef = useRef(null);
-    useEffect(() => {
-        const turn = state.turn;
-        if (!turn?.firstEventAt || !turn.sentAt || ttftFiledForRef.current === turn.sentAt) return;
-        ttftFiledForRef.current = turn.sentAt;
-        recordTtft(modelKeyFor(turn, selectedTier), turn.firstEventAt - turn.sentAt);
-    }, [state.turn, selectedTier]);
 
     return (
         <div className="flex flex-col h-full min-h-0">
@@ -1207,7 +1194,7 @@ export default function BuildTab({
                                 long this usually takes, instead of a bare "Thinking…"
                                 that read as a hang. See waitingForFirstToken above. */}
                             {waitingForFirstToken && (
-                                <BuilderWaitingCard turn={state.turn} startedAt={buildStart.at} modelKey={waitModelKey} />
+                                <BuilderWaitingCard />
                             )}
                             {/* No `running` here: the questions event arrives while the stream is still closing (the turn ends right after the call), and a card mounted greyed-out and disabled read as unusable. Sending aborts what is left of that stream. */}
                             <QuestionsCard key={state.reviewQuestions?.[0]?.id || 'questions'} questions={state.reviewQuestions} onAnswer={(text, answers) => onSend(text, [], { answers })} />
