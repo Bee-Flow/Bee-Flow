@@ -511,7 +511,7 @@ async function runCode({ code, inputs = {}, limits = {}, bridges = {}, mode = 'l
  * address is refused too. All refusals surface as the same structured
  * { error } shape user code already gets.
  */
-async function defaultFetchHttp(url, opts = {}, { responseCap = HTTP_RESPONSE_CAP, timeoutMs = 10_000 } = {}) {
+async function defaultFetchHttp(url, opts = {}, { responseCap = HTTP_RESPONSE_CAP, timeoutMs = 10_000, fetchImpl = safeFetch } = {}) {
     if (typeof url !== 'string' || !url.startsWith('https://')) {
         return { error: 'Only https:// URLs are allowed.' };
     }
@@ -523,7 +523,7 @@ async function defaultFetchHttp(url, opts = {}, { responseCap = HTTP_RESPONSE_CA
     const ac = new AbortController();
     const timer = setTimeout(() => ac.abort(), timeoutMs);
     try {
-        const resp = await safeFetch(url, {
+        const resp = await fetchImpl(url, {
             method: opts.method || 'GET',
             headers: opts.headers || {},
             body: opts.body !== undefined ? (typeof opts.body === 'string' ? opts.body : JSON.stringify(opts.body)) : undefined,
