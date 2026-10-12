@@ -1,5 +1,6 @@
 import React from 'react';
 import { Code, Palette, Cpu, FileText, Image as ImageIcon, FileType, Braces, X } from 'lucide-react';
+import { useTranslation } from '../../hooks/useTranslation';
 
 const PRIMARY_META = {
     html: { label: 'index.html', Icon: Code },
@@ -33,6 +34,7 @@ function metaForKey(key) {
  * it; the X closes it. Closing the last tab is the caller's responsibility.
  */
 export default function EditorTabs({ openFiles, activeKey, onSelect, onClose, dirtyFiles = {} }) {
+    const { t } = useTranslation();
     if (!Array.isArray(openFiles) || openFiles.length === 0) return null;
     return (
         <div
@@ -67,14 +69,14 @@ export default function EditorTabs({ openFiles, activeKey, onSelect, onClose, di
                                 <span
                                     className="w-2 h-2 rounded-full"
                                     style={{ background: 'var(--vsc-fg-muted)' }}
-                                    title="Unsaved"
+                                    title={t('webpages.tabs_unsaved', 'Unsaved')}
                                 />
                             )}
                         </button>
                         <button
                             onClick={() => onClose?.(key)}
                             className="flex items-center justify-center h-full pr-2 opacity-40 group-hover:opacity-80 hover:opacity-100"
-                            title="Close tab"
+                            title={t('webpages.tabs_close', 'Close tab')}
                         >
                             <X size={12} />
                         </button>

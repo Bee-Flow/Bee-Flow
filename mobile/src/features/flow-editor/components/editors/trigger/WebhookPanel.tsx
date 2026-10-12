@@ -45,7 +45,7 @@ function Footer({ empty, busy, onMake, disabled }: { empty: boolean; busy: boole
                 size="sm"
                 variant="secondary"
                 iconName="Webhook"
-                label={t('mobile.flow.webhook.generate', 'Generate a webhook URL')}
+                label={t('automations.trigger_webhook_panel.generate_a_webhook_url', 'Generate a webhook URL')}
                 onPress={onMake}
                 disabled={disabled}
                 testID="webhook-generate"
@@ -95,7 +95,7 @@ export function WebhookPanel({ step, ctx }: StepEditorProps) {
         <>
             <Note>
                 {t(
-                    'mobile.flow.webhook.intro',
+                    'automations.trigger_webhook_panel.post_to_this_url_to_fire',
                     'POST to this URL to fire the automation. Requests must be HMAC-signed — “Copy as cURL” gives you a complete working command, but only while the secret is still on screen (right after Create or Rotate).',
                 )}
             </Note>

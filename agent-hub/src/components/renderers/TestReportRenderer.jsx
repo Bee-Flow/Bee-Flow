@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from '../../hooks/useTranslation';
 import { CheckCircle, XCircle, AlertTriangle, Clock, ChevronDown, ChevronRight, Bug, Shield, Zap, Eye } from 'lucide-react';
 import MarkdownRenderer from './MarkdownRenderer';
 
@@ -31,6 +32,7 @@ import MarkdownRenderer from './MarkdownRenderer';
  * }
  */
 const TestReportRenderer = ({ data }) => {
+    const { t } = useTranslation();
     const [expandedTests, setExpandedTests] = useState(new Set());
     const [filter, setFilter] = useState('all'); // all, passed, failed, warning, skipped
 
@@ -161,7 +163,7 @@ const TestReportRenderer = ({ data }) => {
                         textTransform: 'uppercase',
                         letterSpacing: '0.5px',
                     }}>
-                        Pass Rate
+                        {t('chat.renderers.tests_pass_rate', 'Pass Rate')}
                     </div>
                 </div>
                 {/* Individual counts */}
@@ -218,7 +220,7 @@ const TestReportRenderer = ({ data }) => {
                         color: 'var(--text-muted, #888)',
                         fontSize: '0.85rem',
                     }}>
-                        No {filter !== 'all' ? filter : ''} tests to display
+                        {filter !== 'all' ? t('chat.renderers.tests_none_filtered', 'No {filter} tests to display', { filter }) : t('chat.renderers.tests_none', 'No tests to display')}
                     </div>
                 )}
                 {filteredTests.map((test, i) => {
@@ -342,7 +344,7 @@ const TestReportRenderer = ({ data }) => {
                                                 letterSpacing: '0.5px',
                                                 marginBottom: '0.4rem',
                                             }}>
-                                                Steps
+                                                {t('chat.renderers.tests_steps', 'Steps')}
                                             </div>
                                             <ol style={{
                                                 margin: 0,
@@ -373,7 +375,7 @@ const TestReportRenderer = ({ data }) => {
                                                 color: '#ef4444',
                                                 marginBottom: '0.25rem',
                                             }}>
-                                                ❌ Error
+                                                ❌ {t('chat.renderers.tests_error', 'Error')}
                                             </div>
                                             <div style={{
                                                 fontSize: '0.78rem',
@@ -425,7 +427,7 @@ const TestReportRenderer = ({ data }) => {
                         alignItems: 'center',
                         gap: '0.4rem',
                     }}>
-                        💡 Recommendations
+                        💡 {t('chat.renderers.tests_recommendations', 'Recommendations')}
                     </div>
                     <ul style={{
                         margin: 0,

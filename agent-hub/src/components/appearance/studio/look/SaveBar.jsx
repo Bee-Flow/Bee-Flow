@@ -1,5 +1,6 @@
 import { Check, Save, Loader2, AlertCircle } from 'lucide-react';
 import React from 'react';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 /**
  * SaveBar — sticky bottom action bar for the Look editor. Status pill on the
@@ -16,6 +17,7 @@ export default function SaveBar({
     onDiscard,
     onReload,
 }) {
+    const { t } = useTranslation();
     return (
         <div
             data-surface="opaque"
@@ -34,7 +36,7 @@ export default function SaveBar({
                     className="px-3 py-2 rounded-lg text-sm font-medium border transition-colors hover:bg-[var(--bg-tertiary)] disabled:opacity-40"
                     style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
                 >
-                    Discard
+                    {t('appearance.save_bar_discard', 'Discard')}
                 </button>
                 <button
                     type="button"
@@ -42,9 +44,9 @@ export default function SaveBar({
                     disabled={saving}
                     className="px-3 py-2 rounded-lg text-sm font-medium border transition-colors hover:bg-[var(--bg-tertiary)] disabled:opacity-40"
                     style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
-                    title="Re-fetch the saved theme from the server"
+                    title={t('appearance.save_bar_re_fetch_the_saved_theme_from_the', 'Re-fetch the saved theme from the server')}
                 >
-                    Reload
+                    {t('appearance.save_bar_reload', 'Reload')}
                 </button>
                 <button
                     type="button"
@@ -65,6 +67,7 @@ export default function SaveBar({
 }
 
 function StatusPill({ dirty, saving, error }) {
+    const { t } = useTranslation();
     if (error) {
         return (
             <span
@@ -81,7 +84,7 @@ function StatusPill({ dirty, saving, error }) {
                 className="text-xs inline-flex items-center gap-1.5"
                 style={{ color: 'var(--text-muted)' }}
             >
-                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving…
+                <Loader2 className="w-3.5 h-3.5 animate-spin" /> {t('appearance.save_bar_saving', 'Saving…')}
             </span>
         );
     }
@@ -95,7 +98,7 @@ function StatusPill({ dirty, saving, error }) {
                     className="w-1.5 h-1.5 rounded-full"
                     style={{ background: 'var(--warning, #f59e0b)' }}
                 />
-                Unsaved changes
+                {t('appearance.save_bar_unsaved_changes', 'Unsaved changes')}
             </span>
         );
     }
@@ -104,7 +107,7 @@ function StatusPill({ dirty, saving, error }) {
             className="text-xs inline-flex items-center gap-1.5"
             style={{ color: 'var(--text-muted)' }}
         >
-            <Check className="w-3.5 h-3.5" style={{ color: '#10b981' }} /> All changes saved
+            <Check className="w-3.5 h-3.5" style={{ color: '#10b981' }} /> {t('appearance.save_bar_all_changes_saved', 'All changes saved')}
         </span>
     );
 }

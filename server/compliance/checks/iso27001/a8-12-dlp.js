@@ -10,6 +10,14 @@
  * and real AI traffic, a silent guardrail log means the shield is not
  * actually in the request path. Helpers are re-implemented, not imported —
  * they are private to those checks.
+ *
+ * Both ledgers are counted over the SAME population, the one the efficacy
+ * check uses: a row belongs to the org when its organization_id says so, or
+ * when it names no organisation and its user belongs to the org. The
+ * 'default' bucket also holds every row that resolves to no organisation at
+ * all. Counting guardrail events per org against install-wide traffic let
+ * another tenant's traffic make a quiet tenant warn, and hid the bucket's
+ * NULL-org events behind traffic that covered the whole install.
  */
 
 const { getOne } = require('../../../db');
@@ -17,31 +25,57 @@ const configStore = require('../../../stores/configStore');
 
 const WINDOW_DAYS = 30;
 const MIN_TRAFFIC = 25; // below this, a silent guardrail log proves nothing
+// Not provisioned on this install (undefined table or column). Every other
+// SQLSTATE is a count that FAILED, which is not zero.
+const NOT_PROVISIONED = new Set(['42P01', '42703']);
+// The bucket the platform files org-less rows under (routes/compliance/shared.js
+// resolveOrgId); it is not a tenant.
+const NO_ORG_ORG_ID = 'default';
 
-async function _guardrailStats(orgId) {
+// Bare column comparisons, so idx_*_org_timestamp stays usable.
+const NO_ORG = "(t.organization_id IS NULL OR t.organization_id = '')";
+const MEMBER_ORG = 'NULLIF(u."organizationId", \'\')';
+
+/** SQL: the row `t` (joined to its user `u`) belongs to the org in $1. */
+function _belongs(orgId) {
+    const own = `(t.organization_id = $1 OR (${NO_ORG} AND ${MEMBER_ORG} = $1))`;
+    return orgId === NO_ORG_ORG_ID ? `(${own} OR (${NO_ORG} AND ${MEMBER_ORG} IS NULL))` : own;
+}
+
+/** SQL: FROM and WHERE of one ledger's rows in the window that belong to the org. */
+function _from(table, orgId) {
+    return `FROM ${table} t
+            LEFT JOIN users u ON u.id = t.user_id
+            WHERE t.timestamp >= NOW() - INTERVAL '${WINDOW_DAYS} days'
+              AND (t.organization_id = $1 OR ${NO_ORG})
+              AND ${_belongs(orgId)}`;
+}
+
+/** One count query: its row, `missing` when not provisioned, `failed` (the SQLSTATE) otherwise. */
+async function _read(sql, scope) {
     try {
-        const row = await getOne(`
-            SELECT
-                COUNT(*)::int AS total_events,
-                COUNT(*) FILTER (WHERE action_taken = 'blocked')::int AS blocked_events,
-                COUNT(*) FILTER (WHERE action_taken = 'redacted')::int AS redacted_events
-            FROM guardrail_events
-            WHERE timestamp >= NOW() - INTERVAL '${WINDOW_DAYS} days'
-              ${orgId ? 'AND organization_id = $1' : ''}
-        `, orgId ? [orgId] : []);
-        return row || { total_events: 0, blocked_events: 0, redacted_events: 0 };
-    } catch {
-        return { total_events: 0, blocked_events: 0, redacted_events: 0, missing: true };
+        return { row: (await getOne(sql, [scope])) || null };
+    } catch (e) {
+        if (NOT_PROVISIONED.has(e?.code)) return { row: null, missing: true };
+        return { row: null, failed: e?.code || 'unknown' };
     }
 }
 
-async function _aiCallCount() {
-    try {
-        const row = await getOne(`SELECT COUNT(*)::int AS c FROM ai_usage_log WHERE timestamp >= NOW() - INTERVAL '${WINDOW_DAYS} days'`);
-        return row?.c || 0;
-    } catch {
-        return 0;
-    }
+async function _guardrailStats(scope) {
+    const r = await _read(`
+        SELECT
+            COUNT(*)::int AS total_events,
+            COUNT(*) FILTER (WHERE t.action_taken = 'blocked')::int AS blocked_events,
+            COUNT(*) FILTER (WHERE t.action_taken = 'redacted')::int AS redacted_events
+        ${_from('guardrail_events', scope)}
+    `, scope);
+    return { total_events: 0, blocked_events: 0, redacted_events: 0, ...(r.row || {}), missing: !!r.missing, failed: r.failed || null };
+}
+
+async function _aiCallCount(scope) {
+    const r = await _read(`SELECT COUNT(*)::int AS c ${_from('ai_usage_log', scope)}`, scope);
+    // A ledger that does not exist has no traffic to judge, as before.
+    return { count: r.row?.c || 0, failed: r.failed || null };
 }
 
 module.exports = {
@@ -73,8 +107,10 @@ module.exports = {
 
         const layersOn = [regexEnabled, piiEnabled].filter(Boolean).length;
 
-        const stats = await _guardrailStats(orgId);
-        const traffic = await _aiCallCount();
+        const scope = orgId || NO_ORG_ORG_ID;
+        const stats = await _guardrailStats(scope);
+        const trafficRead = await _aiCallCount(scope);
+        const traffic = trafficRead.count;
 
         const evidence = {
             window_days: WINDOW_DAYS,
@@ -87,6 +123,11 @@ module.exports = {
             redacted_events: stats.redacted_events || 0,
             guardrail_table_missing: !!stats.missing || undefined,
         };
+        const failedReads = [
+            stats.failed && `guardrail_events (SQL state ${stats.failed})`,
+            trafficRead.failed && `ai_usage_log (SQL state ${trafficRead.failed})`,
+        ].filter(Boolean);
+        if (failedReads.length) evidence.unreadable = failedReads;
 
         if (layersOn === 0) {
             return {
@@ -100,6 +141,13 @@ module.exports = {
                 status: 'warn',
                 evidence,
                 details: `Only one of two leak-prevention layers is on (${regexEnabled ? 'regex guardrails' : 'PII detection'}). Open Security → Guardrails and enable the missing layer.`,
+            };
+        }
+        if (failedReads.length) {
+            return {
+                status: 'warn',
+                evidence,
+                details: `Guardrail or AI-usage counts could not be read (${failedReads.join(', ')}), so whether the configured shield fires on real traffic was not verified this run.`,
             };
         }
         if (traffic < MIN_TRAFFIC) {

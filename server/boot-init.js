@@ -78,7 +78,7 @@ async function runBootInit() {
                 const config = await loadConfig();
                 if (!config.admin.passwordHash) {
                     config.admin.passwordHash = await bcrypt.hash(adminPassword, 12);
-                    if (saveConfig(config)) {
+                    if (await saveConfig({ admin: config.admin })) {
                         log.info('[boot-init] ✅ Admin password set');
 
                         // Create admin user in the users table
@@ -113,7 +113,7 @@ async function runBootInit() {
                 if (msClientSecret) config.providers.microsoft.clientSecret = msClientSecret;
                 config.providers.microsoft.tenantId = msTenantId || 'common';
 
-                if (saveConfig(config)) {
+                if (await saveConfig({ providers: { microsoft: config.providers.microsoft } })) {
                     log.info('[boot-init] ✅ Microsoft SSO configured');
                 } else {
                     log.error('[boot-init] ❌ Failed to save Microsoft SSO config');

@@ -1,6 +1,6 @@
 import { Fingerprint, Check, Loader2 } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
-import { NC_BLUE, Row } from './shared/settingsPrimitives';
+import { Row } from './shared/settingsPrimitives';
 import VoiceprintEnrollModal from './VoiceprintEnrollModal';
 import { useTranslation } from '../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../utils/helpers';
@@ -64,16 +64,16 @@ export default function VoiceprintSection() {
     return (
         <div>
             <div className="flex items-center gap-2 mb-2">
-                <Fingerprint className="w-4 h-4" style={{ color: NC_BLUE }} />
-                <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+                <Fingerprint className="w-4 h-4 text-[var(--accent-primary)]" />
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">
                     {t('voiceprint.title', 'Voice profile')}
                 </p>
             </div>
-            <p className="text-[12px] mb-3" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-[12px] mb-3 text-[var(--text-muted)]">
                 {t('voiceprint.desc', 'Record your voice once and your name is put on your own turns automatically in meetings recorded by anyone in your organisation. Only you can record your voice profile.')}
             </p>
 
-            <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-subtle)' }}>
+            <div className="rounded-xl overflow-hidden border border-[var(--border-subtle)] divide-y divide-[var(--border-subtle)]">
                 <Row
                     title={enrolled
                         ? t('voiceprint.row_active', 'Your voice profile is active')
@@ -91,13 +91,10 @@ export default function VoiceprintSection() {
                         : null}
                 </Row>
                 {coverMembers > 0 && (
-                    <>
-                        <div style={{ height: 1, background: 'var(--border-subtle)' }} />
-                        <Row
-                            title={t('voiceprint.coverage_title', 'In your organisation')}
-                            desc={t('voiceprint.coverage', '{enrolled} of {members} colleagues have a voice profile. The more there are, the better speakers are recognised.', { enrolled: coverEnrolled, members: coverMembers })}
-                        />
-                    </>
+                    <Row
+                        title={t('voiceprint.coverage_title', 'In your organisation')}
+                        desc={t('voiceprint.coverage', '{enrolled} of {members} colleagues have a voice profile. The more there are, the better speakers are recognised.', { enrolled: coverEnrolled, members: coverMembers })}
+                    />
                 )}
             </div>
 
@@ -106,8 +103,7 @@ export default function VoiceprintSection() {
                     type="button"
                     onClick={() => setEnrollOpen(true)}
                     disabled={busy}
-                    className="px-4 py-1.5 rounded-lg text-[13px] font-medium text-white disabled:opacity-40"
-                    style={{ background: NC_BLUE }}
+                    className="px-4 py-1.5 rounded-lg text-[13px] font-medium disabled:opacity-40 bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]"
                 >
                     {enrolled ? t('voiceprint.rerecord', 'Record again') : t('voiceprint.record', 'Record voice profile')}
                 </button>

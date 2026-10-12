@@ -37,19 +37,19 @@ module.exports = async function isoPlatformControls() {
         resetState();
         assertStatus(await checks.isoSecureAuth.evaluate(), 'warn', 'password-only');
     });
-    await t('pass when a Google provider is enabled', async () => {
+    await t('pass when a Google provider is configured', async () => {
         resetState();
-        _state.config['providers'] = { google: { enabled: true, clientId: 'abc' } };
+        _state.config['providers'] = { google: { clientId: 'abc', clientSecret: 's' } };
         assertStatus(await checks.isoSecureAuth.evaluate(), 'pass', 'google sso');
     });
     await t('pass when Nextcloud OAuth is configured', async () => {
         resetState();
-        _state.config['oauth'] = { nextcloudUrl: 'https://cloud.example.com', clientId: 'nc' };
+        _state.config['oauth'] = { nextcloudUrl: 'https://cloud.example.com', clientId: 'nc', clientSecret: 's' };
         assertStatus(await checks.isoSecureAuth.evaluate(), 'pass', 'nextcloud sso');
     });
     await t('fail when the lockout API is missing from the encryption module', async () => {
         resetState();
-        _state.config['providers'] = { google: { enabled: true, clientId: 'abc' } };
+        _state.config['providers'] = { google: { clientId: 'abc', clientSecret: 's' } };
         const saved = encryptionSingleton.unlockUserDEK;
         delete encryptionSingleton.unlockUserDEK;
         try {

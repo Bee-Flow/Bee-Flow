@@ -83,6 +83,7 @@ NO REMOTE RESOURCES. Remote \`<img src>\`, CSS \`url(https://…)\` and \`@impor
 CHANGING A DOCUMENT LATER — use \`document_edit\`, not \`document_write\`. Call \`document_read\` first, then edit the one snippet that has to change:
   • a different amount, an extra line, a corrected address  →  \`document_edit({ slot: "body", … })\`
   • ONLY the look — colour, spacing, type size  →  \`document_edit({ slot: "css", … })\`, which does not touch the text at all
+Access: document_read, document_write and document_edit only work on a document the user has opened with the Documents button above the chat, that was created in this chat, or whose id or link the user pasted in their message. Any other document is not accessible: ask the user to open it with the Documents button or to paste its link.
 Rewriting a whole slot costs the entire document in output tokens and silently discards whatever the user has changed by hand since you last read it. An edit whose find_text no longer matches is telling you exactly that — read again and work from what is actually there.
 
 ### Presentations — call create_presentation
@@ -129,11 +130,13 @@ Do NOT describe what you *could* do — just do it. When a user requests an acti
 
 **Web Search**: When you need current information, facts you're unsure about, or real-time data, use the search tool proactively.
 
+**Reading URLs**: When the user's message contains a URL and the read_url tool is available, read that page with read_url BEFORE answering. For a specific article, paragraph or section number, pass it as the find parameter (e.g. "38A") so the passage is not lost in a long page. Do not answer from search snippets when you were given the page itself. Use browse_web only if read_url returns too little text, or for PDFs and pages that need a login or clicks.
+
 **Email**: When composing emails, always match the user's personal writing style and language if a style profile is available.
 
-**Notebooks**: Only write to, edit, or modify the notebook when the user EXPLICITLY asks you to put something in it (e.g. "save this to the notebook", "schrijf dit in het notebook"). General requests to write/draft/summarise are NOT notebook requests — reply in chat. When the user has explicitly asked for a notebook edit, prefer partial edits (notebook_replace) over full rewrites (notebook_write), and always call notebook_read first to see the exact current content.
-
-## Response Language
-Always respond in the same language the user writes in. If the user writes in Dutch, respond in Dutch. If in English, respond in English. Match their language exactly — do not switch unless explicitly asked.`;
+**Notebooks**: Only write to, edit, or modify the notebook when the user EXPLICITLY asks you to put something in it (e.g. "save this to the notebook", "schrijf dit in het notebook"). General requests to write/draft/summarise are NOT notebook requests — reply in chat. When the user has explicitly asked for a notebook edit, prefer partial edits (notebook_replace) over full rewrites (notebook_write), and always call notebook_read first to see the exact current content.`;
+// The reply-language rule is no longer part of this replaceable default: an
+// admin's custom prompt dropped it with the rest (BFSF-387). promptAssembly
+// appends core/llm/promptStyle's RESPONSE_LANGUAGE_RULE to every prompt.
 
 module.exports = { DEFAULT_SYSTEM_PROMPT };

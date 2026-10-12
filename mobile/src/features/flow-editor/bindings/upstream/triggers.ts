@@ -6,9 +6,12 @@
 
 import { translate as t } from '@/core/i18n';
 import { nodeDefaultLabel } from '@/features/flow-editor/model/nodeDefs';
+import { appendKey } from '@/shared/expr';
 
+import { schemaToParams } from '../flowDeps/triggerSchemaUtils';
 import type { Catalog, FlowDefinition, FlowNode, TriggerOutputEntry, VariableGroup } from '../types';
 import { walkRelativePath } from '../walkPath';
+import { fieldFor } from './fieldTree';
 import { answerSample, namedFormFields } from './formAnswers';
 import { samplePlaceholderFor } from './sampleFields';
 
@@ -81,7 +84,23 @@ function describeParamsTrigger(trigger: FlowNode, kind: string): VariableGroup {
         kind: 'trigger',
         basePath: 'trigger.output',
         sample: Object.fromEntries(params.map((p) => [p.name, samplePlaceholderFor(p.type)])),
-        fields: params.map((p) => ({ key: p.name, path: `trigger.output.${p.name}`, sample: samplePlaceholderFor(p.type) })),
+        fields: params.map((p) => fieldFor(p.name, appendKey('trigger.output', p.name), samplePlaceholderFor(p.type))),
+    };
+}
+
+/**
+ * An agent tool's arguments ARE its declared parameters (trigger.
+ * parametersSchema): the agent passes them as trigger.output.<name>.
+ */
+function describeAgentCallTrigger(trigger: FlowNode): VariableGroup {
+    const params = schemaToParams(trigger.parametersSchema);
+    return {
+        id: trigger.id,
+        label: t('mobile.flow.group.agent_inputs', 'Agent inputs'),
+        kind: 'trigger',
+        basePath: 'trigger.output',
+        sample: Object.fromEntries(params.map((p) => [p.name, samplePlaceholderFor(p.type)])),
+        fields: params.map((p) => fieldFor(p.name, appendKey('trigger.output', p.name), samplePlaceholderFor(p.type))),
     };
 }
 
@@ -94,7 +113,7 @@ function describeFormTrigger(trigger: FlowNode): VariableGroup {
         kind: 'trigger',
         basePath: 'trigger.output',
         sample: Object.fromEntries(fields.map((f) => [f.name, answerSample(f)])),
-        fields: fields.map((f) => ({ key: f.name as string, path: `trigger.output.${f.name}`, sample: answerSample(f) })),
+        fields: fields.map((f) => fieldFor(f.name as string, appendKey('trigger.output', f.name as string), answerSample(f))),
     };
 }
 
@@ -106,6 +125,7 @@ function triggerLabel(tr: FlowNode): string {
     if (k === 'form') return t('mobile.flow.group.trigger_form', 'Trigger (form)');
     if (k === 'layer_input') return t('mobile.flow.group.flowlet_input', 'Flowlet input');
     if (k === 'app_trigger') return t('mobile.flow.group.trigger_studio_app', 'Trigger (Studio App)');
+    if (k === 'agent_call') return t('mobile.flow.group.trigger_agent_call', 'Trigger (agent call)');
     if (k === 'app_event' && tr.appEvent) {
         const { provider, event } = tr.appEvent;
         return t('mobile.flow.group.trigger_app_event', 'Trigger ({provider} · {event})', {
@@ -124,6 +144,7 @@ export function describeTrigger(trigger: FlowNode, triggerOutputs: Record<string
     const kind = trigger.kind || 'manual';
     if (kind === 'layer_input' || kind === 'app_trigger') return describeParamsTrigger(trigger, kind);
     if (kind === 'form') return describeFormTrigger(trigger);
+    if (kind === 'agent_call') return describeAgentCallTrigger(trigger);
     const key = kind === 'app_event' && trigger.appEvent ? `${trigger.appEvent.provider}.${trigger.appEvent.event}` : `__${kind}`;
     const entry = ownEntry(triggerOutputs, key) || ownEntry(triggerOutputs, '__manual') || { fields: [], sample: {} };
     return {
@@ -132,6 +153,8 @@ export function describeTrigger(trigger: FlowNode, triggerOutputs: Record<string
         kind: 'trigger',
         basePath: 'trigger.output',
         sample: entry.sample || {},
-        fields: (entry.fields || []).map((f) => ({ key: f.key, path: `trigger.output.${f.key}`, sample: f.sample })),
+        // The catalog's sample is a real event's shape: `organizer.email` and
+        // `attendees[*].email` are offered before the trigger has fired.
+        fields: (entry.fields || []).map((f) => fieldFor(f.key, appendKey('trigger.output', f.key), f.sample)),
     };
 }

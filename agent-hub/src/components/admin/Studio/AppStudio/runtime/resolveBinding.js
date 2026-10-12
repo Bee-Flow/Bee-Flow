@@ -47,48 +47,38 @@
  */
 
 import { tryEvaluate } from '@shared/expr/engine.mjs';
+import { getRelativePath, parsePath } from '@shared/expr/path.mjs';
 
 /**
- * Safe path walk supporting dot AND bracket/index notation:
- *   'rows.0.title'  ·  'rows[0].title'  ·  'stats.open'  ·  'data["a-b"]'
- * Missing segments → undefined; never throws. Signature is (value, path) —
- * kept stable because AppList/AppKeyValue import and call it that way.
+ * Does `path` read as a path RELATIVE to a value under the shared grammar?
+ * The same normalisation getRelativePath applies (`$.a`, `[0].x`, `a.b`).
+ */
+function isRelativePath(path) {
+    let p = path.trim();
+    if (p === '' || p === '$') return true;
+    if (p.startsWith('$.')) p = p.slice(2);
+    else if (p.startsWith('$[')) p = p.slice(1);
+    return parsePath(p.startsWith('[') ? `$${p}` : `$.${p}`) !== null;
+}
+
+/**
+ * Safe path walk with the ONE path grammar the automation runtime and the
+ * server validator use (shared/expr/path.mjs): 'rows.0.title' ·
+ * 'rows[0].title' · 'data["a-b"]' · 'body["@odata.nextLink"]' ·
+ * 'rows[*].title' · 'headers[name="Subject"].value' · JSON text read as the
+ * object it encodes. A string that is not a path at all is read as ONE key, so
+ * a column called "Full name" (a component's labelKey/sideField) still reads.
+ * Missing segments → undefined; never throws; never the prototype chain.
+ * Signature is (value, path) — kept stable because AppList/AppKeyValue import
+ * and call it that way.
  */
 export function walkPath(value, path) {
     if (path == null || path === '') return value;
     if (typeof path !== 'string') return undefined;
-    let current = value;
-    for (const segment of parsePathSegments(path)) {
-        if (current == null || typeof current !== 'object') return undefined;
-        current = Object.prototype.hasOwnProperty.call(current, segment) ? current[segment] : undefined;
-    }
-    return current;
-}
-
-/** 'rows[0].title' → ['rows','0','title']; tolerant of quotes and malformed tails. */
-function parsePathSegments(path) {
-    const out = [];
-    let buf = '';
-    const flush = () => { if (buf !== '') { out.push(buf); buf = ''; } };
-    for (let i = 0; i < path.length; i++) {
-        const c = path[i];
-        if (c === '.') { flush(); continue; }
-        if (c === '[') {
-            flush();
-            const close = path.indexOf(']', i);
-            if (close < 0) { buf += path.slice(i); break; } // malformed — keep the rest literal
-            let raw = path.slice(i + 1, close).trim();
-            if ((raw.startsWith('"') && raw.endsWith('"')) || (raw.startsWith("'") && raw.endsWith("'"))) {
-                raw = raw.slice(1, -1);
-            }
-            if (raw !== '') out.push(raw);
-            i = close;
-            continue;
-        }
-        buf += c;
-    }
-    flush();
-    return out;
+    if (isRelativePath(path)) return getRelativePath(value, path);
+    return value != null && typeof value === 'object' && Object.prototype.hasOwnProperty.call(value, path)
+        ? value[path]
+        : undefined;
 }
 
 /** Deterministic JSON with sorted keys — the hash half of a data cache key. */

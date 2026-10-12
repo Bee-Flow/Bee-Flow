@@ -38,6 +38,16 @@
  *   coworkEnabled   the same gate for the non-agent Cowork/Automations path,
  *                   which additionally needs an org and the per-org opt-in
  *                   flag (core/entitlements/coworkShieldFlag)
+ *   chatMonitoring  chat signals for the caller's org, from the one resolver
+ *                   the recorder also reads (core/entitlements/
+ *                   chatMonitoringFlag): { state: 'off'|'scheduled'|'on',
+ *                   from: 'YYYY-MM-DD'|null, version: ISO timestamp|null,
+ *                   surfaces, signals, noticeUrl: https|null }. The composer
+ *                   shows its notice from this and repeats `version` in the
+ *                   marker a turn must carry to be counted, so what is
+ *                   announced and what is counted cannot drift. Paused chat
+ *                   types are never listed. Built by the allow-list in
+ *                   core/privacy/chatSignalsNotice.js
  *
  * THE ONE RULE FOR EVERY CONSUMER: claim only when `enabled && guardReachable`
  * (Cowork: `coworkEnabled && guardReachable`); `action` picks the wording, and
@@ -46,8 +56,10 @@
  *
  * What never appears here (BFSF-441): names, e-mail, org or user ids, the
  * shield's rules or allow-terms, the guard's `load_error`/`degradedReason`
- * text, or any error message — booleans and enums only. A configuration that
- * cannot be read answers `enabled: false, guardReachable: false` with 200,
+ * text, or any error message. Booleans and enums, plus (in `chatMonitoring`
+ * only) one https URL the organisation itself publishes under Art. 13, a date
+ * and a version timestamp. A configuration that cannot be read answers
+ * `enabled: false, guardReachable: false` and chat signals off, with 200,
  * never a 500: for a status pill, "no claim" is the one answer that is safe
  * to be wrong about.
  *
@@ -95,6 +107,9 @@ const FAIL_MODES = Object.freeze(['fail_closed', 'fail_open']);
 // vocabulary (orgShield.js synthesizePrivacyFields uses the same mapping).
 const DLP_MODE_TO_ACTION = Object.freeze({ ask: 'ask', auto_redact: 'redact', block: 'block' });
 
+// Chat signals: the allow-list that shapes `chatMonitoring` (pure, no I/O).
+const { statusPayload: sanitizeChatMonitoring, STATUS_OFF: CHAT_MONITORING_OFF } = require('../core/privacy/chatSignalsNotice');
+
 /**
  * The answer when nothing is on — and when the configuration cannot be read.
  * Same key set as every other answer, so a consumer never branches on shape.
@@ -107,6 +122,7 @@ const OFF = Object.freeze({
     guardReachable: false,
     euMode: false,
     coworkEnabled: false,
+    chatMonitoring: CHAT_MONITORING_OFF,
 });
 
 // ── Guard reachability, memoised ─────────────────────────────────────
@@ -163,8 +179,11 @@ function isGuardReachable() {
  * @param {boolean} p.coworkFlagOn     isCoworkShieldEnabled(orgId)
  * @param {boolean} p.guardReachable   isGuardReachable()
  * @param {boolean} p.euMode           isEUModeActive().isEU
+ * @param {object|null} [p.chatMonitoring] resolveChatMonitoring(orgId || 'default');
+ *                                     independent of the shield: a notice is
+ *                                     owed whether or not the shield is on
  */
-function summarizeShield({ aiConfig, orgShield, userShield, orgId, coworkFlagOn, guardReachable, euMode }) {
+function summarizeShield({ aiConfig, orgShield, userShield, orgId, coworkFlagOn, guardReachable, euMode, chatMonitoring = null }) {
     const shield = orgShield || userShield || null;
     const platformOn = !!aiConfig?.piiDetectionEnabled;
     let enabled = platformOn || !!shield?.enabled;
@@ -207,6 +226,7 @@ function summarizeShield({ aiConfig, orgShield, userShield, orgId, coworkFlagOn,
         euMode: !!euMode,
         // coworkShield.js: no org → no claim; then the flag; then the gate.
         coworkEnabled: !!orgId && !!coworkFlagOn && enabled,
+        chatMonitoring: sanitizeChatMonitoring(chatMonitoring),
     };
 }
 
@@ -216,6 +236,7 @@ async function buildStatus(req) {
     const { getAIConfig } = require('../core/aiAgent');
     const { resolveOrgShield, resolveUserShield } = require('../core/privacy/orgShield');
     const { resolveCoworkShieldFlag } = require('../core/entitlements/coworkShieldFlag');
+    const { resolveChatMonitoring } = require('../core/entitlements/chatMonitoringFlag');
 
     // Tier/config resolution of the caller's org (memoised 45 s) — the
     // routes/cowork.js idiom. Never an authz decision.
@@ -227,10 +248,14 @@ async function buildStatus(req) {
     const orgShield = orgId ? await resolveOrgShield(orgId) : null;
     const userShield = orgShield ? null : await resolveUserShield(userId, { allowImplicitDefault: !orgId });
 
-    const [coworkFlag, eu, guardReachable] = await Promise.all([
+    const [coworkFlag, eu, guardReachable, chatMonitoring] = await Promise.all([
         resolveCoworkShieldFlag(orgId), // never throws; null org reads OFF
         isEUModeActive({ userOrgId: orgId, userId }).catch(() => ({ isEU: false })),
         isGuardReachable(),
+        // The recorder's org key for direct chat (core/privacy/chatSignals
+        // directOrgKey): the effective org, else the 'default' bucket. Never
+        // throws; any error reads off, and then nothing is counted either.
+        Promise.resolve(resolveChatMonitoring(orgId || 'default')).catch(() => null),
     ]);
 
     return summarizeShield({
@@ -241,6 +266,7 @@ async function buildStatus(req) {
         coworkFlagOn: coworkFlag.enabled,
         guardReachable,
         euMode: eu.isEU,
+        chatMonitoring,
     });
 }
 
@@ -263,6 +289,7 @@ router.get('/', requireAuth, validate({ query: NO_QUERY }), async (req, res) => 
 
 module.exports = router;
 module.exports.summarizeShield = summarizeShield;
+module.exports.sanitizeChatMonitoring = sanitizeChatMonitoring;
 module.exports.isGuardReachable = isGuardReachable;
 module.exports.OFF = OFF;
 module.exports.SOURCES = SOURCES;

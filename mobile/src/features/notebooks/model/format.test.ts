@@ -48,7 +48,7 @@ describe('sourceSubtitle', () => {
     });
 
     it('names the stages the web names, in the same words', () => {
-        const web = fs.readFileSync(`${AGENT_HUB_SRC}/pages/notebooks/sources/sourceMeta.ts`, 'utf8');
+        const web = fs.readFileSync(`${AGENT_HUB_SRC}/pages/documents/notebook/sources/sourceMeta.ts`, 'utf8');
         const pairs = [...web.matchAll(/^\s+case '([a-z]+)': return t\('notebooks\.stage_[a-z]+', '([^']+)'\);$/gm)];
         expect(pairs.map((m) => m[1])).toEqual(['queued', 'extracting', 'fetching', 'embedding']);
         for (const [, stage, words] of pairs) expect(stageLabel(stage as string)).toBe(words);

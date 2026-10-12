@@ -512,6 +512,29 @@ function makeLifecycle(ctx) {
         }
     }
 
+    /**
+     * Run `fn` against the live state of a co-edited resource, opened ONCE:
+     * the Yjs fragment (relative positions are made and resolved against it,
+     * so they point at the very items the editors hold), its rendering and
+     * the update it is at. The state is discarded when `fn` settles; null
+     * when the resource is not co-edited.
+     * @template T
+     * @param {string} kind @param {string} resourceId
+     * @param {(state: { ydoc: Y.Doc, fragment: Y.XmlFragment, html: string, seq: number }) => T | Promise<T>} fn
+     * @returns {Promise<T|null>}
+     */
+    async function withFragment(kind, resourceId, fn) {
+        const doc = await activeDoc(kind, resourceId);
+        if (!doc) return null;
+        const s = await open(doc);
+        if (!s) return null;
+        try {
+            return await fn({ ydoc: s.ydoc, fragment: converter.fragmentOf(s.ydoc), html: renderOf(s).html, seq: s.seq });
+        } finally {
+            s.ydoc.destroy();
+        }
+    }
+
     const readMarkdown = async (/** @type {string} */ kind, /** @type {string} */ id) => (await read(kind, id))?.markdown ?? null;
     const readHtml = async (/** @type {string} */ kind, /** @type {string} */ id) => (await read(kind, id))?.html ?? null;
 
@@ -693,7 +716,7 @@ function makeLifecycle(ctx) {
 
     return {
         materialise, closeSession, compact, compactNow, measure, detach, detachDoc, detachProject, detachOrganisation, activeDoc, isActive,
-        readMarkdown, readHtml, read, applyServerEdit, processDoc, stillValid,
+        readMarkdown, readHtml, read, withFragment, applyServerEdit, processDoc, stillValid,
     };
 }
 

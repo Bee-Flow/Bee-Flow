@@ -5,6 +5,7 @@
 import type { TranslateFn } from '../../../../hooks/useTranslation';
 import type { RunStepRecord } from '../../../../api/queries/automation/runs';
 import { stepPayload } from '../flow/stepPayload';
+import { humanizeExpression as humanizeExpressionJs, humanizeTemplate, humanizeToolName } from '../flow/displayHelpers';
 
 export type IoKind = 'number' | 'list' | 'record' | 'text' | 'flag' | 'empty';
 
@@ -112,4 +113,66 @@ export function stepDuration(step: RunStepRecord): number | null {
     if (step.durationMs != null) return step.durationMs;
     if (step.startedAt && step.finishedAt) return new Date(step.finishedAt).getTime() - new Date(step.startedAt).getTime();
     return null;
+}
+
+/** Keys that shape the flow, not what the step does: never a setting row. */
+const STRUCTURAL = new Set([
+    'id', 'type', 'label', 'position', 'next', 'edges', 'branches', 'cases', 'onError', 'on_error',
+    'notes', 'disabled', 'layerKey', 'outputSchema', 'codeHash', 'inputSchema', 'sideEffect', 'appId',
+]);
+const SECRET_KEY = /secret|password|passwd|token|api[_-]?key|credential/i;
+const MAX_CONFIG = 12;
+
+type LabelMap = Map<string, string> | null;
+// The JS helper's JSDoc types its label map as `null`; it takes a Map.
+const humanizeExpression = humanizeExpressionJs as (expr: string, labels?: LabelMap) => string;
+type Binding = { kind?: string; value?: unknown; path?: string };
+
+function isBinding(v: unknown): v is Binding {
+    return !!v && typeof v === 'object' && !Array.isArray(v) && typeof (v as Binding).kind === 'string'
+        && ['literal', 'ref', 'template', 'expr'].includes((v as Binding).kind as string);
+}
+
+/** A stored value, or binding, the way the editor's chips read it: "Trigger ▸ Subject", "Hello ‹Code›…". */
+function settingText(t: TranslateFn, v: unknown, labels: LabelMap): string {
+    if (isBinding(v)) {
+        if (v.kind === 'literal') return settingText(t, v.value, labels);
+        if (v.kind === 'ref') return humanizeTemplate(`{{${v.path || ''}}}`, labels) || String(v.path || '');
+        if (v.kind === 'template') return humanizeTemplate(String(v.value ?? ''), labels);
+        return humanizeExpression(String(v.value ?? ''), labels);
+    }
+    if (typeof v === 'string') return v.includes('{{') ? humanizeTemplate(v, labels) : v;
+    // Channels, recipients: a short list of words reads as one, not as "table · 1 rows".
+    if (Array.isArray(v) && v.every(x => x == null || typeof x !== 'object')) return v.filter(x => x != null && x !== '').join(', ');
+    return previewValue(t, v);
+}
+
+/**
+ * What a step was SET UP to do in this run (BFSF-456), from the run's own
+ * version of the definition: one row per setting, its value as the editor's
+ * chips read it. A step with named inputs (an app action, a Code step) lists
+ * those; any other step its own settings. References to secrets and keys that
+ * hold one are never shown.
+ */
+export function configFields(t: TranslateFn, stepDef: Record<string, unknown> | null | undefined, labels: LabelMap = null): IoField[] {
+    if (!stepDef || typeof stepDef !== 'object') return [];
+    const slots = ['inputs', 'fields'].map(k => stepDef[k]).find(m => m && typeof m === 'object' && !Array.isArray(m)) as Record<string, unknown> | undefined;
+    const entries: Array<[string, unknown]> = [];
+    if (typeof stepDef.tool === 'string') entries.push(['tool', humanizeToolName(stepDef.tool)]);
+    if (slots) entries.push(...Object.entries(slots));
+    else {
+        for (const [k, v] of Object.entries(stepDef)) {
+            if (STRUCTURAL.has(k) || k === 'tool' || k.startsWith('_') || v == null || v === '') continue;
+            if (typeof v === 'object' && !Array.isArray(v) && !isBinding(v)) continue;
+            entries.push([k, v]);
+        }
+    }
+    const fe = stepDef.forEach as { overRef?: string } | undefined;
+    if (fe?.overRef) entries.push(['forEach', humanizeTemplate(`{{${fe.overRef}}}`, labels)]);
+    return entries.slice(0, MAX_CONFIG).map(([k, v]) => {
+        const label = k === 'tool' ? t('runs.io.action', 'Action') : k === 'forEach' ? t('runs.io.for_each', 'Once for each') : humanKey(k);
+        const secret = SECRET_KEY.test(k) || /\bsecrets\./.test(JSON.stringify(v) || '');
+        const preview = secret ? t('runs.io.hidden', 'hidden') : (settingText(t, v, labels) || t('runs.io.empty', 'empty'));
+        return { key: k, label, kind: 'text' as IoKind, preview };
+    });
 }

@@ -4,17 +4,17 @@
 
 import { ArrowDown, Loader2, MessagesSquare } from 'lucide-react';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
     useDeleteTeamChatMessage, useEditTeamChatMessage, useLoadOlderMessages, useTeamChatFeedback, useTeamChatMessages, type TeamChatMessage,
 } from '../../../../api/queries/projectChats';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { toast } from '../../../shared/Toast';
-import useConfirm from '../../../shared/useConfirm';
 import { projectErrorText } from '../projectErrorText';
-import { GhostButton, Notice } from '../workspaceUi';
+import { GhostButton, Notice, Skeleton } from '../workspaceUi';
 import type { MessageContext } from './ChatMessageBubble';
 import ChatMessageGroup from './ChatMessageGroup';
+import { CHAT_COLUMN_CLASS } from './chatColumn';
 import { useFollowNewest, useThreadRoot } from './listHooks';
 import { firstUnreadMessageId, formatDayLabel, groupMessages, isNewDay, mainConversation, repliesToPrevious, summarizeThreads, threadConversation, type MessageGroup } from './messageGroups';
 
@@ -22,23 +22,29 @@ export type BaseMessageContext = Omit<MessageContext, 'findMessage' | 'onDelete'
 
 function useMessageActions(projectId: string, chatId: string, messages: TeamChatMessage[]) {
     const { t } = useTranslation();
-    const { confirm, confirmDialog } = useConfirm();
+    const [hidden, setHidden] = useState<ReadonlySet<string>>(new Set());
+    const mark = useCallback((id: string, gone: boolean) => setHidden((prev) => {
+        const next = new Set(prev);
+        if (gone) next.add(id); else next.delete(id);
+        return next;
+    }), []);
     const edit = useEditTeamChatMessage(projectId, chatId);
     const remove = useDeleteTeamChatMessage(projectId, chatId);
     const feedback = useTeamChatFeedback(projectId, chatId);
     const byId = useMemo(() => new Map(messages.map(m => [m.id, m])), [messages]);
 
-    const onDelete = useCallback(async (message: TeamChatMessage) => {
-        const ok = await confirm({
-            title: t('project_chat.delete_message_title', 'Delete this message?'),
-            description: t('project_chat.delete_message_body', 'Everyone in the project will see that a message was deleted here.'),
-            confirmLabel: t('project_chat.delete', 'Delete'),
-            cancelLabel: t('project_chat.cancel', 'Cancel'),
-            destructive: true,
+    // Delete is undoable: the message leaves the list at once, the real delete
+    // runs when the toast expires and never after Undo.
+    const removeMutate = remove.mutate;
+    const onDelete = useCallback((message: TeamChatMessage) => {
+        mark(message.id, true);
+        toast.undoable({
+            message: t('project_home.message_deleted', 'Message deleted'),
+            undoLabel: t('project_home.undo', 'Undo'),
+            onUndo: () => mark(message.id, false),
+            onExpire: () => removeMutate(message.id, { onError: (e) => { mark(message.id, false); toast.error(projectErrorText(t, e)); } }),
         });
-        if (!ok) return;
-        remove.mutate(message.id, { onError: e => toast.error(projectErrorText(t, e)) });
-    }, [confirm, remove, t]);
+    }, [mark, removeMutate, t]);
 
     const onEdit = useCallback(async (message: TeamChatMessage, content: string) => {
         await edit.mutateAsync({ messageId: message.id, content });
@@ -50,7 +56,7 @@ function useMessageActions(projectId: string, chatId: string, messages: TeamChat
 
     const findMessage = useCallback((id: string) => byId.get(id), [byId]);
     const handlers = useMemo(() => ({ onDelete, onEdit, onNotHelpful, findMessage }), [onDelete, onEdit, onNotHelpful, findMessage]);
-    return { handlers, confirmDialog };
+    return { handlers, hidden };
 }
 
 /** Remember the distance to the bottom before an older page lands, restore it after. */
@@ -103,17 +109,9 @@ function UnreadDivider() {
 /** Placeholder bubbles while the first page of messages is on its way. */
 function SkeletonRows() {
     const { t } = useTranslation();
-    const widths = ['w-2/5', 'w-3/5', 'w-1/3', 'w-1/2'];
     return (
-        <div className="flex flex-col gap-4 px-4 py-10 max-w-4xl mx-auto" role="status"
-            aria-label={t('project_chat.loading_messages', 'Loading messages…')} data-testid="team-chat-skeleton">
-            {widths.map((w, i) => (
-                <div key={i} className={`flex items-start gap-2.5 ${i % 2 ? 'flex-row-reverse' : ''}`}>
-                    <span className="w-8 h-8 rounded-full flex-shrink-0 bg-[var(--bg-tertiary)] animate-pulse" />
-                    <span className={`h-9 ${w} rounded-2xl bg-[var(--bg-tertiary)] animate-pulse`} />
-                </div>
-            ))}
-        </div>
+        <Skeleton rows={4} variant="rows" label={t('project_chat.loading_messages', 'Loading messages…')} testId="team-chat-skeleton"
+            className={`flex flex-col gap-4 px-4 py-10 ${CHAT_COLUMN_CLASS}`} barClassName="!h-9 !w-3/5 !rounded-2xl" />
     );
 }
 
@@ -197,8 +195,9 @@ export default function ChatMessageList({ projectId, chatId, base, footer, threa
     const query = useTeamChatMessages(projectId, chatId);
     const older = useLoadOlderMessages(projectId, chatId);
     const data = query.data;
-    const messages = useMemo(() => data?.messages || [], [data]);
-    const { handlers, confirmDialog } = useMessageActions(projectId, chatId, messages);
+    const loaded = useMemo(() => data?.messages || [], [data]);
+    const { handlers, hidden } = useMessageActions(projectId, chatId, loaded);
+    const messages = useMemo(() => (hidden.size ? loaded.filter(m => !hidden.has(m.id)) : loaded), [loaded, hidden]);
     const threads = useMemo(() => summarizeThreads(messages), [messages]);
     const threadOf = useCallback((id: string) => threads.get(id), [threads]);
     const { groups, rootGroups } = useMemo(() => {
@@ -276,7 +275,7 @@ export default function ChatMessageList({ projectId, chatId, base, footer, threa
                         </div>
                     )}
                     {groups.length > 0 && (
-                        <ol className="list-none m-0 py-3 flex flex-col gap-1 max-w-4xl mx-auto" aria-label={t('project_chat.messages_label', 'Messages')}
+                        <ol className={`list-none m-0 py-3 flex flex-col gap-1 ${CHAT_COLUMN_CLASS}`} aria-label={t('project_chat.messages_label', 'Messages')}
                             aria-live={older.isPending ? 'off' : 'polite'} aria-relevant="additions">
                             {groups.map((group, i) => (
                                 <React.Fragment key={group.key}>
@@ -293,7 +292,6 @@ export default function ChatMessageList({ projectId, chatId, base, footer, threa
                     )}
                     {footer}
                 </div>
-                {confirmDialog}
             </div>
             {unseen > 0 && <NewMessagesPill count={unseen} onClick={jumpToNewest} />}
         </div>

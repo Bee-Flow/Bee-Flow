@@ -1,5 +1,6 @@
 import { AlertTriangle } from 'lucide-react';
 import React, { useState } from 'react';
+import useTranslation from '../../../../../hooks/useTranslation';
 import { RepeatableList } from '../../../product-website/fields';
 import FormulaField from '../inspector/logic/FormulaField';
 import { NumberField, TextField } from '../inspector/panels/kit';
@@ -23,18 +24,18 @@ import { NumberField, TextField } from '../inspector/panels/kit';
  * behind an explicit, warned opt-in.
  */
 
-const FIELD_TYPES = [
-    { value: 'text', label: 'Text' },
-    { value: 'richtext', label: 'Rich text' },
-    { value: 'number', label: 'Number' },
-    { value: 'date', label: 'Date' },
-    { value: 'datetime', label: 'Date & time' },
-    { value: 'bool', label: 'Yes / no' },
-    { value: 'select', label: 'Select' },
-    { value: 'multiselect', label: 'Multi-select' },
-    { value: 'relation', label: 'Relation' },
-    { value: 'file', label: 'File' },
-    { value: 'computed', label: 'Computed' },
+const fieldTypes = (t) => [
+    { value: 'text', label: t('studio_apps_tables.designer.type_text', 'Text') },
+    { value: 'richtext', label: t('studio_apps_tables.designer.type_richtext', 'Rich text') },
+    { value: 'number', label: t('studio_apps_tables.designer.type_number', 'Number') },
+    { value: 'date', label: t('studio_apps_tables.designer.type_date', 'Date') },
+    { value: 'datetime', label: t('studio_apps_tables.designer.type_datetime', 'Date & time') },
+    { value: 'bool', label: t('studio_apps_tables.designer.type_bool', 'Yes / no') },
+    { value: 'select', label: t('studio_apps_tables.designer.type_select', 'Select') },
+    { value: 'multiselect', label: t('studio_apps_tables.designer.type_multiselect', 'Multi-select') },
+    { value: 'relation', label: t('studio_apps_tables.designer.type_relation', 'Relation') },
+    { value: 'file', label: t('studio_apps_tables.designer.type_file', 'File') },
+    { value: 'computed', label: t('studio_apps_tables.designer.type_computed', 'Computed') },
 ];
 
 const SYSTEM_COLUMNS = new Set(['id', 'created_at', 'updated_at', 'created_by', 'org_id']);
@@ -77,6 +78,7 @@ function typePatch(field, type) {
 }
 
 function FieldEditor({ field, update, tables, currentTableId, saved, disabled }) {
+    const { t } = useTranslation();
     const set = (patch) => update({ ...field, ...patch });
     // While a key is still auto-derived (blank or matches the name's slug), keep
     // deriving it from the name; once the user edits the key explicitly, leave it.
@@ -88,15 +90,15 @@ function FieldEditor({ field, update, tables, currentTableId, saved, disabled })
         <div className="flex flex-col gap-2">
             <div className="grid grid-cols-2 gap-2">
                 <TextField
-                    label="Name"
+                    label={t('studio_apps_tables.designer.name', 'Name')}
                     value={field.name}
                     onChange={(v) => set({ name: v, key: keyIsAuto ? slugifyKey(v) : field.key })}
-                    placeholder="Amount"
+                    placeholder={t('studio_apps_tables.designer.name_placeholder', 'Amount')}
                     disabled={disabled}
                 />
                 {saved && !renaming ? (
                     <div className="flex flex-col gap-1">
-                        <span className="text-xs font-medium text-[var(--text-secondary)]">Column name</span>
+                        <span className="text-xs font-medium text-[var(--text-secondary)]">{t('studio_apps_tables.designer.column_name', 'Column name')}</span>
                         <div className="flex items-center gap-2">
                             <code className="min-w-0 flex-1 truncate rounded-md px-3 py-2 text-sm" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>{field.key}</code>
                             <button
@@ -106,18 +108,18 @@ function FieldEditor({ field, update, tables, currentTableId, saved, disabled })
                                 className="shrink-0 rounded-md border px-2 py-1 text-xs disabled:opacity-50"
                                 style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
                             >
-                                Change…
+                                {t('studio_apps_tables.designer.change', 'Change…')}
                             </button>
                         </div>
-                        <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>Fixed — the app already refers to this field by this name.</span>
+                        <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>{t('studio_apps_tables.designer.fixed', 'Fixed — the app already refers to this field by this name.')}</span>
                     </div>
                 ) : (
                     <TextField
-                        label="Column name"
+                        label={t('studio_apps_tables.designer.column_name', 'Column name')}
                         value={field.key}
                         onChange={(v) => set({ key: slugifyKey(v) })}
-                        hint={saved ? undefined : 'Used inside the app'}
-                        placeholder="amount"
+                        hint={saved ? undefined : t('studio_apps_tables.designer.column_hint', 'Used inside the app')}
+                        placeholder={t('studio_apps_tables.designer.column_placeholder', 'amount')}
                         disabled={disabled}
                     />
                 )}
@@ -130,22 +132,21 @@ function FieldEditor({ field, update, tables, currentTableId, saved, disabled })
                 >
                     <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                     <span>
-                        Changing this stops every form, list and chart that already uses this field from finding it —
-                        you will have to point each of them at the new name yourself.
+                        {t('studio_apps_tables.designer.rename_warning', 'Changing this stops every form, list and chart that already uses this field from finding it — you will have to point each of them at the new name yourself.')}
                     </span>
                 </p>
             ) : null}
 
             <label className="flex flex-col gap-1 text-xs font-medium text-[var(--text-secondary)]">
-                Type
+                {t('studio_apps_tables.designer.type', 'Type')}
                 <select
                     className={FIELD_CLS}
                     value={field.type || 'text'}
                     onChange={(e) => set(typePatch(field, e.target.value))}
                     disabled={disabled}
-                    aria-label="Field type"
+                    aria-label={t('studio_apps_tables.designer.field_type', 'Field type')}
                 >
-                    {FIELD_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                    {fieldTypes(t).map((ft) => <option key={ft.value} value={ft.value}>{ft.label}</option>)}
                 </select>
             </label>
 
@@ -154,17 +155,17 @@ function FieldEditor({ field, update, tables, currentTableId, saved, disabled })
                     items={Array.isArray(field.options) ? field.options : []}
                     onChange={(next) => set({ options: next })}
                     makeNew={() => ''}
-                    label="Choices"
-                    addLabel="Add choice"
+                    label={t('studio_apps_tables.designer.choices', 'Choices')}
+                    addLabel={t('studio_apps_tables.designer.add_choice', 'Add choice')}
                     itemLabel={(o) => optionLabel(o)}
                     renderItem={(option, updateOption, idx) => (
                         <input
                             className={FIELD_CLS}
                             value={optionLabel(option)}
                             onChange={(e) => updateOption(nextOption(option, e.target.value))}
-                            placeholder="In progress"
+                            placeholder={t('studio_apps_tables.designer.choice_placeholder', 'In progress')}
                             disabled={disabled}
-                            aria-label={`Choice ${idx + 1}`}
+                            aria-label={t('studio_apps_tables.designer.choice_n', 'Choice {n}', { n: idx + 1 })}
                             spellCheck={false}
                         />
                     )}
@@ -175,52 +176,52 @@ function FieldEditor({ field, update, tables, currentTableId, saved, disabled })
                 <label className="inline-flex items-center gap-1.5 cursor-pointer">
                     <input type="checkbox" className={CHECK_CLS} checked={!!field.required} disabled={disabled}
                         onChange={(e) => set({ required: e.target.checked })} />
-                    Required
+                    {t('studio_apps_tables.designer.required', 'Required')}
                 </label>
                 <label className="inline-flex items-center gap-1.5 cursor-pointer">
                     <input type="checkbox" className={CHECK_CLS} checked={!!field.unique} disabled={disabled}
                         onChange={(e) => set({ unique: e.target.checked })} />
-                    Unique
+                    {t('studio_apps_tables.designer.unique', 'Unique')}
                 </label>
             </div>
 
             {field.type === 'relation' ? (
                 <label className="flex flex-col gap-1 text-xs font-medium text-[var(--text-secondary)]">
-                    Related table
+                    {t('studio_apps_tables.designer.related_table', 'Related table')}
                     <select
                         className={FIELD_CLS}
                         value={field.relation?.table || ''}
                         onChange={(e) => set({ relation: { table: e.target.value } })}
                         disabled={disabled}
-                        aria-label="Related table"
+                        aria-label={t('studio_apps_tables.designer.related_table', 'Related table')}
                     >
-                        <option value="">Choose a table…</option>
-                        {(tables || []).filter((t) => t.id !== currentTableId).map((t) => (
-                            <option key={t.id} value={t.id}>{t.name || t.key}</option>
+                        <option value="">{t('studio_apps_tables.designer.choose_table', 'Choose a table…')}</option>
+                        {(tables || []).filter((tb) => tb.id !== currentTableId).map((tb) => (
+                            <option key={tb.id} value={tb.id}>{tb.name || tb.key}</option>
                         ))}
                     </select>
                 </label>
             ) : field.type === 'computed' ? (
                 <div className="flex flex-col gap-1">
-                    <span className="text-xs font-medium text-[var(--text-secondary)]">Computed expression</span>
+                    <span className="text-xs font-medium text-[var(--text-secondary)]">{t('studio_apps_tables.designer.computed_expr', 'Computed expression')}</span>
                     <FormulaField
                         value={field.computed?.expr || ''}
                         onChange={(expr) => set({ computed: { ...(field.computed || {}), expr } })}
-                        placeholder="e.g. price * quantity"
+                        placeholder={t('studio_apps_tables.designer.computed_placeholder', 'e.g. price * quantity')}
                         disabled={disabled}
                     />
                 </div>
             ) : field.type !== 'bool' && field.type !== 'file' ? (
                 field.type === 'number' ? (
                     <NumberField
-                        label="Default"
+                        label={t('studio_apps_tables.designer.default', 'Default')}
                         value={field.default ?? null}
                         onChange={(v) => set({ default: v })}
                         disabled={disabled}
                     />
                 ) : (
                     <TextField
-                        label="Default"
+                        label={t('studio_apps_tables.designer.default', 'Default')}
                         value={field.default ?? ''}
                         onChange={(v) => set({ default: v || null })}
                         disabled={disabled}
@@ -232,6 +233,7 @@ function FieldEditor({ field, update, tables, currentTableId, saved, disabled })
 }
 
 export default function TableDesigner({ table, tables, savedTable = null, onChange, disabled = false }) {
+    const { t } = useTranslation();
     if (!table) return null;
     const set = (patch) => onChange({ ...table, ...patch });
     const fields = Array.isArray(table.fields) ? table.fields : [];
@@ -240,11 +242,11 @@ export default function TableDesigner({ table, tables, savedTable = null, onChan
     return (
         <div className="flex flex-col gap-3">
             <TextField
-                label="Table name"
+                label={t('studio_apps_tables.designer.table_name', 'Table name')}
                 value={table.name}
                 onChange={(v) => set({ name: v })}
-                hint={`Stored as: ${table.key || '—'}`}
-                placeholder="Invoices"
+                hint={t('studio_apps_tables.designer.stored_as', 'Stored as: {key}', { key: table.key || '—' })}
+                placeholder={t('studio_apps_tables.designer.table_placeholder', 'Invoices')}
                 disabled={disabled}
             />
 
@@ -252,8 +254,8 @@ export default function TableDesigner({ table, tables, savedTable = null, onChan
                 items={fields}
                 onChange={(next) => set({ fields: next })}
                 makeNew={() => ({ id: newFieldId(), key: '', name: '', type: 'text', required: false, unique: false })}
-                label="Fields"
-                addLabel="Add field"
+                label={t('studio_apps_tables.designer.fields', 'Fields')}
+                addLabel={t('studio_apps_tables.designer.add_field', 'Add field')}
                 collapsible
                 itemLabel={(f) => f.name || f.key}
                 renderItem={(field, update) => (

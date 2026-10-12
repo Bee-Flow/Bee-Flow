@@ -19,7 +19,7 @@ export function LayerInputFields(editor: StepEditorProps) {
     const t = useTranslation();
     return (
         <FieldRow
-            label={t('mobile.flow.trigger.flowlet_inputs', 'Flowlet inputs')}
+            label={t('automations.trigger_editors.flowlet_inputs', 'Flowlet inputs')}
             hint={t('mobile.flow.trigger.flowlet_inputs_hint', 'Parameters this flowlet accepts. Inside the flowlet, pick them with Insert data, as Trigger ▸ <name>.')}
         >
             <ParamsDesigner

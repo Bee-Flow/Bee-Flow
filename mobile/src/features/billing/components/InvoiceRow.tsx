@@ -39,7 +39,7 @@ export function InvoiceRow({
                     {invoice.invoicePdf ? (
                         <Button
                             testID={`invoice-${invoice.id}-pdf`}
-                            label={t('mobile.billing.pdf', 'PDF')}
+                            label={t('automations.document_fields.pdf', 'PDF')}
                             variant="ghost"
                             size="sm"
                             iconName="Download"

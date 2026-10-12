@@ -390,7 +390,8 @@ function _guessProfile(id) {
         defaultEffort: (haiku || legacy3x) ? null : 'medium',
         // Only 4.6 and older accept sampling params — and only in the
         // opus/sonnet line. Haiku still accepts them.
-        temperature: (haiku || legacy3x) ? true : !(modern || fableLike),
+        // Haiku 5.x rejects them too (`temperature` is deprecated for this model).
+        temperature: legacy3x ? true : (haiku ? !gen5 : !(modern || fableLike)),
         vision: true,
         tools: true,
         // Forced tool choice was removed from Fable 5.1 on, and from Opus 5.5

@@ -13,6 +13,27 @@ const MISTRAL_OCR_URL = 'https://api.mistral.ai/v1/ocr';
 const MISTRAL_OCR_MODEL = 'mistral-ocr-latest';
 
 /**
+ * The Mistral credential, resolved explicitly (BFSF-388). `config.apiKey` is the
+ * DEFAULT LLM provider's key, whatever vendor that is, so it is only a Mistral
+ * key when the default provider IS Mistral. Using it otherwise would send the
+ * documents to api.mistral.ai together with another vendor's key. The explicit
+ * `mistral_api_key` secret (`mistralApiKey`) is always a Mistral key.
+ */
+function resolveMistralOcrKey(config) {
+    if (config.mistralOcrApiKey) return config.mistralOcrApiKey;
+    // The instance's own Mistral secret (voice, transcription and the Mistral
+    // provider read it too): a genuine Mistral key whatever the default provider is.
+    if (config.mistralApiKey) return config.mistralApiKey;
+    let host = '';
+    try { host = new URL(config.url || '').hostname; } catch { /* no usable url */ }
+    const defaultIsMistral = config.providerType
+        ? config.providerType === 'mistral'
+        : host === 'api.mistral.ai'; // legacy single-provider config has no type
+    if (defaultIsMistral && config.apiKey) return config.apiKey;
+    return process.env.MISTRAL_API_KEY || null;
+}
+
+/**
  * Extract text from PDFs/Images using Mistral's OCR API.
  * Returns markdown-formatted text content from the document.
  * 
@@ -24,7 +45,7 @@ const MISTRAL_OCR_MODEL = 'mistral-ocr-latest';
 async function mistralOCR(base64Data, mimeType, filename) {
     try {
         const config = await getAIConfig();
-        const mistralApiKey = config.mistralOcrApiKey || config.apiKey || process.env.MISTRAL_API_KEY;
+        const mistralApiKey = resolveMistralOcrKey(config);
         if (!mistralApiKey) {
             log.info('[MistralOCR] No Mistral OCR API key configured, skipping OCR');
             return null;
@@ -93,7 +114,7 @@ async function mistralOCR(base64Data, mimeType, filename) {
  */
 async function getMistralOCRApiKey() {
     const config = await getAIConfig();
-    return config.mistralOcrApiKey || config.apiKey || process.env.MISTRAL_API_KEY || null;
+    return resolveMistralOcrKey(config);
 }
 
 module.exports = {

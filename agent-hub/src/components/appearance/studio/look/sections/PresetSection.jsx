@@ -3,6 +3,7 @@ import React from 'react';
 import { THEME_PRESETS } from '../../../ThemeContext';
 import PresetCard from '../../shared/PresetCard';
 import { SECTION_IDS } from '../useLookForm';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 
 const PRESET_ICONS = {
     light: Sun,
@@ -29,14 +30,15 @@ const PRESET_HINTS = {
 };
 
 export default function PresetSection({ form, setForm, saving }) {
+    const { t } = useTranslation();
     return (
         <section
             id={SECTION_IDS.preset}
             aria-labelledby={`${SECTION_IDS.preset}-heading`}
         >
-            <SectionHeading id={`${SECTION_IDS.preset}-heading`}>Preset</SectionHeading>
+            <SectionHeading id={`${SECTION_IDS.preset}-heading`}>{t('appearance.preset_preset', 'Preset')}</SectionHeading>
             <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
-                Pick the base look. Everything below adjusts within it.
+                {t('appearance.preset_pick_the_base_look_everything_below', 'Pick the base look. Everything below adjusts within it.')}
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {THEME_PRESETS.map((p) => (

@@ -28,6 +28,7 @@ const useAgentHubActions = ({
     onNavigate,
     confirm,
     openAtLatest,
+    clearActiveProject,
 }) => {
     // --- Actions ---
 
@@ -36,6 +37,9 @@ const useAgentHubActions = ({
         setSelectedAgent(agent);
         setDesignMode(false);
         setDirectChatMode(false);
+        // A fresh chat with an agent is not in a project unless the caller
+        // sets one AFTER this call (the state updates are applied in order).
+        clearActiveProject();
 
         // Auto-start new chat — reset notebook only when switching agents
         setCurrentConversation({ id: null, title: 'New Chat', messages: [] });
@@ -79,6 +83,10 @@ const useAgentHubActions = ({
         setShowMarketplace(false);
         setShowProjectsStore(false);
         setActiveProjectId(null);
+        // A new chat is private until the person files it: the project that was
+        // the chat context a moment ago must not ride along. Callers that mean
+        // "new chat IN a project" set it after this call.
+        clearActiveProject();
         closeAllOverlays();
         scopedStorage.setItem('lastUsedMode', 'direct-chat');
         loadDirectConversations();
@@ -121,7 +129,8 @@ const useAgentHubActions = ({
 
     const handleDeleteDirectConversation = async (convId) => {
         try {
-            await authFetch(`${API_BASE}/ai/direct/conversations/${convId}`, { method: 'DELETE' });
+            const res = await authFetch(`${API_BASE}/ai/direct/conversations/${convId}`, { method: 'DELETE' });
+            if (res && res.ok === false) return false;
             setDirectConversations(prev => prev.filter(c => c.id !== convId));
             setAllAgentConversations(prev => prev.filter(c => c.id !== convId));
             if (currentDirectConversation?.id === convId) {
@@ -131,11 +140,13 @@ const useAgentHubActions = ({
                 setDirectActivatedSessionSkillIds([]);
                 setDirectChatKBIds([]);
             }
-        } catch (e) { console.error('Failed to delete direct conversation:', e); }
+            return true;
+        } catch (e) { console.error('Failed to delete direct conversation:', e); return false; }
     };
 
     const handleNewChat = () => {
         closeAllOverlays();
+        clearActiveProject();
         if (directChatMode) {
             setCurrentDirectConversation(null);
             setMessages([]);
@@ -183,20 +194,22 @@ const useAgentHubActions = ({
             agentId = agentId || selectedAgent?.id;
             if (!agentId) {
                 console.error('Delete failed: no agentId available');
-                return;
+                return false;
             }
             const res = await authFetch(`${API_BASE}/agents/${agentId}/conversations/${convId}`, { method: 'DELETE' });
             if (!res.ok) {
                 console.error('Delete failed with status:', res.status);
-                return;
+                return false;
             }
             setConversations(prev => prev.filter(c => c.id !== convId));
             setAllAgentConversations(prev => prev.filter(c => c.id !== convId));
             if (currentConversation?.id === convId) {
                 handleNewChat();
             }
+            return true;
         } catch (err) {
             console.error("Delete failed", err);
+            return false;
         }
     };
 

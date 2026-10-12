@@ -54,15 +54,15 @@ export default function RunStepTimeline({
     if (!rows.length) {
         return (
             <div className="px-3 py-4 text-[11px] text-[var(--text-tertiary)] italic">
-                No steps recorded for this run.
+                {t('studio_misc.steptimeline.none', 'No steps recorded for this run.')}
             </div>
         );
     }
 
     return (
-        <div className="h-full min-h-0 overflow-y-auto custom-scrollbar" role="list" aria-label="Steps">
+        <div className="h-full min-h-0 overflow-y-auto custom-scrollbar" role="list" aria-label={t('studio_misc.steptimeline.steps', 'Steps')}>
             <div className="px-3 py-2 text-[10px] uppercase tracking-wide font-semibold text-[var(--text-tertiary)] border-b border-[var(--border-default)] sticky top-0 bg-[var(--bg-primary)] z-10">
-                Steps
+                {t('studio_misc.steptimeline.steps', 'Steps')}
             </div>
             {rows.map((row, i) => {
                 const token = tokenForStep(row);
@@ -86,8 +86,8 @@ export default function RunStepTimeline({
                                 <span className="block text-xs font-medium text-[var(--text-primary)] truncate">{label}</span>
                                 <span className="block text-[10px] text-[var(--text-tertiary)]">
                                     {statusLabel(t, token)}
-                                    {row.durationMs != null && ` · took ${formatDuration(row.durationMs)}`}
-                                    {row.attempts > 1 && ` · attempt ${row.attempts} of ${row.attempts}`}
+                                    {row.durationMs != null && ` · ${t('studio_misc.steptimeline.took', 'took {duration}', { duration: formatDuration(row.durationMs) })}`}
+                                    {row.attempts > 1 && ` · ${t('studio_misc.steptimeline.attempt', 'attempt {n} of {total}', { n: row.attempts, total: row.attempts })}`}
                                 </span>
                                 {/* The classifier's plain title when there is one;
                                     the raw message stays in the hover. */}
@@ -98,7 +98,7 @@ export default function RunStepTimeline({
                         </button>
                         {i === stopIndex && (
                             <div className="px-3 py-1.5 text-[10px] text-[var(--error-ink)] border-b border-[var(--border-subtle,var(--border-default))] bg-[color-mix(in_srgb,var(--error)_5%,transparent)]">
-                                This is where it stopped. Nothing ran after this point.
+                                {t('studio_misc.steptimeline.stopped_here', 'This is where it stopped. Nothing ran after this point.')}
                             </div>
                         )}
                     </React.Fragment>

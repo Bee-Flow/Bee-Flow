@@ -22,6 +22,7 @@ const { checkAiStep, checkDataExtraction } = require('./modelStepRules');
 const { checkCondition, checkBranchWiring, checkPrivacyScan, checkSwitch } = require('./branchingRules');
 const { checkLoop, checkParallel, checkForEach, checkCollectionOps } = require('./iterationRules');
 const { checkTopics } = require('./topicRules');
+const { checkRoutes } = require('./routeRules');
 const { checkCode, checkLayerOutput, checkSet, checkParseJson, checkDatetime } = require('./dataShapingRules');
 const { checkGenerateDocument, checkFillDocument, checkSlide, checkPresentation } = require('./documentRules');
 const { checkKnowledgeWrite, checkDatatable } = require('./persistenceRules');
@@ -117,6 +118,7 @@ function createStepChecker({
         checkPresentation(ctx, step, at);
         checkDataExtraction(ctx, step, at);
         checkSwitch(ctx, step, at);
+        checkRoutes(ctx, step, at);
         checkCollectionOps(ctx, step, at);
         checkTopics(ctx, step, at);
         checkAskOnce(ctx, step, at);

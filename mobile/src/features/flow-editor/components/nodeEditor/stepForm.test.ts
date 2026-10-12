@@ -1,9 +1,10 @@
 import type { FlowNode } from '@/features/flow-editor/bindings';
 import { buildPatch, extractFormState } from '@/features/flow-editor/formState';
-import type { FlowDefinition } from '@/features/flow-editor/model';
+import type { FlowDefinition, Route } from '@/features/flow-editor/model';
 import { findNode } from '@/features/flow-editor/model/outline';
 
 import { formWriteOp, patchWriteOp, stepChanged, writeStepPatch } from './stepForm';
+import { workThroughList } from '../editors/route/routeSourceEdits';
 
 const FORM = { extract: extractFormState, patch: buildPatch };
 
@@ -69,6 +70,34 @@ describe('writeStepPatch', () => {
     it('keeps both connections when the shield keeps branching', () => {
         const next = writeStepPatch(def(), 'g', { onFound: { tokenize: true } });
         expect(next.edges.filter((e) => e.from === 'g')).toHaveLength(2);
+    });
+});
+
+describe('Check each item instead (BFSF-485 F4)', () => {
+    const RESULTS = 'steps.s.output.results';
+    const wholeRun = (): FlowDefinition =>
+        ({
+            trigger: { id: 'trg', type: 'trigger', kind: 'manual' },
+            steps: [
+                { id: 's', type: 'integration_action', label: 'Search' },
+                { id: 'c', type: 'condition', label: 'Condition', expr: `contains(${RESULTS}[*].title, "invoice")` },
+                { id: 't', type: 'integration_action', label: 'Read', forEach: { overRef: RESULTS, itemVar: 'r' } },
+            ],
+            edges: [
+                { from: 'trg', to: 's' },
+                { from: 's', to: 'c' },
+                { from: 'c', to: 't', label: 'then' },
+            ],
+        }) as unknown as FlowDefinition;
+
+    it('converts in one write and re-points the loop after it to what passes', () => {
+        const d = wholeRun();
+        const base = extractFormState(findNode(d, 'c') as FlowNode);
+        const route = base.route as Route;
+        const draft = { ...base, route: { ...route, ...workThroughList(route.rules, RESULTS) } };
+        const next = formWriteOp('c', draft, FORM)(d);
+        expect(findNode(next, 'c')).toMatchObject({ type: 'filter', arrayRef: RESULTS });
+        expect(findNode(next, 't')?.forEach).toEqual({ overRef: 'steps.c.output.items', itemVar: 'r' });
     });
 });
 

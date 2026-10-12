@@ -149,9 +149,18 @@ describe('overlayGroupWithReal', () => {
         ],
     };
 
-    it('keeps curated fields whose paths regeneration does not cover', () => {
+    it('keeps a curated field the real output has, once', () => {
+        const out = overlayGroupWithReal(group, { results: ROWS, matchesByCase: { vip: [] } });
+        expect(out.fields.filter(f => f.path === 'steps.s1.output.matchesByCase.vip')).toHaveLength(0);
+        const all = [];
+        const walk = (fs) => fs.forEach(f => { all.push(f.path); walk(f.children || []); });
+        walk(out.fields);
+        expect(all.filter(p => p === 'steps.s1.output.matchesByCase.vip')).toHaveLength(1);
+    });
+
+    it('drops a curated field the real output does not have (a guess is not data)', () => {
         const out = overlayGroupWithReal(group, { results: ROWS });
-        expect(out.fields.some(f => f.path === 'steps.s1.output.matchesByCase.vip')).toBe(true);
+        expect(out.fields.some(f => f.path === 'steps.s1.output.matchesByCase.vip')).toBe(false);
     });
 
     it('reuses real row references (no cloning of big outputs)', () => {
@@ -161,5 +170,30 @@ describe('overlayGroupWithReal', () => {
 
     it('undefined real output is a no-op', () => {
         expect(overlayGroupWithReal(group, undefined)).toBe(group);
+    });
+});
+
+describe('a Code step with real output', () => {
+    const group = { id: 'c1', label: 'Test data', kind: 'code', basePath: 'steps.c1.output', sample: { result: null }, fields: [{ key: 'result', path: 'steps.c1.output.result', sample: null }] };
+
+    it('offers the fields of what the code returned, not the envelope, also after a dry run', () => {
+        const out = { result: { subject: 'Hi', tags: ['a'], lines: [{ sku: 'A1' }] }, logs: [], httpCalls: 0, _dryRun: true, wouldHaveCalled: [] };
+        const g = overlayGroupWithReal(group, out);
+        expect(g.fields.map(f => f.path)).toEqual(['steps.c1.output.result.subject', 'steps.c1.output.result.tags', 'steps.c1.output.result.lines']);
+        expect(g.fields[2].children.map(c => c.path)).toEqual(['steps.c1.output.result.lines[*].sku']);
+    });
+
+    // The paths a flowlet's Return binds to a "Format Output" code step. The
+    // server runs these exact paths (automationRunner.flowlets.test.js).
+    it('offers a returned { count, tickets } at output.result.count / output.result.tickets', () => {
+        const fmt = { ...group, id: 'fmt', basePath: 'steps.fmt.output', fields: [{ key: 'result', path: 'steps.fmt.output.result', sample: null }] };
+        const tickets = Array.from({ length: 15 }, (_, i) => ({ id: i, description: `Ticket ${i}` }));
+        const g = overlayGroupWithReal(fmt, { result: { count: 15, tickets }, logs: [], httpCalls: 0 });
+        expect(g.fields.map(f => f.path)).toEqual(['steps.fmt.output.result.count', 'steps.fmt.output.result.tickets']);
+    });
+
+    it('keeps one `result` field when the code returned a list or a value', () => {
+        expect(overlayGroupWithReal(group, { result: [1, 2], logs: [], httpCalls: 0 }).fields).toEqual([{ key: 'result', path: 'steps.c1.output.result', sample: [1, 2] }]);
+        expect(overlayGroupWithReal(group, { result: 'ok', logs: [] }).fields[0].sample).toBe('ok');
     });
 });

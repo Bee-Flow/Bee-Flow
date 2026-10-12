@@ -34,13 +34,54 @@ const SAME_AS_ENGLISH = new Set([
     'shield_shell.summary_tools_open',
 ]);
 
+/**
+ * English keys retired AFTER this migration shipped. The migration has run on
+ * every existing install, so its Dutch rows for these keys stay (stored and
+ * never read); editing an applied migration to drop them would only make
+ * fresh installs differ from old ones. Declared here rather than read from
+ * i18n/defaults/removed-keys.txt, whose lines may be cleaned up once the
+ * removal is merged.
+ */
+const RETIRED_SINCE = new Set([
+    // Privacy Shield (2026-10): steps 3 and 4 became two panes, so the flow
+    // drawing above the two cards, the strip's PATH caption and the noun in
+    // the step 1 read-out went.
+    'shield_shell.path_label',
+    'shield_shell.summary_kinds',
+    'shield_checks.flow_label',
+    'shield_checks.flow_look',
+    'shield_checks.flow_kinds',
+    'shield_checks.flow_every',
+    'shield_checks.flow_unlicensed',
+    'shield_checks.flow_inside',
+    'shield_checks.flow_done',
+    'shield_checks.flow_outside',
+    'shield_checks.flow_off',
+    'shield_checks.flow_on',
+    'shield_checks.flow_tools_skip',
+    'shield_checks.flow_tools_follow',
+    'shield_checks.tools_gap_after_count',
+    'shield_checks.tools_gap_no_count',
+    // Privacy Shield "What happened" (2026-10): the map leads the pane; the
+    // prose paragraph and the sentence under the period went.
+    'shield_activity.in_short_passed',
+    'shield_activity.in_short_passed_one',
+    'shield_activity.in_short_sentence',
+    'shield_activity.in_short_sentence_no_tool',
+    'shield_activity.in_short_sentence_plain',
+    'shield_activity.in_short_unchecked',
+    'shield_activity.in_short_unchecked_one',
+    'shield_activity.subtitle',
+]);
+
 test('every Dutch key exists in the English catalog', () => {
-    const orphans = Object.keys(NL_TRANSLATIONS).filter(k => !(k in GUI_DEFAULTS));
+    const orphans = Object.keys(NL_TRANSLATIONS).filter(k => !(k in GUI_DEFAULTS) && !RETIRED_SINCE.has(k));
     assert.deepStrictEqual(orphans, [], 'these Dutch keys have no English counterpart');
 });
 
 test('no Dutch value is blank or the English one copied over', () => {
     for (const [k, v] of Object.entries(NL_TRANSLATIONS)) {
+        if (RETIRED_SINCE.has(k)) continue;
         assert.ok(String(v || '').trim(), `${k} has no Dutch value`);
         assert.notStrictEqual(v, GUI_DEFAULTS[k], `${k} was never translated; if it really is the same word, move it to SAME_AS_ENGLISH`);
     }
@@ -49,6 +90,7 @@ test('no Dutch value is blank or the English one copied over', () => {
 test('every interpolation placeholder survives translation', () => {
     const names = (s) => [...String(s).matchAll(/\{(\w+)\}/g)].map(m => m[1]).sort();
     for (const [k, nl] of Object.entries(NL_TRANSLATIONS)) {
+        if (RETIRED_SINCE.has(k)) continue;
         assert.deepStrictEqual(names(nl), names(GUI_DEFAULTS[k] || ''), `${k}: the Dutch does not carry the same {placeholders}`);
     }
 });

@@ -195,6 +195,8 @@
             { "id": "agg2", "type": "aggregate", "arrayRef": "steps.search.output.results" },
             { "id": "sum", "type": "summarize", "op": "avg" },
             { "id": "sum2", "type": "summarize" },
+            { "id": "mf_flatten", "type": "flatten", "label": "One row per attachment", "arrayRef": "steps.g_read_many.output.messages[*].attachments", "parents": [{ "overRef": "steps.g_read_many.output.messages", "itemVar": "message", "auto": true, "fields": [{ "from": "id", "to": "messageId", "mode": "fill" }, { "from": "threadId", "to": "threadId", "mode": "fill" }, { "from": "from", "to": "from", "mode": "copy" }, { "from": "to", "to": "to", "mode": "copy" }, { "from": "subject", "to": "subject", "mode": "copy" }, { "from": "date", "to": "date", "mode": "copy" }] }] },
+            { "id": "flatBlank", "type": "flatten", "arrayRef": "" },
             { "id": "dtable", "type": "datatable", "datatableId": "dt1", "op": "find_rows" },
             { "id": "dtable2", "type": "datatable", "datatableId": "dt1", "op": "upsert" },
             { "id": "dtable3", "type": "datatable", "datatableId": "dt2", "op": "count_rows" },

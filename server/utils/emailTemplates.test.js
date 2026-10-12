@@ -92,6 +92,16 @@ const ok = (cond, msg) => { assert.ok(cond, msg); passed++; };
     ok(effEn2.subject === 'Custom EN subject', 'en override honoured');
     ok(effEn2.title === EMAIL_TEMPLATE_DEFAULTS.welcome.title, 'en non-overridden field = default');
 
+    // ── project_collab: built-in nl defaults apply, an admin override wins per field ──
+    const collabNl = await languageStore.getEffectiveEmailTemplate('project_collab', 'nl');
+    assert.deepStrictEqual(collabNl, getDefaultEmailTemplate('project_collab', 'nl'), 'nl project_collab = built-in nl defaults');
+    passed++;
+    ok(collabNl.ctaLabel === 'Openen in Bee Flow', 'nl ctaLabel is Dutch');
+    await languageStore.setEmailTemplate('nl', 'project_collab', { ctaLabel: 'Naar het project' });
+    const collabNl2 = await languageStore.getEffectiveEmailTemplate('project_collab', 'nl');
+    ok(collabNl2.ctaLabel === 'Naar het project', 'admin override wins');
+    ok(collabNl2.subject === collabNl.subject, 'non-overridden field keeps the nl default');
+
     // ── deleteLocale wipes email overrides ──────────────────────────────
     await languageStore.deleteLocale('nl');
     const afterDel = await languageStore.getAllEmailTemplates('nl');

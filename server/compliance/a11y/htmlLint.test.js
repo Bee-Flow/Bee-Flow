@@ -241,7 +241,7 @@ test('duplicate-id: repeated ids warn once per id with the multiplicity', () => 
     const f = rule(r, 'duplicate-id');
     assert.equal(f.count, 1);
     assert.match(f.samples[0], /id="x" ×3/);
-    assert.equal(f.wcag, '4.1.1');
+    assert.equal(f.wcag, '4.1.2', 'SC 4.1.1 Parsing is obsolete; a duplicate id breaks 4.1.2 references');
 });
 
 test('tabindex-positive: only positive values warn', () => {

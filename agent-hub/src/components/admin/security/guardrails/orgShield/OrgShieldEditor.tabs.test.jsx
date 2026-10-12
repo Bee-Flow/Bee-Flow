@@ -106,7 +106,7 @@ describe('OrgShieldEditor tabs', () => {
         await renderEditor();
         // SHIELD has one category of 21 at the Balanced level, action
         // 'block', no last check and no kind held back from outside tools.
-        expect(screen.getByRole('tab', { name: /What we look for/ }).textContent).toContain('1 of 21 kinds · Balanced');
+        expect(screen.getByRole('tab', { name: /What we look for/ }).textContent).toContain('1 of 21 · Balanced');
         expect(screen.getByRole('tab', { name: /When we find something/ }).textContent).toContain('stopped');
         expect(screen.getByRole('tab', { name: /Leaving your org/ }).textContent).toContain('no last check · tools open');
         // The optional last check is the one thing on the review list.
@@ -130,7 +130,7 @@ describe('OrgShieldEditor tabs', () => {
             return ok({});
         });
         await renderEditor();
-        expect(screen.getByRole('tab', { name: /What we look for/ }).textContent).toContain('1 of 21 kinds');
+        expect(screen.getByRole('tab', { name: /What we look for/ }).textContent).toContain('1 of 21 ·');
         expect(screen.getByRole('tab', { name: /Your own data/ }).textContent).toContain('1 type');
     });
 
@@ -158,7 +158,7 @@ describe('OrgShieldEditor tabs', () => {
             return ok({});
         });
         await renderEditor();
-        expect(screen.getByRole('tab', { name: /What we look for/ }).textContent).toContain('0 of 21 kinds');
+        expect(screen.getByRole('tab', { name: /What we look for/ }).textContent).toContain('0 of 21');
         expect(screen.getByRole('tab', { name: /Overview/ }).textContent).toMatch(/2 to review/);
     });
 
@@ -287,12 +287,17 @@ describe('OrgShieldEditor tabs', () => {
         expect(screen.getByRole('radio', { name: /Balanced/ })).toBeInTheDocument();
         expect(screen.queryByText('When we find personal data')).toBeNull();
 
+        // Steps 3 and 4 are two panes: each shows its own card only. They
+        // used to share one pane, which made ?tab=processing and
+        // ?tab=outbound the same screen.
         await user.click(screen.getByRole('tab', { name: /When we find something/ }));
         expect(screen.getByText('When we find personal data')).toBeInTheDocument();
         expect(screen.queryByRole('radio', { name: /Balanced/ })).toBeNull();
+        expect(screen.queryByText('One last check before an outside AI')).toBeNull();
 
         await user.click(screen.getByRole('tab', { name: /Leaving your org/ }));
         expect(screen.getByText('One last check before an outside AI')).toBeInTheDocument();
+        expect(screen.queryByText('When we find personal data')).toBeNull();
     });
 
     it('disables the control tabs while the shield is off', async () => {

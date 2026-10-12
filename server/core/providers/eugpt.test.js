@@ -51,7 +51,7 @@ test('posts to /v1/responses, never /chat/completions', async (t) => {
         return new Response(JSON.stringify({ id: 'r1', status: 'completed', model: 'gpt-oss-120b', output: [], output_text: 'Hoi' }), { status: 200 });
     });
     const res = await eugpt.chat('eugpt_k', EUGPT_BASE_URL, EUGPT_MODEL_ID, [{ role: 'user', content: 'Hallo' }]);
-    assert.deepStrictEqual(urls, ['https://chat.eugpt.ai/v1/responses']);
+    assert.deepStrictEqual(urls, ['https://api.eugpt.ai/v1/responses']);
     assert.strictEqual(res.content, 'Hoi');
     assert.strictEqual(res.servedModel, 'gpt-oss-120b');
 });
@@ -306,7 +306,7 @@ test('lists the routed model once the key checks out', async (t) => {
         return new Response(JSON.stringify({ object: 'list', data: [] }), { status: 200 });
     });
     const models = await eugpt.listModels('eugpt_abc', EUGPT_BASE_URL);
-    assert.deepStrictEqual(urls, [['https://chat.eugpt.ai/v1/files?limit=1', 'Bearer eugpt_abc']]);
+    assert.deepStrictEqual(urls, [['https://api.eugpt.ai/v1/files?limit=1', 'Bearer eugpt_abc']]);
     assert.deepStrictEqual(models, [describeEuGptModel()]);
     assert.strictEqual(models[0].id, 'eugpt-auto');
     assert.strictEqual(models[0].eugpt, true);

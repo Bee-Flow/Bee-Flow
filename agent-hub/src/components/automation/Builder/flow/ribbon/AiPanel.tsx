@@ -1,5 +1,6 @@
 import { Bot, Zap } from 'lucide-react';
 import useTranslation from '../../../../../hooks/useTranslation';
+import { nativeAppPills } from './AppCommands';
 import type { OpenState } from './AppCommands';
 import { planPills } from './CommandsPanel';
 import { DropdownPill } from './MenuPanel';
@@ -9,7 +10,7 @@ import { resultRow } from './menuRows';
 import { planRow } from './ribbonRows';
 import { agentResult, skillResult } from './ribbonSearch';
 import type { AgentRow, SkillRow } from './ribbonSearch';
-import type { PaletteItem, StepPayload } from './ribbonCategories';
+import type { PaletteItem, RibbonApp, StepPayload } from './ribbonCategories';
 
 type AddFn = (payload: StepPayload) => void;
 
@@ -18,6 +19,8 @@ interface AiPanelProps extends OpenState {
     /** null: the list could not be read, which is not the same as none. */
     agents: AgentRow[] | null;
     skills: SkillRow[];
+    /** Bee Flow's own AI tools (web search, memory, transcription, ...), after the agents and skills. */
+    apps?: RibbonApp[];
     enabled: boolean;
     onAdd: AddFn;
 }
@@ -29,9 +32,10 @@ const AI_ORIGIN = 'section:ai';
  * agent" and "Apply a skill" list the org's agents and skills. Every row in
  * those lists drags straight onto the canvas: an agent lands as an AI step
  * with `agentId`, a skill as one with `skillIds: [id]`. An agent that cannot
- * be used stays in the list with its reason.
+ * be used stays in the list with its reason. Bee Flow's own AI tools (web
+ * search, memory, transcription, image and video) close the row.
  */
-export default function AiPanel({ items, agents, skills, enabled, onAdd, openKey, setOpenKey }: AiPanelProps) {
+export default function AiPanel({ items, agents, skills, apps = [], enabled, onAdd, openKey, setOpenKey }: AiPanelProps) {
     const { t } = useTranslation();
     const open = { openKey, setOpenKey };
     const title = t('automations.ribbon.cat_ai', 'AI');
@@ -90,9 +94,11 @@ export default function AiPanel({ items, agents, skills, enabled, onAdd, openKey
         },
     ];
 
+    const tools = nativeAppPills(apps, title, { onAdd, t, ...open });
+
     return (
         <PillRow
-            segments={[...planPills(planRow(items, 'ai', AI_ORIGIN, t), title, onAdd, open), lists]}
+            segments={[...planPills(planRow(items, 'ai', AI_ORIGIN, t), title, onAdd, open), lists, ...(tools.length > 0 ? [tools] : [])]}
             testId="ribbon-ai"
             enabled={enabled}
             onAdd={onAdd}

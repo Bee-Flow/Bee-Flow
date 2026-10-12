@@ -65,17 +65,20 @@ describe('CoworkModeSwitch — what it renders', () => {
         expect(coworkTab()).toHaveAttribute('title', 'Runs on its own — now or on a schedule');
     });
 
-    it('wrat: every label and hint is hardcoded English, not run through t()', () => {
-        // The component imports no translation hook at all, so a Dutch UI gets
-        // "Chat"/"Cowork" and an English hint next to translated chrome.
+    it('the labels are the mode names in every language; the hints and the list label go through t()', () => {
+        // Fixed 2026-10 (it was pinned here as a wart): the hints and the
+        // tablist label have keys, so a Dutch UI no longer shows an English
+        // hint next to translated chrome. "Chat" and "Cowork" are names.
         renderSwitch();
         expect(chatTab().textContent).toBe('Chat');
         expect(coworkTab().textContent).toBe('Cowork');
         expect(coworkTab().getAttribute('title')).toBe('Runs on its own — now or on a schedule');
         // The strings alone do not pin this — t('k', 'Chat') renders "Chat"
-        // too. The wart is that no translation hook is imported at all.
-        expect(SWITCH_SOURCE).not.toMatch(/useTranslation/);
-        expect(SWITCH_SOURCE).not.toMatch(/\bt\(['"`]/);
+        // too — so the module is read: every hint and the label carry a key.
+        expect(SWITCH_SOURCE).toMatch(/useTranslation/);
+        expect(SWITCH_SOURCE).toMatch(/hintKey: 'cowork\.mode_hint_chat'/);
+        expect(SWITCH_SOURCE).toMatch(/hintKey: 'cowork\.mode_hint_cowork'/);
+        expect(SWITCH_SOURCE).toMatch(/t\('cowork\.mode_switch_label'/);
     });
 
     it('appends the caller\'s className to the wrapper', () => {

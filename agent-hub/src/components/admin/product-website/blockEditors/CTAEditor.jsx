@@ -2,34 +2,36 @@ import React from 'react';
 import { TextField, Toggle } from '../fields';
 import { InlineHint, CollapsibleCard, BackgroundCard } from '../primitives';
 import { set, CtaButtonField } from './shared';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 // ── CTA ───────────────────────────────────────────────────────────────
 
 export function CTAEditor({ data = {}, pages = [], onChange }) {
+    const { t } = useTranslation();
     const button = data.button || {};
     const hasSecondary = !!data.secondaryCta;
     return (
         <>
-            <InlineHint>Title, lead, and button label are editable in the preview.</InlineHint>
+            <InlineHint>{t('cms_site.blocks.cta.title_lead_and_button_label_are', 'Title, lead, and button label are editable in the preview.')}</InlineHint>
             <Toggle
-                label="Hexagon motif backdrop"
+                label={t('cms_site.blocks.cta.hexagon_motif_backdrop', 'Hexagon motif backdrop')}
                 value={data.showMotif !== false}
                 onChange={v => onChange(set(data, 'showMotif', v))}
             />
-            <CollapsibleCard title="Text" defaultOpen={true} persistKey="blk.cta.text">
+            <CollapsibleCard title={t('cms_site.blocks.cta.text', 'Text')} defaultOpen={true} persistKey="blk.cta.text">
                 <TextField
-                    label="Title"
+                    label={t('cms_site.blocks.cta.title', 'Title')}
                     value={data.title || ''}
                     onChange={v => onChange(set(data, 'title', v))}
-                    placeholder="Call to action title"
+                    placeholder={t('cms_site.blocks.cta.call_to_action_title', 'Call to action title')}
                     align={data.titleAlign || data.align || 'left'}
                     onAlignChange={v => onChange(set(data, 'titleAlign', v))}
                 />
                 <TextField
-                    label="Lead"
+                    label={t('cms_site.blocks.cta.lead', 'Lead')}
                     value={data.lead || ''}
                     onChange={v => onChange(set(data, 'lead', v))}
-                    placeholder="Supporting line"
+                    placeholder={t('cms_site.blocks.cta.supporting_line', 'Supporting line')}
                     align={data.leadAlign || data.align || 'left'}
                     onAlignChange={v => onChange(set(data, 'leadAlign', v))}
                 />
@@ -38,11 +40,11 @@ export function CTAEditor({ data = {}, pages = [], onChange }) {
                 value={button}
                 pages={pages}
                 onChange={v => onChange(set(data, 'button', v))}
-                label="Button"
+                label={t('cms_site.blocks.cta.button', 'Button')}
             />
-            <CollapsibleCard title="Secondary button (ghost)" persistKey="blk.cta.secondary">
+            <CollapsibleCard title={t('cms_site.blocks.cta.secondary_button_ghost', 'Secondary button (ghost)')} persistKey="blk.cta.secondary">
                 <Toggle
-                    label="Show secondary button"
+                    label={t('cms_site.blocks.cta.show_secondary_button', 'Show secondary button')}
                     value={hasSecondary}
                     onChange={v => onChange(set(data, 'secondaryCta',
                         v ? { label: 'Learn more', link: { kind: 'anchor', anchor: '' } } : null))}
@@ -52,7 +54,7 @@ export function CTAEditor({ data = {}, pages = [], onChange }) {
                         value={data.secondaryCta}
                         pages={pages}
                         onChange={v => onChange(set(data, 'secondaryCta', v))}
-                        label="Secondary button"
+                        label={t('cms_site.blocks.cta.secondary_button', 'Secondary button')}
                     />
                 ) : null}
             </CollapsibleCard>

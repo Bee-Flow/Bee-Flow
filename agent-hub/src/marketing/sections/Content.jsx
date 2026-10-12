@@ -2,6 +2,7 @@ import React from 'react';
 import Button from '../components/Button';
 import EditableText from '../components/EditableText';
 import FramedMedia from '../components/FramedMedia';
+import ClipVideo from '../components/ClipVideo';
 import SectionFrame from '../components/SectionFrame';
 import { migrateLegacyContent, resolveVideoEmbed } from './contentMigration';
 import { inlineTextStyle } from './textStyle';
@@ -277,12 +278,15 @@ function ImageElement({ el, pathBase, fullWidth }) {
 
 function VideoElement({ el, pathBase }) {
     const ratio = ['16/9', '4/3', '1/1'].includes(el.aspectRatio) ? el.aspectRatio : '16/9';
-    const embed = resolveVideoEmbed(el.url);
+    const embed = el.source === 'clip' ? null : resolveVideoEmbed(el.url);
     // Anything that isn't a recognised YouTube/Vimeo URL but is still a
     // non-empty URL is treated as a self-hosted file (the editor's "Upload
     // file" source writes the asset URL into el.url). Rendered as a muted
     // autoplay loop to match the Media + Text 'video-silent' affordance.
     const hasUrl = typeof el.url === 'string' && el.url.trim() !== '';
+    // source 'clip' = a self-hosted demo clip WITH sound and controls, not the
+    // muted loop above.
+    const isClip = el.source === 'clip';
     return (
         <figure className="content-el content-el-video">
             <div className="content-el-video-wrap" style={{ aspectRatio: ratio }}>
@@ -293,6 +297,8 @@ function VideoElement({ el, pathBase }) {
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                         allowFullScreen
                     />
+                ) : isClip && hasUrl ? (
+                    <ClipVideo media={{ ...el, src: el.url }} />
                 ) : hasUrl ? (
                     <video
                         src={el.url}

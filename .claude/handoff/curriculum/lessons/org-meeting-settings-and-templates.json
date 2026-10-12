@@ -22,7 +22,7 @@
    "id": "where",
    "icon": "🧱",
    "title": "Two screens, and what hides them",
-   "bodyMd": "**Settings → Organisation → Nextcloud Sync** carries the panel **\"Talk Meeting Notes\"**, under the Nextcloud sync settings. Its own description says it plainly: *\"These org settings override each member's personal settings.\"* The **Nextcloud Sync** entry itself only appears when your organisation is bound to a Nextcloud, so without that connection you will not find the panel at all.\n\n**Settings → Organisation → Meeting templates** carries **\"Organization summary templates\"**. Without the Organisation Admin role the request comes back as *\"Org admin required\"* and the panel silently disappears rather than showing an error.\n\nMembers have their own copy of the recording switches under **Settings → Preferences → \"Nextcloud Talk Meeting Notes\"**. Yours outranks theirs."
+   "bodyMd": "**Settings → Organisation → Nextcloud Sync** carries the panel **\"Talk Meeting Notes\"**, under the Nextcloud sync settings. Its own description says it plainly: *\"These org settings override each member's personal settings.\"* The **Nextcloud Sync** entry itself only appears when your organisation is bound to a Nextcloud, so without that connection you will not find the panel at all.\n\n**Settings → Organisation → Meeting Templates** carries **\"Organization summary templates\"**. Without the Organisation Admin role the request comes back as *\"Org admin required\"* and the panel silently disappears rather than showing an error.\n\nMembers have their own copy of the recording switches under **Settings → Preferences → \"Nextcloud Talk Meeting Notes\"**. Yours outranks theirs."
   },
   {
    "type": "slide",
@@ -117,7 +117,7 @@
    "id": "templates",
    "icon": "📄",
    "title": "Organization summary templates",
-   "bodyMd": "**Settings → Organisation → Meeting templates** opens **\"Organization summary templates\"**: *\"Add Meeting Notes summary styles for your whole organization or a specific group. Members pick them from the Regenerate menu; a default is applied to new meetings automatically.\"* Empty, it reads *\"No organization or group templates yet.\"*\n\nEach row shows the template name, a **Default** badge when it is the default, and its scope — **Whole organization** or the group's name; this panel lists the organisation's and its groups' templates, never anyone's personal ones. **New template…** opens the editor: **Name**, **Start from a built-in (optional)**, **Prompt** (the instructions the AI follows), **Visible to**, **Group** when you chose a group, and the tick **Use as the default for new meetings**. Name is capped at 120 characters, the prompt at 20 000."
+   "bodyMd": "**Settings → Organisation → Meeting Templates** opens **\"Organization summary templates\"**: *\"Add Meeting Notes summary styles for your whole organization or a specific group. Members pick them from the Regenerate menu; a default is applied to new meetings automatically.\"* Empty, it reads *\"No organization or group templates yet.\"*\n\nEach row shows the template name, a **Default** badge when it is the default, and its scope — **Whole organization** or the group's name; this panel lists the organisation's and its groups' templates, never anyone's personal ones. **New template…** opens the editor: **Name**, **Start from a built-in (optional)**, **Prompt** (the instructions the AI follows), **Visible to**, **Group** when you chose a group, and the tick **Use as the default for new meetings**. Name is capped at 120 characters, the prompt at 20 000."
   },
   {
    "type": "quiz",
@@ -156,7 +156,7 @@
    "id": "wrong",
    "icon": "🚧",
    "title": "What goes wrong, and how you notice",
-   "bodyMd": "- **The scope is wrong.** The editor states *\"Scope can't be changed after creation.\"* A template saved as **Just me** never reaches colleagues; the only fix is a new one at the right scope and **Delete** on the old.\n- **You saved the panel to look at it.** Every row on Talk Meeting Notes is now the organisation's answer. Put the row back the way members had it and Save.\n- **The Meeting templates panel is not there.** Either the account is not an Organisation Admin, or the workspace has no Meeting Notes licence — the panel hides itself rather than complaining.\n- **Old notes did not change.** A default is applied to **new** meetings. Existing notes keep their style until someone regenerates them.\n- **Recordings pile up but no notes appear.** Auto-record is on, auto-transcribe is not."
+   "bodyMd": "- **The scope is wrong.** The editor states *\"Scope can't be changed after creation.\"* A template saved as **Just me** never reaches colleagues; the only fix is a new one at the right scope and **Delete** on the old.\n- **You saved the panel to look at it.** Every row on Talk Meeting Notes is now the organisation's answer. Put the row back the way members had it and Save.\n- **The Meeting Templates panel is not there.** Either the account is not an Organisation Admin, or the workspace has no Meeting Notes licence — the panel hides itself rather than complaining.\n- **Old notes did not change.** A default is applied to **new** meetings. Existing notes keep their style until someone regenerates them.\n- **Recordings pile up but no notes appear.** Auto-record is on, auto-transcribe is not."
   },
   {
    "type": "quiz",
@@ -205,7 +205,7 @@
      },
      {
       "id": "tpl",
-      "label": "Under Meeting templates, add the style at Whole organization scope and tick \"Use as the default for new meetings\"."
+      "label": "Under Meeting Templates, add the style at Whole organization scope and tick \"Use as the default for new meetings\"."
      },
      {
       "id": "toggles",
@@ -236,10 +236,10 @@
    "icon": "🏗️",
    "checkId": "org-summary-template",
    "title": "Publish your organisation's house style",
-   "instruction": "Open Meeting templates and click New template…. Give it a name your colleagues will recognise, optionally start from a built-in, and write the Prompt as instructions: the sections you want, the tone, and what to leave out. Set Visible to = Whole organization (or Specific group plus the Group), and tick Use as the default for new meetings only if every new note should arrive in this shape. Save template — we then check that your organisation has a template.",
+   "instruction": "Open Meeting Templates and click New template…. Give it a name your colleagues will recognise, optionally start from a built-in, and write the Prompt as instructions: the sections you want, the tone, and what to leave out. Set Visible to = Whole organization (or Specific group plus the Group), and tick Use as the default for new meetings only if every new note should arrive in this shape. Save template — we then check that your organisation has a template.",
    "launch": {
     "navigateTo": "settings/organisation/meeting-templates",
-    "label": "Open Meeting templates"
+    "label": "Open Meeting Templates"
    }
   },
   {
@@ -258,7 +258,7 @@
    "Its rows are Auto-record Talk meetings (Which calls: Calendar meetings or Any moderated call; Recording quality: Audio-only or Video), Auto-transcribe Talk recordings, Post summary back into Talk, Recordings folder, Per-person meeting insights and Default language.",
    "Auto-record and auto-transcribe are off by default, the recordings folder defaults to /Talk/Recording and the default language is Dutch.",
    "Per-person meeting insights is on by default and has no personal counterpart; off means members see only meeting-level metrics and a note's Insights tab reads \"Per-person statistics are disabled by your organization.\"",
-   "Settings → Organisation → Meeting templates shows \"Organization summary templates\"; rows carry the template name, a Default badge and the scope label Whole organization or the group's name (the panel lists only org- and group-scoped templates), and New template… opens the editor.",
+   "Settings → Organisation → Meeting Templates shows \"Organization summary templates\"; rows carry the template name, a Default badge and the scope label Whole organization or the group's name (the panel lists only org- and group-scoped templates), and New template… opens the editor.",
    "The template editor has Name, Start from a built-in (optional), Prompt, Visible to, Group and \"Use as the default for new meetings\", and warns that \"Scope can't be changed after creation.\"",
    "A template name is capped at 120 characters and its prompt at 20 000, and there can be at most one default per person, per group and per organisation.",
    "A personal default template beats a group default, which beats the organisation default, and a default is applied to new meetings only — existing notes keep their style until someone regenerates them."
@@ -269,7 +269,7 @@
    "checkId": "org-summary-template",
    "existing": false,
    "label": "Publish an organisation or group summary template",
-   "hint": "Settings → Organisation → Meeting templates → New template…: fill in Name and Prompt, set Visible to = Whole organization (or Specific group plus a Group), then Save template.",
+   "hint": "Settings → Organisation → Meeting Templates → New template…: fill in Name and Prompt, set Visible to = Whole organization (or Specific group plus a Group), then Save template.",
    "endpoints": [
     {
      "method": "GET",

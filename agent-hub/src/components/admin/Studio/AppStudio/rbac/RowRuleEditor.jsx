@@ -5,6 +5,7 @@ import RowRuleBuilder from './RowRuleBuilder';
 import {
     BASE_SCOPES,
     buildRowRule,
+    compareSourceLabel,
     conditionProblem,
     describeAccessOutcome,
     describeRowRule,
@@ -15,6 +16,7 @@ import {
     scopeToEntry,
 } from './rowRuleModel';
 import useAppRoles from './useAppRoles';
+import useTranslation from '../../../../../hooks/useTranslation';
 import { insertAtCursor } from '../../../../../utils/bindingHelpers';
 import ConfirmDialog from '../../../../shared/ConfirmDialog';
 import EmptyState from '../../../../shared/EmptyState';
@@ -44,11 +46,7 @@ import toast from '../../../../shared/Toast';
  * server subset before the owner can save.
  */
 
-const VIEWER_CHIPS = [
-    { path: 'viewer.id', label: 'the person opening the app' },
-    { path: 'viewer.organizationId', label: 'their organisation' },
-    { path: 'viewer.role', label: 'their role' },
-];
+const VIEWER_CHIPS = ['viewer.id', 'viewer.organizationId', 'viewer.role'];
 
 function findTable(tables, id) {
     return (tables || []).find((t) => t && (t.id === id || t.key === id)) || null;
@@ -76,6 +74,7 @@ function draftToRule(draft) {
 }
 
 export default function RowRuleEditor({ appId, onDirtyChange = null }) {
+    const { t } = useTranslation();
     const { roles, tables, saveTableAccess, savingAccess } = useAppRoles(appId);
 
     const [tableId, setTableId] = useState('');
@@ -128,11 +127,11 @@ export default function RowRuleEditor({ appId, onDirtyChange = null }) {
         else applySwitch(patch);
     };
 
-    const validation = useMemo(() => validateRowFilterExpr(rule, table), [rule, table]);
+    const validation = useMemo(() => validateRowFilterExpr(rule, table, t), [rule, table, t]);
     // A half-filled condition is dropped by buildRowRule, which would silently save a
     // WIDER rule than the screen shows — block instead.
     const unfinished = draft.mode === 'build'
-        ? draft.conditions.some((c) => conditionProblem(c, table))
+        ? draft.conditions.some((c) => conditionProblem(c, table, t))
         : false;
     const canSwitchToBuilder = useMemo(
         () => draft.mode === 'raw' && parseRowRule(draft.raw, table).ok,
@@ -144,30 +143,31 @@ export default function RowRuleEditor({ appId, onDirtyChange = null }) {
     const preset = matchBaseScope(access);
     const noAccess = access.read === 'none';
 
-    const roleLabel = roles.find((r) => r.key === roleKey)?.label || roleKey || 'This role';
-    const tableName = table?.name || table?.key || 'this table';
+    const roleLabel = roles.find((r) => r.key === roleKey)?.label || roleKey || t('studio_apps_edit.rule_editor.this_role', 'This role');
+    const tableName = table?.name || table?.key || t('studio_apps_edit.rule_editor.this_table', 'this table');
     const outcome = describeAccessOutcome({
         entry: access,
         roleLabel,
         tableName,
         hasRule: !!rule.trim(),
-        ruleSummary: draft.mode === 'build' ? describeRowRule(draft, table) : '',
+        ruleSummary: draft.mode === 'build' ? describeRowRule(draft, table, t) : '',
+        t,
     });
 
     const doSave = async () => {
         if (!table || !roleKey) return;
-        if (unfinished) { toast.error('Finish every condition of the rule first.'); return; }
-        if (!validation.ok) { toast.error(validation.error || 'Fix the rule first.'); return; }
+        if (unfinished) { toast.error(t('studio_apps_edit.rule_editor.finish_conditions', 'Finish every condition of the rule first.')); return; }
+        if (!validation.ok) { toast.error(validation.error || t('studio_apps_edit.rule_editor.fix_rule', 'Fix the rule first.')); return; }
         try {
             await saveTableAccess(table.id, {
                 roles: { [roleKey]: access },
                 rowFilters: { [roleKey]: rule.trim() || null },
             });
             setSaved({ access, rule });
-            toast.success('Row access saved.');
+            toast.success(t('studio_apps_edit.rule_editor.saved', 'Row access saved.'));
         } catch (err) {
             const first = Array.isArray(err?.body?.errors) && err.body.errors.length ? err.body.errors[0] : null;
-            toast.error(first || err?.message || 'Could not save row access.');
+            toast.error(first || err?.message || t('studio_apps_edit.rule_editor.save_failed', 'Could not save row access.'));
         }
     };
 
@@ -175,8 +175,8 @@ export default function RowRuleEditor({ appId, onDirtyChange = null }) {
         return (
             <EmptyState
                 icon={<Database className="h-8 w-8" aria-hidden="true" />}
-                title="No roles yet"
-                description="Create roles on the Roles tab first, then set what each role can see row-by-row here."
+                title={t('studio_apps_edit.rule_editor.no_roles', 'No roles yet')}
+                description={t('studio_apps_edit.rule_editor.no_roles_desc', 'Create roles on the Roles tab first, then set what each role can see row-by-row here.')}
             />
         );
     }
@@ -184,8 +184,8 @@ export default function RowRuleEditor({ appId, onDirtyChange = null }) {
         return (
             <EmptyState
                 icon={<Database className="h-8 w-8" aria-hidden="true" />}
-                title="No tables yet"
-                description="Add tables to this app's data first — row rules decide which of a table's rows a role may access."
+                title={t('studio_apps_edit.rule_editor.no_tables', 'No tables yet')}
+                description={t('studio_apps_edit.rule_editor.no_tables_desc', "Add tables to this app's data first — row rules decide which of a table's rows a role may access.")}
             />
         );
     }
@@ -194,11 +194,11 @@ export default function RowRuleEditor({ appId, onDirtyChange = null }) {
         <div data-testid="row-rule-editor" className="flex flex-col gap-4">
             <div className="flex flex-wrap items-center gap-3">
                 <label className="flex items-center gap-2 text-sm">
-                    <span style={{ color: 'var(--text-secondary)' }}>Table</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>{t('studio_apps_edit.rule_editor.table', 'Table')}</span>
                     <select
                         value={tableId}
                         onChange={(e) => requestSwitch({ tableId: e.target.value })}
-                        aria-label="Table"
+                        aria-label={t('studio_apps_edit.rule_editor.table', 'Table')}
                         className="rounded border px-2 py-1 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)]"
                         style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                     >
@@ -206,11 +206,11 @@ export default function RowRuleEditor({ appId, onDirtyChange = null }) {
                     </select>
                 </label>
                 <label className="flex items-center gap-2 text-sm">
-                    <span style={{ color: 'var(--text-secondary)' }}>Role</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>{t('studio_apps_edit.rule_editor.role', 'Role')}</span>
                     <select
                         value={roleKey}
                         onChange={(e) => requestSwitch({ roleKey: e.target.value })}
-                        aria-label="Role"
+                        aria-label={t('studio_apps_edit.rule_editor.role', 'Role')}
                         className="rounded border px-2 py-1 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)]"
                         style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                     >
@@ -221,19 +221,18 @@ export default function RowRuleEditor({ appId, onDirtyChange = null }) {
 
             <div className="flex flex-col gap-1.5">
                 <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
-                    Start with
+                    {t('studio_apps_edit.rule_editor.start_with', 'Start with')}
                 </span>
                 <SegmentedControl
                     size="sm"
-                    ariaLabel="Start with"
+                    ariaLabel={t('studio_apps_edit.rule_editor.start_with', 'Start with')}
                     value={preset || ''}
                     onChange={(value) => setAccess(scopeToEntry(value))}
-                    options={BASE_SCOPES.map((s) => ({ value: s.value, label: s.label }))}
+                    options={BASE_SCOPES.map((s) => ({ value: s.value, label: t(s.labelKey, s.label) }))}
                 />
                 {preset ? null : (
                     <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
-                        This role was given a more detailed mix of what it may do than these three buttons cover.
-                        Leave them alone to keep it exactly as it is &mdash; picking one replaces it.
+                        {t('studio_apps_edit.rule_editor.mixed_access', 'This role was given a more detailed mix of what it may do than these three buttons cover. Leave them alone to keep it exactly as it is — picking one replaces it.')}
                     </span>
                 )}
             </div>
@@ -241,8 +240,8 @@ export default function RowRuleEditor({ appId, onDirtyChange = null }) {
             <div className="flex flex-col gap-2">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                     <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
-                        Then keep only the rows where…{' '}
-                        <span style={{ color: 'var(--text-tertiary)' }}>(optional)</span>
+                        {t('studio_apps_edit.rule_editor.then_keep', 'Then keep only the rows where…')}{' '}
+                        <span style={{ color: 'var(--text-tertiary)' }}>{t('studio_apps_edit.rule_editor.optional', '(optional)')}</span>
                     </span>
                     {draft.mode === 'build' ? (
                         <button
@@ -252,7 +251,7 @@ export default function RowRuleEditor({ appId, onDirtyChange = null }) {
                             className="text-[11px] hover:underline disabled:opacity-50"
                             style={{ color: 'var(--accent-primary)' }}
                         >
-                            Write it myself
+                            {t('studio_apps_edit.rule_editor.write_myself', 'Write it myself')}
                         </button>
                     ) : (
                         <button
@@ -262,7 +261,7 @@ export default function RowRuleEditor({ appId, onDirtyChange = null }) {
                             className="text-[11px] hover:underline disabled:opacity-50"
                             style={{ color: 'var(--accent-primary)' }}
                         >
-                            Back to the picker
+                            {t('studio_apps_edit.rule_editor.back_to_picker', 'Back to the picker')}
                         </button>
                     )}
                 </div>
@@ -279,7 +278,7 @@ export default function RowRuleEditor({ appId, onDirtyChange = null }) {
                     <>
                         {draft.raw.trim() && !canSwitchToBuilder ? (
                             <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
-                                This rule does more than the picker can show, so it stays as text — it is saved exactly as written.
+                                {t('studio_apps_edit.rule_editor.stays_text', 'This rule does more than the picker can show, so it stays as text — it is saved exactly as written.')}
                             </span>
                         ) : null}
                         <RawRuleBox
@@ -314,16 +313,16 @@ export default function RowRuleEditor({ appId, onDirtyChange = null }) {
                     style={{ background: 'var(--accent-primary)' }}
                 >
                     {savingAccess ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : null}
-                    Save row access
+                    {t('studio_apps_edit.rule_editor.save', 'Save row access')}
                 </button>
             </div>
 
             <ConfirmDialog
                 open={!!pendingSwitch}
-                title="Discard your unsaved changes?"
-                description={`You changed who can see which rows in ${tableName} but have not saved it yet. Switching now throws that change away.`}
-                confirmLabel="Discard changes"
-                cancelLabel="Keep editing"
+                title={t('studio_apps_edit.rule_editor.discard_title', 'Discard your unsaved changes?')}
+                description={t('studio_apps_edit.rule_editor.discard_desc', 'You changed who can see which rows in {table} but have not saved it yet. Switching now throws that change away.', { table: tableName })}
+                confirmLabel={t('studio_apps_edit.rule_editor.discard', 'Discard changes')}
+                cancelLabel={t('studio_apps_edit.rule_editor.keep_editing', 'Keep editing')}
                 destructive
                 onConfirm={() => { applySwitch(pendingSwitch); setPendingSwitch(null); }}
                 onCancel={() => setPendingSwitch(null)}
@@ -337,6 +336,7 @@ export default function RowRuleEditor({ appId, onDirtyChange = null }) {
  * runtime value at the cursor so the exact spelling never has to be remembered.
  */
 function RawRuleBox({ table, value, onChange, disabled, error }) {
+    const { t } = useTranslation();
     const ref = useRef(null);
     const insert = (text) => {
         const result = insertAtCursor(ref.current, text);
@@ -351,14 +351,14 @@ function RawRuleBox({ table, value, onChange, disabled, error }) {
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
                 disabled={disabled}
-                placeholder="e.g. record.owner_id == viewer.id"
+                placeholder={t('studio_apps_edit.rule_editor.raw_example', 'e.g. record.owner_id == viewer.id')}
                 spellCheck={false}
-                aria-label="Row rule expression"
+                aria-label={t('studio_apps_edit.rule_editor.raw_aria', 'Row rule expression')}
                 className="w-full rounded border px-2 py-1.5 font-mono text-xs focus:outline-none focus:ring-1 disabled:opacity-50"
                 style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
             />
             <div className="flex flex-wrap items-center gap-1.5">
-                {ruleFields(table).slice(0, 8).map((f) => (
+                {ruleFields(table, t).slice(0, 8).map((f) => (
                     <button
                         key={f.key}
                         type="button"
@@ -371,17 +371,17 @@ function RawRuleBox({ table, value, onChange, disabled, error }) {
                         record.{f.key}
                     </button>
                 ))}
-                {VIEWER_CHIPS.map((v) => (
+                {VIEWER_CHIPS.map((path) => (
                     <button
-                        key={v.path}
+                        key={path}
                         type="button"
-                        onClick={() => insert(v.path)}
+                        onClick={() => insert(path)}
                         disabled={disabled}
-                        title={v.label}
+                        title={compareSourceLabel(path, t)}
                         className="rounded-md border px-2 py-0.5 text-[11px] hover:bg-[var(--bg-tertiary)] disabled:opacity-50"
                         style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}
                     >
-                        {v.path}
+                        {path}
                     </button>
                 ))}
             </div>

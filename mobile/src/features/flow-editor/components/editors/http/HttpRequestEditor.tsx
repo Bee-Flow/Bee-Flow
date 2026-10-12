@@ -43,14 +43,14 @@ function Headers({ editor }: { editor: StepEditorProps }) {
     const entries = Object.entries(headers);
     return (
         <Band editor={editor} sectionKey="headers" title={t('automations.versions.setting.headers', 'Headers')} hasContent={entries.length > 0}>
-            {entries.length === 0 ? <Note>{t('mobile.flow.http.no_headers', 'No headers set.')}</Note> : null}
+            {entries.length === 0 ? <Note>{t('automations.http_request_fields.no_headers_set', 'No headers set.')}</Note> : null}
             {entries.map(([key, value]) => (
-                <RowCard key={key} title={key} onRemove={() => set('headers', removeHeader(headers, key))} removeLabel={t('mobile.flow.http.remove_header', 'Remove header')} disabled={ctx.disabled}>
+                <RowCard key={key} title={key} onRemove={() => set('headers', removeHeader(headers, key))} removeLabel={t('automations.http_request_fields.remove_header', 'Remove header')} disabled={ctx.disabled}>
                     <CommitText value={key} onCommit={(next) => set('headers', renameHeader(headers, key, next) ?? headers)} placeholder={HEADER_EXAMPLE} disabled={ctx.disabled} />
                     <BindingInput mode="template" literal="code" value={value} onChange={(v) => set('headers', { ...headers, [key]: v })} disabled={ctx.disabled} />
                 </RowCard>
             ))}
-            <AddButton label={t('mobile.flow.http.add_header', 'Add header')} onPress={() => set('headers', addHeader(headers))} disabled={ctx.disabled} testID="http-header-add" />
+            <AddButton label={t('automations.http_request_fields.add_header', 'Add header')} onPress={() => set('headers', addHeader(headers))} disabled={ctx.disabled} testID="http-header-add" />
         </Band>
     );
 }
@@ -62,24 +62,24 @@ function Options({ editor }: { editor: StepEditorProps }) {
     const custom = (draft.timeoutMs != null && draft.timeoutMs !== 10_000) || parse !== 'auto';
     return (
         <Band editor={editor} sectionKey="options" title={t('mobile.flow.section.options', 'Options')} hasContent={custom}>
-            <NumberField label={t('mobile.flow.http.timeout', 'Timeout (ms)')} value={draft.timeoutMs ?? 10_000} onChange={(n) => set('timeoutMs', n === '' ? 10_000 : n)} min={1000} max={60_000} integer disabled={ctx.disabled} />
+            <NumberField label={t('automations.http_request_fields.timeout_ms', 'Timeout (ms)')} value={draft.timeoutMs ?? 10_000} onChange={(n) => set('timeoutMs', n === '' ? 10_000 : n)} min={1000} max={60_000} integer disabled={ctx.disabled} />
             <SelectField
                 label={t('mobile.flow.http.response', 'Response')}
-                hint={t('mobile.flow.http.response_hint', 'A JSON answer is also offered parsed, as `data`, so a later step can work through it as a list.')}
+                hint={t('automations.http_request_fields.a_json_answer_is_also_offered', 'A JSON answer is also offered parsed, as `data`, so a later step can work through it as a list.')}
                 value={parse}
                 options={[
-                    { value: 'auto', label: t('mobile.flow.http.parse_auto', 'Read JSON automatically') },
-                    { value: 'always', label: t('mobile.flow.http.parse_always', 'Always read it as JSON') },
-                    { value: 'never', label: t('mobile.flow.http.parse_never', 'Leave it as plain text') },
+                    { value: 'auto', label: t('automations.http_request_fields.read_json_automatically', 'Read JSON automatically') },
+                    { value: 'always', label: t('automations.http_request_fields.always_read_it_as_json', 'Always read it as JSON') },
+                    { value: 'never', label: t('automations.http_request_fields.leave_it_as_plain_text', 'Leave it as plain text') },
                 ]}
                 onChange={(v) => set('parseResponse', v)}
                 disabled={ctx.disabled}
             />
-            <Note>{t('mobile.flow.http.parse_always_hint', 'Pick “always” when the service sends JSON but labels it as text.')}</Note>
+            <Note>{t('automations.http_request_fields.pick_always_when_the_service_sends', 'Pick “always” when the service sends JSON but labels it as text.')}</Note>
             <ToggleField
-                label={t('mobile.flow.http.block_private', 'Block requests to private/internal network addresses')}
+                label={t('automations.http_request_fields.block_requests_to_private_internal_network', 'Block requests to private/internal network addresses')}
                 description={t(
-                    'mobile.flow.http.block_private_hint',
+                    'automations.http_request_fields.recommended_on_only_turn_this_off',
                     'Recommended: on. Only turn this off if this step specifically needs to reach an internal service (e.g. on your own self-hosted network) — disabling it lets this step reach localhost, private IP ranges, and cloud metadata endpoints.',
                 )}
                 value={draft.blockPrivateTargets !== false}
@@ -104,7 +104,7 @@ function Advanced({ editor }: { editor: StepEditorProps }) {
                 onChange={(next) => set('askOnce', next)}
                 blocked={null}
                 appLabel={null}
-                label={t('mobile.flow.http.ask_once', 'Ask this service only once per run')}
+                label={t('automations.http_request_fields.ask_this_service_only_once_per', 'Ask this service only once per run')}
                 reason={reuse.askOnce.reason ? say(t, reuse.askOnce.reason) : null}
                 disabled={ctx.disabled || reuse.askOnce.disabled}
             />
@@ -126,12 +126,12 @@ export function HttpRequestEditor(editor: StepEditorProps) {
     const connectionId = (draft.auth as { connectionId?: string } | null)?.connectionId ?? '';
     return (
         <>
-            <Band editor={editor} sectionKey="request" title={t('mobile.flow.http.request', 'Request')} defaultOpen>
+            <Band editor={editor} sectionKey="request" title={t('automations.http_request_fields.request', 'Request')} defaultOpen>
                 <BindingInput
                     mode="template"
                     literal="url"
                     required
-                    label={t('mobile.flow.http.url', 'URL')}
+                    label={t('automations.http_request_fields.url', 'URL')}
                     hint={t('mobile.flow.http.url_hint', 'Tap Insert data to put in a value from an earlier step, e.g. {example}.', { example: readableExample(URL_WITH_DATA) })}
                     value={typeof draft.url === 'string' ? draft.url : ''}
                     onChange={(v) => set('url', String(v))}
@@ -149,17 +149,17 @@ export function HttpRequestEditor(editor: StepEditorProps) {
                     testID="http-method"
                 />
             </Band>
-            <Band editor={editor} sectionKey="auth" title={t('mobile.flow.http.authentication', 'Authentication')} defaultOpen={!!connectionId} hasContent={!!connectionId}>
+            <Band editor={editor} sectionKey="auth" title={t('automations.http_request_fields.authentication', 'Authentication')} defaultOpen={!!connectionId} hasContent={!!connectionId}>
                 <HttpAuth value={connectionId} onChange={(id) => set('auth', id ? { connectionId: id } : null)} disabled={ctx.disabled} />
             </Band>
             <Headers editor={editor} />
             {HTTP_WRITE_METHODS.has(method) ? (
-                <Band editor={editor} sectionKey="body" title={t('mobile.flow.http.body', 'Body')}>
+                <Band editor={editor} sectionKey="body" title={t('automations.http_request_fields.body', 'Body')}>
                     <BindingInput
                         mode="template"
                         literal="code"
                         multiline
-                        label={t('mobile.flow.http.body', 'Body')}
+                        label={t('automations.http_request_fields.body', 'Body')}
                         hint={t('mobile.flow.http.body_hint', 'Raw text or JSON. Tap Insert data to put in a value from an earlier step.')}
                         value={typeof draft.body === 'string' ? draft.body : ''}
                         onChange={(v) => set('body', String(v))}

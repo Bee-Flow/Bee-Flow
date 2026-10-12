@@ -89,7 +89,7 @@ function PickSheet({ open, onClose, title, path, options, fallbackBase, onPick, 
                 {typed && !options.some((o) => o.path === typedPath) ? (
                     <OptionRow label={t('mobile.flow.picker.use_typed', 'Use “{name}”', { name: typed })} description={typedPath} selected={false} onPress={() => pick(typedPath)} />
                 ) : null}
-                {onUseExpression ? <OptionRow label={t('mobile.flow.picker.use_expression', 'Use an expression instead')} selected={false} onPress={onUseExpression} /> : null}
+                {onUseExpression ? <OptionRow label={t('automations.field_picker.use_an_expression_instead', 'Use an expression instead')} selected={false} onPress={onUseExpression} /> : null}
             </View>
         </Sheet>
     );
@@ -100,7 +100,9 @@ export function FieldPicker({ path, onPick, options, fallbackBase = 'item', onUs
     const styles = useThemedStyles(makeStyles);
     const [open, setOpen] = useState(false);
     const current = options.find((o) => o.path === path) ?? null;
-    const shown = current?.label || (path ? humanizeFieldKey(lastSegment(path)) : prompt || t('mobile.flow.picker.choose_field', 'Choose a field'));
+    // A File type field the menu does not list (no sample yet) is still a File type, not "Attachments)".
+    const fileType = path.startsWith('fileType(') ? t('condition_node.file_type.label', 'File type') : '';
+    const shown = current?.label || fileType || (path ? humanizeFieldKey(lastSegment(path)) : prompt || t('mobile.flow.picker.choose_field', 'Choose a field'));
     const pick = (next: string) => {
         setOpen(false);
         onPick(next);

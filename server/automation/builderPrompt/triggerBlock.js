@@ -248,7 +248,8 @@ function renderTriggerBlockLean() {
     memo = [
         '## Triggers (builder_propose_trigger — the first call of a new draft)',
         '',
-        'kind: manual | schedule {cron:"0 9 * * 1-5", tz} | form {form:{title, fields:[{name,type,label,required}]}} → trigger.output.<name> | webhook → trigger.output = the POSTed JSON | app_event {appProvider, appEvent, filter}.',
+        'kind: manual | schedule {cron:"0 9 * * 1-5", tz} | form {form:{title, fields:[{name,type,label,required}]}} → trigger.output.<name> | webhook → trigger.output = the POSTed JSON | app_event {appProvider, appEvent, filter} | agent_call {toolName, description, params:[{name,type,required,description}]} | app_trigger {params:[{name,type,required}]}.',
+        'An agent_call or app_trigger argument arrives as trigger.output.<name> (there is no trigger.payload): declare every argument the steps need, with a description the agent can read. After building an agent_call automation, tell the user to link it to an agent under "Who can call this" in the trigger panel: you cannot do that yourself.',
         'App events, as `appProvider: appEvent [filter keys] → payload fields` (bind them as trigger.output.<field>; an omitted filter = every event):',
         ...lines,
         ...(never.length ? [`NEVER propose ${never.join(', ')} (nothing produces it).`] : []),

@@ -18,8 +18,11 @@ const keyOf = (it) => `${it.payload?.kind}:${it.payload?.mode || ''}`;
 describe('stepPalette — one home per command', () => {
     it('names the four sections of the design, in its order', () => {
         const flow = buildStepGroups({ catalog }).find(g => g.key === 'flow');
-        expect(flow.sections.map(s => s.key)).toEqual(['flow_control', 'people', 'data', 'integrations']);
-        expect(flow.sections.map(s => s.title)).toEqual(['Flow control', 'People & waiting', 'Data & lists', 'Integrations']);
+        // Integrations is gone: Call a web service and Code are Bee Flow's own
+        // steps and sit in Flow control (the ribbon's Logic tab), and every
+        // connected app has its app tab.
+        expect(flow.sections.map(s => s.key)).toEqual(['flow_control', 'people', 'data']);
+        expect(flow.sections.map(s => s.title)).toEqual(['Flow control', 'People & waiting', 'Data & lists']);
     });
 
     it('no step appears in two content sections', () => {
@@ -46,22 +49,22 @@ describe('stepPalette — one home per command', () => {
         // De twee manieren waarop een run eindigt staan naast elkaar: slecht
         // (stop_error) en goed (return_to_app, terug naar de app die hem
         // startte). De annotatie blijft als laatste — dat is geen stroomstap.
-        expect(ids).toEqual(['route', 'loop', 'privacy_shield', 'stop_error', 'return_to_app', 'note']);
+        expect(ids).toEqual(['route', 'loop', 'code', 'http_request', 'privacy_shield', 'stop_error', 'return_to_app', 'note']);
     });
 
-    it('moves the web service call and Code out of Data into Integrations', () => {
+    it('keeps the web service call and Code out of Data: they are your own logic, in Flow control', () => {
         const flow = buildStepGroups({ catalog }).find(g => g.key === 'flow');
         const data = flow.sections.find(s => s.key === 'data').items.map(i => i.id);
         expect(data).not.toContain('http_request');
         expect(data).not.toContain('code');
         // The document step stays with the data steps, as the design draws it.
         expect(data).toContain('generate_document');
-        const integrations = flow.sections.find(s => s.key === 'integrations').items.map(i => i.id);
-        expect(integrations).toEqual(['http_request', 'code']);
     });
 
-    it('drops the Integrations section to the web service call alone when Code is off', () => {
+    it('leaves Code out of Flow control when the server says nothing about it; the web call stays', () => {
         const flow = buildStepGroups({ catalog: { apps: [], steps: [], flags: {} } }).find(g => g.key === 'flow');
-        expect(flow.sections.find(s => s.key === 'integrations').items.map(i => i.id)).toEqual(['http_request']);
+        const ids = flow.sections.find(s => s.key === 'flow_control').items.map(i => i.id);
+        expect(ids).not.toContain('code');
+        expect(ids).toContain('http_request');
     });
 });

@@ -38,6 +38,8 @@ export interface Notebook {
     instructions: string;
     knowledgeBaseIds: string[];
     settings: Record<string, unknown>;
+    /** How the server sealed the content (encryption scope/tier), or null when it is plaintext. Opaque to the phone. */
+    cryptoContext: Record<string, unknown> | null;
     /** TipTap HTML. The phone renders `documentMd` when the server has it. */
     documentContent: string;
     documentMd: string | null;

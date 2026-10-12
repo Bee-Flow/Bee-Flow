@@ -73,7 +73,7 @@ an auth outcome.
 ## 4. The per-user access scope (what you actually shared)
 
 This is the layer that replaces what Nextcloud does not provide. In
-**Settings → Integrations → Nextcloud → "What Bee Flow may access"** each user
+**Settings → Connections → Nextcloud → "What Bee Flow may access"** each user
 decides, per integration, one of:
 
 - **Everything** — the default; nothing changes for existing users.
@@ -127,7 +127,7 @@ most-restrictive-first, so an integration is available only if the org allows it
 
 | Level | Action | Effect |
 |---|---|---|
-| User | **Settings → Integrations → Nextcloud → Revoke all Nextcloud access** | Every Nextcloud integration off for you, immediately. Data already in Bee Flow stays. |
+| User | **Settings → Connections → Nextcloud → Revoke all Nextcloud access** | Every Nextcloud integration off for you, immediately. Data already in Bee Flow stays. |
 | Org admin | **Admin → Nextcloud integrations** | Removes an integration for the whole organisation, or for one group. |
 | Nextcloud admin | **Apps → Disable Bee Flow** | Stops the connector; the bee icon disappears for everyone. Tenant data is **not** auto-deleted (use the Danger zone). |
 | Nextcloud admin | Rotate the tenant key (**/setup**) | Invalidates every signed callback the Bee Flow server holds. |

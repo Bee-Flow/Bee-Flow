@@ -107,8 +107,11 @@ Skip these unless there is a material update since the date shown. If you do inc
     // ─── Writing style (BFSF-261) ────────────────────────────────
     // Unconditional so per-agent custom prompts get it too. Static text, so it
     // belongs in the cached half.
-    const { buildWritingStyleAddendum } = require('../llm/promptStyle');
+    const { buildWritingStyleAddendum, buildResponseLanguageRule } = require('../llm/promptStyle');
     systemPrompt += buildWritingStyleAddendum();
+    // Agent chat had no reply-language rule at all (BFSF-387); a persona's fixed
+    // language is part of the agent's own instructions and keeps winning.
+    systemPrompt += buildResponseLanguageRule();
 
     // ─── Date/time context ───────────────────────────────────────
     // This is THE line that must never touch the cached half. It used to be
@@ -180,6 +183,19 @@ The Notebook panel is currently open. Edit rules: 1) Before notebook_replace, us
             if (block) volatilePrompt += block;
         } catch (e) {
             log.warn('[contextBuilder] sidePanelWebpage injection failed:', e.message);
+        }
+    }
+
+    // ─── Side-panel document ─────────────────────────────────────
+    // Agents have no document tools, so the open document's text goes in
+    // read-only, and only on a turn whose request carries it.
+    if (messageMetadata?.sidePanelDocument) {
+        try {
+            const { buildAgentContent } = require('../documents/sidePanelDocumentContext');
+            const block = await buildAgentContent(messageMetadata.sidePanelDocument, userId);
+            if (block) volatilePrompt += block;
+        } catch (e) {
+            log.warn('[contextBuilder] sidePanelDocument injection failed:', e.message);
         }
     }
 

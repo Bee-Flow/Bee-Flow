@@ -25,7 +25,7 @@
  *
  * Granting an integration the author hasn't connected fails with
  * 409 { code: 'connection_required', provider } — the UI deep-links to
- * Settings → Integrations from that.
+ * Settings → Connections from that.
  *
  * ── What a caller may send ───────────────────────────────────────────────
  *

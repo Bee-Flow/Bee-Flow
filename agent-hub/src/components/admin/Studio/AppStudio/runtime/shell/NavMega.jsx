@@ -1,5 +1,6 @@
 import { ChevronDown } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import useTranslation from '../../../../../../hooks/useTranslation';
 import AppIcon from '../../../../../icons/AppIcon';
 
 /**
@@ -110,6 +111,7 @@ function MegaPanel({ group, screenId, onPick, panelRef }) {
 }
 
 export default function NavMega({ model, screenId, onNavigate }) {
+    const { t } = useTranslation();
     const [openId, setOpenId] = useState(null);
     const timers = useRef({ open: null, close: null });
     const triggerRefs = useRef({});
@@ -173,7 +175,7 @@ export default function NavMega({ model, screenId, onNavigate }) {
     return (
         <nav
             className="relative hidden sm:flex items-center gap-1 self-stretch flex-1 min-w-0"
-            aria-label="App screens"
+            aria-label={t('studio_apps_runtime.nav.app_screens', 'App screens')}
         >
             {model.ungrouped.map((screen) => {
                 const isActive = screen.id === screenId;

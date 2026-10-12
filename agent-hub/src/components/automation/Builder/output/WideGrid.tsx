@@ -1,9 +1,9 @@
-import { useTranslation } from '../../../../hooks/useTranslation';
 import FieldKindIconJs from '../mapping/FieldKindIcon';
 import type { ComponentType } from 'react';
 import type { OutputColumn } from './columns';
+import { canOpen } from './levels';
+import { cellOf } from './perItem';
 import SmartCell from './SmartCell';
-import { getByDotted } from './valueHelpers';
 
 const FieldKindIcon = FieldKindIconJs as unknown as ComponentType<{ kind: string; size?: number; className?: string }>;
 
@@ -19,22 +19,18 @@ interface WideGridProps {
     compact: boolean;
     selected: number | null;
     onSelect: (index: number) => void;
+    /** Opens the list a cell holds (row index, its column) as the next level. */
+    onOpenList?: ((index: number, col: OutputColumn) => void) | null;
 }
 
 /**
  * The large view's table (artboard 4d): the name column pinned on the left
  * while the rest scrolls, a header that says what kind each column is, and
- * nested values summarised per cell.
+ * nested values summarised per cell. A cell that holds a list of records is
+ * a button that opens that list.
  */
-export default function WideGrid({ rows, columns, compact, selected, onSelect }: WideGridProps) {
-    const { t } = useTranslation();
+export default function WideGrid({ rows, columns, compact, selected, onSelect, onOpenList = null }: WideGridProps) {
     const pad = compact ? 'py-1' : 'py-[9px]';
-    const kindWord = (c: OutputColumn) => {
-        if (c.kind === 'group') return t('automations.kind.group', 'group');
-        if (c.kind === 'table') return t('automations.kind.table', 'table');
-        if (c.kind === 'list') return t('automations.kind.list', 'list');
-        return null;
-    };
     return (
         <table className="border-separate border-spacing-0 w-max min-w-full text-xs" data-testid="output-wide-grid">
             <thead className="sticky top-0 z-[2]">
@@ -49,7 +45,6 @@ export default function WideGrid({ rows, columns, compact, selected, onSelect }:
                             <span className={`inline-flex items-center gap-1.5 ${c.kind === 'number' && i > 0 ? 'flex-row-reverse' : ''}`}>
                                 <FieldKindIcon kind={c.kind} size={12} className="shrink-0" />
                                 {c.label}
-                                {kindWord(c) && <span className="text-[var(--text-tertiary)] font-medium">· {kindWord(c)}</span>}
                             </span>
                         </th>
                     ))}
@@ -73,7 +68,7 @@ export default function WideGrid({ rows, columns, compact, selected, onSelect }:
                                             ? `sticky left-0 z-[1] border-r max-w-[260px] ${on ? `${SELECTED} font-semibold shadow-[inset_3px_0_0_var(--type-ai)]` : 'bg-[var(--bg-card)] font-medium group-hover:bg-[var(--bg-secondary)]'}`
                                             : `max-w-[260px] text-[var(--text-secondary)] ${on ? SELECTED : 'group-hover:bg-[var(--bg-secondary)]'}`}`}
                                 >
-                                    <SmartCell value={getByDotted(row, c.key)} col={c} />
+                                    <GridCell row={row} index={index} col={c} pinned={i === 0} onOpenList={onOpenList} />
                                 </td>
                             ))}
                         </tr>
@@ -82,4 +77,19 @@ export default function WideGrid({ rows, columns, compact, selected, onSelect }:
             </tbody>
         </table>
     );
+}
+
+interface GridCellProps {
+    row: unknown;
+    index: number;
+    col: OutputColumn;
+    pinned: boolean;
+    onOpenList: WideGridProps['onOpenList'];
+}
+
+/** One cell; a list of records in it opens as the next level. */
+function GridCell({ row, index, col, pinned, onOpenList }: GridCellProps) {
+    const value = cellOf(row, col, pinned);
+    const open = onOpenList && canOpen(value) ? () => onOpenList(index, col) : undefined;
+    return <SmartCell value={value} col={col} onOpen={open} openKey={open ? `${index}:${col.key}` : undefined} pinned={pinned} />;
 }

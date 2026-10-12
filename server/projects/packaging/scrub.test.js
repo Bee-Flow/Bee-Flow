@@ -859,3 +859,30 @@ test('a page agent grant: in-bundle travels as $ref, outside is reported (galler
     assert.strictEqual(pip.payload.agent, undefined);
     assert.deepStrictEqual(opts.findings.map(f => [f.code, f.severity, f.ref]), [['webpage.agent_not_in_solution', 'blocking', 'web_1']]);
 });
+
+test('BFSF-384: approver seats inside staged approvals are emptied (routine and app), stages stay', () => {
+    const stages = () => ([
+        { key: 's1', name: 'Team lead', approvers: [{ userId: 'u_alice' }], rule: 'all' },
+        { key: 's2', name: 'Finance', approvers: [{ groupId: 'g_finance' }, { userId: 'u_bob' }], rule: 'quorum', quorum: 1 },
+    ]);
+    const auto = { steps: [{ id: 'a1', type: 'approval', approval: { stages: stages() } }] };
+    const autoReport = scrubAutomationDefinition(auto);
+    const app = { actions: { ask: { id: 'ask', kind: 'request_approval', stages: stages() } } };
+    const appReport = scrubAppDefinition(app);
+
+    for (const def of [auto, app]) {
+        const json = JSON.stringify(def);
+        for (const leaked of ['u_alice', 'g_finance', 'u_bob']) assert.ok(!json.includes(leaked), `${leaked} still present`);
+    }
+    const kept = auto.steps[0].approval.stages;
+    assert.deepStrictEqual(kept.map(x => [x.key, x.name, x.rule, x.approvers.length]), [['s1', 'Team lead', 'all', 0], ['s2', 'Finance', 'quorum', 0]]);
+    assert.strictEqual(autoReport.filter(r => r.rule === RULES.AUTOMATION_APPROVER_IDENTITY).length, 2);
+    assert.strictEqual(appReport.filter(r => r.rule === RULES.APP_APPROVER_IDENTITY).length, 2);
+    assert.strictEqual(autoReport[1].count, 2);
+    assert.strictEqual(autoReport[0].stepId, 'a1');
+});
+
+test('an approval whose stages are already seatless reports nothing', () => {
+    const def = { steps: [{ id: 'a1', type: 'approval', approval: { stages: [{ key: 's1', approvers: [] }] } }] };
+    assert.deepStrictEqual(scrubAutomationDefinition(def), []);
+});

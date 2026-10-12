@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import useTranslation from '../../../../../hooks/useTranslation';
 import { boolValue, dateInputValue, listValue, optionPairs } from './rowValues';
 import { importableFields } from './spreadsheetPaste';
 
@@ -54,6 +55,7 @@ function ChoiceCell({ field, value, onCommit, disabled, autoFocus, ariaLabel }) 
  * caller wants every tick (onChange, the draft row).
  */
 function MultiChoiceCell({ field, value, onChange, onDone, disabled, ariaLabel }) {
+    const { t } = useTranslation();
     const options = optionPairs(field);
     const [picked, setPicked] = useState(() => listValue(value).map(String));
     const toggle = (v) => {
@@ -69,7 +71,7 @@ function MultiChoiceCell({ field, value, onChange, onDone, disabled, ariaLabel }
             aria-label={ariaLabel}
         >
             {options.length === 0 ? (
-                <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>This column has no choices yet.</span>
+                <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{t('studio_apps_tables.cell.no_choices', 'This column has no choices yet.')}</span>
             ) : options.map((o) => (
                 <label key={o.value} className="inline-flex items-center gap-1.5 text-xs cursor-pointer" style={{ color: 'var(--text-primary)' }}>
                     <input
@@ -89,7 +91,7 @@ function MultiChoiceCell({ field, value, onChange, onDone, disabled, ariaLabel }
                     className="mt-0.5 self-start rounded-md border px-2 py-0.5 text-xs"
                     style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
                 >
-                    Done
+                    {t('studio_apps_tables.cell.done', 'Done')}
                 </button>
             ) : null}
         </div>

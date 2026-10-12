@@ -209,3 +209,38 @@ describe('describeLiveRun', () => {
         expect(describeLiveRun({ label: 'x', done: 0, total: 1 }, t).title).toBe('Automation wordt getest…');
     });
 });
+
+describe('describeToolCall: a flatten array op', () => {
+    it('names the op while no step names it yet, and the step once it does', () => {
+        const pending = { name: 'builder_add_array_op', arguments: { op: 'flatten', arrayRef: 'steps.g.output.messages', childField: 'attachments' } };
+        expect(describeToolCall(pending).title).toBe('Flattening a list');
+        const seen = [];
+        describeToolCall(pending, (k, d) => { seen.push(k); return d; });
+        expect(seen).toContain('flatten_node.activity');
+        const done = { ...pending, result: { added: { id: 'f1', type: 'flatten', label: 'One row per attachment' } } };
+        expect(describeToolCall(done).title).toBe('Flatten a list');
+        expect(describeToolCall(done).detail).toBe('One row per attachment');
+    });
+});
+
+describe('web research rows', () => {
+    it('name the search and what was searched, or the page that was read', () => {
+        const s = describeToolCall(call('agent_search', { query: 'Inserve API tickets' }, { ok: true, text: '...' }));
+        expect(s.title).toBe('Searched the web');
+        expect(s.detail).toBe('Inserve API tickets');
+        expect(s.status).toBe('done');
+        const r = describeToolCall(call('read_url', { url: 'https://docs.example.test/api' }, { error: 'Web search failed: boom' }));
+        expect(r.title).toBe('Read a web page');
+        expect(r.detail).toBe('https://docs.example.test/api');
+        expect(r.status).toBe('failed');
+    });
+});
+
+describe('a staged table', () => {
+    it('reads as proposed, created on Apply', () => {
+        const tc = { name: 'builder_create_datatable', arguments: { name: 'Facturen' }, result: { staged: true, ref: 'pending:1' } };
+        const d = describeToolCall(tc);
+        expect(d.title).toBe('Proposed new table "Facturen" (created on Apply)');
+        expect(d.status).toBe('done');
+    });
+});

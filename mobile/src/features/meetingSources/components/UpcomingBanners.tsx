@@ -47,7 +47,7 @@ export function UpcomingBanners({ upcoming }: { upcoming: Upcoming }) {
                 </Banner>
             ) : null}
             {connection && !connection.googleConnected ? (
-                <Banner tone="info" icon="Video" action={toIntegrations(t('meetings.upcoming_settings_integrations', 'Settings → Integrations'))}>
+                <Banner tone="info" icon="Video" action={toIntegrations(t('meetings.upcoming_settings_integrations', 'Settings → Connections'))}>
                     {t('meetings.upcoming_connect_google', 'Connect Google Workspace to see your Meet meetings here —')}
                 </Banner>
             ) : null}

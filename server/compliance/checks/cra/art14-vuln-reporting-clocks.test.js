@@ -102,6 +102,22 @@ test('role gate: a user-only organisation has no Art. 14 duty', async () => {
     assert.equal(r.evidence.cra_role, 'user_only');
 });
 
+test('role gate: an importer/distributor has no Art. 14 reporting clock', async () => {
+    state.settings = { ...READY, cra_role: 'distributor' };
+    const r = await check.evaluate('org1');
+    assert.equal(r.status, 'not_applicable');
+    assert.equal(r.evidence.cra_role, 'distributor');
+    assert.match(r.details, /Art\. 19 and 20/);
+    assert.equal(state.lastSql, null, 'the register is not queried for a distributor');
+});
+
+test('role gate: an undeclared role keeps the clocks (the conservative reading)', async () => {
+    state.settings = { ...READY, cra_role: null };
+    const r = await check.evaluate('org1');
+    assert.notEqual(r.status, 'not_applicable');
+    assert.notEqual(state.lastSql, null);
+});
+
 test('empty register with full preparation → pass; the SELECT is org-scoped and CRA-filtered', async () => {
     const r = await check.evaluate('org1');
     assert.equal(r.status, 'pass');
@@ -172,7 +188,7 @@ test('explicit due columns are honoured; an overdue final report → fail', asyn
     const r = await check.evaluate('org1');
     assert.equal(r.status, 'fail');
     assert.equal(r.evidence.clocks.final_report.overdue, 1);
-    assert.match(r.details, /14-day final report/);
+    assert.match(r.details, /past the final report \(14 days for a vulnerability/);
 });
 
 test('a clock due within 6 hours → warn (partial), not fail', async () => {
@@ -233,4 +249,20 @@ test('_clocksFor falls back to detected_at + legal window when due columns are e
     assert.equal(new Date(byName.final_report.due_at).toISOString(), '2026-09-28T00:00:00.000Z');
     assert.equal(byName.early_warning.overdue, false);
     assert.equal(byName.early_warning.due_soon, false);
+});
+
+test('_clocksFor: a severe incident\'s final report falls back to one month after the notification, not 14 days', () => {
+    const now = Date.parse('2026-09-30T12:00:00Z');
+    const final = (row) => check._test._clocksFor(row, now).find(c => c.clock === 'final_report');
+    // Not notified yet: from the latest lawful notification (detected + 72 h) — day 15 is not overdue.
+    const open = final({ kind: 'security_incident', detected_at: '2026-09-14T00:00:00Z' });
+    assert.equal(new Date(open.due_at).toISOString(), '2026-10-17T00:00:00.000Z');
+    assert.equal(open.overdue, false);
+    // Notified: one calendar month from the stamp.
+    const notified = final({ kind: 'breach', detected_at: '2026-09-14T00:00:00Z', authority_notified_at: '2026-09-15T08:00:00Z' });
+    assert.equal(new Date(notified.due_at).toISOString(), '2026-10-15T08:00:00.000Z');
+    // A vulnerability keeps the 14 days, and is overdue on day 16.
+    const vuln = final({ kind: 'vulnerability', detected_at: '2026-09-14T00:00:00Z' });
+    assert.equal(new Date(vuln.due_at).toISOString(), '2026-09-28T00:00:00.000Z');
+    assert.equal(vuln.overdue, true);
 });

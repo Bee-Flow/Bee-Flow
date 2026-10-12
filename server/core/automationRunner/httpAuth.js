@@ -99,7 +99,7 @@ async function resolveHttpAuthHeaders({ connectionId, blockPrivateTargets = true
             throw new Error(NOT_AVAILABLE_MSG);
         }
         const label = authz.connection?.label || 'credential';
-        throw new Error(`http_request: HTTP credential "${label}" needs attention (${authz.reason}). Update it in Settings → Integrations.`);
+        throw new Error(`http_request: HTTP credential "${label}" needs attention (${authz.reason}). Update it in Settings → Connections.`);
     }
     const conn = authz.connection;
     if (conn.provider !== 'http') {
@@ -110,7 +110,7 @@ async function resolveHttpAuthHeaders({ connectionId, blockPrivateTargets = true
     const full = await store.getConnectionWithSecret(connectionId);
     const secret = full?.secret;
     if (!secret || typeof secret !== 'object' || Object.keys(secret).length === 0) {
-        throw new Error(`http_request: HTTP credential "${conn.label}" could not be decrypted — re-enter this credential in Settings → Integrations.`);
+        throw new Error(`http_request: HTTP credential "${conn.label}" could not be decrypted — re-enter this credential in Settings → Connections.`);
     }
 
     const { renderAuthValue } = require('../../integrations/customIntegrationRunner');
@@ -135,7 +135,7 @@ async function resolveHttpAuthHeaders({ connectionId, blockPrivateTargets = true
             // Defense in depth: meta is non-secret but re-validate the charset
             // so a hand-edited row can't smuggle a malformed header name.
             if (typeof headerName !== 'string' || !HEADER_NAME_RE.test(headerName)) {
-                throw new Error(`http_request: HTTP credential "${conn.label}" has an invalid header name — re-save it in Settings → Integrations.`);
+                throw new Error(`http_request: HTTP credential "${conn.label}" has an invalid header name — re-save it in Settings → Connections.`);
             }
             const value = renderAuthValue({ type: 'header', valueTemplate: '{{credential.token}}' }, secret);
             headers[headerName] = value;
@@ -155,7 +155,7 @@ async function resolveHttpAuthHeaders({ connectionId, blockPrivateTargets = true
             break;
         }
         default:
-            throw new Error(`http_request: HTTP credential "${conn.label}" has an unsupported kind — re-create it in Settings → Integrations.`);
+            throw new Error(`http_request: HTTP credential "${conn.label}" has an unsupported kind — re-create it in Settings → Connections.`);
     }
 
     store.touchLastUsed(connectionId).catch(() => {});
@@ -198,7 +198,7 @@ async function fetchOAuth2Token(conn, secret, { blockPrivateTargets }, deps) {
     let tokenUrl = null;
     try { tokenUrl = new URL(String(meta.tokenUrl || '')); } catch (_) { /* handled below */ }
     if (!tokenUrl || (tokenUrl.protocol !== 'http:' && tokenUrl.protocol !== 'https:')) {
-        throw new Error(`http_request: HTTP credential "${conn.label}" has an invalid OAuth2 token URL — fix it in Settings → Integrations.`);
+        throw new Error(`http_request: HTTP credential "${conn.label}" has an invalid OAuth2 token URL — fix it in Settings → Connections.`);
     }
 
     const params = new URLSearchParams({ grant_type: 'client_credentials' });

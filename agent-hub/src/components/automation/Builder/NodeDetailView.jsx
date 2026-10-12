@@ -39,12 +39,19 @@ import { walkPath } from '../../../utils/bindingHelpers';
  * them mid-edit cannot lose anything. The header, the column heads, the save
  * machine and the output editor live in ./ndv/; this file composes them.
  */
+// The quick drawer grows with the screen: a fixed 300px left room for the
+// name and the action card only, and the first setting fell below the fold on
+// a laptop. Never shorter than before, never taller than half the canvas area.
+const QUICK_H = 'clamp(300px, 42vh, 520px)';
+const QUICK_H_STACKED = 'clamp(420px, 55vh, 680px)';
+
 export default function NodeDetailView({
     step, runStep, runSteps = [], definition, rootDefinition = null, blocksCatalog = [], onSaveStep,
     // (base, from, to) => number|undefined. The shell's edit (BuildTab.onRenameBinding).
     onRenameBinding = null,
     // (stepId, step) => boolean|undefined. The shell's edit (BuildTab.onInsertStepBefore).
     onInsertStepBefore = null,
+    onFollowRoute = null, // (routeId, stepIds) => void: BuildTab.onFollowRoute ("Use what this Condition keeps").
     validation, modelTiers = {}, onExecuteStep, onRetryFromStep,
     runInFlight = false, executingStep = false, onClose,
     // 'quick' | 'full': how BIG the window is. Owned by the shell.
@@ -74,10 +81,10 @@ export default function NodeDetailView({
     const {
         catalog, isSecondaryTrigger, wiredCaseNames, stepEdges, groups, previewSample,
         stepTypeById, stepNumberById, usedPaths, stepIssues,
-        describedSample, emptyFormAnswers, loopContext, inSummary, outSummary,
+        describedSample, emptyFormAnswers, loopContext, inSummary, outSummary, routeFollow, wholeRun,
     } = useNodeDetailData({
         step, runStep, runSteps, definition, rootDefinition, validation,
-        catalog: catalogProp, realOutputById,
+        catalog: catalogProp, realOutputById, onFollowRoute,
     });
     const stepLabelById = useMemo(() => buildStepLabelMap(definition), [definition]);
 
@@ -200,7 +207,7 @@ export default function NodeDetailView({
             ref={drawerRef}
             // Capped so the canvas keeps a readable strip above it on a laptop.
             className="@container/ndv relative flex flex-col flex-shrink-0 border-t border-[var(--border-default)] overflow-hidden max-h-[min(calc(100%-260px),60%)]"
-            style={{ height: quick ? (quickStacked ? 420 : 300) : drawerH, boxShadow: '0 -8px 24px rgba(0,0,0,.06)' }}
+            style={{ height: quick ? (quickStacked ? QUICK_H_STACKED : QUICK_H) : drawerH, boxShadow: '0 -8px 24px rgba(0,0,0,.06)' }}
         >
             {!quick && (
                 <div
@@ -297,16 +304,18 @@ export default function NodeDetailView({
                                 {/* "runs 4× · one per bank" (artboard 2b): a step in a loop runs once per item. */}
                                 {loopContext && (
                                     <span className="shrink-0 px-[7px] rounded-full text-[11px] font-semibold leading-[18px] bg-[color-mix(in_srgb,var(--type-loop)_16%,transparent)] text-[var(--type-loop)]" data-testid="ndv-runs-pill">
-                                        {loopContext.listLabel
-                                            ? t('automations.ndv.runs_n_times_per', 'runs {n}× · one per {list}', { n: loopContext.runs, list: loopContext.listLabel })
-                                            : t('automations.ndv.runs_n_times', 'runs {n}×', { n: loopContext.runs })}
+                                        {loopContext.itemNoun
+                                            ? t('automations.ndv.runs_n_times_per_item', 'runs {n}× · once per {item}', { n: loopContext.runs, item: loopContext.itemNoun })
+                                            : loopContext.listLabel
+                                                ? t('automations.ndv.runs_n_times_per', 'runs {n}× · one per {list}', { n: loopContext.runs, list: loopContext.listLabel })
+                                                : t('automations.ndv.runs_n_times', 'runs {n}×', { n: loopContext.runs })}
                                     </span>
                                 )}
                                 {onModeChange && !isTrigger && <FormModeToggle mode={effectiveMode} onChange={onModeChange} size="sm" />}
                             </NdvColumnHeader>
                         )}
                         <FormDensityContext.Provider value={densityValue}>
-                            <VariablePickerProvider groups={groups} previewSample={previewSample} stepLabelById={stepLabelById} stepTypeById={stepTypeById}>
+                            <VariablePickerProvider groups={groups} previewSample={previewSample} stepLabelById={stepLabelById} stepTypeById={stepTypeById} definition={definition}>
                                 <SettingsHost
                                     key={step.id}
                                     footerLeft={footerInfo}
@@ -330,6 +339,7 @@ export default function NodeDetailView({
                                     onTestSubmit={onTestSubmit}
                                     onRenameField={onRenameField}
                                     onInsertUpstreamStep={onInsertUpstreamStep}
+                                    routeFollow={routeFollow} wholeRun={wholeRun}
                                     onExpandOnCanvas={onExpandOnCanvas}
                                     runStep={runStep}
                                 />

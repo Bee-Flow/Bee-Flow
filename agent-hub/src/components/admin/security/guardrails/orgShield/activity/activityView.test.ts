@@ -159,6 +159,42 @@ describe('buildView — the map, the destinations and the coverage', () => {
     });
 });
 
+describe('buildView — health (GDPR Art. 9) is an organisation total only', () => {
+    it('health is an organisation total only: listed but not pickable, with a note, and never a map pill', () => {
+        const v = view({}, {
+            guard: { ...input().guard, top_categories: [{ category: 'Email', violation_type: 'pii', count: 6 }, { category: 'MedicalCondition', violation_type: 'pii', count: 4 }] },
+            integ: { ...input().integ, pii_categories: [{ category: 'Person', count: 3 }, { category: 'Medication', count: 2 }] },
+        });
+        expect(v.kinds).toEqual([
+            { value: 'Email', label: 'label:Email', count: 6 },
+            { value: 'MedicalCondition', label: 'label:MedicalCondition', count: 4, totalOnly: true },
+            { value: 'Person', label: 'label:Person', count: 3 },
+            { value: 'Medication', label: 'label:Medication', count: 2, totalOnly: true },
+        ]);
+        expect(v.specialTotalOnly).toBe(true);
+        // The pills only set the kind filter, which health never is.
+        expect(v.mapData.kindCounts.map(k => k.id)).toEqual(['Person']);
+        expect(view().specialTotalOnly).toBe(false);
+    });
+
+    it('health is never counted over the rows, which carry a person, even if a row names it', () => {
+        // The server strips health from rows with a user; should one arrive
+        // anyway, a filtered list must not turn it into a per-person count.
+        const health = { id: 8, timestamp: at(0, 8), user_id: 'u1', display_name: 'Kim', source: 'direct', violation_type: 'pii', violation_categories: 'MedicalCondition,Email', action_taken: 'blocked' };
+        const call = { ...egressRows[0], id: 9, user_id: 'u1', display_name: 'Kim', pii_categories_detected: 'Medication' };
+        const v = view({ person: 'u1' }, {
+            guardRows: [...guardRows, health],
+            egressRows: [...egressRows, call],
+            guard: { ...input().guard, top_categories: [{ category: 'MedicalCondition', violation_type: 'pii', count: 1 }] },
+        });
+        expect(v.kindsSampled).toBe(true);
+        expect(v.kinds.map(k => k.value)).toEqual(['Email']);
+        expect(v.mapData.kindCounts.map(k => k.id)).not.toContain('Medication');
+        // The window still names one, so the card says why it is missing here.
+        expect(v.specialTotalOnly).toBe(true);
+    });
+});
+
 function v0Day() {
     const d = new Date(at(0));
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;

@@ -203,6 +203,10 @@ function rowToRunStep(r) {
         // buttons from. Null on rows from before the columns.
         toolsWithheld: fromJsonb(r.tools_withheld) ?? null,
         errorInfo: fromJsonb(r.error_info) ?? null,
+        // The mappings that found nothing while the step ran, each with the
+        // server's sentence (stores/automationStore/bindingWarnings.js). Null
+        // when none missed, and on rows from before the column.
+        bindingWarnings: fromJsonb(r.binding_warnings) ?? null,
     };
     // A failed row from before the runner wrote error_info still gets the
     // plain-language card, classified from its message, its step type and its

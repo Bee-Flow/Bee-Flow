@@ -6,7 +6,7 @@ import Pager from '../../../../shared/Pager';
 import EmptyState from '../../../../shared/EmptyState';
 import { TONES } from '../../../../shared/statusTone';
 import { API, fetchJson, asArray, asObject } from '../../data/api';
-import { shortHash, toMs } from './checkSort';
+import { rowKeyOf, shortHash, subjectLabel, toMs } from './checkSort';
 
 /**
  * EvidenceTab — the framework's evidence ledger (artboard 1b › Bewijs): a
@@ -16,7 +16,9 @@ import { shortHash, toMs } from './checkSort';
  * Every row is one appended link of the org's hash chain, so the table shows
  * the hash and the sequence number — what an auditor asks for — and the
  * check it belongs to, with the title in the interface language when the
- * checks list knows it. The count comes from the same response; when the
+ * checks list knows it, and under it the subject the row is about (the agent
+ * or automation name the checks list carries for that check + subject; the
+ * check id moves to the title's tooltip). The count comes from the same response; when the
  * body carries none, the pager renders nothing rather than "of 0".
  *
  * States: loading (skeleton), failed (its own line — an unreadable ledger is
@@ -97,14 +99,42 @@ export default function EvidenceTab({
         return () => { alive = false; };
     }, [regulation, offset, pageSize]);
 
-    const titleOf = useMemo(() => {
-        const map = new Map();
-        for (const c of Array.isArray(checks) ? checks : []) if (c?.check_id) map.set(c.check_id, c);
-        return (checkId) => {
-            const c = map.get(checkId);
-            return c?.titleKey ? t(c.titleKey, checkId) : null;
+    const { titleOf, subjectOf } = useMemo(() => {
+        const byCheck = new Map();
+        const byRow = new Map();
+        for (const c of Array.isArray(checks) ? checks : []) {
+            if (!c?.check_id) continue;
+            if (!byCheck.has(c.check_id)) byCheck.set(c.check_id, c);
+            if (c.scope_id) byRow.set(rowKeyOf(c), c);
+        }
+        return {
+            titleOf: (checkId) => {
+                const c = byCheck.get(checkId);
+                if (!c) return null;
+                return c.titleKey ? t(c.titleKey, checkId) : (c.title || null);
+            },
+            // The ledger row carries ids only; the name comes from the live checks list.
+            subjectOf: (row) => {
+                if (!row?.subject_id) return null;
+                const c = byRow.get(rowKeyOf({ check_id: row.check_id, scope_id: row.subject_id }));
+                return c ? subjectLabel(c) : null;
+            },
         };
     }, [checks, t]);
+
+    /** Title (or the bare id when no title is known), then the subject; the id is the tooltip. */
+    const checkCell = (row) => {
+        const title = titleOf(row.check_id);
+        const subject = subjectOf(row);
+        return (
+            <>
+                {title
+                    ? <span className="text-[12px] font-medium text-[var(--text-primary)] truncate" title={row.check_id}>{title}</span>
+                    : <span className="text-[10px] text-[var(--text-tertiary)] truncate" style={MONO}>{row.check_id}</span>}
+                {subject && <span className="text-[11px] text-[var(--text-secondary)] truncate" data-testid={`${testId}-subject-label`}>{subject}</span>}
+            </>
+        );
+    };
 
     const columns = useMemo(() => evidenceColumns(t), [t]);
     const cells = Object.fromEntries(columns.map((c) => [c.id, c]));
@@ -112,15 +142,13 @@ export default function EvidenceTab({
     const total = state === 'ready' ? page?.total ?? null : null;
 
     const renderRow = (row) => {
-        const title = titleOf(row.check_id);
         const hash = shortHash(row.hash || row.payload_hash);
         const url = exportsEnabled && row.check_id ? dl(`${API}/evidence/${encodeURIComponent(row.check_id)}`) : null;
         return (
             <TableRow columns={columns} testId={`${testId}-row-${row.id ?? row.seq}`}>
                 <TableCell column={cells.captured_at} className="text-[11px] text-[var(--text-secondary)] tabular-nums whitespace-nowrap">{formatWhen(row.captured_at, locale)}</TableCell>
                 <TableCell column={cells.check} className="flex flex-col gap-0.5">
-                    {title && <span className="text-[12px] font-medium text-[var(--text-primary)] truncate">{title}</span>}
-                    <span className="text-[10px] text-[var(--text-tertiary)] truncate" style={MONO}>{row.check_id}</span>
+                    {checkCell(row)}
                 </TableCell>
                 <TableCell column={cells.subject} className="text-[11px] text-[var(--text-tertiary)] truncate">
                     {row.subject_type ? `${row.subject_type}${row.subject_id ? ` · ${row.subject_id}` : ''}` : null}
@@ -149,15 +177,13 @@ export default function EvidenceTab({
     // Phone (1h): the ledger folds to check · when · seq + hash, with the
     // JSON link kept as the row's one 44px target. Same strings as the row.
     const renderCard = (row) => {
-        const title = titleOf(row.check_id);
         const hash = shortHash(row.hash || row.payload_hash);
         const url = exportsEnabled && row.check_id ? dl(`${API}/evidence/${encodeURIComponent(row.check_id)}`) : null;
         const seq = Number.isFinite(Number(row.seq)) && row.seq !== null ? row.seq : null;
         return (
             <div className="w-full min-w-0 flex items-center gap-2" data-testid={`${testId}-card-${row.id ?? row.seq}`}>
                 <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                    {title && <span className="text-[12px] font-medium text-[var(--text-primary)] truncate">{title}</span>}
-                    <span className="text-[10px] text-[var(--text-tertiary)] truncate" style={MONO}>{row.check_id}</span>
+                    {checkCell(row)}
                     <span className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)] tabular-nums min-w-0">
                         <span className="whitespace-nowrap">{formatWhen(row.captured_at, locale)}</span>
                         {hash && (

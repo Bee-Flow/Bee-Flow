@@ -10,6 +10,7 @@ import { BILLING_ACTION } from '../../components/billing/billingTheme';
 
 /* ── Usage bar (matches OrgInfoPanel style) ─────────────────────────────── */
 const UsageBar = ({ label, icon: Icon, used, limit, unit, color = '#3b82f6', percentOnly = false }) => {
+    const { t } = useTranslation();
     const isUnlimited = limit === null || limit === undefined || limit === -1;
     const pct = isUnlimited ? 0 : limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
     const isWarning = pct >= 80 && pct < 95;
@@ -48,7 +49,7 @@ const UsageBar = ({ label, icon: Icon, used, limit, unit, color = '#3b82f6', per
             {!isUnlimited && (
                 <div className="flex justify-end">
                     <span className={`text-[10px] font-medium ${isCritical ? 'text-red-500' : isWarning ? 'text-amber-500' : 'text-[var(--text-muted)]'}`}>
-                        {pct}% used
+                        {t('settings.consumer_license.pct_used', '{pct}% used', { pct })}
                     </span>
                 </div>
             )}
@@ -214,7 +215,7 @@ const ConsumerLicenseSection = ({ user }) => {
     if (loading) return <Skeleton />;
     if (error) return (
         <div className="text-center py-12">
-            <p className="text-sm text-[var(--text-muted)]">Failed to load account data.</p>
+            <p className="text-sm text-[var(--text-muted)]">{t('settings.consumer_license.load_failed', 'Failed to load account data.')}</p>
         </div>
     );
 
@@ -246,11 +247,11 @@ const ConsumerLicenseSection = ({ user }) => {
 
             {/* Header */}
             <div>
-                <h2 className="text-lg font-bold text-[var(--text-primary)]">
+                <h2 className="text-lg font-semibold text-[var(--text-primary)]">
                     {t('settings.license_usage', 'License & Usage')}
                 </h2>
                 <p className="text-sm text-[var(--text-muted)] mt-1">
-                    Your personal account usage and limits
+                    {t('settings.consumer_license.subtitle', 'Your personal account usage and limits')}
                 </p>
             </div>
 
@@ -281,7 +282,7 @@ const ConsumerLicenseSection = ({ user }) => {
             {/* Plan Card */}
             <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] overflow-hidden">
                 <div className="p-5">
-                    <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{
                                 background: hasActiveSub ? '#10b981' : '#3b82f6'
@@ -292,7 +293,7 @@ const ConsumerLicenseSection = ({ user }) => {
                                 <p className="text-sm font-semibold text-[var(--text-primary)]">
                                     {limits?.plan_name === '__consumer_default__' ? 'Free' : (limits?.plan_name || 'Free')}
                                     {subscription?.payment_status === 'trialing' && (
-                                        <span className="ml-2 text-[10px] font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-full">TRIAL</span>
+                                        <span className="ml-2 text-[10px] font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-full">{t('settings.consumer_license.trial_badge', 'TRIAL')}</span>
                                     )}
                                 </p>
                                 <p className="text-xs text-[var(--text-muted)]">
@@ -318,14 +319,8 @@ const ConsumerLicenseSection = ({ user }) => {
                         )}
                     </div>
                 </div>
-
-                {/* Quick Stats — AI usage as % of cap (absolute € intentionally hidden). */}
-                <div className="border-t border-[var(--border-subtle)]">
-                    <div className="p-4 text-center">
-                        <div className="text-2xl font-bold text-[var(--text-primary)]">{costCap ? `${costPct}%` : '—'}</div>
-                        <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider mt-0.5">{costCap ? 'AI usage of cap this period' : 'AI usage this period'}</div>
-                    </div>
-                </div>
+                {/* The AI-usage percentage is shown once, as the "Usage This
+                    Period" bar below (absolute € intentionally hidden). */}
             </div>
 
             {/* Upgrade CTA — surfaces when AI usage cost approaches the plan cap */}
@@ -334,15 +329,15 @@ const ConsumerLicenseSection = ({ user }) => {
                     <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
                     <div className="flex-1 min-w-0">
                         <p className="text-[13px] font-semibold text-[var(--text-primary)]">
-                            You've used {costPct}% of your AI usage budget this period.
+                            {t('settings.consumer_license.budget_used', "You've used {pct}% of your AI usage budget this period.", { pct: costPct })}
                         </p>
-                        <p className="text-[11.5px] text-[var(--text-muted)]">Upgrade to a higher plan for more AI usage.</p>
+                        <p className="text-[11.5px] text-[var(--text-muted)]">{t('settings.consumer_license.budget_upgrade_hint', 'Upgrade to a higher plan for more AI usage.')}</p>
                     </div>
                     <button
                         onClick={scrollToPlans}
                         className="shrink-0 px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-blue-600 hover:bg-blue-500 text-white transition-colors"
                     >
-                        Upgrade plan
+                        {t('settings.consumer_license.upgrade_plan', 'Upgrade plan')}
                     </button>
                 </div>
             )}
@@ -364,15 +359,15 @@ const ConsumerLicenseSection = ({ user }) => {
             <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] p-5 space-y-4">
                 <div className="flex items-center gap-2 mb-1">
                     <BarChart3 className="w-4 h-4 text-[var(--text-muted)]" />
-                    <h3 className="text-sm font-semibold text-[var(--text-primary)]">Usage This Period</h3>
+                    <h3 className="text-sm font-semibold text-[var(--text-primary)]">{t('settings.consumer_license.usage_this_period', 'Usage This Period')}</h3>
                 </div>
 
-                <UsageBar label="AI usage" icon={DollarSign} used={billedCost} limit={limits?.max_cost_per_month} color="#10b981" percentOnly />
+                <UsageBar label={t('org.ai_usage', 'AI usage')} icon={DollarSign} used={billedCost} limit={limits?.max_cost_per_month} color="#10b981" percentOnly />
             </div>
 
             {/* Plan Limits Grid */}
             <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] p-5">
-                <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4">Plan Limits</h3>
+                <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4">{t('settings.consumer_license.plan_limits', 'Plan Limits')}</h3>
                 <div className="grid grid-cols-2 gap-3">
                     {[
                         { label: 'Agents', icon: Bot, val: limits?.max_agents, color: '#f59e0b' },
@@ -476,7 +471,7 @@ const ConsumerLicenseSection = ({ user }) => {
                                         </div>
                                         {plan.trial_days > 0 && (
                                             <div className="text-[11px] font-semibold text-emerald-500 mb-3">
-                                                {plan.trial_days}-day free trial
+                                                {t('settings.consumer_license.trial_days', '{days}-day free trial', { days: plan.trial_days })}
                                             </div>
                                         )}
 
@@ -485,13 +480,13 @@ const ConsumerLicenseSection = ({ user }) => {
                                             {plan.max_agents && (
                                                 <div className="flex items-center gap-2 text-[11px] text-[var(--text-secondary)]">
                                                     <Check className="w-3 h-3 text-emerald-500 shrink-0" />
-                                                    {plan.max_agents} agents
+                                                    {t('settings.consumer_license.plan_agents', '{count} agents', { count: plan.max_agents })}
                                                 </div>
                                             )}
                                             {plan.max_knowledge_sources && (
                                                 <div className="flex items-center gap-2 text-[11px] text-[var(--text-secondary)]">
                                                     <Check className="w-3 h-3 text-emerald-500 shrink-0" />
-                                                    {plan.max_knowledge_sources} knowledge sources
+                                                    {t('settings.consumer_license.plan_knowledge_sources', '{count} knowledge sources', { count: plan.max_knowledge_sources })}
                                                 </div>
                                             )}
                                         </div>
@@ -560,7 +555,7 @@ const ConsumerLicenseSection = ({ user }) => {
 
                     {/* Promo code hint */}
                     <p className="text-[11px] text-[var(--text-muted)] text-center mt-4">
-                        Have a promo code? You can apply it during checkout.
+                        {t('settings.consumer_license.promo_hint', 'Have a promo code? You can apply it during checkout.')}
                     </p>
                 </div>
             )}

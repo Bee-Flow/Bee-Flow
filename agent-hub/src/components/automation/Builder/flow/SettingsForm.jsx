@@ -11,12 +11,15 @@ import {
     findActionAndSiblings,
 } from './settings/actionEditors';
 import { emptySlotsIn } from '../mapping/boundPaths';
+import { listAsForStepType, SlotListAsContext } from '../mapping/slotListAs';
 import { AiStepFields } from './settings/aiStepEditors';
 import { ApprovalFields } from './settings/approvalEditors';
 import {
     DateTimeFields, WaitFields, LimitFields, DedupeFields, AggregateFields, SummarizeFields,
 } from './settings/collectionEditors';
 import DatatableFields from './settings/datatableEditors';
+import { sampleFromRunOf } from './settings/flattenEditorModel';
+import FlattenFields from './settings/FlattenFields';
 import { useFormDensity, useFormMode } from './settings/formDensity';
 import { inputClass, controlSurfaceClass, hintTextClass, FormRow, ValidationLine } from './settings/formPrimitives';
 import { defaultLabelPlaceholder, extractFormState, buildPatch, deepEqual, carryPendingRows } from './settings/formState';
@@ -103,6 +106,13 @@ export default function SettingsForm({
     // and the control that offers it is simply not rendered when it is null
     // (Condition node → RouteFields → RouteAssist's semantic handoff).
     onInsertUpstreamStep = null,
+    // A Condition working through a list: the next steps that still read that
+    // list, and the fix that re-points them (useNodeDetailData's routeFollow;
+    // null everywhere else). Same reason as above: the fix rewrites the graph.
+    routeFollow = null,
+    // A Condition deciding once for the whole run that reads a list as a
+    // whole: the lists and the loops after it (useNodeDetailData's wholeRun).
+    wholeRun = null,
     // Optional host content for the left of the action bar. The quick NDV puts
     // its "In … → Out …" summary here so the dialog ends in one footer instead
     // of stacking a second chrome bar underneath this one. Null everywhere
@@ -198,7 +208,9 @@ export default function SettingsForm({
         if (!userHasEdits) setDraft(carryPendingRows(incoming, draftRef.current));
     }, [step]);
 
-    const set = (k, v) => setDraft(d => ({ ...d, [k]: v }));
+    // A function value is an updater on the current value (and the whole
+    // draft), for edits that must land after another one in the same event.
+    const set = (k, v) => setDraft(d => ({ ...d, [k]: typeof v === 'function' ? v(d[k], d) : v }));
     const setNested = (parent, k, v) => setDraft(d => ({ ...d, [parent]: { ...(d[parent] || {}), [k]: v } }));
 
     const flushNow = () => {
@@ -259,7 +271,11 @@ export default function SettingsForm({
     useEffect(() => () => { flushNow(); }, []);  
 
     // `@container/ndvset`: the footer fits itself to the settings column, not the window.
+    // SlotListAsContext: how THIS step's run writes a list into its inputs'
+    // text (JSON for tool, AI, code, table and HTTP steps), so every value
+    // editor below previews what the step will actually receive.
     return (
+        <SlotListAsContext.Provider value={listAsForStepType(step?.type)}>
         <div className="@container/ndvset flex-1 min-h-0 flex flex-col">
             {(stepIssues.errors.length > 0 || stepIssues.warnings.length > 0) && (
                 <div className="flex-shrink-0 px-3 py-2 border-b border-[var(--border-default)]">
@@ -290,18 +306,18 @@ export default function SettingsForm({
                 {/* The step's name and symbol on ONE line, without a heading of
                     its own: the panel header already names the step, and the
                     field says what it is (its placeholder and accessible name). */}
-                <div className="flex items-center gap-2" title="A name and an optional symbol for this step, shown on its node.">
+                <div className="flex items-center gap-2" title={t('automations.settings_form.a_name_and_an_optional_symbol', 'A name and an optional symbol for this step, shown on its node.')}>
                     <IconPicker
                         value={draft.icon || ''}
                         onChange={(name) => set('icon', name)}
-                        title="Choose a symbol for this step"
+                        title={t('automations.settings_form.choose_a_symbol_for_this_step', 'Choose a symbol for this step')}
                     />
                     <input
                         type="text"
                         value={draft.label || ''}
                         onChange={(e) => set('label', e.target.value)}
                         placeholder={defaultLabelPlaceholder(step)}
-                        aria-label="Step name"
+                        aria-label={t('automations.settings_form.step_name', 'Step name')}
                         className={inputClass() + ' flex-1'}
                     />
                 </div>
@@ -336,6 +352,7 @@ export default function SettingsForm({
                         onFocusField={onFocusField} previewSample={previewSample}
                         errorSections={errorSections} wiredCaseNames={wiredCaseNames}
                         onInsertUpstreamStep={onInsertUpstreamStep}
+                        routeFollow={routeFollow} wholeRun={wholeRun}
                         topics={topicsCapability(catalog)}
                     />
                 )}
@@ -459,6 +476,9 @@ export default function SettingsForm({
                 {step.type === 'dedupe' && (
                     <DedupeFields draft={draft} set={set} groups={groups} onFocusField={onFocusField} previewSample={previewSample} errorSections={errorSections} />
                 )}
+                {step.type === 'flatten' && (
+                    <FlattenFields draft={draft} set={set} groups={groups} onFocusField={onFocusField} previewSample={previewSample} sampleFromRun={sampleFromRunOf(groups, draft.arrayRef)} errorSections={errorSections} />
+                )}
                 {step.type === 'datatable' && (
                     <DatatableFields
                         draft={draft} set={set} groups={groups} onFocusField={onFocusField}
@@ -543,7 +563,7 @@ export default function SettingsForm({
                         disabled={!dirty || saving}
                         className="flex items-center gap-1.5 px-3 py-1 text-xs rounded text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-40 transition"
                     >
-                        <RotateCcw size={12} /> {t('automations.builder.undo_changes', 'Undo changes')}
+                        <RotateCcw size={12} /> <span className="@max-[480px]/ndvset:sr-only">{t('automations.builder.undo_changes', 'Undo changes')}</span>
                     </button>
                     <button
                         onClick={onSave}
@@ -555,6 +575,7 @@ export default function SettingsForm({
                 </div>
             </div>
         </div>
+        </SlotListAsContext.Provider>
     );
 }
 

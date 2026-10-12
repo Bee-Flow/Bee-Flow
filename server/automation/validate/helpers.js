@@ -7,6 +7,8 @@
  * or push onto a caller-supplied array.
  */
 
+const { refHead, templateRefs, hasPlaceholder } = require('./refPaths');
+
 function isObject(x) { return x && typeof x === 'object' && !Array.isArray(x); }
 
 /**
@@ -54,23 +56,33 @@ function topoOrder(nodes, edges) {
     return order;
 }
 
-function collectRefPaths(value, out) {
+/**
+ * Gather every reference a value carries: binding wrappers at any depth
+ * (`{kind:'ref'}` paths, the placeholders of `{kind:'template'}`, the source
+ * of `{kind:'expr'}`). Placeholders are found with the runner's quote-aware
+ * scanner, so `{{ x["a}b"] }}` is one placeholder here exactly as at run time.
+ *
+ * Each entry says WHERE it was found (`where`, a dotted field path below the
+ * value, `''` for the value itself) so a finding can name the field:
+ *   { kind: 'ref', path, where, template? }   { kind: 'expr', src, where, binding }
+ * Callers that only read `kind`/`path`/`src` see the same shape as before.
+ */
+function collectRefPaths(value, out, where = '') {
     if (value == null) return;
-    if (Array.isArray(value)) { value.forEach(v => collectRefPaths(v, out)); return; }
+    if (Array.isArray(value)) { value.forEach((v, i) => collectRefPaths(v, out, `${where}[${i}]`)); return; }
     if (typeof value !== 'object') return;
     if (typeof value.kind === 'string') {
-        if (value.kind === 'ref' && typeof value.path === 'string') out.push({ kind: 'ref', path: value.path });
+        if (value.kind === 'ref' && typeof value.path === 'string') out.push({ kind: 'ref', path: value.path, where });
         if (value.kind === 'template' && typeof value.value === 'string') {
-            const re = /\{\{\s*([^}]+?)\s*\}\}/g;
-            let m; while ((m = re.exec(value.value))) out.push({ kind: 'ref', path: m[1].trim() });
+            for (const inner of templateRefs(value.value)) out.push({ kind: 'ref', path: inner, where, template: true });
         }
         if (value.kind === 'expr' && typeof value.value === 'string') {
-            out.push({ kind: 'expr', src: value.value });
+            out.push({ kind: 'expr', src: value.value, where, binding: true });
         }
         // literal: nothing
         return;
     }
-    for (const k of Object.keys(value)) collectRefPaths(value[k], out);
+    for (const k of Object.keys(value)) collectRefPaths(value[k], out, where ? `${where}.${k}` : k);
 }
 
 /**
@@ -84,7 +96,7 @@ function collectLiteralBraces(value, out) {
     if (Array.isArray(value)) { value.forEach(v => collectLiteralBraces(v, out)); return; }
     if (typeof value !== 'object') return;
     if (typeof value.kind === 'string') {
-        if (value.kind === 'literal' && typeof value.value === 'string' && /\{\{[^}]+\}\}/.test(value.value)) {
+        if (value.kind === 'literal' && typeof value.value === 'string' && hasPlaceholder(value.value)) {
             out.push(value.value);
         }
         return;
@@ -92,9 +104,9 @@ function collectLiteralBraces(value, out) {
     for (const k of Object.keys(value)) collectLiteralBraces(value[k], out);
 }
 
+/** The root of a reference path (`steps`, `trigger`, …), read by the runner's grammar. */
 function rootOf(path) {
-    const m = String(path).match(/^([A-Za-z_$][A-Za-z0-9_$]*)/);
-    return m ? m[1] : null;
+    return refHead(String(path)).root;
 }
 
 function levenshtein(a, b) {
@@ -149,9 +161,14 @@ function pickClosestId(target, candidates) {
     return null;
 }
 
+/**
+ * The key after the root — the step id of `steps.<id>` AND of `steps["<id>"]`
+ * (the bracket form used to read as "no step id"), the item variable of
+ * `loop.<var>`. Read from the longest valid head, so a path with a broken
+ * tail still names its step.
+ */
 function secondSegment(path) {
-    const m = String(path).match(/^[A-Za-z_$][A-Za-z0-9_$]*\.([A-Za-z_$][A-Za-z0-9_$]*)/);
-    return m ? m[1] : null;
+    return refHead(String(path)).second;
 }
 
 module.exports = {

@@ -8,6 +8,7 @@
 
 import { translate as t } from '@/core/i18n';
 import { nodeDefaultLabel } from '@/features/flow-editor/model/nodeDefs';
+import { extractJsonText } from '@/shared/expr';
 
 import { arr } from '../json';
 import type { FlowNode, VariableGroup } from '../types';
@@ -20,15 +21,12 @@ interface ParseField {
     fallback?: unknown;
 }
 
+// The step reads text the way a person would (a fenced or wrapped answer
+// too), so the preview does.
 function sourceOf(node: FlowNode, sampleRoot: unknown): unknown {
     if (!sampleRoot || !node.sourceRef) return undefined;
     const src = walkPath(node.sourceRef, sampleRoot);
-    if (typeof src !== 'string') return src;
-    try {
-        return JSON.parse(src);
-    } catch {
-        return undefined;
-    }
+    return typeof src === 'string' ? extractJsonText(src) : src;
 }
 
 function rowFrom(fields: ParseField[], root: unknown): Record<string, unknown> {

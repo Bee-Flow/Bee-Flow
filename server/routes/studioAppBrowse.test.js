@@ -57,8 +57,8 @@ stub('../appStudio/actionExecutor', {
 });
 // Rate limiters: pass-through (behaviour of the limiter is its own test).
 stub('./studioAppRateLimits', {
-    browseStepLimiter: (req, res, next) => next(),
-    aiStepLimiter: (req, res, next) => next(),
+    browseStepLimiter: Object.assign((req, res, next) => next(), { check: async () => true }),
+    aiStepLimiter: Object.assign((req, res, next) => next(), { check: async () => true }),
 });
 // requireAuth: pass-through when a session user is present (the real one hits
 // the DB to verify the user still exists — out of scope for a route test).

@@ -4,16 +4,16 @@
  *
  * WHY THIS EXISTS
  * A Condition rule's predicate is a restricted-grammar expression
- * (server/automation/expr.js → shared/expr): no function composition, no
- * templates, no arithmetic on the left of a comparison. So the only way to
- * say "is this a Word file" is
- *     endsWith(item.name, ".doc") || endsWith(item.name, ".docx")
- * and "split these files by pdf, word and powerpoint" is five hand-typed
- * comparisons spread over three outputs. In practice almost nobody finds the
- * "ends with" operator at all: they pick "equals", type `.pdf`, and get an
- * output that matches nothing — with no error anywhere, because "nothing
- * matched" is a perfectly legal result. The node cannot be told in words what
- * it should do, so this module is the part that listens.
+ * (server/automation/expr.js → shared/expr). "Is this a Word file" is
+ *     equals(fileType(item), "word")
+ * and on mails, where the files sit in a list inside each message,
+ *     anyOf(fileType(item.attachments[*]), "equals", "word")
+ * which checks EVERY attachment. Nobody types either by hand, and the
+ * obvious hand-built rule ("Attachments contains pdf", or an "ends with" on
+ * a list column, which only sees the last entry) matches nothing — with no
+ * error anywhere, because "nothing matched" is a perfectly legal result.
+ * The node cannot be told in words what it should do, so this module is the
+ * part that listens.
  *
  * WHY IT IS LOCAL AND NOT A MODEL CALL
  * A self-hosted box may have no LLM configured at all — that is the whole
@@ -38,29 +38,12 @@
  *    a `switch`, exactly like hand-built ones.
  */
 import { tryEvaluate } from '@shared/expr/engine.mjs';
+import { appendKey } from '@shared/expr/path.mjs';
+import { fileTypeOf, fileTypesNamedIn } from '@shared/expr/rules.mjs';
+import {
+    filesListKey, fileTarget, isPlainOption, itemIsFile, listTarget, mentionsFiles,
+} from './routeIntentsFiles';
 import { pickTopicField, readTopics } from './routeTopicIntent';
-
-/**
- * File "types" as a person names them versus the extensions that actually
- * occur. This mapping IS the feature for the motivating example: "word" is two
- * extensions, "powerpoint" is two, and a beginner typing "word" into an
- * equals-comparison gets nothing. Aliases are matched on word boundaries, so
- * ".doc" in a sentence hits `word` while "document" does not.
- */
-export const FILE_TYPES = [
-    { key: 'pdf', aliases: ['pdf', 'pdfs'], extensions: ['.pdf'] },
-    { key: 'word', aliases: ['word', 'doc', 'docx', 'msword'], extensions: ['.doc', '.docx'] },
-    { key: 'excel', aliases: ['excel', 'xls', 'xlsx', 'spreadsheet', 'spreadsheets'], extensions: ['.xls', '.xlsx'] },
-    { key: 'powerpoint', aliases: ['powerpoint', 'ppt', 'pptx', 'presentation', 'presentations'], extensions: ['.ppt', '.pptx'] },
-    { key: 'image', aliases: ['image', 'images', 'photo', 'photos', 'picture', 'pictures', 'jpg', 'jpeg', 'png'], extensions: ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic'] },
-    { key: 'csv', aliases: ['csv'], extensions: ['.csv'] },
-    { key: 'text_file', aliases: ['txt'], extensions: ['.txt'] },
-    { key: 'archive', aliases: ['zip', 'archive', 'archives'], extensions: ['.zip'] },
-    { key: 'audio', aliases: ['audio', 'mp3', 'recording', 'recordings'], extensions: ['.mp3', '.wav', '.m4a'] },
-    { key: 'video', aliases: ['video', 'videos', 'mp4'], extensions: ['.mp4', '.mov', '.mkv'] },
-];
-
-const ALL_EXTENSIONS = FILE_TYPES.flatMap(t => t.extensions);
 
 // More outputs than this is not a routing decision any more, it is a lookup
 // table — and every extra output is a port on the canvas that someone has to
@@ -98,8 +81,14 @@ function withUniqueNames(rules) {
     });
 }
 
-function result({ kind = null, understood = '', field = null, rules = [], problem = null, truncated = false }) {
-    return { kind, understood, field, rules: withUniqueNames(rules).slice(0, MAX_RULES), problem, truncated };
+function result({
+    kind = null, understood = '', field = null, rules = [], problem = null, problemCode = null,
+    truncated = false, filesInside = null,
+}) {
+    return {
+        kind, understood, field, rules: withUniqueNames(rules).slice(0, MAX_RULES),
+        problem, problemCode, truncated, filesInside,
+    };
 }
 
 function quote(value) {
@@ -155,12 +144,12 @@ function bestField(fields, score, minimum = 2) {
 
 function pickFileField(fields) {
     return bestField(fields, (f) => {
+        if (Array.isArray(f.sample)) return 0;
         let s = 0;
-        // A sample that really ends in a known extension is the strongest
-        // signal there is — stronger than any name. It is also why the
-        // extension list is checked instead of a generic /\.\w+$/: an e-mail
-        // address ends in ".nl" and would otherwise read as a filename.
-        if (typeof f.sample === 'string' && ALL_EXTENSIONS.some(e => f.sample.toLowerCase().endsWith(e))) s += 3;
+        // A sample that names a known file type is the strongest signal there
+        // is — stronger than any name. fileType reads "other" for anything it
+        // does not know, so an e-mail address ending in ".nl" scores nothing.
+        if (typeof f.sample === 'string' && fileTypeOf(f.sample) !== 'other') s += 3;
         const key = fieldKey(f);
         if (FILE_NAME_KEYS.test(key)) s += 2;
         else if (key === 'title') s += 1;
@@ -216,39 +205,6 @@ function namedField(lower, fields) {
         }
     }
     return best;
-}
-
-// ── Intent: file type ───────────────────────────────────────────────────
-function aliasIndex(lower, alias) {
-    const re = new RegExp(`(?:^|[^a-z0-9])(${alias})(?:[^a-z0-9]|$)`);
-    const m = re.exec(lower);
-    return m ? m.index + m[0].indexOf(alias) : -1;
-}
-
-/** The file types named, in the order the author named them — the outputs
- *  come out in the order they were asked for, which is how they read back. */
-function findFileTypes(lower) {
-    const hits = [];
-    for (const t of FILE_TYPES) {
-        let at = -1;
-        for (const a of t.aliases) {
-            const i = aliasIndex(lower, a);
-            if (i >= 0 && (at < 0 || i < at)) at = i;
-        }
-        if (at >= 0) hits.push({ t, at });
-    }
-    return hits.sort((a, b) => a.at - b.at).map(h => h.t);
-}
-
-function fileTypeRules(types, path) {
-    return types.map(t => ({
-        name: t.key,
-        // One `endsWith` per extension, OR-joined: `word` is `.doc` OR
-        // `.docx`, which is the whole reason this is worth generating. The
-        // engine's endsWith ignores case (shared/expr/functions.mjs), so
-        // ".PDF" from a Windows scanner matches without a second rule.
-        expr: t.extensions.map(e => `endsWith(${path}, ${quote(e)})`).join(' || '),
-    }));
 }
 
 // ── Intent: contains ────────────────────────────────────────────────────
@@ -394,9 +350,13 @@ function numberRules(clauses, path) {
  * MEANING become "is about" outputs (tryTopics, last in line).
  *
  * @param {string} text
- * @param {{ fields?: Array<{ path: string, label?: string, sample?: unknown, type?: string }>, topics?: boolean }} [opts]
+ * `element` is one item's sample: it says whether each item is a file, or
+ * holds a list of files (an e-mail's attachments), which decides what a
+ * file-type rule reads (S1) and whether the answer carries `filesInside`.
+ *
+ * @param {{ fields?: Array<{ path: string, label?: string, sample?: unknown, type?: string, quantified?: boolean, kind?: string }>, topics?: boolean, element?: unknown }} [opts]
  */
-export function suggestOutputs(text, { fields = [], topics = false } = {}) {
+export function suggestOutputs(text, { fields = [], topics = false, element = undefined } = {}) {
     const src = String(text || '').trim();
     if (!src) return result({});
     if (!(fields || []).length) {
@@ -405,10 +365,31 @@ export function suggestOutputs(text, { fields = [], topics = false } = {}) {
         });
     }
     const lower = src.toLowerCase();
-    const ctx = { src, lower, fields, named: namedField(lower, fields), topics };
+    // Only plain fields are compared directly; list columns and lists of
+    // records need a quantifier, which only the file-type reader writes.
+    const plain = fields.filter(isPlainOption);
+    const ctx = {
+        src, lower, fields: plain, named: namedField(lower, plain), topics,
+        element, allFields: fields, namedAny: namedField(lower, fields),
+    };
     for (const intent of INTENTS) {
         const answer = intent(ctx);
         if (answer) return answer;
+    }
+    return unrecognised(ctx);
+}
+
+/** The sentence for a description no intent answered. */
+function unrecognised({ lower, element, allFields }) {
+    if (mentionsFiles(lower) && (itemIsFile(element, allFields) || filesListKey(element, allFields))) {
+        // About files, but no type named: say which words work, and (S4)
+        // still offer to work through the files inside each item.
+        const listKey = itemIsFile(element, allFields) ? null : filesListKey(element, allFields);
+        return result({
+            problem: 'Name the file types to split by, for example “pdf, word and powerpoint”.',
+            problemCode: 'name_types',
+            filesInside: listKey ? listTarget(appendKey('item', listKey), allFields).filesInside : null,
+        });
     }
     if (DATE_WORDS.test(lower)) {
         // A relative date needs the run's clock, and a dd-mm-yyyy date is
@@ -426,19 +407,22 @@ export function suggestOutputs(text, { fields = [], topics = false } = {}) {
 // sees a "between … and …" it would half-understand.
 const INTENTS = [tryFileTypes, tryDates, tryNumbers, tryPhrases, tryTopics];
 
-function tryFileTypes({ lower, fields, named }) {
-    const types = findFileTypes(lower);
+function tryFileTypes({ lower, allFields, namedAny, element }) {
+    const types = fileTypesNamedIn(lower);
     if (!types.length) return null;
-    const field = named || pickFileField(fields);
-    if (!field) {
+    const target = fileTarget({ named: namedAny, element, fields: allFields, pickField: pickFileField });
+    if (!target) {
         return result({ problem: 'Nothing here looks like a file name, so there is nothing to check the extension against. Name the field in your description — for example “file name is a pdf” — or add the outputs by hand.' });
     }
     return result({
         kind: 'fileType',
         understood: 'Split by file type',
-        field,
-        rules: fileTypeRules(types, field.path),
+        field: target.field,
+        // Each output is named with the word the author used ("csv" stays
+        // csv, although it is the excel type), so it reads back as asked.
+        rules: types.map(t => ({ name: slugName(t.word), expr: target.expr(t.key) })),
         truncated: types.length > MAX_RULES,
+        filesInside: target.filesInside,
     });
 }
 
@@ -530,8 +514,9 @@ export function matchCounts(rules, rows, { root = null, itemVar = 'item', host =
     const base = (root && typeof root === 'object' && !Array.isArray(root)) ? root : null;
     const perRule = rules.map(r => ({ name: r.name, matched: 0, failed: 0 }));
     let unmatched = 0;
-    for (const row of rows) {
-        const scope = { ...base, [itemVar]: row };
+    rows.forEach((row, index) => {
+        // The run's scope for a list rule: the item and its position.
+        const scope = { ...base, [itemVar]: row, _index: index };
         let any = false;
         rules.forEach((r, i) => {
             // `host` answers "is about" rules from the classifier's scores
@@ -542,6 +527,6 @@ export function matchCounts(rules, rows, { root = null, itemVar = 'item', host =
             if (value) { perRule[i].matched += 1; any = true; }
         });
         if (!any) unmatched += 1;
-    }
+    });
     return { total: rows.length, perRule, unmatched };
 }

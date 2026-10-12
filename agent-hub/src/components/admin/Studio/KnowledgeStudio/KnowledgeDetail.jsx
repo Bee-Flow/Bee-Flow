@@ -69,9 +69,9 @@ export default function KnowledgeDetail({
             setKb(await knowledgeApi.get(kbId));
             setError(null);
         } catch (e) {
-            setError(e.message || 'Could not load this knowledge base');
+            setError(e.message || t('studio_misc.errors.load_kb', 'Could not load this knowledge base'));
         }
-    }, [kbId]);
+    }, [kbId, t]);
 
     const loadSources = useCallback(async () => {
         if (!kbId) return;
@@ -85,10 +85,10 @@ export default function KnowledgeDetail({
             // capsule and the other tabs all still work, and replacing the
             // page with one error message would hide the controls the person
             // needs to fix whatever went wrong.
-            setSourcesError(e.message || 'Could not load the sources');
+            setSourcesError(e.message || t('studio_misc.errors.load_sources', 'Could not load the sources'));
             setSources([]);
         }
-    }, [kbId]);
+    }, [kbId, t]);
 
     useEffect(() => {
         let alive = true;

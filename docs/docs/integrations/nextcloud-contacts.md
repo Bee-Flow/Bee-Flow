@@ -40,7 +40,7 @@ DELETE   /remote.php/dav/addressbooks/users/{uid}/{book}/{card}.vcf
 
 ## Privacy
 
-Contact details (email, phone, name, address) are exactly what the Privacy Shield redacts. With Standard mode, the assistant sees `[email_1]`, `[phone_1]` etc. when reading contacts, and you see real values on screen. With Strict mode, names and organisations also tokenise.
+Contact details (email, phone, name, address) are exactly what the Privacy Shield redacts. With Standard mode, the assistant sees `[email_1]`, `[phonenumber_1]` etc. when reading contacts, and you see real values on screen. With Strict mode, names and organisations also tokenise.
 
 ## Common errors
 

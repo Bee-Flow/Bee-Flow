@@ -1,5 +1,6 @@
 import { Ban, Repeat } from 'lucide-react';
 import React from 'react';
+import { useTranslation } from '../../hooks/useTranslation';
 
 /**
  * Two-card picker for the action taken when PII is detected. "Tokenize &
@@ -11,6 +12,7 @@ import React from 'react';
  * ConsumerPrivacySection so both stay visually aligned.
  */
 export function PiiActionPicker({ value, onChange, tokenizeLabel, tokenizeHelp, blockLabel, blockHelp, footnote }) {
+    const { t } = useTranslation();
     const options = [
         {
             id: 'tokenize',
@@ -28,7 +30,7 @@ export function PiiActionPicker({ value, onChange, tokenizeLabel, tokenizeHelp, 
 
     return (
         <div className="p-4 rounded-xl border" style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-subtle)' }}>
-            <label className="text-xs font-medium text-muted block mb-2">Action on detection</label>
+            <label className="text-xs font-medium text-muted block mb-2">{t('privacy.pii_action_picker_label', 'Action on detection')}</label>
             <div className="flex gap-2 flex-wrap">
                 {options.map(opt => (
                     <button

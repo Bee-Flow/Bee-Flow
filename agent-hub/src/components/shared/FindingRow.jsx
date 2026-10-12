@@ -1,4 +1,5 @@
 import React from 'react';
+import { TONES } from './statusTone';
 
 /**
  * ONE row for "this needs a person", wherever it is shown.
@@ -21,6 +22,12 @@ import React from 'react';
  * knowledge. Each caller maps whatever it holds (a validator record with a
  * step id, a Finding with a targetRef) onto these props and hands over an
  * `onOpen` that knows where its own "show me" goes.
+ *
+ * `size="sm"` is the callout inside a 12px drawer (the Compliance registers):
+ * text-xs with a snug line, and the text in the tone's INK rather than its
+ * raw colour (raw amber as text on its own 5 % tint is under 3:1). The
+ * border and the tint keep the raw tone. The default size is what the
+ * builder pill and Studio Home have always drawn.
  */
 
 /**
@@ -35,6 +42,19 @@ function severityTone(severity) {
     return 'var(--warning)';
 }
 
+/** The text colour of a small row: the tone's ink (info: neutral ink). */
+function severityInk(severity) {
+    if (severity === 'error') return TONES.error.ink;
+    if (severity === 'info') return TONES.neutral.ink;
+    return TONES.warning.ink;
+}
+
+/** Size-dependent look: the class, the text colour and the data attribute. */
+function rowLook(size, severity, tone) {
+    if (size === 'sm') return { sizeClass: 'text-xs leading-snug', ink: severityInk(severity), dataSize: 'sm' };
+    return { sizeClass: '', ink: tone, dataSize: undefined };
+}
+
 export default function FindingRow({
     code = null,
     severity = 'warning',
@@ -44,9 +64,11 @@ export default function FindingRow({
     onOpen = null,
     openLabel = undefined,
     icon = null,
+    size = 'md',
     testId = undefined,
 }) {
     const tone = severityTone(severity);
+    const look = rowLook(size, severity, tone);
     const clickable = typeof onOpen === 'function';
     // Every interactive attribute in one place: a row that opens something is
     // a button with a keyboard, and a row that opens nothing is plain text.
@@ -62,10 +84,11 @@ export default function FindingRow({
             {...interactive}
             data-testid={testId}
             data-severity={severity}
-            className={`rounded px-2.5 py-1.5 ${clickable ? 'cursor-pointer hover:brightness-95' : ''}`}
+            data-size={look.dataSize}
+            className={`rounded px-2.5 py-1.5 ${look.sizeClass} ${clickable ? 'cursor-pointer hover:brightness-95' : ''}`.replace(/\s+/g, ' ').trim()}
             style={{ background: `color-mix(in srgb, ${tone} 5%, transparent)`, border: `1px solid color-mix(in srgb, ${tone} 20%, transparent)` }}
         >
-            <div className="flex items-start gap-1.5" style={{ color: tone }}>
+            <div className="flex items-start gap-1.5" style={{ color: look.ink }}>
                 {/* Optional leading glyph: on Studio Home a row can be about any
                     kind, and the kind's own tinted icon is how the list stays
                     readable across ten of them. The canvas has one kind (a

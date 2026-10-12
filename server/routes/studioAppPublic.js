@@ -148,10 +148,9 @@ function privateHeaders(res) {
 
 const TOKEN_RE = /^[a-f0-9]{24,64}$/;
 
-// Heavy kinds, mirroring studioAppsRun.js. They touch no table, so RLS never
-// sees them — but they spend the owner's model quota, mail allowance or
-// storage, which is exactly what an anonymous caller must not be able to drain.
-const HEAVY_STEP_KINDS = ['run_automation', 'ai_extract', 'ai_generate', 'kb_query', 'send_email', 'generate_file', 'fill_document', 'generate_presentation', 'redact_pdf', 'file_intake'];
+// Model-calling kinds get their own budget; every other step kind shares
+// stepLimiter. Heavy kinds touch no table, so RLS never sees them — but they
+// spend the owner's quota, which an anonymous caller must not be able to drain.
 const AI_STEP_KINDS = ['ai_extract', 'ai_generate', 'kb_query', 'redact_pdf'];
 
 /**
@@ -317,15 +316,9 @@ router.post('/:token/actions/:actionId/step', ipLimiter, tokenLimiter, jsonBody,
 
         // Budget by kind, before any work. A model call gets its own bucket —
         // an action legitimately repeats one per uploaded photo.
-        let allowed = false;
-        if (AI_STEP_KINDS.includes(step.kind)) {
-            aiStepLimiter(req, res, () => { allowed = true; });
-        } else if (HEAVY_STEP_KINDS.includes(step.kind)) {
-            stepLimiter(req, res, () => { allowed = true; });
-        } else {
-            stepLimiter(req, res, () => { allowed = true; });
-        }
-        if (!allowed) return undefined;
+        // Awaited: the Redis-backed limiter decides asynchronously (BFSF-459).
+        const budget = AI_STEP_KINDS.includes(step.kind) ? aiStepLimiter : stepLimiter;
+        if (!(await budget.check(req, res))) return undefined;
 
         const ctx = await publicDataContext(found, req, res);
         if (!ctx) return undefined;

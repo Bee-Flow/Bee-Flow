@@ -1,4 +1,5 @@
 import { Check, Minus } from 'lucide-react';
+import useTranslation from '../../../../../../hooks/useTranslation';
 import { makeValueFormatter } from '../chartPalette';
 import { hoverable } from '../hoverable';
 import { ROLE_COLORS, roleTextColor } from '../styleResolver';
@@ -192,15 +193,27 @@ export function Monogram({ name, size = 20 }) {
     );
 }
 
-function relativeFrom(value, now) {
+function relativeFrom(value, now, t) {
     const then = new Date(value).getTime();
     if (Number.isNaN(then)) return null;
     const mins = Math.round((now - then) / 60000);
     const abs = Math.abs(mins);
-    if (abs < 1) return 'just now';
-    if (abs < 60) return mins > 0 ? `${abs}m ago` : `in ${abs}m`;
-    if (abs < 1440) return mins > 0 ? `${Math.round(abs / 60)}h ago` : `in ${Math.round(abs / 60)}h`;
-    return mins > 0 ? `${Math.round(abs / 1440)}d ago` : `in ${Math.round(abs / 1440)}d`;
+    if (abs < 1) return t('studio_apps_runtime.cell.just_now', 'just now');
+    if (abs < 60) {
+        return mins > 0
+            ? t('studio_apps_runtime.cell.minutes_ago', '{n}m ago', { n: abs })
+            : t('studio_apps_runtime.cell.in_minutes', 'in {n}m', { n: abs });
+    }
+    if (abs < 1440) {
+        const h = Math.round(abs / 60);
+        return mins > 0
+            ? t('studio_apps_runtime.cell.hours_ago', '{n}h ago', { n: h })
+            : t('studio_apps_runtime.cell.in_hours', 'in {n}h', { n: h });
+    }
+    const d = Math.round(abs / 1440);
+    return mins > 0
+        ? t('studio_apps_runtime.cell.days_ago', '{n}d ago', { n: d })
+        : t('studio_apps_runtime.cell.in_days', 'in {n}d', { n: d });
 }
 
 /**
@@ -232,7 +245,7 @@ function asTags(value) {
 }
 
 /** The format switch — one cell's MAIN content, before any decorations. */
-function renderMainValue({ value, format, col, row, now }) {
+function renderMainValue({ value, format, col, row, now, t }) {
     // An empty cell is muted everywhere. AppTable used to render a bare em-dash
     // at full text colour, which read as content rather than as absence.
     if (value == null || value === '') {
@@ -283,19 +296,19 @@ function renderMainValue({ value, format, col, row, now }) {
             // same second could disagree about how long ago that was. With no
             // clock to measure against, "3h ago" is unanswerable — so fall back
             // to the timestamp itself rather than invent one.
-            const rel = now == null ? null : relativeFrom(value, now);
+            const rel = now == null ? null : relativeFrom(value, now, t);
             if (rel != null) return <>{rel}</>;
             const d = new Date(value);
             return <>{Number.isNaN(d.getTime()) ? displayValue(value) : d.toLocaleString()}</>;
         }
         case 'boolean':
-            return <>{value ? 'Yes' : 'No'}</>;
+            return <>{value ? t('studio_apps_runtime.cell.yes', 'Yes') : t('studio_apps_runtime.cell.no', 'No')}</>;
         case 'check':
             // Truthy gets a tick, falsy gets a dash — a column of Yes/No words
             // is much harder to scan than a column of marks.
             return value
-                ? <Check className="w-3.5 h-3.5 inline" style={{ color: ROLE_COLORS.success }} aria-label="Yes" />
-                : <Minus className="w-3.5 h-3.5 inline" style={{ color: 'var(--text-muted)' }} aria-label="No" />;
+                ? <Check className="w-3.5 h-3.5 inline" style={{ color: ROLE_COLORS.success }} aria-label={t('studio_apps_runtime.cell.yes', 'Yes')} />
+                : <Minus className="w-3.5 h-3.5 inline" style={{ color: 'var(--text-muted)' }} aria-label={t('studio_apps_runtime.cell.no', 'No')} />;
         case 'badge':
         case 'relation':
             return (
@@ -430,7 +443,8 @@ function textToneStyle(col, row, value) {
 }
 
 export default function CellValue({ value, format = 'text', col = null, row = null, now = null }) {
-    const main = renderMainValue({ value, format, col, row, now });
+    const { t } = useTranslation();
+    const main = renderMainValue({ value, format, col, row, now, t });
 
     // Decorations (spec: columns[].flagFrom / subtextFrom). A column without
     // them returns the main content verbatim — the identity path.

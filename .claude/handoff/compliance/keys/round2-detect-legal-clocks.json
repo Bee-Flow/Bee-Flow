@@ -1,0 +1,34 @@
+{
+  "en": {
+    "compliance.nav_dsr_desc": "Data-subject requests — answer within one month (Art. 12–22).",
+    "compliance.dsr_subtitle": "Every request starts a one-month clock (GDPR Art. 12(3)). Fulfil or reject each one and keep the summary — it is your accountability record.",
+    "compliance.checks.gdpr_art15.desc": "Art. 15 gives every person the right to a copy of their data. Requests must be answered within one month of receipt (GDPR Art. 12(3)), or within the extended deadline.",
+    "compliance.checks.gdpr_art15.fix": "Open Compliance → DSR Inbox and fulfil the open access requests before their one-month deadline.",
+    "compliance.checks.gdpr_art17.desc": "Art. 17 (right to erasure) — deletion requests must be honoured without undue delay, at the latest within one month of receipt (GDPR Art. 12(3)), or within the extended deadline.",
+    "compliance.checks.gdpr_art17.fix": "Open Compliance → DSR Inbox and fulfil the open deletion requests before their one-month deadline.",
+    "compliance.deadline_kind_cra_full_report": "CRA final report",
+    "compliance.check_data_act_export_coverage_desc": "Customers must be able to take all their exportable data when switching (Data Act Art. 23(c), 25(2)(a) and (e)). Each kind of data held here needs a working export endpoint.",
+    "compliance.dsr_toast_captured": "Request recorded — the one-month clock is running",
+    "compliance.hdr_dsr_window": "Art. 12–22 · one month, +2 months with reason",
+    "compliance.ovw_deadlines_hint": "Legal response deadlines, most urgent first",
+    "compliance.dsr_intake_note": "Requests arrive through the public form (no account, rate-limited, linked from the privacy notice) or are recorded here by hand. The one-month clock starts at receipt, not when work starts.",
+    "compliance.pf_intro": "The Data Act asks that a customer can take all exportable data along when they switch (Art. 23(c), 25(2)(a) and (e)): every kind this platform holds, in a structured, commonly used and machine-readable format (Art. 30(5)). A kind without a working export route is a gap in the exit procedure — it is listed here, not hidden.",
+    "compliance.deadline_kind_cra_notification": "CRA notification (72 h)"
+  },
+  "nl": {
+    "compliance.nav_dsr_desc": "Verzoeken van betrokkenen — beantwoorden binnen één maand (art. 12–22).",
+    "compliance.dsr_subtitle": "Elk verzoek start een klok van één maand (art. 12, lid 3 AVG). Handel elk verzoek af of wijs het af en bewaar de samenvatting — dat is je verantwoording.",
+    "compliance.checks.gdpr_art15.desc": "Art. 15 geeft iedereen het recht op een kopie van de eigen gegevens. Verzoeken moeten binnen één maand na ontvangst worden beantwoord (art. 12, lid 3 AVG), of binnen de verlengde termijn.",
+    "compliance.checks.gdpr_art15.fix": "Open Compliance → Verzoeken (DSR) en handel de openstaande inzageverzoeken af voordat hun termijn van één maand verstrijkt.",
+    "compliance.checks.gdpr_art17.desc": "Art. 17 (recht op gegevenswissing) — verwijderverzoeken moeten zonder onredelijke vertraging worden uitgevoerd, uiterlijk binnen één maand na ontvangst (art. 12, lid 3 AVG), of binnen de verlengde termijn.",
+    "compliance.checks.gdpr_art17.fix": "Open Compliance → Verzoeken (DSR) en handel de openstaande verwijderverzoeken af voordat hun termijn van één maand verstrijkt.",
+    "compliance.deadline_kind_cra_full_report": "CRA eindrapport",
+    "compliance.check_data_act_export_coverage_desc": "Klanten moeten bij overstappen al hun exporteerbare gegevens kunnen meenemen (Data Act art. 23(c), 25(2)(a) en (e)). Elke soort gegevens die hier wordt bewaard heeft een werkend exportendpoint nodig.",
+    "compliance.dsr_toast_captured": "Verzoek vastgelegd — de klok van één maand loopt",
+    "compliance.hdr_dsr_window": "Art. 12–22 · één maand, +2 maanden met reden",
+    "compliance.ovw_deadlines_hint": "Wettelijke reactietermijnen, meest urgente eerst",
+    "compliance.dsr_intake_note": "Verzoeken komen binnen via het openbare formulier (zonder account, rate-limited, gelinkt vanuit de privacyverklaring) of worden hier handmatig vastgelegd. De klok van één maand start bij ontvangst, niet wanneer het werk begint.",
+    "compliance.pf_intro": "De Data Act vraagt dat een klant bij overstappen alle exporteerbare gegevens kan meenemen (art. 23(c), 25(2)(a) en (e)): elke soort die dit platform bewaart, in een gestructureerd, gangbaar en machineleesbaar formaat (art. 30(5)). Een soort zonder werkende exportroute is een gat in de exit-procedure — die staat hier, niet verstopt.",
+    "compliance.deadline_kind_cra_notification": "CRA melding (72 uur)"
+  }
+}

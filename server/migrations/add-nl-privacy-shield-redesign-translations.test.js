@@ -50,7 +50,7 @@ const OWNED_PREFIXES = [
     'admin.shield_compliance_', // the Compliance link card
     'admin.shield_summary_',   // the pipeline strip's read-outs
     'admin.shield_map_',       // the egress map
-    'admin.shield_pipeline_',  // the strip's bookends
+    // admin.shield_pipeline_ (the strip's bookends) is retired as a whole, see RETIRED_SINCE.
     'admin.shield_step_',      // the two numbered checks
     'pii.group_',              // the seven category groups
 ];
@@ -84,6 +84,13 @@ const RETIRED_SINCE = new Set([
     'admin.shield_map_legend_other',
     'admin.shield_map_pin',
     'admin.shield_map_unplaced',
+    // Privacy Shield (2026-10): steps 3 and 4 became two panes. The strip lost
+    // its "Message" / "AI model" bookends and the explainer its "Open the two
+    // checks" links (now shield_shell.hiw_open_*).
+    'admin.shield_pipeline_in',
+    'admin.shield_pipeline_out',
+    'admin.shield_hiw_open_processing',
+    'admin.shield_hiw_open_outbound',
 ]);
 
 test('every Dutch key exists in the English catalog', () => {

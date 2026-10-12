@@ -60,3 +60,19 @@ test('every check file that is loaded registers with an id (the loader stays sil
     }
     assert.ok(files > 0, 'no check files found — the directories moved?');
 });
+
+test('every registered check has its title, description and fix in the English dictionary', () => {
+    // A missing key does not fail anywhere else: the table falls back to the
+    // check id, and "GDPR-Art30-personal-data-flows" shipped as a title that way.
+    const registry = require('./index');
+    const { GUI_DEFAULTS } = require('../../i18n/defaults/en');
+    const missing = [];
+    for (const c of registry.getAll()) {
+        for (const field of ['titleKey', 'descriptionKey', 'remediationKey']) {
+            const key = c[field];
+            if (typeof key !== 'string' || !key) missing.push(`${c.id}: no ${field}`);
+            else if (typeof GUI_DEFAULTS[key] !== 'string' || !GUI_DEFAULTS[key].trim()) missing.push(`${c.id}: ${field} ${key}`);
+        }
+    }
+    assert.deepStrictEqual(missing, [], `checks without English copy:\n${missing.join('\n')}`);
+});

@@ -18,11 +18,23 @@ const SITE_ID_RE = /^pj_[a-f0-9]{4,}$/;
 const KEY_CMS_LIVE_SITE_ID = 'cms_live_site_id';
 const KEY_CMS_ENABLED      = 'cms_enabled';   // legacy, read-only after migration
 
+/**
+ * The CMS admin test, as a function: an admin session/role, or the 'all'
+ * permission. requireAdmin applies it to the session of a request; the CMS MCP
+ * server applies it to the user its token belongs to, so a token can never do
+ * more to the website than that user could in the admin panel.
+ * @param {{ isAdmin?: boolean, user?: { id?: string, role?: string } }} session
+ */
+async function canAdminCms(session) {
+    if (!session?.user) return false;
+    if (session.isAdmin || session.user.role === 'admin') return true;
+    const userId = session.user.id;
+    return !!(userId && await hasPermission(userId, 'all', session));
+}
+
 async function requireAdmin(req, res, next) {
     if (!req.session?.user) return res.status(401).json({ error: 'Unauthorized' });
-    if (req.session.isAdmin || req.session.user?.role === 'admin') return next();
-    const userId = req.session.user?.id;
-    if (userId && await hasPermission(userId, 'all', req.session)) return next();
+    if (await canAdminCms(req.session)) return next();
     return res.status(403).json({ error: 'Admin access required' });
 }
 
@@ -78,8 +90,24 @@ async function setLiveSiteId(siteId) {
     return siteId;
 }
 
+// A site that is Live must always serve a PUBLISHED snapshot — never its
+// in-progress draft. Publishing on the Live transition guarantees
+// "public == published": once live, later edits stay private until the user
+// clicks Publish again. Idempotent + best-effort (a publish hiccup must not
+// block the Live toggle; the public route self-heals as a backstop).
+async function ensurePublishedSnapshot(siteId) {
+    try {
+        const snap = await cmsStore.getPublishedSnapshot(siteId, { fresh: true });
+        if (!snap) await cmsStore.publishSite(siteId);
+    } catch (e) {
+        log.warn(`[CMS] ensurePublishedSnapshot failed for ${siteId}: ${e.message}`);
+    }
+}
+
 module.exports = {
     requireAdmin,
+    canAdminCms,
+    ensurePublishedSnapshot,
     attachSiteIdFromParam,
     SITE_ID_RE,
     getLiveSiteId,

@@ -1,6 +1,7 @@
 import { Search, Sparkles, Bot } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Modal from '../../../shared/Modal';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 /**
  * Cmd/Ctrl+K command palette for the Automations page.
@@ -10,6 +11,7 @@ import Modal from '../../../shared/Modal';
  * Enter activates, Escape closes.
  */
 export default function QuickSwitcher({ open, items, onPick, onClose }) {
+    const { t } = useTranslation();
     const [query, setQuery] = useState('');
     const inputRef = useRef(null);
     const selectedRef = useRef(null);
@@ -71,7 +73,7 @@ export default function QuickSwitcher({ open, items, onPick, onClose }) {
             size="auto"
             variant="bare"
             zIndex={2000}
-            label="Jump to an automation"
+            label={t('studio_misc.quick.label', 'Jump to an automation')}
             className="max-w-xl rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)] shadow-2xl overflow-hidden"
         >
             <div>
@@ -82,7 +84,7 @@ export default function QuickSwitcher({ open, items, onPick, onClose }) {
                         value={query}
                         onChange={(e) => setQueryAndReset(e.target.value)}
                         onKeyDown={onKeyDown}
-                        placeholder="Jump to an automation…"
+                        placeholder={t('studio_misc.quick.placeholder', 'Jump to an automation…')}
                         className="flex-1 bg-transparent outline-none text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]"
                     />
                     <span className="text-[10px] font-mono text-[var(--text-tertiary)] border border-[var(--border-default)] rounded px-1.5 py-0.5">
@@ -92,7 +94,7 @@ export default function QuickSwitcher({ open, items, onPick, onClose }) {
                 <div className="max-h-[60vh] overflow-y-auto py-1">
                     {filtered.length === 0 && (
                         <div className="px-4 py-6 text-center text-sm text-[var(--text-tertiary)]">
-                            No automations match "{query}".
+                            {t('studio_misc.quick.no_match', 'No automations match "{query}".', { query })}
                         </div>
                     )}
                     {filtered.map((it, i) => {
@@ -114,7 +116,7 @@ export default function QuickSwitcher({ open, items, onPick, onClose }) {
                                     ? <Sparkles size={14} className="text-[var(--text-tertiary)] flex-shrink-0" />
                                     : <Bot size={14} className="text-[var(--text-tertiary)] flex-shrink-0" />}
                                 <div className="flex-1 min-w-0">
-                                    <div className="text-sm truncate">{it.title || 'Untitled'}</div>
+                                    <div className="text-sm truncate">{it.title || t('studio_misc.quick.untitled', 'Untitled')}</div>
                                     {it.subtitle && (
                                         <div className="text-[11px] text-[var(--text-tertiary)] truncate">{it.subtitle}</div>
                                     )}
@@ -127,9 +129,9 @@ export default function QuickSwitcher({ open, items, onPick, onClose }) {
                     })}
                 </div>
                 <div className="px-4 py-2 border-t border-[var(--border-default)] flex items-center gap-3 text-[10px] text-[var(--text-tertiary)]">
-                    <span><kbd className="font-mono">↑↓</kbd> navigate</span>
-                    <span><kbd className="font-mono">⏎</kbd> open</span>
-                    <span className="ml-auto">{filtered.length} of {items.length}</span>
+                    <span><kbd className="font-mono">↑↓</kbd> {t('studio_misc.quick.navigate', 'navigate')}</span>
+                    <span><kbd className="font-mono">⏎</kbd> {t('studio_misc.quick.open', 'open')}</span>
+                    <span className="ml-auto">{t('studio_misc.quick.n_of_total', '{n} of {total}', { n: filtered.length, total: items.length })}</span>
                 </div>
             </div>
         </Modal>

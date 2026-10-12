@@ -452,7 +452,7 @@ export default function UpcomingMeetings({ onOpenNote, onRowsChange }) {
                     <Video className="w-4 h-4 flex-shrink-0" style={{ color: kindColorVar('meeting') }} aria-hidden="true" />
                     <span>
                         {t('meetings.upcoming_connect_google', 'Connect Google Workspace to see your Meet meetings here —')}{' '}
-                        <a href="/app/settings/integrations" className="underline" style={{ color: 'var(--accent-primary)' }}>{t('meetings.upcoming_settings_integrations', 'Settings → Integrations')}</a>.
+                        <a href="/app/settings/integrations" className="underline" style={{ color: 'var(--accent-primary)' }}>{t('meetings.upcoming_settings_integrations', 'Settings → Connections')}</a>.
                     </span>
                 </div>
             )}

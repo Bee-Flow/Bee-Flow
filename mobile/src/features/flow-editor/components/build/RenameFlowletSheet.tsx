@@ -17,7 +17,7 @@ export function RenameFlowletSheet({ title, onRename, onClose }: { title: string
         <Sheet
             visible
             onClose={onClose}
-            title={t('mobile.flow.flowlets.rename', 'Rename flowlet')}
+            title={t('automations.flowlets_panel.rename_flowlet', 'Rename flowlet')}
             footer={
                 <Button
                     label={t('common.save', 'Save')}

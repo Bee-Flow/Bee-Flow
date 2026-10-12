@@ -2,6 +2,7 @@ import { Eye, ChevronDown, ChevronUp, X } from 'lucide-react';
 import React, { useMemo } from 'react';
 import OutputView from './OutputView';
 import { humanizeToolName } from './flow/displayHelpers';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
  * Dry-run preview, rendered as a collapsible, dismissible drawer that
@@ -18,6 +19,7 @@ import { humanizeToolName } from './flow/displayHelpers';
  * yellows so the panel works under both light and dark themes.
  */
 export default function DryRunPanel({ run, steps, definition = null, collapsed = false, onToggleCollapse, onClose }) {
+    const { t } = useTranslation();
     // Map every step id → a friendly name (label / tool / flowlet title) so the
     // preview shows real step NAMES, not ids. Built from the whole definition
     // (root steps + each flowlet's steps).
@@ -42,18 +44,18 @@ export default function DryRunPanel({ run, steps, definition = null, collapsed =
                     type="button"
                     onClick={onToggleCollapse}
                     className="flex items-center gap-2 font-semibold text-amber-700 dark:text-amber-400 min-w-0 flex-1 text-left"
-                    title={collapsed ? 'Expand dry-run preview' : 'Collapse dry-run preview'}
+                    title={collapsed ? t('automations.dry_run_panel.expand_preview', 'Expand dry-run preview') : t('automations.dry_run_panel.collapse_preview', 'Collapse dry-run preview')}
                 >
                     <Eye size={16} className="shrink-0" />
-                    <span className="truncate">Dry-run preview ({run.status})</span>
-                    <span className="text-[var(--text-tertiary)] font-normal shrink-0">· {stepList.length} step{stepList.length === 1 ? '' : 's'}</span>
+                    <span className="truncate">{t('automations.dry_run_panel.preview_title', 'Dry-run preview ({status})', { status: run.status })}</span>
+                    <span className="text-[var(--text-tertiary)] font-normal shrink-0">· {stepList.length === 1 ? t('automations.dry_run_panel.step_count_one', '{count} step', { count: 1 }) : t('automations.dry_run_panel.step_count_other', '{count} steps', { count: stepList.length })}</span>
                     {collapsed ? <ChevronUp size={15} className="shrink-0" /> : <ChevronDown size={15} className="shrink-0" />}
                 </button>
                 {onClose && (
                     <button
                         type="button"
                         onClick={onClose}
-                        title="Dismiss dry-run preview"
+                        title={t('automations.dry_run_panel.dismiss_dry_run_preview', 'Dismiss dry-run preview')}
                         className="shrink-0 p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
                     >
                         <X size={15} />
@@ -91,20 +93,20 @@ export default function DryRunPanel({ run, steps, definition = null, collapsed =
                                                         : 'Synthesized preview — sample data, not a live result.'}
                                                 className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-500 border border-amber-500/30"
                                             >
-                                                Sample data
+                                                {t('automations.dry_run_panel.sample_data', 'Sample data')}
                                             </span>
                                         )}
                                     </div>
                                     {wouldNotify && (
                                         <div className="text-amber-700 dark:text-amber-400 mt-1">
-                                            Would notify on <strong>{(wouldNotify.channels || []).join(', ')}</strong>:{' '}
+                                            {t('automations.dry_run_panel.would_notify_on', 'Would notify on')} <strong>{(wouldNotify.channels || []).join(', ')}</strong>:{' '}
                                             <em>{wouldNotify.title}</em>
                                         </div>
                                     )}
                                     {wouldCall && !wouldNotify && (
                                         <>
                                             <div className="text-amber-700 dark:text-amber-400 mt-1">
-                                                Would call <code className="font-mono">{out.wouldHaveCalled}</code>
+                                                {t('automations.dry_run_panel.would_call', 'Would call')} <code className="font-mono">{out.wouldHaveCalled}</code>
                                             </div>
                                             {out.withArgs != null && <OutputView value={out.withArgs} />}
                                         </>

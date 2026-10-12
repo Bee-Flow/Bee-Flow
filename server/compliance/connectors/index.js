@@ -38,6 +38,10 @@ const _connectors = new Map();
 
 for (const file of fs.readdirSync(__dirname)) {
     if (!file.endsWith('.js') || file === 'index.js') continue;
+    // Tests live next to their source, and this loader runs at boot: requiring
+    // a test file would run it inside the live process, including the stubs it
+    // installs (compliance/checks/index.js skips them for the same reason).
+    if (/\.(test|spec)\.js$/.test(file)) continue;
     try {
         const mod = require(path.join(__dirname, file));
         if (!mod?.id || typeof mod.collect !== 'function') {

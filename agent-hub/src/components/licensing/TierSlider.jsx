@@ -1,9 +1,10 @@
-import { Brain } from 'lucide-react';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { TIER_META, customTierMeta, configuredTierKeys, tierCatalogId, DEPTH_TIER_KEYS } from './tierMeta';
 import scopedStorage from '../../utils/scopedStorage';
+import MemoryModeControl from '../chat/memory/MemoryModeControl';
 import AppEmoji from '../icons/AppEmoji';
+import useTranslation from '../../hooks/useTranslation';
 
 /**
  * Composer tier control — a slider, not a menu.
@@ -198,6 +199,7 @@ const fillGradientFor = (travel) => {
  * dims the whole track rather than parking the thumb somewhere misleading.
  */
 function TierTrack({ stops, activeIndex, metaFor, onSelect, trackRef, onPointerDown, onPointerMove, onPointerEnd, onKeyDown }) {
+    const { t } = useTranslation();
     const onScale = activeIndex >= 0;
     const count = stops.length;
     // How far along the track the thumb has travelled, 0–1.
@@ -209,7 +211,7 @@ function TierTrack({ stops, activeIndex, metaFor, onSelect, trackRef, onPointerD
                 ref={trackRef}
                 role="slider"
                 tabIndex={0}
-                aria-label="Response depth"
+                aria-label={t('tier.response_depth', 'Response depth')}
                 aria-valuemin={0}
                 aria-valuemax={Math.max(0, count - 1)}
                 aria-valuenow={Math.max(0, activeIndex)}
@@ -295,7 +297,7 @@ function TierTrack({ stops, activeIndex, metaFor, onSelect, trackRef, onPointerD
                             fontWeight: i === activeIndex ? 600 : 400,
                         }}
                     >
-                        {metaFor(key).label}
+                        {t(`tier.${key}`, metaFor(key).label)}
                     </span>
                 ))}
             </div>
@@ -305,6 +307,7 @@ function TierTrack({ stops, activeIndex, metaFor, onSelect, trackRef, onPointerD
 
 /** Kinds of work that don't sit on the depth scale — Flow, Swarm, Write, custom. */
 function OtherTierPills({ keys, value, metaFor, onSelect }) {
+    const { t } = useTranslation();
     return (
         <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid var(--border-subtle)' }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
@@ -329,7 +332,7 @@ function OtherTierPills({ keys, value, metaFor, onSelect }) {
                             }}
                         >
                             <TierIcon tierKey={key} meta={meta} className="w-3 h-3" />
-                            <span>{meta.label}</span>
+                            <span>{t(`tier.${key}`, meta.label)}</span>
                             {meta.beta && (
                                 <span style={{
                                     fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.04em',
@@ -337,7 +340,7 @@ function OtherTierPills({ keys, value, metaFor, onSelect }) {
                                     background: selected ? 'rgba(255,255,255,0.25)' : 'var(--bg-secondary)',
                                     color: selected ? '#fff' : 'var(--text-tertiary)',
                                 }}>
-                                    beta
+                                    {t('chat.composer.beta_badge', 'beta')}
                                 </span>
                             )}
                         </button>
@@ -349,39 +352,34 @@ function OtherTierPills({ keys, value, metaFor, onSelect }) {
 }
 
 /**
- * Memory switch, parked in the panel's top-right corner.
+ * Memory control, parked in the panel's top-right corner.
  *
  * It lives here rather than in the composer's icon row because both settings
  * answer the same question — how much the assistant brings to the next turn —
  * and the row was getting long. Icon-only and unlabelled to stay quiet next to
- * the tier name; the state is carried by colour, `title` and `aria-pressed`.
+ * the tier name; the state is carried by the icon, `title` and `aria-pressed`.
+ *
+ * `memory` is `{ mode, onChange, lock }` (On / Read only / Off for this chat).
+ * The older `{ enabled, onToggle }` shape still works: enabled is On, not
+ * enabled is Read only, which is what the old switch did.
  */
-function MemoryToggle({ enabled, onToggle }) {
+function MemoryToggle({ memory }) {
+    const mode = memory.mode || (memory.enabled ? 'on' : 'read');
+    const onChange = memory.onChange || (() => memory.onToggle?.());
     return (
-        <button
-            type="button"
-            onClick={onToggle}
-            aria-pressed={enabled}
-            aria-label={enabled ? 'Memory saving enabled' : 'Memory saving paused'}
-            title={enabled ? 'Memory saving enabled — click to pause' : 'Memory saving paused — click to resume'}
-            data-testid="tier-slider-memory-toggle"
-            style={{
-                position: 'absolute', top: '10px', right: '10px',
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                width: '28px', height: '28px', borderRadius: '9999px',
-                border: 'none', padding: 0, cursor: 'pointer',
-                background: enabled ? 'color-mix(in srgb, var(--accent-primary) 14%, transparent)' : 'transparent',
-                color: enabled ? 'var(--accent-primary)' : 'var(--text-tertiary)',
-                opacity: enabled ? 1 : 0.55,
-                transition: 'background 0.15s, color 0.15s, opacity 0.15s',
-            }}
-        >
-            <Brain className="w-4 h-4" />
-        </button>
+        <span className="absolute top-[10px] right-[10px]">
+            <MemoryModeControl
+                mode={mode}
+                onChange={onChange}
+                lock={memory.lock || null}
+                testId="tier-slider-memory-toggle"
+            />
+        </span>
     );
 }
 
 export default function TierSlider({ tiers = {}, value = 'fast', onChange, variant = 'input', memory = null }) {
+    const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     const rootRef = useRef(null);
     const trackRef = useRef(null);
@@ -533,7 +531,7 @@ export default function TierSlider({ tiers = {}, value = 'fast', onChange, varia
                     className="model-tier-panel absolute"
                     data-surface="opaque"
                     role="dialog"
-                    aria-label="Response depth"
+                    aria-label={t('tier.response_depth', 'Response depth')}
                     style={{
                         position: 'absolute', bottom: 'calc(100% + 8px)', zIndex: 100,
                         // Centred over the gauge, then nudged back inside the
@@ -547,7 +545,7 @@ export default function TierSlider({ tiers = {}, value = 'fast', onChange, varia
                         boxShadow: 'var(--shadow-popover, 0 12px 36px rgba(15,23,42,0.18))',
                     }}
                 >
-                    {memory && <MemoryToggle enabled={!!memory.enabled} onToggle={memory.onToggle} />}
+                    {memory && <MemoryToggle memory={memory} />}
 
                     {/* The current choice, stated above the track: the label is
                         the control's output, the track is just how you move.

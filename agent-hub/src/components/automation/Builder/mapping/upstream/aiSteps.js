@@ -4,7 +4,7 @@
  * declared field names ARE its output. Both are bindable the moment the
  * declaration exists — no run, no schema round-trip.
  */
-import { sampleToFields, samplePlaceholderFor } from './sampleFields';
+import { sampleToFields, samplePlaceholderFor, schemaToSample } from './sampleFields';
 
 export function describeAiStep(node) {
     // When the user (or AI builder) declared an outputSchema, surface its
@@ -28,7 +28,9 @@ export function describeAiStep(node) {
             fields: [{ key: 'response', path: `steps.${node.id}.output`, sample: '<AI response>' }],
         };
     }
-    const sample = Object.fromEntries(Object.entries(props).map(([k, t]) => [k, samplePlaceholderFor(t)]));
+    // A nested declaration is a nested sample, so `customer.address.city` and
+    // `items[*].sku` are pickable before the step has ever run.
+    const sample = Object.fromEntries(Object.entries(props).map(([k, t]) => [k, schemaToSample(t)]));
     return {
         id: node.id,
         label: node.label || 'AI step',
@@ -73,6 +75,7 @@ function extractionPlaceholderFor(type) {
     return samplePlaceholderFor(type);
 }
 
+/** The declared top-level properties, each as its own (sub)schema; null when none. */
 function aiStepOutputProps(schema) {
     if (!schema || typeof schema !== 'object') return null;
     const raw = schema.properties && typeof schema.properties === 'object'
@@ -81,8 +84,7 @@ function aiStepOutputProps(schema) {
     const out = {};
     for (const [k, v] of Object.entries(raw || {})) {
         if (!k) continue;
-        if (typeof v === 'string') out[k] = v;
-        else if (v && typeof v === 'object') out[k] = typeof v.type === 'string' ? v.type : 'string';
+        if (typeof v === 'string' || (v && typeof v === 'object')) out[k] = v;
     }
     return Object.keys(out).length ? out : null;
 }

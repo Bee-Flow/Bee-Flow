@@ -70,12 +70,12 @@ function classifyNextcloudError(input) {
     if (/not_connected|not connected|no nextcloud (account|connection)/i.test(text)) {
         return make('NOT_CONNECTED', 'auth', 'PermissionError',
             'Nextcloud is not connected for this account.',
-            'Reconnect Nextcloud in Settings → Integrations.');
+            'Reconnect Nextcloud in Settings → Connections.');
     }
     if (status === 401 || /session expired|re-?authenticate|token (refresh|expired)|sign-?in (has )?expired|unauthorized/i.test(lower)) {
         return make('SESSION_EXPIRED', 'auth', 'PermissionError',
             'Your Nextcloud session has expired.',
-            'Reconnect Nextcloud in Settings → Integrations, then re-run.');
+            'Reconnect Nextcloud in Settings → Connections, then re-run.');
     }
     if (/could not reach nextcloud|exapp|connector (did not|didn'?t) respond|connector (is )?(down|unreachable)/i.test(lower)) {
         return make('CONNECTOR_UNREACHABLE', 'connector', 'TimeoutError',

@@ -9,8 +9,12 @@ import './self-hosted-fonts.css';
 // it here is inert on the published site.
 import './preview-chrome.css';
 
+// The blog index / post body — rendered in place of the block list when the
+// content carries `blog` (a /blog URL or the admin preview of a post).
+import BlogView     from './blog/BlogView';
 import Header       from './sections/Header';
 import Hero         from './sections/Hero';
+import LatestPosts  from './sections/LatestPosts';
 import SocialProof  from './sections/SocialProof';
 import Content      from './sections/Content';
 import MediaText    from './sections/MediaText';
@@ -113,6 +117,7 @@ export const SECTION_REGISTRY = {
     'compare-table': CompareTable,
     'github-stats': GitHubStats,
     'release-notes': ReleaseNotes,
+    'blog-latest': LatestPosts,
 };
 
 const isPreviewMode = () =>
@@ -901,6 +906,8 @@ export default function ProductWebsite({ content: initialContent, analytics = nu
             <main id="main">
             {previewMode === 'chrome' ? (
                 <ChromePreviewPlaceholder />
+            ) : content.blog ? (
+                <BlogView blog={content.blog} />
             ) : orderedBlocks ? (
                 <>
                     {orderedBlocks.map(b => {

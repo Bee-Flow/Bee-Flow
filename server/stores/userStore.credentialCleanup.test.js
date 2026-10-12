@@ -173,6 +173,19 @@ test('deleteUser removes the user\'s integration connections and grants', async 
     assert.strictEqual(deletesFrom('automation_credentials').length, 1);
 });
 
+test('deleteUser takes the chat signals objection with the account', async () => {
+    runCalls.length = 0;
+    getOneImpl = (sql) => (/FROM users WHERE id/i.test(sql) ? { id: 'u1' } : null);
+    getAllImpl = () => [];
+
+    await userStore.deleteUser('u1');
+
+    const hits = deletesFrom('chat_signal_objections');
+    assert.strictEqual(hits.length, 1, 'chat_signal_objections must be cleaned');
+    assert.match(sqlOf(hits[0]), /WHERE user_id = \$1/);
+    assert.deepStrictEqual(hits[0].params, ['u1']);
+});
+
 test('deleteUser deletes grants BEFORE connections (FK cascade ordering)', async () => {
     runCalls.length = 0;
     getOneImpl = (sql) => (/FROM users WHERE id/i.test(sql) ? { id: 'u1' } : null);

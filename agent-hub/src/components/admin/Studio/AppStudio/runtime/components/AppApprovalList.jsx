@@ -53,13 +53,17 @@ const SAMPLE_ROWS = [
 ];
 
 export default function AppApprovalList({ node }) {
+    const { t } = useTranslation();
     const { mode, currentUser, runAction } = useRuntime();
     const { appId } = useDataContext();
     const {
         scope = 'mine', show = 'waiting', limit = 10,
-        emptyText = 'No approvals right now.', showDetails = true,
+        emptyText = t('studio_apps_runtime.approvals.empty', 'No approvals right now.'), showDetails = true,
     } = node.props || {};
 
+    const tRef = useRef(t);
+    tRef.current = t;
+    const tr = useCallback((key, fallback, params) => tRef.current(key, fallback, params), []);
     const live = mode === 'run' && !!currentUser;
     const [rows, setRows] = useState([]);
     const [loading, setLoading] = useState(live);
@@ -81,15 +85,15 @@ export default function AppApprovalList({ node }) {
             const res = await authFetch(`${API_BASE}/api/automation/approvals?${q}`);
             const body = await res.json().catch(() => null);
             if (g !== gen.current) return;
-            if (!res.ok) { setError(body?.error || 'Could not load approvals'); return; }
+            if (!res.ok) { setError(body?.error || tr('studio_apps_runtime.approvals.load_failed', 'Could not load approvals')); return; }
             setError(null);
             setRows(Array.isArray(body?.approvals) ? body.approvals : []);
         } catch {
-            if (g === gen.current) setError('Could not load approvals');
+            if (g === gen.current) setError(tr('studio_apps_runtime.approvals.load_failed', 'Could not load approvals'));
         } finally {
             if (g === gen.current) setLoading(false);
         }
-    }, [live, show, limit, scope, appId]);
+    }, [live, show, limit, scope, appId, tr]);
 
     useEffect(() => { setLoading(live); load(); }, [load, live]);
 
@@ -110,11 +114,11 @@ export default function AppApprovalList({ node }) {
             const res = await authFetch(`${API_BASE}/api/automation/approvals/${encodeURIComponent(row.id)}`);
             const body = await res.json().catch(() => null);
             if (res.ok) setDetail(body);
-            else setDetail({ error: body?.error || 'Could not open this approval' });
+            else setDetail({ error: body?.error || tr('studio_apps_runtime.approvals.open_failed', 'Could not open this approval') });
         } catch {
-            setDetail({ error: 'Could not open this approval' });
+            setDetail({ error: tr('studio_apps_runtime.approvals.open_failed', 'Could not open this approval') });
         }
-    }, [showDetails, openId]);
+    }, [showDetails, openId, tr]);
 
     const decide = useCallback(async (approval, decision, reason, answers) => {
         const res = await authFetch(`${API_BASE}/api/automation/approvals/${encodeURIComponent(approval.id)}/decide`, {
@@ -124,7 +128,7 @@ export default function AppApprovalList({ node }) {
         });
         const body = await res.json().catch(() => null);
         if (!res.ok) {
-            setDetail((d) => ({ ...(d || {}), error: body?.error || 'The decision was not accepted' }));
+            setDetail((d) => ({ ...(d || {}), error: body?.error || tr('studio_apps_runtime.approvals.decision_rejected', 'The decision was not accepted') }));
             load();
             return;
         }
@@ -156,7 +160,7 @@ export default function AppApprovalList({ node }) {
             };
             runAction(node.onDecided, { formValues: payload, ...payload });
         }
-    }, [load, node.onDecided, runAction, show]);
+    }, [load, node.onDecided, runAction, show, tr]);
 
     // ── Editor preview ───────────────────────────────────────────────────
     if (mode !== 'run') {
@@ -164,7 +168,7 @@ export default function AppApprovalList({ node }) {
             <Frame>
                 {SAMPLE_ROWS.map((r) => <RowLine key={r.id} row={r} onOpen={null} open={false} />)}
                 <p className="text-[11px] mt-2" style={{ color: 'var(--text-tertiary)' }}>
-                    Preview — signed-in viewers see their own approvals here.
+                    {t('studio_apps_runtime.approvals.preview_note', 'Preview — signed-in viewers see their own approvals here.')}
                 </p>
             </Frame>
         );
@@ -177,7 +181,7 @@ export default function AppApprovalList({ node }) {
                 <div className="flex items-center gap-2.5 py-2">
                     <LogIn size={16} style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
                     <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                        Sign in to see and decide approvals.
+                        {t('studio_apps_runtime.approvals.sign_in', 'Sign in to see and decide approvals.')}
                     </span>
                 </div>
             </Frame>
@@ -185,7 +189,7 @@ export default function AppApprovalList({ node }) {
     }
 
     if (loading) {
-        return <Frame><div className="flex items-center gap-2 py-2 text-sm" style={{ color: 'var(--text-tertiary)' }}><Loader2 size={14} className="animate-spin" /> Loading approvals…</div></Frame>;
+        return <Frame><div className="flex items-center gap-2 py-2 text-sm" style={{ color: 'var(--text-tertiary)' }}><Loader2 size={14} className="animate-spin" /> {t('studio_apps_runtime.approvals.loading', 'Loading approvals…')}</div></Frame>;
     }
     if (error) {
         return <Frame><div className="py-2 text-sm" style={{ color: 'var(--error)' }}>{error}</div></Frame>;
@@ -211,10 +215,11 @@ export default function AppApprovalList({ node }) {
 }
 
 function Frame({ children }) {
+    const { t } = useTranslation();
     return (
         <div className="rounded-lg border px-3 py-2" style={{ borderColor: 'var(--border-default, rgba(0,0,0,0.08))', background: 'var(--bg-primary, transparent)' }} data-component="approval_list">
             <div className="flex items-center gap-1.5 mb-1 text-[11px] uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>
-                <ShieldCheck size={12} aria-hidden="true" /> Approvals
+                <ShieldCheck size={12} aria-hidden="true" /> {t('studio_apps_runtime.approvals.title', 'Approvals')}
             </div>
             {children}
         </div>
@@ -232,7 +237,7 @@ function RowLine({ row, open, onOpen }) {
         <>
             {onOpen ? (open ? <ChevronDown size={14} className="shrink-0" style={{ color: 'var(--text-tertiary)' }} /> : <ChevronRight size={14} className="shrink-0" style={{ color: 'var(--text-tertiary)' }} />) : null}
             <span className="flex-1 min-w-0 text-left">
-                <span className="block text-sm truncate" {...hoverable(row.prompt)} style={{ color: 'var(--text-primary)' }}>{row.prompt || 'Approval requested'}</span>
+                <span className="block text-sm truncate" {...hoverable(row.prompt)} style={{ color: 'var(--text-primary)' }}>{row.prompt || t('studio_apps_runtime.approvals.requested', 'Approval requested')}</span>
                 <span className="block text-[11px] truncate" style={{ color: 'var(--text-tertiary)' }}>
                     {row.automationTitle || '—'}
                     {row.status === 'pending' && row.expiresAt ? <> · <Clock size={10} className="inline -mt-0.5" /> {formatWhen(row.expiresAt)}</> : <> · {formatWhen(row.createdAt)}</>}
@@ -258,7 +263,7 @@ function RowLine({ row, open, onOpen }) {
 function DetailPanel({ detail, onDecide }) {
     const { t } = useTranslation();
     if (!detail) {
-        return <div className="pb-2 pl-6 text-[12px]" style={{ color: 'var(--text-tertiary)' }}>Loading…</div>;
+        return <div className="pb-2 pl-6 text-[12px]" style={{ color: 'var(--text-tertiary)' }}>{t('studio_apps_runtime.approvals.loading_detail', 'Loading…')}</div>;
     }
     if (detail.error && !detail.approval) {
         return <div className="pb-2 pl-6 text-[12px]" style={{ color: 'var(--error)' }}>{detail.error}</div>;
@@ -309,13 +314,13 @@ function DetailPanel({ detail, onDecide }) {
                                 n: String(chain.index),
                                 m: String(chain.total),
                             })
-                            : 'Waiting for the assigned approver to decide.'}
+                            : t('studio_apps_runtime.approvals.waiting_approver', 'Waiting for the assigned approver to decide.')}
                     </div>
                 )
             ) : (
                 <div className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>
                     {approvalStatusChip(approval.status).label}
-                    {approval.decidedByName ? ` by ${approval.decidedByName}` : ''}
+                    {approval.decidedByName ? ` ${t('studio_apps_runtime.approvals.decided_by', 'by {name}', { name: approval.decidedByName })}` : ''}
                     {approval.decidedAt ? ` · ${formatWhen(approval.decidedAt)}` : ''}
                     {approval.decisionReason ? ` — “${approval.decisionReason}”` : ''}
                 </div>

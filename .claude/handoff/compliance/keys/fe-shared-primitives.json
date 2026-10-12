@@ -2,9 +2,9 @@
   "en": {
     "common.previous": "Previous",
     "common.pager_range": "Rows {from}–{to} of {total}",
-    "compliance.clock_days_left": "still {days} days",
+    "compliance.clock_days_left": "{days} days left",
     "compliance.clock_days_overdue": "overdue by {days} days",
-    "compliance.clock_hours_left": "still {hours} hours",
+    "compliance.clock_hours_left": "{hours} hours left",
     "compliance.clock_hours_overdue": "overdue by {hours} hours",
     "compliance.clock_done_in_days": "completed in {days} days",
     "compliance.clock_done": "completed",

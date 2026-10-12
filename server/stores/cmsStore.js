@@ -14,6 +14,9 @@
  *   cms_project_{siteId}_locale_{xx}                      site-locale override
  *   cms_project_{siteId}_page_{pageId}                    PageDoc
  *   cms_project_{siteId}_page_{pageId}_locale_{xx}        page-locale override
+ *   cms_project_{siteId}_posts                            blog post registry (id + slug)
+ *   cms_project_{siteId}_post_{postId}                    PostDoc (blog post, Markdown body)
+ *   cms_project_{siteId}_post_{postId}_locale_{xx}        post-locale override
  *
  * Effective content for a request = SITE_DEFAULTS / BLOCK_DEFAULTS  ←
  *                                   default-locale stored content   ←
@@ -61,7 +64,9 @@ const {
     exportSite, importSite, collectAssetKeys,
     EXPORT_MARKER, EXPORT_VERSION, EXPORT_SUPPORTED_VERSIONS,
 } = require('./cms/exportImport');
-const { mergeLocaleContent, sanitizeAnalytics } = require('./cms/shared');
+const { mergeLocaleContent, sanitizeAnalytics, sanitizeBlogSettings } = require('./cms/shared');
+const posts = require('./cms/posts');
+const { getEffectiveBlog, getLatestPublishedPosts } = require('./cms/blogEffective');
 
 module.exports = {
     // locale settings
@@ -87,6 +92,15 @@ module.exports = {
     // import / export
     exportSite, importSite, collectAssetKeys, collectLocaleOverrides,
     EXPORT_MARKER, EXPORT_VERSION, EXPORT_SUPPORTED_VERSIONS,
+    // blog
+    listPosts: posts.listPosts, getPost: posts.getPost, findPostBySlug: posts.findPostBySlug,
+    createPost: posts.createPost, updatePost: posts.updatePost, deletePost: posts.deletePost,
+    getPostLocaleOverride: posts.getPostLocaleOverride,
+    setPostLocaleOverride: posts.setPostLocaleOverride,
+    deletePostLocaleOverride: posts.deletePostLocaleOverride,
+    collectPostLocaleOverrides: posts.collectPostLocaleOverrides,
+    getEffectiveBlog, getLatestPublishedPosts, sanitizeBlogSettings,
+    PostError: posts.PostError, POST_LIMITS: posts.POST_LIMITS, POST_STATUSES: posts.POST_STATUSES,
     // helpers / constants for tests
     makeBlock, resolveLink, mergeLocaleContent, sanitizeBlocks,
     sanitizeAnalytics, sanitizePageIndexEntry,

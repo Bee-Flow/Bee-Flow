@@ -3,6 +3,7 @@ import React, { useState, useEffect, useId, useMemo, useCallback, useRef } from 
 import AiTranslateControl, { AiTranslateResult } from './AiTranslateControl';
 import useAiTranslate, { translateRequest } from '../../../hooks/useAiTranslate';
 import { API_BASE, authFetch } from '../../../utils/helpers';
+import { useTranslation } from '../../../hooks/useTranslation';
 import Modal from '../../shared/Modal';
 import useConfirm from '../../shared/useConfirm';
 
@@ -10,6 +11,7 @@ const API = `${API_BASE}/api/languages`;
 
 // ─── Main Panel ──────────────────────────────────────────────────
 const LanguagesPanel = () => {
+    const { t } = useTranslation();
     const [locales, setLocales] = useState([]);
     const [catalog, setCatalog] = useState([]);
     const [selectedLocale, setSelectedLocale] = useState(null);
@@ -31,7 +33,7 @@ const LanguagesPanel = () => {
                 setSelectedLocale(cur => cur || nonEn?.code || data.locales[0].code);
             }
         } catch (err) {
-            setError('Failed to load languages');
+            setError(t('admin_languages.error_load', 'Failed to load languages'));
         } finally {
             setLoading(false);
         }
@@ -52,13 +54,13 @@ const LanguagesPanel = () => {
                 setSelectedLocale(code);
                 setShowAddModal(false);
             } else {
-                setError(data.error || 'Failed to add language');
+                setError(data.error || t('admin_languages.error_add', 'Failed to add language'));
             }
-        } catch { setError('Failed to add language'); }
+        } catch { setError(t('admin_languages.error_add', 'Failed to add language')); }
     };
 
     const handleDeleteLocale = async (code) => {
-        if (!(await confirm({ title: `Delete "${code}" and all its translations?`, confirmLabel: 'Delete', destructive: true }))) return;
+        if (!(await confirm({ title: t('admin_languages.confirm_delete', 'Delete "{code}" and all its translations?', { code }), confirmLabel: t('admin_languages.delete', 'Delete'), destructive: true }))) return;
         try {
             const res = await authFetch(`${API}/${code}`, { method: 'DELETE' });
             const data = await res.json();
@@ -68,7 +70,7 @@ const LanguagesPanel = () => {
                     setSelectedLocale(data.locales[0]?.code || null);
                 }
             }
-        } catch { setError('Failed to delete language'); }
+        } catch { setError(t('admin_languages.error_delete', 'Failed to delete language')); }
     };
 
     const handleExport = async (code) => {
@@ -82,7 +84,7 @@ const LanguagesPanel = () => {
             a.download = `beeflow-i18n-${code}.json`;
             a.click();
             URL.revokeObjectURL(url);
-        } catch { setError('Export failed'); }
+        } catch { setError(t('admin_languages.error_export', 'Export failed')); }
     };
 
     const handleImport = async (code) => {
@@ -101,7 +103,7 @@ const LanguagesPanel = () => {
                     body: JSON.stringify(data),
                 });
                 if (res.ok) fetchLocales();
-            } catch { setError('Import failed — invalid JSON file'); }
+            } catch { setError(t('admin_languages.error_import', 'Import failed: invalid JSON file')); }
         };
         input.click();
     };
@@ -111,10 +113,10 @@ const LanguagesPanel = () => {
             const res = await authFetch(`${API}/${code}/default`, { method: 'PUT' });
             const data = await res.json();
             if (data.success) setLocales(data.locales);
-        } catch { setError('Failed to set default'); }
+        } catch { setError(t('admin_languages.error_set_default', 'Failed to set default')); }
     };
 
-    if (loading) return <div className="flex items-center justify-center h-full" style={{ color: 'var(--text-muted)' }}>Loading languages...</div>;
+    if (loading) return <div className="flex items-center justify-center h-full" style={{ color: 'var(--text-muted)' }}>{t('admin_languages.loading', 'Loading languages...')}</div>;
 
     const availableToAdd = catalog.filter(c => !locales.find(l => l.code === c.code));
 
@@ -133,9 +135,9 @@ const LanguagesPanel = () => {
                 <div className="w-64 border-r shrink-0 flex flex-col" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-secondary)' }}>
                     <div className="p-3 border-b flex items-center justify-between" style={{ borderColor: 'var(--border-default)' }}>
                         <span className="text-sm font-semibold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
-                            <Globe className="w-4 h-4" style={{ color: 'var(--accent-primary)' }} /> Languages
+                            <Globe className="w-4 h-4" style={{ color: 'var(--accent-primary)' }} /> {t('admin_languages.title', 'Languages')}
                         </span>
-                        <button onClick={() => setShowAddModal(true)} className="p-1 rounded-md transition-colors hover:bg-[var(--bg-tertiary)]" title="Add language">
+                        <button onClick={() => setShowAddModal(true)} className="p-1 rounded-md transition-colors hover:bg-[var(--bg-tertiary)]" title={t('admin_languages.add_language_title', 'Add language')}>
                             <Plus className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
                         </button>
                     </div>
@@ -151,20 +153,20 @@ const LanguagesPanel = () => {
                                     <span className="text-xs opacity-60">{locale.code}</span>
                                     {locale.isDefault && (
                                         <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ background: selectedLocale === locale.code ? 'rgba(255,255,255,0.2)' : 'var(--accent-primary)', color: selectedLocale === locale.code ? '#fff' : '#fff' }}>
-                                            Default
+                                            {t('admin_languages.default', 'Default')}
                                         </span>
                                     )}
                                 </div>
                                 {locale.code !== 'en' && (
                                     <div className={`flex items-center gap-0.5 ${selectedLocale === locale.code ? 'opacity-80' : 'opacity-0 group-hover:opacity-60'} transition-opacity`}>
                                         {!locale.isDefault && (
-                                            <button onClick={(e) => { e.stopPropagation(); handleSetDefault(locale.code); }} className="p-1 rounded hover:bg-black/10" title="Set as default">
+                                            <button onClick={(e) => { e.stopPropagation(); handleSetDefault(locale.code); }} className="p-1 rounded hover:bg-black/10" title={t('admin_languages.set_default', 'Set as default')}>
                                                 <Star className="w-3 h-3" />
                                             </button>
                                         )}
-                                        <button onClick={(e) => { e.stopPropagation(); handleExport(locale.code); }} className="p-1 rounded hover:bg-black/10" title="Export"><Download className="w-3 h-3" /></button>
-                                        <button onClick={(e) => { e.stopPropagation(); handleImport(locale.code); }} className="p-1 rounded hover:bg-black/10" title="Import"><Upload className="w-3 h-3" /></button>
-                                        <button onClick={(e) => { e.stopPropagation(); handleDeleteLocale(locale.code); }} className="p-1 rounded hover:bg-red-500/20" title="Delete"><Trash2 className="w-3 h-3" /></button>
+                                        <button onClick={(e) => { e.stopPropagation(); handleExport(locale.code); }} className="p-1 rounded hover:bg-black/10" title={t('admin_languages.export', 'Export')}><Download className="w-3 h-3" /></button>
+                                        <button onClick={(e) => { e.stopPropagation(); handleImport(locale.code); }} className="p-1 rounded hover:bg-black/10" title={t('admin_languages.import', 'Import')}><Upload className="w-3 h-3" /></button>
+                                        <button onClick={(e) => { e.stopPropagation(); handleDeleteLocale(locale.code); }} className="p-1 rounded hover:bg-red-500/20" title={t('admin_languages.delete', 'Delete')}><Trash2 className="w-3 h-3" /></button>
                                     </div>
                                 )}
                             </div>
@@ -179,9 +181,9 @@ const LanguagesPanel = () => {
                             {/* Section Tabs */}
                             <div className="px-4 pt-3 pb-0 flex items-center gap-2 shrink-0">
                                 {[
-                                    { id: 'gui', label: 'GUI Translations', icon: Languages },
-                                    { id: 'prompts', label: 'System Prompts', icon: FileText },
-                                    { id: 'emails', label: 'Email Templates', icon: Mail },
+                                    { id: 'gui', label: t('admin_languages.tab_gui', 'GUI Translations'), icon: Languages },
+                                    { id: 'prompts', label: t('admin_languages.tab_prompts', 'System Prompts'), icon: FileText },
+                                    { id: 'emails', label: t('admin_languages.tab_emails', 'Email Templates'), icon: Mail },
                                 ].map(({ id, label, icon: Icon }) => (
                                     <button
                                         key={id}
@@ -193,10 +195,10 @@ const LanguagesPanel = () => {
                                 ))}
                                 <div className="ml-auto flex items-center gap-2">
                                     <button onClick={() => handleExport(selectedLocale)} className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 border transition-colors hover:bg-[var(--bg-tertiary)]" style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
-                                        <Download className="w-3.5 h-3.5" /> Export
+                                        <Download className="w-3.5 h-3.5" /> {t('admin_languages.export', 'Export')}
                                     </button>
                                     <button onClick={() => handleImport(selectedLocale)} className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 border transition-colors hover:bg-[var(--bg-tertiary)]" style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
-                                        <Upload className="w-3.5 h-3.5" /> Import
+                                        <Upload className="w-3.5 h-3.5" /> {t('admin_languages.import', 'Import')}
                                     </button>
                                 </div>
                             </div>
@@ -217,7 +219,7 @@ const LanguagesPanel = () => {
                         <div className="flex-1 flex items-center justify-center" style={{ color: 'var(--text-muted)' }}>
                             <div className="text-center">
                                 <Globe className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                                <p className="text-sm">Add a language to get started</p>
+                                <p className="text-sm">{t('admin_languages.empty', 'Add a language to get started')}</p>
                             </div>
                         </div>
                     )}
@@ -239,6 +241,7 @@ const LanguagesPanel = () => {
 
 // ─── Add Language Modal ──────────────────────────────────────────
 const AddLanguageModal = ({ available, onAdd, onClose }) => {
+    const { t } = useTranslation();
     const titleId = useId();
     const [search, setSearch] = useState('');
     const [customCode, setCustomCode] = useState('');
@@ -255,13 +258,13 @@ const AddLanguageModal = ({ available, onAdd, onClose }) => {
     return (
         <Modal open onClose={onClose} variant="bare" size="md" labelledBy={titleId}>
             <div className="w-full rounded-2xl border shadow-2xl p-5" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>
-                <h3 id={titleId} className="text-lg font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>Add Language</h3>
+                <h3 id={titleId} className="text-lg font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>{t('admin_languages.add_language', 'Add Language')}</h3>
 
                 <div className="relative mb-3">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--text-muted)' }} />
                     <input
                         value={search} onChange={e => setSearch(e.target.value)}
-                        placeholder="Search languages..."
+                        placeholder={t('admin_languages.search_languages', 'Search languages...')}
                         className="w-full pl-9 pr-3 py-2 rounded-lg text-sm border bg-[var(--bg-primary)]"
                         style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', outline: 'none' }}
                         autoFocus
@@ -276,20 +279,20 @@ const AddLanguageModal = ({ available, onAdd, onClose }) => {
                         </button>
                     ))}
                     {filtered.length === 0 && (
-                        <p className="text-xs text-center py-4" style={{ color: 'var(--text-muted)' }}>No matching languages. Use custom below.</p>
+                        <p className="text-xs text-center py-4" style={{ color: 'var(--text-muted)' }}>{t('admin_languages.no_match_languages', 'No matching languages. Use custom below.')}</p>
                     )}
                 </div>
 
                 <div className="border-t pt-3 mt-2" style={{ borderColor: 'var(--border-default)' }}>
-                    <p className="text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>Or add custom:</p>
+                    <p className="text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>{t('admin_languages.or_custom', 'Or add custom:')}</p>
                     <div className="flex gap-2">
-                        <input value={customCode} onChange={e => setCustomCode(e.target.value.toLowerCase())} placeholder="Code (e.g. pt-br)" className="w-24 px-2 py-1.5 rounded-lg text-sm border bg-[var(--bg-primary)]" style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', outline: 'none' }} />
-                        <input value={customName} onChange={e => setCustomName(e.target.value)} placeholder="Language name" className="flex-1 px-2 py-1.5 rounded-lg text-sm border bg-[var(--bg-primary)]" style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', outline: 'none' }} />
-                        <button onClick={() => customCode && customName && onAdd(customCode, customName)} disabled={!customCode || !customName} className="px-3 py-1.5 rounded-lg text-sm font-medium text-white disabled:opacity-40" style={{ background: 'var(--accent-primary)' }}>Add</button>
+                        <input value={customCode} onChange={e => setCustomCode(e.target.value.toLowerCase())} placeholder={t('admin_languages.code_placeholder', 'Code (e.g. pt-br)')} className="w-24 px-2 py-1.5 rounded-lg text-sm border bg-[var(--bg-primary)]" style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', outline: 'none' }} />
+                        <input value={customName} onChange={e => setCustomName(e.target.value)} placeholder={t('admin_languages.name_placeholder', 'Language name')} className="flex-1 px-2 py-1.5 rounded-lg text-sm border bg-[var(--bg-primary)]" style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', outline: 'none' }} />
+                        <button onClick={() => customCode && customName && onAdd(customCode, customName)} disabled={!customCode || !customName} className="px-3 py-1.5 rounded-lg text-sm font-medium text-white disabled:opacity-40" style={{ background: 'var(--accent-primary)' }}>{t('admin_languages.add', 'Add')}</button>
                     </div>
                 </div>
 
-                <button onClick={onClose} className="mt-3 w-full py-2 rounded-lg text-sm font-medium border hover:bg-[var(--bg-tertiary)] transition-colors" style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>Cancel</button>
+                <button onClick={onClose} className="mt-3 w-full py-2 rounded-lg text-sm font-medium border hover:bg-[var(--bg-tertiary)] transition-colors" style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>{t('admin_languages.cancel', 'Cancel')}</button>
             </div>
         </Modal>
     );
@@ -297,6 +300,7 @@ const AddLanguageModal = ({ available, onAdd, onClose }) => {
 
 // ─── GUI String Editor ───────────────────────────────────────────
 const GUIStringEditor = ({ locale }) => {
+    const { t } = useTranslation();
     const [data, setData] = useState(null);
     const [translations, setTranslations] = useState({});
     const [search, setSearch] = useState('');
@@ -334,7 +338,7 @@ const GUIStringEditor = ({ locale }) => {
                 translateRequest(`${API}/${locale}/ai-translate-prompts`, tier).catch(() => null),
             ]);
             if (result.success && promptResult?.success && promptResult.translated > 0) {
-                return { ...result, message: `${result.message} + ${promptResult.translated} system prompts` };
+                return { ...result, message: t('admin_languages.ai_plus_prompts', '{message} + {n} system prompts', { message: result.message, n: promptResult.translated }) };
             }
             return result;
         },
@@ -401,16 +405,16 @@ const GUIStringEditor = ({ locale }) => {
             <div className="flex items-center gap-2 mb-3 shrink-0 flex-wrap">
                 <div className="relative flex-1 min-w-48">
                     <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} />
-                    <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search keys or values..." className="w-full pl-8 pr-3 py-1.5 rounded-lg text-xs border bg-[var(--bg-secondary)]" style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', outline: 'none' }} />
+                    <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('admin_languages.search_keys', 'Search keys or values...')} className="w-full pl-8 pr-3 py-1.5 rounded-lg text-xs border bg-[var(--bg-secondary)]" style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', outline: 'none' }} />
                 </div>
                 <select value={namespace} onChange={e => setNamespace(e.target.value)} className="px-2 py-1.5 rounded-lg text-xs border bg-[var(--bg-secondary)]" style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', outline: 'none' }}>
-                    <option value="all">All Sections</option>
+                    <option value="all">{t('admin_languages.all_sections', 'All Sections')}</option>
                     {namespaces.map(ns => <option key={ns} value={ns}>{ns}</option>)}
                 </select>
                 <select value={showOnly} onChange={e => setShowOnly(e.target.value)} className="px-2 py-1.5 rounded-lg text-xs border bg-[var(--bg-secondary)]" style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', outline: 'none' }}>
-                    <option value="all">All ({allKeys.length})</option>
-                    <option value="missing">Missing ({stats.missing || 0})</option>
-                    <option value="translated">Translated ({stats.translated || 0})</option>
+                    <option value="all">{t('admin_languages.filter_all', 'All ({n})', { n: allKeys.length })}</option>
+                    <option value="missing">{t('admin_languages.filter_missing', 'Missing ({n})', { n: stats.missing || 0 })}</option>
+                    <option value="translated">{t('admin_languages.filter_translated', 'Translated ({n})', { n: stats.translated || 0 })}</option>
                 </select>
             </div>
 
@@ -419,9 +423,9 @@ const GUIStringEditor = ({ locale }) => {
                 <table className="w-full text-xs">
                     <thead className="sticky top-0 z-10" style={{ background: 'var(--bg-tertiary)' }}>
                         <tr>
-                            <th className="text-left px-3 py-2 font-semibold w-1/4" style={{ color: 'var(--text-secondary)', borderBottom: '1px solid var(--border-default)' }}>Key</th>
-                            <th className="text-left px-3 py-2 font-semibold w-[37.5%]" style={{ color: 'var(--text-secondary)', borderBottom: '1px solid var(--border-default)' }}>English Default</th>
-                            <th className="text-left px-3 py-2 font-semibold w-[37.5%]" style={{ color: 'var(--text-secondary)', borderBottom: '1px solid var(--border-default)' }}>Translation</th>
+                            <th className="text-left px-3 py-2 font-semibold w-1/4" style={{ color: 'var(--text-secondary)', borderBottom: '1px solid var(--border-default)' }}>{t('admin_languages.col_key', 'Key')}</th>
+                            <th className="text-left px-3 py-2 font-semibold w-[37.5%]" style={{ color: 'var(--text-secondary)', borderBottom: '1px solid var(--border-default)' }}>{t('admin_languages.english_default', 'English Default')}</th>
+                            <th className="text-left px-3 py-2 font-semibold w-[37.5%]" style={{ color: 'var(--text-secondary)', borderBottom: '1px solid var(--border-default)' }}>{t('admin_languages.col_translation', 'Translation')}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -437,7 +441,7 @@ const GUIStringEditor = ({ locale }) => {
                             />
                         ))}
                         {filteredKeys.length === 0 && (
-                            <tr><td colSpan={3} className="text-center py-8" style={{ color: 'var(--text-muted)' }}>No matching keys</td></tr>
+                            <tr><td colSpan={3} className="text-center py-8" style={{ color: 'var(--text-muted)' }}>{t('admin_languages.no_keys', 'No matching keys')}</td></tr>
                         )}
                     </tbody>
                 </table>
@@ -448,6 +452,7 @@ const GUIStringEditor = ({ locale }) => {
 
 // ─── Single GUI String Row ───────────────────────────────────────
 const GUIStringRow = React.memo(({ stringKey, defaultValue, translation, onSave, isSaved, isEnglish }) => {
+    const { t } = useTranslation();
     const [value, setValue] = useState(translation);
     const [editing, setEditing] = useState(false);
 
@@ -484,7 +489,7 @@ const GUIStringRow = React.memo(({ stringKey, defaultValue, translation, onSave,
                         />
                         {isSaved && <Check className="w-3.5 h-3.5 text-green-500 shrink-0" />}
                         {!value && (
-                            <button onClick={() => { setValue(defaultValue); onSave(stringKey, defaultValue); }} className="p-1 rounded opacity-0 group-hover:opacity-50 hover:!opacity-100 transition-opacity" title="Copy default">
+                            <button onClick={() => { setValue(defaultValue); onSave(stringKey, defaultValue); }} className="p-1 rounded opacity-0 group-hover:opacity-50 hover:!opacity-100 transition-opacity" title={t('admin_languages.copy_default_short', 'Copy default')}>
                                 <Copy className="w-3 h-3" />
                             </button>
                         )}
@@ -497,6 +502,7 @@ const GUIStringRow = React.memo(({ stringKey, defaultValue, translation, onSave,
 
 // ─── Prompt Editor ───────────────────────────────────────────────
 const PromptEditor = ({ locale }) => {
+    const { t } = useTranslation();
     const [data, setData] = useState(null);
     const [translations, setTranslations] = useState({});
     const [selectedPrompt, setSelectedPrompt] = useState(null);
@@ -581,7 +587,7 @@ const PromptEditor = ({ locale }) => {
                 <div className="w-56 shrink-0 border rounded-xl overflow-y-auto" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-secondary)', scrollbarWidth: 'thin' }}>
                     <div className="p-2 border-b" style={{ borderColor: 'var(--border-default)' }}>
                         <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
-                            {stats.translated || 0} / {stats.total || 0} translated
+                            {t('admin_languages.prompt_stats', '{translated} / {total} translated', { translated: stats.translated || 0, total: stats.total || 0 })}
                         </span>
                     </div>
                     {Object.entries(categories).map(([cat, ids]) => (
@@ -612,14 +618,14 @@ const PromptEditor = ({ locale }) => {
                         <div className="flex items-center justify-between mb-2 shrink-0">
                             <h4 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{labels[selectedPrompt] || selectedPrompt}</h4>
                             <div className="flex items-center gap-2">
-                                {saved && <span className="text-xs text-green-500 flex items-center gap-1"><Check className="w-3 h-3" /> Saved</span>}
+                                {saved && <span className="text-xs text-green-500 flex items-center gap-1"><Check className="w-3 h-3" /> {t('admin_languages.saved', 'Saved')}</span>}
                                 <button
                                     onClick={() => setEditText(defaults[selectedPrompt] || '')}
                                     className="px-2 py-1 rounded text-xs border hover:bg-[var(--bg-tertiary)] transition-colors"
                                     style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
-                                    title="Copy English default into editor"
+                                    title={t('admin_languages.copy_default_title', 'Copy English default into editor')}
                                 >
-                                    <Copy className="w-3 h-3 inline mr-1" /> Copy Default
+                                    <Copy className="w-3 h-3 inline mr-1" /> {t('admin_languages.copy_default', 'Copy Default')}
                                 </button>
                                 <button
                                     onClick={handleSave}
@@ -627,7 +633,7 @@ const PromptEditor = ({ locale }) => {
                                     className="px-3 py-1 rounded-lg text-xs font-medium text-white disabled:opacity-50 transition-opacity"
                                     style={{ background: 'var(--accent-primary)' }}
                                 >
-                                    {saving ? 'Saving...' : 'Save'}
+                                    {saving ? t('admin_languages.saving', 'Saving...') : t('admin_languages.save', 'Save')}
                                 </button>
                             </div>
                         </div>
@@ -635,33 +641,33 @@ const PromptEditor = ({ locale }) => {
                         <div className="flex-1 flex gap-3 overflow-hidden min-h-0">
                             {/* Default (read-only) */}
                             <div className="flex-1 flex flex-col overflow-hidden">
-                                <div className="text-[10px] font-semibold uppercase tracking-wider mb-1 px-1" style={{ color: 'var(--text-muted)' }}>English Default</div>
+                                <div className="text-[10px] font-semibold uppercase tracking-wider mb-1 px-1" style={{ color: 'var(--text-muted)' }}>{t('admin_languages.english_default', 'English Default')}</div>
                                 <textarea
                                     value={defaults[selectedPrompt] || ''}
                                     readOnly
                                     className="flex-1 w-full px-3 py-2 rounded-lg border text-xs font-mono resize-none"
                                     style={{ borderColor: 'var(--border-default)', background: 'var(--bg-tertiary)', color: 'var(--text-secondary)', outline: 'none', scrollbarWidth: 'thin' }}
                                 />
-                                <div className="text-[10px] mt-1 px-1" style={{ color: 'var(--text-muted)' }}>{(defaults[selectedPrompt] || '').length} chars</div>
+                                <div className="text-[10px] mt-1 px-1" style={{ color: 'var(--text-muted)' }}>{t('admin_languages.chars', '{n} chars', { n: (defaults[selectedPrompt] || '').length })}</div>
                             </div>
 
                             {/* Translation (editable) */}
                             <div className="flex-1 flex flex-col overflow-hidden">
-                                <div className="text-[10px] font-semibold uppercase tracking-wider mb-1 px-1" style={{ color: 'var(--text-muted)' }}>Translation ({locale.toUpperCase()})</div>
+                                <div className="text-[10px] font-semibold uppercase tracking-wider mb-1 px-1" style={{ color: 'var(--text-muted)' }}>{t('admin_languages.translation_locale', 'Translation ({locale})', { locale: locale.toUpperCase() })}</div>
                                 <textarea
                                     value={editText}
                                     onChange={e => setEditText(e.target.value)}
-                                    placeholder="Enter translation..."
+                                    placeholder={t('admin_languages.enter_translation', 'Enter translation...')}
                                     className="flex-1 w-full px-3 py-2 rounded-lg border text-xs font-mono resize-none focus:border-[var(--accent-primary)]"
                                     style={{ borderColor: 'var(--border-default)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none', scrollbarWidth: 'thin' }}
                                 />
-                                <div className="text-[10px] mt-1 px-1" style={{ color: 'var(--text-muted)' }}>{editText.length} chars</div>
+                                <div className="text-[10px] mt-1 px-1" style={{ color: 'var(--text-muted)' }}>{t('admin_languages.chars', '{n} chars', { n: editText.length })}</div>
                             </div>
                         </div>
                     </div>
                 ) : (
                     <div className="flex-1 flex items-center justify-center" style={{ color: 'var(--text-muted)' }}>
-                        <p className="text-sm">Select a prompt to translate</p>
+                        <p className="text-sm">{t('admin_languages.select_prompt', 'Select a prompt to translate')}</p>
                     </div>
                 )}
             </div>
@@ -674,15 +680,16 @@ const PromptEditor = ({ locale }) => {
 // Fields are plain text rendered into the branded shell; a live preview shows
 // exactly what recipients will see. Empty field = fall back to the English
 // default.
-const FIELD_META = {
-    subject: { label: 'Subject', type: 'input' },
-    title: { label: 'Title (header)', type: 'input' },
-    intro: { label: 'Intro / greeting', type: 'input' },
-    body: { label: 'Body', type: 'textarea' },
-    ctaLabel: { label: 'Button label', type: 'input' },
-};
+const getFieldMeta = (t) => ({
+    subject: { label: t('admin_languages.field_subject', 'Subject'), type: 'input' },
+    title: { label: t('admin_languages.field_title', 'Title (header)'), type: 'input' },
+    intro: { label: t('admin_languages.field_intro', 'Intro / greeting'), type: 'input' },
+    body: { label: t('admin_languages.field_body', 'Body'), type: 'textarea' },
+    ctaLabel: { label: t('admin_languages.field_ctalabel', 'Button label'), type: 'input' },
+});
 
 const EmailTemplateEditor = ({ locale }) => {
+    const { t } = useTranslation();
     const [data, setData] = useState(null);
     const [selected, setSelected] = useState('verification');
     const [fields, setFields] = useState({});
@@ -769,7 +776,7 @@ const EmailTemplateEditor = ({ locale }) => {
                 body: JSON.stringify({ testRecipient: testRecipient.trim() }),
             });
             const d = await res.json();
-            setTestResult(res.ok ? { ok: true } : { error: d.error || 'Failed to send' });
+            setTestResult(res.ok ? { ok: true } : { error: d.error || t('admin_languages.email_error_send', 'Failed to send') });
         } catch (err) {
             setTestResult({ error: err.message });
         }
@@ -826,15 +833,15 @@ const EmailTemplateEditor = ({ locale }) => {
                         </div>
                     )}
                     {(data.fields || []).map(key => {
-                        const meta = FIELD_META[key] || { label: key, type: 'input' };
+                        const meta = getFieldMeta(t)[key] || { label: key, type: 'input' };
                         const val = fields[key] ?? '';
                         return (
                             <div key={key} className="mb-3">
                                 <div className="flex items-center justify-between mb-1">
                                     <label className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>{meta.label}</label>
                                     {val && (
-                                        <button onClick={() => setField(key, '')} className="text-[10px] flex items-center gap-1 opacity-60 hover:opacity-100" style={{ color: 'var(--text-muted)' }} title="Reset to default">
-                                            <RotateCcw className="w-3 h-3" /> Reset
+                                        <button onClick={() => setField(key, '')} className="text-[10px] flex items-center gap-1 opacity-60 hover:opacity-100" style={{ color: 'var(--text-muted)' }} title={t('admin_languages.reset_title', 'Reset to default')}>
+                                            <RotateCcw className="w-3 h-3" /> {t('admin_languages.reset', 'Reset')}
                                         </button>
                                     )}
                                 </div>
@@ -868,13 +875,13 @@ const EmailTemplateEditor = ({ locale }) => {
                             className="px-4 py-1.5 rounded-lg text-sm font-medium text-white disabled:opacity-50 transition-opacity"
                             style={{ background: 'var(--accent-primary)' }}
                         >
-                            {saving ? 'Saving...' : 'Save'}
+                            {saving ? t('admin_languages.saving', 'Saving...') : t('admin_languages.save', 'Save')}
                         </button>
-                        {saved && <span className="text-xs text-green-500 flex items-center gap-1"><Check className="w-3.5 h-3.5" /> Saved</span>}
+                        {saved && <span className="text-xs text-green-500 flex items-center gap-1"><Check className="w-3.5 h-3.5" /> {t('admin_languages.saved', 'Saved')}</span>}
                     </div>
 
                     <div className="border-t pt-3" style={{ borderColor: 'var(--border-default)' }}>
-                        <label className="text-xs font-medium block mb-1.5" style={{ color: 'var(--text-secondary)' }}>Send a test email</label>
+                        <label className="text-xs font-medium block mb-1.5" style={{ color: 'var(--text-secondary)' }}>{t('admin_languages.send_test_email', 'Send a test email')}</label>
                         <div className="flex items-center gap-2">
                             <input
                                 type="email"
@@ -891,12 +898,12 @@ const EmailTemplateEditor = ({ locale }) => {
                                 style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
                             >
                                 {testing ? <span className="inline-block w-3.5 h-3.5 border-2 border-current/30 border-t-current rounded-full animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                                Send test
+                                {t('admin_languages.send_test', 'Send test')}
                             </button>
                         </div>
                         {testResult && (
                             <div className="mt-2 text-xs flex items-center gap-1.5" style={{ color: testResult.error ? '#ef4444' : '#22c55e' }}>
-                                {testResult.error ? (<><AlertCircle className="w-3.5 h-3.5" /> {testResult.error}</>) : (<><Check className="w-3.5 h-3.5" /> Test email sent</>)}
+                                {testResult.error ? (<><AlertCircle className="w-3.5 h-3.5" /> {testResult.error}</>) : (<><Check className="w-3.5 h-3.5" /> {t('admin_languages.test_sent', 'Test email sent')}</>)}
                             </div>
                         )}
                     </div>
@@ -904,10 +911,10 @@ const EmailTemplateEditor = ({ locale }) => {
 
                 {/* Right: live preview */}
                 <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-                    <div className="text-[10px] font-semibold uppercase tracking-wider mb-1.5 px-1" style={{ color: 'var(--text-muted)' }}>Live preview</div>
+                    <div className="text-[10px] font-semibold uppercase tracking-wider mb-1.5 px-1" style={{ color: 'var(--text-muted)' }}>{t('admin_languages.live_preview', 'Live preview')}</div>
                     <div className="flex-1 rounded-xl border overflow-hidden" style={{ borderColor: 'var(--border-default)', background: '#f5f5f5' }}>
                         <iframe
-                            title="Email preview"
+                            title={t('admin_languages.email_preview', 'Email preview')}
                             srcDoc={previewHtml}
                             sandbox=""
                             className="w-full h-full"

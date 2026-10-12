@@ -46,7 +46,7 @@ export function CaseNameInput({
             onChangeText={box.change}
             onBlur={box.commit}
             onSubmitEditing={box.commit}
-            placeholder={t('mobile.flow.route.name_placeholder', 'Name this output — for example invoices')}
+            placeholder={t('automations.route_editors.name_this_output_for_example_invoices', 'Name this output — for example invoices')}
             error={box.error}
             editable={!disabled}
             testID={testID}

@@ -1,6 +1,6 @@
 {
   "_comment": "Highest counts this repository is allowed to carry, and the critical/high advisory ids it carries per target. Lower both by fixing advisories and re-running `node scripts/audit-ratchet.mjs --update`; raising a count or adding an id is a deliberate edit that belongs in a commit message with a reason. A new advisory that cannot be fixed yet goes in `accepted` as { id } or { package, range } with a reason and an expires date (YYYY-MM-DD).",
-  "_generated": "2026-10-04",
+  "_generated": "2026-10-08",
   "targets": {
     "server": {
       "why": "the API \u2014 every request goes through it",
@@ -26,11 +26,11 @@
   "counts": {
     "server": {
       "critical": 0,
-      "high": 6
+      "high": 3
     },
     "agent-hub": {
       "critical": 0,
-      "high": 6
+      "high": 0
     },
     "nextcloud-connector": {
       "critical": 0,
@@ -46,17 +46,9 @@
     }
   },
   "advisories": {
-    "server": [
-      "GHSA-5p2g-fcmc-qvqq",
-      "GHSA-hq66-cqwq-w95j",
-      "GHSA-w3rx-r6r6-pgpr"
-    ],
-    "agent-hub": [
-      "GHSA-r5fr-rjxr-66jc"
-    ],
-    "nextcloud-connector": [
-      "GHSA-gcq2-9pq2-cxqm"
-    ],
+    "server": [],
+    "agent-hub": [],
+    "nextcloud-connector": [],
     "desktop": [],
     ".": []
   },
@@ -65,7 +57,14 @@
       "id": "GHSA-vfj7-8cjw-p6xm",
       "package": "braces",
       "reason": "No fixed release exists (3.0.3 is the latest). braces is reached only through http-proxy-middleware -> micromatch (server, nextcloud-connector) and nodemon (dev). The advisory needs attacker-controlled glob PATTERNS; none of our createProxyMiddleware calls (server/routes/webpagesFullTierProxy.js, nextcloud-connector/src/proxy.js, ncProxy.js) passes a pathFilter, so micromatch never expands a pattern, let alone one from a request. Revisit when braces publishes a fix.",
-      "expires": "2027-01-04"
+      "expires": "2027-01-04",
+      "reviewedAt": "2026-10-08",
+      "reachability": "Reviewed all production createProxyMiddleware calls in server/routes/webpagesFullTierProxy.js, nextcloud-connector/src/proxy.js and nextcloud-connector/src/ncProxy.js against http-proxy-middleware 4.2.0 and micromatch 4.0.8. None configures a glob pathFilter; no user-controlled pattern reaches braces. Proxy HTTP/WebSocket regression suites cover these call sites. Nodemon is development-only.",
+      "images": [
+        "server",
+        "nextcloud-connector",
+        "connector"
+      ]
     }
   ]
 }

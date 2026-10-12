@@ -33,6 +33,10 @@ const ORG = pd.orgMatch('p.organization_id');
 const WS = pd.isWorkspace('p');
 
 // The problem memberships only; clean rows never leave the database.
+// Among offending rows, "target exists and has not left" is exactly a foreign
+// membership, so ordering on those two output columns puts the fails first: a
+// cut at the limit can only drop dangling rows, never turn a fail into a
+// warning. One row more than the limit is asked for, to know it cut.
 const OFFENDING_SQL = `
     SELECT p.id AS project_id, s.shared_with_type AS type,
            CASE WHEN s.shared_with_type = 'user' THEN u.id IS NOT NULL ELSE g.id IS NOT NULL END AS target_exists,
@@ -51,7 +55,8 @@ const OFFENDING_SQL = `
         OR (s.shared_with_type = 'group' AND (g.id IS NULL
             OR COALESCE(NULLIF(g."organizationId", ''), '${pd.NO_ORG_ORG_ID}') <> $1))
       )
-    LIMIT ${pd.ROW_LIMIT}`;
+    ORDER BY target_exists DESC, target_left ASC, project_id
+    LIMIT ${pd.ROW_LIMIT + 1}`;
 
 const PRUNE_SQL = `
     DELETE FROM project_shares s
@@ -69,10 +74,11 @@ function defaultDeps() {
 }
 
 /**
- * Pure: turn the offending rows into the verdict.
- * @param {{ projects: number, rows: Array<{project_id: string, target_exists: boolean, target_org: string, target_left: boolean}>, orgId: string }} input
+ * Pure: turn the offending rows into the verdict. `truncated` says the rows
+ * are the first ROW_LIMIT only, so the counts are a floor ("at least").
+ * @param {{ projects: number, rows: Array<{project_id: string, target_exists: boolean, target_org: string, target_left: boolean}>, orgId: string, truncated?: boolean }} input
  */
-function verdict({ projects, rows, orgId }) {
+function verdict({ projects, rows, orgId, truncated = false }) {
     if (!projects) {
         return { status: 'not_applicable', evidence: { projects: 0 }, details: 'This organisation has no collaborative projects.' };
     }
@@ -93,14 +99,16 @@ function verdict({ projects, rows, orgId }) {
         projects_affected: offenders.length,
         offenders: offenders.slice(0, pd.MAX_OFFENDERS).map(o => ({ ...o, link: pd.projectLink(o.project_id, 'members') })),
         offenders_truncated: offenders.length > pd.MAX_OFFENDERS,
+        counts_truncated: !!truncated,
         link: offenders.length === 1 ? pd.projectLink(offenders[0].project_id, 'members') : null,
     };
+    const atLeast = truncated ? 'At least ' : '';
     if (foreign > 0) {
         const ids = offenders.filter(o => o.foreign > 0).map(o => o.project_id);
         return {
             status: 'fail',
             evidence,
-            details: `${foreign} membership(s) in ${ids.length} project(s) belong to another organisation: ${pd.nameOffenders(ids)}. Remove them in each project's Members page.`,
+            details: `${atLeast}${foreign} membership(s) in ${ids.length} project(s) belong to another organisation: ${pd.nameOffenders(ids)}. Remove them in each project's Members page.`,
         };
     }
     if (dangling > 0) {
@@ -108,7 +116,7 @@ function verdict({ projects, rows, orgId }) {
         return {
             status: 'warn',
             evidence,
-            details: `${dangling} membership(s) in ${ids.length} project(s) belong to accounts that left or no longer exist, or to deleted groups: ${pd.nameOffenders(ids)}.`,
+            details: `${atLeast}${dangling} membership(s) in ${ids.length} project(s) belong to accounts that left or no longer exist, or to deleted groups: ${pd.nameOffenders(ids)}.`,
         };
     }
     return { status: 'pass', evidence, details: `Every member of this organisation's ${projects} collaborative project(s) is a current member of the organisation.` };
@@ -152,7 +160,9 @@ module.exports = {
             }
             return { status: 'warn', evidence: { error: 'unreadable', sql_state: e?.code || null }, details: `Project memberships could not be read (${e?.code || 'error'}), so they were not judged.` };
         }
-        return verdict({ projects, rows, orgId });
+        const all = rows || [];
+        const truncated = all.length > pd.ROW_LIMIT;
+        return verdict({ projects, rows: all.slice(0, pd.ROW_LIMIT), orgId, truncated });
     },
 
     async autoFix(orgId, { subjectId = null } = {}, deps = defaultDeps()) {

@@ -32,6 +32,8 @@ var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: tru
 var serverEntry_exports = {};
 __export(serverEntry_exports, {
   FRAGMENT_NAME: () => FRAGMENT_NAME,
+  anchorsForFragment: () => anchorsForFragment,
+  applyHunks: () => applyHunks,
   astToFragment: () => astToFragment,
   astToHtml: () => astToHtml,
   astToMarkdown: () => astToMarkdown,
@@ -43,6 +45,8 @@ __export(serverEntry_exports, {
   encodeRelpos: () => encodeRelpos,
   fragmentToAst: () => fragmentToAst,
   htmlToAst: () => htmlToAst,
+  hunkWords: () => hunkWords,
+  hunksFrom: () => hunksFrom,
   markdownToAst: () => markdownToAst,
   normalizeLight: () => normalizeLight,
   posFromRelative: () => posFromRelative,
@@ -248,6 +252,20 @@ function squareUpRows(rows, makeEmptyCell) {
 var MD_INLINE_SPECIAL = /[\\`*_~=[\]$<>]/g;
 function escapeMdText(str) {
   return String(str ?? "").replace(MD_INLINE_SPECIAL, (c) => "\\" + c);
+}
+
+// ../agent-hub/src/editor/engine/inline.js
+function inlineToTokens(content = []) {
+  const toks = [];
+  for (const n of content) {
+    if (n.type === "text") {
+      const marks = n.marks || [];
+      for (let i = 0; i < n.text.length; i++) toks.push({ ch: n.text[i], marks });
+    } else {
+      toks.push({ node: n });
+    }
+  }
+  return toks;
 }
 
 // ../agent-hub/src/editor/engine/formulaRefs.js
@@ -2277,8 +2295,8 @@ function readElement(y, type, depth, cache) {
   } else if (isBlockAtomType(type)) {
     node2 = withAttrs({ type }, attrs);
   } else {
-    const kids = visibleChildren(y, type, depth + 1).map((c) => readElement(c.y, c.type, depth + 1, cache));
-    node2 = withAttrs({ type, content: kids.length ? kids : repairEmpty(type) }, attrs);
+    const kids2 = visibleChildren(y, type, depth + 1).map((c) => readElement(c.y, c.type, depth + 1, cache));
+    node2 = withAttrs({ type, content: kids2.length ? kids2 : repairEmpty(type) }, attrs);
   }
   if (cache) {
     cache.read.set(y, node2);
@@ -2359,8 +2377,8 @@ function newBlockElement(node2, depth, cache) {
     fillText(text2, node2.content, node2.type === "codeBlock");
     el.insert(0, [text2]);
   } else if (!isBlockAtomType(node2.type)) {
-    const kids = allowedKids(node2, depth + 1).map((k) => newBlockElement(k, depth + 1, cache)).filter((k) => k !== null);
-    if (kids.length) el.insert(0, kids);
+    const kids2 = allowedKids(node2, depth + 1).map((k) => newBlockElement(k, depth + 1, cache)).filter((k) => k !== null);
+    if (kids2.length) el.insert(0, kids2);
   }
   if (cache) cache.ast.set(node2, el);
   return el;
@@ -2582,8 +2600,8 @@ function storeUnstoredSiblings(steps, dels) {
 function deleteItems(yParent, dels) {
   const doomed = new Set(dels.map((b) => b.y).filter((y) => y !== null));
   if (!doomed.size) return;
-  const kids = yParent.toArray();
-  for (let i = kids.length - 1; i >= 0; i--) if (doomed.has(kids[i])) yParent.delete(i, 1);
+  const kids2 = yParent.toArray();
+  for (let i = kids2.length - 1; i >= 0; i--) if (doomed.has(kids2[i])) yParent.delete(i, 1);
 }
 function applySteps(ctx, yParent, kidDepth, steps) {
   const arr = yParent.toArray();
@@ -2851,9 +2869,9 @@ function relativeFromPos(fragment, path, offset, assoc = 0) {
   let parentType = "doc";
   for (let depth = 0; depth < path.length; depth++) {
     const idx = path[depth];
-    const kids = visibleChildren(parent, parentType, depth + 1);
-    if (!Number.isInteger(idx) || idx < 0 || idx >= kids.length) return null;
-    const { y, type } = kids[idx];
+    const kids2 = visibleChildren(parent, parentType, depth + 1);
+    if (!Number.isInteger(idx) || idx < 0 || idx >= kids2.length) return null;
+    const { y, type } = kids2[idx];
     if (depth < path.length - 1) {
       parent = y;
       parentType = type;
@@ -2880,12 +2898,12 @@ function pathOfElement(fragment, el) {
   let parent = fragment;
   let parentType = "doc";
   for (let depth = 0; depth < chain.length; depth++) {
-    const kids = visibleChildren(parent, parentType, depth + 1);
-    const idx = kids.findIndex((k) => k.y === chain[depth]);
+    const kids2 = visibleChildren(parent, parentType, depth + 1);
+    const idx = kids2.findIndex((k) => k.y === chain[depth]);
     if (idx < 0) return null;
     path.push(idx);
-    parent = kids[idx].y;
-    parentType = kids[idx].type;
+    parent = kids2[idx].y;
+    parentType = kids2[idx].type;
   }
   return { path, type: parentType };
 }
@@ -3112,10 +3130,10 @@ function visit(out, limit, n, at) {
     out.push({ node: n, top: at.top, rel: at.rel, ctx: c, key: leafKey(n, c), kind: isTextblockType(n.type) ? "text" : n.type });
     return true;
   }
-  const kids = n.content || [];
+  const kids2 = n.content || [];
   const ctx = [...at.ctx, ctxPart(n)];
-  for (let i = 0; i < kids.length; i++) {
-    if (!visit(out, limit, kids[i], { top: at.top, rel: [...at.rel, i], ctx, parentType: n.type, siblings: kids.length })) return false;
+  for (let i = 0; i < kids2.length; i++) {
+    if (!visit(out, limit, kids2[i], { top: at.top, rel: [...at.rel, i], ctx, parentType: n.type, siblings: kids2.length })) return false;
   }
   return true;
 }
@@ -3136,15 +3154,15 @@ function shellOf(doc2, units) {
   for (const u of units) for (let i = 1; i <= u.rel.length; i++) keep.add(u.rel.slice(0, i).join("/"));
   const prune = (n, path) => {
     if (isTextblockType(n.type) || isBlockAtomType(n.type)) return n;
-    const kids = [];
+    const kids2 = [];
     let first = -1;
     (n.content || []).forEach((k, i) => {
       const p = path ? `${path}/${i}` : String(i);
       if (!keep.has(p)) return;
       if (first < 0) first = i;
-      kids.push(prune(k, p));
+      kids2.push(prune(k, p));
     });
-    const out = { ...n, content: kids };
+    const out = { ...n, content: kids2 };
     if (n.type === "orderedList" && first > 0) {
       const start = typeof n.attrs?.start === "number" ? n.attrs.start : 1;
       out.attrs = { ...n.attrs || {}, start: start + first };
@@ -3336,9 +3354,347 @@ function statsOnly(ua, ub) {
   });
   return { blocks: [], stats: { wordsAdded, wordsRemoved, blocksChanged: Math.max(addedBlocks, removedBlocks) }, truncated: true };
 }
+
+// ../agent-hub/src/editor/engine/textIndex.ts
+var ATOM_CHAR = "\uFFFC";
+function blockText(block) {
+  let s = "";
+  for (const t of inlineToTokens(block.content || [])) {
+    if (t.node) s += t.node.type === "hardBreak" ? "\n" : ATOM_CHAR;
+    else s += t.ch;
+  }
+  return s;
+}
+function buildTextIndex(doc2) {
+  const blocks = [];
+  const byPath = /* @__PURE__ */ new Map();
+  const parts = [];
+  let offset = 0;
+  const walk = (n, p) => {
+    if (isTextblock(n.type)) {
+      const text2 = blockText(n);
+      if (blocks.length) {
+        parts.push("\n");
+        offset += 1;
+      }
+      const entry = { path: p, start: offset, text: text2 };
+      blocks.push(entry);
+      byPath.set(p.join(","), entry);
+      parts.push(text2);
+      offset += text2.length;
+      return;
+    }
+    (n.content || []).forEach((c, i) => walk(c, [...p, i]));
+  };
+  (doc2.content || []).forEach((c, i) => walk(c, [i]));
+  return { text: parts.join(""), blocks, byPath };
+}
+function blockAt(index, at) {
+  let lo = 0;
+  let hi = index.blocks.length - 1;
+  while (lo < hi) {
+    const mid = lo + hi + 1 >> 1;
+    if (index.blocks[mid].start <= at) lo = mid;
+    else hi = mid - 1;
+  }
+  return lo;
+}
+function posAtOffset(index, at) {
+  if (!index.blocks.length) return null;
+  const b = index.blocks[blockAt(index, Math.max(0, at))];
+  return { path: b.path, offset: Math.max(0, Math.min(at - b.start, b.text.length)) };
+}
+function offsetOfPos(index, pos2) {
+  const b = Array.isArray(pos2?.path) ? index.byPath.get(pos2.path.join(",")) : void 0;
+  if (!b) return null;
+  return b.start + Math.max(0, Math.min(pos2.offset, b.text.length));
+}
+function offsetOfTopBlock(index, top) {
+  const b = index.blocks.find((x) => x.path[0] >= top);
+  return b ? b.start : null;
+}
+
+// ../agent-hub/src/editor/react/anchors.ts
+var QUOTE_MAX = 2e3;
+var CONTEXT_CHARS = 32;
+function commonSuffix(a, b) {
+  let n = 0;
+  while (n < a.length && n < b.length && a[a.length - 1 - n] === b[b.length - 1 - n]) n += 1;
+  return n;
+}
+function commonPrefix(a, b) {
+  let n = 0;
+  while (n < a.length && n < b.length && a[n] === b[n]) n += 1;
+  return n;
+}
+function isValid(anchor) {
+  const a = anchor;
+  return !!a && typeof a.quote === "string" && a.quote.length > 0;
+}
+function resolveByRelative(index, anchor, resolver) {
+  if (!anchor.relStart || !anchor.relEnd) return null;
+  const from = resolver.fromRel(anchor.relStart);
+  const to = resolver.fromRel(anchor.relEnd);
+  if (!from || !to) return null;
+  const a = offsetOfPos(index, from);
+  const b = offsetOfPos(index, to);
+  return a != null && b != null && b > a ? { from, to } : null;
+}
+function contextScore(index, at, anchor, hint) {
+  const before = index.text.slice(Math.max(0, at - CONTEXT_CHARS), at);
+  const end = at + anchor.quote.length;
+  const after = index.text.slice(end, end + CONTEXT_CHARS);
+  const context = commonSuffix(before, anchor.prefix || "") + commonPrefix(after, anchor.suffix || "");
+  return context * 1e3 - Math.min(999, Math.abs(at - hint) / 50);
+}
+function resolveByQuote(index, anchor) {
+  const quote = anchor.quote;
+  const hint = offsetOfTopBlock(index, Math.max(0, Number(anchor.blockIndex) || 0)) ?? 0;
+  let best = -1;
+  let bestScore = -Infinity;
+  let at = index.text.indexOf(quote);
+  for (let guard = 0; at !== -1 && guard < 1e4; guard += 1) {
+    const score = contextScore(index, at, anchor, hint);
+    if (score > bestScore) {
+      bestScore = score;
+      best = at;
+    }
+    at = index.text.indexOf(quote, at + 1);
+  }
+  if (best === -1) return null;
+  const from = posAtOffset(index, best);
+  const to = posAtOffset(index, best + quote.length);
+  return from && to ? { from, to } : null;
+}
+function resolveAnchor(doc2, anchor, resolver, index) {
+  if (!isValid(anchor)) return null;
+  const idx = index || buildTextIndex(doc2);
+  return (resolver ? resolveByRelative(idx, anchor, resolver) : null) || resolveByQuote(idx, anchor);
+}
+
+// ../agent-hub/src/editor/suggest/index.ts
+var DEFAULT_MAX_HUNKS = 200;
+var SUMMARY_CHARS = 40;
+var BLOCK_COST2 = 1e3;
+var kids = (n) => n && Array.isArray(n.content) ? n.content : [];
+function inlineText(n) {
+  let s = "";
+  for (const c of kids(n)) {
+    if (c.type === "text") s += typeof c.text === "string" ? c.text : "";
+    else if (c.type === "hardBreak") s += "\n";
+    else s += "\uFFFC";
+  }
+  return s;
+}
+function plainText2(n) {
+  if (isTextblock(n.type)) {
+    let s = "";
+    for (const c of kids(n)) {
+      if (c.type === "text") s += typeof c.text === "string" ? c.text : "";
+      else if (c.type === "hardBreak") s += "\n";
+      else {
+        const a = c.attrs || {};
+        s += String(c.type === "formula" ? a.src ?? "" : c.type === "mathInline" ? a.latex ?? "" : c.type === "image" ? a.alt ?? "" : "");
+      }
+    }
+    return s;
+  }
+  const inner = kids(n).map(plainText2).filter((t) => t !== "");
+  return inner.join("\n");
+}
+function sigOf(n) {
+  const head = `${n.type}${attrsKey(canonicalAttrs(n.type, n.attrs))}`;
+  if (isTextblock(n.type)) return `${head}|${inlineText(n).replace(/\s+/g, " ").trim()}`;
+  return `${head}(${kids(n).map(sigOf).join(",")})`;
+}
+var keyOf = (n) => JSON.stringify(n);
+function spansOf(blocks) {
+  const index = buildTextIndex({ type: "doc", content: blocks });
+  const spans = blocks.map(() => null);
+  for (const e of index.blocks) {
+    const top = e.path[0];
+    const cur = spans[top];
+    if (!cur) spans[top] = { a: e.start, b: e.start + e.text.length, first: e.path, last: e.path, lastLen: e.text.length };
+    else {
+      cur.b = e.start + e.text.length;
+      cur.last = e.path;
+      cur.lastLen = e.text.length;
+    }
+  }
+  return { index, spans };
+}
+function quoteOf(sp, s, e) {
+  let a = -1;
+  let b = -1;
+  for (let i = s; i < e && i < sp.spans.length; i++) {
+    const x = sp.spans[i];
+    if (!x) continue;
+    if (a < 0) a = x.a;
+    b = x.b;
+  }
+  if (a < 0) return "";
+  const q = sp.index.text.slice(a, Math.min(b, a + QUOTE_MAX));
+  return q.trim() ? q : "";
+}
+function anchorFor(sp, s, e, total) {
+  if (e > s) {
+    const quote = quoteOf(sp, s, e);
+    const a = { quote, prefix: "", suffix: "", blockIndex: s };
+    if (quote) {
+      let start = -1;
+      for (let i = s; i < e; i++) if (sp.spans[i]) {
+        start = sp.spans[i].a;
+        break;
+      }
+      a.prefix = sp.index.text.slice(Math.max(0, start - CONTEXT_CHARS), start);
+      a.suffix = sp.index.text.slice(start + quote.length, start + quote.length + CONTEXT_CHARS);
+    }
+    return a;
+  }
+  const n = s > 0 ? s - 1 : 0;
+  const has = total > 0;
+  return { quote: has ? quoteOf(sp, n, n + 1) : "", prefix: "", suffix: "", blockIndex: s };
+}
+function summaryOf(before, after) {
+  const label = (n) => n.type === "bulletList" || n.type === "orderedList" || n.type === "taskList" ? "list" : n.type === "codeBlock" ? "code block" : n.type === "blockquote" ? "quote" : n.type;
+  const snippet = (ns) => {
+    const t = ns.map(plainText2).join(" ").replace(/\s+/g, " ").trim();
+    return t ? ` "${t.length > SUMMARY_CHARS ? `${t.slice(0, SUMMARY_CHARS).trimEnd()}\u2026` : t}"` : "";
+  };
+  const describe = (ns) => ns.length === 1 ? label(ns[0]) : `${ns.length} blocks`;
+  if (!before.length) return `Added ${describe(after)}${snippet(after)}`;
+  if (!after.length) return `Removed ${describe(before)}${snippet(before)}`;
+  const same = before.map(plainText2).join("\n") === after.map(plainText2).join("\n");
+  return `${same ? "Changed formatting of" : "Rewrote"} ${describe(before)}${snippet(before)}`;
+}
+function hunksFrom(current, proposed, opts = {}) {
+  const cur = kids(current);
+  const prop = kids(proposed);
+  const ka = cur.map(keyOf);
+  const kb = prop.map(keyOf);
+  const raw = diffHunks(ka, kb, (x, y) => x === y, BLOCK_COST2);
+  if (!raw.length) return { hunks: [], replaceAll: false };
+  const sp = spansOf(cur);
+  const max = Math.max(1, opts.maxHunks ?? DEFAULT_MAX_HUNKS);
+  const make = (a0, a1, b0, b1) => {
+    const before = cur.slice(a0, a1);
+    const after = prop.slice(b0, b1);
+    return { anchor: anchorFor(sp, a0, a1, cur.length), before, after, summary: summaryOf(before, after) };
+  };
+  if (raw.length > max) return { hunks: [make(0, cur.length, 0, prop.length)], replaceAll: true };
+  return { hunks: raw.map((h) => make(h.a0, h.a1, h.b0, h.b1)), replaceAll: false };
+}
+var sigAt = (c, i) => c.sigs[i] ??= sigOf(c.blocks[i]);
+function matchesAt(c, bs, i) {
+  if (i < 0 || i + bs.length > c.blocks.length) return false;
+  for (let j = 0; j < bs.length; j++) if (sigAt(c, i + j) !== bs[j]) return false;
+  return true;
+}
+function* nearest(n, hint) {
+  const h = Math.min(Math.max(0, hint), Math.max(0, n - 1));
+  for (let d = 0; d < n; d++) {
+    if (h - d >= 0) yield h - d;
+    if (d > 0 && h + d < n) yield h + d;
+  }
+}
+function locate(c, h) {
+  const anchor = h.anchor;
+  const hint = Number.isInteger(anchor?.blockIndex) ? anchor.blockIndex : 0;
+  if (!h.before.length) return locateInsert(c, anchor, hint);
+  const bs = h.before.map(sigOf);
+  if (c.resolver && anchor.relStart && anchor.relEnd && anchor.quote) {
+    let r = null;
+    try {
+      r = resolveAnchor(c.doc, anchor, c.resolver, c.sp.index);
+    } catch {
+      r = null;
+    }
+    const top = r?.from.path[0];
+    if (typeof top === "number" && matchesAt(c, bs, top)) return top;
+  }
+  if (matchesAt(c, bs, hint)) return hint;
+  for (const i of nearest(c.blocks.length, hint)) if (matchesAt(c, bs, i)) return i;
+  return null;
+}
+function locateInsert(c, anchor, hint) {
+  const n = c.blocks.length;
+  const at = Math.min(Math.max(0, hint), n);
+  if (!anchor.quote) return at;
+  const neighbour = at > 0 ? at - 1 : 0;
+  const shift = at > 0 ? 1 : 0;
+  if (neighbour < n && quoteOf(c.sp, neighbour, neighbour + 1) === anchor.quote) return neighbour + shift;
+  for (const i of nearest(n, neighbour)) if (quoteOf(c.sp, i, i + 1) === anchor.quote) return i + shift;
+  return null;
+}
+var newCtx = (doc2, resolver) => {
+  const blocks = kids(doc2);
+  return { blocks, sp: spansOf(blocks), sigs: new Array(blocks.length), resolver, doc: doc2 };
+};
+function anchorsForFragment(fragment, hunks) {
+  const frag = fragment;
+  const c = newCtx(fragmentToAst(frag), null);
+  return hunks.map((h) => {
+    if (!h.before.length || !h.anchor.quote) return h;
+    const s = locate(c, h);
+    if (s == null) return h;
+    let first = null;
+    let last = null;
+    let lastLen = 0;
+    for (let i = s; i < s + h.before.length; i++) {
+      const x = c.sp.spans[i];
+      if (!x) continue;
+      if (!first) first = x.first;
+      last = x.last;
+      lastLen = x.lastLen;
+    }
+    if (!first || !last) return h;
+    const a = relativeFromPos(frag, first, 0, 0);
+    const b = relativeFromPos(frag, last, lastLen, -1);
+    return a && b ? { ...h, anchor: { ...h.anchor, relStart: encodeRelpos(a), relEnd: encodeRelpos(b) } } : h;
+  });
+}
+function applyHunks(current, hunks, resolver) {
+  const c = newCtx(current, resolver || null);
+  const taken = [];
+  const plan2 = [];
+  const stale = [];
+  hunks.forEach((h, idx) => {
+    const s = locate(c, h);
+    if (s == null) {
+      stale.push(idx);
+      return;
+    }
+    const e = s + h.before.length;
+    const clash = taken.some(([ts, te]) => e > s ? s < te && ts < e : s > ts && s < te);
+    if (clash) {
+      stale.push(idx);
+      return;
+    }
+    if (e > s) taken.push([s, e]);
+    plan2.push({ idx, s, e, h });
+  });
+  const order2 = [...plan2].sort((x, y) => y.s - x.s || (y.e > y.s ? 1 : 0) - (x.e > x.s ? 1 : 0) || y.idx - x.idx);
+  const blocks = c.blocks.slice();
+  for (const p of order2) blocks.splice(p.s, p.e - p.s, ...p.h.after);
+  return {
+    doc: plan2.length ? { ...current, content: blocks } : current,
+    applied: plan2.map((p) => p.idx).sort((a, b) => a - b),
+    stale: stale.sort((a, b) => a - b)
+  };
+}
+var asText = (ns) => ({ type: "paragraph", content: [{ type: "text", text: ns.map(plainText2).join("\n") }] });
+function hunkWords(h) {
+  const b = asText(h.before);
+  const a = asText(h.after);
+  const beforeText = h.before.map(plainText2).join("\n");
+  const afterText = h.after.map(plainText2).join("\n");
+  return { beforeText, afterText, words: diffWords(blockTokens(b), blockTokens(a)).words };
+}
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   FRAGMENT_NAME,
+  anchorsForFragment,
+  applyHunks,
   astToFragment,
   astToHtml,
   astToMarkdown,
@@ -3350,6 +3706,8 @@ function statsOnly(ua, ub) {
   encodeRelpos,
   fragmentToAst,
   htmlToAst,
+  hunkWords,
+  hunksFrom,
   markdownToAst,
   normalizeLight,
   posFromRelative,

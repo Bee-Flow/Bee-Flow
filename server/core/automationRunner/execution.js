@@ -16,7 +16,8 @@ const automationStore = require('../../stores/automationStore');
 const { sanitizeError } = require('../privacy/errorSanitizer');
 const { classifyUnknownError, remediationFor } = require('../automationErrors');
 const { safeDescribeStepError } = require('../../utils/stepErrorInfo');
-const { resolveDeep } = require('../../automation/bind');
+const { resolveDeep, withBindingLog } = require('../../automation/bind');
+const { noteStepBindingMisses, bindingMissSummary } = require('./bindingMisses');
 const { summariseDefinition } = require('../../automation/summarise');
 const holidays = require('../../automation/holidays');
 const { buildTriggerState } = require('./triggerState');
@@ -79,6 +80,8 @@ const {
     execDataExtraction,
     runDag,
 } = require('./engine');
+// Not routed through engine.js's re-export list: only the dispatcher calls it.
+const { execFlatten } = require('./execCollections');
 const { createToolMemo } = require('./toolMemo');
 const log = require('../../telemetry/log');
 // Handoff 5: which copy a run executes (live vs working) and the automation's
@@ -586,6 +589,11 @@ async function executeAutomation(automation, { triggerKind = 'manual', triggerPa
         // through resumeFromStep with skipUntilStepId set, so a run that pauses
         // twice stays closed for all of its later segments.
         _toolMemo: createToolMemo({ startSlept: isResume }),
+        // Every mapping that found nothing in this run, across branches, loop
+        // bodies and layers (shared by reference with every ctx copy, so it is
+        // created here, never lazily): the summary says how many and which
+        // (bindingMisses.js).
+        _bindingMisses: [],
         userOrgIds: runOrgId ? [runOrgId] : [],
         session,
         runId: run.id,
@@ -768,6 +776,7 @@ async function executeAutomation(automation, { triggerKind = 'manual', triggerPa
             case 'filter':             return execFilter(step, ctx_, state_);
             case 'limit':              return execLimit(step, ctx_, state_);
             case 'dedupe':             return execDedupe(step, ctx_, state_);
+            case 'flatten':            return execFlatten(step, ctx_, state_);
             case 'aggregate':          return execAggregate(step, ctx_, state_);
             case 'summarize':          return execSummarize(step, ctx_, state_);
             // One of the two steps whose effect outlives the run: rows in an
@@ -861,12 +870,21 @@ async function executeAutomation(automation, { triggerKind = 'manual', triggerPa
         }
 
         let result;
+        // A mapping that finds nothing while the step runs is written down
+        // (bind.js withBindingLog) and reported on the step row, the run's
+        // warnings and its summary (bindingMisses.js): an empty value with a
+        // green run used to be all anyone saw. The input snapshot below is
+        // resolved outside the log, so it does not count twice.
+        const bindingLog = [];
         try {
-            result = await executeStepWithIteration(step, ctx_, state_, mode_);
+            result = await withBindingLog(bindingLog, () => executeStepWithIteration(step, ctx_, state_, mode_));
             result.startedAt = stepStartedAt;
             result.inputSnapshot = step.inputs ? resolveDeep(step.inputs, state_, { allowSecrets: false }) : null;
+            const misses = noteStepBindingMisses({ step, entries: bindingLog, ctx: ctx_, runState: state_ });
+            if (misses) result.bindingWarnings = misses;
             return result;
         } catch (err) {
+            const bindingWarnings = noteStepBindingMisses({ step, entries: bindingLog, ctx: ctx_, runState: state_ });
             const inputForRecord = step.inputs ? resolveDeep(step.inputs, state_, { allowSecrets: false }) : null;
             const secretValues = secretValuesFor(state_);
             // Sub-step recording: namespace ids under the calling call_layer
@@ -892,6 +910,7 @@ async function executeAutomation(automation, { triggerKind = 'manual', triggerPa
                         input: inputForRecord,
                         output: isForm ? { form: err.form } : { prompt: err.prompt }, error: null,
                         secretValues,
+                        bindingWarnings,
                     });
                 }
                 throw err;
@@ -913,6 +932,9 @@ async function executeAutomation(automation, { triggerKind = 'manual', triggerPa
                     // setting that fixes it, fix buttons) for the step drawer.
                     errorInfo: safeDescribeStepError(err, { step, inputs: inputForRecord }),
                     secretValues,
+                    // Often the reason it failed: "to is required" because the
+                    // mapping for `to` found nothing.
+                    bindingWarnings,
                 });
             }
             // Attempt retry per step config. §WS2.5: a forEach that already did
@@ -932,9 +954,12 @@ async function executeAutomation(automation, { triggerKind = 'manual', triggerPa
                         // enclosing executeAutomation handles the pause path
                         // before any retry kicks in (this block only fires for
                         // actual errors).
-                        const retryResult = await executeStepWithIteration(step, ctx_, state_, mode_);
+                        const retryLog = [];
+                        const retryResult = await withBindingLog(retryLog, () => executeStepWithIteration(step, ctx_, state_, mode_));
                         retryResult.startedAt = stepStartedAt;
                         retryResult.inputSnapshot = inputForRecord;
+                        const retryMisses = noteStepBindingMisses({ step, entries: retryLog, ctx: ctx_, runState: state_ });
+                        if (retryMisses) retryResult.bindingWarnings = retryMisses;
                         // Tell runDag to record the final outcome at the
                         // correct `attempts` slot rather than overwriting
                         // attempts=1 (the initial-fail row above).
@@ -1137,12 +1162,15 @@ async function executeAutomation(automation, { triggerKind = 'manual', triggerPa
         // then blew up at step 9 reported neither counter — deleting the
         // evidence from exactly the runs someone opens asking "why did this
         // act on yesterday's data and then fail?".
-        if (runErrorMsg) return withReuse(runRemediation ? `Failed: ${userSafeError}. ${runRemediation}` : `Failed: ${userSafeError}`);
+        // Mappings that found nothing ride on both lines too: on a failure
+        // they are often WHY ("to is required" because its mapping was empty).
+        const misses = bindingMissSummary(ctx._bindingMisses);
+        if (runErrorMsg) return withReuse(`${runRemediation ? `Failed: ${userSafeError}. ${runRemediation}` : `Failed: ${userSafeError}`}${misses}`);
         const base = summariseDefinition(automation.definition || {}).summary;
         const withErrors = handledErrorCount > 0
             ? `${base} — ${handledErrorCount} step error(s) handled by error branch`
             : base;
-        return withReuse(withErrors);
+        return withReuse(`${withErrors}${misses}`);
     })();
 
     // For awaiting_approval, persist the approval token + the step id so

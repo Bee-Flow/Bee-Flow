@@ -57,7 +57,10 @@ const RULES = {
     'page-title':        { wcag: '2.4.2', level: 'error',   documentOnly: true },
     'iframe-title':      { wcag: '4.1.2', level: 'error' },
     'heading-order':     { wcag: '1.3.1', level: 'warning' },
-    'duplicate-id':      { wcag: '4.1.1', level: 'warning' },
+    // SC 4.1.1 Parsing is obsolete (removed in WCAG 2.2, always satisfied for
+    // HTML under 2.1): a duplicate id matters when a label or ARIA reference
+    // points at it, which is 4.1.2 Name, Role, Value.
+    'duplicate-id':      { wcag: '4.1.2', level: 'warning' },
     'tabindex-positive': { wcag: '2.4.3', level: 'warning' },
     'meta-refresh':      { wcag: '2.2.1', level: 'warning' },
     'viewport-zoom':     { wcag: '1.4.4', level: 'warning' },

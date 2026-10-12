@@ -127,8 +127,20 @@ async function rankAppsForMessage(catalog, userMessage, draft) {
         }
     }
 
-    const apps = [...pinned, ...ordered].slice(0, APP_CAP);
-    return { ...catalog, apps };
+    return capApps(catalog, [...pinned, ...ordered]);
+}
+
+/**
+ * Cut the ordered apps at APP_CAP and SAY so: `appsOmitted` rides on the
+ * catalogue and the renderers print an "and N more" line, the log gets a
+ * warning. A cut that looks like a complete list is how a model concludes an app
+ * the user has does not exist. A catalogue under the cap carries no extra key.
+ */
+function capApps(catalog, ordered) {
+    const apps = ordered.slice(0, APP_CAP);
+    const omitted = ordered.length - apps.length;
+    if (omitted > 0) log.warn(`[BuilderCatalog] ${omitted} app(s) beyond the cap of ${APP_CAP} are not shown to the model`);
+    return omitted > 0 ? { ...catalog, apps, appsOmitted: omitted } : { ...catalog, apps };
 }
 
 /**
@@ -169,7 +181,7 @@ function applyCatalogOrder(catalog, order) {
         if (app && !seen.has(id)) { head.push(app); seen.add(id); }
     }
     const tail = usable.filter(a => !seen.has(a.id));
-    return { ...catalog, apps: [...head, ...tail].slice(0, APP_CAP) };
+    return capApps(catalog, [...head, ...tail]);
 }
 
 module.exports = { rankAppsForMessage, applyCatalogOrder, catalogOrderOf, APP_CAP, _internals: { appDocument, isPinned, pinnedAppIds } };

@@ -118,6 +118,15 @@ test('with the shield off the AI reads raw data: a warning, even without known p
     assert.strictEqual((await check.evaluate('org1', { id: 'project_comment_thread:t-auto' }, deps())).status, 'pass');
 });
 
+test('without special-category data the DPIA register is not consulted, and the evidence says so (null, not false)', async () => {
+    // `false` read as "no current DPIA" for conversations nobody looked up.
+    const r = await check.evaluate('org1', { id: 'project_chat:c-names' }, deps());
+    assert.strictEqual(r.status, 'pass');
+    assert.strictEqual(r.evidence.dpia_current, null);
+    const looked = await check.evaluate('org1', { id: 'project_chat:c-auto' }, deps());
+    assert.strictEqual(looked.evidence.dpia_current, false, 'consulted, and none is current');
+});
+
 test('unreadable signals or DPIA register warn; a vanished subject is not applicable', async () => {
     const sig = await check.evaluate('org1', { id: 'project_chat:c-auto' }, deps({ signals: { signalsFor: async () => ({ byProject: new Map(), unreadable: ['events'] }) } }));
     assert.strictEqual(sig.status, 'warn');

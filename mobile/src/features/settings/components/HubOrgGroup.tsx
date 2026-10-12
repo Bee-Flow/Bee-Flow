@@ -1,6 +1,7 @@
 /**
  * Settings → Your organisation: its profile and settings (the org index lists
- * every section an org admin may configure) and integrations. The web's
+ * every section an org admin may configure) and Connections, the accounts
+ * you connect yourself (the web's Settings → Connections). The web's
  * super-admin dashboard is out of the phone's scope, so there is no
  * Administration row. Your own privacy choices sit under Your account.
  */
@@ -25,7 +26,7 @@ export function HubOrgGroup() {
                 onPress={() => router.push('/org')}
             />
             <SettingRow
-                label={t('settings.integrations', 'Integrations')}
+                label={t('settings.connections', 'Connections')}
                 icon={<IconTile name="Link" />}
                 onPress={() => router.push('/integrations')}
             />

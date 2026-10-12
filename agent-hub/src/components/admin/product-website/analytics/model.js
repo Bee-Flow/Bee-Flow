@@ -74,6 +74,20 @@ export function channelOf(referrer, utm = {}) {
     return 'Referral';
 }
 
+const CHANNEL_LABEL_KEYS = {
+    'Direct': 'cms_site.analytics.channel.direct',
+    'Search': 'cms_site.analytics.channel.search',
+    'Referral': 'cms_site.analytics.channel.referral',
+    'Social': 'cms_site.analytics.channel.social',
+    'Email': 'cms_site.analytics.channel.email',
+    'AI assistants': 'cms_site.analytics.channel.ai_assistants',
+    'Campaign': 'cms_site.analytics.channel.campaign',
+    'Paid': 'cms_site.analytics.channel.paid',
+};
+
+/** Channel names double as identifiers; translate only for display (pass `t`). */
+export const channelLabel = (label, t) => (t && CHANNEL_LABEL_KEYS[label] ? t(CHANNEL_LABEL_KEYS[label], label) : label);
+
 export const CHANNEL_ORDER = ['Direct', 'Search', 'Referral', 'Social', 'Email', 'AI assistants', 'Campaign', 'Paid'];
 
 /** `[{x: referrer, y: count}]` → channel totals, biggest first. */
@@ -179,6 +193,18 @@ export function blockLeaderboard(events) {
  * `sessions[].screen` is "1280x720". Nothing in the product used it, and it is
  * the only honest answer to "what widths do I have to design for".
  */
+const SCREEN_LABEL_KEYS = {
+    'Phone (< 480px)': 'cms_site.analytics.screen.phone',
+    'Large phone (480–768)': 'cms_site.analytics.screen.large_phone',
+    'Tablet (768–1024)': 'cms_site.analytics.screen.tablet',
+    'Laptop (1024–1440)': 'cms_site.analytics.screen.laptop',
+    'Desktop (1440–1920)': 'cms_site.analytics.screen.desktop',
+    'Wide (1920+)': 'cms_site.analytics.screen.wide',
+};
+
+/** Bucket names double as identifiers; translate only for display (pass `t`). */
+export const screenLabel = (label, t) => (t && SCREEN_LABEL_KEYS[label] ? t(SCREEN_LABEL_KEYS[label], label) : label);
+
 const BUCKETS = [
     { max: 480, label: 'Phone (< 480px)' },
     { max: 768, label: 'Large phone (480–768)' },
@@ -208,6 +234,9 @@ export function screenBuckets(sessions) {
     };
 }
 
+// Without a translator (tests, non-React callers) the reasons print English.
+const plainT = (_key, fallback, params) => String(fallback).replace(/\{(\w+)\}/g, (_, k) => String(params?.[k] ?? ''));
+
 /**
  * An "is this worth watching?" score for a session.
  *
@@ -215,7 +244,7 @@ export function screenBuckets(sessions) {
  * simple and are shown to the user as the reasons behind the score, so the
  * ranking is inspectable rather than a black box.
  */
-export function sessionSignals(session, { events = 0, replay = null } = {}) {
+export function sessionSignals(session, { events = 0, replay = null, t = plainT } = {}) {
     const reasons = [];
     let score = 0;
 
@@ -223,12 +252,12 @@ export function sessionSignals(session, { events = 0, replay = null } = {}) {
     const durationMs = Date.parse(session.lastAt) - Date.parse(session.firstAt);
     const duration = Number.isFinite(durationMs) ? Math.max(0, durationMs) : 0;
 
-    if (events > 0) { score += 40 + Math.min(20, events * 4); reasons.push(`${events} interaction${events > 1 ? 's' : ''}`); }
-    if (views >= 4) { score += 20; reasons.push(`${views} pages`); }
-    if (duration >= 120_000) { score += 15; reasons.push('long visit'); }
-    if (views === 1 && duration < 10_000) { score -= 10; reasons.push('bounced'); }
-    if (replay) { score += 10; reasons.push('recorded'); }
-    if ((Number(session.visits) || 0) > 1) { score += 10; reasons.push('returning'); }
+    if (events > 0) { score += 40 + Math.min(20, events * 4); reasons.push(events > 1 ? t('cms_site.analytics.session.reason_interactions', '{n} interactions', { n: events }) : t('cms_site.analytics.session.reason_interaction', '{n} interaction', { n: events })); }
+    if (views >= 4) { score += 20; reasons.push(t('cms_site.analytics.session.reason_pages', '{n} pages', { n: views })); }
+    if (duration >= 120_000) { score += 15; reasons.push(t('cms_site.analytics.session.reason_long', 'long visit')); }
+    if (views === 1 && duration < 10_000) { score -= 10; reasons.push(t('cms_site.analytics.session.reason_bounced', 'bounced')); }
+    if (replay) { score += 10; reasons.push(t('cms_site.analytics.session.reason_recorded', 'recorded')); }
+    if ((Number(session.visits) || 0) > 1) { score += 10; reasons.push(t('cms_site.analytics.session.reason_returning', 'returning')); }
 
     return { score, reasons, duration, views, events, hasReplay: !!replay };
 }

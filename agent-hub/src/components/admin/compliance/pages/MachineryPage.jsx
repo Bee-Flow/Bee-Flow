@@ -1,13 +1,13 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Factory, PenLine } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import DataTable, { TableRow, TableCell } from '../../../shared/DataTable';
 import DeadlineClock from '../../../shared/DeadlineClock';
 import EmptyState from '../../../shared/EmptyState';
-import StatusPill from '../shared/StatusPill';
-import ArticleRef from '../shared/ArticleRef';
 import { API, asObject, fetchJson, json } from '../data/api';
 import useResource from '../data/useResource';
+import ArticleRef from '../shared/ArticleRef';
+import StatusPill from '../shared/StatusPill';
 import AttestDrawer from './custom/AttestDrawer';
 
 /**
@@ -125,8 +125,7 @@ export default function MachineryPage(props) {
     const [historyFailed, setHistoryFailed] = useState(false);
     const [busy, setBusy] = useState(false);
 
-    useEffect(() => { if (focusId) setOpenId(String(focusId)); }, [focusId]);
-
+    // The header's "Scan again" (registerSpecs machinery → onRefreshMachinery) re-reads the table.
     useEffect(() => {
         setHeaderActions?.({ onRefreshMachinery: res.refresh });
         return () => setHeaderActions?.({});
@@ -143,6 +142,10 @@ export default function MachineryPage(props) {
             setHistoryFailed(true);
         }
     }, []);
+
+    // A deep link opens the drawer the same way a row does, history included:
+    // setting the id alone left "Earlier attestations" loading for good.
+    useEffect(() => { if (focusId) openSubject(String(focusId)); }, [focusId, openSubject]);
 
     const selected = useMemo(() => (rows || []).find(r => r.subject_id === openId) || null, [rows, openId]);
 
@@ -163,10 +166,10 @@ export default function MachineryPage(props) {
 
     const columns = [
         { id: 'subject', width: '1fr', label: t('compliance.mach_col_subject', 'Integration') },
-        { id: 'signals', width: '1.4fr', label: t('compliance.mach_col_signals', 'Signals'), foldBelow: 1180 },
+        { id: 'signals', width: '1.4fr', label: t('compliance.mach_col_signals', 'Signals'), foldBelow: 900 },
         { id: 'confidence', width: '110px', label: t('compliance.mach_col_confidence', 'Confidence') },
         { id: 'assessment', width: '170px', label: t('compliance.mach_col_assessment', 'Declaration') },
-        { id: 'valid', width: '140px', label: t('compliance.mach_col_valid', 'Valid'), foldBelow: 1180 },
+        { id: 'valid', width: '140px', label: t('compliance.mach_col_valid', 'Valid'), foldBelow: 900 },
         { id: 'action', width: '104px', label: '' },
     ];
 
@@ -199,7 +202,7 @@ export default function MachineryPage(props) {
                         <ArticleRef refs={[{ regulation: 'MACHINERY', ref: '18' }]} testId="mach-article" />
                     </div>
                     <p className="text-[var(--text-secondary)] leading-4">
-                        {t('compliance.mach_intro', 'Software that steers or monitors a safety function is a safety component from 20 January 2027. The scan finds integrations that speak to machines; only you can say whether such an integration touches a safety function — declare it here, with evidence.')}
+                        {t('compliance.mach_intro', 'Software that steers or monitors a safety function can be a safety component from 20 January 2027 — when it is placed on the market on its own (Art. 3(3)); built into a machine, it is assessed with the machine. The scan finds integrations that speak to machines; only you can say whether such an integration touches a safety function — declare it here, with evidence.')}
                     </p>
                 </div>
             </section>

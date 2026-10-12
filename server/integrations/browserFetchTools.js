@@ -65,7 +65,7 @@ const BROWSE_WEB_TOOLS = [
             description: `Open and read (or interact with) live web pages in a real headless browser that runs JavaScript, then answer the user's task from what you actually see.
 
 Use browse_web whenever:
-• The user gives you a specific URL — open it directly. Do NOT use agent_search for a URL you already have.
+• The user gives you a specific URL AND it needs a real browser (JS-rendered, login, cookie wall, clicks). For a plain page with a URL, read_url is lighter and returns the full text (with its find parameter for one article or paragraph); use browse_web when read_url comes back empty or blocked. Do NOT use agent_search for a URL you already have.
 • A task needs live/current page content, a JS-rendered page (SPA/dashboard), clicking through a cookie wall, expanding sections, following links, or reading across several pages.
 • The URL is a PDF document — browse_web reads its text securely.
 

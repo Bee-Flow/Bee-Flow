@@ -1,10 +1,11 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import { withQueryClient } from '../../../../test/queryWrapper';
 import { EDITOR_ID, getRouter, MEMBERS, OWNER_ID, tabProps, type RouteAnswer } from './contentTestKit';
 import type { ContentTabProps } from './types';
+import { useUndoCapture } from '../undoTestKit';
 
 // Fresh spies per test (assigned in beforeEach) rather than reset ones.
 const { client, helpers } = vi.hoisted(() => ({
@@ -108,6 +109,7 @@ describe('KnowledgeTab: what the project knows', () => {
         renderTab('viewer');
         await screen.findByText('brief.pdf');
         await screen.findByText('Handbook');
+        expect(within(screen.getByTestId('studio-section-header')).getByRole('heading', { name: 'Knowledge' })).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'Upload files' })).not.toBeInTheDocument();
         expect(screen.queryByTestId('project-files-dropzone')).not.toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'Delete brief.pdf' })).not.toBeInTheDocument();
@@ -169,6 +171,7 @@ describe('KnowledgeTab: files', () => {
 });
 
 describe('KnowledgeTab: knowledge bases', () => {
+    const undo = useUndoCapture();
     it('links a readable base of the same organisation', async () => {
         const user = userEvent.setup();
         renderTab('editor');
@@ -184,14 +187,25 @@ describe('KnowledgeTab: knowledge bases', () => {
         ));
     });
 
-    it('unlinks a base after confirmation', async () => {
+    it('unlinks a base at once and calls the API only when the Undo toast runs out', async () => {
         const user = userEvent.setup();
         renderTab('editor');
         await user.click(await screen.findByRole('button', { name: 'Unlink Handbook' }));
-        expect(screen.getByText(/The knowledge base itself is not changed/)).toBeInTheDocument();
-        await user.click(screen.getByTestId('confirm-dialog-confirm'));
-        await waitFor(() => expect(client.put).toHaveBeenCalledWith(
+        expect(screen.queryByRole('button', { name: 'Unlink Handbook' })).not.toBeInTheDocument();
+        expect(client.put).not.toHaveBeenCalled();
+        act(() => undo.last().onExpire());
+        await waitFor(() => expect(client.put).toHaveBeenCalledTimes(1));
+        expect(client.put).toHaveBeenCalledWith(
             '/api/projects/p1/resources', { kind: 'knowledge_base', id: 'kb-1', attach: false }, { retry: false },
-        ));
+        );
+    });
+
+    it('keeps the base linked on Undo and never calls the API', async () => {
+        const user = userEvent.setup();
+        renderTab('editor');
+        await user.click(await screen.findByRole('button', { name: 'Unlink Handbook' }));
+        act(() => undo.last().onUndo());
+        expect(await screen.findByRole('button', { name: 'Unlink Handbook' })).toBeInTheDocument();
+        expect(client.put).not.toHaveBeenCalled();
     });
 });

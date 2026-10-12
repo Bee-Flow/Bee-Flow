@@ -2,6 +2,10 @@
 // Merged into GUI_DEFAULTS by ./index.js. The frontend copy (agent-hub/src/i18n/en-defaults.js)
 // is GENERATED from these files: after an edit, run `node scripts/gen-i18n-defaults.mjs`.
 module.exports = {
+    'login.sso_link_required': 'Your Microsoft identity needs to be linked by a platform administrator. Contact your administrator, then sign in again.',
+    'login.sso_seat_cap_exceeded': 'Your organisation has reached its user limit, so your account could not be created. Contact your administrator.',
+    'login.sso_signup_failed': 'Your account could not be created. Please try again or contact your administrator.',
+
     // ── Login ────────────────────────────────────────────────────
     'login.title': 'Sign In',
     'login.username': 'Username',
@@ -64,4 +68,7 @@ module.exports = {
     "login.verify_title": "Confirm your email address",
     "login.invite_link_expired": "This invitation link has expired or is no longer valid. Ask whoever invited you for a new one.",
     "login.invite_link_error": "Something went wrong opening this invitation. Please try the link again or ask for a new one.",
+    // Hardcoded literals converted (2026-10)
+    'login.org_logo_alt': 'Organization',
+    'login.form_label': 'Login form',
 };

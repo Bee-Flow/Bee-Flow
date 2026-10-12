@@ -77,7 +77,7 @@ describe('the AI Act assessment', () => {
                 containsAi: true, customerFacing: false, generatesContent: true, disclosurePresent: false, markingEnabled: true,
                 aiSteps: 2, aiStepLabels: ['Classify'], annexHints: ['employment'],
             },
-            answers: { art5: 'no', annexIii: null, annexDomains: { credit: 'yes', employment: 'no' } },
+            answers: { art5: 'no', annexIii: null, annexCategory: null, annexDomains: { credit: 'yes', employment: 'no' } },
         });
     });
 

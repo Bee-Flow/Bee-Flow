@@ -251,14 +251,35 @@ async function deriveRunOutcome(run) {
     if (run.status !== 'success') return { output: null, appEffects: null };
     try {
         const automationStore = require('../../stores/automationStore');
+        const { isTruncatedOutput } = require('../../automation/payloadTruncation');
+        const { withFullOutput } = require('../../core/automationRunner/replaySeeding');
         const steps = await automationStore.getRunSteps(run.id);
         let output = null;
+        let outputTooLarge = false;
         for (let i = steps.length - 1; i >= 0; i--) {
-            const s = steps[i];
+            let s = steps[i];
             // BEWUST alleen `parentStepId`, niet isTopLevelRow: welke regel de
             // `actionResult`-bindingen van élke bestaande app lezen, is niet
             // iets om en passant te verschuiven. Die scan blijft byte-identiek.
-            if (!s.parentStepId && !NON_ANSWER_STEP_TYPES.has(s.stepType)) { output = s.output ?? null; break; }
+            if (!s.parentStepId && !NON_ANSWER_STEP_TYPES.has(s.stepType)) {
+                // An answer over 256 KB is persisted as the truncation sentinel,
+                // with the full (already redacted) copy kept beside the row. The
+                // app must get that copy, not `{ __truncated__, … }`: every
+                // actionResult path into the sentinel resolved to nothing, so a
+                // list stayed empty exactly when the data got big. Without a
+                // copy (larger than the copy limit) the app is told, not handed
+                // the sentinel as data.
+                if (isTruncatedOutput(s.output)) {
+                    s = await withFullOutput(s);
+                    if (isTruncatedOutput(s.output)) {
+                        outputTooLarge = true;
+                        log.warn(`[ActionExecutor] run ${run.id}: the answer of step ${s.stepId} was too large to keep in full; the app gets no output`);
+                        break;
+                    }
+                }
+                output = s.output ?? null;
+                break;
+            }
         }
         // De LAATSTE top-level return_to_app wint: een automatisering mag er één per
         // tak dragen, en er draaide er maar één.
@@ -281,7 +302,7 @@ async function deriveRunOutcome(run) {
             if (eff && typeof eff === 'object' && !Array.isArray(eff)) appEffects = eff;
             break;
         }
-        return { output, appEffects };
+        return { output, appEffects, ...(outputTooLarge ? { outputTooLarge: true } : {}) };
     } catch (e) {
         // MISLUKT LEZEN IS GEEN "GEEN INSTRUCTIES".
         //

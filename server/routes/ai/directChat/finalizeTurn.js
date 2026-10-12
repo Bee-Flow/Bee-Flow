@@ -24,6 +24,8 @@ const { checkRegexPatterns } = require('../../../core/privacy/guardrails');
 const { applyTokenMapToMessages } = require('../../../core/dlp/applyTokenMapToOutbound');
 const { buildTitleTranscript, encryptionOpts, emitThreadEvent } = require('./shared');
 const log = require('../../../telemetry/log');
+const { resolveMemoryPolicy } = require('../../../core/memory/memoryPolicy');
+const { persistedMemoryUsed } = require('../../../core/memory/memoryUsed');
 
 /**
  * `turn` is the TurnState (./turnState.js) that every phase of this turn
@@ -32,7 +34,7 @@ const log = require('../../../telemetry/log');
  */
 async function finalizeDirectChatTurn(turn) {
     let {
-        req, send, userId, convId, modelTier, resolvedTier, history, validProjectId, extractMemoriesEnabled, usableKbIds, userOrgForTiers,
+        req, send, userId, convId, modelTier, resolvedTier, history, validProjectId, extractMemoriesEnabled, usableKbIds, userOrgForTiers, memoryPolicy, memoryUsed,
         moderationViolation, tokenizedMessage, persistedAttachments, _userPrivacyMeta, piiTokenMap, _turnAttachmentSummaries,
         _assistantTokenisationInfo, _streamUntok, orgShield, regexConfig,
         fullContent, thinkingContent, thinkingParts, toolCallRounds, notebookWriteCommitted, collectedToolHistory,
@@ -477,6 +479,9 @@ async function finalizeDirectChatTurn(turn) {
                     completions: Array.isArray(sessionSkillsCompletions) ? [...sessionSkillsCompletions] : [],
                 };
             }
+            // Memories injected into this turn (ids and types only, never their
+            // text), so the "used memory" chip survives a reload.
+            if (Array.isArray(memoryUsed) && memoryUsed.length > 0) assistantSave.memoryUsed = persistedMemoryUsed(memoryUsed);
             savedMessages.push(assistantSave);
 
             // Save with metadata for OpenAI response chaining + compaction
@@ -549,7 +554,7 @@ async function finalizeDirectChatTurn(turn) {
             // placeholder, so a chat titled on turn 2 is never re-titled.
             const _assistantReplies = savedMessages.filter(m => m && m.role === 'assistant').length;
             const _titleIsPlaceholder = !conv.title || !String(conv.title).trim() || /^new chat$/i.test(String(conv.title).trim());
-            log.info(`[DirectChat] Title check: assistantReplies=${_assistantReplies}, currentTitle="${conv.title || ''}", placeholder=${_titleIsPlaceholder}, moderationViolation=${!!moderationViolation}`);
+            log.info(`[DirectChat] Title check: assistantReplies=${_assistantReplies}, hasTitle=${!!conv.title}, placeholder=${_titleIsPlaceholder}, moderationViolation=${!!moderationViolation}`);
 
             if (_assistantReplies >= 1 && _titleIsPlaceholder && !moderationViolation) {
                 // Generate the real title as soon as there is one complete
@@ -607,7 +612,8 @@ async function finalizeDirectChatTurn(turn) {
                             titleAgent?.system_prompt,
                             { maxInputChars: 1600 },
                         );
-                        log.info(`[DirectChat] Title generated: "${title}" for conv ${convId}`);
+                        // The title is an encryption surface (CONVERSATION_TITLE): its length only.
+                        log.info(`[DirectChat] Title generated (${String(title).length} chars) for conv ${convId}`);
                         await agentStore.updateDirectConversationTitle(convId, title, userId);
                         send('title', { title, conversationId: convId });
                     }
@@ -638,7 +644,14 @@ async function finalizeDirectChatTurn(turn) {
         // elsewhere would be a dead placeholder. Privacy trade-off accepted:
         // real PII may appear in `user_memories` — local storage, not
         // external AI traffic. The saved history stays tokenised.
-        if (!moderationViolation && req.body?.memoryWriteEnabled !== false) {
+        // The gate was resolved once in promptAssembly; a moderation violation
+        // is only known now, so it is applied on top.
+        const writePolicy = memoryPolicy || await resolveMemoryPolicy({
+            userId, orgId: userOrgForTiers || null,
+            perChatReadEnabled: req.body?.memoryReadEnabled,
+            perChatWriteEnabled: req.body?.memoryWriteEnabled,
+        });
+        if (!moderationViolation && writePolicy.write) {
             try {
                 const memoryExtractor = require('../../../agents/memory/extractor');
                 let extractionMessages = messages;
@@ -662,7 +675,7 @@ async function finalizeDirectChatTurn(turn) {
                     .catch(err => log.error('[DirectChat] Memory extraction failed:', err.message));
             } catch (e) { /* extractor load failed */ }
         } else {
-            log.info(`[DirectChat] Skipping memory extraction — moderation violation detected`);
+            log.info(`[DirectChat] Skipping memory extraction (${moderationViolation ? 'moderation violation' : writePolicy.reason})`);
         }
         return { convId, pendingTitle };
 }

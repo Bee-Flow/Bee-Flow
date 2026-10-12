@@ -123,6 +123,16 @@ function resolveNativeAppRedirect(key) {
     return NATIVE_APP_REDIRECTS.get(key) || null;
 }
 
+/**
+ * The redirect target stored in the session, checked again where it is used:
+ * returns the map's own literal when the value is one of the fixed targets,
+ * otherwise null. Never returns the value it was given.
+ */
+function knownNativeAppRedirect(value) {
+    for (const target of NATIVE_APP_REDIRECTS.values()) if (target === value) return target;
+    return null;
+}
+
 // When popup=1 (embedded iframe mode), we serve an intermediate HTML page
 // instead of a 302 redirect. This cleans the Referer header and severs the
 // iframe->popup->provider relationship so Google/Microsoft don't block it.
@@ -137,4 +147,4 @@ function popupRedirect(res, url) {
 </body></html>`);
 }
 
-module.exports = { _vaultUpsertSafe, getReturnUrl, oauthStatesMatch, popupRedirect, resolveNativeAppRedirect };
+module.exports = { _vaultUpsertSafe, getReturnUrl, oauthStatesMatch, popupRedirect, resolveNativeAppRedirect, knownNativeAppRedirect };

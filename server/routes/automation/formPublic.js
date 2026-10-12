@@ -86,7 +86,7 @@ const notebookStore = require('../../stores/notebookStore');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { uploadGuard, scanBuffer } = require('../../middleware/uploadGuard');
 const { issueCsrf, verifyCsrf } = require('../../auth/publicShareToken');
-const { renderConfig, formTriggerFields, normalizeFields, coerceSubmission, isFileField, MAX_UPLOAD_MB, MAX_RENDERED_DESCRIPTION_LEN } = require('../../automation/formTriggerContract');
+const { renderConfig, formTriggerFields, normalizeFields, coerceSubmission, isFileField, MAX_UPLOAD_MB } = require('../../automation/formTriggerContract');
 const { audienceAdmits, needsGroups } = require('../../automation/formAudience');
 // The answers table a form may collect into (never in the visitor's way —
 // every call below swallows its own errors).
@@ -96,6 +96,7 @@ const { describeClaimedUpload } = require('../../automation/formUploadText');
 const { searchRecords, describePick } = require('../../automation/formPickRecord');
 const { walkAllSteps } = require('../../automation/portability');
 const { contentDisposition } = require('../../core/http/contentDisposition');
+const { endingFrom, resultOf, markdownToSafeHtml, webpageSlots, aiStepsOf, resultFilename } = require('../../automation/formResult');
 
 const FORM_RPM_PER_IP = parseInt(process.env.AUTOMATION_FORM_RPM_PER_IP, 10) || 60;
 const FORM_RPM_PER_TOKEN = parseInt(process.env.AUTOMATION_FORM_RPM_PER_TOKEN, 10) || 120;
@@ -127,6 +128,11 @@ const tokenLimiter = perUserRateLimit({ windowMs: 60_000, max: FORM_RPM_PER_TOKE
 const uploadLimiter = perUserRateLimit({ windowMs: 60_000, max: FORM_UPLOAD_RPM, keyFn: (req) => `formupload:${req.params.token}:${req.ip || 'unknown'}` });
 const pickLimiter = perUserRateLimit({ windowMs: 60_000, max: FORM_PICK_RPM, keyFn: (req) => `formpick:${req.params.token}:${req.session?.user?.id || req.ip || 'unknown'}` });
 const sessionLimiter = perUserRateLimit({ windowMs: 60_000, max: FORM_POLL_RPM, keyFn: (req) => `formsess:${req.params.sid}` });
+// Turning a result into a Word or PDF file renders a document (a Chromium
+// page for the PDF), so it gets a bucket of its own per person rather than
+// riding on the 300/min poll budget.
+const FORM_EXPORT_RPM = parseInt(process.env.AUTOMATION_FORM_EXPORT_RPM, 10) || 10;
+const exportLimiter = perUserRateLimit({ windowMs: 60_000, max: FORM_EXPORT_RPM, keyFn: (req) => `formexport:${req.session?.user?.id || req.ip || 'unknown'}` });
 
 // Session-id shape gate, same discipline as the token: cheap reject before any DB work.
 const SESSION_RE = /^[a-f0-9]{24,64}$/;
@@ -717,19 +723,6 @@ function progressTrail(definition, steps) {
     return trail.length ? { trail, note } : null;
 }
 
-/**
- * The closing page, if the automation ran one. `form_page` steps with
- * mode:'ending' record their rendered config; the LAST one on the final run
- * wins, because that is the screen the visitor's journey ended on.
- */
-function endingFrom(steps) {
-    for (let i = steps.length - 1; i >= 0; i--) {
-        const out = steps[i]?.output;
-        if (out && out.mode === 'ending' && out.form) return out.form;
-    }
-    return null;
-}
-
 router.get('/form/:token/s/:sid', ipLimiter, sessionLimiter, async (req, res) => {
     try {
         privateHeaders(res);
@@ -931,56 +924,63 @@ router.post('/form/:token/s/:sid/file/:fileId/notebook', ipLimiter, sessionLimit
 });
 
 /**
- * POST /form/:token/s/:sid/notebook — save the closing page's OWN TEXT into a
- * new notebook (BFSF-419, Track 1's generic fallback).
+ * The finished journey's result — the closing page's title and markdown, as
+ * the RUN recorded them — or null after answering 404.
+ *
+ * Shared by every "keep this result" route below (BFSF-419). None of them
+ * takes the text from the request: the page could send anything, and these
+ * routes write a notebook, a webpage or a rendered document from it. Reading
+ * the ending back from the run means a visitor keeps exactly what their own
+ * journey produced. Same scoping as the file routes above (token → session),
+ * so a wrong, foreign or expired session id is the same 404 as everywhere
+ * else in this file, and so is a journey that has not finished, or finished
+ * without a closing text.
+ */
+async function loadResult(req, res) {
+    const found = await loadForm(req, res);
+    if (!found) return null;
+    const loaded = await loadSession(found, req.params.sid);
+    const run = loaded && !loaded.expired ? await currentRunFor(loaded.session) : null;
+    const result = run?.status === 'success' ? resultOf(endingFrom(await automationStore.getRunSteps(run.id))) : null;
+    if (!result) { res.status(404).json({ error: 'Not found' }); return null; }
+    const title = (result.title || found.trigger?.form?.title || found.automation?.title || 'Result').slice(0, 120);
+    return { found, result: { ...result, title } };
+}
+
+/**
+ * POST /form/:token/s/:sid/notebook — save the closing page's text into a new
+ * notebook and say which one, so the page can open it.
  *
  * The route above needs a fileId because a `generate_document` step left
  * something in storage to fetch and reparse. Most automations never take that
- * step — the "result" is just the ending page's rendered markdown (a blog
- * post, a summary, an analysis) with no download/notebook field wired at
- * all, because the author never added one. That case has no generated file
- * to reparse ANYTHING out of, so the already-rendered text rides in the
- * request body instead — the visitor is saving exactly what they can already
- * see on the page, not something this endpoint has to go fetch.
+ * step: the "result" is just the ending page's markdown (a blog post, a
+ * summary, an analysis). That markdown becomes the notebook's HTML, headings,
+ * lists and tables included, so the notebook looks like the page the visitor
+ * just read rather than a wall of `##` and `|`.
  *
- * Same scoping as the file-based route above, deliberately not a new
- * pattern: token → session via loadSession, so a wrong or expired session id
- * is the SAME 404 as everywhere else in this file — a visitor may persist
- * their own journey's result, never another session's. Same signed-in gate
- * too (only reachable while PUBLIC_FORMS_ENABLED is off, and asserted here
- * so flipping it back on cannot silently produce an ownerless notebook).
- * `text` is capped to MAX_RENDERED_DESCRIPTION_LEN — the same length the
- * server already enforces when it renders an ending page's description — so
- * this cannot become an arbitrary-size write either.
+ * Signed-in only (the router's requireAuth while PUBLIC_FORMS_ENABLED is off,
+ * and asserted here so flipping it back on cannot silently produce an
+ * ownerless notebook).
  */
-router.post('/form/:token/s/:sid/notebook', ipLimiter, sessionLimiter, contentLengthGuard, async (req, res) => {
+router.post('/form/:token/s/:sid/notebook', ipLimiter, sessionLimiter, async (req, res) => {
     try {
         privateHeaders(res);
         const userId = req.session?.user?.id;
         if (!userId) return res.status(401).json({ error: 'Not authenticated' });
 
-        const found = await loadForm(req, res);
-        if (!found) return undefined;
-        const loaded = await loadSession(found, req.params.sid);
-        if (!loaded || loaded.expired) return res.status(404).json({ error: 'Not found' });
-
-        const body = (req.body && typeof req.body === 'object') ? req.body : {};
-        const text = typeof body.text === 'string' ? body.text.trim().slice(0, MAX_RENDERED_DESCRIPTION_LEN) : '';
-        if (!text) return res.status(400).json({ error: 'Nothing to save' });
-        const title = typeof body.title === 'string' ? body.title.trim() : '';
+        const loaded = await loadResult(req, res);
+        if (!loaded) return undefined;
+        const { result } = loaded;
 
         const notebook = await notebookStore.createNotebook({
             userId,
-            name: notebookNameFor(title, found),
+            name: result.title,
             description: '',
             instructions: '',
             organizationId: req.session?.user?.organizationId || null,
         });
-        // createNotebook always starts empty, so the content is a second write —
-        // same shape as the file-based route, minus a document to parse: the
-        // text is already plain text, so it goes through the same paragraph
-        // wrapper (and the same escaping) documentHtml gives a PDF's prose.
-        const html = documentHtml(text);
+        // createNotebook always starts empty, so the content is a second write.
+        const html = markdownToSafeHtml(result.markdown);
         await notebookStore.updateNotebook(notebook.id, userId, { documentContent: html });
         await recordImportedVersion(notebook.id, userId, html);
 
@@ -988,6 +988,123 @@ router.post('/form/:token/s/:sid/notebook', ipLimiter, sessionLimiter, contentLe
     } catch (e) {
         log.error('[automation/form] save-to-notebook error:', e.message);
         return res.status(500).json({ error: 'Could not save this to Notebooks' });
+    }
+});
+
+/**
+ * GET /form/:token/s/:sid/export/:format — the closing page's text as a Word
+ * or PDF file.
+ *
+ * The same renderer generate_document uses (services/documentRenderer), so a
+ * result downloaded here looks like a document an automation produced on purpose,
+ * and the PDF falls back to pdfkit when no browser is reachable instead of
+ * failing. Nothing is stored: the file is rendered for this response only.
+ *
+ * AI marking (Art. 50(2)) is requested when the automation has an AI step; the
+ * organisation's policy (resolveMarking) decides whether it marks at all.
+ */
+router.get('/form/:token/s/:sid/export/:format', ipLimiter, sessionLimiter, exportLimiter, async (req, res) => {
+    try {
+        privateHeaders(res);
+        const { renderDocument, FORMATS } = require('../../services/documentRenderer');
+        if (!FORMATS.includes(req.params.format)) return res.status(404).json({ error: 'Not found' });
+
+        const loaded = await loadResult(req, res);
+        if (!loaded) return undefined;
+        const { found, result } = loaded;
+
+        const marking = await exportMarking(req, found);
+        const { buffer, contentType, extension, degraded } = await renderDocument({
+            content: result.markdown,
+            contentFormat: 'markdown',
+            title: result.title,
+            format: req.params.format,
+            marking,
+        });
+        if (degraded) log.warn('[automation/form] result PDF rendered without a browser — plain fallback layout.');
+
+        res.setHeader('Content-Type', contentType);
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        res.setHeader('Content-Disposition', contentDisposition(resultFilename(result.title, extension)));
+        res.setHeader('Content-Length', buffer.length);
+        return res.end(buffer);
+    } catch (e) {
+        log.error('[automation/form] export error:', e.message);
+        return res.status(500).json({ error: 'Could not create this file' });
+    }
+});
+
+/** The marking for an exported result, or null. A failure to resolve never blocks the download. */
+async function exportMarking(req, found) {
+    const ai = aiStepsOf(found.automation?.definition);
+    if (!ai) return null;
+    try {
+        const { resolveMarking } = require('../../core/automationRunner/documentMarking');
+        return await resolveMarking(req.session?.user?.organizationId || null, { automationId: found.automation.id, ...ai });
+    } catch (e) {
+        log.warn(`[automation/form] could not resolve AI content marking, exporting unmarked: ${e.message}`);
+        return null;
+    }
+}
+
+/**
+ * Webpages sit behind their module and the organisation's capability
+ * (index.js mounts /api/webpages the same way). Required lazily, so this
+ * router does not load the module registry when it is loaded itself.
+ */
+let webpagesGates = null;
+function webpagesGate(req, res, next) {
+    webpagesGates ||= [
+        require('../../modules').requireModule('webpages'),
+        require('../../core/entitlements/entitlements').requireCapability('webpages'),
+    ];
+    const [moduleGate, capabilityGate] = webpagesGates;
+    return moduleGate(req, res, (err) => (err ? next(err) : capabilityGate(req, res, next)));
+}
+
+/**
+ * POST /form/:token/s/:sid/webpage — turn the closing page's text into a new
+ * webpage (index.html + style.css, the vanilla framework) and say which one.
+ *
+ * A plain, readable article page the visitor can then restyle, extend or
+ * publish in the webpage editor. Like the notebook route: a new webpage every
+ * time, owned by the caller, never one of theirs written into.
+ */
+router.post('/form/:token/s/:sid/webpage', ipLimiter, sessionLimiter, webpagesGate, async (req, res) => {
+    try {
+        privateHeaders(res);
+        const userId = req.session?.user?.id;
+        if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+
+        const loaded = await loadResult(req, res);
+        if (!loaded) return undefined;
+        const { result } = loaded;
+
+        // Webpage files live in object storage. Checked before the row is
+        // made, so a missing store leaves no empty webpage behind.
+        if (!storageStore.isAvailable()) return res.status(503).json({ error: 'Webpages cannot be saved right now.' });
+
+        const webpageStore = require('../../stores/webpageStore');
+        const webpage = await webpageStore.createWebpage({
+            userId,
+            name: result.title,
+            description: '',
+            settings: { framework: 'vanilla', runtime: 'light' },
+        });
+        // The same bookkeeping the editor's own save does: each slot's sha and
+        // size go on the row, or the editor thinks the page is still empty.
+        const metadata = {};
+        for (const [slot, content] of Object.entries(webpageSlots(result))) {
+            const { sha, size } = await webpageStore.writeSlot(userId, webpage.id, slot, content);
+            metadata[`${slot}Sha`] = sha;
+            metadata[`${slot}Size`] = size;
+        }
+        await webpageStore.updateWebpageMetadata(webpage.id, userId, metadata);
+
+        return res.json({ webpageId: webpage.id });
+    } catch (e) {
+        log.error('[automation/form] save-as-webpage error:', e.message);
+        return res.status(500).json({ error: 'Could not save this as a webpage' });
     }
 });
 

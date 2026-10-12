@@ -4,8 +4,10 @@ import { nodeDefaultLabel, nodeHelp, nodeTypeLabel } from '../nodeDefs';
 import StepNodeBase, { NodeChip, ForEachBadge } from './StepNodeBase';
 import { humanizeTemplate } from '../displayHelpers';
 import { inputFromBinding } from '../../../../../utils/bindingHelpers';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 
 export default function HttpRequestNode({ id, data }) {
+    const { t } = useTranslation();
     const { step, runStep, issues, onAddAfter, stepLabelById } = data;
     // method and url are bindings ({ kind: 'literal' | 'template' | ... }) on
     // a step the builder wrote, plain strings on an older one; read both as
@@ -22,7 +24,7 @@ export default function HttpRequestNode({ id, data }) {
         <>
             <ForEachBadge step={step} />
             {privateTargetsAllowed && (
-                <NodeChip tone="warn" title="Private/internal-address blocking is turned OFF for this step — it can reach localhost, private-network, and cloud-metadata targets.">
+                <NodeChip tone="warn" title={t('automations.http_request_node.private_internal_address_blocking_is_turned', 'Private/internal-address blocking is turned OFF for this step — it can reach localhost, private-network, and cloud-metadata targets.')}>
                     <ShieldAlert size={10} />
                 </NodeChip>
             )}

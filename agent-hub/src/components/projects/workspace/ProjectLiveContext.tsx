@@ -10,8 +10,9 @@ import { discoveryKeys } from '../../../api/queries/projectDiscovery';
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import useProjectStream, { type ProjectStreamReady } from '../../../hooks/useProjectStream';
+import useProjectStream, { type ProjectStreamReady, type ProjectStreamStatus } from '../../../hooks/useProjectStream';
 import { apiClient } from '../../../api/client';
+import { changeKeys } from '../../../api/queries/projectChanges';
 import { projectKeys } from '../../../api/queries/projects';
 
 export type ProjectLiveHandler = (kind: string, event: ProjectLiveEvent) => void;
@@ -35,7 +36,18 @@ export interface ProjectLiveValue {
     subscribe: (handler: ProjectLiveHandler) => () => void;
     /** Tell the others you are typing in `conversationId` (throttled). */
     notifyTyping: (conversationId: string) => void;
+    /** The project this feed belongs to, so a row can ask who is looking at it. */
+    projectId: string | null;
+    /** Who has an item open (`type:id` → user ids, caller excluded), on the same TTL as `online`. */
+    viewing: Record<string, string[]>;
+    /** Say which item this tab has open (null: none). Sent with the next heartbeat, and at once. */
+    setViewing: (target: ViewTarget | null) => void;
+    /** The transport: connecting, live, polling (degraded) or stopped. */
+    status: ProjectStreamStatus;
 }
+
+export type ViewTarget = { type: 'document' | 'notebook' | 'meeting' | 'task' | 'chat'; id: string };
+export const viewKey = (type: string, id: string) => `${type}:${id}`;
 
 const PRESENCE_TTL_MS = 75_000;
 const PRESENCE_BEAT_MS = 30_000;
@@ -47,6 +59,10 @@ const NOOP_VALUE: ProjectLiveValue = {
     typing: {},
     subscribe: () => () => {},
     notifyTyping: () => {},
+    projectId: null,
+    viewing: {},
+    setViewing: () => {},
+    status: 'live',
 };
 
 const ProjectLiveCtx = createContext<ProjectLiveValue>(NOOP_VALUE);
@@ -137,22 +153,65 @@ function groupTypers(typers: Map<string, number>, currentUserId?: string | null)
     return next;
 }
 
-/** Tell the project we are here, now and every PRESENCE_BEAT_MS while mounted. */
+/**
+ * Who has which item open, from the `target` of other people's presence beats.
+ * One item per person: a beat from another item moves them, a beat without one
+ * clears them. The caller is left out. Entries lapse with the presence TTL.
+ */
+function useViewers(currentUserId?: string | null) {
+    const viewers = useRef(new Map<string, number>());
+    const [viewing, setViewingMap] = useState<Record<string, string[]>>({});
+    const publish = useCallback(() => {
+        const next: Record<string, string[]> = {};
+        for (const key of viewers.current.keys()) {
+            const [item, userId] = key.split('\u0000');
+            if (userId !== currentUserId) (next[item] ||= []).push(userId);
+        }
+        setViewingMap(next);
+    }, [currentUserId]);
+    const record = useCallback((actor: string, target: { type?: string; id?: string } | null | undefined, now: number) => {
+        let changed = false;
+        for (const key of [...viewers.current.keys()]) {
+            if (key.endsWith(`\u0000${actor}`)) { viewers.current.delete(key); changed = true; }
+        }
+        if (target?.type && target?.id) { viewers.current.set(`${viewKey(target.type, target.id)}\u0000${actor}`, now); changed = true; }
+        if (changed) publish();
+    }, [publish]);
+    const sweep = useCallback((now: number) => { if (stripExpired(viewers.current, now, PRESENCE_TTL_MS)) publish(); }, [publish]);
+    const reset = useCallback(() => { viewers.current.clear(); setViewingMap({}); }, []);
+    return { viewing, record, sweep, reset };
+}
+
+/**
+ * Tell the project we are here, now and every PRESENCE_BEAT_MS while mounted,
+ * naming the item that is open. Opening another item beats at once, so a
+ * colleague sees it move without waiting half a minute. Returns the setter.
+ */
 function usePresenceHeartbeat(projectId: string | null | undefined, enabled: boolean) {
+    const target = useRef<ViewTarget | null>(null);
+    const beatNow = useRef<() => void>(() => {});
     useEffect(() => {
         if (!enabled || !projectId) return undefined;
         const beat = () => {
-            apiClient.post(`/api/projects/${encodeURIComponent(projectId)}/presence`, {}, { retry: false }).catch(() => {});
+            apiClient.post(`/api/projects/${encodeURIComponent(projectId)}/presence`, target.current ? { target: target.current } : {}, { retry: false }).catch(() => {});
         };
-        // The stream is closed while the tab is hidden, and so is the beat: a hidden tab is not "here".
+        // A hidden tab is not "here": it must not beat when the open item changes either.
+        beatNow.current = () => { if (!document.hidden) beat(); };
+        // The stream is closed while the tab is hidden, and so is the beat.
         let timer: ReturnType<typeof setInterval> | null = null;
         const start = () => { if (timer) return; beat(); timer = setInterval(beat, PRESENCE_BEAT_MS); };
         const stop = () => { if (timer) { clearInterval(timer); timer = null; } };
         const onVisibility = () => { if (document.hidden) stop(); else start(); };
         if (!document.hidden) start();
         document.addEventListener('visibilitychange', onVisibility);
-        return () => { stop(); document.removeEventListener('visibilitychange', onVisibility); };
+        return () => { stop(); beatNow.current = () => {}; document.removeEventListener('visibilitychange', onVisibility); };
     }, [projectId, enabled]);
+    return useCallback((next: ViewTarget | null) => {
+        const prev = target.current;
+        if (prev?.type === next?.type && prev?.id === next?.id) return;
+        target.current = next;
+        beatNow.current();
+    }, []);
 }
 
 export function ProjectLiveProvider({ projectId, currentUserId, enabled = true, children }: {
@@ -168,6 +227,8 @@ export function ProjectLiveProvider({ projectId, currentUserId, enabled = true, 
     const lastTypingSent = useRef(0);
     const [online, setOnline] = useState<string[]>([]);
     const [typing, setTyping] = useState<Record<string, string[]>>({});
+    const { viewing, record: recordViewer, sweep: sweepViewers, reset: resetViewers } = useViewers(currentUserId);
+    const [status, setStatus] = useState<ProjectStreamStatus>('connecting');
 
     const publishPresence = useCallback(() => {
         setOnline([...seen.current.keys()].filter(id => id !== currentUserId));
@@ -185,6 +246,7 @@ export function ProjectLiveProvider({ projectId, currentUserId, enabled = true, 
         const fresh = !seen.current.has(actor);
         seen.current.set(actor, now);
         if (fresh) publishPresence();
+        if (kind === 'presence.online') recordViewer(actor, event.target as { type?: string; id?: string } | null | undefined, now);
         const convId = conversationOf(event);
         if (!convId) return;
         const key = `${convId}\u0000${actor}`;
@@ -194,7 +256,7 @@ export function ProjectLiveProvider({ projectId, currentUserId, enabled = true, 
         } else if ((kind === 'chat.message.created' || kind === 'message.created') && typers.current.delete(key)) {
             publishTyping();
         }
-    }, [publishPresence, publishTyping]);
+    }, [publishPresence, publishTyping, recordViewer]);
 
     const onEvent = useCallback((kind: string, raw: unknown) => {
         if (!projectId) return;
@@ -216,12 +278,17 @@ export function ProjectLiveProvider({ projectId, currentUserId, enabled = true, 
     }, [projectId, qc, trackPeople]);
 
     // While the stream is down only the activity feed is polled, and it logs few kinds of change:
-    // each tick re-reads the lists that would otherwise stay as they were.
+    // each tick re-reads every list a live event would otherwise have refreshed (the board config,
+    // the unread cursors and the pins included), so the degraded mode is slower, never staler.
     const onPoll = useCallback(() => {
         if (!projectId) return;
-        for (const key of [projectKeys.tasks(projectId), projectKeys.chats(projectId), projectKeys.threads(projectId), projectKeys.myChats(projectId)]) {
-            qc.invalidateQueries({ queryKey: key });
-        }
+        const keys = [
+            projectKeys.tasks(projectId), [...projectKeys.detail(projectId), 'board'], projectKeys.sprints(projectId),
+            projectKeys.chats(projectId), projectKeys.threads(projectId), projectKeys.myChats(projectId),
+            projectKeys.files(projectId), projectKeys.members(projectId), projectKeys.resources(projectId),
+            changeKeys.all(projectId), discoveryKeys.pins(projectId),
+        ];
+        for (const key of keys) qc.invalidateQueries({ queryKey: key });
     }, [projectId, qc]);
 
     // The stream starts at "now": what happened since the lists in the cache were read (a quick return to a
@@ -235,15 +302,16 @@ export function ProjectLiveProvider({ projectId, currentUserId, enabled = true, 
         });
     }, [projectId, qc]);
 
-    useProjectStream({ projectId, enabled: enabled && !!projectId, onEvent, onPoll, onReady });
+    useProjectStream({ projectId, enabled: enabled && !!projectId, onEvent, onPoll, onReady, onStatus: setStatus });
 
-    usePresenceHeartbeat(projectId, enabled);
+    const setViewing = usePresenceHeartbeat(projectId, enabled);
 
     // Reset per project and expire stale presence/typing.
     useEffect(() => {
         mountedAt.current = Date.now();
         seen.current.clear();
         typers.current.clear();
+        resetViewers();
         setOnline([]);
         setTyping({});
         if (!enabled || !projectId) return undefined;
@@ -251,9 +319,10 @@ export function ProjectLiveProvider({ projectId, currentUserId, enabled = true, 
             const now = Date.now();
             if (stripExpired(seen.current, now, PRESENCE_TTL_MS)) publishPresence();
             if (stripExpired(typers.current, now, TYPING_TTL_MS)) publishTyping();
+            sweepViewers(now);
         }, 2_000);
         return () => clearInterval(sweep);
-    }, [projectId, enabled, publishPresence, publishTyping]);
+    }, [projectId, enabled, publishPresence, publishTyping, resetViewers, sweepViewers]);
 
     const subscribe = useCallback((handler: ProjectLiveHandler) => {
         handlers.current.add(handler);
@@ -268,7 +337,10 @@ export function ProjectLiveProvider({ projectId, currentUserId, enabled = true, 
         apiClient.post(`/api/projects/${encodeURIComponent(projectId)}/typing`, { conversationId }, { retry: false }).catch(() => {});
     }, [projectId]);
 
-    const value = useMemo<ProjectLiveValue>(() => ({ online, typing, subscribe, notifyTyping }), [online, typing, subscribe, notifyTyping]);
+    const value = useMemo<ProjectLiveValue>(
+        () => ({ online, typing, subscribe, notifyTyping, status, projectId: projectId || null, viewing, setViewing }),
+        [online, typing, subscribe, notifyTyping, status, projectId, viewing, setViewing],
+    );
     return <ProjectLiveCtx.Provider value={value}>{children}</ProjectLiveCtx.Provider>;
 }
 

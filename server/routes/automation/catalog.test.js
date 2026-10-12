@@ -173,7 +173,10 @@ test('a nextcloud-* tool app exposes the nextcloud provider with connector deliv
     assert.deepStrictEqual(providers.map(p => p.id), ['nextcloud']);
     const evs = Object.fromEntries(providers[0].events.map(e => [e.id, e.deliverability]));
     assert.strictEqual(evs['file.new'], 'ok');
-    assert.strictEqual(evs['deck.card.created'], 'connector');
+    // Deck moved to connector webhooks (deliverableEvents.js WEBHOOK_BACKED);
+    // the share events are the push-pending ones that still read 'connector'.
+    assert.strictEqual(evs['deck.card.created'], 'ok');
+    assert.strictEqual(evs['share.created'], 'connector');
 });
 
 test('support appears only with the beta feature AND at least one inbox', async () => {
@@ -277,6 +280,15 @@ test('every action carries the three-way effect next to the dry-run sideEffect f
     assert.strictEqual(gmail.actions[0].sideEffect, false);
     const deck = body.apps.find(a => a.id === 'nextcloud-deck');
     assert.strictEqual(deck.actions[0].effect, 'reads');
+});
+
+test('an action reads as what it does, without the app name the card already shows', async () => {
+    // It used to be the tool id with spaces: "nextcloud deck tool" next to "Nextcloud Deck".
+    AVAILABLE_APPS = new Set(['gmail']);
+    const body = await fetchCatalog();
+    assert.strictEqual(body.apps.find(a => a.id === 'gmail').actions[0].label, 'Tool');
+    assert.strictEqual(body.apps.find(a => a.id === 'nextcloud-deck').actions[0].label, 'Tool');
+    assert.strictEqual(body.apps.find(a => a.id === 'youtrack').actions[0].label, 'Tool');
 });
 
 // ── Meeting Notes (M5) ─────────────────────────────────────────────────

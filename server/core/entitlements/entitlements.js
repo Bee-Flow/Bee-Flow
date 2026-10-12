@@ -386,11 +386,12 @@ async function buildOrgGrant({ mode, orgId, ceiling }) {
     }
 
     // beta — the org-access menu (= `ceiling` here, already narrowed to orgAvailable)
-    // is the org-wide switch in BOTH modes: every beta the org may use is granted to
-    // all members. Cloud: the subscription's included betas lead. Self-hosted: Tom's
-    // single-switch model — a menu-enabled beta (GA or not) is on for everyone, and
-    // OFF in the menu ⇒ off for everyone. This replaces the old self-hosted
-    // org_enabled_beta_features + GA-only gate (that column is now vestigial here).
+    // bounds what the org may use in BOTH modes. Cloud: the subscription's included
+    // betas lead and every one is granted to all members. Self-hosted: a menu-enabled
+    // beta (GA or not) is on for everyone UNLESS the org admin switched it off for
+    // "All members" (org_everyone_revoked, below); OFF in the menu => off for everyone.
+    // This replaces the old self-hosted org_enabled_beta_features + GA-only gate
+    // (that column is now vestigial here).
     //
     // Exception: a GROUP-SCOPED beta (betaFeatures.js `groupScoped`, e.g.
     // meeting_notes) reaches all members only while it is in the org's
@@ -401,23 +402,45 @@ async function buildOrgGrant({ mode, orgId, ceiling }) {
     let betaEveryone = null;
     try { betaEveryone = await userStore().getOrgBetaEveryone(orgId); } catch (_) { betaEveryone = []; }
     const everyoneSet = Array.isArray(betaEveryone) ? new Set(betaEveryone) : null;
+    //
+    // Self-hosted "All members" switch-off (org_everyone_revoked, a deny-list):
+    // a non-group-scoped beta the admin switched OFF stays out of the everyone
+    // grant; a group can still hand it out (buildGroupGrant). A deny-list so a
+    // beta added to the menu later is ON for everyone, as before. Cloud ignores it.
+    let revoked = new Set();
+    if (mode !== 'cloud') {
+        // Fails OPEN: an unreadable list means "nothing revoked", the behaviour
+        // before the column existed. Failing closed would switch every togglable
+        // feature off for the whole org on one transient DB error, while the
+        // worst case of failing open is a feature the admin turned off being on
+        // for a moment longer. (The reads above fail closed because they are
+        // grant lists, where an empty result narrows by one feature at most.)
+        try {
+            const r = await userStore().getOrgEveryoneRevoked(orgId);
+            if (Array.isArray(r)) revoked = new Set(r);
+        } catch (_) { /* fail open */ }
+    }
     for (const id of ceiling.beta) {
         const cap = registry.getCapability(id);
-        if (cap && cap.groupScoped && everyoneSet && !everyoneSet.has(id)) continue;
+        if (cap && cap.groupScoped) {
+            if (everyoneSet && !everyoneSet.has(id)) continue;
+        } else if (revoked.has(id)) continue;
         g.beta.add(id);
     }
 
     // core — cloud: org_granted_capabilities (the matrix "All members" column).
-    // self-hosted: the org-access menu is the org-wide switch, so every togglable
-    // core feature the org may use (= ceiling/orgAvailable here) is granted to all
-    // members (single-switch model). Non-togglable core (infra: sso/compliance/
-    // audit/…) is granted to everyone implicitly in BOTH modes — no per-group
-    // surface, never org-narrowed.
+    // self-hosted: every togglable core feature the org may use (= ceiling/
+    // orgAvailable here) is granted to all members unless the org admin switched
+    // it off for "All members" (org_everyone_revoked, read above); a group can
+    // still grant it. Non-togglable core (infra: sso/compliance/audit/...) is
+    // granted to everyone implicitly in BOTH modes: no per-group surface, never
+    // org-narrowed, never revocable.
     let orgGranted = new Set();
     try { orgGranted = new Set(await userStore().getOrgGrantedCapabilities(orgId)); } catch (_) {}
     for (const id of ceiling.core) {
         const cap = registry.getCapability(id);
-        if (mode !== 'cloud' || orgGranted.has(id) || (cap && !cap.groupTogglable)) g.core.add(id);
+        if (cap && !cap.groupTogglable) { g.core.add(id); continue; }
+        if (mode !== 'cloud' ? !revoked.has(id) : orgGranted.has(id)) g.core.add(id);
     }
 
     return g;

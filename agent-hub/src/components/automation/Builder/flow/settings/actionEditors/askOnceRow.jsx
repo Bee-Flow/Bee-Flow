@@ -1,3 +1,4 @@
+import { useTranslation } from '../../../../../../hooks/useTranslation';
 // "Ask this only once per run" — the tick shared by the integration_action and
 // http_request editors, and the caller-side answer to whether it is available.
 
@@ -41,6 +42,7 @@ function askOnceAvailability(action, appLabel) {
 }
 
 function AskOnceRow({ draft, set, disabled = false, disabledReason = null, label = 'Ask this app only once per run' }) {
+    const { t } = useTranslation();
     const on = !!draft.askOnce;
     // Shown whether or not the tick is disabled. It used to be
     // disabled-only, which silently swallowed the caution a WRITE method
@@ -95,16 +97,14 @@ function AskOnceRow({ draft, set, disabled = false, disabledReason = null, label
                         onChange={(e) => setAcrossRuns(e.target.checked)}
                     />
                     <span>
-                        <span className="font-medium">…and keep the answer for later runs too</span>
+                        <span className="font-medium">{t('automations.ask_once_row.and_keep_the_answer_for_later', '…and keep the answer for later runs too')}</span>
                         <span className="block text-slate-500 dark:text-slate-400">
                             {/* Two things a person must be able to see before ticking
                                 this: the answer is STORED, and their administrator has
                                 the final say. Neither is discoverable from the runtime
                                 behaviour — a step that silently asked every time would
                                 just look slow. */}
-                            The answer is stored, encrypted, so the next run can use it instead of asking again.
-                            Your administrator decides whether that is allowed, and for how long; until they
-                            turn it on, this step asks every run.
+                            {t('automations.ask_once_row.the_answer_is_stored_encrypted_so', 'The answer is stored, encrypted, so the next run can use it instead of asking again. Your administrator decides whether that is allowed, and for how long; until they turn it on, this step asks every run.')}
                         </span>
                     </span>
                 </label>

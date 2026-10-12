@@ -118,8 +118,30 @@ const TYPE_LABELS = {
     'customer-support': 'Support form',
     chrome: 'Site chrome (header & footer)',
 };
-export const blockLabel = (type) => TYPE_LABELS[type]
-    || String(type || 'Block').replace(/[-_]/g, ' ').replace(/^./, c => c.toUpperCase());
+const TYPE_LABEL_KEYS = {
+    hero: 'cms_site.analytics.block_type.hero',
+    socialProof: 'cms_site.analytics.block_type.social_proof',
+    content: 'cms_site.analytics.block_type.content',
+    'media-text': 'cms_site.analytics.block_type.media_text',
+    features: 'cms_site.analytics.block_type.features',
+    steps: 'cms_site.analytics.block_type.steps',
+    security: 'cms_site.analytics.block_type.security',
+    integrations: 'cms_site.analytics.block_type.integrations',
+    architecture: 'cms_site.analytics.block_type.architecture',
+    techStats: 'cms_site.analytics.block_type.tech_stats',
+    cta: 'cms_site.analytics.block_type.cta',
+    'cta-banner': 'cms_site.analytics.block_type.cta_banner',
+    'live-component': 'cms_site.analytics.block_type.live_component',
+    pricing: 'cms_site.analytics.block_type.pricing',
+    'customer-support': 'cms_site.analytics.block_type.customer_support',
+    chrome: 'cms_site.analytics.block_type.chrome',
+};
+/** Pass `t` (useTranslation) for a translated label; without it, English. */
+export const blockLabel = (type, t) => {
+    if (TYPE_LABELS[type]) return t ? t(TYPE_LABEL_KEYS[type], TYPE_LABELS[type]) : TYPE_LABELS[type];
+    if (!type) return t ? t('cms_site.analytics.block_type.block', 'Block') : 'Block';
+    return String(type).replace(/[-_]/g, ' ').replace(/^./, c => c.toUpperCase());
+};
 
 /**
  * Scroll reach → a monotonically decreasing curve.

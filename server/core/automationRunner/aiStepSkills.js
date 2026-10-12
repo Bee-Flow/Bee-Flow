@@ -99,22 +99,32 @@ function skillOutputSchema(skill) {
  * @param {*}        args.stepSchema     `step.outputSchema` (wins when set)
  * @param {object|null} args.skillSchema the leading skill's schema (skillOutputSchema)
  * @param {string[]} args.inferredFields fields later steps read off this step
+ * @param {object|null} [args.inferredSchema] the JSON Schema those reads imply
+ *   (aiOutputInference.inferAiStepOutputSchema): nested records and lists,
+ *   so a field read as `a.b[0].c` is not asked for as text
  * @returns {{ schema: object|null, source: 'step'|'skill'|'inferred'|null, declared: boolean }}
  *   `declared` is true when the author (or the skill) promised the shape, so a
  *   prose answer is a failure rather than something to wrap.
  */
-function effectiveOutputSchema({ stepSchema = null, skillSchema = null, inferredFields = [] } = {}) {
+function effectiveOutputSchema({ stepSchema = null, skillSchema = null, inferredFields = [], inferredSchema = null } = {}) {
     if (stepSchema) return { schema: stepSchema, source: 'step', declared: true };
     const inferred = Array.isArray(inferredFields) ? inferredFields.filter((f) => typeof f === 'string' && f) : [];
+    // One JSON Schema per inferred field: the nested one when the reads gave
+    // one, else text (the shape every inferred field had before).
+    const inferredProps = _plainObject(inferredSchema) && _plainObject(inferredSchema.properties) ? inferredSchema.properties : {};
+    const propFor = (f) => (_plainObject(inferredProps[f]) ? inferredProps[f] : { type: 'string' });
+    const names = [...new Set([...inferred, ...Object.keys(inferredProps)])];
     if (skillSchema && _plainObject(skillSchema.properties)) {
         const properties = { ...skillSchema.properties };
-        for (const f of inferred) if (!properties[f]) properties[f] = { type: 'string' };
+        for (const f of names) if (!properties[f]) properties[f] = propFor(f);
         const schema = { type: 'object', properties };
         if (Array.isArray(skillSchema.required) && skillSchema.required.length) schema.required = [...skillSchema.required];
         return { schema, source: 'skill', declared: true };
     }
-    if (inferred.length) {
-        return { schema: Object.fromEntries(inferred.map((f) => [f, 'string'])), source: 'inferred', declared: false };
+    if (names.length) {
+        const properties = {};
+        for (const f of names) properties[f] = propFor(f);
+        return { schema: { type: 'object', properties }, source: 'inferred', declared: false };
     }
     return { schema: null, source: null, declared: false };
 }

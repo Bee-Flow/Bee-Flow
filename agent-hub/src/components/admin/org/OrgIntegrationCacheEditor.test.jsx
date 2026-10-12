@@ -1,8 +1,10 @@
 import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ok } from '@/test/http';
 import OrgIntegrationCacheEditor from './OrgIntegrationCacheEditor';
 import { authFetch } from '../../../utils/helpers';
+import { toast } from '../../shared/Toast';
 
 vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationMock'));
@@ -62,6 +64,23 @@ describe('OrgIntegrationCacheEditor', () => {
         render(<OrgIntegrationCacheEditor orgId="org-a" />);
         expect(await screen.findByText(/Delete the 5 stored answer\(s\) now/)).toBeTruthy();
         expect(screen.getByText(/Stored right now: 5 answer\(s\), 0 B\./)).toBeTruthy();
+    });
+
+    it('a purge that never reached the server says so', async () => {
+        // The stored answers are still there; a silent failure would read as
+        // "deleted" to an admin who clicked and looked away.
+        const errorSpy = vi.spyOn(toast, 'error').mockImplementation(() => {});
+        authFetch.mockImplementation((url, init) => (init && init.method === 'DELETE'
+            ? Promise.reject(new TypeError('Failed to fetch'))
+            : ok(envelope({ entries: 2, bytes: 10 }))));
+        const user = userEvent.setup();
+        render(<OrgIntegrationCacheEditor orgId="org-a" />);
+
+        await user.click(await screen.findByRole('button', { name: /Delete the 2 stored answer\(s\) now/ }));
+
+        await waitFor(() => expect(errorSpy).toHaveBeenCalledWith('Could not clear the stored answers'));
+        expect(screen.getByRole('button', { name: /Delete the 2 stored answer\(s\) now/ })).toBeEnabled();
+        errorSpy.mockRestore();
     });
 });
 

@@ -400,11 +400,18 @@ const KEY_TABLE_FILES = [
     // NC_STATUS, NC_SEVERITY, NC_SOURCE, OBJ_STATUS) — de opvolger van de
     // { key, en }-tabellen uit de oude AuditPage.jsx.
     'components/admin/compliance/pages/audits/auditForms.js',
-    // Zeven gebeurtenislabels in ACTION_META. Diezelfde { key, en }-vorm is nu
-    // vier keer langs de guard geglipt (labelKey in O4 en W5, de
-    // studio.ai.err_*-tabel in H4, en de grafiekmodal van Notebooks); een nieuw
-    // bestand met die vorm hoort meteen op deze lijst.
-    'components/admin/compliance/pages/AccessAuditPage.jsx',
+    // The access log's event labels (ACTION_META), moved out of
+    // AccessAuditPage.jsx. The same { key, en } shape has slipped past the
+    // guard four times (labelKey in O4 and W5, the studio.ai.err_* table in
+    // H4, and the Notebooks chart modal); a new file with that shape belongs
+    // on this list straight away.
+    'components/admin/compliance/pages/accessAuditLabels.ts',
+    // The Overview's deadline kinds and empty-register lines (KIND_LABEL in
+    // DeadlinesCard, EMPTY_LINE in deadlineRows) and the phone's home tabs
+    // (HOME_TABS in ComplianceMobile).
+    'components/admin/compliance/pages/overview/DeadlinesCard.jsx',
+    'components/admin/compliance/pages/overview/deadlineRows.ts',
+    'components/admin/compliance/ComplianceMobile.jsx',
     // OBLIGATION_KINDS — de soorten opleidingsverplichting.
     'components/admin/compliance/pages/TrainingPage.jsx',
     // LEGAL_BASES, RESIDENCY, NIS2_ENTITY_CLASSES, CRA_ROLES,
@@ -480,10 +487,8 @@ const TEXT_HELPERS = [
     { rel: 'components/admin/security/guardrails/orgShield/activity/activityLabels.js' },
     // Label tables: value → English, no key anywhere. Same shape as the two in
     // runLanguage.js that this register was built around.
-    { rel: 'components/admin/Studio/Executions/runLanguage.js', pending: 'RUN — TRIGGER_LABELS and ERROR_CLASS_LABELS carry no key at all' },
     { rel: 'components/automation/Builder/flow/triggerLabels.js', pending: 'BLD — TRIGGER_TYPE_LABEL/TRIGGER_NAME/APP_EVENT_TYPE_LABEL, read by four Builder files' },
-    { rel: 'components/admin/Studio/AppStudio/inspector/styleKnobMeta.js', pending: 'APPS — knob labels and their hints' },
-    { rel: 'components/admin/Studio/AppStudio/rbac/rowRuleModel.js', pending: 'APPS — row-rule fields and operators' },
+    { rel: 'components/admin/Studio/AppStudio/rbac/rowRuleModel.js' },
     { rel: 'components/admin/Studio/Datatables/datatableDisplay.js', pending: 'DT — visibility sentences and GRADE_LABEL' },
     { rel: 'components/admin/Studio/SupportStudio/auditMeta.js', pending: 'SUP — ACTION_LABEL, the whole ticket audit trail' },
     { rel: 'components/admin/ai-config/ProviderCards/local/localRuntimeApi.js', pending: 'A1 — TIER_LABELS plus the runtime error messages' },

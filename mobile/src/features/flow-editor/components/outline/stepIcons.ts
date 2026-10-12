@@ -42,6 +42,7 @@ export const TYPE_ICON: Readonly<Record<string, IconName>> = {
     dedupe: 'Copy',
     aggregate: 'Layers',
     summarize: 'Sigma',
+    flatten: 'Rows3',
     stop_error: 'OctagonX',
     return_to_app: 'AppWindow',
     layer_output: 'LogOut',

@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import studioFieldOptions from './studioFieldOptions';
 import StudioScopeProvider, { buildStudioScope } from './StudioScopeProvider';
 import ConditionBuilder from '../../../../../automation/Builder/mapping/ConditionBuilder';
+import useTranslation from '../../../../../../hooks/useTranslation';
 
 /**
  * ConditionField — the automations clickable ConditionBuilder, mounted inside a
@@ -18,17 +19,18 @@ import ConditionBuilder from '../../../../../automation/Builder/mapping/Conditio
  * — a scope root App Studio does not have and validate.js rejects, so an author
  * following the placeholder wrote an expression that could never resolve.
  */
-const STUDIO_PLACEHOLDERS = {
-    field: 'field (e.g. form.quantity)',
+const studioPlaceholders = (t) => ({
+    field: t('studio_apps_insp.condition.field_placeholder', 'field (e.g. form.quantity)'),
     raw: 'form.quantity > 0',
-};
+});
 
 export default function ConditionField({
     value = '', onChange, definition = null, node = null, previewSample = null, disabled = false,
 }) {
+    const { t } = useTranslation();
     const { groups, previewSample: sample } = useMemo(
-        () => buildStudioScope(definition, node, previewSample),
-        [definition, node, previewSample],
+        () => buildStudioScope(definition, node, previewSample, null, t),
+        [definition, node, previewSample, t],
     );
     // The left-hand side of a row becomes a searchable list of NAMES rather
     // than a box you must know to fill with `form.quantity`. `fieldBase` is
@@ -53,7 +55,7 @@ export default function ConditionField({
                     fieldOptions={fieldOptions}
                     fieldBase="form"
                     context="condition"
-                    placeholders={STUDIO_PLACEHOLDERS}
+                    placeholders={studioPlaceholders(t)}
                 />
             </fieldset>
         </StudioScopeProvider>

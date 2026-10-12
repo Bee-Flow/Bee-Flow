@@ -11,10 +11,11 @@
 
 const { parseExpr } = require('../../expr');
 const { isObject } = require('../helpers');
+const { relativePathTokens } = require('../refPaths');
 const { MAX_SET_OPERATIONS, validateSetOperation } = require('../setOperations');
 const { checkMaxItems, checkReservedFieldNames } = require('../fieldChecks');
 const {
-    PARSE_JSON_FIELD_NAME_RE, PARSE_JSON_PATH_RE, MAX_PARSE_JSON_FIELDS,
+    PARSE_JSON_FIELD_NAME_RE, MAX_PARSE_JSON_FIELDS,
     DATETIME_OPS, DATETIME_PARTS, DATETIME_DIFF_UNITS,
 } = require('../constants');
 const { impliedListMode } = require('../../datetimeListMode');
@@ -284,7 +285,7 @@ function checkParseJson(ctx, step, at) {
             pushW({ code: 'parse_json.source_defaulted', severity: 'warning', path: at + '.sourceRef', message: `Step ${step.id}: no sourceRef — uses the previous step's output.`, hint: 'Set sourceRef (e.g. "steps.<id>.output.body") to make the source explicit.' });
         }
         if (step.itemsRef !== undefined && step.itemsRef !== null && step.itemsRef !== '') {
-            if (typeof step.itemsRef !== 'string' || !PARSE_JSON_PATH_RE.test(step.itemsRef)) {
+            if (typeof step.itemsRef !== 'string' || !relativePathTokens(step.itemsRef)) {
                 pushE({ code: 'parse_json.items_ref_invalid', severity: 'error', path: at + '.itemsRef', message: `Step ${step.id}: parse_json.itemsRef must be a path (relative to the source) pointing at a list.`, hint: 'e.g. "results" or "data.orders". Field paths are then relative to each item.' });
             }
         }
@@ -311,7 +312,8 @@ function checkParseJson(ctx, step, at) {
                 seenNames.add(f.name);
                 if (!aiMode) {
                     const p = f.path;
-                    const pathOk = p === '' || p === '$' || (typeof p === 'string' && PARSE_JSON_PATH_RE.test(p));
+                    // Exactly what the runner's relative walker resolves.
+                    const pathOk = typeof p === 'string' && relativePathTokens(p) !== null;
                     if (!pathOk) {
                         pushE({ code: 'parse_json.field_path_invalid', severity: 'error', path: fat + '.path', message: `Step ${step.id}: field "${f.name}" has an invalid path "${p}".`, hint: 'Paths are relative to the source: a.b, items[0].sku, items[*].sku (flatten), obj["key with spaces"]; "" or "$" = the whole source.' });
                     }

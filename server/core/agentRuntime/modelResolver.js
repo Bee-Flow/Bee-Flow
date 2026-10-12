@@ -87,7 +87,9 @@ async function resolveAgentModelWithTier(agentModel, userMessage, globalConfig, 
 
     try {
         const { classifyWithLLM } = require('../llm/promptClassifier');
-        const result = await classifyWithLLM(userMessage, classifierTiers);
+        // The ids let the classifier see the Privacy Shield: with one on, the
+        // raw message does not go to an external classifier model.
+        const result = await classifyWithLLM(userMessage, classifierTiers, { userOrgId: orgId || null, userId: userContext?.userId || null });
         // Which tier actually supplied the model — the classifier's pick only
         // when that tier is configured, otherwise the `fast` safety net. The
         // caller uses this for the generation settings, so it has to name the

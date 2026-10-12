@@ -14,6 +14,9 @@
  * automations that already use it keep resolving their trigger.output.* paths.
  */
 const { listTriggerSources } = require('../triggerSources');
+const { agentCallParams } = require('../agentCallContract');
+const { PARAM_NAME_RE } = require('../appTriggerContract');
+const { isDisplayField } = require('../formTriggerContract');
 
 function eachDeclaredEvent(fn) {
     for (const src of listTriggerSources({ includeHidden: true })) {
@@ -34,18 +37,62 @@ function outputSamples() {
 }
 
 /**
+ * The inputs an author DECLARED on a trigger, as `[{ name, type }]` — the other
+ * half of what `trigger.output` holds (an app_event's fields come from its
+ * registry declaration, above):
+ *   agent_call   parametersSchema.properties  — what the calling agent passes
+ *   app_trigger  params                       — what the Studio App action passes
+ *   form         form.fields                  — the answers, keyed by field name
+ * `type` is the value's type for the ref check: string | number | boolean |
+ * object | array | file. A name a path cannot address without brackets is left
+ * out (the validator reports it), and so is a form's display field (a download
+ * button is page furniture, never an answer).
+ */
+function declaredTriggerFields(trigger) {
+    if (!trigger || typeof trigger !== 'object') return [];
+    if (trigger.kind === 'agent_call') return agentCallParams(trigger).map(p => ({ name: p.name, type: p.type }));
+    if (trigger.kind === 'app_trigger') {
+        return (Array.isArray(trigger.params) ? trigger.params : [])
+            .filter(p => p && typeof p.name === 'string' && PARAM_NAME_RE.test(p.name))
+            .map(p => ({ name: p.name, type: typeof p.type === 'string' ? p.type : 'string' }));
+    }
+    if (trigger.kind === 'form') {
+        const fields = Array.isArray(trigger.form?.fields) ? trigger.form.fields : [];
+        return fields
+            .filter(f => f && typeof f.name === 'string' && PARAM_NAME_RE.test(f.name) && !isDisplayField(f))
+            .map(f => ({ name: f.name, type: formFieldType(f) }));
+    }
+    return [];
+}
+
+// What trigger.output.<name> holds for a form answer (formTriggerContract.coerceFieldValue).
+function formFieldType(f) {
+    if (f.type === 'number') return 'number';
+    if (f.type === 'checkbox') return 'boolean';
+    if (f.type === 'file') return 'file';
+    if (f.type === 'app_pick') return f.multiple ? 'array' : 'object';
+    return 'string';
+}
+
+/**
  * The bare field names a `trigger.output.<field>` repair may assume — the
- * union over EVERY app_event trigger of the draft (primary + additional), so a
- * step wired under a secondary Gmail trigger gets the same bare-name repair
+ * union over EVERY trigger of the draft (primary + additional): the fields of
+ * each app_event, and the inputs an agent_call, form or app_trigger declares.
+ * A step wired under a secondary Gmail trigger gets the same bare-name repair
  * as one under a primary.
  */
 function triggerFieldsFor(draft) {
     const { getEventDef } = require('../triggerSources');
     const out = [];
+    const add = (f) => { if (!out.includes(f)) out.push(f); };
     for (const t of [draft?.trigger, ...(Array.isArray(draft?.triggers) ? draft.triggers : [])]) {
-        if (!t || t.kind !== 'app_event') continue;
-        const ev = getEventDef(t.appEvent?.provider, t.appEvent?.event);
-        for (const f of (ev?.fields || [])) if (!out.includes(f)) out.push(f);
+        if (!t) continue;
+        if (t.kind === 'app_event') {
+            const ev = getEventDef(t.appEvent?.provider, t.appEvent?.event);
+            for (const f of (ev?.fields || [])) add(f);
+        } else {
+            for (const f of declaredTriggerFields(t)) add(f.name);
+        }
     }
     return out;
 }
@@ -84,6 +131,15 @@ function buildTriggerOutputsCatalog() {
     // and resolved client-side (mapping/upstream.js describeTrigger); the
     // empty entry keeps a stale FE from falling back to __manual's `now`.
     out['__app_trigger'] = { fields: [], sample: {} };
+    // agent_call arguments are author-declared per automation
+    // (trigger.parametersSchema) and resolved client-side (mapping/upstream/
+    // triggers.js describeTrigger); without this entry the picker fell back to
+    // __manual and offered `now` instead of the arguments the agent passes.
+    out['__agent_call'] = {
+        fields: [],
+        sample: {},
+        note: 'trigger.output holds the arguments the calling agent passes — bind trigger.output.<argumentName>. There is no trigger.payload.',
+    };
     // form fields are author-declared per automation (trigger.form.fields) and
     // resolved client-side (mapping/upstream.js describeTrigger) — same reason
     // as app_trigger. Submission metadata rides on trigger.headers, so it can
@@ -116,7 +172,7 @@ const TRIGGER_META_FIELDS = Object.freeze([
     { key: 'schedule.scheduledFor', path: 'trigger.schedule.scheduledFor', sample: '2026-09-03T07:00:00.000Z', note: 'Additional schedules only: the slot that fired.' },
 ]);
 
-module.exports = { triggerFieldsFor, buildTriggerOutputsCatalog, TRIGGER_META_FIELDS };
+module.exports = { triggerFieldsFor, declaredTriggerFields, buildTriggerOutputsCatalog, TRIGGER_META_FIELDS };
 
 // Back-compat surface: both maps were plain objects and are still re-exported
 // by builderTools.js. They are computed per access from the registry, so a

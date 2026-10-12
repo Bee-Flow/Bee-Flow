@@ -23,7 +23,7 @@
 // (acknowledgement with identity link, Art. 12(3) extension, result). Their
 // subject lines carry no personal data — only the request number and type
 // (BFSF-441): the address is the channel, the body is what the subject reads.
-const EMAIL_TEMPLATE_IDS = ['verification', 'welcome', 'dsr_ack', 'dsr_extension', 'dsr_result'];
+const EMAIL_TEMPLATE_IDS = ['verification', 'welcome', 'dsr_ack', 'dsr_extension', 'dsr_result', 'project_collab'];
 
 // The structured fields every template exposes.
 const EMAIL_TEMPLATE_FIELDS = ['subject', 'title', 'intro', 'body', 'ctaLabel'];
@@ -45,6 +45,7 @@ const EMAIL_TEMPLATE_VARIABLES = {
     dsr_ack: ['requestId', 'requestType', 'dueDate', 'orgName', 'dpoEmail', 'statusUrl'],
     dsr_extension: ['requestId', 'requestType', 'extendedUntil', 'reason', 'orgName', 'dpoEmail'],
     dsr_result: ['requestId', 'requestType', 'status', 'resultSummary', 'orgName', 'dpoEmail'],
+    project_collab: ['event', 'project', 'actor', 'intro', 'detail'],
 };
 
 // Human-readable labels for the editor.
@@ -54,6 +55,7 @@ const EMAIL_TEMPLATE_LABELS = {
     dsr_ack: 'Data-subject request — acknowledgement',
     dsr_extension: 'Data-subject request — deadline extension',
     dsr_result: 'Data-subject request — result',
+    project_collab: 'Project collaboration notification',
 };
 
 // English defaults. The CTA URL is supplied at send time (verifyUrl /
@@ -94,6 +96,14 @@ const EMAIL_TEMPLATE_DEFAULTS = {
         body: 'Your {{requestType}} request (#{{requestId}}) to {{orgName}} has been {{status}}.\n\n{{resultSummary}}\n\nIf you disagree with this outcome you may contact our data protection officer at {{dpoEmail}} or lodge a complaint with your supervisory authority.',
         ctaLabel: '',
     },
+    project_collab: {
+        subject: '{{event}} · {{project}}',
+        title: '{{event}}',
+        intro: '{{intro}}',
+        body: '{{detail}}',
+        ctaLabel: 'Open in Bee Flow',
+        footer: 'You get this e-mail because of your notification settings in Bee Flow.',
+    },
 };
 
 // Built-in translations. These are the per-field fallback for a locale BEFORE
@@ -122,6 +132,14 @@ const EMAIL_TEMPLATE_LOCALE_DEFAULTS = {
             intro: 'Beste,',
             body: 'Uw verzoek tot {{requestType}} (#{{requestId}}) aan {{orgName}} is {{status}}.\n\n{{resultSummary}}\n\nBent u het niet eens met deze uitkomst? Neem dan contact op met onze functionaris gegevensbescherming via {{dpoEmail}} of dien een klacht in bij de toezichthouder.',
             ctaLabel: '',
+        },
+        project_collab: {
+            subject: '{{event}} · {{project}}',
+            title: '{{event}}',
+            intro: '{{intro}}',
+            body: '{{detail}}',
+            ctaLabel: 'Openen in Bee Flow',
+            footer: 'Je krijgt deze e-mail door je meldingsinstellingen in Bee Flow.',
         },
     },
 };

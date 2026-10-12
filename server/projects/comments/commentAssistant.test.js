@@ -77,6 +77,7 @@ function assistant(overrides = {}) {
         },
         resolveModel: async (args) => { log.push(['model', args]); return model; },
         searchKnowledge: async (args) => { log.push(['kb', args]); return 'Budget policy: travel is separate.'; },
+        listAudience: async (project) => { log.push(['audience', project.id]); return ['olga', 'bob', 'cy']; },
         itemReader: { read: async (args) => { log.push(['read', args]); return item; } },
         getUser: async (id) => USERS[id] || null,
         displayName: (u) => u?.displayName || (u?.username && !u.username.includes('@') ? u.username : 'A project member'),
@@ -178,7 +179,9 @@ test('an answer: the passage, its section and the thread through the shield, sea
     assert.match(system, /Answer in plain words\./);
     assert.match(system, /travel is separate/);
     assert.match(system, /\[KEEP TOKENS\]/);
-    assert.strictEqual(of('kb')[0].userId, 'bob', 'knowledge as the asking member may read it');
+    assert.strictEqual(of('kb')[0].userId, 'bob', 'the asking member runs the search');
+    assert.deepStrictEqual(of('kb')[0].audienceIds, ['olga', 'bob', 'cy'],
+        'a thread is read by the whole project: knowledge is cut to what every member may read');
 
     const comments = await store.listComments(t.thread.id);
     const answer = comments.at(-1);

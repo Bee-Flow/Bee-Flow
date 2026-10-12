@@ -3,6 +3,7 @@ import { isImageAvatar, resolveAvatarSrc, DEFAULT_AGENT_EMOJI } from '../../../.
 import ModelTierSelector from '../../../licensing/ModelTierSelector';
 import { toast } from '../../../shared/Toast';
 import VersionHistory from '../../VersionHistory';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 export const IdentitySection = ({
   selectedAgent, name, setName, description, setDescription,
@@ -26,6 +27,7 @@ export const IdentitySection = ({
   assistantBubbleColor, setAssistantBubbleColor, warningText, setWarningText,
   categoryId, setCategoryId, agentCategories, setAgentCategories,
 }) => {
+  const { t } = useTranslation();
   const [showNewCategory, setShowNewCategory] = useLocalState(false);
   const [newCategoryName, setNewCategoryName] = useLocalState('');
 
@@ -49,17 +51,17 @@ export const IdentitySection = ({
   return (
                                                 <div className="space-y-6 animate-fadeIn">
                                                     <div className="flex items-center justify-between">
-                                                        <h2 className="text-base font-semibold text-primary">Agent Identity</h2>
+                                                        <h2 className="text-base font-semibold text-primary">{t('agent_studio.identity_agent_identity', 'Agent Identity')}</h2>
                                                     </div>
 
                                                     {/* Avatar Picker */}
                                                     <div className="relative">
-                                                        <label className="text-xs font-medium text-muted mb-2 block">Avatar</label>
+                                                        <label className="text-xs font-medium text-muted mb-2 block">{t('agent_studio.identity_avatar', 'Avatar')}</label>
                                                         <div className="flex items-center gap-4">
                                                             <div
                                                                 onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                                                                 className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl cursor-pointer hover:bg-[var(--bg-tertiary)] transition-all overflow-hidden border border-[var(--border-subtle)]"
-                                                                title="Click to change avatar"
+                                                                title={t('agent_studio.identity_click_to_change_avatar', 'Click to change avatar')}
                                                             >
                                                                 {isImageAvatar(avatar) ? (
                                                                     <img src={resolveAvatarSrc(avatar)} alt="" className="w-full h-full object-cover" />
@@ -68,8 +70,8 @@ export const IdentitySection = ({
                                                                 )}
                                                             </div>
                                                             <div className="text-sm text-muted">
-                                                                <p>Click to select an emoji or image</p>
-                                                                <p className="text-xs opacity-70">Supports emoji, PNG, JPG, or SVG</p>
+                                                                <p>{t('agent_studio.identity_click_to_select_an_emoji_or_image', 'Click to select an emoji or image')}</p>
+                                                                <p className="text-xs opacity-70">{t('agent_studio.identity_supports_emoji_png_jpg_or_svg', 'Supports emoji, PNG, JPG, or SVG')}</p>
                                                             </div>
                                                         </div>
                                                         {showEmojiPicker && (() => {
@@ -151,15 +153,15 @@ export const IdentitySection = ({
                                                                             onClick={() => document.getElementById('agent-avatar-upload')?.click()}
                                                                             className="px-3 py-1 text-xs font-medium rounded-lg bg-[var(--bg-tertiary)] hover:bg-[var(--accent-primary)] hover:text-white transition-colors flex items-center gap-1.5"
                                                                             style={{ color: 'var(--text-secondary)' }}
-                                                                            title="Upload an image as avatar"
+                                                                            title={t('agent_studio.identity_upload_an_image_as_avatar', 'Upload an image as avatar')}
                                                                         >
-                                                                            📷 Upload
+                                                                            {t('agent_studio.identity_upload', '📷 Upload')}
                                                                         </button>
                                                                         <button
                                                                             onClick={() => setShowEmojiPicker(false)}
                                                                             className="px-3 py-1 text-xs font-medium rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors" style={{ color: 'var(--text-secondary)' }}
                                                                         >
-                                                                            Done
+                                                                            {t('agent_studio.identity_done', 'Done')}
                                                                         </button>
                                                                     </div>
                                                                 </div>
@@ -169,23 +171,23 @@ export const IdentitySection = ({
 
                                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                                         <div>
-                                                            <label className="text-xs font-medium text-muted mb-1.5 block">Name</label>
+                                                            <label className="text-xs font-medium text-muted mb-1.5 block">{t('agent_studio.identity_name', 'Name')}</label>
                                                             <input
                                                                 type="text"
                                                                 value={name}
                                                                 onChange={(e) => setName(e.target.value)}
                                                                 className="input w-full px-3 py-2 text-sm"
-                                                                placeholder="e.g. Data Analyst"
+                                                                placeholder={t('agent_studio.identity_e_g_data_analyst', 'e.g. Data Analyst')}
                                                             />
                                                         </div>
                                                         <div>
-                                                            <label className="text-xs font-medium text-muted mb-1.5 block">Role Description</label>
+                                                            <label className="text-xs font-medium text-muted mb-1.5 block">{t('agent_studio.identity_role_description', 'Role Description')}</label>
                                                             <input
                                                                 type="text"
                                                                 value={description}
                                                                 onChange={(e) => setDescription(e.target.value)}
                                                                 className="input w-full px-3 py-2 text-sm"
-                                                                placeholder="e.g. Analyzes trends in CSV files"
+                                                                placeholder={t('agent_studio.identity_e_g_analyzes_trends_in_csv_files', 'e.g. Analyzes trends in CSV files')}
                                                             />
                                                         </div>
                                                     </div>
@@ -193,7 +195,7 @@ export const IdentitySection = ({
                                                     {/* Category */}
                                                     {agentCategories && agentCategories.length > 0 || showNewCategory ? (
                                                         <div className="mt-4">
-                                                            <label className="text-xs font-medium text-muted mb-1.5 block">Category</label>
+                                                            <label className="text-xs font-medium text-muted mb-1.5 block">{t('agent_studio.identity_category', 'Category')}</label>
                                                             <div className="flex items-center gap-2">
                                                                 {!showNewCategory ? (
                                                                     <>
@@ -202,7 +204,7 @@ export const IdentitySection = ({
                                                                             onChange={(e) => setCategoryId(e.target.value || null)}
                                                                             className="input flex-1 px-3 py-2 text-sm"
                                                                         >
-                                                                            <option value="">No category</option>
+                                                                            <option value="">{t('agent_studio.identity_no_category', 'No category')}</option>
                                                                             {(agentCategories || []).map(c => (
                                                                                 <option key={c.id} value={c.id}>{c.name}</option>
                                                                             ))}
@@ -212,7 +214,7 @@ export const IdentitySection = ({
                                                                             onClick={() => setShowNewCategory(true)}
                                                                             className="p-2 rounded-lg border hover:bg-[var(--bg-tertiary)] transition-colors"
                                                                             style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
-                                                                            title="Create new category"
+                                                                            title={t('agent_studio.identity_create_new_category', 'Create new category')}
                                                                         >
                                                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -227,7 +229,7 @@ export const IdentitySection = ({
                                                                             onChange={(e) => setNewCategoryName(e.target.value)}
                                                                             onKeyDown={(e) => e.key === 'Enter' && handleCreateCategory()}
                                                                             className="input flex-1 px-3 py-2 text-sm"
-                                                                            placeholder="Category name..."
+                                                                            placeholder={t('agent_studio.identity_category_name', 'Category name...')}
                                                                             autoFocus
                                                                         />
                                                                         <button
@@ -236,7 +238,7 @@ export const IdentitySection = ({
                                                                             disabled={!newCategoryName.trim()}
                                                                             className="px-3 py-2 rounded-lg text-xs font-medium bg-emerald-500 text-white hover:bg-emerald-600 transition-colors disabled:opacity-40"
                                                                         >
-                                                                            Create
+                                                                            {t('agent_studio.identity_create', 'Create')}
                                                                         </button>
                                                                         <button
                                                                             type="button"
@@ -263,18 +265,18 @@ export const IdentitySection = ({
                                                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                                                                 </svg>
-                                                                Add to category
+                                                                {t('agent_studio.identity_add_to_category', 'Add to category')}
                                                             </button>
                                                         </div>
                                                     )}
 
                                                     {/* Intelligence & Instructions (merged) */}
                                                     <div className="mt-5 pt-5 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
-                                                        <h3 className="text-xs font-medium text-muted mb-4">Intelligence & Instructions</h3>
+                                                        <h3 className="text-xs font-medium text-muted mb-4">{t('agent_studio.identity_intelligence_instructions', 'Intelligence & Instructions')}</h3>
 
                                                         <div className="space-y-5">
                                                             <div>
-                                                                <label className="text-xs font-medium text-muted mb-2 block">AI Model</label>
+                                                                <label className="text-xs font-medium text-muted mb-2 block">{t('agent_studio.identity_ai_model', 'AI Model')}</label>
                                                                 <ModelTierSelector
                                                                     tiers={modelTiers}
                                                                     value={model ? model.replace('tier:', '') : 'auto'}
@@ -284,8 +286,8 @@ export const IdentitySection = ({
 
                                                             <div>
                                                                 <label className="text-xs font-medium text-muted mb-2 block">
-                                                                    System Prompt
-                                                                    <span className="ml-2 normal-case font-normal opacity-50 text-[10px]">Defines personality and rules</span>
+                                                                    {t('agent_studio.identity_system_prompt', 'System Prompt')}
+                                                                    <span className="ml-2 normal-case font-normal opacity-50 text-[10px]">{t('agent_studio.identity_defines_personality_and_rules', 'Defines personality and rules')}</span>
                                                                 </label>
                                                                 <textarea
                                                                     value={systemPrompt}
@@ -293,7 +295,7 @@ export const IdentitySection = ({
                                                                     className="input w-full font-mono text-sm leading-relaxed"
                                                                     rows={12}
                                                                     data-tour="agent-system-prompt"
-                                                                    placeholder="You are a helpful assistant..."
+                                                                    placeholder={t('agent_studio.identity_you_are_a_helpful_assistant', 'You are a helpful assistant...')}
                                                                     style={{ minHeight: '200px' }}
                                                                 />
                                                             </div>

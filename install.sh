@@ -73,7 +73,7 @@ run_wizard() {
     log "Starting install wizard on port $WIZARD_PORT..."
     docker run -d \
         --name "$WIZARD_CONTAINER" \
-        -p "${WIZARD_PORT}:9090" \
+        -p "127.0.0.1:${WIZARD_PORT}:9090" \
         -v /var/run/docker.sock:/var/run/docker.sock \
         -v "$SCRIPT_DIR":/project \
         -e HOST_PROJECT_DIR="$SCRIPT_DIR" \
@@ -87,6 +87,10 @@ run_wizard() {
         echo ""
         echo -e "  ${BOLD}🐝 Open your browser:${NC}"
         echo -e "  ${CYAN}   http://localhost:${WIZARD_PORT}${NC}"
+        echo ""
+        echo -e "  ${YELLOW}The wizard is only reachable from this machine (loopback).${NC}"
+        echo -e "  ${YELLOW}Remote/headless install? Forward the port over SSH:${NC}"
+        echo -e "  ${CYAN}   ssh -L ${WIZARD_PORT}:localhost:${WIZARD_PORT} user@$(hostname)${NC}"
         echo ""
         echo -e "  ${YELLOW}The wizard will guide you through configuring and"
         echo -e "  deploying all BeeFlow services.${NC}"
@@ -119,7 +123,7 @@ show_status() {
 
     # Wizard
     if docker ps --format '{{.Names}}' | grep -q "$WIZARD_CONTAINER"; then
-        echo -e "  ${GREEN}●${NC} Install Wizard   — http://localhost:${WIZARD_PORT}"
+        echo -e "  ${GREEN}●${NC} Install Wizard   — http://localhost:${WIZARD_PORT} (loopback only)"
     else
         echo -e "  ${RED}●${NC} Install Wizard   — not running"
     fi
@@ -145,8 +149,8 @@ uninstall() {
     if [ -f "$COMPOSE_FILE" ]; then
         docker compose -f "$COMPOSE_FILE" \
             --profile core --profile search --profile search-gpu --profile search-llm \
-            --profile guard --profile guard-gpu --profile whisperx --profile pii \
-            --profile local-llm \
+            --profile guard --profile whisperx --profile pii \
+            --profile local-llm --profile classify \
             down --volumes --rmi local 2>/dev/null || true
     fi
     # Also force-remove any stray containers started from other compose files
@@ -165,6 +169,7 @@ uninstall() {
         guard-redis-data \
         whisperx-cache \
         pii-model-cache \
+        ollama-models \
         2>/dev/null || true
     ok "Data volumes removed"
 
@@ -209,7 +214,7 @@ case "${1:-}" in
         echo "  --uninstall   Stop all BeeFlow containers"
         echo "  --help        Show this help"
         echo ""
-        echo "The wizard runs at http://localhost:${WIZARD_PORT}"
+        echo "The wizard runs at http://localhost:${WIZARD_PORT} (this machine only)"
         ;;
     *)
         check_docker

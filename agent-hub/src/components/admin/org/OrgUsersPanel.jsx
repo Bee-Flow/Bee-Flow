@@ -1,4 +1,4 @@
-import { Users, UserPlus, Shield, Trash2, Edit2, Check, X, Plus, ChevronDown, ChevronRight, Mail, Clock, Send, Link2, AlertCircle, Search, Sparkles, Cloud } from 'lucide-react';
+import { Users, UserPlus, Shield, Trash2, Edit2, Check, X, Plus, ChevronDown, ChevronRight, Mail, Clock, Send, Link2, AlertCircle, Search, Sparkles } from 'lucide-react';
 import React, { useState } from 'react';
 import OrgCustomTiersPanel from './OrgCustomTiersPanel';
 import OrgHealthBanner from './OrgHealthBanner';
@@ -15,21 +15,32 @@ import { API_BASE } from '../../../utils/helpers';
 import NextcloudSyncPanel from '../../integrations/nextcloud/NextcloudSyncPanel';
 import ConfirmDialog from '../../shared/ConfirmDialog';
 import RoleBadge from '../../shared/RoleBadge';
+import Tabs from '../../shared/Tabs';
 import useConfirm from '../../shared/useConfirm';
 import UserListSkeleton from '../../shared/UserListSkeleton';
 import UserFilterBar from '../shared/UserFilterBar';
 
-// The three sub-tabs map to /app/org-settings/users/{list|groups|roles}.
+// The sub-tabs map to <basePath>/{list|groups|roles}. basePath is the address
+// of the screen that mounts this panel: Settings → Organisation → Users & Groups
+// passes /app/settings/organisation/users, and the legacy page at
+// /app/org-settings keeps the default. With one hard-coded base, a click on
+// Groups inside Settings pushed /app/org-settings/users/groups, and a reload
+// opened the legacy page instead of Settings.
 // The 'list' URL corresponds to the 'users' internal id so the URL segment
 // doesn't collide with the parent path (`.../users`).
+// 'customTiers' and 'sync' have no tab but keep their address: bookmarks, the
+// phone app and a Learning Center lesson open them directly. Nextcloud Sync's
+// tab went because Settings → Organisation → Nextcloud Sync (and the legacy
+// page's own Nextcloud Sync tab) shows the same panel to everyone who saw it.
 const ORG_USERS_SECTIONS = ['users', 'groups', 'roles', 'customTiers', 'sync'];
 const ORG_USERS_URL_ALIASES = { users: 'list' };
+const LEGACY_BASE_PATH = '/app/org-settings/users';
 
-const OrgUsersPanel = ({ user, initialSection: _initialSection }) => {
+const OrgUsersPanel = ({ user, initialSection: _initialSection, basePath = LEGACY_BASE_PATH }) => {
     const { t } = useTranslation();
     const { confirm, confirmDialog } = useConfirm();
     const [activeSection, setActiveSection] = useUrlTab({
-        basePath: '/app/org-settings/users',
+        basePath,
         validValues: ORG_USERS_SECTIONS,
         defaultValue: 'users',
         aliases: ORG_USERS_URL_ALIASES,
@@ -149,7 +160,7 @@ const OrgUsersPanel = ({ user, initialSection: _initialSection }) => {
 
     if (loading) {
         return (
-            <div className="max-w-4xl mx-auto space-y-6">
+            <div className="max-w-4xl space-y-6">
                 <div className="flex gap-2">
                     {[1, 2, 3].map(i => (
                         <div key={i} className="h-10 w-28 bg-[var(--bg-tertiary)] rounded-xl animate-pulse" />
@@ -164,35 +175,22 @@ const OrgUsersPanel = ({ user, initialSection: _initialSection }) => {
 
     const isNcOrg = !!user?.ncOrg?.instanceId;
     const sections = [
-        { id: 'users', label: 'Users', icon: Users, count: orgUsers.length },
-        { id: 'groups', label: 'Groups', icon: UserPlus, count: orgGroups.length },
-        { id: 'roles', label: 'Roles', icon: Shield, count: orgRoleCount },
-        ...(isNcOrg ? [{ id: 'sync', label: 'Nextcloud Sync', icon: Cloud, count: null }] : []),
+        { id: 'users', label: t('admin.users_tab_users', 'Users'), icon: <Users className="w-4 h-4" />, badge: orgUsers.length },
+        { id: 'groups', label: t('admin.users_tab_groups', 'Groups'), icon: <UserPlus className="w-4 h-4" />, badge: orgGroups.length },
+        { id: 'roles', label: t('admin.users_tab_roles', 'Roles'), icon: <Shield className="w-4 h-4" />, badge: orgRoleCount },
     ];
 
     return (
-        <div className="max-w-4xl mx-auto space-y-6">
-            {/* Section tabs */}
-            <div className="flex gap-2">
-                {sections.map(s => (
-                    <button
-                        key={s.id}
-                        onClick={() => setActiveSection(s.id)}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${activeSection === s.id
-                            ? 'bg-[var(--accent-primary)] text-white shadow-md'
-                            : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
-                            }`}
-                    >
-                        <s.icon className="w-4 h-4" />
-                        {s.label}
-                        {s.count != null && (
-                            <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${activeSection === s.id ? 'bg-white/20' : 'bg-white/10'}`}>
-                                {s.count}
-                            </span>
-                        )}
-                    </button>
-                ))}
-            </div>
+        <div className="max-w-4xl space-y-6">
+            {/* Section tabs. The shared tab bar, as on Organisation →
+                Integrations: tab semantics and arrow keys. 'customTiers' and
+                'sync' have no tab, so no tab is selected while they show. */}
+            <Tabs
+                value={activeSection}
+                onChange={setActiveSection}
+                ariaLabel={t('settings.users_groups', 'Users & Groups')}
+                items={sections}
+            />
 
             {/* ═══════════════ USERS SECTION ═══════════════ */}
             {activeSection === 'users' && (
@@ -244,7 +242,7 @@ const OrgUsersPanel = ({ user, initialSection: _initialSection }) => {
                         <div className="px-5 py-4 border-b border-[var(--border-subtle)] bg-[var(--accent-primary)]/5">
                             <div className="flex items-end gap-3">
                                 <div className="flex-1">
-                                    <label className="block text-[10px] font-medium text-[var(--text-muted)] mb-1 uppercase tracking-wider">Email Address</label>
+                                    <label className="block text-[10px] font-medium text-[var(--text-muted)] mb-1 uppercase tracking-wider">{t('admin_org.users_email_address', 'Email Address')}</label>
                                     <input
                                         type="email"
                                         value={inviteEmail}
@@ -256,13 +254,13 @@ const OrgUsersPanel = ({ user, initialSection: _initialSection }) => {
                                     />
                                 </div>
                                 <div className="w-40">
-                                    <label className="block text-[10px] font-medium text-[var(--text-muted)] mb-1 uppercase tracking-wider">Role</label>
+                                    <label className="block text-[10px] font-medium text-[var(--text-muted)] mb-1 uppercase tracking-wider">{t('admin_org.users_role', 'Role')}</label>
                                     <select
                                         value={inviteRole}
                                         onChange={e => setInviteRole(e.target.value)}
                                         className="w-full px-3 py-2 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-primary)] text-[var(--text-primary)] text-sm outline-none"
                                     >
-                                        <option value="user">User</option>
+                                        <option value="user">{t('admin_org.users_user', 'User')}</option>
                                         {ORG_ROLES.map(r => (
                                             <option key={r.id} value={r.id}>{r.name}</option>
                                         ))}
@@ -278,7 +276,7 @@ const OrgUsersPanel = ({ user, initialSection: _initialSection }) => {
                                     ) : (
                                         <Send className="w-3.5 h-3.5" />
                                     )}
-                                    Send
+                                    {t('admin_org.users_send', 'Send')}
                                 </button>
                             </div>
                             {inviteResult && (
@@ -292,7 +290,7 @@ const OrgUsersPanel = ({ user, initialSection: _initialSection }) => {
                                                 className="flex items-center gap-1 mt-1 text-[var(--accent-primary)] hover:underline"
                                             >
                                                 <Link2 className="w-3 h-3" />
-                                                Copy invite link
+                                                {t('admin_org.users_copy_invite', 'Copy invite link')}
                                             </button>
                                         )}
                                         {/* BFSF-251: seat cap → direct upgrade path, no dead end */}
@@ -322,7 +320,7 @@ const OrgUsersPanel = ({ user, initialSection: _initialSection }) => {
                                     className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium bg-[var(--accent-primary)] text-white hover:opacity-90 transition-opacity"
                                 >
                                     <UserPlus className="w-4 h-4" />
-                                    Manage Groups
+                                    {t('admin_org.users_manage_groups', 'Manage Groups')}
                                 </button>
                             </div>
                         </div>
@@ -372,7 +370,7 @@ const OrgUsersPanel = ({ user, initialSection: _initialSection }) => {
                                                 {u.status === 'pending' ? (
                                                     <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/15 text-amber-500 flex items-center gap-1">
                                                         <Clock className="w-2.5 h-2.5" />
-                                                        Pending
+                                                        {t('admin_org.users_pending', 'Pending')}
                                                     </span>
                                                 ) : (
                                                     getRoleBadge(u.orgRole || u.role)
@@ -413,7 +411,7 @@ const OrgUsersPanel = ({ user, initialSection: _initialSection }) => {
                                                 <button
                                                     onClick={() => handleApproveUser(u.id)}
                                                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-green-500/10 text-green-600 hover:bg-green-500/20 transition-colors"
-                                                    title="Approve user"
+                                                    title={t('admin_org.users_approve_title', 'Approve user')}
                                                 >
                                                     <Check className="w-3.5 h-3.5" />
                                                     {t('admin.org_approve', 'Approve')}
@@ -421,7 +419,7 @@ const OrgUsersPanel = ({ user, initialSection: _initialSection }) => {
                                                 <button
                                                     onClick={() => handleRejectUser(u.id)}
                                                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors"
-                                                    title="Reject user"
+                                                    title={t('admin_org.users_reject_title', 'Reject user')}
                                                 >
                                                     <X className="w-3.5 h-3.5" />
                                                     {t('admin.org_reject', 'Reject')}
@@ -438,7 +436,7 @@ const OrgUsersPanel = ({ user, initialSection: _initialSection }) => {
                                                                 onChange={e => handleUserRoleChange(u.id, e.target.value)}
                                                                 className="text-xs px-2 py-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-primary)] text-[var(--text-primary)] outline-none"
                                                             >
-                                                                <option value="user">User</option>
+                                                                <option value="user">{t('admin_org.users_user', 'User')}</option>
                                                                 {ORG_ROLES.map(r => (
                                                                     <option key={r.id} value={r.id}>{r.name}</option>
                                                                 ))}
@@ -451,7 +449,7 @@ const OrgUsersPanel = ({ user, initialSection: _initialSection }) => {
                                                         <button
                                                             onClick={() => setEditingUserRole(u.id)}
                                                             className="text-xs px-2 py-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors"
-                                                            title="Change role"
+                                                            title={t('admin_org.users_change_role', 'Change role')}
                                                         >
                                                             <Edit2 className="w-3.5 h-3.5" />
                                                         </button>
@@ -570,7 +568,7 @@ const OrgUsersPanel = ({ user, initialSection: _initialSection }) => {
                     {invitations.filter(i => i.status === 'pending').length > 0 && (
                         <div className="border-t border-[var(--border-subtle)]">
                             <div className="px-5 py-3 bg-[var(--bg-secondary)]">
-                                <h4 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">Pending Invitations</h4>
+                                <h4 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">{t('admin_org.users_pending_invitations', 'Pending Invitations')}</h4>
                             </div>
                             <div className="divide-y divide-[var(--border-subtle)]">
                                 {invitations.filter(i => i.status === 'pending').map(inv => (
@@ -583,18 +581,18 @@ const OrgUsersPanel = ({ user, initialSection: _initialSection }) => {
                                                 <span className="text-sm font-medium text-[var(--text-primary)] truncate">{inv.email}</span>
                                                 <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/15 text-amber-500 flex items-center gap-1">
                                                     <Clock className="w-2.5 h-2.5" />
-                                                    Invited
+                                                    {t('admin_org.users_invited', 'Invited')}
                                                 </span>
                                                 {inv.role && inv.role !== 'user' && getRoleBadge(inv.role)}
                                             </div>
                                             <div className="text-[10px] text-[var(--text-muted)] mt-0.5">
-                                                Invited by {inv.inviterName || 'Unknown'} · Expires {new Date(inv.expires_at).toLocaleDateString()}
+                                                {t('admin_org.users_invited_by', 'Invited by {name} · Expires {date}', { name: inv.inviterName || t('admin_org.users_unknown', 'Unknown'), date: new Date(inv.expires_at).toLocaleDateString() })}
                                             </div>
                                         </div>
                                         <button
                                             onClick={() => handleRevokeInvite(inv.id)}
                                             className="text-xs px-2 py-1 rounded-lg text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10 transition-colors"
-                                            title="Revoke invitation"
+                                            title={t('admin_org.users_revoke_invite', 'Revoke invitation')}
                                         >
                                             <X className="w-3.5 h-3.5" />
                                         </button>
@@ -627,7 +625,7 @@ const OrgUsersPanel = ({ user, initialSection: _initialSection }) => {
                                 value={newGroupName}
                                 onChange={e => setNewGroupName(e.target.value)}
                                 className="w-full px-3 py-2 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-primary)] text-[var(--text-primary)] text-sm outline-none focus:border-[var(--accent-primary)]"
-                                placeholder="Group name"
+                                placeholder={t('admin_org.users_group_name_ph', 'Group name')}
                                 autoFocus
                             />
                             <input
@@ -635,7 +633,7 @@ const OrgUsersPanel = ({ user, initialSection: _initialSection }) => {
                                 value={newGroupDesc}
                                 onChange={e => setNewGroupDesc(e.target.value)}
                                 className="w-full px-3 py-2 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-primary)] text-[var(--text-primary)] text-sm outline-none focus:border-[var(--accent-primary)]"
-                                placeholder="Description (optional)"
+                                placeholder={t('admin_org.users_desc_optional_ph', 'Description (optional)')}
                             />
                             {organizations.length > 1 && (
                                 <select
@@ -672,8 +670,7 @@ const OrgUsersPanel = ({ user, initialSection: _initialSection }) => {
                             <Shield className="w-10 h-10 mx-auto mb-3 text-[var(--text-muted)] opacity-30" />
                             <p className="text-sm font-medium text-[var(--text-primary)]">{t('admin.org_no_groups', 'No groups yet')}</p>
                             <p className="text-xs text-[var(--text-muted)] mt-1 max-w-sm mx-auto">
-                                Groups let you organise users and control which agents they can access.
-                                Create a group to get started.
+                                {t('admin_org.users_groups_intro', 'Groups let you organise users and control which agents they can access. Create a group to get started.')}
                             </p>
                         </div>
                     ) : (
@@ -689,7 +686,7 @@ const OrgUsersPanel = ({ user, initialSection: _initialSection }) => {
                                                     {expandedGroup === group.id ? <ChevronDown className="w-3.5 h-3.5 text-[var(--text-muted)]" /> : <ChevronRight className="w-3.5 h-3.5 text-[var(--text-muted)]" />}
                                                     <span className="text-sm font-semibold text-[var(--text-primary)]">{group.name}</span>
                                                     {isSystem && (
-                                                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-500 font-medium">System</span>
+                                                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-500 font-medium">{t('admin_org.users_system', 'System')}</span>
                                                     )}
                                                     {group.source === 'azure' && (
                                                         <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#0078D4]/15 text-[#0078D4] font-medium flex items-center gap-0.5">
@@ -698,7 +695,7 @@ const OrgUsersPanel = ({ user, initialSection: _initialSection }) => {
                                                     )}
                                                 </div>
                                                 <p className="text-xs text-[var(--text-muted)] mt-0.5">
-                                                    {group.description || 'No description'}
+                                                    {group.description || t('admin_org.users_no_description', 'No description')}
                                                     {group.orgRole && (() => {
                                                         const role = ORG_ROLES.find(r => r.id === group.orgRole);
                                                         return role ? (
@@ -708,21 +705,21 @@ const OrgUsersPanel = ({ user, initialSection: _initialSection }) => {
                                                         ) : null;
                                                     })()}
                                                     {group.source === 'azure' && group.lastSyncedAt && (
-                                                        <span className="ml-2 text-[10px] text-[var(--text-muted)] opacity-60">Last synced: {new Date(group.lastSyncedAt).toLocaleString()}</span>
+                                                        <span className="ml-2 text-[10px] text-[var(--text-muted)] opacity-60">{t('admin_org.users_last_synced', 'Last synced: {date}', { date: new Date(group.lastSyncedAt).toLocaleString() })}</span>
                                                     )}
                                                 </p>
                                             </div>
                                             <div className="flex items-center gap-2 shrink-0">
                                                 <span className="text-xs text-[var(--text-muted)] flex items-center gap-1">
                                                     <Users className="w-3 h-3" />
-                                                    {count} {count === 1 ? 'member' : 'members'}
+                                                    {count === 1 ? t('admin_org.users_member_one', '{count} member', { count }) : t('admin_org.users_member_other', '{count} members', { count })}
                                                 </span>
                                                 {!isSystem && (
                                                     <>
                                                         <button
                                                             onClick={(e) => { e.stopPropagation(); setExpandedGroup(group.id); setEditingGroup(group.id); setEditGroupDesc(group.description || ''); }}
                                                             className="p-1.5 rounded-lg hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
-                                                            title="Edit group settings"
+                                                            title={t('admin_org.users_edit_group', 'Edit group settings')}
                                                         >
                                                             <Edit2 className="w-3.5 h-3.5" />
                                                         </button>
@@ -730,7 +727,7 @@ const OrgUsersPanel = ({ user, initialSection: _initialSection }) => {
                                                             <button
                                                                 onClick={(e) => { e.stopPropagation(); handleDeleteGroup(group.id); }}
                                                                 className="p-1.5 rounded-lg hover:bg-red-500/10 text-[var(--text-muted)] hover:text-red-500 transition-colors"
-                                                                title="Delete group"
+                                                                title={t('admin_org.users_delete_group', 'Delete group')}
                                                             >
                                                                 <Trash2 className="w-3.5 h-3.5" />
                                                             </button>
@@ -738,8 +735,8 @@ const OrgUsersPanel = ({ user, initialSection: _initialSection }) => {
                                                     </>
                                                 )}
                                                 {group.source === 'azure' && (
-                                                    <span className="text-[10px] text-[var(--text-muted)] italic" title="Managed by Azure AD — sync to update or remove">
-                                                        Managed
+                                                    <span className="text-[10px] text-[var(--text-muted)] italic" title={t('admin_org.users_azure_managed_title', 'Managed by Azure AD · sync to update or remove')}>
+                                                        {t('admin_org.users_managed', 'Managed')}
                                                     </span>
                                                 )}
                                             </div>
@@ -755,7 +752,7 @@ const OrgUsersPanel = ({ user, initialSection: _initialSection }) => {
 
                                                     {/* Description */}
                                                     <div className="flex items-start gap-2">
-                                                        <label className="text-xs text-[var(--text-secondary)] w-24 pt-1.5 shrink-0">Description</label>
+                                                        <label className="text-xs text-[var(--text-secondary)] w-24 pt-1.5 shrink-0">{t('admin_org.users_description', 'Description')}</label>
                                                         {editingGroup === group.id ? (
                                                             <div className="flex items-center gap-2 flex-1">
                                                                 <input
@@ -763,7 +760,7 @@ const OrgUsersPanel = ({ user, initialSection: _initialSection }) => {
                                                                     value={editGroupDesc}
                                                                     onChange={e => setEditGroupDesc(e.target.value)}
                                                                     className="flex-1 px-2.5 py-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-primary)] text-[var(--text-primary)] text-xs outline-none focus:border-blue-500"
-                                                                    placeholder="Add a description..."
+                                                                    placeholder={t('admin_org.users_add_desc_ph', 'Add a description...')}
                                                                     onKeyDown={e => e.key === 'Enter' && handleUpdateGroupDesc(group.id)}
                                                                     autoFocus
                                                                 />
@@ -777,27 +774,27 @@ const OrgUsersPanel = ({ user, initialSection: _initialSection }) => {
                                                         ) : (
                                                             <p className="text-xs text-[var(--text-muted)] pt-1.5 flex-1 cursor-pointer hover:text-[var(--text-primary)] transition-colors"
                                                                 onClick={(e) => { e.stopPropagation(); setEditingGroup(group.id); setEditGroupDesc(group.description || ''); }}>
-                                                                {group.description || <span className="italic opacity-60">Click to add description...</span>}
+                                                                {group.description || <span className="italic opacity-60">{t('admin_org.users_click_add_desc', 'Click to add description...')}</span>}
                                                             </p>
                                                         )}
                                                     </div>
 
                                                     {/* Role selector */}
                                                     <div className="flex items-center gap-2">
-                                                        <label className="text-xs text-[var(--text-secondary)] w-24 shrink-0">Group Role</label>
+                                                        <label className="text-xs text-[var(--text-secondary)] w-24 shrink-0">{t('admin_org.users_group_role', 'Group Role')}</label>
                                                         <select
                                                             value={group.orgRole || ''}
                                                             onChange={e => handleUpdateGroupRole(group.id, e.target.value)}
                                                             className="flex-1 px-2.5 py-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-primary)] text-[var(--text-primary)] text-xs outline-none focus:border-blue-500 cursor-pointer"
                                                         >
-                                                            <option value="">User (default)</option>
+                                                            <option value="">{t('admin_org.users_user_default', 'User (default)')}</option>
                                                             {ORG_ROLES.map(r => (
                                                                 <option key={r.id} value={r.id}>{r.name}</option>
                                                             ))}
                                                         </select>
                                                         {group.orgRole && (
                                                             <span className="text-[10px] text-[var(--text-muted)]">
-                                                                All members inherit this role
+                                                                {t('admin_org.users_inherit_role', 'All members inherit this role')}
                                                             </span>
                                                         )}
                                                     </div>
@@ -843,7 +840,7 @@ const OrgUsersPanel = ({ user, initialSection: _initialSection }) => {
                                                         };
                                                         return (
                                                             <div className="flex items-start gap-2">
-                                                                <label className="text-xs text-[var(--text-secondary)] w-24 pt-1.5 shrink-0">Allowed tiers</label>
+                                                                <label className="text-xs text-[var(--text-secondary)] w-24 pt-1.5 shrink-0">{t('admin_org.users_allowed_tiers', 'Allowed tiers')}</label>
                                                                 <div className="flex-1 space-y-2">
                                                                     <div className="flex flex-wrap gap-1.5">
                                                                         {standardTiers.map(t => renderPill(t, 'rgb(59, 130, 246)'))}
@@ -851,16 +848,16 @@ const OrgUsersPanel = ({ user, initialSection: _initialSection }) => {
                                                                     </div>
                                                                     <div className="text-[10px] text-[var(--text-muted)] flex items-center gap-3">
                                                                         {unrestricted ? (
-                                                                            <span>No restriction set — members can use every tier. Click a pill to restrict access to only selected tiers.</span>
+                                                                            <span>{t('admin_org.users_no_restriction', 'No restriction set: members can use every tier. Click a pill to restrict access to only selected tiers.')}</span>
                                                                         ) : (
                                                                             <>
-                                                                                <span>{allowed.length} tier{allowed.length === 1 ? '' : 's'} permitted. Members of other groups may still see additional tiers through those groups.</span>
+                                                                                <span>{allowed.length === 1 ? t('admin_org.users_tier_permitted_one', '{n} tier permitted. Members of other groups may still see additional tiers through those groups.', { n: allowed.length }) : t('admin_org.users_tier_permitted_other', '{n} tiers permitted. Members of other groups may still see additional tiers through those groups.', { n: allowed.length })}</span>
                                                                                 <button
                                                                                     type="button"
                                                                                     onClick={clearAll}
                                                                                     className="underline hover:text-[var(--text-primary)]"
                                                                                 >
-                                                                                    Clear restrictions
+                                                                                    {t('admin_org.users_clear_restrictions', 'Clear restrictions')}
                                                                                 </button>
                                                                             </>
                                                                         )}

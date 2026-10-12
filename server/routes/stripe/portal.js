@@ -9,7 +9,7 @@ const express = require('express');
 const stripeService = require('../../services/stripeService');
 const userStore = require('../../stores/userStore');
 const { requireCloud, requireAuth, resolveOrgIdForUser, getOrigin, stripeIpLimiter, stripeUserLimiter } = require('./shared');
-const { settingsTabPath } = require('../../utils/appPaths');
+const { accountLicenseSettingsPath, orgLicenseSettingsPath } = require('../../utils/appPaths');
 const { validate } = require('../../core/http/validate');
 const { z } = require('zod');
 
@@ -19,7 +19,7 @@ const router = express.Router();
 //
 // One key, and it is the one the Stripe portal returns the customer to.
 // Every real caller sends `window.location.origin` (OrgInfoPanel,
-// ConsumerLicenseSection, LicenseKeyActivation), so the value stays
+// ConsumerLicenseSection), so the value stays
 // caller-supplied — the SPA is served from an origin the API cannot derive
 // from `req.get('host')` in every deployment. What `.strict()` closes is the
 // key: `{ orgin: … }` fell through to `getOrigin(req)` and sent the customer
@@ -77,7 +77,10 @@ router.post('/portal', requireCloud, stripeIpLimiter, requireAuth, stripeUserLim
             return res.status(400).json({ error: 'No billing account found. Subscribe to a plan first.' });
         }
         if (!PORTAL_ELIGIBLE_PAYMENT_STATUSES.includes(sub?.payment_status)) return portalDenied();
-        const returnUrl = `${origin}${settingsTabPath('consumer_license')}`;
+        // A path, not ?tab=: the settings router reads the pathname only, so
+        // the query form returned the customer to Preferences (as BFSF-244
+        // found for the checkout return).
+        const returnUrl = `${origin}${accountLicenseSettingsPath()}`;
         const session = await stripeService.createPortalSession(stripeCustomerId, returnUrl);
         return res.json({ url: session.url });
     } else {
@@ -87,7 +90,7 @@ router.post('/portal', requireCloud, stripeIpLimiter, requireAuth, stripeUserLim
             return res.status(400).json({ error: 'No billing account found. Subscribe to a plan first.' });
         }
         if (!PORTAL_ELIGIBLE_PAYMENT_STATUSES.includes(sub?.payment_status)) return portalDenied();
-        const returnUrl = `${origin}${settingsTabPath('license')}`;
+        const returnUrl = `${origin}${orgLicenseSettingsPath()}`;
         const session = await stripeService.createPortalSession(stripeCustomerId, returnUrl);
         return res.json({ url: session.url });
     }

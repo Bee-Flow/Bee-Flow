@@ -1,5 +1,5 @@
 /**
- * DORA Art. 30(2)(f), 30(3)(c) — the incident reporting path towards
+ * DORA Art. 30(2)(f), 30(3)(b) — the incident reporting path towards
  * financial customers (Art. 19 sets THEIR clocks: initial notification within
  * 4 h of classification / 24 h of detection).
  *

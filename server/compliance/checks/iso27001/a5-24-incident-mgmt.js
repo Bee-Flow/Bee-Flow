@@ -40,13 +40,18 @@ module.exports = {
         let registryReachable = true;
         try {
             deadlines = await incidentStore.getDeadlineStats(orgId);
-        } catch { registryReachable = false; /* fresh install without the table */ }
+        } catch {
+            // getDeadlineStats runs incidentStore.initDB first, so a throw is a
+            // failed read, never a fresh install without the table.
+            registryReachable = false;
+        }
 
-        // Evidence enrichment only — status never depends on this list.
+        // Evidence enrichment only — status never depends on this list, so a
+        // failed read leaves the sample empty.
         let attention = [];
         try {
             attention = await incidentStore.listNeedingAttention(orgId) || [];
-        } catch { /* same fresh-install case as above */ }
+        } catch { /* sample stays empty */ }
 
         const evidence = {
             recipients_count: validRecipients.length,
@@ -58,6 +63,15 @@ module.exports = {
                 id: i.id, severity: i.severity, status: i.status, deadline_at: i.deadline_at,
             })),
         };
+
+        // Unknown deadlines are never "no incident is stuck past a deadline".
+        if (!registryReachable) {
+            return {
+                status: 'warn',
+                evidence,
+                details: 'The incident register could not be read, so whether an incident is past its deadline is unknown for this run.',
+            };
+        }
 
         if ((deadlines.overdue_unnotified || 0) > 0) {
             return {

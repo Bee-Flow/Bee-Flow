@@ -41,19 +41,19 @@ function Columns({ columns, onChange, disabled }: { columns: Column[]; onChange:
     return (
         <View style={styles.columns}>
             <Text variant="label" tone="tertiary">
-                {t('mobile.flow.ai.columns', 'Columns')}
+                {t('automations.structured_output_fields.columns', 'Columns')}
             </Text>
             {columns.length === 0 ? (
-                <Note>{t('mobile.flow.ai.no_columns', 'No columns — the AI infers the table shape. Add columns to fix the headers, their types, and order.')}</Note>
+                <Note>{t('automations.structured_output_fields.no_columns_the_ai_infers_the', 'No columns — the AI infers the table shape. Add columns to fix the headers, their types, and order.')}</Note>
             ) : null}
             {columns.map((c, i) => (
                 <RowCard
                     key={i}
-                    title={c.key || t('mobile.flow.ai.column', 'Column')}
+                    title={c.key || t('automations.datatable_editors.column_2', 'Column')}
                     onMoveUp={i > 0 ? () => onChange(moveAt(columns, i, -1)) : null}
                     onMoveDown={i < columns.length - 1 ? () => onChange(moveAt(columns, i, 1)) : null}
                     onRemove={() => onChange(removeAt(columns, i))}
-                    removeLabel={t('mobile.flow.ai.remove_column', 'Remove column')}
+                    removeLabel={t('automations.structured_output_fields.remove_column', 'Remove column')}
                     disabled={disabled}
                 >
                     <TextField value={c.key} onChangeText={(key) => onChange(patchAt(columns, i, { key }))} placeholder={COLUMN_EXAMPLE} autoCapitalize="none" autoCorrect={false} editable={!disabled} />
@@ -61,7 +61,7 @@ function Columns({ columns, onChange, disabled }: { columns: Column[]; onChange:
                 </RowCard>
             ))}
             <AddButton
-                label={t('mobile.flow.ai.add_column', 'Add column')}
+                label={t('automations.structured_output_fields.add_column', 'Add column')}
                 onPress={() => onChange([...columns, { key: freshName(columns.map((c) => c.key), 'column'), type: 'string' }])}
                 disabled={disabled}
             />
@@ -74,14 +74,14 @@ export function StructuredOutput({ fields, onChange, disabled = false }: { field
     return (
         <>
             {fields.length === 0 ? (
-                <Note>{t('mobile.flow.ai.no_output_fields', 'No fields yet — the AI will return free-form text. Add fields to get a structured JSON response.')}</Note>
+                <Note>{t('automations.structured_output_fields.no_fields_yet_the_ai_will', 'No fields yet — the AI will return free-form text. Add fields to get a structured JSON response.')}</Note>
             ) : null}
             {fields.map((f, i) => (
                 <RowCard
                     key={i}
-                    title={f.key || t('mobile.flow.ai.field', 'Field')}
+                    title={f.key || t('automations.collection_editors.field', 'Field')}
                     onRemove={() => onChange(removeAt(fields, i))}
-                    removeLabel={t('mobile.flow.ai.remove_field', 'Remove field')}
+                    removeLabel={t('automations.structured_output_fields.remove_field', 'Remove field')}
                     disabled={disabled}
                     testID={`output-field-${i + 1}`}
                 >
@@ -90,14 +90,14 @@ export function StructuredOutput({ fields, onChange, disabled = false }: { field
                     <TextField
                         value={f.description || ''}
                         onChangeText={(description) => onChange(patchAt(fields, i, { description }))}
-                        placeholder={t('mobile.flow.ai.field_description', 'Description (optional) — guides the model on what to put here')}
+                        placeholder={t('automations.structured_output_fields.description_optional_guides_the_model_on', 'Description (optional) — guides the model on what to put here')}
                         editable={!disabled}
                     />
                     {f.type === 'array' ? <Columns columns={f.columns || []} onChange={(columns) => onChange(patchAt(fields, i, { columns }))} disabled={disabled} /> : null}
                 </RowCard>
             ))}
             <AddButton
-                label={t('mobile.flow.ai.add_output_field', 'Add output field')}
+                label={t('automations.structured_output_fields.add_output_field', 'Add output field')}
                 onPress={() => onChange([...fields, { key: freshName(fields.map((f) => f.key), 'field'), type: 'string', description: '' }])}
                 disabled={disabled}
                 testID="output-field-add"

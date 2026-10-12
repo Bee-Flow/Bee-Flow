@@ -28,6 +28,8 @@ test('classifyStreamError matrix', () => {
         [Object.assign(new Error('x'), { status: 413 }), false, 'payload_too_large'],
         [new Error('maximum context length exceeded'), false, 'context_overflow'],
         [new Error('something odd'), false, 'unknown'],
+        [new Error("API error 400: Invalid body: failed to parse JSON value"), false, 'invalid_request_body'],
+        [new Error('API error 400: something else'), false, 'bad_request'],
     ];
     for (const [err, retryable, errorType] of cases) {
         const c = classifyStreamError(err);

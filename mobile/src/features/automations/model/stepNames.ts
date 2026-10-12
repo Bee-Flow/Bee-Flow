@@ -60,6 +60,7 @@ export const STEP_TYPE_NAMES: Record<string, string> = {
     dedupe: 'Remove duplicates',
     aggregate: 'Collect one field',
     summarize: 'Add up or count',
+    flatten: 'Flatten a list',
     note: 'Note',
     call_layer: 'Flowlet',
     call_block: 'Step',

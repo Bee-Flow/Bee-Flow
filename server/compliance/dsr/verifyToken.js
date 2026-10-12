@@ -8,7 +8,7 @@
  *   - `e` is a hash, never the address: the token travels in a URL and lands
  *     in mail logs / browser history.
  *   - 7-day expiry (the ack mail is read within days; the request itself has
- *     a 30-day clock).
+ *     a one-month clock).
  *   - single use: the route stores sha256(token) in dsr_requests.verify_token_hash
  *     and burns it with dsrStore.consumeVerifyToken.
  *

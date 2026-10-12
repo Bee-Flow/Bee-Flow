@@ -114,6 +114,42 @@ async function loadContext(req, orgId, d) {
 }
 
 const isoActive = (ctx) => !!ctx.active && ctx.active.has('ISO27001');
+
+// The statutory clocks an incident row carries, each with the stamp that
+// satisfies it (the same pairs as incidentStore.nextOpenDeadline). The
+// authority stage reads `deadline_at`, which the store keeps at the EARLIEST
+// open clock of the row; when that coincides with a stage of its own column,
+// the stage listed first wins the tie, so `next_stage` names what is due.
+const INCIDENT_CLOCKS = Object.freeze([
+    Object.freeze({ stage: 'early_warning', due: 'early_warning_due_at', done: 'early_warning_sent_at' }),
+    Object.freeze({ stage: 'customer_notice', due: 'customer_notice_due_at', done: 'customer_notified_at' }),
+    Object.freeze({ stage: 'final_report', due: 'final_report_due_at', done: 'final_report_sent_at' }),
+    Object.freeze({ stage: 'authority', due: 'deadline_at', done: 'authority_notified_at' }),
+]);
+
+/** → `{ at, stage }` of the most urgent open clock over all rows, or null. */
+function nextIncidentClock(rows) {
+    let best = null;
+    for (const r of rows || []) {
+        for (const c of INCIDENT_CLOCKS) {
+            if (!r?.[c.due] || r[c.done]) continue;
+            const t = new Date(r[c.due]).getTime();
+            if (Number.isFinite(t) && (best == null || t < best.at)) best = { at: t, stage: c.stage };
+        }
+    }
+    return best;
+}
+
+/**
+ * Whole hours, rounded AWAY from zero — the rounding of the client's
+ * shared/deadlineMath (`ceil(|ms| / unit)`), so the header pill, the rail
+ * clock and the register row print the same number: 52.4 h left is "53 h",
+ * 1.5 h late is "-2".
+ */
+function hoursLeft(ms) {
+    const h = Math.ceil(Math.abs(ms) / 3600_000);
+    return ms < 0 ? -h : h;
+}
 const needs = (ctx, ...names) => { for (const n of names) if (ctx[n] == null) throw new Error(`${n} unavailable`); };
 
 // ── The kinds ─────────────────────────────────────────────────────────────
@@ -201,7 +237,9 @@ const KINDS = [
         },
     },
     {
-        // incidentStore.getDeadlineStats + listOpenClocks (next clock).
+        // incidentStore.getDeadlineStats + listOpenClocks: the most urgent
+        // OPEN clock over every stage (nextIncidentClock), so the rail and the
+        // header name the same clock the register's most urgent row shows.
         key: 'incidents',
         gate: (ctx) => !!ctx.active && (ctx.active.has('GDPR') || ctx.active.has('NIS2') || ctx.active.has('CRA') || ctx.active.has('DORA')),
         count: async (ctx, d) => {
@@ -209,17 +247,12 @@ const KINDS = [
                 d.incidentStore.getDeadlineStats(ctx.orgId),
                 d.incidentStore.listOpenClocks(ctx.orgId),
             ]);
-            const now = d.now();
-            let next = null;
-            for (const r of clocks || []) {
-                if (r.authority_notified_at || !r.deadline_at) continue;
-                const t = new Date(r.deadline_at).getTime();
-                if (Number.isFinite(t) && (next == null || t < next)) next = t;
-            }
+            const next = nextIncidentClock(clocks);
             return {
                 open: Number(stats?.open) || 0,
-                next_deadline_at: next == null ? null : new Date(next).toISOString(),
-                hours_left: next == null ? null : Math.floor((next - now) / 3600_000),
+                next_deadline_at: next ? new Date(next.at).toISOString() : null,
+                next_stage: next ? next.stage : null,
+                hours_left: next ? hoursLeft(next.at - d.now()) : null,
                 vulnerabilities_open: ctx.active.has('CRA') ? (Number(stats?.vulnerabilities_open) || 0) : null,
             };
         },
@@ -261,12 +294,12 @@ const KINDS = [
         },
     },
     {
-        // soaStore.getStats.
+        // soaStore.getStats — `todo` is the rail's "{n} to decide".
         key: 'soa',
         gate: isoActive,
         count: async (ctx, d) => {
             const s = await d.soaStore.getStats(ctx.orgId);
-            return { approved: Number(s?.approved) || 0, total: Number(s?.total) || 0 };
+            return { approved: Number(s?.approved) || 0, total: Number(s?.total) || 0, todo: Number(s?.todo) || 0 };
         },
     },
     {
@@ -463,5 +496,7 @@ module.exports.invalidate = invalidate;
 module.exports.KIND_KEYS = KIND_KEYS;
 module.exports.CACHE_TTL_MS = CACHE_TTL_MS;
 module.exports.toneOfScore = toneOfScore;
+module.exports.nextIncidentClock = nextIncidentClock;
+module.exports.hoursLeft = hoursLeft;
 module.exports.RECENTLY_IN_FORCE_DAYS = RECENTLY_IN_FORCE_DAYS;
 module.exports.EVIDENCE_CHAIN_CHECK_ROWS = EVIDENCE_CHAIN_CHECK_ROWS;

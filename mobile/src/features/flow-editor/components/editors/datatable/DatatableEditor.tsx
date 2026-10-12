@@ -44,9 +44,9 @@ function TableBand({ editor, writes }: { editor: StepEditorProps; writes: boolea
             ) : (
                 <SelectField
                     label={t('automations.node.datatable.typeLabel', 'Datatable')}
-                    hint={t('mobile.flow.datatable.datatable_hint', 'Rows in a datatable stay put after the run ends, so this automation can read back what an earlier run wrote — and other automations can use the same table.')}
+                    hint={t('automations.datatable_editors.rows_in_a_datatable_stay_put', 'Rows in a datatable stay put after the run ends, so this automation can read back what an earlier run wrote — and other automations can use the same table.')}
                     value={typeof draft.datatableId === 'string' ? draft.datatableId : ''}
-                    prompt={t('mobile.flow.datatable.pick_table', 'Pick a table…')}
+                    prompt={t('automations.datatable_editors.pick_a_table', 'Pick a table…')}
                     options={tables.map((x) => {
                         const o = tableOption(x, writes);
                         return { value: o.value, label: o.label, description: o.notes.map((n) => say(t, n)).join(' · ') || undefined, disabled: o.disabled };
@@ -57,7 +57,7 @@ function TableBand({ editor, writes }: { editor: StepEditorProps; writes: boolea
                 />
             )}
             <SelectField
-                label={t('mobile.flow.datatable.what_to_do', 'What to do')}
+                label={t('automations.datatable_editors.what_to_do', 'What to do')}
                 hint={ops.find((o) => o.op === op)?.blurb || null}
                 value={op}
                 options={ops.map((o) => ({ value: o.op, label: say(t, o.label) }))}
@@ -65,7 +65,7 @@ function TableBand({ editor, writes }: { editor: StepEditorProps; writes: boolea
                 disabled={ctx.disabled}
                 testID="datatable-op"
             />
-            {table && table.scope !== 'personal' && writes ? <Warn>{t('mobile.flow.datatable.shared_warning', 'This table is shared — other people and other automations read what this step writes.')}</Warn> : null}
+            {table && table.scope !== 'personal' && writes ? <Warn>{t('automations.datatable_editors.this_table_is_shared_other_people', 'This table is shared — other people and other automations read what this step writes.')}</Warn> : null}
         </Band>
     );
 }
@@ -77,28 +77,28 @@ function FindOptions({ editor, columnKeys }: { editor: StepEditorProps; columnKe
     return (
         <>
             <SuggestText
-                label={t('mobile.flow.datatable.order_by', 'Order by')}
-                hint={t('mobile.flow.datatable.order_by_hint', 'One column decides the order; rows with the same value fall back to the order they were added. Newest first when left empty.')}
+                label={t('automations.datatable_editors.order_by', 'Order by')}
+                hint={t('automations.datatable_editors.one_column_decides_the_order_rows', 'One column decides the order; rows with the same value fall back to the order they were added. Newest first when left empty.')}
                 value={sort?.field ?? ''}
                 onChange={(field) => set('sort', setSort(field, sort?.dir))}
                 suggestions={columnKeys}
-                prompt={t('mobile.flow.datatable.added_on', 'added on (default)')}
+                prompt={t('automations.datatable_editors.added_on_default', 'added on (default)')}
                 disabled={ctx.disabled}
             />
             {sort ? (
                 <SelectField
                     value={sort.dir}
                     options={[
-                        { value: 'desc', label: t('mobile.flow.datatable.highest_first', 'highest first') },
-                        { value: 'asc', label: t('mobile.flow.datatable.lowest_first', 'lowest first') },
+                        { value: 'desc', label: t('automations.datatable_editors.highest_first', 'highest first') },
+                        { value: 'asc', label: t('automations.datatable_editors.lowest_first', 'lowest first') },
                     ]}
                     onChange={(dir) => set('sort', setSort(sort.field, dir))}
                     disabled={ctx.disabled}
                 />
             ) : null}
             <NumberField
-                label={t('mobile.flow.datatable.at_most', 'At most')}
-                hint={t('mobile.flow.datatable.at_most_hint', 'How many rows ONE page brings back. The default is 50; the step also hands back a cursor so a later step can read the next page.')}
+                label={t('automations.datatable_editors.at_most', 'At most')}
+                hint={t('automations.datatable_editors.how_many_rows_one_page_brings', 'How many rows ONE page brings back. The default is 50; the step also hands back a cursor so a later step can read the next page.')}
                 value={draft.limit ?? 50}
                 onChange={(limit) => set('limit', limit === '' ? 50 : limit)}
                 min={1}
@@ -115,8 +115,8 @@ function Values({ editor, columns }: { editor: StepEditorProps; columns: readonl
     const { draft, set, ctx } = editor;
     const values = recordOf(draft.values);
     return (
-        <Band editor={editor} sectionKey="values" title={t('mobile.flow.datatable.what_to_write', 'What to write')} defaultOpen>
-            {columns.length === 0 ? <Note>{t('mobile.flow.datatable.pick_table_first', 'Pick a table first — its columns appear here.')}</Note> : null}
+        <Band editor={editor} sectionKey="values" title={t('automations.datatable_editors.what_to_write', 'What to write')} defaultOpen>
+            {columns.length === 0 ? <Note>{t('automations.datatable_editors.pick_a_table_first_its_columns', 'Pick a table first — its columns appear here.')}</Note> : null}
             {columns.map((c) => (
                 <BindingInput
                     key={c.key}
@@ -152,7 +152,7 @@ export function DatatableEditor(editor: StepEditorProps) {
                 {needs.match ? (
                     <SuggestText
                         label={t('automations.versions.setting.matchColumn', 'Match on')}
-                        hint={t('mobile.flow.datatable.match_on_hint', 'The column that decides whether a row already exists. If a row has the same value here it is updated; otherwise a new row is added.')}
+                        hint={t('automations.datatable_editors.the_column_that_decides_whether_a', 'The column that decides whether a row already exists. If a row has the same value here it is updated; otherwise a new row is added.')}
                         value={typeof draft.matchColumn === 'string' ? draft.matchColumn : ''}
                         onChange={(v) => set('matchColumn', v)}
                         suggestions={columns.map((c) => c.key)}

@@ -68,7 +68,7 @@ export default function SkillPicker({ skills, selectedIds, automations = [], sea
                                             {s.name}
                                             {s.automationId && (
                                                 <span title={t('agent_wizard.skills.linked_automation', 'Linked to an automation')} className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)]">
-                                                    Flow
+                                                    {t('agent_wizard.skill_picker_flow', 'Flow')}
                                                 </span>
                                             )}
                                         </div>

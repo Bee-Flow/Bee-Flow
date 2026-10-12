@@ -2,15 +2,12 @@ import { X } from 'lucide-react';
 import React, { useState } from 'react';
 import type { FormFieldRef, InputMapping, ParamMeta, ParamMetaByName } from './appDefinition';
 import { INPUT_CLS } from './panels/kit';
+import useTranslation from '../../../../../hooks/useTranslation';
 import IconButton from '../../../../shared/IconButton';
 import SegmentedControl from '../../../../shared/SegmentedControl';
 
 // ── Input mapping (run_automation) ─────────────────────────────────────────
 
-const MAPPING_MODES = [
-    { value: 'field', label: 'Form field' },
-    { value: 'static', label: 'Static' },
-];
 
 
 /**
@@ -36,6 +33,7 @@ export interface ContractDriftProps {
 }
 
 export function ContractDrift({ paramMeta, mapped, onAdd, onRemove, disabled }: ContractDriftProps) {
+    const { t } = useTranslation();
     if (!paramMeta) return null;
     const declared = Object.keys(paramMeta);
     const missing = declared.filter((name) => !mapped.includes(name));
@@ -47,7 +45,7 @@ export function ContractDrift({ paramMeta, mapped, onAdd, onRemove, disabled }: 
             {missing.length ? (
                 <div className="flex flex-wrap items-center gap-1.5">
                     <span className="text-[11px] text-[var(--text-primary)]">
-                        The automation also expects:
+                        {t('studio_apps_insp.mapping.also_expects', 'The automation also expects:')}
                     </span>
                     {missing.map((name) => (
                         <button
@@ -56,7 +54,7 @@ export function ContractDrift({ paramMeta, mapped, onAdd, onRemove, disabled }: 
                             onClick={() => onAdd(name)}
                             disabled={disabled}
                             className="px-1.5 py-0.5 rounded text-[11px] font-mono border border-[var(--border-default)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)]"
-                            title={paramMeta[name].required ? 'Required by the automation' : 'Optional'}
+                            title={paramMeta[name].required ? t('studio_apps_insp.mapping.required_by_automation', 'Required by the automation') : t('studio_apps_insp.mapping.optional', 'Optional')}
                         >
                             + {name}{paramMeta[name].required ? ' *' : ''}
                         </button>
@@ -66,7 +64,7 @@ export function ContractDrift({ paramMeta, mapped, onAdd, onRemove, disabled }: 
             {extra.length ? (
                 <div className="flex flex-wrap items-center gap-1.5">
                     <span className="text-[11px] text-[var(--text-primary)]">
-                        The automation no longer takes:
+                        {t('studio_apps_insp.mapping.no_longer_takes', 'The automation no longer takes:')}
                     </span>
                     {extra.map((name) => (
                         <button
@@ -75,7 +73,7 @@ export function ContractDrift({ paramMeta, mapped, onAdd, onRemove, disabled }: 
                             onClick={() => onRemove(name)}
                             disabled={disabled}
                             className="px-1.5 py-0.5 rounded text-[11px] font-mono border border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--error)] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)]"
-                            title="Sent, and ignored"
+                            title={t('studio_apps_insp.mapping.sent_ignored', 'Sent, and ignored')}
                         >
                             {name} ✕
                         </button>
@@ -113,6 +111,11 @@ export function MappingRow({
     param, mapping, formFields, onChange, onRename, onRemove, disabled,
     paramMeta = null, takenNames = [],
 }: MappingRowProps) {
+    const { t } = useTranslation();
+    const mappingModes = [
+        { value: 'field', label: t('studio_apps_insp.mapping.mode_field', 'Form field') },
+        { value: 'static', label: t('studio_apps_insp.mapping.mode_static', 'Static') },
+    ];
     // The name is typed locally: renaming onto another parameter would drop
     // that parameter's mapping, so a clashing draft is shown but not committed.
     const [draftName, setDraftName] = useState(param);
@@ -139,10 +142,10 @@ export function MappingRow({
                         setDraftName(next);
                         if (next.trim() && !takenNames.includes(next)) onRename(next);
                     }}
-                    placeholder="Parameter"
+                    placeholder={t('studio_apps_insp.mapping.parameter_placeholder', 'Parameter')}
                     disabled={disabled}
                     spellCheck={false}
-                    aria-label="Parameter name"
+                    aria-label={t('studio_apps_insp.mapping.parameter_name_aria', 'Parameter name')}
                 />
                 {paramMeta ? (
                     <span
@@ -152,15 +155,15 @@ export function MappingRow({
                         {paramMeta.type}{paramMeta.required ? '*' : ''}
                     </span>
                 ) : null}
-                <IconButton ariaLabel={`Remove parameter ${param}`} onClick={onRemove} disabled={disabled} variant="danger" size="sm">
+                <IconButton ariaLabel={t('studio_apps_insp.mapping.remove_parameter', 'Remove parameter {param}', { param })} onClick={onRemove} disabled={disabled} variant="danger" size="sm">
                     <X />
                 </IconButton>
             </div>
             {clash ? (
                 <p className="text-xs text-rose-500">
                     {draftName.trim()
-                        ? `There is already a parameter called “${draftName}” — pick another name.`
-                        : 'A parameter needs a name.'}
+                        ? t('studio_apps_insp.mapping.name_taken', 'There is already a parameter called “{name}” — pick another name.', { name: draftName })
+                        : t('studio_apps_insp.mapping.name_required', 'A parameter needs a name.')}
                 </p>
             ) : null}
             {!isFile && (
@@ -172,11 +175,11 @@ export function MappingRow({
                             ? { kind: 'field', name: fieldNames[0] || '' }
                             : { kind: 'static', value: '' });
                     }}
-                    options={MAPPING_MODES}
+                    options={mappingModes}
                     size="sm"
                     fullWidth
                     disabled={disabled}
-                    ariaLabel={`${param} source`}
+                    ariaLabel={t('studio_apps_insp.mapping.source_aria', '{param} source', { param })}
                 />
             )}
             {mode === 'field' ? (
@@ -186,23 +189,23 @@ export function MappingRow({
                         value={mapping?.name || ''}
                         onChange={(e) => onChange({ kind: 'field', name: e.target.value })}
                         disabled={disabled}
-                        aria-label={`${param} form field`}
+                        aria-label={t('studio_apps_insp.mapping.form_field_aria', '{param} form field', { param })}
                     >
-                        <option value="">Pick a field…</option>
+                        <option value="">{t('studio_apps_insp.mapping.pick_field', 'Pick a field…')}</option>
                         {fieldNames.map((n) => <option key={n} value={n}>{n}</option>)}
                     </select>
                 ) : isFile ? (
-                    <p className="text-xs text-[var(--text-tertiary)]">Add a File upload input to this form to feed this parameter.</p>
+                    <p className="text-xs text-[var(--text-tertiary)]">{t('studio_apps_insp.mapping.add_file_input', 'Add a File upload input to this form to feed this parameter.')}</p>
                 ) : (
                     <input
                         type="text"
                         className={INPUT_CLS}
                         value={mapping?.name || ''}
                         onChange={(e) => onChange({ kind: 'field', name: e.target.value })}
-                        placeholder="Field name (no enclosing form found)"
+                        placeholder={t('studio_apps_insp.mapping.field_name_placeholder', 'Field name (no enclosing form found)')}
                         disabled={disabled}
                         spellCheck={false}
-                        aria-label={`${param} form field name`}
+                        aria-label={t('studio_apps_insp.mapping.form_field_name_aria', '{param} form field name', { param })}
                     />
                 )
             ) : (
@@ -211,13 +214,13 @@ export function MappingRow({
                     className={INPUT_CLS}
                     value={mapping?.value ?? ''}
                     onChange={(e) => onChange({ kind: 'static', value: e.target.value })}
-                    placeholder={paramMeta?.type === 'array' || paramMeta?.type === 'object' ? 'JSON value, e.g. [] / {}' : 'Value'}
+                    placeholder={paramMeta?.type === 'array' || paramMeta?.type === 'object' ? t('studio_apps_insp.mapping.json_placeholder', 'JSON value, e.g. [] / {}') : t('studio_apps_insp.mapping.value_placeholder', 'Value')}
                     disabled={disabled}
-                    aria-label={`${param} static value`}
+                    aria-label={t('studio_apps_insp.mapping.static_value_aria', '{param} static value', { param })}
                 />
             )}
             {isFile && selectedField?.multiple ? (
-                <p className="text-xs text-amber-600">This automation expects a single file — a multi-file input sends only the first.</p>
+                <p className="text-xs text-amber-600">{t('studio_apps_insp.mapping.single_file', 'This automation expects a single file — a multi-file input sends only the first.')}</p>
             ) : null}
         </div>
     );

@@ -1,91 +1,50 @@
-// Invite a person or a group into a project (owner only).
+// Invite a person or a group into a project by typing a name.
 //
-// Listing the organisation's users and groups is an admin permission. For an
-// owner without it the directory answers 403, and the picker becomes a plain
-// id field: invite still works, it just cannot show names.
+// The picker searches the project's own organisation on the server (two
+// characters or more) and never shows an e-mail address. Whoever may invite
+// (the owner, and editors while the project allows it) sees this form; a 403
+// from the search means the caller may not, and the form says so quietly.
 
-import { UserPlus } from 'lucide-react';
+import { UserPlus, X } from 'lucide-react';
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { useInviteMember, type ProjectMembers } from '../../../api/queries/projects';
+import { ApiError } from '../../../api/client';
+import type { Principal } from '../../../api/queries/automation/people';
+import { useInviteMember, useProjectPrincipals, type ProjectMembers } from '../../../api/queries/projects';
 import useTranslation from '../../../hooks/useTranslation';
-import SegmentedControl from '../../shared/SegmentedControl';
+import PrincipalPicker, { PrincipalAvatar, principalDetail } from '../../automation/Builder/settings/PrincipalPicker';
 import { projectErrorText } from './projectErrorText';
-import { useDirectoryGroups, useDirectoryUsers } from './homeQueries';
-import { ErrorText, INPUT_CLASS, PrimaryButton, SELECT_CLASS } from './workspaceUi';
+import { ErrorText, GhostButton, PrimaryButton, SELECT_CLASS } from './workspaceUi';
 
-type InviteType = 'user' | 'group';
 type InvitePermission = 'editor' | 'viewer';
 
-const UUID_RX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-interface PickerOption { id: string; label: string }
-
-/** Directory entries that are not in the project yet, or null when the directory is closed to the caller. */
-function useCandidates(type: InviteType, members: ProjectMembers | undefined): { options: PickerOption[] | null; loading: boolean } {
-    const users = useDirectoryUsers(true);
-    const groups = useDirectoryGroups(true);
-    return useMemo(() => {
-        // The server refuses anybody outside the project's organisation, so the picker does not offer them.
-        // Without the project's organisation (an older server) nothing is filtered out.
-        const org = members?.organizationId;
-        const inOrg = (e: { organizationId?: string }) => org === undefined || (e.organizationId || '') === org;
-        const taken = new Set((members?.members || []).filter((m) => m.sharedWithType === type).map((m) => m.sharedWithId));
-        if (type === 'user') {
-            if (members?.ownerId) taken.add(members.ownerId);
-            if (users.isPending) return { options: [], loading: true };
-            if (!users.data) return { options: null, loading: false };
-            return {
-                options: users.data.filter((u) => !taken.has(u.id) && inOrg(u)).map((u) => ({ id: u.id, label: u.email && u.email !== u.name ? `${u.name} (${u.email})` : u.name })),
-                loading: false,
-            };
-        }
-        if (groups.isPending) return { options: [], loading: true };
-        if (!groups.data) return { options: null, loading: false };
-        return { options: groups.data.filter((g) => !taken.has(g.id) && inOrg(g)).map((g) => ({ id: g.id, label: g.name })), loading: false };
-    }, [type, members, users.isPending, users.data, groups.isPending, groups.data]);
+/** `type:id` of everybody already in the project, so the picker does not offer them. */
+function takenKeys(members: ProjectMembers | undefined): Set<string> {
+    const taken = new Set<string>((members?.members || []).map((m) => `${m.sharedWithType}:${m.sharedWithId}`));
+    if (members?.ownerId) taken.add(`user:${members.ownerId}`);
+    return taken;
 }
 
-function SubjectPicker({ type, options, loading, value, onChange, inputRef }: {
-    type: InviteType;
-    options: PickerOption[] | null;
-    loading: boolean;
-    value: string;
-    onChange: (v: string) => void;
-    inputRef: React.RefObject<HTMLInputElement & HTMLSelectElement | null>;
-}) {
+function ChosenPrincipal({ principal, onClear }: { principal: Principal; onClear: () => void }) {
     const { t } = useTranslation();
-    const label = type === 'user'
-        ? t('project_home.members.pick_user', 'Person')
-        : t('project_home.members.pick_group', 'Group');
-    if (options === null) {
-        return (
-            <input
-                ref={inputRef}
-                value={value}
-                onChange={(e) => onChange(e.target.value)}
-                aria-label={type === 'user' ? t('project_home.members.user_id', 'User id') : t('project_home.members.group_id', 'Group id')}
-                placeholder={t('project_home.members.id_placeholder', 'Paste the id (you cannot list the directory)')}
-                className={`${INPUT_CLASS} h-8 py-1`}
-                data-testid="member-invite-id"
-            />
-        );
-    }
     return (
-        <select
-            ref={inputRef}
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            aria-label={label}
-            disabled={loading}
-            className={`${SELECT_CLASS} w-full`}
-            data-testid="member-invite-picker"
-        >
-            <option value="">
-                {loading ? t('project_home.loading', 'Loading…') : t('project_home.members.choose', 'Choose…')}
-            </option>
-            {options.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
-        </select>
+        <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)]" data-testid="member-invite-chosen">
+            <PrincipalAvatar principal={principal} />
+            <span className="min-w-0 flex-1 text-xs">
+                <span className="block truncate font-medium text-[var(--text-primary)]">{principal.name}</span>
+                <span className="block truncate text-[var(--text-tertiary)]">{principalDetail(principal, t)}</span>
+            </span>
+            <GhostButton onClick={onClear} aria-label={t('project_home.members.pick_other', 'Choose someone else')}>
+                <X className="w-3.5 h-3.5" aria-hidden="true" />
+            </GhostButton>
+        </div>
     );
+}
+
+function principalsOf(data: ReturnType<typeof useProjectPrincipals>['data']): Principal[] {
+    return [
+        ...(data?.groups || []).map((g): Principal => ({ type: 'group', id: g.id, name: g.name, detail: null, memberCount: g.memberCount })),
+        ...(data?.users || []).map((u): Principal => ({ type: 'user', id: u.id, name: u.name, detail: null, memberCount: null })),
+    ];
 }
 
 export default function MemberInviteForm({ projectId, members, focusRequest = 0 }: {
@@ -97,31 +56,40 @@ export default function MemberInviteForm({ projectId, members, focusRequest = 0 
     const { t } = useTranslation();
     const headingId = useId();
     const invite = useInviteMember(projectId);
-    const [type, setType] = useState<InviteType>('user');
-    const [subject, setSubject] = useState('');
+    const [query, setQuery] = useState('');
+    const [chosen, setChosen] = useState<Principal | null>(null);
     const [permission, setPermission] = useState<InvitePermission>('viewer');
     const [error, setError] = useState<string | null>(null);
-    const inputRef = useRef<HTMLInputElement & HTMLSelectElement | null>(null);
-    const { options, loading } = useCandidates(type, members);
+    const inputRef = useRef<HTMLInputElement | null>(null);
+    const search = useProjectPrincipals(projectId, query);
+    const taken = useMemo(() => takenKeys(members), [members]);
 
-    // Honour a focus request once the control can take focus: the picker is
-    // disabled while the directory loads, and a disabled control ignores it.
+    const principals = useMemo(() => principalsOf(search.data), [search.data]);
+
+    // Honour a focus request once the input exists.
     const focusHandled = useRef(0);
     useEffect(() => {
-        if (focusRequest <= focusHandled.current || loading || !inputRef.current) return;
+        if (focusRequest <= focusHandled.current || !inputRef.current) return;
         focusHandled.current = focusRequest;
         inputRef.current.focus();
-    }, [focusRequest, loading]);
+    }, [focusRequest, chosen]);
+
+    if (search.error instanceof ApiError && search.error.status === 403) {
+        return (
+            <p className="m-0 text-[12.5px] text-[var(--text-tertiary)]" data-testid="member-invite-owner-only">
+                {t('project_home.members.ask_owner', 'Ask the owner to invite people.')}
+            </p>
+        );
+    }
 
     const submit = async (e: React.FormEvent) => {
         e.preventDefault();
-        const id = subject.trim();
-        if (!id) { setError(t('project_home.members.pick_first', 'Choose who to invite first.')); return; }
-        if (options === null && !UUID_RX.test(id)) { setError(t('project_home.members.bad_id', 'That is not a valid id.')); return; }
+        if (!chosen) { setError(t('project_home.members.pick_first', 'Choose who to invite first.')); return; }
         setError(null);
         try {
-            await invite.mutateAsync({ sharedWithType: type, sharedWithId: id, permission });
-            setSubject('');
+            await invite.mutateAsync({ sharedWithType: chosen.type, sharedWithId: chosen.id, permission });
+            setChosen(null);
+            setQuery('');
         } catch (err) {
             setError(projectErrorText(t, err, t('project_home.members.invite_failed', 'Could not invite this member.')));
         }
@@ -129,24 +97,23 @@ export default function MemberInviteForm({ projectId, members, focusRequest = 0 
 
     return (
         <form onSubmit={submit} aria-labelledby={headingId} className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] p-3.5 space-y-3" data-testid="member-invite">
-            <div className="flex items-center justify-between gap-2 flex-wrap">
-                <h3 id={headingId} className="text-[13px] font-semibold text-[var(--text-primary)] m-0">
-                    {t('project_home.members.invite_title', 'Invite people')}
-                </h3>
-                <SegmentedControl
-                    size="sm"
-                    value={type}
-                    onChange={(v) => { setType(v); setSubject(''); setError(null); }}
-                    ariaLabel={t('project_home.members.invite_type', 'Invite a person or a group')}
-                    options={[
-                        { value: 'user', label: t('project_home.members.type_user', 'Person') },
-                        { value: 'group', label: t('project_home.members.type_group', 'Group') },
-                    ]}
-                />
-            </div>
+            <h3 id={headingId} className="text-[13px] font-semibold text-[var(--text-primary)] m-0">
+                {t('project_home.members.invite_title', 'Invite people')}
+            </h3>
             <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
                 <div className="flex-1 min-w-[12rem]">
-                    <SubjectPicker type={type} options={options} loading={loading} value={subject} onChange={setSubject} inputRef={inputRef} />
+                    {chosen ? (
+                        <ChosenPrincipal principal={chosen} onClear={() => setChosen(null)} />
+                    ) : (
+                        <PrincipalPicker
+                            inputRef={inputRef}
+                            exclude={taken}
+                            onPick={(p) => { setChosen(p); setError(null); }}
+                            label={t('project_home.members.search_label', 'Search people and groups')}
+                            placeholder={t('project_home.members.search_placeholder', 'Type a name…')}
+                            source={{ principals, loading: search.isFetching, onQuery: setQuery, minChars: 2 }}
+                        />
+                    )}
                 </div>
                 <select
                     value={permission}
@@ -163,13 +130,6 @@ export default function MemberInviteForm({ projectId, members, focusRequest = 0 
                     {t('project_home.members.invite', 'Invite')}
                 </PrimaryButton>
             </div>
-            {options === null && (
-                <p className="m-0 text-[12px] text-[var(--text-tertiary)]" data-testid="member-invite-id-help">
-                    {type === 'user'
-                        ? t('project_home.members.id_help_user', 'Only organisation admins can list people. Ask an admin for the id of the person you want to invite.')
-                        : t('project_home.members.id_help_group', 'Only organisation admins can list groups. Ask an admin for the id of the group you want to invite.')}
-                </p>
-            )}
             <ErrorText testId="member-invite-error">{error}</ErrorText>
         </form>
     );

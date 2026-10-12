@@ -9,10 +9,13 @@ import { translate as t } from '@/core/i18n';
 import { nodeDefaultLabel } from '@/features/flow-editor/model/nodeDefs';
 
 import type { FlowNode, VariableGroup } from '../types';
+import { outputFields } from './fieldTree';
 import { stepGroup } from './sampleFields';
 
+/** A tool whose sample IS a list (a root array) offers that list, with its columns, at the base path. */
 export function describeIntegration(node: FlowNode, meta: { sample?: unknown } | null | undefined): VariableGroup {
-    return stepGroup(node, { label: node.label || node.tool || node.id, kind: 'integration_action' }, meta?.sample || {});
+    const sample = meta?.sample || {};
+    return stepGroup(node, { label: node.label || node.tool || node.id, kind: 'integration_action' }, sample, outputFields(sample, `steps.${node.id}.output`));
 }
 
 /** execHttpRequest's shape; `data` is the parsed JSON body unless parsing is off. */

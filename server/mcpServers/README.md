@@ -38,7 +38,7 @@ Tools: `list_mailboxes`, `search_messages`, `read_message`, `send_message`,
 `mark_message`, `move_message`. Attachment metadata is returned; attachment bytes
 never are.
 
-Per-user credentials (Settings → Integrations):
+Per-user credentials (Settings → Connections):
 
 | Key | Meaning |
 |-----|---------|
@@ -84,7 +84,7 @@ Tools: `list_devices`, `get_device_status`, `get_device_functions`,
 Device summaries deliberately drop `local_key` (the per-device LAN secret) and
 `ip` (the household's address).
 
-Per-user credentials (Settings → Integrations):
+Per-user credentials (Settings → Connections):
 
 | Key | Meaning |
 |-----|---------|

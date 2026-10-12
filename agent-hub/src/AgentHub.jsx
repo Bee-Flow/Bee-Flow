@@ -14,19 +14,22 @@ import useProjectChatStart from './AgentHub/useProjectChatStart';
 import useSidePanelState from './AgentHub/useSidePanelState';
 import { projectKeys, useProjectsQuery } from './api/queries/projects';
 import beeFlowIcon from './assets/BeeFlow-logo-Icon-2026.svg';
+import { usesProjectRail } from './authedApp/appRoutes';
 import { describeSchedule } from './components/cowork/coworkSchedule';
 import useCoworkComposer from './components/cowork/useCoworkComposer';
 import { RequireTier, useLicenseContext } from './components/licensing/LicenseContext';
+import { ProjectLiveProvider } from './components/projects/workspace/ProjectLiveContext';
 import { toast } from './components/shared/Toast';
 import useConfirm from './components/shared/useConfirm';
 import SearchOverlay from './components/shell/SearchOverlay';
 import Sidebar from './components/shell/Sidebar';
 import { useTranslation } from './hooks/useTranslation';
 import { useViewport } from './hooks/useViewport';
+import { documentRefOf } from './pages/documents/notebookRef';
 import { lazy } from './utils/lazyWithReload';
 import scopedStorage from './utils/scopedStorage';
 import { rememberStudioItem } from './utils/studioRecents';
-import { documentRefOf } from './pages/documents/notebookRef';
+import { whenMayNavigate } from './utils/unsavedNavigation';
 
 // ── Chat-critical (eager) ────────────────────────────────────────────
 // These components are on the main chat path; deferring them costs more
@@ -48,6 +51,7 @@ const CoworkPage = lazy(() => import('./components/cowork/CoworkPage'));
 // to leave the user with no navigation but the Back button.
 const AppsHomePage = lazy(() => import('./pages/apps/AppsHomePage'));
 const FormsHomePage = lazy(() => import('./pages/forms/FormsHomePage'));
+const DocumentsPage = lazy(() => import('./pages/documents/DocumentsPage'));
 // One published form, shown inside the workspace at /app/forms/:token. The very
 // same component serves it anonymously at /f/:token — being signed in does not
 // change what the form is, only that the sidebar is still there around it.
@@ -58,7 +62,7 @@ const PublicFormPage = lazy(() => import('./pages/PublicFormPage'));
 // so closeAllOverlays() has to navigate away from it too. Keep it in sync with
 // the branch order below — adding a page above the overlays without adding it
 // here reintroduces BFSF-267 ("the sidebar item does nothing").
-const PAGES_ABOVE_OVERLAYS = ['cowork', 'apps', 'forms', 'formView'];
+const PAGES_ABOVE_OVERLAYS = ['cowork', 'documents', 'apps', 'forms', 'formView'];
 
 // One stable empty list, so a hub without projects does not hand the sidebar
 // a new array on every render.
@@ -83,6 +87,7 @@ const AgentHub = ({
     showAgentWizard = false, onCloseAgentWizard,
     showStudio = false, studioRoute = { section: 'agents', id: null }, onCloseStudio,
     initialCoworkId = null,
+    initialDocumentId = null,
     // Which published form /app/forms/:token is showing (page key 'formView').
     formViewToken = null,
     // Projects is URL-driven now. `initialProjectRoute` is null when we are not
@@ -169,8 +174,8 @@ const AgentHub = ({
     // floating drawer or scrim — the notebook simply sits to the right of
     // the chat, the way users expect a split workspace.
     const notebookWrapperClass = isCompact
-        ? "w-[420px] flex-shrink-0 flex flex-col h-full border-l border-[var(--border-subtle)] animate-in slide-in-from-right duration-300"
-        : "w-1/2 min-w-[400px] flex flex-col h-full border-l border-[var(--border-subtle)] animate-in slide-in-from-right duration-300";
+        ? "w-[min(420px,50%)] min-w-0 flex-shrink flex flex-col h-full border-l border-[var(--border-subtle)] animate-in slide-in-from-right duration-300"
+        : "w-1/2 min-w-[min(400px,50%)] flex flex-col h-full border-l border-[var(--border-subtle)] animate-in slide-in-from-right duration-300";
 
     // Feature flags
     // Simple Mode also forces notebooks off — the toggle in /settings/simple-mode
@@ -198,11 +203,24 @@ const AgentHub = ({
     // start in icon-rail mode. The user can still toggle it.
     const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 768);
     const [studioFullscreen, setStudioFullscreen] = useState(false);
+    const [showProjectsStore, setShowProjectsStore] = useState(false);
+    // null = closed, '' = create-new, otherwise an existing project id
+    const [activeProjectId, setActiveProjectId] = useState(null);
+    // Whether the project search panel is open: the rail's search pill sets it,
+    // the workspace page renders the panel.
+    const [projectSearchOpen, setProjectSearchOpen] = useState(false);
     // Collapse the main sidebar to its icon-rail whenever Studio is open OR a
     // child explicitly asks for fullscreen (legacy path used by AgentStudio's
     // edit mode). Stash the prior expanded/collapsed state so we can restore
     // it when the user navigates back out of Studio.
-    const collapseForStudio = showStudio || studioFullscreen;
+    // A project page does the same: its own rail replaces the sidebar, so the
+    // sidebar's open state is stashed and restored exactly as for Studio.
+    const projectRailActive = usesProjectRail(currentPage, showProjectsStore ? activeProjectId : null);
+    // On a phone the sidebar is an overlay and the rail never replaces it, so
+    // there is nothing to stash there.
+    const collapseForRail = showStudio || studioFullscreen || (projectRailActive && !isMobile);
+    // A search panel left open (error page, browser Back) must not outlive its project.
+    useEffect(() => { setProjectSearchOpen(false); }, [activeProjectId]);
     const sidebarOpenBeforeStudioRef = useRef(null);
     // An Effect Event: it snapshots `sidebarOpen` at the moment the flag flips,
     // and must not run again when the user toggles the sidebar inside Studio.
@@ -218,7 +236,7 @@ const AgentHub = ({
             if (restore) setSidebarOpen(true);
         }
     });
-    useEffect(() => { syncSidebarToStudio(collapseForStudio); }, [collapseForStudio]);
+    useEffect(() => { syncSidebarToStudio(collapseForRail); }, [collapseForRail]);
     const {
         notebookContent, setNotebookContent,
         notebookSelection, setNotebookSelection,
@@ -236,7 +254,7 @@ const AgentHub = ({
         webpageButtonRef, webpageButtonRefDirect,
         toggleNotebookPanel,
         openWebpageInSidePanel, closeWebpagePanel, clearWebpageSelection,
-        closeDocumentPanel,
+        openDocumentInSidePanel, closeDocumentPanel,
     } = useSidePanelState();
     // Same unified entitlements snapshot as the /api/webpages gate (hasLicenseFeature
     // now delegates to EntitlementsContext.can) — mirrors the notebooks gate above.
@@ -316,9 +334,6 @@ const AgentHub = ({
     const activeProjectLive = !activeProject ? null
         : projectsQuery.isSuccess ? (projects.find(p => p.id === activeProject.id) || null)
             : activeProject;
-    const [showProjectsStore, setShowProjectsStore] = useState(false);
-    // null = closed, '' = create-new, otherwise an existing project id
-    const [activeProjectId, setActiveProjectId] = useState(null);
 
     // The URL is the source of truth for which projects view is open. Keeping
     // these in sync one-way (route → state) means a reload, a deep link and a
@@ -343,11 +358,15 @@ const AgentHub = ({
     // The local view is set as well: the route may not change at all (the same
     // project clicked again after a chat hid the page), and then nothing else
     // would bring the page back.
-    const goToProject = useCallback((projectId, tab, sub) => {
+    const goToProject = useCallback((projectId, tab, sub) => whenMayNavigate(() => {
+        // Ask first: a cancelled "unsaved settings" prompt must leave view and
+        // URL where they are. The workspace clears its dirty flag when the
+        // reader confirms, so the host's own check afterwards passes silently.
+        setProjectSearchOpen(false);
         setShowProjectsStore(true);
         setActiveProjectId(projectId ?? null);
         if (onProjectRouteChange) onProjectRouteChange(projectId, tab, sub);
-    }, [onProjectRouteChange]);
+    }), [onProjectRouteChange]);
 
     const closeProjects = useCallback(() => {
         if (onCloseProjects) onCloseProjects();
@@ -381,7 +400,7 @@ const AgentHub = ({
     // and state ownership (AgentHub's fiber) are unchanged.
     const {
         messages, setMessages, isLoading, sendMessage, stopGenerating, retryMessage, editAndRegenerate,
-        turnConversation,
+        turnConversation, chatSignals,
         conversationStarted, handleVoiceTurnComplete,
         handleToggleSkill, agentAttachedSkillIds,
         designMode, setDesignMode,
@@ -417,6 +436,7 @@ const AgentHub = ({
         showNotebook, setShowNotebook, setNotebookLinkedId,
         setShowGammaPreview, setGammaPreview,
         sidePanelWebpageId, sidePanelWebpage, sidePanelWebpageFiles, setSidePanelWebpageFiles, setSidePanelReloadKey,
+        sidePanelDocumentId,
         attachedWebpageSelection,
         setSidebarOpen,
         setShowProjectsStore, setActiveProjectId,
@@ -536,6 +556,7 @@ const AgentHub = ({
         onNavigate,
         confirm,
         openAtLatest,
+        clearActiveProject: () => setActiveProject(null),
     });
 
     // ── Project workspace → chat ─────────────────────────────────────────
@@ -565,6 +586,15 @@ const AgentHub = ({
         ? projects.find(p => p.id === projectId) || queryClient.getQueryData(projectKeys.detail(projectId)) || null
         : null);
 
+    // Opening an existing conversation: the chat context is that conversation's
+    // OWN filing, never what the previous chat left behind. The sidebar row
+    // (`conv.project_id`, the same field the project filter and chip read) is the
+    // source: it is on the row at click time, before the conversation GET returns.
+    // No project_id means the chat is private, so the context is cleared.
+    const adoptConversationProject = (conv) => {
+        setActiveProject(projectForContext(conv?.project_id ?? conv?.projectId ?? null));
+    };
+
     // Opening a shared thread leaves the project page and lands in the chat
     // itself, with the project as the chat context so its instructions and
     // knowledge apply to whatever the member replies.
@@ -575,13 +605,15 @@ const AgentHub = ({
             return;
         }
         const project = projectForContext(activeProjectId);
-        if (project) setActiveProject(project);
         closeProjects();
         if (agent) {
             handleSelectAgent(agent);
+            // After handleSelectAgent, which clears the chat context.
+            if (project) setActiveProject(project);
             selectConversation(agent.id, thread.id);
             return;
         }
+        if (project) setActiveProject(project);
         if (!directChatMode || selectedAgent) {
             setDirectChatMode(true);
             setSelectedAgent(null);
@@ -663,6 +695,7 @@ const AgentHub = ({
 
     return (
         <Suspense fallback={<LazyFallback />}>
+        <ProjectLiveProvider projectId={showProjectsStore && activeProjectId ? activeProjectId : null} currentUserId={user?.id ?? null}>
         <div className="flex h-full bg-[var(--bg-primary)] overflow-hidden">
             {/* Sidebar */}
             <Sidebar
@@ -679,6 +712,7 @@ const AgentHub = ({
                 currentConversation={currentConversation}
                 onSelectConversation={(conv) => {
                     closeAllOverlays();
+                    adoptConversationProject(conv);
                     // Switch agent if the conversation belongs to a different one
                     if (conv.agent_id && (!selectedAgent || selectedAgent.id !== conv.agent_id)) {
                         const agent = agents.find(a => a.id === conv.agent_id);
@@ -702,6 +736,15 @@ const AgentHub = ({
                 onNavigate={(page) => { if (isMobile) setSidebarOpen(false); onNavigate(page); }}
                 currentPage={currentPage}
                 studioRoute={studioRoute}
+                projectRail={projectRailActive && activeProjectId ? {
+                    projectId: activeProjectId,
+                    tab: initialProjectRoute?.tab ?? null,
+                    onSelectTab: (tab) => goToProject(activeProjectId, tab),
+                    onBack: () => goToProject(null),
+                    onOpenProject: (id) => goToProject(id),
+                    onOpenSearch: () => setProjectSearchOpen(true),
+                    notebooksEnabled,
+                } : null}
                 showSettings={showSettings}
                 showAgentDesigner={showAgentDesigner}
                 showSkillsPanel={showSkillsPanel}
@@ -715,6 +758,7 @@ const AgentHub = ({
                     // here, so picking a direct chat from history while Studio
                     // was open updated the URL but kept the editor on screen.
                     closeAllOverlays();
+                    adoptConversationProject(conv);
                     // Ensure we're in direct chat mode
                     if (!directChatMode) {
                         setDirectChatMode(true);
@@ -738,9 +782,10 @@ const AgentHub = ({
                     goToProject(p.id);
                 }}
                 onNewChatInProject={(p) => {
-                    setActiveProject(p);
                     closeProjects();
                     handleDirectChat();
+                    // After handleDirectChat, which clears the context.
+                    setActiveProject(p);
                 }}
                 onCreateProject={() => {
                     // BFSF-267: these hand-rolled subset closes missed overlays
@@ -774,6 +819,7 @@ const AgentHub = ({
                     // Studio overlay. closeAllOverlays() is the single source of
                     // truth for this and matches the per-agent path above.
                     closeAllOverlays();
+                    adoptConversationProject(conv);
                     if (conv._source === 'direct') {
                         // Switch to direct chat mode and open the conversation
                         if (!directChatMode) {
@@ -879,9 +925,9 @@ const AgentHub = ({
                     />
                     ) : (
                         <div className="flex flex-col items-center justify-center h-full gap-3 p-8 text-center">
-                            <p className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>No access to the Agent Editor</p>
-                            <p className="text-sm max-w-md" style={{ color: 'var(--text-muted)' }}>You don't have permission to edit agents. Contact an administrator if you need access.</p>
-                            <button onClick={() => onNavigate('agents')} className="px-3 py-1.5 rounded-md text-sm font-medium" style={{ background: 'var(--accent-primary)', color: 'white' }}>Back to Agents</button>
+                            <p className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{t('app.agent_hub_no_editor_access_title', 'No access to the Agent Editor')}</p>
+                            <p className="text-sm max-w-md" style={{ color: 'var(--text-muted)' }}>{t('app.agent_hub_no_editor_access_body', "You don't have permission to edit agents. Contact an administrator if you need access.")}</p>
+                            <button onClick={() => onNavigate('agents')} className="px-3 py-1.5 rounded-md text-sm font-medium" style={{ background: 'var(--accent-primary)', color: 'white' }}>{t('agent_studio.header.back_to_agents', 'Back to Agents')}</button>
                         </div>
                     )
                 ) : showAgentWizard ? (
@@ -911,9 +957,9 @@ const AgentHub = ({
                         />
                     ) : (
                         <div className="flex flex-col items-center justify-center h-full gap-3 p-8 text-center">
-                            <p className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>No access to the Agent Editor</p>
-                            <p className="text-sm max-w-md" style={{ color: 'var(--text-muted)' }}>You don't have permission to edit agents. Contact an administrator if you need access.</p>
-                            <button onClick={() => onNavigate('agents')} className="px-3 py-1.5 rounded-md text-sm font-medium" style={{ background: 'var(--accent-primary)', color: 'white' }}>Back to Agents</button>
+                            <p className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{t('app.agent_hub_no_editor_access_title', 'No access to the Agent Editor')}</p>
+                            <p className="text-sm max-w-md" style={{ color: 'var(--text-muted)' }}>{t('app.agent_hub_no_editor_access_body', "You don't have permission to edit agents. Contact an administrator if you need access.")}</p>
+                            <button onClick={() => onNavigate('agents')} className="px-3 py-1.5 rounded-md text-sm font-medium" style={{ background: 'var(--accent-primary)', color: 'white' }}>{t('agent_studio.header.back_to_agents', 'Back to Agents')}</button>
                         </div>
                     )
                 ) : currentPage === 'cowork' ? (
@@ -924,6 +970,13 @@ const AgentHub = ({
                        every overlay flag for a top-level page, so there's no
                        separate `showCowork` boolean to keep in sync. */
                     <CoworkPage user={user} isMobile={isMobile} initialCoworkId={initialCoworkId} onNavigate={onNavigate} />
+                ) : currentPage === 'documents' ? (
+                    <DocumentsPage
+                        mode="workspace"
+                        user={user}
+                        initialDocumentId={initialDocumentId}
+                        onDocumentChange={(id) => onNavigate(id ? `documents/${id}` : 'documents')}
+                    />
                 ) : currentPage === 'apps' ? (
                     /* Published-apps directory (/app/apps). Same inline slot as
                        Cowork, for the same reason: the sidebar stays. Tiles
@@ -940,9 +993,10 @@ const AgentHub = ({
                             {/* This slot only ever renders inside the authenticated
                                 workspace (App.jsx redirects /f/<token> here before
                                 the page mounts), so `user` being set IS "signed in".
-                                Gates the closing page's "Save to Notebook" button —
-                                see the prop's own doc comment in PublicFormPage. */}
-                            <PublicFormPage token={formViewToken} authenticated={!!user} />
+                                Gates the closing page's server-side result actions
+                                (Word/PDF, Notebook, Webpage) — see the props' own
+                                doc comment in PublicFormPage. */}
+                            <PublicFormPage token={formViewToken} authenticated={!!user} webpagesEnabled={canUseWebpagesSide} />
                         </div>
                     </div>
                 ) : showSkillsPanel ? (
@@ -999,6 +1053,8 @@ const AgentHub = ({
                         onNavigate={onNavigate}
                         onStartChat={startProjectChat}
                         notebooksEnabled={notebooksEnabled}
+                        searchOpen={projectSearchOpen}
+                        onSearchOpenChange={setProjectSearchOpen}
                     />
                 ) : selectedAgent ? (
                     <AgentChatView
@@ -1018,8 +1074,9 @@ const AgentHub = ({
                         conversationStarted={conversationStarted}
                         notebooksEnabled={notebooksEnabled}
                         inCoworkMode={inCoworkMode}
-                        toggleNotebookPanel={toggleNotebookPanel}
-                        showNotebook={showNotebook}
+                        sidePanelDocumentId={sidePanelDocumentId}
+                        openDocumentInSidePanel={openDocumentInSidePanel}
+                        closeDocumentPanel={closeDocumentPanel}
                         canUseWebpagesSide={canUseWebpagesSide}
                         webpageButtonRef={webpageButtonRef}
                         sidePanelWebpageId={sidePanelWebpageId}
@@ -1049,6 +1106,7 @@ const AgentHub = ({
                         activeProject={activeProjectLive}
                         onOpenActiveProject={openActiveProject}
                         onLeaveActiveProject={() => setActiveProject(null)}
+                        chatSignals={chatSignals}
                     />
                 ) : directChatMode ? (
                     /* Direct Chat Mode */
@@ -1061,8 +1119,9 @@ const AgentHub = ({
                         coworkMode={coworkMode}
                         setCoworkMode={setCoworkMode}
                         inCoworkMode={inCoworkMode}
-                        toggleNotebookPanel={toggleNotebookPanel}
-                        showNotebook={showNotebook}
+                        sidePanelDocumentId={sidePanelDocumentId}
+                        openDocumentInSidePanel={openDocumentInSidePanel}
+                        closeDocumentPanel={closeDocumentPanel}
                         canUseWebpagesSide={canUseWebpagesSide}
                         webpageButtonRefDirect={webpageButtonRefDirect}
                         sidePanelWebpageId={sidePanelWebpageId}
@@ -1102,22 +1161,23 @@ const AgentHub = ({
                         activeProject={activeProjectLive}
                         onOpenActiveProject={openActiveProject}
                         onLeaveActiveProject={() => setActiveProject(null)}
+                        chatSignals={chatSignals}
                     />
                 ) : (
                     /* No Agent Selected - Empty State */
                     <div className="flex-1 flex flex-col items-center justify-center p-8">
-                        <img src={beeFlowIcon} alt="Bee Flow" className="w-24 h-24 rounded-2xl object-contain mb-6 shadow-xl" />
+                        <img src={beeFlowIcon} alt={t('app.agent_hub_logo_alt', 'Bee Flow')} className="w-24 h-24 rounded-2xl object-contain mb-6 shadow-xl" />
                         <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-2">
-                            Welcome to Bee Flow
+                            {t('app.agent_hub_welcome_title', 'Welcome to Bee Flow')}
                         </h1>
                         <p className="text-[var(--text-secondary)] text-center max-w-md mb-8">
-                            Select an agent from the marketplace to start chatting, or create your own custom AI assistant.
+                            {t('app.agent_hub_welcome_body', 'Select an agent from the marketplace to start chatting, or create your own custom AI assistant.')}
                         </p>
                         <button
                             onClick={() => { if (onCloseSettings) onCloseSettings(); if (onCloseAgentDesigner) onCloseAgentDesigner(); setShowMarketplace(true); }}
                             className="flex items-center gap-2 px-6 py-3 bg-[var(--accent-primary)] hover:bg-[var(--accent-primary-hover)] text-white rounded-xl font-medium shadow-lg transition-all hover:scale-105"
                         >
-                            Browse Agents
+                            {t('app.agent_hub_browse_agents', 'Browse Agents')}
                         </button>
                     </div>
                 )}
@@ -1149,6 +1209,7 @@ const AgentHub = ({
             }
             {confirmDialog}
         </div >
+        </ProjectLiveProvider>
         </Suspense>
     );
 };

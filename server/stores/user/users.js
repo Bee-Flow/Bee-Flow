@@ -103,7 +103,7 @@ async function getAllUsers() {
                "avatarType", role, groups, "orgRole", "organizationId",
                "ssoEncryptionSetup", "passwordResetRequired",
                "dekUnwrapFailures", "dekLockoutUntil", "kdfMode", "createdAt",
-               status, "activeIconPackId", "azureUserId",
+               status, "activeIconPackId", "azureUserId", "azureTenantId",
                "nc_uid", "provider", "auto_provisioned",
                mfa_enabled, last_seen_at
         FROM users
@@ -236,8 +236,8 @@ async function createUser(userData) {
     try {
         const mwDek = userData.masterWrappedDEK ? (typeof userData.masterWrappedDEK === 'string' ? userData.masterWrappedDEK : JSON.stringify(userData.masterWrappedDEK)) : null;
         const wDek = userData.wrappedDEK ? (typeof userData.wrappedDEK === 'string' ? userData.wrappedDEK : JSON.stringify(userData.wrappedDEK)) : null;
-        await run(`INSERT INTO users (id, username, "displayName", "firstName", "lastName", email, phone, avatar, "avatarType", "passwordHash", role, groups, "masterWrappedDEK", "wrappedDEK", "orgRole", "organizationId", "createdAt", status, "azureUserId", "nc_uid", "provider", "auto_provisioned", password_changed_at)
-            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)`,
+        await run(`INSERT INTO users (id, username, "displayName", "firstName", "lastName", email, phone, avatar, "avatarType", "passwordHash", role, groups, "masterWrappedDEK", "wrappedDEK", "orgRole", "organizationId", "createdAt", status, "azureUserId", "nc_uid", "provider", "auto_provisioned", password_changed_at, "azureTenantId")
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)`,
             [id, username, displayName || username, firstName || null, lastName || null, email || null, phone || null,
                 avatar || null, avatarType || null, passwordHash, role || 'user',
                 JSON.stringify(groups || []), mwDek, wDek, orgRole || '', organizationId || '',
@@ -247,7 +247,7 @@ async function createUser(userData) {
                 // now; one provisioned without one (SSO) keeps NULL = unknown.
                 // "createdAt" cannot stand in for this — it is a date-only TEXT
                 // column and it never moves when the password later changes.
-                isNewCredential(userData) ? new Date() : null]);
+                isNewCredential(userData) ? new Date() : null, userData.azureTenantId || null]);
         return true;
     } catch (e) { log.error(e); return false; }
 }
@@ -385,6 +385,28 @@ async function assertNotStageRunAs(userId, opts = {}) {
     if (stages.length > 0) throw stageRunAsError(stages);
 }
 
+/**
+ * CMS MCP upload tickets are config rows `cms_mcp_upload_<id>` holding plain
+ * JSON that names the user. They are few and short-lived, so no timer sweeps
+ * them; a user deletion just removes the ones that name that user. The prefix
+ * mirrors cms/mcp/uploadTickets.js KEY_PREFIX (stores/ may not require a feature).
+ *
+ * @param {string} userId
+ * @param {{ listKeysWithPrefix: Function, getConfigFresh: Function, deleteConfig: Function }} [configStore]
+ * @returns {Promise<number>} rows removed
+ */
+async function eraseCmsUploadTickets(userId, configStore = require('../configStore')) {
+    let removed = 0;
+    for (const key of await configStore.listKeysWithPrefix('cms_mcp_upload_')) {
+        const ticket = await configStore.getConfigFresh(key);
+        if (ticket && typeof ticket === 'object' && ticket.userId === userId) {
+            await configStore.deleteConfig(key);
+            removed++;
+        }
+    }
+    return removed;
+}
+
 async function deleteUser(userId) {
     await initDB();
     // Before anything is dropped: an account that runs a Solution stage stays.
@@ -426,9 +448,20 @@ async function deleteUser(userId) {
             `learning_progress_user_${userId}`, `learning_exercises_user_${userId}`,
             `learning_certificate_user_${userId}`, `learning_intro_migrated_user_${userId}`,
             `has_seen_intro_tour_user_${userId}`,
+            // Legacy MCP server token and its revocation marker.
+            `mcp_server_token_user_${userId}`, `mcp_server_token_user_${userId}_revoked`,
         ];
         for (const key of configKeys) await configStore.deleteConfig(key);
     } catch (e) { log.error('[UserStore] Failed to clean user config keys:', e.message); }
+
+    // Named MCP tokens. No FK to users, so they go explicitly.
+    try {
+        await run('DELETE FROM mcp_tokens WHERE user_id = $1', [userId]);
+    } catch (e) { log.error('[UserStore] Failed to delete MCP tokens:', e.message); }
+
+    try {
+        await eraseCmsUploadTickets(userId);
+    } catch (e) { log.error('[UserStore] Failed to delete CMS upload tickets:', e.message); }
 
     // Notebooks. These were missed entirely: deleting a user left their
     // notebooks, sources, version snapshots, uploaded file blobs, derived
@@ -468,6 +501,8 @@ async function deleteUser(userId) {
     // Art. 17 request and the answer turns out to be untrue.
     try { await run('DELETE FROM message_feedback WHERE user_id = $1', [userId]); } catch (e) { /* table may not exist */ }
     try { await run('DELETE FROM ai_usage_log WHERE user_id = $1', [userId]); } catch (e) { /* table may not exist */ }
+    // Their "Don't count my chat turns" choice (chat signals, Art. 21).
+    try { await run('DELETE FROM chat_signal_objections WHERE user_id = $1', [userId]); } catch (e) { /* table may not exist */ }
     // "Find repeating work": scans derived from this person's own mail, files
     // and ledger, and their feedback on them.
     await eraseSuggestionTraces(userId);
@@ -653,7 +688,7 @@ async function updateUser(userId, updates) {
         recoveryUnwrapFailures: 'recoveryUnwrapFailures', recoveryLockoutUntil: 'recoveryLockoutUntil',
         orgWrappedDEK: 'orgWrappedDEK',
         opaqueRecord: 'opaqueRecord', kdfMode: 'kdfMode',
-        status: 'status', activeIconPackId: 'activeIconPackId', azureUserId: 'azureUserId',
+        status: 'status', activeIconPackId: 'activeIconPackId', azureUserId: 'azureUserId', azureTenantId: 'azureTenantId',
         ncUid: 'nc_uid', provider: 'provider', autoProvisioned: 'auto_provisioned',
         // MFA (TOTP) + self-service password reset
         mfaEnabled: 'mfa_enabled', mfaSecret: 'mfa_secret', mfaEnrolledAt: 'mfa_enrolled_at',
@@ -802,7 +837,7 @@ async function createUserWithSeatCheck(userData, { strict = true } = {}) {
             userData.azureUserId || null, userData.ncUid || null,
             userData.provider || null, userData.autoProvisioned ? true : false,
             // Same rule as createUser — see the note there.
-            isNewCredential(userData) ? new Date() : null,
+            isNewCredential(userData) ? new Date() : null, userData.azureTenantId || null,
         ];
     })();
 
@@ -841,8 +876,8 @@ async function createUserWithSeatCheck(userData, { strict = true } = {}) {
             }
 
             await client.query(
-                `INSERT INTO users (id, username, "displayName", "firstName", "lastName", email, phone, avatar, "avatarType", "passwordHash", role, groups, "masterWrappedDEK", "wrappedDEK", "orgRole", "organizationId", "createdAt", status, "azureUserId", "nc_uid", "provider", "auto_provisioned", password_changed_at)
-                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)`,
+                `INSERT INTO users (id, username, "displayName", "firstName", "lastName", email, phone, avatar, "avatarType", "passwordHash", role, groups, "masterWrappedDEK", "wrappedDEK", "orgRole", "organizationId", "createdAt", status, "azureUserId", "nc_uid", "provider", "auto_provisioned", password_changed_at, "azureTenantId")
+                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)`,
                 insertParams
             );
             await client.query('COMMIT');
@@ -875,7 +910,7 @@ async function createUserWithSeatCheck(userData, { strict = true } = {}) {
 module.exports = {
     getAllUsers, getAllUserAvatars, getUserAvatarsByIds, getOrgMembersForDirectory,
     getUser, getUserByEmail, getUserByPasswordResetToken, getUserByEmailVerificationToken,
-    createUser, updateUser, deleteUser, eraseSuggestionTraces, getUserByNcUid, findOrgMemberIdByEmail,
+    createUser, updateUser, deleteUser, eraseSuggestionTraces, eraseCmsUploadTickets, getUserByNcUid, findOrgMemberIdByEmail,
     stagesRunBy, assertNotStageRunAs,
     createUserWithSeatCheck, SeatCapExceededError,
     touchLastSeen, isNewCredential,

@@ -34,7 +34,7 @@ export function WorkspaceLocalesGroup({
     return (
         <Group title={t('settings.interface_language', 'Interface Language')} footer={footer}>
             <OptionRow
-                label={t('mobile.settings.language_auto', 'Automatic')}
+                label={t('automations.line_color_panel.automatic', 'Automatic')}
                 description={t('mobile.settings.language_auto_hint', "Your organisation's language, else your phone's ({device})", { device: deviceName })}
                 selected={preference === null}
                 onPress={() => onChoose(null)}

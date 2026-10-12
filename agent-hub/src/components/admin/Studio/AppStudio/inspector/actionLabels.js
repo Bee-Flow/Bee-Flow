@@ -13,45 +13,69 @@
  * "Run automation" unqualified, which still beats an opaque id.
  */
 
-export function describeAction(id, action, definition, titleFor = null) {
+// `t` is the translate function of the caller; callers that have none get the
+// English text, with `{name}` placeholders filled in.
+const plainEnglish = (_key, en, params) => (
+    params ? en.replace(/\{(\w+)\}/g, (m, name) => (name in params ? String(params[name]) : m)) : en
+);
+
+export function describeAction(id, action, definition, titleFor = null, t = plainEnglish) {
     switch (action?.kind) {
         case 'run_automation': {
             const title = typeof titleFor === 'function' ? titleFor(action.automationId) : null;
-            return title ? `Run automation — ${title}` : 'Run automation';
+            return title
+                ? t('studio_apps_insp.labels.run_automation_titled', 'Run automation — {title}', { title })
+                : t('studio_apps_insp.labels.run_automation', 'Run automation');
         }
         case 'navigate': {
             const screen = (definition?.screens || []).find((s) => s.id === action.screenId);
-            return `Go to ${screen?.name || 'screen'}`;
+            return t('studio_apps_insp.labels.go_to', 'Go to {screen}', {
+                screen: screen?.name || t('studio_apps_insp.labels.screen_fallback', 'screen'),
+            });
         }
         case 'toast': {
             const msg = (action.message || '').slice(0, 24);
-            return msg ? `Show a message: “${msg}”` : 'Show a message';
+            return msg
+                ? t('studio_apps_insp.labels.show_message_with', 'Show a message: “{message}”', { message: msg })
+                : t('studio_apps_insp.labels.show_message', 'Show a message');
         }
         case 'open_url':
-            return action.url ? `Open ${action.url}` : 'Open a web page';
+            return action.url
+                ? t('studio_apps_insp.labels.open_url_with', 'Open {url}', { url: action.url })
+                : t('studio_apps_insp.labels.open_web_page', 'Open a web page');
         case 'open_modal':
         case 'close_modal': {
-            const label = action.kind === 'open_modal' ? 'Open' : 'Close';
+            const opening = action.kind === 'open_modal';
             const modal = findModal(definition, action.modalId);
-            return modal ? `${label} the “${modal}” dialog` : `${label} a dialog`;
+            if (opening) {
+                return modal
+                    ? t('studio_apps_insp.labels.open_dialog_named', 'Open the “{name}” dialog', { name: modal })
+                    : t('studio_apps_insp.labels.open_dialog', 'Open a dialog');
+            }
+            return modal
+                ? t('studio_apps_insp.labels.close_dialog_named', 'Close the “{name}” dialog', { name: modal })
+                : t('studio_apps_insp.labels.close_dialog', 'Close a dialog');
         }
         case 'sequence': {
             const n = Array.isArray(action.steps) ? action.steps.length : 0;
-            return n ? `A flow of ${n} step${n === 1 ? '' : 's'}` : 'A flow';
+            if (!n) return t('studio_apps_insp.labels.flow', 'A flow');
+            return n === 1
+                ? t('studio_apps_insp.labels.flow_one_step', 'A flow of {count} step', { count: n })
+                : t('studio_apps_insp.labels.flow_steps', 'A flow of {count} steps', { count: n });
         }
         case 'send_email':
-            return 'Send an e-mail';
+            return t('studio_apps_insp.labels.send_email', 'Send an e-mail');
         // No table NAME here on purpose: the tables live behind a fetch, not in
         // the definition, so this module cannot resolve one. "Add a row to
         // tbl_7f2a" would be worse than saying less.
         case 'create_record':
-            return 'Add a row';
+            return t('studio_apps_insp.labels.add_row', 'Add a row');
         case 'ai_extract':
-            return 'AI · extract from document';
+            return t('studio_apps_insp.labels.ai_extract', 'AI · extract from document');
         case 'ai_generate':
-            return 'AI · generate / summarize';
+            return t('studio_apps_insp.labels.ai_generate', 'AI · generate / summarize');
         case 'kb_query':
-            return 'AI · search knowledge base';
+            return t('studio_apps_insp.labels.ai_kb_query', 'AI · search knowledge base');
         default:
             // An id is a poor label, but it is the only true one for a kind this
             // build does not know — and saying so is better than showing blank.
@@ -77,11 +101,11 @@ function findModal(definition, modalId) {
 }
 
 /** `[{ id, label }]` for every action in the app — the shape a <select> wants. */
-export function actionOptions(definition, titleFor = null) {
+export function actionOptions(definition, titleFor = null, t = undefined) {
     const actions = definition?.actions && typeof definition.actions === 'object' ? definition.actions : {};
     return Object.entries(actions).map(([id, action]) => ({
         id,
-        label: describeAction(id, action, definition, titleFor),
+        label: describeAction(id, action, definition, titleFor, t),
     }));
 }
 

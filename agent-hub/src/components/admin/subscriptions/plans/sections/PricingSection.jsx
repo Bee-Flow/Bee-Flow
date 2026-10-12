@@ -1,13 +1,15 @@
-import React from 'react';
 import { Euro, TrendingUp, Info, Users } from 'lucide-react';
+import React from 'react';
+import { useTranslation } from '../../../../../hooks/useTranslation';
+import { CURRENCY_SYMBOL } from '../../constants';
+import { Banner } from '../../ui/Banner';
+import { ChoiceCards } from '../../ui/Choice';
 import { Field, Input, Select, NumberInput } from '../../ui/Input';
 import { LimitField } from '../../ui/LimitField';
-import { ChoiceCards } from '../../ui/Choice';
-import { Banner } from '../../ui/Banner';
 import { Toggle } from '../../ui/Toggle';
-import { CURRENCY_SYMBOL } from '../../constants';
 
 export function PricingSection({ form, update }) {
+    const { t } = useTranslation();
     const sym = CURRENCY_SYMBOL[form.currency] || '€';
     const metered = form.billing_model === 'metered';
     const isOrg = (form.plan_type || 'organization') === 'organization';
@@ -16,11 +18,11 @@ export function PricingSection({ form, update }) {
     return (
         <div className="space-y-5">
             <div>
-                <h3 className="text-[15px] font-bold text-[var(--text-primary)] mb-1">Pricing &amp; billing</h3>
-                <p className="text-[12px] text-[var(--text-muted)]">Configuration that's pushed to Stripe when you sync.</p>
+                <h3 className="text-[15px] font-bold text-[var(--text-primary)] mb-1">{t('admin_subscriptions.pricing_title', 'Pricing & billing')}</h3>
+                <p className="text-[12px] text-[var(--text-muted)]">{t('admin_subscriptions.pricing_desc', "Configuration that's pushed to Stripe when you sync.")}</p>
             </div>
 
-            <Field label="Billing model">
+            <Field label={t('admin_subscriptions.pricing_model', 'Billing model')}>
                 <ChoiceCards
                     value={form.billing_model}
                     onChange={v => {
@@ -28,8 +30,8 @@ export function PricingSection({ form, update }) {
                         if (v === 'metered') update('per_seat', false);
                     }}
                     options={[
-                        { value: 'fixed',   label: 'Fixed monthly',  description: 'Flat recurring price',         icon: Euro,        accent: 'blue' },
-                        { value: 'metered', label: 'Pay-as-you-go',  description: 'Per-call usage + markup %',    icon: TrendingUp,  accent: 'emerald' },
+                        { value: 'fixed',   label: t('admin_subscriptions.pricing_fixed', 'Fixed monthly'), description: t('admin_subscriptions.pricing_fixed_desc', 'Flat recurring price'), icon: Euro,        accent: 'blue' },
+                        { value: 'metered', label: t('admin_subscriptions.pricing_metered', 'Pay-as-you-go'), description: t('admin_subscriptions.pricing_metered_desc', 'Per-call usage + markup %'), icon: TrendingUp,  accent: 'emerald' },
                     ]}
                 />
             </Field>
@@ -38,26 +40,26 @@ export function PricingSection({ form, update }) {
                 <Toggle
                     checked={!!form.per_seat}
                     onChange={v => update('per_seat', v)}
-                    label="Bill per seat"
-                    description="When enabled, the price above is per active user per month. Stripe is invoiced with quantity = seat count."
+                    label={t('admin_subscriptions.pricing_per_seat', 'Bill per seat')}
+                    description={t('admin_subscriptions.pricing_per_seat_desc', 'When enabled, the price above is per active user per month. Stripe is invoiced with quantity = seat count.')}
                     icon={Users}
                 />
             )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
                 {!metered && (
-                    <Field label={perSeat ? `Price per seat (${sym})` : 'Price'} hint={perSeat ? 'Billed monthly × active seat count' : null}>
+                    <Field label={perSeat ? t('admin_subscriptions.pricing_price_seat', 'Price per seat ({sym})', { sym }) : t('admin_subscriptions.pricing_price', 'Price')} hint={perSeat ? t('admin_subscriptions.pricing_price_seat_hint', 'Billed monthly × active seat count') : null}>
                         <NumberInput
                             value={form.price}
                             onChange={v => update('price', v)}
-                            placeholder="0.00 (free)"
+                            placeholder={t('admin_subscriptions.pricing_price_placeholder', '0.00 (free)')}
                             step="0.01"
                             min="0"
                             allowDecimal
                         />
                     </Field>
                 )}
-                <Field label="Markup %" hint="on top of raw AI provider cost — applied to AI usage cost shown to subscribers">
+                <Field label={t('admin_subscriptions.pricing_markup', 'Markup %')} hint={t('admin_subscriptions.pricing_markup_hint', 'on top of raw AI provider cost, applied to AI usage cost shown to subscribers')}>
                     <NumberInput
                         value={form.markup_percent ?? 0}
                         onChange={v => update('markup_percent', v ?? 0)}
@@ -68,20 +70,20 @@ export function PricingSection({ form, update }) {
                         allowDecimal
                     />
                 </Field>
-                <Field label="Currency">
+                <Field label={t('admin_subscriptions.pricing_currency', 'Currency')}>
                     <Select value={form.currency} onChange={e => update('currency', e.target.value)}>
-                        <option value="EUR">EUR (€)</option>
-                        <option value="USD">USD ($)</option>
-                        <option value="GBP">GBP (£)</option>
+                        <option value="EUR">{t('admin_subscriptions.pricing_eur', 'EUR (€)')}</option>
+                        <option value="USD">{t('admin_subscriptions.pricing_usd', 'USD ($)')}</option>
+                        <option value="GBP">{t('admin_subscriptions.pricing_gbp', 'GBP (£)')}</option>
                     </Select>
                 </Field>
-                <Field label="Billing interval">
+                <Field label={t('admin_subscriptions.pricing_interval', 'Billing interval')}>
                     <Select value={form.billing_interval} onChange={e => update('billing_interval', e.target.value)}>
-                        <option value="monthly">Monthly</option>
-                        <option value="yearly">Yearly</option>
+                        <option value="monthly">{t('admin_subscriptions.pricing_monthly', 'Monthly')}</option>
+                        <option value="yearly">{t('admin_subscriptions.pricing_yearly', 'Yearly')}</option>
                     </Select>
                 </Field>
-                <Field label="Sort order" hint="lower numbers appear first">
+                <Field label={t('admin_subscriptions.pricing_sort', 'Sort order')} hint={t('admin_subscriptions.pricing_sort_hint', 'lower numbers appear first')}>
                     <NumberInput
                         value={form.sort_order}
                         onChange={v => update('sort_order', v ?? 0)}
@@ -93,34 +95,35 @@ export function PricingSection({ form, update }) {
 
             {metered && (
                 <Banner tone="success" icon={Info}>
-                    Example: a {sym}1.00 raw call bills at{' '}
-                    <strong>{sym}{(1 * (1 + (Number(form.markup_percent) || 0) / 100)).toFixed(4)}</strong>.{' '}
-                    Subscribers are billed by Stripe at the end of each {form.billing_interval === 'yearly' ? 'year' : 'month'} for the
-                    summed marked-up cost of their AI calls. A payment method is required up front — trials are not supported on PAYG plans.
+                    {t('admin_subscriptions.pricing_example', 'Example: a {raw} raw call bills at {billed}. Subscribers are billed by Stripe at the end of each {period} for the summed marked-up cost of their AI calls. A payment method is required up front: trials are not supported on PAYG plans.', {
+                        raw: `${sym}1.00`,
+                        billed: `${sym}${(1 * (1 + (Number(form.markup_percent) || 0) / 100)).toFixed(4)}`,
+                        period: form.billing_interval === 'yearly' ? t('admin_subscriptions.pricing_year', 'year') : t('admin_subscriptions.pricing_month', 'month'),
+                    })}
                 </Banner>
             )}
 
             <div className="pt-5 border-t border-[var(--border-default)]">
-                <h4 className="text-[14px] font-bold text-[var(--text-primary)] mb-1">Limits</h4>
-                <p className="text-[12px] text-[var(--text-muted)] mb-3">Caps that apply to subscribers on this plan. Leave any field empty for unlimited.</p>
+                <h4 className="text-[14px] font-bold text-[var(--text-primary)] mb-1">{t('admin_subscriptions.pricing_limits', 'Limits')}</h4>
+                <p className="text-[12px] text-[var(--text-muted)] mb-3">{t('admin_subscriptions.pricing_limits_desc', 'Caps that apply to subscribers on this plan. Leave any field empty for unlimited.')}</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
                     <LimitField
-                        field={{ key: 'max_cost_per_month', label: `Cost cap / month (${sym})`, type: 'currency' }}
+                        field={{ key: 'max_cost_per_month', label: t('admin_subscriptions.pricing_limit_cost', 'Cost cap / month ({sym})', { sym }), type: 'currency' }}
                         value={form.max_cost_per_month}
                         onChange={v => update('max_cost_per_month', v)}
                     />
                     <LimitField
-                        field={{ key: 'max_users', label: 'Max users', type: 'number' }}
+                        field={{ key: 'max_users', label: t('admin_subscriptions.pricing_limit_users', 'Max users'), type: 'number' }}
                         value={form.max_users}
                         onChange={v => update('max_users', v)}
                     />
                     <LimitField
-                        field={{ key: 'max_agents', label: 'Max agents', type: 'number' }}
+                        field={{ key: 'max_agents', label: t('admin_subscriptions.pricing_limit_agents', 'Max agents'), type: 'number' }}
                         value={form.max_agents}
                         onChange={v => update('max_agents', v)}
                     />
                     <LimitField
-                        field={{ key: 'max_knowledge_sources', label: 'Max knowledge sources', type: 'number' }}
+                        field={{ key: 'max_knowledge_sources', label: t('admin_subscriptions.pricing_limit_kb', 'Max knowledge sources'), type: 'number' }}
                         value={form.max_knowledge_sources}
                         onChange={v => update('max_knowledge_sources', v)}
                     />

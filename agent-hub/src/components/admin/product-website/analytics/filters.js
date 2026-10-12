@@ -31,8 +31,34 @@ export const FILTER_LABELS = {
 
 export const FILTER_KEYS = Object.keys(FILTER_LABELS);
 
-export function filterLabel(key) {
-    return FILTER_LABELS[key] || key;
+// Catalogue keys for the labels above; FILTER_LABELS stays the English default.
+export const FILTER_LABEL_KEYS = {
+    path: 'cms_site.analytics.filter.path',
+    referrer: 'cms_site.analytics.filter.referrer',
+    title: 'cms_site.analytics.filter.title',
+    query: 'cms_site.analytics.filter.query',
+    os: 'cms_site.analytics.filter.os',
+    browser: 'cms_site.analytics.filter.browser',
+    device: 'cms_site.analytics.filter.device',
+    country: 'cms_site.analytics.filter.country',
+    region: 'cms_site.analytics.filter.region',
+    city: 'cms_site.analytics.filter.city',
+    tag: 'cms_site.analytics.filter.tag',
+    hostname: 'cms_site.analytics.filter.hostname',
+    language: 'cms_site.analytics.filter.language',
+    event: 'cms_site.analytics.filter.event',
+    utmSource: 'cms_site.analytics.filter.utm_source',
+    utmMedium: 'cms_site.analytics.filter.utm_medium',
+    utmCampaign: 'cms_site.analytics.filter.utm_campaign',
+    utmContent: 'cms_site.analytics.filter.utm_content',
+    utmTerm: 'cms_site.analytics.filter.utm_term',
+};
+
+/** Label for a dimension; pass `t` (useTranslation) to get it translated. */
+export function filterLabel(key, t) {
+    const en = FILTER_LABELS[key];
+    if (!en) return key;
+    return t ? t(FILTER_LABEL_KEYS[key], en) : en;
 }
 
 /** Immutably set one dimension. Unknown dimensions are ignored. */

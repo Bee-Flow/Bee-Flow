@@ -50,7 +50,7 @@ function ParameterForm({ p, set }: { p: ContractParameter; set: (patch: Partial<
             />
             {p.type === 'choice' ? (
                 <TextField
-                    label={t('mobile.studio_documents.param.options', 'Choices (one per line)')}
+                    label={t('automations.form_builder_fields.choices_one_per_line', 'Choices (one per line)')}
                     value={(p.options ?? []).join('\n')}
                     multiline
                     onChangeText={(text) => set({ options: text.split('\n') })}

@@ -398,6 +398,11 @@ function AutomationRow({ t, row }) {
                         {t('agent_studio.can_use.automation_not_callable', 'This automation has no agent trigger, so the agent is never offered it.')}
                     </RowWarning>
                 )}
+                {row.callable !== false && row.linked === false && (
+                    <RowWarning>
+                        {t('agent_studio.can_use.automation_not_linked', 'This automation is not linked to this agent, so the agent is never offered it. Link the agent in the automation\'s trigger panel ("Who can call this").')}
+                    </RowWarning>
+                )}
             </div>
         </div>
     );

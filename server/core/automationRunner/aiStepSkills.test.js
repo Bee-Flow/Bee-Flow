@@ -65,7 +65,11 @@ test('the step\'s own schema wins; then the skill, widened by fields read downst
         schema: { type: 'object', properties: { amount: { type: 'number' }, vendor: { type: 'string' } } },
         source: 'skill', declared: true,
     });
-    assert.deepStrictEqual(S.effectiveOutputSchema({ inferredFields: ['x'] }), { schema: { x: 'string' }, source: 'inferred', declared: false });
+    assert.deepStrictEqual(S.effectiveOutputSchema({ inferredFields: ['x'] }), { schema: { type: 'object', properties: { x: { type: 'string' } } }, source: 'inferred', declared: false });
+    // The reads' own nested schema wins over plain text (aiOutputInference.js).
+    const nested = { type: 'object', properties: { items: { type: 'array', items: { type: 'object', properties: { sku: { type: 'string' } } } } } };
+    assert.deepStrictEqual(S.effectiveOutputSchema({ inferredFields: ['items'], inferredSchema: nested }), { schema: nested, source: 'inferred', declared: false });
+    assert.deepStrictEqual(S.effectiveOutputSchema({ skillSchema: sk, inferredFields: ['items'], inferredSchema: nested }).schema.properties.items, nested.properties.items);
     assert.deepStrictEqual(S.effectiveOutputSchema({}), { schema: null, source: null, declared: false });
 });
 

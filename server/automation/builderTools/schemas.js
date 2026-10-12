@@ -4,6 +4,10 @@
  * injection) via the imported reference — same object, so the mutation is shared.
  */
 
+// The step types the batch and replace tools accept — one table, shared with the
+// apply map and the prompt (builderTools/stepTypeTable.js).
+const { BATCH_STEP_TYPES, REPLACEABLE_STEP_TYPES } = require('./stepTypeTable');
+
 const BINDING_HINT = 'Each input value must be a binding: {"kind":"literal","value":...} OR {"kind":"ref","path":"steps.<id>.output.<field>"} OR {"kind":"template","value":"... {{steps.x.output.y}} ..."} OR {"kind":"expr","value":"<restricted-js>"}.';
 
 // Derived from the trigger-source declarations rather than typed out here: the
@@ -18,6 +22,19 @@ const { providerList: APP_EVENT_PROVIDERS, eventList: APP_EVENT_EVENTS } =
 const PICK_SOURCES = require('../formPickSources').catalog()
     .map(sc => `${sc.id} (${sc.label})`).join(', ');
 
+// The rule shapes a Condition may hold (filter, switch cases, condition):
+// only shapes the editor reopens as clickable rows. One list, shared with the
+// builder prompt and the Suggest-outputs prompt.
+const { CONDITION_RULES_HINT, SWITCH_RULES_EXAMPLE } = require('./ruleExamples');
+
+// BFSF-485: the one thing a condition does not do. A model asked to "only
+// process the sheets named X" reaches for builder_add_condition, and every
+// sheet is processed anyway.
+const WHOLE_RUN_DOCTRINE = 'A condition decides ONCE for the whole run: one that reads a list (`list[*]`) sends every item the same way. '
+    + 'To keep only the matching items of a list use builder_add_array_op({op:"filter"}) and continue on its output.items.';
+
+const SPLICE_DESCRIPTION = 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. A switch can only be spliced in when it has arrayRef (the old successor moves to its first case).';
+
 const TOOL_SCHEMAS = [
     {
         type: 'function',
@@ -31,10 +48,16 @@ KIND OPTIONS:
   - webhook      — fires on inbound HTTPS POST to a signed URL.
   - form         — Bee Flow hosts a public page; every submission is one run. Declare the questions in \`form.fields\`; answers arrive as trigger.output.<fieldName>.
   - app_event    — fires when a connected service emits an event (see appProvider for what this install offers).
+  - agent_call   — the automation becomes a TOOL an AI agent can call. Set toolName (lower-case, underscores), description (when should an agent call it, and what does it return) and declare EVERY argument the agent must pass in \`params\` (name, type, required, description; names are identifiers). The arguments arrive in the steps as trigger.output.<name> — there is no trigger.payload. You cannot decide which agents may call it: once it is built, the person links the automation to an agent under "Who can call this" in the trigger panel, so tell them.
+  - app_trigger  — fired by a button or action in a Studio App. Declare its typed inputs in \`params\`; they arrive as trigger.output.<name>.
 
 SCHEDULE EXAMPLES:
   - weekly Monday 9am Europe/Amsterdam → {kind:"schedule",cron:"0 9 * * 1",tz:"Europe/Amsterdam"}
   - first Monday of the month at 9am  → {kind:"schedule",cron:"0 9 1-7 * 1",tz:"Europe/Amsterdam"}
+
+AGENT_CALL EXAMPLE:
+  {kind:"agent_call",toolName:"lookup_warranty",description:"Look up the warranty status of a product by its serial number. Returns the end date and whether it is still covered.",params:[{name:"serial_number",type:"string",required:true,description:"The serial number printed on the device"}]}
+  → steps bind {kind:"ref",path:"trigger.output.serial_number"}.
 
 APP_EVENT TRIGGERS (pick the most specific; use filters to narrow):
 
@@ -305,9 +328,10 @@ leading search step just to look up data that's already in the payload.`,
                     appProvider: { type: 'string', description: `Provider id (when kind=app_event): ${APP_EVENT_PROVIDERS}` },
                     appEvent: { type: 'string', description: `Event name (when kind=app_event). Allowed: ${APP_EVENT_EVENTS}.` },
                     filter: { type: 'object', description: 'Optional filter object. Use ONLY the keys listed under the event above — several events have their own matcher (a tag list is an ANY-of, not an equality), and unknown keys are ignored rather than rejected. An omitted or empty filter means "every event of this kind", never "no events".' },
-                    // §28 agent-callable trigger: automation is exposed as a tool the agent / direct chat can invoke.
-                    toolName: { type: 'string', description: 'When kind=agent_call: the tool name agents will see (sanitised to [a-z0-9_]). Defaults to automation_<id>.' },
-                    parametersSchema: { type: 'object', description: 'When kind=agent_call: JSON-schema-shaped input declaration for the tool. The runtime exposes this verbatim to the model.' },
+                    // §28 agent-callable trigger: automation is exposed as a tool the agent can invoke.
+                    toolName: { type: 'string', description: 'When kind=agent_call: the tool name agents will see (lower-case letters, digits, underscores; anything else is rewritten). Defaults to automation_<id>.' },
+                    description: { type: 'string', description: 'When kind=agent_call: what the tool does and when an agent should call it (the agent reads this to decide). Required for an agent_call that goes live.' },
+                    parametersSchema: { type: 'object', description: 'When kind=agent_call: the arguments as a JSON Schema {type:"object", properties:{<name>:{type,description}}, required:[…]}. Prefer `params`; pass one of the two. Each argument arrives as trigger.output.<name>.' },
                     // App trigger: the automation is fired by a Studio App action with typed inputs.
                     params: {
                         type: 'array',
@@ -321,7 +345,7 @@ leading search step just to look up data that's already in the payload.`,
                             },
                             required: ['name', 'type'],
                         },
-                        description: 'When kind=app_trigger: the typed inputs a Studio App action passes. Bind them in steps as trigger.output.<name>. A `file` input arrives at runtime as { fileId, name, mime, size, url } — bind trigger.output.<name>.url into steps that fetch the file (http_request, transcribe_audio, upload tools).',
+                        description: 'When kind=app_trigger: the typed inputs a Studio App action passes. When kind=agent_call: the arguments the agent passes (type string | number | boolean | array | object; `file` is for app_trigger only). Bind them in steps as trigger.output.<name>. A `file` input arrives at runtime as { fileId, name, mime, size, url } — bind trigger.output.<name>.url into steps that fetch the file (http_request, transcribe_audio, upload tools).',
                     },
                 },
                 required: ['kind'],
@@ -337,7 +361,7 @@ leading search step just to look up data that's already in the payload.`,
                 type: 'object',
                 properties: {
                     afterStepId: { type: 'string', description: 'Insert after this step id. Default: last step.' },
-                    splice: { type: 'boolean', description: 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. Not allowed when the new step itself is a switch.' },
+                    splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
                     tool: { type: 'string', description: 'Exact tool name from the catalog (e.g. gmail_search, gmail_compose, calendar_create_event).' },
                     inputs: { type: 'object', description: `Map of input-name to a binding object. ${BINDING_HINT}` },
                     branch: { type: 'string', enum: ['then', 'else'], description: 'When afterStepId is a condition: which branch this step begins. Omit to auto-fill (then first, else second).' },
@@ -357,7 +381,7 @@ leading search step just to look up data that's already in the payload.`,
                 type: 'object',
                 properties: {
                     afterStepId: { type: 'string' },
-                    splice: { type: 'boolean', description: 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. Not allowed when the new step itself is a switch.' },
+                    splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
                     systemPrompt: { type: 'string', description: 'Optional. The role/persona/output-style instruction for the AI (the system prompt) — e.g. "You are a meticulous financial analyst. Always answer in Dutch." Put WHO the model is and HOW it should behave here; put WHAT to do this run (the task + data references) in `prompt`. Omit for trivial one-off transforms to use the default automation-step system prompt.' },
                     prompt: { type: 'string', description: 'The task instruction for this run. Reference the inputs by name. Put persona/tone/output-style in `systemPrompt`, not here.' },
                     inputs: { type: 'object', description: `Map of binding-name to a binding object. ${BINDING_HINT}` },
@@ -366,8 +390,8 @@ leading search step just to look up data that's already in the payload.`,
                     allowTools: { type: 'boolean', description: 'Default false. When true the AI step can call the user\'s integration tools (web search, gmail_search, etc.). Use sparingly — most steps should bind upstream integration_action output instead.' },
                     tools: { type: 'array', items: { type: 'string' }, description: 'Optional allowlist of tool names the AI step may call. Empty / omitted = whatever allowTools dictates.' },
                     useMemory: { type: 'boolean', description: 'Default false. When true the step is grounded in the automation owner\'s personal memory (what they told the chat assistant about themselves, their preferences and their contacts): the memories most relevant to this step\'s prompt are added to the system prompt before the model answers. Use for steps that write in the owner\'s name or decide on their behalf (reply drafts, briefings, prioritising); never for pure data transforms.' },
-                    knowledgeBaseIds: { type: 'array', items: { type: 'string' }, description: 'Optional. Ids of knowledge bases to ground this step in — searched ONCE per run (keyed off the automation owner\'s own knowledge bases, never a per-user picker) and injected into the system prompt as reference material before the model answers. Use for steerable reference content (a brand style guide, a positioning doc, a policy) the step should follow without hardcoding it into the prompt. Never invent an id — only ids the user has actually shown you (e.g. from the Knowledge Bases admin) are valid.' },
-                    agentId: { type: 'string', description: 'Optional. Id of an EXISTING agent that does the thinking for this step: its published role, its knowledge and its tools replace the bare step. The agent must belong to the automation owner\'s own organisation and be published — an id that was deleted, sits in another workspace or was never published all get the SAME refusal (`ai_step.agent_unavailable`), so this is not a way to find out which agents exist elsewhere. Never invent one: only ids the user has actually shown you are valid, and anything else is refused at save and refused again at run time.' },
+                    knowledgeBaseIds: { type: 'array', items: { type: 'string' }, description: 'Optional. Ids of knowledge bases to ground this step in — searched ONCE per run (keyed off the automation owner\'s own knowledge bases, never a per-user picker) and injected into the system prompt as reference material before the model answers. Use for steerable reference content (a brand style guide, a positioning doc, a policy) the step should follow without hardcoding it into the prompt. Never invent an id — take it from the "Knowledge bases you may use" block in the context (or one the user named); anything else is refused at save.' },
+                    agentId: { type: 'string', description: 'Optional. Id of an EXISTING agent that does the thinking for this step: its published role, its knowledge and its tools replace the bare step. The agent must belong to the automation owner\'s own organisation and be published — an id that was deleted, sits in another workspace or was never published all get the SAME refusal (`ai_step.agent_unavailable`), so this is not a way to find out which agents exist elsewhere. Never invent one: take it from the "Agents you may use" block in the context (or one the user named); anything else is refused at save and refused again at run time.' },
                     skillIds: { type: 'array', items: { type: 'string' }, description: 'Optional. Ids of skills to apply to this step, MOST IMPORTANT FIRST — the first one is the leading skill (its output fields are merged into the step\'s own). At most 5 are used; anything past that is ignored. Works with or without `agentId`. Never invent an id.' },
                     disabledAgentSkillIds: { type: 'array', items: { type: 'string' }, description: 'Optional, only with `agentId`: ids of the AGENT\'s own skills this step does not use. The step\'s own `skillIds` are never affected and stay leading. Omit to use every skill the agent has.' },
                     agentPermissions: {
@@ -391,13 +415,13 @@ leading search step just to look up data that's already in the payload.`,
         type: 'function',
         function: {
             name: 'builder_add_condition',
-            description: 'Append an if/else branch. The expr is a restricted JS expression — member access, comparisons, &&, ||, ?:, math, and the whitelisted helpers (contains, startsWith, endsWith, lower, upper, len, isEmpty, round, coalesce, parseJson, …), e.g. contains(lower(trigger.output.subject), "invoice"). EXAMPLES: "steps.parse.output.amount > 1000", "steps.s1.output.count == 0", "loop.email.subject == \\"Urgent\\"". To grow a branch, call builder_add_action / builder_add_ai_step / builder_add_notification with afterStepId set to this condition\'s id — the edge is AUTO-labelled "then" on the first append and "else" on the second. Pass branch:"then"|"else" on that call to be explicit. Use thenStepId/elseStepId here only to wire EXISTING steps as branches.',
+            description: `Append an if/else branch. The expr reads the values of earlier steps (steps.<id>.output.<field>, trigger.output.<field>, loop.<var>.<field>) with comparisons, && / || and the rule helpers. EXAMPLES: "steps.parse.output.amount > 1000", "equals(trigger.output.status, \\"open\\")", "contains(steps.s1.output.subject, \\"invoice\\")", "isEmpty(steps.s1.output.results)". Use the rule shapes below with such a path in place of item.<field>. ${CONDITION_RULES_HINT} ${WHOLE_RUN_DOCTRINE} To grow a branch, call builder_add_action / builder_add_ai_step / builder_add_notification with afterStepId set to this condition\'s id — the edge is AUTO-labelled "then" on the first append and "else" on the second. Pass branch:"then"|"else" on that call to be explicit. Use thenStepId/elseStepId here only to wire EXISTING steps as branches.`,
             parameters: {
                 type: 'object',
                 properties: {
                     afterStepId: { type: 'string' },
-                    splice: { type: 'boolean', description: 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. Not allowed when the new step itself is a switch.' },
-                    expr: { type: 'string', description: 'Restricted JS expression — comparisons, &&/||, ?:, math and the whitelisted helper functions (contains, lower, len, isEmpty, …).' },
+                    splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
+                    expr: { type: 'string', description: 'The rule, true takes the "then" branch: comparisons, && / ||, and the helpers (contains, startsWith, endsWith, equals, isEmpty, anyOf, fileType, len, …). Never lower()/upper().' },
                     thenStepId: { type: 'string', description: 'Optional id of an existing step to wire as the "then" branch.' },
                     elseStepId: { type: 'string', description: 'Optional id of an existing step to wire as the "else" branch.' },
                     branch: { type: 'string', enum: ['then', 'else'], description: 'When afterStepId is itself a condition: which of ITS branches this nested condition begins. Omit to auto-fill (then first, else second).' },
@@ -419,7 +443,7 @@ The body is a sub-DAG run once per item; refer to the current item as loop.<item
                 type: 'object',
                 properties: {
                     afterStepId: { type: 'string' },
-                    splice: { type: 'boolean', description: 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. Not allowed when the new step itself is a switch.' },
+                    splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
                     overRef: { type: 'string', description: 'Path to the array, e.g. steps.search.output.items.' },
                     itemVar: { type: 'string', description: 'Loop variable name; available inside body as loop.<itemVar>.' },
                     body: { type: 'array', description: 'Sub-DAG step objects (linear). Each must include "type". "id" is auto-assigned if missing.' },
@@ -451,15 +475,15 @@ The body is a sub-DAG run once per item; refer to the current item as loop.<item
             // description as the help text, so a person who never reads the
             // code can fill it in. A code step whose inputs are not declared
             // shows them as bare "Other inputs" with no explanation.
-            description: 'Append a sandboxed JavaScript step, for work no integration and no declarative step expresses. Code receives `inputs` and `ctx` (ctx.log, ctx.http for HTTPS to public hosts, ctx.integrations.<tool> for the tools in allowedTools). There is NO secret access from code: ctx.secrets() throws, and declaring secretKeys makes the step fail — any credential or key the code needs must come in through `inputs`, or via an integration tool that carries its own credentials. Define `async function main(inputs, ctx)` and return the result. PARAMETERS: put a JSDoc block on main with a first line saying what the step does and one `@param {type} inputs.<name> - <short description a non-programmer understands>` per input the code reads (`[inputs.name]` optional, `[inputs.name=value]` with a default; types string, number, integer, boolean, object, array, string[], \'a\'|\'b\' choices, date, datetime, email, url); the step settings show these as a form, and the keys of `inputs` below are those names. Write ctx.http URLs as literal https:// strings so the safety check can see where data goes. Memory, CPU, wall clock and the ctx.http call budget are yours to set through `limits` (see that parameter) — within the sandbox ceiling, which refuses anything above it.',
+            description: 'Append a sandboxed JavaScript step, for work no integration and no declarative step expresses. Code receives `inputs` and `ctx` (ctx.log, ctx.http for HTTPS to public hosts, ctx.integrations.<tool> for the tools in allowedTools). There is NO secret access from code: ctx.secrets() throws, and declaring secretKeys makes the step fail — any credential or key the code needs must come in through `inputs`, or via an integration tool that carries its own credentials. Define `async function main(inputs, ctx)` and return the result. What main returns is the step\'s `output.result`: bind a returned object\'s field as `steps.<id>.output.result.<field>` (never `steps.<id>.output.<field>` — `output` also carries `logs` and `httpCalls`), a returned list as `steps.<id>.output.result`. PARAMETERS: put a JSDoc block on main with a first line saying what the step does and one `@param {type} inputs.<name> - <short description a non-programmer understands>` per input the code reads (`[inputs.name]` optional, `[inputs.name=value]` with a default; types string, number, integer, boolean, object, array, string[], \'a\'|\'b\' choices, date, datetime, email, url); the step settings show these as a form, and the keys of `inputs` below are those names. Write ctx.http URLs as literal https:// strings so the safety check can see where data goes. Memory, CPU, wall clock and the ctx.http call budget are yours to set through `limits` (see that parameter) — within the sandbox ceiling, which refuses anything above it.',
             parameters: {
                 type: 'object',
                 properties: {
                     afterStepId: { type: 'string' },
-                    splice: { type: 'boolean', description: 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. Not allowed when the new step itself is a switch.' },
+                    splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
                     code: { type: 'string', description: 'JavaScript source: a JSDoc block (what the step does, then one `@param {type} inputs.<name> - <description>` per input), then `async function main(inputs, ctx) { ... return result; }`.' },
                     inputs: { type: 'object', description: 'One binding per declared @param, keyed by its name: {amount:{kind:"ref",path:"steps.<id>.output.total"}}. A param with a default may be left out.' },
-                    outputSchema: { type: 'object' },
+                    outputSchema: { type: 'object', description: 'The shape of what main returns. Later steps read it under steps.<id>.output.result.' },
                     allowedTools: { type: 'array', items: { type: 'string' }, description: 'Tool names this step may call via ctx.integrations.<tool>(args).' },
                     // The sandbox has clamped these four on every run since it
                     // was written, but no caller could name them: applyAddCode
@@ -502,7 +526,7 @@ The body is a sub-DAG run once per item; refer to the current item as loop.<item
                 type: 'object',
                 properties: {
                     afterStepId: { type: 'string' },
-                    splice: { type: 'boolean', description: 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. Not allowed when the new step itself is a switch.' },
+                    splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
                     title: { type: 'string', description: 'Template string. Supports {{steps.<id>.output.<path>}}.' },
                     body: { type: 'string', description: 'Template string. Supports {{steps.<id>.output.<path>}}.' },
                     channels: { type: 'array', items: { type: 'string' }, description: 'Default: ["notification"].' },
@@ -523,11 +547,12 @@ The body is a sub-DAG run once per item; refer to the current item as loop.<item
                 type: 'object',
                 properties: {
                     afterStepId: { type: 'string' },
-                    splice: { type: 'boolean', description: 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. Not allowed when the new step itself is a switch.' },
+                    splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
                     url: { type: 'string', description: 'Full https/http URL. Template string — supports {{trigger.output.x}} / {{steps.<id>.output.<path>}}.' },
                     method: { type: 'string', enum: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD'], description: 'Default GET. Use POST for most webhooks.' },
                     headers: { type: 'object', description: 'Map of header name → template-string value, e.g. {"Content-Type":"application/json"}. Do NOT put API keys/tokens in headers — set `authConnectionId` to a saved HTTP credential id instead, or tell the user to add one in the step\'s Authentication settings.' },
                     body: { type: 'string', description: 'Request body (raw text or JSON), only used for POST/PUT/PATCH/DELETE. Template string.' },
+                    query: { type: 'object', description: 'Query parameters as DATA, instead of hand-encoding them into the URL (PREFER THIS for anything beyond ?a=b; never write %5B%5D by hand). {mode:"json", json:\'{"builder":[{"orderByDesc":"created_at"},{"with":["categories"]},{"paginate":{{steps.start.output.pageSize}}}]}\'} or {mode:"fields", items:[{key:"page", value:"{{trigger.output.page}}"}]}. Nested objects and arrays are serialised for you (default arrayFormat "indices": builder[0][paginate]=5, the qs/n8n/PHP style; or "brackets" a[]=x, "repeat" a=x&a=y, "comma" a=x,y). Keys and values are templates; in JSON mode a bound number stays a number. Empty values are dropped. Keep the URL for scheme, host and path; bind dynamic parts (the domain, a page size) to earlier step outputs. Parameters here win over the same key already in the URL. Never put API keys in query values: use a saved credential.', properties: { mode: { type: 'string', enum: ['fields', 'json'] }, json: { type: 'string', description: 'mode json: the parameters as JSON text, {{…}} allowed.' }, items: { type: 'array', description: 'mode fields: rows.', items: { type: 'object', properties: { key: { type: 'string' }, value: { type: 'string' } } } }, arrayFormat: { type: 'string', enum: ['indices', 'brackets', 'repeat', 'comma'] } } },
                     timeoutMs: { type: 'number', description: 'Request timeout in ms, 1000..60000 (default 10000).' },
                     parseResponse: { type: 'string', enum: ['auto', 'never', 'always'], description: "How to fill `output.data`. auto (default): parse when the response content-type says JSON. never: leave it text-only. always: parse whatever the content-type claims — for APIs that answer JSON as text/plain." },
                     blockPrivateTargets: { type: 'boolean', description: 'Default true — block localhost/private/metadata targets. Set false ONLY for an internal endpoint the user explicitly asked to reach.' },
@@ -551,7 +576,7 @@ The body is a sub-DAG run once per item; refer to the current item as loop.<item
                 type: 'object',
                 properties: {
                     afterStepId: { type: 'string' },
-                    splice: { type: 'boolean', description: 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. Not allowed when the new step itself is a switch.' },
+                    splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
                     content: { type: 'string', description: 'The document text. Template string — normally a single reference like {{steps.<id>.output.<field>}}.' },
                     contentFormat: { type: 'string', enum: ['markdown', 'html'], description: 'How to read `content`. Default markdown, which is what AI steps produce. Use html only when the text upstream is already markup.' },
                     layout: { type: 'string', enum: ['document', 'slides'], description: 'Default document (linear print layout). "slides" renders the PDF as a landscape DECK: the h1 becomes the cover, every h2 becomes its own slide with a title band — the shape of an advisory/bank presentation. The author steers the deck with headings, so tell the writing step to keep each h2-section one page. Word output stays a linear document either way.' },
@@ -686,7 +711,7 @@ Output is {fileId, filename, mimeType, size, documentId, missing[]} — the same
                 type: 'object',
                 properties: {
                     afterStepId: { type: 'string' },
-                    splice: { type: 'boolean', description: 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. Not allowed when the new step itself is a switch.' },
+                    splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
                     source: { type: 'object', description: 'The text to read, as ONE binding: {kind:"ref", path:"steps.<id>.output.<field>"} or {kind:"template", value:"…{{steps.x.output.y}}…"}. Inside a forEach: {kind:"ref", path:"loop.<itemVar>.output.content"}. Never a literal.' },
                     fields: {
                         type: 'array',
@@ -722,7 +747,7 @@ Output is {fileId, filename, mimeType, size, documentId, missing[]} — the same
                 type: 'object',
                 properties: {
                     afterStepId: { type: 'string' },
-                    splice: { type: 'boolean', description: 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. Not allowed when the new step itself is a switch.' },
+                    splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
                     fields: { type: 'object', description: `Map of fieldName → binding. In list mode each binding is evaluated per row with the row as \`item\` (and \`_index\`). ${BINDING_HINT}` },
                     arrayRef: { type: 'string', description: 'Dotted path to an upstream ARRAY, e.g. "steps.<id>.output.items". Presence switches the step to list mode. Cannot be combined with forEach.' },
                     operations: {
@@ -787,6 +812,20 @@ Output is {fileId, filename, mimeType, size, documentId, missing[]} — the same
     {
         type: 'function',
         function: {
+            name: 'builder_inline_layer',
+            description: 'Fold a flowlet INTO the flow that calls it: the flowlet\'s steps move into the calling flow at the call_layer step\'s position (fresh ids), the edges are re-wired, the flowlet\'s inputs (trigger.output.<param>) become the call\'s input bindings and every downstream read of the call (steps.<callId>.output.<field>) becomes the flowlet\'s Return binding for that field; the call step is removed, and the flowlet with it when nothing else calls it. Use it ONLY when the user or the approved plan asks to inline / flatten / merge a flowlet into the main flow. It refuses (and changes nothing) when a binding cannot be mapped without guessing, and says which; the call then has an error branch, runs per item (forEach), or sits in a loop body. Pass the id of the call_layer step; use scope when that step is itself inside a flowlet.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    stepId: { type: 'string', description: 'Id of the call_layer step to replace by the flowlet\'s steps.' },
+                },
+                required: ['stepId'],
+            },
+        },
+    },
+    {
+        type: 'function',
+        function: {
             name: 'builder_set_layer_contract',
             description: 'Update a flowlet\'s contract. `params` replaces the layer_input trigger params (inputs the caller must bind). Set the flowlet\'s RETURN value with `outputs`: a map of fieldName → binding that writes the layer_output ("Return") step directly — this is THE way a flowlet returns data; never add a separate `set`/return step to hold it. (`outputFields` is a legacy alternative that only declares the key set, leaving bindings empty.) The flowlet already contains exactly one layer_output step — these args edit it in place.',
             parameters: {
@@ -794,7 +833,7 @@ Output is {fileId, filename, mimeType, size, documentId, missing[]} — the same
                 properties: {
                     layerKey: { type: 'string', description: 'Key in definition.layers.' },
                     params: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, type: { type: 'string' }, required: { type: 'boolean' } }, required: ['name'] } },
-                    outputs: { type: 'object', description: 'Map of return-field name → binding, e.g. { "invoices": { "kind":"ref", "path":"steps.agg1.output.values" } }. Declares AND binds each field on the layer_output step in one call.' },
+                    outputs: { type: 'object', description: 'Map of return-field name → binding, e.g. { "invoices": { "kind":"ref", "path":"steps.agg1.output.values" } }. Declares AND binds each field on the layer_output step in one call. A code step\'s returned fields are read under output.result: { "count": { "kind":"ref", "path":"steps.code1.output.result.count" } }.' },
                     outputFields: { type: 'array', items: { type: 'string' }, description: 'Legacy: declare return field NAMES only (bindings start empty). Prefer `outputs` so the flowlet actually returns data.' },
                 },
                 required: ['layerKey'],
@@ -876,7 +915,7 @@ Output is {fileId, filename, mimeType, size, documentId, missing[]} — the same
                 type: 'object',
                 properties: {
                     afterStepId: { type: 'string' },
-                    splice: { type: 'boolean', description: 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. Not allowed when the new step itself is a switch.' },
+                    splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
                     layerKey: { type: 'string', description: 'Key of the flowlet in definition.layers (create one via builder_create_layer).' },
                     inputs: { type: 'object', description: `Map of flowlet-param → binding. ${BINDING_HINT}` },
                     branch: { type: 'string', enum: ['then', 'else'], description: 'When afterStepId is a condition: which branch this step begins. Omit to auto-fill (then first, else second).' },
@@ -896,7 +935,7 @@ Output is {fileId, filename, mimeType, size, documentId, missing[]} — the same
                 type: 'object',
                 properties: {
                     afterStepId: { type: 'string' },
-                    splice: { type: 'boolean', description: 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. Not allowed when the new step itself is a switch.' },
+                    splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
                     op: { type: 'string', enum: ['now', 'parse', 'format', 'addDays', 'addHours', 'addMinutes', 'diff', 'extract'] },
                     input: { type: 'string', description: 'Path to a date value (ISO string or epoch ms). Omit for op:now.' },
                     input2: { type: 'string', description: 'Second date path. Required for op:diff.' },
@@ -921,7 +960,7 @@ Output is {fileId, filename, mimeType, size, documentId, missing[]} — the same
                 type: 'object',
                 properties: {
                     afterStepId: { type: 'string' },
-                    splice: { type: 'boolean', description: 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. Not allowed when the new step itself is a switch.' },
+                    splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
                     seconds: { type: 'integer', description: 'Number of seconds to wait. Capped at 86400 (24h).' },
                     label: { type: 'string' },
                 },
@@ -938,7 +977,7 @@ Output is {fileId, filename, mimeType, size, documentId, missing[]} — the same
                 type: 'object',
                 properties: {
                     afterStepId: { type: 'string' },
-                    splice: { type: 'boolean', description: 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. Not allowed when the new step itself is a switch.' },
+                    splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
                     prompt: { type: 'string', description: 'The question the approver sees, e.g. "Send the {{steps.quote.output.total}} quote to {{trigger.output.client}}?". Supports {{...}} bindings.' },
                     expiresInHours: { type: 'integer', description: 'How long the approval may sit before the run is closed as expired, 0..720 (30 days). 0 = no deadline. Default 168 (7 days).' },
                     assignee: { type: 'object', description: 'Who decides: { userId: "..." } for one person or { groupId: "..." } for an org group (any member may decide, first decision wins). Must belong to the owner\'s organisation. Omit = the owner decides.' },
@@ -968,7 +1007,7 @@ Output is {fileId, filename, mimeType, size, documentId, missing[]} — the same
                 type: 'object',
                 properties: {
                     afterStepId: { type: 'string' },
-                    splice: { type: 'boolean', description: 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. Not allowed when the new step itself is a switch.' },
+                    splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
                     mode: { type: 'string', enum: ['input', 'ending'], description: 'Default "input".' },
                     waitSeconds: { type: 'integer', description: 'mode=input only: how long to wait for the visitor, 60..604800 (1 minute … 7 days). Default 3600.' },
                     form: {
@@ -1030,7 +1069,7 @@ Output is {fileId, filename, mimeType, size, documentId, missing[]} — the same
                 type: 'object',
                 properties: {
                     afterStepId: { type: 'string' },
-                    splice: { type: 'boolean', description: 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. Not allowed when the new step itself is a switch.' },
+                    splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
                     message: { type: 'string', description: 'Template string surfaced as the run error.' },
                     label: { type: 'string' },
                 },
@@ -1042,19 +1081,22 @@ Output is {fileId, filename, mimeType, size, documentId, missing[]} — the same
         type: 'function',
         function: {
             name: 'builder_add_switch',
-            description: 'Append a multi-way branch. A case is EITHER { name, value } — compared against the step-level expr — OR { name, expr }, carrying its own rule, which is what you want when the outputs test different things. Do not mix the two in one switch. Wire each case to its next step by passing nextStepIds: { "<caseName>": "<stepId>", "default": "<stepId>" }. EXAMPLE (value style): {expr:"trigger.output.priority",cases:[{name:"urgent",value:"high"},{name:"normal",value:"medium"}],defaultBranch:"fallback"}. EXAMPLE (rule style, one rule per output): {expr:"item",cases:[{name:"pdf",expr:"endsWith(lower(item.name),\'.pdf\')"},{name:"word",expr:"endsWith(lower(item.name),\'.doc\') || endsWith(lower(item.name),\'.docx\')"}]}. To grow a case branch by appending a NEW step, call an add tool with afterStepId set to this switch\'s id AND caseName set to the case it belongs to — otherwise the edge is unlabelled and that case dead-ends.',
+            description: `Append a Condition with several outputs. A case is EITHER { name, value } — compared against the step-level expr — OR { name, expr }, carrying its own rule, which is what you want when the outputs test different things. Do not mix the two in one switch. With arrayRef (a path to an upstream list) it works through that list: each case expr is a rule on \`item\`, every output publishes its items at steps.<id>.output.matchesByCase.<case> (Otherwise: matchesByCase.default), and no step-level expr is needed. Wire each case to its next step by passing nextStepIds: { "<caseName>": "<stepId>", "default": "<stepId>" }. EXAMPLE (value style): {expr:"trigger.output.priority",cases:[{name:"urgent",value:"high"},{name:"normal",value:"medium"}],defaultBranch:"fallback"}. EXAMPLE (a list split by file type): ${JSON.stringify(SWITCH_RULES_EXAMPLE)}. ${CONDITION_RULES_HINT} To grow a case branch by appending a NEW step, call an add tool with afterStepId set to this switch's id AND caseName set to the case it belongs to — otherwise the edge is unlabelled and that case dead-ends.`,
             parameters: {
                 type: 'object',
                 properties: {
                     afterStepId: { type: 'string' },
-                    splice: { type: 'boolean', description: 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. Not allowed when the new step itself is a switch.' },
-                    expr: { type: 'string', description: 'Restricted JS expression whose value gets matched.' },
-                    cases: { type: 'array', description: 'Match in order, first hit wins. Each entry is { name, value } (compared against the step-level expr) or { name, expr } (its own restricted-grammar rule). One output per entry.', items: { type: 'object', properties: { name: { type: 'string' }, value: {}, expr: { type: 'string', description: 'This output\'s own rule, restricted grammar. Inside a list the current row is `item`. When present, `value` is ignored for this case.' } }, required: ['name'] } },
+                    splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
+                    arrayRef: { type: 'string', description: 'Optional path to an upstream list: the switch then routes each item of it (the rules read `item`). Its outputs are steps.<id>.output.matchesByCase.<case>.' },
+                    matchMode: { type: 'string', enum: ['first', 'all'], description: 'With arrayRef: "first" (default) sends an item down the first output it matches; "all" checks every output, so one item can go down several.' },
+                    maxItems: { type: 'integer', description: 'With arrayRef: optional cap on how many items are checked.' },
+                    expr: { type: 'string', description: 'Without arrayRef and with value-style cases: the expression whose value gets matched.' },
+                    cases: { type: 'array', description: 'Checked in order; the first match wins unless matchMode is \'all\'. Each entry is { name, value } (compared against the step-level expr) or { name, expr } (its own rule). One output per entry.', items: { type: 'object', properties: { name: { type: 'string' }, value: {}, expr: { type: 'string', description: 'This output\'s own rule. Inside a list the current item is `item`. When present, `value` is ignored for this case.' } }, required: ['name'] } },
                     defaultBranch: { type: 'string', description: 'Case name to route to when no case matches (otherwise dead-ends).' },
                     nextStepIds: { type: 'object', description: 'Map of case name → existing step id to wire as the branch target. Use this in one shot instead of calling builder_add_* with afterStepId per branch.' },
                     label: { type: 'string' },
                 },
-                required: ['expr', 'cases'],
+                required: ['cases'],
             },
         },
     },
@@ -1062,14 +1104,14 @@ Output is {fileId, filename, mimeType, size, documentId, missing[]} — the same
         type: 'function',
         function: {
             name: 'builder_add_filter',
-            description: 'Append a collection filter — keeps array items matching expr. arrayRef points to an upstream array; expr is evaluated per element with the current element bound as `item`. Output is { items, count }. EXAMPLE: {arrayRef:"steps.search.output.results",expr:"item.amount > 1000"}.',
+            description: `Append a Condition that works through a list — keeps the items matching expr. arrayRef points to an upstream array; expr is evaluated per element with the current element bound as \`item\`. Output is { items, count }: the steps after it read steps.<id>.output.items. EXAMPLE: {arrayRef:"steps.search.output.results",expr:"item.amount > 1000"}. ${CONDITION_RULES_HINT}`,
             parameters: {
                 type: 'object',
                 properties: {
                     afterStepId: { type: 'string' },
-                    splice: { type: 'boolean', description: 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. Not allowed when the new step itself is a switch.' },
+                    splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
                     arrayRef: { type: 'string' },
-                    expr: { type: 'string', description: 'Restricted JS expression referencing item.<field>.' },
+                    expr: { type: 'string', description: 'The rule on each item (item.<field>), in the shapes listed above.' },
                     label: { type: 'string' },
                 },
                 required: ['arrayRef', 'expr'],
@@ -1085,7 +1127,7 @@ Output is {fileId, filename, mimeType, size, documentId, missing[]} — the same
                 type: 'object',
                 properties: {
                     afterStepId: { type: 'string' },
-                    splice: { type: 'boolean', description: 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. Not allowed when the new step itself is a switch.' },
+                    splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
                     arrayRef: { type: 'string' },
                     count: { type: 'integer', description: 'How many items to keep.' },
                     mode: { type: 'string', enum: ['first', 'last'], description: 'Default: first.' },
@@ -1104,7 +1146,7 @@ Output is {fileId, filename, mimeType, size, documentId, missing[]} — the same
                 type: 'object',
                 properties: {
                     afterStepId: { type: 'string' },
-                    splice: { type: 'boolean', description: 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. Not allowed when the new step itself is a switch.' },
+                    splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
                     arrayRef: { type: 'string' },
                     keyField: { type: 'string', description: 'Optional. If set, items with the same value at this field are treated as duplicates.' },
                     label: { type: 'string' },
@@ -1122,7 +1164,7 @@ Output is {fileId, filename, mimeType, size, documentId, missing[]} — the same
                 type: 'object',
                 properties: {
                     afterStepId: { type: 'string' },
-                    splice: { type: 'boolean', description: 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. Not allowed when the new step itself is a switch.' },
+                    splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
                     arrayRef: { type: 'string' },
                     field: { type: 'string', description: 'Field name to read from each item.' },
                     label: { type: 'string' },
@@ -1140,7 +1182,7 @@ Output is {fileId, filename, mimeType, size, documentId, missing[]} — the same
                 type: 'object',
                 properties: {
                     afterStepId: { type: 'string' },
-                    splice: { type: 'boolean', description: 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. Not allowed when the new step itself is a switch.' },
+                    splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
                     arrayRef: { type: 'string' },
                     field: { type: 'string' },
                     op: { type: 'string', enum: ['sum', 'count', 'avg', 'min', 'max'] },
@@ -1154,7 +1196,7 @@ Output is {fileId, filename, mimeType, size, documentId, missing[]} — the same
         type: 'function',
         function: {
             name: 'builder_add_array_op',
-            description: `Append an array operation step. Single entry point for filter / limit / dedupe / aggregate / summarize — pick \`op\` and supply the matching fields. This is the ONLY array tool in the menu.
+            description: `Append an array operation step. Single entry point for filter / limit / dedupe / aggregate / summarize / flatten — pick \`op\` and supply the matching fields. This is the ONLY array tool in the menu.
 
 OPS:
   - filter:    keep items matching expr.    Required: arrayRef, expr.        Output: { items, count }.
@@ -1162,21 +1204,27 @@ OPS:
   - dedupe:    drop duplicates.             Required: arrayRef.               Optional: keyField (dedup by that field; else deep equality). Output: { items, removed }.
   - aggregate: pull one field across items. Required: arrayRef, field.       Output: { values, count }.
   - summarize: numeric stats over a field.  Required: arrayRef, field, fn.   fn ∈ sum|count|avg|min|max. Output: { result, op, count }.
+  - flatten:   one row per item of a list inside each item, with the outer item's fields on every row. Required: arrayRef (the outer list), childField (the list inside each item). Optional: keepFields (outer fields to copy; default: the short ones), keepEmpty. Output: { items, count, inputCount, emptyCount }.
 
-arrayRef is a path string (e.g. "steps.search.output.results"), NOT a binding object. EXAMPLE: {op:"filter",arrayRef:"steps.search.output.results",expr:"item.amount > 1000"}.`,
+arrayRef is a path string (e.g. "steps.search.output.results"), NOT a binding object. EXAMPLE: {op:"filter",arrayRef:"steps.search.output.results",expr:"item.amount > 1000"}.
+
+FILTER RULES: ${CONDITION_RULES_HINT}`,
             parameters: {
                 type: 'object',
                 properties: {
-                    op: { type: 'string', enum: ['filter', 'limit', 'dedupe', 'aggregate', 'summarize'] },
+                    op: { type: 'string', enum: ['filter', 'limit', 'dedupe', 'aggregate', 'summarize', 'flatten'] },
                     afterStepId: { type: 'string' },
-                    splice: { type: 'boolean', description: 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. Not allowed when the new step itself is a switch.' },
+                    splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
                     arrayRef: { type: 'string', description: 'Dotted path to an upstream array, e.g. "steps.search.output.results".' },
-                    expr: { type: 'string', description: 'filter only: restricted JS expression referencing item.<field>.' },
+                    expr: { type: 'string', description: 'filter only: the rule on each item (item.<field>), in the FILTER RULES shapes.' },
                     count: { type: 'integer', description: 'limit only: how many items to keep.' },
                     mode: { type: 'string', enum: ['first', 'last'], description: 'limit only: default "first".' },
                     keyField: { type: 'string', description: 'dedupe only: field to dedup by; omit for deep-equality dedup.' },
                     field: { type: 'string', description: 'aggregate and summarize: field name on each item.' },
                     fn: { type: 'string', enum: ['sum', 'count', 'avg', 'min', 'max'], description: 'summarize only: which statistic to compute.' },
+                    childField: { type: 'string', description: 'flatten only: the list inside each item of arrayRef, e.g. "attachments".' },
+                    keepFields: { type: 'array', items: { type: 'string' }, description: 'flatten only: the outer item\'s fields to copy onto each row; omit for the short ones.' },
+                    keepEmpty: { type: 'boolean', description: 'flatten only: keep an outer item with an empty inner list as one row; default false.' },
                     branch: { type: 'string', enum: ['then', 'else'], description: 'When afterStepId is a condition: which branch this step begins. Omit to auto-fill (then first, else second).' },
                     caseName: { type: 'string', description: 'When afterStepId is a switch: the case name (or "default") this step begins.' },
                     label: { type: 'string' },
@@ -1209,7 +1257,7 @@ save_row's \`matchColumn\` MUST also appear in \`values\`: it is how the step re
 
 A condition whose value resolves to nothing SKIPS the step — for a read as much as for a write. Bind conditions to something that is always there.
 
-\`datatableId\` must be the id of a table that already exists and that the AUTOMATION'S OWNER may write to — never invent an id. If the user needs a table that does not exist yet, create it FIRST with builder_create_datatable {name, fields} and use the id it returns.
+\`datatableId\` must be the id of a table that already exists and that the AUTOMATION'S OWNER may write to — never invent an id — or the id builder_create_datatable returned ("pending:<n>" in a preview). If the user needs a table that does not exist yet, create it FIRST with builder_create_datatable {name, fields} and use the id it returns. An existing table the user did not name needs builder_ask_questions {datatableIds} first.
 
 values keys are the column KEYS shown in the Datatables block (e.g. excl_btw for "Excl. btw"); a title is mapped to its key when unambiguous. op aliases (append/insert → add_row, upsert → save_row, list/query → find_rows) are accepted and reported — write the canonical name.
 
@@ -1220,10 +1268,10 @@ EXAMPLE: {op:"save_row",datatableId:"tbl_1a2b3c",matchColumn:"email",values:{ema
                 type: 'object',
                 properties: {
                     op: { type: 'string', enum: ['find_rows', 'count_rows', 'add_row', 'save_row', 'update_rows', 'delete_rows'] },
-                    datatableId: { type: 'string', description: 'Id of an EXISTING datatable, from the catalog. Never invent one.' },
+                    datatableId: { type: 'string', description: 'Id of an EXISTING datatable from the catalog, or the id builder_create_datatable returned ("pending:<n>" in a preview). An existing table the user did not name needs builder_ask_questions {datatableIds} first. Never invent one.' },
                     datatableKey: { type: 'string', description: 'That same table\'s `key`, copied EXACTLY as the catalog shows it beside the id. Advisory only — nothing reads it at run time; it is what lets an export/import re-link the step, because an exported automation never carries another workspace\'s table id. Leave it out if you do not have the key; never guess one, or an import re-links to the wrong table.' },
                     afterStepId: { type: 'string' },
-                    splice: { type: 'boolean', description: 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. Not allowed when the new step itself is a switch.' },
+                    splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
                     where: {
                         type: 'array',
                         description: 'Conditions. Each is {field, op, value}; op is one of eq, neq, gt, gte, lt, lte, contains, notContains, startsWith, endsWith, in, notIn, between, isNull, isNotNull. `in`/`notIn` take an ARRAY value; `between` takes [min, max].',
@@ -1263,9 +1311,9 @@ EXAMPLE: {op:"save_row",datatableId:"tbl_1a2b3c",matchColumn:"email",values:{ema
         type: 'function',
         function: {
             name: 'builder_create_datatable',
-            description: `CREATE a new Studio datatable NOW (at design time) — for an automation that must write rows into a table that does not exist yet ("extract the invoices into a new table called invoice"). This is NOT a step: nothing runs later; the table exists the moment this call answers, owned by the automation's owner, and it appears in the Datatables block. Then write into it with builder_add_datatable {op:"add_row", datatableId:<the id this returns>, values:{<columnKey>: binding}}.
+            description: `CREATE a new Studio datatable NOW (at design time) — for an automation that must write rows into a table that does not exist yet ("extract the invoices into a new table called invoice"). This is NOT a step: nothing runs later. In Build directly (and over MCP) the table exists when this answers. In a preview (Approve each change, or a change waiting for Apply) it is STAGED with datatableId "pending:<n>" — bind steps to that id — and created when the user presses Apply. A same-named existing table is only reused once the user chose it. Then write into it with builder_add_datatable {op:"add_row", datatableId:<the id this returns>, values:{<columnKey>: binding}}.
 
-Give the columns the automation will write: name + type (text | number | date | datetime | bool | select with options | multiselect | file); a key is derived from the name when you leave it out ("Excl. btw" → excl_btw). Calling it again with the same name returns the existing table — never a second one. Use builder_add_datatable directly when the Datatables block already lists a fitting table.`,
+Give the columns the automation will write: name + type (text | number | date | datetime | bool | select with options | multiselect | file); a key is derived from the name when you leave it out ("Excl. btw" → excl_btw). Use builder_add_datatable directly when the Datatables block already lists a fitting table the user named.`,
             parameters: {
                 type: 'object',
                 properties: {
@@ -1311,7 +1359,7 @@ EXAMPLE — each resolved ticket becomes an article: {knowledgeBaseId:"kb_9f2",t
             parameters: {
                 type: 'object',
                 properties: {
-                    knowledgeBaseId: { type: 'string', description: 'Id of an EXISTING knowledge base the automation owner may MANAGE. There is no catalog of these in the prompt — never invent one: only ids the user has actually shown you (e.g. from the Knowledge admin) are valid, and anything else is refused at save.' },
+                    knowledgeBaseId: { type: 'string', description: 'Id of an EXISTING knowledge base the automation owner may MANAGE. Take it from the "Knowledge bases you may use" block in the context, a WRITABLE one — never invent one; anything else is refused at save.' },
                     content: { type: 'string', description: 'The text to store. A {{...}} template — usually the whole output of an earlier step, e.g. "{{steps.summary.output.text}}".' },
                     title: { type: 'string', description: 'What the document is called where a person browses the base. A {{...}} template. Defaults to "Untitled".' },
                     sourceUri: { type: 'string', description: 'A stable, unique reference for THIS subject, so a later run replaces this document instead of adding another — e.g. "ticket:{{loop.ticket.id}}". Strongly recommended on anything that runs more than once.' },
@@ -1365,12 +1413,12 @@ EXAMPLE — each resolved ticket becomes an article: {knowledgeBaseId:"kb_9f2",t
         type: 'function',
         function: {
             name: 'builder_update_trigger',
-            description: 'Edit a trigger IN PLACE (the primary or an additional one) — its label, an app_event\'s appProvider/appEvent/filter, or a schedule\'s cron/tz. Keeps the id and every edge wired out of it. A trigger cannot change kind in place: remove it (builder_remove_step with the trigger id) and add a new one, or use builder_propose_trigger for the primary.',
+            description: 'Edit a trigger IN PLACE (the primary or an additional one) — its label, an app_event\'s appProvider/appEvent/filter, a schedule\'s cron/tz, an agent_call\'s toolName/description/params (or parametersSchema), a form\'s `form` (title, fields, …) or an app_trigger\'s params. Keeps the id, the label, the position and every edge wired out of it; only the keys you pass change. A declared input is bound in steps as trigger.output.<name>. A trigger cannot change kind in place: remove it (builder_remove_step with the trigger id) and add a new one, or use builder_propose_trigger for the primary.',
             parameters: {
                 type: 'object',
                 properties: {
                     triggerId: { type: 'string', description: 'The trigger id ("trg" for the primary, or an id returned by builder_add_trigger).' },
-                    patch: { type: 'object', description: 'Fields to change: label, appProvider, appEvent, filter (app_event) or cron, tz (schedule). Other keys are ignored.' },
+                    patch: { type: 'object', description: 'Fields to change: label; appProvider, appEvent, filter (app_event); cron, tz (schedule); toolName, description, params or parametersSchema (agent_call; params REPLACES the whole argument list, so send every argument); form (form: any of title, description, submitLabel, successMessage, collect, fields — fields REPLACES the whole list); params (app_trigger). Other keys are ignored and reported.' },
                 },
                 required: ['triggerId', 'patch'],
             },
@@ -1388,12 +1436,12 @@ EXAMPLE — each resolved ticket becomes an article: {knowledgeBaseId:"kb_9f2",t
         type: 'function',
         function: {
             name: 'builder_update_step',
-            description: `Update an EXISTING step in place by id WITHOUT removing and re-adding it — keeps the step id and ALL wiring (incoming/outgoing edges, branch labels, forEach), so downstream steps.<id>.output.* references keep working. ALWAYS prefer this over remove+add when editing a step. It also MOVES a step: patch {afterStepId:"<id>", branch?:"then"|"else"|"error", caseName?} on the step to move — it is detached from where it is (its neighbours are re-joined) and inserted after the anchor, KEEPING its id, so downstream refs survive. That is how you put a step on a condition's other branch or re-order a chain; never remove-and-re-add for that. On a condition, patch {thenStepId|elseStepId:"<existing step id>"} to wire an existing step onto that branch. Patch is partial: only the fields you pass change. Cannot change a step's type (use builder_replace_step). inputs/fields MERGE key-by-key by default (pass a key value of null to delete just that key; pass inputsMode:"replace" to overwrite the whole map). ${BINDING_HINT} EXAMPLE — retarget an AI step's model and tweak its prompt: {stepId:"ai_1a2b3c",patch:{modelTier:"thinking",prompt:"Summarise concisely in Dutch."}}.`,
+            description: `Update an EXISTING step in place by id WITHOUT removing and re-adding it — keeps the step id and ALL wiring (incoming/outgoing edges, branch labels, forEach), so downstream steps.<id>.output.* references keep working. ALWAYS prefer this over remove+add when editing a step. It also MOVES a step: patch {afterStepId:"<id>", branch?:"then"|"else"|"error", caseName?} on the step to move — it is detached from where it is (its neighbours are re-joined) and inserted after the anchor, KEEPING its id, so downstream refs survive. That is how you put a step on a condition's other branch or re-order a chain; never remove-and-re-add for that. On a condition, patch {thenStepId|elseStepId:"<existing step id>"} to wire an existing step onto that branch. Patch is partial: only the fields you pass change. A step's TYPE changes through builder_replace_step; a patch with type:"<newType>" (or tool:"<step type>" on an action) is applied as one, and says so. inputs/fields MERGE key-by-key by default (pass a key value of null to delete just that key; pass inputsMode:"replace" to overwrite the whole map). ${BINDING_HINT} EXAMPLE — retarget an AI step's model and tweak its prompt: {stepId:"ai_1a2b3c",patch:{modelTier:"thinking",prompt:"Summarise concisely in Dutch."}}.`,
             parameters: {
                 type: 'object',
                 properties: {
                     stepId: { type: 'string', description: 'Id of the step to update (root flow, a flowlet via scope, or a loop-body step).' },
-                    patch: { type: 'object', description: 'Fields to change. ANY step: afterStepId (+ branch/caseName) MOVES it — same id, chain re-joined where it left; condition: thenStepId/elseStepId wire an EXISTING step onto that branch. Other allowed keys depend on the step type (ai_step: prompt, systemPrompt, inputs, outputSchema, modelTier, allowTools, tools, knowledgeBaseIds, useMemory, skillIds, agentPermissions, disabledAgentSkillIds (the full list), label, forEach, and agentId ONLY on a step that has none yet — pointing a step at a DIFFERENT agent goes through builder_replace_step, so the permission check runs on it (the one exception is a step INSIDE A LOOP BODY, which builder_replace_step cannot reach at all: patch it here and the same save-time check still runs); data_extraction: source, fields (replaced wholesale — send the full list), instructions, label, forEach; integration_action: tool, inputs, label, forEach; condition: expr, label; switch: expr, cases, defaultBranch, label; code: code (keep its JSDoc @param lines in step with the inputs it reads), inputs, outputSchema, allowedTools, limits, label, forEach; set: fields, arrayRef, operations, maxItems, label, forEach — arrayRef: null exits list mode, operations replace wholesale (null clears); notification: title, body, channels, label, forEach; http_request: url, method, headers, body, timeoutMs, blockPrivateTargets, parseResponse, label, forEach, askOnce, cacheInto; datatable: op, where, values, matchColumn, sort, limit, label, forEach, datatableKey, and datatableId ONLY on a step that has none yet (repointing a step that already names a table goes through builder_replace_step); knowledge_write: content, title, sourceUri, nearDuplicateStrategy, label, forEach, and knowledgeBaseId ONLY on a step that has none yet (repointing a write at a different base goes through builder_replace_step, so the save-time permission check runs on it); loop: overRef, itemVar, maxIterations, label; call_layer: inputs, label; datetime/wait/stop_error/filter/limit/dedupe/aggregate/summarize: their own fields + label; approval: prompt, approval as {expiresInHours (0..720, 0 = no deadline), assignee {userId}|{groupId}, details, attachments, fields}, label — approval steps do NOT accept forEach). Do NOT pass `type` or `id`.' },
+                    patch: { type: 'object', description: 'Fields to change. ANY step: afterStepId (+ branch/caseName) MOVES it — same id, chain re-joined where it left; condition: thenStepId/elseStepId wire an EXISTING step onto that branch. Other allowed keys depend on the step type (ai_step: prompt, systemPrompt, inputs, outputSchema, modelTier, allowTools, tools, knowledgeBaseIds, useMemory, skillIds, agentPermissions, disabledAgentSkillIds (the full list), label, forEach, and agentId ONLY on a step that has none yet — pointing a step at a DIFFERENT agent goes through builder_replace_step, so the permission check runs on it (the one exception is a step INSIDE A LOOP BODY, which builder_replace_step cannot reach at all: patch it here and the same save-time check still runs); data_extraction: source, fields (replaced wholesale — send the full list), instructions, label, forEach; integration_action: tool, inputs, label, forEach; condition: expr, label; switch: expr, cases, defaultBranch, label; code: code (keep its JSDoc @param lines in step with the inputs it reads), inputs, outputSchema, allowedTools, limits, label, forEach; set: fields, arrayRef, operations, maxItems, label, forEach — arrayRef: null exits list mode, operations replace wholesale (null clears); notification: title, body, channels, label, forEach; http_request: url, method, headers, body, query (see builder_add_http_request), timeoutMs, blockPrivateTargets, parseResponse, label, forEach, askOnce, cacheInto; datatable: op, where, values, matchColumn, sort, limit, label, forEach, datatableKey, and datatableId ONLY on a step that has none yet (repointing a step that already names a table goes through builder_replace_step); knowledge_write: content, title, sourceUri, nearDuplicateStrategy, label, forEach, and knowledgeBaseId ONLY on a step that has none yet (repointing a write at a different base goes through builder_replace_step, so the save-time permission check runs on it); loop: overRef, itemVar, maxIterations, label; call_layer: inputs, label; datetime/wait/stop_error/filter/limit/dedupe/aggregate/summarize: their own fields + label; approval: prompt, approval as {expiresInHours (0..720, 0 = no deadline), assignee {userId}|{groupId}, details, attachments, fields}, label — approval steps do NOT accept forEach). Do NOT pass `id`. A type change carries the fields of the new type: patch {type:"datatable", op, datatableId, datatableKey, values}.' },
                     inputsMode: { type: 'string', enum: ['merge', 'replace'], description: 'How to apply patch.inputs / patch.fields. Default "merge" (per-key; value null deletes that key). "replace" overwrites the whole map.' },
                 },
                 required: ['stepId', 'patch'],
@@ -1447,8 +1495,8 @@ EXAMPLE — each resolved ticket becomes an article: {knowledgeBaseId:"kb_9f2",t
                             additionalProperties: false,
                             properties: {
                                 tempId: { type: 'string', description: 'Handle for THIS TURN ([A-Za-z][A-Za-z0-9_]*): a handle names ONE step for the whole turn — pick a fresh one for every new step, also in a later builder_add_steps call (re-using a handle for a different step is refused). Reference from later entries as steps.$<tempId>.output.<field> or "$<tempId>" in wiring fields — the $ is REQUIRED; steps.<tempId> without it is stored verbatim and dangles. After a partial batch you may keep using steps.$<tempId> for entries that were built; across turns use the real id.' },
-                                type: { type: 'string', enum: ['integration_action', 'ai_step', 'data_extraction', 'condition', 'switch', 'notification', 'set', 'http_request', 'datatable', 'generate_document', 'fill_document', 'slide', 'presentation', 'array_op', 'code', 'datetime', 'wait', 'stop_error', 'form_page', 'approval', 'call_layer', 'knowledge_write', 'loop', 'filter', 'limit', 'dedupe', 'aggregate', 'summarize'] },
-                                spec: { type: 'object', description: 'EXACTLY the fields the matching single-step tool takes (tool/inputs, prompt/outputSchema, expr, op, afterStepId, branch:"then"|"else"|"error", caseName, label, …). Put ALL step fields inside spec — never at the entry level. PER-ITEM WORK is forEach:{overRef,itemVar} INSIDE spec — the default, also for MULTI-STEP per-item work: chain the next entry\'s forEach over the previous one\'s output.results. EXAMPLE — read every listed file, extract from each, then save one row per file: [{tempId:"list",type:"integration_action",spec:{tool:"nextcloud_list_files",inputs:{path:{kind:"literal",value:"/Invoices"}}}},{tempId:"read",type:"integration_action",spec:{tool:"nextcloud_read_file",inputs:{path:{kind:"ref",path:"loop.f.path"}},forEach:{overRef:"steps.$list.output.items",itemVar:"f"}}},{tempId:"extract",type:"data_extraction",spec:{source:{kind:"ref",path:"loop.r.output.content"},fields:[{name:"vendor",type:"string",description:"Supplier name"},{name:"amount",type:"number",description:"Total including VAT"},{name:"due_date",type:"date",description:"Payment due date"}],forEach:{overRef:"steps.$read.output.results",itemVar:"r"}}},{tempId:"save",type:"datatable",spec:{op:"add_row",datatableId:"<id from the Datatables block>",values:{vendor:{kind:"ref",path:"loop.x.output.vendor"}},forEach:{overRef:"steps.$extract.output.results",itemVar:"x"}}}]. Extraction is a data_extraction step (fields = output shape, runs on the admin\'s extraction model); an ai_step is for judgement and writing. A type:"loop" entry is RARE (only when a body must branch); its spec.body steps are FLAT step objects ({id, type, tool|prompt, inputs}) with no nested spec wrapper.' },
+                                type: { type: 'string', enum: [...BATCH_STEP_TYPES] },
+                                spec: { type: 'object', description: 'EXACTLY the fields the matching single-step tool takes (tool/inputs, prompt/outputSchema, expr, op, afterStepId, branch:"then"|"else"|"error", caseName, label, …). Put ALL step fields inside spec — never at the entry level. PER-ITEM WORK is forEach:{overRef,itemVar} INSIDE spec — the default, also for MULTI-STEP per-item work: chain the next entry\'s forEach over the previous one\'s output.results. EXAMPLE — read every listed file, extract from each, then save one row per file: [{tempId:"list",type:"integration_action",spec:{tool:"nextcloud_list_files",inputs:{path:{kind:"literal",value:"/Invoices"}}}},{tempId:"read",type:"integration_action",spec:{tool:"nextcloud_read_file",inputs:{path:{kind:"ref",path:"loop.f.path"}},forEach:{overRef:"steps.$list.output.items",itemVar:"f"}}},{tempId:"extract",type:"data_extraction",spec:{source:{kind:"ref",path:"loop.r.output.content"},fields:[{name:"vendor",type:"string",description:"Supplier name"},{name:"amount",type:"number",description:"Total including VAT"},{name:"due_date",type:"date",description:"Payment due date"}],forEach:{overRef:"steps.$read.output.results",itemVar:"r"}}},{tempId:"save",type:"datatable",spec:{op:"add_row",datatableId:"<id from the Datatables block>",values:{vendor:{kind:"ref",path:"loop.x.output.vendor"}},forEach:{overRef:"steps.$extract.output.results",itemVar:"x"}}}]. Extraction is a data_extraction step (fields = output shape, runs on the admin\'s extraction model); an ai_step is for judgement and writing. A type:"loop" entry is RARE (only when a body must branch); its spec.body steps are FLAT step objects ({id, type, tool|prompt, inputs}) with no nested spec wrapper. PRIVACY SHIELD steps exist ONLY here (no single-step tool) and take a ref PATH STRING, not a binding object: {type:"guard",spec:{sourceRef:"steps.$read.output.content",stopOnFound?,maskOnFound?,hideOnFound?,categories?,confidence?}} branches then (personal data found) / else (clean) — append with afterStepId=<guard>, branch:"then"|"else"; {type:"tokenize",spec:{sourceRef}} hides what it finds reversibly (output.text); {type:"untokenize",spec:{sourceRef}} puts the real values back.' },
                             },
                             required: ['type', 'spec'],
                         },
@@ -1462,12 +1510,12 @@ EXAMPLE — each resolved ticket becomes an article: {knowledgeBaseId:"kb_9f2",t
         type: 'function',
         function: {
             name: 'builder_replace_step',
-            description: 'Replace an existing step\'s TYPE in place, keeping its id and surrounding wiring so downstream steps.<id>.output.* references survive. Provide the full new spec exactly as you would to builder_add_<newType> (omit afterStepId/branch/caseName — position is inherited). Replacing a branching step (condition/switch) with a non-branching one, or vice-versa, rewrites the outgoing branch edges; the result includes a `rewired` note telling you what to finish wiring. For a same-type field change use builder_update_step instead.',
+            description: 'Replace an existing step\'s TYPE in place, keeping its id and surrounding wiring so downstream steps.<id>.output.* references survive. Provide the full new spec exactly as you would to builder_add_<newType> (omit afterStepId/branch/caseName — position is inherited). Replacing a branching step (condition/switch) with a non-branching one, or vice-versa, rewrites the outgoing branch edges; the result includes a `rewired` note telling you what to finish wiring. For a same-type field change use builder_update_step instead. EXAMPLE — a Nextcloud Tables row step into a Bee Flow table step: {stepId:"act_1", newType:"datatable", spec:{op:"add_row", datatableId:"<id>", datatableKey:"<key>", values:{…}}}. Readers of the old output fields must be re-pointed (row, id, created).',
             parameters: {
                 type: 'object',
                 properties: {
                     stepId: { type: 'string' },
-                    newType: { type: 'string', enum: ['integration_action', 'ai_step', 'data_extraction', 'condition', 'switch', 'notification', 'set', 'http_request', 'datatable', 'generate_document', 'fill_document', 'slide', 'presentation', 'code', 'datetime', 'wait', 'stop_error', 'form_page', 'approval', 'call_layer', 'knowledge_write', 'loop', 'filter', 'limit', 'dedupe', 'aggregate', 'summarize'] },
+                    newType: { type: 'string', enum: [...REPLACEABLE_STEP_TYPES] },
                     spec: { type: 'object', description: 'Full field set for the new type (same shape as the matching builder_add_<type> args, excluding afterStepId/branch/caseName/scope).' },
                 },
                 required: ['stepId', 'newType', 'spec'],

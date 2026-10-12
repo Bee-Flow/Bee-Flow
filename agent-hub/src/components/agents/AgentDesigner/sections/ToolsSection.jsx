@@ -1,6 +1,7 @@
 import React from 'react';
 import { INTEGRATION_CATALOG } from '../integrations';
 import ConnectionPolicyPicker from '../../../shared/ConnectionPolicyPicker';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 export const ToolsSection = ({
   selectedAgent, name, setName, description, setDescription,
@@ -24,11 +25,12 @@ export const ToolsSection = ({
   assistantBubbleColor, setAssistantBubbleColor, warningText, setWarningText,
   setPromptDesignerMessages, setPromptDesignerInput, setShowPromptDesigner
 }) => {
+  const { t } = useTranslation();
   return (
                                                 <div className="space-y-6 animate-fadeIn">
                                                     <div>
-                                                        <h2 data-tour="agent-tools" className="text-base font-semibold text-primary">Capabilities & Integrations</h2>
-                                                        <p className="text-xs text-muted mt-0.5">Select which integrations this agent can use. Only integrations you have access to are shown.</p>
+                                                        <h2 data-tour="agent-tools" className="text-base font-semibold text-primary">{t('agent_studio.tools_capabilities_integrations', 'Capabilities & Integrations')}</h2>
+                                                        <p className="text-xs text-muted mt-0.5">{t('agent_studio.tools_select_which_integrations_this_agent', 'Select which integrations this agent can use. Only integrations you have access to are shown.')}</p>
                                                     </div>
 
                                                     {/* Integration Status Grid */}
@@ -76,7 +78,7 @@ export const ToolsSection = ({
                                                                     <div>
                                                                         <h3 className="text-xs font-medium text-muted mb-3 flex items-center gap-1.5">
                                                                             <svg className="w-3 h-3 text-emerald-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" /></svg>
-                                                                            Agent Integrations ({selectedCount}/{available.length})
+                                                                            {t('agent_studio.tools_agent_integrations_selected_count', 'Agent Integrations ({selected_count}/{count})', { selected_count: selectedCount, count: available.length })}
                                                                         </h3>
                                                                         <div className="grid grid-cols-2 gap-2">
                                                                             {available.map(item => {
@@ -107,8 +109,8 @@ export const ToolsSection = ({
                                                                 ) : (
                                                                     <div className="text-center py-8 rounded-xl border border-dashed" style={{ borderColor: 'var(--border-subtle)' }}>
                                                                         <svg className="w-8 h-8 mx-auto mb-2 text-muted opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
-                                                                        <p className="text-sm text-muted">No integrations available</p>
-                                                                        <p className="text-[10px] text-muted mt-1">Connect via Google SSO or configure API keys in Settings</p>
+                                                                        <p className="text-sm text-muted">{t('agent_studio.tools_no_integrations_available', 'No integrations available')}</p>
+                                                                        <p className="text-[10px] text-muted mt-1">{t('agent_studio.tools_connect_via_google_sso_or_configure', 'Connect via Google SSO or configure API keys in Settings')}</p>
                                                                     </div>
                                                                 )}
                                                             </>

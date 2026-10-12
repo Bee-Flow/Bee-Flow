@@ -8,35 +8,37 @@
  * tolerant: it accepts the documented shape and the obvious variants, and falls
  * back to an honest empty state rather than rendering a confident wrong number.
  */
-import React, { useState } from 'react';
 import { Filter, GitBranch, Repeat, Target, Plus, X } from 'lucide-react';
-import { useAnalyticsQuery } from '../useAnalyticsQuery';
+import React, { useState } from 'react';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 import { ACCENT, PALETTE, Card, Empty, ErrorNote, Skeleton, fmt, paletteAt } from '../ui';
+import { useAnalyticsQuery } from '../useAnalyticsQuery';
 
 const TABS = [
-    { id: 'funnel', label: 'Funnel', icon: Filter },
-    { id: 'journey', label: 'Journeys', icon: GitBranch },
-    { id: 'retention', label: 'Retention', icon: Repeat },
-    { id: 'goals', label: 'Goals', icon: Target },
+    { id: 'funnel', labelKey: 'cms_site.analytics.behavior.tab_funnel', label: 'Funnel', icon: Filter },
+    { id: 'journey', labelKey: 'cms_site.analytics.behavior.tab_journeys', label: 'Journeys', icon: GitBranch },
+    { id: 'retention', labelKey: 'cms_site.analytics.behavior.tab_retention', label: 'Retention', icon: Repeat },
+    { id: 'goals', labelKey: 'cms_site.analytics.behavior.tab_goals', label: 'Goals', icon: Target },
 ];
 
 export default function BehaviorSection({ scope, onDrill }) {
+    const { t } = useTranslation();
     const [tab, setTab] = useState('funnel');
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {TABS.map(t => {
-                    const Icon = t.icon;
-                    const active = t.id === tab;
+                {TABS.map(tb => {
+                    const Icon = tb.icon;
+                    const active = tb.id === tab;
                     return (
-                        <button key={t.id} onClick={() => setTab(t.id)} style={{
+                        <button key={tb.id} onClick={() => setTab(tb.id)} style={{
                             display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px',
                             borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 700,
                             background: active ? `${ACCENT}14` : 'var(--bg-secondary, #1a1a2e)',
                             border: `1px solid ${active ? `${ACCENT}66` : 'var(--border-default, rgba(255,255,255,0.1))'}`,
                             color: active ? ACCENT : 'var(--text-muted, #888)',
                         }}>
-                            <Icon style={{ width: 13, height: 13 }} /> {t.label}
+                            <Icon style={{ width: 13, height: 13 }} /> {t(tb.labelKey, tb.label)}
                         </button>
                     );
                 })}
@@ -83,6 +85,7 @@ function defaultSteps(pageRows, eventRows) {
 }
 
 function FunnelPanel({ scope }) {
+    const { t } = useTranslation();
     const pages = useAnalyticsQuery('query', 'metrics', scope, { params: { type: 'path', limit: 30 } });
     const events = useAnalyticsQuery('query', 'metrics', scope, { params: { type: 'event', limit: 30 } });
     // null = "the user has not touched this yet", which is distinct from an
@@ -117,10 +120,10 @@ function FunnelPanel({ scope }) {
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <Card title="Build a funnel" icon={Filter} action={
+            <Card title={t('cms_site.analytics.behavior.funnel_build', 'Build a funnel')} icon={Filter} action={
                 isDefault ? (
                     <span style={{ fontSize: 10, color: 'var(--text-muted, #777)' }}>
-                        suggested — edit the steps to make it yours
+                        {t('cms_site.analytics.behavior.funnel_suggested', 'suggested — edit the steps to make it yours')}
                     </span>
                 ) : null
             }>
@@ -138,7 +141,7 @@ function FunnelPanel({ scope }) {
                             <span style={{ fontSize: 12, color: 'var(--text-muted, #888)' }}>{s.type}</span>
                             <span style={{ fontSize: 12, color: 'var(--text-primary, #fff)', flex: 1 }}>{s.value}</span>
                             <button onClick={() => setStepsFrom(list => list.filter((_, j) => j !== i))}
-                                aria-label={`Remove step ${i + 1}`}
+                                aria-label={t('cms_site.analytics.behavior.remove_step', 'Remove step {n}', { n: i + 1 })}
                                 style={{ background: 'transparent', border: 'none', color: 'var(--text-muted, #888)', cursor: 'pointer' }}>
                                 <X style={{ width: 13, height: 13 }} />
                             </button>
@@ -156,14 +159,14 @@ function FunnelPanel({ scope }) {
                                 borderRadius: 8, padding: '7px 10px', fontSize: 12, minWidth: 260,
                             }}
                         >
-                            <option value="">Add a step…</option>
+                            <option value="">{t('cms_site.analytics.behavior.add_step', 'Add a step…')}</option>
                             {pageOptions.length > 0 && (
-                                <optgroup label="Pages">
+                                <optgroup label={t('cms_site.analytics.behavior.group_pages', 'Pages')}>
                                     {pageOptions.map((o, i) => <option key={`p${i}`} value={`path:${o.value}`}>{o.value}</option>)}
                                 </optgroup>
                             )}
                             {eventOptions.length > 0 && (
-                                <optgroup label="Events">
+                                <optgroup label={t('cms_site.analytics.behavior.group_events', 'Events')}>
                                     {eventOptions.map((o, i) => <option key={`e${i}`} value={`event:${o.value}`}>{o.value}</option>)}
                                 </optgroup>
                             )}
@@ -172,31 +175,31 @@ function FunnelPanel({ scope }) {
                             <button onClick={() => setSteps([])} style={{
                                 background: 'transparent', border: '1px solid var(--border-default, rgba(255,255,255,0.12))',
                                 borderRadius: 8, padding: '6px 10px', fontSize: 12, color: 'var(--text-muted, #888)', cursor: 'pointer',
-                            }}>Clear</button>
+                            }}>{t('cms_site.analytics.behavior.clear', 'Clear')}</button>
                         )}
                     </div>
                     {!ready && (
                         <p style={{ fontSize: 11, color: 'var(--text-muted, #777)', margin: 0 }}>
                             {pageOptions.length < 2
-                                ? 'Once visitors have seen at least two different pages, a funnel can be built here.'
-                                : 'Pick at least two steps to see conversion and drop-off.'}
+                                ? t('cms_site.analytics.behavior.funnel_need_pages', 'Once visitors have seen at least two different pages, a funnel can be built here.')
+                                : t('cms_site.analytics.behavior.funnel_need_steps', 'Pick at least two steps to see conversion and drop-off.')}
                         </p>
                     )}
                 </div>
             </Card>
 
             {ready && (
-                <Card title="Conversion" action={
+                <Card title={t('cms_site.analytics.behavior.conversion', 'Conversion')} action={
                     conversion != null ? (
                         <span style={{ fontSize: 12, color: 'var(--text-muted, #888)' }}>
                             <strong style={{ color: ACCENT, fontSize: 15 }}>{conversion.toFixed(1)}%</strong>
-                            {' '}made it all the way through
+                            {' '}{t('cms_site.analytics.behavior.made_it', 'made it all the way through')}
                         </span>
                     ) : null
                 }>
                     {funnel.loading ? <Skeleton height={200} />
                         : funnel.error ? <ErrorNote message={funnel.error} onRetry={funnel.reload} compact />
-                        : rows.length === 0 ? <Empty text="No visitors completed this path in the selected period." />
+                        : rows.length === 0 ? <Empty text={t('cms_site.analytics.behavior.funnel_empty', 'No visitors completed this path in the selected period.')} />
                         : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                                 {rows.map((r, i) => {
@@ -218,7 +221,7 @@ function FunnelPanel({ scope }) {
                                             </div>
                                             {prev != null && drop > 0 && (
                                                 <div style={{ fontSize: 11, color: '#f87171', marginTop: 3 }}>
-                                                    −{fmt(drop)} dropped off here
+                                                    −{t('cms_site.analytics.behavior.dropped', '{n} dropped off here', { n: fmt(drop) })}
                                                 </div>
                                             )}
                                         </div>
@@ -243,6 +246,7 @@ function readJourneys(payload) {
 }
 
 function JourneyPanel({ scope, onDrill }) {
+    const { t } = useTranslation();
     const [depth, setDepth] = useState(3);
     const { payload, loading, error, reload } = useAnalyticsQuery('report', 'journey', scope, {
         body: { steps: depth },
@@ -250,18 +254,18 @@ function JourneyPanel({ scope, onDrill }) {
     const journeys = readJourneys(payload);
 
     return (
-        <Card title="Common journeys" icon={GitBranch} action={
+        <Card title={t('cms_site.analytics.behavior.journeys', 'Common journeys')} icon={GitBranch} action={
             <select value={depth} onChange={(e) => setDepth(Number(e.target.value))} style={{
                 background: 'var(--bg-primary, #0f0f1a)', color: 'var(--text-primary, #fff)',
                 border: '1px solid var(--border-default, rgba(255,255,255,0.12))',
                 borderRadius: 7, padding: '4px 8px', fontSize: 11,
             }}>
-                {[3, 4, 5, 6, 7].map(n => <option key={n} value={n}>{n} steps</option>)}
+                {[3, 4, 5, 6, 7].map(n => <option key={n} value={n}>{t('cms_site.analytics.behavior.steps_count', '{n} steps', { n })}</option>)}
             </select>
         }>
             {loading ? <Skeleton height={220} />
                 : error ? <ErrorNote message={error} onRetry={reload} compact />
-                : journeys.length === 0 ? <Empty text="Not enough multi-page sessions in this period to build journeys." />
+                : journeys.length === 0 ? <Empty text={t('cms_site.analytics.behavior.journeys_empty', 'Not enough multi-page sessions in this period to build journeys.')} />
                 : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                         {journeys.slice(0, 15).map((j, i) => (
@@ -276,11 +280,11 @@ function JourneyPanel({ scope, onDrill }) {
                                                     background: 'transparent', border: 'none', padding: 0, cursor: 'pointer',
                                                     fontSize: 12, color: 'var(--text-primary, #fff)',
                                                 }}
-                                            >{step || '(exit)'}</button>
+                                            >{step || t('cms_site.analytics.behavior.exit', '(exit)')}</button>
                                         </React.Fragment>
                                     ))}
                                 </div>
-                                <span style={{ fontSize: 11, fontWeight: 700, color: ACCENT }}>{fmt(j.count)} sessions</span>
+                                <span style={{ fontSize: 11, fontWeight: 700, color: ACCENT }}>{t('cms_site.analytics.behavior.sessions_count', '{n} sessions', { n: fmt(j.count) })}</span>
                             </div>
                         ))}
                     </div>
@@ -307,24 +311,25 @@ function readRetention(payload) {
 }
 
 function RetentionPanel({ scope }) {
+    const { t } = useTranslation();
     const { payload, loading, error, reload } = useAnalyticsQuery('report', 'retention', scope);
     const cohorts = readRetention(payload);
     const maxDay = Math.min(10, Math.max(0, ...cohorts.flatMap(c => [...c.days.keys()])));
 
-    if (loading) return <Card title="Retention"><Skeleton height={240} /></Card>;
-    if (error) return <Card title="Retention"><ErrorNote message={error} onRetry={reload} compact /></Card>;
+    if (loading) return <Card title={t('cms_site.analytics.behavior.retention', 'Retention')}><Skeleton height={240} /></Card>;
+    if (error) return <Card title={t('cms_site.analytics.behavior.retention', 'Retention')}><ErrorNote message={error} onRetry={reload} compact /></Card>;
     if (!cohorts.length) {
-        return <Card title="Retention" icon={Repeat}><Empty text="No returning-visitor data for this period yet." /></Card>;
+        return <Card title={t('cms_site.analytics.behavior.retention', 'Retention')} icon={Repeat}><Empty text={t('cms_site.analytics.behavior.retention_empty', 'No returning-visitor data for this period yet.')} /></Card>;
     }
 
     return (
-        <Card title="Retention" icon={Repeat}>
+        <Card title={t('cms_site.analytics.behavior.retention', 'Retention')} icon={Repeat}>
             <div style={{ overflowX: 'auto' }}>
                 <table style={{ borderCollapse: 'separate', borderSpacing: 2, fontSize: 11 }}>
                     <thead>
                         <tr>
-                            <th style={{ textAlign: 'left', color: 'var(--text-muted, #888)', fontWeight: 600, padding: '2px 6px' }}>Cohort</th>
-                            <th style={{ textAlign: 'right', color: 'var(--text-muted, #888)', fontWeight: 600, padding: '2px 6px' }}>Visitors</th>
+                            <th style={{ textAlign: 'left', color: 'var(--text-muted, #888)', fontWeight: 600, padding: '2px 6px' }}>{t('cms_site.analytics.behavior.cohort', 'Cohort')}</th>
+                            <th style={{ textAlign: 'right', color: 'var(--text-muted, #888)', fontWeight: 600, padding: '2px 6px' }}>{t('cms_site.analytics.behavior.visitors', 'Visitors')}</th>
                             {Array.from({ length: maxDay + 1 }, (_, d) => (
                                 <th key={d} style={{ color: 'var(--text-muted, #888)', fontWeight: 600, padding: '2px 6px', minWidth: 38 }}>D{d}</th>
                             ))}
@@ -339,11 +344,11 @@ function RetentionPanel({ scope }) {
                                 <td style={{ color: 'var(--text-muted, #999)', padding: '2px 6px', textAlign: 'right' }}>{fmt(c.visitors)}</td>
                                 {Array.from({ length: maxDay + 1 }, (_, d) => {
                                     const pct = c.days.get(d);
-                                    const t = pct == null ? 0 : Math.max(0, Math.min(1, pct / 100));
+                                    const heat = pct == null ? 0 : Math.max(0, Math.min(1, pct / 100));
                                     return (
                                         <td key={d} title={pct == null ? '' : `${Math.round(pct)}%`} style={{
                                             textAlign: 'center', padding: '4px 6px', borderRadius: 4,
-                                            background: pct == null ? 'transparent' : `rgba(20,184,166,${0.12 + t * 0.75})`,
+                                            background: pct == null ? 'transparent' : `rgba(20,184,166,${0.12 + heat * 0.75})`,
                                             color: pct == null ? 'var(--text-muted, #555)' : '#fff', fontWeight: 700,
                                         }}>
                                             {pct == null ? '·' : `${Math.round(pct)}%`}
@@ -362,6 +367,7 @@ function RetentionPanel({ scope }) {
 // ── Goals ────────────────────────────────────────────────────────────
 
 function GoalsPanel({ scope }) {
+    const { t } = useTranslation();
     const [goal, setGoal] = useState(null);
     const pages = useAnalyticsQuery('query', 'metrics', scope, { params: { type: 'path', limit: 20 } });
     const events = useAnalyticsQuery('query', 'metrics', scope, { params: { type: 'event', limit: 20 } });
@@ -388,7 +394,7 @@ function GoalsPanel({ scope }) {
     const rate = reached != null && audience ? (reached / audience) * 100 : null;
 
     return (
-        <Card title="Goal conversion" icon={Target}>
+        <Card title={t('cms_site.analytics.behavior.goal_title', 'Goal conversion')} icon={Target}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <select
                     value={goal ? `${goal.type}:${goal.value}` : ''}
@@ -404,13 +410,13 @@ function GoalsPanel({ scope }) {
                         borderRadius: 8, padding: '7px 10px', fontSize: 12, maxWidth: 340,
                     }}
                 >
-                    <option value="">Choose a page or event as the goal…</option>
+                    <option value="">{t('cms_site.analytics.behavior.goal_choose', 'Choose a page or event as the goal…')}</option>
                     {options.map((o, i) => (
                         <option key={i} value={`${o.type}:${o.value}`}>{o.type}: {o.value}</option>
                     ))}
                 </select>
 
-                {!goal ? <Empty text="Pick a goal to see how many visitors reached it." />
+                {!goal ? <Empty text={t('cms_site.analytics.behavior.goal_pick', 'Pick a goal to see how many visitors reached it.')} />
                     : result.loading ? <Skeleton height={80} />
                     : result.error ? <ErrorNote message={result.error} onRetry={result.reload} compact />
                     : (
@@ -421,12 +427,14 @@ function GoalsPanel({ scope }) {
                                 </span>
                                 {rate != null && (
                                     <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-secondary, #aaa)' }}>
-                                        {rate.toFixed(1)}% of {fmt(audience)}
+                                        {t('cms_site.analytics.behavior.goal_rate', '{rate}% of {total}', { rate: rate.toFixed(1), total: fmt(audience) })}
                                     </span>
                                 )}
                             </div>
                             <div style={{ fontSize: 12, color: 'var(--text-muted, #888)' }}>
-                                visitors reached {goal.type === 'event' ? 'the event' : 'the page'} “{goal.value}”
+                                {goal.type === 'event'
+                                    ? t('cms_site.analytics.behavior.goal_reached_event', 'visitors reached the event “{value}”', { value: goal.value })
+                                    : t('cms_site.analytics.behavior.goal_reached_page', 'visitors reached the page “{value}”', { value: goal.value })}
                             </div>
                         </div>
                     )}

@@ -1,6 +1,7 @@
 import { ChevronRight, Hash, List, Repeat, Type, X } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { innerForEachPick } from './deepenForEach';
 import { bindingsForList, describeListPath, forEachPickFor, previewForEachPick } from './listShape';
 import { usePopoverPosition } from './VariablePicker';
 import { useTranslation } from '../../../../hooks/useTranslation';
@@ -87,10 +88,13 @@ export default function ListPickChooser({
     const n = shape.count ?? list.length;
     const isColumn = shape.kind === 'column';
     const friendly = describeListPath(path, stepLabelById, t);
-    const foreachBlocked = shape.rowScopedListTail;
+    // Each row still holds a list here (orders ▸ line items ▸ sku): the
+    // per-item answer is one run per INNER item, the outer row kept bound.
+    const inner = shape.rowScopedListTail ? innerForEachPick(path, sampleRoot) : null;
+    const foreachBlocked = shape.rowScopedListTail && !inner;
     const choose = (mode) => {
         if (mode === 'foreach') {
-            const pick = forEachPickFor(path, sampleRoot);
+            const pick = inner || forEachPickFor(path, sampleRoot);
             onChoose?.({ mode, binding: pick.binding, forEach: pick.forEach, itemVar: pick.itemVar });
             return;
         }
@@ -102,7 +106,7 @@ export default function ListPickChooser({
         ? previewValue(list.slice(0, 3).map(v => (typeof v === 'object' ? '…' : String(v))).join(effectiveSep), 40) + (list.length > 3 ? '…' : '')
         : null;
     const firstPreview = list.length ? previewValue(list[0], 40) : null;
-    const foreachPreview = previewValue(previewForEachPick(path, sampleRoot), 40);
+    const foreachPreview = previewValue(inner ? list[0] : previewForEachPick(path, sampleRoot), 40);
 
     const SEPARATORS = [
         { value: ', ', label: t('automations.builder.sep_comma_space', 'a comma and a space') },
@@ -152,12 +156,8 @@ export default function ListPickChooser({
                         icon={<Repeat size={13} />}
                         primary
                         disabled={foreachBlocked}
-                        label={isColumn
-                            ? t('automations.builder.choice_foreach_row', 'Run this step once for each row')
-                            : t('automations.builder.choice_foreach_item', 'Run this step once for each item')}
-                        detail={foreachBlocked
-                            ? t('automations.builder.foreach_blocked_nested', 'Each row still holds a list here — pick a single value inside the row instead.')
-                            : t('automations.builder.choice_foreach_detail', 'The step runs {n} times — once per row. This field gets that row’s value.', { n: shape.rows ?? n })}
+                        label={foreachLabel(inner, isColumn, t)}
+                        detail={foreachDetail({ inner, foreachBlocked, n: inner ? (inner.runs ?? n) : (shape.rows ?? n), t })}
                         preview={foreachBlocked ? null : foreachPreview}
                         onClick={() => choose('foreach')}
                     />
@@ -229,6 +229,20 @@ export default function ListPickChooser({
         </div>,
         document.body,
     );
+}
+
+function foreachLabel(inner, isColumn, t) {
+    if (inner) return t('automations.builder.choice_foreach_inner', 'Run this step once for each {item}', { item: inner.itemVar.replace(/_/g, ' ') });
+    return isColumn
+        ? t('automations.builder.choice_foreach_row', 'Run this step once for each row')
+        : t('automations.builder.choice_foreach_item', 'Run this step once for each item');
+}
+
+function foreachDetail({ inner, foreachBlocked, n, t }) {
+    if (inner) return t('automations.builder.choice_foreach_inner_detail', 'The step runs {n} times — once per {item}, across every row. This field gets that {item}’s value.', { n, item: inner.itemVar.replace(/_/g, ' ') });
+    return foreachBlocked
+        ? t('automations.builder.foreach_blocked_nested', 'Each row still holds a list here — pick a single value inside the row instead.')
+        : t('automations.builder.choice_foreach_detail', 'The step runs {n} times — once per row. This field gets that row’s value.', { n });
 }
 
 function ChoiceRow({ icon, label, detail = null, preview = null, extra = null, onClick, disabled = false, primary = false }) {

@@ -284,7 +284,7 @@ test('an html body is sanitised before it leaves', async () => {
 // ── Identity ─────────────────────────────────────────────────────────────────
 
 test('a viewer with no connected mailbox gets an actionable 409, not a generic failure', async () => {
-    const err = new Error('Connect gmail in Settings → Integrations to use this mailbox.');
+    const err = new Error('Connect gmail in Settings → Connections to use this mailbox.');
     err.status = 409; err.code = 'connection_required'; err.provider = 'gmail';
     identityError = err;
 

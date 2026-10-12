@@ -43,7 +43,7 @@ function register(router) {
             // is published to. Mirrors the GET /:id rules so anyone who can read
             // the page can also fork it onto their own account.
             const source = await webpageStore.getWebpageRaw(sourceId);
-            if (!source || !webpageStore.canReadWebpage(source, userId, userGroups, orgIdArr)) {
+            if (!source || !await webpageStore.canReadWebpageAsync(source, userId, userGroups, orgIdArr)) {
                 return res.status(404).json({ error: 'Webpage not found' });
             }
 

@@ -2,6 +2,7 @@ import { AlertTriangle, Search, ShieldAlert } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import StateChip from './IssueStateChip';
 import { authFetch, API_BASE } from '../../utils/helpers';
+import { useTranslation } from '../../hooks/useTranslation';
 
 /**
  * Attaching issues to a ticket: search first, create second.
@@ -17,6 +18,7 @@ import { authFetch, API_BASE } from '../../utils/helpers';
  * personal data and says what to remove — see server/support/issueEgress.js.
  */
 export default function AttachIssuePanel({ threadId, ticketRef, onAttached }) {
+    const { t } = useTranslation();
     const [query, setQuery] = useState('');
     const [results, setResults] = useState([]);
     const [searching, setSearching] = useState(false);
@@ -119,7 +121,7 @@ export default function AttachIssuePanel({ threadId, ticketRef, onAttached }) {
                     value={query}
                     onChange={e => setQuery(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && search()}
-                    placeholder="Search issues, or paste an issue number like BFSF-441"
+                    placeholder={t('support.attach_issue_search_issues_or_paste_an_issue_number', 'Search issues, or paste an issue number like BFSF-441')}
                     className="flex-1 px-2 py-1 rounded border text-xs"
                     style={inputStyle}
                 />
@@ -156,13 +158,13 @@ export default function AttachIssuePanel({ threadId, ticketRef, onAttached }) {
                             <span className="font-medium shrink-0" style={{ color: 'var(--accent-primary)' }}>{r.id}</span>
                             <span className="flex-1 min-w-0 truncate" style={{ color: 'var(--text-primary)' }}>{r.summary}</span>
                             <StateChip state={r.state} resolved={r.resolved} />
-                            {r.linkedHere && <span className="shrink-0" style={{ color: 'var(--text-muted)' }}>attached</span>}
+                            {r.linkedHere && <span className="shrink-0" style={{ color: 'var(--text-muted)' }}>{t('support.attach_issue_attached', 'attached')}</span>}
                             {/* The count is the duplicate-stopper: seeing that four
                                 tickets already report this is what makes an agent
                                 attach instead of file. */}
                             {!r.linkedHere && r.linkedTicketCount > 0 && (
-                                <span className="shrink-0" title="Other tickets already report this" style={{ color: 'var(--text-muted)' }}>
-                                    {r.linkedTicketCount} ticket{r.linkedTicketCount === 1 ? '' : 's'}
+                                <span className="shrink-0" title={t('support.attach_issue_other_tickets_already_report_this', 'Other tickets already report this')} style={{ color: 'var(--text-muted)' }}>
+                                    {r.linkedTicketCount === 1 ? t('support.attach_issue_ticket_one', '{count} ticket', { count: 1 }) : t('support.attach_issue_ticket_other', '{count} tickets', { count: r.linkedTicketCount })}
                                 </span>
                             )}
                         </label>
@@ -195,7 +197,7 @@ export default function AttachIssuePanel({ threadId, ticketRef, onAttached }) {
                     <input
                         value={summary}
                         onChange={e => setSummary(e.target.value)}
-                        placeholder="Issue title — describe the problem, not the customer"
+                        placeholder={t('support.attach_issue_issue_title_describe_the_problem_not', 'Issue title — describe the problem, not the customer')}
                         className="px-2 py-1 rounded border text-xs"
                         style={inputStyle}
                     />
@@ -203,15 +205,14 @@ export default function AttachIssuePanel({ threadId, ticketRef, onAttached }) {
                         value={description}
                         onChange={e => setDescription(e.target.value)}
                         rows={4}
-                        placeholder="What goes wrong, in your own words. Don't quote the customer — the ticket reference and a staff-only link are added for you."
+                        placeholder={t('support.attach_issue_what_goes_wrong_in_your_own_words_don', 'What goes wrong, in your own words. Don\'t quote the customer — the ticket reference and a staff-only link are added for you.')}
                         className="px-2 py-1 rounded border text-xs resize-y"
                         style={inputStyle}
                     />
                     <div className="text-xs flex items-start gap-1.5" style={{ color: 'var(--text-muted)' }}>
                         <ShieldAlert className="w-3.5 h-3.5 mt-0.5 shrink-0" />
                         <span>
-                            The customer&apos;s name, address and organisation never reach YouTrack. The issue
-                            carries ticket <strong>{ticketRef || '—'}</strong> and a link only Bee Flow staff can open.
+                            {t('support.attach_issue_the_customer_s_name_address_and', 'The customer\'s name, address and organisation never reach YouTrack. The issue carries ticket')} <strong>{ticketRef || '—'}</strong> {t('support.attach_issue_and_a_link_only_bee_flow_staff_can', 'and a link only Bee Flow staff can open.')}
                         </span>
                     </div>
 

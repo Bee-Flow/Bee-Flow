@@ -47,24 +47,24 @@ export default function GroupModal({
             }
         >
             <div className="space-y-4">
-                {!showEditGroup && <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">Group Name</label><input type="text" value={groupData.name} onChange={e => setGroupData(p => ({ ...p, name: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder="Editors" /></div>}
+                {!showEditGroup && <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.group_modal_name', 'Group Name')}</label><input type="text" value={groupData.name} onChange={e => setGroupData(p => ({ ...p, name: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder={t('admin_org.group_modal_name_ph', 'Editors')} /></div>}
 
                 <div>
-                    <label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">Organization</label>
+                    <label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.group_modal_organization', 'Organization')}</label>
                     <select
                         value={groupData.organizationId || ''}
                         onChange={e => setGroupData(p => ({ ...p, organizationId: e.target.value || '' }))}
                         className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]"
                     >
-                        <option value="" className="bg-[var(--bg-secondary)] text-[var(--text-secondary)]">None (Global Group)</option>
+                        <option value="" className="bg-[var(--bg-secondary)] text-[var(--text-secondary)]">{t('admin_org.group_modal_none_global', 'None (Global Group)')}</option>
                         {organizations.map(org => (
                             <option key={org.id} value={org.id} className="bg-[var(--bg-secondary)] text-[var(--text-primary)]">{org.name}</option>
                         ))}
                     </select>
                 </div>
 
-                <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">Description</label><input type="text" value={groupData.description} onChange={e => setGroupData(p => ({ ...p, description: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder="Can edit agents" /></div>
-                <div><label className="block text-sm font-medium mb-2 text-[var(--text-primary)]">Permissions</label>
+                <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.group_modal_description', 'Description')}</label><input type="text" value={groupData.description} onChange={e => setGroupData(p => ({ ...p, description: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder={t('admin_org.group_modal_desc_ph', 'Can edit agents')} /></div>
+                <div><label className="block text-sm font-medium mb-2 text-[var(--text-primary)]">{t('admin_org.group_modal_permissions', 'Permissions')}</label>
                     <div className="grid grid-cols-2 gap-2 max-h-40 overflow-auto p-2 rounded border border-[var(--border-subtle)]">
                         {permissions.filter(p => isFullAdmin || (currentUser?.permissions || []).includes(p.id)).map(p => (
                             <label key={p.id} className="flex items-center gap-2 cursor-pointer p-1 hover:bg-[var(--bg-tertiary)] rounded">
@@ -74,7 +74,7 @@ export default function GroupModal({
                         ))}
                     </div>
                 </div>
-                <div><label className="block text-sm font-medium mb-2 text-[var(--text-primary)]">Assigned Roles</label>
+                <div><label className="block text-sm font-medium mb-2 text-[var(--text-primary)]">{t('admin_org.group_modal_roles', 'Assigned Roles')}</label>
                     <div className="grid grid-cols-2 gap-2 max-h-40 overflow-auto p-2 rounded border border-[var(--border-subtle)]">
                         {roles.filter(r => isFullAdmin || (r.permissions || []).every(rp => (currentUser?.permissions || []).includes(rp))).map(r => (
                             <label key={r.id} className="flex items-center gap-2 cursor-pointer p-1 hover:bg-[var(--bg-tertiary)] rounded">
@@ -84,8 +84,8 @@ export default function GroupModal({
                         ))}
                     </div>
                 </div>
-                <div><label className="block text-sm font-medium mb-2 text-[var(--text-primary)]">Allowed Agent Types</label>
-                    <p className="text-xs mb-2 text-[var(--text-muted)]">Leave all unchecked to allow all types</p>
+                <div><label className="block text-sm font-medium mb-2 text-[var(--text-primary)]">{t('admin_org.group_modal_agent_types', 'Allowed Agent Types')}</label>
+                    <p className="text-xs mb-2 text-[var(--text-muted)]">{t('admin_org.group_modal_agent_types_hint', 'Leave all unchecked to allow all types')}</p>
                     <div className="grid grid-cols-2 gap-2 max-h-40 overflow-auto p-2 rounded border border-[var(--border-subtle)]">
                         {ALLOWED_AGENT_TYPES.map(type => (
                             <label key={type.id} className="flex items-center gap-2 cursor-pointer p-1 hover:bg-[var(--bg-tertiary)] rounded">

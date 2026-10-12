@@ -6,6 +6,8 @@ import { AlertTriangle, Database, LayoutGrid, Link2, Trash2 } from 'lucide-react
 import React, { useCallback, useMemo, useState } from 'react';
 import '@xyflow/react/dist/style.css';
 
+import useTranslation from '../../../../../hooks/useTranslation';
+
 import {
     addRelation, fillersOfRelation, layoutTables, LAYOUT,
     relationsOf, removeRelation, renameRelation, retargetRelation,
@@ -39,6 +41,7 @@ import {
 const NODE_TYPE = 'studioTable';
 
 function TableNode({ data }) {
+    const { t } = useTranslation();
     const { table, fillerName, selected, onOpen } = data;
     const columns = (table.fields || []).filter((f) => f.type !== 'relation');
     return (
@@ -56,31 +59,33 @@ function TableNode({ data }) {
                 type="button"
                 onClick={() => onOpen(table.id)}
                 className="w-full px-3 py-2 text-left"
-                title="Open this table in the designer"
+                title={t('studio_apps_tables.rel.open_in_designer', 'Open this table in the designer')}
             >
                 <span className="flex items-center gap-1.5 text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                     <Database className="h-3.5 w-3.5 shrink-0" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
                     <span className="truncate">{table.name || table.key}</span>
                 </span>
                 <span className="mt-0.5 block truncate text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
-                    {table.key} · {(table.fields || []).length} column{(table.fields || []).length === 1 ? '' : 's'}
+                    {table.key} · {(table.fields || []).length === 1
+                        ? t('studio_apps_tables.rel.column_count_one', '{n} column', { n: 1 })
+                        : t('studio_apps_tables.rel.column_count_many', '{n} columns', { n: (table.fields || []).length })}
                 </span>
             </button>
             <div className="border-t px-3 py-1.5" style={{ borderColor: 'var(--border-default)' }}>
                 {columns.slice(0, 4).map((f) => (
                     <p key={f.id} className="truncate text-[11px]" style={{ color: 'var(--text-secondary)' }}>
                         {f.key}
-                        {f.unique ? <span style={{ color: 'var(--text-tertiary)' }}> · unique</span> : null}
+                        {f.unique ? <span style={{ color: 'var(--text-tertiary)' }}> {t('studio_apps_tables.rel.unique_suffix', '· unique')}</span> : null}
                     </p>
                 ))}
                 {columns.length > 4 ? (
-                    <p className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>+{columns.length - 4} more</p>
+                    <p className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>{t('studio_apps_tables.rel.more_columns', '+{n} more', { n: columns.length - 4 })}</p>
                 ) : null}
             </div>
             {fillerName ? (
                 <p className="truncate border-t px-3 py-1 text-[11px]"
                     style={{ borderColor: 'var(--border-default)', color: 'var(--text-tertiary)' }}>
-                    filled by “{fillerName}”
+                    {t('studio_apps_tables.rel.filled_by', 'filled by “{name}”', { name: fillerName })}
                 </p>
             ) : null}
             <Handle type="source" position={Position.Bottom} style={{ background: 'var(--accent-primary)' }} />
@@ -91,6 +96,7 @@ function TableNode({ data }) {
 const nodeTypes = { [NODE_TYPE]: TableNode };
 
 function Canvas({ tables, connectors, onChange, onOpenTable, disabled }) {
+    const { t: tr } = useTranslation();
     const relations = useMemo(() => relationsOf(tables), [tables]);
     const [selectedEdgeId, setSelectedEdgeId] = useState(null);
     const [error, setError] = useState(null);
@@ -116,7 +122,7 @@ function Canvas({ tables, connectors, onChange, onOpenTable, disabled }) {
         const m = new Map();
         for (const c of connectors || []) {
             if (!c?.sync) continue;
-            const name = c.name || 'a connector';
+            const name = c.name || tr('studio_apps_tables.rel.a_connector', 'a connector');
             if (c.sync.tableId) m.set(c.sync.tableId, name);
             for (const child of c.sync.children || []) if (child?.tableId) m.set(child.tableId, name);
         }
@@ -161,13 +167,13 @@ function Canvas({ tables, connectors, onChange, onOpenTable, disabled }) {
         setError(null);
         if (disabled || !source || !target) return;
         if (source === target) {
-            setError('A table cannot be linked to itself here — add the field in the designer if you really need that.');
+            setError(tr('studio_apps_tables.rel.self_link', 'A table cannot be linked to itself here — add the field in the designer if you really need that.'));
             return;
         }
-        const res = addRelation(tables, { fromTableId: source, toTableId: target });
+        const res = addRelation(tables, { fromTableId: source, toTableId: target }, tr);
         if (res.error) { setError(res.error); return; }
         onChange(res.tables);
-    }, [tables, onChange, disabled]);
+    }, [tables, onChange, disabled, tr]);
 
     const selected = relations.find((r) => r.id === selectedEdgeId) || null;
     const from = selected ? (tables || []).find((t) => t.id === selected.fromTableId) : null;
@@ -179,7 +185,7 @@ function Canvas({ tables, connectors, onChange, onOpenTable, disabled }) {
         if (!selected) return;
         const fillers = fillersOfRelation(connectors, selected.fromTableId, selected.fieldKey);
         if (fillers.length) {
-            setError(`“${fillers[0].name || 'A connector'}” fills this link on every refresh. Stop it filling that table first.`);
+            setError(tr('studio_apps_tables.rel.filled_by_connector', '“{name}” fills this link on every refresh. Stop it filling that table first.', { name: fillers[0].name || tr('studio_apps_tables.rel.a_connector_cap', 'A connector') }));
             return;
         }
         onChange(removeRelation(tables, { tableId: selected.fromTableId, fieldId: selected.fieldId }));
@@ -190,7 +196,7 @@ function Canvas({ tables, connectors, onChange, onOpenTable, disabled }) {
     if (!(tables || []).length) {
         return (
             <p className="py-10 text-center text-sm" style={{ color: 'var(--text-tertiary)' }}>
-                No tables yet. Add one on the Tables tab, then come back to link them up.
+                {tr('studio_apps_tables.rel.no_tables', 'No tables yet. Add one on the Tables tab, then come back to link them up.')}
             </p>
         );
     }
@@ -220,7 +226,7 @@ function Canvas({ tables, connectors, onChange, onOpenTable, disabled }) {
                     className="absolute right-2 top-2 z-10 inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs"
                     style={{ borderColor: 'var(--border-default)', background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}
                 >
-                    <LayoutGrid className="h-3.5 w-3.5" aria-hidden="true" /> Re-arrange
+                    <LayoutGrid className="h-3.5 w-3.5" aria-hidden="true" /> {tr('studio_apps_tables.rel.rearrange', 'Re-arrange')}
                 </button>
             </div>
 
@@ -230,37 +236,36 @@ function Canvas({ tables, connectors, onChange, onOpenTable, disabled }) {
                         style={{ borderColor: 'var(--border-default)', background: 'var(--bg-secondary)' }}>
                         <p className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
                             <Link2 className="h-3.5 w-3.5" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
-                            The link
+                            {tr('studio_apps_tables.rel.the_link', 'The link')}
                         </p>
                         <p className="text-xs" style={{ color: 'var(--text-primary)' }}>
-                            Each <strong>{from.name || from.key}</strong> belongs to one{' '}
+                            {tr('studio_apps_tables.rel.each_belongs_a', 'Each')} <strong>{from.name || from.key}</strong> {tr('studio_apps_tables.rel.each_belongs_b', 'belongs to one')}{' '}
                             <strong>{to.name || to.key}</strong>.
                         </p>
                         <label className="flex flex-col gap-1">
-                            <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>Column name</span>
+                            <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>{tr('studio_apps_tables.rel.column_name', 'Column name')}</span>
                             <input
                                 className="w-full rounded-md border px-2 py-1.5 text-sm"
                                 style={{ borderColor: 'var(--border-default)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
                                 value={selected.fieldName}
                                 disabled={disabled}
-                                aria-label="Column name"
+                                aria-label={tr('studio_apps_tables.rel.column_name', 'Column name')}
                                 onChange={(e) => onChange(renameRelation(tables, {
                                     tableId: selected.fromTableId, fieldId: selected.fieldId, name: e.target.value,
                                 }))}
                             />
                             <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
-                                Stored in <code>{from.key}.{selected.fieldKey}</code>. Renaming the column key is a
-                                migration — that stays on the Tables tab.
+                                {tr('studio_apps_tables.rel.stored_in', 'Stored in')} <code>{from.key}.{selected.fieldKey}</code>. {tr('studio_apps_tables.rel.rename_note', 'Renaming the column key is a migration — that stays on the Tables tab.')}
                             </span>
                         </label>
                         <label className="flex flex-col gap-1">
-                            <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>Points at</span>
+                            <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>{tr('studio_apps_tables.rel.points_at', 'Points at')}</span>
                             <select
                                 className="w-full rounded-md border px-2 py-1.5 text-sm"
                                 style={{ borderColor: 'var(--border-default)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
                                 value={selected.toTableId || ''}
                                 disabled={disabled}
-                                aria-label="Related table"
+                                aria-label={tr('studio_apps_tables.rel.related_table', 'Related table')}
                                 onChange={(e) => onChange(retargetRelation(tables, {
                                     tableId: selected.fromTableId, fieldId: selected.fieldId, toTableId: e.target.value,
                                 }))}
@@ -277,22 +282,20 @@ function Canvas({ tables, connectors, onChange, onOpenTable, disabled }) {
                             className="inline-flex items-center gap-1.5 self-start text-xs"
                             style={{ color: 'var(--error)' }}
                         >
-                            <Trash2 className="h-3.5 w-3.5" aria-hidden="true" /> Remove this link
+                            <Trash2 className="h-3.5 w-3.5" aria-hidden="true" /> {tr('studio_apps_tables.rel.remove_link', 'Remove this link')}
                         </button>
                     </div>
                 ) : (
                     <div className="rounded-lg border p-3" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-secondary)' }}>
-                        <p className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>Link two tables</p>
+                        <p className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>{tr('studio_apps_tables.rel.link_two', 'Link two tables')}</p>
                         <p className="mt-1 text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                            Drag from the bottom of the table that has many, to the top of the one it belongs to — an
-                            attachment to its message. That adds a relation column to the first table.
+                            {tr('studio_apps_tables.rel.drag_help', 'Drag from the bottom of the table that has many, to the top of the one it belongs to — an attachment to its message. That adds a relation column to the first table.')}
                         </p>
                         <p className="mt-2 text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                            Click a line to rename, repoint or remove it. Connectors with follow-up steps draw their own
-                            links and keep them filled.
+                            {tr('studio_apps_tables.rel.click_help', 'Click a line to rename, repoint or remove it. Connectors with follow-up steps draw their own links and keep them filled.')}
                         </p>
                         <p className="mt-2 text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
-                            Where the cards sit is not saved — the layout is worked out from the links each time.
+                            {tr('studio_apps_tables.rel.layout_note', 'Where the cards sit is not saved — the layout is worked out from the links each time.')}
                         </p>
                     </div>
                 )}
@@ -302,9 +305,9 @@ function Canvas({ tables, connectors, onChange, onOpenTable, disabled }) {
                         style={{ borderColor: 'rgba(217, 119, 6, 0.4)', background: 'rgba(217, 119, 6, 0.1)', color: '#d97706' }}>
                         <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                         <span>
-                            {dangling.length} relation column{dangling.length === 1 ? '' : 's'} point at a table that no
-                            longer exists ({dangling.map((r) => r.fieldKey).join(', ')}). Fix them on the Tables tab —
-                            the model will not save until you do.
+                            {dangling.length === 1
+                                ? tr('studio_apps_tables.rel.dangling_one', '{n} relation column points at a table that no longer exists ({keys}). Fix them on the Tables tab — the model will not save until you do.', { n: dangling.length, keys: dangling.map((r) => r.fieldKey).join(', ') })
+                                : tr('studio_apps_tables.rel.dangling_many', '{n} relation columns point at a table that no longer exists ({keys}). Fix them on the Tables tab — the model will not save until you do.', { n: dangling.length, keys: dangling.map((r) => r.fieldKey).join(', ') })}
                         </span>
                     </p>
                 ) : null}

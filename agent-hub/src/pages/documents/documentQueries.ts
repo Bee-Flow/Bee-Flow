@@ -32,6 +32,10 @@ export interface StudioDocument {
     baselineVersionId?: string | null;
     projectId?: string | null;
     projectRole?: 'owner' | 'editor' | 'viewer';
+    /** A reader the owner shared the document with: 'editor' when the share says can edit. */
+    sharingRole?: 'editor' | 'viewer';
+    /** Who the owner shared it with (stores/lib/documentSharing.sharingOf). */
+    sharing?: { audience?: 'private' | 'organisation' | 'restricted'; access?: 'view' | 'edit' };
     updatedBy?: string | null;
     updatedAt?: string;
     createdAt?: string;

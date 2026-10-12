@@ -1,6 +1,7 @@
 import React from 'react';
 import ColorPicker from '../../../../shared/ColorPicker';
 import { SECTION_IDS } from '../useLookForm';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 
 // Accent presets — deliberately avoid purple/violet (banned brand-wide).
 export const ACCENT_PRESETS = [
@@ -13,6 +14,7 @@ export const ACCENT_PRESETS = [
 ];
 
 export default function AccentSection({ form, setForm, saving }) {
+    const { t } = useTranslation();
     return (
         <section
             id={SECTION_IDS.accent}
@@ -23,10 +25,10 @@ export default function AccentSection({ form, setForm, saving }) {
                 className="text-base font-semibold mb-1"
                 style={{ color: 'var(--text-primary)' }}
             >
-                Accent colour
+                {t('appearance.accent_accent_colour', 'Accent colour')}
             </h3>
             <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
-                Used for primary buttons, selected items, focus rings, and active states.
+                {t('appearance.accent_used_for_primary_buttons_selected', 'Used for primary buttons, selected items, focus rings, and active states.')}
             </p>
             <ColorPicker
                 value={form.accent}

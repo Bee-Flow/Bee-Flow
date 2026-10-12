@@ -103,7 +103,7 @@ async function executeDirectChatToolCall(toolCall, ctx) {
     // (docs/sheets/gmail/calendar) get the real value, not the
     // [email_1] placeholder (BFSF-171). Search queries keep their
     // tokens so PII isn't leaked to external search providers.
-    if (!/^(agent_search|web_search|search|brave_search|browse_web)$/i.test(toolName || '')) {
+    if (!/^(agent_search|web_search|search|brave_search|browse_web|read_url)$/i.test(toolName || '')) {
         try {
             const _argMap = require('../../../core/dlp/dlpRunner').getConversationTokenMap(ctx.convId);
             if (_argMap && Object.keys(_argMap).length) toolArgs = untokeniseToolArgs(toolArgs, _argMap);
@@ -152,10 +152,14 @@ async function executeDirectChatToolCall(toolCall, ctx) {
     const dispatchT0 = Date.now();
     try {
         // Web Search Guard — validate agent_search queries
-        if (toolName === 'agent_search' && toolArgs?.query) {
+        // read_url is guarded like a search: the URL (+ find) leaves Bee Flow the same way a query does.
+        const _guardText = toolName === 'agent_search' ? toolArgs?.query
+            : toolName === 'read_url' ? [toolArgs?.url, toolArgs?.find].filter(v => typeof v === 'string' && v).join(' ')
+                : null;
+        if (_guardText) {
             // 1. Regex guardrails on search query
             if (ctx.regexConfig?.enabled) {
-                const qMatches = checkRegexPatterns(toolArgs.query, ctx.regexConfig.rulesWithNames);
+                const qMatches = checkRegexPatterns(_guardText, ctx.regexConfig.rulesWithNames);
                 if (qMatches.length > 0) {
                     const ruleNames = qMatches.map(m => m.ruleName).join(', ');
                     log.info(`[DirectChat WebSearchGuard] ${streamed ? 'Streamed search' : 'Search'} query BLOCKED by regex: ${ruleNames}`);
@@ -178,7 +182,7 @@ async function executeDirectChatToolCall(toolCall, ctx) {
             if (ctx.webSearchGuardPiiCategories && ctx.webSearchGuardPiiCategories.length > 0) {
                 try {
                     const { detectPii } = require('../../../core/privacy/piiDetection');
-                    const piiResult = await detectPii(toolArgs.query, ctx.webSearchGuardPiiCategories);
+                    const piiResult = await detectPii(_guardText, ctx.webSearchGuardPiiCategories);
                     if (piiResult?.hasPii) {
                         const cats = [...new Set(piiResult.entities.map(e => e.label))].join(', ');
                         // Always log PII detection for monitoring
@@ -221,12 +225,17 @@ async function executeDirectChatToolCall(toolCall, ctx) {
             }
         } else if (isDocumentTool(toolName)) {
             // orgId decides which letterhead a new document is handed.
-            toolResult = await executeDocumentTool(toolName, toolArgs, { userId: ctx.userId, orgId: ctx.userOrgId || null });
+            toolResult = await executeDocumentTool(toolName, toolArgs, { userId: ctx.userId, orgId: ctx.userOrgId || null, conversationId: ctx.convId || null, documentScope: ctx.documentScope });
+            // Proposed changes to a page: the open editor shows the suggestions,
+            // it does not reload (nothing was written). Ids and a count only.
+            if (toolResult && toolResult.suggested > 0 && toolResult.batchId && !toolResult.error) {
+                ctx.send('document_suggestions', { documentId: toolResult.documentId, batchId: toolResult.batchId, count: toolResult.suggested });
+            }
             // Tells the open Documents editor to reload: the user may be
             // looking at this very document while the model rewrites it.
             // Only for a tool that WROTE: a read that reloaded the editor
             // threw away the reader's caret and scroll position for nothing.
-            if (toolName !== 'document_read' && toolResult && toolResult.documentId && !toolResult.error) {
+            if (toolName !== 'document_read' && toolResult && toolResult.documentId && !toolResult.error && !toolResult.batchId) {
                 ctx.send('document_update', {
                     documentId: toolResult.documentId,
                     name: toolResult.name,

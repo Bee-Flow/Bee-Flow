@@ -15,7 +15,12 @@
 #        DB_PASSWORD           = openssl rand -hex 16
 #        RUSTFS_PASSWORD       = openssl rand -hex 16
 #        BROWSER_WS_PATH       = openssl rand -hex 24
-#   4. Deploy. First boot pulls models on guard-service (~2 min).
+#   4. Deploy. The PII model is baked into the guard-service image, so no
+#      runtime model download happens on first boot.
+#
+# Requires Docker Compose v2.23 or newer — the database bootstrap below is an
+# inline `configs` entry (Portainer stacks cannot bind-mount files), which
+# older versions cannot read.
 #
 # After deploying:
 #   Frontend  → http://<host>:${FRONTEND_PORT}
@@ -26,6 +31,26 @@
 #                (self-hosted inside server pod, no separate container)
 #
 # ─────────────────────────────────────────────────────────────
+
+configs:
+  # Postgres creates only POSTGRES_DB itself. Bee Flow also wants a task queue
+  # and a monitoring database, and pgvector enabled where embeddings live.
+  # Inline (not a bind mount) because Portainer stacks cannot mount files;
+  # mirrors docker/init-db.sh minus the hub/umami databases this stack has
+  # no services for.
+  beeflow-init-db:
+    content: |
+      #!/bin/bash
+      set -e
+      psql -v ON_ERROR_STOP=1 --username "$$POSTGRES_USER" --dbname "$$POSTGRES_DB" <<-EOSQL
+          SELECT 'CREATE DATABASE beeflow_tasks' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'beeflow_tasks')\gexec
+          SELECT 'CREATE DATABASE monitoring_db' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'monitoring_db')\gexec
+      EOSQL
+      for db in "$$POSTGRES_DB" beeflow_tasks; do
+          psql -v ON_ERROR_STOP=1 --username "$$POSTGRES_USER" --dbname "$$db" <<-EOSQL
+              CREATE EXTENSION IF NOT EXISTS vector;
+      EOSQL
+      done
 
 services:
 
@@ -39,6 +64,10 @@ services:
       POSTGRES_DB: ${DB_NAME}
     volumes:
       - postgres-data:/var/lib/postgresql/data
+    configs:
+      - source: beeflow-init-db
+        target: /docker-entrypoint-initdb.d/init-db.sh
+        mode: 0755
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
@@ -78,11 +107,12 @@ services:
       - beeflow
 
   # ── Guard-service (CPU PII detection via GLiNER) ─────────────
-  # First boot downloads ~1 GB of models (~2 min); cached in
-  # guard-models volume after that. Health endpoint at
+  # The PII model is baked into the image at build time
+  # (guard-service/Dockerfile) — nothing is downloaded at runtime, so no
+  # model-cache volume is needed. Health endpoint at
   # http://beeflow-guard:8100/health.
   guard-service:
-    image: ghcr.io/bee-flow/guard:latest
+    image: ghcr.io/bee-flow/guard:${TAG:-latest}
     container_name: beeflow-guard
     environment:
       GUARD_PII_ENABLED: "true"
@@ -93,14 +123,12 @@ services:
       GUARD_LOG_LEVEL: INFO
       GUARD_REDIS_URL: redis://redis:6379/2
       SERVICES_API_KEY: ${SERVICES_API_KEY}
-    volumes:
-      - guard-models:/root/.cache/huggingface
     depends_on:
       redis:
         condition: service_started
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://localhost:8100/health"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8100/health')"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -125,7 +153,7 @@ services:
 
   # ── BeeFlow Server (API + in-server search service) ──────────
   server:
-    image: ghcr.io/bee-flow/server:latest
+    image: ghcr.io/bee-flow/server:${TAG:-latest}
     container_name: beeflow-server
     command: npm start
     # Loopback-only by default — see docker-compose.from-registry.yml for the
@@ -168,8 +196,7 @@ services:
       COOKIE_SAMESITE: ${COOKIE_SAMESITE}
 
       # Features
-      DEMO_MODE_ENABLED: ${DEMO_MODE_ENABLED}
-      DEPLOYMENT_MODE: ${DEPLOYMENT_MODE}
+      DEPLOYMENT_MODE: ${DEPLOYMENT_MODE:-self-hosted}
       ALLOW_SIGNUPS: ${ALLOW_SIGNUPS}
       ALLOW_PASSWORD_LOGIN: ${ALLOW_PASSWORD_LOGIN}
       ENABLE_TASKS: ${ENABLE_TASKS}
@@ -221,7 +248,7 @@ services:
         condition: service_started
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:${SERVER_PORT}/api/health"]
+      test: [ "CMD", "node", "-e", "fetch('http://localhost:${SERVER_PORT}/api/health',{signal:AbortSignal.timeout(8000)}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -241,7 +268,7 @@ services:
   # browse_web and SPA ingestion load public pages. The runner's Playwright must
   # match the server's (scripts/check-playwright-lockstep.mjs).
   browser:
-    image: ghcr.io/bee-flow/pwt-runner:latest
+    image: ghcr.io/bee-flow/pwt-runner:${TAG:-latest}
     container_name: beeflow-browser
     command: serve
     environment:
@@ -259,7 +286,7 @@ services:
 
   # ── Agent Hub (React frontend, served by nginx) ──────────────
   agent-hub:
-    image: ghcr.io/bee-flow/agent-hub:latest
+    image: ghcr.io/bee-flow/agent-hub:${TAG:-latest}
     container_name: beeflow-agent-hub
     ports:
       - "${FRONTEND_PORT}:80"
@@ -288,7 +315,6 @@ volumes:
   beeflow-data:
   rustfs-data:
   rustfs-logs:
-  guard-models:
 
 networks:
   beeflow:

@@ -45,12 +45,12 @@ export function BindingName({ field, siblings, bindingBase, rename, onChange, di
         return (
             <View style={styles.block}>
                 <Text variant="label" tone="tertiary">
-                    {t('mobile.flow.form.binding_name', 'Binding name')}
+                    {t('automations.field_designer.binding_name', 'Binding name')}
                 </Text>
                 <Text variant="code" selectable>{`${bindingBase}.${field.name}`}</Text>
                 <Text variant="caption" tone="tertiary">
                     {t(
-                        'mobile.flow.form.binding_fixed',
+                        'automations.field_designer.fixed_here_rename_it_from_the',
                         'Fixed here. Rename it from the automation that uses this form — there the rename can carry every step that binds it along with it.',
                     )}
                 </Text>
@@ -68,7 +68,7 @@ export function BindingName({ field, siblings, bindingBase, rename, onChange, di
     return (
         <View style={styles.block}>
             <TextField
-                label={t('mobile.flow.form.binding_name', 'Binding name')}
+                label={t('automations.field_designer.binding_name', 'Binding name')}
                 hint={`${bindingBase}.`}
                 value={draft}
                 onChangeText={(v) => {
@@ -89,7 +89,7 @@ export function BindingName({ field, siblings, bindingBase, rename, onChange, di
             <Text variant="caption" tone={note ? 'secondary' : 'tertiary'}>
                 {note
                     ? say(t, note)
-                    : t('mobile.flow.form.rename_hint', 'Renaming rewrites every step that binds this answer, in the same edit. Changing the QUESTION above never touches it.')}
+                    : t('automations.field_designer.renaming_rewrites_every_step_that_binds', 'Renaming rewrites every step that binds this answer, in the same edit. Changing the QUESTION above never touches it.')}
             </Text>
         </View>
     );

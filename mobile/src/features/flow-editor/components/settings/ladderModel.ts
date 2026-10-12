@@ -9,7 +9,9 @@
  *     out of an answer you did not mean);
  *   - re-assessing starts from what was declared: a stored Art. 5 'no' ticks
  *     all eight, the stored domains fill the questions, and a row saved
- *     before the ten questions existed spreads its one answer over all ten;
+ *     before the ten questions existed reads through legacyAnnexAnswers: a
+ *     'no' fills all ten, a 'yes' only the area it named (with a note to
+ *     pick the rest), never all ten;
  *   - the automation's own wording puts a domain first, never answers it;
  *   - with AI in the automation, a declaration needs steps 1 and 3 answered.
  *
@@ -24,6 +26,7 @@ import {
     ANNEX_III_CATEGORIES,
     annexAnswerFromDomains,
     ART5_PRACTICES,
+    legacyAnnexAnswers,
     type AnnexInput,
     type Art5Input,
     type DomainAnswers,
@@ -49,19 +52,22 @@ export function annexFromDomains(domains: DomainAnswers): AnnexInput {
 
 const answered = (v: unknown): v is AiActYesNo => v === 'yes' || v === 'no';
 
-/** Where re-assessing starts: the saved declaration, or nothing. */
-export function prefill(answers: AiActAnswers | null | undefined): { denied: string[]; domains: DomainAnswers } {
+/**
+ * Where re-assessing starts: the saved declaration, or nothing. `legacyYes`:
+ * the row said 'yes' before the ten questions existed, so the sheet asks to
+ * pick the area(s) to confirm (the web's `legacyYes` note).
+ */
+export function prefill(answers: AiActAnswers | null | undefined): { denied: string[]; domains: DomainAnswers; legacyYes: boolean } {
     const denied = answers?.art5 === 'no' ? [...ART5_PRACTICES] : [];
     const stored = answers?.annexDomains ?? {};
     if (ANNEX_III_CATEGORIES.some((id) => answered(stored[id]))) {
         const domains: DomainAnswers = {};
         for (const id of ANNEX_III_CATEGORIES) if (answered(stored[id])) domains[id] = stored[id];
-        return { denied, domains };
+        return { denied, domains, legacyYes: false };
     }
-    const one = answers?.annexIii;
-    // A row from before the ten questions: one answer that covered all of them.
-    if (answered(one)) return { denied, domains: Object.fromEntries(ANNEX_III_CATEGORIES.map((id) => [id, one])) };
-    return { denied, domains: {} };
+    // A row from before the ten questions: one answer (and at most one area).
+    const legacy = { answer: answers?.annexIii ?? null, category: answers?.annexCategory ?? null };
+    return { denied, domains: legacyAnnexAnswers(legacy), legacyYes: legacy.answer === 'yes' };
 }
 
 /** Tick or untick one Art. 5 practice. */

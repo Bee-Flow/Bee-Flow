@@ -9,9 +9,11 @@ import React, { useState } from 'react';
 import DeleteConfirmButtons from './shared/DeleteConfirmButtons';
 import SecretInput from './shared/SecretInput';
 import useProviderConfig from '../../../../hooks/useProviderConfig';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 /** @param {{ provider: Record<string, string>, onMessage?: Function, children?: React.ReactNode }} props */
 const ProviderApiKeyCard = ({ provider, onMessage, children }) => {
+    const { t } = useTranslation();
     const { name, statusField, bodyField, deleteSlug, icon, iconBackground, description, placeholder, docsUrl, docsLabel } = provider;
     const [apiKey, setApiKey] = useState('');
     const [showKey, setShowKey] = useState(false);
@@ -21,8 +23,9 @@ const ProviderApiKeyCard = ({ provider, onMessage, children }) => {
     const handleSave = async () => {
         if (!apiKey.trim()) return;
         const ok = await save({ [bodyField]: apiKey }, {
-            success: `${name} API key saved!`,
-            error: 'Failed to save API key'
+            success: t('admin_ai_config.apikey_saved', '{name} API key saved!', { name }),
+            // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential
+            error: t('admin_ai_config.apikey_save_failed', 'Failed to save API key')
         });
         if (ok) {
             patchConfig({ [statusField]: true });
@@ -33,8 +36,9 @@ const ProviderApiKeyCard = ({ provider, onMessage, children }) => {
 
     const handleDelete = async () => {
         const ok = await deleteKey(deleteSlug, {
-            success: `${name} API key removed`,
-            error: 'Failed to delete API key'
+            success: t('admin_ai_config.apikey_removed', '{name} API key removed', { name }),
+            // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential
+            error: t('admin_ai_config.apikey_delete_failed', 'Failed to delete API key')
         });
         if (ok) {
             patchConfig({ [statusField]: false });
@@ -49,13 +53,14 @@ const ProviderApiKeyCard = ({ provider, onMessage, children }) => {
                     {icon}
                 </div>
                 <div className="flex-1">
-                    <h4 className="font-medium" style={{ color: 'var(--text-primary)' }}>{name} API Key</h4>
+                    <h4 className="font-medium" style={{ color: 'var(--text-primary)' }}>{t('admin_ai_config.apikey_title', '{name} API Key', { name })}</h4>
                     <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                        {hasKey ? '✅ API key configured' : description}
+                        {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */}
+                        {hasKey ? t('admin_ai_config.apikey_configured', '✅ API key configured') : description}
                     </p>
                 </div>
                 {hasKey && (
-                    <span className="text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-400">Configured</span>
+                    <span className="text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-400">{t('admin_ai_config.configured', 'Configured')}</span>
                 )}
             </div>
             <div className="flex gap-2">
@@ -73,12 +78,14 @@ const ProviderApiKeyCard = ({ provider, onMessage, children }) => {
                     className="px-5 py-2.5 rounded-lg font-medium text-white text-sm transition-all disabled:opacity-50"
                     style={{ background: 'var(--accent-primary)' }}
                 >
-                    {saving ? '...' : 'Save'}
+                    {saving ? '...' : t('admin_ai_config.save', 'Save')}
                 </button>
-                {hasKey && <DeleteConfirmButtons onConfirm={handleDelete} title="Delete API key" />}
+                {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */}
+                {hasKey && <DeleteConfirmButtons onConfirm={handleDelete} title={t('admin_ai_config.apikey_delete_title', 'Delete API key')} />}
             </div>
             <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
-                Get your API key from <a href={docsUrl} target="_blank" rel="noopener noreferrer" className="underline hover:text-[var(--accent-primary)]">{docsLabel}</a>
+                {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */}
+                {t('admin_ai_config.apikey_get_from', 'Get your API key from')} <a href={docsUrl} target="_blank" rel="noopener noreferrer" className="underline hover:text-[var(--accent-primary)]">{docsLabel}</a>
             </p>
             {children}
         </div>

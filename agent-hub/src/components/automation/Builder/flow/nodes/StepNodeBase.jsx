@@ -48,6 +48,11 @@ export default function StepNodeBase({
     // what the retired summary-line component rendered), or a React node for the few cards
     // that show chips there (a schedule's cadence, a trigger's params).
     name = null, sub = null, subTitle = undefined,
+    // An optional SECOND summary line (same string / `{ muted }` shapes as
+    // `sub`), for a card whose one line would truncate the half that matters:
+    // a Condition's list on the first line, its rule on this one. With it the
+    // name keeps to one line, so the card keeps its 72px.
+    subDetail = null,
     // Deprecated: the pre-redesign free-form slot. Rendered in place of
     // name/sub while a node file has not been converted, so the migration can
     // land file by file.
@@ -245,6 +250,17 @@ export default function StepNodeBase({
 
     const subIsMuted = sub != null && typeof sub === 'object' && !React.isValidElement(sub) && 'muted' in sub;
     const subText = subIsMuted ? sub.muted : sub;
+    const detail = summaryLine(subDetail);
+    const nameClamp = detail ? 'line-clamp-1' : 'line-clamp-2';
+    const detailLine = (size) => (detail ? (
+        <div
+            className={`${size} leading-[14px] truncate ${detail.muted ? 'italic text-[var(--text-tertiary)]' : 'text-[var(--text-secondary)]'}`}
+            title={subTitle || (typeof detail.text === 'string' ? detail.text : undefined)}
+            data-testid="node-sub-detail"
+        >
+            {detail.text}
+        </div>
+    ) : null);
 
     const actionBtn = 'h-6 w-6 rounded-md flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-30 disabled:cursor-not-allowed';
 
@@ -403,7 +419,7 @@ export default function StepNodeBase({
                             disabled={runInFlight || executingThis}
                             title={runInFlight ? 'Run in progress' : 'Run the flow up to here (pinned steps reuse their data) — R'}
                             className={actionBtn}
-                            aria-label="Execute step"
+                            aria-label={t('automations.step_node_base.execute_step', 'Execute step')}
                         >
                             {executingThis ? <Loader2 size={12} className="animate-spin" /> : <Play size={11} fill="currentColor" />}
                         </button>
@@ -413,8 +429,8 @@ export default function StepNodeBase({
                             type="button"
                             onClick={(e) => { e.stopPropagation(); rt.onDuplicateNode(nodeId); }}
                             onMouseDown={(e) => e.stopPropagation()}
-                            title="Duplicate this step — D"
-                            aria-label="Duplicate step"
+                            title={t('automations.step_node_base.duplicate_this_step_d', 'Duplicate this step — D')}
+                            aria-label={t('automations.step_node_base.duplicate_step', 'Duplicate step')}
                             className={actionBtn}
                         >
                             <CopyIcon size={11} />
@@ -425,8 +441,8 @@ export default function StepNodeBase({
                             type="button"
                             onClick={(e) => { e.stopPropagation(); rt.onDetachNode(nodeId); }}
                             onMouseDown={(e) => e.stopPropagation()}
-                            title="Take this step out of the flow (it stays on the canvas, its neighbours reconnect) — U"
-                            aria-label="Disconnect step"
+                            title={t('automations.step_node_base.take_this_step_out_of_the', 'Take this step out of the flow (it stays on the canvas, its neighbours reconnect) — U')}
+                            aria-label={t('automations.step_node_base.disconnect_step', 'Disconnect step')}
                             className={actionBtn}
                         >
                             <Unlink size={11} />
@@ -450,8 +466,8 @@ export default function StepNodeBase({
                             type="button"
                             onClick={(e) => { e.stopPropagation(); rt.onDeleteNode(nodeId); }}
                             onMouseDown={(e) => e.stopPropagation()}
-                            title="Delete this step (reconnects its neighbours) — Del"
-                            aria-label="Delete step"
+                            title={t('automations.step_node_base.delete_this_step_reconnects_its_neighbours', 'Delete this step (reconnects its neighbours) — Del')}
+                            aria-label={t('automations.step_node_base.delete_step', 'Delete step')}
                             className={`${actionBtn} hover:!text-[var(--error)]`}
                         >
                             <Trash2 size={11} />
@@ -469,8 +485,8 @@ export default function StepNodeBase({
                     onMouseDown={(e) => e.stopPropagation()}
                     className={`absolute top-1/2 -translate-y-1/2 -right-7 h-[22px] w-[22px] rounded-full flex items-center justify-center shadow-sm ${chromeVisibility}`}
                     style={{ background: 'var(--text-primary)', color: 'var(--bg-primary)' }}
-                    title="Add next step"
-                    aria-label="Add next step"
+                    title={t('automations.step_node_base.add_next_step', 'Add next step')}
+                    aria-label={t('automations.step_node_base.add_next_step', 'Add next step')}
                 >
                     <Plus size={13} />
                 </button>
@@ -522,7 +538,7 @@ export default function StepNodeBase({
                     // Middle distance: the name on up to two lines, the number to
                     // find it by, and the description in one line beneath.
                     <>
-                        <div className="text-[16px] font-semibold leading-5 text-[var(--text-primary)] line-clamp-2 break-words" data-testid="node-name">
+                        <div className={`text-[16px] font-semibold leading-5 text-[var(--text-primary)] ${nameClamp} break-words`} data-testid="node-name">
                             {name ?? typeLabel}
                             {stepNumber != null && <span className="ml-2 text-[12px] font-medium text-[var(--text-tertiary)]" data-testid="node-step-number">{stepNumber}</span>}
                         </div>
@@ -533,6 +549,7 @@ export default function StepNodeBase({
                                 </div>
                             ) : null,
                         )}
+                        {detailLine('text-[12px]')}
                     </>
                 ) : (
                     <>
@@ -543,7 +560,7 @@ export default function StepNodeBase({
                                 {isSource && <span className="shrink-0 text-[var(--text-tertiary)]" data-testid="node-source-tag">· {t('automations.card.source', 'source')}</span>}
                             </div>
                         )}
-                        <div className="text-[13px] font-semibold leading-[17px] text-[var(--text-primary)] line-clamp-2 break-words" data-testid="node-name">
+                        <div className={`text-[13px] font-semibold leading-[17px] text-[var(--text-primary)] ${nameClamp} break-words`} data-testid="node-name">
                             {name ?? typeLabel}
                         </div>
                         {(resultChip || (subText != null && subText !== '')) && withResultChip(
@@ -563,6 +580,7 @@ export default function StepNodeBase({
                                 </div>
                             ) : null,
                         )}
+                        {detailLine('text-[11px]')}
                     </>
                 )}
             </div>
@@ -661,10 +679,11 @@ export function NodeChip({ children, tone = 'neutral', title }) {
  * via per-step `forEach` (no wrapping loop).
  */
 export function ForEachBadge({ step }) {
+    const { t } = useTranslation();
     if (!step?.forEach?.overRef) return null;
     return (
         <NodeChip tone="accent" title={`Runs once per item in ${step.forEach.overRef}`}>
-            <Repeat size={10} /> for each
+            <Repeat size={10} /> {t('automations.step_node_base.for_each', 'for each')}
         </NodeChip>
     );
 }
@@ -698,4 +717,12 @@ function previewBinding(v) {
     if (v.kind === 'template') return `"${(v.value || '').slice(0, 40)}"`;
     if (v.kind === 'expr') return `expr: ${v.value || ''}`;
     return JSON.stringify(v).slice(0, 40);
+}
+
+/** A summary line's text and tone: a string, a React node, or `{ muted }`; null when empty. */
+function summaryLine(value) {
+    if (value == null || value === '') return null;
+    const muted = typeof value === 'object' && !React.isValidElement(value) && 'muted' in value;
+    const text = muted ? value.muted : value;
+    return text == null || text === '' ? null : { text, muted };
 }

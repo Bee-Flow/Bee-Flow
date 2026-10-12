@@ -345,6 +345,13 @@ export default function useAutomationApi() {
         // stores nothing): they never leave Bee Flow. 409 when no classifier
         // is installed, 503 when it does not answer.
         previewTopics: (body: unknown) => send('POST', '/builder/topic-preview', body),
+        // Auto-map's AI fallback, on the wand click only, for the inputs the
+        // deterministic pass left empty: `{ params, mapped, sources, step? }`
+        // (sources carry bounded samples; the server shortens and masks them
+        // again) → `{ suggestions: [{ key, binding, reason, sampleValue }],
+        // rejected: [{ key, reason }] }`, each binding verified against the
+        // samples. See Builder/mapping/aiAutoMap.ts.
+        suggestMappings: (body: unknown) => send('POST', '/builder/suggest-mappings', body),
         // Curated template gallery shown in the EmptyState. listTemplates
         // returns metadata only; getTemplate fetches the full definition
         // so the builder can pre-fill via createAutomation.

@@ -104,13 +104,13 @@ function StepActions({ index, count, onMove, onRemove }: Pick<StepCardProps, 'in
         <>
             <IconButton
                 icon={<Icon name="ChevronUp" size={18} color={ink} />}
-                accessibilityLabel={t('mobile.skills.move_up', 'Move up')}
+                accessibilityLabel={t('automations.loop_body_editor.move_up', 'Move up')}
                 disabled={index === 0}
                 onPress={() => onMove(index - 1)}
             />
             <IconButton
                 icon={<Icon name="ChevronDown" size={18} color={ink} />}
-                accessibilityLabel={t('mobile.skills.move_down', 'Move down')}
+                accessibilityLabel={t('automations.loop_body_editor.move_down', 'Move down')}
                 disabled={index === count - 1}
                 onPress={() => onMove(index + 1)}
             />

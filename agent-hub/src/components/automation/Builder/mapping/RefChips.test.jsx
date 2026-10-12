@@ -19,7 +19,8 @@ describe('RefChips', () => {
         const { container } = render(
             <RefChips text="steps.ai_87e358.output.items[0].id" mode="expression" stepLabelById={labels} />,
         );
-        expect(screen.getByText('▸ Id')).toBeTruthy();
+        // `id` alone names nothing, so the chip says whose: "Items ▸ Id".
+        expect(screen.getByText('▸ Items ▸ Id')).toBeTruthy();
         expect(container.textContent).not.toContain('items[0]');
         // …but the exact path is still one hover away.
         expect(container.querySelector('[title="steps.ai_87e358.output.items[0].id"]')).toBeTruthy();

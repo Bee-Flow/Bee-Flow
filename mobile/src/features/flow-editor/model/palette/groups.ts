@@ -122,13 +122,13 @@ export function orderedAppCategories(catalog: PaletteCatalog | null | undefined)
 const title = (t: Translate | null | undefined, key: string, english: string) => (t ? t(key, english) : english);
 const allowedHere = (inLayer: boolean) => (it: PaletteItem) => !inLayer || !NOT_INSIDE_A_LAYER.has(it.payload.kind);
 
-/** The four content sections of the Flow group; every step has exactly one home. */
+/** The content sections of the Flow group; every step has exactly one home. */
 function flowSections({ catalog = null, inLayer = false, hasFormTrigger = null, t = null }: PaletteScope): PaletteSection[] {
     const codeItem = codeItemFor(catalog);
     return [
         {
             key: 'flow_control', title: title(t, 'automations.node.group.flow_control', 'Flow control'),
-            items: FLOW_CONTROL_ITEMS.filter(allowedHere(inLayer)).map((it) => localised(it, t)),
+            items: withOwnLogicAfterLoop(FLOW_CONTROL_ITEMS.filter(allowedHere(inLayer)), codeItem).map((it) => localised(it, t)),
         },
         {
             key: 'people', title: title(t, 'automations.node.group.people', 'People & waiting'),
@@ -138,11 +138,14 @@ function flowSections({ catalog = null, inLayer = false, hasFormTrigger = null, 
             key: 'data', title: title(t, 'automations.node.group.data_lists', 'Data & lists'),
             items: [...DATA_ITEMS, ...COLLECTION_ITEMS].map((it) => localised(it, t)),
         },
-        {
-            key: 'integrations', title: title(t, 'automations.node.group.integrations', 'Integrations'),
-            items: [...INTEGRATION_ITEMS, ...(codeItem ? [codeItem] : [])].map((it) => localised(it, t)),
-        },
     ];
+}
+
+/** Flow control's items with Code (when the catalog offers it) and Call a web service right after the loop: the logic you write yourself. */
+function withOwnLogicAfterLoop(items: readonly PaletteItem[], codeItem: PaletteItem | null): PaletteItem[] {
+    const own = [...(codeItem ? [codeItem] : []), ...INTEGRATION_ITEMS];
+    const at = items.findIndex((it) => it.payload.kind === 'loop');
+    return at < 0 ? [...items, ...own] : [...items.slice(0, at + 1), ...own, ...items.slice(at + 1)];
 }
 
 /** The group headings, by key: the web's own key where it has one, else `mobile.flow.palette.group_*`. */

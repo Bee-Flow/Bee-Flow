@@ -206,4 +206,11 @@ module.exports = {
     'usage.empty_incomplete': 'Nothing was found — but not everything could be checked.',
     'usage.pill_unknown': 'not fully checked',
     'usage.unchecked_kinds': 'Could not be checked: {kinds}. This list is incomplete.',
+    // Hardcoded literals converted (2026-10)
+    'usage.overview.spend_over_budget': 'Spend over budget',
+    'usage.overview.spend_over_budget_msg': '{cost} spent this period — threshold {threshold}.',
+    'usage.overview.review_by_model': 'Review by model',
+    'usage.overview.model_count': '{count} model',
+    'usage.overview.model_count_plural': '{count} models',
+    'usage.kit.clear_filter': 'Clear filter',
 };

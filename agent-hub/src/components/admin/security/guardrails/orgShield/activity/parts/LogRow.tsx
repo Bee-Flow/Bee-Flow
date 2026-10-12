@@ -15,6 +15,7 @@ import { ENTRY_WORDS, OUTCOME_SHORT_WORDS, REGION_WORDS, actionLabel, wordFor } 
 import { shortLocation } from '../egressMap/locationCopy';
 import type { MapDestination } from '../egressMap/mapModel';
 import type { StreamRow } from '../shieldStream';
+import { isSpecialCategory } from '../specialCategories';
 import { REGION_TEXT } from '../../shieldPalette';
 import { detailPairs } from './logDetails';
 import { outcomeDot } from './outcomeDot';
@@ -69,21 +70,30 @@ function WentTo({ row, t }: { row: StreamRow; t: TranslateFn }) {
     );
 }
 
+const CHIP = 'max-w-full truncate rounded-full border border-[var(--border-subtle)] bg-[var(--bg-secondary)] px-2 py-0.5 text-[11px] font-semibold text-[var(--text-primary)]';
+
+/**
+ * The kinds found, each a filter toggle. A health category (GDPR Art. 9) is
+ * never a filter: the server strips it from rows that carry a person, and
+ * should one reach a row anyway (a person's own rows) it stays plain text.
+ */
 function Found({ row, onPickKind, catLabel, t }: Pick<Props, 'row' | 'onPickKind' | 'catLabel' | 't'>) {
     if (row.kinds.length === 0) return <span className="text-[11px] text-[var(--text-tertiary)]">{t('shield_activity.nothing', 'nothing')}</span>;
     return (
         <>
-            {row.kinds.map(k => (
+            {row.kinds.map(k => (isSpecialCategory(k) ? (
+                <span key={k} title={catLabel(k)} className={CHIP}>{catLabel(k)}</span>
+            ) : (
                 <button
                     key={k}
                     type="button"
                     onClick={(e) => { e.stopPropagation(); onPickKind(k); }}
                     title={catLabel(k)}
-                    className="max-w-full truncate rounded-full border border-[var(--border-subtle)] bg-[var(--bg-secondary)] px-2 py-0.5 text-[11px] font-semibold text-[var(--text-primary)] hover:border-[var(--border-default)]"
+                    className={`${CHIP} hover:border-[var(--border-default)]`}
                 >
                     {catLabel(k)}
                 </button>
-            ))}
+            )))}
         </>
     );
 }

@@ -1,21 +1,22 @@
+import { appendKey, appendWildcard } from '@shared/expr/path.mjs';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import React, { useState } from 'react';
-import { previewValue } from '../../../../utils/bindingHelpers';
 import { joinKeyPath, keyPickable } from './keyPath';
+import { mergeElements } from './upstream/fieldTree';
+import { previewValue } from '../../../../utils/bindingHelpers';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 /**
  * JsonTreePicker — a recursive, arbitrary-depth JSON tree whose rows emit
  * RELATIVE extraction paths (the parse_json field-path dialect resolved by
- * walkRelativePath on both client and server). Deliberately NOT built on
- * upstream.js sampleToFields, which stops at one level — this picker exists
- * so users can click into deeply nested payloads.
+ * walkRelativePath on both client and server). Not built on the upstream
+ * field tree: its paths are RELATIVE to the value, and each list carries its
+ * own "first item / each item" choice.
  *
- * Path building mirrors the server tokenizer's quoting rules:
+ * Paths are written by the runtime grammar's own writer (keyPath.js →
+ * shared/expr/path.mjs):
  *   - identifier-safe object key      → `.key`
- *   - anything else                   → `["key"]` (or `['key']` when the key
- *                                       itself contains a double quote — the
- *                                       tokenizer accepts both, but supports
- *                                       no escapes)
+ *   - anything else                   → `["key"]`, JSON-escaped
  *   - array element                   → `[0]` or, when the array's toggle is
  *                                       set to "each item", `[*]` (flatten)
  * Root arrays are supported: paths then START with `[0]`/`[*]`.
@@ -29,10 +30,11 @@ import { joinKeyPath, keyPickable } from './keyPath';
 // server resolves to undefined.
 
 export default function JsonTreePicker({ value, onPick, maxDepth = 20, maxChildren = 200 }) {
+    const { t } = useTranslation();
     if (value === null || typeof value !== 'object') {
         return (
             <div className="text-[11px] italic text-[var(--text-tertiary)]">
-                No object or list to pick from.
+                {t('automations.json_tree_picker.no_object_or_list_to_pick', 'No object or list to pick from.')}
             </div>
         );
     }
@@ -45,14 +47,17 @@ export default function JsonTreePicker({ value, onPick, maxDepth = 20, maxChildr
 
 /** Rows for the members of one object/array value. */
 function Children({ value, path, depth, onPick, maxDepth, maxChildren, pickable = true }) {
+    const { t } = useTranslation();
     // One toggle per ARRAY node: pick from the first item ([0]) or from each
-    // item ([*], flattens). The first element's subtree is rendered once —
-    // the toggle only changes which index the emitted paths carry.
+    // item ([*], flattens). "Each item" shows the UNION of the elements' keys
+    // (upstream/fieldTree mergeElements), so a key only a later element has,
+    // or a list that starts with null, is still there to pick; "first item"
+    // shows exactly element 0, the only thing `[0]` reads.
     const [each, setEach] = useState(false);
 
     if (Array.isArray(value)) {
         if (value.length === 0) {
-            return <div className="pl-5 text-[11px] italic text-[var(--text-tertiary)]">empty list</div>;
+            return <div className="pl-5 text-[11px] italic text-[var(--text-tertiary)]">{t('automations.json_tree_picker.empty_list', 'empty list')}</div>;
         }
         const idx = each ? '*' : '0';
         const chip = (label, isEach) => (
@@ -74,8 +79,8 @@ function Children({ value, path, depth, onPick, maxDepth, maxChildren, pickable 
                 </div>
                 <TreeNode
                     nodeKey={`[${idx}]`}
-                    value={value[0]}
-                    path={`${path}[${idx}]`}
+                    value={each ? mergeElements(value) : value[0]}
+                    path={each ? appendWildcard(path) : appendKey(path, 0)}
                     pickable={pickable}
                     depth={depth}
                     onPick={onPick}
@@ -105,7 +110,7 @@ function Children({ value, path, depth, onPick, maxDepth, maxChildren, pickable 
             ))}
             {entries.length > maxChildren && (
                 <div className="pl-5 text-[11px] italic text-[var(--text-tertiary)]">
-                    … {entries.length - maxChildren} more
+                    … {entries.length - maxChildren} {t('automations.json_tree_picker.more', 'more')}
                 </div>
             )}
         </>
@@ -113,6 +118,7 @@ function Children({ value, path, depth, onPick, maxDepth, maxChildren, pickable 
 }
 
 function TreeNode({ nodeKey, value, path, depth, onPick, maxDepth, maxChildren, pickable = true }) {
+    const { t } = useTranslation();
     const isObj = value !== null && typeof value === 'object';
     const hasChildren = isObj
         && depth < maxDepth
@@ -147,7 +153,7 @@ function TreeNode({ nodeKey, value, path, depth, onPick, maxDepth, maxChildren, 
                     </button>
                 ) : (
                     <span
-                        title="This key contains characters a field path cannot express — copy the value manually instead."
+                        title={t('automations.json_tree_picker.this_key_contains_characters_a_field', 'This key contains characters a field path cannot express — copy the value manually instead.')}
                         className="flex-1 min-w-0 flex items-baseline gap-2 px-1 py-0.5 rounded text-left opacity-60 cursor-not-allowed"
                     >
                         <span className="font-mono text-[var(--text-primary)] truncate">{nodeKey}</span>

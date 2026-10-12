@@ -50,7 +50,11 @@ export default function LastThirtyDays({ evidence, t, onGoTo }: Props) {
             </div>
             <dl className="m-0 grid grid-cols-3 gap-2">
                 {figures.map(f => (
-                    <div key={f.id} className="flex flex-col-reverse min-w-0">
+                    // Column-reverse keeps the label first in the DOM (a dt before
+                    // its dd) while the number is drawn on top; `justify-end` pins
+                    // the pair to the TOP of the cell, so a label that wraps to two
+                    // lines no longer pushes its number above the other two.
+                    <div key={f.id} className="flex flex-col-reverse justify-end min-w-0">
                         <dt className="text-[11px] text-[var(--text-secondary)]">{f.label}</dt>
                         <dd className={`m-0 text-[22px] leading-7 font-bold tabular-nums ${f.n === null ? 'text-[var(--text-tertiary)]' : f.cls}`}>
                             {f.n === null ? '—' : f.n.toLocaleString()}

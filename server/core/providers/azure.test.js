@@ -170,6 +170,13 @@ test('a bad parameter is not mistaken for an unsupported model', () => {
     assert.strictEqual(isResponsesUnsupported(busy), false);
 });
 
+test('Azure\'s OperationNotSupported wording counts as an unsupported model', () => {
+    const msg = '400 The responses operation does not work with the specified model, gpt-35-turbo. Please choose different model and try again.';
+    assert.strictEqual(isResponsesUnsupported(Object.assign(new Error(msg), { status: 400, code: 'OperationNotSupported' })), true);
+    assert.strictEqual(isResponsesUnsupported(Object.assign(new Error(msg), { status: 400 })), true);
+    assert.strictEqual(isResponsesUnsupported(Object.assign(new Error('404 DeploymentNotFound'), { status: 404, code: 'DeploymentNotFound' })), false);
+});
+
 test('streaming falls back only before anything was emitted', async () => {
     deploymentList = '';
     const azure = new AzureProvider();
@@ -215,4 +222,28 @@ test('a PDF never reaches Azure Chat Completions; its text still does', async ()
     await azure.chat('k', EP, 'phi-5', messages, {});
 
     assert.deepStrictEqual(captured.completions.messages[0].content, [{ type: 'text', text: 'invoice text' }]);
+});
+
+test('a deployment that rejects prompt_cache_retention is retried without it, once and remembered', async () => {
+    deploymentList = '';
+    const azure = new AzureProvider();
+    const seen = [];
+    azure.createClient = () => ({
+        responses: {
+            create: async (params) => {
+                seen.push(params.prompt_cache_retention);
+                if (params.prompt_cache_retention) {
+                    throw Object.assign(new Error("400 Unsupported parameter: 'prompt_cache_retention'"), { status: 400, param: 'prompt_cache_retention' });
+                }
+                return { id: 'r', output: [], output_text: 'ok', usage: {} };
+            },
+        },
+    });
+
+    const result = await azure.chat('k', EP, 'gpt-4.1', MSGS, {});
+    assert.strictEqual(result.content, 'ok');
+    assert.deepStrictEqual(seen, ['24h', undefined]);
+
+    await azure.chat('k', EP, 'gpt-4.1', MSGS, {});
+    assert.deepStrictEqual(seen, ['24h', undefined, undefined], 'remembered: not tried again');
 });
