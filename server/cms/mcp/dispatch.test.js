@@ -398,6 +398,20 @@ test('cms_set_locale_override writes site and page overrides, validates locale a
     assert.equal((await rpcCall(mcp, ctx, 'cms_set_locale_override', { locale: 'nl', override: 'x' })).result.isError, true);
 });
 
+test('cms_set_locale_override rejects page block translations that are not under content', async () => {
+    const { mcp, calls } = makeHarness();
+    const ctx = ctxOf(FULL);
+    const flat = await rpcCall(mcp, ctx, 'cms_set_locale_override', { locale: 'nl', pageId: 'pg_1', override: { blocks: { blk_a: { title: 'Hallo' } } } });
+    assert.equal(flat.result.isError, true);
+    assert.match(textOf(flat), /content/);
+    const mixed = await rpcCall(mcp, ctx, 'cms_set_locale_override', { locale: 'nl', pageId: 'pg_1', override: { blocks: { blk_a: { content: { title: 'Hallo' }, title: 'Hallo' } } } });
+    assert.equal(mixed.result.isError, true);
+    assert.equal(calls.live.length, 0);
+    const ok = await rpcCall(mcp, ctx, 'cms_set_locale_override', { locale: 'nl', pageId: 'pg_1', override: { blocks: { blk_a: { content: { title: 'Hallo' } } }, seo: { metaTitle: 'Hallo' } } });
+    assert.equal(JSON.parse(textOf(ok)).saved, true);
+    assert.equal(calls.live[0][0], 'page-override');
+});
+
 // ── sites, pages, templates, assets ──────────────────────────────────
 
 test('list sites flags the live one; duplicate; templates; delete page', async () => {
