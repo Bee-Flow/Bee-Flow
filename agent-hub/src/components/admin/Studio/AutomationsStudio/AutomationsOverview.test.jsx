@@ -50,9 +50,17 @@ const rowProps = (a) => ({
 const rowTitles = () => screen.getAllByTestId('automations-overview-row').map(r => r.getAttribute('data-automation-id'));
 
 describe('AutomationsOverview', () => {
-    beforeEach(() => { cleanup(); store.clear(); });
+    beforeEach(() => { cleanup(); store.clear(); store.set('automationsOverviewView', 'list'); });
 
-    it('defaults to the list view, newest first, with every column', () => {
+    it('opens on the cards view until the user picks another, and cards show the flow strip', () => {
+        store.clear();
+        render(<AutomationsOverview automations={LIB} rowProps={rowProps} folders={[]} />);
+        expect(screen.getByTestId('automations-overview').getAttribute('data-view')).toBe('cards');
+        expect(screen.getAllByTestId('automations-overview-card')).toHaveLength(4);
+        expect(screen.getAllByTestId('overview-step-strip')).toHaveLength(4);
+    });
+
+    it('shows the list view newest first, with every column', () => {
         render(<AutomationsOverview automations={LIB} rowProps={rowProps} folders={[]} />);
         expect(screen.getByTestId('automations-overview').getAttribute('data-view')).toBe('list');
         expect(rowTitles()).toEqual(['d', 'b', 'c', 'a']);

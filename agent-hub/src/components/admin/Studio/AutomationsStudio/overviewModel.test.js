@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import {
     NO_FOLDER, countFolders, countStates, countTriggers, filterRows, groupRows, sortRows,
-    stepCountOf, triggerKindOf, triggerTextOf,
+    flowSummaryOf, stepCountOf, stripModelOf, triggerKindOf, triggerTextOf,
 } from './overviewModel';
 
 const row = (over = {}) => ({
@@ -32,10 +32,16 @@ describe('overviewModel — reading a row', () => {
         expect(triggerKindOf(row({ triggerType: null }))).toBe('manual');
     });
 
-    it('describes a schedule in words and an app event as provider.event', () => {
+    it('describes a schedule in words, an app event by its name, and a manual start as such', () => {
         expect(triggerTextOf(LIB[0])).toMatch(/09:00.*Europe\/Amsterdam/);
-        expect(triggerTextOf(LIB[4])).toBe('gmail.mail.new');
-        expect(triggerTextOf(LIB[1])).toBe('Manual');
+        expect(triggerTextOf(LIB[4])).toBe('New email (Gmail)');
+        expect(triggerTextOf(LIB[1])).toBe('Started by hand');
+        expect(triggerTextOf(LIB[2])).toBe('Webhook');
+    });
+
+    it('humanises an app event the catalogue does not know instead of showing the dotted id', () => {
+        const a = row({ triggerType: 'app_event', definition: { trigger: { kind: 'app_event', appEvent: { provider: 'meeting-notes', event: 'meeting.processed' } }, steps: [] } });
+        expect(triggerTextOf(a)).toBe('Meeting notes: meeting processed');
     });
 
     it('counts steps only when the definition carries them', () => {
@@ -131,5 +137,54 @@ describe('overviewModel — board lanes', () => {
             ['No folder', ['a', 'b', 'c', 'd', 'z']],
             ['Finance', ['e']],
         ]);
+    });
+});
+
+const flow = (steps, trigger = { kind: 'manual' }) => row({ definition: { trigger, steps } });
+const STEPS = [
+    { id: 's1', type: 'ai_step' },
+    { id: 's2', type: 'integration_action', label: 'Save to Drive', app: 'google-drive', action: 'drive_upload' },
+    { id: 'n', type: 'note' },
+    { id: 's3', type: 'loop', icon: 'Mail' },
+    { id: 's4', type: 'condition' },
+    { id: 's5', type: 'wait' },
+    { id: 's6', type: 'set' },
+    { id: 's7', type: 'stop_error' },
+];
+
+describe('overviewModel — what is in a flow', () => {
+    it('lists the trigger, then the first five real steps in order, and counts the rest', () => {
+        const m = stripModelOf(flow(STEPS), undefined);
+        expect(m.chips.map(c => c.key)).toEqual(['trigger', 's1', 's2', 's3', 's4', 's5']);
+        expect(m.more).toBe(2);
+        expect(m.empty).toBe(false);
+    });
+
+    it('names a chip by its label or its type, and keeps what picks the glyph', () => {
+        const m = stripModelOf(flow(STEPS), undefined);
+        expect(m.chips[2]).toMatchObject({ label: 'Save to Drive', family: 'app', app: 'google-drive', action: 'drive_upload' });
+        expect(m.chips[1].label).not.toBe('');
+        expect(m.chips[3].icon).toBe('Mail');
+    });
+
+    it('reports a definition without steps as empty and one without a definition as just a trigger', () => {
+        expect(stripModelOf(flow([]), undefined).empty).toBe(true);
+        const none = stripModelOf(row(), undefined);
+        expect(none.empty).toBe(false);
+        expect(none.chips).toHaveLength(1);
+    });
+
+    it('summarises as trigger → at most three named steps → +N more', () => {
+        const a = { ...flow(STEPS, { kind: 'app_event', appEvent: { provider: 'gmail', event: 'mail.new' } }), triggerType: 'app_event' };
+        const parts = flowSummaryOf(a).split(' → ');
+        expect(parts[0]).toBe('New email (Gmail)');
+        expect(parts[2]).toBe('Save to Drive');
+        expect(parts).toHaveLength(5);
+        expect(parts[4]).toBe('+4 more');
+    });
+
+    it('summarises small and absent flows plainly', () => {
+        expect(flowSummaryOf(flow([]))).toBe('Started by hand → No steps yet');
+        expect(flowSummaryOf(row())).toBe('Started by hand');
     });
 });
