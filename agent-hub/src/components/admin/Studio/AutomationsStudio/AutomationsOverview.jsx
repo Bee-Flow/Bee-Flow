@@ -5,10 +5,11 @@ import React, { useMemo, useState } from 'react';
 import ContextMenu from './ContextMenu';
 import {
     GROUPS, NO_FOLDER, SORTS, TRIGGER_KINDS, VIEWS,
-    countFolders, countStates, countTriggers, filterRows, groupRows, isFailing, sortRows,
-    statusLabelOf, stepCountOf, triggerKindOf, triggerLabelOf, triggerTextOf,
+    countFolders, countStates, countTriggers, filterRows, flowSummaryOf, groupRows, isFailing, sortRows,
+    statusLabelOf, triggerKindOf, triggerLabelOf, triggerTextOf,
 } from './overviewModel';
 import OverviewToolbar from './OverviewToolbar';
+import StepStrip from './StepStrip';
 import { buildAutomationMenuItems } from './automationMenuItems';
 import useRelativeTime from '../../../../hooks/useRelativeTime';
 import { useTranslation } from '../../../../hooks/useTranslation';
@@ -93,7 +94,7 @@ export default function AutomationsOverview({
     canCreate = true,
 }) {
     const { t } = useTranslation();
-    const [view, setViewState] = useState(() => readStored(VIEW_KEY, VIEWS, 'list'));
+    const [view, setViewState] = useState(() => readStored(VIEW_KEY, VIEWS, 'cards'));
     const [sort, setSortState] = useState(() => readStored(SORT_KEY, SORTS, 'updated'));
     const [groupBy, setGroupState] = useState(() => readStored(GROUP_KEY, GROUPS, 'status'));
     const [state, setState] = useState('all');
@@ -415,13 +416,6 @@ const WITH_NEXT_RUN = 'hidden @[76rem]/overview:block';
 const WITH_UPDATED = 'hidden @[100rem]/overview:block';
 
 // Which sort a column header stands for; a header without one is not sortable.
-/** "3 steps" / "1 step". */
-function stepsLabel(t, n) {
-    return n === 1
-        ? t('studio_misc.overview.steps_one', '{n} step', { n })
-        : t('studio_misc.overview.steps_many', '{n} steps', { n });
-}
-
 const COL_SORT = { name: 'name', status: 'status', lastRun: 'lastRun', nextRun: 'nextRun', updated: 'updated' };
 
 // Ascending reads naturally for a name and for "what runs next"; the other
@@ -473,8 +467,8 @@ function ListView({ rows, rowProps, activeRunIds, sort, onSort }) {
 function NameCell({ automation: a, liveRunning, onSelect }) {
     const { t } = useTranslation();
     const description = (a.description || '').trim();
-    const steps = stepCountOf(a);
-    const stepsText = steps != null ? stepsLabel(t, steps) : '';
+    // No description: say what the flow does instead (trigger → first steps).
+    const secondLine = description || flowSummaryOf(a, t);
     return (
         <button type="button" onClick={onSelect} className="text-left min-w-0 flex items-center gap-3">
             <span className="inline-flex h-7 w-7 items-center justify-center rounded-md shrink-0" style={tileStyle(a)}>
@@ -489,8 +483,8 @@ function NameCell({ automation: a, liveRunning, onSelect }) {
                     <span className="text-[13px] font-medium truncate text-[var(--text-primary)]" title={TITLE(a, t)}>{TITLE(a, t)}</span>
                     {liveRunning && <span className={`h-1.5 w-1.5 rounded-full animate-pulse ${STATUS_TOKENS.running.solid} bg-current shrink-0`} aria-hidden="true" />}
                 </span>
-                <span className="min-w-0 @[76rem]/overview:flex-1 text-xs text-[var(--text-tertiary)] truncate" title={description || undefined}>
-                    {description || stepsText}
+                <span className="min-w-0 @[76rem]/overview:flex-1 text-xs text-[var(--text-tertiary)] truncate" title={secondLine}>
+                    {secondLine}
                 </span>
             </span>
         </button>
@@ -550,7 +544,6 @@ function Card({ automation: a, props, liveRunning, compact = false, hideLifecycl
     const { t } = useTranslation();
     const rel = useRelativeTime();
     const { onContextMenu, kebab, menu } = useRowMenu(props);
-    const steps = stepCountOf(a);
     const failing = isFailing(a);
     return (
         <>
@@ -585,8 +578,11 @@ function Card({ automation: a, props, liveRunning, compact = false, hideLifecycl
                     <span className="-mr-1 -mt-1">{kebab}</span>
                 </div>
                 {!compact && (a.description || '').trim() && (
-                    <p className="text-xs m-0 mb-2.5 line-clamp-2 text-[var(--text-secondary)]">{a.description.trim()}</p>
+                    <p className="text-xs m-0 mb-2 line-clamp-2 text-[var(--text-secondary)]">{a.description.trim()}</p>
                 )}
+                <div className="mb-2.5 min-w-0">
+                    <StepStrip automation={a} small={compact} />
+                </div>
                 <div className="mt-auto flex items-center justify-between gap-2 flex-wrap">
                     <span className="flex items-center gap-2">
                         {!hideLifecycle && <LifecycleChip automation={a} />}
@@ -597,7 +593,7 @@ function Card({ automation: a, props, liveRunning, compact = false, hideLifecycl
                             ? t('studio_misc.overview.next_at', 'Next {when}', { when: formatNextRun(a.nextRunAt) })
                             : a.lastRunAt
                                 ? t('studio_misc.overview.ran_at', 'Ran {when}', { when: rel(a.lastRunAt) })
-                                : steps != null ? stepsLabel(t, steps) : ''}
+                                : ''}
                     </span>
                 </div>
             </div>

@@ -13,7 +13,9 @@
  * overview asks "what is on, what is off, what is broken" — and broken is a
  * run outcome on an automation that is otherwise live.
  */
+import { nodeTypeLabel, stepFamily } from '../../../automation/Builder/flow/nodeDefs';
 import { describeCron } from '../../../automation/Builder/flow/scheduleBuilderUtils';
+import { APP_EVENT_TYPE_LABEL } from '../../../automation/Builder/flow/triggerLabels';
 import { automation as lifecycleOf } from '../../../shared/statusOf';
 
 export const VIEWS = Object.freeze(['list', 'cards', 'board']);
@@ -68,7 +70,21 @@ export function triggerKindOf(a) {
     return TRIGGER_KINDS.includes(kind) ? kind : 'other';
 }
 
-/** "Every day at 09:00 · Europe/Amsterdam" — or the plain kind word. */
+/** "meeting-notes" → "Meeting notes"; "meeting.processed" → "meeting processed". */
+const words = (s) => String(s || '').replace(/[-_.]+/g, ' ').trim();
+
+/** "New email (Gmail)" when the catalogue knows the event, else "Meeting notes: meeting processed". */
+function appEventText(ev) {
+    const known = APP_EVENT_TYPE_LABEL[`${ev.provider}.${ev.event}`];
+    if (known) return known;
+    const provider = words(ev.provider);
+    const event = words(ev.event);
+    if (!provider) return event;
+    const name = provider.charAt(0).toUpperCase() + provider.slice(1);
+    return event ? `${name}: ${event}` : name;
+}
+
+/** "Every day at 09:00 · Europe/Amsterdam", "New email (Gmail)", "Started by hand". */
 export function triggerTextOf(a, t) {
     const kind = triggerKindOf(a);
     if (kind === 'schedule' && a.scheduleCron) {
@@ -76,8 +92,9 @@ export function triggerTextOf(a, t) {
     }
     if (kind === 'app_event') {
         const ev = a.definition?.trigger?.appEvent;
-        return ev ? `${ev.provider}.${ev.event}` : triggerLabelOf('app_event', t);
+        return ev?.provider || ev?.event ? appEventText(ev) : triggerLabelOf('app_event', t);
     }
+    if (kind === 'manual') return t ? t('studio_misc.overview.trigger_by_hand', 'Started by hand') : 'Started by hand';
     return triggerLabelOf(kind, t);
 }
 
@@ -85,6 +102,64 @@ export function triggerTextOf(a, t) {
 export function stepCountOf(a) {
     const steps = a?.definition?.steps;
     return Array.isArray(steps) ? steps.length : null;
+}
+
+/** What a step is called: its own label, else its type's name. */
+function stepNameOf(step, t) {
+    return String(step.label || '').trim() || nodeTypeLabel(step.type, t) || step.type;
+}
+
+/** The steps drawn in the strip (and named in the summary): top level only, no notes or other non-step types. */
+function visibleStepsOf(a) {
+    const steps = a?.definition?.steps;
+    if (!Array.isArray(steps)) return [];
+    return steps.filter(s => s && s.type && stepFamily(s.type) && stepFamily(s.type) !== 'trigger');
+}
+
+export const STRIP_MAX_STEPS = 5;
+
+/**
+ * What the step strip draws: the trigger first, then the first STRIP_MAX_STEPS
+ * top-level steps in order, and how many were left out. `empty` is a definition
+ * that has no steps at all (the strip says so instead of drawing one chip).
+ */
+export function stripModelOf(a, t, max = STRIP_MAX_STEPS) {
+    const steps = visibleStepsOf(a);
+    const kind = triggerKindOf(a);
+    const trigger = {
+        key: 'trigger', type: 'trigger', family: 'trigger', kind,
+        provider: a?.definition?.trigger?.appEvent?.provider || null,
+        label: triggerTextOf(a, t),
+    };
+    const chips = steps.slice(0, max).map((s, i) => ({
+        key: s.id || `${i}`,
+        type: s.type,
+        family: stepFamily(s.type),
+        icon: s.icon || null,
+        app: s.app || null,
+        action: s.action || null,
+        label: stepNameOf(s, t),
+    }));
+    return {
+        chips: [trigger, ...chips],
+        more: Math.max(0, steps.length - chips.length),
+        empty: stepCountOf(a) === 0,
+    };
+}
+
+/**
+ * "New email (Gmail) → AI step → Datatable → +2 more": the one-line answer to
+ * "what does this do", for rows without a description. At most three named steps.
+ */
+export function flowSummaryOf(a, t, maxNamed = 3) {
+    const trigger = triggerTextOf(a, t);
+    if (stepCountOf(a) == null) return trigger;
+    const steps = visibleStepsOf(a);
+    if (steps.length === 0) return `${trigger} → ${t ? t('studio_misc.overview.no_steps', 'No steps yet') : 'No steps yet'}`;
+    const parts = [trigger, ...steps.slice(0, maxNamed).map(s => stepNameOf(s, t))];
+    const rest = steps.length - maxNamed;
+    if (rest > 0) parts.push(t ? t('studio_misc.overview.more_steps', '+{n} more', { n: rest }) : `+${rest} more`);
+    return parts.join(' → ');
 }
 
 /** The server spells a failed run both ways. */
