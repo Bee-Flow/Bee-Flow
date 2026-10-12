@@ -22,6 +22,13 @@ from app.upload_limit import read_bounded
 router = APIRouter(prefix="/kb", tags=["ingestion"])
 
 
+def _check_embedding_count(chunks: list, embeddings: list) -> None:
+    """Fail before the DELETE when the embedder returned a different number of
+    vectors than chunks, so zip() can never silently truncate a document."""
+    if len(embeddings) != len(chunks):
+        raise HTTPException(status_code=502, detail="embedding count mismatch")
+
+
 @router.post("/ingest", response_model=IngestResponse)
 async def ingest_document(  # noqa: PLR0912, PLR0913
     tenant_id: str = Form(...),
@@ -109,29 +116,31 @@ async def ingest_document(  # noqa: PLR0912, PLR0913
     with latency.track("batch_embed"):
         embeddings = await inference.embed(chunk_texts)
 
-    # Delete existing chunks for this document (re-ingestion)
-    async with db.acquire() as conn:
-        await conn.execute(
-            DELETE_DOCUMENT_CHUNKS_SQL,
-            str(tenant),
-            str(kb_id),
-            str(doc_id),
-        )
+    _check_embedding_count(chunks, embeddings)
 
-        # Insert new chunks
-        for chunk, embedding in zip(chunks, embeddings):
+    # Replace the document's chunks atomically (re-ingestion): a failure
+    # part-way rolls back to the previous good state.
+    async with db.acquire() as conn:
+        async with conn.transaction():
             await conn.execute(
-                INSERT_CHUNK_SQL,
-                tenant,
-                kb_id,
+                DELETE_DOCUMENT_CHUNKS_SQL,
+                str(tenant),
+                str(kb_id),
                 str(doc_id),
-                chunk.chunk_id,
-                lang,
-                title,
-                chunk.text,
-                str(embedding),
-                source_uri,
             )
+            for chunk, embedding in zip(chunks, embeddings):
+                await conn.execute(
+                    INSERT_CHUNK_SQL,
+                    tenant,
+                    kb_id,
+                    str(doc_id),
+                    chunk.chunk_id,
+                    lang,
+                    title,
+                    chunk.text,
+                    str(embedding),
+                    source_uri,
+                )
 
     logger.info("Ingestion complete: document=%s chunks=%d", doc_id, len(chunks))
 
@@ -237,22 +246,25 @@ async def ingest_json(request: IngestRequest) -> IngestResponse:
     with latency.track("batch_embed"):
         embeddings = await inference.embed(chunk_texts)
 
-    # Delete old chunks, insert new
+    _check_embedding_count(chunks, embeddings)
+
+    # Delete old chunks, insert new: one transaction, so a failure rolls back.
     async with db.acquire() as conn:
-        await conn.execute(DELETE_DOCUMENT_CHUNKS_SQL, tenant, kb_id, str(doc_id))
-        for chunk, embedding in zip(chunks, embeddings):
-            await conn.execute(
-                INSERT_CHUNK_SQL,
-                tenant,
-                kb_id,
-                str(doc_id),
-                chunk.chunk_id,
-                request.lang,
-                request.title,
-                chunk.text,
-                str(embedding),
-                request.source_uri,
-            )
+        async with conn.transaction():
+            await conn.execute(DELETE_DOCUMENT_CHUNKS_SQL, tenant, kb_id, str(doc_id))
+            for chunk, embedding in zip(chunks, embeddings):
+                await conn.execute(
+                    INSERT_CHUNK_SQL,
+                    tenant,
+                    kb_id,
+                    str(doc_id),
+                    chunk.chunk_id,
+                    request.lang,
+                    request.title,
+                    chunk.text,
+                    str(embedding),
+                    request.source_uri,
+                )
 
     logger.info("JSON ingest complete: doc=%s chunks=%d", doc_id, len(chunks))
     return IngestResponse(document_id=doc_id, chunks_created=len(chunks), status="ok")

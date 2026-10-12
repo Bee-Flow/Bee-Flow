@@ -32,8 +32,6 @@ async def embed_texts(req: EmbedRequest) -> EmbedResponse:
     Results are cached in Redis for 24h.
     """
     from app.config import settings
-    import hashlib
-    import json
 
     http = get_http()
     redis = get_redis()
@@ -47,10 +45,9 @@ async def embed_texts(req: EmbedRequest) -> EmbedResponse:
 
     # Check cache for each text
     for i, text in enumerate(req.input):
-        cache_key = f"emb:{hashlib.sha256(text.encode()).hexdigest()[:32]}"
-        cached = await cache._redis.get(cache_key)
+        cached = await cache.get_embedding(text)
         if cached:
-            embeddings[i] = json.loads(cached)
+            embeddings[i] = cached
             cached_count += 1
         else:
             uncached_indices.append(i)
@@ -66,14 +63,7 @@ async def embed_texts(req: EmbedRequest) -> EmbedResponse:
             zip(uncached_indices, new_embeddings)
         ):
             embeddings[orig_idx] = embedding
-            cache_key = (
-                f"emb:{hashlib.sha256(req.input[orig_idx].encode()).hexdigest()[:32]}"
-            )
-            await cache._redis.set(
-                cache_key,
-                json.dumps(embedding),
-                ex=settings.cache_ttl_embedding,
-            )
+            await cache.set_embedding(req.input[orig_idx], embedding)
 
     logger.info(
         "Embed API: %d texts (%d cached, %d computed)",

@@ -172,7 +172,13 @@ build_one() {
     agent-hub)
       extra+=(--build-arg "VITE_BUILD_SHA=$(git -C "$REPO_ROOT" rev-parse HEAD 2>/dev/null || echo local)")
       extra+=(--build-arg "BUILDKIT_INLINE_CACHE=1")
-      [[ "${FAST_DEV:-0}" == "1" ]] && extra+=(--build-arg "BUILD_EMBED=false")
+      if [[ "${FAST_DEV:-0}" == "1" ]]; then
+        if [[ "$env" == "prd" ]]; then
+          echo "ERROR: FAST_DEV=1 skips the Nextcloud embed build; refusing to produce a prd agent-hub image. Unset FAST_DEV and rebuild." >&2
+          return 1
+        fi
+        extra+=(--build-arg "BUILD_EMBED=false")
+      fi
       ;;
     reranker)
       if [[ -z "${HF_TOKEN:-}" ]]; then

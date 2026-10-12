@@ -2,7 +2,7 @@
 
 const { test } = require('node:test');
 const assert = require('node:assert');
-const { makeCollabNotifier } = require('./collabNotify');
+const { makeCollabNotifier, ncPortalBase } = require('./collabNotify');
 
 const project = { id: 'p1', name: 'Launch' };
 
@@ -177,4 +177,50 @@ test('a task assignment rings and mails the assignees except the giver, with a t
         vars: { project: 'Launch', actor: 'Name ann', intro: 'intro@project_collab.email.task_assigned', detail: 'detail@project_collab.email.task_assigned' },
         ctaUrl: 'https://bee.example/app/projects/p1/tasks/t1',
     });
+});
+
+test('the mail link of a Nextcloud user points into their Nextcloud portal, others keep the Bee Flow origin', async () => {
+    const users = {
+        ann: { id: 'ann', displayName: 'Ann' },
+        nc: { id: 'nc', nc_uid: 'ncuser', organizationId: 'o1' },
+        web: { id: 'web', organizationId: 'o1' },
+    };
+    const orgs = { o1: { id: 'o1', registrationSource: 'nextcloud_connector', nc_base_url: 'https://cloud.example/' } };
+    const { mails, notifier } = make({
+        prefs: { filterRecipients: async (ids) => ({ bell: [], email: ids }) },
+        renderText: async () => ({ title: 't', message: 'm', intro: 'i', detail: 'd' }),
+        clientHost: () => 'https://beeflow.nl',
+        getUser: async (id) => users[id],
+        getOrganization: async (o) => orgs[o],
+    });
+    await notifier.added({ project, actorId: 'ann', sharedWithType: 'user', sharedWithId: 'nc', role: 'editor' });
+    await notifier.added({ project, actorId: 'ann', sharedWithType: 'user', sharedWithId: 'web', role: 'editor' });
+    assert.deepStrictEqual(mails.map((m) => [m.userId, m.ctaUrl]), [
+        ['nc', 'https://cloud.example/index.php/apps/app_api/embedded/bee_flow/main?path=%2Fapp%2Fprojects%2Fp1'],
+        ['web', 'https://beeflow.nl/app/projects/p1'],
+    ]);
+});
+
+test('ncPortalBase is null without an NC org, a base URL or an nc_uid', async () => {
+    const get = (user, org) => ncPortalBase('u', { getUser: async () => user, getOrganization: async () => org });
+    assert.strictEqual(await get({ nc_uid: 'x', organizationId: 'o' }, { registrationSource: 'direct', nc_base_url: 'https://c.example' }), null);
+    assert.strictEqual(await get({ nc_uid: 'x', organizationId: 'o' }, { registrationSource: 'nextcloud_connector' }), null);
+    assert.strictEqual(await get({ organizationId: 'o' }, { registrationSource: 'nextcloud_connector', nc_base_url: 'https://c.example' }), null);
+    assert.strictEqual(await get(null, null), null);
+});
+
+test('a Docker-internal or bare-IP Nextcloud base URL is not a portal base; the mail keeps the Bee Flow origin', async () => {
+    for (const nc_base_url of ['http://nextcloud', 'http://localhost:8080', 'http://192.168.1.5', 'http://nextcloud.internal', 'http://[::1]:8080']) {
+        const orgs = { o1: { id: 'o1', registrationSource: 'nextcloud_connector', nc_base_url } };
+        const users = { ann: { id: 'ann', displayName: 'Ann' }, nc: { id: 'nc', nc_uid: 'ncuser', organizationId: 'o1' } };
+        const { mails, notifier } = make({
+            prefs: { filterRecipients: async (ids) => ({ bell: [], email: ids }) },
+            renderText: async () => ({ title: 't', message: 'm', intro: 'i', detail: 'd' }),
+            clientHost: () => 'https://beeflow.nl',
+            getUser: async (id) => users[id],
+            getOrganization: async (o) => orgs[o],
+        });
+        await notifier.added({ project, actorId: 'ann', sharedWithType: 'user', sharedWithId: 'nc', role: 'editor' });
+        assert.deepStrictEqual(mails.map((m) => m.ctaUrl), ['https://beeflow.nl/app/projects/p1'], nc_base_url);
+    }
 });

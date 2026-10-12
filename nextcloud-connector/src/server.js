@@ -215,6 +215,17 @@ app.get(['/js/embed', '/js/embed.js'], (_req, res) => {
     content.innerHTML = '';
     var iframe = document.createElement('iframe');
     iframe.src = OC.generateUrl('${framePath}');
+    // Deep link: a mail link such as .../embedded/bee_flow/main?path=/app/projects/p1
+    // opens that screen inside the frame. Only a relative in-app path passes
+    // (no scheme, no '//', no '..'); the SPA reads it once as ?ncPath=
+    // (agent-hub utils/ncDeepLink.ts). Works for both frame targets.
+    try {
+        var want = new URLSearchParams(window.location.search).get('path');
+        if (want && want.indexOf('/app/') === 0 && /^[-A-Za-z0-9/_?=&.%]+$/.test(want)
+            && want.indexOf('//') < 0 && want.indexOf('..') < 0) {
+            iframe.src += '?ncPath=' + encodeURIComponent(want);
+        }
+    } catch (e) { /* no deep link: land on the home screen */ }
     // Height was hardcoded to calc(100vh - 50px), i.e. an assumption that
     // Nextcloud's chrome above #content is exactly 50px. It is not, and the
     // difference is paid by the BOTTOM of the frame — which is where the chat
