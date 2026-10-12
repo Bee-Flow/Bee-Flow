@@ -29,7 +29,10 @@ stub(path.join(__dirname, '..', '..', 'stores', 'configStore.js'), {
 });
 stub(path.join(__dirname, 'resolveTarget.js'), { async resolveEmbedTarget() { return target; } });
 
-const { applyModelPrefix, dispatchEmbedTexts, azureEmbed } = require('./dispatch');
+const { applyModelPrefix, dispatchEmbedTexts, azureEmbed, _setSleepForTests } = require('./dispatch');
+// A retry's backoff costs no wall-clock time here.
+const waits = [];
+_setSleepForTests(async (ms) => { waits.push(ms); });
 
 test('EmbeddingGemma gets its documented prefixes, and they differ by role', () => {
     const [q] = applyModelPrefix(['hoeveel kost het'], 'embedding-gemma', 'query');
@@ -160,4 +163,62 @@ test('non-Azure providers keep their own /v1/embeddings route and Bearer auth', 
     assert.strictEqual(calls[0].url, 'https://api.openai.com/v1/embeddings');
     assert.strictEqual(calls[0].init.headers.Authorization, 'Bearer sk');
     assert.deepStrictEqual(calls[0].body, { model: 'text-embedding-3-small', input: ['x'] });
+});
+
+// ── Temporary provider failures are waited out ───────────────────────────────
+// A 975-page PDF is hundreds of batches; a per-minute quota answers 429 halfway.
+// That one batch used to throw the whole document over to the CPU embedder
+// (384 dims), which the 1536-dim column then refused.
+
+function scriptedFetch(script) {
+    calls = [];
+    global.fetch = async (url, init) => {
+        calls.push({ url: String(url), body: JSON.parse(init.body) });
+        const step = script.shift();
+        if (step instanceof Error) throw step;
+        if (step && step.status !== 200) {
+            return new Response('slow down', { status: step.status, headers: step.headers || {} });
+        }
+        const n = JSON.parse(init.body).input.length;
+        return new Response(JSON.stringify({ data: Array.from({ length: n }, (_, index) => ({ index, embedding: [index, 1] })) }), { status: 200 });
+    };
+}
+
+test('a 429 is retried (Retry-After honoured) and the provider still answers', async () => {
+    waits.length = 0;
+    scriptedFetch([{ status: 429, headers: { 'retry-after': '3' } }, { status: 503 }, { status: 200 }]);
+    target = { providerType: 'openai', endpoint: 'https://api.example.com/v1', apiKey: 'k', modelId: 'text-embedding-3-small' };
+    const { vectors, source, providerError } = await dispatchEmbedTexts(['a', 'b']);
+    assert.strictEqual(source, 'provider');
+    assert.strictEqual(vectors.length, 2);
+    assert.strictEqual(calls.length, 3);
+    assert.strictEqual(waits[0], 3000, 'Retry-After in seconds becomes the wait');
+    assert.strictEqual(providerError, undefined);
+});
+
+test('a timeout is retried like a 429', async () => {
+    waits.length = 0;
+    scriptedFetch([new Error('The operation was aborted due to timeout'), { status: 200 }]);
+    target = { providerType: 'openai', endpoint: 'https://api.example.com/v1', apiKey: 'k', modelId: 'm' };
+    const { source } = await dispatchEmbedTexts(['a']);
+    assert.strictEqual(source, 'provider');
+    assert.strictEqual(waits.length, 1);
+});
+
+test('a 400 is not retried, and the reason travels with the fallback', async () => {
+    waits.length = 0;
+    scriptedFetch([{ status: 400 }]);
+    target = { providerType: 'openai', providerName: 'OpenAI', endpoint: 'https://api.example.com/v1', apiKey: 'k', modelId: 'm' };
+    const res = await dispatchEmbedTexts(['a'], { strict: false }).catch((e) => ({ thrown: e }));
+    assert.strictEqual(calls.length, 1, 'a client error is final');
+    assert.strictEqual(waits.length, 0);
+    assert.match(String(res.providerError), /OpenAI embed 400/);
+});
+
+test('strict: a 429 that never clears throws after the retries', async () => {
+    waits.length = 0;
+    scriptedFetch([{ status: 429 }, { status: 429 }, { status: 429 }, { status: 429 }, { status: 429 }]);
+    target = { providerType: 'openai', endpoint: 'https://api.example.com/v1', apiKey: 'k', modelId: 'm' };
+    await assert.rejects(dispatchEmbedTexts(['a'], { strict: true }), /embed 429/);
+    assert.strictEqual(calls.length, 5);
 });

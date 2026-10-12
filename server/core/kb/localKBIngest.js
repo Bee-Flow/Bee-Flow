@@ -534,6 +534,7 @@ async function ensureKBChunksTable(vectorDim) {
                     // CPU/Azure): refusing it is right, it is not the model
                     // the stored vectors belong to.
                     log.warn(`[LocalKBIngest] kb_chunks dim mismatch (table=${currentDim}, requested=${vectorDim}) with ${rows} existing rows — the vectors did not come from the configured embedding model (provider unavailable?).`);
+                    return { mismatch: { currentDim, vectorDim } };
                 }
             }
         } catch (err) {
@@ -671,7 +672,17 @@ async function ingestLocally(tenantId, kbId, docId, content, options = {}) {
         if (embeddings.length > 0 && embeddings[0]?.length) {
             embedDim = embeddings[0].length;
             // Reconcile the kb_chunks embedding column with the actual dim.
-            await ensureKBChunksTable(embedDim);
+            const reconcile = await ensureKBChunksTable(embedDim);
+            if (reconcile?.mismatch) {
+                // pgvector would refuse the INSERT with "expected 1536
+                // dimensions, not 384", which names the symptom and hides the
+                // cause: the configured provider failed and a fallback
+                // embedder answered instead.
+                const cause = result.providerError
+                    ? `The embedding provider failed (${result.providerError})`
+                    : 'The configured embedding model did not answer';
+                throw new Error(`${cause}; the fallback embedder's ${reconcile.mismatch.vectorDim}-dimension vectors cannot be stored next to the existing ${reconcile.mismatch.currentDim}-dimension ones. Try again later.`);
+            }
             // Track cost only when we actually used a paid provider/Azure path.
             if (embedSource === 'provider' || embedSource === 'azure') {
                 const totalTokens = chunkTexts.reduce((sum, t) => sum + estimateTokens(t), 0);
