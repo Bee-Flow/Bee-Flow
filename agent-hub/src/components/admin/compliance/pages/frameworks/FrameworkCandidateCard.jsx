@@ -1,10 +1,10 @@
-import React from 'react';
-import { ArrowUpRight, Lock, Plus } from 'lucide-react';
+import { ArrowUpRight, Lock, Plus, Sparkles } from 'lucide-react';
+import React, { useLayoutEffect, useRef, useState } from 'react';
+import { frameworkIcon } from './frameworkIcons';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import { TONES } from '../../../../shared/statusTone';
 import { PRIMARY_ACTION_STYLE } from '../../../../shared/StudioSectionHeader';
 import { daysUntil, formatCalDate, parseDay, SOON_DAYS } from '../../shared/calendarMath';
-import { frameworkIcon } from './frameworkIcons';
 
 /**
  * FrameworkCandidateCard — one growing-set framework on the Frameworks page
@@ -38,6 +38,37 @@ export function enableIsPrimary(framework) {
     return !!framework && (framework.recently_in_force === true || framework.relevance === 'relevant');
 }
 
+/** Pure: why a framework is recommended — the "Recommended" chip's tooltip. Null when it is not. */
+export function recommendedReason(framework, t) {
+    if (!enableIsPrimary(framework)) return null;
+    return framework.recently_in_force === true
+        ? t('compliance.fw_recommended_recent', 'Recently entered into force')
+        : t('compliance.fw_recommended_relevant', 'You marked this framework as relevant');
+}
+
+/**
+ * Pure: a count in words, singular when n is 1: `<key>_one` ('1 check'), else
+ * `<key>` ('{n} checks'). The plural fallback's own {n} is filled in for the
+ * singular's fallback when no `one` text is given.
+ */
+export function countLabel(t, key, n, fallback, one) {
+    return n === 1
+        ? t(`${key}_one`, one ?? fallback.replace('{n}', '1'), { n })
+        : t(key, fallback, { n });
+}
+
+/** What an `affects` count counts, plural and singular (the count is printed before the noun). */
+const AFFECTS_NOUN = Object.freeze({
+    automations: ['automations', 'automation'],
+    agents: ['agents', 'agent'],
+    webpages: ['web pages', 'web page'],
+    forms: ['public forms', 'public form'],
+    detections: ['machine integrations', 'machine integration'],
+});
+
+/** Above this length a description is assumed to need more than three lines when the browser cannot measure (no layout). */
+const CLAMP_CHARS = 160;
+
 const SECONDARY_BUTTON = 'inline-flex items-center gap-1 px-[9px] py-1 rounded-lg border border-[var(--border-default)] text-[12px] font-medium text-[var(--text-primary)] bg-[var(--bg-card)] disabled:opacity-60';
 
 function StatusChip({ chip, t, locale }) {
@@ -66,15 +97,20 @@ export default function FrameworkCandidateCard({ framework, now, busy = false, o
     const checks = typeof framework.checks_count === 'number' ? framework.checks_count : null;
     const registers = Array.isArray(framework.registers) ? framework.registers.length : (typeof framework.registers_count === 'number' ? framework.registers_count : null);
     const dates = typeof framework.calendar_count === 'number' ? framework.calendar_count : null;
+    const recommended = !locked && !framework.enabled ? recommendedReason(framework, t) : null;
     const affects = framework.affects && typeof framework.affects === 'object'
         ? Object.entries(framework.affects).filter(([, v]) => typeof v === 'number' && v > 0)
         : [];
 
     const meta = [
-        checks !== null ? t('compliance.fw_meta_checks', '{n} checks', { n: checks }) : null,
-        registers !== null && registers > 0 ? t('compliance.fw_meta_registers', '{n} registers', { n: registers }) : null,
-        dates !== null && dates > 0 ? t('compliance.fw_meta_dates', '{n} calendar dates', { n: dates }) : null,
+        checks !== null ? countLabel(t, 'compliance.fw_meta_checks', checks, '{n} checks', '1 check') : null,
+        registers !== null && registers > 0 ? countLabel(t, 'compliance.fw_meta_registers', registers, '{n} registers', '1 register') : null,
+        dates !== null && dates > 0 ? countLabel(t, 'compliance.fw_meta_dates', dates, '{n} calendar dates', '1 calendar date') : null,
     ].filter(Boolean).join(' · ');
+    const affectsNoun = (k, v) => {
+        const [many, one] = AFFECTS_NOUN[k] || [k, k];
+        return v === 1 ? t(`compliance.fw_affects_${k}_one`, one) : t(`compliance.fw_affects_${k}`, many);
+    };
 
     let footer;
     if (locked) {
@@ -96,7 +132,7 @@ export default function FrameworkCandidateCard({ framework, now, busy = false, o
             <>
                 <span className="text-[11px] text-[var(--text-tertiary)]" data-testid="fw-enabled-meta">
                     {checks !== null
-                        ? t('compliance.fw_enabled_checks', 'Enabled · {n} checks', { n: checks })
+                        ? countLabel(t, 'compliance.fw_enabled_checks', checks, 'Enabled · {n} checks', 'Enabled · 1 check')
                         : t('compliance.fw_enabled', 'Enabled')}
                 </span>
                 <button type="button" className={`ml-auto ${SECONDARY_BUTTON}`} disabled={busy} onClick={() => onDisable?.(framework.id)} data-testid="fw-disable">
@@ -140,32 +176,78 @@ export default function FrameworkCandidateCard({ framework, now, busy = false, o
 
     return (
         <article
-            className={`rounded-xl bg-[var(--bg-card)] border border-[var(--border-default)] px-3.5 py-3 flex flex-col gap-1.5 text-xs ${className}`}
-            style={{ boxShadow: 'var(--shadow-sm)' }}
+            className={`rounded-xl bg-[var(--bg-card)] border border-[var(--border-default)] px-3.5 py-3 flex flex-col gap-1.5 text-xs shadow-[var(--shadow-sm)] ${className}`}
             data-testid={testId || `fw-card-${framework.id}`}
             data-framework={framework.id}
             data-locked={framework.locked || undefined}
             aria-busy={busy || undefined}
         >
-            <div className="flex items-center gap-2 min-w-0">
-                <Icon size={14} className="text-[var(--text-secondary)] shrink-0" aria-hidden="true" />
-                <span className="font-semibold truncate">{t(framework.name_key, framework.name || framework.id)}</span>
+            {/* The name wraps (never "NIS2 · Cybersecuri…"); when it needs the room the status chip moves under it. */}
+            <div className="flex items-center gap-x-2 gap-y-1 flex-wrap min-w-0">
+                <span className="flex items-center gap-2 min-w-0">
+                    <Icon size={14} className="text-[var(--text-secondary)] shrink-0" aria-hidden="true" />
+                    <span className="font-semibold" data-testid="fw-name">{t(framework.name_key, framework.name || framework.id)}</span>
+                </span>
+                {recommended && (
+                    <span
+                        className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-px rounded-full bg-[var(--bg-tertiary)] text-[var(--text-secondary)]"
+                        title={recommended}
+                        data-testid="fw-recommended"
+                    >
+                        <Sparkles size={10} aria-hidden="true" />
+                        {t('compliance.fw_recommended', 'Recommended')}
+                        <span className="sr-only">{`: ${recommended}`}</span>
+                    </span>
+                )}
                 <StatusChip chip={chip} t={t} locale={resolvedLocale} />
             </div>
             {framework.description_key && (
-                <div className="text-[var(--text-secondary)] leading-4">{t(framework.description_key, '')}</div>
+                <ClampedText text={t(framework.description_key, '')} t={t} testId="fw-desc" />
             )}
             {framework.affects_key && (
                 <div className="text-[11px] text-[var(--text-tertiary)] leading-4">
                     <b className="text-[var(--text-secondary)] font-semibold">{t('compliance.fw_affects_label', 'Affects you:')}</b>{' '}
                     {t(framework.affects_key, '')}
                     {affects.length > 0 && (
-                        <span data-testid="fw-affects-counts">{' · '}{affects.map(([k, v]) => `${v} ${t(`compliance.fw_affects_${k}`, k)}`).join(' · ')}</span>
+                        <span data-testid="fw-affects-counts">{' · '}{affects.map(([k, v]) => `${v} ${affectsNoun(k, v)}`).join(' · ')}</span>
                     )}
                 </div>
             )}
             <div className="flex items-center gap-2 mt-auto pt-1">{footer}</div>
         </article>
+    );
+}
+
+/**
+ * A description clamped to three lines, with a More / Less button when it is
+ * longer. Whether it is longer is measured once laid out; without layout (a
+ * test, a print preview) the length decides.
+ */
+function ClampedText({ text, t, testId }) {
+    const ref = useRef(null);
+    const [open, setOpen] = useState(false);
+    const [long, setLong] = useState(() => String(text || '').length > CLAMP_CHARS);
+    useLayoutEffect(() => {
+        const el = ref.current;
+        if (!el || open || !el.clientHeight) return;
+        setLong(el.scrollHeight > el.clientHeight + 1);
+    }, [text, open]);
+    if (!text) return null;
+    return (
+        <div className="flex flex-col items-start gap-0.5">
+            <div ref={ref} className={`text-[var(--text-secondary)] leading-4 ${open ? '' : 'line-clamp-3'}`} data-testid={testId} data-clamped={open ? 'false' : 'true'}>{text}</div>
+            {(long || open) && (
+                <button
+                    type="button"
+                    className="text-[11px] font-medium text-[var(--text-tertiary)] underline underline-offset-2 hover:text-[var(--text-primary)]"
+                    aria-expanded={open}
+                    onClick={() => setOpen(v => !v)}
+                    data-testid={`${testId}-toggle`}
+                >
+                    {open ? t('compliance.fw_less', 'Less') : t('compliance.fw_more', 'More')}
+                </button>
+            )}
+        </div>
     );
 }
 

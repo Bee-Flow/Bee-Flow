@@ -48,6 +48,20 @@ export interface StepEditorContext {
      * web's `onRenameField`. Absent where the editor cannot see the automation.
      */
     renameField?: (base: string, from: string, to: string) => number | undefined;
+    /**
+     * Re-point the next steps of the list Condition `routeId` at what it keeps
+     * (the shared followSuccessors), as ONE draft-store edit — the web's
+     * `onFollowRoute`. Answers the rewrites made (for the toast), or undefined
+     * when nothing could change. Absent where the editor cannot see the automation.
+     */
+    followRoute?: (routeId: string, stepIds: readonly string[]) => readonly FollowedRef[] | undefined;
+}
+
+/** One rewrite "follow the route" made: in `stepId`, `from…` now reads `to…`. */
+export interface FollowedRef {
+    stepId: string;
+    from: string;
+    to: string;
 }
 
 export interface StepEditorProps {

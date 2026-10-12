@@ -119,3 +119,135 @@ test('the tool schema lets a model express a per-case rule at all', () => {
     assert.deepStrictEqual(item.required, ['name'], 'name is the only required key on a case');
     assert.match(sw.function.description, /\{ name, expr \}/, 'the description never teaches the rule-style shape');
 });
+
+// ── A1/A2: a switch that works through a list ────────────────────────────────
+
+const LIST_ARGS = {
+    arrayRef: 'trigger.output.files',
+    cases: [{ name: 'pdf', expr: 'equals(fileType(item), "pdf")' }, { name: 'word', expr: 'equals(fileType(item), "word")' }],
+};
+
+test('A1: builder_add_switch keeps arrayRef, matchMode "all" and maxItems, and writes routeStyle', async () => {
+    const dw = freshWrap();
+    const res = await applyToolCall('builder_add_switch', { ...LIST_ARGS, matchMode: 'all', maxItems: 50 }, dw);
+    assert.ok(!res.error, res.error);
+    const step = lastStep(dw);
+    assert.strictEqual(step.arrayRef, 'trigger.output.files');
+    assert.strictEqual(step.matchMode, 'all');
+    assert.strictEqual(step.maxItems, 50);
+    assert.strictEqual(step.routeStyle, 'rules');
+    assert.ok(!('expr' in step), 'a list switch needs no step-level expr');
+});
+
+test('A1: matchMode "first", a bad maxItems and a value-style switch write nothing extra', async () => {
+    const dw = freshWrap();
+    await applyToolCall('builder_add_switch', { ...LIST_ARGS, matchMode: 'first', maxItems: 0 }, dw);
+    const step = lastStep(dw);
+    assert.ok(!('matchMode' in step) && !('maxItems' in step));
+    const value = freshWrap();
+    await applyToolCall('builder_add_switch', { expr: 'trigger.output.priority', cases: [{ name: 'urgent', value: 'high' }], maxItems: 5 }, value);
+    const v = lastStep(value);
+    assert.ok(!('routeStyle' in v) && !('arrayRef' in v) && !('maxItems' in v), JSON.stringify(v));
+});
+
+test('A1: the list goes through the same arrayRef sanitizer as a filter, notes included', async () => {
+    const dw = freshWrap();
+    dw.def.steps.push({ id: 'rm', type: 'integration_action', tool: 'gmail_read_many', inputs: {},
+        pinnedOutput: { messages: [{ id: 'm1', attachments: [{ filename: 'invoice.pdf' }] }] } });
+    dw.def.edges.push({ from: 'trg', to: 'rm' });
+    const res = await applyToolCall('builder_add_switch', { ...LIST_ARGS, afterStepId: 'rm', arrayRef: 'steps.rm.output.messages.attachments' }, dw);
+    assert.ok(!res.error, res.error);
+    assert.strictEqual(res.added.arrayRef, 'steps.rm.output.messages[*].attachments');
+    assert.ok(res._warnings.some(w => w.startsWith('arrayRef: read "steps.rm.output.messages.attachments"')), JSON.stringify(res._warnings));
+});
+
+test('A1: the schema offers arrayRef/matchMode/maxItems and requires only cases', () => {
+    const sw = TOOL_SCHEMAS.find(t => t.function?.name === 'builder_add_switch').function;
+    const p = sw.parameters.properties;
+    assert.strictEqual(p.arrayRef.type, 'string');
+    assert.deepStrictEqual(p.matchMode.enum, ['first', 'all']);
+    assert.strictEqual(p.maxItems.type, 'integer');
+    assert.deepStrictEqual(sw.parameters.required, ['cases']);
+    assert.match(p.cases.description, /first match wins unless matchMode is 'all'/);
+});
+
+test('A3: no Condition tool teaches lower()/upper(), and each carries the rule shapes', () => {
+    const { CONDITION_RULES_HINT } = require('./builderTools/ruleExamples');
+    for (const name of ['builder_add_condition', 'builder_add_switch', 'builder_add_filter', 'builder_add_array_op']) {
+        const fn = TOOL_SCHEMAS.find(t => t.function?.name === name).function;
+        const text = JSON.stringify(fn);
+        assert.ok(!/(lower|upper)\(item|(lower|upper)\(trigger|(lower|upper)\(steps/.test(text), `${name} still wraps a field in lower()/upper()`);
+        assert.ok(fn.description.includes(CONDITION_RULES_HINT), `${name} lacks the rule shapes`);
+    }
+});
+
+test('A2: builder_update_step patches arrayRef/matchMode/maxItems on a switch, maxItems on a filter', async () => {
+    const dw = freshWrap();
+    await applyToolCall('builder_add_switch', { ...LIST_ARGS }, dw);
+    const id = lastStep(dw).id;
+    let res = await applyToolCall('builder_update_step', { stepId: id, patch: { matchMode: 'all', maxItems: 20, arrayRef: 'trigger.output.attachments' } }, dw);
+    assert.ok(!res.error, res.error);
+    let step = dw.def.steps.find(s => s.id === id);
+    assert.deepStrictEqual([step.matchMode, step.maxItems, step.arrayRef], ['all', 20, 'trigger.output.attachments']);
+    res = await applyToolCall('builder_update_step', { stepId: id, patch: { matchMode: 'first', maxItems: null } }, dw);
+    assert.ok(!res.error, res.error);
+    step = dw.def.steps.find(s => s.id === id);
+    assert.ok(!('matchMode' in step) && !('maxItems' in step), JSON.stringify(step));
+
+    const filt = await applyToolCall('builder_add_filter', { arrayRef: 'trigger.output.files', expr: 'true' }, dw);
+    res = await applyToolCall('builder_update_step', { stepId: filt.added.id, patch: { maxItems: 10 } }, dw);
+    assert.ok(!res.error, res.error);
+    assert.strictEqual(dw.def.steps.find(s => s.id === filt.added.id).maxItems, 10);
+});
+
+test('W4 through the builder: renaming an output re-points the step on it', async () => {
+    const dw = freshWrap();
+    const sw = await applyToolCall('builder_add_switch', { ...LIST_ARGS }, dw);
+    const id = sw.added.id;
+    const note = await applyToolCall('builder_add_notification', {
+        afterStepId: id, caseName: 'pdf', title: 'PDF', body: '{{steps.' + id + '.output.matchesByCase.pdf[0].name}}',
+    }, dw);
+    assert.ok(!note.error, note.error);
+    const res = await applyToolCall('builder_update_step', {
+        stepId: id, patch: { cases: [{ name: 'invoices', expr: LIST_ARGS.cases[0].expr }, LIST_ARGS.cases[1]] },
+    }, dw);
+    assert.ok(!res.error, res.error);
+    assert.strictEqual(dw.def.steps.find(s => s.id === note.added.id).body, `{{steps.${id}.output.matchesByCase.invoices[0].name}}`);
+    assert.ok(res._warnings.some(w => w.includes(`to steps.${id}.output.matchesByCase.invoices`)), JSON.stringify(res._warnings));
+});
+
+// ── BFSF-485 F4: a condition that reads a whole list ─────────────────────────
+
+test('F4: a condition reading list[*] is built, with a note that it decides once and how to filter', async () => {
+    const dw = freshWrap();
+    // The issue's own example: "only the sheets named Reiskosten".
+    const res = await applyToolCall('builder_add_condition', { expr: 'contains(trigger.output.results[*].name, "Reiskosten")' }, dw);
+    assert.ok(!res.error, res.error);
+    assert.strictEqual(res._warnings.length, 1);
+    assert.match(res._warnings[0], /reads the whole list trigger\.output\.results and decides ONCE for the whole run/);
+    assert.match(res._warnings[0], /builder_add_array_op\(\{op:"filter", arrayRef:"trigger\.output\.results"/);
+});
+
+test('F4: no note for a plain condition or a whole-list emptiness check', async () => {
+    for (const expr of ['trigger.output.amount > 1000', 'isEmpty(trigger.output.results[*].name)', 'len(trigger.output.results[*]) > 0']) {
+        const dw = freshWrap();
+        const res = await applyToolCall('builder_add_condition', { expr }, dw);
+        assert.ok(!res.error, res.error);
+        assert.ok(!res._warnings, `${expr}: ${JSON.stringify(res._warnings)}`);
+    }
+});
+
+test('W3 through the builder: a filter replaced by a list switch keeps its connection on the first output', async () => {
+    const dw = freshWrap();
+    dw.def.steps.push(
+        { id: 'f', type: 'filter', arrayRef: 'trigger.output.files', expr: 'true' },
+        { id: 'n', type: 'notification', title: 'Files', body: '{{steps.f.output.items[0].name}}' },
+    );
+    dw.def.edges.push({ from: 'trg', to: 'f' }, { from: 'f', to: 'n' });
+    const res = await applyToolCall('builder_replace_step', { stepId: 'f', newType: 'switch', spec: { ...LIST_ARGS } }, dw);
+    assert.ok(!res.error, res.error);
+    assert.deepStrictEqual(dw.def.edges.find(e => e.from === 'f'), { from: 'f', to: 'n', label: 'case:pdf', caseName: 'pdf' });
+    assert.strictEqual(dw.def.steps.find(s => s.id === 'n').body, '{{steps.f.output.matchesByCase.pdf[0].name}}');
+    assert.ok(!res.rewired, 'no "unlabelled outgoing edges" note: the edge is on the first output');
+    assert.deepStrictEqual(res._warnings, ['Re-pointed n from steps.f.output.items to steps.f.output.matchesByCase.pdf: the outputs of f changed.']);
+});

@@ -31,3 +31,12 @@ test('byte-stable across calls (prompt-cache friendliness)', () => {
 test('short enough to be a negligible token cost', () => {
     assert.ok(buildWritingStyleAddendum().length < 600, 'stays a ~60-token layer');
 });
+
+test('the reply-language rule follows the latest message and outranks a remembered language (BFSF-387)', () => {
+    const { buildResponseLanguageRule } = require('./promptStyle');
+    const s = buildResponseLanguageRule();
+    assert.ok(s.startsWith('\n'), 'safe to append directly after any prompt text');
+    assert.ok(s.includes("language of the user's latest message"));
+    assert.ok(s.includes('Active Memory never overrides'));
+    assert.strictEqual(buildResponseLanguageRule(), s, 'byte-stable for prompt caching');
+});

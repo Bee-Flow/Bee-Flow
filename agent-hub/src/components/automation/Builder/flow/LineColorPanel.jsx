@@ -2,6 +2,7 @@ import { ChevronDown, ChevronUp } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import { applyCaseColor, applyPiiGroupColor, caseColorOf, resolvePiiGroupColors } from './edgeColorOps';
 import { autoCaseColor, EDGE_COLOR_KEYS, PII_GROUP_COLORS, resolveEdgeColor } from './edgeColors';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 /**
  * The "Lines" control — the one discoverable home for connection colours.
@@ -30,6 +31,7 @@ export default function LineColorPanel({
     onDefinitionChange = null,
     hasPiiData = false,
 }) {
+    const { t } = useTranslation();
     const [open, setOpen] = useState(false);
 
     // Every routing rule that gets an automatic colour: switch cases, in
@@ -69,7 +71,7 @@ export default function LineColorPanel({
         <div className="flex flex-col items-end gap-1">
             <div
                 role="group"
-                aria-label="Colour lines by"
+                aria-label={t('automations.line_color_panel.colour_lines_by', 'Colour lines by')}
                 className="flex items-center gap-0.5 rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)]/90 shadow-sm px-1 py-0.5 text-[10px]"
             >
                 <span className="px-1 text-[var(--text-tertiary)]">Lines:</span>
@@ -91,9 +93,9 @@ export default function LineColorPanel({
                 ))}
                 <button
                     type="button"
-                    aria-label="Line colour rules"
+                    aria-label={t('automations.line_color_panel.line_colour_rules', 'Line colour rules')}
                     aria-expanded={open}
-                    title="Which colour means what — and change it"
+                    title={t('automations.line_color_panel.which_colour_means_what_and_change', 'Which colour means what — and change it')}
                     onClick={() => setOpen(o => !o)}
                     className="px-1 py-0.5 rounded text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
                 >
@@ -105,7 +107,7 @@ export default function LineColorPanel({
                 <div className="w-72 max-h-[60vh] overflow-y-auto rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] shadow-xl p-2.5 space-y-3 text-[11px]">
                     <section>
                         <div className="text-[10px] uppercase tracking-wide font-semibold text-[var(--text-tertiary)] mb-1.5">
-                            Branch colours
+                            {t('automations.line_color_panel.branch_colours', 'Branch colours')}
                         </div>
                         {caseRows.length ? (
                             <div className="space-y-1.5">
@@ -121,26 +123,23 @@ export default function LineColorPanel({
                                     />
                                 ))}
                                 <p className="text-[10px] text-[var(--text-tertiary)]">
-                                    Automatic by default — pick a swatch to pin a colour to that rule.
-                                    Any single connection can still be coloured from its own hover controls.
+                                    {t('automations.line_color_panel.automatic_by_default_pick_a_swatch', 'Automatic by default — pick a swatch to pin a colour to that rule. Any single connection can still be coloured from its own hover controls.')}
                                 </p>
                             </div>
                         ) : (
                             <p className="text-[10px] text-[var(--text-tertiary)]">
-                                No routing rules yet. Add a Filter &amp; Route step with rules
-                                (e.g. pdf / word) and each rule gets its own coloured line.
+                                {t('automations.line_color_panel.no_routing_rules_yet_add_a', 'No routing rules yet. Add a Filter & Route step with rules (e.g. pdf / word) and each rule gets its own coloured line.')}
                             </p>
                         )}
                     </section>
 
                     <section>
                         <div className="text-[10px] uppercase tracking-wide font-semibold text-[var(--text-tertiary)] mb-1.5">
-                            PII colours
+                            {t('automations.line_color_panel.pii_colours', 'PII colours')}
                         </div>
                         {!hasPiiData && (
                             <p className="text-[10px] text-amber-600 dark:text-amber-400 mb-1.5">
-                                No PII data yet — run a test (▶ or a dry run) with the Privacy
-                                Shield applied to automations, and lines colour by what was detected.
+                                {t('automations.line_color_panel.no_pii_data_yet_run_a', 'No PII data yet — run a test (▶ or a dry run) with the Privacy Shield applied to automations, and lines colour by what was detected.')}
                             </p>
                         )}
                         <div className="space-y-1.5">
@@ -155,8 +154,7 @@ export default function LineColorPanel({
                                 />
                             ))}
                             <p className="text-[10px] text-[var(--text-tertiary)]">
-                                Lines take the colour of the dominant group flowing through them.
-                                Counts only — detected values are never stored.
+                                {t('automations.line_color_panel.lines_take_the_colour_of_the', 'Lines take the colour of the dominant group flowing through them. Counts only — detected values are never stored.')}
                             </p>
                         </div>
                     </section>
@@ -172,6 +170,7 @@ export default function LineColorPanel({
  * vocabulary everywhere.
  */
 function SwatchRow({ label, sublabel = null, currentKey, autoHex, canEdit, onPick }) {
+    const { t } = useTranslation();
     const [picking, setPicking] = useState(false);
     const currentHex = resolveEdgeColor(currentKey) || autoHex;
     return (
@@ -199,7 +198,7 @@ function SwatchRow({ label, sublabel = null, currentKey, autoHex, canEdit, onPic
                         ))}
                         <button
                             type="button"
-                            title="Automatic"
+                            title={t('automations.line_color_panel.automatic', 'Automatic')}
                             aria-label={`Colour ${label} automatically`}
                             onClick={() => { onPick(null); setPicking(false); }}
                             className={`w-3 h-3 rounded-full border border-[var(--text-tertiary)] bg-[var(--bg-primary)] hover:scale-125 transition relative overflow-hidden ${currentKey ? '' : 'ring-2 ring-offset-1 ring-[var(--text-primary)]'}`}

@@ -186,6 +186,40 @@ test('runAll: every store read is scoped to the org and the attestation prefix i
     assert.equal(fx.recorded[0].evidence.satisfied_by, 'GDPR-Art33-breach-detection');
 });
 
+test('runAll: a check mapped to a per-source built-in takes the worst subject verdict', async () => {
+    const id = 'GDPR-Art35-dpia-high-risk';
+    const base = { check_id: id, severity: 'high', run_at: '2026-09-14T09:00:00Z' };
+    fx.frameworks = [fw()];
+    fx.checks[fw().id] = [chk({ mapped_check_id: id })];
+    fx.latestBuiltin = [
+        { ...base, scope_type: 'coverage', scope_id: 'coverage', status: 'pass', details: 'all examined' },
+        { ...base, scope_type: 'global', scope_id: null, status: 'not_applicable', details: 'Subject not found.' },
+        { ...base, scope_type: 'per-source', scope_id: 'a1', status: 'pass', details: 'ok' },
+        { ...base, scope_type: 'per-source', scope_id: 'a2', status: 'fail', details: 'no DPIA' },
+        { ...base, scope_type: 'per-source', scope_id: 'a3', status: 'not_applicable', details: 'No longer exists.', evidence: { retired: true } },
+    ];
+
+    await runner.runAll(ORG);
+
+    assert.equal(fx.recorded[0].status, 'fail');
+    assert.equal(fx.recorded[0].evidence.source_status, 'fail');
+});
+
+test('runAll: with no live subject, a failing coverage row outweighs the "No subjects" placeholder', async () => {
+    const id = 'GDPR-Art35-dpia-high-risk';
+    const base = { check_id: id, severity: 'high', run_at: '2026-09-14T09:00:00Z' };
+    fx.frameworks = [fw()];
+    fx.checks[fw().id] = [chk({ mapped_check_id: id })];
+    fx.latestBuiltin = [
+        { ...base, scope_type: 'global', scope_id: null, status: 'not_applicable', details: 'No subjects to evaluate.' },
+        { ...base, scope_type: 'coverage', scope_id: 'coverage', status: 'fail', details: 'nothing examined' },
+    ];
+
+    await runner.runAll(ORG);
+
+    assert.equal(fx.recorded[0].status, 'fail');
+});
+
 test('runAll: subject-scoped attestations under the prefix are ignored for framework items', async () => {
     fx.frameworks = [fw()];
     fx.checks[fw().id] = [chk()];

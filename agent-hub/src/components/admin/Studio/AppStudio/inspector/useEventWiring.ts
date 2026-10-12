@@ -14,6 +14,7 @@ import { automationHref } from './AutomationTile';
 import { alwaysSkipped, buildTestPayload } from './testPayload';
 import { API_BASE, authFetch } from '../../../../../utils/helpers';
 import toast from '../../../../shared/Toast';
+import useTranslation from '../../../../../hooks/useTranslation';
 import { useAutomationRows } from '../editor/automationTitles';
 import { useScreenValues } from '../editor/ScreenValuesContext';
 import { removeAction, setAction, setNodeEvent } from '../state/definitionOps';
@@ -69,6 +70,7 @@ const labelFor = describeAction as (
     action: AppAction,
     definition: AppDefinition | null | undefined,
     titleFor?: ((automationId?: string) => string | null) | null,
+    t?: (key: string, fallback: string, params?: Record<string, string | number>) => string,
 ) => string;
 const builderHref = automationHref as (
     automationId: string,
@@ -199,6 +201,7 @@ export const NEW_ACTION = '__new';
 export default function useEventWiring({
     event, node, definition, onCommit, onTestActionResult, automations, setAutomations, titleFor, appId = null,
 }: UseEventWiringOptions): EventWiring {
+    const { t } = useTranslation();
     const actions = definition?.actions || {};
     const actionId = typeof node?.[event] === 'string' ? node[event] as string : null;
     const action = actionId ? actions[actionId] : null;
@@ -264,9 +267,11 @@ export default function useEventWiring({
     // already run it — picking one here adopts that same object.
     const choices = useMemo(() => Object.entries(actions).map(([id, a]) => {
         const others = otherComponentsRunning(definition, id, node?.id).length;
-        const suffix = others ? ` (also used by ${others} other component${others === 1 ? '' : 's'})` : '';
-        return { id, label: `${labelFor(id, a, definition, titleFor)}${suffix}` };
-    }), [actions, definition, node?.id, titleFor]);
+        let suffix = '';
+        if (others === 1) suffix = ` ${t('studio_apps_insp.wiring.also_used_one', '(also used by {count} other component)', { count: others })}`;
+        else if (others) suffix = ` ${t('studio_apps_insp.wiring.also_used_many', '(also used by {count} other components)', { count: others })}`;
+        return { id, label: `${labelFor(id, a, definition, titleFor, t)}${suffix}` };
+    }), [actions, definition, node?.id, titleFor, t]);
 
     const commitAction = (nextAction: AppAction) => {
         const { def } = applyAction(definition, actionId, nextAction);
@@ -291,7 +296,7 @@ export default function useEventWiring({
             const steps = [first, ...effectSteps(action?.onSuccess)].filter(Boolean);
             commitAction({ kind: 'sequence', steps });
             if (action?.onError && Object.keys(action.onError).length) {
-                toast.info('The "on error" part could not come across — a flow stops at the step that fails.');
+                toast.info(t('studio_apps_insp.wiring.on_error_lost', 'The "on error" part could not come across — a flow stops at the step that fails.'));
             }
             setFlowFor(actionId);
             return;
@@ -484,7 +489,7 @@ export default function useEventWiring({
             });
             let body: { error?: string; run?: { id?: unknown } } | null = null;
             try { body = await r.json(); } catch { /* empty body */ }
-            if (!r.ok) throw new Error(body?.error || `Run failed (${r.status})`);
+            if (!r.ok) throw new Error(body?.error || t('studio_apps_insp.wiring.run_failed', 'Run failed ({status})', { status: r.status }));
             // A 200 carries the finished run; a 202 says "still going" and has
             // no id yet, so the link then opens the automation's Runs tab instead
             // of claiming a run that cannot be addressed.

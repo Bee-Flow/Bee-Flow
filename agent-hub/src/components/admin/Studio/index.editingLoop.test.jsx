@@ -55,6 +55,10 @@ vi.mock('./studioApps', () => ({
         },
     ],
     makeCanUse: () => () => true,
+    // studioNav (the shell's direct-URL guard) reads these three.
+    resolveStudioNav: (apps) => apps.map((a) => ({ ...a, locked: null })),
+    firstOpenStudioSection: (sections, fallback) => (sections || []).find((s) => !s.locked) || fallback,
+    studioPermissionHeld: () => true,
 }));
 
 describe('Studio — editing-state ping-pong regression', () => {

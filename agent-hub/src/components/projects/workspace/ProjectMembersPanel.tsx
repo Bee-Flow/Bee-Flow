@@ -13,13 +13,14 @@ import {
     type ProjectMembers, type ProjectRole, type ProjectShare,
 } from '../../../api/queries/projects';
 import useTranslation from '../../../hooks/useTranslation';
+import { toast } from '../../shared/Toast';
 import useConfirm from '../../shared/useConfirm';
 import MemberInviteForm from './MemberInviteForm';
 import { useProjectLive } from './ProjectLiveContext';
 import MemberColorPicker from './MemberColorPicker';
 import { personColor } from './memberColors';
 import { projectErrorText } from './projectErrorText';
-import { Avatar, ErrorText, GhostButton, LoadingRow, SecondaryButton, SELECT_CLASS } from './workspaceUi';
+import { Avatar, ErrorText, GhostButton, LoadingRow, SecondaryButton, SelectField } from './workspaceUi';
 
 export interface ProjectMembersPanelProps {
     projectId: string;
@@ -27,6 +28,10 @@ export interface ProjectMembersPanelProps {
     currentUserId: string | null | undefined;
     /** Bump to focus the invite form. */
     inviteFocusRequest?: number;
+    /** May the caller invite? Default: the owner. Editors may while the project allows it. */
+    canInvite?: boolean;
+    /** The project is archived: roles and removals are refused by the server, so they are disabled. */
+    readOnly?: boolean;
     /** Called after the caller left the project. */
     onLeft?: () => void;
 }
@@ -91,13 +96,45 @@ interface RowActions {
     onColor: (userId: string, color: string | null) => void;
 }
 
-function MemberRow({ share, data, isOwner, currentUserId, online, busy, actions }: {
+/** The owner's role select and remove button for one row. */
+function OwnerControls({ share, name, busy, readOnly, actions }: {
+    share: ProjectShare; name: string; busy: boolean; readOnly: boolean; actions: RowActions;
+}) {
+    const { t } = useTranslation();
+    const archivedTip = readOnly ? t('project_home.archived.read_only', 'This project is archived and read-only. Restore it to change anything.') : undefined;
+    return (
+        <>
+            <SelectField
+                value={share.permission}
+                onChange={(e) => actions.onRole(share, e.target.value as 'editor' | 'viewer')}
+                disabled={busy || readOnly}
+                title={archivedTip}
+                aria-label={t('project_home.members.role_for', 'Role for {name}', { name })}
+                size="sm"
+            >
+                <option value="editor">{t('project_home.role.editor', 'Editor')}</option>
+                <option value="viewer">{t('project_home.role.viewer', 'Viewer')}</option>
+            </SelectField>
+            <GhostButton
+                onClick={() => actions.onRemove(share, name)}
+                disabled={busy || readOnly}
+                aria-label={t('project_home.members.remove', 'Remove {name}', { name })}
+                title={archivedTip ?? t('project_home.members.remove', 'Remove {name}', { name })}
+            >
+                <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
+            </GhostButton>
+        </>
+    );
+}
+
+function MemberRow({ share, data, isOwner, currentUserId, online, busy, readOnly, actions }: {
     share: ProjectShare;
     data: ProjectMembers | undefined;
     isOwner: boolean;
     currentUserId: string | null | undefined;
     online: string[];
     busy: boolean;
+    readOnly: boolean;
     actions: RowActions;
 }) {
     const { t } = useTranslation();
@@ -114,26 +151,7 @@ function MemberRow({ share, data, isOwner, currentUserId, online, busy, actions 
                     onChange={(next) => actions.onColor(share.sharedWithId, next)} />
             )}
             {isOwner ? (
-                <>
-                    <select
-                        value={share.permission}
-                        onChange={(e) => actions.onRole(share, e.target.value as 'editor' | 'viewer')}
-                        disabled={busy}
-                        aria-label={t('project_home.members.role_for', 'Role for {name}', { name: subject.name })}
-                        className={SELECT_CLASS}
-                    >
-                        <option value="editor">{t('project_home.role.editor', 'Editor')}</option>
-                        <option value="viewer">{t('project_home.role.viewer', 'Viewer')}</option>
-                    </select>
-                    <GhostButton
-                        onClick={() => actions.onRemove(share, subject.name)}
-                        disabled={busy}
-                        aria-label={t('project_home.members.remove', 'Remove {name}', { name: subject.name })}
-                        title={t('project_home.members.remove', 'Remove {name}', { name: subject.name })}
-                    >
-                        <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
-                    </GhostButton>
-                </>
+                <OwnerControls share={share} name={subject.name} busy={busy} readOnly={readOnly} actions={actions} />
             ) : (
                 <RoleChip label={roleLabel(share.permission, t)} />
             )}
@@ -171,7 +189,7 @@ function OwnerRow({ data, currentUserId, online, canColor, onColor }: {
     );
 }
 
-/** Role change, removal and leaving, with a confirm before anything is taken away. */
+/** Role change, removal (with Undo) and leaving (with a confirm). */
 function useMemberActions(projectId: string, onLeft: (() => void) | undefined, setError: (e: string | null) => void) {
     const { t } = useTranslation();
     const qc = useQueryClient();
@@ -179,6 +197,13 @@ function useMemberActions(projectId: string, onLeft: (() => void) | undefined, s
     const changeRole = useChangeMemberRole(projectId);
     const remove = useRemoveMember(projectId);
     const setColor = useSetMemberColor(projectId);
+    // Members removed but still undoable: out of the list at once, the real removal waits for the toast to expire.
+    const [removed, setRemoved] = useState<ReadonlySet<string>>(new Set());
+    const mark = (id: string, gone: boolean) => setRemoved((prev) => {
+        const next = new Set(prev);
+        if (gone) next.add(id); else next.delete(id);
+        return next;
+    });
     const fail = (e: unknown) => setError(projectErrorText(t, e, t('project_home.members.action_failed', 'Could not change the members.')));
 
     const actions: RowActions = {
@@ -190,16 +215,15 @@ function useMemberActions(projectId: string, onLeft: (() => void) | undefined, s
             setError(null);
             changeRole.mutate({ memberId: share.id, role }, { onError: fail });
         },
-        onRemove: async (share, name) => {
-            const ok = await confirm({
-                title: t('project_home.members.remove_title', 'Remove {name}?', { name }),
-                description: t('project_home.members.remove_body', 'They lose access to the chats, documents and knowledge in this project. What they created stays.'),
-                confirmLabel: t('project_home.members.remove_confirm', 'Remove'),
-                destructive: true,
-            });
-            if (!ok) return;
+        onRemove: (share, name) => {
             setError(null);
-            remove.mutate(share.id, { onError: fail });
+            mark(share.id, true);
+            toast.undoable({
+                message: t('project_home.members.removed', '{name} removed from the project', { name }),
+                undoLabel: t('project_home.undo', 'Undo'),
+                onUndo: () => mark(share.id, false),
+                onExpire: () => remove.mutate(share.id, { onError: (e) => { mark(share.id, false); fail(e); } }),
+            });
         },
         onLeave: async (share) => {
             const ok = await confirm({
@@ -220,15 +244,15 @@ function useMemberActions(projectId: string, onLeft: (() => void) | undefined, s
             });
         },
     };
-    return { actions, confirmDialog, busy: changeRole.isPending || remove.isPending };
+    return { actions, confirmDialog, removed, busy: changeRole.isPending || remove.isPending };
 }
 
-export default function ProjectMembersPanel({ projectId, role, currentUserId, inviteFocusRequest = 0, onLeft }: ProjectMembersPanelProps) {
+export default function ProjectMembersPanel({ projectId, role, currentUserId, inviteFocusRequest = 0, canInvite, readOnly = false, onLeft }: ProjectMembersPanelProps) {
     const { t } = useTranslation();
     const members = useProjectMembersQuery(projectId);
     const { online } = useProjectLive();
     const [error, setError] = useState<string | null>(null);
-    const { actions, confirmDialog, busy } = useMemberActions(projectId, onLeft, setError);
+    const { actions, confirmDialog, removed, busy } = useMemberActions(projectId, onLeft, setError);
     const isOwner = role === 'owner';
 
     if (members.isPending) return <LoadingRow label={t('project_home.members.loading', 'Loading members…')} />;
@@ -243,11 +267,11 @@ export default function ProjectMembersPanel({ projectId, role, currentUserId, in
     const data = members.data;
     return (
         <div className="space-y-4" data-testid="project-members-panel">
-            {isOwner && <MemberInviteForm projectId={projectId} members={data} focusRequest={inviteFocusRequest} />}
+            {(canInvite ?? isOwner) && <MemberInviteForm projectId={projectId} members={data} focusRequest={inviteFocusRequest} />}
             <ErrorText testId="members-action-error">{error}</ErrorText>
             <ul className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] overflow-hidden m-0 p-0 list-none" aria-label={t('project_home.members.list', 'Members')}>
                 <OwnerRow data={data} currentUserId={currentUserId} online={online} canColor={isOwner} onColor={actions.onColor} />
-                {data.members.map((share) => (
+                {data.members.filter(share => !removed.has(share.id)).map((share) => (
                     <MemberRow
                         key={share.id}
                         share={share}
@@ -256,11 +280,12 @@ export default function ProjectMembersPanel({ projectId, role, currentUserId, in
                         currentUserId={currentUserId}
                         online={online}
                         busy={busy}
+                        readOnly={readOnly}
                         actions={actions}
                     />
                 ))}
             </ul>
-            {data.members.length === 0 && (
+            {data.members.every(share => removed.has(share.id)) && (
                 <p className="text-[12.5px] text-[var(--text-tertiary)] m-0" data-testid="members-empty">
                     {isOwner
                         ? t('project_home.members.empty_owner', 'Nobody else is in this project yet. Invite people to work on it together.')

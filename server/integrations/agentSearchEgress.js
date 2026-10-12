@@ -14,7 +14,12 @@ function defaultDeps() {
     return {
         captureCall: require('../core/http/captureCall').captureCall,
         logToolEgress: require('../core/integrations/integrationLogging').logToolEgress,
-        executeAgentSearchTool: require('./agentSearchTools').executeAgentSearchTool,
+        // The provider-aware entry (bing, node-search, the search service, and
+        // the node-search fallback), the same one the tool dispatcher runs for
+        // direct chat: calling executeAgentSearchTool here hardwired the GPU
+        // service and failed on a CPU-only or Bing install.
+        executeAgentSearchTool: require('./agentSearchTools').executeWebSearch,
+        executeReadUrlTool: require('./readUrlTools').executeReadUrlTool,
         now: Date.now,
     };
 }
@@ -27,7 +32,9 @@ function defaultDeps() {
  */
 async function runAgentSearchWithEgress(toolName, toolArgs, egress, deps = defaultDeps()) {
     const t0 = deps.now();
-    const run = await deps.captureCall(() => deps.executeAgentSearchTool(toolName, toolArgs));
+    // read_url ships with the search tools, so these chats offer it too.
+    const execute = toolName === 'read_url' ? deps.executeReadUrlTool : deps.executeAgentSearchTool;
+    const run = await deps.captureCall(() => execute(toolName, toolArgs));
     deps.logToolEgress({
         toolName,
         toolArgs,

@@ -27,7 +27,7 @@ interface CatalogLike {
 }
 
 // Steps whose output is a list by construction.
-const LIST_KINDS = new Set(['filter', 'limit', 'dedupe', 'aggregate']);
+const LIST_KINDS = new Set(['filter', 'flatten', 'limit', 'dedupe', 'aggregate']);
 
 /**
  * Best-effort guess whether a step's output is a list. Heuristic only:

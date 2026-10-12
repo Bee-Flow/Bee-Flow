@@ -1,5 +1,10 @@
 import { optionPairs } from './rowValues';
 
+/** t() when the caller has one, the English default otherwise (tests, non-React callers). */
+const tr = (t, key, en, params) => (t
+    ? t(key, en, params)
+    : en.replace(/\{(\w+)\}/g, (m, name) => (params && name in params ? String(params[name]) : m)));
+
 /**
  * App Studio — turning a block pasted out of Excel / Google Sheets into rows
  * the record endpoints accept.
@@ -179,50 +184,50 @@ function choiceList(field) {
     return optionPairs(field).map((o) => o.label).join(', ');
 }
 
-const fieldLabel = (field) => field?.name || field?.key || 'This column';
+const fieldLabel = (field, t) => field?.name || field?.key || tr(t, 'studio_apps_tables.cell.this_column', 'This column');
 
 /**
  * Convert one pasted cell for one field. Returns { value, error }: `error` is
  * the sentence shown next to the cell in the preview and in the skipped list,
  * so it always names the value that would not convert.
  */
-export function coerceCell(raw, field) {
+export function coerceCell(raw, field, t) {
     const text = String(raw ?? '').trim();
     const type = field?.type || 'text';
     if (text === '') {
-        if (field?.required && type !== 'bool') return { value: null, error: `${fieldLabel(field)} can’t be empty` };
+        if (field?.required && type !== 'bool') return { value: null, error: tr(t, 'studio_apps_tables.cell.empty', '{name} can’t be empty', { name: fieldLabel(field, t) }) };
         return { value: type === 'bool' ? false : null, error: null };
     }
     switch (type) {
         case 'number': {
             const n = parseNumberish(text);
-            return Number.isFinite(n) ? { value: n, error: null } : { value: null, error: `“${text}” is not a number` };
+            return Number.isFinite(n) ? { value: n, error: null } : { value: null, error: tr(t, 'studio_apps_tables.cell.not_number', '“{text}” is not a number', { text }) };
         }
         case 'bool': {
-            const t = text.toLowerCase();
-            if (YES.has(t)) return { value: true, error: null };
-            if (NO.has(t)) return { value: false, error: null };
-            return { value: null, error: `“${text}” is not a yes or a no` };
+            const lowered = text.toLowerCase();
+            if (YES.has(lowered)) return { value: true, error: null };
+            if (NO.has(lowered)) return { value: false, error: null };
+            return { value: null, error: tr(t, 'studio_apps_tables.cell.not_yes_no', '“{text}” is not a yes or a no', { text }) };
         }
         case 'date': {
             const d = parseDateish(text);
-            return d ? { value: d, error: null } : { value: null, error: `“${text}” is not a date (try 2026-03-14 or 14-03-2026)` };
+            return d ? { value: d, error: null } : { value: null, error: tr(t, 'studio_apps_tables.cell.not_date', '“{text}” is not a date (try 2026-03-14 or 14-03-2026)', { text }) };
         }
         case 'datetime': {
             const d = parseDatetimeish(text);
-            return d ? { value: d, error: null } : { value: null, error: `“${text}” is not a date and time (try 2026-03-14 09:30)` };
+            return d ? { value: d, error: null } : { value: null, error: tr(t, 'studio_apps_tables.cell.not_datetime', '“{text}” is not a date and time (try 2026-03-14 09:30)', { text }) };
         }
         case 'select': {
             const v = matchChoice(text, field);
             if (v !== null) return { value: v, error: null };
-            return { value: null, error: `“${text}” is not one of the choices (${choiceList(field)})` };
+            return { value: null, error: tr(t, 'studio_apps_tables.cell.not_choice', '“{text}” is not one of the choices ({choices})', { text, choices: choiceList(field) }) };
         }
         case 'multiselect': {
             const wanted = text.split(LIST_SPLIT).map((p) => p.trim()).filter(Boolean);
             const picked = [];
             for (const part of wanted) {
                 const v = matchChoice(part, field);
-                if (v === null) return { value: null, error: `“${part}” is not one of the choices (${choiceList(field)})` };
+                if (v === null) return { value: null, error: tr(t, 'studio_apps_tables.cell.not_choice', '“{text}” is not one of the choices ({choices})', { text: part, choices: choiceList(field) }) };
                 picked.push(v);
             }
             return { value: picked, error: null };
@@ -238,7 +243,7 @@ export function coerceCell(raw, field) {
  * can be pointed at. A field left empty is omitted rather than sent as null,
  * which lets the column's own default apply.
  */
-export function buildImportRows({ header = [], rows = [] } = {}, mapping = [], fields = []) {
+export function buildImportRows({ header = [], rows = [] } = {}, mapping = [], fields = [], t) {
     const byKey = new Map(importableFields(fields).map((f) => [f.key, f]));
     return rows.map((cells, index) => {
         const values = {};
@@ -246,9 +251,9 @@ export function buildImportRows({ header = [], rows = [] } = {}, mapping = [], f
         mapping.forEach((key, col) => {
             const field = key ? byKey.get(key) : null;
             if (!field) return;
-            const { value, error } = coerceCell(cells[col], field);
+            const { value, error } = coerceCell(cells[col], field, t);
             if (error) {
-                problems.push({ column: header[col] || `Column ${col + 1}`, fieldKey: key, message: error });
+                problems.push({ column: header[col] || tr(t, 'studio_apps_tables.paste.column_n', 'Column {n}', { n: col + 1 }), fieldKey: key, message: error });
                 return;
             }
             if (value !== null) values[key] = value;

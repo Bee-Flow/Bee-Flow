@@ -10,26 +10,26 @@ import { msg } from '@/features/flow-editor/components/editors/declarative/spec'
 
 import { filterNote, numberFilter, raw, selectFilter, textFilter, tickFilter, type FilterForm } from './fields';
 
-const NAME_CONTAINS = msg('mobile.flow.filter.name_contains', 'Name contains');
-const ACTOR = msg('mobile.flow.filter.actor_equals', 'Actor equals');
-const NC_USER_ID = msg('mobile.flow.filter.nc_user_id', 'Nextcloud user id.');
+const NAME_CONTAINS = msg('automations.trigger_filters.name_contains', 'Name contains');
+const ACTOR = msg('automations.trigger_filters.actor_equals', 'Actor equals');
+const NC_USER_ID = msg('automations.trigger_filters.nextcloud_user_id', 'Nextcloud user id.');
 
 export const NEXTCLOUD_FILE: FilterForm = {
-    title: msg('mobile.flow.filter.nc_file_title', 'Nextcloud file filter (all optional)'),
+    title: msg('automations.trigger_filters.nextcloud_file_filter_all_optional', 'Nextcloud file filter (all optional)'),
     fields: [
-        textFilter('inFolder', msg('mobile.flow.filter.in_folder', 'In folder'), {
+        textFilter('inFolder', msg('automations.trigger_filters.in_folder', 'In folder'), {
             example: '/Invoices',
-            hint: msg('mobile.flow.filter.in_folder_hint', 'Path prefix, e.g. /Invoices. Files outside this folder are skipped.'),
+            hint: msg('automations.trigger_filters.path_prefix_e_g_invoices_files', 'Path prefix, e.g. /Invoices. Files outside this folder are skipped.'),
         }),
-        textFilter('extension', msg('mobile.flow.filter.extension', 'Extension'), {
+        textFilter('extension', msg('automations.trigger_filters.extension', 'Extension'), {
             example: 'pdf',
-            hint: msg('mobile.flow.filter.extension_hint', 'Without dot, e.g. pdf.'),
+            hint: msg('automations.trigger_filters.without_dot_e_g_pdf', 'Without dot, e.g. pdf.'),
         }),
         textFilter('nameContains', NAME_CONTAINS),
         tickFilter(
             'excludeOwnUploads',
-            msg('mobile.flow.filter.exclude_own_actions', 'Exclude my own actions'),
-            msg('mobile.flow.filter.exclude_own_actions_box', 'Skip files I created/edited'),
+            msg('automations.trigger_filters.exclude_my_own_actions', 'Exclude my own actions'),
+            msg('automations.trigger_filters.skip_files_i_created_edited', 'Skip files I created/edited'),
         ),
         filterNote(
             'manualRuns',
@@ -42,13 +42,13 @@ export const NEXTCLOUD_FILE: FilterForm = {
 };
 
 export const NEXTCLOUD_SHARE: FilterForm = {
-    title: msg('mobile.flow.filter.nc_share_title', 'Nextcloud share.received filter'),
+    title: msg('automations.trigger_filters.nextcloud_share_received_filter', 'Nextcloud share.received filter'),
     fields: [
-        textFilter('actorEquals', msg('mobile.flow.filter.sharer', 'Sharer (actor) equals'), {
-            hint: msg('mobile.flow.filter.sharer_hint', 'Nextcloud username (uid) of the person who shared the item.'),
+        textFilter('actorEquals', msg('automations.trigger_filters.sharer_actor_equals', 'Sharer (actor) equals'), {
+            hint: msg('automations.trigger_filters.nextcloud_username_uid_of_the_person', 'Nextcloud username (uid) of the person who shared the item.'),
         }),
-        selectFilter('kindEquals', msg('mobile.flow.filter.kind', 'Kind'), [
-            { value: '', label: msg('mobile.flow.filter.any_file_or_folder', 'Any (file or folder)') },
+        selectFilter('kindEquals', msg('automations.trigger_filters.kind', 'Kind'), [
+            { value: '', label: msg('automations.trigger_filters.any_file_or_folder', 'Any (file or folder)') },
             raw('file'),
             raw('folder'),
         ]),
@@ -57,45 +57,45 @@ export const NEXTCLOUD_SHARE: FilterForm = {
 };
 
 export const NEXTCLOUD_ACTIVITY: FilterForm = {
-    title: msg('mobile.flow.filter.nc_activity_title', 'Nextcloud activity filter (advanced)'),
+    title: msg('automations.trigger_filters.nextcloud_activity_filter_advanced', 'Nextcloud activity filter (advanced)'),
     fields: [
-        textFilter('type', msg('mobile.flow.filter.activity_type', 'Activity type'), {
+        textFilter('type', msg('automations.trigger_filters.activity_type', 'Activity type'), {
             example: 'comments',
             hint: msg(
-                'mobile.flow.filter.activity_type_hint',
+                'automations.trigger_filters.raw_activity_slug_e_g_file',
                 'Raw activity slug (e.g. file_created, comments, deck). Leave empty to match every type — and prefer file.new / file.changed / share.received as dedicated triggers.',
             ),
         }),
-        textFilter('objectNameContains', msg('mobile.flow.filter.object_name_contains', 'Object name contains')),
+        textFilter('objectNameContains', msg('automations.trigger_filters.object_name_contains', 'Object name contains')),
         textFilter('actorEquals', ACTOR),
     ],
 };
 
 export const NEXTCLOUD_NOTIFICATION: FilterForm = {
-    title: msg('mobile.flow.filter.nc_notification_title', 'Nextcloud notification filter'),
+    title: msg('automations.trigger_filters.nextcloud_notification_filter', 'Nextcloud notification filter'),
     fields: [
-        textFilter('app', msg('mobile.flow.filter.app', 'App'), {
+        textFilter('app', msg('automations.trigger_filters.app', 'App'), {
             example: 'spreed',
-            hint: msg('mobile.flow.filter.app_hint', 'Source app id (e.g. spreed, files_sharing, dav, updatenotification).'),
+            hint: msg('automations.trigger_filters.source_app_id_e_g_spreed', 'Source app id (e.g. spreed, files_sharing, dav, updatenotification).'),
         }),
-        textFilter('subjectContains', msg('mobile.flow.filter.subject_contains', 'Subject contains')),
+        textFilter('subjectContains', msg('automations.trigger_filters.subject_contains', 'Subject contains')),
     ],
 };
 
 export const NEXTCLOUD_FORMS_SUBMITTED: FilterForm = {
-    title: msg('mobile.flow.filter.nc_forms_title', 'Nextcloud form filter (all optional)'),
+    title: msg('automations.trigger_filters.nextcloud_form_filter_all_optional', 'Nextcloud form filter (all optional)'),
     fields: [
-        numberFilter('formId', msg('mobile.flow.filter.form_id', 'Form ID'), {
+        numberFilter('formId', msg('automations.trigger_filters.form_id', 'Form ID'), {
             example: '51',
-            hint: msg('mobile.flow.filter.form_id_hint', 'Numeric id — leave empty to fire for every form you can see. Find it with the “List forms” action.'),
+            hint: msg('automations.trigger_filters.numeric_id_leave_empty_to_fire', 'Numeric id — leave empty to fire for every form you can see. Find it with the “List forms” action.'),
         }),
-        textFilter('formHash', msg('mobile.flow.filter.form_hash', 'Form hash'), {
+        textFilter('formHash', msg('automations.trigger_filters.form_hash', 'Form hash'), {
             example: 'abc123def456',
-            hint: msg('mobile.flow.filter.form_hash_hint', "The token in the form's share link — an alternative to the numeric id."),
+            hint: msg('automations.trigger_filters.the_token_in_the_form_s', "The token in the form's share link — an alternative to the numeric id."),
         }),
-        textFilter('titleContains', msg('mobile.flow.filter.title_contains', 'Title contains')),
-        textFilter('submittedByEquals', msg('mobile.flow.filter.submitted_by', 'Submitted by'), {
-            hint: msg('mobile.flow.filter.submitted_by_hint', 'Nextcloud user id. Anonymous submissions have no user, so this never matches them.'),
+        textFilter('titleContains', msg('automations.trigger_filters.title_contains', 'Title contains')),
+        textFilter('submittedByEquals', msg('automations.trigger_filters.submitted_by', 'Submitted by'), {
+            hint: msg('automations.trigger_filters.nextcloud_user_id_anonymous_submissions_have', 'Nextcloud user id. Anonymous submissions have no user, so this never matches them.'),
         }),
         filterNote(
             'answersNote',
@@ -108,43 +108,43 @@ export const NEXTCLOUD_FORMS_SUBMITTED: FilterForm = {
 };
 
 export const NEXTCLOUD_TABLES_ROW: FilterForm = {
-    title: msg('mobile.flow.filter.nc_tables_title', 'Nextcloud Tables row filter (all optional)'),
+    title: msg('automations.trigger_filters.nextcloud_tables_row_filter_all_optional', 'Nextcloud Tables row filter (all optional)'),
     fields: [
-        numberFilter('tableId', msg('mobile.flow.filter.table_id', 'Table ID'), {
+        numberFilter('tableId', msg('automations.trigger_filters.table_id', 'Table ID'), {
             example: '34',
-            hint: msg('mobile.flow.filter.table_id_hint', 'Numeric id — find it with the “List tables” action.'),
+            hint: msg('automations.trigger_filters.numeric_id_find_it_with_the', 'Numeric id — find it with the “List tables” action.'),
         }),
-        numberFilter('columnId', msg('mobile.flow.filter.column_id', 'Column ID'), {
+        numberFilter('columnId', msg('automations.trigger_filters.column_id', 'Column ID'), {
             example: '13',
             hint: msg(
-                'mobile.flow.filter.column_id_hint',
+                'automations.trigger_filters.numeric_column_id_to_test_a',
                 'Numeric column id to test a value against — from “List table columns”. The event carries column ids, not titles.',
             ),
         }),
-        textFilter('valueEquals', msg('mobile.flow.filter.value_equals', 'Value equals'), { example: 'approved' }),
-        textFilter('valueContains', msg('mobile.flow.filter.value_contains', 'Value contains')),
+        textFilter('valueEquals', msg('automations.trigger_filters.value_equals', 'Value equals'), { example: 'approved' }),
+        textFilter('valueContains', msg('automations.trigger_filters.value_contains', 'Value contains')),
         tickFilter(
             'changedOnly',
-            msg('mobile.flow.filter.changed_only', 'Only when that column changed'),
-            msg('mobile.flow.filter.changed_only_box', 'Ignore edits that left this column alone'),
+            msg('automations.trigger_filters.only_when_that_column_changed', 'Only when that column changed'),
+            msg('automations.trigger_filters.ignore_edits_that_left_this_column', 'Ignore edits that left this column alone'),
         ),
         filterNote(
             'changedOnlyHint',
             msg(
-                'mobile.flow.filter.changed_only_hint',
+                'automations.trigger_filters.row_updates_fire_on_any_edit',
                 'Row updates fire on any edit. Tick this to fire only when the column above actually changed value.',
             ),
         ),
-        textFilter('actorEquals', msg('mobile.flow.filter.changed_by', 'Changed by'), { hint: NC_USER_ID }),
+        textFilter('actorEquals', msg('automations.trigger_filters.changed_by', 'Changed by'), { hint: NC_USER_ID }),
     ],
 };
 
 export const NEXTCLOUD_TAG: FilterForm = {
-    title: msg('mobile.flow.filter.nc_tag_title', 'Nextcloud tag filter (all optional)'),
+    title: msg('automations.trigger_filters.nextcloud_tag_filter_all_optional', 'Nextcloud tag filter (all optional)'),
     fields: [
-        numberFilter('tagId', msg('mobile.flow.filter.tag_id', 'Tag ID'), {
+        numberFilter('tagId', msg('automations.trigger_filters.tag_id', 'Tag ID'), {
             example: '3',
-            hint: msg('mobile.flow.filter.tag_id_hint', "Numeric id — from the “List tags” action. Nextcloud's tag event carries ids only, never the tag name."),
+            hint: msg('automations.trigger_filters.numeric_id_from_the_list_tags', "Numeric id — from the “List tags” action. Nextcloud's tag event carries ids only, never the tag name."),
         }),
         filterNote(
             'pathNote',
@@ -157,10 +157,10 @@ export const NEXTCLOUD_TAG: FilterForm = {
 };
 
 export const NEXTCLOUD_CALENDAR: FilterForm = {
-    title: msg('mobile.flow.filter.nc_calendar_title', 'Nextcloud calendar filter (all optional)'),
+    title: msg('automations.trigger_filters.nextcloud_calendar_filter_all_optional', 'Nextcloud calendar filter (all optional)'),
     fields: [
-        numberFilter('calendarId', msg('mobile.flow.filter.calendar_id_numeric', 'Calendar ID'), {
-            hint: msg('mobile.flow.filter.calendar_id_numeric_hint', 'Numeric id of the calendar. Leave empty for all calendars.'),
+        numberFilter('calendarId', msg('automations.trigger_filters.calendar_id_2', 'Calendar ID'), {
+            hint: msg('automations.trigger_filters.numeric_id_of_the_calendar_leave', 'Numeric id of the calendar. Leave empty for all calendars.'),
         }),
         filterNote(
             'metadataNote',

@@ -27,7 +27,7 @@ export function docTypeLabel(t: TranslateFn, docType: string): string {
         case 'presentation':
             return t('mobile.studio_documents.type.presentation', 'Presentation');
         case 'security':
-            return t('mobile.studio_documents.type.security', 'Security');
+            return t('automations.http_request_fields.security', 'Security');
         default:
             return t('documents.type.document', 'Document');
     }
@@ -49,10 +49,10 @@ export function kindTabLabel(t: TranslateFn, kind: DocKind): string {
 export function paramTypeLabel(t: TranslateFn, type: ParamType): string {
     const labels: Record<ParamType, string> = {
         text: t('mobile.studio_documents.param.text', 'Text'),
-        number: t('mobile.studio_documents.param.number', 'Number'),
+        number: t('automations.approval_editors.number', 'Number'),
         boolean: t('mobile.studio_documents.param.boolean', 'Yes / no'),
         date: t('common.date', 'Date'),
-        choice: t('mobile.studio_documents.param.choice', 'Choice'),
+        choice: t('automations.approval_editors.choice', 'Choice'),
         list: t('mobile.studio_documents.param.list', 'List'),
     };
     return labels[type];

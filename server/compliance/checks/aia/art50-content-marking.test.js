@@ -84,11 +84,12 @@ test('marking on → pass for every subject, evidence carries the graph facts', 
     assert.ok(!JSON.stringify(r.evidence).includes('Offerte'), 'evidence carries ids, not the title');
 });
 
-test('marking off before 2 Dec 2026 → warn with "required from 2 Dec 2026 (in N days)"', async () => {
+test('marking off before 2 Dec 2026 → warn: Art. 50(2) applies, the transition ends 2 Dec 2026 (in N days)', async () => {
     state.settings = { ai_content_marking_enabled: false };
     const r = await check.evaluate('org-1', SUBJECT, { now: BEFORE });
     assert.strictEqual(r.status, 'warn');
-    assert.match(r.details, /required from 2 Dec 2026 \(in 79 days\)/);
+    assert.match(r.details, /has applied since 2 Aug 2026/);
+    assert.match(r.details, /ends on 2 Dec 2026 \(in 79 days\)/);
     assert.strictEqual(r.evidence.days_until_required, 79);
     const eve = await check.evaluate('org-1', SUBJECT, { now: EVE });
     assert.strictEqual(eve.status, 'warn');
@@ -106,4 +107,21 @@ test('marking off from 2 Dec 2026 → fail', async () => {
     // A settings row without the column reads as off.
     state.settings = {};
     assert.strictEqual((await check.evaluate('org-1', SUBJECT, { now: LATER })).status, 'fail');
+});
+
+test('the list is the whole population: vanished automations are retired, a list past the cap is a window', async () => {
+    assert.strictEqual(check.retiresVanished, true);
+    assert.match(check.retiredDetails, /no longer turns model output into a document/);
+
+    // 501 generating automations: only 500 are listed, and every one is
+    // flagged capped so the runner retires nothing outside that window.
+    state.generating = Array.from({ length: 501 }, (_, i) => ({ id: `au-${i}`, title: `A${i}`, is_active: true, is_draft: false, aiStepIds: ['ai'], generating: [] }));
+    const subjects = await check.listSubjects('org-1');
+    assert.strictEqual(subjects.length, 500);
+    assert.ok(subjects.every(s => s.capped === true));
+
+    // At or under the cap the list is complete: no capped flag.
+    state.generating = state.generating.slice(0, 500);
+    assert.ok((await check.listSubjects('org-1')).every(s => !('capped' in s)));
+    state.generating = [];
 });

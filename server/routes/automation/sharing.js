@@ -80,6 +80,7 @@ function makeSharingRouter(overrides = {}) {
     const validateGroups = overrides.validateGroups
         || ((orgId, ids) => require('../../auth/permissions').validateSharedGroupsForOrg(orgId, ids));
     const subscriptions = () => overrides.subscriptions || require('../../automation/subscriptionSync');
+    const agentBinding = () => overrides.agentBinding || require('../../automation/agentBinding');
     const access = makeAutomationAccess({
         store: overrides.store,
         getUser,
@@ -265,6 +266,19 @@ function makeSharingRouter(overrides = {}) {
             }
         }
         log.info(`[automation sharing] ${a.id} ownership moved from ${fromUserId} to ${targetId} by ${me}`);
+
+        // A link to an agent was made on the strength of what the OLD owner may
+        // use. The new owner may not be allowed that agent, so the links they
+        // could not have made go (the call is refused for them either way).
+        const unlinked = await agentBinding().pruneBindingsForOwner({
+            automation: moved, actorId: me, deps: overrides.store ? { store: overrides.store } : {},
+        });
+        if (unlinked.length) {
+            warnings.push({
+                code: 'transfer.agent_bindings_dropped', params: { count: unlinked.length },
+                message: `${unlinked.length === 1 ? 'One agent was' : `${unlinked.length} agents were`} unlinked from this automation because the new owner may not use ${unlinked.length === 1 ? 'it' : 'them'}.`,
+            });
+        }
 
         const newOwner = { userId: targetId, name: nameOf(target) };
         const mine = await access.roleFor(moved, me, { session: req.session });

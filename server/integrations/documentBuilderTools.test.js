@@ -79,6 +79,7 @@ const restore = installResolveStub({
     },
 });
 
+const { createDocumentScope } = require('../core/documents/aiDocumentScope');
 const {
     DOCUMENT_TOOLS,
     isDocumentTool,
@@ -88,7 +89,10 @@ const {
 
 test.after(() => restore());
 
-const CTX = { userId: 'u1' };
+// The scope rule (core/documents/aiDocumentScope.js) has its own tests below; the
+// behaviour tests run with a scope that lets everything through.
+const OPEN_SCOPE = { has: () => true, add() {}, markCreated() {}, createdInChat: () => false };
+const CTX = { userId: 'u1', documentScope: OPEN_SCOPE };
 
 // ── Tool surface ─────────────────────────────────────────────────────
 
@@ -175,7 +179,7 @@ test('document_read returns both slots', async () => {
 test('a document belonging to someone else is not found, not refused', async () => {
     resetStore();
     const { documentId } = await executeDocumentTool('create_document', { name: 'X' }, CTX);
-    const out = await executeDocumentTool('document_read', { documentId }, { userId: 'someone-else' });
+    const out = await executeDocumentTool('document_read', { documentId }, { userId: 'someone-else', documentScope: OPEN_SCOPE });
     assert.strictEqual(out.error, 'Document not found.');
 });
 
@@ -307,7 +311,7 @@ test('document_edit on somebody else\'s document is not found', async () => {
     const documentId = await seed();
     const out = await executeDocumentTool('document_edit', {
         documentId, slot: 'body', find_text: '1.140,00', replace_text: 'x',
-    }, { userId: 'someone-else' });
+    }, { userId: 'someone-else', documentScope: OPEN_SCOPE });
     assert.strictEqual(out.error, 'Document not found.');
 });
 
@@ -373,9 +377,8 @@ test('the chat creates designed documents, not pages', () => {
 
 /**
  * A page that is being edited live, with a live layer that behaves like
- * core/collab: `read` answers the state and the update it is at, and an edit
- * made from an older update than the newest is refused as `stale`. `typed()`
- * is a colleague typing.
+ * core/collab: `read` answers the state and the update it is at. `typed()` is
+ * a colleague typing.
  */
 function withLivePage(t, { projectRole } = {}) {
     resetStore();
@@ -389,66 +392,142 @@ function withLivePage(t, { projectRole } = {}) {
     const facade = {
         read: async () => ({ html: live.html, seq: live.seq }),
         readHtml: async () => live.html,
-        applyServerEdit: async (kind, id, actor, change) => {
-            if (Number.isFinite(change.expectSeq) && change.expectSeq !== live.seq) return { applied: false, stale: true, seq: live.seq };
-            live.edits.push([kind, id, actor, change]);
-            live.html = change.replaceWith.html;
-            live.seq += 1;
-            return { applied: true, seq: live.seq };
-        },
+        applyServerEdit: async (kind, id, actor, change) => { live.edits.push([kind, id, actor, change]); return { applied: true, seq: live.seq }; },
     };
     documentFeed.liveCollabFor = async (doc) => (doc.docType === 'page' ? facade : null);
     return { live, facade };
 }
 
-test('a page edited live is written through the live layer, so every open editor sees it; css is refused', async (t) => {
+// The engine is a seam (core/documents/suggestions/engine.js): a fake that
+// treats the "AST" as the HTML string itself, one hunk per changed body.
+const fakeEngine = {
+    htmlToAst: (html) => html,
+    astToHtml: (ast) => ast,
+    hunksFrom: (current, proposed) => ({
+        hunks: current === proposed ? [] : [{ anchor: { quote: current, prefix: '', suffix: '', blockIndex: 0 }, before: [current], after: [proposed], summary: `Rewrote "${current}"` }],
+        replaceAll: false,
+    }),
+};
+
+/** An in-memory stand-in for stores/documentSuggestionStore. */
+function fakeSuggestionStore() {
+    const rows = [];
+    return {
+        rows,
+        async createBatch(args) {
+            const batchId = `b${rows.length + 1}`;
+            const made = args.hunks.map((h, i) => ({ id: `s${rows.length + i + 1}`, batchId, status: 'open', ...h }));
+            rows.push(...made.map((m) => ({ ...m, args })));
+            return { batchId, suggestions: made };
+        },
+        async list(_type, id, { status } = {}) { return rows.filter((r) => r.args.targetId === id && (!status || r.status === status)); },
+        async countOpen(_type, id) { return rows.filter((r) => r.args.targetId === id && r.status === 'open').length; },
+    };
+}
+
+function suggestCtx(extra = {}) {
+    const suggestionStore = fakeSuggestionStore();
+    const announced = [];
+    return { userId: 'u1', documentScope: OPEN_SCOPE, suggestionStore, engine: fakeEngine, announceSuggestions: async (e) => { announced.push(e); }, announced, ...extra };
+}
+
+test('a page edited live is never written: the model\'s body becomes suggestions; css is refused', async (t) => {
     const { live } = withLivePage(t);
-    const read = await executeDocumentTool('document_read', { documentId: 'pg1' }, CTX);
+    const ctx = suggestCtx();
+    const read = await executeDocumentTool('document_read', { documentId: 'pg1' }, ctx);
     assert.strictEqual(read.bodyHtml, '<p>live a</p>', 'the model reads what people see now');
     assert.strictEqual(read.versionId, 'v1@live:3', 'and the versionId names the live state it read');
-    const cssOnly = await executeDocumentTool('document_write', { documentId: 'pg1', css: 'p{}', expectedVersionId: read.versionId }, CTX);
+    assert.deepStrictEqual(read.openSuggestions, []);
+    const cssOnly = await executeDocumentTool('document_write', { documentId: 'pg1', css: 'p{}', expectedVersionId: read.versionId }, ctx);
     assert.match(cssOnly.error, /no stylesheet/);
-    const out = await executeDocumentTool('document_write', { documentId: 'pg1', bodyHtml: '<p>b</p>', expectedVersionId: read.versionId }, CTX);
+
+    const out = await executeDocumentTool('document_write', { documentId: 'pg1', bodyHtml: '<p>b</p>', expectedVersionId: read.versionId, summary: 'Tighten' }, ctx);
     assert.ok(!out.error, out.error);
-    assert.strictEqual(out.versionId, 'v1@live:4', 'its own write is the new state to write from');
-    const edited = await executeDocumentTool('document_edit', { documentId: 'pg1', slot: 'body', find_text: '<p>b</p>', replace_text: '<p>live b</p>', expectedVersionId: out.versionId }, CTX);
-    assert.ok(!edited.error, edited.error);
-    assert.deepStrictEqual(live.edits.map(e => [e[0], e[1], e[2].origin, e[2].actorId, e[3].replaceWith.html, e[3].expectSeq]), [
-        ['document', 'pg1', 'ai', 'u1', '<p>b</p>', 3],
-        ['document', 'pg1', 'ai', 'u1', '<p>live b</p>', 4],
-    ]);
-    assert.ok(!store.calls.some(c => c.op === 'update'), 'the stored body is left to the live layer');
+    assert.strictEqual(out.suggested, 1);
+    assert.strictEqual(out.batchId, 'b1');
+    assert.strictEqual(out.documentId, 'pg1');
+    assert.match(out.message, /Proposed 1 change to "Minutes".*Do not claim they are applied/);
+    const [row] = ctx.suggestionStore.rows;
+    assert.deepStrictEqual([row.before, row.after], [['<p>live a</p>'], ['<p>b</p>']], 'hunks are computed against the LIVE state');
+    assert.deepStrictEqual([row.args.targetId, row.args.projectId, row.args.authorKind, row.args.authorUserId, row.args.baseToken], ['pg1', 'p1', 'ai', 'u1', 'v1@live:3']);
+    assert.deepStrictEqual(ctx.announced, [{ documentId: 'pg1', projectId: 'p1', batchId: 'b1', open: 1 }]);
+    assert.deepStrictEqual(live.edits, [], 'the live layer is not touched');
+    assert.ok(!store.calls.some(c => c.op === 'update'), 'nor the stored body');
 });
 
-test('a full write into a live page never reverts what a colleague typed after the read', async (t) => {
-    const { live } = withLivePage(t);
-    const read = await executeDocumentTool('document_read', { documentId: 'pg1' }, CTX);
-    live.typed('<p>live a</p><p>Bob: the new paragraph</p>');
-    const out = await executeDocumentTool('document_write', { documentId: 'pg1', bodyHtml: '<p>rewritten</p>', expectedVersionId: read.versionId }, CTX);
-    assert.match(out.error, /changed this page since you read it/);
-    assert.strictEqual(live.html, '<p>live a</p><p>Bob: the new paragraph</p>', "Bob's paragraph stays");
-    assert.deepStrictEqual(live.edits, []);
-
-    const blind = await executeDocumentTool('document_write', { documentId: 'pg1', bodyHtml: '<p>rewritten</p>', expectedVersionId: 'v1' }, CTX);
-    assert.match(blind.error, /edited live.*document_read/, 'a versionId without the live state it was read at is not enough');
-    assert.deepStrictEqual(live.edits, []);
-    assert.ok(!store.calls.some(c => c.op === 'update'), 'and nothing is written around the live layer');
+test('document_edit on a page proposes the find/replace result; a snippet that does not match still refuses', async (t) => {
+    withLivePage(t);
+    const ctx = suggestCtx();
+    const out = await executeDocumentTool('document_edit', { documentId: 'pg1', slot: 'body', find_text: 'live a', replace_text: 'live b', expectedVersionId: 'v1' }, ctx);
+    assert.ok(!out.error, out.error);
+    assert.strictEqual(out.suggested, 1);
+    assert.deepStrictEqual([ctx.suggestionStore.rows[0].before, ctx.suggestionStore.rows[0].after], [['<p>live a</p>'], ['<p>live b</p>']]);
+    const missing = await executeDocumentTool('document_edit', { documentId: 'pg1', slot: 'body', find_text: 'not there', replace_text: 'x', expectedVersionId: 'v1' }, ctx);
+    assert.ok(missing.error);
+    assert.strictEqual(ctx.suggestionStore.rows.length, 1);
+    const same = await executeDocumentTool('document_edit', { documentId: 'pg1', slot: 'body', find_text: 'live a', replace_text: 'live a', expectedVersionId: 'v1' }, ctx);
+    assert.strictEqual(same.suggested, 0, 'a change that changes nothing proposes nothing');
+    assert.strictEqual(ctx.suggestionStore.rows.length, 1);
 });
 
-test('a find/replace on a live page is made on the newest live state, also when somebody types in between', async (t) => {
-    const { live, facade } = withLivePage(t);
-    let reads = 0;
-    const read = facade.read;
-    // Bob types right after the tool's first read of the live state.
-    facade.read = async () => { const s = await read(); reads += 1; if (reads === 1) live.typed('<p>live a</p><p>Bob</p>'); return s; };
-    const out = await executeDocumentTool('document_edit', { documentId: 'pg1', slot: 'body', find_text: 'live a', replace_text: 'live b', expectedVersionId: 'v1' }, CTX);
-    assert.ok(!out.error, out.error);
-    assert.strictEqual(live.html, '<p>live b</p><p>Bob</p>', "the edit is applied on top of Bob's typing");
+test('a stored page in a project is suggested too, from its stored body', async (t) => {
+    withLivePage(t);
+    require('../core/documents/documentFeed').liveCollabFor = async () => null;
+    const ctx = suggestCtx();
+    const out = await executeDocumentTool('document_write', { documentId: 'pg1', bodyHtml: '<p>new</p>', expectedVersionId: 'v1' }, ctx);
+    assert.strictEqual(out.suggested, 1);
+    assert.deepStrictEqual(ctx.suggestionStore.rows[0].before, ['<p>a</p>']);
+    assert.ok(!store.calls.some(c => c.op === 'update'));
+});
+
+test('an open page of your own that the chat did not make is suggested, one it made (private, unfiled, not live) is written directly', async (t) => {
+    resetStore();
+    const documentFeed = require('../core/documents/documentFeed');
+    const saved = documentFeed.liveCollabFor;
+    t.after(() => { documentFeed.liveCollabFor = saved; });
+    documentFeed.liveCollabFor = async () => null;
+    store.docs.set('own', { id: 'own', userId: 'u1', name: 'Own', docType: 'page', bodyHtml: '<p>a</p>', css: '', settings: {}, versionId: 'v1', projectId: null, sharing: { audience: 'private' } });
+
+    const opened = suggestCtx({ documentScope: createDocumentScope({ sidePanelDocument: { id: 'own' } }) });
+    const proposed = await executeDocumentTool('document_write', { documentId: 'own', bodyHtml: '<p>b</p>', expectedVersionId: 'v1' }, opened);
+    assert.strictEqual(proposed.suggested, 1, 'merely opened: proposed');
+    assert.ok(!store.calls.some(c => c.op === 'update'));
+
+    const scope = createDocumentScope({ sidePanelDocument: { id: 'own' } });
+    scope.markCreated('own');
+    const made = suggestCtx({ documentScope: scope });
+    const direct = await executeDocumentTool('document_write', { documentId: 'own', bodyHtml: '<p>b</p>', expectedVersionId: 'v1' }, made);
+    assert.ok(!direct.error, direct.error);
+    assert.strictEqual(direct.suggested, undefined);
+    assert.strictEqual(store.docs.get('own').bodyHtml, '<p>b</p>', 'written directly');
+    assert.strictEqual(made.suggestionStore.rows.length, 0);
+
+    // Made in this chat but shared since: back to suggestions.
+    store.docs.get('own').sharing = { audience: 'organisation' };
+    const shared = await executeDocumentTool('document_edit', { documentId: 'own', slot: 'body', find_text: 'b', replace_text: 'c', expectedVersionId: 'v1' }, made);
+    assert.strictEqual(shared.suggested, 1);
+    assert.strictEqual(store.docs.get('own').bodyHtml, '<p>b</p>');
+});
+
+test('document_read lists the open suggestions of a page, so the model does not propose them twice', async (t) => {
+    withLivePage(t);
+    require('../core/documents/documentFeed').liveCollabFor = async () => null;
+    const ctx = suggestCtx();
+    await executeDocumentTool('document_write', { documentId: 'pg1', bodyHtml: '<p>new</p>', expectedVersionId: 'v1' }, ctx);
+    ctx.suggestionStore.rows.push({ id: 'done', status: 'accepted', summary: 'old', args: { targetId: 'pg1' } });
+    const read = await executeDocumentTool('document_read', { documentId: 'pg1' }, ctx);
+    assert.deepStrictEqual(read.openSuggestions, [{ id: 's1', summary: 'Rewrote "<p>a</p>"' }]);
+    assert.match(read.message, /1 suggestion\(s\) are already proposed/);
+    const broken = suggestCtx();
+    broken.suggestionStore.list = async () => { throw new Error('db down'); };
+    const still = await executeDocumentTool('document_read', { documentId: 'pg1' }, broken);
+    assert.strictEqual(still.openSuggestions, undefined, 'a failing list never fails the read');
+    assert.strictEqual(still.bodyHtml, '<p>a</p>');
 });
 
 test('a project viewer cannot change a live page through the chat, nor a stored one', async (t) => {
     const { live } = withLivePage(t, { projectRole: 'viewer' });
-    const member = { userId: 'member' };
+    const member = suggestCtx({ userId: 'member' });
     const read = await executeDocumentTool('document_read', { documentId: 'pg1' }, member);
     assert.strictEqual(read.readOnly, true, 'the model is told it may only read');
     const write = await executeDocumentTool('document_write', { documentId: 'pg1', bodyHtml: '<p>vic</p>', expectedVersionId: read.versionId }, member);
@@ -456,7 +535,7 @@ test('a project viewer cannot change a live page through the chat, nor a stored 
     const edit = await executeDocumentTool('document_edit', { documentId: 'pg1', slot: 'body', find_text: 'live a', replace_text: 'vic', expectedVersionId: read.versionId }, member);
     assert.strictEqual(edit.error, 'Document is read-only.');
     assert.deepStrictEqual(live.edits, [], 'nothing reached the live layer');
-    assert.strictEqual(live.html, '<p>live a</p>');
+    assert.strictEqual(member.suggestionStore.rows.length, 0, 'and no suggestion was made');
     assert.ok(!store.calls.some(c => c.op === 'update'), 'nor the stored body');
 
     // The same page when nobody has it open live: refused before the store.
@@ -467,11 +546,61 @@ test('a project viewer cannot change a live page through the chat, nor a stored 
     assert.strictEqual(store.docs.get('pg1').bodyHtml, '<p>a</p>');
 });
 
-test('a project editor still writes a live page through the chat', async (t) => {
-    const { live } = withLivePage(t, { projectRole: 'editor' });
-    const read = await executeDocumentTool('document_read', { documentId: 'pg1' }, { userId: 'member' });
+test('a project editor proposes suggestions on a page through the chat, in their own name', async (t) => {
+    withLivePage(t, { projectRole: 'editor' });
+    const ctx = suggestCtx({ userId: 'member', conversationId: 'c9' });
+    const read = await executeDocumentTool('document_read', { documentId: 'pg1' }, ctx);
     assert.strictEqual(read.readOnly, undefined);
-    const out = await executeDocumentTool('document_write', { documentId: 'pg1', bodyHtml: '<p>ed</p>', expectedVersionId: read.versionId }, { userId: 'member' });
+    const out = await executeDocumentTool('document_write', { documentId: 'pg1', bodyHtml: '<p>ed</p>', expectedVersionId: read.versionId }, ctx);
     assert.ok(!out.error, out.error);
-    assert.deepStrictEqual(live.edits.map(e => e[2].actorId), ['member']);
+    assert.deepStrictEqual([ctx.suggestionStore.rows[0].args.authorUserId, ctx.suggestionStore.rows[0].args.conversationId], ['member', 'c9']);
+});
+
+// ── Document scope: the AI touches only what the person pointed at ───
+
+const SCOPE_ERROR = /has not been shared with this chat/;
+
+test('document_read/write/edit fail closed when the caller passes no scope', async () => {
+    const { documentId } = await executeDocumentTool('create_document', { name: 'X' }, CTX);
+    for (const [tool, args] of [
+        ['document_read', { documentId }],
+        ['document_write', { documentId, bodyHtml: '<p>x</p>' }],
+        ['document_edit', { documentId, slot: 'body', find_text: 'a', replace_text: 'b' }],
+    ]) {
+        const out = await executeDocumentTool(tool, args, { userId: 'u1' });
+        assert.match(out.error, SCOPE_ERROR, tool);
+    }
+});
+
+test('an id outside the scope is refused with the same answer as one that does not exist', async () => {
+    const { documentId } = await executeDocumentTool('create_document', { name: 'X' }, CTX);
+    const scope = createDocumentScope({});
+    const real = await executeDocumentTool('document_read', { documentId }, { userId: 'u1', documentScope: scope });
+    const missing = await executeDocumentTool('document_read', { documentId: 'does-not-exist' }, { userId: 'u1', documentScope: scope });
+    assert.match(real.error, SCOPE_ERROR);
+    assert.deepStrictEqual(real, missing, 'no hint whether the document exists');
+});
+
+test('a document in the scope (the open one) can be read, written and edited', async () => {
+    const { documentId } = await executeDocumentTool('create_document', { name: 'X' }, CTX);
+    const ctx = { userId: 'u1', documentScope: createDocumentScope({ sidePanelDocument: { id: documentId } }) };
+    const read = await executeDocumentTool('document_read', { documentId }, ctx);
+    assert.strictEqual(read.error, undefined);
+    const wrote = await executeDocumentTool('document_write', { documentId, bodyHtml: '<p>a</p>', expectedVersionId: read.versionId }, ctx);
+    assert.strictEqual(wrote.error, undefined);
+});
+
+test('create_document adds its new id to the scope for the rest of the turn', async () => {
+    const scope = createDocumentScope({});
+    const ctx = { userId: 'u1', documentScope: scope };
+    const created = await executeDocumentTool('create_document', { name: 'Fresh' }, ctx);
+    assert.ok(scope.has(created.documentId));
+    const read = await executeDocumentTool('document_read', { documentId: created.documentId }, ctx);
+    assert.strictEqual(read.error, undefined);
+});
+
+test('create_document marks its document as made in this chat (the only way to a direct write)', async () => {
+    const scope = createDocumentScope({});
+    const created = await executeDocumentTool('create_document', { name: 'Fresh' }, { userId: 'u1', documentScope: scope });
+    assert.ok(scope.createdInChat(created.documentId));
 });

@@ -1,19 +1,21 @@
 import React from 'react';
+import { useTranslation } from '../../../../hooks/useTranslation';
 import AppIcon from '../../../icons/AppIcon';
-import PageList from '../PageList';
 import BlockList from '../BlockList';
+import PageList from '../PageList';
 import {
     DESIGN_VIRTUAL_ID, HEADER_VIRTUAL_ID, FOOTER_VIRTUAL_ID, COOKIE_VIRTUAL_ID,
-    ANNOUNCE_VIRTUAL_ID, ANALYTICS_VIRTUAL_ID,
+    ANNOUNCE_VIRTUAL_ID, ANALYTICS_VIRTUAL_ID, BLOG_VIRTUAL_ID,
 } from '../sentinels';
 
 const SITE_ENTRIES = [
-    { id: DESIGN_VIRTUAL_ID,    label: 'Design',            icon: 'Palette' },
-    { id: HEADER_VIRTUAL_ID,    label: 'Header',            icon: 'LayoutTemplate' },
-    { id: FOOTER_VIRTUAL_ID,    label: 'Footer',            icon: 'PanelBottom' },
-    { id: ANNOUNCE_VIRTUAL_ID,  label: 'Announcement bar',  icon: 'Megaphone' },
-    { id: COOKIE_VIRTUAL_ID,    label: 'Cookie banner',     icon: 'Cookie' },
-    { id: ANALYTICS_VIRTUAL_ID, label: 'Analytics',         icon: 'BarChart3' },
+    { id: DESIGN_VIRTUAL_ID,    label: 'Design', labelKey: 'cms_site.site.navigator.design',            icon: 'Palette' },
+    { id: HEADER_VIRTUAL_ID,    label: 'Header', labelKey: 'cms_site.site.navigator.header',            icon: 'LayoutTemplate' },
+    { id: FOOTER_VIRTUAL_ID,    label: 'Footer', labelKey: 'cms_site.site.navigator.footer',            icon: 'PanelBottom' },
+    { id: ANNOUNCE_VIRTUAL_ID,  label: 'Announcement bar', labelKey: 'cms_site.site.navigator.announcement',  icon: 'Megaphone' },
+    { id: COOKIE_VIRTUAL_ID,    label: 'Cookie banner', labelKey: 'cms_site.site.navigator.cookie',     icon: 'Cookie' },
+    { id: ANALYTICS_VIRTUAL_ID, label: 'Analytics', labelKey: 'cms_site.site.navigator.analytics',         icon: 'BarChart3' },
+    { id: BLOG_VIRTUAL_ID,      label: 'Blog', labelKey: 'cms_blog.navigator.blog',                       icon: 'Newspaper' },
 ];
 
 function Caption({ children }) {
@@ -38,11 +40,13 @@ export default function NavigatorPanel({
     onSelectEntry,          // (id) — virtual id or page id
     pageListProps,          // spread into <PageList/> (activePageId/onSelect included)
     blockListProps,         // spread into <BlockList/>; null hides the BLOCKS zone
+    blogSlot = null,        // the Blog entry's post list; replaces PAGES + BLOCKS while set
 }) {
+    const { t } = useTranslation();
     return (
         <div className="h-full flex flex-col min-h-0 bg-[var(--bg-secondary)]">
             {/* SITE */}
-            <Caption>Site</Caption>
+            <Caption>{t('cms_site.site.navigator.site', 'Site')}</Caption>
             <div className="shrink-0">
                 {SITE_ENTRIES.map(entry => (
                     <button
@@ -55,11 +59,16 @@ export default function NavigatorPanel({
                                 : 'text-[var(--text-muted)] hover:bg-[var(--bg-tertiary)]'}`}
                     >
                         <AppIcon name={entry.icon} className="w-3.5 h-3.5 shrink-0" />
-                        <span className="truncate">{entry.label}</span>
+                        <span className="truncate">{t(entry.labelKey, entry.label)}</span>
                     </button>
                 ))}
             </div>
 
+            {blogSlot ? (
+                <div className="border-t border-[var(--border-subtle)] mt-2 flex-1 min-h-0 flex flex-col">
+                    {blogSlot}
+                </div>
+            ) : (<>
             {/* PAGES — own scroll region, capped so blocks keep room */}
             <div className="border-t border-[var(--border-subtle)] mt-2 flex flex-col min-h-0 shrink-0" style={{ maxHeight: '45%' }}>
                 <div className="flex-1 min-h-0 overflow-hidden">
@@ -75,10 +84,11 @@ export default function NavigatorPanel({
             ) : (
                 <div className="border-t border-[var(--border-subtle)] flex-1 min-h-0 flex items-start justify-center pt-6">
                     <p className="text-[11px] text-[var(--text-muted)] px-4 text-center">
-                        Select a page to see its blocks.
+                        {t('cms_site.site.navigator.select_page', 'Select a page to see its blocks.')}
                     </p>
                 </div>
             )}
+            </>)}
         </div>
     );
 }

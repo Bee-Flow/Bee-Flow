@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useTranslation } from '../../../hooks/useTranslation';
 import {
     Clock, Search, ChevronRight, Cpu, Bot, User, Filter, Activity
 } from 'lucide-react';
@@ -10,6 +11,7 @@ import {
 const PAGE_SIZE = 25;
 
 export function ActivityPage({ recent, modelCosts, filterSources, filterModels }) {
+    const { t } = useTranslation();
     const [search, setSearch] = useState('');
     const [filterSource, setFilterSource] = useState('');
     const [filterModel, setFilterModel] = useState('');
@@ -60,7 +62,7 @@ export function ActivityPage({ recent, modelCosts, filterSources, filterModels }
                         <input
                             value={search}
                             onChange={e => { setSearch(e.target.value); setPageNum(0); }}
-                            placeholder="Search calls..."
+                            placeholder={t('admin_monitoring.activity_search', 'Search calls...')}
                             style={{
                                 background: 'transparent', border: 'none', outline: 'none', fontSize: '12px',
                                 color: 'var(--text-primary, #fff)', width: '100%',
@@ -76,7 +78,7 @@ export function ActivityPage({ recent, modelCosts, filterSources, filterModels }
                             onChange={e => { setFilterSource(e.target.value); setPageNum(0); }}
                             style={filterSelectStyle}
                         >
-                            <option value="">All Sources</option>
+                            <option value="">{t('admin_monitoring.all_sources', 'All Sources')}</option>
                             {sourceOptions.map(s => <option key={s} value={s}>{getSourceDetails(s).label}</option>)}
                         </select>
                     </div>
@@ -89,14 +91,14 @@ export function ActivityPage({ recent, modelCosts, filterSources, filterModels }
                             onChange={e => { setFilterModel(e.target.value); setPageNum(0); }}
                             style={filterSelectStyle}
                         >
-                            <option value="">All Models</option>
+                            <option value="">{t('admin_monitoring.all_models', 'All Models')}</option>
                             {modelOptions.map(m => <option key={m} value={m}>{shortModel(m)}</option>)}
                         </select>
                     </div>
 
                     <div style={{ flex: 1 }} />
                     <span style={{ fontSize: '11px', color: 'var(--text-muted, #888)' }}>
-                        {filtered.length} call{filtered.length !== 1 ? 's' : ''}
+                        {filtered.length === 1 ? t('admin_monitoring.activity_count_one', '{n} call', { n: filtered.length }) : t('admin_monitoring.activity_count_other', '{n} calls', { n: filtered.length })}
                     </span>
                 </div>
 
@@ -108,18 +110,18 @@ export function ActivityPage({ recent, modelCosts, filterSources, filterModels }
                     fontSize: '10px', fontWeight: 700, textTransform: 'uppercase',
                     letterSpacing: '0.05em', color: 'var(--text-muted, #666)',
                 }}>
-                    <span>Time</span>
-                    <span>Source / Agent</span>
-                    <span>Model</span>
-                    <span style={{ textAlign: 'right' }}>Tokens</span>
-                    <span style={{ textAlign: 'right' }}>Latency</span>
-                    <span style={{ textAlign: 'right' }}>Cost</span>
-                    <span style={{ textAlign: 'right' }}>Type</span>
+                    <span>{t('admin_monitoring.col_time', 'Time')}</span>
+                    <span>{t('admin_monitoring.col_source_agent', 'Source / Agent')}</span>
+                    <span>{t('admin_monitoring.col_model', 'Model')}</span>
+                    <span style={{ textAlign: 'right' }}>{t('admin_monitoring.col_tokens', 'Tokens')}</span>
+                    <span style={{ textAlign: 'right' }}>{t('admin_monitoring.col_latency', 'Latency')}</span>
+                    <span style={{ textAlign: 'right' }}>{t('admin_monitoring.col_cost', 'Cost')}</span>
+                    <span style={{ textAlign: 'right' }}>{t('admin_monitoring.col_type', 'Type')}</span>
                     <span></span>
                 </div>
 
                 {/* Rows */}
-                {paged.length === 0 ? <Empty text="No API calls found" /> : paged.map((r, i) => {
+                {paged.length === 0 ? <Empty text={t('admin_monitoring.activity_empty', 'No API calls found')} /> : paged.map((r, i) => {
                     const isExpanded = expanded === (r.id || i);
                     const src = getSourceDetails(r.source);
 
@@ -184,16 +186,16 @@ export function ActivityPage({ recent, modelCosts, filterSources, filterModels }
                                     borderRadius: '0 0 8px 8px', marginBottom: '4px',
                                     fontSize: '11px',
                                 }}>
-                                    <DetailItem label="Prompt Tokens" value={fmt(r.prompt_tokens)} color={COLORS.blue} />
-                                    <DetailItem label="Completion Tokens" value={fmt(r.completion_tokens)} color={COLORS.amber} />
-                                    <DetailItem label="Total Tokens" value={fmt(r.total_tokens)} color={COLORS.green} />
-                                    <DetailItem label="Input Cost" value={fmtCost(r.input_cost || 0)} color={COLORS.blue} />
-                                    <DetailItem label="Output Cost" value={fmtCost(r.output_cost || 0)} color={COLORS.amber} />
-                                    <DetailItem label="Total Cost" value={fmtCost(r.estimated_cost || 0)} color={COLORS.green} />
-                                    <DetailItem label="Source" value={src.label} />
-                                    <DetailItem label="Model" value={r.model || 'Unknown'} />
-                                    {r.conversation_id && <DetailItem label="Conversation" value={r.conversation_id.slice(0, 12) + '…'} />}
-                                    {r.user_id && <DetailItem label="User" value={r.display_name || r.user_id} />}
+                                    <DetailItem label={t('admin_monitoring.activity_detail_prompt_tokens', 'Prompt Tokens')} value={fmt(r.prompt_tokens)} color={COLORS.blue} />
+                                    <DetailItem label={t('admin_monitoring.activity_detail_completion_tokens', 'Completion Tokens')} value={fmt(r.completion_tokens)} color={COLORS.amber} />
+                                    <DetailItem label={t('admin_monitoring.activity_detail_total_tokens', 'Total Tokens')} value={fmt(r.total_tokens)} color={COLORS.green} />
+                                    <DetailItem label={t('admin_monitoring.activity_detail_input_cost', 'Input Cost')} value={fmtCost(r.input_cost || 0)} color={COLORS.blue} />
+                                    <DetailItem label={t('admin_monitoring.activity_detail_output_cost', 'Output Cost')} value={fmtCost(r.output_cost || 0)} color={COLORS.amber} />
+                                    <DetailItem label={t('admin_monitoring.activity_detail_total_cost', 'Total Cost')} value={fmtCost(r.estimated_cost || 0)} color={COLORS.green} />
+                                    <DetailItem label={t('admin_monitoring.activity_detail_source', 'Source')} value={src.label} />
+                                    <DetailItem label={t('admin_monitoring.col_model', 'Model')} value={r.model || 'Unknown'} />
+                                    {r.conversation_id && <DetailItem label={t('admin_monitoring.activity_detail_conversation', 'Conversation')} value={r.conversation_id.slice(0, 12) + '…'} />}
+                                    {r.user_id && <DetailItem label={t('admin_monitoring.activity_detail_user', 'User')} value={r.display_name || r.user_id} />}
                                 </div>
                             )}
                         </div>

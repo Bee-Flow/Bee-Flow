@@ -3,7 +3,7 @@
  * continuation, the named branches (lanes), and the error path.
  *
  * The branch names are the canvas's port labels — ConditionNode's
- * "match"/"otherwise", SwitchNode's case names and "otherwise", GuardNode's
+ * "Match"/"Otherwise", SwitchNode's case names and "Otherwise", GuardNode's
  * "personal data"/"clean", LoopNode's "On error" — so a lane on the phone is
  * called what the port it hangs off is called in the browser.
  */
@@ -31,6 +31,10 @@ export interface Outgoing {
 
 const text = (key: string, fallback: string): RowText => ({ key: `mobile.flow.lane.${key}`, fallback });
 
+/** The web cards' own words (ConditionNode / SwitchNode ports). */
+const MATCH: RowText = { key: 'condition_node.port.match', fallback: 'Match' };
+const OTHERWISE: RowText = { key: 'condition_node.otherwise.label', fallback: 'Otherwise' };
+
 interface PortSpec {
     handle: string;
     identity: EdgeIdentity;
@@ -39,8 +43,8 @@ interface PortSpec {
 }
 
 const CONDITION_PORTS: readonly PortSpec[] = [
-    { handle: PORT.then, identity: { label: PORT.then }, text: text('match', 'match'), tone: 'then' },
-    { handle: PORT.else, identity: { label: PORT.else }, text: text('otherwise', 'otherwise'), tone: 'else' },
+    { handle: PORT.then, identity: { label: PORT.then }, text: MATCH, tone: 'then' },
+    { handle: PORT.else, identity: { label: PORT.else }, text: OTHERWISE, tone: 'else' },
 ];
 
 const GUARD_PORTS: readonly PortSpec[] = [
@@ -51,7 +55,7 @@ const GUARD_PORTS: readonly PortSpec[] = [
 function switchPorts(node: AnyNode): PortSpec[] {
     return routePorts(node as Parameters<typeof routePorts>[0]).map((p) =>
         p.caseName === PORT.defaultCase
-            ? { handle: PORT.defaultCaseLabel, identity: { label: p.label, caseName: p.caseName }, text: text('otherwise', 'otherwise'), tone: 'default' as const }
+            ? { handle: PORT.defaultCaseLabel, identity: { label: p.label, caseName: p.caseName }, text: OTHERWISE, tone: 'default' as const }
             : { handle: p.label as string, identity: { label: p.label, caseName: p.caseName }, text: { raw: p.caseName ?? '' }, tone: 'case' as const },
     );
 }

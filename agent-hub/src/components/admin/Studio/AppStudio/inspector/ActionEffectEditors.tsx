@@ -9,8 +9,20 @@ import useTranslation from '../../../../../hooks/useTranslation';
 import IconButton from '../../../../shared/IconButton';
 import SegmentedControl from '../../../../shared/SegmentedControl';
 
-export const TONE_OPTIONS: Array<{ value: string; label: string }> =
-    TOAST_TONES.map((t) => ({ value: t, label: t.charAt(0).toUpperCase() + t.slice(1) }));
+type TFn = (key: string, fallback: string, params?: Record<string, string | number>) => string;
+
+const TONE_KEYS: Record<string, [string, string]> = {
+    info: ['studio_apps_insp.effects.tone_info', 'Info'],
+    success: ['studio_apps_insp.effects.tone_success', 'Success'],
+    warning: ['studio_apps_insp.effects.tone_warning', 'Warning'],
+    danger: ['studio_apps_insp.effects.tone_danger', 'Danger'],
+};
+
+export const toneOptions = (t: TFn): Array<{ value: string; label: string }> =>
+    TOAST_TONES.map((tone: string) => {
+        const entry = TONE_KEYS[tone];
+        return { value: tone, label: entry ? t(entry[0], entry[1]) : tone.charAt(0).toUpperCase() + tone.slice(1) };
+    });
 
 /** One editable row: the name as typed, and what it carries. */
 type ParamRow = [string, NavigateParam];
@@ -64,6 +76,7 @@ export interface NavigateParamsEditorProps {
 }
 
 export function NavigateParamsEditor({ params, onChange, disabled }: NavigateParamsEditorProps) {
+    const { t } = useTranslation();
     const stored: ParamRow[] = Object.entries(params && typeof params === 'object' ? params : {});
     // Rows added or blanked but not yet named. They cannot live in `params`,
     // which is keyed by name — so they are held here WITH the position they
@@ -101,11 +114,12 @@ export function NavigateParamsEditor({ params, onChange, disabled }: NavigatePar
     return (
         <div className="flex flex-col gap-2">
             <span className="text-[11px] font-medium text-[var(--text-secondary)]">
-                Values to carry along
+                {t('studio_apps_insp.effects.values_to_carry', 'Values to carry along')}
             </span>
             {rows.length === 0 ? (
                 <p className="text-[11px] text-[var(--text-secondary)]">
-                    Nothing yet — the next screen reads these as <code>screen.params.name</code>.
+                    {t('studio_apps_insp.effects.values_empty', 'Nothing yet — the next screen reads these as')}{' '}
+                    <code>screen.params.name</code>.
                 </p>
             ) : null}
             {rows.map(([name, entry], i) => {
@@ -118,13 +132,13 @@ export function NavigateParamsEditor({ params, onChange, disabled }: NavigatePar
                                 className={INPUT_CLS}
                                 value={name}
                                 onChange={(e) => setRow(i, e.target.value, entry)}
-                                placeholder="recordId"
+                                placeholder={t('studio_apps_insp.effects.value_name_placeholder', 'recordId')}
                                 disabled={disabled}
                                 spellCheck={false}
-                                aria-label={`Value ${i + 1} name`}
+                                aria-label={t('studio_apps_insp.effects.value_name_aria', 'Value {n} name', { n: i + 1 })}
                             />
                             <IconButton
-                                ariaLabel={`Remove value ${i + 1}`}
+                                ariaLabel={t('studio_apps_insp.effects.remove_value', 'Remove value {n}', { n: i + 1 })}
                                 variant="danger"
                                 size="sm"
                                 disabled={disabled}
@@ -138,8 +152,8 @@ export function NavigateParamsEditor({ params, onChange, disabled }: NavigatePar
                                 variant="inline"
                                 value={entry.expr || ''}
                                 onChange={(expr) => setRow(i, name, { kind: 'formula', expr })}
-                                placeholder="e.g. item.id"
-                                ariaLabel={`Value ${i + 1} formula`}
+                                placeholder={t('studio_apps_insp.effects.formula_placeholder', 'e.g. item.id')}
+                                ariaLabel={t('studio_apps_insp.effects.value_formula_aria', 'Value {n} formula', { n: i + 1 })}
                                 disabled={disabled}
                             />
                         ) : (
@@ -149,9 +163,9 @@ export function NavigateParamsEditor({ params, onChange, disabled }: NavigatePar
                                     className={INPUT_CLS}
                                     value={entry?.value ?? ''}
                                     onChange={(e) => setRow(i, name, { kind: 'static', value: e.target.value })}
-                                    placeholder="A fixed value"
+                                    placeholder={t('studio_apps_insp.effects.fixed_value_placeholder', 'A fixed value')}
                                     disabled={disabled}
-                                    aria-label={`Value ${i + 1}`}
+                                    aria-label={t('studio_apps_insp.effects.value_n_aria', 'Value {n}', { n: i + 1 })}
                                 />
                             </div>
                         )}
@@ -161,11 +175,13 @@ export function NavigateParamsEditor({ params, onChange, disabled }: NavigatePar
                             disabled={disabled}
                             className="self-start inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)]"
                         >
-                            {isFormula ? 'Use a fixed value' : 'Work it out with a formula'}
+                            {isFormula
+                                ? t('studio_apps_insp.effects.use_fixed_value', 'Use a fixed value')
+                                : t('studio_apps_insp.effects.use_formula', 'Work it out with a formula')}
                         </button>
                         {clash === i ? (
                             <span className="text-[11px] text-[var(--error)]">
-                                Another value already goes by that name — pick a different one.
+                                {t('studio_apps_insp.effects.name_clash', 'Another value already goes by that name — pick a different one.')}
                             </span>
                         ) : null}
                     </div>
@@ -175,10 +191,10 @@ export function NavigateParamsEditor({ params, onChange, disabled }: NavigatePar
                 type="button"
                 onClick={() => commit([...rows, ['', { kind: 'formula', expr: '' }]])}
                 disabled={disabled || rows.length >= MAX_NAVIGATE_PARAMS}
-                title={rows.length >= MAX_NAVIGATE_PARAMS ? `At most ${MAX_NAVIGATE_PARAMS} values.` : undefined}
+                title={rows.length >= MAX_NAVIGATE_PARAMS ? t('studio_apps_insp.effects.max_values', 'At most {max} values.', { max: MAX_NAVIGATE_PARAMS }) : undefined}
                 className="self-start px-2.5 py-1 text-[11px] font-medium rounded border border-dashed border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)]"
             >
-                Carry a value along
+                {t('studio_apps_insp.effects.carry_value', 'Carry a value along')}
             </button>
         </div>
     );
@@ -272,6 +288,7 @@ export interface EffectEditorProps {
 }
 
 export function EffectEditor({ label, effect, screens, onChange, disabled }: EffectEditorProps) {
+    const { t } = useTranslation();
     const toast = effect?.toast || null;
     const set = (patch: ActionEffect) => {
         const next = { ...(effect || {}), ...patch };
@@ -289,19 +306,19 @@ export function EffectEditor({ label, effect, screens, onChange, disabled }: Eff
                 className={INPUT_CLS}
                 value={toast?.message || ''}
                 onChange={(e) => set({ toast: { message: e.target.value, tone: toast?.tone || 'info' } })}
-                placeholder="Toast message (optional)"
+                placeholder={t('studio_apps_insp.effects.toast_placeholder', 'Toast message (optional)')}
                 disabled={disabled}
-                aria-label={`${label} toast message`}
+                aria-label={t('studio_apps_insp.effects.toast_message_aria', '{label} toast message', { label })}
             />
             {toast?.message ? (
                 <SegmentedControl
                     value={toast.tone || 'info'}
                     onChange={(tone) => set({ toast: { message: toast.message, tone } })}
-                    options={TONE_OPTIONS}
+                    options={toneOptions(t)}
                     size="sm"
                     fullWidth
                     disabled={disabled}
-                    ariaLabel={`${label} toast tone`}
+                    ariaLabel={t('studio_apps_insp.effects.toast_tone_aria', '{label} toast tone', { label })}
                 />
             ) : null}
             <select
@@ -309,11 +326,11 @@ export function EffectEditor({ label, effect, screens, onChange, disabled }: Eff
                 value={effect?.navigateTo || ''}
                 onChange={(e) => set({ navigateTo: e.target.value || null })}
                 disabled={disabled}
-                aria-label={`${label} navigate to`}
+                aria-label={t('studio_apps_insp.effects.navigate_to_aria', '{label} navigate to', { label })}
             >
-                <option value="">Stay on this screen</option>
+                <option value="">{t('studio_apps_insp.effects.stay_on_screen', 'Stay on this screen')}</option>
                 {screens.map((s) => (
-                    <option key={s.id} value={s.id}>Go to {s.name || s.id}</option>
+                    <option key={s.id} value={s.id}>{t('studio_apps_insp.effects.go_to', 'Go to {screen}', { screen: s.name || s.id })}</option>
                 ))}
             </select>
         </div>

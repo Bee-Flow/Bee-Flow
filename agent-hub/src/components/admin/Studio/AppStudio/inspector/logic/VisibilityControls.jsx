@@ -3,6 +3,7 @@ import React from 'react';
 import FormulaField from './FormulaField';
 import StudioScopeProvider from './StudioScopeProvider';
 import Toggle from '../../../../../shared/Toggle';
+import useTranslation from '../../../../../../hooks/useTranslation';
 
 /**
  * VisibilityControls — the "Logic" inspector block for a node's visibility and
@@ -34,6 +35,7 @@ function formulaOrNull(expr) {
 }
 
 export default function VisibilityControls({ node, definition = null, onChange, disabled = false }) {
+    const { t } = useTranslation();
     const visible = node?.visible !== false;
     const emit = (patch) => onChange?.(patch);
 
@@ -43,10 +45,10 @@ export default function VisibilityControls({ node, definition = null, onChange, 
                 <Toggle
                     label={(
                         <span className="inline-flex items-center gap-1.5">
-                            <Eye className="w-3.5 h-3.5 text-[var(--text-tertiary)]" /> Visible
+                            <Eye className="w-3.5 h-3.5 text-[var(--text-tertiary)]" /> {t('studio_apps_insp.logic.visible', 'Visible')}
                         </span>
                     )}
-                    description="Hide this component from the running app."
+                    description={t('studio_apps_insp.logic.visible_description', 'Hide this component from the running app.')}
                     checked={visible}
                     onChange={(next) => emit({ visible: next })}
                     disabled={disabled}
@@ -55,28 +57,28 @@ export default function VisibilityControls({ node, definition = null, onChange, 
 
                 <div className="flex flex-col gap-1.5">
                     <FormulaField
-                        label="Only show when"
+                        label={t('studio_apps_insp.logic.only_show_when', 'Only show when')}
                         value={exprOf(node?.visibleWhen)}
                         onChange={(expr) => emit({ visibleWhen: formulaOrNull(expr) })}
                         definition={definition}
                         node={node}
-                        placeholder="e.g. form.priority == 'high'"
+                        placeholder={t('studio_apps_insp.logic.only_show_placeholder', "e.g. form.priority == 'high'")}
                         expectsBoolean
-                        ariaLabel="Only show when"
+                        ariaLabel={t('studio_apps_insp.logic.only_show_when', 'Only show when')}
                         disabled={disabled}
                     />
                 </div>
 
                 <div className="flex flex-col gap-1.5">
                     <FormulaField
-                        label="Enabled when"
+                        label={t('studio_apps_insp.logic.enabled_when', 'Enabled when')}
                         value={exprOf(node?.enabledWhen)}
                         onChange={(expr) => emit({ enabledWhen: formulaOrNull(expr) })}
                         definition={definition}
                         node={node}
-                        placeholder="e.g. form.agree == true"
+                        placeholder={t('studio_apps_insp.logic.enabled_placeholder', 'e.g. form.agree == true')}
                         expectsBoolean
-                        ariaLabel="Enabled when"
+                        ariaLabel={t('studio_apps_insp.logic.enabled_when', 'Enabled when')}
                         disabled={disabled}
                     />
                 </div>

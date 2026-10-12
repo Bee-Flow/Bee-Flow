@@ -32,6 +32,7 @@ let orgIdsResult = new Set(['org_a']);   // what resolveUserOrgIds returns
 let userOrgRole = 'member';              // what userStore.getUser reports
 let userRecordOrgId = null;              // organizationId on the user RECORD (super-admin path)
 const captured = {};                     // store-call capture, per fn name
+let avatarRows = [];                     // what userStore.getUserAvatarsByIds returns
 
 // ── Stubs ──────────────────────────────────────────────────────────────
 const authStub = {
@@ -40,7 +41,7 @@ const authStub = {
 };
 const userStoreStub = {
     async getUser(id) { return { id, orgRole: userOrgRole, organizationId: userRecordOrgId }; },
-    async getUserAvatarsByIds(ids) { captured.avatarIds = ids; return []; },
+    async getUserAvatarsByIds(ids) { captured.avatarIds = ids; return avatarRows; },
     async getAllUserAvatars() { throw new Error('full-table avatar scan must not run on monitoring endpoints'); },
     async getConsumerSubscription() { return null; },
     async getOrgSubscription() { return null; },
@@ -266,4 +267,28 @@ test('unauthenticated gets 401 before any scope logic', async () => {
 test.after(() => {
     server.close();
     Module._resolveFilename = origResolve;
+});
+
+test('a row never carries an inline image as its avatar — only a short URL or an emoji', async () => {
+    // withUser copies the avatar onto EVERY row, and the ledgers answer 200
+    // rows each. One account with a 2.2 MB base64 picture made the two detail
+    // responses of "What happened" over 100 MB of JSON, which stalled the
+    // server for seconds while it was stringified. A picture is a link.
+    asOrgUser('org_admin');
+    avatarRows = [
+        { id: 'u1', username: 'kim', displayName: 'Kim', avatarType: 'url', avatar: 'data:image/png;base64,' + 'A'.repeat(2_300_000) },
+    ];
+    try {
+        const big = await get('/api/usage/guardrails/overview?days=7');
+        assert.strictEqual(big.status, 200);
+        assert.strictEqual(big.body.top_users[0].display_name, 'Kim');
+        assert.strictEqual(big.body.top_users[0].avatarType, 'url', 'the type still says a picture exists');
+        assert.strictEqual(big.body.top_users[0].avatar, null, 'the inline image is not copied onto the row');
+
+        avatarRows = [{ id: 'u1', username: 'kim', displayName: 'Kim', avatarType: 'url', avatar: '/uploads/kim.png' }];
+        const small = await get('/api/usage/guardrails/overview?days=7');
+        assert.strictEqual(small.body.top_users[0].avatar, '/uploads/kim.png', 'an uploaded picture is a short link and rides along');
+    } finally {
+        avatarRows = [];
+    }
 });

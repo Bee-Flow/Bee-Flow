@@ -302,7 +302,20 @@ function resolveParseJsonSource(step, ctx, runState) {
     throw new Error('parse_json: no source — set the Source field or wire an upstream step.');
 }
 
-/** Auto-parse a string source (trim + strip BOM); objects/arrays pass through. */
+/**
+ * Auto-parse a string source; objects/arrays pass through.
+ *
+ * Text is read the way a language model writes JSON, with the reader the
+ * rest of the runtime uses (shared/expr/path.mjs extractJsonText): plain JSON
+ * first (BOM and whitespace tolerated), else a ```json fence or one record
+ * (or list of records) inside prose ("Sure! Here is the JSON: {…}"). A JSON
+ * string that itself holds JSON (encoded twice) is unwrapped once. The plain
+ * JSON.parse this replaced failed the run whenever a model fenced its answer,
+ * and gave all-null fields for a payload encoded twice. What is NOT an answer
+ * still fails the step, so its on_error branch runs: an HTML error page, a
+ * rate-limit text holding `[429]` or `{}`, a cut-off answer (an HTTP step
+ * returns a 4xx/5xx body instead of throwing, so these do arrive here).
+ */
 function parseParseJsonSource(raw, { requireStructured }) {
     if (raw === undefined) {
         // Both modes: an unresolvable Source path must fail loudly. In ai mode
@@ -311,12 +324,22 @@ function parseParseJsonSource(raw, { requireStructured }) {
         throw new Error('parse_json: source is undefined — the Source path matched nothing. Check the Source field (e.g. steps.<id>.output.body).');
     }
     if (typeof raw === 'string') {
+        const { extractJsonText, parseJsonText } = require('../../automation/expr');
         const text = raw.replace(/^﻿/, '').trim();
-        try { return JSON.parse(text); }
+        let v;
+        try { v = JSON.parse(text); }
         catch {
-            const snippet = text.slice(0, 120);
-            throw new Error(`parse_json: source is not valid JSON — ${snippet}`);
+            v = extractJsonText(text);
+            if (v === undefined) {
+                const snippet = text.slice(0, 120);
+                throw new Error(`parse_json: source is not valid JSON — ${snippet}`);
+            }
         }
+        if (typeof v === 'string') {
+            const inner = parseJsonText(v);
+            if (inner !== undefined) v = inner;
+        }
+        return v;
     }
     if (raw !== null && typeof raw === 'object') return raw;
     if (requireStructured) {

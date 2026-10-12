@@ -253,6 +253,21 @@ function isForcedToolChoiceRejection(err) {
     return /tool_choice/i.test(body) && /not supported/i.test(body);
 }
 
+// Claude structured outputs reject numeric and length constraints
+// ("For 'number' type, properties maximum, minimum are not supported"), so they
+// are dropped from the schema we send. Callers validate ranges themselves.
+const UNSUPPORTED_SCHEMA_KEYWORDS = new Set(['minimum', 'maximum', 'exclusiveMinimum', 'exclusiveMaximum', 'multipleOf', 'minLength', 'maxLength']);
+function stripUnsupportedSchemaKeywords(node) {
+    if (Array.isArray(node)) return node.map(stripUnsupportedSchemaKeywords);
+    if (!node || typeof node !== 'object') return node;
+    const out = {};
+    for (const [k, v] of Object.entries(node)) {
+        if (UNSUPPORTED_SCHEMA_KEYWORDS.has(k) && (typeof v === 'number')) continue;
+        out[k] = stripUnsupportedSchemaKeywords(v);
+    }
+    return out;
+}
+
 class ClaudeProvider extends BaseProvider {
     // Modern Claude models can reject forced tool_choice. Use native JSON for
     // closed structured-output schemas; actual action tools keep their own path.
@@ -819,7 +834,7 @@ class ClaudeProvider extends BaseProvider {
         // The adaptive-only family (Opus 4.7/4.8, Sonnet 5, Fable/Mythos 5) rejects
         // sampling params with a 400 — never forward a caller-supplied temperature.
         const adaptiveOnly = this.isAdaptiveOnlyReasoning(model);
-        if (options.temperature !== undefined && !adaptiveOnly) params.temperature = options.temperature;
+        if (options.temperature !== undefined && !adaptiveOnly && describeClaudeModel(model).temperature) params.temperature = options.temperature;
 
         if (options.tools && options.tools.length > 0) {
             const normalizedTools = this.normalizeTools(options.tools);
@@ -924,7 +939,7 @@ class ClaudeProvider extends BaseProvider {
 
         if (options.responseFormat?.type === 'json_schema' && options.responseFormat.json_schema?.schema) {
             params.output_config = { ...params.output_config,
-                format: { type: 'json_schema', schema: options.responseFormat.json_schema.schema } };
+                format: { type: 'json_schema', schema: stripUnsupportedSchemaKeywords(options.responseFormat.json_schema.schema) } };
         }
         return params;
     }

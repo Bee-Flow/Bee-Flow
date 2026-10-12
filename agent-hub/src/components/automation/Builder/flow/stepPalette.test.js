@@ -61,8 +61,9 @@ describe('stepPalette — buildStepGroups', () => {
         // job — reshape what I've got — so they are ONE section now. Two places
         // to fail to find the same step is one place too many.
         // Builder redesign: the pausing steps got a section of their own and
-        // the web service call joined Code under Integrations (design 1f).
-        expect(flow.sections.map(s => s.key)).toEqual(['flow_control', 'people', 'data', 'integrations']);
+        // Call a web service and Code are your own logic and sit in Flow
+        // control, the ribbon's Logic tab; connected apps have app tabs.
+        expect(flow.sections.map(s => s.key)).toEqual(['flow_control', 'people', 'data']);
         expect(flow.sections.find(s => s.key === 'data').title).toBe('Data & lists');
     });
 
@@ -82,7 +83,7 @@ describe('stepPalette — buildStepGroups', () => {
         // reaching for one has to see the other to pick the right one.
         // `slide` and `presentation` follow as the third artefact pair — one
         // page, then the deck those pages go into.
-        expect(ids).toEqual(['datatable', 'knowledge_write', 'set', 'datetime', 'generate_document', 'fill_document', 'slide', 'presentation', 'limit', 'dedupe', 'aggregate', 'summarize']);
+        expect(ids).toEqual(['datatable', 'knowledge_write', 'set', 'datetime', 'generate_document', 'fill_document', 'slide', 'presentation', 'filter_list', 'flatten', 'limit', 'dedupe', 'aggregate', 'summarize']);
     });
 
     it('omits the Steps group while building a Step (isBlockRoot)', () => {

@@ -3,14 +3,13 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setDemoTransport } from '../../utils/helpers';
-import { ProjectLiveProvider } from '../../components/projects/workspace/ProjectLiveContext';
 import useSectionPresence, { foldAnswer, type PeerMap } from './useSectionPresence';
 
 /**
  * Who else is in a designed document, and in which section
  * (useSectionPresence). With more than one server, a beat's answer lists only
  * the peers of the server that took it; a colleague on another server reaches
- * this editor through the project's live stream alone. The answer must never
+ * this editor through the document's live stream alone. The answer must never
  * wipe what the stream said, or "Bob is editing Pricing" flickers on and off
  * and disappears exactly when this editor moves into Bob's section.
  *
@@ -55,7 +54,7 @@ describe('useSectionPresence across servers', () => {
         vi.useFakeTimers({ shouldAdvanceTime: true });
         serverView = [];
         setDemoTransport(async (url: string, init: RequestInit = {}) => {
-            if (url.includes('/api/projects/p1/stream')) {
+            if (url.includes('/api/studio-documents/d1/stream')) {
                 const body = new ReadableStream({ start(controller) { push = (frame) => controller.enqueue(enc.encode(frame)); } });
                 return new Response(body, { status: 200, headers: { 'Content-Type': 'text/event-stream' } });
             }
@@ -75,7 +74,7 @@ describe('useSectionPresence across servers', () => {
         const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
         const wrapper = ({ children }: { children: React.ReactNode }) => (
             <QueryClientProvider client={qc}>
-                <ProjectLiveProvider projectId="p1" currentUserId="anna">{children}</ProjectLiveProvider>
+                {children}
             </QueryClientProvider>
         );
         return renderHook((props: { caretSection: string | null }) => useSectionPresence({

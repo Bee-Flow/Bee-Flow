@@ -167,6 +167,8 @@ const {
             'gmail_search', 'gmail_read', 'gmail_read_attachment', 'gmail_compose',
             'gmail_list_labels', 'gmail_modify_labels', 'gmail_mark_read', 'gmail_mark_unread',
             'gmail_archive', 'gmail_trash', 'gmail_create_draft',
+            // Bulk: many emails per request (gmailTools.bulk.test.js).
+            'gmail_read_many', 'gmail_bulk_modify',
         ];
         for (const n of expected) {
             assert.ok(names.includes(n), `GMAIL_TOOLS includes ${n}`);

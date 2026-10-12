@@ -38,7 +38,7 @@ export function ListFieldsEditor({ fields, onChange }: ListFieldsEditorProps) {
                     <TextField label={t('mobile.studio_documents.param.label', 'Label')} value={field.label} onChangeText={(label) => update(index, { label })} />
                     <TypePicker value={field.type} nested onChange={(type) => onChange(replaceAt(fields, index, withType(field, type)))} />
                     <ToggleRow label={t('mobile.studio_documents.param.required', 'Required when applicable')} value={field.required} onValueChange={(required) => update(index, { required })} gutter={false} />
-                    <Button label={t('mobile.studio_documents.param.remove_field', 'Remove field')} onPress={() => onChange(removeAt(fields, index))} variant="ghost" size="sm" />
+                    <Button label={t('automations.generic_row.remove_field', 'Remove field')} onPress={() => onChange(removeAt(fields, index))} variant="ghost" size="sm" />
                 </View>
             ))}
             <Button

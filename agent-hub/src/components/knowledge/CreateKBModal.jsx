@@ -18,6 +18,7 @@
 // input/button markup.
 
 import React from 'react';
+import { useTranslation } from '../../hooks/useTranslation';
 
 export default function CreateKBModal({
     name,
@@ -32,6 +33,7 @@ export default function CreateKBModal({
     descPlaceholder = 'Description (optional)',
     className = 'p-4 rounded-xl border bg-[var(--bg-tertiary)] border-[var(--border-default)] space-y-3',
 }) {
+    const { t } = useTranslation();
     const fieldStyle = { background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' };
     return (
         <div className={className}>
@@ -50,7 +52,7 @@ export default function CreateKBModal({
                 <button onClick={onCancel}
                     className="px-3 py-1.5 rounded-lg text-xs font-medium border"
                     style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
-                    Cancel
+                    {t('knowledge.create_kbmodal_cancel', 'Cancel')}
                 </button>
                 <button onClick={onCreate} disabled={creating || !name.trim()}
                     className="px-4 py-1.5 rounded-lg text-xs font-medium text-white disabled:opacity-50"

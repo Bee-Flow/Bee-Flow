@@ -69,6 +69,11 @@ describe('OverviewTab — the shared project composer', () => {
         await user.type(screen.getByTestId('composer-input'), 'Hello team{Enter}');
         expect(await screen.findByTestId('composer-error')).toHaveTextContent(/a Solution holds no chats/);
     });
+    it('opens the AI context from the header', async () => {
+        const { user, onOpenTab } = renderOverview('editor');
+        await user.click(screen.getByRole('button', { name: 'AI context' }));
+        expect(onOpenTab).toHaveBeenCalledWith('knowledge');
+    });
     it('does not offer a composer to viewers', () => {
         renderOverview('viewer');
         expect(screen.getByTestId('composer-readonly')).toBeInTheDocument();

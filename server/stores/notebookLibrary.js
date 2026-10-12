@@ -27,6 +27,7 @@
 'use strict';
 
 const { getOne } = require('../db');
+const { sharingSql } = require('./lib/documentSharing');
 
 /** The library's docType for a notebook row; not a studio_documents type. */
 const NOTEBOOK_DOC_TYPE = 'notebook';
@@ -42,7 +43,6 @@ function listsNotebooks(options) {
     // An automation's or an app's document picker: only what can be filled in.
     if (options.onlyFillable) return false;
     if (options.docType && options.docType !== NOTEBOOK_DOC_TYPE) return false;
-    if (options.visibility && options.visibility !== 'private') return false;
     return true;
 }
 
@@ -52,20 +52,21 @@ function listsNotebooks(options) {
  * `$2` is the reader. `bound` holds the placeholders of the filters a
  * notebook row answers too, already bound by the caller.
  *
- * @param {{ query?: string, folder?: string|null, folderSet?: boolean, category?: string }} bound
+ * @param {{ query?: string, folder?: string|null, folderSet?: boolean, category?: string, visibility?: string }} bound
  * @returns {string}
  */
 function notebookBranchSql(bound) {
     const where = [
-        'n.user_id = $2',
+        `((n.user_id = $2 AND (n.organization_id IS NULL OR n.organization_id = (SELECT \"organizationId\" FROM users WHERE id = $2))) OR ${sharingSql('n')})`,
         `n.type = '${NOTEBOOK_DOC_TYPE}'`,
-        '(n.organization_id IS NULL OR n.organization_id = (SELECT "organizationId" FROM users WHERE id = $2))',
     ];
+    const visibility = `CASE WHEN n.sharing_audience IN ('organisation','restricted') THEN 'team' ELSE 'private' END`;
+    if (bound.visibility) where.push(`${visibility} = '${bound.visibility === 'team' ? 'team' : 'private'}'`);
     if (bound.query) where.push(`(n.name ILIKE ${bound.query} OR n.description ILIKE ${bound.query})`);
     if (bound.folderSet) where.push(bound.folder ? `n.folder_id = ${bound.folder}` : 'n.folder_id IS NULL');
     if (bound.category) where.push(`COALESCE(n.categories, '[]'::jsonb) @> ${bound.category}::jsonb`);
     return `SELECT n.id, n.user_id, n.name, '${NOTEBOOK_DOC_TYPE}'::text AS doc_type, COALESCE(n.description, '') AS description,
-            'document'::text AS kind, 'private'::text AS visibility, n.folder_id, COALESCE(n.categories, '[]'::jsonb) AS categories,
+            'document'::text AS kind, ${visibility}::text AS visibility, n.folder_id, COALESCE(n.categories, '[]'::jsonb) AS categories,
             NULL::text AS version_id, 0 AS html_size, n.project_id, n.last_edited_by AS updated_by, false AS archived,
             n.created_at, n.updated_at,
             (SELECT COUNT(*)::int FROM notebook_sources s WHERE s.notebook_id = n.id) AS source_count

@@ -70,10 +70,15 @@ describe('ConditionBuilder — trivial values open visual, not raw', () => {
         expect(screen.getByText('no value needed')).toBeTruthy();
     });
 
-    it('the [*] wildcard warning is suppressed for a "has a value" row', () => {
+    it('the [*] list hint is suppressed for a "has a value" row', () => {
+        renderBuilder({ value: 'steps.a_af2f5b.output.results[*].to', context: 'filter' });
+        expect(screen.queryByText(/This field holds a list/)).toBeNull();
+    });
+
+    it('a whole-run Condition never shows the old "Add a Filter step" line (the whole-list notice says it)', () => {
         renderBuilder({ value: 'steps.a_af2f5b.output.results[*].to' });
-        expect(screen.queryByText(/Add a Filter step to work through items/)).toBeNull();
-        expect(screen.queryByText(/current element is bound as `item`/)).toBeNull();
+        expect(screen.queryByText(/Add a Filter step/)).toBeNull();
+        expect(screen.queryByText(/This field holds a list/)).toBeNull();
     });
 
     it('an external re-sync to a trivial value also opens visual, not raw', () => {
@@ -90,6 +95,24 @@ describe('ConditionBuilder — trivial values open visual, not raw', () => {
             </VariablePickerProvider>,
         );
         expect(screen.getByText('Add condition')).toBeTruthy();
+    });
+});
+
+describe('ConditionBuilder — text rows', () => {
+    beforeEach(() => cleanup());
+
+    it('a text field reads "is" (equals, any upper/lower case)', () => {
+        const previewSample = { steps: { s1: { output: { status: 'Open' } } } };
+        renderBuilder({ value: 'equals(steps.s1.output.status, "open")' }, { previewSample });
+        expect(screen.getByTitle('Field type: string').value).toBe('is');
+    });
+
+    it('a saved == on text keeps its own operator, "is exactly (same upper/lower case)"', () => {
+        const previewSample = { steps: { s1: { output: { status: 'Open' } } } };
+        renderBuilder({ value: 'steps.s1.output.status == "Open"' }, { previewSample });
+        const select = screen.getByTitle('Field type: string');
+        expect(select.value).toBe('eq');
+        expect(screen.getByText('is exactly (same upper/lower case)')).toBeTruthy();
     });
 });
 

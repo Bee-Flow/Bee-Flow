@@ -68,7 +68,7 @@ function readConfig(env = process.env) {
 function requireCredentials(config) {
     if (!config.email || !config.password) {
         throw new Error(
-            'Soverin credentials are not configured. Add your Soverin e-mail address and password under Settings → Integrations.'
+            'Soverin credentials are not configured. Add your Soverin e-mail address and password under Settings → Connections.'
         );
     }
     return config;

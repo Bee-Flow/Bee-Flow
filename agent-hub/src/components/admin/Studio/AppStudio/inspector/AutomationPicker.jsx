@@ -19,14 +19,14 @@ import Spinner from '../../../../shared/Spinner';
  * programmatically), then everything else.
  */
 
-const TRIGGER_LABELS = {
-    app_trigger: 'Studio App',
-    agent_call: 'Agent call',
-    schedule: 'Schedule',
-    webhook: 'Webhook',
-    app_event: 'App event',
-    manual: 'Manual',
-};
+const triggerLabels = (t) => ({
+    app_trigger: t('studio_apps_insp.automation_picker.trigger_app', 'Studio App'),
+    agent_call: t('studio_apps_insp.automation_picker.trigger_agent_call', 'Agent call'),
+    schedule: t('studio_apps_insp.automation_picker.trigger_schedule', 'Schedule'),
+    webhook: t('studio_apps_insp.automation_picker.trigger_webhook', 'Webhook'),
+    app_event: t('studio_apps_insp.automation_picker.trigger_app_event', 'App event'),
+    manual: t('studio_apps_insp.automation_picker.trigger_manual', 'Manual'),
+});
 
 /**
  * The badges beside an automation's name.
@@ -47,8 +47,9 @@ function triggerKindOf(automation) {
 }
 
 export default function AutomationPicker({ open, onClose, onPick, formFields = [], appRef = null }) {
+    const { t } = useTranslation();
     return (
-        <Modal open={open} onClose={onClose} title="Choose an automation" size="lg">
+        <Modal open={open} onClose={onClose} title={t('studio_apps_insp.automation_picker.title', 'Choose an automation')} size="lg">
             {/* Body mounts fresh on every open, so search + results reset. */}
             {open ? <AutomationPickerBody onPick={onPick} formFields={formFields} appRef={appRef} /> : null}
         </Modal>
@@ -56,6 +57,8 @@ export default function AutomationPicker({ open, onClose, onPick, formFields = [
 }
 
 function AutomationPickerBody({ onPick, formFields, appRef }) {
+    const { t } = useTranslation();
+    const triggerLabelFor = triggerLabels(t);
     const api = useAutomationApi();
     const [automations, setAutomations] = useState(null); // null = loading
     const [error, setError] = useState(null);
@@ -94,8 +97,8 @@ function AutomationPickerBody({ onPick, formFields, appRef }) {
                     className={`${INPUT_CLS} pl-9`}
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Search automations…"
-                    aria-label="Search automations"
+                    placeholder={t('studio_apps_insp.automation_picker.search_placeholder', 'Search automations…')}
+                    aria-label={t('studio_apps_insp.automation_picker.search_aria', 'Search automations')}
                     spellCheck={false}
                 />
             </div>
@@ -104,11 +107,11 @@ function AutomationPickerBody({ onPick, formFields, appRef }) {
                 <div className="flex items-center justify-center py-8"><Spinner size="sm" /></div>
             )}
             {error && (
-                <p className="text-xs text-rose-500 py-2">Could not load automations: {error}</p>
+                <p className="text-xs text-rose-500 py-2">{t('studio_apps_insp.automation_picker.load_error', 'Could not load automations:')} {error}</p>
             )}
             {automations !== null && !error && filtered.length === 0 && (
                 <p className="text-sm text-[var(--text-secondary)] py-6 text-center">
-                    {query ? 'No automations match your search.' : 'No automations yet.'}
+                    {query ? t('studio_apps_insp.automation_picker.no_match', 'No automations match your search.') : t('studio_apps_insp.automation_picker.none_yet', 'No automations yet.')}
                 </p>
             )}
 
@@ -121,7 +124,7 @@ function AutomationPickerBody({ onPick, formFields, appRef }) {
                 <CreateAutomationRow formFields={formFields} appRef={appRef} onCreated={onPick} />
             ) : null}
 
-            <ul className="flex flex-col gap-1.5" aria-label="Automations">
+            <ul className="flex flex-col gap-1.5" aria-label={t('studio_apps_insp.automation_picker.list_aria', 'Automations')}>
                 {filtered.map((a) => {
                     const kind = triggerKindOf(a);
                     return (
@@ -134,24 +137,24 @@ function AutomationPickerBody({ onPick, formFields, appRef }) {
                                 <div className="flex items-center gap-2 min-w-0">
                                     <Workflow className="w-4 h-4 shrink-0 text-[var(--text-tertiary)]" />
                                     <span className="text-sm font-medium text-[var(--text-primary)] truncate">
-                                        {a.title || 'Untitled automation'}
+                                        {a.title || t('studio_apps_insp.automation_picker.untitled', 'Untitled automation')}
                                     </span>
                                     {a.isActive && (
                                         <span className={PILL_CLS}>
-                                            Active
+                                            {t('studio_apps_insp.automation_picker.active', 'Active')}
                                         </span>
                                     )}
                                     <span className="shrink-0 ml-auto text-[11px] px-1.5 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
-                                        {TRIGGER_LABELS[kind] || kind}
+                                        {triggerLabelFor[kind] || kind}
                                     </span>
                                     {kind === 'app_trigger' && (
                                         <span className={PILL_CLS}>
-                                            Built for apps
+                                            {t('studio_apps_insp.automation_picker.built_for_apps', 'Built for apps')}
                                         </span>
                                     )}
                                     {kind === 'agent_call' && (
                                         <span className={PILL_CLS}>
-                                            Best for apps
+                                            {t('studio_apps_insp.automation_picker.best_for_apps', 'Best for apps')}
                                         </span>
                                     )}
                                 </div>
@@ -303,8 +306,8 @@ function CreateAutomationRow({ formFields, appRef = null, onCreated }) {
         setError(null);
         try {
             const { automation } = await api.createAutomation({
-                title: 'New automation for this app',
-                description: 'Called by a Studio app action.',
+                title: t('studio_apps_insp.automation_picker.new_title', 'New automation for this app'),
+                description: t('studio_apps_insp.automation_picker.new_description', 'Called by a Studio app action.'),
                 triggerType: 'manual',
                 definition: {
                     trigger: {
@@ -345,7 +348,7 @@ function CreateAutomationRow({ formFields, appRef = null, onCreated }) {
                 className="self-start inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md border border-dashed border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)]"
             >
                 <Plus className="w-3.5 h-3.5" aria-hidden="true" />
-                {busy ? 'Making it…' : 'Make an automation for this app'}
+                {busy ? t('studio_apps_insp.automation_picker.making', 'Making it…') : t('studio_apps_insp.automation_picker.make', 'Make an automation for this app')}
             </button>
             <span className="text-[11px] text-[var(--text-secondary)]">
                 {/* The plural is chosen by picking the KEY, never by gluing an

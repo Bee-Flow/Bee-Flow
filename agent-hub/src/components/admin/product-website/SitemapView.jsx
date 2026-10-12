@@ -6,6 +6,7 @@ import { slugIssues } from '../../../utils/cmsPublicRouting';
 import { authFetch } from '../../../utils/helpers';
 import AppIcon from '../../icons/AppIcon';
 import useConfirm from '../../shared/useConfirm';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
  * SitemapView — top-down tree of the site's pages.
@@ -274,6 +275,7 @@ async function ensureOk(res, fallback) {
 // ── SitemapView ──────────────────────────────────────────────────────
 
 export default function SitemapView({ siteId, activePageId, onSelectPage, onMutated }) {
+    const { t } = useTranslation();
     const containerRef = useRef(null);
     const [adminPayload, setAdminPayload] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -407,7 +409,7 @@ export default function SitemapView({ siteId, activePageId, onSelectPage, onMuta
     if (loading) {
         return (
             <div className="flex-1 flex items-center justify-center text-[var(--text-secondary)] text-sm">
-                Loading sitemap…
+                {t('cms_site.site.sitemap.loading', 'Loading sitemap…')}
             </div>
         );
     }
@@ -416,7 +418,7 @@ export default function SitemapView({ siteId, activePageId, onSelectPage, onMuta
             <div className="flex-1 flex flex-col items-center justify-center gap-3 text-sm">
                 <p className="text-red-400">{error}</p>
                 <button type="button" onClick={handleRefresh} className="px-3 py-1.5 text-xs rounded-md border border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--accent-primary)]">
-                    Retry
+                    {t('cms_site.site.sitemap.retry', 'Retry')}
                 </button>
             </div>
         );
@@ -432,11 +434,11 @@ export default function SitemapView({ siteId, activePageId, onSelectPage, onMuta
             {/* Toolbar */}
             <div className="flex items-center gap-3 px-4 py-2 border-b border-[var(--border-subtle)] text-xs text-[var(--text-muted)] shrink-0">
                 <span>
-                    {pages.length} page{pages.length !== 1 ? 's' : ''}
+                    {pages.length === 1 ? t('cms_site.site.sitemap.page_one', '{n} page', { n: pages.length }) : t('cms_site.site.sitemap.page_other', '{n} pages', { n: pages.length })}
                     {' · '}
-                    {chromeTargets.size} chrome link{chromeTargets.size !== 1 ? 's' : ''}
+                    {chromeTargets.size === 1 ? t('cms_site.site.sitemap.chrome_link_one', '{n} chrome link', { n: chromeTargets.size }) : t('cms_site.site.sitemap.chrome_link_other', '{n} chrome links', { n: chromeTargets.size })}
                     {' · '}
-                    {internalEdges.length} internal link{internalEdges.length !== 1 ? 's' : ''}
+                    {internalEdges.length === 1 ? t('cms_site.site.sitemap.internal_link_one', '{n} internal link', { n: internalEdges.length }) : t('cms_site.site.sitemap.internal_link_other', '{n} internal links', { n: internalEdges.length })}
                 </span>
                 <div className="flex-1" />
                 {Object.keys(overrides).length > 0 ? (
@@ -444,26 +446,26 @@ export default function SitemapView({ siteId, activePageId, onSelectPage, onMuta
                         type="button"
                         onClick={handleResetLayout}
                         className="flex items-center gap-1 text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
-                        title="Reset manual node positions"
+                        title={t('cms_site.site.sitemap.reset_title', 'Reset manual node positions')}
                     >
                         <AppIcon name="RotateCcw" className="w-3.5 h-3.5" />
-                        Reset layout
+                        {t('cms_site.site.sitemap.reset_layout', 'Reset layout')}
                     </button>
                 ) : null}
                 <button
                     type="button"
                     onClick={handleRefresh}
                     className="flex items-center gap-1 text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
-                    title="Refresh graph"
+                    title={t('cms_site.site.sitemap.refresh_title', 'Refresh graph')}
                 >
                     <AppIcon name="RefreshCw" className="w-3.5 h-3.5" />
-                    Refresh
+                    {t('cms_site.site.sitemap.refresh', 'Refresh')}
                 </button>
             </div>
 
             {isEmpty ? (
                 <div className="flex-1 flex items-center justify-center text-sm text-[var(--text-muted)]">
-                    No pages yet. Add a page to see the sitemap.
+                    {t('cms_site.site.sitemap.empty', 'No pages yet. Add a page to see the sitemap.')}
                 </div>
             ) : (
                 <div
@@ -579,10 +581,10 @@ export default function SitemapView({ siteId, activePageId, onSelectPage, onMuta
                                     height: CHROME_H,
                                 }}
                                 className="flex items-center justify-center gap-1.5 px-3 rounded-full bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] text-[10px] uppercase tracking-wider text-[var(--text-secondary)] select-none pointer-events-none"
-                                aria-label="Site chrome — header and footer"
+                                aria-label={t('cms_site.site.sitemap.chrome_aria', 'Site chrome — header and footer')}
                             >
                                 <AppIcon name="LayoutTemplate" className="w-3 h-3" />
-                                Header / Footer
+                                {t('cms_site.site.sitemap.header_footer', 'Header / Footer')}
                             </div>
                         ) : null}
 
@@ -596,7 +598,7 @@ export default function SitemapView({ siteId, activePageId, onSelectPage, onMuta
                                 }}
                                 className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] pointer-events-none"
                             >
-                                Unlinked pages
+                                {t('cms_site.site.sitemap.unlinked_pages', 'Unlinked pages')}
                             </div>
                         ) : null}
 
@@ -666,11 +668,11 @@ export default function SitemapView({ siteId, activePageId, onSelectPage, onMuta
 
             {/* Legend (bottom-left corner of toolbar strip). */}
             <div className="px-4 py-2 border-t border-[var(--border-subtle)] shrink-0 flex items-center gap-4 text-[10px] text-[var(--text-muted)]">
-                <LegendItem color="var(--accent-primary)" style="solid"  label="Nav link" />
-                <LegendItem color="var(--text-secondary)" style="dashed" label="Internal link" />
-                <LegendItem color="#f59e0b"               style="dotted" label="Backlink" />
+                <LegendItem color="var(--accent-primary)" style="solid"  label={t('cms_site.site.sitemap.legend_nav', 'Nav link')} />
+                <LegendItem color="var(--text-secondary)" style="dashed" label={t('cms_site.site.sitemap.legend_internal', 'Internal link')} />
+                <LegendItem color="#f59e0b"               style="dotted" label={t('cms_site.site.sitemap.legend_backlink', 'Backlink')} />
                 <div className="flex-1" />
-                <span>Drag a card to tidy · Click ⚙ to edit a page</span>
+                <span>{t('cms_site.site.sitemap.hint', 'Drag a card to tidy · Click ⚙ to edit a page')}</span>
             </div>
         </div>
     );
@@ -679,6 +681,7 @@ export default function SitemapView({ siteId, activePageId, onSelectPage, onMuta
 // ── Node card ────────────────────────────────────────────────────────
 
 function NodeCard({ page, pos, isHomepage, isOrphan, isActive, inNav, onMouseDown, onGear }) {
+    const { t } = useTranslation();
     const title = page.title || '(untitled)';
     const truncated = title.length > 20 ? title.slice(0, 19) + '…' : title;
     const borderColor = isActive
@@ -720,8 +723,8 @@ function NodeCard({ page, pos, isHomepage, isOrphan, isActive, inNav, onMouseDow
                     type="button"
                     role="button"
                     tabIndex={0}
-                    aria-label={`Edit page ${title}`}
-                    title="Edit page"
+                    aria-label={t('cms_site.site.sitemap.edit_page_named', 'Edit page {title}', { title })}
+                    title={t('cms_site.site.sitemap.edit_page', 'Edit page')}
                     onMouseDown={(e) => e.stopPropagation()}
                     onClick={(e) => { e.stopPropagation(); onGear(); }}
                     onKeyDown={handleGearKey}
@@ -738,9 +741,9 @@ function NodeCard({ page, pos, isHomepage, isOrphan, isActive, inNav, onMouseDow
             </span>
             {/* Badges */}
             <div className="px-3 pb-2 mt-auto flex items-center gap-1 text-[9px] uppercase tracking-wider">
-                {isHomepage ? <Badge variant="home">Home</Badge> : null}
-                {!isHomepage && inNav ? <Badge variant="nav">In nav</Badge> : null}
-                {!isHomepage && isOrphan ? <Badge variant="orphan">Orphan</Badge> : null}
+                {isHomepage ? <Badge variant="home">{t('cms_site.site.sitemap.badge_home', 'Home')}</Badge> : null}
+                {!isHomepage && inNav ? <Badge variant="nav">{t('cms_site.site.sitemap.badge_in_nav', 'In nav')}</Badge> : null}
+                {!isHomepage && isOrphan ? <Badge variant="orphan">{t('cms_site.site.sitemap.badge_orphan', 'Orphan')}</Badge> : null}
             </div>
         </div>
     );
@@ -767,14 +770,15 @@ function Badge({ variant, children }) {
 // there. Marked as a follow-up.
 
 function EdgePopover({ edgePopover, onClose }) {
+    const { t } = useTranslation();
     const ref = useRef(null);
     useOutsideDismiss(ref, onClose);
 
     const kindLabel = edgePopover.info.kind === 'chrome'
-        ? 'Nav link (Site chrome)'
+        ? t('cms_site.site.sitemap.kind_chrome', 'Nav link (Site chrome)')
         : edgePopover.info.kind === 'tree'
-            ? 'Internal link'
-            : 'Backlink';
+            ? t('cms_site.site.sitemap.legend_internal', 'Internal link')
+            : t('cms_site.site.sitemap.legend_backlink', 'Backlink');
 
     return (
         <div
@@ -799,6 +803,7 @@ function EdgePopover({ edgePopover, onClose }) {
 // ── Settings flyout ──────────────────────────────────────────────────
 
 function SettingsFlyout({ page, pages, site, siteId, anchorPos, canvasWidth, onClose, onChanged, onOpenInEditor }) {
+    const { t } = useTranslation();
     const { confirm, confirmDialog } = useConfirm();
     const [title, setTitle] = useState(page.title || '');
     const [slug, setSlug]   = useState(page.slug  || '');
@@ -909,19 +914,19 @@ function SettingsFlyout({ page, pages, site, siteId, anchorPos, canvasWidth, onC
             onMouseDown={(e) => e.stopPropagation()}
         >
             <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--border-subtle)]">
-                <span className="text-xs font-semibold text-[var(--text-primary)]">Page settings</span>
+                <span className="text-xs font-semibold text-[var(--text-primary)]">{t('cms_site.site.sitemap.page_settings', 'Page settings')}</span>
                 <button
                     type="button"
                     onClick={onClose}
                     className="text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
-                    title="Close"
+                    title={t('cms_site.site.sitemap.close', 'Close')}
                 >
                     <AppIcon name="X" className="w-3.5 h-3.5" />
                 </button>
             </div>
             <div className="p-3 flex flex-col gap-2.5">
                 <label className="flex flex-col gap-1">
-                    <span className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">Title</span>
+                    <span className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">{t('cms_site.site.sitemap.title', 'Title')}</span>
                     <input
                         type="text"
                         value={title}
@@ -931,7 +936,7 @@ function SettingsFlyout({ page, pages, site, siteId, anchorPos, canvasWidth, onC
                     />
                 </label>
                 <label className="flex flex-col gap-1">
-                    <span className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">Slug</span>
+                    <span className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">{t('cms_site.site.sitemap.slug', 'Slug')}</span>
                     <input
                         type="text"
                         value={slug}
@@ -946,7 +951,7 @@ function SettingsFlyout({ page, pages, site, siteId, anchorPos, canvasWidth, onC
                     ) : null}
                 </label>
                 <div className="flex items-center justify-between pt-1">
-                    <span className="text-xs text-[var(--text-secondary)]">Show in nav</span>
+                    <span className="text-xs text-[var(--text-secondary)]">{t('cms_site.site.sitemap.show_in_nav', 'Show in nav')}</span>
                     <button
                         type="button"
                         onClick={() => handleToggleNav(!inNav)}
@@ -980,7 +985,7 @@ function SettingsFlyout({ page, pages, site, siteId, anchorPos, canvasWidth, onC
                         disabled={busy}
                         className="px-3 py-1.5 text-xs rounded-md border border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--accent-primary)]/60 hover:text-[var(--accent-primary)] disabled:opacity-50"
                     >
-                        Open in editor
+                        {t('cms_site.site.sitemap.open_in_editor', 'Open in editor')}
                     </button>
                 </div>
 
@@ -990,9 +995,9 @@ function SettingsFlyout({ page, pages, site, siteId, anchorPos, canvasWidth, onC
                         onClick={handleSetHomepage}
                         disabled={busy || page.isHomepage}
                         className="text-xs text-[var(--text-secondary)] hover:text-[var(--accent-primary)] disabled:opacity-40 disabled:cursor-not-allowed"
-                        title={page.isHomepage ? 'Already the homepage' : 'Promote to homepage'}
+                        title={page.isHomepage ? t('cms_site.site.sitemap.already_home', 'Already the homepage') : t('cms_site.site.sitemap.promote_home', 'Promote to homepage')}
                     >
-                        Set as homepage
+                        {t('cms_site.site.sitemap.set_homepage', 'Set as homepage')}
                     </button>
                     <button
                         type="button"
@@ -1000,10 +1005,10 @@ function SettingsFlyout({ page, pages, site, siteId, anchorPos, canvasWidth, onC
                         disabled={busy || (page.isHomepage && pages.length > 1)}
                         className="text-xs text-red-400 hover:text-red-300 disabled:opacity-40 disabled:cursor-not-allowed"
                         title={page.isHomepage && pages.length > 1
-                            ? 'Promote another page to homepage first'
-                            : 'Delete this page'}
+                            ? t('cms_site.site.sitemap.promote_first', 'Promote another page to homepage first')
+                            : t('cms_site.site.sitemap.delete_this', 'Delete this page')}
                     >
-                        Delete page
+                        {t('cms_site.site.sitemap.delete_page', 'Delete page')}
                     </button>
                 </div>
             </div>

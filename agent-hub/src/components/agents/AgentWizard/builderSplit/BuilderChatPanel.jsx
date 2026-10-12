@@ -27,7 +27,7 @@ export default function BuilderChatPanel({ chatWidth, t, chatScrollRef, chat, ch
                 <div ref={chatScrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
                     {chat.length === 0 && (
                         <div className="h-full flex flex-col items-center justify-center text-center px-3">
-                            <img src={beeFlowIcon} alt="Bee Flow" className="w-12 h-12 mb-4" />
+                            <img src={beeFlowIcon} alt={t('agent_wizard.builder_chat_bee_flow', 'Bee Flow')} className="w-12 h-12 mb-4" />
                             <div className="text-base font-semibold text-[var(--text-primary)] mb-2">
                                 {t('agent_wizard.builder.chat_empty_title', 'Refine this agent with AI')}
                             </div>

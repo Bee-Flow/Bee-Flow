@@ -1,0 +1,30 @@
+{
+  "en": {
+    "compliance.clock_days_left": "{days} days left",
+    "compliance.clock_hours_left": "{hours} hours left",
+    "compliance.clock_days_left_one": "1 day left",
+    "compliance.clock_hours_left_one": "1 hour left",
+    "compliance.clock_days_overdue_one": "overdue by 1 day",
+    "compliance.clock_hours_overdue_one": "overdue by 1 hour",
+    "compliance.clock_done_in_days_one": "completed in 1 day",
+    "compliance.clock_row_days_left": "{days} d left",
+    "compliance.clock_row_days_overdue": "{days} d overdue",
+    "compliance.clock_row_hours_left": "{hours} h left",
+    "compliance.clock_row_hours_overdue": "{hours} h overdue",
+    "compliance.ref_more": "+{n}"
+  },
+  "nl": {
+    "compliance.clock_days_left": "nog {days} dagen",
+    "compliance.clock_hours_left": "nog {hours} uur",
+    "compliance.clock_days_left_one": "nog 1 dag",
+    "compliance.clock_hours_left_one": "nog 1 uur",
+    "compliance.clock_days_overdue_one": "1 dag te laat",
+    "compliance.clock_hours_overdue_one": "1 uur te laat",
+    "compliance.clock_done_in_days_one": "afgerond in 1 dag",
+    "compliance.clock_row_days_left": "nog {days} d",
+    "compliance.clock_row_days_overdue": "{days} d te laat",
+    "compliance.clock_row_hours_left": "nog {hours} u",
+    "compliance.clock_row_hours_overdue": "{hours} u te laat",
+    "compliance.ref_more": "+{n}"
+  }
+}

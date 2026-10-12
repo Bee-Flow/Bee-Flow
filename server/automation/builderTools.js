@@ -14,7 +14,6 @@
  * path, the dispatch table and the exact public surface.
  */
 
-const automationStore = require('../stores/automationStore');
 const { summariseDefinition } = require('./summarise');
 
 // §WS5 — trigger catalog data + tool schemas live in ./builderTools/.
@@ -38,6 +37,7 @@ const {
     generateLayerKey, makeLayerSkeleton, sanitizeLayerParams,
     applyCreateLayer, applySetLayerContract, applyAddCallLayer,
 } = require('./builderTools/layers');
+const { applyInlineLayer } = require('./builderTools/inlineLayer');
 const { applyAddApproval } = require('./builderTools/approval');
 const { applyCreateDatatable } = require('./builderTools/datatableCreate');
 const { applyAddTrigger, applyUpdateTrigger } = require('./builderTools/triggers');
@@ -46,11 +46,13 @@ const {
 } = require('./builderTools/stepEditing');
 const { applyAddSteps } = require('./builderTools/addSteps');
 const { applyInspectTool } = require('./builderTools/inspection');
+const { followAddedSteps } = require('./builderTools/routeFollowDraft');
 const {
     summariseDraftSteps, renderStepIdLine, renderEdgeLine,
     compactSample, compactDryRunForModel, truncateToolResultJson,
 } = require('./builderTools/modelPayload');
 const { persistDraft } = require('./builderTools/persistence');
+const { applyRequestDryRun } = require('./builderTools/dryRun');
 const { canonicalJson, applyPatchOps, describePatch } = require('./builderTools/suggestedPatch');
 
 function applySetMetadata(draft, args) {
@@ -98,6 +100,8 @@ const MUTATING_TOOLS = new Set([
     'builder_add_note',
     // inline flowlets
     'builder_create_layer', 'builder_set_layer_contract',
+    // Fold a flowlet into the flow that calls it (an approved plan asks for it).
+    'builder_inline_layer',
     // §WS4 on-error branches
     'builder_wire_error_branch',
 ]);
@@ -184,6 +188,8 @@ const TOPOLOGY_TOOLS = new Set([
     'builder_remove_step', 'builder_replace_step', 'builder_update_step',
     'builder_update_steps', 'builder_add_condition', 'builder_add_switch',
     'builder_wire_error_branch', 'builder_add_loop', 'builder_set_layer_contract',
+    // Replaces one step by the flowlet's whole graph: the model needs the new ids.
+    'builder_inline_layer',
     // Introduces a whole new scoped graph (trigger params + layer_output) —
     // the model needs the structured per-layer section, not just ids.
     'builder_create_layer',
@@ -232,6 +238,7 @@ async function applyToolCall(name, args, draftWrap) {
     // would resend from index i against a graph it was never shown.
     const partial = !!(result && typeof result === 'object' && result.error && Array.isArray(result.added) && result.added.length);
     if (MUTATING_TOOLS.has(name) && result && typeof result === 'object' && (!result.error || partial)) {
+        followAdded(result, callArgs, draftWrap);
         if (TOPOLOGY_TOOLS.has(name) || draftWrap._resultDetail === 'full') {
             result._draftSteps = summariseDraftSteps(draftWrap.def);
         } else {
@@ -300,6 +307,30 @@ async function applyToolCall(name, args, draftWrap) {
     // a third identical resend after a failed patch must still count.
     rejectionLadder(name, args, result, draftWrap, { patched: !!repaired });
     return result;
+}
+
+/**
+ * Follow the route (W8): every step this call added that hangs off a
+ * Condition working through a list reads what that Condition keeps, and an
+ * added list Condition hands its outputs to the step after it (a splice).
+ * The rewrites are the canvas's own (shared/expr/routeFollow.mjs) and are
+ * said in `_warnings`, so the model knows which of its refs moved.
+ */
+function followAdded(result, callArgs, draftWrap) {
+    if (!result.added) return;
+    const list = Array.isArray(result.added) ? result.added : [result.added];
+    const ids = list.map(a => a && a.id).filter(id => typeof id === 'string');
+    if (!ids.length) return;
+    const scope = callArgs && typeof callArgs.scope === 'string' && callArgs.scope ? callArgs.scope : null;
+    const graph = scope ? draftWrap.def.layers?.[scope] : draftWrap.def;
+    if (!graph) return;
+    const notes = followAddedSteps(graph, ids);
+    if (!notes.length) return;
+    (result._warnings = result._warnings || []).push(...notes);
+    // A single added step that was itself re-pointed: echo what is stored.
+    if (!Array.isArray(result.added)) {
+        result.added = (graph.steps || []).find(s => s && s.id === result.added.id) || result.added;
+    }
 }
 
 // ── The repeat ladder ────────────────────────────────────────────────
@@ -443,6 +474,65 @@ function rejectionLadder(name, args, result, draftWrap, { patched = false } = {}
     return result;
 }
 
+/**
+ * The `_hint` a dry-run step carries for the model: the output's type, its
+ * top-level keys and a DEEP one-line shape in the run's own path grammar
+ * (`messages[*]: { payload: { parts[*]: { body: { data } } } }`), the union
+ * of every list entry, JSON text shown as what it encodes. Keys and types,
+ * never values.
+ *
+ * An output over the 256 KB row cap is stored as a sentinel; its own keys
+ * (`__truncated__`, `headSample`) are not the step's fields, and hinting
+ * them taught the model to bind `steps.x.output.headSample`. The full copy
+ * kept beside the row is read instead (or the sentinel's shape-preserving
+ * preview when there is no copy). What the step really returned is also
+ * remembered on the draft wrap for the rest of the turn, so the binding
+ * checks of the next calls see this run's real shape (refCheck.js) — the
+ * preview as `partial`: it cut lists and wide records, so nothing it lacks
+ * is a reason to refuse, or even to doubt, a binding.
+ */
+async function dryRunHint(s, draftWrap, { readFullOutput = null } = {}) {
+    let out = s.output;
+    let note = null;
+    let partial = false;
+    const { isTruncatedOutput, fullOutputRefOf } = require('./payloadTruncation');
+    if (isTruncatedOutput(out)) {
+        const ref = fullOutputRefOf(out);
+        let full = null;
+        if (ref) {
+            const read = readFullOutput || require('../stores/automationStore/runFullOutputs').getRunFullOutput;
+            try { full = await read(ref.runId, ref.stepId, ref.attempts); }
+            catch { full = null; }
+        }
+        note = 'output over 256 KB: the shape is read from the full copy';
+        if (full === null || full === undefined) {
+            out = out.preview !== undefined ? out.preview : undefined;
+            partial = true;
+            note = out === undefined
+                ? 'output over 256 KB and not kept: its shape is unknown here — inspect the step\'s tool instead'
+                : 'output over 256 KB: the shape is read from a shortened preview (lists cut, keys kept)';
+        } else {
+            out = full;
+        }
+    }
+    const isObj = out && typeof out === 'object' && !Array.isArray(out);
+    const shapeCache = require('./shapeCache');
+    const shape = out !== undefined && out !== null && typeof out === 'object' ? shapeCache.shapeHintOf(out) : null;
+    if (out !== undefined && draftWrap && draftWrap.def) {
+        const found = findStepAnywhere(draftWrap.def, s.stepId);
+        if (found) require('./builderTools/refCheck').rememberStepShape(draftWrap, found.step, out, { partial });
+    }
+    // A step on a table that is only proposed ran against nothing: say so, so
+    // the model does not read the empty result as "the table has no rows".
+    if (isObj && out._pendingTable) note = [note, 'table not created yet: a preview reads no rows and writes nothing'].filter(Boolean).join('; ');
+    return {
+        outputType: Array.isArray(out) ? 'array' : (out === null || out === undefined ? 'null' : typeof out),
+        topKeys: isObj ? Object.keys(out) : null,
+        shape,
+        ...(note ? { note } : {}),
+    };
+}
+
 async function _applyToolCallRaw(name, args, draftWrap, { sent = args } = {}) {
     const draft = draftWrap.def;
     // Central scope resolution (inline flowlets): scoped tools may pass
@@ -467,36 +557,37 @@ async function _applyToolCallRaw(name, args, draftWrap, { sent = args } = {}) {
         case 'builder_add_action':         return applyAddAction(graph, args, draftWrap);
         case 'builder_add_ai_step':        return applyAddAi(graph, args, draftWrap);
         case 'builder_add_condition':      return applyAddCondition(graph, args);
-        case 'builder_add_loop':           return applyAddLoop(graph, args);
-        case 'builder_add_code_step':      return applyAddCode(graph, args);
-        case 'builder_add_notification':   return applyAddNotification(graph, args);
-        case 'builder_add_http_request':   return applyAddHttpRequest(graph, args);
-        case 'builder_add_generate_document': return applyAddGenerateDocument(graph, args);
+        case 'builder_add_loop':           return applyAddLoop(graph, args, draftWrap);
+        case 'builder_add_code_step':      return applyAddCode(graph, args, draftWrap);
+        case 'builder_add_notification':   return applyAddNotification(graph, args, draftWrap);
+        case 'builder_add_http_request':   return applyAddHttpRequest(graph, args, draftWrap);
+        case 'builder_add_generate_document': return applyAddGenerateDocument(graph, args, draftWrap);
         case 'builder_add_fill_document':  return applyAddFillDocument(graph, args, draftWrap);
-        case 'builder_add_slide':          return applyAddSlide(graph, args);
+        case 'builder_add_slide':          return applyAddSlide(graph, args, draftWrap);
         case 'builder_add_presentation':   return applyAddPresentation(graph, args);
         case 'builder_add_data_extraction': return applyAddDataExtraction(graph, args, draftWrap);
-        case 'builder_add_set':            return applyAddSet(graph, args);
+        case 'builder_add_set':            return applyAddSet(graph, args, draftWrap);
         case 'builder_add_call_layer':     return applyAddCallLayer(draft, args, { graph, scope });
         case 'builder_create_layer':       return applyCreateLayer(draft, args);
         case 'builder_set_layer_contract': return applySetLayerContract(draft, args);
+        case 'builder_inline_layer':       return applyInlineLayer(graph, draft, args);
         case 'builder_add_datetime':       return applyAddDateTime(graph, args);
         case 'builder_add_wait':           return applyAddWait(graph, args);
         case 'builder_add_approval':       return applyAddApproval(graph, args);
         case 'builder_add_form_page':      return applyAddFormPage(graph, args);
         case 'builder_add_stop_error':     return applyAddStopError(graph, args);
-        case 'builder_add_switch':         return applyAddSwitch(graph, args);
-        case 'builder_add_filter':         return applyAddFilter(graph, args);
-        case 'builder_add_limit':          return applyAddLimit(graph, args);
-        case 'builder_add_dedupe':         return applyAddDedupe(graph, args);
-        case 'builder_add_aggregate':      return applyAddAggregate(graph, args);
-        case 'builder_add_summarize':      return applyAddSummarize(graph, args);
-        case 'builder_add_array_op':       return applyAddArrayOp(graph, args);
+        case 'builder_add_switch':         return applyAddSwitch(graph, args, draftWrap);
+        case 'builder_add_filter':         return applyAddFilter(graph, args, draftWrap);
+        case 'builder_add_limit':          return applyAddLimit(graph, args, draftWrap);
+        case 'builder_add_dedupe':         return applyAddDedupe(graph, args, draftWrap);
+        case 'builder_add_aggregate':      return applyAddAggregate(graph, args, draftWrap);
+        case 'builder_add_summarize':      return applyAddSummarize(graph, args, draftWrap);
+        case 'builder_add_array_op':       return applyAddArrayOp(graph, args, draftWrap);
         case 'builder_add_datatable':      return applyAddDatatable(graph, args, draftWrap);
         // A table made at DESIGN time (a side effect outside the draft — never a
         // graph mutation): the catalog on draftWrap is refreshed in place.
         case 'builder_create_datatable':   return applyCreateDatatable(draftWrap, args);
-        case 'builder_add_knowledge_write': return applyAddKnowledgeWrite(graph, args);
+        case 'builder_add_knowledge_write': return applyAddKnowledgeWrite(graph, args, draftWrap);
         case 'builder_add_note':           return applyAddNote(graph, args);
         case 'builder_add_steps':          return applyAddSteps(graph, args, { draft, scope, sent }, draftWrap);
         case 'builder_wire_error_branch':  return applyWireErrorBranch(graph, args);
@@ -507,50 +598,7 @@ async function _applyToolCallRaw(name, args, draftWrap, { sent = args } = {}) {
         case 'builder_set_metadata':       return applySetMetadata(draftWrap, args);
         case 'builder_summarise':          return applySummarise(draft);
         case 'builder_inspect_tool':       return applyInspectTool(args, draftWrap);
-        case 'builder_request_dry_run': {
-            // Which root to enter through: the primary unless the caller names
-            // one of the additional triggers. Resolved against the DRAFT (the
-            // persisted definition is the same object) so a typo is a clear
-            // error rather than a run that silently entered the primary.
-            let rootStepId = null;
-            if (typeof args.triggerStepId === 'string' && args.triggerStepId) {
-                const known = [draft.trigger, ...(Array.isArray(draft.triggers) ? draft.triggers : [])].filter(t => t && t.id);
-                const hit = known.find(t => t.id === args.triggerStepId);
-                if (!hit) {
-                    return { error: `Unknown triggerStepId "${args.triggerStepId}". Triggers: ${known.map(t => `${t.id}(${t.kind})`).join(', ') || '(none)'}.` };
-                }
-                if (hit.id !== draft.trigger?.id) rootStepId = hit.id;
-            }
-            const automation = await persistDraft(draftWrap);
-            const runner = require('../core/automationRunner');
-            // The run is announced the moment its row exists (the route turns
-            // this into a `dryrun_started` SSE event), so the canvas can follow
-            // the steps live instead of showing a silent tool call for as long
-            // as the run takes — a 32-file fan-out is minutes. Absent on the
-            // MCP surface, where nobody is watching.
-            const onRunCreated = typeof draftWrap._onDryRunStarted === 'function'
-                ? (created) => { try { draftWrap._onDryRunStarted(created); } catch { /* a watcher never fails the run */ } }
-                : null;
-            const run = await runner.executeAutomation(automation, { triggerKind: 'dry_run', triggerPayload: args.triggerPayload || null, mode: 'dry_run', rootStepId, onRunCreated });
-            const steps = await automationStore.getRunSteps(run.id);
-            // Annotate each step with a top-level field hint so the AI
-            // immediately sees what keys are available for binding.
-            const shapeCache = require('./shapeCache');
-            const annotated = steps.map(s => {
-                const out = s.output;
-                const topKeys = (out && typeof out === 'object' && !Array.isArray(out)) ? Object.keys(out) : null;
-                const shapeHint = topKeys ? shapeCache.renderShapeHint(shapeCache.describeValue(out)) : null;
-                return {
-                    ...s,
-                    _hint: {
-                        outputType: Array.isArray(out) ? 'array' : (out === null ? 'null' : typeof out),
-                        topKeys,
-                        shape: shapeHint,
-                    },
-                };
-            });
-            return { run, steps: annotated };
-        }
+        case 'builder_request_dry_run':    return applyRequestDryRun(draftWrap, args, { persistDraft, annotate: dryRunHint });
         case 'builder_finalize': {
             const automation = await persistDraft(draftWrap, { finalize: true });
             // Slim echo: the full automation row embeds the entire definition
@@ -577,6 +625,7 @@ module.exports = {
     generateLayerKey, makeLayerSkeleton, sanitizeLayerParams,
     TRIGGER_FIELDS_BY_EVENT, TRIGGER_OUTPUT_SAMPLES, buildTriggerOutputsCatalog,
     _test_validateAndFixBindings: validateAndFixBindings,
+    _test_dryRunHint: dryRunHint,
     // §A in-place-edit internals (exported for tests)
     findStepAnywhere, PATCHABLE_FIELDS,
     // The repeat ladder's signature (exported for tests)

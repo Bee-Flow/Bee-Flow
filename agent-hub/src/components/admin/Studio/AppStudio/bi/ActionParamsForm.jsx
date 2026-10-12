@@ -1,5 +1,7 @@
 import { AlertTriangle, Link2, Lock, User } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
+import { tRich } from './tRich';
+import useTranslation from '../../../../../hooks/useTranslation';
 
 /**
  * App Studio — an action's parameters, as a real form.
@@ -32,8 +34,8 @@ const INPUT = 'w-full rounded-md px-2 py-1.5 text-sm bg-[var(--bg-tertiary)] bor
 const LABEL = 'text-xs font-medium text-[var(--text-secondary)]';
 
 const SOURCES = [
-    { value: 'pinned', label: 'Pinned', Icon: Lock, hint: 'You set the value; viewers cannot change it.' },
-    { value: 'viewer', label: 'Ask the viewer', Icon: User, hint: 'The app asks each viewer for this value.' },
+    { value: 'pinned', labelKey: 'studio_apps_bi.params.source_pinned', label: 'Pinned', Icon: Lock, hint: 'You set the value; viewers cannot change it.' },
+    { value: 'viewer', labelKey: 'studio_apps_bi.params.source_viewer', label: 'Ask the viewer', Icon: User, hint: 'The app asks each viewer for this value.' },
 ];
 
 /** The parameter names an action declares, required ones first. */
@@ -81,6 +83,7 @@ function typeOf(spec) {
 
 /** A pinned value → the control's display value, and back. */
 function ValueControl({ spec, value, onChange, disabled, id }) {
+    const { t } = useTranslation();
     const kind = typeOf(spec);
     const [jsonText, setJsonText] = useState(() => (value === undefined ? '' : JSON.stringify(value, null, 2)));
     const [jsonError, setJsonError] = useState(null);
@@ -89,7 +92,7 @@ function ValueControl({ spec, value, onChange, disabled, id }) {
         return (
             <select id={id} className={INPUT} value={value ?? ''} disabled={disabled}
                 onChange={(e) => onChange(e.target.value === '' ? undefined : e.target.value)}>
-                <option value="">Not set</option>
+                <option value="">{t('studio_apps_bi.params.not_set', 'Not set')}</option>
                 {spec.enum.map((opt) => <option key={String(opt)} value={String(opt)}>{String(opt)}</option>)}
             </select>
         );
@@ -98,9 +101,9 @@ function ValueControl({ spec, value, onChange, disabled, id }) {
         return (
             <select id={id} className={INPUT} value={value === undefined ? '' : String(!!value)} disabled={disabled}
                 onChange={(e) => onChange(e.target.value === '' ? undefined : e.target.value === 'true')}>
-                <option value="">Not set</option>
-                <option value="true">Yes</option>
-                <option value="false">No</option>
+                <option value="">{t('studio_apps_bi.params.not_set', 'Not set')}</option>
+                <option value="true">{t('studio_apps_bi.params.yes', 'Yes')}</option>
+                <option value="false">{t('studio_apps_bi.params.no', 'No')}</option>
             </select>
         );
     }
@@ -119,7 +122,7 @@ function ValueControl({ spec, value, onChange, disabled, id }) {
         // JSON — `INBOX, UNREAD` rather than `["INBOX","UNREAD"]`.
         const asText = Array.isArray(value) ? value.join(', ') : (value ?? '');
         return (
-            <input id={id} className={INPUT} value={asText} disabled={disabled} placeholder="value, another value"
+            <input id={id} className={INPUT} value={asText} disabled={disabled} placeholder={t('studio_apps_bi.params.list_placeholder', 'value, another value')}
                 onChange={(e) => {
                     const parts = e.target.value.split(',').map((s) => s.trim()).filter(Boolean);
                     onChange(parts.length ? parts : undefined);
@@ -134,7 +137,7 @@ function ValueControl({ spec, value, onChange, disabled, id }) {
                         setJsonText(e.target.value);
                         const raw = e.target.value.trim();
                         if (!raw) { setJsonError(null); onChange(undefined); return; }
-                        try { onChange(JSON.parse(raw)); setJsonError(null); } catch { setJsonError('Invalid JSON'); }
+                        try { onChange(JSON.parse(raw)); setJsonError(null); } catch { setJsonError(t('studio_apps_bi.params.invalid_json', 'Invalid JSON')); }
                     }} />
                 {jsonError ? <span className="text-xs text-[var(--error)]">{jsonError}</span> : null}
             </>
@@ -147,6 +150,7 @@ function ValueControl({ spec, value, onChange, disabled, id }) {
 }
 
 function ParamRow({ param, connector, onChange, disabled }) {
+    const { t } = useTranslation();
     const { key, spec, required } = param;
     const source = sourceOf(connector, key);
     const controlId = `param-${key}`;
@@ -185,9 +189,9 @@ function ParamRow({ param, connector, onChange, disabled }) {
                 <label htmlFor={controlId} className="min-w-0 flex-1">
                     <span className="flex items-center gap-1.5 flex-wrap">
                         <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{key}</span>
-                        {required ? <span className="text-xs" style={{ color: '#d97706' }} aria-label="required">required</span> : null}
+                        {required ? <span className="text-xs" style={{ color: '#d97706' }} aria-label={t('studio_apps_bi.params.required', 'required')}>{t('studio_apps_bi.params.required', 'required')}</span> : null}
                         <span className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>
-                            {Array.isArray(spec.enum) ? 'choice' : (spec.type || 'text')}
+                            {Array.isArray(spec.enum) ? t('studio_apps_bi.params.type_choice', 'choice') : (spec.type || t('studio_apps_bi.params.type_text', 'text'))}
                         </span>
                     </span>
                     {spec.description ? (
@@ -199,12 +203,12 @@ function ParamRow({ param, connector, onChange, disabled }) {
                         className="rounded-md px-2 py-1 text-xs bg-[var(--bg-tertiary)] border border-[var(--border-default)] text-[var(--text-primary)]"
                         value={source === 'chain' ? 'chain' : source}
                         disabled={disabled || source === 'chain'}
-                        aria-label={`Where ${key} comes from`}
+                        aria-label={t('studio_apps_bi.params.source_label', 'Where {key} comes from', { key })}
                         onChange={(e) => setSource(e.target.value)}
                     >
-                        {source === 'unset' ? <option value="unset">Not set</option> : null}
-                        {source === 'chain' ? <option value="chain">From a previous step</option> : null}
-                        {SOURCES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+                        {source === 'unset' ? <option value="unset">{t('studio_apps_bi.params.not_set', 'Not set')}</option> : null}
+                        {source === 'chain' ? <option value="chain">{t('studio_apps_bi.params.from_previous_step', 'From a previous step')}</option> : null}
+                        {SOURCES.map((s) => <option key={s.value} value={s.value}>{t(s.labelKey, s.label)}</option>)}
                     </select>
                 </div>
             </div>
@@ -218,22 +222,21 @@ function ParamRow({ param, connector, onChange, disabled }) {
             {source === 'viewer' ? (
                 <p className="mt-1.5 flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-tertiary)' }}>
                     <User className="h-3 w-3" aria-hidden="true" />
-                    The app asks each viewer for this.
+                    {t('studio_apps_bi.params.viewer_note', 'The app asks each viewer for this.')}
                 </p>
             ) : null}
 
             {source === 'chain' ? (
                 <p className="mt-1.5 flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-tertiary)' }}>
                     <Link2 className="h-3 w-3" aria-hidden="true" />
-                    Filled from <code>{chainStep?.argsFrom?.[key]}</code> of each row from the step before.
+                    {tRich(t, 'studio_apps_bi.params.chain_note', 'Filled from {field} of each row from the step before.', null, { field: <code>{chainStep?.argsFrom?.[key]}</code> })}
                 </p>
             ) : null}
 
             {required && source === 'unset' ? (
                 <p className="mt-1.5 flex items-start gap-1.5 text-xs" style={{ color: '#d97706' }}>
                     <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" aria-hidden="true" />
-                    This action needs {key}. Pin a value, ask the viewer for it, or get it from another action under
-                    “Combine actions”.
+                    {t('studio_apps_bi.params.needs_value', 'This action needs {key}. Pin a value, ask the viewer for it, or get it from another action under “Combine actions”.', { key })}
                 </p>
             ) : null}
         </div>
@@ -241,6 +244,7 @@ function ParamRow({ param, connector, onChange, disabled }) {
 }
 
 export default function ActionParamsForm({ action, connector, onChange, disabled = false, catalogUnavailable = false }) {
+    const { t } = useTranslation();
     const params = useMemo(() => paramsOfAction(action), [action]);
 
     // Values the author pinned that the schema doesn't describe — a hand-typed
@@ -254,34 +258,34 @@ export default function ActionParamsForm({ action, connector, onChange, disabled
     if (catalogUnavailable) {
         return (
             <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                We couldn’t load this action’s parameters. You can still set them as JSON under Advanced settings.
+                {t('studio_apps_bi.params.catalog_unavailable', 'We couldn’t load this action’s parameters. You can still set them as JSON under Advanced settings.')}
             </p>
         );
     }
     if (!action) {
         return (
             <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                Pick an app and an action to see what it needs.
+                {t('studio_apps_bi.params.pick_action', 'Pick an app and an action to see what it needs.')}
             </p>
         );
     }
     if (!params.length) {
         return (
             <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                This action takes no parameters — it runs as-is.
+                {t('studio_apps_bi.params.no_params', 'This action takes no parameters — it runs as-is.')}
             </p>
         );
     }
 
     return (
         <div className="flex flex-col gap-1.5">
-            <span className={LABEL}>What this action needs</span>
+            <span className={LABEL}>{t('studio_apps_bi.params.what_needs', 'What this action needs')}</span>
             {params.map((param) => (
                 <ParamRow key={param.key} param={param} connector={connector} onChange={onChange} disabled={disabled} />
             ))}
             {extras.length ? (
                 <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                    Also sending: {extras.join(', ')} — set under Advanced settings.
+                    {t('studio_apps_bi.params.also_sending', 'Also sending: {keys} — set under Advanced settings.', { keys: extras.join(', ') })}
                 </p>
             ) : null}
         </div>

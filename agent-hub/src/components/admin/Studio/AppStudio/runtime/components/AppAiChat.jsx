@@ -1,6 +1,7 @@
 import { Send, Sparkles } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { MarkdownBlocks } from './AppMarkdown';
+import useTranslation from '../../../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../../../utils/helpers';
 import { useDataContext } from '../DataContext';
 import { useRuntime } from '../RuntimeContext';
@@ -24,6 +25,7 @@ import { parseSseStream } from '../sseStream';
  */
 
 export default function AppAiChat({ node }) {
+    const { t } = useTranslation();
     const { mode } = useRuntime();
     // `draft` picks which definition the server resolves this node against —
     // the editor preview runs the unsaved draft, a published page the frozen
@@ -63,7 +65,7 @@ export default function AppAiChat({ node }) {
             if (!res.ok || !res.body) {
                 let body = null;
                 try { body = await res.json(); } catch { /* not JSON */ }
-                throw new Error(body?.error || `The assistant is unavailable (${res.status})`);
+                throw new Error(body?.error || t('studio_apps_runtime.ai_chat.unavailable', 'The assistant is unavailable ({status})', { status: res.status }));
             }
 
             let answer = '';
@@ -76,18 +78,18 @@ export default function AppAiChat({ node }) {
                         return copy;
                     });
                 } else if (evt.type === 'error') {
-                    throw new Error(evt.error || 'The assistant failed to respond.');
+                    throw new Error(evt.error || t('studio_apps_runtime.ai_chat.failed', 'The assistant failed to respond.'));
                 }
             });
             if (!answer.trim()) {
                 setMessages((m) => {
                     const copy = [...m];
-                    copy[copy.length - 1] = { role: 'assistant', content: '_No answer was returned._' };
+                    copy[copy.length - 1] = { role: 'assistant', content: t('studio_apps_runtime.ai_chat.no_answer', '_No answer was returned._') };
                     return copy;
                 });
             }
         } catch (e) {
-            setError(e?.message || 'The assistant failed to respond.');
+            setError(e?.message || t('studio_apps_runtime.ai_chat.failed', 'The assistant failed to respond.'));
             setMessages((m) => m.slice(0, -1)); // drop the pending assistant bubble
         } finally {
             setBusy(false);
@@ -107,7 +109,7 @@ export default function AppAiChat({ node }) {
                     <div className="m-auto text-center px-4">
                         <Sparkles className="w-5 h-5 mx-auto mb-2" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
                         <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                            {props.greeting || 'Ask me anything.'}
+                            {props.greeting || t('studio_apps_runtime.ai_chat.greeting', 'Ask me anything.')}
                         </p>
                     </div>
                 ) : messages.map((m, i) => (
@@ -156,16 +158,16 @@ export default function AppAiChat({ node }) {
                     type="text"
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    placeholder={props.placeholder || 'Ask a question…'}
+                    placeholder={props.placeholder || t('studio_apps_runtime.ai_chat.placeholder', 'Ask a question…')}
                     disabled={!live || busy}
-                    aria-label="Message"
+                    aria-label={t('studio_apps_runtime.ai_chat.message', 'Message')}
                     className="flex-1 px-3 py-2 text-sm border outline-none disabled:opacity-60"
                     style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', borderRadius: 'var(--app-radius)', color: 'var(--text-primary)' }}
                 />
                 <button
                     type="submit"
                     disabled={!live || busy || !input.trim()}
-                    aria-label="Send"
+                    aria-label={t('studio_apps_runtime.ai_chat.send', 'Send')}
                     // This button is inside the RENDERED app, so it takes the
                     // app's own primary and its paired foreground — not the
                     // platform accent, which is a light grey in the default

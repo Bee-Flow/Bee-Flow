@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
 import { Check, Pipette } from 'lucide-react';
+import useTranslation from '../../hooks/useTranslation';
 
 /**
  * ColorPicker — swatch row + optional custom hex via the native colour input.
@@ -29,6 +30,7 @@ export default function ColorPicker({
     ariaLabel,
     className = '',
 }: ColorPickerProps) {
+    const { t } = useTranslation();
     const customRef = useRef<HTMLInputElement>(null);
     const isPreset = presets.some((p) => p.toLowerCase() === value.toLowerCase());
     const customColor = !isPreset && value.startsWith('#') ? value : null;
@@ -85,8 +87,8 @@ export default function ColorPicker({
                             color: customColor ? '#fff' : 'var(--text-muted)',
                             cursor: disabled ? 'not-allowed' : 'pointer',
                         }}
-                        title="Custom colour"
-                        aria-label="Custom colour"
+                        title={t('common.custom_colour', 'Custom colour')}
+                        aria-label={t('common.custom_colour', 'Custom colour')}
                     >
                         {customColor ? (
                             <Check style={{ width: swatchSize * 0.45, height: swatchSize * 0.45 }} />
@@ -100,7 +102,7 @@ export default function ColorPicker({
                         value={customColor ?? value}
                         onChange={(e) => onChange(e.target.value)}
                         disabled={disabled}
-                        aria-label="Custom colour value"
+                        aria-label={t('common.custom_colour_value', 'Custom colour value')}
                         className="sr-only"
                     />
                     {customColor && (

@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import ConsumerPrivacySection from './ConsumerPrivacySection';
 import { authFetch } from '../../utils/helpers';
@@ -26,9 +27,10 @@ const IMPLICIT_DEFAULTS = {
     implicitDefault: true,
 };
 
-/** Route the two GETs the panel fires on mount. */
-function mockApi({ config = IMPLICIT_DEFAULTS, guard = { configured: true, reachable: true } } = {}) {
-    authFetch.mockImplementation(async (url) => {
+/** Route the two GETs the panel fires on mount, and the PUT of Save. */
+function mockApi({ config = IMPLICIT_DEFAULTS, guard = { configured: true, reachable: true }, save = () => jsonRes({ ok: true }) } = {}) {
+    authFetch.mockImplementation(async (url, opts = {}) => {
+        if (opts.method === 'PUT') return save();
         if (String(url).includes('guard-status')) return jsonRes(guard);
         return jsonRes(config);
     });
@@ -44,9 +46,51 @@ describe('ConsumerPrivacySection', () => {
         await screen.findByText('On by default');
         expect(screen.getByText(/already in force with the secure defaults/i)).toBeInTheDocument();
 
-        // The master toggle is the first checkbox in the panel.
-        const [masterToggle] = screen.getAllByRole('checkbox');
-        expect(masterToggle.checked).toBe(true);
+        expect(screen.getByRole('checkbox', { name: 'Enable Privacy Shield' })).toBeChecked();
+    });
+
+    it('names every switch after the row it controls', async () => {
+        mockApi({ config: { ...IMPLICIT_DEFAULTS, euModeEnabled: true } });
+        render(<ConsumerPrivacySection />);
+
+        expect(await screen.findByRole('checkbox', { name: 'EU Data Residency' })).toBeChecked();
+        expect(screen.getByRole('checkbox', { name: 'Disable Search on File Upload' })).not.toBeChecked();
+        expect(screen.getByRole('checkbox', { name: 'Look for personal data' })).toBeChecked();
+    });
+
+    it('a switch changes what Save sends', async () => {
+        mockApi();
+        const user = userEvent.setup();
+        render(<ConsumerPrivacySection />);
+
+        await user.click(await screen.findByRole('checkbox', { name: 'EU Data Residency' }));
+        await user.click(screen.getByRole('button', { name: 'Save' }));
+
+        await waitFor(() => expect(authFetch).toHaveBeenCalledWith('/api/org-privacy-shield/user/me', expect.objectContaining({ method: 'PUT' })));
+        const put = authFetch.mock.calls.find(([, opts]) => opts?.method === 'PUT');
+        expect(JSON.parse(put[1].body).euModeEnabled).toBe(true);
+        expect(await screen.findByRole('button', { name: 'Saved' })).toBeInTheDocument();
+    });
+
+    it('says so when the server refuses the save', async () => {
+        mockApi({ save: () => jsonRes({ error: 'nope' }, 500) });
+        const user = userEvent.setup();
+        render(<ConsumerPrivacySection />);
+
+        await user.click(await screen.findByRole('button', { name: 'Save' }));
+
+        expect(await screen.findByRole('alert')).toHaveTextContent('Save failed');
+        expect(screen.queryByRole('button', { name: 'Saved' })).not.toBeInTheDocument();
+    });
+
+    it('says so when the save request does not go through', async () => {
+        mockApi({ save: () => { throw new Error('offline'); } });
+        const user = userEvent.setup();
+        render(<ConsumerPrivacySection />);
+
+        await user.click(await screen.findByRole('button', { name: 'Save' }));
+
+        expect(await screen.findByRole('alert')).toHaveTextContent('Save failed');
     });
 
     it('does not label a saved configuration as a default', async () => {

@@ -8,7 +8,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { ORG_SECTIONS } from '@/features/org';
-import { WEB_ONLY_ORG_SECTIONS } from '@/features/org/model/sections';
+import { WEB_ONLY_ORG_SECTIONS, WEB_ORG_SECTIONS } from '@/features/org/model/sections';
 
 import { translateWebLink } from './route';
 import { ORG_SETTINGS_SEGMENTS, adminTarget, legacyOrgSettingsTarget } from './routeOrg';
@@ -42,6 +42,13 @@ describe('the organisation settings segments', () => {
 
     it('lists no segment the web does not have', () => {
         expect(Object.keys(ORG_SETTINGS_SEGMENTS).sort()).toEqual(web.map(([, s]) => s).sort());
+    });
+
+    it('gives every web section an address', () => {
+        // sections.lockstep.test.ts holds WEB_ORG_SECTIONS to the web's row
+        // lists, so a web row without a segment shows up here.
+        const ids = all.map(([id]) => id);
+        expect(WEB_ORG_SECTIONS.map((s) => s.id).filter((id) => !ids.includes(id))).toEqual([]);
     });
 
     it('opens the index for a section the phone leaves to the web', () => {

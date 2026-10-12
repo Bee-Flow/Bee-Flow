@@ -260,3 +260,28 @@ describe('useAutomationBuilderStream — state.turn', () => {
         await finish();
     });
 });
+
+// The composer's Web search switch: the turn posts it, and the server's answer
+// (`web_search`) lands on state so the composer can disable a switch the
+// server refused instead of showing it on while it does nothing.
+describe('useAutomationBuilderStream — web search', () => {
+    beforeEach(() => authFetch.mockReset());
+
+    it('posts the switch as webSearchEnabled', async () => {
+        const off = await startTurn({ message: 'x', modelTier: 'fast', webSearchEnabled: false });
+        expect(JSON.parse(authFetch.mock.calls[0][1].body).webSearchEnabled).toBe(false);
+        await off.finish();
+        authFetch.mockReset();
+        const on = await startTurn({ message: 'x', modelTier: 'fast', webSearchEnabled: true });
+        expect(JSON.parse(authFetch.mock.calls[0][1].body).webSearchEnabled).toBe(true);
+        await on.finish();
+    });
+
+    it('stores the server\'s web_search answer', async () => {
+        const { result, body, finish } = await startTurn();
+        expect(result.current.state.webSearch).toBeNull();
+        await act(async () => { body.push(sse('web_search', { requested: true, available: false, reason: 'not_configured' })); await flush(); });
+        expect(result.current.state.webSearch).toEqual({ requested: true, available: false, reason: 'not_configured' });
+        await finish();
+    });
+});

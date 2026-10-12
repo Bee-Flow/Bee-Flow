@@ -13,7 +13,7 @@
  * Everything here is pure; inputs are never mutated.
  */
 
-import { edgeKey } from './branchEdges';
+import { followRouteEdit, isListRoute, relabelSwitchEdges } from '@shared/expr/routeFollow.mjs';
 import { reconcileRouteEdges } from './routeEdges';
 
 /**
@@ -38,14 +38,15 @@ export function uniqueCaseName(cases, base) {
 
 /**
  * Re-point a switch's outgoing edges (and its defaultBranch) after its cases
- * changed.
+ * changed: the shared relabelSwitchEdges (shared/expr/routeFollow.mjs), so
+ * the canvas, the phone and the AI builder agree, and followRouteEdit moves
+ * the steps that read an output by the very same rule.
  *
- * - Renames are positional pairs (same index, different name), applied as ONE
- *   old→new map in a single pass so an A↔B swap can't chain.
- * - Removed cases (name present before, absent after) take their edges with
- *   them.
- * - `case:default` edges are never touched — the default port is independent
- *   of the declared cases.
+ * - A rename is a case whose name changed in place (same index, same number
+ *   of cases, old name gone, new name new); its edges take the new name.
+ *   A reorder moves nothing: each edge stays on its own output.
+ * - Removed cases take their edges with them.
+ * - `case:default` edges are never touched.
  * - Legacy edge shapes (label-only `case:x`, caseName-only `x`) are healed to
  *   the canonical both-fields form when renamed.
  * - `defaultBranch` follows a rename and is cleared when its case is removed.
@@ -57,61 +58,7 @@ export function uniqueCaseName(cases, base) {
  * @returns {object} next definition (same object when nothing had to change)
  */
 export function reconcileSwitchEdges(definition, stepId, prevCases, nextCases) {
-    if (!definition || !stepId) return definition;
-    const prev = (Array.isArray(prevCases) ? prevCases : []).map(c => c?.name).filter(Boolean);
-    const next = (Array.isArray(nextCases) ? nextCases : []).map(c => c?.name).filter(Boolean);
-
-    // Positional renames. Only meaningful while the list keeps its length —
-    // the editor mutates one row at a time, so a rename never coincides with
-    // an add/remove in the same patch. Every differing pair goes into ONE map
-    // applied in a single pass, so an A↔B swap re-points both sides without
-    // chaining (A→B then B→A on the same edge).
-    const renames = new Map();
-    if (prev.length === next.length) {
-        for (let i = 0; i < prev.length; i += 1) {
-            if (prev[i] !== next[i]) renames.set(prev[i], next[i]);
-        }
-    }
-    const nextNames = new Set(next);
-    const removed = new Set(prev.filter(n => !nextNames.has(n) && !renames.has(n)));
-
-    if (renames.size === 0 && removed.size === 0) return definition;
-
-    const caseOf = (e) => {
-        if (e.caseName != null) return e.caseName;
-        if (typeof e.label === 'string' && e.label.startsWith('case:')) return e.label.slice(5);
-        return null;
-    };
-
-    const seen = new Set();
-    const edges = [];
-    for (const e of (definition.edges || [])) {
-        let out = e;
-        const name = e.from === stepId ? caseOf(e) : null;
-        if (name != null && name !== 'default') {
-            if (removed.has(name)) continue; // case gone → edge gone
-            const renamed = renames.get(name);
-            if (renamed) out = { ...e, label: `case:${renamed}`, caseName: renamed };
-        }
-        // Dedupe (rename onto a name whose identical edge already exists).
-        const key = edgeKey(out);
-        if (seen.has(key)) continue;
-        seen.add(key);
-        edges.push(out);
-    }
-
-    const result = { ...definition, edges };
-
-    // defaultBranch lives on the STEP — heal it wherever the step sits.
-    const healStep = (s) => {
-        if (!s || s.id !== stepId || !s.defaultBranch) return s;
-        if (renames.has(s.defaultBranch)) return { ...s, defaultBranch: renames.get(s.defaultBranch) };
-        if (removed.has(s.defaultBranch)) return { ...s, defaultBranch: null };
-        return s;
-    };
-    result.steps = (definition.steps || []).map(healStep);
-
-    return result;
+    return relabelSwitchEdges(definition, stepId, prevCases, nextCases);
 }
 
 /**
@@ -122,7 +69,8 @@ export function reconcileSwitchEdges(definition, stepId, prevCases, nextCases) {
  * When the patched step is a switch whose `cases` changed, the edge/default
  * reconcile above rides along IN THE SAME definition object, so the PUT is
  * atomic: `switch.case_edge_unknown` can never fire on a rename, and undo
- * restores the rename and the healed edges together.
+ * restores the rename and the healed edges together. The same goes for the
+ * steps that read a list Condition's outputs (W3-W5).
  */
 export function mergeStepPatchIntoDefinition(definition, step, patch) {
     const merged = { ...step, ...patch, id: step.id };
@@ -146,6 +94,13 @@ export function mergeStepPatchIntoDefinition(definition, step, patch) {
         next = reconcileRouteEdges(next, step.id, step, merged);
     } else if (step.type === 'switch' && patch && Array.isArray(patch.cases)) {
         next = reconcileSwitchEdges(next, step.id, step.cases || [], patch.cases);
+    }
+    // A Condition that works through a list hands its OUTPUTS on: when one
+    // output becomes several, an output is renamed or the list goes one level
+    // deeper, the steps reading an output follow it in this same commit
+    // (shared/expr/routeFollow.mjs), so undo takes back both.
+    if (isListRoute(step) || isListRoute(merged)) {
+        next = followRouteEdit(next, step.id, step).definition;
     }
     return next;
 }

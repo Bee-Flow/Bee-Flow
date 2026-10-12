@@ -80,6 +80,11 @@ function mockReads({ skills = SKILLS, agent = preview(), skill = null } = {}) {
     });
 }
 
+// The agent preview claiming "No tools". The AI step's own tool picker (its
+// Advanced settings, shown in the full view) has an empty hint of its own.
+const agentSaysNoTools = () => screen.queryAllByText(/No tools/)
+    .some(el => !/answers from its prompt only/.test(el.textContent || ''));
+
 function renderForm(step, { onPatch = vi.fn(), catalog = catalogWith({ agents: AGENTS }) } = {}) {
     const utils = render(withQueryClient(
         <VariablePickerProvider groups={[]} previewSample={null} stepLabelById={new Map()}>
@@ -319,14 +324,14 @@ describe('AI step — what the agent may do here', () => {
         mockReads({ agent: new Error('down') });
         renderForm(aiStep({ agentId: 'agt_ok' }));
         expect(await screen.findByText(/Could not check what this agent brings/)).toBeTruthy();
-        expect(screen.queryByText(/No tools/)).toBeNull();
+        expect(agentSaysNoTools()).toBe(false);
     });
 
     it('a tool list the server could not build is NOT "no tools"', async () => {
         mockReads({ agent: preview({ allowed: [], error: 'registry down' }) });
         renderForm(aiStep({ agentId: 'agt_ok' }));
         expect(await screen.findByText(/could not be listed just now/)).toBeTruthy();
-        expect(screen.queryByText(/No tools/)).toBeNull();
+        expect(agentSaysNoTools()).toBe(false);
     });
 
     it('always carries the note that the agent is a step, not a conversation partner', () => {

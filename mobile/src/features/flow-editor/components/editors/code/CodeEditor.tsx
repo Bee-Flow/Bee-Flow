@@ -125,7 +125,7 @@ export function CodeEditor(editor: StepEditorProps) {
                 </FieldRow>
                 {inputsEditable ? (
                     <RowsEditor
-                        label={t('mobile.flow.section.inputs', 'Inputs')}
+                        label={t('automations.ai_step_editors.inputs', 'Inputs')}
                         hint={t('code_step.inputs.hint', 'Named values handed to your code as inputs. Bind them to earlier steps the same way every other step type does.')}
                         value={recordOf(draft.inputs)}
                         onChange={(next) => set('inputs', next)}

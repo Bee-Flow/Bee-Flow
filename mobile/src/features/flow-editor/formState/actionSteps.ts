@@ -76,6 +76,8 @@ export const extractHttp: Extractor = (step, base): FormDraft => ({
     method: or(step.method, 'GET'),
     headers: objOr(step.headers, {}),
     body: or(step.body, ''),
+    // Structured query parameters; null = the section is off.
+    query: objOr(step.query, null),
     timeoutMs: num(step.timeoutMs, 10_000),
     blockPrivateTargets: step.blockPrivateTargets !== false,
     parseResponse: or(step.parseResponse, 'auto'),
@@ -90,6 +92,8 @@ export const patchHttp: Patcher = (patch, step, draft) => {
     patch.method = String(or(draft.method, 'GET')).toUpperCase();
     patch.headers = objOr(draft.headers, {});
     patch.body = or(draft.body, '');
+    // Off (null) is stored as absence, so a step without parameters stays as it was.
+    patch.query = objOr(draft.query, undefined);
     patch.timeoutMs = clamp(Number(draft.timeoutMs) || 10_000, 1000, 60_000);
     patch.blockPrivateTargets = draft.blockPrivateTargets !== false;
     // 'auto' is the default and is stored as absence.

@@ -123,6 +123,8 @@ module.exports = {
     'project_chat.new_chat': 'New chat',
     'project_chat.new_chat_kind': 'Kind of chat',
     'project_chat.new_message_label': 'First message',
+    'project_chat.new_composer_label': 'New conversation',
+    'project_chat.composer_label': 'Message the team',
     'project_chat.new_team': 'Team chat',
     'project_chat.new_team_body': 'Talk with the members. The AI joins when you ask it.',
     'project_chat.new_team_placeholder': 'First message to the team (optional)',
@@ -221,4 +223,7 @@ module.exports = {
     "project_chat.starter_summary_text": "@ai Can you summarise where this project stands?",
     "project_chat.task_tag_needs_message": "Add a first message to share the tagged tasks.",
     "project_chat.unread_divider": "New since your last visit",
+    // Hardcoded literals converted (2026-10)
+    'project_chat.tag_tasks': 'Tag project tasks',
+    'project_chat.remove_task_tag': 'Remove task tag',
 };

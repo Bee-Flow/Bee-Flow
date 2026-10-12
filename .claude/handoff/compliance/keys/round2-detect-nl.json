@@ -1,0 +1,35 @@
+{
+  "_note": "round2-detect-nl. (1) Dutch for the title (and, where its English did not change, the fix) of each check whose description or fix got Dutch in round 2 (detect-legal-clocks, detect-legal-wording, detect-privacy-shield), so no check row reads half English, half Dutch; English unchanged. (2) Five DSR strings the legal-clocks batch missed: the clock is one calendar month and an extension adds two months (GDPR Art. 12(3); dsrStore.extend adds two calendar months), not 30 / 60 days; English changed.",
+  "en": {
+    "compliance.checks.gdpr_art15.title": "Access requests answered on time",
+    "compliance.checks.gdpr_art17.title": "Deletion requests fulfilled",
+    "compliance.checks.gdpr_art32_ear.title": "Encryption at rest",
+    "compliance.checks.gdpr_art44.title": "International transfers controlled",
+    "compliance.checks.gdpr_art44.fix": "Either switch the agent(s) to self-hosted models, or register each external provider with a signed DPA/SCC in your records.",
+    "compliance.checks.aia_art13.title": "Transparency: agent described",
+    "compliance.checks.aia_art13.fix": "Fill in a meaningful description (30+ characters) for each agent in Admin → Agents.",
+    "compliance.checks.aia_art53.title": "GPAI model inventory",
+    "compliance.checks.aia_art53.fix": "Review the model inventory in this check's evidence and attest the SCC/DPA for each external provider under Compliance → ROPA.",
+    "compliance.dsr_extend_60": "Extend +2 months",
+    "compliance.dsr_extend_confirm": "Extend by two months",
+    "compliance.dsr_capture_desc": "For a request that arrived by e-mail, phone or letter. The one-month clock starts at receipt.",
+    "compliance.dsr_toast_extended": "Deadline extended by two months",
+    "compliance.dsr_pf_intro": "Data subjects submit requests here without an account. Link it from your privacy notice; every submission starts the one-month clock at receipt."
+  },
+  "nl": {
+    "compliance.checks.gdpr_art15.title": "Inzageverzoeken op tijd beantwoord",
+    "compliance.checks.gdpr_art17.title": "Verwijderverzoeken uitgevoerd",
+    "compliance.checks.gdpr_art32_ear.title": "Versleuteling in opslag",
+    "compliance.checks.gdpr_art44.title": "Internationale doorgiften onder controle",
+    "compliance.checks.gdpr_art44.fix": "Zet de agent(s) over op zelf gehoste modellen, of leg voor elke externe aanbieder een ondertekende verwerkersovereenkomst/SCC vast in je administratie.",
+    "compliance.checks.aia_art13.title": "Transparantie: agent beschreven",
+    "compliance.checks.aia_art13.fix": "Vul voor elke agent onder Beheer → Agents een betekenisvolle beschrijving in (minstens 30 tekens).",
+    "compliance.checks.aia_art53.title": "Inventaris van AI-modellen voor algemene doeleinden",
+    "compliance.checks.aia_art53.fix": "Bekijk de modelinventaris in het bewijs van deze check en bevestig de SCC/verwerkersovereenkomst voor elke externe aanbieder onder Compliance → Verwerkingsregister.",
+    "compliance.dsr_extend_60": "Verlengen +2 maanden",
+    "compliance.dsr_extend_confirm": "Verleng met twee maanden",
+    "compliance.dsr_capture_desc": "Voor een verzoek dat per e-mail, telefoon of brief binnenkwam. De klok van één maand start bij ontvangst.",
+    "compliance.dsr_toast_extended": "Termijn met twee maanden verlengd",
+    "compliance.dsr_pf_intro": "Betrokkenen dienen hier zonder account een verzoek in. Link het vanuit je privacyverklaring; elke inzending start bij ontvangst de klok van één maand."
+  }
+}

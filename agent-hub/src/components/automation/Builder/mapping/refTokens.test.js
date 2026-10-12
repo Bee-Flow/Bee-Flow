@@ -89,7 +89,7 @@ describe('resolveChipLabel', () => {
 
     it('labels trigger and loop sources', () => {
         expect(resolveChipLabel({ source: 'trigger', fieldPath: 'subject' }, map)).toMatchObject({ name: 'Trigger', missing: false });
-        expect(resolveChipLabel({ source: 'loop', itemVar: 'row', fieldPath: 'email' }, map)).toMatchObject({ name: 'Loop item · row', missing: false });
+        expect(resolveChipLabel({ source: 'loop', itemVar: 'row', fieldPath: 'email' }, map)).toMatchObject({ name: 'Each row', missing: false });
     });
 });
 

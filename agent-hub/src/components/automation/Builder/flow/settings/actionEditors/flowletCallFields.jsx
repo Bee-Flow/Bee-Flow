@@ -5,6 +5,7 @@ import CallContractFields from '../../CallContractFields';
 import { getLayerContract } from '../../flowletScope';
 import useInputMapping from '../../useInputMapping';
 import { FieldsSection } from '../collectionEditors';
+import { useTranslation } from '../../../../../../hooks/useTranslation';
 
 /**
  * Editor for a call_layer step. The flowlet's contract derives LIVE from
@@ -80,13 +81,14 @@ function CallStepFields({ step, draft, set, groups, onFocusField, previewSample,
 
 /** Editor for a layer_output step — the object the flowlet returns. */
 function LayerOutputFields({ draft, set, onFocusField, previewSample, errorSections = new Set() }) {
+    const { t } = useTranslation();
     return (
         <FieldsSection
             draft={draft}
             set={set}
             stepType="layer_output"
-            title="Return fields"
-            hint="The object this flowlet returns to its caller. Bind each field to a value produced inside the flowlet."
+            title={t('automations.flowlet_call_fields.return_fields', 'Return fields')}
+            hint={t('automations.flowlet_call_fields.the_object_this_flowlet_returns_to', 'The object this flowlet returns to its caller. Bind each field to a value produced inside the flowlet.')}
             onFocusField={onFocusField}
             previewSample={previewSample}
             errorSections={errorSections}

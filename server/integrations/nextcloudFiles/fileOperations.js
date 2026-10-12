@@ -4,7 +4,7 @@
  * file id: Office conversion, the folder tree and direct download links.
  */
 
-const { MAX_TEXT_BYTES, PROPFIND_BODY, joinDavPath, parsePropfind } = require('./webdav');
+const { MAX_TEXT_BYTES, PROPFIND_BODY, joinDavPath, parsePropfind, ensureParentFolders } = require('./webdav');
 
 // Returns undefined when the tool belongs to another Nextcloud file family, so
 // the facade can hand it to the next handler.
@@ -227,7 +227,7 @@ async function executeFileOperationTool(toolName, args, ctx) {
             }
 
             const url = joinDavPath(root, args.path);
-            const res = await ncFetch(url, {
+            const put = () => ncFetch(url, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': args.contentType
@@ -236,8 +236,17 @@ async function executeFileOperationTool(toolName, args, ctx) {
                 },
                 body,
             });
+            let res = await put();
+            // 409 = a parent folder is missing. Create the chain once and retry,
+            // so an automation saving into "/Invoices/Vendor/" needs no create-folder
+            // steps (which fail with "already exists" on every later run). The
+            // happy path still costs a single PUT.
+            if (res.status === 409) {
+                await ensureParentFolders(ncFetch, root, args.path);
+                res = await put();
+            }
             if (res.status === 401) return { error: authError };
-            if (res.status === 409) return { error: `Parent folder for ${args.path} does not exist. Create it first with nextcloud_create_folder.` };
+            if (res.status === 409) return { error: `Parent folder for ${args.path} does not exist and could not be created.` };
             if (!res.ok && res.status !== 201 && res.status !== 204) {
                 const text = await res.text().catch(() => '');
                 return { error: `Upload failed (${res.status}): ${text.slice(0, 200)}` };

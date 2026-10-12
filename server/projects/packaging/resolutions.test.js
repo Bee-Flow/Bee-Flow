@@ -350,3 +350,35 @@ test('only the rows that APPLIED are kept when the install says which ones did',
     // Without `applied` every row is kept, as before.
     assert.strictEqual(resolutionsToBindings(norm).length, 6);
 });
+
+// ═══ a staged chain, scrubbed and then resolved (BFSF-384) ═══════════════
+
+test('a staged approval scrubbed on export and given one approver at install validates', () => {
+    const { scrubAutomationDefinition } = require('./scrub');
+    const { validateDefinition } = require('../../automation/validate/definition');
+    const definition = {
+        schemaVersion: 2,
+        trigger: { id: 'trg', type: 'trigger', kind: 'manual', label: 'Manual' },
+        steps: [{
+            id: 'appr_1', type: 'approval', prompt: 'Pay this invoice?',
+            approval: { stages: [
+                { name: 'Team lead', approvers: [{ userId: 'u1' }], rule: 'all' },
+                { name: 'Finance', approvers: [{ groupId: 'g_fin' }, { userId: 'u2' }], rule: 'first' },
+            ] },
+        }],
+        edges: [{ from: 'trg', to: 'appr_1' }],
+    };
+    scrubAutomationDefinition(definition, []);
+    assert.ok(validateDefinition(definition).errors.some(e => e.code === 'approval.stages_invalid'), 'scrubbed chain is visibly unconfigured');
+
+    const out = applyStepResolutions(definition, 'aut_1', normalizeResolutions({
+        approvers: [{ ref: 'aut_1', stepId: 'appr_1', seat: { userId: 'u_mine' } }],
+    }));
+    const approval = definition.steps[0].approval;
+    assert.deepStrictEqual(out.applied, [{ kind: 'approver', ref: 'aut_1', stepId: 'appr_1', layerKey: null }]);
+    assert.strictEqual(approval.assignee, undefined, 'no assignee next to stages');
+    assert.deepStrictEqual(approval.stages.map(s => s.approvers), [[{ userId: 'u_mine' }], [{ userId: 'u_mine' }]]);
+    assert.deepStrictEqual(approval.stages.map(s => s.name), ['Team lead', 'Finance']);
+    const codes = (validateDefinition(definition).errors || []).map(e => e.code);
+    assert.ok(!codes.some(c => c.startsWith('approval.')), `unexpected: ${codes.join(', ')}`);
+});

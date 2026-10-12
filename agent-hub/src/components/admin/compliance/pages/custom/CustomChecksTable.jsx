@@ -1,8 +1,9 @@
-import React, { useMemo } from 'react';
 import { PenLine, Trash2 } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import DataTable, { TableRow, TableCell } from '../../../../shared/DataTable';
 import EmptyState from '../../../../shared/EmptyState';
+import { REGULATION_LABEL, formatRef, regulationLabel } from '../../shared/ArticleRef';
 import SeverityTag from '../../shared/SeverityTag';
 import StatusPill from '../../shared/StatusPill';
 import VerificationChip from '../../shared/VerificationChip';
@@ -42,6 +43,128 @@ export function indexResults(checks) {
     return map;
 }
 
+const REGULATION_ORDER = Object.keys(REGULATION_LABEL);
+const byArticle = (a, b) => String(a.article ?? '').localeCompare(String(b.article ?? ''), 'en', { numeric: true })
+    || String(a.id).localeCompare(String(b.id));
+
+/**
+ * Pure: the built-in catalogue (`GET /registry` checks) for the "Satisfied by"
+ * picker, one group per law in the rail's order, each sorted by article. The
+ * option reads as the check's title, never its raw id.
+ */
+export function groupBuiltinChecks(checks, t) {
+    if (!Array.isArray(checks)) return [];
+    const groups = new Map();
+    for (const c of checks) {
+        if (!c || !c.id) continue;
+        const code = String(c.regulation ?? '').toUpperCase();
+        if (!groups.has(code)) groups.set(code, []);
+        groups.get(code).push(c);
+    }
+    const rank = (code) => { const i = REGULATION_ORDER.indexOf(code); return i === -1 ? REGULATION_ORDER.length : i; };
+    return [...groups.entries()]
+        .sort(([a], [b]) => rank(a) - rank(b) || a.localeCompare(b))
+        .map(([code, list]) => ({
+            regulation: code,
+            label: regulationLabel(code, t) || code,
+            checks: [...list].sort(byArticle).map(c => ({
+                id: c.id,
+                label: [formatRef(c.article), c.titleKey ? t(c.titleKey, c.id) : c.id].filter(Boolean).join(' · '),
+            })),
+        }));
+}
+
+/** The "Satisfied by" control: a person, or one built-in check, by title and grouped by law. */
+function MappedSelect({ row, groups, builtinChecks, busy, onMap, className, testId, t }) {
+    const mapped = row.mapped_check_id || '';
+    const known = groups.some(g => g.checks.some(c => c.id === mapped));
+    return (
+        <select
+            value={mapped}
+            onChange={(e) => onMap?.(row, e.target.value || null)}
+            disabled={busy || builtinChecks === null}
+            className={className}
+            aria-label={t('compliance.custom_col_mapped', 'Satisfied by')}
+            data-testid={testId}
+        >
+            <option value="">{t('compliance.custom_mapped_none', 'attested by a person')}</option>
+            {groups.map(g => (
+                <optgroup key={g.regulation} label={g.label}>
+                    {g.checks.map(c => <option key={c.id} value={c.id} title={c.id}>{c.label}</option>)}
+                </optgroup>
+            ))}
+            {mapped && !known && <option value={mapped} title={mapped}>{mapped}</option>}
+        </select>
+    );
+}
+
+/**
+ * The delete button, and once pressed the question in its place: "Delete this
+ * item?" Delete / Cancel. Nothing is deleted until the second press; Cancel
+ * (or Escape) puts the button back and focus on it.
+ */
+function DeleteControl({ row, busy, onDelete, compact, testId, t }) {
+    const [asking, setAsking] = useState(false);
+    const confirmRef = useRef(null);
+    const triggerRef = useRef(null);
+    const wasAsking = useRef(false);
+    useEffect(() => {
+        if (asking) confirmRef.current?.focus();
+        else if (wasAsking.current) triggerRef.current?.focus();
+        wasAsking.current = asking;
+    }, [asking]);
+    const question = t('compliance.custom_delete_confirm', 'Delete this item?');
+    if (!asking) {
+        return (
+            <button
+                ref={triggerRef}
+                type="button"
+                className={compact
+                    ? 'p-1 rounded-md text-[var(--text-tertiary)] disabled:opacity-60'
+                    : 'inline-grid place-items-center h-11 w-11 rounded-md text-[var(--text-tertiary)] disabled:opacity-60'}
+                onClick={() => setAsking(true)}
+                disabled={busy}
+                aria-label={t('common.delete', 'Delete')}
+                data-testid={`${testId}-delete`}
+            >
+                <Trash2 size={compact ? 12 : 14} aria-hidden="true" />
+            </button>
+        );
+    }
+    const button = compact ? 'px-2 py-0.5' : 'min-h-[44px] px-2.5';
+    return (
+        <span
+            role="group"
+            aria-label={question}
+            className={compact
+                ? 'absolute right-0 top-1/2 -translate-y-1/2 z-10 flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-[var(--border-default)] bg-[var(--bg-card)] px-2 py-1 shadow-[var(--shadow-sm)]'
+                : 'flex items-center gap-2 flex-wrap'}
+            onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); setAsking(false); } }}
+            data-testid={`${testId}-delete-confirm`}
+        >
+            <span className="text-[11px] font-medium text-[var(--text-primary)]">{question}</span>
+            <button
+                ref={confirmRef}
+                type="button"
+                className={`${button} rounded-md border border-[var(--error)] bg-[var(--error)]/10 text-[11px] font-semibold text-[var(--error-ink)] disabled:opacity-60`}
+                onClick={() => { setAsking(false); onDelete(row); }}
+                disabled={busy}
+                data-testid={`${testId}-delete-yes`}
+            >
+                {t('common.delete', 'Delete')}
+            </button>
+            <button
+                type="button"
+                className={`${button} rounded-md border border-[var(--border-default)] text-[11px] font-medium`}
+                onClick={() => setAsking(false)}
+                data-testid={`${testId}-delete-cancel`}
+            >
+                {t('common.cancel', 'Cancel')}
+            </button>
+        </span>
+    );
+}
+
 /** Pure: the definition rows joined with their latest result. */
 export function joinChecks(checks, results, frameworkCode) {
     if (!Array.isArray(checks)) return null;
@@ -63,12 +186,14 @@ export default function CustomChecksTable({
 }) {
     const { t } = useTranslation();
     const rows = useMemo(() => joinChecks(checks, results, frameworkCode), [checks, results, frameworkCode]);
+    const groups = useMemo(() => groupBuiltinChecks(builtinChecks, t), [builtinChecks, t]);
 
     const columns = [
         { id: 'ref', width: '110px', label: t('compliance.custom_col_ref', 'Ref') },
         { id: 'title', width: '1fr', label: t('compliance.custom_col_title', 'Item') },
         { id: 'severity', width: '90px', label: t('compliance.custom_col_severity', 'Severity') },
-        { id: 'mapped', width: '210px', label: t('compliance.custom_col_mapped', 'Satisfied by'), foldBelow: 1180 },
+        // An action, not a detail: it never folds away.
+        { id: 'mapped', width: '180px', label: t('compliance.custom_col_mapped', 'Satisfied by') },
         { id: 'status', width: '140px', label: t('compliance.custom_col_status', 'Result') },
         { id: 'action', width: '110px', label: '' },
     ];
@@ -90,7 +215,6 @@ export default function CustomChecksTable({
             )}
             renderCard={(row) => {
                 const pill = statusPill(row.result?.status || 'pending');
-                const mapped = row.mapped_check_id || '';
                 return (
                     <div className="w-full min-w-0 flex flex-col gap-1.5" data-testid={`${testId}-card`}>
                         <span className="flex items-center gap-2 min-w-0">
@@ -107,22 +231,16 @@ export default function CustomChecksTable({
                                 <VerificationChip verification="attestation" minimal testId={`${testId}-evidence-required`} />
                             )}
                         </span>
-                        <select
-                            value={mapped}
-                            onChange={(e) => onMap?.(row, e.target.value || null)}
-                            disabled={busyId === row.id || builtinChecks === null}
+                        <MappedSelect
+                            row={row}
+                            groups={groups}
+                            builtinChecks={builtinChecks}
+                            busy={busyId === row.id}
+                            onMap={onMap}
                             className="w-full min-h-[44px] rounded-md border border-[var(--border-default)] bg-[var(--bg-card)] px-2 text-[11px] text-[var(--text-primary)] disabled:opacity-60"
-                            aria-label={t('compliance.custom_col_mapped', 'Satisfied by')}
-                            data-testid={`${testId}-mapped`}
-                        >
-                            <option value="">{t('compliance.custom_mapped_none', 'attested by a person')}</option>
-                            {(builtinChecks || []).map(c => (
-                                <option key={c.id} value={c.id}>{c.id}</option>
-                            ))}
-                            {mapped && !(builtinChecks || []).some(c => c.id === mapped) && (
-                                <option value={mapped}>{mapped}</option>
-                            )}
-                        </select>
+                            testId={`${testId}-mapped`}
+                            t={t}
+                        />
                         <span className="flex items-center gap-2">
                             <button
                                 type="button"
@@ -135,25 +253,13 @@ export default function CustomChecksTable({
                                 <PenLine size={11} aria-hidden="true" />
                                 {t('compliance.custom_attest', 'Attest')}
                             </button>
-                            {onDelete && (
-                                <button
-                                    type="button"
-                                    className="inline-grid place-items-center h-11 w-11 rounded-md text-[var(--text-tertiary)] disabled:opacity-60"
-                                    onClick={() => onDelete(row)}
-                                    disabled={busyId === row.id}
-                                    aria-label={t('common.delete', 'Delete')}
-                                    data-testid={`${testId}-delete`}
-                                >
-                                    <Trash2 size={14} aria-hidden="true" />
-                                </button>
-                            )}
+                            {onDelete && <DeleteControl row={row} busy={busyId === row.id} onDelete={onDelete} testId={testId} t={t} />}
                         </span>
                     </div>
                 );
             }}
             renderRow={(row, ctx) => {
                 const pill = statusPill(row.result?.status || 'pending');
-                const mapped = row.mapped_check_id || '';
                 return (
                     <TableRow key={row.id} columns={ctx.columns} accent={pill.tone === 'neutral' ? null : pill.tone} testId={`${testId}-row`}>
                         <TableCell column={ctx.columns[0]} className="min-w-0">
@@ -165,36 +271,30 @@ export default function CustomChecksTable({
                                 {row.description && <span className="text-[11px] text-[var(--text-secondary)] truncate">{row.description}</span>}
                             </div>
                         </TableCell>
-                        <TableCell column={ctx.columns[2]} className="flex items-center gap-1.5">
+                        <TableCell column={ctx.columns[2]} className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
                             <SeverityTag severity={row.severity} testId={`${testId}-severity`} />
                             {row.evidence_required && (
                                 <VerificationChip verification="attestation" minimal testId={`${testId}-evidence-required`} />
                             )}
                         </TableCell>
                         <TableCell column={ctx.columns[3]} className="min-w-0">
-                            <select
-                                value={mapped}
-                                onChange={(e) => onMap?.(row, e.target.value || null)}
-                                disabled={busyId === row.id || builtinChecks === null}
+                            <MappedSelect
+                                row={row}
+                                groups={groups}
+                                builtinChecks={builtinChecks}
+                                busy={busyId === row.id}
+                                onMap={onMap}
                                 className="w-full rounded-md border border-[var(--border-default)] bg-[var(--bg-card)] px-1.5 py-0.5 text-[11px] text-[var(--text-primary)] disabled:opacity-60"
-                                aria-label={t('compliance.custom_col_mapped', 'Satisfied by')}
-                                data-testid={`${testId}-mapped`}
-                            >
-                                <option value="">{t('compliance.custom_mapped_none', 'attested by a person')}</option>
-                                {(builtinChecks || []).map(c => (
-                                    <option key={c.id} value={c.id}>{c.id}</option>
-                                ))}
-                                {mapped && !(builtinChecks || []).some(c => c.id === mapped) && (
-                                    <option value={mapped}>{mapped}</option>
-                                )}
-                            </select>
+                                testId={`${testId}-mapped`}
+                                t={t}
+                            />
                         </TableCell>
                         <TableCell column={ctx.columns[4]}>
                             <StatusPill tone={pill.tone} testId={`${testId}-status`} title={row.result?.details || undefined}>
                                 {t(pill.key, pill.fallback)}
                             </StatusPill>
                         </TableCell>
-                        <TableCell column={ctx.columns[5]} align="right" className="flex items-center gap-1 justify-end">
+                        <TableCell column={ctx.columns[5]} align="right" className="relative flex items-center gap-1 justify-end">
                             <button
                                 type="button"
                                 className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-[var(--border-default)] text-[11px] font-medium disabled:opacity-60"
@@ -206,18 +306,7 @@ export default function CustomChecksTable({
                                 <PenLine size={11} aria-hidden="true" />
                                 {t('compliance.custom_attest', 'Attest')}
                             </button>
-                            {onDelete && (
-                                <button
-                                    type="button"
-                                    className="p-1 rounded-md text-[var(--text-tertiary)] disabled:opacity-60"
-                                    onClick={() => onDelete(row)}
-                                    disabled={busyId === row.id}
-                                    aria-label={t('common.delete', 'Delete')}
-                                    data-testid={`${testId}-delete`}
-                                >
-                                    <Trash2 size={12} aria-hidden="true" />
-                                </button>
-                            )}
+                            {onDelete && <DeleteControl row={row} busy={busyId === row.id} onDelete={onDelete} compact testId={testId} t={t} />}
                         </TableCell>
                     </TableRow>
                 );

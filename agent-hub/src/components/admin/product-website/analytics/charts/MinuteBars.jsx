@@ -7,12 +7,14 @@
  * isn't there.
  */
 import React from 'react';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 import { ACCENT, fmt } from '../ui';
 
 export default function MinuteBars({
     buckets = [], height = 72, color = ACCENT, overlayColor = '#3b82f6',
     caption, formatLabel = (t) => new Date(t).toISOString().slice(11, 16),
 }) {
+    const { t: tr } = useTranslation();
     let peak = 1;
     for (const b of buckets) {
         if (b.value > peak) peak = b.value;
@@ -25,7 +27,7 @@ export default function MinuteBars({
                 height, display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 12, color: 'var(--text-muted, #888)',
                 background: 'var(--bg-tertiary, rgba(255,255,255,0.02))', borderRadius: 10,
-            }}>Nothing in the last few minutes.</div>
+            }}>{tr('cms_site.analytics.minute_bars.empty', 'Nothing in the last few minutes.')}</div>
         );
     }
 
@@ -61,7 +63,7 @@ export default function MinuteBars({
             }}>
                 <span>{formatLabel(buckets[0].t)}</span>
                 {caption && <span>{caption}</span>}
-                <span>now</span>
+                <span>{tr('cms_site.analytics.minute_bars.now', 'now')}</span>
             </div>
         </div>
     );

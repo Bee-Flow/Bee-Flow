@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import scopedStorage from '../../../../../utils/scopedStorage';
 import { VariablePickerProvider } from '../../mapping/VariablePickerContext';
@@ -8,9 +9,9 @@ import SettingsForm from '../SettingsForm';
  * "Suggest outputs" — the Condition node, told in words what it should do.
  *
  * The node cannot be told anything: a rule's predicate is a restricted-grammar
- * expression, so "split these files by pdf, word and powerpoint" is five
- * comparisons over three outputs, all of them hanging off an "ends with"
- * operator beginners never find. These tests drive the box the way an author
+ * expression, so "split these files by pdf, word and powerpoint" is three
+ * `equals(fileType(item), …)` rules — and on mails three `anyOf` rules over
+ * every attachment — that nobody types by hand. These tests drive the box the way an author
  * does — type, read the preview, accept — and check what actually lands in the
  * saved step, because the point of the feature is a node that ROUTES, not a
  * node that looks configured and matches nothing.
@@ -20,7 +21,7 @@ const noIssues = { errors: [], warnings: [] };
 
 const FILE_ROWS = [
     { name: 'Offerte.pdf' },
-    { name: 'Contract.PDF' },          // shouty extension — endsWith ignores case
+    { name: 'Contract.PDF' },          // shouty extension — the file type ignores case
     { name: 'Notulen.docx' },
     { name: 'Oud contract.doc' },
     { name: 'Deck.pptx' },
@@ -41,6 +42,22 @@ const DOC_GROUP = {
     fields: [{ key: 'filename', path: 'steps.g.output.filename', sample: 'rapport.pdf' }],
 };
 const DOC_ROOT = { steps: { g: { output: { filename: 'rapport.pdf' } } } };
+
+// Four demo mails (Fabrikam / Contoso) with 9 attachments: 3 PDF, 1 Word
+// (Gmail's octet-stream, read by its extension), 5 images.
+const att = (filename, mimeType) => ({ filename, mimeType });
+const MAILS = [
+    { subject: 'Offer', from: 'sales@fabrikam.example', attachments: [att('offer.pdf', 'application/pdf'), att('terms.docx', 'application/octet-stream'), att('logo.png', 'image/png')] },
+    { subject: 'Invoice', from: 'billing@fabrikam.example', attachments: [att('invoice.pdf', 'application/pdf'), att('logo.png', 'image/png')] },
+    { subject: 'Minutes', from: 'office@fabrikam.example', attachments: [att('minutes.pdf', 'application/pdf'), att('logo.png', 'image/png')] },
+    { subject: 'Hello', from: 'info@contoso.example', attachments: [att('photo.png', 'image/png'), att('logo.png', 'image/png')] },
+];
+const MAIL_GROUP = {
+    id: 'm', label: 'read many', kind: 'integration_action', basePath: 'steps.m.output',
+    sample: { messages: MAILS },
+    fields: [{ key: 'messages', path: 'steps.m.output.messages', sample: MAILS }],
+};
+const MAIL_ROOT = { steps: { m: { output: { messages: MAILS } } } };
 
 const FILES_STEP = { id: 'f1', type: 'filter', arrayRef: 'steps.d.output.files', expr: '' };
 const IF_STEP = { id: 'r1', type: 'condition', expr: '' };
@@ -90,13 +107,12 @@ describe('Condition editor — Suggest outputs', () => {
         renderFiles();
         describeIt('split these files by pdf, word and powerpoint');
 
-        expect(screen.getByText(/Name ends with “\.pdf”/)).toBeTruthy();
-        // The part nobody types by hand: word is .doc OR .docx.
-        expect(screen.getByText(/Name ends with “\.doc” or Name ends with “\.docx”/)).toBeTruthy();
-        expect(screen.getByText(/Name ends with “\.ppt” or Name ends with “\.pptx”/)).toBeTruthy();
+        expect(screen.getByText(/File type is PDF/)).toBeTruthy();
+        expect(screen.getByText(/File type is Word/)).toBeTruthy();
+        expect(screen.getByText(/File type is PowerPoint/)).toBeTruthy();
         // Never the expression itself — that lives under Advanced, like every
         // other generated expression in this editor.
-        expect(screen.queryByText(/endsWith\(/)).toBeNull();
+        expect(screen.queryByText(/fileType\(|equals\(/)).toBeNull();
     });
 
     it('counts the suggestion against the rows the editor already has', () => {
@@ -104,14 +120,14 @@ describe('Condition editor — Suggest outputs', () => {
         describeIt('split by pdf, word, powerpoint');
 
         // Counted with the engine the server runs, against the rows the step
-        // above actually produced — ".PDF" included, because endsWith ignores
-        // case and a Windows scanner does not.
+        // above actually produced — ".PDF" included, because the file type
+        // ignores case and a Windows scanner does not.
         expect(previewLines()).toEqual([
-            'pdf — Name ends with “.pdf” · 2 of 6 sample items',
-            'word — Name ends with “.doc” or Name ends with “.docx” · 2 of 6 sample items',
-            'powerpoint — Name ends with “.ppt” or Name ends with “.pptx” · 1 of 6 sample items',
+            'pdf — File type is PDF · 2 of 6 sample files',
+            'word — File type is Word · 2 of 6 sample files',
+            'powerpoint — File type is PowerPoint · 1 of 6 sample files',
         ]);
-        expect(screen.getByText(/1 of 6 sample items match none of these and would take the otherwise output/)).toBeTruthy();
+        expect(screen.getByText('1 of 6 sample files match none of these and go to “Otherwise”.')).toBeTruthy();
     });
 
     it('saves nothing until the suggestion is accepted', async () => {
@@ -132,9 +148,9 @@ describe('Condition editor — Suggest outputs', () => {
         expect(patch.type).toBe('switch');
         expect(patch.matchMode).toBe('all');
         expect(patch.cases).toEqual([
-            { name: 'pdf', expr: 'endsWith(item.name, ".pdf")' },
-            { name: 'word', expr: 'endsWith(item.name, ".doc") || endsWith(item.name, ".docx")' },
-            { name: 'powerpoint', expr: 'endsWith(item.name, ".ppt") || endsWith(item.name, ".pptx")' },
+            { name: 'pdf', expr: 'equals(fileType(item), "pdf")' },
+            { name: 'word', expr: 'equals(fileType(item), "word")' },
+            { name: 'powerpoint', expr: 'equals(fileType(item), "powerpoint")' },
         ]);
     });
 
@@ -147,37 +163,38 @@ describe('Condition editor — Suggest outputs', () => {
             id: 's2', type: 'switch', arrayRef: 'steps.d.output.files', routeStyle: 'rules',
             cases: [{ name: 'big', expr: 'item.size > 10' }, { name: 'small', expr: 'item.size <= 10' }],
         });
-        expect(screen.getByRole('button', { name: 'Several outputs' }).getAttribute('aria-pressed')).toBe('true');
+        expect(screen.getByRole('radio', { name: 'Several outputs' }).getAttribute('aria-checked')).toBe('true');
 
         describeIt('keep only the pdf ones');
-        fireEvent.click(screen.getByText('Use this output'));
-        expect(screen.getByRole('button', { name: 'One output' }).getAttribute('aria-pressed')).toBe('true');
+        await userEvent.setup().click(screen.getByRole('button', { name: 'Use this output' }));
+        expect(screen.getByRole('radio', { name: 'One output' }).getAttribute('aria-checked')).toBe('true');
         expect(screen.getByText('This node has 1 output.')).toBeTruthy();
 
         save();
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         const patch = onPatch.mock.calls[0][0];
         expect(patch.type).toBe('filter');
-        expect(patch.expr).toBe('endsWith(item.name, ".pdf")');
+        expect(patch.expr).toBe('equals(fileType(item), "pdf")');
         expect(patch.cases).toBeUndefined();
         expect(patch.matchMode).toBeUndefined();
     });
 
-    it('hands the accepted rules to the normal condition builder, still editable', () => {
+    it('hands the accepted rules to the normal condition builder, still editable', async () => {
         renderFiles();
         describeIt('split by pdf and word');
-        fireEvent.click(screen.getByText('Use these 2 outputs'));
+        await userEvent.setup().click(screen.getByRole('button', { name: 'Use these 2 outputs' }));
         // The rules landed as ordinary rows — named ports with a readable
         // field, not a frozen blob the author now has to live with.
         expect(screen.getByDisplayValue('pdf')).toBeTruthy();
         expect(screen.getByDisplayValue('word')).toBeTruthy();
-        expect(screen.getAllByText('Name').length).toBeGreaterThan(0);
+        expect(screen.getAllByText('File type').length).toBeGreaterThan(0);
+        expect(screen.queryByRole('textbox', { name: /expression/i })).toBeNull();
     });
 
     it('says plainly that it cannot count, instead of a reassuring "1 of 1"', () => {
         renderForm(IF_STEP, { groups: [DOC_GROUP], previewSample: DOC_ROOT });
         describeIt('split by pdf and word');
-        expect(screen.getByText(/Filename ends with “\.pdf”/)).toBeTruthy();
+        expect(screen.getByText(/File type is PDF/)).toBeTruthy();
         expect(screen.getByText(/no sample records here yet, so none of this can be counted/)).toBeTruthy();
         expect(screen.queryByText(/1 of 1/)).toBeNull();
     });
@@ -256,6 +273,33 @@ describe('Condition editor — Suggest outputs', () => {
         // name — so it says so instead of routing on one.
         expect(screen.getByText(/Nothing here looks like a file name/)).toBeTruthy();
         expect(screen.queryByText(/Use these/)).toBeNull();
+    });
+
+    it('on mails, checks every attachment and offers to check each attachment instead (J1, J3)', async () => {
+        const { onPatch } = renderForm(
+            { id: 'f3', type: 'filter', arrayRef: 'steps.m.output.messages', expr: '' },
+            { groups: [MAIL_GROUP], previewSample: MAIL_ROOT },
+        );
+        describeIt('split by pdf and word');
+        expect(previewLines()).toEqual([
+            'pdf — any attachment · File type is PDF · 3 of 4 sample messages',
+            'word — any attachment · File type is Word · 1 of 4 sample messages',
+        ]);
+        expect(screen.getByText(/a message with a PDF and a Word file goes down both/)).toBeTruthy();
+
+        // Check each attachment: the node now works through the attachments,
+        // the sentence stays and is read again against them.
+        await userEvent.setup().click(screen.getByRole('button', { name: 'Check each attachment instead' }));
+        expect(previewLines()).toEqual([
+            'pdf — File type is PDF · 3 of 9 sample attachments',
+            'word — File type is Word · 1 of 9 sample attachments',
+        ]);
+        expect(screen.getByText('5 of 9 sample attachments match none of these and go to “Otherwise”.')).toBeTruthy();
+        expect(screen.queryByRole('button', { name: /Check each/ })).toBeNull();
+
+        save();
+        await waitFor(() => expect(onPatch).toHaveBeenCalled());
+        expect(onPatch.mock.calls[0][0].arrayRef).toBe('steps.m.output.messages[*].attachments');
     });
 
     it('names what it did not understand', () => {

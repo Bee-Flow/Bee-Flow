@@ -8,6 +8,7 @@ import React, { useRef, useState } from 'react';
 import { linkKey, type ProjectTask, type TaskLink } from '../../../../api/queries/projectTasks';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { LINK_ICON, useTaskLinks, type LinkOption } from './taskLinks';
+import { SelectField } from '../workspaceUi';
 import { TypeIcon } from './TaskFields';
 import { workItemType } from './taskPlanning';
 import { statusLabel } from './taskText';
@@ -116,12 +117,12 @@ export function RelatedTasks({ task, tasks, links, onChange, onOpen, disabled }:
                             {disabled
                                 ? dependsOn(item.id) && <span className="flex-none text-[11.5px] text-[var(--info-ink)]">{t('project_tasks.relation_depends_on', 'Depends on')}</span>
                                 : (
-                                    <select aria-label={relationLabel(item)} title={relationLabel(item)} value={dependsOn(item.id) ? 'depends_on' : 'related'}
+                                    <SelectField aria-label={relationLabel(item)} title={relationLabel(item)} value={dependsOn(item.id) ? 'depends_on' : 'related'}
                                         onChange={event => setRelation(item.id, event.target.value)}
-                                        className={`flex-none h-7 px-1.5 rounded-md border-0 bg-transparent text-[12px] appearance-none cursor-pointer hover:bg-[var(--bg-tertiary)] [&>option]:bg-[var(--bg-card)] [&>option]:text-[var(--text-primary)] ${dependsOn(item.id) ? 'text-[var(--info-ink)]' : 'text-[var(--text-tertiary)]'}`}>
+                                        bare wrapperClassName="relative inline-block flex-none" className={`h-7 px-1.5 rounded-md border-0 bg-transparent text-[12px] cursor-pointer hover:bg-[var(--bg-tertiary)] [&>option]:bg-[var(--bg-card)] [&>option]:text-[var(--text-primary)] ${dependsOn(item.id) ? 'text-[var(--info-ink)]' : 'text-[var(--text-tertiary)]'}`}>
                                         <option value="related">{t('project_tasks.relation_related', 'Related')}</option>
                                         <option value="depends_on">{t('project_tasks.relation_depends_on', 'Depends on')}</option>
-                                    </select>
+                                    </SelectField>
                                 )}
                             {!disabled && (
                                 <button type="button" aria-label={t('project_tasks.unlink_task', 'Unlink {title}', { title: item.title })} title={t('project_tasks.unlink_task', 'Unlink {title}', { title: item.title })}

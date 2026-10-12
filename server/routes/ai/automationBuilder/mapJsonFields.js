@@ -77,8 +77,27 @@ function validateMapJsonRequest(body) {
     }
     let sample = body?.sample;
     if (typeof sample === 'string') {
-        try { sample = JSON.parse(sample.replace(/^﻿/, '').trim()); }
-        catch { return { error: 'Sample is not valid JSON.' }; }
+        // Read the way the parse_json step reads its source at run time
+        // (execData.parseParseJsonSource): plain JSON, else a ```json fence or
+        // the JSON inside a sentence — how an AI step answers — and one level
+        // of double encoding. Plain JSON.parse refused exactly the samples
+        // parse_json exists for.
+        const { extractJsonText, parseJsonText } = require('../../../automation/expr');
+        const text = sample.replace(/^﻿/, '').trim();
+        // Length first: the lenient scan for JSON inside prose restarts at
+        // every `{` or `[`, and only the 20 MB body limit stood in front of it.
+        // The editor parses its sample before sending, so a text sample this
+        // large is a direct call; the parsed check below still applies.
+        if (text.length > MAX_MAP_JSON_SAMPLE_CHARS) return { error: 'Sample too large — pin a smaller output.' };
+        try { sample = JSON.parse(text); }
+        catch {
+            sample = extractJsonText(text);
+            if (sample === undefined) return { error: 'Sample is not valid JSON.' };
+        }
+        if (typeof sample === 'string') {
+            const inner = parseJsonText(sample);
+            if (inner !== undefined) sample = inner;
+        }
     }
     if (sample === null || typeof sample !== 'object') {
         return { error: 'A JSON sample (object or array) is required — run or pin the source step first.' };

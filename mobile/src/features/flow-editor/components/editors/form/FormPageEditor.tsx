@@ -92,28 +92,28 @@ export function FormPageEditor(props: FormPageEditorProps) {
                 ? slot('description', t('mobile.flow.form.message', 'Message'), t('mobile.flow.form.message_hint', 'Tell the visitor what happened.'), true)
                 : slot('description', t('mobile.flow.form.intro', 'Intro text'), t('mobile.flow.form.intro_hint', 'Shown under the title. Optional.'), true)}
             <Text variant="label" tone="tertiary">
-                {ending ? t('mobile.flow.form.downloads', 'Downloads') : t('forms.page.tab_questions', 'Questions')}
+                {ending ? t('automations.form_builder_fields.downloads', 'Downloads') : t('forms.page.tab_questions', 'Questions')}
             </Text>
             {ending ? (
                 <>
                     {fields.some(isDisplayField) ? null : (
-                        <Note>{t('mobile.flow.form.no_downloads', 'Nothing to hand over — offer a file the automation made, to save or to open in Notebooks.')}</Note>
+                        <Note>{t('automations.form_builder_fields.nothing_to_hand_over_offer_a', 'Nothing to hand over — offer a file the automation made, to save or to open in Notebooks.')}</Note>
                     )}
                     {fields.map((f, i) => (isDisplayField(f) ? card(f, i) : null))}
-                    <AddButton label={t('mobile.flow.form.add_download', 'Add a download')} onPress={() => setFields(addDisplayField(fields, 'download', NEW_DOWNLOAD))} disabled={disabled} />
+                    <AddButton label={t('automations.form_builder_fields.add_a_download', 'Add a download')} onPress={() => setFields(addDisplayField(fields, 'download', NEW_DOWNLOAD))} disabled={disabled} />
                     <AddButton
-                        label={t('mobile.flow.form.add_notebook', 'Add an Open in Notebooks')}
+                        label={t('automations.form_builder_fields.add_an_open_in_notebooks', 'Add an Open in Notebooks')}
                         onPress={() => setFields(addDisplayField(fields, 'notebook', NEW_NOTEBOOK))}
                         disabled={disabled}
                     />
                 </>
             ) : (
                 <>
-                    {fields.length ? null : <Note>{t('mobile.flow.form.no_questions', 'No questions yet — nobody can submit this form.')}</Note>}
+                    {fields.length ? null : <Note>{t('automations.form_builder_fields.no_questions_yet_nobody_can_submit', 'No questions yet — nobody can submit this form.')}</Note>}
                     {fields.map(card)}
-                    <AddButton label={t('mobile.flow.form.add_question', 'Add a question')} onPress={() => setFields(addQuestion(fields, NEW_QUESTION))} disabled={disabled} />
-                    {slot('submitLabel', t('mobile.flow.form.button_text', 'Button text'), null)}
-                    {slot('successMessage', t('mobile.flow.form.thank_you', 'Thank-you message'), t('mobile.flow.form.thank_you_hint', 'Replaces the form after a successful submission.'), true)}
+                    <AddButton label={t('automations.form_builder_fields.add_a_question', 'Add a question')} onPress={() => setFields(addQuestion(fields, NEW_QUESTION))} disabled={disabled} />
+                    {slot('submitLabel', t('automations.form_builder_fields.button_text', 'Button text'), null)}
+                    {slot('successMessage', t('automations.form_builder_fields.thank_you_message', 'Thank-you message'), t('mobile.flow.form.thank_you_hint', 'Replaces the form after a successful submission.'), true)}
                 </>
             )}
             <ThemeEditor

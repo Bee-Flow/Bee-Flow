@@ -7,7 +7,8 @@
  */
 
 import type { FlowCatalog, CatalogActionRow } from '@/features/flow-editor/api';
-import type { FlowNode } from '@/features/flow-editor/bindings';
+import type { FlowNode, ForEach } from '@/features/flow-editor/bindings';
+import { deepenInputsWrite } from '@/features/flow-editor/bindings/deepenInputs';
 import type { FormDraft } from '@/features/flow-editor/formState';
 import { humanizeToolName } from '@/features/flow-editor/model';
 
@@ -103,6 +104,14 @@ export const INTEGRATION_ACTION: EditorSpec = {
                     kind: 'schema',
                     key: 'inputs',
                     schema: (draft, ctx) => lookup(draft, ctx).action?.inputSchema ?? null,
+                    // A value from a list inside a list, picked into an empty
+                    // input that takes one value, runs the step once per inner
+                    // item, the outer item kept — never a list in one field.
+                    write: (value, draft, ctx) => {
+                        const schema = lookup(draft, ctx).action?.inputSchema;
+                        const r = deepenInputsWrite(draft.forEach as ForEach | null, draft.inputs as Record<string, unknown>, (value || {}) as Record<string, unknown>, { sampleRoot: ctx.sampleRoot, schema });
+                        return r.forEach ? { inputs: r.inputs, forEach: r.forEach } : { inputs: r.inputs };
+                    },
                     hint: (draft, ctx) =>
                         lookup(draft, ctx).action?.inputSchema
                             ? null

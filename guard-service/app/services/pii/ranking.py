@@ -146,6 +146,18 @@ _CONTEXT_SEPARABLE_SIBLINGS: tuple[frozenset[str], ...] = (
 )
 
 
+def _by_sibling_context(contenders: list[dict]) -> list[dict]:
+    """Between DECLARED siblings only: keep the contenders the surrounding words
+    named (``context_hit``), when some but not all were. A set filter, so it is
+    order-independent; it never changes the extent, only who names it."""
+    cats = {e["category"] for e in contenders}
+    if any(cats <= sib and len(cats) > 1 for sib in _CONTEXT_SEPARABLE_SIBLINGS):
+        anchored = [e for e in contenders if e.get("context_hit")]
+        if anchored and len(anchored) < len(contenders):
+            return anchored
+    return contenders
+
+
 def _pick_label(contenders: list[dict]) -> dict:
     """Choose which category names an overlap cluster. Deterministic.
 
@@ -159,6 +171,14 @@ def _pick_label(contenders: list[dict]) -> dict:
       3. MARGIN above the category's own floor — see _label_margin.
       4. FROZEN PRECEDENCE. Never iteration order.
     """
+    # 0 — between declared siblings the words come FIRST. They share one
+    # checksum, so arithmetic cannot separate them; letting it filter first only
+    # decides who carries the `validated` stamp. A model span is stamped by
+    # _apply_validators, a regex span is not, so "BSN 123456782" came back as a
+    # tax number: the model's TaxIdentificationNumber passed the elfproef and
+    # the regex BSN that said "BSN" never reached stage 1.5.
+    contenders = _by_sibling_context(contenders)
+
     # 1 — arithmetic beats opinion.
     validated = [e for e in contenders if e.get("validated") is True]
     if validated:
@@ -184,11 +204,7 @@ def _pick_label(contenders: list[dict]) -> dict:
     # order-independent. And it only ever changes the LABEL — the union extent
     # is computed by _finalise from the whole cluster either way, so
     # `union(kept) == union(input)` still holds and nothing stops being redacted.
-    cats = {e["category"] for e in contenders}
-    if any(cats <= sib and len(cats) > 1 for sib in _CONTEXT_SEPARABLE_SIBLINGS):
-        anchored = [e for e in contenders if e.get("context_hit")]
-        if anchored and len(anchored) < len(contenders):
-            contenders = anchored
+    contenders = _by_sibling_context(contenders)
 
     def _rank(ent: dict) -> int:
         try:

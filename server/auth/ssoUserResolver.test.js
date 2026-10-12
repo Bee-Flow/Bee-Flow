@@ -6,7 +6,7 @@
  * Verifies the matching rules that fix the Azure AD duplicate-user bug:
  *   - an existing user synced from Azure (id = email slug, azureUserId = GUID)
  *     must be matched by Azure OID, not duplicated
- *   - an email-only match must backfill azureUserId
+ *   - email/local-ID matches cannot grant access to a Microsoft identity
  *   - a first-time SSO user with no prior record must be reported as "none"
  *   - deriveLocalUserId must mirror the directory sync's id derivation
  */
@@ -25,9 +25,9 @@ function makeMockStore(users) {
     const db = new Map(users.map(u => [u.id, { ...u }]));
     return {
         _db: db,
-        async getUserByAzureId(azureUserId) {
+        async getUserByAzureId(azureUserId, azureTenantId) {
             for (const u of db.values()) {
-                if (u.azureUserId === azureUserId) return { ...u };
+                if (u.azureUserId === azureUserId && u.azureTenantId === azureTenantId) return { ...u };
             }
             return null;
         },
@@ -95,10 +95,10 @@ async function run() {
     // ── resolveExistingSSOUser ──────────────────────────────
     await test('matches by Azure OID even when local id is the email slug', async () => {
         const store = makeMockStore([
-            { id: 'john.doe', email: 'john.doe@example.com', azureUserId: 'OID-1', organizationId: 'acme' },
+            { id: 'john.doe', email: 'john.doe@example.com', azureTenantId: 'tenant-A', azureUserId: 'OID-1', organizationId: 'acme' },
         ]);
         const { user, branch } = await resolveExistingSSOUser(
-            { azureUserId: 'OID-1', email: 'john.doe@example.com', localId: 'OID-1' },
+            { azureTenantId: 'tenant-A', azureUserId: 'OID-1', email: 'john.doe@example.com', localId: 'OID-1' },
             store,
         );
         assert.ok(user, 'should find user');
@@ -106,19 +106,15 @@ async function run() {
         assert.strictEqual(branch, 'azureId');
     });
 
-    await test('matches by email when azureUserId not yet set, backfills it', async () => {
-        const store = makeMockStore([
-            { id: 'jane.doe', email: 'Jane.Doe@example.com', azureUserId: null, organizationId: 'acme' },
-        ]);
-        const { user, branch } = await resolveExistingSSOUser(
-            { azureUserId: 'OID-2', email: 'jane.doe@example.com', localId: 'OID-2' },
-            store,
-        );
-        assert.strictEqual(branch, 'email');
-        assert.strictEqual(user.id, 'jane.doe');
-        // Backfill side-effect — the stored row should now carry the OID.
-        const refreshed = await store.getUser('jane.doe');
-        assert.strictEqual(refreshed.azureUserId, 'OID-2', 'azureUserId should be backfilled');
+    for (const identity of [
+        { azureTenantId: 'tenant-A', azureUserId: 'different-oid' },
+        { azureTenantId: 'tenant-B', azureUserId: 'OID-2' },
+        { azureUserId: 'OID-2' },
+    ]) await test(`same email cannot bind Microsoft identity ${JSON.stringify(identity)}`, async () => {
+        const store = makeMockStore([{ id: 'jane.doe', email: 'Jane.Doe@example.com', azureTenantId: 'tenant-A', azureUserId: 'OID-2', organizationId: 'acme' }]);
+        const result = await resolveExistingSSOUser({ ...identity, email: 'jane.doe@example.com', localId: 'jane.doe' }, store);
+        assert.deepStrictEqual(result, { user: null, branch: 'none' });
+        assert.strictEqual((await store.getUser('jane.doe')).azureUserId, 'OID-2');
     });
 
     await test('does not try legacy-id lookup for Microsoft users (avoids re-creating the bug)', async () => {
@@ -127,11 +123,11 @@ async function run() {
         // via azureUserId, NOT via getUser(oid) — and the canonical synced
         // user (by OID) should win.
         const store = makeMockStore([
-            { id: 'john.doe', email: 'john.doe@example.com', azureUserId: 'OID-3', organizationId: 'acme' },
+            { id: 'john.doe', email: 'john.doe@example.com', azureTenantId: 'tenant-A', azureUserId: 'OID-3', organizationId: 'acme' },
             { id: 'OID-3',    email: 'john.doe@example.com', azureUserId: null,    organizationId: '' },
         ]);
         const { user, branch } = await resolveExistingSSOUser(
-            { azureUserId: 'OID-3', email: 'john.doe@example.com', localId: 'OID-3' },
+            { azureTenantId: 'tenant-A', azureUserId: 'OID-3', email: 'john.doe@example.com', localId: 'OID-3' },
             store,
         );
         assert.strictEqual(branch, 'azureId');
@@ -141,7 +137,7 @@ async function run() {
     await test('returns branch=none for a truly new user', async () => {
         const store = makeMockStore([]);
         const { user, branch } = await resolveExistingSSOUser(
-            { azureUserId: 'OID-NEW', email: 'new@example.com', localId: 'new' },
+            { azureTenantId: 'tenant-A', azureUserId: 'OID-NEW', email: 'new@example.com', localId: 'new' },
             store,
         );
         assert.strictEqual(user, null);

@@ -1,4 +1,5 @@
 import { Play, Pause, RotateCcw, RotateCw } from 'lucide-react';
+import useTranslation from '../../../hooks/useTranslation';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import useWaveform from '../hooks/useWaveform';
 import { formatDuration } from '../lib/format';
@@ -94,6 +95,7 @@ function useAudioSourceSwap(audioRef, src) {
 }
 
 export default function WaveformPlayer({ audioSrc, onReady, markers = [], mentionMarkers = [], segments = [], speakers = [], chapters = [], durationSeconds = 0 }) {
+    const { t } = useTranslation();
     const audioRef = useRef(null);
     const { peaks, duration: peakDuration, loading, objectUrl } = useWaveform(audioSrc, 600);
     const { playing, currentTime, duration } = useAudioPlayback(audioRef, peakDuration);
@@ -171,7 +173,7 @@ export default function WaveformPlayer({ audioSrc, onReady, markers = [], mentio
         <div
             tabIndex={0}
             onKeyDown={onKeyDown}
-            aria-label="Meeting audio player. Space to play or pause, arrow keys to skip."
+            aria-label={t('meeting_notes.player_aria', 'Meeting audio player. Space to play or pause, arrow keys to skip.')}
             className="flex items-center gap-3 px-3 py-2.5 rounded-xl border outline-none focus-visible:ring-1"
             style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}
         >

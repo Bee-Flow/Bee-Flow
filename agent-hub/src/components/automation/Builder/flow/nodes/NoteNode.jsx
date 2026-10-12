@@ -3,6 +3,7 @@ import { StickyNote } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNodeRuntime } from '../NodeRuntimeContext';
 import { renderNoteText } from './noteRichText';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 
 /**
  * A free-floating canvas annotation (BFSF-411) — sticky-note text tied to a
@@ -48,6 +49,7 @@ const NOTE_COLORS = {
 const COLOR_KEYS = ['amber', 'blue', 'green', 'orange', 'rose', 'red', 'cyan', 'slate'];
 
 export default function NoteNode({ id, data, selected }) {
+    const { t } = useTranslation();
     const step = data?.step || {};
     const { onPatchStep } = useNodeRuntime();
     const editable = !!onPatchStep;
@@ -102,7 +104,7 @@ export default function NoteNode({ id, data, selected }) {
                 }}
             />
             <div className={`flex items-center gap-1.5 px-2 pt-2 text-[10px] uppercase tracking-wide opacity-70 ${palette.text}`}>
-                <StickyNote size={11} /> Note
+                <StickyNote size={11} /> {t('automations.note_node.note', 'Note')}
             </div>
             <div className="flex-1 min-h-0 px-2 pb-2 pt-1">
                 {editing ? (
@@ -123,10 +125,10 @@ export default function NoteNode({ id, data, selected }) {
                                 e.stopPropagation();
                             }}
                             onMouseDown={(e) => e.stopPropagation()}
-                            placeholder="Write a note…"
+                            placeholder={t('automations.note_node.write_a_note', 'Write a note…')}
                         />
                         <div className={`text-[9px] leading-tight opacity-50 select-none ${palette.text}`}>
-                            **bold** · *italic* · - bullet · 1. numbered
+                            {t('automations.note_node.bold_italic_bullet_1_numbered', '**bold** · *italic* · - bullet · 1. numbered')}
                         </div>
                     </>
                 ) : (
@@ -136,7 +138,7 @@ export default function NoteNode({ id, data, selected }) {
                     >
                         {step.text
                             ? renderNoteText(step.text)
-                            : (editable ? <span className="opacity-50 italic">Double-click to write a note…</span> : '(empty note)')}
+                            : (editable ? <span className="opacity-50 italic">{t('automations.note_node.double_click_to_write_a_note', 'Double-click to write a note…')}</span> : '(empty note)')}
                     </div>
                 )}
             </div>

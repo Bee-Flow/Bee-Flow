@@ -198,3 +198,22 @@ test('capture never mutates the caller\'s live definition', () => {
         'the draft the rest of the request is using must be untouched');
     assert.equal(def.meta.name, 'Source app');
 });
+
+test('BFSF-384: a staged approval loses its stages on capture, and the capture says so', () => {
+    const def = emptyDefinition('Source app');
+    def.actions = {
+        ask: {
+            kind: 'sequence', steps: [{
+                kind: 'request_approval', prompt: { kind: 'static', value: 'Approve the order?' },
+                stages: [
+                    { key: 'lead', name: 'Team lead', approvers: [{ userId: 'u1' }], rule: 'all' },
+                    { key: 'fin', name: 'Finance', approvers: [{ groupId: 'g_fin' }], rule: 'first' },
+                ],
+            }],
+        },
+    };
+    const out = captureTemplate({ definition: def, meta: { title: 'Orders' } });
+    assert.ok(out.ok, JSON.stringify(out.errors));
+    assert.ok(!JSON.stringify(out.template).includes('u1') && !JSON.stringify(out.template).includes('g_fin'));
+    assert.ok(out.report.warnings.some(w => /2 approval stage\(s\) removed/.test(w)), JSON.stringify(out.report.warnings));
+});

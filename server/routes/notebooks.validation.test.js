@@ -26,8 +26,17 @@ const h = require('../core/http/routeHarness');
 // The one notebook the recording database knows: nb1, owned by the harness
 // user, so a valid request passes the role gate and reaches the store.
 const NB1 = { id: 'nb1', user_id: 'u1', name: 'NB', document_content: '', version: 5, source_count: 0 };
-const answer = (sql, params) => (/^\s*SELECT n\.\*/.test(sql) && params && params[0] === 'nb1' && params[1] === 'u1'
-    ? { rows: [NB1] } : undefined);
+const writes = [];
+const answer = (sql, params) => {
+    if (/^\s*SELECT n\.\*/.test(sql) && params?.[0] === 'nb1' && params[1] === 'u1') return { rows: [NB1] };
+    if (/^\s*SELECT \* FROM notebooks WHERE id = \$1 FOR UPDATE/.test(sql) && params?.[0] === 'nb1') return { rows: [NB1] };
+    if (/^\s*UPDATE notebooks SET/.test(sql) && /RETURNING version/.test(sql)) {
+        writes.push({ sql, params });
+        return { rows: params.at(-1) === NB1.version ? [{ version: NB1.version + 1 }] : [] };
+    }
+    if (/^\s*SELECT version FROM notebooks/.test(sql) && params?.[0] === 'nb1') return { rows: [{ version: NB1.version }] };
+    return undefined;
+};
 
 const { db, api } = h.routeUnderTest(test, '/api/notebooks', () => {
     const router = require('./notebooks');
@@ -49,11 +58,20 @@ test('a version that is not a whole number, and a pin that is not a boolean, are
 });
 
 test('the version as digits is read as the number, so the check still runs', async () => {
+    writes.length = 0;
     const res = await put({ documentContent: '<p>x</p>', expectedVersion: '5' });
-    // No such notebook in the recording database; what matters is that the
-    // compare-and-set carried the version.
-    assert.strictEqual(res.status, 404, res.text);
-    assert.ok(db.queries.some((q) => /UPDATE\s+notebooks/i.test(q) && /version/i.test(q)), db.queries.join(' | '));
+    assert.strictEqual(res.status, 200, res.text);
+    assert.strictEqual(writes.length, 1);
+    assert.match(writes[0].sql, /AND version = \$\d+/);
+    assert.strictEqual(writes[0].params.at(-1), 5);
+});
+
+test('a stale version supplied as digits refuses the write with a conflict', async () => {
+    writes.length = 0;
+    const res = await put({ documentContent: '<p>x</p>', expectedVersion: '4' });
+    assert.strictEqual(res.status, 409, res.text);
+    assert.strictEqual(writes.length, 1);
+    assert.strictEqual(writes[0].params.at(-1), 4);
 });
 
 test('source bodies take only what the source reads', async () => {

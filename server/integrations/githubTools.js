@@ -1,7 +1,7 @@
 /**
  * GitHub Tools — AI tools for repository management
  * 
- * PAT-based (users set their token in Settings → Integrations).
+ * PAT-based (users set their token in Settings → Connections).
  * Supports: list repos, get repo details, create repo, list branches,
  * get file content, list directory contents.
  */
@@ -124,7 +124,7 @@ const GITHUB_TOOLS = [
 
 async function getToken(userId) {
     const token = await configStore.getSecret(`github_token_user_${userId}`);
-    if (!token) throw new Error('GitHub not connected. Set your Personal Access Token in Settings → Integrations.');
+    if (!token) throw new Error('GitHub not connected. Set your Personal Access Token in Settings → Connections.');
     return token;
 }
 
@@ -142,7 +142,7 @@ async function ghFetch(token, endpoint, options = {}) {
     });
 
     if (res.status === 401) {
-        throw new Error('GitHub token expired or invalid. Update it in Settings → Integrations.');
+        throw new Error('GitHub token expired or invalid. Update it in Settings → Connections.');
     }
     if (!res.ok) {
         const text = await res.text();

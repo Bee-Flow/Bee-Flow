@@ -69,12 +69,13 @@ describe('NextcloudScreen', () => {
         expect(await screen.findByText('Sync done: created 2, deactivated 1')).toBeTruthy();
     });
 
-    it('links the pairing and meeting-notes pages', async () => {
+    it('links the pairing and Talk meeting-notes pages, but not Google Meet’s (Meeting templates opens those)', async () => {
         await renderScreen(<NextcloudScreen />);
         await fireEvent.press(await screen.findByTestId('nc-talk'));
         expect(mockRouter.push).toHaveBeenCalledWith('/org/nextcloud/talk');
         await fireEvent.press(screen.getByTestId('nc-pairing'));
         expect(mockRouter.push).toHaveBeenCalledWith('/org/nextcloud/pairing');
+        expect(screen.queryByText('Google Meet Meeting Notes')).toBeNull();
     });
 
     it('says why there is nothing to sync for an org without a Nextcloud', async () => {
@@ -159,5 +160,19 @@ describe('MeetNotesScreen', () => {
                 excludedMeetingCodes: [],
             }),
         );
+    });
+
+    it('needs no Nextcloud: an org admin with the licence of an unbound org gets the settings', async () => {
+        mockOrg.isNcOrg = false;
+        answers['/api/gmeet-notes-settings/o1'] = { autoImport: true, autoRecordConfig: false, importScope: 'organizer', language: null };
+        await renderScreen(<MeetNotesScreen />);
+        expect(await screen.findByTestId('meet-auto-import')).toBeTruthy();
+        expect(api.get).toHaveBeenCalledWith('/api/gmeet-notes-settings/o1', expect.anything());
+    });
+
+    it('turns an admin without the Meeting Notes licence away', async () => {
+        mockLicensed = false;
+        await renderScreen(<MeetNotesScreen />);
+        expect(api.get).not.toHaveBeenCalled();
     });
 });

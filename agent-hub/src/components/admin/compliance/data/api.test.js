@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 vi.mock('../../../../utils/helpers', () => ({ authFetch: vi.fn() }));
 
 import { authFetch } from '../../../../utils/helpers';
-import { API, API_DSR, OPTS, fetchJson, jsonInit, json, downloadUrl, asObject, asArray } from './api';
+import { API, API_DSR, OPTS, fetchJson, jsonInit, json, downloadUrl, asObject, asArray, chatMonitoringUrls } from './api';
 
 beforeEach(() => authFetch.mockReset());
 
@@ -58,5 +58,31 @@ describe('compliance data/api — the one network seam', () => {
         expect(asArray([1])).toEqual([1]);
         expect(asArray({})).toBeNull();
         expect(asArray(undefined)).toBeNull();
+    });
+});
+
+describe('compliance data/api — chat signals', () => {
+    it('fetchJson hands over the 422 details (field codes only) on the thrown error', async () => {
+        authFetch.mockResolvedValue({
+            ok: false, status: 422, statusText: 'Unprocessable Entity',
+            json: async () => ({ error: 'Chat signals cannot be saved yet: something is missing.', code: 'chat_monitoring_preconditions', details: { missing: ['dpia', 'works_council'] } }),
+        });
+        const err = await fetchJson(`${API}/chat-monitoring`, jsonInit('PUT', {})).catch((e) => e);
+        expect(err).toMatchObject({ status: 422, code: 'chat_monitoring_preconditions', details: { missing: ['dpia', 'works_council'] } });
+    });
+
+    it('fetchJson leaves details null when the body has none, or a non-object', async () => {
+        authFetch.mockResolvedValue({ ok: false, status: 400, statusText: 'Bad Request', json: async () => ({ error: 'x', details: 'nope' }) });
+        expect((await fetchJson(`${API}/x`).catch((e) => e)).details).toBeNull();
+        authFetch.mockResolvedValue({ ok: false, status: 400, statusText: 'Bad Request', json: async () => ({ error: 'x', details: ['a'] }) });
+        expect((await fetchJson(`${API}/x`).catch((e) => e)).details).toBeNull();
+    });
+
+    it('names every chat-signals route under /api/compliance', () => {
+        expect(chatMonitoringUrls.config()).toBe(`${API}/chat-monitoring`);
+        expect(chatMonitoringUrls.summary(90)).toBe(`${API}/chat-monitoring/summary?days=90`);
+        expect(chatMonitoringUrls.summary(7)).toBe(`${API}/chat-monitoring/summary?days=30`);
+        expect(chatMonitoringUrls.counts()).toBe(`${API}/chat-monitoring/counts`);
+        expect(chatMonitoringUrls.dpia()).toBe(`${API}/dpia/chat_monitoring`);
     });
 });

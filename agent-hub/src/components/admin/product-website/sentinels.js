@@ -16,12 +16,15 @@ export const DESIGN_VIRTUAL_ID    = '__design__';
 // previewMode='chrome' (analytics has nothing to show in isolation; the
 // preview keeps rendering the fallback page like the Design entry does).
 export const ANALYTICS_VIRTUAL_ID = '__analytics__';
+// NOT a chrome id either: the Blog entry swaps the navigator for the post
+// list and previews the blog index / the selected post on the canvas.
+export const BLOG_VIRTUAL_ID      = '__blog__';
 
 const CHROME_IDS = new Set([
     SITE_VIRTUAL_ID, HEADER_VIRTUAL_ID, FOOTER_VIRTUAL_ID,
     COOKIE_VIRTUAL_ID, ANNOUNCE_VIRTUAL_ID,
 ]);
-const VIRTUAL_IDS = new Set([...CHROME_IDS, DESIGN_VIRTUAL_ID, ANALYTICS_VIRTUAL_ID]);
+const VIRTUAL_IDS = new Set([...CHROME_IDS, DESIGN_VIRTUAL_ID, ANALYTICS_VIRTUAL_ID, BLOG_VIRTUAL_ID]);
 
 /** True for any virtual entry (chrome or design) — i.e. NOT a real page id. */
 export function isVirtualPageId(id) {

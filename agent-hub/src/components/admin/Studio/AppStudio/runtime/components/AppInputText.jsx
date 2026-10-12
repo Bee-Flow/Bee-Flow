@@ -1,3 +1,4 @@
+import useTranslation from '../../../../../../hooks/useTranslation';
 import { useFormField } from '../formContext';
 import { Field, INPUT_CLASS, inputStyle } from '../uiBits';
 import useValueFrom from '../useValueFrom';
@@ -5,8 +6,9 @@ import useValueFrom from '../useValueFrom';
 /** App Studio runtime — 'input_text'. Spec: server/appStudio/componentSpecs.js. */
 
 export default function AppInputText({ node }) {
+    const { t } = useTranslation();
     const {
-        name, label = 'Text', placeholder = null, required = false,
+        name, label = t('studio_apps_runtime.inputs.text', 'Text'), placeholder = null, required = false,
         defaultValue = null, inputType = 'text',
     } = node.props || {};
     const { value, setValue, error } = useFormField({ name, defaultValue, required, label });

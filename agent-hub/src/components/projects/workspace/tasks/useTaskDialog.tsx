@@ -28,7 +28,7 @@ function useOpenTaskLink(props: Pick<WorkspaceTabProps, 'onOpenTab'>) {
     }, [onOpenTab]);
 }
 
-export function useTaskDialog(props: Pick<WorkspaceTabProps, 'projectId' | 'role' | 'currentUser' | 'onOpenTab'>, labelSuggestions?: string[]) {
+export function useTaskDialog(props: Pick<WorkspaceTabProps, 'projectId' | 'role' | 'currentUser' | 'onOpenTab'>, labelSuggestions?: string[], onDeleteTask?: (task: ProjectTask) => void) {
     const { projectId, role, currentUser } = props;
     const { t } = useTranslation();
     const { confirm, confirmDialog } = useConfirm();
@@ -51,6 +51,8 @@ export function useTaskDialog(props: Pick<WorkspaceTabProps, 'projectId' | 'role
     const onDelete = async () => {
         const task = open?.task;
         if (!task) return;
+        // The host can offer Undo instead of asking first.
+        if (onDeleteTask) { close(); onDeleteTask(task); return; }
         const ok = await confirm({
             title: t('project_tasks.delete_title', 'Delete this task?'),
             description: t('project_tasks.delete_body', 'It disappears for everyone in the project.'),

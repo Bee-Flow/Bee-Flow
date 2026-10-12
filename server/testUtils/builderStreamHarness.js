@@ -113,6 +113,10 @@ function createBuilderStream() {
     let script = null;
 
     swap('db', silentDb());
+    // The create-access check reads the principal, permissions and training
+    // state; a turn here answers from the script instead (`datatableAccess`).
+    // Swapped before anything that destructures it is loaded.
+    swap('automation/builderTools/datatableCreateAccess', { async checkDatatableCreate() { return script.datatableAccess; } });
 
     const automationStore = {
         async getAutomation(id) { return script.automations[id] || null; },
@@ -139,6 +143,9 @@ function createBuilderStream() {
     swap('automation/builderCatalog', { async buildCatalogForUser() { return snapshot(script.catalog); } });
     swap('automation/builderDatatableCatalog', { async buildDatatableCatalogForUser() { return script.datatables; } });
     swap('automation/builderDocumentCatalog', { async buildDocumentCatalogForUser() { return script.documents; } });
+    // Agents / knowledge bases / app_event providers: scripted per run (`pickers`),
+    // empty by default so a turn never reaches the agent or knowledge stores.
+    swap('automation/builderPickerCatalog', { async buildPickerCatalogsForUser() { return snapshot(script.pickers) || {}; } });
     swap('automation/flowletAgent', { async resolveLayerAgentModel() { return script.thinkingModelId; } });
     // The delegation ctx rides along as the handler's third argument: it is
     // where the route says which model a flowlet sub-agent runs on.
@@ -191,6 +198,7 @@ function createBuilderStream() {
      * @param {object} [p.tiers]        the user's tier map
      * @param {object} [p.providerConfig]
      * @param {object} [p.catalog]
+     * @param {object} [p.pickers]      what buildPickerCatalogsForUser answers (agents, knowledgeBases, appEventProviders, …)
      * @param {object} [p.config]       configStore answers
      */
     async function run({
@@ -209,7 +217,10 @@ function createBuilderStream() {
         catalog,
         config = {},
         datatables = null,
+        // What checkDatatableCreate answers (see above). Default: may create an org table.
+        datatableAccess = { ok: true, scope: { kind: 'org', id: 'org1' }, principal: { userId: 'u1' }, hasManage: true },
         documents = null,
+        pickers = null,
         mintedAutomationId = 'auto_minted',
         userId = 'u1',
         userOrgId = 'org1',
@@ -231,7 +242,9 @@ function createBuilderStream() {
             tiers: tiers || { fast: { modelId }, standard: { modelId } },
             catalog: catalog || { apps: [], toolNames: null, triggerOutputs: {} },
             datatables,
+            datatableAccess,
             documents,
+            pickers,
             thinkingModelId: modelId,
             mintedAutomationId,
             userOrgIds,
@@ -284,6 +297,9 @@ function createBuilderStream() {
     return {
         run,
         router,
+        // The real dispatch, for a test that wants the real tool rules (gate,
+        // staging) behind an `onTool` handler: onTool: (n, a, w) => h.realApplyToolCall(n, a, w).
+        realApplyToolCall: realBuilderTools.applyToolCall,
         restore() { while (undo.length) undo.pop()(); },
     };
 }

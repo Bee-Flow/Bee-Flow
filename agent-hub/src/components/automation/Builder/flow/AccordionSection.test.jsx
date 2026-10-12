@@ -28,12 +28,12 @@ describe('AccordionSection density', () => {
 
     it('renders an advanced section in the full view', () => {
         renderAt('full');
-        expect(screen.getByText('Advanced')).toBeTruthy();
+        expect(screen.getByText('secret setting')).toBeTruthy();
     });
 
     it('leaves it out entirely in the quick view', () => {
         renderAt('quick');
-        expect(screen.queryByText('Advanced')).toBeNull();
+        expect(screen.queryByText('secret setting')).toBeNull();
     });
 
     it('keeps a primary section in BOTH views', () => {
@@ -52,7 +52,7 @@ describe('AccordionSection density', () => {
     it('shows an advanced section anyway when it holds a validation error', () => {
         // An error the user cannot reach is worse than a busy panel.
         renderAt('quick', { forceOpen: true });
-        expect(screen.getByText('Advanced')).toBeTruthy();
+        expect(screen.getByText('secret setting')).toBeTruthy();
     });
 
     it('reports what it hid so the host can count it', () => {
@@ -63,9 +63,9 @@ describe('AccordionSection density', () => {
 
     it('defaults to the full view when no density context is present', () => {
         render(
-            <AccordionSection stepType="ai_step" sectionKey="advanced" title="Advanced"><div /></AccordionSection>,
+            <AccordionSection stepType="ai_step" sectionKey="advanced" title="Advanced"><div>secret setting</div></AccordionSection>,
         );
-        expect(screen.getByText('Advanced')).toBeTruthy();
+        expect(screen.getByText('secret setting')).toBeTruthy();
     });
 });
 
@@ -88,7 +88,7 @@ describe('densityForOpen', () => {
     });
 });
 
-describe('AccordionSection mode (Simple / All options)', () => {
+describe('AccordionSection mode (Simple / Advanced)', () => {
     beforeEach(() => {
         cleanup();
         scopedStorage.setCurrentUser('accordion-test-user');
@@ -106,21 +106,34 @@ describe('AccordionSection mode (Simple / All options)', () => {
     it('the user\'s mode beats the gesture, in BOTH directions', () => {
         // Advanced mode shows the section even in the small (quick) window…
         renderWith({ density: 'quick', mode: 'advanced' });
-        expect(screen.getByText('Advanced')).toBeTruthy();
+        expect(screen.getByText('secret setting')).toBeTruthy();
         cleanup();
         // …and Simple hides it even in the big (full) window.
         renderWith({ density: 'full', mode: 'simple' });
-        expect(screen.queryByText('Advanced')).toBeNull();
+        expect(screen.queryByText('secret setting')).toBeNull();
     });
 
     it('a configured section is never hidden in Simple, and says why', () => {
-        renderWith({ density: 'quick', mode: 'simple' }, { hasContent: true });
-        expect(screen.getByText('Advanced')).toBeTruthy();
+        const ui = (
+            <FormDensityContext.Provider value={{ density: 'quick', mode: 'simple' }}>
+                <AccordionSection stepType="ai_step" sectionKey="output" title="Output" hasContent>
+                    <div>secret setting</div>
+                </AccordionSection>
+            </FormDensityContext.Provider>
+        );
+        render(ui);
+        expect(screen.getByText('Output')).toBeTruthy();
         // The "set" badge marks it as kept-because-configured.
         expect(screen.getByText('set')).toBeTruthy();
     });
 
-    it('a section revealed by Simple → All options arrives OPEN', () => {
+    it('Advanced is the mode, not a section: out of Simple even when it holds settings', () => {
+        renderWith({ density: 'full', mode: 'simple' }, { hasContent: true });
+        expect(screen.queryByText('secret setting')).toBeNull();
+        expect(screen.queryByText('set')).toBeNull();
+    });
+
+    it('a section revealed by Simple → Advanced arrives OPEN', () => {
         const ui = (mode) => (
             <FormDensityContext.Provider value={{ density: 'quick', mode }}>
                 <AccordionSection stepType="ai_step" sectionKey="output" title="Output">
@@ -136,7 +149,7 @@ describe('AccordionSection mode (Simple / All options)', () => {
         expect(screen.getByText('secret setting')).toBeTruthy();
     });
 
-    it('Advanced itself never opens by itself: not on that reveal, not with defaultOpen', () => {
+    it('in the Advanced mode its settings are simply there: no band, no toggle', () => {
         const ui = (mode) => (
             <FormDensityContext.Provider value={{ density: 'quick', mode }}>
                 <AccordionSection stepType="ai_step" sectionKey="advanced" title="Advanced" defaultOpen>
@@ -145,12 +158,13 @@ describe('AccordionSection mode (Simple / All options)', () => {
             </FormDensityContext.Provider>
         );
         const { rerender } = render(ui('simple'));
-        rerender(ui('advanced'));
-        expect(screen.getByRole('button', { name: /Advanced/ })).toBeTruthy();
         expect(screen.queryByText('secret setting')).toBeNull();
+        rerender(ui('advanced'));
+        expect(screen.queryByRole('button', { name: /Advanced/ })).toBeNull();
+        expect(screen.getByText('secret setting')).toBeTruthy();
     });
 
-    it('a section that appears because it now HOLDS something stays closed, with a quiet "set"', () => {
+    it('a forEach the builder just set does not pull Advanced into Simple', () => {
         // The builder just set a forEach after a connect: hasContent flips.
         const ui = (hasContent) => (
             <FormDensityContext.Provider value={{ density: 'quick', mode: 'simple' }}>
@@ -162,10 +176,9 @@ describe('AccordionSection mode (Simple / All options)', () => {
         const { rerender } = render(ui(false));
         rerender(ui(true));
         expect(screen.queryByText('secret setting')).toBeNull();
-        expect(screen.getByText('set')).toBeTruthy();
     });
 
-    it('All options → Simple hides again without opening anything else', () => {
+    it('Advanced → Simple hides again without opening anything else', () => {
         const onHiddenSection = vi.fn();
         const ui = (mode) => (
             <FormDensityContext.Provider value={{ density: 'quick', mode, onHiddenSection }}>
@@ -175,9 +188,9 @@ describe('AccordionSection mode (Simple / All options)', () => {
             </FormDensityContext.Provider>
         );
         const { rerender } = render(ui('advanced'));
-        expect(screen.getByText('Advanced')).toBeTruthy();
+        expect(screen.getByText('secret setting')).toBeTruthy();
         rerender(ui('simple'));
-        expect(screen.queryByText('Advanced')).toBeNull();
+        expect(screen.queryByText('secret setting')).toBeNull();
         expect(onHiddenSection).toHaveBeenCalledWith('advanced');
     });
 

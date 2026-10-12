@@ -155,6 +155,7 @@ function makeCollab(deps = {}) {
         readMarkdown: lifecycle.readMarkdown,
         readHtml: lifecycle.readHtml,
         read: lifecycle.read,
+        withFragment: lifecycle.withFragment,
         applyServerEdit: lifecycle.applyServerEdit,
         detach: lifecycle.detach,
         detachProject: lifecycle.detachProject,
@@ -205,6 +206,8 @@ module.exports = {
     readHtml: (kind, resourceId) => instance().readHtml(kind, resourceId),
     /** Both renderings (and the plain text) in one read. @param {string} kind @param {string} resourceId */
     read: (kind, resourceId) => instance().read(kind, resourceId),
+    /** The live Yjs state, opened once, handed to `fn` (relative positions). @param {string} kind @param {string} resourceId @param {(state: any) => any} fn */
+    withFragment: (kind, resourceId, fn) => instance().withFragment(kind, resourceId, fn),
     /** @param {string} kind @param {string} resourceId @param {any} actor @param {any} edit */
     applyServerEdit: (kind, resourceId, actor, edit) => instance().applyServerEdit(kind, resourceId, actor, edit),
     /** @param {string} kind @param {string} resourceId @param {{ reason?: string }} [opts] */

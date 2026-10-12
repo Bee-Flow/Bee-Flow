@@ -41,9 +41,20 @@ function nodesOf(definition: FlowDefinition): FlowNode[] {
     return nodes;
 }
 
-function usableRow(r: RunStepRow | null | undefined, knownIds: Set<string>): r is RunStepRow & { stepId: string } {
-    if (!r || r.parentStepId || !knownIds.has(r.stepId as string)) return false;
-    return r.output != null && !isTruncatedOutput(r.output);
+function primaryRow(r: RunStepRow | null | undefined, knownIds: Set<string>): r is RunStepRow & { stepId: string } {
+    return !!r && !r.parentStepId && knownIds.has(r.stepId as string);
+}
+
+/**
+ * What of a stored output may count as the step's real data: a truncation
+ * sentinel only by its shape-preserving `preview` (every level kept, long
+ * lists cut), which keeps a big payload's deep fields pickable.
+ */
+function usableOutput(v: unknown): unknown {
+    if (v == null) return undefined;
+    if (!isTruncatedOutput(v)) return v;
+    const preview = (v as Obj).preview;
+    return preview != null ? preview : undefined;
 }
 
 /**
@@ -59,11 +70,13 @@ export function buildRealOutputMap(
     const nodes = nodesOf(definition);
     const knownIds = new Set(nodes.map((n) => n.id));
     for (const r of runSteps || []) {
-        if (usableRow(r, knownIds) && !map.has(r.stepId)) map.set(r.stepId, r.output);
+        if (!primaryRow(r, knownIds) || map.has(r.stepId)) continue;
+        const out = usableOutput(r.output);
+        if (out !== undefined) map.set(r.stepId, out);
     }
     for (const node of nodes) {
-        if (node.pinnedOutput == null || isTruncatedOutput(node.pinnedOutput)) continue;
-        map.set(node.id, node.pinnedOutput);
+        const out = usableOutput(node.pinnedOutput);
+        if (out !== undefined) map.set(node.id, out);
     }
     return map;
 }

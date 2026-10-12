@@ -1,0 +1,20 @@
+{
+  "en": {
+    "compliance.rail_meta_new": "{n} new",
+    "compliance.rail_meta_to_decide": "{n} to decide",
+    "compliance.rail_meta_review_overdue": "{n} review overdue",
+    "compliance.rail_meta_acknowledged": "{done}/{total} acknowledged",
+    "compliance.rail_meta_review_due": "review due",
+    "compliance.rail_meta_failing": "{n} to fix",
+    "compliance.rail_meta_high": "{n} high"
+  },
+  "nl": {
+    "compliance.rail_meta_new": "{n} nieuw",
+    "compliance.rail_meta_to_decide": "{n} te beslissen",
+    "compliance.rail_meta_review_overdue": "{n} herziening verlopen",
+    "compliance.rail_meta_acknowledged": "{done}/{total} bevestigd",
+    "compliance.rail_meta_review_due": "herziening nodig",
+    "compliance.rail_meta_failing": "{n} op te lossen",
+    "compliance.rail_meta_high": "{n} hoog"
+  }
+}

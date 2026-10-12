@@ -78,6 +78,8 @@ export type AiActYesNo = 'yes' | 'no';
 export interface AiActAnswers {
     art5: AiActYesNo | null;
     annexIii: AiActYesNo | null;
+    /** The one area a row from before the ten questions named with its answer (`annex_iii.category`), or null. */
+    annexCategory: string | null;
     /** The Annex III domains answered yes or no; an open one is absent. */
     annexDomains: Partial<Record<string, AiActYesNo>>;
 }
@@ -135,6 +137,7 @@ function readAnswers(raw: unknown): AiActAnswers | null {
     return {
         art5: yesNo(pick(pick(raw, 'art5'), 'answer')),
         annexIii: yesNo(pick(annex, 'answer')),
+        annexCategory: field.strOrNull(pick(annex, 'category')),
         annexDomains: readDomains(pick(annex, 'domains')),
     };
 }

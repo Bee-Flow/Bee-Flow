@@ -64,6 +64,18 @@ async function getSingleOrgId() {
     return rows.length === 1 ? rows[0].id : null;
 }
 
+/**
+ * Does this installation have any organisation at all? The 'default' bucket
+ * (users without an organisation) counts as an employee bucket for chat
+ * signals only on an installation without one (amendment 18).
+ * @returns {Promise<boolean>}
+ */
+async function hasAnyOrganization() {
+    await initDB();
+    const row = await getOne('SELECT 1 AS one FROM organizations LIMIT 1');
+    return !!row;
+}
+
 // Find an un-bound organisation that "owns" an email domain, used by the
 // connector bootstrap to route a same-domain Nextcloud install into the
 // email-code verification flow (vs. creating a fresh org). Matches either an
@@ -343,6 +355,27 @@ async function setOrgBetaEveryone(orgId, ids) {
     return rowCount > 0;
 }
 
+// SELF-HOSTED: the matrix-togglable core / non-group-scoped beta ids the org
+// admin switched OFF for "All members". Returns null when never chosen (nothing
+// revoked, the single-switch behaviour from before the column existed).
+async function getOrgEveryoneRevoked(orgId) {
+    await initDB();
+    const o = await getOne('SELECT "org_everyone_revoked" FROM organizations WHERE id = $1', [orgId]);
+    if (!o || o.org_everyone_revoked == null) return null;
+    const list = parseJSON(o.org_everyone_revoked, null);
+    return Array.isArray(list) ? list : null;
+}
+
+async function setOrgEveryoneRevoked(orgId, ids) {
+    await initDB();
+    const value = ids == null ? null : JSON.stringify(Array.from(new Set((Array.isArray(ids) ? ids : []).filter(Boolean))));
+    const { rowCount } = await run(
+        'UPDATE organizations SET "org_everyone_revoked" = $1 WHERE id = $2',
+        [value, orgId]
+    );
+    return rowCount > 0;
+}
+
 /**
  * The per-org config rows whose key does NOT follow the `org_<orgId>_*`
  * convention, and which the LIKE wipe in deleteOrganization therefore misses.
@@ -433,6 +466,8 @@ async function deleteOrganization(orgId) {
         await run('DELETE FROM integration_connections WHERE org_id = $1', [orgId]);
         step = 'automation_credentials';
         await run('DELETE FROM automation_credentials WHERE org_id = $1', [orgId]);
+        step = 'mcp_tokens';
+        await run('DELETE FROM mcp_tokens WHERE org_id = $1', [orgId]);
 
         // Through the store, so the memoised per-org usage counters go with the rows.
         step = 'integration cache';
@@ -544,13 +579,14 @@ async function backfillAutoProvisionedNcOrgNames() {
 }
 
 module.exports = {
-    getAllOrganizations, getSingleOrgId, getOrganization, getOrganizationByNcInstanceId,
+    getAllOrganizations, getSingleOrgId, hasAnyOrganization, getOrganization, getOrganizationByNcInstanceId,
     createOrganization, updateOrganization, deleteOrganization,
     findUnboundOrgByEmailDomain,
     getOrgEnabledIntegrations, setOrgEnabledIntegrations, getOrgEnabledBetaFeatures, setOrgEnabledBetaFeatures,
     getOrgGrantedCapabilities, setOrgGrantedCapabilities,
     getOrgAvailableCapabilities, setOrgAvailableCapabilities,
     getOrgBetaEveryone, setOrgBetaEveryone,
+    getOrgEveryoneRevoked, setOrgEveryoneRevoked,
     backfillAutoProvisionedNcOrgNames,
     orgConfigKeys,
     MAX_ORG_ID_LENGTH,

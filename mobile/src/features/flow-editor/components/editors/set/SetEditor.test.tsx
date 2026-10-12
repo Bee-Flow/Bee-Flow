@@ -49,7 +49,8 @@ describe('SetEditor', () => {
         const h = await renderEditor(listStep, { groups, sampleRoot });
         await fireEvent.press(await screen.findByText('Pick fields from it'));
         await fireEvent.press(screen.getByText('id'));
-        expect(h.patch().fields).toEqual({ id: { kind: 'expr', value: 'parseJson(item.payload, "id")' } });
+        // The run reads JSON text as the value it encodes: a plain path, as on the web.
+        expect(h.patch().fields).toEqual({ id: { kind: 'ref', path: 'item.payload.id' } });
     });
 
     it('works on the whole run instead, dropping the list', async () => {

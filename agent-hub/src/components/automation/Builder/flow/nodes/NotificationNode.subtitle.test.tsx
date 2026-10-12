@@ -50,3 +50,29 @@ describe('NotificationNode subtitle', () => {
         expect(screen.queryByText(/\{\{/)).toBeNull();
     });
 });
+
+describe('NotificationNode title', () => {
+    afterEach(cleanup);
+
+    const renderNode = (step: Record<string, unknown>) => render(
+        <ReactFlowProvider>
+            <NodeRuntimeContext.Provider value={{
+                pinnedById: new Set(), disabledById: new Set(), triggerIds: new Set(), attachedIds: new Set(),
+                typeGroupById: new Map(), stepTypeById: new Map(), stepNumberById: new Map(),
+            } as never}>
+                <NotificationNode id="n1" data={{ step: { id: 'n1', type: 'notification', body: 'x', ...step }, stepLabelById: LABELS, issues: [] }} />
+            </NodeRuntimeContext.Provider>
+        </ReactFlowProvider>,
+    );
+
+    it('shows the step\'s own name, not its message title template', () => {
+        renderNode({ label: 'Tell me about differences', title: 'Order {{steps.code_1.output.result.text}}: check' });
+        expect(screen.getByText('Tell me about differences')).toBeTruthy();
+        expect(screen.queryByText(/Order Code/)).toBeNull();
+    });
+
+    it('a step still named after its type shows the title instead', () => {
+        renderNode({ title: 'Daily digest' });
+        expect(screen.getByText('Daily digest')).toBeTruthy();
+    });
+});

@@ -57,7 +57,7 @@ function NextRuns({ preview, fetching, tz }: { preview: SchedulePreview | null |
             ))}
             {!fetching && preview?.valid && !next.length ? (
                 <Text variant="caption" tone="tertiary">
-                    {t('mobile.flow.schedule.none_upcoming', 'No upcoming runs in the next year.')}
+                    {t('automations.schedule_builder.no_upcoming_runs_in_the_next', 'No upcoming runs in the next year.')}
                 </Text>
             ) : null}
         </View>
@@ -85,7 +85,7 @@ export function ScheduleFields({ draft, setMany, ctx }: StepEditorProps) {
     return (
         <>
             <CronField
-                label={t('mobile.flow.schedule.frequency', 'Frequency')}
+                label={t('automations.schedule_builder.frequency', 'Frequency')}
                 value={cron}
                 onChange={(next) => setMany({ scheduleCron: next, scheduleTz: tz })}
                 disabled={ctx.disabled}

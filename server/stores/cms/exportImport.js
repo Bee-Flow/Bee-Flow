@@ -8,8 +8,12 @@ const { SITE_DEFAULTS } = require('../../i18n/defaults/cmsDefaults');
 const {
     SITE_VERSION,
     newId, isPlainObject, clone, normalizeSlug,
-    sanitizeDesign, sanitizeAnalytics, projectKey,
+    sanitizeDesign, sanitizeAnalytics, sanitizeBlogSettings, projectKey,
 } = require('./shared');
+const {
+    listPosts, collectPostLocaleOverrides, restorePosts, POST_LIMITS,
+} = require('./posts');
+const { extractAssetKeys } = require('./postText');
 const { getProject, ensureUniqueSlug, mutateProjectsIndex } = require('./projects');
 const { getPage, setPage } = require('./pages');
 const {
@@ -160,6 +164,43 @@ async function exportSite(siteId) {
         localesSeen.add(locale);
     }
 
+    // Blog posts ride along as an additive key (an older install simply
+    // ignores it). Exported without ids, like pages; their translations sit
+    // on the post itself, and `bodyAssets` names the images the Markdown body
+    // points at so collectAssetKeys packs them into the zip too.
+    const postTranslations = await collectPostLocaleOverrides(siteId);
+    const exportedPosts = (await listPosts(siteId)).map((post) => {
+        const locales = {};
+        for (const [locale, override] of Object.entries(postTranslations[post.id] || {})) {
+            if (!isPlainObject(override)) continue;
+            const out = {};
+            for (const k of ['title', 'excerpt', 'body', 'coverAlt']) if (typeof override[k] === 'string') out[k] = override[k];
+            if (isPlainObject(override.seo)) out.seo = override.seo;
+            if (!Object.keys(out).length) continue;
+            locales[locale] = out;
+            localesSeen.add(locale);
+        }
+        const bodyAssets = [post.body, ...Object.values(locales).map(l => l.body)]
+            .flatMap(b => extractAssetKeys(b));
+        return {
+            slug: post.slug,
+            title: post.title,
+            excerpt: post.excerpt,
+            body: post.body,
+            coverImage: post.coverImage,
+            coverAlt: post.coverAlt,
+            authorName: post.authorName,
+            tags: post.tags,
+            status: post.status,
+            publishedAt: post.publishedAt,
+            createdAt: post.createdAt,
+            updatedAt: post.updatedAt,
+            seo: post.seo,
+            ...(bodyAssets.length ? { bodyAssets: [...new Set(bodyAssets)] } : {}),
+            ...(Object.keys(locales).length ? { locales } : {}),
+        };
+    });
+
     return {
         [EXPORT_MARKER]: true,
         version: EXPORT_VERSION,
@@ -195,6 +236,8 @@ async function exportSite(siteId) {
                     : {}),
             },
             pages: exportedPages,
+            blog: sanitizeBlogSettings(site.blog),
+            posts: exportedPosts,
         },
     };
 }
@@ -212,6 +255,7 @@ const IMPORT_MAX_BLOCKS_PAGE  = 100;
 // payload from writing thousands of config rows.
 const IMPORT_MAX_LOCALES      = 40;
 const IMPORT_MAX_FIELD_BYTES  = 256 * 1024;  // 256 KB per stringified content/style blob
+const IMPORT_MAX_POSTS        = POST_LIMITS.postsPerSite;
 
 function approxByteSize(value) {
     try { return Buffer.byteLength(JSON.stringify(value) || '', 'utf8'); }
@@ -243,6 +287,19 @@ async function importSite(exportData) {
         const blocks = Array.isArray(p.blocks) ? p.blocks : [];
         if (blocks.length > IMPORT_MAX_BLOCKS_PAGE) {
             throw new Error(`Too many blocks on one page (max ${IMPORT_MAX_BLOCKS_PAGE})`);
+        }
+    }
+
+    const postsPreview = Array.isArray(incoming.posts) ? incoming.posts : [];
+    if (postsPreview.length > IMPORT_MAX_POSTS) {
+        throw new Error(`Too many blog posts in import (max ${IMPORT_MAX_POSTS})`);
+    }
+    for (const p of postsPreview) {
+        if (isPlainObject(p) && typeof p.body === 'string' && p.body.length > POST_LIMITS.body) {
+            throw new Error(`A blog post body exceeds ${POST_LIMITS.body} characters`);
+        }
+        if (isPlainObject(p) && isPlainObject(p.locales) && Object.keys(p.locales).length > IMPORT_MAX_LOCALES) {
+            throw new Error(`Too many locales in import (max ${IMPORT_MAX_LOCALES})`);
         }
     }
 
@@ -350,6 +407,7 @@ async function importSite(exportData) {
         design: sanitizeDesign(incoming.design),
         // Sanitized explicitly — this literal bypasses setProject.
         analytics: sanitizeAnalytics(incoming.analytics),
+        blog: sanitizeBlogSettings(incoming.blog),
     };
     await configStore.setConfig(projectKey(newSiteId), newSite);
 
@@ -474,6 +532,25 @@ async function importSite(exportData) {
         importedLocales.add(locale);
     }
 
+    // ── Blog posts ──
+    // Fresh ids; translations travel on each post and are keyed by position
+    // (exports carry no post ids). restorePosts sanitizes every field.
+    let importedPosts = 0;
+    if (postsPreview.length) {
+        const translations = {};
+        postsPreview.forEach((p, i) => {
+            if (isPlainObject(p) && isPlainObject(p.locales)) {
+                translations[`#${i}`] = p.locales;
+                for (const loc of Object.keys(p.locales)) importedLocales.add(loc);
+            }
+        });
+        const restored = await restorePosts(newSiteId, postsPreview.map(p => (isPlainObject(p) ? { ...p, id: undefined } : p)), translations);
+        importedPosts = restored.count;
+        if (restored.count < postsPreview.length) {
+            warnings.push(`${postsPreview.length - restored.count} blog post(s) could not be imported`);
+        }
+    }
+
     // The bundle's source language is informational: cms_default_locale is
     // org-wide, so silently repointing it here would retitle every OTHER
     // site on this install. Surface the mismatch instead.
@@ -501,6 +578,7 @@ async function importSite(exportData) {
         siteId: newSiteId,
         name: siteName,
         dropped: droppedBlocks,
+        posts: importedPosts,
         locales: [...importedLocales].sort(),
         warnings,
     };

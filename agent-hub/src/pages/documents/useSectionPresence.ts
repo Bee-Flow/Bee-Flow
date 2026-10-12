@@ -1,10 +1,11 @@
 // Who else has this designed document open, and which section they are
-// typing in ("Anna is editing Pricing"), for a document filed in a project.
+// typing in ("Anna is editing Pricing").
 //
 // This editor sends a heartbeat (POST /:id/presence) when it opens, every
 // BEAT_MS, and when its mode or caret section changes; the answer lists the
-// others. Inside the project workspace the same beats also arrive at once as
-// transient `document.presence` events on the project's live stream. Nothing
+// others. The same beats arrive at once as
+// transient `document.presence` events on the document's own live stream
+// (useDocumentStream), in a project or not. Nothing
 // here ever blocks or pops up: presence is optional, a failed beat is a log
 // line, and the peers simply age out.
 //
@@ -15,7 +16,7 @@
 // leaves out that came from the stream stays until it ages out or leaves.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useProjectLive } from '../../components/projects/workspace/ProjectLiveContext';
+import useDocumentStream from '../../hooks/useDocumentStream';
 import { logger } from '../../utils/logger';
 import { postPresence } from './documentsApi';
 import type { People } from './documentQueries';
@@ -36,7 +37,7 @@ export interface PresencePeer {
 
 export interface SectionPresenceOptions {
     documentId: string;
-    /** Only a document filed in a project has anybody else to see. */
+    /** Only a document filed in a project (or shared) has anybody else to see; the caller decides. */
     enabled: boolean;
     editing: boolean;
     caretSection: string | null;
@@ -69,11 +70,11 @@ export function foldAnswer(prev: PeerMap, peers: unknown, now: number): PeerMap 
 
 /** The live stream's beats, folded into the map. */
 function useLiveBeats(documentId: string, clientId: string, enabled: boolean, setPeers: React.Dispatch<React.SetStateAction<PeerMap>>) {
-    const { subscribe } = useProjectLive();
+    const { subscribe } = useDocumentStream(documentId, enabled);
     useEffect(() => {
         if (!enabled) return undefined;
-        return subscribe((kind, event) => {
-            if (kind !== 'document.presence' || event?.targetId !== documentId) return;
+        return subscribe('document.presence', (event) => {
+            if (event?.targetId !== documentId) return;
             const p = event.payload || {};
             if (!p.clientId || p.clientId === clientId || !event.actorId) return;
             setPeers((prev) => {

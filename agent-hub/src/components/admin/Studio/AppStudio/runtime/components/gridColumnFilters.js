@@ -171,8 +171,10 @@ export function makeFilterFn(kind) {
  * The chip text for an active filter: what is narrowed and to what, in the
  * reader's words — "Amount 500 – 2,000", "Date from 1 Sep", "Paid: yes".
  */
-export function describeFilter(kind, value, { options = null, locale = undefined } = {}) {
+export function describeFilter(kind, value, { options = null, locale = undefined, t = null } = {}) {
     if (!isActiveFilter(value)) return '';
+    // `t` is the caller's translate function; without one the English default is used.
+    const tx = t || ((_key, fallback, params) => fallback.replace(/\{(\w+)\}/g, (_m, name) => String(params?.[name] ?? '')));
     const num = (v) => {
         const n = toNumber(v);
         return n == null ? String(v) : n.toLocaleString(locale);
@@ -191,11 +193,11 @@ export function describeFilter(kind, value, { options = null, locale = undefined
     case FILTER_KIND.date: {
         const { from, to } = value;
         if (from && to) return `${day(from)} – ${day(to)}`;
-        if (from) return `from ${day(from)}`;
-        return `until ${day(to)}`;
+        if (from) return tx('studio_apps_runtime.grid.filter_from', 'from {date}', { date: day(from) });
+        return tx('studio_apps_runtime.grid.filter_until', 'until {date}', { date: day(to) });
     }
     case FILTER_KIND.boolean:
-        return value === 'true' ? 'yes' : 'no';
+        return value === 'true' ? tx('studio_apps_runtime.grid.filter_yes', 'yes') : tx('studio_apps_runtime.grid.filter_no', 'no');
     case FILTER_KIND.select: {
         const hit = (options || []).find((o) => String(o.value) === String(value));
         return hit?.label ?? String(value);

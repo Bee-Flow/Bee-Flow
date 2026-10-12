@@ -46,45 +46,68 @@ const { rrfFuse, finalScore } = require('./memoryScoring');
  */
 const LEG_LIMIT = 60;
 
+/**
+ * Cosine below which a vector hit is noise and does not enter the `vec` leg.
+ * Rank fusion only sees positions, so without a floor the least-bad vector in
+ * a scope would take rank 1 even when it is orthogonal to the question. Low on
+ * purpose: small multilingual embedders score unrelated sentences at 0.7+, so
+ * this removes only the clearly unrelated.
+ */
+const VEC_MIN_COSINE = 0.25;
+
 /** Internal bookkeeping rows, never rendered — see memoryStore. */
 const SCHEDULE_COVERAGE_TYPE = 'schedule_coverage';
 
 /**
- * Build the one-round-trip candidate query.
- *
- * Pure: no database, no config, no clock. `memoryRetrieval.sql.test.js` pins
- * its output, because the failure modes here are all silent — a `null::vector`
- * cast that throws, a CTE that materialises and full-scans, an interpolated
- * dimension.
- *
- * @param {object}  [opts]
- * @param {string}  [opts.userId]
- * @param {string}  [opts.agentId]
- * @param {string}  [opts.projectId]
- * @param {boolean} [opts.includeGeneral]
- * @param {number}  [opts.dim]            active embedding dimension, if any
- * @param {number[]}[opts.queryVector]    the embedded user message, if any
- * @param {string}  [opts.queryText]      raw user message, for the lexical leg
- * @param {number}  [opts.legLimit]
- * @returns {{sql: string, params: any[], legs: string[]}}
+ * The columns a candidate carries into JS. Explicit, so the vector columns and
+ * the tsvector (kilobytes per row, never rendered) stay in the database.
  */
-function buildCandidateQuery({
-    userId, agentId = null, projectId = null, includeGeneral = true,
-    dim = null, queryVector = null, queryText = '', legLimit = LEG_LIMIT,
-} = {}) {
-    if (!Number.isInteger(legLimit) || legLimit <= 0 || legLimit > 500) {
-        throw new Error(`buildCandidateQuery: invalid legLimit ${legLimit}`);
-    }
+const CANDIDATE_COLUMNS = Object.freeze([
+    'id', 'user_id', 'agent_id', 'type', 'content', 'subject', 'attribute', 'value', 'summary',
+    'importance', 'confidence', 'status', 'project_id', 'origin', 'sensitivity',
+    'created_at', 'updated_at', 'valid_from', 'valid_to', 'last_used_at', 'use_count',
+]);
 
-    const params = [];
-    const bind = (value) => { params.push(value); return `$${params.length}`; };
+/**
+ * SQL fragment: a row is eligible unless it is Art. 9 data of ANOTHER user.
+ * Art. 9 rows never live in a shared pool, but rows written before that rule
+ * (or imported by hand) may sit in a project; they are read by their owner only,
+ * also when the reader opted in. Use it wherever a read has already decided
+ * `includeSensitive` is true; callers that exclude art9 entirely do not need it.
+ *
+ * @param {number|string} paramIndex  the bound user id: 3 or '$3'
+ * @param {string} [alias]  table alias, e.g. 'm'
+ * @returns {string}
+ */
+function art9OwnerOnlySql(paramIndex, alias = '') {
+    const p = typeof paramIndex === 'number' ? `$${paramIndex}` : String(paramIndex);
+    const c = (name) => (alias ? `${alias}.${name}` : name);
+    return `(COALESCE(${c('sensitivity')}, 'none') <> 'art9' OR ${c('user_id')} = ${p})`;
+}
 
-    // ── scope predicate ──────────────────────────────────────────────────────
+/**
+ * The WHERE clause that decides which rows a read may see, shared by the
+ * hybrid query, the JS-scored path and the similarity lookups so that "who can
+ * see what" is written down once.
+ *
+ * Only `status = 'active'` rows whose validity window is open are retrievable.
+ *
+ * @param {{userId?: string, agentId?: string|null, projectId?: string|null, includeGeneral?: boolean, includeSensitive?: boolean}} scope
+ * @param {(value: any) => string} bind  pushes a parameter, returns its `$n`
+ * @returns {string}
+ */
+function scopePredicate({ userId, agentId = null, projectId = null, includeGeneral = true, includeSensitive = false }, bind) {
     const conditions = [
         `status = 'active'`,
+        `valid_to IS NULL`,
         `(expires_at IS NULL OR expires_at > NOW())`,
         `type <> ${bind(SCHEDULE_COVERAGE_TYPE)}`,
     ];
+    // Art. 9 rows are read only for a user who opted in (and whose org allows
+    // it); the caller decides, this layer cannot see config.
+    // Even then, only the owner's own art9 rows (see art9OwnerOnlySql).
+    if (!includeSensitive) conditions.push(`COALESCE(sensitivity, 'none') <> 'art9'`);
+    else conditions.push(art9OwnerOnlySql(bind(userId)));
 
     const agentClause = (!includeGeneral && agentId)
         ? `agent_id = ${bind(agentId)}`
@@ -106,7 +129,41 @@ function buildCandidateQuery({
         ownerClause = `(user_id = ${bind(userId)} AND project_id IS NULL)`;
     }
 
-    const scopeWhere = [...conditions, agentClause, ownerClause].join('\n              AND ');
+    return [...conditions, agentClause, ownerClause].join('\n              AND ');
+}
+
+/**
+ * Build the one-round-trip candidate query.
+ *
+ * Pure: no database, no config, no clock. `memoryRetrieval.sql.test.js` pins
+ * its output, because the failure modes here are all silent — a `null::vector`
+ * cast that throws, a CTE that materialises and full-scans, an interpolated
+ * dimension.
+ *
+ * @param {object}  [opts]
+ * @param {string}  [opts.userId]
+ * @param {string}  [opts.agentId]
+ * @param {string}  [opts.projectId]
+ * @param {boolean} [opts.includeGeneral]
+ * @param {boolean} [opts.includeSensitive]  read sensitivity='art9' rows too (default false)
+ * @param {number}  [opts.dim]            active embedding dimension, if any
+ * @param {number[]}[opts.queryVector]    the embedded user message, if any
+ * @param {string}  [opts.queryText]      raw user message, for the lexical leg
+ * @param {number}  [opts.legLimit]
+ * @returns {{sql: string, params: any[], legs: string[]}}
+ */
+function buildCandidateQuery({
+    userId, agentId = null, projectId = null, includeGeneral = true, includeSensitive = false,
+    dim = null, queryVector = null, queryText = '', legLimit = LEG_LIMIT,
+} = {}) {
+    if (!Number.isInteger(legLimit) || legLimit <= 0 || legLimit > 500) {
+        throw new Error(`buildCandidateQuery: invalid legLimit ${legLimit}`);
+    }
+
+    const params = [];
+    const bind = (value) => { params.push(value); return `$${params.length}`; };
+
+    const scopeWhere = scopePredicate({ userId, agentId, projectId, includeGeneral, includeSensitive }, bind);
 
     // ── legs ─────────────────────────────────────────────────────────────────
     const legs = [];
@@ -139,7 +196,7 @@ function buildCandidateQuery({
         ctes.push(`vec AS (
             SELECT id, ROW_NUMBER() OVER (ORDER BY "${col}" <=> ${vecParam}::vector) AS rank
               FROM scope
-             WHERE "${col}" IS NOT NULL
+             WHERE "${col}" IS NOT NULL AND 1 - ("${col}" <=> ${vecParam}::vector) >= ${VEC_MIN_COSINE}
              ORDER BY "${col}" <=> ${vecParam}::vector
              LIMIT ${legLimit}
         )`);
@@ -179,13 +236,29 @@ function buildCandidateQuery({
 
     const sql = `
         WITH ${ctes.join(',\n        ')}
-        SELECT s.*, ${rankCols.join(', ')}
+        SELECT ${CANDIDATE_COLUMNS.map(c => `s.${c}`).join(', ')}, ${rankCols.join(', ')}
           FROM scope s
           ${joins.join('\n          ')}
          WHERE ${matched}
     `;
 
     return { sql, params, legs };
+}
+
+/**
+ * Fuse per-leg rankings and score the rows. Shared by the SQL path and the
+ * JS-scored path (sealed rows), so both rank by the same rule.
+ *
+ * @param {Array<Record<string, any>>} rows  memories
+ * @param {Array<{key: string, ids: string[]}>} legLists  best first
+ * @param {{now?: number}} [opts]
+ * @returns {Array<{memory: Record<string, any>, score: number}>} highest first
+ */
+function scoreFused(rows, legLists, { now = Date.now() } = {}) {
+    const fused = rrfFuse(legLists);
+    return rows
+        .map((memory) => ({ memory, score: finalScore(memory, fused.get(memory.id) || 0, { now }) }))
+        .sort((a, b) => b.score - a.score);
 }
 
 /**
@@ -213,16 +286,15 @@ async function retrieveCandidates(opts) {
         ids: ranked[leg].sort((a, b) => a.rank - b.rank).map(r => r.id),
     }));
 
-    const fused = rrfFuse(legLists);
-    const now = Date.now();
-
-    return rows
-        .map((row) => {
-            // The rank columns are query bookkeeping, not part of a memory.
-            const { vec_rank, fts_rank, base_rank, ...memory } = row;
-            return { memory, score: finalScore(memory, fused.get(row.id) || 0, { now }) };
-        })
-        .sort((a, b) => b.score - a.score);
+    // The rank columns are query bookkeeping, not part of a memory.
+    // Only a hit in the vec or fts leg is a relevance signal; the base leg is
+    // just "important/recent" and does not qualify.
+    const hit = new Set(rows.filter(r => r.vec_rank != null || r.fts_rank != null).map(r => r.id));
+    const memories = rows.map(({ vec_rank, fts_rank, base_rank, ...memory }) => memory);
+    return scoreFused(memories, legLists).map(item => ({ ...item, relevant: hit.has(item.memory.id) }));
 }
 
-module.exports = { buildCandidateQuery, retrieveCandidates, LEG_LIMIT };
+module.exports = {
+    buildCandidateQuery, retrieveCandidates, scoreFused, scopePredicate, art9OwnerOnlySql, CANDIDATE_COLUMNS, LEG_LIMIT, VEC_MIN_COSINE,
+    SCHEDULE_COVERAGE_TYPE,
+};

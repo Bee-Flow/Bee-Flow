@@ -63,7 +63,10 @@ const CreateBody = bodyOf({ name, ...settings, kind: projectKind.optional() }, '
 
 // GET / — the Projects page asks for workspaces, Studio for Solutions; a
 // legacy project is in both answers. Without `kind`, every project.
-const ListQuery = queryOf({ kind: projectKind.optional() }, 'The project list');
+const ListQuery = queryOf({
+    kind: projectKind.optional(),
+    includeArchived: choice(['0', '1'], 'includeArchived is 1 to list archived projects too.').optional(),
+}, 'The project list');
 
 const KindBody = bodyOf({ kind: projectKind }, 'Classifying a project');
 
@@ -72,6 +75,8 @@ const UpdateBody = bodyOf({
     ...settings,
     // Optimistic concurrency: the version the editor loaded.
     version: wholeNumber('version is the whole number the project was loaded with.').nullish(),
+    // Owner only (the route refuses anyone else with 403 owner_only_setting).
+    editorsCanInvite: flag('editorsCanInvite is true or false.').optional(),
 }, 'Updating a project');
 
 const ROLE_TEXT = 'role must be viewer or editor';
@@ -84,6 +89,21 @@ const ShareBody = bodyOf({
 }, 'Sharing a project');
 
 const MemberRoleBody = bodyOf({ role: choice(ROLES, ROLE_TEXT) }, 'Changing a role');
+
+const MuteBody = bodyOf({}, 'Muting a project');
+const ArchiveBody = bodyOf({}, 'Archiving or restoring a project');
+
+const TransferBody = bodyOf({
+    toUserId: anId('toUserId is required'),
+    keepMeAs: choice(['editor', 'viewer', 'none'], 'keepMeAs must be editor, viewer or none').optional(),
+    expectedOwnerId: anId('expectedOwnerId is required').optional(),
+}, 'Transferring a project');
+
+// GET /:id/principals: the invite picker's search; `q` is at least two characters.
+const PrincipalsQuery = queryOf({
+    q: worded('q is a search of 2 to 80 characters.').trim()
+        .min(2, 'q is a search of 2 to 80 characters.').max(80, 'q is a search of 2 to 80 characters.').optional(),
+}, 'The principals search');
 
 const CONVERSATION_TYPE_TEXT = 'type is "direct" or "agent".';
 const conversationType = choice(['direct', 'agent'], CONVERSATION_TYPE_TEXT);
@@ -163,7 +183,7 @@ const InstallBody = bodyOf({
 }, 'Installing a Blueprint');
 
 module.exports = {
-    CreateBody, ListQuery, KindBody, UpdateBody, ShareBody, MemberRoleBody, TypeQuery, PageQuery, SummaryQuery,
+    CreateBody, ListQuery, KindBody, UpdateBody, ShareBody, MemberRoleBody, MuteBody, ArchiveBody, TransferBody, PrincipalsQuery, TypeQuery, PageQuery, SummaryQuery,
     ShareThreadBody, TypingBody, ResourceBody, RelatedBody, ConversationsBody,
     ExportBody, UpgradeBody, InstallBody, ReleaseQuery,
 };

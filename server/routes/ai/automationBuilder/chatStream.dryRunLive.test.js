@@ -107,3 +107,97 @@ test('builder_request_dry_run hands the runner an onRunCreated hook that fires t
         delete require.cache[require.resolve('../../../automation/builderTools')];
     }
 });
+
+test('through the facade, a staged dry run never reaches persistDraft and runs the staged steps', async () => {
+    const runnerPath = require.resolve('../../../core/automationRunner');
+    const ran = [];
+    require.cache[runnerPath] = {
+        id: runnerPath, filename: runnerPath, loaded: true,
+        exports: { async executeAutomation(automation, opts) { ran.push({ definition: automation.definition, mode: opts.mode }); return { id: 'run_staged', status: 'success' }; } },
+    };
+    const storePath = require.resolve('../../../stores/automationStore');
+    const origStore = require.cache[storePath];
+    require.cache[storePath] = { id: storePath, filename: storePath, loaded: true, exports: {
+        async getAutomation(id) { return { id, userId: 'u1', version: 2, definition: { trigger: { id: 'trg', type: 'trigger', kind: 'manual' }, steps: [], edges: [] } }; },
+        async getRunSteps() { return []; },
+    } };
+    const persistencePath = require.resolve('../../../automation/builderTools/persistence');
+    const origPersistence = require.cache[persistencePath];
+    const persisted = [];
+    require.cache[persistencePath] = { id: persistencePath, filename: persistencePath, loaded: true, exports: { ...(origPersistence ? origPersistence.exports : require(persistencePath)), async persistDraft(wrap) { persisted.push(wrap.automationId); return { id: wrap.automationId, definition: wrap.def }; } } };
+    delete require.cache[require.resolve('../../../automation/builderTools')];
+    try {
+        const { applyToolCall } = require('../../../automation/builderTools');
+        const def = { trigger: { id: 'trg', type: 'trigger', kind: 'manual' }, steps: [{ id: 'proposed', type: 'set' }], edges: [] };
+        const out = await applyToolCall('builder_request_dry_run', {}, { userId: 'u1', automationId: 'auto_1', title: 'T', description: '', def, _stagedDryRun: true });
+        assert.equal(out.run.id, 'run_staged');
+        assert.deepEqual(persisted, [], 'a proposal is not saved to be run');
+        assert.equal(ran[0].mode, 'dry_run');
+        assert.deepEqual(ran[0].definition.steps.map(s => s.id), ['proposed']);
+        await applyToolCall('builder_request_dry_run', {}, { userId: 'u1', automationId: 'auto_1', title: 'T', description: '', def });
+        assert.deepEqual(persisted, ['auto_1'], 'a direct build still saves first');
+    } finally {
+        delete require.cache[runnerPath];
+        if (origStore) require.cache[storePath] = origStore; else delete require.cache[storePath];
+        if (origPersistence) require.cache[persistencePath] = origPersistence; else delete require.cache[persistencePath];
+        delete require.cache[require.resolve('../../../automation/builderTools')];
+    }
+});
+
+test('a staged dry run with a write on a PROPOSED table synthesises the step, makes no datatable store call and says the table is not created', async () => {
+    const { execDatatable } = require('../../../core/automationRunner/execDatatable');
+    const runnerPath = require.resolve('../../../core/automationRunner');
+    const rows = [];
+    require.cache[runnerPath] = {
+        id: runnerPath, filename: runnerPath, loaded: true,
+        exports: {
+            // The runner, reduced to what matters here: every datatable step goes
+            // through the real executor in dry-run mode.
+            async executeAutomation(automation) {
+                for (const step of automation.definition.steps.filter((s) => s.type === 'datatable')) {
+                    const r = await execDatatable(step, { userId: 'u1' }, { steps: {}, trigger: { output: { email: 'a@b.c' } } }, 'dry_run');
+                    rows.push({ stepId: step.id, status: 'success', output: r.output });
+                }
+                return { id: 'run_pending', status: 'success' };
+            },
+        },
+    };
+    const storePath = require.resolve('../../../stores/automationStore');
+    const origStore = require.cache[storePath];
+    require.cache[storePath] = { id: storePath, filename: storePath, loaded: true, exports: {
+        async getAutomation(id) { return { id, userId: 'u1', definition: { trigger: { id: 'trg', type: 'trigger', kind: 'manual' }, steps: [], edges: [] } }; },
+        async getRunSteps() { return rows; },
+    } };
+    // A table that does not exist must not be looked up anywhere.
+    const touched = [];
+    const guard = (name) => new Proxy({}, { get: (_t, prop) => () => { touched.push(`${name}.${String(prop)}`); throw new Error('the store must not be touched'); } });
+    const dtStore = require.resolve('../../../stores/datatableStore');
+    const dbStore = require.resolve('../../../stores/datatableDbStore');
+    const origDt = require.cache[dtStore]; const origDb = require.cache[dbStore];
+    require.cache[dtStore] = { id: dtStore, filename: dtStore, loaded: true, exports: guard('datatableStore') };
+    require.cache[dbStore] = { id: dbStore, filename: dbStore, loaded: true, exports: guard('datatableDbStore') };
+    delete require.cache[require.resolve('../../../automation/builderTools')];
+    try {
+        const { applyToolCall } = require('../../../automation/builderTools');
+        const def = {
+            trigger: { id: 'trg', type: 'trigger', kind: 'manual' }, edges: [],
+            steps: [
+                { id: 'w', type: 'datatable', op: 'add_row', datatableId: 'pending:1', datatableKey: 'facturen', values: { email: { kind: 'ref', path: 'trigger.output.email' } } },
+                { id: 'r', type: 'datatable', op: 'find_rows', datatableId: 'pending:1', datatableKey: 'facturen' },
+            ],
+        };
+        const out = await applyToolCall('builder_request_dry_run', {}, { userId: 'u1', automationId: 'auto_1', title: 'T', description: '', def, _stagedDryRun: true });
+        assert.deepEqual(touched, [], 'no datatable store call');
+        const [write, read] = out.steps;
+        assert.deepEqual(write.output.row, { email: 'a@b.c' }, 'the write returns what it would have written');
+        assert.equal(write.output._pendingTable, 'pending:1');
+        assert.deepEqual([read.output.rows, read.output.found], [[], false], 'a read of a new table is empty');
+        assert.match(write._hint.note, /table not created yet: a preview reads no rows and writes nothing/);
+    } finally {
+        delete require.cache[runnerPath];
+        if (origStore) require.cache[storePath] = origStore; else delete require.cache[storePath];
+        if (origDt) require.cache[dtStore] = origDt; else delete require.cache[dtStore];
+        if (origDb) require.cache[dbStore] = origDb; else delete require.cache[dbStore];
+        delete require.cache[require.resolve('../../../automation/builderTools')];
+    }
+});

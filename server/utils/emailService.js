@@ -496,7 +496,7 @@ function _renderField(str, vars, { multiline = false } = {}) {
  * in-progress, unsaved fields).
  */
 function renderEmailFromTemplate(tpl, vars = {}) {
-    const ctaUrl = vars.verifyUrl || vars.loginUrl || null;
+    const ctaUrl = vars.verifyUrl || vars.loginUrl || vars.cta || null;
     // `title` and `ctaLabel` are interpolated into the shell through safeHtml,
     // which escapes them there — so they must arrive as PLAIN TEXT. `intro` and
     // `body` are wrapped in raw() by the shell (the body carries deliberate
@@ -512,6 +512,8 @@ function renderEmailFromTemplate(tpl, vars = {}) {
         body: _renderField(tpl.body, vars, { multiline: true }),
         ctaLabel: tpl.ctaLabel ? _substituteVars(tpl.ctaLabel, vars) : null,
         ctaUrl,
+        // Optional, not an editable field: only the collaboration mail has one.
+        footer: tpl.footer ? _renderField(tpl.footer, vars) : undefined,
     });
 
     const subject = _substituteVars(tpl.subject, vars);
@@ -562,6 +564,50 @@ async function sendWelcomeEmail({ email, displayName, loginUrl, orgName, locale 
     const vars = { name: displayName || 'there', loginUrl, learnUrl: welcomeLearnUrl(), orgName: orgName || 'BeeFlow' };
     const { subject, html, text } = await renderEmailTemplate('welcome', locale, vars);
     return sendServiceEmail({ to: email, subject, text, html });
+}
+
+/**
+ * Mail of one project collaboration event (a mention, being added, ...). The
+ * mail carries only the project name, the actor's display name, the kind of
+ * event, a short fixed sentence and an in-app link: never what was written.
+ * Best effort: no service mailbox or a failed send gives `{ sent: false }`,
+ * it never throws (the bell of the same event has already rung).
+ *
+ * @param {{ userId: string, locale?: string, event: string, vars?: { project?: string, actor?: string, intro?: string, detail?: string }, ctaUrl?: string|null }} opts
+ * @param {object} [deps]  injectable for tests
+ * @returns {Promise<{ sent: boolean }>}
+ */
+async function sendProjectCollabEmail({ userId, locale, event, vars = {}, ctaUrl = null }, deps = {}) {
+    try {
+        const config = await (deps.getServiceEmailConfig || getServiceEmailConfig)();
+        if (!config.configured) {
+            log.debug('[EmailService] collaboration mail not sent: service mailbox not configured');
+            return { sent: false };
+        }
+        const user = await (deps.getUser || ((id) => require('../stores/userStore').getUser(id)))(userId);
+        if (!user || !user.email) return { sent: false };
+        const lang = locale || user.preferredLocale || 'en';
+        const translate = deps.translate || ((l, k, v) => require('../i18n/translate').translate(l, k, v));
+        // Built from named fields only: nothing else of the event travels in the mail.
+        const allowed = {
+            event: await translate(lang, `project_collab.email.${event}.event`, {}),
+            project: vars.project || '',
+            actor: vars.actor || '',
+            intro: vars.intro || '',
+            detail: vars.detail || '',
+            cta: ctaUrl || '',
+        };
+        const { subject, html, text } = await (deps.renderTemplate || renderEmailTemplate)('project_collab', lang, allowed);
+        const result = await (deps.sendServiceEmail || sendServiceEmail)({ to: user.email, subject, text, html });
+        if (!result || result.success === false) {
+            log.warn(`[EmailService] collaboration mail (${event}) not sent: ${(result && result.error) || 'unknown error'}`);
+            return { sent: false };
+        }
+        return { sent: true };
+    } catch (err) {
+        log.warn(`[EmailService] collaboration mail (${event}) not sent: ${err && err.message}`);
+        return { sent: false };
+    }
 }
 
 /**
@@ -863,6 +909,51 @@ async function sendSubscriptionStartedAdminEmail({ to, scope, targetName, planNa
 }
 
 /**
+ * Customer confirmation after the first successful subscription payment:
+ * plan, amount, billing cycle, next billing date and (when Stripe provides
+ * one) a link to the hosted invoice. The caller is responsible for
+ * idempotency (userStore.claimNotification). Goes to the subscriber only.
+ *
+ * @param {{ email: string, displayName?: string, orgName?: string, planName?: string, amount?: number|string, currency?: string, interval?: string, nextBillingIso?: string, invoiceUrl?: string, portalUrl?: string }} opts
+ */
+async function sendSubscriptionConfirmationEmail({ email, displayName, orgName, planName, amount, currency, interval, nextBillingIso, invoiceUrl, portalUrl }) {
+    const name = orgName || displayName || 'there';
+    const cycle = interval === 'yearly' ? 'Yearly' : interval === 'monthly' ? 'Monthly' : '—';
+    const hasAmount = amount !== undefined && amount !== null && amount !== '';
+    const amountText = hasAmount ? `${String(currency || 'EUR').toUpperCase()} ${Number(amount).toFixed(2)}` : '—';
+    const next = nextBillingIso ? new Date(nextBillingIso) : null;
+    const nextText = next && !Number.isNaN(next.getTime())
+        ? next.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })
+        : '—';
+    const rows = [
+        ['Plan', planName || '—'],
+        ['Amount paid', amountText],
+        ['Billing cycle', cycle],
+        ['Next billing date', nextText],
+    ];
+    const tableRows = rows.map(([k, v]) =>
+        safeHtml`<tr><td style="padding:6px 12px;color:#64748b;font-size:14px;">${k}</td><td style="padding:6px 12px;color:#0f172a;font-size:14px;font-weight:600;">${v}</td></tr>`
+    ).join('');
+    const link = invoiceUrl || portalUrl || null;
+    const html = _renderEmailShell({
+        title: 'Payment successful',
+        intro: safeHtml`Hi <strong>${name}</strong>,`,
+        body: safeHtml`Thank you. Your payment was received and your Bee Flow subscription is now active.
+            <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border:1px solid #e2e8f0;border-radius:12px;border-collapse:separate;border-spacing:0;">${raw(tableRows)}</table>`,
+        ctaLabel: link ? (invoiceUrl ? 'View invoice' : 'Manage subscription') : null,
+        ctaUrl: link,
+        footer: 'You are receiving this because a subscription was started for your account.',
+    });
+    const text = `Hi ${name},\n\nYour payment was received and your Bee Flow subscription is now active.\n\n${rows.map(([k, v]) => `${k}: ${v}`).join('\n')}${link ? `\n\n${invoiceUrl ? 'Invoice' : 'Manage subscription'}: ${link}` : ''}`;
+    return sendServiceEmail({
+        to: email,
+        subject: `Bee Flow: payment successful${planName ? ` — ${planName}` : ''}`,
+        text,
+        html,
+    });
+}
+
+/**
  * Self-service password reset link. The raw token only ever travels in this
  * email (the DB stores SHA-256(token)). Link expires in 60 minutes.
  *
@@ -902,6 +993,7 @@ module.exports = {
     sendNcVerificationCodeEmail,
     sendPasswordResetEmail,
     sendInvitationEmail,
+    sendProjectCollabEmail,
     sendWaitlistApprovedEmail,
     sendTrialEndingEmail,
     sendPaymentFailedEmail,
@@ -909,6 +1001,7 @@ module.exports = {
     sendSubscriptionSuspendedEmail,
     sendBreachNotificationEmail,
     sendSubscriptionStartedAdminEmail,
+    sendSubscriptionConfirmationEmail,
     sendDsrAckEmail,
     sendDsrExtensionEmail,
     sendDsrResultEmail,

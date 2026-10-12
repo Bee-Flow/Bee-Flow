@@ -11,8 +11,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link2 } from 'lucide-react';
 import ExternalShareSection from './ExternalShareSection';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 export default function ShareLinksMenu({ webpageId, webpageName }) {
+    const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     const popoverRef = useRef(null);
     const triggerRef = useRef(null);
@@ -34,7 +36,7 @@ export default function ShareLinksMenu({ webpageId, webpageName }) {
                 type="button"
                 onClick={() => setOpen(v => !v)}
                 className="p-1 rounded hover:bg-[var(--bg-secondary)]"
-                title="Share links"
+                title={t('agent_wizard.share_links_menu_share_links', 'Share links')}
             >
                 <Link2 className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
             </button>
@@ -44,9 +46,9 @@ export default function ShareLinksMenu({ webpageId, webpageName }) {
                     className="absolute z-30 right-8 top-full mt-1 w-[380px] rounded-xl border border-[var(--border-default)] bg-[var(--bg-card,#fff)] shadow-xl overflow-hidden"
                 >
                     <div className="px-4 py-3">
-                        <div className="text-sm font-medium text-[var(--text-primary)]">Share links</div>
+                        <div className="text-sm font-medium text-[var(--text-primary)]">{t('agent_wizard.share_links_menu_share_links', 'Share links')}</div>
                         <div className="text-xs text-[var(--text-tertiary)] mt-0.5">
-                            External links the owner created for this page.
+                            {t('agent_wizard.share_links_menu_external_links_the_owner_created_for', 'External links the owner created for this page.')}
                         </div>
                     </div>
                     <ExternalShareSection webpageId={webpageId} webpageName={webpageName} readOnly />

@@ -308,6 +308,34 @@ const SETTINGS_FIELDS = [
     { col: 'ai_content_marking_footer', kind: 'text', ddl: `TEXT` },
     { col: 'ai_content_marking_enabled_at', kind: 'ts', ddl: `TIMESTAMPTZ`, owner: 'routes/compliance/settings' },
     { col: 'ai_content_marking_enabled_by', kind: 'text', ddl: `TEXT`, owner: 'routes/compliance/settings' },
+    // ── Chat signals (checking whether the Privacy Shield works, Art. 32(1)(d)) ──
+    // Every column belongs to routes/compliance/chatMonitoring.js, which checks
+    // the preconditions (422), the org-admin rule for a widen, stamps, writes
+    // evidence and invalidates the resolver. Never from a PUT /settings body.
+    // No migration writes them, so a rollback leaves chat signals off.
+    { col: 'chat_monitoring_enabled', kind: 'bool', fallback: false, ddl: `BOOLEAN NOT NULL DEFAULT false`, owner: 'routes/compliance/chatMonitoring' },
+    { col: 'chat_monitoring_surfaces', kind: 'jsonb', fallback: [], ddl: `JSONB DEFAULT '[]'::jsonb`, owner: 'routes/compliance/chatMonitoring' },
+    { col: 'chat_monitoring_signals', kind: 'jsonb', fallback: [], ddl: `JSONB DEFAULT '[]'::jsonb`, owner: 'routes/compliance/chatMonitoring' },
+    // Its exact ISO value is the notice VERSION the in-chat marker carries.
+    { col: 'chat_monitoring_effective_from', kind: 'ts', ddl: `TIMESTAMPTZ`, owner: 'routes/compliance/chatMonitoring' },
+    // 30 … 90 days; null reads 90 (amendment 9).
+    { col: 'chat_monitoring_retention_days', kind: 'int', ddl: `INTEGER`, min: 30, max: 90, owner: 'routes/compliance/chatMonitoring' },
+    { col: 'chat_monitoring_legal_basis', kind: 'text', ddl: `TEXT`, owner: 'routes/compliance/chatMonitoring' },
+    { col: 'chat_monitoring_lia_at', kind: 'ts', ddl: `TIMESTAMPTZ`, owner: 'routes/compliance/chatMonitoring' },
+    { col: 'chat_monitoring_works_council', kind: 'text', ddl: `TEXT`, owner: 'routes/compliance/chatMonitoring' },
+    { col: 'chat_monitoring_works_council_reason', kind: 'text', ddl: `TEXT`, owner: 'routes/compliance/chatMonitoring' },
+    { col: 'chat_monitoring_works_council_at', kind: 'date', ddl: `DATE`, owner: 'routes/compliance/chatMonitoring' },
+    { col: 'chat_monitoring_works_council_scope', kind: 'jsonb', fallback: {}, ddl: `JSONB DEFAULT '{}'::jsonb`, owner: 'routes/compliance/chatMonitoring' },
+    { col: 'chat_monitoring_dpia_ref', kind: 'text', ddl: `TEXT`, owner: 'routes/compliance/chatMonitoring' },
+    { col: 'chat_monitoring_dpia_at', kind: 'date', ddl: `DATE`, owner: 'routes/compliance/chatMonitoring' },
+    { col: 'chat_monitoring_dpia_risk_level', kind: 'text', ddl: `TEXT`, owner: 'routes/compliance/chatMonitoring' },
+    { col: 'chat_monitoring_dpo_advice_at', kind: 'date', ddl: `DATE`, owner: 'routes/compliance/chatMonitoring' },
+    { col: 'chat_monitoring_prior_consultation_at', kind: 'date', ddl: `DATE`, owner: 'routes/compliance/chatMonitoring' },
+    { col: 'chat_monitoring_notice_url', kind: 'text', ddl: `TEXT`, owner: 'routes/compliance/chatMonitoring' },
+    { col: 'chat_monitoring_notice_published_at', kind: 'date', ddl: `DATE`, owner: 'routes/compliance/chatMonitoring' },
+    { col: 'chat_monitoring_enabled_at', kind: 'ts', ddl: `TIMESTAMPTZ`, owner: 'routes/compliance/chatMonitoring' },
+    // The deciding admin's id: accountability in the row, never in evidence.
+    { col: 'chat_monitoring_enabled_by', kind: 'text', ddl: `TEXT`, owner: 'routes/compliance/chatMonitoring' },
     // ── platform facts the URL-probing checks need ──
     { col: 'public_base_url', kind: 'text', ddl: `TEXT` },
     { col: 'sso_enforces_mfa', kind: 'bool', ddl: `BOOLEAN` },
@@ -373,6 +401,10 @@ const SETTINGS_READONLY = [
 //   ai_content_marking_enabled_at / _by → routes/compliance/settings.js
 //     stamps the AI Act Art. 50(2) attestation itself, only when the decision
 //     actually changed, together with its evidence row and its event.
+//   chat_monitoring_* → routes/compliance/chatMonitoring.js refuses a save
+//     whose preconditions do not hold (DPIA, works council, notice, legal
+//     basis), lets only an org admin widen, stamps, evidences and invalidates
+//     the resolver that the in-chat notice and the recorder share.
 // Straight through a PUT body these are a forged attestation and a licence
 // bypass respectively, so sanitizeSettingsPatch drops them.
 const SETTINGS_REQUEST_DENY = Object.freeze(SETTINGS_FIELDS.filter(f => f.owner).map(f => f.col));
@@ -798,15 +830,28 @@ async function getLatestForChecks(orgId, checkIds, { maxAgeDays = 3 } = {}) {
     `, [orgId, ids, String(Math.max(1, Math.trunc(Number(maxAgeDays) || 3)))]);
 }
 
-async function getCheckHistory(orgId, checkId, limit = 100) {
+/**
+ * One check's result rows, newest first. `scopeId` narrows them to one
+ * subject's slot (a per-source check has a row per agent or automation, and
+ * one row's audit trail must not show another subject's runs). Without it
+ * every slot is returned, as before.
+ *
+ * @param {string} orgId
+ * @param {string} checkId
+ * @param {number} [limit]
+ * @param {{ scopeId?: string | null }} [opts]
+ */
+async function getCheckHistory(orgId, checkId, limit = 100, { scopeId } = {}) {
     await initDB();
+    const scoped = typeof scopeId === 'string' && scopeId !== '';
     return getAll(`
         SELECT status, details, run_at, run_type, evidence, scope_type, scope_id, framework_code
         FROM compliance_checks
         WHERE organization_id = $1 AND check_id = $2
+        ${scoped ? 'AND scope_id IS NOT DISTINCT FROM $4' : ''}
         ORDER BY run_at DESC
         LIMIT $3
-    `, [orgId, checkId, limit]);
+    `, scoped ? [orgId, checkId, limit, scopeId] : [orgId, checkId, limit]);
 }
 
 // ───────────────────────── Score history ─────────────────────────

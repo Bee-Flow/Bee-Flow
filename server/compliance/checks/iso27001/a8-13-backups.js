@@ -65,6 +65,8 @@ module.exports = {
             servers_with_backup: withBackup,
             newest_backup_age_days: age,
             snapshots: Number(p.snapshots) || 0,
+            // The connector reads at most 300 servers or snapshots per zone.
+            truncated: !!p.truncated,
             fetched_at: summary.fetched_at,
         };
         if (servers === 0) {
@@ -103,6 +105,14 @@ module.exports = {
                 age > PASS_AGE_DAYS && `the stalest server backup is ${age} days old`,
             ].filter(Boolean).join('; ');
             return { status: 'warn', evidence, details: `Backup coverage needs attention — ${parts}.` };
+        }
+        // Servers or snapshots the sweep never saw could change the verdict.
+        if (p.truncated) {
+            return {
+                status: 'warn',
+                evidence,
+                details: 'More than 300 servers or snapshots in a zone: only the first 300 were read, so backup coverage is partial.',
+            };
         }
         return {
             status: 'pass',

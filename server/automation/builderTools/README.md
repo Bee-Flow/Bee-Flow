@@ -23,3 +23,18 @@ Every rule below follows from that.
 6. When adding a step type or tool, check the four seams that bit: fields under `inputs`
    that belong at the top level, step fields beside `spec`, prompt placeholders standing in
    for `source`, and silent coercion of an unknown enum value.
+7. Which step types the builder can author is decided in ONE place, `stepTypeTable.js`. The
+   batch and replace enums, `ADD_FOR_TYPE` and the prompt's canvas-only entries read it, and
+   `stepTypeTable.test.js` compares it with the validator's `VALID_STEP_TYPES`. A new runtime
+   step type fails that test until you say whether the builder can make it. Do not extend an
+   enum, the apply map or the prompt's step list by hand.
+8. Tables. `builder_create_datatable` has three modes: direct (Build directly, MCP), staged
+   (a preview: nothing is created, steps point at `pending:<n>` and the proposal carries the
+   table, `pendingDatatables.js`) and plan-scoped (an approved plan lists the tables a build
+   may create). Only the user's Apply creates a staged table
+   (`routes/ai/automationBuilder/applyPendingDatatables.js`), and a pending id never reaches
+   the database: the validator flags it (`datatable.table_pending`), `persistDraft` throws and
+   the runner fails closed. Binding an EXISTING table needs the user's choice in a chat work
+   mode (`datatableApproval.js`, one site: `applyAddDatatable`); MCP sets no approval Set and
+   is not gated. Do not add `builder_create_datatable` to `MUTATING_TOOLS`: it changes no
+   graph, so it must not get a `scope` parameter or the persist-and-emit after a call.

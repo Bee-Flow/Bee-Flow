@@ -1,5 +1,6 @@
 import { useVirtualizer } from '@tanstack/react-virtual';
 import React, { useMemo, useRef } from 'react';
+import useTranslation from '../../../../../../hooks/useTranslation';
 import { makeValueFormatter } from '../chartPalette';
 import { resolveBinding } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
@@ -34,11 +35,12 @@ function formatCell(value, format, fmt) {
 }
 
 export default function AppPivot({ node }) {
+    const { t } = useTranslation();
     const { actionState, dataState, scope } = useRuntime();
     const props = node.props || {};
     const {
         rows: rowDimsRaw = [], columns: colDimsRaw = [], values: valuesRaw = [],
-        showTotals = true, emptyText = 'Nothing to show yet.',
+        showTotals = true, emptyText = t('studio_apps_runtime.ui.nothing_to_show', 'Nothing to show yet.'),
     } = props;
 
     const { value: source, isLoading, error, errorCode } = useStickyBinding(
@@ -57,7 +59,7 @@ export default function AppPivot({ node }) {
     );
     // No value fields configured → an implicit COUNT so the pivot is never blank.
     const valDefs = (Array.isArray(valuesRaw) ? valuesRaw : []).filter((v) => v && v.key);
-    const values = valDefs.length ? valDefs : [{ key: '__count', agg: 'count', label: 'Count', format: 'number' }];
+    const values = valDefs.length ? valDefs : [{ key: '__count', agg: 'count', label: t('studio_apps_runtime.pivot.count', 'Count'), format: 'number' }];
 
     // One pass over the source bins every row into its row group AND its column
     // bucket, so a cell is a map lookup. Re-deriving the bucket per cell makes
@@ -189,7 +191,7 @@ export default function AppPivot({ node }) {
                     className={`${cellPad} border-b text-left font-semibold`}
                     style={{ color: 'var(--text-primary)', borderColor: 'var(--border-default)' }}
                 >
-                    Total
+                    {t('studio_apps_runtime.pivot.total', 'Total')}
                 </th>
                 {hasCols
                     ? colGroups.map((cg) => values.map((v) => {
@@ -265,7 +267,7 @@ export default function AppPivot({ node }) {
                             className={`${cellPad} border-b text-center font-semibold`}
                             style={{ ...headStyle, background: 'var(--bg-tertiary)' }}
                         >
-                            Total
+                            {t('studio_apps_runtime.pivot.total', 'Total')}
                         </th>
                     ) : null}
                 </tr>
@@ -313,7 +315,9 @@ export default function AppPivot({ node }) {
                     style={{ color: 'var(--text-secondary)' }}
                     data-app-pivot-truncated={hiddenCols}
                 >
-                    {hiddenCols} more column{hiddenCols === 1 ? '' : 's'} are not shown — the totals still count them.
+                    {hiddenCols === 1
+                        ? t('studio_apps_runtime.pivot.hidden_one', '{n} more column is not shown — the totals still count it.', { n: hiddenCols })
+                        : t('studio_apps_runtime.pivot.hidden_many', '{n} more columns are not shown — the totals still count them.', { n: hiddenCols })}
                 </p>
             ) : null}
         </div>

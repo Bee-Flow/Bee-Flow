@@ -2,14 +2,16 @@ import {
     AppWindow, Plus, Trash2, ChevronUp, ChevronDown, ChevronRight,
     Sparkles, Zap, GitBranch, Split, Repeat, Hourglass, OctagonX, Bell,
     Pencil, Clock, Filter, ChevronsDown, Copy, Layers, Sigma, Code, Box, Globe,
-    ClipboardList, FileText, FileSignature, ShieldCheck, BookOpen, ScanText, RectangleHorizontal, Presentation } from 'lucide-react';
+    ClipboardList, FileText, FileSignature, ShieldCheck, BookOpen, ScanText, RectangleHorizontal, Presentation, Rows3 } from 'lucide-react';
 import React, { useMemo, useRef, useState } from 'react';
+import { loopBodyPreview } from './loopBodyPreview';
+import { computeLoopBodyGroups } from './upstream';
+import { VariablePickerProvider } from './VariablePickerContext';
+import { buildStepFromPayload } from '../DiagramPane';
 import AddStepMenu from '../flow/AddStepMenu';
 import { FormDensityContext } from '../flow/settings/formDensity';
 import SettingsForm from '../flow/SettingsForm';
-import { VariablePickerProvider } from './VariablePickerContext';
-import { computeLoopBodyGroups } from './upstream';
-import { buildStepFromPayload } from '../DiagramPane';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 // The nested SettingsForm always renders every section — see the comment at
 // its mount. Module-level so the provider value is referentially stable.
@@ -18,7 +20,7 @@ const FORCED_ADVANCED = { density: 'full', mode: 'advanced', onHiddenSection: nu
 const TYPE_ICON = {
     ai_step: Sparkles, integration_action: Zap, condition: GitBranch, switch: Split,
     loop: Repeat, wait: Hourglass, stop_error: OctagonX, return_to_app: AppWindow, notification: Bell,
-    set: Pencil, datetime: Clock, filter: Filter, limit: ChevronsDown, dedupe: Copy,
+    set: Pencil, datetime: Clock, filter: Filter, limit: ChevronsDown, dedupe: Copy, flatten: Rows3,
     aggregate: Layers, summarize: Sigma, code: Code, call_layer: Layers, call_block: Box,
     http_request: Globe,
     form_page: ClipboardList,
@@ -61,6 +63,7 @@ export default function LoopBodyEditor({
     catalog = null, modelTiers = {}, rootDefinition = null, blocksCatalog = [],
     onFocusField,
 }) {
+    const { t } = useTranslation();
     const body = Array.isArray(loopStep.body) ? loopStep.body : [];
     const [expandedId, setExpandedId] = useState(null);
     const [addOpen, setAddOpen] = useState(false);
@@ -73,6 +76,13 @@ export default function LoopBodyEditor({
     // deleted id and always lands on the right row after a reorder.
     const bodyRef = useRef(body);
     bodyRef.current = body;
+    // What the body's steps preview against: the outer root plus this loop's
+    // own item (`loop.<itemVar>`), so its fields show data and a Loop inside
+    // this one resolves its list through it (loopBodyPreview.ts).
+    const bodyPreview = useMemo(
+        () => loopBodyPreview(loopStep, previewSample),
+        [loopStep, previewSample],
+    );
 
     const addStep = (payload) => {
         const scaffold = buildStepFromPayload(payload, { x: 0, y: 0 });
@@ -110,14 +120,14 @@ export default function LoopBodyEditor({
         <div className="space-y-2">
             {body.length === 0 && (
                 <div className="text-[11px] text-[var(--text-tertiary)] italic">
-                    No steps yet — add at least one to run per item.
+                    {t('automations.loop_body_editor.no_steps_yet_add_at_least', 'No steps yet — add at least one to run per item.')}
                 </div>
             )}
             <div className="space-y-1.5">
                 {body.map((step, i) => {
                     const Icon = TYPE_ICON[step.type] || Box;
                     const expanded = expandedId === step.id;
-                    const bodyGroups = computeLoopBodyGroups(loopStep, i, outerGroups, previewSample, catalog, rootDefinition);
+                    const bodyGroups = computeLoopBodyGroups(loopStep, i, outerGroups, bodyPreview, catalog, rootDefinition);
                     return (
                         <div key={step.id} className="rounded border border-[var(--border-default)] bg-[var(--bg-secondary)]/40 overflow-hidden">
                             <div className="flex items-center gap-1.5 px-2 py-1.5">
@@ -130,19 +140,19 @@ export default function LoopBodyEditor({
                                     <Icon size={13} className="shrink-0 text-[var(--text-secondary)]" />
                                     <span className="truncate text-xs font-medium text-[var(--text-primary)]">{i + 1}. {rowLabel(step)}</span>
                                 </button>
-                                <button type="button" onClick={() => moveStep(i, -1)} disabled={i === 0} title="Move up" className="p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-30 disabled:pointer-events-none">
+                                <button type="button" onClick={() => moveStep(i, -1)} disabled={i === 0} title={t('automations.loop_body_editor.move_up', 'Move up')} className="p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-30 disabled:pointer-events-none">
                                     <ChevronUp size={12} />
                                 </button>
-                                <button type="button" onClick={() => moveStep(i, 1)} disabled={i === body.length - 1} title="Move down" className="p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-30 disabled:pointer-events-none">
+                                <button type="button" onClick={() => moveStep(i, 1)} disabled={i === body.length - 1} title={t('automations.loop_body_editor.move_down', 'Move down')} className="p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-30 disabled:pointer-events-none">
                                     <ChevronDown size={12} />
                                 </button>
-                                <button type="button" onClick={() => removeStep(step.id)} title="Remove step" className="p-1 rounded text-[var(--text-tertiary)] hover:text-red-500 hover:bg-red-500/10">
+                                <button type="button" onClick={() => removeStep(step.id)} title={t('automations.loop_body_editor.remove_step', 'Remove step')} className="p-1 rounded text-[var(--text-tertiary)] hover:text-red-500 hover:bg-red-500/10">
                                     <Trash2 size={12} />
                                 </button>
                             </div>
                             {expanded && (
                                 <div className="border-t border-[var(--border-default)] bg-[var(--bg-primary)]">
-                                    <VariablePickerProvider groups={bodyGroups} previewSample={previewSample} stepLabelById={new Map(bodyGroups.map(g => [g.id, g.label]))}>
+                                    <VariablePickerProvider groups={bodyGroups} previewSample={bodyPreview} stepLabelById={new Map(bodyGroups.map(g => [g.id, g.label]))}>
                                         {/* Inner steps are FORCED to All options: they have
                                             no mode toggle of their own, so inheriting
                                             Simple from the outer editor would hide
@@ -157,7 +167,7 @@ export default function LoopBodyEditor({
                                                 saveError={null}
                                                 onPatch={patchStepById(step.id)}
                                                 onFocusField={onFocusField}
-                                                previewSample={previewSample}
+                                                previewSample={bodyPreview}
                                                 catalog={catalog}
                                                 groups={bodyGroups}
                                                 rootDefinition={rootDefinition}
@@ -178,7 +188,7 @@ export default function LoopBodyEditor({
                 onClick={() => setAddOpen((o) => !o)}
                 className="flex items-center gap-1 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] px-2 py-1 rounded transition"
             >
-                <Plus size={12} /> Add step
+                <Plus size={12} /> {t('automations.loop_body_editor.add_step', 'Add step')}
             </button>
             {addOpen && (
                 <div className="rounded border border-[var(--border-default)] bg-[var(--bg-primary)] max-h-[320px] flex flex-col">

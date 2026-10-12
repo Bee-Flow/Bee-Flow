@@ -1,5 +1,5 @@
 // Microsoft 365 OAuth connect-popup flow: the counterpart of
-// lib/googleOAuthPopup.js for Settings → Integrations → Microsoft 365.
+// lib/googleOAuthPopup.js for Settings → Connections → Microsoft 365.
 //
 // Contract with the server callback page (routes/integrations/microsoft365.js):
 // it posts

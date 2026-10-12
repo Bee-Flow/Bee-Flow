@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from '../../hooks/useTranslation';
 import { CheckCircle2, X, Loader2, ChevronRight, FileCode2, Palette, Cpu } from 'lucide-react';
 
 const FILE_ICON = { html: FileCode2, css: Palette, js: Cpu };
@@ -23,6 +24,7 @@ const ACTION_TONE = {
  *   planId
  */
 export default function WebpagePlanCard({ plan, status = 'pending', planId, onApprove, onReject }) {
+    const { t } = useTranslation();
     const [expanded, setExpanded] = useState(true);
 
     if (!plan) return null;
@@ -59,9 +61,9 @@ export default function WebpagePlanCard({ plan, status = 'pending', planId, onAp
                         {plan.title || 'Plan'}
                     </div>
                     <div className="text-[10px] truncate" style={{ color: 'var(--text-tertiary)' }}>
-                        {stepCount} step{stepCount === 1 ? '' : 's'}
-                        {status === 'approved' && ' · Building…'}
-                        {status === 'executed' && ' · Built'}
+                        {stepCount === 1 ? t('webpages.plan.step_one', '1 step') : t('webpages.plan.steps', '{count} steps', { count: stepCount })}
+                        {status === 'approved' && ' · ' + t('webpages.plan.building', 'Building…')}
+                        {status === 'executed' && ' · ' + t('webpages.plan.built', 'Built')}
                         {status === 'rejected' && ' · Rejected'}
                     </div>
                 </div>
@@ -145,14 +147,14 @@ export default function WebpagePlanCard({ plan, status = 'pending', planId, onAp
                                 className="px-2.5 py-1 rounded-md text-[11px] font-semibold flex items-center gap-1 hover:opacity-90"
                                 style={{ background: 'var(--accent-primary)', color: 'white' }}
                             >
-                                <CheckCircle2 size={12} /> Approve & build
+                                <CheckCircle2 size={12} /> {t('webpages.plan.approve', 'Approve & build')}
                             </button>
                             <button
                                 onClick={() => onReject?.(planId)}
                                 className="px-2 py-1 rounded-md text-[11px] flex items-center gap-1 hover:bg-[var(--bg-secondary)]"
                                 style={{ color: 'var(--text-tertiary)' }}
                             >
-                                <X size={12} /> Reject
+                                <X size={12} /> {t('webpages.plan.reject', 'Reject')}
                             </button>
                         </div>
                     )}

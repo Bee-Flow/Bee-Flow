@@ -82,6 +82,32 @@ test('it reports one result per registered table, and forgets one that has left 
     assert.equal((await CHK.evaluate('orgA', null, deps)).status, 'not_applicable');
 });
 
+test('a register that cannot be read is not "no longer in the register"', async () => {
+    // not_applicable drops the table out of the score, so a transient read
+    // error between listSubjects and evaluate used to hide a failing table.
+    // Only the SQLSTATE travels, never the error message.
+    const deps = {
+        getAll: async () => { throw Object.assign(new Error('terminating connection due to administrator command'), { code: '57P01' }); },
+        getTableMeta: async () => ({ fields: FIELDS }),
+        countOutside: async () => 0,
+        now: () => NOW,
+    };
+    const v = await CHK.evaluate('orgA', { id: 'datatable:tbl_1' }, deps);
+    assert.equal(v.status, 'warn');
+    assert.equal(v.evidence.sqlstate, '57P01');
+    assert.equal(v.evidence.datatable_id, 'tbl_1');
+    assert.ok(!JSON.stringify(v).includes('terminating connection'), 'the raw error message stays out of the evidence');
+});
+
+test('the subject list is the whole register, so a table that left it is retired', async () => {
+    // Without this the runner never marks the list complete, and the last
+    // warning of a table taken out of the register stays in the score.
+    const { _asListing } = require('../../runner');
+    const deps = { getAll: async () => [ROW], getTableMeta: async () => ({ fields: FIELDS }), countOutside: async () => 0, now: () => NOW };
+    assert.equal(_asListing(CHK, await CHK.listSubjects('orgA', deps)).complete, true);
+    assert.equal(typeof CHK.retiredDetails, 'string');
+});
+
 test('the registry gets a check it will accept', () => {
     assert.equal(CHK.regulation, 'GDPR');
     assert.equal(CHK.article, '30');
@@ -151,15 +177,16 @@ test('the coverage query is not filtered — that is the whole point of it', asy
 });
 
 test('a table list that cannot be read is never reported as "no tables"', async () => {
-    // _registeredTables swallows a read failure and returns a short register,
-    // which is survivable. Doing that here would claim the workspace holds no
+    // Swallowing a read failure here would claim the workspace holds no
     // tables at all — "there is nothing we failed to look at" — which is the
     // false reassurance this whole function exists to prevent. The error goes
     // up, and the runner records the run as covering an unknown share.
     const boom = { getAll: async () => { throw new Error('relation "datatables" does not exist'); } };
     await assert.rejects(() => CHK.listCoverage('orgA', boom), /relation "datatables" does not exist/);
-    // The sibling still degrades quietly, deliberately and unchanged.
-    assert.deepEqual(await CHK._registeredTables('orgA', boom), []);
+    // The register throws too: its list retires vanished slots, so an empty
+    // register read off a failed query would retire every table.
+    await assert.rejects(() => CHK._registeredTables('orgA', boom));
+    await assert.rejects(() => CHK.listSubjects('orgA', boom));
 });
 
 test('an organisation with no tables reports an empty population, not a gap', async () => {

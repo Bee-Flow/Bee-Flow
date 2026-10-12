@@ -1,4 +1,4 @@
-// Settings → Integrations → Microsoft 365: the tile that lets a Google-SSO or
+// Settings → Connections → Microsoft 365: the tile that lets a Google-SSO or
 // password user connect Outlook. It reads the connector status, opens the
 // consent popup, re-reads after a successful callback, and disconnects.
 

@@ -437,7 +437,7 @@ test('project participation is counted by user id in the scanning organisation, 
         const participation = out.sources.find(s => s.kind === 'project_participation');
         assert.strictEqual(participation.label_key, 'compliance.dsr_discovery_project_participation');
         assert.deepStrictEqual(Object.fromEntries(participation.items.map(i => [i.kind, i.count])), {
-            memberships: 1, owned_projects: 1, shared_chats: 1, project_notebooks: 1, project_documents: 1, project_comments: 2,
+            memberships: 1, owned_projects: 1, shared_chats: 1, project_notebooks: 1, project_documents: 1, project_comments: 2, document_suggestions: 0,
         }, 'org_b\'s project, the private chat and a colleague\'s comment are not counted');
         assert.strictEqual(participation.count, 7);
         assert.ok(!JSON.stringify(participation).includes(EMAIL));

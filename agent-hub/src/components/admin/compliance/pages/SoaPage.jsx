@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { FileDown, FolderArchive, Search } from 'lucide-react';
+import { ChevronDown, Search } from 'lucide-react';
 import { useTranslation } from '../../../../hooks/useTranslation';
-import SegmentedControl from '../../../shared/SegmentedControl';
 import FilterPills from '../../../shared/FilterPills';
 import Pager from '../../../shared/Pager';
 import DataTable, { TableRow, TableCell } from '../../../shared/DataTable';
 import EmptyState from '../../../shared/EmptyState';
 import { API, fetchJson, asArray, jsonInit } from '../data/api';
+import { useDateFormat } from '../shared/formatDates';
+import useDrawerMode from '../shared/useDrawerMode';
 import SoaTable, { DecisionPill } from './soa/SoaTable';
 import SoaDrawer from './soa/SoaDrawer';
 import {
@@ -18,19 +19,21 @@ import {
  * SoaPage — Statement of Applicability register (artboard 1d).
  *
  * Coded against the hub's page props object (PLAN-FRONTEND C2/C3):
- *   { section, tab, onTab, navigate, focusId, exportsEnabled, dl, data: { core, orgUsers, soa }, isMobile }
+ *   { section, tab, onTab, navigate, focusId, data: { core, orgUsers, soa }, isMobile }
  * with `data.soa = { soa: GET /iso/soa body | null, busyRef, seed(), update(ref, patch), refresh() }`.
  * When `update` is missing at runtime the page PUTs `/iso/soa/:ref` itself
  * through data/api.fetchJson (the legacy route) and refreshes.
  *
  * Tabs: `controls` (the table + drawer) · `history` (GET /iso/soa/history —
- * a failed read is its own state, never an empty list) · `export` (SoA PDF +
- * evidence bundle through `dl`, hidden when exports are off).
+ * a failed read is its own state, never an empty list). The SoA PDF and the
+ * evidence bundle are in the header's Export menu (registerSpecs.soa) with
+ * the explanation above them; an old `?tab=export` link lands on `controls`
+ * (sections.js legacyTabs), and so does any tab this page does not know.
+ *
+ * The toolbar is one row: the decision pills, the theme as a compact select
+ * ("All themes · 93"), the search. The drawer goes where the width allows
+ * (useDrawerMode).
  */
-export const SOA_EXPORTS = Object.freeze([
-    Object.freeze({ id: 'soa_pdf', url: `${API}/iso/soa.pdf`, icon: FileDown, labelKey: 'compliance.soa_export_pdf', fallback: 'SoA (PDF)' }),
-    Object.freeze({ id: 'bundle', url: `${API}/iso/evidence-bundle.zip`, icon: FolderArchive, labelKey: 'compliance.soa_export_bundle', fallback: 'Evidence bundle (zip)' }),
-]);
 
 const DECISION_PILL = Object.freeze({
     all: { tone: 'neutral', labelKey: 'compliance.soa_filter_all', fallback: 'All' },
@@ -41,7 +44,7 @@ const DECISION_PILL = Object.freeze({
 });
 
 export default function SoaPage(props) {
-    const { tab = 'controls', navigate, focusId, exportsEnabled = true, dl, data = {}, isMobile = false } = props;
+    const { tab = 'controls', navigate, focusId, data = {}, isMobile = false } = props;
     const { t } = useTranslation();
     const soaState = data.soa || {};
     const body = soaState.soa;
@@ -59,6 +62,7 @@ export default function SoaPage(props) {
     const [selectedRef, setSelectedRef] = useState(focusId || null);
     useEffect(() => { if (focusId) setSelectedRef(String(focusId)); }, [focusId]);
     useEffect(() => { setOffset(0); }, [decision, theme, query]);
+    const [frameRef, drawerMode] = useDrawerMode({ isMobile });
 
     const decisionCounts = useMemo(() => (controls ? countByDecision(controls) : null), [controls]);
     const themeCounts = useMemo(() => (controls ? countByTheme(controls) : null), [controls]);
@@ -73,7 +77,6 @@ export default function SoaPage(props) {
     };
 
     if (tab === 'history') return <SoaHistoryTab orgUsers={orgUsers} t={t} isMobile={isMobile} />;
-    if (tab === 'export') return <SoaExportTab exportsEnabled={exportsEnabled} dl={dl} t={t} />;
 
     const pillOptions = DECISION_FILTERS.map(id => ({
         value: id,
@@ -81,9 +84,10 @@ export default function SoaPage(props) {
         tone: DECISION_PILL[id].tone,
         count: decisionCounts ? decisionCounts[id] : undefined,
     }));
+    const withCount = (label, n) => (typeof n === 'number' ? `${label} · ${n}` : label);
     const themeOptions = [
-        { value: 'all', label: t('compliance.soa_theme_all', 'All themes'), badge: { count: themeCounts?.all ?? null } },
-        ...THEMES.map(th => ({ value: th.id, label: t(th.labelKey, th.fallback), badge: { count: themeCounts ? themeCounts[th.id] : null } })),
+        { value: 'all', label: withCount(t('compliance.soa_theme_all', 'All themes'), themeCounts?.all) },
+        ...THEMES.map(th => ({ value: th.id, label: withCount(t(th.labelKey, th.fallback), themeCounts ? themeCounts[th.id] : undefined) })),
     ];
 
     const drawer = selected && (
@@ -95,15 +99,27 @@ export default function SoaPage(props) {
             onSave={async (ref, patch) => { await update(ref, patch); }}
             onClose={() => setSelectedRef(null)}
             navigate={navigate}
-            mode={isMobile ? 'modal' : 'inline'}
+            mode={drawerMode}
         />
     );
+    const inline = drawerMode === 'inline';
 
     return (
-        <div className="relative h-full min-h-0 flex flex-col gap-3 p-3.5" data-testid="soa-page">
+        <div className="relative h-full min-h-0 flex flex-col gap-3 p-3.5" data-testid="soa-page" data-drawer-mode={drawer ? drawerMode : undefined}>
             <div className="flex flex-wrap items-center gap-2">
                 <FilterPills value={decision} onChange={setDecision} options={pillOptions} ariaLabel={t('compliance.soa_col_status', 'Decision')} testId="soa-decision" />
-                <SegmentedControl size="sm" value={theme} onChange={setTheme} options={themeOptions} ariaLabel={t('compliance.soa_theme_label', 'Theme')} />
+                <span className="relative inline-flex items-center">
+                    <select
+                        value={theme}
+                        onChange={e => setTheme(e.target.value)}
+                        aria-label={t('compliance.soa_theme_label', 'Theme')}
+                        className="appearance-none h-8 pl-2.5 pr-7 rounded-[10px] border border-[var(--border-default)] bg-[var(--bg-card)] text-xs font-medium text-[var(--text-primary)] cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+                        data-testid="soa-theme"
+                    >
+                        {themeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                    <ChevronDown size={13} aria-hidden="true" className="pointer-events-none absolute right-2 text-[var(--text-tertiary)]" />
+                </span>
                 <label className="ml-auto inline-flex items-center gap-1.5 h-8 px-2.5 rounded-[10px] border border-[var(--border-default)] bg-[var(--bg-card)] text-xs text-[var(--text-secondary)] min-w-[160px]">
                     <Search size={12} aria-hidden="true" />
                     <input
@@ -117,7 +133,7 @@ export default function SoaPage(props) {
                 </label>
             </div>
 
-            <div className="flex-1 min-h-0 flex gap-3 items-start">
+            <div ref={frameRef} className="flex-1 min-h-0 flex gap-3 items-start">
                 <div className="flex-1 min-w-0 min-h-0 overflow-y-auto">
                     {failed ? (
                         <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] px-3.5 py-3 text-xs text-[var(--text-tertiary)]" data-testid="soa-failed">
@@ -142,9 +158,9 @@ export default function SoaPage(props) {
                         />
                     )}
                 </div>
-                {!isMobile && drawer}
+                {inline && drawer}
             </div>
-            {isMobile && drawer}
+            {!inline && drawer}
         </div>
     );
 }
@@ -162,6 +178,8 @@ export function normaliseHistoryRow(row, i) {
 }
 
 function SoaHistoryTab({ orgUsers, t, isMobile }) {
+    const { formatStamp } = useDateFormat();
+    const stamp = (value) => formatStamp(value) || '—';
     const [rows, setRows] = useState(undefined); // undefined = loading · null = failed · [] = nothing yet
     useEffect(() => {
         let alive = true;
@@ -172,7 +190,7 @@ function SoaHistoryTab({ orgUsers, t, isMobile }) {
     }, []);
 
     const columns = [
-        { id: 'at', width: '118px', label: t('compliance.soa_hist_col_when', 'When') },
+        { id: 'at', width: '132px', label: t('compliance.soa_hist_col_when', 'When') },
         { id: 'ref', width: '58px', label: t('compliance.soa_col_control', 'Control') },
         { id: 'change', width: '1fr', label: t('compliance.soa_hist_col_change', 'Change') },
         { id: 'by', width: '110px', label: t('compliance.soa_hist_col_by', 'By') },
@@ -205,12 +223,12 @@ function SoaHistoryTab({ orgUsers, t, isMobile }) {
                             <span className="truncate text-xs text-[var(--text-primary)]">
                                 {r.field ? `${r.field}${r.to != null ? `: ${r.to}` : ''}` : (r.note || '')}
                             </span>
-                            <span className="text-[11px] text-[var(--text-tertiary)] truncate">{formatStamp(r.at)} · {who(r.by)}</span>
+                            <span className="text-[11px] text-[var(--text-tertiary)] truncate">{stamp(r.at)} · {who(r.by)}</span>
                         </div>
                     )}
                     renderRow={(r, ctx) => (
                         <TableRow key={r.id} columns={ctx.columns} testId={`soa-history-row-${r.id}`}>
-                            <TableCell column={ctx.columns[0]} className="text-[11px] text-[var(--text-secondary)]">{formatStamp(r.at)}</TableCell>
+                            <TableCell column={ctx.columns[0]} className="text-[11px] text-[var(--text-secondary)] whitespace-nowrap">{stamp(r.at)}</TableCell>
                             <TableCell column={ctx.columns[1]} className="font-mono text-[11px]">{r.ref || '—'}</TableCell>
                             <TableCell column={ctx.columns[2]} className="min-w-0 flex items-center gap-2">
                                 {r.decision && <DecisionPill decision={decisionOf({ entry: { status: r.decision, applicable: r.decision !== 'excluded' } })} />}
@@ -225,46 +243,4 @@ function SoaHistoryTab({ orgUsers, t, isMobile }) {
             )}
         </div>
     );
-}
-
-/* ───────────────────────── export ───────────────────────── */
-
-function SoaExportTab({ exportsEnabled, dl, t }) {
-    const toUrl = (url) => (typeof dl === 'function' ? dl(url) : (exportsEnabled ? url : null));
-    const items = SOA_EXPORTS.map(x => ({ ...x, href: toUrl(x.url) })).filter(x => x.href);
-    return (
-        <div className="p-3.5 flex flex-col gap-3" data-testid="soa-export">
-            <p className="m-0 text-xs text-[var(--text-secondary)]">
-                {t('compliance.soa_export_intro', 'The SoA PDF lists all 93 Annex A decisions with justification, owner and the who/when stamp; the evidence bundle adds the signed check results.')}
-            </p>
-            {items.length === 0 ? (
-                <div className="text-[11px] text-[var(--text-tertiary)]" data-testid="soa-export-disabled">
-                    {t('compliance.soa_export_disabled', 'Downloads are switched off in this view.')}
-                </div>
-            ) : (
-                <div className="flex flex-wrap gap-2">
-                    {items.map(x => {
-                        const Icon = x.icon;
-                        return (
-                            <a
-                                key={x.id}
-                                href={x.href}
-                                download
-                                className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[10px] border border-[var(--border-default)] bg-[var(--bg-card)] text-[12px] font-medium text-[var(--text-primary)]"
-                                data-testid={`soa-export-${x.id}`}
-                            >
-                                <Icon size={13} aria-hidden="true" /> {t(x.labelKey, x.fallback)}
-                            </a>
-                        );
-                    })}
-                </div>
-            )}
-        </div>
-    );
-}
-
-function formatStamp(value) {
-    const ms = value ? new Date(value).getTime() : NaN;
-    if (Number.isNaN(ms)) return '—';
-    return new Date(ms).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 }

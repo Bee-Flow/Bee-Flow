@@ -68,7 +68,21 @@ function isResponsesUnsupported(err) {
     if (err?.status !== 400) return false;
     const msg = String(err?.error?.message || err?.message || '');
     if (err?.param || /parameter/i.test(msg)) return false;
-    return /model/i.test(msg) && /not supported|unsupported|is not available/i.test(msg);
+    // Azure's own wording: code OperationNotSupported, "The responses operation
+    // does not work with the specified model, gpt-35-turbo."
+    if ((err?.code || err?.error?.code) === 'OperationNotSupported') return true;
+    return /model/i.test(msg) && /not supported|unsupported|is not available|does not work with/i.test(msg);
+}
+
+/**
+ * 400 meaning "this deployment does not accept prompt_cache_retention" (some
+ * deployment types / regions do not offer the 24h cache). The parameter is only
+ * an optimisation, so it is dropped for that model and the call retried.
+ */
+function isCacheRetentionRejected(err) {
+    if (err?.status !== 400) return false;
+    const msg = String(err?.error?.message || err?.message || '');
+    return err?.param === 'prompt_cache_retention' || /prompt_cache_retention/i.test(msg);
 }
 
 class AzureProvider extends OpenAIProvider {
@@ -78,6 +92,8 @@ class AzureProvider extends OpenAIProvider {
         this.responsesStore = false;
         /** Deployments that answered "model not supported" on the Responses API. */
         this._completionsOnly = new Set();
+        /** Models whose deployments rejected prompt_cache_retention. */
+        this._noCacheRetention = new Set();
     }
 
     // ─── Deployments ─────────────────────────────────────────────
@@ -168,7 +184,7 @@ class AzureProvider extends OpenAIProvider {
 
     _applyCacheHints(params, options = {}, model = null) {
         super._applyCacheHints(params, options, model);
-        if (model && EXTENDED_RETENTION_MODELS.has(describeOpenAIModel(model).id)) {
+        if (model && !this._noCacheRetention.has(model) && EXTENDED_RETENTION_MODELS.has(describeOpenAIModel(model).id)) {
             params.prompt_cache_retention = options.promptCacheRetention || '24h';
         }
     }
@@ -193,7 +209,7 @@ class AzureProvider extends OpenAIProvider {
         try {
             return await super.chat(apiKey, baseUrl, model, messages, opts);
         } catch (err) {
-            if (!this._fallBackToCompletions(model, opts, err)) throw err;
+            if (!this._recoverable(model, opts, err)) throw err;
             return super.chat(apiKey, baseUrl, model, messages, opts);
         }
     }
@@ -208,9 +224,21 @@ class AzureProvider extends OpenAIProvider {
         } catch (err) {
             // Only before the first event: once text has gone out, a retry
             // would show the user the start of the answer twice.
-            if (emitted || !this._fallBackToCompletions(model, opts, err)) throw err;
+            if (emitted || !this._recoverable(model, opts, err)) throw err;
             return super.stream(apiKey, baseUrl, model, messages, opts, onEvent);
         }
+    }
+
+    /** True when `err` is a known Azure capability 400 that was just worked around for `deployment`. */
+    _recoverable(deployment, options, err) {
+        if (isCacheRetentionRejected(err)) {
+            const model = this._modelFor(deployment);
+            if (this._noCacheRetention.has(model)) return false;
+            this._noCacheRetention.add(model);
+            log.warn(`[Azure] Deployment '${deployment}' rejects prompt_cache_retention — sending requests without it`);
+            return true;
+        }
+        return this._fallBackToCompletions(deployment, options, err);
     }
 
     /**
@@ -247,3 +275,4 @@ module.exports = AzureProvider;
 module.exports.toV1BaseUrl = toV1BaseUrl;
 module.exports.parseDeployments = parseDeployments;
 module.exports.isResponsesUnsupported = isResponsesUnsupported;
+module.exports.isCacheRetentionRejected = isCacheRetentionRejected;

@@ -21,6 +21,7 @@ import { useCatalog, useDraftState, useStepRun, type FlowDraft } from '@/feature
 import { sectionsWithErrors, type FlowDefinition, type FlowPosition, type StepIssues } from '@/features/flow-editor/model';
 
 import { isNestedAddress, positionAt, upstreamGroupsAt } from './address';
+import { followAcross } from './followAcross';
 import { useFormMode } from './formMode';
 import { renameAcross } from './renameAcross';
 import { stepLabelsInScope } from './stepLabels';
@@ -107,6 +108,7 @@ export function useNodeEditor(flow: FlowDraft, stepId: string, focusSection: str
         mode,
         disabled: locked,
         renameField: (base, from, to) => renameAcross(flow.store, base, from, to),
+        followRoute: (routeId, stepIds) => followAcross(flow.store, routeId, stepIds),
     };
     return {
         form,

@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { Monogram } from './cellValue';
 import ComboBox, { BindingLoader, useHasQueryClient } from './comboBox';
+import useTranslation from '../../../../../../hooks/useTranslation';
 import { useDataContext } from '../DataContext';
 import { useFormContext, useFormField } from '../formContext';
 import { hoverable } from '../hoverable';
@@ -43,12 +44,13 @@ function PersonOption({ label }) {
 }
 
 export default function AppInputPerson({ node }) {
+    const { t } = useTranslation();
     const { mode, actionState, dataState, scope } = useRuntime();
     const { appId, dataState: scopedDataState } = useDataContext();
     const form = useFormContext();
     const hasQueryClient = useHasQueryClient();
     const {
-        name, label = 'Person', multiple = false, required = false, allowMe = true,
+        name, label = t('studio_apps_runtime.inputs.person', 'Person'), multiple = false, required = false, allowMe = true,
     } = node.props || {};
     const { value, setValue, error } = useFormField({
         name, defaultValue: multiple ? [] : null, required, label,
@@ -96,10 +98,10 @@ export default function AppInputPerson({ node }) {
                 pinned={pinned}
                 selectedIds={selectedIds}
                 multiple={multiple}
-                placeholder="Search people…"
+                placeholder={t('studio_apps_runtime.inputs.search_people', 'Search people…')}
                 isLoading={isLoading}
                 loadError={loadError}
-                emptyText="No matching people."
+                emptyText={t('studio_apps_runtime.inputs.no_people', 'No matching people.')}
                 renderOption={(o) => <PersonOption label={o.pinned ? `${o.label} (me)` : o.label} />}
                 renderChip={(o) => (
                     <span className="inline-flex items-center gap-1">

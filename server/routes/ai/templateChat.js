@@ -87,6 +87,7 @@ const TemplateTurnBody = z.object({
     disabledMedia: z.unknown(),
     webSearchEnabled: z.unknown(),
     memoryWriteEnabled: z.unknown(),
+    memoryReadEnabled: z.unknown(),
     projectId: z.unknown(),
     activeSkillIds: z.unknown(),
     reasoningEffort: z.unknown(),

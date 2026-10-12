@@ -123,7 +123,7 @@ export default function TriggerNode({ id, data }) {
         const required = Array.isArray(step.parametersSchema?.required) ? step.parametersSchema.required : [];
         sub = (
             <span className="inline-flex items-center gap-1">
-                <NodeChip title="Tool name"><span className="font-mono">{truncate(toolName, 22)}</span></NodeChip>
+                <NodeChip title={t('automations.trigger_node.tool_name', 'Tool name')}><span className="font-mono">{truncate(toolName, 22)}</span></NodeChip>
                 {names.slice(0, 3).map((n) => (
                     <NodeChip key={n} title={required.includes(n) ? `${n} (required)` : n}>
                         {n}{required.includes(n) ? '*' : ''}
@@ -186,8 +186,8 @@ export default function TriggerNode({ id, data }) {
             type="button"
             onClick={(e) => { e.stopPropagation(); onDiagnose(); }}
             onMouseDown={(e) => e.stopPropagation()}
-            aria-label="Diagnose"
-            title="Probe the trigger pipeline (subscription, credentials, filter match)"
+            aria-label={t('automations.trigger_node.diagnose', 'Diagnose')}
+            title={t('automations.trigger_node.probe_the_trigger_pipeline_subscription_credentials', 'Probe the trigger pipeline (subscription, credentials, filter match)')}
             className="h-5 w-5 rounded-md flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
         >
             <Stethoscope size={11} />

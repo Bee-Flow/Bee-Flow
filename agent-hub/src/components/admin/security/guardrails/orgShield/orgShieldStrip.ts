@@ -1,6 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
 
-import { ACTIVITY_TAB, CHECKS_TAB_IDS, PIPELINE_TAB_IDS, TABS, isChecksTab } from './orgShieldTabs';
+import { ACTIVITY_TAB, PIPELINE_TAB_IDS, TABS } from './orgShieldTabs';
 import { ownDataSummary } from './ownData/ownDataCopy';
 import { builtInOnly } from './ownData/ownDataModel';
 import type { CustomDataType } from './ownData/ownDataModel';
@@ -85,9 +85,11 @@ function detectionReadOut({ f, total, t }: StripInput): ReadOut {
         ? t(`privacy.sensitivity_${preset.id}`, preset.label)
         : t('admin.shield_posture_custom_pct', 'Custom ({pct}%)', { pct: Math.round((f.piiConfidenceThreshold ?? 0.7) * 100) });
     // One string, so the preset name never becomes a second text node that
-    // collides with the sensitivity cards' own labels.
+    // collides with the sensitivity cards' own labels. "{n} of {total}" without
+    // a noun: the label above it already says what is counted, and the word
+    // was what made the read-out truncate on a laptop.
     return {
-        text: t('shield_shell.summary_kinds', '{n} of {total} kinds', { n, total }) + SEP + strictness,
+        text: t('shield_shell.summary_kinds_of', '{n} of {total}', { n, total }) + SEP + strictness,
         // Shield on and nothing ticked: nothing is ever found.
         tone: n === 0 ? 'warn' : undefined,
     };
@@ -156,16 +158,6 @@ export function buildStripItems(input: StripInput): StripItem[] {
             inPipeline: position >= 0,
         };
     });
-}
-
-/**
- * Both check ids render the combined pane; the one you clicked is the one the
- * pane emphasises, and the strip outlines its sibling so it is clear they
- * share a screen rather than one having vanished.
- */
-export function emphasisOf(tab: string): string | null {
-    if (!isChecksTab(tab)) return null;
-    return CHECKS_TAB_IDS.find(id => id !== tab) ?? null;
 }
 
 export interface DirtyChip { id: string; label: string; Icon: LucideIcon; count: number }

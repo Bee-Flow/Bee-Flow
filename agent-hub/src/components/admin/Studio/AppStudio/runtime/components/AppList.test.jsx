@@ -89,7 +89,7 @@ describe('AppList', () => {
     it('shows a short relative timestamp, not a raw date', () => {
         const { getByText } = renderList(node({ timestampKey: 'at' }));
         expect(getByText('5 min')).toBeTruthy();
-        expect(getByText('3 u')).toBeTruthy();
+        expect(getByText('3 h')).toBeTruthy();
     });
 
     it('shows the meta line', () => {

@@ -155,7 +155,7 @@ function makeSheetAssistant(deps = {}) {
         const tabs = sheetTabsOf(doc);
         if (!tabs.length) throw new HttpError(410, 'sheet_table_missing', 'This spreadsheet has no table for its cells.');
         const activeTab = tabs.find((t) => t.id === tabId) || tabs[0];
-        const readOnly = doc.projectRole === 'viewer';
+        const readOnly = (doc.projectRole === 'viewer' || doc.sharingRole === 'viewer');
         const model = await resolveModel({ userId, orgId, modelTier: modelTier || 'auto', message: String(message).slice(0, 2000) });
         const modelId = model?.modelId;
         if (!modelId) throw new HttpError(503, 'ai_not_configured', 'No AI model is configured.');
@@ -333,6 +333,7 @@ function makeSheetAssistant(deps = {}) {
                 const categoriesRange = args?.categoriesRange ? String(args.categoriesRange) : undefined;
                 if (categoriesRange && !parseRange(categoriesRange)) return 'Error: categoriesRange must be a range like "A2:A10".';
                 const chart = {
+                    // nosemgrep: ajinabraham.njsscan.crypto.crypto_node.node_insecure_random_generator -- a chart id inside one sheet, not a secret
                     id: `chart-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
                     type, dataRange, anchor, categoriesRange,
                     title: args?.title ? String(args.title) : undefined,

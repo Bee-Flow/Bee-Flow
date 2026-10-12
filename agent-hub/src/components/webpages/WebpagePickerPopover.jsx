@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { Globe, Search, Loader2 } from 'lucide-react';
 import { API_BASE, authFetch } from '../../utils/helpers';
+import { useTranslation } from '../../hooks/useTranslation';
 
 /**
  * Compact popover that lists webpages the user can see (owned + published
@@ -11,6 +12,7 @@ import { API_BASE, authFetch } from '../../utils/helpers';
  * listener.
  */
 export default function WebpagePickerPopover({ anchorRef, open, onClose, onSelect }) {
+    const { t } = useTranslation();
     const popoverRef = useRef(null);
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -68,9 +70,9 @@ export default function WebpagePickerPopover({ anchorRef, open, onClose, onSelec
             style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)' }}
         >
             <div className="px-3 py-2 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
-                <div className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>Open a webpage</div>
+                <div className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>{t('webpages.picker.title', 'Open a webpage')}</div>
                 <div className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
-                    Choose one to view alongside the chat.
+                    {t('webpages.picker.hint', 'Choose one to view alongside the chat.')}
                 </div>
             </div>
             <div className="px-2 py-2 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
@@ -79,7 +81,7 @@ export default function WebpagePickerPopover({ anchorRef, open, onClose, onSelec
                     <input
                         autoFocus
                         type="text"
-                        placeholder="Search webpages…"
+                        placeholder={t('webpages.picker.search', 'Search webpages…')}
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         className="w-full pl-7 pr-2 py-1.5 text-xs rounded-lg border outline-none"
@@ -116,7 +118,7 @@ export default function WebpagePickerPopover({ anchorRef, open, onClose, onSelec
                             <div className="text-xs font-medium truncate" style={{ color: 'var(--text-primary)' }}>{w.name}</div>
                             {w.isPublished && (
                                 <div className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
-                                    Shared{Array.isArray(w.sharedGroups) && w.sharedGroups.length > 0 ? ` · ${w.sharedGroups.length} group${w.sharedGroups.length === 1 ? '' : 's'}` : ''}
+                                    {Array.isArray(w.sharedGroups) && w.sharedGroups.length > 0 ? (w.sharedGroups.length === 1 ? t('webpages.picker.shared_one_group', 'Shared · 1 group') : t('webpages.picker.shared_groups', 'Shared · {count} groups', { count: w.sharedGroups.length })) : t('webpages.picker.shared', 'Shared')}
                                 </div>
                             )}
                         </div>

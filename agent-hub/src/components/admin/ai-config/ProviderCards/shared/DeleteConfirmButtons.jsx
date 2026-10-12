@@ -15,6 +15,7 @@
 // in the multi-field cards).
 
 import React, { useState } from 'react';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 
 const SIZE_CLASSES = {
     sm: {
@@ -30,6 +31,7 @@ const SIZE_CLASSES = {
 };
 
 const DeleteConfirmButtons = ({ onConfirm, label = '🗑️', title, size = 'sm' }) => {
+    const { t } = useTranslation();
     const [confirming, setConfirming] = useState(false);
     const classes = SIZE_CLASSES[size] || SIZE_CLASSES.sm;
 
@@ -49,7 +51,7 @@ const DeleteConfirmButtons = ({ onConfirm, label = '🗑️', title, size = 'sm'
     return (
         <>
             <button onClick={onConfirm} className={classes.confirm}>
-                Confirm
+                {t('admin_ai_config.confirm', 'Confirm')}
             </button>
             <button
                 onClick={() => setConfirming(false)}

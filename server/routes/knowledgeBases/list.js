@@ -26,6 +26,7 @@ const {
     resolveEnabledSystemSlugs,
     listFilterFromQuery,
     VALID_USAGE_CONTEXTS,
+    decorateKbList,
 } = require('./shared');
 const { validate } = require('../../core/http/validate');
 const { z } = require('zod');
@@ -72,7 +73,10 @@ router.get('/', requireAuth, validate({ query: ListQuery }), async (req, res) =>
     // Owners always see drafts; org admins see every org KB (incl. drafts);
     // regular org members see only published KBs that pass shared_groups.
     const filtered = kbStore.filterByGroupAccess(kbs, userId, userGroups, { orgIds, isOrgAdmin });
-    res.json(filtered);
+    // sourceCount / autoRefreshCount / lastContentAt: the Knowledge list's
+    // "N sources" and freshness cell read these, and without them every base
+    // said "0 sources · no sources yet".
+    res.json(await decorateKbList(filtered));
 });
 
 /**
@@ -86,6 +90,6 @@ router.get('/published', requireAuth, validate({ query: ListQuery }), async (req
     const kbs = await kbStore.listKBs(userId, orgIds, { ...listFilterFromQuery(req), systemSlugs });
     const accessible = kbStore.filterByGroupAccess(kbs, userId, userGroups);
     // Only KBs that are explicitly published (drafts owned by the user are dropped here)
-    res.json(accessible.filter(kb => !!kb.is_published));
+    res.json(await decorateKbList(accessible.filter(kb => !!kb.is_published)));
 });
 module.exports = router;

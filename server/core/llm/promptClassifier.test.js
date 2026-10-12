@@ -44,6 +44,13 @@ mock('./tierClassifierService', {
 });
 
 mock('../../stores/configStore', { getConfig: async () => null });
+// Privacy Shield for the turn: off unless a test turns it on, so the
+// existing cases keep reaching the LLM stage.
+let shieldOn = false;
+mock('../privacy/orgShield', { resolveShieldFor: async () => (shieldOn ? { enabled: true } : null) });
+// The classifier model's STORED provider type (only read with a shield on).
+let classifierProviderType = 'anthropic';
+mock('../aiAgent', { getProviderForModel: async () => ({ providerType: classifierProviderType }) });
 mock('./llmClient', {
     chat: async (modelId, messages, options) => {
         chatCalls.push({ modelId, messages, options });
@@ -221,4 +228,55 @@ test('a long message reaches the LLM as its start and its end', async () => {
     assert.ok(sent.length <= 2010);
     assert.ok(sent.startsWith('START'));
     assert.ok(sent.endsWith('END'));
+});
+
+test('with a Privacy Shield on, the raw message never goes to an external classifier model', async () => {
+    reset({ content: 'thinking' });
+    shieldOn = true;
+    classifierProviderType = 'anthropic';
+    try {
+        const out = await classifyWithLLM(AMBIGUOUS_MSG, TIERS, { userOrgId: 'org-1', userId: 'u1' });
+        assert.strictEqual(chatCalls.length, 0, 'the unmasked message reached the classifier model');
+        assert.strictEqual(out.method, 'heuristic');
+    } finally {
+        shieldOn = false;
+    }
+});
+
+test('with a Privacy Shield on, a self-hosted classifier model is still asked', async () => {
+    reset({ content: 'thinking' });
+    shieldOn = true;
+    classifierProviderType = 'ollama';
+    try {
+        const out = await classifyWithLLM(AMBIGUOUS_MSG, TIERS, { userOrgId: 'org-1', userId: 'u1' });
+        assert.strictEqual(chatCalls.length, 1);
+        assert.strictEqual(out.method, 'llm');
+    } finally {
+        shieldOn = false;
+        classifierProviderType = 'anthropic';
+    }
+});
+
+test('the LLM stage logs no message text and no model reply', async () => {
+    const msg = 'Plan de verhuizing van Johannes Vermeulen naar Utrecht';
+    assert.strictEqual(classifyPromptComplexity(msg).confident, false, 'the message must reach the LLM stage');
+    const lines = [];
+    const saved = {};
+    for (const m of ['log', 'info', 'warn', 'error', 'debug']) {
+        saved[m] = console[m];
+        console[m] = (...args) => { lines.push(args.map(String).join(' ')); };
+    }
+    try {
+        reset({ content: 'thinking' });
+        const out = await classifyWithLLM(msg, TIERS);
+        assert.strictEqual(out.method, 'llm');
+        reset({ content: 'Johannes wants a moving plan, which is zebra' });
+        await classifyWithLLM(msg, TIERS);
+    } finally {
+        for (const m of Object.keys(saved)) console[m] = saved[m];
+    }
+    for (const line of lines) {
+        // Case-insensitive: the invalid-reply line logged the reply lower-cased.
+        assert.ok(!/johannes|utrecht/i.test(line), `a log line carries user content: ${line}`);
+    }
 });

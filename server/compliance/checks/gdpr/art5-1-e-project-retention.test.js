@@ -88,6 +88,24 @@ test('a source that fails is never a pass; missing tables are skipped', async ()
     assert.strictEqual(blank.status, 'warn');
 });
 
+test('a window that cannot be read is never judged silently against the default', async () => {
+    // 'fresh' was used 3 days ago: inside the 365-day default, so a failed
+    // read of the settings and the records used to pass it unseen.
+    const down = () => Promise.reject(Object.assign(new Error('terminating connection'), { code: '57P01' }));
+    const r = await check.evaluate('org1', { id: 'project:fresh' }, deps({
+        complianceStore: { getSettings: down, listSubjectRegistrations: down },
+    }));
+    assert.strictEqual(r.status, 'warn');
+    assert.match(r.details, /could not be read/);
+    assert.deepStrictEqual(r.evidence.unreadable, ['retention settings', 'processing records']);
+    // A store that is not provisioned yet is not a failed read.
+    const missing = () => Promise.reject(Object.assign(new Error('missing'), { code: '42P01' }));
+    const fresh = await check.evaluate('org1', { id: 'project:fresh' }, deps({
+        complianceStore: { getSettings: missing, listSubjectRegistrations: missing },
+    }));
+    assert.strictEqual(fresh.status, 'pass');
+});
+
 test('subjects are the personal-data projects; an unreadable signal refuses to list', async () => {
     const listed = await check.listSubjects('org1', deps());
     assert.deepStrictEqual(listed.subjects.map(s => s.id), ['project:fresh', 'project:old']);

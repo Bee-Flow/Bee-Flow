@@ -24,25 +24,27 @@ export function buildAutomationMenuItems({
     onMoveToFolder,
     onCopyId,
     onDelete,
+    t = null,
 } = {}) {
     const items = [];
+    const tr = (key, en) => (t ? t(key, en) : en);
     if (isAutomation && onToggleActive) {
         items.push({
-            label: isActive ? 'Pause' : 'Activate',
+            label: isActive ? tr('studio_misc.menu.pause', 'Pause') : tr('studio_misc.menu.activate', 'Activate'),
             icon: isActive ? <Pause size={13} /> : <Play size={13} />,
             onClick: onToggleActive,
         });
     }
-    if (onOpenRuns) items.push({ label: 'View executions', icon: <History size={13} />, onClick: onOpenRuns });
-    if (onDuplicate) items.push({ label: 'Duplicate', icon: <Copy size={13} />, onClick: onDuplicate });
-    if (onExportJson) items.push({ label: 'Export JSON', icon: <Code2 size={13} />, onClick: onExportJson });
+    if (onOpenRuns) items.push({ label: tr('studio_misc.menu.view_runs', 'View executions'), icon: <History size={13} />, onClick: onOpenRuns });
+    if (onDuplicate) items.push({ label: tr('studio_misc.menu.duplicate', 'Duplicate'), icon: <Copy size={13} />, onClick: onDuplicate });
+    if (onExportJson) items.push({ label: tr('studio_misc.menu.export_json', 'Export JSON'), icon: <Code2 size={13} />, onClick: onExportJson });
     // The keyboard-reachable twin of dragging a row onto a folder. Dragging
     // is the discoverable gesture; this is the one that always works.
-    if (onMoveToFolder) items.push({ label: 'Move to folder…', icon: <FolderInput size={13} />, onClick: onMoveToFolder });
-    if (onCopyId) items.push({ label: 'Copy ID', icon: <Hash size={13} />, onClick: onCopyId });
+    if (onMoveToFolder) items.push({ label: tr('studio_misc.menu.move_to_folder', 'Move to folder…'), icon: <FolderInput size={13} />, onClick: onMoveToFolder });
+    if (onCopyId) items.push({ label: tr('studio_misc.menu.copy_id', 'Copy ID'), icon: <Hash size={13} />, onClick: onCopyId });
     if (onDelete) {
         if (items.length) items.push({ separator: true });
-        items.push({ label: 'Delete', icon: <Trash2 size={13} />, onClick: onDelete, danger: true });
+        items.push({ label: tr('studio_misc.menu.delete', 'Delete'), icon: <Trash2 size={13} />, onClick: onDelete, danger: true });
     }
     return items;
 }

@@ -106,10 +106,31 @@ export const DATA_ITEMS: readonly PaletteItem[] = [
         'presentation presentatie powerpoint pptx deck slides slide pitch keynote impress export download house style huisstijl'),
 ];
 
+/**
+ * "Filter a list" (BFSF-485 F1): the Condition node, dropped already working
+ * through a list (a `filter` with an empty `arrayRef`, which auto-map binds to
+ * the nearest list as it does for an inserted Condition). The card keeps the
+ * one node name; the entry's words are its own, under `condition_node.palette.*`.
+ */
+export const FILTER_LIST_ITEM: PaletteItem = {
+    ...worded({
+        id: 'filter_list', icon: 'ListFilter',
+        labelFallback: 'Filter a list',
+        descFallback: 'Keep only the items of a list that match; the rest stop here.',
+        keywords: 'filter keep where only matching items rows list drop exclude subset select',
+        payload: { kind: 'filter', label: nodeDefaultLabel('filter') },
+    }),
+    labelKey: 'condition_node.palette.filter_label',
+    descKey: 'condition_node.palette.filter_desc',
+};
+
 export const COLLECTION_ITEMS: readonly PaletteItem[] = [
+    FILTER_LIST_ITEM,
+    stepItem('flatten', 'flatten', 'Rows3',
+        'flatten split out unnest expand explode one row per each inside nested attachments line items lines table rows'),
     stepItem('limit', 'limit', 'ChevronsDown', 'limit take first last slice top head tail trim shorten cap fewer'),
     stepItem('dedupe', 'dedupe', 'Copy', 'dedupe duplicates unique distinct same repeated identical once'),
-    stepItem('aggregate', 'aggregate', 'Layers', 'aggregate collect pluck pick field values flatten column extract list of'),
+    stepItem('aggregate', 'aggregate', 'Layers', 'aggregate collect pluck pick field values column extract list of'),
     stepItem('summarize', 'summarize', 'Sigma', 'summarize summarise sum count avg average min max statistics aggregate total add up how many'),
 ];
 

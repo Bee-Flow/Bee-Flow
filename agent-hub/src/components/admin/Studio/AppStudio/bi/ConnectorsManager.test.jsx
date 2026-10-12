@@ -54,8 +54,8 @@ vi.mock('../../../../../hooks/useAutomationApi', () => ({
 }));
 vi.mock('../../../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 
-import { authFetch } from '../../../../../utils/helpers';
 import ConnectorsManager, { connectorProblem } from './ConnectorsManager';
+import { authFetch } from '../../../../../utils/helpers';
 
 /**
  * ConnectorsManager is a CONTROLLED editor over model.connectors[]: it never

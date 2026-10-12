@@ -184,6 +184,26 @@ describe('StudioSectionHeader — tabs and badges', () => {
         expect(content.querySelector(`.${CSS.escape(OBJHEAD_FOLD.label)}`)).toBeNull();
     });
 
+    it('folds the strip into the menu at 900px with tabsFold="compact", at 1180px without it', () => {
+        const { unmount } = renderHeader();
+        const stripOf = () => screen.getByRole('radiogroup').closest('div.flex-shrink-0');
+        const menuOf = () => screen.getByTestId('studio-section-tab-menu').parentElement.parentElement;
+        expect(stripOf().className).toContain('@max-[1180px]/objhead:hidden');
+        expect(menuOf().className).toBe('hidden @max-[1180px]/objhead:block');
+        unmount();
+        renderHeader({ tabsFold: 'compact' });
+        expect(stripOf().className).toContain('@max-[900px]/objhead:hidden');
+        expect(menuOf().className).toBe('hidden @max-[900px]/objhead:block');
+    });
+
+    it('titleMin keeps the name wrapper from shrinking', () => {
+        const { unmount } = renderHeader();
+        expect(screen.getByTestId('studio-section-title').parentElement.className).toMatch(/^min-w-0 /);
+        unmount();
+        renderHeader({ titleMin: true });
+        expect(screen.getByTestId('studio-section-title').parentElement.className).toMatch(/^shrink-0 max-w-/);
+    });
+
     it('renders no strip and no menu without tabs', () => {
         renderHeader({ tabs: null });
         expect(screen.queryByRole('radiogroup')).toBeNull();
@@ -231,5 +251,6 @@ describe('StudioSectionHeader — slots and exports', () => {
         expect(OBJHEAD).toBe('objhead');
         expect(OBJHEAD_FOLD.label).toContain('/objhead:');
         expect(OBJHEAD_FOLD.action).toContain('/objhead:');
+        expect(OBJHEAD_FOLD.compact).toBe('@max-[900px]/objhead:hidden');
     });
 });

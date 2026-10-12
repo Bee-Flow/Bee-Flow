@@ -679,7 +679,10 @@ The ISMS lead ({owner}) reviews this methodology every 12 months. The matrix def
     {
         slug: 'exit-procedure',
         title: 'Exit and data-portability procedure',
-        controls: ['A.5.30', 'A.5.29'],
+        // A.5.23 covers exit from cloud services, A.5.20 the end-of-contract
+        // terms in supplier agreements. A.5.29/A.5.30 are continuity controls,
+        // evidenced by the business-continuity seed.
+        controls: ['A.5.23', 'A.5.20'],
         reviewMonths: 12,
         body: `# Exit and data-portability procedure
 

@@ -5,10 +5,10 @@
  */
 
 const {
-    newId, appendAfter, branchEdgeFor, layerAwareAnchor, spliceSuccessors, isKnownNodeId,
+    newId, appendAfter, branchEdgeFor, layerAwareAnchor, spliceSuccessors, spliceCaseOf, isKnownNodeId,
 } = require('../draftGraph');
 const { TEMP_ID_RX, rewriteTempRefs } = require('../tempRefs');
-const { validateAndFixBindings } = require('../bindings');
+const { validateAndFixBindings, sanitizeArrayRef } = require('../bindings');
 
 function applyAddCondition(draft, args) {
     const step = { id: newId('cond'), type: 'condition', expr: args.expr, label: args.label || 'Condition' };
@@ -21,7 +21,23 @@ function applyAddCondition(draft, args) {
     draft.edges.push(incoming);
     if (args.thenStepId) draft.edges.push({ from: step.id, to: args.thenStepId, label: 'then' });
     if (args.elseStepId) draft.edges.push({ from: step.id, to: args.elseStepId, label: 'else' });
-    return { added: step };
+    const note = wholeListNote(step);
+    return { added: step, ...(note ? { _warnings: [note] } : {}) };
+}
+
+/**
+ * BFSF-485: a condition decides ONCE for the whole run. One that reads a list
+ * through `[*]` ("any sheet named Reiskosten") sends every item the same way,
+ * so the steps after it still process all of them. Built anyway (it can be
+ * meant), but the result says what it does and names the step that filters.
+ */
+function wholeListNote(step) {
+    const { wholeRunListReads } = require('../../expr');
+    const lists = [...new Set(wholeRunListReads(step).map(r => r.list))];
+    if (!lists.length) return null;
+    const list = lists[0];
+    return `${step.id} reads the whole list ${list} and decides ONCE for the whole run: every item still goes the same way, nothing is filtered. `
+        + `To keep only the matching items use builder_add_array_op({op:"filter", arrayRef:"${list}", expr:"<rule on item>"}) and continue on its output.items.`;
 }
 
 /**
@@ -39,8 +55,15 @@ function applyAddGuard(draft, args) {
     };
     if (Array.isArray(args.categories) && args.categories.length) step.categories = args.categories;
     if (typeof args.confidence === 'number') step.confidence = args.confidence;
-    if (args.stopOnFound || args.maskOnFound) {
-        step.onFound = { ...(args.stopOnFound ? { stop: true } : {}), ...(args.maskOnFound ? { mask: true } : {}) };
+    // stop = end the run when personal data is found; mask = an irreversible
+    // copy on output.masked; tokenize = "Check + Hide", a REVERSIBLE copy on
+    // output.text (the real values come back at the runner's restore points).
+    if (args.stopOnFound || args.maskOnFound || args.hideOnFound) {
+        step.onFound = {
+            ...(args.stopOnFound ? { stop: true } : {}),
+            ...(args.maskOnFound ? { mask: true } : {}),
+            ...(args.hideOnFound ? { tokenize: true } : {}),
+        };
     }
     const lastId = layerAwareAnchor(draft, args.afterStepId, step.id);
     draft.steps.push(step);
@@ -73,12 +96,40 @@ function applyAddTokenize(draft, args) {
     return { added: step };
 }
 
-function applyAddLoop(draft, args) {
+/**
+ * Untokenize — put the real values back, here, on purpose. The runner already
+ * restores wherever a value comes back into the run (an AI reply, a tool
+ * result); this is for the rest: a tokenized value carried forward by a `set`
+ * step or written to a table. It reports what it could not restore.
+ */
+function applyAddUntokenize(draft, args) {
+    const step = {
+        id: newId('untok'),
+        type: 'untokenize',
+        sourceRef: typeof args.sourceRef === 'string' ? args.sourceRef : '',
+        label: args.label || 'Show real values again',
+    };
+    const lastId = layerAwareAnchor(draft, args.afterStepId, step.id);
+    draft.steps.push(step);
+    const incoming = branchEdgeFor(draft, lastId, step.id, { branch: args.branch, caseName: args.caseName });
+    if (args.splice === true) spliceSuccessors(draft, lastId, step, incoming);
+    draft.edges.push(incoming);
+    return { added: step };
+}
+
+function applyAddLoop(draft, args, draftWrap) {
     // Sanitize child body steps: every child must have an id, type, and any
     // type-specific required fields. Missing ids would crash the runner with
     // a null step_id DB constraint.
     const rawBody = Array.isArray(args.body) ? args.body : [];
     const childErrors = [];
+    const notes = [];
+    // The list the loop walks: canonicalised and checked as a LIST, like a
+    // forEach.overRef (a bracket path survives; `results.files` becomes
+    // `results[*].files`).
+    const over = sanitizeArrayRef(args.overRef, draft, { draftWrap });
+    if (over.error) return { error: over.error.replace(/^arrayRef/, 'overRef') };
+    notes.push(...over.notes.map(n => n.replace(/^arrayRef/, 'overRef')));
     // Handles declared so far in this body: id → id (a body step's id IS its
     // handle, so `steps.$read` and `steps.read` both reach a step with id
     // "read"). Same resolver as builder_add_steps — see tempRefs.js.
@@ -130,8 +181,9 @@ function applyAddLoop(draft, args) {
             return null;
         }
         if (fixed.inputs) {
-            const v = validateAndFixBindings(fixed.inputs, draft);
+            const v = validateAndFixBindings(fixed.inputs, draft, { draftWrap });
             if (v.error) childErrors.push(`body[${idx}] (${fixed.id}): ${v.error}`);
+            for (const n of v.notes || []) notes.push(`body[${idx}] (${fixed.id}): ${n}`);
             fixed.inputs = v.inputs;
         }
         return fixed;
@@ -141,14 +193,14 @@ function applyAddLoop(draft, args) {
     const step = {
         id: newId('loop'),
         type: 'loop',
-        overRef: args.overRef,
+        overRef: over.arrayRef,
         itemVar: args.itemVar,
         body,
         maxIterations: args.maxIterations || 100,
-        label: args.label || `Loop over ${args.overRef}`,
+        label: args.label || `Loop over ${over.arrayRef}`,
     };
     appendAfter(draft, args.afterStepId, step, { branch: args.branch, caseName: args.caseName, splice: args.splice === true });
-    return { added: step };
+    return { added: step, ...(notes.length ? { _warnings: notes } : {}) };
 }
 
 /**
@@ -184,20 +236,48 @@ function sanitizeSwitchCases(cases) {
     });
 }
 
-function applyAddSwitch(draft, args) {
-    // Refused BEFORE anything is mutated: a switch has no single successor to
-    // hand the anchor's old edge to (see draftGraph.spliceSuccessors).
-    if (args.splice === true) {
-        return { error: 'splice is not supported when the new step is a switch - add it with nextStepIds and remove the old edge instead.' };
+/**
+ * The list fields of a switch (A1): a switch with `arrayRef` works through a
+ * list like a filter does, so its list is checked by the same sanitizer
+ * (notes included). `matchMode` is kept only as 'all' (absent = first match
+ * wins), `maxItems` only as a positive integer on a list switch.
+ */
+function switchListFields(args, draft, draftWrap) {
+    if (typeof args.arrayRef !== 'string' || !args.arrayRef.trim()) return { fields: {}, notes: [] };
+    const ar = sanitizeArrayRef(args.arrayRef, draft, { draftWrap });
+    if (ar.error) return { error: ar.error };
+    const fields = { arrayRef: ar.arrayRef };
+    if (Number.isInteger(args.maxItems) && args.maxItems > 0) fields.maxItems = args.maxItems;
+    return { fields, notes: ar.notes };
+}
+
+function buildSwitchStep(args, list) {
+    const cases = sanitizeSwitchCases(args.cases);
+    const step = { id: newId('sw'), type: 'switch' };
+    if (typeof args.expr === 'string') step.expr = args.expr;
+    Object.assign(step, list);
+    step.cases = cases;
+    if (args.matchMode === 'all') step.matchMode = 'all';
+    // Every output carries its own rule: say so, as the canvas editor does
+    // (routeModel.js persists it rather than deriving it).
+    if (cases.length && cases.every(c => typeof c.expr === 'string')) step.routeStyle = 'rules';
+    step.defaultBranch = typeof args.defaultBranch === 'string' ? args.defaultBranch : null;
+    step.label = args.label || 'Condition';
+    return step;
+}
+
+function applyAddSwitch(draft, args, draftWrap) {
+    const list = switchListFields(args || {}, draft, draftWrap);
+    if (list.error) return { error: list.error };
+    const step = buildSwitchStep(args, list.fields);
+    // Refused BEFORE anything is mutated: only a switch that works through a
+    // list has an output (its first case) to hand the anchor's old edge to
+    // (see draftGraph.spliceSuccessors).
+    if (args.splice === true && !spliceCaseOf(step)) {
+        return { error: step.arrayRef
+            ? 'splice needs a first case to hand the old successor to — give the switch at least one case with a name.'
+            : 'splice is not supported when the new step is a switch without arrayRef - add it with nextStepIds and remove the old edge instead.' };
     }
-    const step = {
-        id: newId('sw'),
-        type: 'switch',
-        expr: args.expr,
-        cases: sanitizeSwitchCases(args.cases),
-        defaultBranch: typeof args.defaultBranch === 'string' ? args.defaultBranch : null,
-        label: args.label || 'Condition',
-    };
     const lastId = layerAwareAnchor(draft, args.afterStepId, step.id);
     draft.steps.push(step);
     // Route the incoming edge through branchEdgeFor so chaining a switch
@@ -213,7 +293,7 @@ function applyAddSwitch(draft, args) {
         const label = caseName === 'default' ? 'case:default' : `case:${caseName}`;
         draft.edges.push({ from: step.id, to: target, label, caseName });
     }
-    return { added: step };
+    return { added: step, ...(list.notes.length ? { _warnings: list.notes } : {}) };
 }
 
 function applyAddWait(draft, args) {
@@ -253,6 +333,7 @@ module.exports = {
     applyAddCondition,
     applyAddGuard,
     applyAddTokenize,
+    applyAddUntokenize,
     applyAddLoop,
     applyAddSwitch,
     applyAddWait,

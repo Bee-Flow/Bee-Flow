@@ -26,13 +26,16 @@ notifyManager.setScheduler(queueMicrotask);
 
 const ok = (body) => ({ ok: true, status: 200, json: async () => body });
 
+// Chat signals are off in both: an older server sends no such block, and
+// that reads exactly like an explicit off (api/queries/shieldStatus.test.ts).
+const CHAT_SIGNALS_OFF = { state: 'off', from: null, version: null, surfaces: [], signals: [], noticeUrl: null };
 const ON = {
     enabled: true, source: 'org', action: 'redact', failMode: 'fail_closed',
-    guardReachable: true, euMode: false, coworkEnabled: true,
+    guardReachable: true, euMode: false, coworkEnabled: true, chatMonitoring: CHAT_SIGNALS_OFF,
 };
 const OFF = {
     enabled: false, source: 'off', action: null, failMode: 'fail_closed',
-    guardReachable: false, euMode: false, coworkEnabled: false,
+    guardReachable: false, euMode: false, coworkEnabled: false, chatMonitoring: CHAT_SIGNALS_OFF,
 };
 
 const setVisibility = (state) => {

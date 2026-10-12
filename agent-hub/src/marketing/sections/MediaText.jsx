@@ -2,6 +2,7 @@ import React from 'react';
 import Button from '../components/Button';
 import EditableText from '../components/EditableText';
 import FramedMedia from '../components/FramedMedia';
+import ClipVideo from '../components/ClipVideo';
 import SectionFrame from '../components/SectionFrame';
 import { inlineTextStyle } from './textStyle';
 
@@ -175,6 +176,17 @@ function renderMedia(media, heading) {
                 />
             </div>
         );
+    }
+
+    if (kind === 'clip') {
+        if (!src) {
+            return (
+                <div className="media-text-block-media-placeholder">
+                    <span>Upload a clip (video with sound) in the panel</span>
+                </div>
+            );
+        }
+        return <ClipVideo media={media} />;
     }
 
     if (kind === 'video-silent') {

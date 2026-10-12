@@ -4,8 +4,8 @@
  *
  * Every page receives the same shape:
  *
- *   { section, tab, onTab(tabId), navigate(sectionId, subId?), focusId,
- *     exportsEnabled, dl(url), isMobile,
+ *   { section, tab, onTab(tabId), navigate(sectionId, subId?, tab?), focusId,
+ *     exportsEnabled, dl(url), isMobile, setLeaveGuard(fn | null),
  *     data: { core, counts, attention, deadlines, frameworks, calendar, orgUsers,
  *             dsr, ropa, dpia, incidents, vulnerabilities, soa, policies,
  *             connectors, risks, audit, training, accessAudit } }

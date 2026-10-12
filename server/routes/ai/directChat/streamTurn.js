@@ -51,12 +51,13 @@ const { createTurnState } = require('./turnState');
 const { runSwarmTierTurn } = require('./swarmTurn');
 const { resolveTurnSetup } = require('./turnSetup');
 const { assembleToolStack } = require('./toolStackAssembly');
-const { buildPromptAndHistory } = require('./promptAssembly');
+const { buildPromptAndHistory, applyMemorySwap } = require('./promptAssembly');
 const { setupSessionSkills } = require('./sessionSkillSetup');
 const { claimSharedThreadTurn } = require('./sharedThreadLock');
 const { swapModelForActiveStage } = require('./stageModelSwap');
 const { processAttachmentsAndUserMessage } = require('./attachmentIntake');
 const { runInputGates } = require('./inputGates');
+const { countDirectTurn } = require('./chatSignalsTurn');
 const { compactConversation } = require('./compactionPhase');
 const { buildChatOptions } = require('./chatOptions');
 const { computeStepMachineGuard, pipelineNeedsWrapUp, callAdapterWithFallback } = require('./stepMachine');
@@ -74,7 +75,7 @@ const { DirectTurnBody } = require('./turnSchema');
 // ─── Streaming Direct Chat ───────────────────────────────────────
 
 router.post('/chat/direct/stream', requireAuth, validate({ body: DirectTurnBody }), async (req, res) => {
-    const { message, conversationId, modelTier, history, attachments, imageGenSettings, nanoBananaSettings, disabledMedia, webSearchEnabled = true, notebookspaceContent, notebookspaceSelection, notebookspaceAvailable, sidePanelWebpage, projectId, timezone, systemPrompt: requestSystemPrompt, activeSkillIds, reasoningEffort: requestReasoningEffort, sessionSkills: requestSessionSkills, activatedSessionSkillIds: requestActivatedSessionSkillIds, knowledgeBaseIds: requestedKbIds, planExecution: webpagePlanExecution } = req.body;
+    const { message, conversationId, modelTier, history, attachments, imageGenSettings, nanoBananaSettings, disabledMedia, webSearchEnabled = true, notebookspaceContent, notebookspaceSelection, notebookspaceAvailable, sidePanelWebpage, sidePanelDocument, projectId, timezone, systemPrompt: requestSystemPrompt, activeSkillIds, reasoningEffort: requestReasoningEffort, sessionSkills: requestSessionSkills, activatedSessionSkillIds: requestActivatedSessionSkillIds, knowledgeBaseIds: requestedKbIds, planExecution: webpagePlanExecution } = req.body;
     const userId = req.session.user.id;
 
     if (!message && (!attachments || attachments.length === 0)) {
@@ -124,7 +125,7 @@ router.post('/chat/direct/stream', requireAuth, validate({ body: DirectTurnBody 
         req, res, send, clientAbort, userId,
         message, conversationId, modelTier, history, attachments, imageGenSettings, nanoBananaSettings,
         disabledMedia, webSearchEnabled, notebookspaceContent, notebookspaceSelection, notebookspaceAvailable,
-        sidePanelWebpage, projectId, timezone, requestSystemPrompt, activeSkillIds, requestReasoningEffort,
+        sidePanelWebpage, sidePanelDocument, projectId, timezone, requestSystemPrompt, activeSkillIds, requestReasoningEffort,
         requestSessionSkills, requestActivatedSessionSkillIds, requestedKbIds, webpagePlanExecution,
     });
     Object.assign(turn, turnSetup);
@@ -168,11 +169,17 @@ router.post('/chat/direct/stream', requireAuth, validate({ body: DirectTurnBody 
         Object.assign(turn, await buildPromptAndHistory({
             req, send, userId, message, conversationId, history, timezone, requestSystemPrompt, activeSkillIds,
             requestedKbIds, projectId, notebookspaceAvailable, notebookspaceContent, notebookspaceSelection,
-            sidePanelWebpage, webpagePlanExecution, userOrgForTiers: turn.userOrgForTiers,
+            sidePanelWebpage, sidePanelDocument, webpagePlanExecution, userOrgForTiers: turn.userOrgForTiers,
             orgIdsForTiers: turn.orgIdsForTiers, notebooksEnabled: turn.notebooksEnabled,
             canUseNotebooks: turn.canUseNotebooks, toolCatalogText: turn.toolCatalogText,
             directChatTools: turn.directChatTools,
         }));
+
+        // What the document tools may touch this turn: the open document, what
+        // this chat made, what the person's own messages point at.
+        turn.documentScope = require('../../../core/documents/aiDocumentScope').createDocumentScope({
+            sidePanelDocument, history: turn.resolvedHistory, message,
+        });
 
         const claimedThread = await claimSharedThreadTurn(turn);
         if (!claimedThread) return;
@@ -198,6 +205,7 @@ router.post('/chat/direct/stream', requireAuth, validate({ body: DirectTurnBody 
         });
         if (!attachmentIntake) return;
         Object.assign(turn, attachmentIntake);
+        try { await applyMemorySwap(turn, userId); } catch (e) { log.warn('[DirectChat] Memory token swap failed (labels stay):', e.message); }
 
         // NOTE: a previous block here tried to inject TERMINAL_TOOLS
         // (convert_document_to_text, etc.) via require('../../terminal/tools')
@@ -208,11 +216,17 @@ router.post('/chat/direct/stream', requireAuth, validate({ body: DirectTurnBody 
         // call one and surfaced "I don't have the tool!" (BFSF-127). Removed.
         // The real path for Gmail attachments is gmail_read_attachment; the
         // system prompt now steers the model there (see GMAIL/ATTACHMENT note).
+        // Chat signals: the gates fill this in with what they decided.
+        const chatSignal = { pii: {}, dlp: null, allowlistedHosts: [] };
         const inputGates = await runInputGates({
             req, res, send, userId, convId: turn.convId, message, messages: turn.messages, modelId: turn.modelId,
             config: turn.config, hasAttachments: !!(attachments && attachments.length > 0),
-            volatileMessage: turn.volatileMessage,
+            volatileMessage: turn.volatileMessage, chatSignal,
         });
+        // Reached on a normal return AND on every gate that ended the stream
+        // (undefined); a throw skips it, so an unexpected error is never
+        // counted. Fire-and-forget: see ./chatSignalsTurn.js.
+        countDirectTurn({ req, userId, chatSignal, config: turn.config });
         if (!inputGates) return;
         Object.assign(turn, inputGates);
 

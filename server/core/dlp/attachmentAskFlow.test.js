@@ -141,3 +141,22 @@ test('choice "redact": auto findings and manual additions are merged into ONE ap
 });
 
 test.after(() => restore());
+
+test('BFSF-469/470: the scan summary (categories, pages) survives allow, block and timeout', async () => {
+    const summary = { count: 1, mentions: 2, byCategory: { IBAN: 1 }, pages: { 1: ['IBAN'] } };
+    const base = { text: 't', findings: [{ category: 'IBAN', offset: 0, length: 1, text: 't' }], summary, filename: 'a.pdf', orgShield: {}, conversationId: 'c' };
+    const expected = { ...summary, filename: 'a.pdf' };
+
+    registerImpl = () => ({ decisionId: 'd', promise: Promise.resolve({ choice: 'allow' }) });
+    assert.deepEqual((await resolveAttachmentAsk(base)).summary, expected);
+
+    registerImpl = () => ({ decisionId: 'd', promise: Promise.resolve({ choice: 'block' }) });
+    const blocked = await resolveAttachmentAsk(base);
+    assert.equal(blocked.reason, 'user_blocked');
+    assert.deepEqual(blocked.summary, expected);
+
+    registerImpl = () => ({ decisionId: 'd', promise: Promise.reject(Object.assign(new Error('t'), { code: 'DLP_TIMEOUT' })) });
+    const timedOut = await resolveAttachmentAsk(base);
+    assert.equal(timedOut.reason, 'ask_timeout');
+    assert.deepEqual(timedOut.summary, expected);
+});

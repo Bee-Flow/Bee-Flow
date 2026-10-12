@@ -1079,3 +1079,39 @@ test('a delete is NEVER refused by the byte ceiling — it is how you get back u
     }, CTX, RUN, 'live');
     assert.strictEqual(res.output.deleted, 2);
 });
+
+// ── a table that was only proposed ("pending:<n>") ──────────────────────────
+//
+// The builder stages a new table in a preview. A dry run simulates it without
+// touching a store; a live run must fail closed.
+
+test('pending table, dry run: reads return the empty shape, a write returns the resolved values, no store is touched', async () => {
+    reset();
+    let storeCalls = 0;
+    const origGet = require('../../stores/datatableStore').getDatatable;
+    require('../../stores/datatableStore').getDatatable = async (...a) => { storeCalls += 1; return origGet(...a); };
+    try {
+        const find = await execDatatable({ id: 's1', type: 'datatable', op: 'find_rows', datatableId: 'pending:1' }, CTX, RUN, 'dry_run');
+        assert.deepStrictEqual(find.output, { rows: [], returned: 0, count: 0, found: false, hasMore: false, nextCursor: null, _dryRunSynthesised: true, _pendingTable: 'pending:1' });
+        const count = await execDatatable({ id: 's1', type: 'datatable', op: 'count_rows', datatableId: 'pending:1' }, CTX, RUN, 'dry_run');
+        assert.deepStrictEqual(count.output, { count: 0, found: false, _dryRunSynthesised: true, _pendingTable: 'pending:1' });
+        const add = await execDatatable({
+            id: 's1', type: 'datatable', op: 'add_row', datatableId: 'pending:1',
+            values: { email: { kind: 'ref', path: 'trigger.output.email' }, status: { kind: 'literal', value: 'new' } },
+        }, CTX, RUN, 'dry_run');
+        assert.deepStrictEqual(add.output, { row: { email: 'a@b.c', status: 'new' }, id: null, created: true, updated: 0, _dryRunSynthesised: true, _pendingTable: 'pending:1' });
+        assert.strictEqual(storeCalls, 0, 'no lookup of a table that does not exist');
+        assert.deepStrictEqual(state.execCalls, [], 'no query');
+    } finally {
+        require('../../stores/datatableStore').getDatatable = origGet;
+    }
+});
+
+test('pending table, live run: fails closed with datatable_pending', async () => {
+    reset();
+    await assert.rejects(
+        () => execDatatable({ id: 's1', type: 'datatable', op: 'find_rows', datatableId: 'pending:1' }, CTX, RUN, 'live'),
+        (e) => e.errorClass === 'datatable_pending' && /proposed but never created/.test(e.message),
+    );
+    assert.deepStrictEqual(state.execCalls, []);
+});

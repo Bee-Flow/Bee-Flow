@@ -21,6 +21,7 @@ const PROVIDERS = [
     { id: 'signrequest', name: 'SignRequest', kind: 'basic', fields: [{ key: 'subdomain', label: 'Subdomain', labelKey: 'connections.field_subdomain', type: 'text' }, { key: 'token', label: 'API token', labelKey: 'connections.field_api_token', type: 'password' }] },
     { id: 'afas-profit', name: 'AFAS Profit', kind: 'basic', fields: [{ key: 'member_number', label: 'Member number (digits, e.g. 12345)', labelKey: 'connections.field_member_number', type: 'text' }, { key: 'token', label: 'AppConnector token (XML or code)', labelKey: 'connections.field_afas_token', type: 'password' }, { key: 'env_type', label: 'Environment (production / test / accept)', labelKey: 'connections.field_afas_env', type: 'text' }] },
     { id: 'vplan', name: 'vPlan', kind: 'basic', fields: [{ key: 'api_env', label: 'API env', labelKey: 'connections.field_vplan_env', type: 'text' }, { key: 'api_key', label: 'API key', labelKey: 'connections.field_vplan_key', type: 'password' }] },
+    { id: 'scaleway-billing', name: 'Scaleway Billing', kind: 'basic', fields: [{ key: 'secret_key', label: 'Secret key', labelKey: 'connections.field_scaleway_billing_key', type: 'password' }, { key: 'organization_id', label: 'Organization ID', labelKey: 'connections.field_scaleway_billing_org', type: 'text' }] },
     { id: 'nmbrs', name: 'NMBRS', kind: 'basic', fields: [{ key: 'api_mode', label: 'API (soap / rest)', labelKey: 'connections.field_nmbrs_mode', type: 'text' }, { key: 'subdomain', label: 'Subdomain (e.g. mycompany)', labelKey: 'connections.field_nmbrs_subdomain', type: 'text' }, { key: 'email', label: 'Login email (SOAP only)', labelKey: 'connections.field_nmbrs_email', type: 'text' }, { key: 'token', label: 'API token', labelKey: 'connections.field_api_token', type: 'password' }, { key: 'env', label: 'Environment (production / sandbox)', labelKey: 'connections.field_nmbrs_env', type: 'text' }] },
     // Reusable HTTP credentials for the automation http_request step. The
     // auth type picks the kind + fields; each field's `target` routes it to
@@ -40,7 +41,7 @@ const inputStyle = { background: 'var(--bg-primary)', borderColor: 'var(--border
 const inputCls = 'px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors';
 
 const GroupLabel = ({ children }) => (
-    <p className="text-[11px] font-semibold uppercase tracking-widest px-1 mb-2" style={{ color: 'var(--text-muted)' }}>{children}</p>
+    <p className="text-[11px] font-semibold uppercase tracking-widest px-1 mb-2 text-[var(--text-muted)]">{children}</p>
 );
 
 const ErrorLine = ({ children }) => (
@@ -280,7 +281,7 @@ const ConnectionRow = ({ connection, grants, onChanged }) => {
                             >{t('connections.set_default', 'Set default')}</button>
                         )}
                         <button onClick={() => setRenaming(true)} className="text-[11px] underline" style={{ color: 'var(--text-muted)' }}>{t('connections.rename', 'Rename')}</button>
-                        <button onClick={() => setSharing(v => !v)} className="p-1" title={t('connections.share', 'Share')} style={{ color: sharing ? 'var(--accent-primary)' : 'var(--text-muted)' }}><Share2 size={14} /></button>
+                        <button type="button" onClick={() => setSharing(v => !v)} aria-expanded={sharing} className="p-1" title={t('connections.share', 'Share')} style={{ color: sharing ? 'var(--accent-primary)' : 'var(--text-muted)' }}><Share2 size={14} /></button>
                         <button onClick={remove} disabled={busy} className="p-1" title={t('connections.delete', 'Delete')} style={{ color: 'var(--text-muted)' }}><Trash2 size={14} /></button>
                     </>
                 )}
@@ -443,7 +444,7 @@ const ConnectionsManager = () => {
 
     return (
         <div className="space-y-1.5">
-            <GroupLabel>{t('connections.title', 'Connections')}</GroupLabel>
+            <GroupLabel>{t('connections.title', 'Named connections')}</GroupLabel>
             <p className="text-[11px] px-1 -mt-1 mb-1" style={{ color: 'var(--text-muted)' }}>
                 {t('connections.description', 'Keep multiple named credentials per integration and lend a specific one to teammates. Recipients without a lent connection bring their own.')}
             </p>

@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
-import { RESERVED_TOP_LEVEL, CMS_FALLBACK_SLUGS, hasCmsFallback, isCmsPathCandidate, isPublicMarketingPath, parseCmsPath, LOCALE_PREFIXES, slugIssues } from './cmsPublicRouting';
+import { BLOG_BASE, RESERVED_TOP_LEVEL, CMS_FALLBACK_SLUGS, hasCmsFallback, isCmsPathCandidate, isPublicMarketingPath, parseCmsPath, LOCALE_PREFIXES, slugIssues } from './cmsPublicRouting';
 
 describe('isCmsPathCandidate', () => {
     it('accepts the homepage and plain single-segment slugs', () => {
@@ -152,5 +152,26 @@ describe('locale-prefixed paths', () => {
         expect(parseCmsPath('/nl/a/b')).toBeNull();
         expect(isCmsPathCandidate('/nl/pricing')).toBe(true);
         expect(isCmsPathCandidate('/nl/app')).toBe(false);
+    });
+});
+
+describe('blog paths', () => {
+    it('routes /blog and /blog/<slug>, also behind a locale prefix', () => {
+        expect(parseCmsPath('/blog')).toEqual({ locale: null, slug: 'blog', blog: { view: 'index' } });
+        expect(parseCmsPath('/blog/hello-world/')).toEqual({ locale: null, slug: 'blog/hello-world', blog: { view: 'post', postSlug: 'hello-world' } });
+        expect(parseCmsPath('/nl/blog/hallo')).toEqual({ locale: 'nl', slug: 'blog/hallo', blog: { view: 'post', postSlug: 'hallo' } });
+        expect(isPublicMarketingPath('/nl/blog')).toBe(true);
+    });
+
+    it('leaves the feed, deeper paths and unroutable slugs to the server / app', () => {
+        expect(parseCmsPath('/blog/feed.xml')).toBeNull();
+        expect(parseCmsPath('/blog/a/b')).toBeNull();
+        expect(parseCmsPath('/blog/Under_Score')).toBeNull();
+        expect(parseCmsPath('/de/blog/x')).toBeNull();
+    });
+
+    it('blocks "blog" as a page slug, since the blog owns that address', () => {
+        expect(BLOG_BASE).toBe('blog');
+        expect(slugIssues('blog')?.blocking).toBe(true);
     });
 });

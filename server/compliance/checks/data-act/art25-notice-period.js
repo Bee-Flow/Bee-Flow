@@ -105,6 +105,18 @@ module.exports = {
             contracts.push({ party: 'organisation', ...(_judge(_days(settings.notice_period_days))) });
         }
 
+        // Neither a cloud contract nor a resold service: nothing to judge. Only
+        // reachable with a DEPLOYMENT_MODE that is neither 'cloud' nor
+        // 'self-hosted' (license/index.js passes unknown values through), which
+        // used to crash on reduce() over an empty list.
+        if (!contracts.length) {
+            return {
+                status: 'not_applicable',
+                evidence: { deployment_mode: mode, org_provider_role: providerRole, max_notice_days: MAX_NOTICE_DAYS },
+                details: `Deployment mode "${String(mode).slice(0, 40)}" has no switching contract to judge, and this organisation does not resell the service.`,
+            };
+        }
+
         const worst = contracts.reduce((w, c) => (RANK[c.status] > RANK[w.status] ? c : w), contracts[0]);
         const evidence = {
             deployment_mode: mode,

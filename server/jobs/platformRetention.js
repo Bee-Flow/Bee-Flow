@@ -32,6 +32,8 @@
 'use strict';
 
 const LEDGER_PRUNE_LOCK_KEY = 0xBEEF111;
+// Accepted / rejected / stale AI suggestions on documents (stores/documentSuggestionStore.js).
+const DOCUMENT_SUGGESTION_RETENTION_DAYS = 30;
 const INTERVAL_MS = 60 * 60 * 1000;
 // The first interval fire is an hour away — longer than plenty of pods live —
 // so a short boot delay is the only pass a short-lived replica ever runs.
@@ -53,6 +55,7 @@ function deps() {
             ledgerKeyVersion: require('../core/dlp/scanLedger').LEDGER_KEY_VERSION,
             pruneSuggestionScans: () => require('../stores/suggestionScanCache').pruneExpired(),
             pruneSuggestionFeedback: () => require('../stores/suggestionFeedbackStore').pruneExpired(),
+            pruneDocumentSuggestions: () => require('../stores/documentSuggestionStore').purgeResolved(DOCUMENT_SUGGESTION_RETENTION_DAYS),
             log: require('../telemetry/log'),
         };
     }
@@ -91,9 +94,9 @@ async function _pruneScanLedger(d) {
     }
 }
 
-/** The suggestion scan cache and feedback. One failing never skips the other. */
+/** The suggestion scan cache and feedback, then resolved document suggestions. One failing never skips the others. */
 async function _pruneSuggestions(d) {
-    for (const [label, prune] of [['suggestion scan', d.pruneSuggestionScans], ['suggestion feedback', d.pruneSuggestionFeedback]]) {
+    for (const [label, prune] of [['suggestion scan', d.pruneSuggestionScans], ['suggestion feedback', d.pruneSuggestionFeedback], ['document suggestion', d.pruneDocumentSuggestions]]) {
         if (typeof prune !== 'function') continue;
         try {
             const n = await prune();

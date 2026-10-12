@@ -1,11 +1,7 @@
 // Undo/redo wiring of the ProductWebsitePanel container — moved verbatim
 // from ProductWebsitePanel.jsx. State stays owned by the panel; this hook
 // groups the history composite, its synchronous mirrors and the hotkeys.
-/* eslint-disable react-hooks/preserve-manual-memoization -- verbatim move
-   out of ProductWebsitePanel.jsx: the React Compiler lint can no longer see
-   that the threaded panel refs/setters are stable, so it reports advisory
-   "compilation skipped" notes; the dep arrays are unchanged from the
-   original component. */
+ 
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import useDraftHistory from '../../../../hooks/useDraftHistory';
 

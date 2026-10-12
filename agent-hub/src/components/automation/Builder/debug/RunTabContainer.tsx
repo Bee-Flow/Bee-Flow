@@ -6,10 +6,14 @@ import { deepEqual as deepEqualJs } from '../../../../utils/deepEqual';
 import { statusLabel, tokenForStep } from '../../../shared/statusTokens';
 import { summariseData as summariseDataJs } from '../flow/dataSummary';
 import { stepPayload } from '../flow/stepPayload';
+import { buildRunStepLabelMap } from '../flow/displayHelpers';
 import type { FlowDefinition, FlowStep } from '../flow/types';
 import type { ErrorFix, StepErrorInfo } from '../output/ErrorCard';
 import type { NextSuggestion } from '../output/UsedBy';
 import { usedByDownstream } from '../output/usedBy';
+import { runStepTypeMap } from '../runs/bindingMisses';
+import { routeContextOf, routeSummaryOf, type RouteContext } from '../output/routeNote';
+import { flattenPromotedKeys } from '../output/columns';
 
 const deepEqual = deepEqualJs as (a: unknown, b: unknown) => boolean;
 const summariseData = summariseDataJs as (value: unknown) => { label: string } | null;
@@ -27,6 +31,7 @@ interface RunStepRecord {
     startedAt?: string | null;
     skippedReason?: string | null;
     toolsWithheld?: unknown;
+    bindingWarnings?: unknown;
     [key: string]: unknown;
 }
 
@@ -53,6 +58,10 @@ interface RunTabContainerProps {
     onFixError?: ((fix: ErrorFix, info: StepErrorInfo | null) => boolean | void) | null;
 }
 
+// Its own function so the `tab` builder below stays readable (and under the
+// complexity bar): the row's mappings that found nothing, or null.
+const bindingWarningsOfRow = (run: RunStepRecord | null): unknown => run?.bindingWarnings ?? null;
+
 /**
  * The step drawer's "Continues on" column. Shows the latest run's OUTPUT
  * directly, under a one-line status strip, plus what the step will return
@@ -75,6 +84,11 @@ function RunTabContainer({
 
     const stepId = step?.id ?? null;
     const usedBy = useMemo(() => (definition ? usedByDownstream(definition, stepId) : undefined), [definition, stepId]);
+    const labelById = useMemo(() => buildRunStepLabelMap(definition) as Map<string, string>, [definition]);
+    const typeById = useMemo(() => runStepTypeMap(definition), [definition]);
+    // A filter or list switch: "Kept 3 of 4 messages" above its output (P1-P3).
+    const route = useMemo(() => routeContextOf(step, t, definition), [step, t, definition]);
+    const promote = useMemo(() => flattenPromotedKeys(step), [step]);
     const onAddAfter = useMemo(
         () => (onAddAfterStep && stepId ? (s: NextSuggestion) => onAddAfterStep(stepId, s) : null),
         [onAddAfterStep, stepId],
@@ -109,6 +123,11 @@ function RunTabContainer({
             onFix={onFixError}
             columnsKey={stepId ? `${automationId || 'draft'}.${stepId}` : null}
             toolsWithheld={run?.toolsWithheld ?? null}
+            bindingWarnings={bindingWarningsOfRow(run)}
+            stepLabelById={labelById}
+            stepTypeById={typeById}
+            route={route}
+            promote={promote}
         />
     );
 
@@ -129,7 +148,7 @@ function RunTabContainer({
 
     return (
         <div className="flex flex-col h-full min-h-0">
-            {!compact && <StatusStrip runStep={effectiveRun} stepType={step?.type} />}
+            {!compact && <StatusStrip runStep={effectiveRun} stepType={step?.type} route={route} />}
             {/* MUST stay a flex COLUMN: as a plain block the subtree's
                 percentage heights fell back to `auto` and the table had no
                 scrollbars inside the quick dialog (BFSF-386). */}
@@ -150,7 +169,7 @@ function formatWhen(iso: string | null | undefined): string | null {
  * table (components/shared/statusTokens.ts). A failed step says what went
  * on: nothing (artboard 4a).
  */
-function StatusStrip({ runStep, stepType }: { runStep: RunStepRecord; stepType?: string | null }) {
+function StatusStrip({ runStep, stepType, route }: { runStep: RunStepRecord; stepType?: string | null; route: RouteContext | null }) {
     const { t } = useTranslation();
     // A failed step: the column header already says "Nothing, the step
     // stopped" and the error card says why, so the strip only says when.
@@ -166,8 +185,9 @@ function StatusStrip({ runStep, stepType }: { runStep: RunStepRecord; stepType?:
     const token = tokenForStep(runStep);
     const Icon = token.icon;
     const duration = runStep.durationMs != null ? formatDuration(runStep.durationMs) : null;
-    // How much came out, in the same words the connection chip uses.
-    const summary = summariseData(stepPayload(stepType, runStep.output));
+    // How much came out, in the same words the connection chip uses; a list
+    // switch in its own unit ("11 attachments"), not as its one record.
+    const summary = routeSummaryOf(runStep.output, route, t) ?? summariseData(stepPayload(stepType, runStep.output));
     // In a narrow column (NdvSideColumn's @container/ndvside) the column head
     // already says how much and how long, and the header pill that it worked:
     // the strip would be the third copy, in the height the table needs.
@@ -206,6 +226,7 @@ function runStepsRenderEqual(a: RunStepRecord | null | undefined, b: RunStepReco
     if (durationBucket(a.durationMs) !== durationBucket(b.durationMs)) return false;
     if (a.errorInfo !== b.errorInfo && !deepEqual(a.errorInfo, b.errorInfo)) return false;
     if (a.toolsWithheld !== b.toolsWithheld && !deepEqual(a.toolsWithheld, b.toolsWithheld)) return false;
+    if (a.bindingWarnings !== b.bindingWarnings && !deepEqual(a.bindingWarnings, b.bindingWarnings)) return false;
     if (a.status === 'running') return true;
     return deepEqual(a.output, b.output);
 }

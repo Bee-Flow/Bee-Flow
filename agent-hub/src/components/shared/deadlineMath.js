@@ -25,11 +25,18 @@ export const DAY_MS = 24 * HOUR_MS;
 
 /**
  * The unit rule: a window of a week or more is a calendar affair and counts
- * in DAYS (the 30-day DSR clock, even when 3 days are left); anything shorter
+ * in DAYS (the one-month DSR clock, even when 3 days are left); anything shorter
  * is a stopwatch and counts in HOURS (72 h breach notification, 24 h CRA
- * early warning) — "still 2 days" on a 72-hour clock hides a third of it.
+ * early warning): "2 days left" on a 72-hour clock hides a third of it.
  */
 export const DAYS_WINDOW_MS = 7 * DAY_MS;
+
+/**
+ * Once an HOURS clock is more than 48 hours late, the hours stop meaning
+ * anything ("overdue by 745 hours"): it counts in days from then on. An
+ * explicit `unit: 'hours'` from the caller keeps its hours.
+ */
+export const OVERDUE_IN_DAYS_AFTER_MS = 48 * HOUR_MS;
 
 export const CLOCK_STATES = Object.freeze(['ok', 'urgent', 'overdue', 'done', 'none']);
 
@@ -38,6 +45,28 @@ export function toMs(value) {
     if (value === null || value === undefined || value === '') return null;
     const ms = value instanceof Date ? value.getTime() : typeof value === 'number' ? value : new Date(value).getTime();
     return Number.isFinite(ms) ? ms : null;
+}
+
+/**
+ * `value` plus whole calendar months, in epoch ms (null for an unreadable
+ * value). A statutory "one month" (GDPR Art. 12(3)) is a calendar month, not
+ * 30 days, and when the target month is too short for the start day the
+ * period ends on that month's last day: 31 Jan + 1 month = 28 Feb (29 in a
+ * leap year), per Reg. 1182/71 Art. 3(2)(c). UTC throughout, so the time of
+ * day is kept. The server's rule (server/utils/calendarMonths.js, and Postgres
+ * `+ INTERVAL '1 month'`) gives the same date, so a client fallback never
+ * disagrees with the `due_at` the server stores.
+ */
+export function addCalendarMonths(value, months) {
+    const ms = toMs(value);
+    if (ms === null || !Number.isInteger(months)) return null;
+    const d = new Date(ms);
+    const day = d.getUTCDate();
+    d.setUTCDate(1);
+    d.setUTCMonth(d.getUTCMonth() + months);
+    const lastDay = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
+    d.setUTCDate(Math.min(day, lastDay));
+    return d.getTime();
 }
 
 function ceilUnits(ms, unitMs) {
@@ -58,9 +87,10 @@ function clamp01(n) {
  *                done; 0 when the window has no known start (nothing honest to
  *                draw — the label carries the meaning, the bar stays empty)
  *   remainingMs  dueAt − now (negative once overdue); null without a due date
- *   unit         'days' | 'hours' per the window rule above; an explicit
- *                `unit` option overrides it for callers that know better
- *   value        |remaining| in that unit, rounded UP — "still 18 days" for
+ *   unit         'days' | 'hours' per the window rule above, and days for an
+ *                hours clock more than 48 h overdue; an explicit `unit`
+ *                option overrides both for callers that know better
+ *   value        |remaining| in that unit, rounded UP: "18 days left" for
  *                17 d 6 h, "overdue by 3 days" for 2 d 10 h late
  *   overdueValue the same number when overdue, else 0
  *   completedInDays  for 'done': whole days from startedAt to doneAt (ceil,
@@ -96,7 +126,8 @@ export function clockState({ dueAt, startedAt, now, urgentBelowMs, doneAt, unit:
     }
 
     const remainingMs = due - nowMs;
-    const unit = resolveUnit(unitOverride, start, due);
+    let unit = resolveUnit(unitOverride, start, due);
+    if (unit === 'hours' && unitOverride !== 'hours' && -remainingMs > OVERDUE_IN_DAYS_AFTER_MS) unit = 'days';
     const unitMs = unit === 'days' ? DAY_MS : HOUR_MS;
     const value = ceilUnits(remainingMs, unitMs);
     const overdue = remainingMs < 0;

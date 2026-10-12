@@ -128,6 +128,31 @@ export const patchSummarize: Patcher = (patch, _step, draft) => {
     applyMaxItemsPatch(patch, draft);
 };
 
+/** A flatten's stored levels, copied so the editor never edits the step's own (null when there are none). */
+function cloneParents(parents: unknown): Record<string, unknown>[] | null {
+    if (!Array.isArray(parents)) return null;
+    return parents.map((p) => ({ ...p, fields: Array.isArray(p?.fields) ? p.fields.map((f: object) => ({ ...f })) : p?.fields }));
+}
+
+/**
+ * Flatten a list: the route (`P[*].k`), the column plan per level and the
+ * keep-empty switch. The plan is written by the editor's fields through the
+ * shared `flattenPlan`; the patch only carries it (web flattenEditorModel.ts).
+ */
+export const extractFlatten: Extractor = (step, base) => ({
+    ...base,
+    arrayRef: typeof step.arrayRef === 'string' ? step.arrayRef : '',
+    parents: cloneParents(step.parents),
+    keepEmpty: !!step.keepEmpty,
+    maxItems: cap(step),
+});
+export const patchFlatten: Patcher = (patch, _step, draft) => {
+    patch.arrayRef = typeof draft.arrayRef === 'string' ? draft.arrayRef : '';
+    patch.parents = cloneParents(draft.parents) || undefined;
+    patch.keepEmpty = !!draft.keepEmpty;
+    applyMaxItemsPatch(patch, draft);
+};
+
 // ── Datatable / knowledge base ─────────────────────────────────────────
 
 /** `where` and `values` are CLONED — the editor edits the draft in place. */

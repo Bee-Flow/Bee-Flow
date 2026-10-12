@@ -1,5 +1,6 @@
 import { Edit2, Tag, Trash2 } from 'lucide-react';
 import type { AdminRole } from './types';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 export interface RolesSectionProps {
     roles: AdminRole[];
@@ -9,11 +10,12 @@ export interface RolesSectionProps {
 }
 
 export default function RolesSection({ roles, onAddRole, onEditRole, onDeleteRole }: RolesSectionProps) {
+    const { t } = useTranslation();
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between mb-6">
-                <div><h3 className="text-lg font-semibold text-[var(--text-primary)]">Roles</h3><p className="text-sm text-[var(--text-muted)]">Define role templates with permissions</p></div>
-                <button onClick={onAddRole} className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium bg-[var(--accent-primary)] text-white"><Tag className="w-4 h-4" /> Add Role</button>
+                <div><h3 className="text-lg font-semibold text-[var(--text-primary)]">{t('admin_org.roles_section_title', 'Roles')}</h3><p className="text-sm text-[var(--text-muted)]">{t('admin_org.roles_section_subtitle', 'Define role templates with permissions')}</p></div>
+                <button onClick={onAddRole} className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium bg-[var(--accent-primary)] text-white"><Tag className="w-4 h-4" /> {t('admin_org.roles_section_add', 'Add Role')}</button>
             </div>
             <div className="grid gap-4">
                 {roles.map(role => (

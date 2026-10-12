@@ -22,6 +22,8 @@ const Module = require('module');
 // Every Stripe call lands in `touched`. A refused request must leave it empty.
 const touched = [];
 const pass = (req, res, next) => next();
+// Which billing account the caller resolves to: none is the consumer path.
+const caller = { orgId: null };
 
 const MOCKS = {
     '../../services/stripeService': {
@@ -40,7 +42,7 @@ const MOCKS = {
         requireAuth: pass,
         stripeIpLimiter: pass,
         stripeUserLimiter: pass,
-        resolveOrgIdForUser: async () => null,   // consumer path
+        resolveOrgIdForUser: async () => caller.orgId,   // null: consumer path
         getOrigin: () => 'https://api.example.test',
     },
 };
@@ -67,11 +69,11 @@ test.after(() => { Module._resolveFilename = originalResolve; });
 // harness has to answer one the way index.js does.
 const { terminalErrorHandler } = require('../../core/http/terminalErrorHandler');
 
-function dispatch({ method, url, query = {}, body = {} }) {
+function dispatch({ method, url, query = {}, body = {}, user = { id: 'u1', isConsumerAccount: true } }) {
     return new Promise((resolve, reject) => {
         const req = {
             method, url, originalUrl: url, path: url, body, query, headers: {},
-            session: { user: { id: 'u1', isConsumerAccount: true }, isAuthenticated: true },
+            session: { user, isAuthenticated: true },
             get() { return undefined; },
         };
         const res = {
@@ -90,7 +92,7 @@ function dispatch({ method, url, query = {}, body = {} }) {
 
 const APP = 'https://app.example.test';
 
-test.beforeEach(() => { touched.length = 0; });
+test.beforeEach(() => { touched.length = 0; caller.orgId = null; });
 
 test('a misspelled origin is refused, not answered with a return to the API host', async () => {
     const res = await dispatch({ method: 'POST', url: '/portal', body: { orgin: APP } });
@@ -117,4 +119,23 @@ test('no body at all still falls back to the request host, as it always did', as
     const res = await dispatch({ method: 'POST', url: '/portal', body: undefined });
     assert.strictEqual(res.statusCode, 200);
     assert.ok(touched[0].args[1].startsWith('https://api.example.test'));
+});
+
+// The settings router reads the pathname only: the ?tab= form these used to
+// carry opened Preferences after the portal, the way BFSF-244 found for the
+// checkout return. Both are the frozen licence addresses from utils/appPaths.js.
+test('a consumer comes back on Settings → Account → License', async () => {
+    const res = await dispatch({ method: 'POST', url: '/portal', body: { origin: APP } });
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(touched[0].args[1], `${APP}/app/settings/account/license`);
+});
+
+test('an organisation comes back on Settings → Organisation → License', async () => {
+    caller.orgId = 'org1';
+    const res = await dispatch({
+        method: 'POST', url: '/portal', body: { origin: APP },
+        user: { id: 'u1', isConsumerAccount: false },
+    });
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(touched[0].args[1], `${APP}/app/settings/organisation/license`);
 });

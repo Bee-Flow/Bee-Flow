@@ -4,7 +4,7 @@
 // meeting opened in place (sub = meeting id).
 
 import { useQueryClient } from '@tanstack/react-query';
-import { CheckSquare, Loader2, Mic, Plus } from 'lucide-react';
+import { AlertTriangle, CheckSquare, Loader2, Mic, Plus } from 'lucide-react';
 import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useProjectSection, type ProjectMeeting } from '../../../../api/queries/projectContent';
 import { projectKeys } from '../../../../api/queries/projects';
@@ -13,7 +13,8 @@ import { lazy } from '../../../../utils/lazyWithReload';
 import MeetingTasksDialog from '../tasks/MeetingTasksDialog';
 import EmptyState from '../../../shared/EmptyState';
 import { toast } from '../../../shared/Toast';
-import { ContentColumn, ContentToolbar, PaneLoading, PrimaryButton, ReadOnlyNote, SecondaryButton, SectionError } from './contentUi';
+import { GhostButton, LoadingRow, Notice, PrimaryButton, ViewerNote, SecondaryButton, WorkspaceColumn } from '../workspaceUi';
+import SectionToolbar from '../SectionToolbar';
 import MeetingsTable, { type MeetingsTableProps } from './MeetingsTable';
 import { MeetingPicker } from './pickers';
 import { canEditContent, canRemoveItem, type ContentTabProps } from './types';
@@ -46,7 +47,7 @@ function MeetingPane({ projectId, meetingId, currentUser, onOpenSub, onNavigate,
                     onCreated={() => onOpenTab?.('tasks')} />
             )}
             <div className="flex-1 min-h-0">
-            <Suspense fallback={<PaneLoading label={t('project_content.meeting_loading', 'Opening the meeting…')} />}>
+            <Suspense fallback={<LoadingRow centered label={t('project_content.meeting_loading', 'Opening the meeting…')} />}>
                 <MeetingDetail
                     key={meetingId}
                     id={meetingId}
@@ -94,7 +95,7 @@ function MeetingsBody({ status, meetings, onRetry, onCapture, table }: {
     status: 'loading' | 'error' | 'ok'; meetings: ProjectMeeting[]; onRetry: () => void; onCapture: (() => void) | null; table: TableHandlers;
 }) {
     const { t } = useTranslation();
-    if (status === 'error') return <SectionError message={t('project_content.meetings_error', 'The meetings of this project could not be loaded.')} onRetry={onRetry} />;
+    if (status === 'error') return <Notice tone="error" role="alert" icon={AlertTriangle} action={onRetry && <GhostButton onClick={onRetry}>{t('project_content.retry', 'Try again')}</GhostButton>}>{t('project_content.meetings_error', 'The meetings of this project could not be loaded.')}</Notice>;
     if (status === 'ok' && meetings.length === 0) {
         return (
             <EmptyState
@@ -108,7 +109,7 @@ function MeetingsBody({ status, meetings, onRetry, onCapture, table }: {
     return <MeetingsTable meetings={meetings} loading={status === 'loading'} empty={null} {...table} />;
 }
 
-function MeetingsList({ projectId, role, currentUser, onOpenSub, intent, capture }: ContentTabProps & { capture: ProjectMeetingCapture }) {
+function MeetingsList({ projectId, project, role, currentUser, onOpenSub, intent, capture }: ContentTabProps & { capture: ProjectMeetingCapture }) {
     const { t } = useTranslation();
     const canEdit = canEditContent(role);
     const me = currentUser?.id || null;
@@ -117,34 +118,34 @@ function MeetingsList({ projectId, role, currentUser, onOpenSub, intent, capture
     const section = useProjectSection<ProjectMeeting>(projectId, 'meetings');
     const ownerName = useMemberNames(projectId, me);
     const removal = useRemoveFromProject(projectId, 'meeting');
+    const items = removal.without(section.items);
     useStartFromIntent(canEdit && intent === 'capture', capture.start);
-    const inProject = useMemo(() => new Set(section.items.map(m => m.id)), [section.items]);
+    const inProject = useMemo(() => new Set(items.map(m => m.id)), [items]);
 
     const onRemove = (m: ProjectMeeting) => removal.remove(m.id, {
-        title: t('project_content.meeting_remove_title', 'Remove this meeting from the project?'),
-        description: t('project_content.meeting_remove_desc', '"{name}" stays with the person who recorded it. Members of this project will no longer see it.', { name: m.title || t('project_content.meeting_untitled', 'Untitled meeting') }),
-        confirmLabel: t('project_content.remove_from_project', 'Remove from project'),
+        message: t('project_home.removed_from_project', '"{name}" removed from the project', { name: m.title || t('project_content.meeting_untitled', 'Untitled meeting') }),
     });
 
-    const actions = canEdit ? (
-        <>
-            <SecondaryButton icon={Plus} onClick={() => setPickerOpen(true)} testId="meetings-add-existing">{t('project_content.meetings_add_existing', 'Add existing meeting')}</SecondaryButton>
-            <PrimaryButton icon={Mic} onClick={capture.start} disabled={capture.uploading || capture.filing} testId="meetings-capture">{t('project_content.meetings_capture', 'Record or upload')}</PrimaryButton>
-        </>
+    const extras = canEdit ? (
+        <SecondaryButton icon={Plus} onClick={() => setPickerOpen(true)} testId="meetings-add-existing">{t('project_content.meetings_add_existing', 'Add existing meeting')}</SecondaryButton>
+    ) : null;
+    const primary = canEdit ? (
+        <PrimaryButton icon={Mic} onClick={capture.start} disabled={capture.uploading || capture.filing} testId="meetings-capture">{t('project_content.meetings_capture', 'Record or upload')}</PrimaryButton>
     ) : null;
 
     return (
-        <ContentColumn testId="project-meetings-tab">
-            <ContentToolbar
+        <WorkspaceColumn testId="project-meetings-tab">
+            <SectionToolbar
+                kind="meeting"
                 title={t('project_content.meetings_title', 'Meetings')}
                 search={search} onSearch={setSearch} searchLabel={t('project_content.meetings_search', 'Search meetings')}
-                count={section.status === 'ok' ? section.items.length : null}
-                actions={actions}
+                count={section.status === 'ok' ? items.length : null}
+                primary={primary} extras={extras}
             />
-            {!canEdit && <ReadOnlyNote>{t('project_content.meetings_viewer_note', 'You can read the meeting notes in this project. Ask the owner for editor access to add meetings.')}</ReadOnlyNote>}
+            {!canEdit && <ViewerNote archived={!!project?.archivedAt}>{t('project_content.meetings_viewer_note', 'You can read the meeting notes in this project. Ask the owner for editor access to add meetings.')}</ViewerNote>}
             <CaptureNotice capture={capture} />
-            {search.trim() && section.status === 'ok' && !section.items.some(m => (m.title || '').toLocaleLowerCase().includes(search.trim().toLocaleLowerCase())) ? <p className="text-sm text-[var(--text-secondary)]">{t('project_content.no_matches', 'Nothing matches your search.')}</p> : <MeetingsBody
-                status={section.status} meetings={section.items.filter(m => (m.title || '').toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()))} onRetry={section.refetch}
+            {search.trim() && section.status === 'ok' && !items.some(m => (m.title || '').toLocaleLowerCase().includes(search.trim().toLocaleLowerCase())) ? <p className="text-sm text-[var(--text-secondary)]">{t('project_content.no_matches', 'Nothing matches your search.')}</p> : <MeetingsBody
+                status={section.status} meetings={items.filter(m => (m.title || '').toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()))} onRetry={section.refetch}
                 onCapture={canEdit ? capture.start : null}
                 table={{
                     ownerName, removingId: removal.pendingId, onRemove,
@@ -154,8 +155,7 @@ function MeetingsList({ projectId, role, currentUser, onOpenSub, intent, capture
             />
             }
             {pickerOpen && <MeetingPicker projectId={projectId} open onClose={() => setPickerOpen(false)} inProject={inProject} />}
-            {removal.confirmDialog}
-        </ContentColumn>
+        </WorkspaceColumn>
     );
 }
 

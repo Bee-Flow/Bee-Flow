@@ -6,7 +6,7 @@ import { Mic } from 'lucide-react';
 import React from 'react';
 import type { ProjectMeeting } from '../../../../api/queries/projectContent';
 import useTranslation from '../../../../hooks/useTranslation';
-import { RemoveButton } from './contentUi';
+import { RemoveButton } from '../workspaceUi';
 import { formatMeetingDuration, meetingStatusLabel } from './labels';
 import { DataTable, TableCell, TableRow, type TableColumn } from './typedShared';
 

@@ -1,6 +1,7 @@
 // §WS5 — BuildTab body, extracted verbatim from BuilderShell.jsx. The shell
 // keeps orchestration state; BuildTab is the build-tab UI (canvas, ribbon,
 // chat column, inspector overlay). Its prop list is fully explicit.
+import { followSuccessors } from '@shared/expr/routeFollow.mjs';
 import { Sparkles, X } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useBuilderConfirm } from './BuilderConfirmContext';
@@ -8,8 +9,8 @@ import BuilderHeader from './BuilderHeader';
 import CanvasPlanPanel from './CanvasPlanPanel';
 
 import { AutomationSummary, AssistantWelcome, RunProgressBanner, MessageBubble, BuilderWaitingCard } from './chat/index';
-import { modelKeyFor, recordTtft } from './chat/timeToFirstToken';
 import { addedStepsOf, describeToolCall } from './chat/toolCallDisplay';
+import { webSearchUnavailableHint } from './chat/webSearchStatus';
 import DiagramPane, { applyAddNode } from './DiagramPane';
 import AddStepMenu from './flow/AddStepMenu';
 import AddStepRibbon from './flow/AddStepRibbon';
@@ -32,6 +33,7 @@ import { applyDeleteNodes, applyDuplicateNode } from './flow/nodeOps';
 import { normalizeDefinitionShape, emptyGraph } from './flow/normalizeDefinition';
 import { renameFormField } from './flow/renameFormField';
 import { stepOutputIsArray } from './flow/ribbon/fitsAfter';
+import { followAfterAdd, followedMessages } from './flow/routeFollowNotes';
 import { isRouteStep, routePorts } from './flow/routeModel';
 import { insertStepBefore } from './flow/settings/routeHandoff';
 import { computeRunFocus } from './flow/runFocus';
@@ -51,8 +53,11 @@ import { useTranslation } from '../../../hooks/useTranslation';
 import scopedStorage from '../../../utils/scopedStorage';
 import InputArea from '../../chat/InputArea';
 import WorkModePicker, { WORK_MODES } from './chat/WorkModePicker';
+import { isWorkModeShortcut, nextWorkMode } from './chat/workModeShortcut';
 import PlanReview from './chat/PlanReview';
 import ProposalCard from './chat/ProposalCard';
+import { previewCatalog } from './chat/pendingTables';
+import PlanInlineCard from './chat/PlanInlineCard';
 import QuestionsCard from './chat/QuestionsCard';
 import { AssistantFieldProvider } from './chat/AssistantFieldContext';
 import { toast } from '../../shared/Toast';
@@ -110,6 +115,8 @@ export default function BuildTab({
     alwaysPlanLarge = true, setAlwaysPlanLarge = null,
     workMode = 'approve', setWorkMode = null, assistantContext = null, onClearAssistantContext = null,
     onAskAssistant = null, onApplyProposal = null, onDiscardProposal = null, onApprovePlan = null, onRejectPlan = null,
+    // An Apply in flight, and a counter the shell bumps after Apply created tables (refetch the catalog).
+    applyingProposal = false, catalogNonce = 0,
     chatWidth, onChatResizeStart,
     // The form-test overlay: `{ form, triggerStepId }` while open. Rendered here
     // rather than in the shell so it sits OVER the canvas — the point of the
@@ -180,7 +187,7 @@ export default function BuildTab({
         let alive = true;
         builderApi.getCatalog().then(c => { if (alive) setCatalog(c); }).catch(() => {});
         return () => { alive = false; };
-    }, [builderApi]);
+    }, [builderApi, catalogNonce]);
 
     // ── Expanded flowlets ───────────────────────────────────────────────────
     //
@@ -369,6 +376,19 @@ export default function BuildTab({
         onVisualEditFlat?.(prefix ? prefixAddedStep(inserted, newStep.id, prefix) : inserted);
         return true;
     }, [flatDef, state.running, onVisualEditFlat]);
+
+    /**
+     * "Use what this Condition keeps": the Condition editor's notice about next
+     * steps that still read the list the Condition was given (W7). Re-points
+     * them at the Condition's output in one commit, so one Undo restores them.
+     */
+    const onFollowRoute = useCallback((routeId, stepIds) => {
+        if (!flatDef || state.running || !routeId) return;
+        const { definition: followed, rebound } = followSuccessors(flatDef, routeId, stepIds);
+        if (!rebound?.length) return;
+        onVisualEditFlat?.(followed);
+        for (const msg of followedMessages(rebound, followed, t)) toast.success(msg);
+    }, [flatDef, state.running, onVisualEditFlat, t]);
 
     // What each node ACTUALLY produced (pinned > last run, hygiene-filtered) —
     // the single map that makes auto-map, the pickers and the node editor see
@@ -762,6 +782,15 @@ export default function BuildTab({
                 if (!scopePrefix) pendingAutoMapRef.current.push(insertedId);
             }
         }
+        // Follow the route: a step wired next to a Condition that works through
+        // a list reads what that Condition KEEPS, not the list it was given —
+        // the step after an inserted Condition as much as a step added after
+        // one (shared/expr/routeFollow.mjs). Same commit, so one Undo.
+        if (sourceId && addedId) {
+            const followed = followAfterAdd(finalDef, addedId, t);
+            finalDef = followed.definition;
+            for (const msg of followed.messages) toast.success(msg);
+        }
         // Last: move the new step into the flowlet it was added to. Everything
         // above addressed it by its bare id (splice, auto-map), and the ids in
         // the bindings auto-map just wrote are flat ids that decompose turns
@@ -773,7 +802,7 @@ export default function BuildTab({
      
     // itself after the replace-trigger confirm resolves; listing it would be
     // circular, and the identity it closes over is the same one on both passes.
-    }, [flatDef, inlineSidecar, inlineShift, rootDef, scopeKey, setScopeKey, onVisualEditFlat, onVisualEditRoot, autoMapEnabled, catalog, realOutputById, recordUsage, confirmAction]);
+    }, [flatDef, inlineSidecar, inlineShift, rootDef, scopeKey, setScopeKey, onVisualEditFlat, onVisualEditRoot, autoMapEnabled, catalog, realOutputById, recordUsage, confirmAction, t]);
 
     // Latest scoped definition + real-output map for the catalog drain effect —
     // by the time the catalog arrives, `scopedDef` from the add-time closure
@@ -788,6 +817,7 @@ export default function BuildTab({
         let def = scopedDefRef.current;
         if (!def) return;
         let mappedAny = false, keysTotal = 0, anyForEach = false;
+        const messages = [];
         for (const id of ids) {
             const r = applyAutoMapToStep(def, id, catalog, { realOutputById: realOutputRef.current });
             if (r.mappedKeys.length || r.forEachEnabled) {
@@ -796,12 +826,15 @@ export default function BuildTab({
                 keysTotal += r.mappedKeys.length;
                 anyForEach = anyForEach || !!r.forEachEnabled;
             }
+            // The Condition only became a list Condition just now: follow it here too.
+            const followed = followAfterAdd(def, id, t);
+            def = followed.definition;
+            messages.push(...followed.messages);
         }
-        if (mappedAny) {
-            onVisualEditFlat?.(def);
-            toast.success(autoMapToastMessage(keysTotal, anyForEach));
-        }
-    }, [catalog, onVisualEditFlat]);
+        if (mappedAny || messages.length) onVisualEditFlat?.(def);
+        if (mappedAny) toast.success(autoMapToastMessage(keysTotal, anyForEach));
+        for (const msg of messages) toast.success(msg);
+    }, [catalog, onVisualEditFlat, t]);
 
     // The context popover's pick handler: run the insert with whatever target
     // that popover was opened for, then manage its own open/closed state.
@@ -1065,18 +1098,6 @@ export default function BuildTab({
             || (tailMsg.thinkingParts && tailMsg.thinkingParts.length)
             || (tailMsg.toolCalls && tailMsg.toolCalls.length)));
     const waitingForFirstToken = !!state.running && !state.turn?.firstEventAt && nothingStreamedYet;
-    const waitModelKey = modelKeyFor(state.turn, selectedTier);
-    // File the measured silence once per turn, under the model that ran it,
-    // so the NEXT wait can say "usually about 2m 10s". Keyed on `sentAt`:
-    // `state.turn` is replaced copy-on-write by every later event too, and
-    // without the guard each ping after the first token would file it again.
-    const ttftFiledForRef = useRef(null);
-    useEffect(() => {
-        const turn = state.turn;
-        if (!turn?.firstEventAt || !turn.sentAt || ttftFiledForRef.current === turn.sentAt) return;
-        ttftFiledForRef.current = turn.sentAt;
-        recordTtft(modelKeyFor(turn, selectedTier), turn.firstEventAt - turn.sentAt);
-    }, [state.turn, selectedTier]);
 
     return (
         <div className="flex flex-col h-full min-h-0">
@@ -1173,28 +1194,32 @@ export default function BuildTab({
                                 long this usually takes, instead of a bare "Thinking…"
                                 that read as a hang. See waitingForFirstToken above. */}
                             {waitingForFirstToken && (
-                                <BuilderWaitingCard turn={state.turn} startedAt={buildStart.at} modelKey={waitModelKey} />
+                                <BuilderWaitingCard />
                             )}
-                            <QuestionsCard key={state.reviewQuestions?.[0]?.id || 'questions'} questions={state.reviewQuestions} running={state.running} onAnswer={text => onSend(text, [])} />
-                            <ProposalCard key={state.proposal?.id || 'preview'} realOutputById={realOutputById} proposal={state.proposal} running={state.running} onApply={onApplyProposal} onDiscard={onDiscardProposal} onPreview={() => setPreviewOpen(true)} />
+                            {/* No `running` here: the questions event arrives while the stream is still closing (the turn ends right after the call), and a card mounted greyed-out and disabled read as unusable. Sending aborts what is left of that stream. */}
+                            <QuestionsCard key={state.reviewQuestions?.[0]?.id || 'questions'} questions={state.reviewQuestions} onAnswer={(text, answers) => onSend(text, [], { answers })} />
+                            {!state.reviewQuestions?.length && <PlanInlineCard plan={state.reviewPlan} running={state.running} onOpen={() => setReviewOpen(true)} onApprove={pauseAfterStep => { setReviewOpen(false); onApprovePlan?.(pauseAfterStep); }} />}
+                            <ProposalCard key={state.proposal?.id || 'preview'} realOutputById={realOutputById} proposal={state.proposal} running={state.running} applying={applyingProposal} onApply={onApplyProposal} onDiscard={onDiscardProposal} onPreview={() => setPreviewOpen(true)} />
                             <div ref={messagesEndRef} />
                         </div>
                     </div>
                     <div className="w-full flex flex-col flex-shrink-0 p-3" onKeyDownCapture={e => {
-                        if (e.key === 'Tab' && e.shiftKey && setWorkMode && !state.running) {
+                        if (isWorkModeShortcut(e.nativeEvent) && setWorkMode && !state.running) {
                             e.preventDefault();
-                            setWorkMode(WORK_MODES[(WORK_MODES.findIndex(m => m.id === workMode) + 1) % WORK_MODES.length].id);
+                            setWorkMode(nextWorkMode(WORK_MODES, workMode));
                         }
                     }}>
                         {assistantContext && <div className="flex items-center gap-1.5 mb-2 px-2 py-1.5 rounded-lg border border-[var(--border-default)] bg-[var(--bg-card)] text-[11px] text-[var(--type-ai)]"><Sparkles size={12} /><span className="flex-1 min-w-0 truncate">@{assistantContext.label}</span><button type="button" onClick={onClearAssistantContext} aria-label={t('automations.assistant.clear_context', 'Clear step context')}><X size={12} /></button></div>}
                         {/(?:^|\s)@[^@\s]*$/.test(chatInput) && <div className="mb-2 max-h-44 overflow-y-auto rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] p-1" role="listbox" aria-label={t('automations.assistant.mention_step', 'Mention a step')}>
                             {[flatDef?.trigger, ...(flatDef?.triggers || []), ...(flatDef?.steps || [])].filter(Boolean).filter(step => (step.label || step.type || step.kind || '').toLowerCase().includes(chatInput.split('@').at(-1).toLowerCase())).map(step => <button key={step.id} type="button" role="option" aria-selected={assistantContext?.id === step.id} onClick={() => { onAskAssistant?.(step.id); setChatInput(chatInput.replace(/@[^@\s]*$/, '')); }} className="block w-full rounded-lg px-2 py-2 text-left text-xs hover:bg-[var(--bg-secondary)]">@{step.label || step.type || step.kind}</button>)}
                         </div>}
+                        {applyingProposal && <p role="status" className="mb-2 text-[11px] text-[var(--text-tertiary)]">{t('automations.assistant.applying_hint', 'Applying the proposal. You can write again in a moment.')}</p>}
                         <InputArea
                             compact
                             placeholder={t('automations.assistant.placeholder', 'Describe what you want…')}
-                            toolbarExtra={setWorkMode ? <WorkModePicker alwaysPlanLarge={alwaysPlanLarge} onAlwaysPlanLargeChange={setAlwaysPlanLarge} value={workMode} onChange={setWorkMode} disabled={state.running} /> : null}
-                            onSendMessage={onSend}
+                            webSearchUnavailable={webSearchUnavailableHint(state.webSearch, t)}
+                            toolbarExtra={setWorkMode ? <WorkModePicker anchor="composer" alwaysPlanLarge={alwaysPlanLarge} onAlwaysPlanLargeChange={setAlwaysPlanLarge} value={workMode} onChange={setWorkMode} disabled={state.running} planStatus={state.reviewPlan?.status} planVersion={state.reviewPlan?.version} /> : null}
+                            onSendMessage={applyingProposal ? () => {} : onSend}
                             onStopGenerating={onStopBuild || undefined}
                             isLoading={state.running}
                             directMode={true}
@@ -1228,25 +1253,25 @@ export default function BuildTab({
                 }} />}
                 {previewOpen && state.proposal && <div className="absolute inset-0 z-20 flex flex-col bg-[var(--bg-primary)]">
                     <div className="flex flex-wrap items-center gap-2 px-4 py-2 bg-[var(--bg-card)] border-b border-[var(--border-default)] text-xs"><Sparkles size={13} /><span className="flex-1">{t('automations.assistant.proposal', 'Proposal')}</span><button type="button" disabled={state.running} onClick={() => { setPreviewOpen(false); setAssistantOpen(true); }} className="rounded-lg px-3 py-1.5 bg-[var(--text-primary)] text-[var(--bg-primary)] disabled:opacity-50">{t('automations.assistant.review_changes', 'Review changes')}</button><button type="button" onClick={() => setPreviewOpen(false)} className="p-1.5" aria-label={t('automations.assistant.show_canvas', 'Show canvas')}><X size={14} /></button></div>
-                    <div className="flex-1 min-h-0 [&_.react-flow__node>div]:!border-dashed [&_.react-flow__node]:opacity-75"><DiagramPane definition={state.proposal.definition} editable={false} /></div>
+                    <div className="flex-1 min-h-0 [&_.react-flow__node>div]:!border-dashed [&_.react-flow__node]:opacity-75"><DiagramPane definition={state.proposal.definition} catalog={previewCatalog(catalog, state.proposal)} editable={false} /></div>
                 </div>}
                 {state.pendingExternalDraft && (
                     <div className="px-4 py-2 border-b border-amber-500/30 bg-amber-500/10 flex items-center justify-between gap-3 flex-shrink-0">
                         <div className="text-xs text-amber-700 dark:text-amber-400">
-                            The chat assistant proposed changes while you were editing. Accept them, or keep your local edits.
+                            {t('automations.build_tab.the_chat_assistant_proposed_changes_while', 'The chat assistant proposed changes while you were editing. Accept them, or keep your local edits.')}
                         </div>
                         <div className="flex items-center gap-1.5">
                             <button
                                 onClick={dismissExternalDraft}
                                 className="px-2 py-1 text-xs rounded text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]"
                             >
-                                Keep mine
+                                {t('automations.build_tab.keep_mine', 'Keep mine')}
                             </button>
                             <button
                                 onClick={acceptExternalDraft}
                                 className="px-2 py-1 text-xs rounded bg-[var(--accent)] text-white hover:opacity-90"
                             >
-                                Accept chat changes
+                                {t('automations.build_tab.accept_chat_changes', 'Accept chat changes')}
                             </button>
                         </div>
                     </div>
@@ -1273,8 +1298,8 @@ export default function BuildTab({
                     {!showChat && mode !== 'step' && !readOnly && (
                         <button
                             onClick={() => setAssistantOpen(true)}
-                            title="Open the AI assistant"
-                            aria-label="Open the AI assistant"
+                            title={t('automations.build_tab.open_the_ai_assistant', 'Open the AI assistant')}
+                            aria-label={t('automations.build_tab.open_the_ai_assistant', 'Open the AI assistant')}
                             className={`absolute left-0 top-[clamp(52px,50%_-_20px,100%_-_245px)] z-20 flex items-center px-1.5 py-3 rounded-r-lg bg-[var(--accent)]/15 text-[var(--accent)] ring-1 ring-[var(--accent)]/40 hover:bg-[var(--accent)]/25 shadow-sm transition ${state.running ? 'animate-pulse' : ''}`}
                         >
                             <Sparkles size={16} />
@@ -1376,8 +1401,8 @@ export default function BuildTab({
                         <div className="absolute inset-0 z-30" onMouseDown={closePalette} />
                         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 w-[360px] max-h-[70vh] flex flex-col rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] shadow-2xl overflow-hidden">
                             <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--border-default)]">
-                                <span className="text-sm font-semibold text-[var(--text-primary)]">Add a step here</span>
-                                <button type="button" onClick={closePalette} aria-label="Close" className="p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"><X size={14} /></button>
+                                <span className="text-sm font-semibold text-[var(--text-primary)]">{t('automations.build_tab.add_a_step_here', 'Add a step here')}</span>
+                                <button type="button" onClick={closePalette} aria-label={t('automations.build_tab.close', 'Close')} className="p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"><X size={14} /></button>
                             </div>
                             <AddStepMenu
                                 scope={{
@@ -1448,6 +1473,7 @@ export default function BuildTab({
                         onSaveStep={onSaveStepFlat}
                         onRenameBinding={onRenameBinding}
                         onInsertStepBefore={onInsertStepBefore}
+                        onFollowRoute={editsLocked ? null : onFollowRoute}
                         validation={state.validation}
                         modelTiers={modelTiers}
                         onExecuteStep={onExecuteStep}

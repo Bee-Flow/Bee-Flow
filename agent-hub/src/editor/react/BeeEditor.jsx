@@ -418,6 +418,10 @@ const BeeEditor = forwardRef(function BeeEditor(props, ref) {
     getSelectionAnchor: () => anchorsRef.current.getSelectionAnchor(),
     /** Highlight these anchors (and one more strongly); an empty list clears them. */
     highlightAnchors: (list, activeId) => anchorsRef.current.highlightAnchors(list, activeId),
+    /** Paint the passages of pending AI suggestions; an empty list clears them. */
+    highlightSuggestions: (list, activeId) => anchorsRef.current.highlightSuggestions(list, activeId),
+    /** The id of the suggestion painted at a client point, or null. */
+    suggestionAtPoint: (x, y) => anchorsRef.current.suggestionAtPoint(x, y),
     /** Scroll an anchor into view; false when its text is gone. */
     scrollToAnchor: (anchor) => anchorsRef.current.scrollToAnchor(anchor),
     /** Scroll to the index-th heading of the outline (onTocUpdate's itemIndex). */

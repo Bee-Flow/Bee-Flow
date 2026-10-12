@@ -1,0 +1,28 @@
+{
+  "en": {
+    "compliance.fw_toast_enabled": "Framework enabled — its checks are running",
+    "compliance.fw_toast_disabled": "Framework disabled",
+    "compliance.dpia_q_mitigations": "Mitigations (one per line)",
+    "common.yes": "Yes",
+    "common.no": "No",
+    "compliance.aa_reason_invalid_credentials": "wrong credentials",
+    "compliance.aa_reason_throttled": "too many attempts",
+    "compliance.aa_reason_account_suspended": "account suspended",
+    "compliance.aa_reason_mfa_invalid_code": "wrong verification code",
+    "compliance.aa_reason_security_key_rejected": "security key rejected",
+    "compliance.aa_reason_password_login_disabled": "password sign-in is off"
+  },
+  "nl": {
+    "compliance.fw_toast_enabled": "Kader ingeschakeld — de checks lopen",
+    "compliance.fw_toast_disabled": "Kader uitgeschakeld",
+    "compliance.dpia_q_mitigations": "Maatregelen (één per regel)",
+    "common.yes": "Ja",
+    "common.no": "Nee",
+    "compliance.aa_reason_invalid_credentials": "onjuiste inloggegevens",
+    "compliance.aa_reason_throttled": "te veel pogingen",
+    "compliance.aa_reason_account_suspended": "account geschorst",
+    "compliance.aa_reason_mfa_invalid_code": "onjuiste verificatiecode",
+    "compliance.aa_reason_security_key_rejected": "beveiligingssleutel geweigerd",
+    "compliance.aa_reason_password_login_disabled": "inloggen met wachtwoord staat uit"
+  }
+}

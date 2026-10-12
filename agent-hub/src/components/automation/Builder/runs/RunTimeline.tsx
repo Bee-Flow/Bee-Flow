@@ -1,10 +1,11 @@
 import React, { useMemo } from 'react';
-import { Check, Hourglass, Loader2, Minus, Workflow, X } from 'lucide-react';
+import { Check, Hourglass, Loader2, Minus, SearchX, Workflow, X } from 'lucide-react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import type { RunRowData, RunStepRecord } from '../../../../api/queries/automation/runs';
 import { buildRunStepLabelMap, runStepLabel } from '../flow/displayHelpers';
 import { clockTime, formatSeconds, howStartedText } from './runOutcome';
 import { latestSteps, stepDuration, stepResult } from './runIo';
+import { stepBindingWarnings } from './bindingMisses';
 
 interface RunTimelineProps {
     run: RunRowData;
@@ -60,6 +61,8 @@ export default function RunTimeline({ run, steps, definition, selectedStepId, on
                     const result = stepResult(t, step);
                     const failed = step.status === 'error' || step.status === 'failed';
                     const last = i === rows.length - 1;
+                    // Inputs, not items: one mapping that missed on 40 rows is one.
+                    const misses = stepBindingWarnings(step).length;
                     return (
                         <li key={step.stepId} className="contents">
                             <span className="flex flex-col items-center">
@@ -77,6 +80,16 @@ export default function RunTimeline({ run, steps, definition, selectedStepId, on
                                 <div className="font-semibold text-[var(--text-primary)] truncate">{runStepLabel(labelById, step.stepId)}</div>
                                 {result && (
                                     <div className={`mt-0.5 ${failed ? 'text-[var(--error)]' : 'text-[var(--text-secondary)]'} line-clamp-2`}>{result}</div>
+                                )}
+                                {misses > 0 && (
+                                    <div className="mt-0.5 flex items-center gap-1 text-[var(--warning)]">
+                                        <SearchX size={11} aria-hidden className="shrink-0" />
+                                        <span className="truncate">
+                                            {misses === 1
+                                                ? t('runs.timeline.binding_misses_one', '1 mapping found nothing')
+                                                : t('runs.timeline.binding_misses_many', '{n} mappings found nothing', { n: misses })}
+                                        </span>
+                                    </div>
                                 )}
                                 <div className="mt-0.5 text-[var(--text-tertiary)]">{formatSeconds(t, stepDuration(step))}</div>
                             </button>

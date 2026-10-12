@@ -10,27 +10,28 @@
  * shareable. Query params (not path segments) because AdminDashboard routes on
  * the pathname and would not recognise /website-analytics/<section>.
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     BarChart3, Activity, FileText, Share2, Users, Zap, Gauge,
     Filter, X, RefreshCw, Settings, Loader2, Flame, GitBranch, Video,
 } from 'lucide-react';
-import { analyticsApi, analyticsFetch } from '../analyticsApi';
-import { useUrlQueryParam } from '../../../../hooks/useUrlTab';
-import { AnalyticsStyles, ACCENT, ErrorNote } from './ui';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { decodeFilters, encodeFilters, filterLabel, withFilter, withoutFilter } from './filters';
-import RangeControl, { defaultRange } from '../../../../pages/settings/usage/RangeControl';
-import OverviewSection from './sections/OverviewSection';
-import RealtimeSection from './sections/RealtimeSection';
-import PerformanceSection from './sections/PerformanceSection';
-import PagesSection from './sections/PagesSection';
-import SourcesSection from './sections/SourcesSection';
+import { analyticsApi, analyticsFetch } from '../analyticsApi';
 import AudienceSection from './sections/AudienceSection';
-import EventsSection from './sections/EventsSection';
 import BehaviorSection from './sections/BehaviorSection';
+import EventsSection from './sections/EventsSection';
 import HeatmapSection from './sections/HeatmapSection';
+import OverviewSection from './sections/OverviewSection';
+import PagesSection from './sections/PagesSection';
+import PerformanceSection from './sections/PerformanceSection';
+import RealtimeSection from './sections/RealtimeSection';
 import ReplaysSection from './sections/ReplaysSection';
 import SettingsSection from './sections/SettingsSection';
+import SourcesSection from './sections/SourcesSection';
+import { AnalyticsStyles, ACCENT, ErrorNote } from './ui';
+import { useTranslation } from '../../../../hooks/useTranslation';
+import { useUrlQueryParam } from '../../../../hooks/useUrlTab';
+import RangeControl, { defaultRange } from '../../../../pages/settings/usage/RangeControl';
 
 const TZ = (() => {
     try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch { return 'UTC'; }
@@ -46,16 +47,16 @@ const TZ = (() => {
  * capture width.
  */
 const SECTIONS = [
-    { id: 'overview',    label: 'Overview',    icon: BarChart3,  Component: OverviewSection },
-    { id: 'realtime',    label: 'Realtime',    icon: Activity,   Component: RealtimeSection, rangeless: true, filterless: true },
-    { id: 'pages',       label: 'Pages',       icon: FileText,   Component: PagesSection },
-    { id: 'sources',     label: 'Sources',     icon: Share2,     Component: SourcesSection },
-    { id: 'audience',    label: 'Audience',    icon: Users,      Component: AudienceSection },
-    { id: 'events',      label: 'Events',      icon: Zap,        Component: EventsSection },
-    { id: 'performance', label: 'Performance', icon: Gauge,      Component: PerformanceSection },
-    { id: 'behavior',    label: 'Behavior',    icon: GitBranch,  Component: BehaviorSection },
-    { id: 'heatmap',     label: 'Heatmap',     icon: Flame,      Component: HeatmapSection, wide: true },
-    { id: 'replays',     label: 'Sessions',    icon: Video,      Component: ReplaysSection },
+    { id: 'overview',    labelKey: 'cms_site.analytics.nav.overview', label: 'Overview',    icon: BarChart3,  Component: OverviewSection },
+    { id: 'realtime',    labelKey: 'cms_site.analytics.nav.realtime', label: 'Realtime',    icon: Activity,   Component: RealtimeSection, rangeless: true, filterless: true },
+    { id: 'pages',       labelKey: 'cms_site.analytics.nav.pages', label: 'Pages',       icon: FileText,   Component: PagesSection },
+    { id: 'sources',     labelKey: 'cms_site.analytics.nav.sources', label: 'Sources',     icon: Share2,     Component: SourcesSection },
+    { id: 'audience',    labelKey: 'cms_site.analytics.nav.audience', label: 'Audience',    icon: Users,      Component: AudienceSection },
+    { id: 'events',      labelKey: 'cms_site.analytics.nav.events', label: 'Events',      icon: Zap,        Component: EventsSection },
+    { id: 'performance', labelKey: 'cms_site.analytics.nav.performance', label: 'Performance', icon: Gauge,      Component: PerformanceSection },
+    { id: 'behavior',    labelKey: 'cms_site.analytics.nav.behavior', label: 'Behavior',    icon: GitBranch,  Component: BehaviorSection },
+    { id: 'heatmap',     labelKey: 'cms_site.analytics.nav.heatmap', label: 'Heatmap',     icon: Flame,      Component: HeatmapSection, wide: true },
+    { id: 'replays',     labelKey: 'cms_site.analytics.nav.replays', label: 'Sessions',    icon: Video,      Component: ReplaysSection },
 ];
 const SECTION_IDS = SECTIONS.map(s => s.id);
 
@@ -92,6 +93,7 @@ export function toScopeRange(range) {
 }
 
 export default function AnalyticsPanel() {
+    const { t } = useTranslation();
     const [settings, setSettings] = useState(null);
     const [sites, setSites] = useState([]);
     const [siteId, setSiteId] = useState('');
@@ -195,9 +197,9 @@ export default function AnalyticsPanel() {
                             <BarChart3 style={{ width: 18, height: 18, color: ACCENT }} />
                         </div>
                         <div>
-                            <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary, #fff)', margin: 0 }}>Website Analytics</h2>
+                            <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary, #fff)', margin: 0 }}>{t('cms_site.analytics.panel.title', 'Website Analytics')}</h2>
                             <p style={{ fontSize: 12, color: 'var(--text-muted, #888)', margin: 0 }}>
-                                Self-hosted, privacy-first usage tracking for your published site
+                                {t('cms_site.analytics.panel.subtitle', 'Self-hosted, privacy-first usage tracking for your published site')}
                             </p>
                         </div>
                     </div>
@@ -205,14 +207,14 @@ export default function AnalyticsPanel() {
                         {trackedSites.length > 1 && (
                             <select value={siteId} onChange={(e) => setSiteId(e.target.value)} style={selectStyle}>
                                 {trackedSites.map(s => (
-                                    <option key={s.id} value={s.id}>{s.name}{s.live ? ' (live)' : ''}</option>
+                                    <option key={s.id} value={s.id}>{s.name}{s.live ? ` (${t('cms_site.analytics.panel.live_suffix', 'live')})` : ''}</option>
                                 ))}
                             </select>
                         )}
-                        <button onClick={() => setReloadToken(t => t + 1)} title="Refresh" style={iconBtnStyle}>
+                        <button onClick={() => setReloadToken(n => n + 1)} title={t('cms_site.analytics.panel.refresh', 'Refresh')} style={iconBtnStyle}>
                             <RefreshCw style={{ width: 15, height: 15 }} />
                         </button>
-                        <button onClick={() => setView('settings')} title="Analytics settings" style={iconBtnStyle}>
+                        <button onClick={() => setView('settings')} title={t('cms_site.analytics.panel.settings', 'Analytics settings')} style={iconBtnStyle}>
                             <Settings style={{ width: 15, height: 15 }} />
                         </button>
                     </div>
@@ -222,7 +224,7 @@ export default function AnalyticsPanel() {
 
                 {!provisioned ? (
                     <div style={{ marginTop: 40, textAlign: 'center', color: 'var(--text-muted, #888)', fontSize: 13 }}>
-                        No tracked site yet. Publish a CMS site (with analytics enabled) to start collecting visitor data.
+                        {t('cms_site.analytics.panel.no_site', 'No tracked site yet. Publish a CMS site (with analytics enabled) to start collecting visitor data.')}
                     </div>
                 ) : (
                     <>
@@ -246,7 +248,7 @@ export default function AnalyticsPanel() {
                                         }}
                                     >
                                         <Icon style={{ width: 13, height: 13 }} />
-                                        {s.label}
+                                        {t(s.labelKey, s.label)}
                                     </button>
                                 );
                             })}
@@ -265,8 +267,8 @@ export default function AnalyticsPanel() {
                                     color: ACCENT, fontSize: 11, fontWeight: 700,
                                 }}>
                                     <Filter style={{ width: 11, height: 11 }} />
-                                    {filterLabel(k)}: {v}
-                                    <button onClick={() => clearFilter(k)} aria-label={`Clear ${filterLabel(k)} filter`} style={{
+                                    {filterLabel(k, t)}: {v}
+                                    <button onClick={() => clearFilter(k)} aria-label={t('cms_site.analytics.panel.clear_filter', 'Clear {filter} filter', { filter: filterLabel(k, t) })} style={{
                                         display: 'inline-flex', background: 'transparent', border: 'none',
                                         color: ACCENT, cursor: 'pointer', padding: 0,
                                     }}>

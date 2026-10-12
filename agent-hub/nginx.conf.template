@@ -1,3 +1,19 @@
+# The scheme the VISITOR used, as passed on to the server.
+#
+# This nginx only listens on plain HTTP: TLS ends at whatever sits in front
+# (Nginx Proxy Manager, Traefik, a k8s ingress). Every proxy block used to send
+# `X-Forwarded-Proto $scheme`, which here is always `http`, overwriting the
+# `https` the front proxy had set. The server then saw an insecure request, and
+# with COOKIE_SECURE=true express-session saved the session but silently sent
+# no Set-Cookie: sign-in "succeeded", the next request was anonymous, and a
+# password+MFA login lost its pending second factor ("No pending MFA login").
+# Keep the front proxy's value; fall back to our own scheme only when there is
+# none (a direct `docker compose up` on :80).
+map $http_x_forwarded_proto $forwarded_proto {
+    default $http_x_forwarded_proto;
+    ''      $scheme;
+}
+
 server {
     listen 80;
     server_name localhost;
@@ -272,6 +288,13 @@ server {
         add_header Cache-Control "no-store, no-cache, must-revalidate" always;
         add_header X-Content-Type-Options "nosniff" always;
     }
+    # The embedded build (Vite --base = NC's proxy path) asks for it under
+    # /embed/; there is one file, at the root. Without this the /embed/
+    # fallback answered with index.html: a 404-ish HTML page with a MIME error
+    # in the Nextcloud console (BFSF-483).
+    location = /embed/beeflow-runtime.js {
+        rewrite ^ /beeflow-runtime.js last;
+    }
 
     # Learning Center video pack, served by the backend from LEARN_MEDIA_DIR
     # (server/learning/learnMedia.js). Without this block the path falls into
@@ -286,7 +309,7 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $forwarded_proto;
         proxy_set_header Range $http_range;
         proxy_set_header If-Range $http_if_range;
         proxy_read_timeout 60s;
@@ -323,7 +346,7 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $forwarded_proto;
     }
 
     # ── security.txt (RFC 9116) ──────────────────────────────────────────────────
@@ -339,7 +362,7 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $forwarded_proto;
     }
 
     # Legacy top-level path. RFC 9116 §3 makes /.well-known/security.txt the
@@ -353,7 +376,7 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $forwarded_proto;
     }
 
     # Health endpoint for the kubelet probes.
@@ -417,7 +440,7 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $forwarded_proto;
         proxy_set_header X-Forwarded-Host $host;
         proxy_connect_timeout 2s;
         proxy_read_timeout 5s;
@@ -495,7 +518,58 @@ server {
         proxy_http_version 1.1;
         proxy_set_header Host $http_host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $forwarded_proto;
+        proxy_read_timeout 600s;
+        proxy_send_timeout 600s;
+        proxy_buffering off;
+    }
+
+    # ── Website CMS clip upload ──────────────────────────────────────────────
+    # Demo clips (video with sound, MP4/WebM) are accepted up to 500 MB by
+    # POST /api/cms/admin/upload-clip (server/routes/cmsMedia.js). Same
+    # reasoning as the meeting-notes block above: scoped to this one path so
+    # the 100 MB default keeps guarding the rest of /api/cms, buffering off so
+    # the upload streams through, 10-minute timeouts for slow connections.
+    location ^~ /api/cms/admin/upload-clip {
+        client_max_body_size 512m;
+        proxy_request_buffering off;
+        proxy_pass $backend;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $forwarded_proto;
+        proxy_read_timeout 600s;
+        proxy_send_timeout 600s;
+        proxy_buffering off;
+    }
+
+    # ── MCP endpoints (/mcp, /mcp/automations, /mcp/studio, /mcp/cms) ────────
+    # External MCP clients POST JSON-RPC here. Without this block the path fell
+    # into `location /` and never reached the server, so a client had to be
+    # pointed at the server port directly — which also skips this proxy's
+    # X-Forwarded-For and makes the org IP allow-list spoofable. 8 MB matches
+    # the server's own JSON limit on these routes.
+    location ^~ /mcp {
+        client_max_body_size 8m;
+        proxy_pass $backend;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $forwarded_proto;
+        proxy_read_timeout 300s;
+    }
+
+    # One-time CMS upload URLs (PUT /mcp/cms/upload/<ticket>,
+    # server/cms/mcp/uploadReceiver.js): clips up to 500 MB, streamed through
+    # like the clip upload above. Longest prefix wins over `^~ /mcp`.
+    location ^~ /mcp/cms/upload/ {
+        client_max_body_size 512m;
+        proxy_request_buffering off;
+        proxy_pass $backend;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $forwarded_proto;
         proxy_read_timeout 600s;
         proxy_send_timeout 600s;
         proxy_buffering off;
@@ -513,7 +587,7 @@ server {
         # breaks OAuth redirect URIs built from the Host header on non-80/443.
         proxy_set_header Host $http_host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $forwarded_proto;
         proxy_cache_bypass $http_upgrade;
         proxy_read_timeout 300s;
         proxy_buffering off;
@@ -544,7 +618,7 @@ server {
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $forwarded_proto;
         proxy_buffering off;
         proxy_hide_header X-Content-Type-Options;
         proxy_hide_header X-Frame-Options;
@@ -564,7 +638,7 @@ server {
         # $http_host keeps the port — see /api/ block (OAuth redirect URIs).
         proxy_set_header Host $http_host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $forwarded_proto;
         proxy_cache_bypass $http_upgrade;
     }
 
@@ -576,7 +650,7 @@ server {
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $forwarded_proto;
         proxy_cache_bypass $http_upgrade;
         proxy_read_timeout 300s;
         proxy_buffering off;
@@ -590,7 +664,7 @@ server {
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $forwarded_proto;
         proxy_cache_bypass $http_upgrade;
         proxy_read_timeout 300s;
         proxy_buffering off;
@@ -604,7 +678,7 @@ server {
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $forwarded_proto;
         proxy_cache_bypass $http_upgrade;
     }
 
@@ -616,7 +690,7 @@ server {
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $forwarded_proto;
         proxy_cache_bypass $http_upgrade;
     }
 
@@ -628,7 +702,7 @@ server {
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $forwarded_proto;
         proxy_cache_bypass $http_upgrade;
     }
 
@@ -640,7 +714,7 @@ server {
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $forwarded_proto;
         proxy_cache_bypass $http_upgrade;
     }
 
@@ -652,7 +726,7 @@ server {
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $forwarded_proto;
         proxy_cache_bypass $http_upgrade;
     }
 
@@ -664,7 +738,7 @@ server {
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $forwarded_proto;
         proxy_cache_bypass $http_upgrade;
     }
 
@@ -676,7 +750,7 @@ server {
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $forwarded_proto;
         proxy_cache_bypass $http_upgrade;
     }
 
@@ -686,7 +760,7 @@ server {
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $forwarded_proto;
     }
 
     # Proxy /reports requests
@@ -697,7 +771,7 @@ server {
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $forwarded_proto;
         proxy_cache_bypass $http_upgrade;
     }
 
@@ -709,7 +783,7 @@ server {
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $forwarded_proto;
         proxy_cache_bypass $http_upgrade;
     }
 
@@ -721,7 +795,7 @@ server {
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $forwarded_proto;
         proxy_cache_bypass $http_upgrade;
     }
 
@@ -733,7 +807,7 @@ server {
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $forwarded_proto;
         proxy_cache_bypass $http_upgrade;
     }
 
@@ -743,7 +817,7 @@ server {
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $forwarded_proto;
     }
 
     # Proxy /download requests (APK download page + file)
@@ -752,6 +826,6 @@ server {
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $forwarded_proto;
     }
 }

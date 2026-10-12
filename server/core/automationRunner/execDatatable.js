@@ -70,8 +70,9 @@
 'use strict';
 
 const { resolveValue, resolveInputs } = require('../../automation/bind');
+const { hasPlaceholder } = require('../../automation/validate/refPaths');
 const {
-    DATATABLE_WRITE_OPS, DATATABLE_MAX_LIMIT,
+    DATATABLE_WRITE_OPS, DATATABLE_MAX_LIMIT, PENDING_DATATABLE_RE,
 } = require('../../automation/validate/constants');
 // Literals only — no store, no pool — so this one may be required eagerly.
 const { SYSTEM_COLUMNS } = require('../dataEngine/dataModel/vocabulary');
@@ -159,16 +160,37 @@ const VALUELESS_OPS = new Set(['isNull', 'isNotNull']);
  * The keyset cursor a `find_rows` step was given — a binding like every other
  * field, so `{{steps.page1.output.nextCursor}}` is how a loop walks a table
  * bigger than one page. Anything that is not a non-empty string is page 1.
+ *
+ * A bare STRING with a placeholder is that template (the AI builder used to
+ * store the cursor that way, and the validator and portability read it so);
+ * resolveValue would take it for a literal and hand the query the braces.
  */
 function readCursor(binding, runState) {
     if (binding === undefined || binding === null || binding === '') return null;
-    const v = resolveValue(binding, runState, { allowSecrets: false });
+    const asBinding = typeof binding === 'string' && hasPlaceholder(binding) ? { kind: 'template', value: binding } : binding;
+    const v = resolveValue(asBinding, runState, { allowSecrets: false });
     return typeof v === 'string' && v ? v : null;
 }
 
 async function execDatatable(step, ctx, runState, mode) {
     const op = step.op || 'find_rows';
     const isWrite = DATATABLE_WRITE_OPS.has(op);
+
+    // A table the builder only PROPOSED ("pending:<n>", not created until the
+    // user applies the proposal). Before any lookup: resolveDatatableForStep
+    // would call it unknown. A preview simulates it (reads return the empty
+    // shape, which is true of a new table; a write returns what it would
+    // write); a live run must never get here, and fails closed.
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- PENDING_DATATABLE_RE is anchored and bounded (pending:1-999)
+    if (typeof step.datatableId === 'string' && PENDING_DATATABLE_RE.test(step.datatableId)) {
+        if (mode !== 'dry_run') {
+            throw fail('This step points at a table that was proposed but never created. Apply the proposal that creates it, or pick a table.', 'datatable_pending');
+        }
+        const preview = (op === 'add_row' || op === 'save_row')
+            ? { row: resolveInputs(step.values || {}, runState, { allowSecrets: false, listAs: 'json' }), id: null, created: true, updated: 0 }
+            : emptyOutput(op);
+        return { output: { ...preview, _dryRunSynthesised: true, _pendingTable: step.datatableId } };
+    }
 
     // Required lazily: the runner must stay loadable in suites that stub the DB,
     // and these pull in the pg pool.
@@ -544,4 +566,4 @@ async function execDatatable(step, ctx, runState, mode) {
         : { output: { updated: n, truncated, ...(warning ? { warning } : {}) } };
 }
 
-module.exports = { execDatatable, MIRROR_WRITE_MAX_PER_STEP, NC_WRITE_MAX_PER_STEP };
+module.exports = { execDatatable, MIRROR_WRITE_MAX_PER_STEP, NC_WRITE_MAX_PER_STEP, _test: { readCursor } };

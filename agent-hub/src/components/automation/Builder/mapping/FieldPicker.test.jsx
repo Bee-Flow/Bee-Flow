@@ -31,6 +31,12 @@ describe('FieldPicker', () => {
         expect(screen.getByText('Message id')).toBeTruthy();
     });
 
+    it('names a File type field "File type", not a piece of its formula', () => {
+        renderPicker({ options: [], value: { kind: 'ref', path: 'fileType(item.attachments[*])' } });
+        expect(screen.getByText('File type')).toBeTruthy();
+        expect(screen.queryByText(/attachments/i)).toBeNull();
+    });
+
     it('emits a ref binding when a field is picked', () => {
         const { onChange } = renderPicker();
         open();

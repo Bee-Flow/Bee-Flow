@@ -161,3 +161,20 @@ test('resources: unscopable integration 404s; upstream error surfaces as 502', a
     const up = await call('GET', '/api/nc-scope/resources/nextcloud-forms', { user: 'u-1' });
     assert.equal(up.status, 502);
 });
+
+test('resource cache sweeps expired entries and caps size oldest-first (BFSF-381)', () => {
+    const { _resourceCache, cacheResource, RESOURCE_CACHE_MAX, RESOURCE_CACHE_TTL_MS } = ncScopeRouter._test;
+    _resourceCache.clear();
+    const t0 = 1_000_000;
+    cacheResource('old', { a: 1 }, t0);
+    cacheResource('fresh', { a: 2 }, t0 + RESOURCE_CACHE_TTL_MS + 1);
+    assert.equal(_resourceCache.has('old'), false, 'expired entry swept on next insert');
+    assert.equal(_resourceCache.has('fresh'), true);
+    _resourceCache.clear();
+    const now = Date.now();
+    for (let i = 0; i < RESOURCE_CACHE_MAX + 10; i++) cacheResource(`k${i}`, i, now);
+    assert.equal(_resourceCache.size, RESOURCE_CACHE_MAX);
+    assert.equal(_resourceCache.has('k0'), false, 'oldest evicted');
+    assert.equal(_resourceCache.has(`k${RESOURCE_CACHE_MAX + 9}`), true, 'newest kept');
+    _resourceCache.clear();
+});

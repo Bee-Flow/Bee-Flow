@@ -2,9 +2,12 @@ FROM python:3.12-slim@sha256:f77ac9e44ae96ef2c90b8053ea08c31f8be030f824196b0ae4d
 
 WORKDIR /app
 
-# System deps
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
+# System deps. build-essential is for the pip installs and the model export
+# below only; it is purged again before `COPY . .`. The upgrade pulls in the
+# Debian security updates published after the pinned base digest (openssl,
+# pcre2, ...): the release container gate fails on any fixable HIGH/CRITICAL.
+RUN apt-get update && apt-get upgrade -y \
+    && apt-get install -y --no-install-recommends build-essential \
     && rm -rf /var/lib/apt/lists/*
 
 # PyTorch CPU (lightweight — GLiNER PII NER + the fp32 PyTorch fallback path)
@@ -72,6 +75,23 @@ RUN if [ -n "$GUARD_DISCLOSURE_MODEL" ]; then \
         echo "[build] GUARD_DISCLOSURE_MODEL unset — no disclosure encoder baked"; \
     fi; \
     rm /tmp/export_disclosure_encoder.py
+
+# Nothing at runtime compiles. Left in, the toolchain put linux-libc-dev (55
+# kernel-header advisories) and the full perl into the release image.
+# Then the hardening server/Dockerfile does, for the Debian advisories without
+# a trixie fix: remove the CLIs they are reached through and every SUID/SGID
+# bit. The reviews in .github/security/container-exceptions.json rely on
+# this, and scripts/check-release-container.sh asserts it on the exact
+# release digest.
+# libgomp1 (OpenMP) arrives with gcc but is a runtime library; marked manual so
+# the auto-remove keeps it. The release runtime check imports torch and
+# onnxruntime, so a library this purge took along fails CI, not a customer.
+RUN apt-mark manual libgomp1 \
+    && apt-get purge -y --auto-remove build-essential \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -f /usr/bin/mount /usr/bin/umount /usr/bin/nsenter /usr/bin/infocmp \
+    && find /usr -type f -path '*/Archive/Tar*' -delete \
+    && find /usr -xdev -type f \( -perm -4000 -o -perm -2000 \) -exec chmod a-s {} +
 
 COPY . .
 

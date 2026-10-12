@@ -31,7 +31,7 @@
  */
 
 'use strict';
-
+const { scrubStageSeats } = require('./stageSeats');
 // Required lazily, inside the sweeps. templateCapture and portability both
 // call INTO this module, so requiring them at load time would be a cycle and
 // one of the three would see a half-built exports object. Deferring to call
@@ -161,6 +161,7 @@ function finding(opts, code, detail) {
 
 /** Strip the seat fields an app action carries, reporting each removal. */
 function scrubAppSeats(action, report) {
+    scrubStageSeats(action, report, RULES.APP_APPROVER_IDENTITY, { actionId: action.id || null });
     for (const field of APP_SEAT_FIELDS) {
         if (action[field] === undefined || action[field] === null) continue;
         delete action[field];
@@ -207,6 +208,7 @@ function scrubAutomationDefinition(definition, report = []) {
     const { walkAllSteps } = walkers();
     walkAllSteps(definition, (step, layerKey) => {
         if (step.type === 'approval' && isObject(step.approval)) {
+            scrubStageSeats(step.approval, report, RULES.AUTOMATION_APPROVER_IDENTITY, { stepId: step.id || null, layerKey: layerKey || null });
             for (const field of AUTOMATION_SEAT_FIELDS) {
                 const value = step.approval[field];
                 if (value === undefined || value === null) continue;

@@ -9,6 +9,7 @@ import {
     cronFromPreset,
     describeCron,
 } from './scheduleBuilderUtils';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 /**
  * Visual schedule builder. Replaces the two raw cron/timezone text
@@ -26,6 +27,7 @@ import {
  *   existing autosave plumbing in StepInspector picks it up unchanged.
  */
 export default function ScheduleBuilder({ cron, tz, onChange }) {
+    const { t } = useTranslation();
     const [preset, setPreset] = useState(() => presetFromCron(cron));
     const [customDraft, setCustomDraft] = useState(() => cron || '0 9 * * *');
     const [tzValue, setTzValue] = useState(tz || 'Europe/Amsterdam');
@@ -91,21 +93,21 @@ export default function ScheduleBuilder({ cron, tz, onChange }) {
     return (
         <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
-                <Field label="Frequency">
+                <Field label={t('automations.schedule_builder.frequency', 'Frequency')}>
                     <select
                         value={preset.mode}
                         onChange={(e) => setPreset(presetForMode(e.target.value, preset))}
                         className={inputClass()}
                     >
-                        <option value="minute">Every N minutes</option>
-                        <option value="hourly">Hourly</option>
-                        <option value="daily">Daily</option>
-                        <option value="weekly">Weekly</option>
-                        <option value="monthly">Monthly</option>
-                        <option value="custom">Advanced — custom pattern</option>
+                        <option value="minute">{t('automations.schedule_builder.every_n_minutes', 'Every N minutes')}</option>
+                        <option value="hourly">{t('automations.schedule_builder.hourly', 'Hourly')}</option>
+                        <option value="daily">{t('automations.schedule_builder.daily', 'Daily')}</option>
+                        <option value="weekly">{t('automations.schedule_builder.weekly', 'Weekly')}</option>
+                        <option value="monthly">{t('automations.schedule_builder.monthly', 'Monthly')}</option>
+                        <option value="custom">{t('automations.schedule_builder.advanced_custom_pattern', 'Advanced — custom pattern')}</option>
                     </select>
                 </Field>
-                <Field label="Timezone">
+                <Field label={t('automations.schedule_builder.timezone', 'Timezone')}>
                     <select
                         value={tzValue}
                         onChange={(e) => setTzValue(e.target.value)}
@@ -118,7 +120,7 @@ export default function ScheduleBuilder({ cron, tz, onChange }) {
             </div>
 
             {preset.mode === 'minute' && (
-                <Field label="Every">
+                <Field label={t('automations.schedule_builder.every', 'Every')}>
                     <div className="flex items-center gap-2">
                         <input
                             type="number" min={1} max={59}
@@ -126,13 +128,13 @@ export default function ScheduleBuilder({ cron, tz, onChange }) {
                             onChange={(e) => setPreset({ ...preset, everyN: parseInt(e.target.value, 10) || 1 })}
                             className={inputClass() + ' w-24'}
                         />
-                        <span className="text-xs text-[var(--text-secondary)]">minute(s)</span>
+                        <span className="text-xs text-[var(--text-secondary)]">{t('automations.schedule_builder.minute_s', 'minute(s)')}</span>
                     </div>
                 </Field>
             )}
 
             {preset.mode === 'hourly' && (
-                <Field label="Minute of the hour">
+                <Field label={t('automations.schedule_builder.minute_of_the_hour', 'Minute of the hour')}>
                     <input
                         type="number" min={0} max={59}
                         value={preset.minute ?? 0}
@@ -143,7 +145,7 @@ export default function ScheduleBuilder({ cron, tz, onChange }) {
             )}
 
             {(preset.mode === 'daily' || preset.mode === 'weekly' || preset.mode === 'monthly') && (
-                <Field label="At time">
+                <Field label={t('automations.schedule_builder.at_time', 'At time')}>
                     <TimePicker
                         hour={preset.hour ?? 9}
                         minute={preset.minute ?? 0}
@@ -153,7 +155,7 @@ export default function ScheduleBuilder({ cron, tz, onChange }) {
             )}
 
             {preset.mode === 'weekly' && (
-                <Field label="On days">
+                <Field label={t('automations.schedule_builder.on_days', 'On days')}>
                     <div className="flex flex-wrap gap-1">
                         {WEEKDAYS.map(d => {
                             const selected = (preset.days || []).includes(d.id);
@@ -183,7 +185,7 @@ export default function ScheduleBuilder({ cron, tz, onChange }) {
             )}
 
             {preset.mode === 'monthly' && (
-                <Field label="On day of month">
+                <Field label={t('automations.schedule_builder.on_day_of_month', 'On day of month')}>
                     <select
                         value={preset.day ?? 1}
                         onChange={(e) => setPreset({ ...preset, day: parseInt(e.target.value, 10) || 1 })}
@@ -203,8 +205,8 @@ export default function ScheduleBuilder({ cron, tz, onChange }) {
                 ("minute hour …") rather than by its name. */}
             {preset.mode === 'custom' && (
                 <Field
-                    label="Timing pattern"
-                    hint="Five values: minute · hour · day of month · month · day of week. Use * for “every”, N for a value, N-M for a range, N,M for a list, */N for every Nth."
+                    label={t('automations.schedule_builder.timing_pattern', 'Timing pattern')}
+                    hint={t('automations.schedule_builder.five_values_minute_hour_day_of', 'Five values: minute · hour · day of month · month · day of week. Use * for “every”, N for a value, N-M for a range, N,M for a list, */N for every Nth.')}
                 >
                     <input
                         type="text"
@@ -242,10 +244,10 @@ export default function ScheduleBuilder({ cron, tz, onChange }) {
                         <Clock size={12} className="text-[var(--text-tertiary)] flex-shrink-0 mt-0.5" />
                         <div className="flex-1 min-w-0">
                             <div className="text-[var(--text-tertiary)] mb-0.5">
-                                Next runs in {tzValue}:
+                                {t('automations.schedule_builder.next_runs_in', 'Next runs in')} {tzValue}:
                             </div>
                             {loading && preview.next.length === 0 && (
-                                <div className="text-[var(--text-tertiary)]">Computing…</div>
+                                <div className="text-[var(--text-tertiary)]">{t('automations.schedule_builder.computing', 'Computing…')}</div>
                             )}
                             {preview.next.length > 0 ? (
                                 <ul className="space-y-0.5">
@@ -256,7 +258,7 @@ export default function ScheduleBuilder({ cron, tz, onChange }) {
                                     ))}
                                 </ul>
                             ) : (!loading && (
-                                <div className="text-[var(--text-tertiary)]">No upcoming runs in the next year.</div>
+                                <div className="text-[var(--text-tertiary)]">{t('automations.schedule_builder.no_upcoming_runs_in_the_next', 'No upcoming runs in the next year.')}</div>
                             ))}
                         </div>
                     </div>

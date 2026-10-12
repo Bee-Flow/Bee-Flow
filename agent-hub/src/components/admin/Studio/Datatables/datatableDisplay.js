@@ -32,10 +32,12 @@ export function audienceOf(table) {
 }
 
 /** ["a","b","c"] → "a, b and c" */
-export function joinNames(names) {
+export function joinNames(names, t) {
     const list = (names || []).filter(Boolean);
     if (list.length <= 1) return list[0] || '';
-    return `${list.slice(0, -1).join(', ')} and ${list[list.length - 1]}`;
+    const head = list.slice(0, -1).join(', ');
+    const last = list[list.length - 1];
+    return t ? t('studio_misc.access.join_and', '{list} and {last}', { list: head, last }) : `${head} and ${last}`;
 }
 
 /**
@@ -44,16 +46,17 @@ export function joinNames(names) {
  * reason they are is that publishing a table must never be the thing that made
  * it writable by everyone.
  */
-export function describeAccess(table, groupNames = new Map()) {
+export function describeAccess(table, groupNames = new Map(), t = null) {
+    const tr = (key, en, params) => (t ? t(key, en, params) : en.replace(/\{(\w+)\}/g, (_, k) => String(params?.[k] ?? '')));
     const audience = audienceOf(table);
     const readers = audience === PRIVATE
-        ? 'Only you and the people you share it with'
+        ? tr('studio_misc.access.readers_private', 'Only you and the people you share it with')
         : audience === ORG
-            ? 'Everyone in your organisation'
-            : `Members of ${joinNames((table.sharedGroups || []).map(g => groupNames.get(g) || g))}`;
+            ? tr('studio_misc.access.readers_org', 'Everyone in your organisation')
+            : tr('studio_misc.access.readers_groups', 'Members of {names}', { names: joinNames((table.sharedGroups || []).map(g => groupNames.get(g) || g), t) });
     const writers = table?.writeMode === 'audience'
-        ? (audience === PRIVATE ? 'the same people' : 'all of them')
-        : 'only the people you invite';
+        ? (audience === PRIVATE ? tr('studio_misc.access.writers_same', 'the same people') : tr('studio_misc.access.writers_all', 'all of them'))
+        : tr('studio_misc.access.writers_invited', 'only the people you invite');
     return { readers, writers, audience, broad: audience === ORG && table?.writeMode === 'audience' };
 }
 

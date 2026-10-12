@@ -1,7 +1,7 @@
 /**
  * The step catalog as rows: [kind, group, icon, English name, English blurb,
  * flag]. stepCatalog.ts turns each row into a StepMeta with Msg keys
- * `mobile.app_studio.step.<kind>.label|blurb`. The order is the web's
+ * `studio_apps_edit.step_catalog.<kind>_label|_blurb`, the web's. The order is the web's
  * (flow/stepCatalog.js), which is the palette order.
  */
 

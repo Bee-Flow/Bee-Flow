@@ -65,6 +65,7 @@ stub('../db', {
 
 // ── memoryStore stub — the provider boundary ─────────────────────────
 let probeDim = 384;
+let pgvectorOn = true;
 const indexed = [];
 stub('../stores/memoryStore', {
     embedOne: async (_text) => (probeDim
@@ -72,7 +73,8 @@ stub('../stores/memoryStore', {
         : null),
     indexMemory: async (id, content) => { indexed.push({ id, content }); return { ok: true, dim: probeDim }; },
     ensureVectorColumn: async () => true,
-    isPgvectorAvailable: () => true,
+    isPgvectorAvailable: () => pgvectorOn,
+    scrubSealedIndexes: async () => 0,
 });
 stub('../telemetry/metrics', { recordJobRun: () => {} });
 
@@ -90,6 +92,7 @@ beforeEach(() => {
     updateRowCount = 0;
     activeRowCount = 0;
     probeDim = 384;
+    pgvectorOn = true;
 });
 
 // ── Phase 2: the free one ────────────────────────────────────────────
@@ -196,4 +199,45 @@ test('the ANN index is built concurrently once the table is large enough', async
     const build = queries.find(q => q.sql.includes('CREATE INDEX CONCURRENTLY'));
     assert.ok(build, 'past the threshold an exact scan stops being viable');
     assert.ok(build.sql.includes('hnsw'));
+});
+
+// ── Sealed rows and pgvector-less installs ───────────────────────────
+
+test('the lexical and adopt phases skip sealed rows', async () => {
+    updateRowCount = 1;
+    await fillLexical(Date.now() + 50);
+    await adoptExisting(384, Date.now() + 50);
+    const writes = queries.filter(q => q.sql.includes('UPDATE user_memories'));
+    assert.strictEqual(writes.length, 2);
+    for (const w of writes) assert.ok(w.sql.includes(`content NOT LIKE '{"_bfenc"%'`), 'a sealed row gets no plaintext index');
+});
+
+test('re-embedding covers sealed rows through their own predicate', async () => {
+    selectRows = [{ id: 'sealed-1' }];
+    await reembedStale(384, FUTURE());
+    const sql = queries[0].sql;
+    assert.ok(sql.includes(`content LIKE '{"_bfenc"%' AND (embedding_enc IS NULL OR embedding_dim IS DISTINCT FROM 384)`));
+    assert.deepStrictEqual(indexed.map(i => i.id), ['sealed-1']);
+});
+
+test('without pgvector the missing-vector test is on the JSONB vector, and re-embedding still runs', async () => {
+    pgvectorOn = false;
+    selectRows = [{ id: 'm1' }];
+    const summary = await runOnce();
+    assert.ok(queries.some(q => q.sql.includes('embedding IS NULL OR embedding_dim IS DISTINCT FROM 384')));
+    assert.ok(!queries.some(q => q.sql.includes('embedding::text::vector')), 'adopt needs pgvector');
+    assert.strictEqual(summary.embedded, 1);
+});
+
+test('a batch in which nothing advances stops the pass instead of spinning on the provider', async () => {
+    selectRows = [{ id: 'm1' }];
+    const calls = [];
+    const store = require('../stores/memoryStore');
+    const real = store.indexMemory;
+    store.indexMemory = async (id) => { calls.push(id); return { ok: false }; };
+    try {
+        const r = await reembedStale(384, FUTURE());
+        assert.deepStrictEqual(r, { embedded: 0, failed: 1 });
+        assert.strictEqual(calls.length, 1);
+    } finally { store.indexMemory = real; }
 });

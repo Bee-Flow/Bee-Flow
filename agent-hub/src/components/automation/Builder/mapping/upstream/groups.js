@@ -33,12 +33,14 @@
  *
  * Returns [] when definition / currentStepId is missing.
  */
-import { collectUpstream } from './graphWalk';
+import { appendKey, getPath } from '@shared/expr/path.mjs';
+import { firstItemPreview } from '../deepFields';
 import { describeNode } from './describeNode';
+import { forEachOutputPath, perIterationField, rebaseFields } from './forEachShape';
+import { collectUpstream } from './graphWalk';
+import { describeForEachItem, describeForEachParents, listItemFields } from './loops';
 import { overlayGroupWithReal } from './realOverlay';
 import { triggerMetaSample, describeTriggerMeta } from './triggers';
-import { describeForEachItem } from './loops';
-import { resolveElementSample, sampleToFields } from './sampleFields';
 
 export function computeUpstreamGroups(definition, currentStepId, catalog, realOutputById = null) {
     if (!definition || !currentStepId) return [];
@@ -71,9 +73,11 @@ export function computeUpstreamGroups(definition, currentStepId, catalog, realOu
         if (!g) continue;
         // Overlay what the node ACTUALLY produced (pinned > run) — after the
         // forEach reshape, so a real forEach envelope lands on the wrapped
-        // group rather than on the flat tool shape.
+        // group rather than on the flat tool shape. A pin is handed downstream
+        // as it is (execution.js), so its own shape counts even when "run once
+        // per item" was switched since; a stale run's does not.
         const real = realOutputById?.get(node.id);
-        if (real !== undefined) g = overlayGroupWithReal(g, real);
+        if (real !== undefined) g = overlayGroupWithReal(g, real, { pinned: node.pinnedOutput != null });
         if (node.__isTrigger) {
             // All triggers share the one runtime trigger.output slot. A fired
             // trigger's real data must not be clobbered by the placeholder
@@ -99,6 +103,10 @@ export function computeUpstreamGroups(definition, currentStepId, catalog, realOu
     // scalar auto-map pass.)
     const cur = (definition.steps || []).find(s => s.id === currentStepId);
     if (cur && cur.forEach && cur.forEach.overRef) {
+        // A step that runs per INNER item (each attachment of each mail)
+        // keeps its outer items (`forEach.parents`): offered right before the
+        // current one, as `loop.<outer>.*`.
+        groups.push(...describeForEachParents(cur, definition, toolToOutput, sampleRoot));
         const itemGroup = describeForEachItem(cur, definition, toolToOutput, sampleRoot);
         if (itemGroup) groups.push(itemGroup);
     }
@@ -162,45 +170,34 @@ export function buildToolOutputMap(catalog) {
  * Re-shape an upstream group whose node iterates (`step.forEach`). The
  * runtime output is the aggregated `{ iterations, succeeded, failed, results }`
  * envelope, so:
- *   - EVERY per-iteration field becomes a flattened iterable at
- *     `…output.results[*].output.<key>` (the `[*]` flatten is resolved by
- *     server/automation/bind.js walkPath), and
+ *   - EVERY per-iteration field moves under `…output.results[*].output`, with
+ *     its children (the `[*]` flatten is resolved by the runtime), and
  *   - the run counters (iterations/succeeded/failed) are surfaced.
+ *
+ * The fields are MOVED, not rebuilt from their keys: the describer already
+ * quoted every key (`["line-items"]`, `["Story Points"]`) and built the levels
+ * below it, and concatenating `.${key}` here used to undo both.
  *
  * Scalars used to be dropped here, on the grounds that their sample is a
  * scalar while the path resolves to an array, so auto-mapping one into a
  * scalar tool param would be wrong. The reasoning was sound; the remedy was
  * too blunt. It left a field like `output.count` with NO path at all, and the
  * author looking at a picker that offered nothing of what the step itself had
- * returned — the complaint in BFSF-369.
- *
- * So they are surfaced, and the mismatch is fixed at its source instead: the
- * sample is wrapped to `[value]`, which is what the path ACTUALLY yields —
- * one entry per iteration. That truthful shape earns the existing
- * listShape.js "column" badge for free, and `perIteration` keeps auto-map and
- * the loop-source guess off them (see autoMapInputs.js), which is what the old
- * exclusion was really protecting. Hand-picking, which was never the risk,
- * now works.
+ * returned — the complaint in BFSF-369. So they are surfaced, with the sample
+ * the path ACTUALLY yields (forEachShape.perIterationField).
  */
 function wrapGroupForEach(group, node) {
     if (!group || !node?.forEach?.overRef) return group;
     const base = group.basePath; // steps.<id>.output
     const flat = group.sample || {};
-    const flattened = (group.fields || [])
-        .filter(f => f && f.key)
-        .map(f => (Array.isArray(f.sample)
-            ? { key: f.key, path: `${base}.results[*].output.${f.key}`, sample: f.sample }
-            : { key: f.key, path: `${base}.results[*].output.${f.key}`, sample: [f.sample], perIteration: true }));
-    const counters = [
-        { key: 'iterations', path: `${base}.iterations`, sample: 0 },
-        { key: 'succeeded', path: `${base}.succeeded`, sample: 0 },
-        { key: 'failed', path: `${base}.failed`, sample: 0 },
-    ];
+    const moved = rebaseFields((group.fields || []).filter(f => f && f.path), base, forEachOutputPath(base))
+        .map(perIterationField);
+    const counters = ['iterations', 'succeeded', 'failed'].map(k => ({ key: k, path: appendKey(base, k), sample: 0 }));
     return {
         ...group,
         forEach: true,
         sample: { iterations: 0, succeeded: 0, failed: 0, results: [{ index: 0, item: {}, output: flat, status: 'success' }] },
-        fields: [...counters, ...flattened],
+        fields: [...counters, ...moved],
     };
 }
 
@@ -226,7 +223,11 @@ function wrapGroupForEach(group, node) {
 export function computeLoopBodyGroups(loopStep, bodyIndex, outerGroups, previewSample, catalog, definition) {
     const itemVar = loopStep.itemVar || 'item';
     const batchSize = Math.max(1, Number(loopStep.batchSize) || 1);
-    const elementSample = resolveElementSample(loopStep.overRef, previewSample) || {};
+    // The item the first iteration binds (its gaps filled from the other
+    // rows), not a blend of every row: the drawer calls it item 1.
+    const overRef = typeof loopStep.overRef === 'string' ? loopStep.overRef.trim() : '';
+    const list = overRef && previewSample ? getPath(previewSample, overRef) : undefined;
+    const elementSample = firstItemPreview(list) || {};
     const isPlainObject = elementSample && typeof elementSample === 'object' && !Array.isArray(elementSample);
     const itemGroup = {
         id: '__loop_item',
@@ -236,7 +237,7 @@ export function computeLoopBodyGroups(loopStep, bodyIndex, outerGroups, previewS
         sample: batchSize > 1 ? [elementSample] : elementSample,
         // A batch is an ARRAY of items — no single-item field list to offer
         // (mirrors the array-sample branch of sampleToFields elsewhere).
-        fields: (batchSize > 1 || !isPlainObject) ? [] : sampleToFields(elementSample, `loop.${itemVar}`),
+        fields: (batchSize > 1 || !isPlainObject) ? [] : listItemFields(list, `loop.${itemVar}`),
     };
     const toolToOutput = buildToolOutputMap(catalog);
     const priorGroups = (loopStep.body || [])

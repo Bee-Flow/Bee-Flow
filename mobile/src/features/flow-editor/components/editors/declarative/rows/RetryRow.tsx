@@ -49,9 +49,9 @@ export function RetryRow({ value, forEach, onChange, disabled }: { value: unknow
             on={!!retry}
             onToggle={(on) => onChange(on ? { ...RETRY_DEFAULT } : null)}
             disabled={disabled}
-            label={t('mobile.flow.retry.label', 'Try again if this step fails')}
+            label={t('automations.collection_editors.try_again_if_this_step_fails', 'Try again if this step fails')}
             description={t(
-                'mobile.flow.retry.hint',
+                'automations.collection_editors.for_the_failures_that_pass_on',
                 'For the failures that pass on their own — a timeout, a service that is briefly busy, a “too many requests”. Not for a wrong password or a missing field: those fail the same way every time.',
             )}
         >
@@ -59,15 +59,15 @@ export function RetryRow({ value, forEach, onChange, disabled }: { value: unknow
                 <>
                     <SelectField
                         label={t('mobile.flow.retry.tries', 'Try again')}
-                        hint={t('mobile.flow.retry.tries_hint', 'How many more times to run this step after the first attempt fails.')}
+                        hint={t('automations.collection_editors.how_many_more_times_to_run', 'How many more times to run this step after the first attempt fails.')}
                         value={String(retry.max)}
                         options={retryChoices(RETRY_TRY_COUNTS, retry.max).map((n) => ({ value: String(n), label: retryTriesLabel(n) }))}
                         onChange={(v) => set({ max: Number(v) })}
                         disabled={disabled}
                     />
                     <SelectField
-                        label={t('mobile.flow.retry.wait', 'Wait before trying again')}
-                        hint={t('mobile.flow.retry.wait_hint', 'Trying again immediately usually hits the same problem — a few seconds is enough for most of them to clear.')}
+                        label={t('automations.collection_editors.wait_before_trying_again', 'Wait before trying again')}
+                        hint={t('automations.collection_editors.trying_again_immediately_usually_hits_the', 'Trying again immediately usually hits the same problem — a few seconds is enough for most of them to clear.')}
                         value={String(retry.backoffMs)}
                         options={retryChoices(RETRY_WAIT_MS, retry.backoffMs).map((ms) => ({ value: String(ms), label: retryWaitLabel(ms) }))}
                         onChange={(v) => set({ backoffMs: Number(v) })}
@@ -75,7 +75,7 @@ export function RetryRow({ value, forEach, onChange, disabled }: { value: unknow
                     />
                     <Text variant="caption" tone="secondary">
                         {t(
-                            'mobile.flow.retry.after',
+                            'automations.collection_editors.if_the_last_try_fails_too',
                             'If the last try fails too, the step fails and the automation stops there — exactly as it does now. Every attempt is kept in the run history, so you can see how often it took more than one.',
                         )}
                     </Text>

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import useTranslation from '../../../hooks/useTranslation';
 import { MessageSquare, Send, X, Square, Loader2 } from 'lucide-react';
 import IconButton from '../../../components/shared/IconButton';
 import MessageItem from '../../../components/chat/MessageItem';
@@ -6,6 +7,7 @@ import useChatEngine from '../../../hooks/useChatEngine';
 import { formatDuration } from '../lib/format';
 
 export default function AssistantSidebar({ meeting, open, onClose }) {
+    const { t } = useTranslation();
     const [input, setInput] = useState('');
     const scrollerRef = useRef(null);
     const endRef = useRef(null);
@@ -17,13 +19,13 @@ export default function AssistantSidebar({ meeting, open, onClose }) {
         const names = (meeting?.attendees?.length ? meeting.attendees : (meeting?.speakers || []).map((s) => s.id))
             .filter(Boolean).join(', ');
         return [
-            'Summarize the key decisions made',
-            'List open questions',
+            t('meeting_notes.assistant_prompt_decisions', 'Summarize the key decisions made'),
+            t('meeting_notes.assistant_prompt_questions', 'List open questions'),
             names
-                ? `Draft a follow-up email to ${names} with the key outcomes and action items`
-                : 'Draft a follow-up email',
+                ? t('meeting_notes.assistant_prompt_email_to', 'Draft a follow-up email to {names} with the key outcomes and action items', { names })
+                : t('meeting_notes.assistant_prompt_email', 'Draft a follow-up email'),
         ];
-    }, [meeting?.attendees, meeting?.speakers]);
+    }, [meeting?.attendees, meeting?.speakers, t]);
 
     const systemPrompt = useMemo(() => {
         if (!meeting) return '';
@@ -97,7 +99,7 @@ Answer in the same language as the transcript unless the user asks otherwise.`;
             <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
                 <div className="flex items-center gap-2">
                     <MessageSquare className="w-4 h-4" style={{ color: 'var(--accent-primary)' }} />
-                    <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Ask about this meeting</span>
+                    <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t('meeting_notes.assistant_title', 'Ask about this meeting')}</span>
                 </div>
                 <IconButton ariaLabel="Close" onClick={onClose} size="sm"><X /></IconButton>
             </div>
@@ -106,7 +108,7 @@ Answer in the same language as the transcript unless the user asks otherwise.`;
                 {messages.length === 0 && (
                     <div className="flex flex-col gap-2">
                         <div className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>
-                            Try a starter prompt:
+                            {t('meeting_notes.assistant_starter', 'Try a starter prompt:')}
                         </div>
                         {suggestions.map((s) => (
                             <button
@@ -145,7 +147,7 @@ Answer in the same language as the transcript unless the user asks otherwise.`;
                                 submit();
                             }
                         }}
-                        placeholder="Ask anything about this meeting…"
+                        placeholder={t('meeting_notes.assistant_placeholder', 'Ask anything about this meeting…')}
                         rows={1}
                         className="flex-1 resize-none px-3 py-2 rounded-xl text-sm border outline-none min-h-[40px] max-h-32"
                         style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
@@ -154,7 +156,7 @@ Answer in the same language as the transcript unless the user asks otherwise.`;
                         <button
                             type="button"
                             onClick={stopGenerating}
-                            aria-label="Stop"
+                            aria-label={t('chat.stop', 'Stop')}
                             className="w-10 h-10 rounded-full flex items-center justify-center text-white"
                             style={{ background: '#ef4444' }}
                         >
@@ -165,7 +167,7 @@ Answer in the same language as the transcript unless the user asks otherwise.`;
                             type="button"
                             onClick={() => submit()}
                             disabled={!input.trim()}
-                            aria-label="Send"
+                            aria-label={t('chat.send', 'Send')}
                             className="w-10 h-10 rounded-full flex items-center justify-center text-white disabled:opacity-40"
                             style={{ background: 'var(--accent-primary)' }}
                         >
@@ -176,7 +178,7 @@ Answer in the same language as the transcript unless the user asks otherwise.`;
                 {isLoading && (
                     <div className="flex items-center gap-1.5 text-[11px] mt-1.5" style={{ color: 'var(--text-muted)' }}>
                         <Loader2 className="w-3 h-3 animate-spin" />
-                        Thinking…
+                        {t('meeting_notes.assistant_thinking', 'Thinking…')}
                     </div>
                 )}
             </div>

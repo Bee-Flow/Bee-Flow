@@ -12,6 +12,11 @@
  * A refused request writes nothing. The site is resolved first (that is a
  * read), as it always was; the schema runs after it.
  *
+ * The blog routes (routes/cmsBlog.js, mounted by routes/cms.js) follow the
+ * same rule: closed envelopes, typed and capped fields, post ids checked
+ * before any read, and the public read answers an empty list when no site
+ * is live.
+ *
  * Run: cd server && node --test routes/cms.validation.test.js
  */
 
@@ -75,4 +80,48 @@ test('valid page settings reach the store and answer as before', async () => {
     assert.strictEqual(res.status, 200, res.text);
     assert.strictEqual(res.body.page.noAnalytics, true);
     assert.ok(writes().length > 0, 'the page settings were saved');
+});
+
+// ── blog posts ──────────────────────────────────────────────────────
+
+const posts = (method, path, body, user) => api.call(method, `/api/cms/sites/${SITE}/posts${path}`, { body, user });
+
+test('creating a post: title required, fields typed and capped, unknown keys named', async () => {
+    h.assertRefused(assert, await posts('POST', '', {}), 'body.title', /title is text/);
+    h.assertRefused(assert, await posts('POST', '', { title: 'x', status: 'live' }), 'body.status', /status is one of draft, scheduled, published/);
+    h.assertRefused(assert, await posts('POST', '', { title: 'x', tags: 'a,b' }), 'body.tags', /tags is a list/);
+    h.assertRefused(assert, await posts('POST', '', { title: 'x', tags: Array(11).fill('t') }), 'body.tags', /At most 10 tags/);
+    h.assertRefused(assert, await posts('POST', '', { title: 'x', body: 'y'.repeat(100_001) }), 'body.body', /at most 100000/);
+    h.assertRefused(assert, await posts('POST', '', { title: 'x', authorId: 'u1' }), 'body', /"authorId"/);
+    h.assertRefused(assert, await posts('POST', '', { title: 'x', seo: { noIndex: 'yes' } }), 'body.seo.noIndex', /true or false/);
+    h.assertRefused(assert, await posts('POST', '', { title: 'x', seo: { canonical: 'https://x' } }), 'body.seo', /canonical/);
+    assert.deepStrictEqual(writes(), []);
+});
+
+test('saving a post and a translation: closed envelopes, no writes on refusal', async () => {
+    h.assertRefused(assert, await posts('PUT', '/po_abcd1234', { titel: 'x' }), 'body', /"titel"/);
+    h.assertRefused(assert, await posts('PUT', '/po_abcd1234/locale/nl', { override: { slug: 'x' } }), 'body.override', /slug/);
+    h.assertRefused(assert, await posts('PUT', '/po_abcd1234/locale/nl', { title: 'x' }), 'body.override', /JSON object/);
+    assert.deepStrictEqual(writes(), []);
+});
+
+test('a malformed post id is a 404 before anything is read or written', async () => {
+    const before = db.queries.length;
+    const res = await posts('GET', '/not-a-post-id');
+    assert.strictEqual(res.status, 404);
+    const del = await posts('DELETE', '/..%2F..%2Fsecret');
+    assert.strictEqual(del.status, 404);
+    assert.ok(!db.queries.slice(before).some(q => /post/i.test(String(q)) && !/SELECT/i.test(q)));
+    assert.deepStrictEqual(writes(), []);
+});
+
+test('the blog admin routes need a session (the CMS admin gate itself is cms.js requireAdmin)', async () => {
+    const anon = await posts('GET', '', undefined, null);
+    assert.strictEqual(anon.status, 401);
+});
+
+test('public latest posts: an empty list when no site is live, never an error', async () => {
+    const res = await api.call('GET', '/api/cms/blog/posts?limit=999&locale=<script>', { user: null });
+    assert.strictEqual(res.status, 200);
+    assert.deepStrictEqual(res.body.posts, []);
 });

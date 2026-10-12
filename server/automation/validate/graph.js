@@ -264,6 +264,23 @@ function validateGraph(graph, pathPrefix, opts) {
                 pushE({ code: `app_trigger.${issue.code}`, severity: 'error', path: p(`trigger.${issue.path}`), message: issue.message, hint: issue.hint });
             }
         }
+        // agent_call: the tool an agent sees (contract in
+        // automation/agentCallContract.js). Shape problems block at every
+        // stage. The description codes are only WARNINGS: the canvas stores a
+        // blank description as null and the runtime then falls back on the
+        // automation's description or title (automationToTool), and it cuts a
+        // long one to the cap, so neither stops an automation that works today
+        // from being saved, published or restored. A tool name without a
+        // letter or digit and an argument name that is not an identifier are
+        // completeness codes (completenessCodes.js).
+        if (trigger.kind === 'agent_call') {
+            const { validateAgentCallTrigger } = require('../agentCallContract');
+            for (const issue of validateAgentCallTrigger(trigger)) {
+                const rec = { code: `agent_call.${issue.code}`, severity: 'error', path: p(`trigger.${issue.path}`), message: issue.message, hint: issue.hint };
+                if (issue.code === 'description_missing' || issue.code === 'description_invalid') pushW({ ...rec, severity: 'warning' });
+                else pushE(rec);
+            }
+        }
         // form: the fields the public page renders and the visitor fills in
         // (contract in automation/formTriggerContract.js). An empty form is a
         // completeness problem, not a shape error — see COMPLETENESS_CODES.

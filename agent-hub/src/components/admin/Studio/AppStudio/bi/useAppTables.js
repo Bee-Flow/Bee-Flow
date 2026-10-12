@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useCallback } from 'react';
+import useTranslation from '../../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../../utils/helpers';
 
 /**
@@ -15,12 +16,12 @@ import { API_BASE, authFetch } from '../../../../../utils/helpers';
  *   const fields = fieldsFor(selectedTableId);   // [] when unknown
  */
 
-async function fetchTables(appId) {
+async function fetchTables(appId, t) {
     const res = await authFetch(`${API_BASE}/api/studio-apps/${encodeURIComponent(appId)}/data/tables`);
     if (res.status === 404) return [];
     let body = null;
     try { body = await res.json(); } catch { body = null; }
-    if (!res.ok) throw new Error(body?.error || `Could not load tables (${res.status})`);
+    if (!res.ok) throw new Error(body?.error || t('studio_apps_bi.hooks.tables_load_failed', 'Could not load tables ({status})', { status: res.status }));
     return Array.isArray(body?.tables) ? body.tables : [];
 }
 
@@ -31,9 +32,10 @@ export function fieldsForTable(tables, tableRef) {
 }
 
 export default function useAppTables(appId) {
+    const { t } = useTranslation();
     const query = useQuery({
         queryKey: ['studio-app-tables', appId],
-        queryFn: () => fetchTables(appId),
+        queryFn: () => fetchTables(appId, t),
         enabled: !!appId,
         staleTime: 30_000,
         retry: false,

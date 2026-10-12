@@ -16,15 +16,8 @@
  * Colours: the kind tile in --kind-compliance, the AI sparkle in --type-ai,
  * verdicts through statusTone TONES (raw for hairlines/discs, ink for text).
  */
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Bot, Check, PenLine, Sparkles, Wrench, MessageSquare, FileText } from 'lucide-react';
-import Modal from '../../../shared/Modal';
-import toast from '../../../shared/Toast';
-import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
-import { TONES } from '../../../shared/statusTone';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { formatCalDate } from '../shared/calendarMath';
-import useAiActAssessment from './useAiActAssessment';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     outcome as computeOutcome,
     inputFromSignals,
@@ -33,6 +26,7 @@ import {
     annexAnswerFromDomains,
     annexArticlesFor,
     annexAnsweredCount,
+    legacyAnnexAnswers,
     ART5_PRACTICES,
     ANNEX_III_CATEGORIES,
     ANNEX_III_ARTICLES,
@@ -41,6 +35,13 @@ import {
     ART50_IN_FORCE,
     ANNEX_III_FROM,
 } from './ladderOutcome';
+import useAiActAssessment from './useAiActAssessment';
+import { useTranslation } from '../../../../hooks/useTranslation';
+import Modal from '../../../shared/Modal';
+import { TONES } from '../../../shared/statusTone';
+import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
+import toast from '../../../shared/Toast';
+import { formatCalDate } from '../shared/calendarMath';
 
 /**
  * Art. 5 — all EIGHT prohibited practices, in the server's vocabulary
@@ -121,9 +122,11 @@ export function LadderModalView({ open, onClose, kind = 'automation', target, da
 
     // Pre-tick from the saved declaration so re-assessing starts from what was
     // declared, not from zero. A row saved before the ten questions existed
-    // carries only `answer`, so a stored 'no' still fills the chips in.
+    // carries only `answer` (legacyAnnexAnswers): a stored 'no' still fills
+    // the chips in; a stored 'yes' names at most one area.
     const [art5Denied, setArt5Denied] = useState(() => new Set());
     const [annexAnswers, setAnnexAnswers] = useState(() => ({}));
+    const [legacyYes, setLegacyYes] = useState(false);
     const [busy, setBusy] = useState(null); // 'record' | 'marking' | null
     const [actionError, setActionError] = useState(null);
 
@@ -136,11 +139,10 @@ export function LadderModalView({ open, onClose, kind = 'automation', target, da
             setAnnexAnswers(Object.fromEntries(
                 ANNEX_III_CATEGORIES.filter(id => stored[id] === 'yes' || stored[id] === 'no').map(id => [id, stored[id]]),
             ));
-        } else if (a.annex_iii?.answer === 'no' || a.annex_iii?.answer === 'yes') {
-            // Pre-ten-question row: one answer that covered all of them.
-            setAnnexAnswers(Object.fromEntries(ANNEX_III_CATEGORIES.map(id => [id, a.annex_iii.answer])));
+            setLegacyYes(false);
         } else {
-            setAnnexAnswers({});
+            setAnnexAnswers(legacyAnnexAnswers(a.annex_iii));
+            setLegacyYes(a.annex_iii?.answer === 'yes');
         }
         setActionError(null);
     }, [open, saved]);
@@ -248,8 +250,16 @@ export function LadderModalView({ open, onClose, kind = 'automation', target, da
     );
 
     const subtitleParts = [name];
-    if (stepCount !== null) subtitleParts.push(t('compliance.ladder_sub_steps', '{n} steps', { n: stepCount }));
-    if (signals) subtitleParts.push(t('compliance.ladder_sub_ai_steps', '{n} AI steps', { n: aiSteps.length }));
+    if (stepCount !== null) {
+        subtitleParts.push(stepCount === 1
+            ? t('compliance.ladder_sub_steps_one', '1 step')
+            : t('compliance.ladder_sub_steps', '{n} steps', { n: stepCount }));
+    }
+    if (signals) {
+        subtitleParts.push(aiSteps.length === 1
+            ? t('compliance.ladder_sub_ai_steps_one', '1 AI step')
+            : t('compliance.ladder_sub_ai_steps', '{n} AI steps', { n: aiSteps.length }));
+    }
     if (surface) subtitleParts.push(t('compliance.ladder_sub_surface', 'customer-facing via {surface}', { surface }));
     const subtitle = subtitleParts.filter(Boolean).join(' · ');
 
@@ -344,6 +354,11 @@ export function LadderModalView({ open, onClose, kind = 'automation', target, da
                         })}
                     testId="ladder-step-3"
                 >
+                    {legacyYes && (
+                        <p data-testid="ladder-legacy-yes-note" className="text-[11px] mb-2 font-medium text-[var(--warning-ink)]">
+                            {t('compliance.ladder_legacy_yes_note', 'Declared high-risk earlier — pick the area(s) to confirm')}
+                        </p>
+                    )}
                     <AnnexQuestions
                         questions={annexOrder}
                         answers={annexAnswers}
@@ -671,7 +686,7 @@ export function outcomeText(verdict, containsAi, t) {
         case 'prohibited':
             return t('compliance.ladder_outcome_prohibited', 'Outcome: prohibited practice (Art. 5) — this may not run.');
         case 'high_risk':
-            return t('compliance.ladder_outcome_high_risk', 'Outcome: the AI Act applies — high-risk (Annex III). Risk management, technical documentation and human oversight are required.');
+            return t('compliance.ladder_outcome_high_risk', 'Outcome: the AI Act applies — high-risk (Annex III). From 2 Dec 2027 risk management, technical documentation and human oversight are required (provider: Art. 9, 11, 14; deployer: Art. 26).');
         case 'transparency':
             return t('compliance.ladder_outcome_transparency', 'Outcome: the AI Act applies — Art. 4 (literacy) and Art. 50 (transparency). Not high-risk.');
         default:
@@ -698,7 +713,7 @@ function OutcomeBox({ verdict, containsAi, t }) {
                 </div>
             )}
             <div className="text-[11px] text-[var(--text-secondary)] mt-1">
-                {t('compliance.ladder_outcome_note', 'Recorded in the model inventory (Art. 53) and as a processing activity in the processing register; the "AI notice" and "marking" checks keep running automatically.')}
+                {t('compliance.ladder_outcome_note', 'Recorded with the model inventory and as a processing activity in the processing register; the "AI notice" and "marking" checks keep running automatically.')}
             </div>
         </div>
     );

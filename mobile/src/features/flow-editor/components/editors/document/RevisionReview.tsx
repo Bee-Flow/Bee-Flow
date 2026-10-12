@@ -28,7 +28,7 @@ function Review({ latest, onApply, onCancel }: { latest: ReturnType<typeof useDo
         <Card testID="fill-document-review">
             <View style={styles.stack}>
                 <Text variant="body" weight="semibold">
-                    {t('mobile.flow.fill.review_title', 'Review template update')}
+                    {t('automations.document_fields.review_template_update', 'Review template update')}
                 </Text>
                 {latest.isPending ? <Note>{t('common.loading', 'Loading...')}</Note> : null}
                 {latest.isError ? <Warn tone="error">{t('mobile.flow.fill.load_failed', 'Could not load your documents.')}</Warn> : null}
@@ -43,7 +43,7 @@ function Review({ latest, onApply, onCancel }: { latest: ReturnType<typeof useDo
                     <Button size="sm" variant="secondary" label={t('common.cancel', 'Cancel')} onPress={onCancel} />
                     <Button
                         size="sm"
-                        label={t('mobile.flow.fill.apply_revision', 'Apply reviewed revision')}
+                        label={t('automations.document_fields.apply_reviewed_revision', 'Apply reviewed revision')}
                         disabled={!next?.versionId}
                         onPress={() => next && onApply(next.versionId)}
                         testID="fill-document-apply-revision"
@@ -82,7 +82,7 @@ export function RevisionReview({
                     <Button
                         size="sm"
                         variant="ghost"
-                        label={t('mobile.flow.fill.review_update', 'Review available update')}
+                        label={t('automations.document_fields.review_available_update', 'Review available update')}
                         onPress={() => setReviewing(true)}
                         disabled={disabled}
                         testID="fill-document-review-update"

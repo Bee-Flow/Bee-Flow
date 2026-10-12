@@ -21,6 +21,7 @@
 import { Plus } from 'lucide-react';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import DlpCategoryBadge from './DlpCategoryBadge';
+import { customLabel } from './DlpFindingsSummaryBar';
 import { buildRuns } from './dlpFindingsState';
 import { categoryStyle } from '../../../config/dlpCategoryColors';
 import { useTranslation } from '../../../hooks/useTranslation';
@@ -150,7 +151,7 @@ export default function DlpHighlightedText({ text, spans, onAddSpan, onRemoveSpa
             >
                 {openSpan && (
                     <>
-                        <DlpCategoryBadge categoryId={openSpan.category} source={openSpan.source} confidenceBand={openSpan.confidenceBand} />
+                        <DlpCategoryBadge categoryId={openSpan.category} source={openSpan.source} confidenceBand={openSpan.confidenceBand} label={customLabel(openSpan)} />
                         {openSpan.source === 'manual' && onRemoveSpan && (
                             <button
                                 type="button"

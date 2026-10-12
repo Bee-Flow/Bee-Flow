@@ -1,4 +1,5 @@
 import { invalidateIntegrationStatus } from './useIntegrationStatus';
+import { invalidateChatSignals } from '../api/queries/chatSignals';
 import { invalidateShieldStatus } from './useShieldStatus';
 import { invalidateSkills } from './useSkills';
 import { invalidateTrainingGates } from './useTrainingGates';
@@ -60,6 +61,8 @@ import { invalidateAllowedModelsCache } from '../utils/modelMeta';
 export function clearSessionCaches(): void {
     invalidateIntegrationStatus();
     invalidateShieldStatus();
+    // The person's own "don't count my chat turns" choice and the agent gates.
+    invalidateChatSignals();
     invalidateSkills();
     invalidateTrainingGates();
     clearAppRefCache();

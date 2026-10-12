@@ -72,9 +72,14 @@ async function runServe() {
     setInterval(() => {}, 1 << 30);
 }
 
+// What `npx playwright` resolved to: @playwright/test's bin (package.json "bin": cli.js).
+const PLAYWRIGHT_CLI = '/runner/node_modules/@playwright/test/cli.js';
+
 function runSuite() {
     const { spawn } = require('child_process');
-    const child = spawn('npx', ['playwright', 'test', '--config', '/work/playwright.config.ts'], {
+    // The test runner's own CLI, started with this node: the image carries no
+    // npm/npx (the release container gate fails on the base's bundled npm).
+    const child = spawn(process.execPath, [PLAYWRIGHT_CLI, 'test', '--config', '/work/playwright.config.ts'], {
         cwd: '/runner',
         env: { ...process.env, CI: '1' },
         stdio: 'inherit',
