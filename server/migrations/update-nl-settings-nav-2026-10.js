@@ -12,6 +12,11 @@
  *   - The organisation row "Context in lange gesprekken" also holds memory, AI
  *     in team chats and co-editing, so it is called "AI & samenwerking".
  *   - The sidebar header above the personal rows is "Persoonlijk".
+ *   - The personal page itself is "Koppelingen" everywhere. Workspaces that
+ *     date from before the public history still carry the page's older Dutch
+ *     name "Verbindingen" (see the header of add-nl-connections-translations),
+ *     which no longer matched the copy that points to the page, and now
+ *     collides with the "Benoemde verbindingen" block on it.
  *
  * Two kinds of key:
  *   NL_TRANSLATIONS  keys with no shipped Dutch yet; written when a workspace
@@ -161,6 +166,10 @@ const NL_REWORDED = Object.freeze({
     "connections.title": {
         was: ["Verbindingen"],
         now: "Benoemde verbindingen",
+    },
+    "settings.connections": {
+        was: ["Verbindingen"],
+        now: "Koppelingen",
     },
     "compliance.conn_connection_hint": {
         was: ["Maak eerst een koppeling \"{provider}\" aan bij Integraties. Het secret blijft in de versleutelde kluis."],
