@@ -104,7 +104,7 @@ async function seed() {
     // The id at an unknown depth, which is the whole reason for jsonb_path_exists.
     await q(`INSERT INTO automations (id, title, user_id, definition_json) VALUES
         ('au1','Weekly digest','u1',$1),
-        ('au2','Unrelated routine','u2',$2)`, [
+        ('au2','Unrelated automation','u2',$2)`, [
         JSON.stringify({ steps: [{ type: 'ai_step', branches: [{ steps: [{ knowledgeBaseIds: [KB] }] }] }] }),
         JSON.stringify({ steps: [{ knowledgeBaseIds: [OTHER] }] }),
     ]);
@@ -215,7 +215,7 @@ test('scrub removes the id from every array, and leaves the others intact', asyn
     assert.ok(!kinds.has('template'));
 
     // Deliberately untouched — rewriting arbitrary definition JSON in place
-    // risks corrupting a routine somebody spent an afternoon building.
+    // risks corrupting an automation somebody spent an afternoon building.
     assert.ok(kinds.has('automation'));
     assert.ok(kinds.has('app'));
 
@@ -231,7 +231,7 @@ test('scrub removes the id from every array, and leaves the others intact', asyn
 
 test('scrubbing an ingest target switches the ingest off with it', async () => {
     // A null target with the flag still on is the silent version of the same
-    // breakage: the routine runs and writes nowhere.
+    // breakage: the automation runs and writes nowhere.
     await scrubReferences(INGEST_KB, { db });
     const row = (await q(`SELECT kb_ingest_enabled, kb_ingest_kb_id FROM support_inboxes WHERE id = 'sb2'`)).rows[0];
     assert.strictEqual(row.kb_ingest_kb_id, null);

@@ -3,7 +3,7 @@
  *
  * Mounted at its own path rather than under /api/automation on purpose:
  * routes/automation.routetable.test.js freezes that router's (method, path)
- * table, and a datatable is not a routine.
+ * table, and a datatable is not an automation.
  *
  * ── TWO SCOPES ──────────────────────────────────────────────────────
  * A table belongs either to an ORGANISATION or to ONE ACCOUNT. The second is
@@ -49,7 +49,7 @@
  *
  * Reads and row writes on a table the caller ALREADY holds a grade on are
  * deliberately ungated — the drain exemption Approvals uses. A licence lapse
- * must never turn a nightly routine into a silent hole in the org's data; what
+ * must never turn a nightly automation into a silent hole in the org's data; what
  * it refuses is NEW sharing.
  *
  * ── AND `manage_datatables` IS AN ORG-SCOPE GATE ────────────────────

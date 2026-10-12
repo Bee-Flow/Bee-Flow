@@ -1,11 +1,11 @@
 /**
  * The last screen of a journey — the web's FormEndingView: a single-page
  * form's thank-you, or a closing page the server rendered against the
- * finished run, whose text can be what the routine actually produced.
+ * finished run, whose text can be what the automation actually produced.
  *
  * A long closing (a summary, a draft, an analysis) is a document, and it is
  * gone once the screen closes — so it gets the export bar: share it as a
- * .txt, copy it, or save it into a new notebook. Files the routine made are
+ * .txt, copy it, or save it into a new notebook. Files the automation made are
  * handed over below it.
  */
 
@@ -19,7 +19,7 @@ import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { isDisplayField } from '@/features/forms/model/contract';
 import type { FillForm } from '@/features/forms/model/fillTypes';
-import { isLongEnding, txtFilename } from '@/features/forms/model/fillValues';
+import { isLongEnding, resultFilename } from '@/features/forms/model/fillValues';
 import { Markdown } from '@/shared/markdown';
 import { Button, Icon, Text } from '@/shared/ui';
 
@@ -47,16 +47,16 @@ function ExportBar({ text, title, onSaveToNotebook }: { text: string; title: str
     return (
         <View style={styles.bar} testID="fill-export">
             <View style={styles.actions}>
-                <Button size="sm" variant="secondary" iconName="Share2" label={t('mobile.forms.fill.share_text', 'Share as .txt')} onPress={() => void shareText(text, txtFilename(title))} />
+                <Button size="sm" variant="secondary" iconName="Share2" label={t('mobile.forms.fill.share_text', 'Share as .txt')} onPress={() => void shareText(text, resultFilename(title, 'txt'))} />
                 <Button
                     size="sm"
                     variant="secondary"
                     iconName={copied ? 'Check' : 'Copy'}
-                    label={copied ? t('mobile.forms.fill.copied', 'Copied') : t('mobile.forms.fill.copy_text', 'Copy text')}
+                    label={copied ? t('forms.result.copied', 'Copied') : t('forms.result.copy', 'Copy text')}
                     onPress={() => void Clipboard.setStringAsync(text).then(() => setCopied(true))}
                 />
                 {onSaveToNotebook ? (
-                    <Button size="sm" variant="secondary" iconName="BookOpen" loading={saving} label={t('mobile.forms.fill.save_notebook', 'Save to Notebook')} onPress={() => void save()} />
+                    <Button size="sm" variant="secondary" iconName="BookOpen" loading={saving} label={t('forms.result.save_notebook', 'Save to Notebook')} onPress={() => void save()} />
                 ) : null}
             </View>
             {error ? (

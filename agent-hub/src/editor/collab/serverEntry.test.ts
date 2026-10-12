@@ -12,7 +12,7 @@ describe('server entry', () => {
         const fns = [
             'markdownToAst', 'htmlToAst', 'astToMarkdown', 'astToHtml', 'normalizeLight', 'astToFragment', 'fragmentToAst',
             'createYCache', 'sameInY', 'syncDocToFragment', 'relativeFromPos', 'posFromRelative', 'encodeRelpos',
-            'decodeRelpos', 'diffDocs', 'diffHtml', 'diffMarkdown',
+            'decodeRelpos', 'diffDocs', 'diffHtml', 'diffMarkdown', 'hunksFrom', 'anchorsForFragment', 'applyHunks', 'hunkWords',
         ];
         for (const name of fns) expect(typeof (entry as Record<string, unknown>)[name], name).toBe('function');
         expect(entry.FRAGMENT_NAME).toBe('content');

@@ -83,6 +83,52 @@ export default function CollapsibleSection({
         </span>
     );
 
+    // "quiet": the Advanced toggle. Small grey words and a hairline — always
+    // there to find, never competing with the settings above it.
+    if (kind === 'quiet') {
+        return (
+            <div data-variant="quiet">
+                <div className="flex items-center gap-2">
+                    <button
+                        type="button"
+                        onClick={toggle}
+                        aria-expanded={open}
+                        className={`inline-flex items-center gap-1 shrink-0 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] rounded ${FOCUS_RING}`}
+                    >
+                        <ChevronRight size={12} className={`transition-transform duration-150 ${open ? 'rotate-90' : ''}`} />
+                        <span>{title}</span>
+                    </button>
+                    {badgePill}
+                    {meta}
+                    <span aria-hidden="true" className="flex-1 h-px bg-[var(--border-subtle)]" />
+                </div>
+                {open && <div className={railClass()}>{children}</div>}
+            </div>
+        );
+    }
+
+    // "static": a heading, not a toggle. The block it names is always there
+    // (a step's inputs are what the step is for; folding them away only hid
+    // the work).
+    if (kind === 'static') {
+        return (
+            <div data-variant="static">
+                <div className={bandClass()}>
+                    <h3 className={`flex-1 min-w-0 px-2 py-1.5 ${sectionHeaderClass()}`}>
+                        <span className="truncate">{title}</span>
+                    </h3>
+                    {(badgePill || meta) && (
+                        <div className="shrink-0 flex items-center gap-1.5">
+                            {badgePill}
+                            {meta}
+                        </div>
+                    )}
+                </div>
+                <div className={railClass()}>{children}</div>
+            </div>
+        );
+    }
+
     if (kind === 'disclosure') {
         return (
             <div data-variant="disclosure">

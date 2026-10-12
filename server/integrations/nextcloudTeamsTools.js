@@ -9,9 +9,9 @@
  *
  * Why it matters for automation: a Team is the unit people actually share with.
  * Sharing a folder with fourteen named users is what an admin does by hand; a
- * routine shares it with the "Onboarding 2026" team once. Without these tools
+ * automation shares it with the "Onboarding 2026" team once. Without these tools
  * `nextcloud_share_with_group` is the only grouping primitive available, and
- * groups are admin-managed — users cannot create them, so a routine cannot
+ * groups are admin-managed — users cannot create them, so an automation cannot
  * assemble an ad-hoc audience.
  *
  * API: `/ocs/v2.php/apps/circles/circles[...]`. Requires the Circles/Teams app,
@@ -216,7 +216,7 @@ function mapTeam(c) {
 function mapMember(m) {
     return {
         // The member id is a circles-internal handle, NOT the Nextcloud uid —
-        // removal and level changes address this, which is a routine footgun
+        // removal and level changes address this, which is an automation footgun
         // worth surfacing in the output.
         id: m.id,
         userId: m.userId || m.singleId || null,

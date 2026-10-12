@@ -48,7 +48,7 @@ const { isLoginBlockedAccount, REFUSAL } = require('../accountStatusGate');
 const userStore = require('../../stores/userStore');
 // Plan- AND licence-aware entitlement check — see the note on the same import
 // in oauth/providerCallbackRoutes.js and stores/encryptionAvailability.js.
-const { isEncryptionEnabledForUser } = require('../../stores/encryptionAvailability');
+const { isSsoPinRequiredForUser } = require('../../stores/encryptionAvailability');
 const { _vaultUpsertSafe, getReturnUrl, oauthStatesMatch, popupRedirect } = require('./shared');
 
 // Legacy Nextcloud login redirect
@@ -194,7 +194,7 @@ router.get('/callback', async (req, res) => {
         req.session.isAuthenticated = true;
         req.session.isAdmin = freshUserLegacy?.role === 'admin';
 
-        // Long-lived encrypted vault copy for unattended routines.
+        // Long-lived encrypted vault copy for unattended automations.
         if (freshUserLegacy?.organizationId && user?.id) {
             await _vaultUpsertSafe({
                 userId: user.id,
@@ -204,7 +204,7 @@ router.get('/callback', async (req, res) => {
             });
         }
         // Handle SSO encryption with backward compatibility
-        const encryptionEnabled = await isEncryptionEnabledForUser(user?.id || 'oauth-user');
+        const encryptionEnabled = await isSsoPinRequiredForUser(user?.id || 'oauth-user');
         const ssoResult = await getOrCreateSSOUserDEKCompat(user?.id || 'oauth-user', encryptionEnabled);
         if (ssoResult.encryptionKey) {
             req.session.encryptionKey = ssoResult.encryptionKey;

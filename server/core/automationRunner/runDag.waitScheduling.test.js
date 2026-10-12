@@ -13,7 +13,7 @@
  *
  * Exactly one node of branch A got ahead of the sleep and the rest of the
  * workflow waited it out — which is what users report as "one Wait pauses the
- * whole routine".
+ * whole automation".
  *
  * Fix: at the dequeue, prefer any runnable node that is NOT an enabled wait;
  * take a wait only when nothing else is runnable. Independent branches drain
@@ -218,7 +218,7 @@ test('lastOutput is never the Wait, even when the Wait dispatched last', async (
     const result = await runDag(def, {}, baseState(), 'live', dispatch, { recordSteps: false });
     assert.strictEqual(ran[ran.length - 1], 'w', 'the wait really is the last dispatch');
     assert.deepStrictEqual(result.lastOutput, { ranId: 'a1' },
-        '{ waitedSeconds } is bookkeeping, not a routine result');
+        '{ waitedSeconds } is bookkeeping, not an automation result');
 });
 
 // ── Why the reorder is gated off for replaying walks ─────────────────────────
@@ -327,4 +327,33 @@ test('deferral means a sibling Wait has not slept yet when an approval pauses th
     assert.strictEqual(ran.filter(id => id === 'w').length, 0, 'the un-run wait is replayed, not dispatched');
     assert.ok(ran.includes('b2'), 'branch B continues past it');
     assert.ok(ran.includes('a2'), 'branch A continues past the approval');
+});
+
+// ── A flowlet's Return goes last (2026-10-09) ────────────────────────────────
+// The AI builder saved "add after the flowlet input" as a branch BESIDE the
+// Return (trg → out, trg → web → fmt). FIFO ran the Return second, before the
+// work it returns, and the flowlet handed its caller an empty record.
+
+const ret = { id: 'out', type: 'layer_output', fields: {} };
+
+test('a Return wired beside the work runs after all of it', async () => {
+    const def = {
+        trigger: { id: 'trg', kind: 'layer_input' },
+        steps: [ret, note('web'), note('fmt')],
+        edges: [{ from: 'trg', to: 'out' }, { from: 'trg', to: 'web' }, { from: 'web', to: 'fmt' }],
+    };
+    const { ran, dispatch } = makeDispatcher();
+    await runDag(def, {}, baseState(), 'live', dispatch, { recordSteps: false });
+    assert.deepStrictEqual(ran, ['web', 'fmt', 'out']);
+});
+
+test('the Return goes after a deferred Wait too', async () => {
+    const def = {
+        trigger: { id: 'trg', kind: 'layer_input' },
+        steps: [ret, wait('w'), note('after')],
+        edges: [{ from: 'trg', to: 'out' }, { from: 'trg', to: 'w' }, { from: 'w', to: 'after' }],
+    };
+    const { ran, dispatch } = makeDispatcher();
+    await runDag(def, {}, baseState(), 'live', dispatch, { recordSteps: false });
+    assert.deepStrictEqual(ran, ['w', 'after', 'out']);
 });

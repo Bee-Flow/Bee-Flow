@@ -1,3 +1,4 @@
+import { Check } from 'lucide-react';
 import React from 'react';
 import { TONES } from './statusTone';
 
@@ -13,16 +14,23 @@ import { TONES } from './statusTone';
  * as a black block. The active state is a TINT instead:
  *
  *   neutral  inactive = hairline border + secondary text (the chip as it was)
- *            active   = the accepted FilterChip recipe — accent at 14 %,
- *                       accent border, accent text
+ *            active   = primary text, a primary-ink border on a bg-tertiary
+ *                       tint, count in secondary. (Until Oct 2026 this was the
+ *                       grey accent at 14 %: grey on grey, about 2.4:1, so the
+ *                       selected "All" looked disabled.)
  *   toned    (success · warning · error — "Failing 1", "Overdue 1",
  *            "Approved 9") inactive = border in the tone's RAW colour, text in
  *            its INK (exactly the artboard's inactive look);
- *            active = the same border and ink over a 14 % tint of the raw —
- *            the StatusActionPill cell recipe, so status keeps carrying the
- *            meaning while the area colour stays teal
+ *            active = the same border and ink over a 14 % tint of the raw,
+ *            and the border goes to 1.5px, so a selection never depends on
+ *            colour alone (the padding gives the half pixel back: the pill
+ *            does not grow when it is pressed)
  *   muted    ("N/A 1", "Rejected 1") tertiary text, hairline; active fills
  *            with bg-tertiary
+ *
+ * `checked` draws a Check glyph before the label: a pill in a MULTI-select
+ * (the legal bases in Settings), where several are on at once and the glyph
+ * says which ones without relying on the tint.
  *
  * The count follows the label in tabular figures. A count that is undefined
  * or null renders NOTHING — a pill for a filter nobody has counted yet must
@@ -30,6 +38,17 @@ import { TONES } from './statusTone';
  */
 
 export const PILL_TONES = Object.freeze(['neutral', 'success', 'warning', 'error', 'muted']);
+const TONED = new Set(['success', 'warning', 'error']);
+
+const PILL_BASE = 'inline-flex items-center gap-1 rounded-full text-[11px] font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]';
+
+/**
+ * The pill's box: a pressed toned pill has a 1.5px border, and its padding
+ * loses the half pixel so the pill keeps its size.
+ */
+function pillBox(tone, active) {
+    return active && TONED.has(tone) ? 'border-[1.5px] px-[7.5px] py-[1.5px]' : 'border px-2 py-0.5';
+}
 
 /** The four colours of a pill in a given tone/state. Exported for tests and for hosts that draw their own. */
 export function pillStyle(tone = 'neutral', active = false) {
@@ -50,12 +69,12 @@ export function pillStyle(tone = 'neutral', active = false) {
             countColor: 'var(--text-tertiary)',
         };
     }
-    // neutral — the FilterChip recipe, unchanged for its existing callers.
+    // neutral: ink on a tertiary tint when active, so it reads as ON.
     return {
-        background: active ? 'color-mix(in srgb, var(--accent-primary) 14%, transparent)' : 'transparent',
-        borderColor: active ? 'var(--accent-primary)' : 'var(--border-default)',
-        color: active ? 'var(--accent-primary)' : 'var(--text-secondary)',
-        countColor: active ? 'var(--accent-primary)' : 'var(--text-tertiary)',
+        background: active ? 'var(--bg-tertiary)' : 'transparent',
+        borderColor: active ? 'var(--text-primary)' : 'var(--border-default)',
+        color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
+        countColor: active ? 'var(--text-secondary)' : 'var(--text-tertiary)',
     };
 }
 
@@ -65,6 +84,7 @@ export function FilterPill({
     active = false,
     onClick = undefined,
     tone = 'neutral',
+    checked = false,
     disabled = false,
     title = undefined,
     testId = undefined,
@@ -80,9 +100,11 @@ export function FilterPill({
             aria-pressed={active}
             data-testid={testId}
             data-tone={t}
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium border transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
+            data-checked={checked || undefined}
+            className={`${PILL_BASE} ${pillBox(t, active)}`}
             style={{ background: s.background, borderColor: s.borderColor, color: s.color }}
         >
+            {checked && <Check size={11} strokeWidth={2.5} aria-hidden="true" className="flex-shrink-0" />}
             <span className="truncate max-w-[9rem]">{label}</span>
             {count !== undefined && count !== null && (
                 <span className="tabular-nums" style={{ color: s.countColor }}>{count}</span>

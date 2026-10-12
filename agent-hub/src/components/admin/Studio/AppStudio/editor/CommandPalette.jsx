@@ -1,5 +1,6 @@
 import { Command, Search, X } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import useTranslation from '../../../../../hooks/useTranslation';
 import Modal from '../../../../shared/Modal';
 
 /**
@@ -12,6 +13,7 @@ import Modal from '../../../../shared/Modal';
  * navigation stays over the flat filtered list.
  */
 export default function CommandPalette({ open, onClose, actions = [] }) {
+    const { t } = useTranslation();
     const [query, setQuery] = useState('');
     const [focusIdx, setFocusIdx] = useState(0);
     const listRef = useRef(null);
@@ -61,7 +63,7 @@ export default function CommandPalette({ open, onClose, actions = [] }) {
             size="auto"
             variant="bare"
             zIndex={80}
-            label="Command palette"
+            label={t('studio_apps_edit.command_palette.label', 'Command palette')}
             className="w-[560px] max-w-[90vw] rounded-lg border shadow-xl"
             data-testid="command-palette"
         >
@@ -77,8 +79,8 @@ export default function CommandPalette({ open, onClose, actions = [] }) {
                             else if (e.key === 'ArrowUp') { e.preventDefault(); setFocusIdx((i) => Math.max(0, i - 1)); }
                             else if (e.key === 'Enter' && filtered[focusIdx]) { e.preventDefault(); choose(filtered[focusIdx]); }
                         }}
-                        placeholder="Type a command…"
-                        aria-label="Command palette search"
+                        placeholder={t('studio_apps_edit.command_palette.placeholder', 'Type a command…')}
+                        aria-label={t('studio_apps_edit.command_palette.search_aria', 'Command palette search')}
                         className="flex-1 bg-transparent text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)]"
                         style={{ color: 'var(--text-primary)' }}
                     />
@@ -88,7 +90,7 @@ export default function CommandPalette({ open, onClose, actions = [] }) {
                     <button
                         type="button"
                         onClick={onClose}
-                        aria-label="Close command palette"
+                        aria-label={t('studio_apps_edit.command_palette.close', 'Close command palette')}
                         style={{ color: 'var(--text-tertiary)' }}
                     >
                         <X size={14} />
@@ -98,7 +100,7 @@ export default function CommandPalette({ open, onClose, actions = [] }) {
                 <div ref={listRef} className="max-h-[50vh] overflow-y-auto py-1 custom-scrollbar">
                     {filtered.length === 0 ? (
                         <div className="px-3 py-4 text-[12px] italic" style={{ color: 'var(--text-tertiary)' }}>
-                            No matching commands.
+                            {t('studio_apps_edit.command_palette.empty', 'No matching commands.')}
                         </div>
                     ) : filtered.map((a, i) => {
                         const showGroup = a.group && a.group !== lastGroup;

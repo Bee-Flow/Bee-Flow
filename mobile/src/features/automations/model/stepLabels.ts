@@ -1,5 +1,5 @@
 /**
- * What a step of a RUN is called: its label from the routine's definition,
+ * What a step of a RUN is called: its label from the automation's definition,
  * never its id.
  *
  * A run step carries only an id (`act_4d4307a`, and `call_1/act_9f2c` for a
@@ -65,11 +65,11 @@ type Kind = (type: string | undefined) => string;
 
 function nameStep(step: NamedStep | null | undefined, definition: NamedDefinitionInput, t: NameTranslate, kind: Kind): string | null {
     if (!step) return null;
-    if (step.type === 'trigger') return step.label || t('routines.node.trigger.defaultLabel', 'Trigger');
-    if (step.type === 'call_layer') return step.label || flowletTitle(step, definition) || t('routines.node.call_layer.typeLabel', 'Flowlet');
+    if (step.type === 'trigger') return step.label || t('automations.node.trigger.defaultLabel', 'Trigger');
+    if (step.type === 'call_layer') return step.label || flowletTitle(step, definition) || t('automations.node.call_layer.typeLabel', 'Flowlet');
     if (step.label && step.label.trim()) return step.label;
     if (step.type === 'integration_action' && step.tool) return humanizeToolName(step.tool);
-    if (step.type === 'layer_output') return t('routines.node.layer_output.defaultLabel', 'Return');
+    if (step.type === 'layer_output') return t('automations.node.layer_output.defaultLabel', 'Return');
     return kind(step.type);
 }
 
@@ -103,7 +103,7 @@ function known(stepId: string, names: ReadonlyMap<string, string>): string | und
 }
 
 export function nameFor(stepId: string | null | undefined, names: ReadonlyMap<string, string>, t: NameTranslate): string {
-    if (!stepId) return t('routines.builder.node_generic', 'Step');
+    if (!stepId) return t('automations.builder.node_generic', 'Step');
     return known(stepId, names) || stepId;
 }
 
@@ -152,5 +152,5 @@ export function runStepTitle(
 ): string {
     const name = step.stepId ? known(step.stepId, names) : undefined;
     if (name) return name;
-    return step.stepType ? kindName(step.stepType) : t('routines.builder.node_generic', 'Step');
+    return step.stepType ? kindName(step.stepType) : t('automations.builder.node_generic', 'Step');
 }

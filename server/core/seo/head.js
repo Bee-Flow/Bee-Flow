@@ -46,6 +46,11 @@ function absolute(origin, urlOrPath) {
  * @param {object} ctx.page        the resolved CMS page
  * @param {object} ctx.design      site design (favicon, logo)
  * @param {string} ctx.siteName
+ * @param {string} [ctx.ogType]          'website' (default) or 'article' (blog post)
+ * @param {object} [ctx.article]         { publishedTime, modifiedTime, author, tags } → article:* tags
+ * @param {object[]} [ctx.extraJsonLd]   extra @graph nodes (BlogPosting, Blog)
+ * @param {{ name: string, path: string }[]} [ctx.breadcrumbTrail] replaces the Home › page crumbs
+ * @param {string[]} [ctx.extraLinks]    pre-built <link> tags (the blog's RSS alternate)
  * @returns {string} tags to splice into <head>
  */
 function buildHead(ctx) {
@@ -75,7 +80,7 @@ function buildHead(ctx) {
     if (seo.noIndex) out.push(meta('robots', 'noindex, nofollow'));
     else out.push(meta('robots', 'index, follow, max-image-preview:large'));
 
-    out.push(meta('og:type', slug ? 'website' : 'website', { property: true }));
+    out.push(meta('og:type', ctx.ogType === 'article' ? 'article' : 'website', { property: true }));
     out.push(meta('og:site_name', siteName, { property: true }));
     out.push(meta('og:title', title, { property: true }));
     out.push(meta('og:description', description, { property: true }));
@@ -85,6 +90,13 @@ function buildHead(ctx) {
         out.push(meta('og:locale:alternate', alt, { property: true }));
     }
     if (image) out.push(meta('og:image', image, { property: true }));
+    if (ctx.ogType === 'article' && ctx.article) {
+        const a = ctx.article;
+        out.push(meta('article:published_time', a.publishedTime, { property: true }));
+        out.push(meta('article:modified_time', a.modifiedTime, { property: true }));
+        out.push(meta('article:author', a.author, { property: true }));
+        for (const tag of (a.tags || []).slice(0, 10)) out.push(meta('article:tag', tag, { property: true }));
+    }
 
     out.push(meta('twitter:card', image ? 'summary_large_image' : 'summary'));
     out.push(meta('twitter:title', title));
@@ -103,6 +115,7 @@ function buildHead(ctx) {
     }
 
     if (favicon) out.push(`<link rel="icon" href="${esc(favicon)}">`);
+    for (const link of ctx.extraLinks || []) out.push(link);
 
     // Font preloads + first-paint font variables. Emitted here because the
     // server is the only party that knows the design BEFORE first paint —
@@ -118,10 +131,12 @@ function buildHead(ctx) {
         sameAs: ['https://github.com/Bee-Flow/Bee-Flow'],
         blocks: page.blocks || [],
         isProductPage: PRODUCT_SLUGS.has(slug),
+        extraNodes: ctx.extraJsonLd,
+        breadcrumbTrail: ctx.breadcrumbTrail,
     });
     out.push(`<script type="application/ld+json">${jsonForScript(jsonLd)}</script>`);
 
     return out.filter(Boolean).join('\n    ');
 }
 
-module.exports = { buildHead, TITLE_MAX, DESC_MAX };
+module.exports = { buildHead, absolute, TITLE_MAX, DESC_MAX };

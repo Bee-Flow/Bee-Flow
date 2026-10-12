@@ -30,12 +30,18 @@
  */
 
 const crypto = require('crypto');
-const { run, getOne, getAll, exec, withTransaction } = require('../db');
+const contentCrypto = require('./lib/documentCrypto');
+const { run, getOne, getAll, exec, withTransaction } = contentCrypto.readingDb(require('../db'));
 const { makeStoreInit } = require('./lib/storeInit');
 const { runDdl, CODES } = require('./lib/_ddl');
 const { projectRoleOf, canEditAs } = require('./lib/projectRole');
 const versions = require('./documentVersions');
 const { isCoEdited } = require('./lib/coEditGuard');
+const solutionTemplates = require('./document/solutionTemplates');
+const managedParts = require('./lib/managedParts');
+const notebookLibrary = require('./notebookLibrary');
+const { sharingDdl, sharingSql, editSharingSql, visibilitySql } = require('./lib/documentSharing');
+const { SHEET_DOC_TYPE, applySheetRules, keepSheetOnUpdate, sheetSettingsForCreate } = require('./lib/sheetDocument');
 
 // A document is a person-sized artefact. 512 KB of markup is already a very
 // long invoice; the cap exists so a runaway model or a paste-bomb cannot turn
@@ -57,12 +63,12 @@ const MAX_CSS_BYTES = 128 * 1024;
 // together, live, and what one person stores is what the next one's editor
 // loads. Its `css` stays empty; it prints with the house style and the page
 // stylesheet of core/documents/pageDocument.js.
-const DOC_TYPES = Object.freeze(['invoice', 'quote', 'letter', 'report', 'security', 'document', 'presentation', 'page']);
+// A 'spreadsheet' keeps its cells in a datatable (stores/lib/sheetDocument.js).
+const DOC_TYPES = Object.freeze(['invoice', 'quote', 'letter', 'report', 'security', 'document', 'presentation', 'page', 'spreadsheet']);
 const DEFAULT_DOC_TYPE = 'document';
 const DECK_DOC_TYPE = 'presentation';
 const PAGE_DOC_TYPE = 'page';
-// What the library's type filter calls a designed document: everything
-// written in the frame, so neither a presentation nor a page.
+// The library's 'designed': written in the frame (no deck, page or sheet).
 const DESIGNED_FILTER = 'designed';
 
 // A presentation's settings may carry a template deck (two backdrop pictures
@@ -141,6 +147,8 @@ const initDB = makeStoreInit('DocumentStore', async () => {
                     'kind', kind, 'versionId', version_id, 'organizationId', organization_id)
             FROM studio_documents ON CONFLICT (id) DO NOTHING;
     `);
+    await exec(sharingDdl('studio_documents'));
+    await exec(`CREATE TABLE IF NOT EXISTS studio_sheet_documents (datatable_id TEXT PRIMARY KEY, document_id TEXT NOT NULL REFERENCES studio_documents(id) ON DELETE CASCADE)`);
     // Project membership (projects/membership.js, kind 'document').
     //
     // A NULL project_id is today's document exactly: its owner's, private. A set
@@ -159,6 +167,9 @@ const initDB = makeStoreInit('DocumentStore', async () => {
             tolerate: CODES.UNDEFINED_TABLE,
             reden: 'projects table may not exist yet on a cold boot',
         },
+        // A template filed into a Solution (D21; functions in document/solutionTemplates.js).
+        `ALTER TABLE studio_documents ADD COLUMN IF NOT EXISTS solution_project_id TEXT`,
+        `CREATE INDEX IF NOT EXISTS idx_studio_documents_solution ON studio_documents(solution_project_id) WHERE solution_project_id IS NOT NULL`,
         // Version rows describe their making (documentVersions.js), and a
         // document remembers who changed it last.
         ...versions.VERSION_DDL,
@@ -178,7 +189,7 @@ const initDB = makeStoreInit('DocumentStore', async () => {
             FROM studio_document_versions v
             JOIN studio_documents d ON d.id = v.document_id
             JOIN studio_document_versions b ON b.id = d.baseline_version_id
-            WHERE v.id > $1 AND (v.snapshot IS NULL OR NOT (COALESCE(v.snapshot->'settings','{}'::jsonb) ? 'resolvedHouseStyleCss'))
+            WHERE v.id > $1 AND NOT (COALESCE(v.snapshot, '{}'::jsonb) ? '_bfenc') AND (v.snapshot IS NULL OR NOT (COALESCE(v.snapshot->'settings','{}'::jsonb) ? 'resolvedHouseStyleCss'))
             ORDER BY v.id LIMIT 100`, [afterId]);
         if (!revisions.length) break;
         for (const revision of revisions) {
@@ -197,75 +208,7 @@ const initDB = makeStoreInit('DocumentStore', async () => {
 
 // Kick init off at require time — migrateDb.js and boot both depend on it.
 
-function mapRow(row) {
-    if (!row) return null;
-    let settings = {};
-    if (row.settings) {
-        settings = typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings;
-    }
-    return {
-        id: row.id,
-        userId: row.user_id,
-        name: row.name,
-        docType: row.doc_type,
-        description: row.description || '',
-        bodyHtml: row.body_html || '',
-        css: row.css || '',
-        settings,
-        organizationId: row.organization_id || null,
-        kind: row.kind || 'document', visibility: row.visibility || 'private',
-        folderId: row.folder_id || null, categories: row.categories || [],
-        versionId: row.version_id || null, baselineVersionId: row.baseline_version_id || null,
-        archived: row.archived === true,
-        projectId: row.project_id || null,
-        updatedBy: row.updated_by || null,
-        createdAt: row.created_at,
-        updatedAt: row.updated_at,
-    };
-}
-
-/**
- * The list row deliberately omits the slots. A documents list renders names,
- * types and dates; shipping every document's full markup to paint a list is
- * the kind of thing that only hurts once somebody has three hundred of them.
- */
-function mapListRow(row) {
-    if (!row) return null;
-    return {
-        id: row.id,
-        userId: row.user_id,
-        name: row.name,
-        docType: row.doc_type,
-        description: row.description || '',
-        kind: row.kind || 'document', visibility: row.visibility || 'private',
-        folderId: row.folder_id || null, categories: row.categories || [], versionId: row.version_id,
-        htmlSize: Number(row.html_size) || 0,
-        projectId: row.project_id || null,
-        updatedBy: row.updated_by || null,
-        archived: row.archived === true,
-        createdAt: row.created_at,
-        updatedAt: row.updated_at,
-    };
-}
-
-/**
- * The card a project listing shows. No slots and no library metadata (folder,
- * categories, visibility are the owner's own filing), just what a project
- * member needs to find the document and see whose it is.
- */
-function mapProjectCard(row) {
-    return {
-        id: row.id,
-        name: row.name,
-        docType: row.doc_type,
-        kind: row.kind || 'document',
-        userId: row.user_id,
-        projectId: row.project_id || null,
-        updatedBy: row.updated_by || null,
-        updatedAt: row.updated_at,
-        createdAt: row.created_at,
-    };
-}
+const { mapRow, mapListRow, mapProjectCard } = require('./document/rowMappers');
 
 /**
  * Refuse oversized slot content rather than truncating it. A silently cut-off
@@ -304,13 +247,14 @@ function metadata(input) {
     }
     const isDeck = normaliseType(input.docType) === DECK_DOC_TYPE;
     if (isDeck) {
-        // The per-deck look is validated the way a routine's overrides are: an
+        // The per-deck look is validated the way an automation's overrides are: an
         // unknown key or a bad colour is dropped, never an error, and '' means
         // "as the house style has it" — so only real choices are stored.
         const { normaliseDeckOverrides } = require('../core/documents/deckThemeOptions');
         input.settings = { ...input.settings, deck: normaliseDeckOverrides(input.settings.deck) };
         if (input.kind === 'section') throw failure('A presentation cannot be a reusable section');
     }
+    if (normaliseType(input.docType) === SHEET_DOC_TYPE) applySheetRules(input, failure);
     const cap = isDeck ? MAX_DECK_SETTINGS_BYTES : MAX_SETTINGS_BYTES;
     if (Buffer.byteLength(JSON.stringify(input.settings || {})) > cap) throw failure(`Document settings exceed ${Math.round(cap / 1024)} KB`);
     input.categories = [...new Set((Array.isArray(input.categories) ? input.categories : []).map(x => String(x).trim().slice(0, 80)).filter(Boolean))].slice(0, 30);
@@ -329,7 +273,7 @@ async function createDocument(input) {
     const id = crypto.randomUUID(); const versionId = crypto.randomUUID();
     // Verify membership even when a trusted caller supplies an organization.
     const owner = await getOne('SELECT "organizationId" FROM users WHERE id = $1', [d.userId]);
-    const org = d.organizationId || owner?.organizationId || null;
+    let org = d.organizationId || owner?.organizationId || null;
     if (d.organizationId && owner?.organizationId !== d.organizationId) throw failure('Organization mismatch', 403);
     if (d.visibility === 'team' && !org) throw failure('Team libraries require an organization');
     const projectId = d.projectId || null;
@@ -337,7 +281,12 @@ async function createDocument(input) {
         if ((d.kind || 'document') !== 'document') throw failure('Only documents can be filed into a project, not templates or sections', 422);
         const project = await getOne('SELECT organization_id FROM projects WHERE id = $1', [projectId]);
         if (!project) throw failure('Project not found', 404, 'project_not_found');
-        if ((project.organization_id || '') !== (org || '')) {
+        if (d.projectOrgChecked === true) {
+            // The caller (projects/projectOrg.belongsToProjectOrg) has checked the creator belongs to the project's
+            // organisation, which for an account whose organisation comes from a group is not the one on the account row.
+            // The item then carries the organisation the project stores, which is what later filing compares on.
+            org = project.organization_id || org;
+        } else if ((project.organization_id || '') !== (org || '')) {
             throw failure('This project belongs to another organization', 409, 'project_org_mismatch');
         }
     }
@@ -347,26 +296,35 @@ async function createDocument(input) {
     const doc = { id, userId: d.userId, organizationId: org, name: d.name || 'Untitled document',
         docType, description: d.description || '',
         bodyHtml: isPage ? sanitizePageBody(d.bodyHtml) : (d.bodyHtml || ''), css: isPage ? '' : (d.css || ''),
-        settings: d.settings || {}, kind: d.kind || 'document', visibility: d.visibility || 'private',
+        settings: sheetSettingsForCreate(d.settings, docType, input.sheetTableId, failure), kind: d.kind || 'document', visibility: d.visibility || 'private',
         folderId: d.folderId || null, categories: d.categories, versionId, baselineVersionId: versionId };
     doc.settings = { ...doc.settings, resolvedHouseStyleCss: await require('../core/documents/renderFilledDocument').houseStyleCssFor(doc,org) };
     return withTransaction(async client => {
+        const resource = { ...contentCrypto.resourceOfDocument(doc), projectId };
+        const stored = await contentCrypto.sealFields({ body_html: doc.bodyHtml, css: doc.css, settings: doc.settings }, resource, contentCrypto.DOCUMENT_FIELDS);
         await client.query(`INSERT INTO studio_documents
             (id,user_id,organization_id,name,doc_type,description,body_html,css,settings,kind,visibility,folder_id,categories,version_id,baseline_version_id,project_id,updated_by)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$14,$15,$2)`,
-        [id,d.userId,org,doc.name,doc.docType,doc.description,doc.bodyHtml,doc.css,JSON.stringify(doc.settings),doc.kind,doc.visibility,doc.folderId,JSON.stringify(doc.categories),versionId,projectId]);
-        await versions.writeRevision(client, doc, { summary: 'Created', source: 'created', actorId: d.userId });
+        [id,d.userId,org,doc.name,doc.docType,doc.description,stored.body_html,stored.css,JSON.stringify(stored.settings),doc.kind,doc.visibility,doc.folderId,JSON.stringify(doc.categories),versionId,projectId]);
+        if (docType === SHEET_DOC_TYPE) await require('./lib/sheetCrypto').attach(client, doc);
+        await versions.writeRevision(client, { ...doc, projectId }, { summary: 'Created', source: 'created', actorId: d.userId });
         const { rows } = await client.query('SELECT * FROM studio_documents WHERE id = $1', [id]);
         return rows[0] ? mapRow(rows[0]) : { ...doc, projectId };
     });
 }
 function accessSql(alias = 'd', write = false) {
-    return `((${alias}.user_id = $2 AND (${alias}.organization_id IS NULL OR ${alias}.organization_id = (SELECT "organizationId" FROM users WHERE id = $2))) OR (${alias}.visibility = 'team' AND ${alias}.kind IN ('template','section')
-        AND ${alias}.organization_id = (SELECT "organizationId" FROM users WHERE id = $2)${write ? ' AND $3::boolean' : ''}))`;
+    const sharing = write ? '' : ` OR (${alias}.archived = false AND ${sharingSql(alias)})`;
+    return `(((${alias}.user_id = $2 AND (${alias}.organization_id IS NULL OR ${alias}.organization_id = (SELECT "organizationId" FROM users WHERE id = $2))) OR (${alias}.visibility = 'team' AND ${alias}.sharing_audience IS NULL AND ${alias}.kind IN ('template','section')
+        AND ${alias}.organization_id = (SELECT "organizationId" FROM users WHERE id = $2)${write ? ' AND $3::boolean' : ''}))${sharing})`;
 }
 // A document a project member may see: filed, a plain document (templates and
 // sections have their own team sharing and are never project content), and not
 // archived by its owner.
+// What a library row reads, in the order notebookLibrary.notebookBranchSql
+// answers them, so the two halves of the library UNION line up.
+const LIBRARY_COLUMNS = `d.id, d.user_id, d.name, d.doc_type, d.description, d.kind, ${visibilitySql('d')} AS visibility, d.folder_id, d.categories,
+    d.version_id, OCTET_LENGTH(d.body_html) AS html_size, d.project_id, d.updated_by, d.archived, d.created_at, d.updated_at,
+    NULL::int AS source_count`;
 const PROJECT_DOCUMENT_SQL = `d.project_id IS NOT NULL AND d.kind = 'document' AND d.archived = false`;
 
 /**
@@ -381,12 +339,19 @@ const PROJECT_DOCUMENT_SQL = `d.project_id IS NOT NULL AND d.kind = 'document' A
 async function getDocument(documentId, context) {
     await initDB(); const a = actor(context);
     const own = await getOne(`SELECT d.* FROM studio_documents d WHERE d.id = $1 AND ${accessSql()}`, [documentId, a.userId]);
-    if (own) return mapRow(own);
+    if (own) {
+        const doc = mapRow(own);
+        if (own.user_id === a.userId || (own.visibility === 'team' && own.sharing_audience === null)) return doc;
+        const role = own.project_id ? await projectRoleOf(a.userId, own.project_id) : null;
+        return { ...doc, ...(role ? { projectRole: role } : {}), sharingRole: canEditAs(role) || (own.sharing_access === 'edit' && own.archived === false && await getOne(`SELECT 1 AS ok FROM studio_documents d WHERE d.id = $1 AND ${editSharingSql('d')}`, [documentId, a.userId])) ? 'editor' : 'viewer' };
+    }
     if (!documentId || !a?.userId) return null;
-    const shared = await getOne(`SELECT d.* FROM studio_documents d WHERE d.id = $1 AND ${PROJECT_DOCUMENT_SQL}`, [documentId]);
-    if (!shared) return null;
-    const role = await projectRoleOf(a.userId, shared.project_id);
+    const filed = await getOne(`SELECT d.id, d.project_id FROM studio_documents d WHERE d.id = $1 AND ${PROJECT_DOCUMENT_SQL}`, [documentId]);
+    if (!filed) return null;
+    const role = await projectRoleOf(a.userId, filed.project_id);
     if (!role) return null;
+    const shared = await getOne(`SELECT d.* FROM studio_documents d WHERE d.id = $1 AND d.project_id = $2 AND ${PROJECT_DOCUMENT_SQL}`, [documentId, filed.project_id]);
+    if (!shared) return null;
     return { ...mapRow(shared), projectRole: role };
 }
 async function getDocumentVersion(documentId, context, versionId) {
@@ -398,7 +363,7 @@ async function getDocumentVersion(documentId, context, versionId) {
     const snapshot = typeof v.snapshot === 'string' ? JSON.parse(v.snapshot) : v.snapshot;
     // A revision is the document's CONTENT at that time; where the document is
     // filed now is today's fact, never the one frozen into an old snapshot.
-    return { ...doc, ...(snapshot || { bodyHtml: v.body_html, css: v.css }), versionId: id, projectId: doc.projectId };
+    return { ...doc, ...(snapshot || { bodyHtml: v.body_html, css: v.css }), versionId: id, projectId: doc.projectId, sharingRole: doc.sharingRole, projectRole: doc.projectRole };
 }
 /**
  * The library list, one page of it, and how many there are in all.
@@ -412,35 +377,50 @@ async function listDocumentsPage(context, options = {}) {
     const { limit = 50, offset = 0, query = '', kind, visibility, folderId, category, sort } = options;
     const archived = options.archived === true;
     const params = [null, a.userId];
+    const bind = (value) => { params.push(value); return '$' + params.length; };
     const where = archived ? [accessSql(), 'd.archived = true', 'd.user_id = $2'] : [accessSql(), 'd.archived = false'];
-    const add = (sql, value) => { params.push(value); where.push(sql.replace('?', '$' + params.length)); };
-    if (query) add('(d.name ILIKE ? OR d.description ILIKE ?)', '%' + String(query).slice(0, 200) + '%');
-    // A search uses the same parameter for both columns.
-    if (query) where[where.length - 1] = where.at(-1).replace('?', '$' + params.length);
-    if (kind) add('d.kind = ?', kind);
+    // The filters a notebook row answers too, by placeholder (notebookLibrary).
+    const shared = { query: '', folder: null, folderSet: folderId !== undefined, category: '', visibility };
+    if (query) {
+        shared.query = bind('%' + String(query).slice(0, 200) + '%');
+        where.push(`(d.name ILIKE ${shared.query} OR d.description ILIKE ${shared.query})`);
+    }
+    if (kind) where.push(`d.kind = ${bind(kind)}`);
     else if (options.onlyFillable) where.push("d.kind != 'section'");
+    if (options.onlyFillable) where.push(`d.doc_type <> ${bind(SHEET_DOC_TYPE)}`); // nothing in a sheet is filled in
     // `docType` narrows to one type; 'designed' is every document written in
-    // the frame, so neither a presentation nor a page.
+    // the frame, so neither a presentation nor a page. 'notebook' is no
+    // studio_documents type: only notebook rows answer it.
     if (options.docType === DESIGNED_FILTER) {
-        add('d.doc_type <> ?', DECK_DOC_TYPE);
-        add('d.doc_type <> ?', PAGE_DOC_TYPE);
-    } else if (options.docType && DOC_TYPES.includes(options.docType)) add('d.doc_type = ?', options.docType);
-    if (visibility) add('d.visibility = ?', visibility);
-    if (folderId !== undefined) folderId ? add('d.folder_id = ?', folderId) : where.push('d.folder_id IS NULL');
-    if (category) add('d.categories @> ?::jsonb', JSON.stringify([category]));
+        where.push(`d.doc_type <> ${bind(DECK_DOC_TYPE)}`, `d.doc_type <> ${bind(PAGE_DOC_TYPE)}`, `d.doc_type <> ${bind(SHEET_DOC_TYPE)}`);
+    } else if (options.docType === notebookLibrary.NOTEBOOK_DOC_TYPE) where.push('false');
+    else if (options.docType && DOC_TYPES.includes(options.docType)) where.push(`d.doc_type = ${bind(options.docType)}`);
+    if (visibility) where.push(`${visibilitySql('d')} = ${bind(visibility)}`);
+    if (shared.folderSet) {
+        if (folderId) shared.folder = bind(folderId);
+        where.push(folderId ? `d.folder_id = ${shared.folder}` : 'd.folder_id IS NULL');
+    }
+    if (category) {
+        shared.category = bind(JSON.stringify([category]));
+        where.push(`d.categories @> ${shared.category}::jsonb`);
+    }
+    // Notebooks join the list only for a reader the route let through the
+    // notebook gates, and only where the filters leave room for one.
+    const withNotebooks = options.includeNotebooks === true && notebookLibrary.listsNotebooks({ ...options, archived });
+    if (withNotebooks) await notebookLibrary.ready();
+    const from = `SELECT ${LIBRARY_COLUMNS} FROM studio_documents d WHERE ${where.join(' AND ')}`
+        + (withNotebooks ? ` UNION ALL ${notebookLibrary.notebookBranchSql(shared)}` : '');
     params[0] = Math.min(Math.max(Number(limit) || 50, 1), 200);
-    params.push(Math.max(Number(offset) || 0, 0));
-    const order = sort === 'name' ? 'd.name ASC, d.id' : 'd.updated_at DESC, d.id';
-    const rows = await getAll(`SELECT d.*, OCTET_LENGTH(d.body_html) AS html_size, COUNT(*) OVER() AS total_count
-        FROM studio_documents d
-        WHERE ${where.join(' AND ')} ORDER BY ${order} LIMIT $1 OFFSET $${params.length}`, params);
+    const offsetAt = bind(Math.max(Number(offset) || 0, 0));
+    const order = sort === 'name' ? 'u.name ASC, u.id' : 'u.updated_at DESC, u.id';
+    const rows = await getAll(`SELECT u.*, COUNT(*) OVER() AS total_count FROM (${from}) u
+        ORDER BY ${order} LIMIT $1 OFFSET ${offsetAt}`, params);
     // An offset past the end answers no rows and so no window count; ask once.
     let total = rows[0] ? Number(rows[0].total_count) || 0 : 0;
     if (!rows.length && Number(params[params.length - 1]) > 0) {
         // $1 (the page size) is not needed for a count; typed and passed as
         // null so the filters keep their parameter numbers.
-        const count = await getOne(`SELECT COUNT(*)::int AS n FROM studio_documents d
-            WHERE $1::int IS NULL AND ${where.join(' AND ')}`, [null, ...params.slice(1, -1)]);
+        const count = await getOne(`SELECT COUNT(*)::int AS n FROM (${from}) u WHERE $1::int IS NULL`, [null, ...params.slice(1, -1)]);
         total = Number(count?.n) || 0;
     }
     return { documents: rows.map(mapListRow), total };
@@ -475,18 +455,22 @@ async function editableProjectOf(documentId, userId) {
  * Lock a document for a write by `a`, inside `client`'s transaction: the owner
  * (and an org admin, for a team template or section), or an editor of the
  * project it is filed in. Null for everybody else, a project viewer included.
+ * A template a Solution stage manages is refused (solutionTemplates.guardManagedLock).
  *
  * @returns {Promise<{ row: any, asMember: boolean } | null>}
  */
 async function lockForWrite(client, documentId, a) {
     let { rows } = await client.query(`SELECT d.* FROM studio_documents d WHERE d.id = $1 AND ${accessSql('d', true)} FOR UPDATE`, [documentId,a.userId,a.isAdmin === true]);
-    if (rows[0]) return { row: rows[0], asMember: false };
+    if (rows[0]) return solutionTemplates.guardManagedLock(client, { row: rows[0], asMember: false }, a);
+    // A reader the owner shared the document with for editing: content only, like a project editor.
+    ({ rows } = await client.query(`SELECT d.* FROM studio_documents d WHERE d.id = $1 AND d.archived = false AND ${editSharingSql('d')} FOR UPDATE`, [documentId, a.userId]));
+    if (rows[0]) return solutionTemplates.guardManagedLock(client, { row: rows[0], asMember: true }, a);
     const projectId = await editableProjectOf(documentId, a.userId);
     if (!projectId) return null;
     // Locked again ON that project: a removal from the project between the
     // role check and here must not leave the edit going through.
     ({ rows } = await client.query(`SELECT d.* FROM studio_documents d WHERE d.id = $1 AND d.project_id = $2 AND ${PROJECT_DOCUMENT_SQL} FOR UPDATE`, [documentId, projectId]));
-    return rows[0] ? { row: rows[0], asMember: true } : null;
+    return rows[0] ? solutionTemplates.guardManagedLock(client, { row: rows[0], asMember: true }, a) : null;
 }
 
 /**
@@ -531,7 +515,9 @@ async function mergeStale(client, current, updates) {
 async function updateDocument(documentId, context, updates = {}) {
     await initDB(); const a = actor(context); assertWithinCaps(updates);
     return withTransaction(async client => {
-        const locked = await lockForWrite(client, documentId, a);
+        // Order-independent (jsonb returns its own key order): a resent, unchanged settings object is no change.
+        const changedKeysOf = (row) => managedParts.changedKeysOf(mapRow(row), Object.fromEntries(CONTENT_KEYS.map(k => [k, updates[k]])));
+        const locked = await lockForWrite(client, documentId, { ...a, changedKeysOf });
         if (!locked) return null;
         const { asMember } = locked;
         const current = mapRow(locked.row);
@@ -549,6 +535,7 @@ async function updateDocument(documentId, context, updates = {}) {
         if (wasPage !== (normaliseType(next.docType) === PAGE_DOC_TYPE)) {
             throw failure('A page stays a page, and a designed document cannot become one. Make a new page instead.', 422, 'document_type_fixed');
         }
+        keepSheetOnUpdate(current, next, normaliseType(next.docType), failure);
         if (wasPage) { next.bodyHtml = sanitizePageBody(next.bodyHtml); next.css = ''; }
         // A page edited live: its body is the live state's (lib/coEditGuard.js), never this save's.
         if (wasPage && next.bodyHtml !== current.bodyHtml && await isCoEdited(client, 'document', documentId)) {
@@ -565,10 +552,21 @@ async function updateDocument(documentId, context, updates = {}) {
         next.settings = { ...next.settings, resolvedHouseStyleCss: await houseStyleCssFor(next, next.organizationId) };
         if (updates.source === 'restore') await writePreRestore(client, current, a.userId);
         next.versionId = crypto.randomUUID();
+        const visibilityChanged = next.visibility !== current.visibility;
+        if (visibilityChanged) next.sharing = { audience: next.visibility === 'team' ? 'organisation' : 'private', sharedGroups: [], sharedUserIds: [] };
+        const stored = await contentCrypto.sealFields({ body_html: next.bodyHtml, css: next.css, settings: next.settings }, contentCrypto.resourceOfDocument(next), contentCrypto.DOCUMENT_FIELDS);
         const result = await client.query(`UPDATE studio_documents SET name=$2,doc_type=$3,description=$4,body_html=$5,css=$6,settings=$7,
-            kind=$8,visibility=$9,folder_id=$10,categories=$11,version_id=$12,updated_by=$13,updated_at=NOW() WHERE id=$1 RETURNING *`,
-        [documentId,String(next.name).slice(0,200),normaliseType(next.docType),String(next.description).slice(0,2000),next.bodyHtml,next.css,JSON.stringify(next.settings),next.kind,next.visibility,next.folderId,JSON.stringify(next.categories),next.versionId,a.userId || null]);
-        const saved = mapRow(result.rows[0]);
+            kind=$8,visibility=$9,folder_id=$10,categories=$11,version_id=$12,updated_by=$13,updated_at=NOW(),
+            sharing_audience = CASE WHEN $14 THEN NULL ELSE sharing_audience END,
+            shared_groups = CASE WHEN $14 THEN '[]'::jsonb ELSE shared_groups END,
+            shared_user_ids = CASE WHEN $14 THEN '[]'::jsonb ELSE shared_user_ids END WHERE id=$1 RETURNING *`,
+        [documentId,String(next.name).slice(0,200),normaliseType(next.docType),String(next.description).slice(0,2000),stored.body_html,stored.css,JSON.stringify(stored.settings),next.kind,next.visibility,next.folderId,JSON.stringify(next.categories),next.versionId,a.userId || null,visibilityChanged]);
+        let saved = mapRow(result.rows[0]);
+        if (visibilityChanged) {
+            await require('./lib/documentSharingCrypto').transition(client, 'document', result.rows[0], next.sharing.audience);
+            saved = mapRow((await client.query('SELECT * FROM studio_documents WHERE id = $1', [documentId])).rows[0]);
+        }
+        if (saved.docType === SHEET_DOC_TYPE) await require('./lib/sheetCrypto').attach(client, saved);
         await versions.writeRevision(client, saved, {
             summary: updates.summary || (merge ? 'Merged with changes made meanwhile' : 'Edited'),
             source: updates.source || 'autosave', actorId: a.userId || null,
@@ -597,8 +595,11 @@ async function writePreRestore(client, current, actorId) {
  * it out of the project takes it out (detachDocumentFromProject) instead.
  */
 async function deleteDocument(documentId, context) {
-    await initDB(); const a = actor(context);
-    const result = await run(`UPDATE studio_documents d SET archived = true WHERE d.id = $1 AND ${accessSql('d', true)}`, [documentId,a.userId,a.isAdmin === true]);
+    await initDB(); const a = actor(context); const params = [documentId,a.userId,a.isAdmin === true];
+    // Access first: someone who may not archive it gets the same "not found" as always, never a managed_part naming its Solution.
+    if (!await getOne(`SELECT d.id FROM studio_documents d WHERE d.id = $1 AND ${accessSql('d', true)}`, params)) return false;
+    await solutionTemplates.assertTemplateWrite(documentId, ['archived']);
+    const result = await run(`UPDATE studio_documents d SET archived = true WHERE d.id = $1 AND ${accessSql('d', true)}`, params);
     return (result?.rowCount || 0) > 0;
 }
 async function assertFolder(id, userId) {
@@ -618,6 +619,7 @@ async function deleteFolder(userId, id) {
         const { rows } = await client.query('SELECT * FROM studio_document_folders WHERE id=$1 AND user_id=$2 FOR UPDATE',[id,userId]);
         if (!rows[0]) throw failure('Folder not found',404);
         await client.query('UPDATE studio_documents SET folder_id=$2 WHERE folder_id=$1 AND user_id=$3',[id,rows[0].parent_id,userId]);
+        await notebookLibrary.reparentNotebooks(client, userId, id, rows[0].parent_id);
         await client.query('UPDATE studio_document_folders SET parent_id=$2 WHERE parent_id=$1 AND user_id=$3',[id,rows[0].parent_id,userId]);
         await client.query('DELETE FROM studio_document_folders WHERE id=$1 AND user_id=$2',[id,userId]);
     });
@@ -635,17 +637,23 @@ async function deleteFolder(userId, id) {
  * (not a template or section, which have their own team sharing), it is not
  * archived, and the project exists in the document's own organisation.
  */
-async function setDocumentProject(documentId, userId, projectId) {
+async function setDocumentProject(documentId, userId, projectId, callerOrgIds = []) {
     await initDB();
     if (!documentId || !userId || !projectId) return false;
-    const { rowCount } = await run(
-        `UPDATE studio_documents d SET project_id = $1
-          WHERE d.id = $2 AND d.user_id = $3 AND d.kind = 'document' AND d.archived = false
-            AND EXISTS (SELECT 1 FROM projects p
-                         WHERE p.id = $1 AND COALESCE(p.organization_id, '') = COALESCE(d.organization_id, ''))`,
-        [projectId, documentId, userId]
-    );
-    return (rowCount || 0) > 0;
+    // `callerOrgIds`: the organisations the owner belongs to (auth/orgScope), so a document of someone whose
+    // organisation only comes from a group (none on the document) can be filed into that organisation's project.
+    return withTransaction(async (client) => {
+        const { rows } = await client.query(
+            `UPDATE studio_documents d SET project_id = $1
+              WHERE d.id = $2 AND d.user_id = $3 AND d.kind = 'document' AND d.archived = false
+                AND EXISTS (SELECT 1 FROM projects p
+                    WHERE p.id = $1 AND (COALESCE(p.organization_id, '') = COALESCE(d.organization_id, '')
+                        OR (COALESCE(d.organization_id, '') = '' AND p.organization_id = ANY($4::text[])))) RETURNING d.*`,
+            [projectId, documentId, userId, [...callerOrgIds]]);
+        if (!rows[0]) return false;
+        await require('./lib/documentSharingCrypto').transition(client, 'document', rows[0], rows[0].sharing_audience || 'private');
+        return true;
+    });
 }
 
 /**
@@ -731,11 +739,12 @@ async function unarchiveDocument(documentId, context) {
 }
 
 module.exports = {
-    getDocumentVersion, listFolders, createFolder, deleteFolder,
+    getDocumentVersion, listFolders, createFolder, deleteFolder, assertFolder,
     DOC_TYPES,
     DEFAULT_DOC_TYPE,
     DECK_DOC_TYPE,
     PAGE_DOC_TYPE,
+    SHEET_DOC_TYPE,
     DESIGNED_FILTER,
     VERSION_SOURCES: versions.VERSION_SOURCES,
     MAX_SETTINGS_BYTES,
@@ -768,5 +777,6 @@ module.exports = {
     listProjectDocuments,
     countProjectDocuments,
     clearProjectFromDocuments,
+    mapRow, assertWithinCaps,
     _test: { mapRow, mapListRow, mapProjectCard, normaliseType, assertWithinCaps, sanitizePageBody },
 };

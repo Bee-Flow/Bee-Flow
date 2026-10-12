@@ -26,15 +26,16 @@ export const REFERENCE_FIELDS: Readonly<Record<string, ReferenceKind>> = {
     documentId: 'document',
 };
 
-const m = (key: string, en: string): Msg => ({ i18nKey: `mobile.app_studio.refs.${key}`, en });
+/** The web's keys (studio_apps_edit.step_refs.*), word for word. */
+const m = (key: string, en: string): Msg => ({ i18nKey: `studio_apps_edit.step_refs.${key}`, en });
 
 /** What a picker shows when the field is not set yet. */
 export const REFERENCE_PLACEHOLDERS: Readonly<Record<ReferenceKind, Msg>> = {
     screen: m('pick_screen', 'Pick a screen…'),
-    modal: m('pick_modal', 'Pick a dialog…'),
+    modal: m('pick_dialog', 'Pick a dialog…'),
     table: m('pick_table', 'Pick a table…'),
     dataset: m('pick_dataset', 'Pick a saved view…'),
-    automation: m('pick_automation', 'Pick a routine…'),
+    automation: m('pick_automation', 'Pick an automation…'),
     connector: m('pick_connector', 'Pick a connection…'),
     document: m('pick_document', 'Pick a document…'),
 };
@@ -42,10 +43,10 @@ export const REFERENCE_PLACEHOLDERS: Readonly<Record<ReferenceKind, Msg>> = {
 /** Why a list is empty, and what to do about it. */
 export const REFERENCE_EMPTY_HINTS: Readonly<Record<ReferenceKind, Msg>> = {
     screen: m('empty_screen', 'This app has no other screens yet.'),
-    modal: m('empty_modal', 'This app has no dialogs yet — add a Dialog component to a screen first.'),
+    modal: m('empty_dialog', 'This app has no dialogs yet — add a Dialog component to a screen first.'),
     table: m('empty_table', 'This app has no tables yet — make one under Data first.'),
     dataset: m('empty_dataset', 'No saved views yet — save one from the query builder first.'),
-    automation: m('empty_automation', 'No routines yet.'),
+    automation: m('empty_automation', 'No automations yet.'),
     connector: m('empty_connector', 'No connections yet — add one under Data · Connections first.'),
     document: m(
         'empty_document',
@@ -71,9 +72,9 @@ export function documentOptions(documents: unknown, t: Translate = EN_ONLY): Ref
         .map((d) => {
             const count = (d.placeholders as { length?: number } | null | undefined)?.length;
             const label = count
-                ? t('mobile.app_studio.refs.document_placeholders', '{name} · {count} placeholder(s)', {
+                ? t('studio_apps_edit.step_refs.document_placeholders', '{name} · {n} placeholder(s)', {
                       name: String(d.name),
-                      count: count as number,
+                      n: count as number,
                   })
                 : (d.name as string);
             return { id: d.id, label };
@@ -126,7 +127,7 @@ export function datasetOptions(datasets: unknown): RefOption[] {
         .map((d) => ({ id: d.id, label: firstText(d.name, d.title, d.id) }));
 }
 
-/** Routines as { id, label }. */
+/** Automations as { id, label }. */
 export function automationOptions(automations: unknown): RefOption[] {
     return rows(automations)
         .filter(hasId)

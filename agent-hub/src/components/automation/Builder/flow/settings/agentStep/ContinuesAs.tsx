@@ -33,12 +33,12 @@ export default function ContinuesAs({ skillFields, skillName, stepFields, t }: C
     const fromSkill = skillHas && !ownWins;
     const fields = fromSkill ? skillFields : stepFields;
     return (
-        <section className="flex flex-col gap-2" aria-label={t('routines.agent_step.continues_as', 'Continues as')}>
+        <section className="flex flex-col gap-2" aria-label={t('automations.agent_step.continues_as', 'Continues as')}>
             <div className="flex items-center gap-1.5 text-[12px] font-semibold text-[var(--text-primary)]">
                 <ArrowRightFromLine size={13} aria-hidden="true" />
-                {t('routines.agent_step.continues_as', 'Continues as')}
+                {t('automations.agent_step.continues_as', 'Continues as')}
                 <span className="font-normal text-[var(--text-tertiary)]">
-                    {t('routines.agent_step.continues_as_sub', 'fields for the next step')}
+                    {t('automations.agent_step.continues_as_sub', 'fields for the next step')}
                 </span>
             </div>
             {fields.length > 0 ? (
@@ -53,20 +53,20 @@ export default function ContinuesAs({ skillFields, skillName, stepFields, t }: C
                 </ul>
             ) : (
                 <p className={hintTextClass()}>
-                    {t('routines.agent_step.continues_free_text', 'One text answer. Add fields under Structured output to hand on named values.')}
+                    {t('automations.agent_step.continues_free_text', 'One text answer. Add fields under Structured output to hand on named values.')}
                 </p>
             )}
             {fromSkill ? (
                 <p className={hintTextClass()}>
-                    {t('routines.agent_step.fields_from_skill', 'The fields come from the skill "{name}". Need other fields? Change the skill, or add a field below for this step only.', { name: skillName || '' })}
+                    {t('automations.agent_step.fields_from_skill', 'The fields come from the skill "{name}". Need other fields? Change the skill, or add a field below for this step only.', { name: skillName || '' })}
                 </p>
             ) : ownWins && skillHas ? (
                 <p className={hintTextClass()}>
-                    {t('routines.agent_step.fields_replace_skill', 'These are this step\'s own fields, set under Structured output below. They replace the fields of the skill "{name}".', { name: skillName || '' })}
+                    {t('automations.agent_step.fields_replace_skill', 'These are this step\'s own fields, set under Structured output below. They replace the fields of the skill "{name}".', { name: skillName || '' })}
                 </p>
             ) : fields.length > 0 ? (
                 <p className={hintTextClass()}>
-                    {t('routines.agent_step.fields_from_step', 'These are this step\'s own fields, set under Structured output below.')}
+                    {t('automations.agent_step.fields_from_step', 'These are this step\'s own fields, set under Structured output below.')}
                 </p>
             ) : null}
         </section>

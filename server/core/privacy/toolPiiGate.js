@@ -11,8 +11,8 @@
  * chat, the non-streamed agent chat (chatWithAgent, which the support
  * responder uses), swarm workers, the voice turn, the notebook and webpage
  * builder chats, the webpage AI bridge's ask, the Nextcloud Assistant's agent
- * turn, a skill's test run, a routine's AI step, the builder's suggestion scan,
- * the Automation Builder's webpage tools and the cowork/routine runner without
+ * turn, a skill's test run, an automation's AI step, the builder's suggestion scan,
+ * the Automation Builder's webpage tools and the cowork/automation runner without
  * an agent. Knowledge-base passages
  * injected into the prompt without a tool call (a project's bases, the bases
  * attached to a chat, an agent without kb_search, a template's, notebook's or
@@ -24,8 +24,8 @@
  * passages arrive as one built text.
  *
  * Each loop passes the shield that already applies to its surface: the turn's
- * resolveShieldFor, a webpage bridge its author's, a routine the policy shield
- * (null when the org keeps routines out of the shield), the cowork runner only
+ * resolveShieldFor, a webpage bridge its author's, an automation the policy shield
+ * (null when the org keeps automations out of the shield), the cowork runner only
  * when the org opted that path in (core/cowork/coworkShield.js).
  *
  * A knowledge base is an on-box source, so an injected passage is treated as
@@ -109,7 +109,7 @@ function replaceBlocked(text, blocked) {
 async function checkToolArgs({ toolName, args, shield }) {
     if (!shield?.enabled) return { verdict: 'allow', toolClass: null, labels: [], logLabels: [] };
     const { classifyToolClass, isBlockedForTool } = _deps.orgShield();
-    const toolClass = classifyToolClass(toolName);
+    const toolClass = classifyToolClass(toolName, args || {});
     const allow = { verdict: 'allow', toolClass, labels: [], logLabels: [] };
     const blockList = blockListFor(shield, toolClass);
     if (blockList.length === 0) return allow;
@@ -132,7 +132,7 @@ async function checkToolArgs({ toolName, args, shield }) {
     const entities = Array.isArray(scan?.entities) ? scan.entities : [];
     if (entities.length === 0) return allow;
 
-    const verdict = isBlockedForTool(toolName, entities.flatMap(categoriesOf), shield.toolPiiPolicy);
+    const verdict = isBlockedForTool(toolName, entities.flatMap(categoriesOf), shield.toolPiiPolicy, args || {});
     if (!verdict.blocked) return allow;
     const hit = new Set(verdict.blockedCategories);
     const blocked = entities.filter(e => categoriesOf(e).some(c => hit.has(c)));

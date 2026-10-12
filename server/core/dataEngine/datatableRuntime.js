@@ -91,6 +91,18 @@ function refuse(status, code, message) {
 }
 
 /**
+ * A write to a Solution stage's reference table: its rows are the release's
+ * (queryCompiler RowsLockedError, 409 `managed_part`). The error goes through
+ * UNCHANGED, only with the `safe` flag added, so the routes that pass only
+ * `safe` refusals on verbatim (the webpage bridge) answer it as a 409 with its
+ * code instead of a 500.
+ */
+function passLockedRows(e) {
+    if (e instanceof queryCompiler.RowsLockedError) e.safe = true;
+    return e;
+}
+
+/**
  * De kolomlijst van deze aanroep, gevalideerd.
  *
  * Geen array → programmeerfout (luid). Wel een array maar leeg → een echte,
@@ -252,6 +264,8 @@ async function readRows(resolved, { allowColumns, filters, match, sort, limit, c
     // orakel dat deze toets moet dichthouden.
     assertFieldsBound(sortFields(sort), columns);
 
+    await require('../../stores/lib/sheetCrypto').assertQuery(resolved, [...filterList.map(f => f?.field), ...sortFields(sort)]);
+
     const filter = accessFilter.compileAccessFilter(
         resolved.meta, resolved.grade, { id: resolved.principal?.userId || null }, 'read', PG);
     const compiled = queryCompiler.compileRecordList(resolved.meta, {
@@ -273,7 +287,8 @@ async function readRows(resolved, { allowColumns, filters, match, sort, limit, c
     // heeft; wie dat te ruim vindt, moet de cursor ondertekenen of de default
     // sortering op een gebonden kolom zetten — niet de cursor stilletjes
     // weglaten, want dan is pagina 2 onbereikbaar.
-    const all = out?.rows || [];
+    const sheetCrypto = require('../../stores/lib/sheetCrypto');
+    const all = sheetCrypto.isSheet(resolved) ? await sheetCrypto.openRows(resolved.table.id, out?.rows || []) : (out?.rows || []);
     // compileRecordList vraagt bewust limit+1 op als cursorsonde; die extra rij
     // hoort er nooit uit te komen.
     const page = all.slice(0, compiled.limit);
@@ -317,6 +332,8 @@ async function aggregateRows(resolved, { allowColumns, groupBy, aggregates, filt
     assertFieldsBound(filterList.map(f => f && f.field), columns);
     assertFieldsBound(sortFields(sort), columns);
 
+    await require('../../stores/lib/sheetCrypto').assertQuery(resolved, [...groups.map(g => g?.field), ...aggs.map(a => a?.field), ...filterList.map(f => f?.field), ...sortFields(sort)]);
+
     const filter = accessFilter.compileAccessFilter(
         resolved.meta, resolved.grade, { id: resolved.principal?.userId || null }, 'read', PG);
     const compiled = queryCompiler.compileAggregate(resolved.meta, {
@@ -353,7 +370,7 @@ function assertValuesBound(values, columns) {
 /** Eén rij toevoegen. Vereist graad `editor` én create-recht op de descriptor. */
 async function insertRow(resolved, { allowColumns, values } = {}) {
     const columns = effectiveColumns(resolved, requireAllowColumns(allowColumns));
-    const clean = assertValuesBound(values, columns);
+    const clean = await require('../../stores/lib/sheetCrypto').sealValues(resolved, assertValuesBound(values, columns));
     accessFilter.assertCanWrite(resolved.meta, resolved.grade, 'create');
     // Een spiegel: de rij gaat éérst naar Nextcloud, de kopie volgt uit wat
     // Nextcloud antwoordde. Dezelfde weigeringen (status/code/safe) als hier.
@@ -361,13 +378,17 @@ async function insertRow(resolved, { allowColumns, values } = {}) {
         const r = await mirrorWrites(resolved).insertRow(mirrorCtx(resolved), clean);
         return { id: r.id };
     }
-    const { sql, params, id } = queryCompiler.compileInsert(resolved.meta, clean, {
-        createdBy: resolved.principal?.userId || null,
-        // NULL op een persoonlijke tabel, en dat klopt: die rij hoort bij geen
-        // organisatie. Hier ctx-org invullen zou de rij gedeeld laten lijken.
-        orgId: resolved.table.organizationId,
-        dialect: 'pg',
-    });
+    let compiled;
+    try {
+        compiled = queryCompiler.compileInsert(resolved.meta, clean, {
+            createdBy: resolved.principal?.userId || null,
+            // NULL op een persoonlijke tabel, en dat klopt: die rij hoort bij geen
+            // organisatie. Hier ctx-org invullen zou de rij gedeeld laten lijken.
+            orgId: resolved.table.organizationId,
+            dialect: 'pg',
+        });
+    } catch (e) { throw passLockedRows(e); }
+    const { sql, params, id } = compiled;
     await datatableDbStore.exec(resolved.scopeKey, resolved.scopeKey, sql, params);
     await datatableStore.bumpAfterWrite(resolved.table.id, resolved.scope, 1);
     return { id };
@@ -389,7 +410,7 @@ async function updateRow(resolved, { allowColumns, rowId, values, expectedUpdate
         throw refuse(400, 'expected_updated_at_required',
             'Send the updated_at you read, so a colleague\'s edit is not silently overwritten');
     }
-    const clean = assertValuesBound(values, columns);
+    const clean = await require('../../stores/lib/sheetCrypto').sealValues(resolved, assertValuesBound(values, columns), rowId);
     accessFilter.assertCanWrite(resolved.meta, resolved.grade, 'update');
 
     if (isMirror(resolved)) {
@@ -405,8 +426,11 @@ async function updateRow(resolved, { allowColumns, rowId, values, expectedUpdate
 
     const filter = accessFilter.compileAccessFilter(
         resolved.meta, resolved.grade, { id: resolved.principal?.userId || null }, 'update', PG);
-    const upd = queryCompiler.compileUpdate(resolved.meta, rowId, clean, filter,
-        { expectedUpdatedAt, dialect: 'pg' });
+    let upd;
+    try {
+        upd = queryCompiler.compileUpdate(resolved.meta, rowId, clean, filter,
+            { expectedUpdatedAt, dialect: 'pg' });
+    } catch (e) { throw passLockedRows(e); }
     const out = await datatableDbStore.exec(resolved.scopeKey, resolved.scopeKey, upd.sql, upd.params);
 
     // Altijd teruglezen: bij succes heeft de beller de nieuwe `updated_at` nodig
@@ -414,7 +438,9 @@ async function updateRow(resolved, { allowColumns, rowId, values, expectedUpdate
     // tussen "iemand anders was je voor" en "hij bestaat niet (meer) voor jou".
     const probe = queryCompiler.compileGetById(resolved.meta, rowId, filter, PG);
     const found = await datatableDbStore.query(resolved.scopeKey, resolved.scopeKey, probe.sql, probe.params);
-    const row = (found?.rows || [])[0] || null;
+    const rawRow = (found?.rows || [])[0] || null;
+    const sheetCrypto = require('../../stores/lib/sheetCrypto');
+    const row = sheetCrypto.isSheet(resolved) ? await sheetCrypto.openRow(resolved.table.id, rawRow) : rawRow;
 
     if (!out?.changes) {
         if (!row) throw refuse(404, 'row_not_found', 'Not found');
@@ -433,8 +459,8 @@ module.exports = {
     resolveForPrincipal,
     readRows,
     aggregateRows,
-    insertRow,
-    updateRow,
+    insertRow: (resolved, args) => require('../../stores/lib/sheetCrypto').withWrite(resolved, () => insertRow(resolved, args)),
+    updateRow: (resolved, args) => require('../../stores/lib/sheetCrypto').withWrite(resolved, () => updateRow(resolved, args)),
     projectRow,
     // test-only
     _effectiveColumns: effectiveColumns,

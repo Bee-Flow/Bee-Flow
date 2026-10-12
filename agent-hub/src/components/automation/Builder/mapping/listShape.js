@@ -27,11 +27,13 @@
  * the array into the surrounding text, which is the exact silent failure this
  * module exists to prevent.
  */
-import { humanizeFieldTail } from '../flow/displayHelpers';
-import { summariseData } from '../flow/dataSummary';
+import { formatPath, parsePath } from '@shared/expr/path.mjs';
 import { suggestItemVar } from './upstream';
+import { lastPathKey } from './upstream/fieldTree';
 import { describeDataPath, escapeExprString } from './valueParts';
 import { walkPath, walkRelativePath } from '../../../../utils/bindingHelpers';
+import { summariseData } from '../flow/dataSummary';
+import { humanizeFieldTail } from '../flow/displayHelpers';
 
 const WILDCARD = '[*]';
 
@@ -40,10 +42,24 @@ const WILDCARD = '[*]';
  * `steps.g.output.results[*].subject` →
  *   { arrayPath: 'steps.g.output.results', tail: '.subject' }
  * The tail is sliced VERBATIM (leading `.` or `[` kept), so bracket-quoted
- * keys (`[*]["content-type"]`) survive re-assembly untouched.
+ * keys (`[*]["content-type"]`) survive re-assembly untouched. The wildcard is
+ * found in the PARSED path, so a quoted key that merely contains `[*]` (or a
+ * `]`) is not mistaken for one; a path the grammar cannot read falls back to
+ * the text.
  */
 export function splitColumnPath(path) {
     const s = String(path || '');
+    const tokens = parsePath(s);
+    if (tokens) {
+        const i = tokens.findIndex(t => t.type === 'wild');
+        if (i < 0) return { arrayPath: s, tail: '' };
+        const arrayPath = formatPath(tokens.slice(0, i));
+        const head = `${arrayPath}${WILDCARD}`;
+        // Canonical spelling (what discovery writes): slice verbatim.
+        if (s.startsWith(head)) return { arrayPath, tail: s.slice(head.length) };
+        const rest = formatPath([{ type: 'prop', key: '$' }, ...tokens.slice(i + 1)]).slice(1);
+        return { arrayPath, tail: rest };
+    }
     const i = s.indexOf(WILDCARD);
     if (i < 0) return { arrayPath: s, tail: '' };
     return { arrayPath: s.slice(0, i), tail: s.slice(i + WILDCARD.length) };
@@ -91,10 +107,10 @@ export function pathListShape(path, sampleRoot) {
         return {
             kind: 'list', count, rows: null, of, elementSample,
             rowScopedListTail: false,
-            badgeKey: of === 'records' ? 'routines.builder.badge_list_records' : 'routines.builder.badge_list_items',
+            badgeKey: of === 'records' ? 'automations.builder.badge_list_records' : 'automations.builder.badge_list_items',
             badgeParams: { n: count },
             badgeEn: `A list — ${count} ${noun}`,
-            explainKey: 'routines.builder.explain_list',
+            explainKey: 'automations.builder.explain_list',
             explainParams: { field: humanizeFieldTail(raw) || raw, n: count },
             explainEn: `“${humanizeFieldTail(raw) || raw}” is a list of ${count} ${noun}.`,
         };
@@ -112,10 +128,10 @@ export function pathListShape(path, sampleRoot) {
     return {
         kind: 'column', count, rows, of, elementSample,
         rowScopedListTail,
-        badgeKey: 'routines.builder.badge_column',
+        badgeKey: 'automations.builder.badge_column',
         badgeParams: { rows: rows ?? count },
         badgeEn: 'One value per row',
-        explainKey: rowScopedListTail ? 'routines.builder.explain_column_nested' : 'routines.builder.explain_column',
+        explainKey: rowScopedListTail ? 'automations.builder.explain_column_nested' : 'automations.builder.explain_column',
         explainParams: { field: humanizeFieldTail(raw), rows: rows ?? count, n: count },
         explainEn: rowScopedListTail
             ? `This list sits inside each row. Repeating over it merges every row’s items into one list — ${count} in total.`
@@ -141,10 +157,10 @@ export function fieldListShape(field, sampleRoot) {
         count: null, rows: null, of,
         elementSample: field.sample[0],
         rowScopedListTail: false,
-        badgeKey: 'routines.builder.badge_list_plain',
+        badgeKey: 'automations.builder.badge_list_plain',
         badgeParams: {},
         badgeEn: 'A list',
-        explainKey: 'routines.builder.explain_list_no_sample',
+        explainKey: 'automations.builder.explain_list_no_sample',
         explainParams: { field: humanizeFieldTail(field.path) || field.key || '' },
         explainEn: 'This is a list. Run the step above to see how many it really holds.',
     };
@@ -161,7 +177,7 @@ export function fieldListShape(field, sampleRoot) {
 export function forEachPickFor(path, sampleRoot, { itemVar } = {}) {
     const raw = String(path || '').trim();
     const { arrayPath, tail } = splitColumnPath(raw);
-    const lastSeg = arrayPath.replace(/\[[^\]]*\]/g, '').split('.').filter(Boolean).pop() || 'item';
+    const lastSeg = lastPathKey(arrayPath) || 'item';
     const v = (itemVar || suggestItemVar(lastSeg) || 'item').replace(/[^A-Za-z0-9_]/g, '') || 'item';
     return {
         forEach: { overRef: arrayPath, itemVar: v, maxIterations: 100 },
@@ -212,7 +228,7 @@ export function describeListPath(path, stepLabelById = null, t = null) {
     const step = base.name;
     if (!isColumn) return field ? `${step} ▸ ${field}` : step;
     const en = `${step} ▸ ${field} (inside each row)`;
-    return t ? t('routines.builder.column_path_label', '{step} ▸ {field} (inside each row)', { step, field }) : en;
+    return t ? t('automations.builder.column_path_label', '{step} ▸ {field} (inside each row)', { step, field }) : en;
 }
 
 /**

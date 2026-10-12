@@ -1,4 +1,5 @@
-import { render } from '@testing-library/react';
+import { render, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 
 vi.mock('../../../../utils/helpers', () => ({
@@ -119,12 +120,12 @@ describe('what a row is allowed to claim', () => {
 });
 
 describe('sub-lines say only what the listing carries', () => {
-    it('a live routine says live; a draft says draft', () => {
+    it('a live automation says live; a draft says draft', () => {
         const { getByText } = renderTable();
         expect(getByText(/live/)).toBeTruthy();
     });
 
-    it('a routine whose state the listing did not carry says NOTHING about it', () => {
+    it('an automation whose state the listing did not carry says NOTHING about it', () => {
         const { queryByText } = renderTable({
             resources: { ...RESOURCES, automations: [{ id: 'a1', title: 'Nightly', userId: 'alice' }] },
         });
@@ -132,7 +133,7 @@ describe('sub-lines say only what the listing carries', () => {
         expect(queryByText(/paused/)).toBeNull();
     });
 
-    it('a routine reachable through a public form says so, from the graph\'s form node', () => {
+    it('an automation reachable through a public form says so, from the graph\'s form node', () => {
         const { getByText } = renderTable({
             graph: { ...GRAPH, nodes: [...GRAPH.nodes, { id: 'form:a1', type: 'form', entityId: null, name: 'Request', triggers: 'automation:a1' }] },
         });
@@ -164,5 +165,98 @@ describe('who may change what', () => {
     it('only the owner of an item is offered the remove button', () => {
         const { container } = renderTable({ role: 'editor', currentUserId: 'bob' });
         expect(container.querySelectorAll('[title="Remove from project"]')).toHaveLength(0);
+    });
+});
+
+describe('a Solution with no parts', () => {
+    const EMPTY = {
+        role: 'owner', notebooks: [], apps: [], automations: [], webpages: [], datatables: [], agents: [],
+        skills: [], documentTemplates: [], knowledgeBases: [], approvals: [],
+    };
+
+    it('shows one friendly placard and the kind tiles, not three empty bands', () => {
+        const { getByTestId, queryByTestId, queryByText } = renderTable({ resources: EMPTY, role: 'owner' });
+        expect(getByTestId('solution-empty').textContent).toContain('Bring the parts together');
+        expect(getByTestId('solution-empty').textContent).toContain('bundles the parts that work together');
+        expect(getByTestId('add-kind-tiles')).toBeTruthy();
+        expect(queryByTestId('solution-band-people')).toBeNull();
+        expect(queryByText('Nothing here yet.')).toBeNull();
+    });
+
+    it('a reader who may not add gets the explanation and no tiles', () => {
+        const { getByTestId, queryByTestId } = renderTable({ resources: EMPTY, role: 'viewer' });
+        expect(getByTestId('solution-empty')).toBeTruthy();
+        expect(queryByTestId('add-kind-tiles')).toBeNull();
+    });
+
+    it('a section that could not be read is not an empty Solution', () => {
+        const { queryByTestId } = renderTable({ resources: { ...EMPTY, agents: null } });
+        expect(queryByTestId('solution-empty')).toBeNull();
+        expect(queryByTestId('solution-section-unavailable-agents')).toBeTruthy();
+    });
+
+    it('a Solution that has parts offers the panel behind one button', async () => {
+        const { getByTestId, queryByTestId } = renderTable({ role: 'owner' });
+        expect(queryByTestId('add-parts-panel')).toBeNull();
+        await userEvent.click(getByTestId('add-parts-open'));
+        expect(getByTestId('add-parts-drawer')).toBeTruthy();
+        expect(getByTestId('add-parts-panel')).toBeTruthy();
+        await userEvent.click(getByTestId('add-parts-close'));
+        expect(queryByTestId('add-parts-panel')).toBeNull();
+    });
+
+    it('Escape closes the drawer', async () => {
+        const { getByTestId, queryByTestId } = renderTable({ role: 'owner' });
+        await userEvent.click(getByTestId('add-parts-open'));
+        await userEvent.keyboard('{Escape}');
+        expect(queryByTestId('add-parts-panel')).toBeNull();
+    });
+
+    it('a tile on the empty screen opens the drawer on that kind', async () => {
+        const { getByTestId } = renderTable({ resources: EMPTY, role: 'owner' });
+        await userEvent.click(getByTestId('add-kind-skill'));
+        const drawer = getByTestId('add-parts-drawer');
+        await waitFor(() => expect(within(drawer).getByTestId('add-kind-skill').getAttribute('aria-pressed')).toBe('true'));
+    });
+});
+
+describe('the content toolbar', () => {
+    const MANY = { ...RESOURCES, agents: [{ id: 'g1', name: 'Helper', ownerId: 'alice' }] };
+
+    it('searches by name and says so when nothing matches', async () => {
+        const { getByTestId, queryByText, getByText } = renderTable({ resources: MANY });
+        await userEvent.type(getByTestId('content-search'), 'desk');
+        expect(getByText('Desk')).toBeTruthy();
+        expect(queryByText('Helper')).toBeNull();
+        await userEvent.clear(getByTestId('content-search'));
+        await userEvent.type(getByTestId('content-search'), 'zzz');
+        expect(getByTestId('content-no-matches')).toBeTruthy();
+        await userEvent.click(getByText('Clear filters'));
+        expect(getByText('Helper')).toBeTruthy();
+    });
+
+    it('offers pills only for kinds that are present, and filters by them', async () => {
+        const { getByTestId, queryByTestId, queryByText } = renderTable({ resources: MANY });
+        expect(queryByTestId('content-kind-skill')).toBeNull();
+        await userEvent.click(getByTestId('content-kind-agent'));
+        expect(queryByText('Desk')).toBeNull();
+        expect(queryByText('Helper')).toBeTruthy();
+    });
+
+    it('shows the status pill only when something needs attention', async () => {
+        const none = renderTable({ resources: MANY });
+        expect(none.queryByTestId('content-attention')).toBeNull();
+        none.unmount();
+        const completeness = { findings: [{ severity: 'error', message: 'x', targetRef: { kind: 'app', id: 'app1' } }] };
+        const { getByTestId, queryByText } = renderTable({ resources: MANY, completeness });
+        await userEvent.click(getByTestId('content-attention'));
+        expect(queryByText('Helper')).toBeNull();
+        expect(queryByText('Desk')).toBeTruthy();
+    });
+
+    it('a viewer gets the toolbar without the add button', () => {
+        const { getByTestId, queryByTestId } = renderTable({ resources: MANY, role: 'viewer' });
+        expect(getByTestId('content-search')).toBeTruthy();
+        expect(queryByTestId('add-parts-open')).toBeNull();
     });
 });

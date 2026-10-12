@@ -1,5 +1,5 @@
 import { API_BASE, authFetch } from '../../../../utils/helpers';
-import { computeRoutineNextRun } from '../../../../utils/routineSchedule';
+import { computeScheduleNextRun } from '../../../../utils/scheduleNextRun';
 import { configuredTierKeys } from '../../../licensing/tierMeta';
 import { buildRefineContext, diffRefinedPlan, mergeRefinedPlan } from '../state/refineMerge';
 
@@ -7,7 +7,7 @@ import { buildRefineContext, diffRefinedPlan, mergeRefinedPlan } from '../state/
 // is called once per render (right after the derived values it needs are
 // computed), and the returned handler closes over the deps object properties
 // exactly as it closed over the parent scope before. No hooks in this module.
-export function createHandleRefine({ chat, setChat, chatInput, setChatInput, chatBusy, setChatBusy, setRefining, setInstructionsEditing, dirtyRef, flush, attachedSkillIds, setAttachedSkillIds, skillNamesById, name, setName, description, setDescription, avatar, setAvatar, setInstructions, setModel, setSelectedTier, setEnabledIntegrations, setKnowledgeBaseIds, stateRef, plan, chatTier, tier, locale, t, allSkills, setAllSkills, availableIntegrations, tiers, queueSave, routinesAllowed, agent, refreshAgentRoutines, currentPersona, noStoredPersona = false }) {
+export function createHandleRefine({ chat, setChat, chatInput, setChatInput, chatBusy, setChatBusy, setRefining, setInstructionsEditing, dirtyRef, flush, attachedSkillIds, setAttachedSkillIds, skillNamesById, name, setName, description, setDescription, avatar, setAvatar, setInstructions, setModel, setSelectedTier, setEnabledIntegrations, setKnowledgeBaseIds, stateRef, plan, chatTier, tier, locale, t, allSkills, setAllSkills, availableIntegrations, tiers, queueSave, schedulesAllowed, agent, refreshAgentSchedules, currentPersona, noStoredPersona = false }) {
     const handleRefine = async (overrideText = null) => {
         // Callers pass either a string (programmatic refine from the wizard
         // hand-off) or nothing (button/Enter). React event objects and similar
@@ -201,15 +201,15 @@ export function createHandleRefine({ chat, setChat, chatInput, setChatInput, cha
                 undoState: 'idle',
             }]);
 
-            // Routine action: when the LLM detected a clear scheduling intent
-            // and the user has the agent_routines beta, create the routine
+            // Schedule action: when the LLM detected a clear scheduling intent
+            // and the user has the agent_routines beta, create the schedule
             // for this agent and surface a confirmation in the chat.
-            if (updated.routine && routinesAllowed && agent?.id) {
+            if (updated.schedule && schedulesAllowed && agent?.id) {
                 try {
-                    const r = updated.routine;
+                    const r = updated.schedule;
                     const tz = r.timezone || (Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC');
-                    const nextRunAt = computeRoutineNextRun(r, tz);
-                    const createRes = await authFetch(`${API_BASE}/api/ai-tasks`, {
+                    const nextRunAt = computeScheduleNextRun(r, tz);
+                    const createRes = await authFetch(`${API_BASE}/api/cowork`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -224,8 +224,8 @@ export function createHandleRefine({ chat, setChat, chatInput, setChatInput, cha
                         }),
                     });
                     if (createRes.ok) {
-                        await refreshAgentRoutines();
-                        setChat(prev => [...prev, { role: 'system', content: `⏰ Created routine "${r.title}" — ${r.repeatInterval}${r.timeOfDay ? ` at ${r.timeOfDay}` : ''}.` }]);
+                        await refreshAgentSchedules();
+                        setChat(prev => [...prev, { role: 'system', content: `⏰ Created schedule "${r.title}" — ${r.repeatInterval}${r.timeOfDay ? ` at ${r.timeOfDay}` : ''}.` }]);
                     }
                 } catch (_) { /* non-fatal — chat already shows the plan update */ }
             }

@@ -335,7 +335,7 @@ test('the simulation never reaches a decision about rights, connections or entit
         ['../integrations/integrationTools.js', 'connection lending'],
         ['../tools/datatableTools.js', 'which ROWS somebody may read'],
         ['../../auth/datatableAccess.js', 'datatable grades'],
-        ['../../automation/agentCallableTools.js', 'who owns a routine'],
+        ['../../automation/agentCallableTools.js', 'who owns an automation'],
         ['../../auth/permissions.js', 'permissions and org membership'],
     ];
     for (const [rel, why] of FORBIDDEN) {

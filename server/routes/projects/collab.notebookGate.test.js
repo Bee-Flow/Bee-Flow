@@ -145,3 +145,22 @@ test('the document stream does not join a refused notebook: it closes, and no fr
         joined.close();
     }
 });
+
+test('a notebook already joined on the stream is closed when the notebooks gates start refusing; the project feed stays', async () => {
+    const { docId } = await openAllowed('notebook', 'nb-revoked');
+    const fast = serveCollab(w, ROLES, { requireNotebooks: makeNotebookGate({ gates: [fakeGate] }), streamOptions: { recheckMs: 25 } });
+    const s = await fast.openStream(`/api/projects/p1/stream?doc=${docId}&docSince=0`, VAL);
+    try {
+        await until(() => s.frames.some((f) => f.event === 'doc.joined'));
+        verdict = 'unsure';
+        await new Promise((r) => setTimeout(r, 120));
+        assert.ok(!s.frames.some((f) => f.event === 'doc.closed'), 'a check that cannot be answered keeps the document');
+        verdict = 'refuse';
+        await until(() => s.frames.some((f) => f.event === 'doc.closed'));
+        assert.deepStrictEqual(s.frames.find((f) => f.event === 'doc.closed').data, { docId, reason: 'not_found' });
+        assert.ok(!s.frames.some((f) => f.event === 'forbidden'), 'the project feed itself is not cut');
+    } finally {
+        s.close();
+        await fast.close();
+    }
+});

@@ -4,7 +4,7 @@
  *
  * A form-answers table is a datatable whose columns are a form's QUESTIONS:
  * two fixed columns (`run_id`, `completed_at`) plus one per question, derived
- * by the server from the routine's definition on every save and described
+ * by the server from the automation's definition on every save and described
  * back to the client in `table.source.columns`. Nothing here syncs — the rows
  * are written by the platform when somebody submits — so it is NOT a source
  * mirror (no pulse, no source tab); it IS schema-locked (the form is the only

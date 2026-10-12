@@ -1,6 +1,7 @@
-import { Copy, Trash2, Play, Power, Unlink, ChevronDown, ChevronRight } from 'lucide-react';
+import { Copy, Trash2, Play, Power, Unlink, ChevronDown, ChevronRight, Sparkles } from 'lucide-react';
 import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import useTranslation from '../../../../hooks/useTranslation';
 
 /**
  * Right-click menu for a node on the flow canvas (BFSF-319).
@@ -13,8 +14,9 @@ import { createPortal } from 'react-dom';
  * Rendered in a portal at viewport coordinates so it escapes the React Flow
  * transform (a menu inside the pane would scale and translate with the canvas).
  */
-export default function NodeContextMenu({ x, y, canDelete, canDuplicate, canDetach, onDuplicate, onDetach, onDelete, onExecute, onToggleDisabled, disabled, onToggleInline, inlineExpanded = false, onClose }) {
+export default function NodeContextMenu({ x, y, canDelete, canDuplicate, canDetach, onDuplicate, onDetach, onDelete, onExecute, onToggleDisabled, disabled, onToggleInline, inlineExpanded = false, onAskAssistant = null, onClose }) {
     const ref = useRef(null);
+    const { t } = useTranslation();
 
     // Dismiss on outside click, Escape, scroll, or canvas pan.
     useEffect(() => {
@@ -48,12 +50,13 @@ export default function NodeContextMenu({ x, y, canDelete, canDuplicate, canDeta
             className="fixed z-[1000] min-w-[200px] py-1 rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] shadow-lg"
             onContextMenu={(e) => e.preventDefault()}
         >
+            {onAskAssistant && <button type="button" role="menuitem" className={`${item} text-[var(--type-ai)] hover:bg-[var(--bg-tertiary)]`} onClick={() => { onClose(); onAskAssistant(); }}><Sparkles size={12} />{t('automations.assistant.ask_step', 'Ask the assistant…')}<span className="ml-auto text-[10px]">⌘ J</span></button>}
             {onExecute && (
                 <button
                     type="button" role="menuitem" className={`${item} text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]`}
                     onClick={() => { onClose(); onExecute(); }}
                 >
-                    <Play size={12} /> Execute step
+                    <Play size={12} /> {t('automations.node_context_menu.execute_step', 'Execute step')}
                 </button>
             )}
             {onToggleInline && (
@@ -82,7 +85,7 @@ export default function NodeContextMenu({ x, y, canDelete, canDuplicate, canDeta
                 title={canDuplicate ? 'Copy this node and its settings' : 'Triggers cannot be duplicated'}
                 onClick={() => { onClose(); onDuplicate(); }}
             >
-                <Copy size={12} /> Duplicate
+                <Copy size={12} /> {t('automations.node_context_menu.duplicate', 'Duplicate')}
             </button>
             {onDetach && (
                 <button
@@ -93,7 +96,7 @@ export default function NodeContextMenu({ x, y, canDelete, canDuplicate, canDeta
                         : 'This step is not part of the flow'}
                     onClick={() => { onClose(); onDetach(); }}
                 >
-                    <Unlink size={12} /> Disconnect
+                    <Unlink size={12} /> {t('automations.node_context_menu.disconnect', 'Disconnect')}
                 </button>
             )}
             <div className="my-1 h-px bg-[var(--border-default)]" />
@@ -103,8 +106,8 @@ export default function NodeContextMenu({ x, y, canDelete, canDuplicate, canDeta
                 title={canDelete ? 'Remove this node and reconnect its neighbours' : 'The primary trigger cannot be removed'}
                 onClick={() => { onClose(); onDelete(); }}
             >
-                <Trash2 size={12} /> Delete
-                <span className="ml-auto text-[10px] text-[var(--text-tertiary)]">Del</span>
+                <Trash2 size={12} /> {t('automations.node_context_menu.delete', 'Delete')}
+                <span className="ml-auto text-[10px] text-[var(--text-tertiary)]">{t('automations.node_context_menu.del', 'Del')}</span>
             </button>
         </div>,
         document.body,

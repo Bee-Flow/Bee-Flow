@@ -31,7 +31,7 @@ Two layers, and lesson authors must not blur them:
    the prompt (chat composer), how deep the answer runs (depth tiers), what the prompt is
    grounded on (knowledge bases, attachments, memory), what happens to personal data in a
    prompt (Privacy Shield / DLP), and how a good prompt gets reused (Skills, agent system
-   prompt, Cowork brief, routine AI step).
+   prompt, Cowork brief, automation AI step).
 
 The course teaches generic prompt craft, but every lesson lands in a Bee Flow surface: the
 "Structure & format" lesson literally walks the learner to the chat composer
@@ -302,7 +302,7 @@ Two more rubrics are prompt-shaped but live in other courses: `ex-cowork-brief`
 
 ### W2 — Write your first structured prompt in chat (the payoff)
 1. Click **"New Chat"** in the sidebar.
-2. Set the depth pill to **Fast** for a routine rewrite, or **Think** / **Deep Thinking**
+2. Set the depth pill to **Fast** for an automation rewrite, or **Think** / **Deep Thinking**
    when you asked for a plan or analysis.
 3. (Optional) Click **"Knowledge"** and pick the knowledge base the answer must be grounded
    on — the composer then reads **"Grounded on {names}"**.
@@ -485,7 +485,7 @@ Chat-side numbers worth quoting
   always/never rules); covered by `ex-system-prompt` in *Refining an agent*.
 - **Cowork** — a brief is a prompt for unattended work; `ex-cowork-brief` grades exactly
   that (concrete deliverable, the detail that makes it useful, when/how often).
-- **Automations / routines** — the AI step inside a flow carries a prompt; `ex-automation-brief`
+- **Automations / automations** — the AI step inside a flow carries a prompt; `ex-automation-brief`
   grades trigger + data + work + destination.
 - **Privacy Shield / DLP** — prompts are the main place personal data leaves a workspace;
   the redact-or-block modal is part of prompt hygiene.

@@ -2,7 +2,7 @@
  * The editor's runs — the toolbar's dry run and its menu's "Run live" and
  * "Start from" (the web's RunFlowMenu), a card's "Test this step",
  * "Run up to here" and "Run from here", the step editor's Test — over the
- * routine's shared test-run store (testRunStore.ts), and what the flow shows
+ * automation's shared test-run store (testRunStore.ts), and what the flow shows
  * of them: the rows by step id (runStatus.ts, for the card badges, the
  * borders and the line colours), and where the run is (runFocus.ts, for the
  * line over the flow).
@@ -43,7 +43,7 @@ export interface TestRuns {
     dryRun: () => void;
     /** Every step for real; the caller asks first. */
     runLive: () => void;
-    /** The entry points "Start from" offers (none for a single-trigger routine), and the chosen one. */
+    /** The entry points "Start from" offers (none for a single-trigger automation), and the chosen one. */
     starts: StartPoint[];
     from: string | null;
     setFrom: (id: string | null) => void;
@@ -59,7 +59,7 @@ function finishedWords(status: string, t: TranslateFn): { text: string; error: b
     return { text: t('mobile.flow.run.finished', 'Test run: {status}', { status: statusLabel(t, token) }), error: token.tone === 'error' };
 }
 
-/** Subscribe to the routine's test run, and keep the run feed open while one is out. */
+/** Subscribe to the automation's test run, and keep the run feed open while one is out. */
 function useRunFeed(flowKey: string, store: DraftStore): TestRunState {
     const state = useStore(testRunStoreFor(flowKey));
     const automationId = useDraftState(store, (s) => s.automationId);

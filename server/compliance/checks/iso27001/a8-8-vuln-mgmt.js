@@ -3,7 +3,9 @@
  * alerts from the github connector snapshots. A critical/high finding left
  * open beyond 30 days, or vulnerability data that is invisible on every
  * monitored repository, fails the control; a fresh critical/high or a large
- * medium/low backlog is a warning.
+ * medium/low backlog is a warning. A pass needs the whole estate: alerts that
+ * are not readable on some repositories, or a repository where only the first
+ * page of 100 open alerts was read, make the result partial, so it warns.
  */
 
 const isoEvidenceStore = require('../../../stores/isoEvidenceStore');
@@ -85,6 +87,10 @@ module.exports = {
         evidence.open_high = high;
         evidence.open_medium_low = backlog;
         evidence.oldest_high_critical_days = oldestHighCrit;
+        const hidden = rows.filter(r => !r.alerts_accessible).map(r => r.repo);
+        const truncated = repos.filter(r => r.dependabot?.truncated).map(r => r.repo);
+        evidence.repos_without_alert_access = hidden;
+        evidence.alerts_truncated = truncated;
 
         if (critHigh > 0 && oldestHighCrit !== null && oldestHighCrit > STALE_DAYS) {
             return {
@@ -105,6 +111,17 @@ module.exports = {
                 status: 'warn',
                 evidence,
                 details: `No open critical/high alerts, but ${backlog} medium/low alerts are open (threshold ${BACKLOG_WARN}) — schedule a clean-up.`,
+            };
+        }
+        if (hidden.length || truncated.length) {
+            const gaps = [
+                hidden.length && `Dependabot alerts are not readable on ${hidden.join(', ')}`,
+                truncated.length && `only the first 100 open alerts were read on ${truncated.join(', ')}`,
+            ].filter(Boolean).join('; ');
+            return {
+                status: 'warn',
+                evidence,
+                details: `${gaps} — no open critical/high alert among what could be read, but the result covers only part of the estate.`,
             };
         }
         return {

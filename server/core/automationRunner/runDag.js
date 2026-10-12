@@ -203,7 +203,7 @@ async function runDag(def, ctx, runStateInit, mode, dispatchStep, { recordSteps 
     //   split ─then→ w  → b2
     // the FIFO order is split, a1, w, a2, b2, a3 — exactly one node of branch A
     // gets ahead of the sleep and the rest of the workflow waits it out, which
-    // is what users report as "one Wait pauses the whole routine".
+    // is what users report as "one Wait pauses the whole automation".
     //
     // So: take any other runnable node first, and take a wait only when it is
     // the only thing left. Independent branches then drain to completion and
@@ -227,18 +227,39 @@ async function runDag(def, ctx, runStateInit, mode, dispatchStep, { recordSteps 
     // live" and re-sleep it, up to 24h, with a human watching. Costs nothing to
     // close, so: only plain forward walks reorder. BFSF-371 only ever shows up
     // on those anyway.
+    //
+    // A flowlet's Return (`layer_output`) goes after even the waits. It reads
+    // what the flowlet's other steps produced and hands it to the caller, so
+    // it has to be the last thing the flowlet does. A Return wired straight
+    // from a step that ALSO starts the real work (`trg → out` beside
+    // `trg → http → code`, what the AI builder made of "add after the
+    // trigger" until draftGraph.layerAwareAnchor kept the Return last) used
+    // to run second, find nothing, and return an empty record while the work
+    // ran after it for nobody. Nothing in a flowlet can read the Return, so
+    // taking it last changes no other step's input.
     const deferWaits = !skipUntilStepId && !fromStepId && !onlyStepId && !untilStepId;
+    // 0 = runnable now, 1 = an enabled wait, 2 = the Return. A DISABLED wait
+    // never sleeps, so there is nothing to defer — and deferring it would
+    // needlessly make it the last step of the run. `stepById.get()` is
+    // undefined for the synthesized roots (__loop_root__/__parallel_root__),
+    // which rank 0 harmlessly.
+    const deferRank = (nid) => {
+        const s = stepById.get(nid);
+        if (s?.type === 'layer_output') return 2;
+        return s?.type === 'wait' && !s.disabled ? 1 : 0;
+    };
     const takeNext = () => {
         if (!deferWaits) return queue.shift();
-        // A DISABLED wait never sleeps, so there is nothing to defer — and
-        // deferring it would needlessly make it the last step of the run.
-        // `stepById.get()` is undefined for the synthesized roots
-        // (__loop_root__/__parallel_root__); `?.type !== 'wait'` picks them up
-        // harmlessly.
-        const i = queue.findIndex(nid => { const s = stepById.get(nid); return !(s?.type === 'wait' && !s.disabled); });
-        // -1 means every queued node is an enabled wait — take the head, which
-        // is the FIFO behaviour. The `while` guard makes index 0 safe.
-        return queue.splice(i === -1 ? 0 : i, 1)[0];
+        // The first node of the lowest rank: FIFO within a rank, and the
+        // head when everything is ranked alike. The `while` guard makes
+        // index 0 safe.
+        let best = 0;
+        let bestRank = deferRank(queue[0]);
+        for (let i = 1; i < queue.length && bestRank > 0; i++) {
+            const r = deferRank(queue[i]);
+            if (r < bestRank) { best = i; bestRank = r; }
+        }
+        return queue.splice(best, 1)[0];
     };
 
     while (queue.length > 0) {
@@ -341,7 +362,7 @@ async function runDag(def, ctx, runStateInit, mode, dispatchStep, { recordSteps 
                 // A row for the step that is RUNNING, not only for the ones
                 // that finished. Until now a step in flight left no trace at
                 // all, so anything asking "where is this run right now" — a
-                // public form page sitting on a spinner while the routine
+                // public form page sitting on a spinner while the automation
                 // works — had nothing to answer with. Upserted on
                 // (run_id, step_id, attempts), so the real row replaces this
                 // one the moment the step lands; a retry's attempts=1 'error'
@@ -486,7 +507,7 @@ async function runDag(def, ctx, runStateInit, mode, dispatchStep, { recordSteps 
                 // ONLY in builder-initiated runs (dry-run / ▶ Execute) — the
                 // owner's decision: production runs never pay for extra
                 // scanning. scanOutputForPiiSummary itself gates on the org
-                // shield ("Apply to routines") and PII detection being on.
+                // shield ("Apply to automations") and PII detection being on.
                 // Pure transformation steps are exempt (BFSF-359): their output
                 // is a SUBSET of upstream data that was already scanned when
                 // the step that produced it was recorded, so re-scanning buys
@@ -521,6 +542,10 @@ async function runDag(def, ctx, runStateInit, mode, dispatchStep, { recordSteps 
                     // Tools an AI step was not given, each with its reason
                     // ('permission' | 'confirm' | 'unavailable'), for the
                     // Runs tab (handoff 5). Null for every other step.
+                    // Mappings that found nothing while the step ran
+                    // (execution.js dispatchStep, bindingMisses.js).
+                    bindingWarnings: Array.isArray(dispatched.bindingWarnings) && dispatched.bindingWarnings.length
+                        ? dispatched.bindingWarnings : null,
                     toolsWithheld: Array.isArray(dispatched.toolsWithheld) && dispatched.toolsWithheld.length
                         ? [...new Set(dispatched.toolsWithheld)].map((name) => ({
                             name, reason: dispatched.toolsWithheldReasons?.[name] || 'unavailable',

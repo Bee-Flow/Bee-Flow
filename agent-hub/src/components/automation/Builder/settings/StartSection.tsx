@@ -19,17 +19,17 @@ type T = ReturnType<typeof useTranslation>['t'];
 /** "Start: manual" and the line under it, for the start card. */
 function startWords(trigger: TriggerStep | null, card: StartCard | null, t: T): { name: string; detail: string } {
     const shortName: Record<StartCard, string> = {
-        manual: t('routines.settings.start_short_manual', 'manual'),
-        schedule: t('routines.settings.start_short_schedule', 'on a schedule'),
-        file: t('routines.settings.start_short_file', 'new file'),
-        form: t('routines.settings.start_short_form', 'form'),
-        email: t('routines.settings.start_short_email', 'e-mail'),
-        app: t('routines.settings.start_short_app', 'something in an app'),
+        manual: t('automations.settings.start_short_manual', 'manual'),
+        schedule: t('automations.settings.start_short_schedule', 'on a schedule'),
+        file: t('automations.settings.start_short_file', 'new file'),
+        form: t('automations.settings.start_short_form', 'form'),
+        email: t('automations.settings.start_short_email', 'e-mail'),
+        app: t('automations.settings.start_short_app', 'something in an app'),
     };
     const name = card ? shortName[card] : triggerTypeLabel(trigger);
     if (card === 'schedule') return { name, detail: describeCron(trigger?.schedule?.cron || '', { t, tz: trigger?.schedule?.tz || 'Europe/Amsterdam' }) };
-    if (card === 'manual') return { name, detail: t('routines.settings.start_manual_only', 'Only when someone starts it') };
-    if (card === 'form') return { name, detail: t('routines.settings.start_form_detail', 'Every answer to the form starts a run') };
+    if (card === 'manual') return { name, detail: t('automations.settings.start_manual_only', 'Only when someone starts it') };
+    if (card === 'form') return { name, detail: t('automations.settings.start_form_detail', 'Every answer to the form starts a run') };
     return { name, detail: card ? triggerTypeLabel(trigger) : '' };
 }
 
@@ -48,17 +48,17 @@ export default function StartSection({ automation, onSave }: Props) {
 
     return (
         <div className="flex flex-col gap-3">
-            <SectionHeading>{t('routines.settings.start_section', 'Start')}</SectionHeading>
+            <SectionHeading>{t('automations.settings.start_section', 'Start')}</SectionHeading>
             <div className="@container/start">
                 <div className="grid grid-cols-1 @[560px]/start:grid-cols-2 gap-2.5 text-[12px]">
                     <div className="flex gap-2.5 p-3 rounded-[10px] border border-[var(--border-default)] bg-[var(--bg-card)]">
                         <Icon size={16} className="text-[var(--type-trigger)] shrink-0" />
                         <div className="min-w-0">
-                            <div className="font-semibold">{t('routines.settings.start_label', 'Start: {name}', { name: startName })}</div>
+                            <div className="font-semibold">{t('automations.settings.start_label', 'Start: {name}', { name: startName })}</div>
                             <div className="mt-0.5 text-[var(--text-tertiary)]">
                                 {startDetail}{startDetail ? ' · ' : ''}
                                 <button type="button" className={`${LINK_BTN} text-[var(--text-secondary)]`} onClick={() => setStartOpen(true)} disabled={!automation}>
-                                    {t('routines.settings.change', 'change')}
+                                    {t('automations.settings.change', 'change')}
                                 </button>
                             </div>
                         </div>

@@ -263,7 +263,7 @@ test('a finalize refused for validation errors reaches the wire as the diagnosti
         body: { automationId: 'auto_1' },
         draft: broken,
         rounds: [
-            { toolCalls: [call('builder_set_plan', { todos: [{ text: 'Routine afronden en activeren' }] })] },
+            { toolCalls: [call('builder_set_plan', { todos: [{ text: 'Automation afronden en activeren' }] })] },
             { toolCalls: [call('builder_finalize', {})] },
             { text: 'Het lukt niet.' },
         ],
@@ -282,12 +282,12 @@ test('a finalize refused for validation errors reaches the wire as the diagnosti
 test('auto-finalize runs on any ending the model leaves unfinished, and never after a stop', async () => {
     // It used to require `iter >= iterationBudget`, so the net only caught a
     // build that ran out of rounds — the commonest small-model ending (a few
-    // good steps, then prose instead of builder_finalize) left the routine a
+    // good steps, then prose instead of builder_finalize) left the automation a
     // draft for ever.
     const ended = await h.run({
         body: { automationId: 'auto_1' },
         draft: draftWith(1),
-        rounds: [{ text: 'Je routine is klaar.' }],
+        rounds: [{ text: 'Je automation is klaar.' }],
         tools: { builder_finalize: () => ({ automation: { id: 'auto_1' } }) },
     });
     assert.deepStrictEqual(ended.first('finalized'), { automationId: 'auto_1', autoFinalized: true });
@@ -306,7 +306,7 @@ test('auto-finalize runs on any ending the model leaves unfinished, and never af
     assert.strictEqual(stopped_.first('builder_aborted').reason, 'repeated_rejection');
 });
 
-test('a draft carrying only a note is not a routine, and is not auto-finalized', async () => {
+test('a draft carrying only a note is not an automation, and is not auto-finalized', async () => {
     const noteOnly = draftWith(0);
     noteOnly.definition.steps = [{ id: 'n1', type: 'note', label: 'Denk hier nog over na', spec: {} }];
     const run = await h.run({

@@ -1,5 +1,5 @@
 /**
- * Let the page run one of your automations — the web's "Add routine" in its
+ * Let the page run one of your automations — the web's "Add automation" in its
  * Apps & data panel. The page's bridge runs it as you, so only your own
  * automations are offered, and one already granted is left out.
  */

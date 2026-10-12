@@ -6,6 +6,11 @@
  *   2. The PII scan ledger (stores/piiScanLedgerStore.prune): bounded by SIZE,
  *      not age — rows from a superseded key version and the coldest rows past
  *      the cap.
+ *   3. "Find repeating work" (stores/suggestionScanCache and
+ *      stores/suggestionFeedbackStore pruneExpired): scans older than 30 days
+ *      and lapsed dismissed/snoozed/opened feedback. Both stores documented a
+ *      30-day retention that nothing enforced. Each DELETE is idempotent and
+ *      cheap, so two pods running it at once is harmless: no lock.
  *
  * ── WHY THIS IS NOT ON THE AUTOMATION RUNNER'S TICK ─────────────────
  * Both used to ride processRunRetention in core/automationRunner/scheduler/
@@ -20,12 +25,15 @@
  * module gate, the same reasoning as jobs/datatableRetention.js.
  *
  * MULTI-POD SAFE: the monitoring pass takes its own advisory lock (0xBEEF10B);
- * the ledger prune takes 0xBEEF111 here. One pod per pass.
+ * the ledger prune takes 0xBEEF111 here. One pod per pass. The suggestion
+ * prunes need none (see 3).
  */
 
 'use strict';
 
 const LEDGER_PRUNE_LOCK_KEY = 0xBEEF111;
+// Accepted / rejected / stale AI suggestions on documents (stores/documentSuggestionStore.js).
+const DOCUMENT_SUGGESTION_RETENTION_DAYS = 30;
 const INTERVAL_MS = 60 * 60 * 1000;
 // The first interval fire is an hour away — longer than plenty of pods live —
 // so a short boot delay is the only pass a short-lived replica ever runs.
@@ -45,6 +53,9 @@ function deps() {
             monitoringRetentionPass: require('./monitoringRetention').monitoringRetentionPass,
             pruneScanLedger: require('../stores/piiScanLedgerStore').prune,
             ledgerKeyVersion: require('../core/dlp/scanLedger').LEDGER_KEY_VERSION,
+            pruneSuggestionScans: () => require('../stores/suggestionScanCache').pruneExpired(),
+            pruneSuggestionFeedback: () => require('../stores/suggestionFeedbackStore').pruneExpired(),
+            pruneDocumentSuggestions: () => require('../stores/documentSuggestionStore').purgeResolved(DOCUMENT_SUGGESTION_RETENTION_DAYS),
             log: require('../telemetry/log'),
         };
     }
@@ -83,7 +94,20 @@ async function _pruneScanLedger(d) {
     }
 }
 
-/** One pass of both. A failing monitoring pass never skips the ledger prune. */
+/** The suggestion scan cache and feedback, then resolved document suggestions. One failing never skips the others. */
+async function _pruneSuggestions(d) {
+    for (const [label, prune] of [['suggestion scan', d.pruneSuggestionScans], ['suggestion feedback', d.pruneSuggestionFeedback], ['document suggestion', d.pruneDocumentSuggestions]]) {
+        if (typeof prune !== 'function') continue;
+        try {
+            const n = await prune();
+            if (n) d.log.info(`[platformRetention] pruned ${n} ${label} row(s)`);
+        } catch (e) {
+            d.log.warn(`[platformRetention] ${label} prune failed:`, e.message);
+        }
+    }
+}
+
+/** One pass of all three. A failing pass never skips the ones after it. */
 async function runOnce() {
     if (_running) return;
     _running = true;
@@ -95,6 +119,7 @@ async function runOnce() {
             d.log.error('[platformRetention] monitoring retention failed:', e.message);
         }
         await _pruneScanLedger(d);
+        await _pruneSuggestions(d);
     } finally {
         _running = false;
     }

@@ -21,7 +21,7 @@ describe('summariseDeleteBlock — "in use" and "could not check" are not the sa
     });
 
     it('a count larger than the row tally wins — rows can be truncated', () => {
-        // The wound: trusting the visible rows would tell somebody "1 routine"
+        // The wound: trusting the visible rows would tell somebody "1 automation"
         // while the server counted 40, and they would delete on that number.
         const s = summariseDeleteBlock({
             rows: [{ kind: 'automation', id: 'a1', foreign: false }],

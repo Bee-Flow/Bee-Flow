@@ -67,7 +67,7 @@ export const KIND_ICON: Record<KindKey, IconName> = {
 
 /** The names the rest of the product uses for these objects, folded onto the keys. */
 export const KIND_ALIASES: Readonly<Record<string, KindKey>> = {
-    automations: 'automation', routine: 'automation', routines: 'automation', flow: 'automation',
+    automations: 'automation', automation: 'automation', flow: 'automation',
     datatables: 'datatable', table: 'datatable', tables: 'datatable', data_table: 'datatable',
     apps: 'app', application: 'app',
     webpages: 'webpage', web: 'webpage', page: 'webpage', pages: 'webpage', website: 'webpage',

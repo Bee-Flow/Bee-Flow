@@ -1,5 +1,5 @@
 /**
- * A declared field's binding renamed across the whole open routine as ONE
+ * A declared field's binding renamed across the whole open automation as ONE
  * draft-store edit — the host half of the web's `onRenameField` (the builder
  * rewrites every ref, template and expression that points at the old name,
  * and the form's own declaration with them). Answers how many bindings moved,

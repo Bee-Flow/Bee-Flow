@@ -15,7 +15,7 @@
  *     carry `sourceConversationId`, curated out of a real chat by S2;
  *   - a step id the model invented is dropped; an id it kept brings that
  *     step's REFS with it, so "Improve with AI" cannot silently unlink the
- *     routine, table or knowledge base a step pointed at;
+ *     automation, table or knowledge base a step pointed at;
  *   - grants and audience are not in the schema at all — a model does not
  *     widen what a skill may reach or who may see it.
  *
@@ -113,7 +113,7 @@ describe('a usable draft', () => {
     test('a step reference the model invented never lands', () => {
         const out = parseSkillDraft({
             ...GOOD,
-            steps: [{ text: 'Call the routine', refs: [{ kind: 'automation', id: 'made-up' }] }],
+            steps: [{ text: 'Call the automation', refs: [{ kind: 'automation', id: 'made-up' }] }],
         });
         assert.deepStrictEqual(out.steps[0].refs, []);
     });

@@ -13,7 +13,18 @@ const userStore = require('../../stores/userStore');
 const { requireAuth, invalidatePermissionCache, isOrgAdminRole } = require('../permissions');
 const { wouldOrphanOrg } = require('./orgAdminGuards');
 const { validate } = require('../../core/http/validate');
+const { HttpError } = require('../../core/http/errors');
 const { z } = require('zod');
+
+/**
+ * Re-parent the leaver's agents to the target, except the agents a Solution
+ * stage manages (filed in a stage project): those are owned by the stage's
+ * run-as, and only a deploy changes that (design 3.4). The route refuses a
+ * run-as before it gets here; the exclusion keeps the statement itself honest.
+ */
+const REASSIGN_AGENTS_SQL = `UPDATE agents SET owner_id = $1, updated_at = NOW()
+     WHERE owner_id = $2 AND organization_id = $3
+       AND (project_id IS NULL OR project_id NOT IN (SELECT id FROM projects WHERE stage_of IS NOT NULL))`;
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
 const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
@@ -62,6 +73,17 @@ router.post('/users/me/leave-org', requireAuth, validate({ body: LeaveOrgBody })
         });
     }
 
+    // A Solution stage runs as this account (or it owns a stage project): its
+    // parts are owned by it and would be stranded. Refused BEFORE anything is
+    // reassigned; an org admin can detach or remove the stages first.
+    const stages = (await require('../../stores/solutionStageStore').runAsStagesFor(userId))
+        .filter((st) => (st.organizationId || '') === orgId);
+    if (stages.length > 0) {
+        throw new HttpError(409, 'stage_run_as',
+            'You run a Solution stage in this organisation. An org admin can detach or remove the stages first.',
+            { stages: stages.map((st) => ({ solutionId: st.solutionId, stage: st.stage, projectId: st.projectId })) });
+    }
+
     // Re-parent owned agents to the target. Bulk update is fine here
     // because we just verified target shares the org. Knowledge bases,
     // skills, automations etc. would follow the same pattern — kept
@@ -70,10 +92,7 @@ router.post('/users/me/leave-org', requireAuth, validate({ body: LeaveOrgBody })
     require('../../stores/agentStore');
     try {
         const { run } = require('../../db');
-        await run(
-            'UPDATE agents SET owner_id = $1, updated_at = NOW() WHERE owner_id = $2 AND organization_id = $3',
-            [transferTo, userId, orgId],
-        );
+        await run(REASSIGN_AGENTS_SQL, [transferTo, userId, orgId]);
     } catch (e) {
         log.warn('[LeaveOrg] agent reassignment failed:', e.message);
     }

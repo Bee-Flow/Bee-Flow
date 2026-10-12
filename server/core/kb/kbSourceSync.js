@@ -1,31 +1,31 @@
 // @typecheck
 /**
- * Keep the `automation` KB sources in step with a routine's definition, from
+ * Keep the `automation` KB sources in step with an automation's definition, from
  * every path that saves one.
  *
  * ── WHY A SOURCE AT ALL, WHEN THE INGEST MAKES ONE ──────────────────
  * `integrations/kbIngestTools._ensureAutomationSource` already creates the row
- * — but LAZILY, on the first document. So between saving a routine and its
+ * — but LAZILY, on the first document. So between saving an automation and its
  * first successful run, the Knowledge Studio's Sources list says nothing is
- * feeding this base, while a routine sits armed to feed it. That gap is the
+ * feeding this base, while an automation sits armed to feed it. That gap is the
  * whole span in which somebody is deciding whether the base is trustworthy.
  *
  * The point of a source row here is not the ingest. It is the ANSWER to "where
  * did this come from, and what else is going to arrive" — asked by the person
- * looking at a knowledge base, not by the routine.
+ * looking at a knowledge base, not by the automation.
  *
  * ── WHY EVERY SAVE PATH ─────────────────────────────────────────────
  * The same rule `datatableUsageSync` states about itself, and for a sharper
  * reason: this reconcile also MARKS the sources a definition no longer names.
- * A save path that skips it leaves a source claiming a routine writes to a
+ * A save path that skips it leaves a source claiming an automation writes to a
  * base it stopped writing to a month ago — worse than no row, because the
  * Sources list is read as current. (Marks, never deletes — see the tail of
  * `syncKbSources` for why the documents stay.)
  *
  * ── NEVER THROWS ────────────────────────────────────────────────────
- * The source is bookkeeping; the routine is the product. A KB store that is
- * down must not make routines unsaveable. It also NEVER creates a source for a
- * base the routine's owner may not write to: an unauthorised step is refused at
+ * The source is bookkeeping; the automation is the product. A KB store that is
+ * down must not make automations unsaveable. It also NEVER creates a source for a
+ * base the automation's owner may not write to: an unauthorised step is refused at
  * activation and again at run time, and a source row for it would advertise a
  * feed that is never going to arrive.
  */
@@ -35,19 +35,19 @@
 const { collectKbSteps } = require('./automationKbCheck');
 const log = require('../../telemetry/log');
 
-/** The config subset that identifies "this routine's source" in a base. */
+/** The config subset that identifies "this automation's source" in a base. */
 function matchFor(automationId) {
     return { automationId };
 }
 
 /**
- * Reconcile one routine's `automation` sources.
+ * Reconcile one automation's `automation` sources.
  *
  * @param {string} automationId
  * @param {object} definition
  * @param {object} p
- * @param {string} p.userId          the routine's OWNER — whose write rights decide
- * @param {string} [p.title]         the routine's title, shown in the Sources list
+ * @param {string} p.userId          the automation's OWNER — whose write rights decide
+ * @param {string} [p.title]         the automation's title, shown in the Sources list
  * @param {object} [p.deps]
  * @returns {Promise<{added: string[], kept: string[], removed: string[]}>}
  */
@@ -79,7 +79,7 @@ async function syncKbSources(automationId, definition, { userId, title = '', dep
          * These must not be treated as "no longer written to". The stale pass
          * below marks anything outside `allowed`, so folding an outage into a
          * refusal relabelled every live source "(no longer writes here)" for
-         * the duration of a blip, on a routine that had changed nothing.
+         * the duration of a blip, on an automation that had changed nothing.
          */
         const unknown = new Set();
         for (const kbId of wanted) {
@@ -94,7 +94,7 @@ async function syncKbSources(automationId, definition, { userId, title = '', dep
         for (const kbId of allowed) {
             const existing = await kbSourcesStore.findOne(kbId, 'automation', { configMatch: matchFor(automationId) });
             if (existing) {
-                // A renamed routine renames its source. The name is the only
+                // A renamed automation renames its source. The name is the only
                 // thing a person has to recognise it by in the Sources list.
                 if (existing.name !== name) await kbSourcesStore.update(existing.id, { name });
                 out.kept.push(kbId);
@@ -104,18 +104,18 @@ async function syncKbSources(automationId, definition, { userId, title = '', dep
                 knowledgeBaseId: kbId,
                 kind: 'automation',
                 name,
-                config: { automationId, provider: 'automation', sourceType: 'routine_write' },
+                config: { automationId, provider: 'automation', sourceType: 'automation_write' },
                 createdBy: userId || null,
             });
             out.added.push(kbId);
         }
 
         /**
-         * Sources this routine used to have and no longer does.
+         * Sources this automation used to have and no longer does.
          *
          * Deliberately NOT deleted: a source row owns the documents hanging off
          * it, and `kb_sources` cascades to them. Removing the step from a
-         * routine is not a request to delete last year's articles — that is a
+         * automation is not a request to delete last year's articles — that is a
          * decision for whoever owns the knowledge base, in the Knowledge
          * Studio, where they can see what they are about to lose.
          *
@@ -141,7 +141,7 @@ async function syncKbSources(automationId, definition, { userId, title = '', dep
             }
         }
     } catch (e) {
-        log.warn(`[KB] Could not sync knowledge sources for routine ${automationId}: ${e.message}`);
+        log.warn(`[KB] Could not sync knowledge sources for automation ${automationId}: ${e.message}`);
     }
     return out;
 }

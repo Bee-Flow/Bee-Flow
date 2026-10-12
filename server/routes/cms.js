@@ -18,6 +18,8 @@
  *     GET  /api/cms/site                       legacy keyed-content shape
  *     GET  /api/cms/site?v=2[&slug=…&locale=…] new shape
  *     GET  /api/cms/asset/:key(*)              streams a CMS asset
+ *     GET  /api/cms/site?blog=index|post&post=… blog index / post (published)
+ *     GET  /api/cms/blog/posts                 newest posts (latest-posts block)
  *
  *   ADMIN — site management (super-admin only):
  *     GET    /api/cms/sites                                    list sites + liveSiteId
@@ -26,6 +28,7 @@
  *     PUT    /api/cms/sites/:siteId                            replace SiteDoc
  *     PATCH  /api/cms/sites/:siteId                            { name } — rename
  *     DELETE /api/cms/sites/:siteId                            delete site + cascade
+ *     *      /api/cms/sites/:siteId/posts[/:postId[/locale/:l]] blog posts (routes/cmsBlog.js)
  *     PUT    /api/cms/sites/:siteId/live                       { live } — set/clear live
  *     POST   /api/cms/sites/:siteId/duplicate                  deep-copy → new version
  *
@@ -49,6 +52,7 @@
  *     PUT    /api/cms/admin/enabled                            { enabled, siteId? } — legacy
  *     PUT    /api/cms/admin/default-locale                     { locale }
  *     POST   /api/cms/admin/upload                             multipart file → { key, url }
+ *     POST   /api/cms/admin/upload-clip                        multipart mp4/webm clip (≤500 MB) → { key, url }
  *     GET    /api/cms/admin/assets                             list uploaded assets → { assets, unavailable? }
  *
  *   "Live" model: at most one project can be live at a time. The public
@@ -79,6 +83,7 @@ const { perUserRateLimit } = require('../utils/perUserRateLimit');
 // ./cmsShared.js, zero behavior change.
 const {
     requireAdmin, attachSiteIdFromParam, getLiveSiteId, setLiveSiteId, KEY_CMS_LIVE_SITE_ID,
+    ensurePublishedSnapshot,
 } = require('./cmsShared');
 const cmsAnalytics = require('./cmsAnalytics');
 const {
@@ -86,6 +91,10 @@ const {
     provisionAnalyticsForSite,
 } = cmsAnalytics;
 const { sanitizeSvg } = require('../utils/svgSanitizer');
+const cmsMedia = require('./cmsMedia');
+const cmsBlog = require('./cmsBlog');
+const { UPLOAD_MIME_WHITELIST, IMAGE_MAX_BYTES } = require('../core/cms/uploadPolicy');
+const { parseRangeHeader } = require('../core/http/httpRange');
 const { validate } = require('../core/http/validate');
 const { z, worded, bodyOf } = require('../core/http/schemaParts');
 
@@ -149,6 +158,7 @@ const importJsonParser = bodyParser.json({ limit: '2mb' });
 // user windows are intentionally generous so a legit power user editing
 // a site is never rate-limited.
 const uploadLimiter      = perUserRateLimit({ windowMs: 60_000, max: 60 });
+const clipUploadLimiter  = perUserRateLimit({ windowMs: 60_000, max: 10 });
 const importLimiter      = perUserRateLimit({ windowMs: 60_000, max: 10 });
 const duplicateLimiter   = perUserRateLimit({ windowMs: 60_000, max: 20 });
 const publishLimiter     = perUserRateLimit({ windowMs: 60_000, max: 30 });
@@ -218,37 +228,27 @@ async function attachSiteId(req, res, next) {
 // SITE_ID_RE + attachSiteIdFromParam live in ./cmsShared.js (shared with
 // the CMS AI builder).
 
-// Accepted MIME types for the CMS uploader. Images cover the regular
-// hero/feature/logo case; image/gif + image/apng + image/webp cover
-// animated graphics; video/mp4 + video/webm cover the "silent loop"
-// video kind used by Media + Text. Anything outside this list is
-// rejected as 400 by the wrapper middleware below (NOT 500 — fileFilter
-// errors used to bubble up uncaught and surface as a generic Internal
-// Server Error).
+// Accepted MIME types for the CMS uploader live in core/cms/uploadPolicy.js
+// (shared with the CMS MCP server's upload URLs). Images cover the regular
+// hero/feature/logo case; image/gif + image/apng + image/webp cover animated
+// graphics; video/mp4 + video/webm cover the "silent loop" video kind used by
+// Media + Text. Anything outside the list is rejected as 400 by the wrapper
+// middleware below (NOT 500 — fileFilter errors used to bubble up uncaught and
+// surface as a generic Internal Server Error).
 //
 // SVG is accepted, but only after server-side sanitization (see
 // handleUpload below). The asset endpoint serves the cleaned bytes
 // inline with a strict CSP; unsanitized legacy SVGs are still
 // force-downloaded by the isScriptableMime branch.
-const UPLOAD_MIME_WHITELIST = new Set([
-    'image/jpeg',
-    'image/png',
-    'image/gif',
-    'image/webp',
-    'image/apng',
-    'image/svg+xml',
-    'video/mp4',
-    'video/webm',
-]);
 
 const upload = multer({
     storage: multer.memoryStorage(),
     // 25 MB ceiling — high enough for short demo-loop MP4s / animated GIFs
     // (the typical sim.ai-style screen recording is well under this), low
     // enough that we don't silently accept multi-hundred-MB uploads.
-    limits: { fileSize: 25 * 1024 * 1024 },
+    limits: { fileSize: IMAGE_MAX_BYTES },
     fileFilter: (req, file, cb) => {
-        if (UPLOAD_MIME_WHITELIST.has(file.mimetype)) cb(null, true);
+        if (UPLOAD_MIME_WHITELIST.has(file.mimetype) || cmsMedia.isVttFile(file)) cb(null, true);
         else cb(new Error(`Unsupported file type: ${file.mimetype}`));
     },
 });
@@ -726,19 +726,7 @@ async function postSitePublish(req, res) {
     } catch (err) { res.status(400).json({ error: err.message }); }
 }
 
-// A site that is Live must always serve a PUBLISHED snapshot — never its
-// in-progress draft. Publishing on the Live transition guarantees
-// "public == published": once live, later edits stay private until the user
-// clicks Publish again. Idempotent + best-effort (a publish hiccup must not
-// block the Live toggle; the public route self-heals as a backstop).
-async function ensurePublishedSnapshot(siteId) {
-    try {
-        const snap = await cmsStore.getPublishedSnapshot(siteId, { fresh: true });
-        if (!snap) await cmsStore.publishSite(siteId);
-    } catch (e) {
-        log.warn(`[CMS] ensurePublishedSnapshot failed for ${siteId}: ${e.message}`);
-    }
-}
+// ensurePublishedSnapshot lives in ./cmsShared.js (shared with the CMS MCP server).
 
 async function putSiteLive(req, res) {
     try {
@@ -826,14 +814,22 @@ async function handleUpload(req, res) {
     // (parse fails, no <svg> root) returns 400 here.
     let body = req.file.buffer;
     let metadata = null;
-    if (req.file.mimetype === 'image/svg+xml') {
+    let contentType = req.file.mimetype;
+    // Captions (.vtt): browsers label them '', text/plain or octet-stream, so
+    // the extension and the content decide. Stored as text/vtt.
+    if (!UPLOAD_MIME_WHITELIST.has(req.file.mimetype)) {
+        if (!cmsMedia.isVttFile(req.file) || !cmsMedia.isValidVtt(req.file.buffer)) {
+            return res.status(400).json({ error: 'Invalid captions file (a WebVTT file under 1 MB that starts with WEBVTT)' });
+        }
+        contentType = 'text/vtt';
+    } else if (req.file.mimetype === 'image/svg+xml') {
         const clean = sanitizeSvg(req.file.buffer);
         if (!clean) return res.status(400).json({ error: 'Invalid or unsafe SVG' });
         body = clean;
         metadata = { sanitized: '1' };
     }
 
-    await storageStore.uploadFile(key, body, req.file.mimetype, metadata);
+    await storageStore.uploadFile(key, body, contentType, metadata);
 
     const url = `/api/cms/asset/${key.split('/').map(encodeURIComponent).join('/')}`;
     res.json({ success: true, key, url });
@@ -848,7 +844,7 @@ async function handleUpload(req, res) {
 // outage) — degrade to { assets: [], unavailable: true } so the picker
 // can hide its entry point instead of erroring.
 
-const ASSET_LIST_EXT_RE = /\.(png|jpe?g|gif|webp|avif|svg|ico|mp4|webm)$/i;
+const ASSET_LIST_EXT_RE = /\.(png|jpe?g|gif|webp|avif|svg|ico|mp4|webm|vtt)$/i;
 const ASSET_LIST_MAX = 500;
 
 async function listAssetsHandler(req, res) {
@@ -921,6 +917,33 @@ router.get('/site', async (req, res) => {
         const locale = (req.query.locale || defaultLocale).toString().toLowerCase().split('-')[0];
         const v2 = req.query.v === '2';
         const slug = (req.query.slug || '').toString();
+
+        // Blog URLs (?blog=index|post&post=<slug>&tag=&page=): the published
+        // blog payload with the site chrome, in the same legacy `content`
+        // shape a page gets (content.blog carries the posts).
+        const blogView = req.query.blog === 'index' || req.query.blog === 'post' ? req.query.blog : null;
+        if (blogView) {
+            const blogEff = await cmsStore.getEffectiveBlog(siteId, {
+                state: 'published',
+                view: blogView,
+                postSlug: String(req.query.post || '').slice(0, 200),
+                tag: String(req.query.tag || '').slice(0, 60),
+                page: String(req.query.page || '1').slice(0, 6),
+                locale,
+            });
+            if (!blogEff) return res.json({ enabled: true, appOnly, found: false, defaultLocale, locale });
+            return res.json({
+                enabled: true,
+                appOnly,
+                found: !!blogEff.found,
+                canonicalSlug: blogEff.page?.slug || 'blog',
+                defaultLocale,
+                locale,
+                content: synthesizeLegacyContent(blogEff),
+                design: blogEff.design,
+                analytics: null,
+            });
+        }
 
         // The public site serves the last-published snapshot only — never the
         // in-progress draft. A legacy live site with no snapshot yet (live
@@ -1030,6 +1053,9 @@ router.get('/site', async (req, res) => {
     }
 });
 
+// Public blog read for the "latest posts" block: GET /api/cms/blog/posts.
+router.use('/blog', cmsBlog.createPublicRouter());
+
 // MIME types that browsers would happily execute as script in the page
 // origin if served inline. The upload whitelist already blocks new
 // SVG/HTML uploads, but pre-existing assets and any future expansion of
@@ -1049,7 +1075,27 @@ router.get(/^\/asset\/(.+)$/, async (req, res) => {
         if (!key.startsWith('cms/')) return res.status(404).json({ error: 'Not found' });
         if (!storageStore.isAvailable()) return res.status(503).json({ error: 'Storage unavailable' });
 
-        const { stream, contentType, contentLength, metadata } = await storageStore.streamFile(key);
+        // Byte ranges: <video> seeking needs them and Safari/iOS will not start
+        // a media resource that does not advertise them. The total size is
+        // needed first to answer a suffix range or a 416.
+        res.setHeader('Accept-Ranges', 'bytes');
+        let range = null;
+        let total = 0;
+        if (req.headers.range) {
+            const head = await storageStore.headFile(key);
+            total = Number(head.contentLength) || 0;
+            range = parseRangeHeader(req.headers.range, total);
+            if (range && range.invalid) {
+                res.setHeader('Content-Range', `bytes */${total}`);
+                return res.status(416).end();
+            }
+        }
+
+        const { stream, contentType: storedType, contentLength, metadata } = await storageStore.streamFile(key, { range });
+        // Captions are always served as UTF-8 WebVTT, whatever the object
+        // metadata says.
+        const isVtt = key.toLowerCase().endsWith('.vtt');
+        const contentType = isVtt ? 'text/vtt; charset=utf-8' : storedType;
         const sanitized = metadata && (metadata.sanitized === '1' || metadata.Sanitized === '1');
 
         // Defense in depth: if the stored Content-Type would execute in
@@ -1072,6 +1118,11 @@ router.get(/^\/asset\/(.+)$/, async (req, res) => {
             }
         } else {
             res.setHeader('Content-Type', contentType);
+            if (isVtt) res.setHeader('X-Content-Type-Options', 'nosniff');
+        }
+        if (range) {
+            res.status(206);
+            res.setHeader('Content-Range', `bytes ${range.start}-${range.end}/${total}`);
         }
         if (contentLength) res.setHeader('Content-Length', contentLength);
         res.setHeader('Cache-Control', 'public, max-age=3600');
@@ -1102,6 +1153,10 @@ router.use('/admin/analytics', cmsAnalytics.router);
 // /admin/upload). Registered BEFORE attachSiteId: listing assets never
 // needs a site and must not auto-provision a default CMS project.
 router.get('/admin/assets', listAssetsHandler);
+// Clip upload sits here too (before attachSiteId): it touches no project, so
+// it must not auto-provision one.
+// Clips (video with sound, up to 500 MB): disk-backed, streamed into storage.
+router.post('/admin/upload-clip', clipUploadLimiter, cmsMedia.clipUploadMiddleware, cmsMedia.handleClipUpload);
 
 router.use('/admin', attachSiteId);
 
@@ -1162,6 +1217,10 @@ router.post('/sites/import', importLimiter, importSiteUpload, importJsonParser, 
 
 // Validate :siteId for everything below before running handlers.
 router.use('/sites/:siteId', attachSiteIdFromParam);
+
+// Blog posts (routes/cmsBlog.js): list / create / read / patch / delete and
+// per-language translations. req.siteId is set by the middleware above.
+router.use('/sites/:siteId/posts', cmsBlog.createAdminRouter());
 
 // Pages — literal '/order' before ':id' wildcard.
 router.post('/sites/:siteId/pages', newPageBody, postPage);

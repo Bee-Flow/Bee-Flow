@@ -19,13 +19,13 @@ export default function RowLabelNode({ data }) {
     let range = null;
     if (first != null && last != null) {
         range = first === last
-            ? t('routines.canvas.row_step', 'step {n}', { n: first })
-            : t('routines.canvas.row_steps', 'steps {first}–{last}', { first, last });
+            ? t('automations.canvas.row_step', 'step {n}', { n: first })
+            : t('automations.canvas.row_steps', 'steps {first}–{last}', { first, last });
     }
     return (
         <div className="flex items-baseline gap-2 pointer-events-none select-none whitespace-nowrap" data-testid="row-label">
             <span className="text-[10px] font-semibold uppercase tracking-[.08em] text-[var(--text-tertiary)]">
-                {t('routines.canvas.row_label', 'Row {n}', { n: index })}
+                {t('automations.canvas.row_label', 'Row {n}', { n: index })}
             </span>
             {range && <span className="text-[11px] text-[var(--text-tertiary)]">{range}</span>}
         </div>

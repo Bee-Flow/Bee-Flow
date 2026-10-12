@@ -2,7 +2,7 @@
  * The live card says which step a run is at by NAME.
  *
  * It printed "Step act_4d4307a · started 3 minutes ago": the id the live feed
- * carries, which nobody who built the routine has ever seen.
+ * carries, which nobody who built the automation has ever seen.
  *
  * Run: cd mobile && ./node_modules/.bin/jest src/features/automations/components/LiveRunCard.test.tsx
  */
@@ -52,7 +52,7 @@ describe('LiveRunCard', () => {
         expect(screen.queryAllByText(/act_new/)).toEqual([]);
     });
 
-    it('ignores a step another run of the same routine reported', async () => {
+    it('ignores a step another run of the same automation reported', async () => {
         await draw({ type: 'step.started', runId: 'r2', stepId: 'act_4d4307a' });
         expect(screen.getByText(/^Started /)).toBeTruthy();
         expect(screen.queryAllByText(/Send the invoice/)).toEqual([]);

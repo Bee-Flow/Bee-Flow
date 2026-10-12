@@ -12,7 +12,7 @@ import { normaliseRunScope } from '../Executions/runScope';
  * Two things, stacked: the "Now running · last 24 hours" strip from
  * Studio.dc.html 1a, and the full executions surface underneath it
  * (ExecutionsPanel, scope 'global' — the same one the builder's history tab
- * and the routines start screen mount).
+ * and the automations start screen mount).
  *
  * ── "Log" means automation runs, in v1 ───────────────────────────────────
  *
@@ -126,7 +126,7 @@ function RunsHeader({ t, scope, setScope, error }) {
                         {t('runs.title', 'Runs & log')}
                     </h2>
                     <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
-                        {t('runs.intro', 'Every time a routine fired: what started it, what it did, and what went wrong. Opening a run shows it step by step.')}
+                        {t('runs.intro', 'Every time an automation fired: what started it, what it did, and what went wrong. Opening a run shows it step by step.')}
                     </p>
                 </div>
                 <ScopeSwitch t={t} scope={scope} setScope={setScope} />
@@ -205,7 +205,7 @@ export default function RunsStudio({
             <div className="flex-shrink-0 w-full mx-auto max-w-[110rem] px-4 pt-5 pb-4 space-y-3">
                 <RunsHeader t={t} scope={scope} setScope={setScope} error={facetsError} />
                 {/* Openen alleen in de eigen scope. In de org-scope zijn dit de
-                    routines van collega's, en GET /api/automation/:id weigert die
+                    automatiseringen van collega's, en GET /api/automation/:id weigert die
                     met 403 — de strook bood dus een knop aan die de server niet
                     inwilligt. De facets dragen geen eigendom, dus per rij beslissen
                     kan hier niet; de scope is het enige eerlijke onderscheid dat

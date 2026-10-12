@@ -13,10 +13,16 @@
 const test = require('node:test');
 const assert = require('node:assert');
 
-const { NL_TRANSLATIONS } = require('./add-nl-routines-nodes-translations');
+const { NL_TRANSLATIONS: ROUTINES_NL } = require('./add-nl-routines-nodes-translations');
+const { NL_TRANSLATIONS: FLATTEN_NL } = require('./add-nl-flatten-node-translations');
+
+// A node added later may carry its catalog keys in its own migration
+// (Flatten a list does); the catalog is the union of them.
+const nodeKeysOf = (map) => Object.fromEntries(Object.entries(map).filter(([k]) => k.startsWith('automations.node.')));
+const NL_TRANSLATIONS = { ...ROUTINES_NL, ...nodeKeysOf(FLATTEN_NL) };
 const { GUI_DEFAULTS } = require('../i18n/defaults/en');
 
-const enKeys = Object.keys(GUI_DEFAULTS).filter(k => k.startsWith('routines.node.'));
+const enKeys = Object.keys(GUI_DEFAULTS).filter(k => k.startsWith('automations.node.'));
 const nlKeys = Object.keys(NL_TRANSLATIONS);
 
 test('every Dutch key exists in the English catalog (no typo'
@@ -35,10 +41,10 @@ test('no Dutch value is just the English one copied over', () => {
     // copy-paste of a block that was never actually translated.
     const identical = enKeys.filter(k => NL_TRANSLATIONS[k] === GUI_DEFAULTS[k]);
     const allowed = new Set([
-        'routines.node.trigger.typeLabel', 'routines.node.trigger.defaultLabel',
-        'routines.node.call_layer.typeLabel', 'routines.node.call_layer.defaultLabel',
-        'routines.node.code.typeLabel', 'routines.node.code.defaultLabel', 'routines.node.code.label',
-        'routines.node.parallel.typeLabel', 'routines.node.parallel.defaultLabel',
+        'automations.node.trigger.typeLabel', 'automations.node.trigger.defaultLabel',
+        'automations.node.call_layer.typeLabel', 'automations.node.call_layer.defaultLabel',
+        'automations.node.code.typeLabel', 'automations.node.code.defaultLabel', 'automations.node.code.label',
+        'automations.node.parallel.typeLabel', 'automations.node.parallel.defaultLabel',
     ]);
     assert.deepStrictEqual(identical.filter(k => !allowed.has(k)), []);
 });

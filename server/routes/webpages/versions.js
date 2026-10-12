@@ -75,8 +75,11 @@ function register(router) {
                 // alleen verklaren met "je hebt nog niet genoeg bewerkt", en op het
                 // standaard projecttype is dat onwaar.
                 coverage: versionCoverage(wp),
+                managed: await webpageStore.managedPayloadOf(wp),
             });
         } catch (err) {
+            // A refusal worded for the caller (409 managed_part) keeps its status and code.
+            if (err?.status && err.status < 500) throw err;
             log.error('[Webpages] List versions failed:', err);
             res.status(500).json({ error: 'Failed to list versions' });
         }
@@ -102,8 +105,11 @@ function register(router) {
                     names,
                     publishedVersionId: wp.publishedVersionId || null,
                 }),
+                managed: await webpageStore.managedPayloadOf(wp),
             });
         } catch (err) {
+            // A refusal worded for the caller (409 managed_part) keeps its status and code.
+            if (err?.status && err.status < 500) throw err;
             log.error('[Webpages] Get version failed:', err);
             res.status(500).json({ error: 'Failed to get version' });
         }
@@ -129,6 +135,8 @@ function register(router) {
             const version = await webpageStore.createVersion(userId, req.params.id, summary);
             res.json({ success: true, version });
         } catch (err) {
+            // A refusal worded for the caller (409 managed_part) keeps its status and code.
+            if (err?.status && err.status < 500) throw err;
             log.error('[Webpages] Create version failed:', err);
             res.status(500).json({ error: 'Failed to create version' });
         }
@@ -158,6 +166,10 @@ function register(router) {
                     code: 'snapshot_unreadable',
                 });
             }
+
+            // A managed page (a Solution stage) changes only through a deploy:
+            // refused here, before the pre-restore snapshot below is written.
+            await webpageStore.assertWebpageWrite(req.params.id, ['files'], { projectId: wp.projectId || null });
 
             // Snapshot the *current* state first so the restore is itself reversible.
             // Flush the DB first so the pre-restore snapshot captures pending writes too.
@@ -251,6 +263,8 @@ function register(router) {
                 extraFilesUntouched,
             });
         } catch (err) {
+            // A refusal worded for the caller (409 managed_part) keeps its status and code.
+            if (err?.status && err.status < 500) throw err;
             log.error('[Webpages] Restore version failed:', err);
             res.status(500).json({ error: 'Failed to restore version' });
         }
@@ -269,6 +283,8 @@ function register(router) {
             if (!ok) return res.status(404).json({ error: 'Version not found' });
             res.json({ success: true });
         } catch (err) {
+            // A refusal worded for the caller (409 managed_part) keeps its status and code.
+            if (err?.status && err.status < 500) throw err;
             log.error('[Webpages] Delete version failed:', err);
             res.status(500).json({ error: 'Failed to delete version' });
         }

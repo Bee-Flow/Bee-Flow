@@ -12,7 +12,7 @@ vi.mock('../../../hooks/useAutomationApi', () => ({ default: () => api }));
 // other test in this file reads the shipped English), and switched on by the
 // footer test below so it can prove the words come from t() rather than
 // happening to be English in the source. Without this a hardcoded "In" would
-// still match a t('routines.ndv.in') that falls back to "In".
+// still match a t('automations.ndv.in') that falls back to "In".
 const { transOverride } = vi.hoisted(() => ({ transOverride: { current: null } }));
 vi.mock('../../../hooks/useTranslation', async (importOriginal) =>
     (await import('@/test/translationOverride')).overrideTranslation(await importOriginal(), transOverride));
@@ -231,7 +231,7 @@ const renderBody = (runSteps = [], extra = {}) => render(
 describe('the loop pills in the drawer', () => {
     beforeEach(() => { cleanup(); transOverride.current = null; try { localStorage.clear(); } catch { /* ignore */ } });
 
-    it('shows NO runs pill and NO iteration pill before the routine has run', () => {
+    it('shows NO runs pill and NO iteration pill before the automation has run', () => {
         renderBody([]);
         expect(screen.queryByTestId('ndv-runs-pill')).toBeNull();
         expect(screen.queryByTestId('input-loop-iteration')).toBeNull();
@@ -271,12 +271,12 @@ describe('the loop pills in the drawer', () => {
         //
         // The dictionary is swapped first, which is what makes this bite: with
         // the shipped English a hardcoded "In" is indistinguishable from
-        // t('routines.ndv.in'). These three values can only appear on screen
+        // t('automations.ndv.in'). These three values can only appear on screen
         // if both halves went through t().
         transOverride.current = {
-            'routines.ndv.in': 'INGAAND',
-            'routines.ndv.out': 'UITGAAND',
-            'routines.ndv.not_run_yet': 'nog niet gedraaid',
+            'automations.ndv.in': 'INGAAND',
+            'automations.ndv.out': 'UITGAAND',
+            'automations.ndv.not_run_yet': 'nog niet gedraaid',
         };
         renderBody([], { density: 'full' });
         const full = screen.getByTestId('ndv-footer-inout').textContent;
@@ -326,7 +326,7 @@ describe('the iteration pill when the loop was cut short', () => {
     });
 
     it('the whole phrase goes through t(), the skipped count included', () => {
-        transOverride.current = { 'routines.mapping.iteration_of_capped': '{n} van {total} · {skipped} overgeslagen' };
+        transOverride.current = { 'automations.mapping.iteration_of_capped': '{n} van {total} · {skipped} overgeslagen' };
         renderBody([{ stepId: 'lp1', output: { iterations: 10, totalItems: 100, truncated: true } }]);
         expect(screen.getByTestId('input-loop-iteration').textContent).toBe('1 van 100 · 90 overgeslagen');
     });

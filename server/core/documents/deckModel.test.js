@@ -189,7 +189,7 @@ test('a normalised deck is flagged so renderers can skip a second pass', () => {
     assert.ok(!Object.keys(d).includes('normalized'), 'not enumerable — never serialised into a step output');
 });
 
-test('normalizeSlide gives one clamped slide for the routine slide step', () => {
+test('normalizeSlide gives one clamped slide for the automation slide step', () => {
     const { slide, warnings } = normalizeSlide({ title: 'S', content: '- one\n- two', layout: 'auto', notes: 'n' });
     assert.strictEqual(slide.layout, 'bullets');
     assert.strictEqual(slide.bullets.length, 2);

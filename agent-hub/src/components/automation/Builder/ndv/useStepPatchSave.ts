@@ -53,7 +53,7 @@ export default function useStepPatchSave({ definition, step, onSaveStep, t }: {
                 markSaved();
             } catch (e) {
                 const err = e as { message?: string };
-                setSaveError(err?.message || t('routines.ndv.save_failed', 'Save failed'));
+                setSaveError(err?.message || t('automations.ndv.save_failed', 'Save failed'));
                 failedPatchRef.current = currentPatch;
                 markSaveError(e);
                 // Re-thrown: SettingsForm.flushNow advances its baseline only

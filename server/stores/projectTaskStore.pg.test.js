@@ -123,3 +123,106 @@ test('priority is checked, a new due date starts the reminders over, and a meeti
     await assert.rejects(store.updateTask('p1', t.id, { priority: 'asap' }), { code: 'INVALID_PRIORITY' });
     await assert.rejects(make('p1', { priority: 'asap' }), { code: 'INVALID_PRIORITY' });
 });
+
+test('the board keeps every to-do and doing task; only the oldest done ones are left out, and it says so', async () => {
+    await pg.query(`INSERT INTO projects (id, name, owner_id) VALUES ('p3', 'p3', 'owner')`);
+    await pg.query(
+        `INSERT INTO project_tasks (id, project_id, title, status, created_by, sort_order, completed_at, created_at)
+         SELECT 'bulk-' || s, 'p3', 'x', CASE WHEN s <= 505 THEN 'done' WHEN s % 2 = 0 THEN 'todo' ELSE 'doing' END,
+                'ann', s, CASE WHEN s <= 505 THEN NOW() - (s || ' minutes')::interval END, NOW()
+           FROM generate_series(1, 1100) s`,
+    );
+    const board = await store.listBoard('p3');
+    assert.strictEqual(board.truncated, true);
+    assert.strictEqual(board.tasks.filter((t) => t.status === 'todo').length, 298, 'every to-do task');
+    assert.strictEqual(board.tasks.filter((t) => t.status === 'doing').length, 297, 'every doing task');
+    const done = board.tasks.filter((t) => t.status === 'done');
+    assert.strictEqual(done.length, 500);
+    assert.ok(done.some((t) => t.id === 'bulk-1') && !done.some((t) => t.id === 'bulk-505'), 'the most recently finished stay');
+    assert.strictEqual((await store.listTasks('p3')).length, 1095);
+    const fresh = await make('p3');
+    assert.ok((await store.listBoard('p3')).tasks.some((t) => t.id === fresh.id), 'a new task is on the board, however many there are');
+    assert.strictEqual((await store.listBoard('p1')).truncated, false);
+});
+
+test('a meeting item becomes a task once: the same item and text is refused, another text is another item', async () => {
+    await pg.query(`INSERT INTO projects (id, name, owner_id) VALUES ('p2', 'p2', 'owner') ON CONFLICT DO NOTHING`);
+    const src = { kind: 'meeting', id: 'mt-u', itemId: 'ai-1', textHash: 'aaaa' };
+    const first = await make('p1', { source: src });
+    assert.deepStrictEqual(first.source, src, 'the text hash is kept');
+    assert.strictEqual(await make('p1', { source: src }), null, 'a second one for the same item and text is not stored');
+    assert.ok(await make('p1', { source: { ...src, textHash: 'bbbb' } }), 'after a regenerate the same position can hold a new item');
+    assert.ok(await make('p2', { source: src }), 'in another project');
+    const map = await store.tasksFromMeeting('p1', 'mt-u');
+    assert.strictEqual(map.get('ai-1#aaaa'), first.id);
+    assert.strictEqual(map.has('ai-1'), false, 'a hashed task is not found by its bare id');
+    assert.ok(await make('p1', { source: { kind: 'meeting', id: 'mt-u', itemId: 'ai-9' } }), 'a task without a hash is still allowed');
+});
+
+test('rows an earlier race doubled lose their claim on the item when the schema is created again, and no task is lost', async () => {
+    await pg.query('DROP INDEX idx_project_tasks_source_item');
+    const a = await make('p1', { source: { kind: 'meeting', id: 'mt-d', itemId: 'ai-1' } });
+    const b = await make('p1', { source: { kind: 'meeting', id: 'mt-d', itemId: 'ai-1' } });
+    await pg.query(`UPDATE project_tasks SET created_at = created_at + interval '1 second' WHERE id = $1`, [b.id]);
+    await pg.exec(DDL);
+    assert.deepStrictEqual((await store.getTask('p1', a.id)).source, { kind: 'meeting', id: 'mt-d', itemId: 'ai-1' });
+    assert.strictEqual((await store.getTask('p1', b.id)).source, null);
+    assert.strictEqual(await make('p1', { source: { kind: 'meeting', id: 'mt-d', itemId: 'ai-1' } }), null, 'the index is back');
+});
+
+test('dropLinksTo with no project drops the link in every project', async () => {
+    const a = await make('p1', { links: [{ kind: 'meeting', id: 'mt-gone' }, { kind: 'chat', id: 'keep' }] });
+    const b = await make('p2', { links: [{ kind: 'meeting', id: 'mt-gone' }] });
+    assert.strictEqual(await store.dropLinksTo(null, 'meeting', 'mt-gone'), 2);
+    assert.deepStrictEqual((await store.getTask('p1', a.id)).links, [{ kind: 'chat', id: 'keep' }]);
+    assert.deepStrictEqual((await store.getTask('p2', b.id)).links, []);
+});
+
+test('the database prevents a partial date update from crossing the other endpoint', async () => {
+    const task = await make('p1', { startDate: '2026-10-01', dueDate: '2026-10-10' });
+    await store.updateTask('p1', task.id, { startDate: '2026-10-08' });
+    // A second editor still holds the old start date, but cannot commit an invalid pair.
+    await assert.rejects(() => store.updateTask('p1', task.id, { dueDate: '2026-10-05' }), error => error.code === '23514');
+    const kept = await store.getTask('p1', task.id);
+    assert.strictEqual(kept.startDate, '2026-10-08');
+    assert.strictEqual(kept.dueDate, '2026-10-10');
+});
+
+test('a poker session walks its queue: score the current task, pop the next, complete at the end', async () => {
+    await pg.query(`INSERT INTO projects (id, name, owner_id) VALUES ('p-poker', 'p-poker', 'owner') ON CONFLICT DO NOTHING`);
+    const a = await make('p-poker');
+    const b = await make('p-poker');
+    const c = await make('p-poker');
+    const s = await store.startPokerSession('p-poker', 'sess-1', a.id, 'ann', [b.id, c.id]);
+    assert.deepStrictEqual(s.queue, [b.id, c.id]);
+    assert.strictEqual(await store.startPokerSession('p-poker', 'sess-2', b.id, 'ann'), null, 'one session per project');
+    // The queue only moves once the votes are revealed.
+    assert.strictEqual(await store.advancePokerSession('p-poker', 'sess-1', 5), null);
+    await store.castPokerVote('p-poker', 'sess-1', 'ann', '5');
+    await store.revealPokerVotes('p-poker', 'sess-1');
+    const first = await store.advancePokerSession('p-poker', 'sess-1', 5);
+    assert.strictEqual(first.task.id, a.id);
+    assert.strictEqual(first.task.storyPoints, 5);
+    assert.strictEqual(first.session.taskId, b.id);
+    assert.strictEqual(first.session.phase, 'voting');
+    assert.deepStrictEqual(first.session.queue, [c.id]);
+    assert.deepStrictEqual(first.session.votes, {}, 'a fresh vote for the next task');
+    await store.revealPokerVotes('p-poker', 'sess-1');
+    const second = await store.advancePokerSession('p-poker', 'sess-1', 8);
+    assert.strictEqual(second.session.taskId, c.id);
+    assert.deepStrictEqual(second.session.queue, []);
+    await store.revealPokerVotes('p-poker', 'sess-1');
+    const last = await store.advancePokerSession('p-poker', 'sess-1', 3);
+    assert.strictEqual(last.task.id, c.id);
+    assert.strictEqual(last.session.phase, 'completed', 'the queue is empty: the session is over');
+    assert.deepStrictEqual(
+        await Promise.all([a, b, c].map(async (t) => (await store.getTask('p-poker', t.id)).storyPoints)),
+        [5, 8, 3],
+    );
+    // A completed session frees the project, and a queue-less start behaves like before.
+    const solo = await store.startPokerSession('p-poker', 'sess-3', a.id, 'ann');
+    assert.deepStrictEqual(solo.queue, []);
+    await store.revealPokerVotes('p-poker', 'sess-3');
+    const done = await store.advancePokerSession('p-poker', 'sess-3', 2);
+    assert.strictEqual(done.session.phase, 'completed');
+});

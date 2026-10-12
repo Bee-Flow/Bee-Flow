@@ -230,7 +230,7 @@ describe('nodeDefs — accessors', () => {
         const seen = [];
         const t = (key, fallback) => { seen.push([key, fallback]); return `NL:${fallback}`; };
         expect(nodeTypeLabel('summarize', t)).toBe('NL:Add up or count');
-        expect(seen[0][0]).toBe('routines.node.summarize.typeLabel');
+        expect(seen[0][0]).toBe('automations.node.summarize.typeLabel');
     });
 
     it('an unknown type yields empty string, never undefined', () => {

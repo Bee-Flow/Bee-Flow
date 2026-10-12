@@ -59,6 +59,7 @@ function createSkillActivationHandler({
                 session: userAuth?.session,
                 isAdmin: userAuth?.session?.user?.isAdmin || false,
                 agentConfig: agent.config,
+                agentId,
                 extraEnabledApps: skillApps.allowedApps,
                 connectionPolicy: { ownerUserId: agent.owner_id || null, resourceType: 'agent', resourceId: agentId },
             });

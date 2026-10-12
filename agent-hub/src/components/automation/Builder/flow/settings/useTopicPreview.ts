@@ -48,8 +48,8 @@ export default function useTopicPreview({ rules, rows, root = null, itemVar = 'i
         } catch (e) {
             const status = (e as { status?: number })?.status;
             const error = status === 409
-                ? t('routines.builder.topics.check_not_installed', 'No topic classifier is installed on this server, so these rules cannot be checked.')
-                : t('routines.builder.topics.check_failed', 'The topic classifier did not answer. Try again in a moment.');
+                ? t('automations.builder.topics.check_not_installed', 'No topic classifier is installed on this server, so these rules cannot be checked.')
+                : t('automations.builder.topics.check_failed', 'The topic classifier did not answer. Try again in a moment.');
             setState({ key, host: null, error, loading: false });
         }
     };

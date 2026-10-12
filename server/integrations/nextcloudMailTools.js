@@ -6,7 +6,7 @@
  *
  * Auth via ./nextcloudClient (OAuth Bearer when present, app-password Basic
  * otherwise). Mail's controllers don't carry the `#[CORS]` attribute that
- * forces Notes/Deck onto Basic auth — so Bearer works for routine fires too.
+ * forces Notes/Deck onto Basic auth — so Bearer works for automation fires too.
  *
  * Endpoint surface (verified against nextcloud/mail main branch):
  *   GET  /api/accounts                                  — list mail accounts

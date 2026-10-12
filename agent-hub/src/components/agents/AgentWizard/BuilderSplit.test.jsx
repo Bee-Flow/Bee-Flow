@@ -18,6 +18,11 @@ vi.mock('../../../utils/helpers', () => ({
     authFetch: vi.fn(async () => ({ ok: false, json: async () => ({}), text: async () => '' })),
     parseSaveError: vi.fn(async () => ({ message: 'save failed' })),
 }));
+// The links between this agent and automations come from a react-query hook; this
+// file renders without a provider, and ToolsCard.test.jsx covers what the rows say.
+vi.mock('../../../api/queries/automation/agentBindings', () => ({
+    useLinkedAutomationIds: () => ({ data: undefined }),
+}));
 // Keep the smoke test light: the markdown pipeline is irrelevant here.
 vi.mock('../../renderers/MarkdownRenderer', () => ({
     default: ({ content }) => <div data-testid="markdown">{content}</div>,
@@ -375,7 +380,7 @@ describe('BuilderSplit — de Tools-kaart', () => {
         ).toBe('true'));
     });
 
-    it('telt gegunde routines mee in de tabteller', async () => {
+    it('telt gegunde automations mee in de tabteller', async () => {
         render(<BuilderSplit {...baseProps} agent={{
             ...agent,
             config: { tools: { automations: { a1: { confirm: 'ask' } }, datatables: { t1: {} } } },

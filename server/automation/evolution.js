@@ -1,10 +1,10 @@
 /**
- * Routine evolution — a routine proposes changes to its OWN definition, a human
+ * Automation evolution — an automation proposes changes to its OWN definition, a human
  * approves, the change lands as a new version, the next runs are watched, and
  * a regression rolls back to the exact version it replaced.
  *
  * Boundaries that keep this safe:
- *   - Self-scope only: the tools in integrations/routineEvolutionTools.js act on
+ *   - Self-scope only: the tools in integrations/automationEvolutionTools.js act on
  *     the automation that is running them (ctx.automationId), never another.
  *   - Narrow patch vocabulary (ALLOWED_TOOLS): prompt/threshold/binding edits,
  *     a notification, an error branch, a set/filter/condition, a note, metadata.
@@ -80,7 +80,7 @@ async function proposeEvolution({ automationId, userId, rationale, expectedEffec
  * Apply an approved proposal: run its plan on a copy through the builder,
  * validate, save as a new version, capture the baseline, start the canary.
  * Never throws for a plan problem — the row ends in `failed` with the reason,
- * which the calling routine reports to the owner.
+ * which the calling automation reports to the owner.
  */
 async function applyEvolution(evolutionId, { userId } = {}, deps = defaultDeps()) {
     const row = await deps.store.getEvolution(evolutionId);
@@ -89,7 +89,7 @@ async function applyEvolution(evolutionId, { userId } = {}, deps = defaultDeps()
     const a = await deps.store.getAutomation(row.automationId);
     if (!a) return deps.store.updateEvolution(evolutionId, { status: 'failed', error: 'Automation not found' });
     if (userId && a.userId && a.userId !== userId && row.userId !== userId) {
-        return deps.store.updateEvolution(evolutionId, { status: 'failed', error: 'Only the routine owner can apply an evolution' });
+        return deps.store.updateEvolution(evolutionId, { status: 'failed', error: 'Only the automation owner can apply an evolution' });
     }
     const planErr = validatePlan(row.plan);
     if (planErr) return deps.store.updateEvolution(evolutionId, { status: 'failed', error: planErr });
@@ -100,7 +100,7 @@ async function applyEvolution(evolutionId, { userId } = {}, deps = defaultDeps()
     if (a.liveVersion != null && Number(a.pendingChanges) > 0) {
         return deps.store.updateEvolution(evolutionId, {
             status: 'failed',
-            error: 'Not applied: the routine has changes that are not live yet, and applying this would make them live unchecked. Make them live (or restore the live version) first.',
+            error: 'Not applied: the automation has changes that are not live yet, and applying this would make them live unchecked. Make them live (or restore the live version) first.',
         });
     }
 
@@ -160,7 +160,7 @@ async function rollbackEvolution(evolutionId, { reason = 'manual' } = {}, deps =
     await deps.notify({
         userId: a.userId, category: 'warning',
         title: `🧬 ${a.title}: change rolled back to v${row.versionBefore}`,
-        message: `Reason: ${reason}\n\nThe proposal "${(row.rationale || '').slice(0, 120)}" is marked rolled_back; the routine runs its previous version again.`,
+        message: `Reason: ${reason}\n\nThe proposal "${(row.rationale || '').slice(0, 120)}" is marked rolled_back; the automation runs its previous version again.`,
         link: automationPath(a.id),
     });
     return out;

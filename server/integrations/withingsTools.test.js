@@ -21,7 +21,7 @@ const fx = {
 };
 
 const MOCKS = {
-    '../auth/routineAuth': {
+    '../auth/automationAuth': {
         getProviderAuth: async () => fx.auth,
         // The real unwrapper is pure; re-implementing it in the stub would let
         // the two drift, so mirror only what the tools depend on.

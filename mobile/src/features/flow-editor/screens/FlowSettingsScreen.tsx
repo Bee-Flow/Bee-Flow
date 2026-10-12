@@ -1,11 +1,11 @@
 /**
- * A routine's settings — the web builder's Settings tab (settings/SettingsPage.tsx)
- * and what hangs off the routine rather than its flow: its name and
+ * An automation's settings — the web builder's Settings tab (settings/SettingsPage.tsx)
+ * and what hangs off the automation rather than its flow: its name and
  * description, who gets notified of which runs, its webhook URLs, its
  * folder and owner, its AI Act declaration, this device's editor preference,
  * export and import, and deleting it.
  *
- * It opens the routine's draft (the same store the build screen edits), so
+ * It opens the automation's draft (the same store the build screen edits), so
  * a notification change here is an undoable draft edit saved by the
  * autosave, and the build screen shows it at once.
  */
@@ -22,7 +22,7 @@ import { ComplianceGroup } from '../components/settings/ComplianceGroup';
 import { DangerGroup } from '../components/settings/DangerGroup';
 import { DetailsGroup } from '../components/settings/DetailsGroup';
 import { EditorGroup } from '../components/settings/EditorGroup';
-import { leaveDeletedRoutine } from '../components/settings/leaveDeletedRoutine';
+import { leaveDeletedAutomation } from '../components/settings/leaveDeletedAutomation';
 import { NotificationsGroup } from '../components/settings/NotificationsGroup';
 import { PlacementGroup } from '../components/settings/PlacementGroup';
 import { TransferGroup } from '../components/settings/TransferGroup';
@@ -30,7 +30,7 @@ import { WebhooksGroup } from '../components/settings/WebhooksGroup';
 import { useDraftState, useFlowDraft } from '../hooks';
 
 export interface FlowSettingsScreenProps {
-    /** The routine id (or an open new routine's draft key). */
+    /** The automation id (or an open new automation's draft key). */
     automationId: string;
 }
 
@@ -65,7 +65,7 @@ export function FlowSettingsScreen({ automationId }: FlowSettingsScreenProps) {
                 <TransferGroup flowKey={flow.key} title={title} onImported={(id) => router.push(buildPath(id))} />
                 <DangerGroup
                     automation={row ? { id: row.id, title: row.title } : null}
-                    onDeleted={() => row && leaveDeletedRoutine(router, navigation.getState()?.routes ?? [], row.id)}
+                    onDeleted={() => row && leaveDeletedAutomation(router, navigation.getState()?.routes ?? [], row.id)}
                 />
             </GroupedScroll>
         </Screen>

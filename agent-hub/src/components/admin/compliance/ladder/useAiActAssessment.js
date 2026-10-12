@@ -1,7 +1,7 @@
 /**
  * useAiActAssessment — the ladder's own data hook (Compliance Center
  * redesign, Sep 2026). Deliberately NOT the hub's data hook: the ladder is
- * mounted in the routine builder's Settings tab and the agent wizard's
+ * mounted in the automation builder's Settings tab and the agent wizard's
  * Advanced drawer, outside the hub and its providers, so it talks to
  * `data/api.js` directly.
  *
@@ -50,7 +50,7 @@ export default function useAiActAssessment(kind, target, opts = {}) {
     const id = target?.id ?? null;
     const [state, setState] = useState({ loading: false, error: null, absent: false, assessment: null, serverSignals: null });
     const alive = useRef(true);
-    useEffect(() => () => { alive.current = false; }, []);
+    useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
 
     const fallback = useMemo(() => fallbackSignals(kind, target), [kind, target]);
 

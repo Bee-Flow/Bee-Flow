@@ -1,6 +1,7 @@
 // The http_request editor: the call itself (URL, method, credential, headers,
 // body), its options, and the two Advanced ticks about not calling twice.
 import { Plus, X } from 'lucide-react';
+import { useTranslation } from '../../../../../../hooks/useTranslation';
 import TemplateField from '../../../mapping/TemplateField';
 import AccordionSection from '../../AccordionSection';
 import { ForEachSection, RetrySection, retryIsSet } from '../collectionEditors';
@@ -8,11 +9,17 @@ import { FormRow, inputClass } from '../formPrimitives';
 import HttpAuthPicker from '../HttpAuthPicker';
 import { AskOnceRow } from './askOnceRow';
 import { CacheIntoRow } from './cacheIntoRow';
+import { useState } from 'react';
+import { CurlImportDialog } from './CurlImportDialog';
+import { mergeMovedQuery } from './httpQueryLib';
+import { HttpQuerySection } from './httpQuerySection';
 
 const HTTP_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD'];
 const HTTP_WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 function HttpRequestFields({ draft, set, groups = [], onFocusField, previewSample, errorSections = new Set(), catalog = null }) {
+    const { t } = useTranslation();
+    const [curlOpen, setCurlOpen] = useState(false);
     const method = (draft.method || 'GET').toUpperCase();
     const headers = draft.headers || {};
     const headerEntries = Object.entries(headers);
@@ -43,6 +50,20 @@ function HttpRequestFields({ draft, set, groups = [], onFocusField, previewSampl
         ? { disabled: true, disabledReason: 'Nothing is kept while private targets are allowed.' }
         : { disabled: false, disabledReason: writeCaution };
 
+    // Secrets were already left out by the parser; headers merge over the existing ones.
+    const applyCurl = (p) => {
+        set('method', p.method);
+        set('url', p.url);
+        if (p.query) {
+            const q = draft.query;
+            const hasExisting = !!q && ((q.mode === 'json' && (q.json || '').trim()) || (q.items || []).some((r) => r.key.trim()));
+            const asJson = p.query.mode === 'json' ? p.query : { mode: 'json', json: JSON.stringify(Object.fromEntries((p.query.items || []).map((r) => [r.key, r.value]))), arrayFormat: 'indices' };
+            set('query', hasExisting ? (mergeMovedQuery(q, asJson) || p.query) : p.query);
+        }
+        if (Object.keys(p.headers).length) set('headers', { ...headers, ...p.headers });
+        if (p.body) set('body', p.body);
+    };
+
     const renameHeader = (oldKey, newKey) => {
         if (!newKey || newKey === oldKey) return;
         const next = {};
@@ -64,8 +85,8 @@ function HttpRequestFields({ draft, set, groups = [], onFocusField, previewSampl
 
     return (
         <>
-            <AccordionSection stepType="http_request" sectionKey="request" title="Request" defaultOpen forceOpen={errorSections.has('request')}>
-                <FormRow label="URL" required hint="Click a value in the right panel to insert it, e.g. https://api.example.com/users/{{trigger.output.id}}.">
+            <AccordionSection stepType="http_request" sectionKey="request" title={t('automations.http_request_fields.request', 'Request')} defaultOpen forceOpen={errorSections.has('request')}>
+                <FormRow label={t('automations.http_request_fields.url', 'URL')} required hint={t('automations.http_request_fields.click_a_value_in_the_right', 'Click a value in the right panel to insert it, e.g. https://api.example.com/users/{{trigger.output.id}}.')}>
                     <TemplateField
                         value={draft.url || ''}
                         onChange={(next) => set('url', next)}
@@ -73,23 +94,30 @@ function HttpRequestFields({ draft, set, groups = [], onFocusField, previewSampl
                         onFocusField={onFocusField}
                         previewSample={previewSample}
                         placeholder="https://api.example.com/endpoint"
+                        listAs="json"
                     />
                 </FormRow>
-                <FormRow label="Method" required>
+                <button type="button" onClick={() => setCurlOpen(true)} className="text-xs text-[var(--accent)] hover:opacity-80 transition mb-2">
+                    {t('http_query.curl_button', 'Import cURL')}
+                </button>
+                <CurlImportDialog open={curlOpen} onClose={() => setCurlOpen(false)} onApply={applyCurl} />
+                <FormRow label={t('automations.http_request_fields.method', 'Method')} required>
                     <select value={method} onChange={(e) => set('method', e.target.value)} className={inputClass()}>
                         {HTTP_METHODS.map(m => <option key={m} value={m}>{m}</option>)}
                     </select>
                 </FormRow>
             </AccordionSection>
 
+            <HttpQuerySection draft={draft} set={set} onFocusField={onFocusField} previewSample={previewSample} errorSections={errorSections} />
+
             <AccordionSection
                 stepType="http_request"
                 sectionKey="auth"
-                title="Authentication"
+                title={t('automations.http_request_fields.authentication', 'Authentication')}
                 defaultOpen={!!(draft.auth && draft.auth.connectionId)}
                 forceOpen={errorSections.has('auth')}
             >
-                <FormRow label="Credential">
+                <FormRow label={t('automations.http_request_fields.credential', 'Credential')}>
                     <HttpAuthPicker
                         value={draft.auth?.connectionId || ''}
                         onChange={(connectionId) => set('auth', connectionId ? { connectionId } : null)}
@@ -97,33 +125,38 @@ function HttpRequestFields({ draft, set, groups = [], onFocusField, previewSampl
                 </FormRow>
             </AccordionSection>
 
-            <AccordionSection stepType="http_request" sectionKey="headers" title="Headers" forceOpen={errorSections.has('headers')} hasContent={headerEntries.length > 0}>
+            <AccordionSection stepType="http_request" sectionKey="headers" title={t('automations.http_request_fields.headers', 'Headers')} forceOpen={errorSections.has('headers')} hasContent={headerEntries.length > 0}>
                 {headerEntries.length === 0 && (
-                    <div className="text-xs text-[var(--text-tertiary)] italic mb-2">No headers set.</div>
+                    <div className="text-xs text-[var(--text-tertiary)] italic mb-2">{t('automations.http_request_fields.no_headers_set', 'No headers set.')}</div>
                 )}
                 {headerEntries.map(([key, value]) => (
-                    <div key={key} className="flex items-start gap-2 mb-2">
+                    // Two columns that share the row: the name a bounded
+                    // third, the value (pills and all) the rest. As a flex row
+                    // the name input's own `w-full` won over its width and the
+                    // value field was squeezed off the edge.
+                    <div key={key} className="grid grid-cols-[minmax(6rem,32%)_minmax(0,1fr)_auto] items-start gap-2 mb-2" data-testid="http-header-row">
                         <input
                             type="text"
                             defaultValue={key}
                             onBlur={(e) => renameHeader(key, e.target.value)}
-                            className={inputClass() + ' w-36 shrink-0 font-mono'}
-                            placeholder="Header-Name"
+                            className={inputClass() + ' min-w-0 font-mono'}
+                            placeholder={t('automations.http_request_fields.header_name', 'Header-Name')}
                         />
-                        <div className="flex-1">
+                        <div className="min-w-0" data-testid="http-header-value">
                             <TemplateField
                                 value={value}
                                 onChange={(next) => setHeaderValue(key, next)}
                                 rows={1}
                                 onFocusField={onFocusField}
                                 previewSample={previewSample}
-                                placeholder="value"
+                                placeholder={t('automations.http_request_fields.value', 'value')}
+                                listAs="json"
                             />
                         </div>
                         <button
                             type="button"
                             onClick={() => removeHeader(key)}
-                            title="Remove header"
+                            title={t('automations.http_request_fields.remove_header', 'Remove header')}
                             className="p-1.5 rounded text-[var(--text-tertiary)] hover:text-red-500 hover:bg-[var(--bg-tertiary)] transition"
                         >
                             <X size={14} />
@@ -135,13 +168,13 @@ function HttpRequestFields({ draft, set, groups = [], onFocusField, previewSampl
                     onClick={addHeader}
                     className="flex items-center gap-1 text-xs text-[var(--accent)] hover:opacity-80 transition"
                 >
-                    <Plus size={12} /> Add header
+                    <Plus size={12} /> {t('automations.http_request_fields.add_header', 'Add header')}
                 </button>
             </AccordionSection>
 
             {HTTP_WRITE_METHODS.has(method) && (
-                <AccordionSection stepType="http_request" sectionKey="body" title="Body" forceOpen={errorSections.has('body')}>
-                    <FormRow label="Body" hint="Raw text or JSON. Click a value in the right panel to insert it.">
+                <AccordionSection stepType="http_request" sectionKey="body" title={t('automations.http_request_fields.body', 'Body')} forceOpen={errorSections.has('body')}>
+                    <FormRow label={t('automations.http_request_fields.body', 'Body')} hint={t('automations.http_request_fields.raw_text_or_json_click_a', 'Raw text or JSON. Click a value in the right panel to insert it.')}>
                         <TemplateField
                             value={draft.body || ''}
                             onChange={(next) => set('body', next)}
@@ -155,8 +188,8 @@ function HttpRequestFields({ draft, set, groups = [], onFocusField, previewSampl
                 </AccordionSection>
             )}
 
-            <AccordionSection stepType="http_request" sectionKey="options" title="Options" forceOpen={errorSections.has('options')} hasContent={(draft.timeoutMs != null && draft.timeoutMs !== 10_000) || (draft.parseResponse && draft.parseResponse !== 'auto')}>
-                <FormRow label="Timeout (ms)">
+            <AccordionSection stepType="http_request" sectionKey="options" title={t('automations.http_request_fields.options', 'Options')} forceOpen={errorSections.has('options')} hasContent={(draft.timeoutMs != null && draft.timeoutMs !== 10_000) || (draft.parseResponse && draft.parseResponse !== 'auto')}>
+                <FormRow label={t('automations.http_request_fields.timeout_ms', 'Timeout (ms)')}>
                     <input
                         type="number"
                         min={1000}
@@ -172,41 +205,39 @@ function HttpRequestFields({ draft, set, groups = [], onFocusField, previewSampl
                     this control decides whether the response is usable as a
                     table at all. */}
                 <FormRow
-                    label="Response"
-                    hint="A JSON answer is also offered parsed, as `data`, so a later step can work through it as a list."
+                    label={t('automations.http_request_fields.response', 'Response')}
+                    hint={t('automations.http_request_fields.a_json_answer_is_also_offered', 'A JSON answer is also offered parsed, as `data`, so a later step can work through it as a list.')}
                 >
                     <select
                         value={draft.parseResponse || 'auto'}
                         onChange={(e) => set('parseResponse', e.target.value)}
                         className={inputClass()}
                     >
-                        <option value="auto">Read JSON automatically</option>
-                        <option value="always">Always read it as JSON</option>
-                        <option value="never">Leave it as plain text</option>
+                        <option value="auto">{t('automations.http_request_fields.read_json_automatically', 'Read JSON automatically')}</option>
+                        <option value="always">{t('automations.http_request_fields.always_read_it_as_json', 'Always read it as JSON')}</option>
+                        <option value="never">{t('automations.http_request_fields.leave_it_as_plain_text', 'Leave it as plain text')}</option>
                     </select>
                     <div className="text-xs text-[var(--text-tertiary)] mt-1">
-                        Pick “always” when the service sends JSON but labels it as text.
+                        {t('automations.http_request_fields.pick_always_when_the_service_sends', 'Pick “always” when the service sends JSON but labels it as text.')}
                     </div>
                 </FormRow>
-                <FormRow label="Security">
+                <FormRow label={t('automations.http_request_fields.security', 'Security')}>
                     <label className="flex items-center gap-2 text-sm text-[var(--text-primary)]">
                         <input
                             type="checkbox"
                             checked={blockPrivateTargets}
                             onChange={(e) => set('blockPrivateTargets', e.target.checked)}
                         />
-                        Block requests to private/internal network addresses
+                        {t('automations.http_request_fields.block_requests_to_private_internal_network', 'Block requests to private/internal network addresses')}
                     </label>
                     <div className="text-xs text-[var(--text-tertiary)] mt-1">
-                        Recommended: on. Only turn this off if this step specifically needs to reach an
-                        internal service (e.g. on your own self-hosted network) — disabling it lets this
-                        step reach localhost, private IP ranges, and cloud metadata endpoints.
+                        {t('automations.http_request_fields.recommended_on_only_turn_this_off', 'Recommended: on. Only turn this off if this step specifically needs to reach an internal service (e.g. on your own self-hosted network) — disabling it lets this step reach localhost, private IP ranges, and cloud metadata endpoints.')}
                     </div>
                 </FormRow>
             </AccordionSection>
 
             <AccordionSection
-                stepType="http_request" sectionKey="advanced" title="Advanced"
+                stepType="http_request" sectionKey="advanced" title={t('automations.http_request_fields.advanced', 'Advanced')}
                 defaultOpen={!!(draft.forEach || draft.askOnce || draft.cacheInto) || retryIsSet(draft)}
                 forceOpen={errorSections.has('advanced')}
                 hasContent={!!(draft.forEach || draft.askOnce || draft.cacheInto) || retryIsSet(draft)}
@@ -215,7 +246,7 @@ function HttpRequestFields({ draft, set, groups = [], onFocusField, previewSampl
                 <RetrySection draft={draft} set={set} />
                 <AskOnceRow
                     draft={draft} set={set}
-                    label="Ask this service only once per run"
+                    label={t('automations.http_request_fields.ask_this_service_only_once_per', 'Ask this service only once per run')}
                     disabled={askOnce.disabled}
                     disabledReason={askOnce.disabledReason}
                 />

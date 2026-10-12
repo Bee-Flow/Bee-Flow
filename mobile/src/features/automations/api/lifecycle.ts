@@ -1,5 +1,5 @@
 /**
- * Creating and deleting a routine, and the question to ask before deleting
+ * Creating and deleting an automation, and the question to ask before deleting
  * one: which app buttons start it.
  *
  * routes/automation/crud.js. A new row is always a DRAFT (`isDraft: true`,
@@ -37,15 +37,15 @@ export function readSaveResult(raw: unknown): AutomationSaveResult {
 }
 
 /**
- * Create a routine. Never retried: a create that timed out may have landed,
- * and a second POST is a second routine.
+ * Create an automation. Never retried: a create that timed out may have landed,
+ * and a second POST is a second automation.
  */
 export async function createAutomation(body: CreateAutomationBody): Promise<CreateAutomationResult> {
     return readCreateResult(await api.post<unknown>('/api/automation', body, { retry: false }));
 }
 
 /**
- * Delete a routine. The server revokes its remote subscriptions first and
+ * Delete an automation. The server revokes its remote subscriptions first and
  * keeps a form's answers tables as ordinary tables, so nothing anyone
  * answered is lost with it. `false` when the row was already gone.
  */
@@ -78,11 +78,11 @@ export function readUsage(raw: unknown): AutomationUsage {
 }
 
 /**
- * Which app buttons start this routine.
+ * Which app buttons start this automation.
  *
  * A failed read THROWS (the server answers 500 `usage_unavailable`, never an
  * empty list): "used nowhere" is exactly the sentence on which somebody
- * deletes a routine a button in production depends on, so the screen must say
+ * deletes an automation a button in production depends on, so the screen must say
  * "could not be checked" instead.
  */
 export async function getAutomationUsage(id: string, signal?: AbortSignal): Promise<AutomationUsage> {

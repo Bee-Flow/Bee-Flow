@@ -75,6 +75,15 @@ describe('message groups', () => {
         expect(groups[3].items[1].type).toBe('pending');
     });
 
+    it('cuts a run of one author at midnight, so the day separator and the time show inside it', () => {
+        const local = (day: number, h: number, min: number) => new Date(2026, 8, day, h, min).toISOString();
+        const late = (id: string, createdAt: string) => ({ ...m(id, 'u-ada', 0), createdAt });
+        const groups = groupMessages([
+            late('m1', local(29, 23, 56)), late('m2', local(29, 23, 59)), late('m3', local(30, 0, 2)), late('m4', local(30, 0, 5)),
+        ], []);
+        expect(groups.map(g => g.items.length)).toEqual([2, 2]);
+    });
+
     it('cuts a long message to one line for a reply preview', () => {
         expect(excerptOf('a\n b   c')).toBe('a b c');
         expect(excerptOf('x'.repeat(200), 10)).toBe(`${'x'.repeat(9)}…`);

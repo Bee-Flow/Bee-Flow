@@ -1,6 +1,6 @@
 /**
  * Test-only: what every flow-editor screen test sets up around its screen —
- * a signed-in user, the routine and the step catalogue served over the mocked
+ * a signed-in user, the automation and the step catalogue served over the mocked
  * HTTP client, a save that answers with the next version, and the draft
  * registry emptied after each test. Nothing in the app imports this.
  *
@@ -25,11 +25,11 @@ import { resetDraftRegistry } from '../state';
 import { BuildScreen } from './BuildScreen';
 import mailSorter from './mailSorter.fixture.json';
 
-/** The routine the build screen tests open: a manual start, an AI step that sorts the mail, a notification. */
+/** The automation the build screen tests open: a manual start, an AI step that sorts the mail, a notification. */
 export const MAIL_SORTER = mailSorter.definition as FlowDefinition;
 export const MAIL_SORTER_ROW = { ...mailSorter.row, definition: MAIL_SORTER };
 
-/** The build screen over routine a1, inside the providers the app root mounts. */
+/** The build screen over automation a1, inside the providers the app root mounts. */
 export const renderBuild = () => renderScreen(<BuildScreen id="a1" />);
 
 /** A signed-in session; `permissions` null means the gates fall back to the role alone. */
@@ -38,11 +38,11 @@ export function signIn(user: Record<string, unknown> = { id: 'u1' }, permissions
 }
 
 /**
- * GETs answer the routine and the catalogue, then `extra` by exact path, and
+ * GETs answer the automation and the catalogue, then `extra` by exact path, and
  * null for anything else; a PUT answers the saved definition at the next
  * version. Clears every mock first, so it is a test's whole `beforeEach`.
  */
-export function serveRoutine(row: { id: string } & Record<string, unknown>, extra: Record<string, unknown> = {}): void {
+export function serveAutomation(row: { id: string } & Record<string, unknown>, extra: Record<string, unknown> = {}): void {
     jest.clearAllMocks();
     signIn();
     const answers: Record<string, unknown> = {

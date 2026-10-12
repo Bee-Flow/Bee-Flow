@@ -12,7 +12,7 @@ import { searchRibbon } from './ribbon/ribbonSearch';
 import type { RibbonAnchor } from './ribbon/ribbonAnchor';
 import { useRibbonData, useCloseOnOutside, useSlashToFocus } from './ribbon/useRibbonData';
 import type { RibbonScope } from './ribbon/useRibbonData';
-import CategoryTabs, { AddsAfterPill } from './ribbon/CategoryTabs';
+import CategoryTabs, { AddsAfterPill, ribbonFold } from './ribbon/CategoryTabs';
 import RibbonSearchField from './ribbon/RibbonSearchField';
 import RibbonPanel from './ribbon/RibbonPanel';
 
@@ -36,7 +36,9 @@ import RibbonPanel from './ribbon/RibbonPanel';
  *
  * The row folds by its OWN width (`@container/ribbon`): below 1440px the
  * anchor pill keeps only "step n", below 1180px inactive tabs keep only their
- * icon, below 820px the anchor pill goes and the search narrows.
+ * icon (each further suite tab, Google Workspace or Microsoft 365 beside
+ * Nextcloud, moves both 150px up; ribbon/CategoryTabs.tsx `ribbonFold`),
+ * below 820px the anchor pill goes and the search narrows.
  */
 
 interface Props {
@@ -52,8 +54,8 @@ interface Props {
     usageVersion?: number;
 }
 
-const EXPANDED_KEY = 'routinesRibbonExpanded';
-const CATEGORY_KEY = 'routinesRibbonCategory';
+const EXPANDED_KEY = 'automationsRibbonExpanded';
+const CATEGORY_KEY = 'automationsRibbonCategory';
 
 export default function AddStepRibbon({
     scope = {},
@@ -112,7 +114,7 @@ export default function AddStepRibbon({
         return (
             <div className={`flex items-center gap-1.5 flex-wrap px-3.5 min-h-11 py-1.5 border-b border-[var(--border-default)] bg-[var(--bg-card)] ${disabled ? 'opacity-50 pointer-events-none' : ''}`}>
                 <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)] mr-1">
-                    {t('routines.ribbon.start_with_trigger', 'Start with a trigger')}
+                    {t('automations.ribbon.start_with_trigger', 'Start with a trigger')}
                 </span>
                 {TRIGGERS.map(tr => (
                     <InlineButton key={tr.id} icon={tr.icon} label={tr.label} onClick={() => add(tr.payload)} {...stepDragProps(tr.payload)} />
@@ -137,13 +139,13 @@ export default function AddStepRibbon({
                 <RibbonSearchField query={query} onQueryChange={setQuery} results={results} onAdd={add} inputRef={inputRef} />
                 <CategoryTabs categories={categories} active={category} expanded={open} onSelect={select} />
                 <div className="ml-auto flex items-center gap-1.5 shrink-0 pl-2 text-[var(--text-tertiary)]">
-                    {anchor && <AddsAfterPill anchor={anchor} />}
+                    {anchor && <AddsAfterPill anchor={anchor} fold={ribbonFold(categories)} />}
                     <button
                         type="button"
                         onClick={() => setExpanded(o => !o)}
                         aria-expanded={open}
-                        aria-label={open ? t('routines.ribbon.collapse', 'Collapse the ribbon') : t('routines.ribbon.expand', 'Show this category')}
-                        title={open ? t('routines.ribbon.collapse', 'Collapse the ribbon') : t('routines.ribbon.expand', 'Show this category')}
+                        aria-label={open ? t('automations.ribbon.collapse', 'Collapse the ribbon') : t('automations.ribbon.expand', 'Show this category')}
+                        title={open ? t('automations.ribbon.collapse', 'Collapse the ribbon') : t('automations.ribbon.expand', 'Show this category')}
                         className="w-7 h-7 grid place-items-center rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
                     >
                         {open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}

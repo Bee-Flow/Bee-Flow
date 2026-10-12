@@ -14,7 +14,7 @@ const { validateDefinition } = require('./validate');
 const OK_DEF = { trigger: { id: 't1', kind: 'manual' }, steps: [{ id: 's1', type: 'wait', seconds: 1 }], edges: [{ from: 't1', to: 's1' }] };
 const NOT_REQUIRED = { required: false, status: 'not_required', expiresAt: null };
 
-test('a complete, described routine without a gate can activate', () => {
+test('a complete, described automation without a gate can activate', () => {
     const r = computeReadiness({
         automation: { id: 'a1', version: 3, description: 'Fetches invoices.', definition: OK_DEF },
         validation: validateDefinition(OK_DEF),

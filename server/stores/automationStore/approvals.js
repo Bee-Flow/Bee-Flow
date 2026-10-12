@@ -49,7 +49,10 @@ function rowToApproval(r) {
         // Where the row came from. 'run' — a paused automation, approve
         // resumes it. 'app' — an App Studio request_approval action; there is
         // no run, the decision IS the outcome (on_decided + trigger event).
+        // 'deployment' — a Solution's PRD deployment gate; no run either, the
+        // decision moves the deployment (solutionStageStore).
         source: r.source || 'run',
+        deploymentId: r.deployment_id ?? null,
         requestedBy: r.requested_by ?? null,
         studioAppId: r.studio_app_id ?? null,
         actionId: r.action_id ?? null,
@@ -119,6 +122,8 @@ async function createApproval({
     // arguments above are derived from it by the caller and written through
     // as legacy mirrors.
     stages = null, stageParticipants = null, stageKey = null,
+    // source='deployment': the solution_deployments row this gate guards.
+    deploymentId = null,
 }) {
     const id = newApprovalId();
     const hasStages = Array.isArray(stages) && stages.length > 0;
@@ -132,11 +137,11 @@ async function createApproval({
              source, requested_by, studio_app_id, action_id, context, on_decided, remind_at, escalate_at,
              escalate_to_user_id, escalate_to_group_id,
              approvers, approval_rule, quorum_count, stage, final_approver_user_id, final_approver_group_id,
-             approval_stages, stage_participants, stage_entered_at)
+             approval_stages, stage_participants, stage_entered_at, deployment_id)
          VALUES ($1,$2,$3,$4,$34,$35,$5,$6,$7,$8,$9,$10,'pending',$11,$12,$13,$14,$15,
                  $16,$17,$18,$19,$20,$21,$22,$23,$24,$25,
                  $26,$27,$28,$29,$30,$31,
-                 $32,$33, CASE WHEN $32::jsonb IS NULL THEN NULL ELSE NOW() END)
+                 $32,$33, CASE WHEN $32::jsonb IS NULL THEN NULL ELSE NOW() END, $36)
          ON CONFLICT (run_id, step_id) WHERE status = 'pending' DO NOTHING`,
         [id, organizationId, automationId, automationTitle, runId, rootRunId, stepId,
          ownerId, assigneeUserId, assigneeGroupId, prompt, detailsMd,
@@ -158,7 +163,9 @@ async function createApproval({
          hasStages && stageParticipants ? JSON.stringify(stageParticipants) : null,
          // $34/$35 — appended, like the stage columns above, so that adding a
          // column never shifts an existing placeholder index.
-         projectId, projectTitle],
+         projectId, projectTitle,
+         // $36 — appended for the same reason.
+         deploymentId],
     );
     // On conflict the insert wrote nothing — hand back whichever row won.
     // App-sourced rows (run_id NULL) can never conflict: NULLs are distinct
@@ -470,15 +477,17 @@ async function countPendingApprovalsForApp(studioAppId) {
 }
 
 /**
- * Reaper: flip overdue APP-sourced pending rows. Run-sourced rows expire via
- * the run reaper (expireApprovalsForRuns) — an app approval has no run, so
- * its deadline needs its own sweep. Conditional UPDATE = multi-pod safe.
+ * Reaper: flip overdue RUN-LESS pending rows (source 'app' and 'deployment').
+ * Run-sourced rows expire via the run reaper (expireApprovalsForRuns) — a
+ * run-less approval has no run, so its deadline needs its own sweep.
+ * `source <> 'run'` rather than a list, so a future run-less source is swept
+ * too instead of silently never expiring. Conditional UPDATE = multi-pod safe.
  */
 async function expireOverduePendingApprovals() {
     const rows = await getAll(
         `UPDATE automation_approvals
             SET status = 'expired', decided_at = NOW(), updated_at = NOW()
-          WHERE status = 'pending' AND source = 'app'
+          WHERE status = 'pending' AND source <> 'run'
             AND expires_at IS NOT NULL AND expires_at <= NOW()
           RETURNING *`,
         [],
@@ -534,7 +543,22 @@ async function getApprovalAudit(approvalId) {
     }));
 }
 
+/**
+ * Org admins of `orgId` (user ids), capped. The fallback audience for a
+ * deployment gate's reminder when four-eyes leaves nobody else to nudge:
+ * on an unstaged row an org admin may decide (approvalService.canDecide).
+ */
+async function listOrgAdminIds(orgId, cap = 25) {
+    if (!orgId) return [];
+    const rows = await getAll(
+        `SELECT id FROM users WHERE "organizationId" = $1 AND (role = 'admin' OR "orgRole" IN ('org_admin', 'admin')) ORDER BY id LIMIT $2`,
+        [orgId, cap],
+    );
+    return rows.map(r => r.id);
+}
+
 module.exports = {
+    listOrgAdminIds,
     APPROVAL_STATUSES,
     createApproval,
     getApproval,

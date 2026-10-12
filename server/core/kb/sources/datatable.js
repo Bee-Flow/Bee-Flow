@@ -11,7 +11,7 @@
  * A datatable has row-level access rules of its own (`accessFilter`), and they
  * are not decoration: a table can be readable by everyone while individual
  * rows are not. So this resolves the table and compiles the SAME access
- * predicate the routine runner and the routes compile — as the KB's OWNER, for
+ * predicate the automation runner and the routes compile — as the KB's OWNER, for
  * the same reason K7 does: a scheduled pass has nobody pressing anything, and
  * keying it on whoever last touched the source would make the document set
  * depend on who that happened to be.

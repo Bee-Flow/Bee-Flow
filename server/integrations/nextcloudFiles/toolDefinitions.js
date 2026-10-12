@@ -57,7 +57,7 @@ const NEXTCLOUD_TOOLS = [
             description: 'Upload or overwrite a file in Nextcloud. Two content sources:\n'
                 + '  1) sourceHandle — opaque handle from another tool (e.g. the `sourceHandle` returned by gmail_read_attachment) pointing at bytes the server already has. PREFERRED for attachments and any binary: no base64 ever passes through the AI context.\n'
                 + '  2) content — inline text, or base64 when isBase64 is true.\n'
-                + 'Parent folders must already exist (create them with nextcloud_create_folder).',
+                + 'Missing parent folders are created.',
             parameters: {
                 type: 'object',
                 properties: {
@@ -66,7 +66,7 @@ const NEXTCLOUD_TOOLS = [
                     isBase64: { type: 'boolean', description: 'Treat `content` as base64. Use sourceHandle instead where possible.' },
                     sourceHandle: {
                         type: 'object',
-                        description: 'Opaque handle from another tool. Mutually exclusive with content. { kind: "gmail_attachment", messageId, attachmentId } for a mail attachment; inside a routine { kind: "generated_file", fileId } for the file a generate_document / fill_document / presentation step kept — bind the whole handle: sourceHandle:{kind:"ref",path:"steps.<id>.output.sourceHandle"}. A `path` ending in "/" takes the file\'s own name.',
+                        description: 'Opaque handle from another tool. Mutually exclusive with content. { kind: "gmail_attachment", messageId, attachmentId } for a mail attachment; inside an automation { kind: "generated_file", fileId } for the file a generate_document / fill_document / presentation step kept — bind the whole handle: sourceHandle:{kind:"ref",path:"steps.<id>.output.sourceHandle"}. A `path` ending in "/" takes the file\'s own name.',
                         properties: {
                             kind: { type: 'string', description: 'Handle kind: "gmail_attachment" or "generated_file".' },
                             messageId: { type: 'string' },

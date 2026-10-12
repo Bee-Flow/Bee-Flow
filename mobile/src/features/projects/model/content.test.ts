@@ -9,7 +9,7 @@
 import { translate } from '@/core/i18n';
 
 import { contentBands, sectionCounts, subLines } from './content';
-import { dependenciesByNode, formTriggeredRoutines, wiringGroups } from './graph';
+import { dependenciesByNode, formTriggeredAutomations, wiringGroups } from './graph';
 import type { Finding, SolutionGraph } from './solution';
 import type { ProjectResources } from './types';
 
@@ -21,6 +21,8 @@ const EMPTY: ProjectResources = {
     webpages: [],
     datatables: [],
     agents: [],
+    skills: [],
+    documentTemplates: [],
     knowledgeBases: [],
     approvals: [],
 };
@@ -46,7 +48,7 @@ const GRAPH: SolutionGraph = {
 const WARNING: Finding = {
     code: 'app.unwired',
     severity: 'warning',
-    message: 'Portal has a button with no routine.',
+    message: 'Portal has a button with no automation.',
     remediation: null,
     blockedAt: null,
     deepLink: null,
@@ -83,10 +85,10 @@ describe('contentBands', () => {
         expect(row?.finding?.code).toBe('app.unwired');
         expect(row?.removable).toBe(true);
 
-        const routines = bands[1]!.sections.find((s) => s.section.key === 'automations');
-        const routine = routines?.state === 'rows' ? routines.rows[0] : undefined;
-        expect(routine?.removable).toBe(false);
-        expect(routine && subLines(routine, translate)).toEqual(['live', 'draft', 'public form']);
+        const automations = bands[1]!.sections.find((s) => s.section.key === 'automations');
+        const automation = automations?.state === 'rows' ? automations.rows[0] : undefined;
+        expect(automation?.removable).toBe(false);
+        expect(automation && subLines(automation, translate)).toEqual(['live', 'draft', 'public form']);
     });
 
     it('calls a band empty only when every section in it answered with nothing', () => {
@@ -99,7 +101,7 @@ describe('the graph readings', () => {
     it('resolves dependencies to drawn nodes only, once each', () => {
         expect(dependenciesByNode(GRAPH).get('app:a1')?.map((n) => n.id)).toEqual(['automation:r1']);
         expect(dependenciesByNode(null).size).toBe(0);
-        expect([...formTriggeredRoutines(GRAPH)]).toEqual(['automation:r1']);
+        expect([...formTriggeredAutomations(GRAPH)]).toEqual(['automation:r1']);
     });
 
     it('groups edges by what does the calling, with the target when it was drawn', () => {

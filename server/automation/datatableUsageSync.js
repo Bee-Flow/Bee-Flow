@@ -1,5 +1,5 @@
 /**
- * Write the datatable dependents index for ONE routine, from every path that
+ * Write the datatable dependents index for ONE automation, from every path that
  * saves a definition.
  *
  * Separate module because automation/datatableUsage.js is deliberately pure —
@@ -9,10 +9,10 @@
  * reconcileUsage is delete-then-insert keyed on automation_id, so a save path
  * that skips it does not merely fail to add rows: it leaves the PREVIOUS
  * definition's rows standing. Only `PUT /api/automation/:id` ever called it, so
- * a routine created, imported, restored from a version, saved as a reusable
+ * an automation created, imported, restored from a version, saved as a reusable
  * Step or built by the MCP builder had an index that described some other
  * version of itself — and the "used by" panel, the node editor's "also used by
- * N other routines" and the destructive-change guard all read that index.
+ * N other automations" and the destructive-change guard all read that index.
  *
  * Never throws. An index is not worth failing a save over; a wrong index is,
  * which is why the no-rows-written case is logged rather than swallowed.
@@ -21,7 +21,7 @@
  * The same index now records App Studio table bindings and webpage blocks
  * (datatableStore.CONSUMER_KINDS). `syncUsageFor` / `purgeUsageFor` below are
  * the never-throws entry points for those: the caller collects its own
- * entries (it knows its definition; this module knows routines) and hands over
+ * entries (it knows its definition; this module knows automations) and hands over
  * `{datatableId, stepId, mode, columns}` rows. The rule above applies to them
  * unchanged — EVERY path that saves an app or a webpage must call it, and
  * usageSync.savePaths.test.js is where those paths are listed.
@@ -33,15 +33,15 @@ const { collectDatatableUsage } = require('./datatableUsage');
 const log = require('../telemetry/log');
 
 /**
- * The scope whose tables this routine may name.
+ * The scope whose tables this automation may name.
  *
- * The routine's ORGANISATION when it has one. When it has none the routine
+ * The automation's ORGANISATION when it has one. When it has none the automation
  * belongs to an org-less account, and the only tables it can reach are that
  * account's PERSONAL ones — so the owner is looked up rather than the index
  * being left empty. That costs one query, on the rare path, and only there:
  * every caller that already knows the org skips it entirely.
  */
-async function scopeForRoutine(automationId, organizationId) {
+async function scopeForAutomation(automationId, organizationId) {
     const datatableStore = require('../stores/datatableStore');
     if (organizationId) return datatableStore.orgScope(organizationId);
     const automationStore = require('../stores/automationStore');
@@ -51,7 +51,7 @@ async function scopeForRoutine(automationId, organizationId) {
 
 /**
  * @param {string} automationId
- * @param {string|null} organizationId  the routine's org — NOT the session's
+ * @param {string|null} organizationId  the automation's org — NOT the session's
  * @param {object} definition
  * @param {{label?: string}} [opts] log prefix, so the ops line names the path
  * @returns {Promise<number>} rows written, or -1 when the reconcile itself failed
@@ -65,7 +65,7 @@ async function syncDatatableUsage(automationId, organizationId, definition, { la
         // They ride in HERE because the reconcile is delete-then-insert per
         // consumer: a second writer would erase the step rows.
         const entries = [...collectDatatableUsage(definition), ...(Array.isArray(extraEntries) ? extraEntries : [])];
-        const scope = await scopeForRoutine(automationId, organizationId);
+        const scope = await scopeForAutomation(automationId, organizationId);
         if (!scope) {
             if (entries.length) {
                 log.warn(`[${label}] ${automationId}: ${entries.length} datatable step(s) but no scope to index them under`);
@@ -88,7 +88,7 @@ async function syncDatatableUsage(automationId, organizationId, definition, { la
 }
 
 /**
- * Drop the index rows for a routine that is being deleted.
+ * Drop the index rows for an automation that is being deleted.
  *
  * automation_datatable_usage has an FK to `datatables` but none to
  * `automations`, so nothing reaps these on its own. Same never-throws rule: a

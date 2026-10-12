@@ -32,10 +32,12 @@ export function audienceOf(table) {
 }
 
 /** ["a","b","c"] → "a, b and c" */
-export function joinNames(names) {
+export function joinNames(names, t) {
     const list = (names || []).filter(Boolean);
     if (list.length <= 1) return list[0] || '';
-    return `${list.slice(0, -1).join(', ')} and ${list[list.length - 1]}`;
+    const head = list.slice(0, -1).join(', ');
+    const last = list[list.length - 1];
+    return t ? t('studio_misc.access.join_and', '{list} and {last}', { list: head, last }) : `${head} and ${last}`;
 }
 
 /**
@@ -44,16 +46,17 @@ export function joinNames(names) {
  * reason they are is that publishing a table must never be the thing that made
  * it writable by everyone.
  */
-export function describeAccess(table, groupNames = new Map()) {
+export function describeAccess(table, groupNames = new Map(), t = null) {
+    const tr = (key, en, params) => (t ? t(key, en, params) : en.replace(/\{(\w+)\}/g, (_, k) => String(params?.[k] ?? '')));
     const audience = audienceOf(table);
     const readers = audience === PRIVATE
-        ? 'Only you and the people you share it with'
+        ? tr('studio_misc.access.readers_private', 'Only you and the people you share it with')
         : audience === ORG
-            ? 'Everyone in your organisation'
-            : `Members of ${joinNames((table.sharedGroups || []).map(g => groupNames.get(g) || g))}`;
+            ? tr('studio_misc.access.readers_org', 'Everyone in your organisation')
+            : tr('studio_misc.access.readers_groups', 'Members of {names}', { names: joinNames((table.sharedGroups || []).map(g => groupNames.get(g) || g), t) });
     const writers = table?.writeMode === 'audience'
-        ? (audience === PRIVATE ? 'the same people' : 'all of them')
-        : 'only the people you invite';
+        ? (audience === PRIVATE ? tr('studio_misc.access.writers_same', 'the same people') : tr('studio_misc.access.writers_all', 'all of them'))
+        : tr('studio_misc.access.writers_invited', 'only the people you invite');
     return { readers, writers, audience, broad: audience === ORG && table?.writeMode === 'audience' };
 }
 
@@ -161,7 +164,7 @@ export function keyFromName(name) {
  * `invoice_date`. Every screen here then rendered `c.name || c.key`, which is
  * fine for a column somebody typed a name for and wrong for every column that
  * arrived without one: an imported CSV, a Nextcloud or spreadsheet mirror, a
- * form-answers table, a column a routine created. Those have a key and no
+ * form-answers table, a column an automation created. Those have a key and no
  * name, so the studio showed people `contact_email` and `created_at` — the
  * database's spelling, in the one screen whose whole job is to make a table
  * readable to someone who does not think in databases.
@@ -271,7 +274,7 @@ export function cellText(value, type) {
  * Drift in either direction is a real failure, which is why it is worth a test.
  * A designer that allows a drop the server refuses is a Save button that always
  * 409s; a designer that allows one the server would ACCEPT is a 500 at 3am
- * inside somebody's nightly routine, hit by the person who dropped the column
+ * inside somebody's nightly automation, hit by the person who dropped the column
  * weeks after they did it.
  */
 export const MANAGED_COLUMNS = {
@@ -285,6 +288,39 @@ export const MANAGED_COLUMNS = {
     form_answers: [
         { key: 'run_id', type: 'text' },
         { key: 'completed_at', type: 'datetime' },
+    ],
+    // The cells of a spreadsheet document (docType 'spreadsheet'). One row per
+    // sheet row: row_no is the 1-based row number, and a..z hold what was typed
+    // in that column. Mirrors server/core/dataEngine/dataModel/managedTables.js
+    // DOCUMENT_SHEET_FIELDS exactly.
+    document_sheet: [
+        { key: 'row_no', type: 'number', required: true, unique: true },
+        { key: 'a', type: 'text' },
+        { key: 'b', type: 'text' },
+        { key: 'c', type: 'text' },
+        { key: 'd', type: 'text' },
+        { key: 'e', type: 'text' },
+        { key: 'f', type: 'text' },
+        { key: 'g', type: 'text' },
+        { key: 'h', type: 'text' },
+        { key: 'i', type: 'text' },
+        { key: 'j', type: 'text' },
+        { key: 'k', type: 'text' },
+        { key: 'l', type: 'text' },
+        { key: 'm', type: 'text' },
+        { key: 'n', type: 'text' },
+        { key: 'o', type: 'text' },
+        { key: 'p', type: 'text' },
+        { key: 'q', type: 'text' },
+        { key: 'r', type: 'text' },
+        { key: 's', type: 'text' },
+        { key: 't', type: 'text' },
+        { key: 'u', type: 'text' },
+        { key: 'v', type: 'text' },
+        { key: 'w', type: 'text' },
+        { key: 'x', type: 'text' },
+        { key: 'y', type: 'text' },
+        { key: 'z', type: 'text' },
     ],
     http_cache: [
         { key: 'cache_key', type: 'text', required: true, unique: true },

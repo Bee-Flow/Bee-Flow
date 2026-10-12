@@ -146,9 +146,9 @@ describe('VersionsTab', () => {
         expect(await within(dialog).findByTestId('readonly-canvas')).toHaveTextContent('4 steps');
     });
 
-    it('says so when the routine was never saved', () => {
+    it('says so when the automation was never saved', () => {
         render(withQueryClient(<VersionsTab automation={{ id: null }} />));
-        expect(screen.getByText(/once this routine has been saved/)).toBeInTheDocument();
+        expect(screen.getByText(/once this automation has been saved/)).toBeInTheDocument();
         expect(client.get).not.toHaveBeenCalled();
     });
 });

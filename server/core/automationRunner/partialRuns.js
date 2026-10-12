@@ -10,12 +10,39 @@
  * the same rule themselves rather than reimplementing it.
  * Steps that are not nodes of the root DAG get their own entry points: one for a
  * node inside a LOOP BODY, one for a node inside a flowlet/layer.
+ *
+ * An automation managed by a Solution stage (D17) is partially run on its LIVE
+ * copy: runPartial swaps the definition once, up front, through
+ * automationForRun({ managed: true }), and refuses (409
+ * managed_part_not_deployed) when there is no live copy. Every branch below
+ * reads `automation.definition` after that swap. `vars` are the automation's own
+ * with the project's Solution variable values over them (stageVars.js).
  */
 
 const automationStore = require('../../stores/automationStore');
 const { buildLinearEdges } = require('./engine');
 const { seedReplayState, withReplayStale } = require('./replaySeeding');
-const { executeAutomation, resolveTriggerPayload } = require('./execution');
+const execution = require('./execution');
+const { resolveTriggerPayload } = execution;
+const { automationForRun } = require('./definitionForRun');
+const { runVarsFor, isManagedAutomation } = require('./stageVars');
+
+// The init seam for what a partial run hands its synthetic to and seeds its
+// replay from. Production never sets it; a test captures the synthetic here
+// instead of replacing a module.
+const defaultDeps = {
+    executeAutomation: (...a) => execution.executeAutomation(...a),
+    seedReplayState: (...a) => seedReplayState(...a),
+};
+let deps = defaultDeps;
+
+/** Swap the executor / replay seeding (tests). Returns a restore function. */
+function configurePartialRuns(overrides = {}) {
+    const previous = deps;
+    deps = { ...deps, ...overrides };
+    return () => { deps = previous; };
+}
+const executeAutomation = (...a) => deps.executeAutomation(...a);
 
 /**
  * Locate a step that lives inside a flowlet/layer (definition.layers[*])
@@ -98,7 +125,7 @@ async function runPartialInLoopBody(automation, { chain, prefix, localId, body }
     const rootStepIds = new Set((def.steps || []).map(s => s?.id).filter(Boolean));
     const bodyStepIds = new Set(body.map(s => s?.id).filter(Boolean));
 
-    const { replayState, staleFrom, runsWindow, parentRunId } = await seedReplayState(
+    const { replayState, staleFrom, runsWindow, parentRunId } = await deps.seedReplayState(
         automation.id,
         automation.version,
         (row) => {
@@ -125,11 +152,12 @@ async function runPartialInLoopBody(automation, { chain, prefix, localId, body }
     // `trigger.output.*` resolves to something real rather than to undefined.
     let payload = triggerPayload;
     if (payload == null) payload = (runsWindow || []).find(r => r?.triggerPayload != null)?.triggerPayload || null;
-    // Still nothing: fall back to the sample pinned on the routine's own
+    // Still nothing: fall back to the sample pinned on the automation's own
     // trigger, exactly as a root-level builder run does. A body step that binds
     // `trigger.output.*` is the same step whether you run it from inside the
     // loop or from the canvas root, so it must see the same payload either way.
     if (payload == null) payload = resolveTriggerPayload({ trigger: def.trigger, triggerKind, mode: 'live' });
+    const runVars = await runVarsFor(automation);
 
     // ── rebuild the iteration ──
     const { walkPath } = require('../../automation/bind');
@@ -139,7 +167,7 @@ async function runPartialInLoopBody(automation, { chain, prefix, localId, body }
         const list = walkPath(lp.overRef, {
             trigger: { output: payload || {} },
             steps: replayState,
-            vars: def.vars || {},
+            vars: runVars,
             loop: { ...loopVars },
         });
         if (!Array.isArray(list) || list.length === 0) { unresolved = lp; break; }
@@ -164,7 +192,7 @@ async function runPartialInLoopBody(automation, { chain, prefix, localId, body }
             edges: buildLinearEdges(body, ROOT_ID),
             // Keep flowlets called from the body resolvable, and document vars visible.
             layers: def.layers || {},
-            vars: def.vars || {},
+            vars: runVars,
         },
     };
 
@@ -230,7 +258,7 @@ async function runPartialInLayer(automation, { layerKey, layer }, stepId, { mode
     // partial runs record the layer's BARE ids — so the second ▶ Execute inside
     // a flowlet lost every bit of context the first one had just produced
     // (W3-5). `stepIdFor` therefore accepts both row shapes.
-    const { replayState, staleFrom, runsWindow, stepsByRun, parentRunId } = await seedReplayState(
+    const { replayState, staleFrom, runsWindow, stepsByRun, parentRunId } = await deps.seedReplayState(
         automation.id,
         automation.version,
         (row) => {
@@ -331,7 +359,8 @@ async function runPartialInLayer(automation, { layerKey, layer }, stepId, { mode
         definition: {
             ...layer,
             layers: def.layers || {},
-            vars: def.vars || layer.vars || {},
+            // The document vars (else the layer's own), with the Solution values over them.
+            vars: await runVarsFor(automation, { definition: { vars: def.vars || layer.vars || {} } }),
         },
     };
 
@@ -419,9 +448,24 @@ function rootReaching(def, stepId) {
     return extra ? extra.id : null;
 }
 
+/**
+ * The automation a partial run works on. Unmanaged: the row as given (a partial
+ * run is a builder's test of the working copy, decided by executeAutomation).
+ * Managed by a Solution stage (D17): its live copy with the live settings,
+ * chosen HERE because every branch below reads `automation.definition`
+ * directly and builds synthetics from it; throws managed_part_not_deployed
+ * (409) when there is no live copy. The result carries `runsLiveVersion`, so
+ * executeAutomation keeps the synthetic definitions built from it.
+ */
+async function forPartialRun(automation, triggerKind) {
+    if (!await isManagedAutomation(automation)) return automation;
+    return automationForRun(automation, { mode: 'live', triggerKind, isTest: true, managed: true });
+}
+
 // `startedByUserId` (handoff 5): the person who pressed ▶, recorded on the run.
 async function runPartial(automation, stepId, { mode = 'only', triggerKind = 'manual', triggerPayload = null, rootStepId = null, startedByUserId = null } = {}) {
     if (!stepId) throw new Error('runPartial: stepId is required');
+    automation = await forPartialRun(automation, triggerKind);
     const def = automation.definition || {};
     const steps = Array.isArray(def.steps) ? def.steps : [];
     // A trigger id may name the primary OR one of the additional triggers
@@ -535,7 +579,7 @@ async function runPartial(automation, stepId, { mode = 'only', triggerKind = 'ma
     // aren't data) is executed live by runDag (fillMissingUpstream) so the
     // target still gets real inputs rather than undefined. See seedReplayState
     // for what counts as data and why.
-    const { replayState, staleFrom, parentRunId } = await seedReplayState(
+    const { replayState, staleFrom, parentRunId } = await deps.seedReplayState(
         automation.id,
         automation.version,
         // Layer sub-steps are recorded under namespaced ids ('cl1/out') that
@@ -578,4 +622,4 @@ async function runPartial(automation, stepId, { mode = 'only', triggerKind = 'ma
     return withReplayStale(await executeAutomation(automation, opts), staleFrom);
 }
 
-module.exports = { runPartial };
+module.exports = { runPartial, configurePartialRuns };

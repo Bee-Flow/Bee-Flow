@@ -4,7 +4,7 @@
  * may start on its own.
  *
  * The web runs two phase kinds inside the page — the automation builder
- * (`routine`) and the App Studio builder (`app`, `app_turn`) stream a model
+ * (`automation`) and the App Studio builder (`app`, `app_turn`) stream a model
  * turn in the browser tab. The phone has neither builder, so it never starts
  * one of those phases: a phase it cannot finish would sit `running` with
  * nobody at the wheel. It says they are built on a computer — not the web
@@ -21,7 +21,7 @@ import { phaseLabel } from './playbookView';
 import type { Phase } from './types';
 
 /** Builder phases: the web page runs them, on a computer; the phone says so. */
-export const WEB_BUILDERS: ReadonlySet<string> = new Set(['routine', 'app', 'app_turn']);
+export const WEB_BUILDERS: ReadonlySet<string> = new Set(['automation', 'app', 'app_turn']);
 
 /** A ready phase the phone starts itself: the server runs it, or (access) the person does, here. */
 export function shouldAutoStart(phase: Pick<Phase, 'key' | 'kind' | 'status'> | null | undefined): boolean {
@@ -48,14 +48,14 @@ export function handoffFace(phase: Pick<Phase, 'key' | 'kind' | 'status' | 'need
 /** "Mark as done": a builder phase whose automation or app already exists. */
 export function canMarkDone(phase: Pick<Phase, 'key' | 'kind' | 'artifacts'> | null | undefined): boolean {
     const kind = kindOf(phase);
-    if (kind === 'routine') return !!artStr(phase?.artifacts, 'automationId');
+    if (kind === 'automation') return !!artStr(phase?.artifacts, 'automationId');
     if (kind === 'app' || kind === 'app_turn') return !!artStr(phase?.artifacts, 'appId');
     return false;
 }
 
 /** The artifact a "Mark as done" hands back, as the web sends it. */
 export function markDoneArtifacts(phase: Pick<Phase, 'key' | 'kind' | 'artifacts'>): Record<string, string | null> {
-    return kindOf(phase) === 'routine'
+    return kindOf(phase) === 'automation'
         ? { automationId: artStr(phase.artifacts, 'automationId') }
         : { appId: artStr(phase.artifacts, 'appId') };
 }
@@ -74,7 +74,7 @@ export function nextWords(next: Pick<Phase, 'key' | 'kind' | 'label'>, t: Transl
         case 'table': return t('playbooks.handoff.next_table', 'Next: {phase} — the table is created.', { phase });
         case 'access': return t('playbooks.handoff.next_access', 'Next: {phase} — you decide who may open the app. Nothing is applied until you approve it.', { phase });
         case 'compliance': return t('playbooks.handoff.next_compliance', 'Next: {phase} — what was built is read against the frameworks your organisation has switched on.', { phase });
-        case 'routine': return t('playbooks.handoff.next_routine', 'Next: {phase} — the automation builder gets a brief and builds it while you watch.', { phase });
+        case 'automation': return t('playbooks.handoff.next_automation', 'Next: {phase} — the automation builder gets a brief and builds it while you watch.', { phase });
         case 'app':
         case 'app_turn': return t('playbooks.handoff.next_app', 'Next: {phase} — the app builder gets a brief and builds it while you watch.', { phase });
         default: return t('playbooks.handoff.next_plain', 'Next: {phase} — its brief is composed when you continue.', { phase });

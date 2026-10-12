@@ -12,6 +12,7 @@ import RadiusSection from './sections/RadiusSection';
 import TypographySection from './sections/TypographySection';
 import WallpaperSection from './sections/WallpaperSection';
 import { useLookForm, SECTION_IDS } from './useLookForm';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 const SPLIT_VIEWPORT_PX = 1100;
 
@@ -39,6 +40,7 @@ const NAV_SECTIONS = [
  * top is closest to the scroll container's top wins.
  */
 export default function LookEditor() {
+    const { t } = useTranslation();
     const { form, setForm, dirty, saving, loading, error, save, discard, reload, draftPayload } = useLookForm();
 
     const wide = useViewportWide(SPLIT_VIEWPORT_PX);
@@ -101,10 +103,10 @@ export default function LookEditor() {
         <div className="max-w-3xl mx-auto px-6 py-6 space-y-10">
             <header>
                 <h2 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
-                    Look
+                    {t('appearance.look_editor_look', 'Look')}
                 </h2>
                 <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
-                    Set the look that everyone in your organisation sees by default. Changes preview live in the pane on the right.
+                    {t('appearance.look_editor_set_the_look_that_everyone_in_your', 'Set the look that everyone in your organisation sees by default. Changes preview live in the pane on the right.')}
                 </p>
             </header>
 

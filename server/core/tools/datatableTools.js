@@ -26,7 +26,7 @@
  * ── AS THE ASKER. NEVER AS THE AGENT'S OWNER ────────────────────────
  * The grade is recomputed from the table row and its grants on EVERY call, for
  * the asker (`resolveDatatableForStep`, which carries that refusal itself), and
- * the access predicate is the same one the routes and the routine runner
+ * the access predicate is the same one the routes and the automation runner
  * compile. There is deliberately no `actAs:'owner'` here: connection lending
  * exists so an agent can use its owner's Gmail token, and a datatable is not a
  * token — borrowing the owner's grade would hand every colleague the owner's
@@ -93,7 +93,7 @@ const DATATABLE_QUERY_TOOL = 'datatable_query';
 // Rows here land in the model's context window, so the caps are much tighter
 // than the HTTP surface's (500 a page) or K8's (5000 a pass). A model that
 // needs more than fifty rows to answer a question is doing analysis, which is
-// what the routine datatable step is for.
+// what the automation datatable step is for.
 const DEFAULT_ROW_LIMIT = 10;
 const MAX_ROW_LIMIT = 50;
 const MAX_QUERY_FILTERS = 10;

@@ -292,7 +292,7 @@ test('the env kill switch is reported, and beats a stored ON', async () => {
 // One decision, one config row, two ticks inside it. Two KEYS would let an org
 // sit half-on with nobody able to see which half; a reworded screen would
 // silently widen a consent an admin gave about connected apps to cover any web
-// address a routine author types in.
+// address an automation author types in.
 
 test('scopes round-trip, and a missing body writes the safe pair', async () => {
     await request('PUT', `/api/org-integration-cache/${ORG_ID}`, { enabled: true, ttlSeconds: 300 });

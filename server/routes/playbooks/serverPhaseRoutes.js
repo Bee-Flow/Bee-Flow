@@ -2,7 +2,7 @@
  * THE PHASES THE SERVER RUNS ITSELF — one POST, and the phase's KIND decides
  * which of them owns the request.
  *
- * `table` creates or adopts the datatable, `fill` runs the routine once, and
+ * `table` creates or adopts the datatable, `fill` runs the automation once, and
  * `design` asks the designer for the app as a person will see it; the
  * compliance review is big enough to live in complianceReview.js. Each of
  * them persists `running` BEFORE it starts, so a reload cannot start a second
@@ -36,7 +36,7 @@ const RunBody = bodyOf({
     feedback: worded(FEEDBACK_TEXT).max(MAX_FEEDBACK, `feedback is at most ${MAX_FEEDBACK} characters.`).nullish(),
     recheck: z.boolean({ invalid_type_error: 'recheck is true or false.' }).optional(),
 });
-const { kindOf, firstOfKind, routineBefore, localeOf } = require('./phaseList');
+const { kindOf, firstOfKind, automationBefore, localeOf } = require('./phaseList');
 const { makeRunComplianceReview } = require('./complianceReview');
 const log = require('../../telemetry/log');
 
@@ -89,8 +89,8 @@ function register(router, ctx) {
     const runFill = async (req, res, pb, key) => {
         const cur = lifecycle.phaseByKey(pb.phases, key);
         if (!cur || cur.status !== 'ready') return sendErr(res, 409, 'phase_not_ready', `The fill phase is ${cur ? cur.status : 'missing'}.`, { from: cur ? cur.status : null, to: 'running' });
-        const routine = routineBefore(pb.phases, key);
-        const automationId = routine && routine.artifacts && routine.artifacts.automationId;
+        const automation = automationBefore(pb.phases, key);
+        const automationId = automation && automation.artifacts && automation.artifacts.automationId;
         const tableArtifacts = (firstOfKind(pb.phases, 'table') || {}).artifacts || {};
         const nowIso = new Date(d.now()).toISOString();
         // The fill phase carries the table's id/scope in its own artifacts

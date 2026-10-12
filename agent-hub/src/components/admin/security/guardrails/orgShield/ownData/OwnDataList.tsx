@@ -22,7 +22,7 @@ interface OwnDataListProps {
     lists: ShieldLists;
     canBlockExternal: boolean;
     readOnly: boolean;
-    routines: boolean;
+    automations: boolean;
     guardDown: boolean;
     typeErrors: TypeErrorEntry[];
     note: string | null;
@@ -36,7 +36,7 @@ interface OwnDataListProps {
 
 export function OwnDataList(props: OwnDataListProps) {
     const {
-        types, lists, canBlockExternal, readOnly, routines, guardDown, typeErrors, note, onAdd, onEdit, onTest, onRemove, onSwitch, t,
+        types, lists, canBlockExternal, readOnly, automations, guardDown, typeErrors, note, onAdd, onEdit, onTest, onRemove, onSwitch, t,
     } = props;
     const errorFor = (id: string) => typeErrors.find(e => e.id === id)?.message || null;
     const aiDown = guardDown && types.some(x => x.method === 'ai');
@@ -49,7 +49,7 @@ export function OwnDataList(props: OwnDataListProps) {
     return (
         <Card className="flex flex-col min-h-0 overflow-hidden">
             <div className="flex flex-col gap-2.5 px-[22px] pt-5 pb-4">
-                <OwnDataIntro routines={routines} action={add} t={t} />
+                <OwnDataIntro automations={automations} action={add} t={t} />
                 {note && <p role="status" className="m-0 text-xs font-medium text-[var(--success-ink)]">{note}</p>}
                 {aiDown && (
                     <Note Icon={TriangleAlert} tone="warn">

@@ -37,7 +37,7 @@
           "id": "c",
           "label": "Every row comes back blocked, because the knowledge base belongs to someone else.",
           "correct": false,
-          "feedback": "Blocked is about capability the sandbox withholds — anything that sends, any routine, anything set to Confirm first. Reading a linked base is none of those."
+          "feedback": "Blocked is about capability the sandbox withholds — anything that sends, any automation, anything set to Confirm first. Reading a linked base is none of those."
         },
         {
           "id": "d",
@@ -99,7 +99,7 @@
       "id": "sandbox",
       "icon": "🛡️",
       "title": "A run may lose capability, never gain permission",
-      "bodyMd": "Nobody is watching a test run, and Run gets pressed far more often than a chat gets typed. So a run only ever takes capability away:\n\n- anything that **sends** — mail, invitations, posts;\n- any **routine**, because what one does in step four is not knowable from its name;\n- anything set to **Confirm first**, because nobody is there to confirm.\n\nWrites still run: an agent whose job is to file a row has to be testable on it. The conversation is thrown away too — a test never lands in anyone's chat history.\n\nSo Marloes' test that expects Inkoopassistent to mail Sandra a contract summary comes back **blocked**: *\"A test run never uses {names}, so this could not be checked.\"* Drafting that mail is a write, so that part does run. The sending itself has to be proven in a real chat."
+      "bodyMd": "Nobody is watching a test run, and Run gets pressed far more often than a chat gets typed. So a run only ever takes capability away:\n\n- anything that **sends** — mail, invitations, posts;\n- any **automation**, because what one does in step four is not knowable from its name;\n- anything set to **Confirm first**, because nobody is there to confirm.\n\nWrites still run: an agent whose job is to file a row has to be testable on it. The conversation is thrown away too — a test never lands in anyone's chat history.\n\nSo Marloes' test that expects Inkoopassistent to mail Sandra a contract summary comes back **blocked**: *\"A test run never uses {names}, so this could not be checked.\"* Drafting that mail is a write, so that part does run. The sending itself has to be proven in a real chat."
     },
     {
       "type": "quiz",
@@ -209,7 +209,7 @@
       "id": "now",
       "icon": "✅",
       "title": "What you can do now",
-      "bodyMd": "- **Write a test from a real answer.** Ask, like the answer, save it — and read the AI's proposal before you save, because it becomes what the test guards. \"Must never say\" stays yours.\n- **Read a row instead of a number.** A fail is your agent; a blocked row is the run withholding a sending tool, a routine or a confirm-first action; an error is no answer to grade. Only pass is green.\n- **Run when someone else's half moves too.** Marloes owns the agent, Sandra owns Inkoopvoorwaarden; a run reads the base as it stands today, so the set catches a document change as readily as an instruction change.\n- **Run before you publish.** Once a version is live, the run exercises the published agent — so the score you want is the one taken just before you press Publish new version."
+      "bodyMd": "- **Write a test from a real answer.** Ask, like the answer, save it — and read the AI's proposal before you save, because it becomes what the test guards. \"Must never say\" stays yours.\n- **Read a row instead of a number.** A fail is your agent; a blocked row is the run withholding a sending tool, an automation or a confirm-first action; an error is no answer to grade. Only pass is green.\n- **Run when someone else's half moves too.** Marloes owns the agent, Sandra owns Inkoopvoorwaarden; a run reads the base as it stands today, so the set catches a document change as readily as an instruction change.\n- **Run before you publish.** Once a version is live, the run exercises the published agent — so the score you want is the one taken just before you press Publish new version."
     }
   ],
   "practiceTopic": {
@@ -218,7 +218,7 @@
     "facts": [
       "The Test tab holds a card called \"Test set\", subtitled \"Questions this agent should keep answering well\"; empty it reads \"No questions yet — turn an answer you liked into the first one.\"",
       "\"Must get across\" is judged by an AI and a paraphrase counts; \"Must never say\" is matched word for word, and nothing is ever proposed for it because a prohibition is a rule you write.",
-      "A test run withholds every action that sends, every routine, and every action set to \"Confirm first\"; write actions still run, and the conversation is never kept.",
+      "A test run withholds every action that sends, every automation, and every action set to \"Confirm first\"; write actions still run, and the conversation is never kept.",
       "A test whose expected tool was withheld comes back as blocked, not failed: \"A test run never uses {names}, so this could not be checked.\"",
       "Once a version is published, a run exercises the published agent, not the draft (\"This answer came from the published agent, not from your draft.\") — and it reads the linked knowledge bases as they stand now, because a version fixes which bases are linked, not a copy of their documents.",
       "Only the last 20 runs are kept per agent, and a run that did not finish is not stored at all.",

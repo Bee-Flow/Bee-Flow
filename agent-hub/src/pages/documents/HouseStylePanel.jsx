@@ -318,7 +318,7 @@ export default function HouseStylePanel({ onBack }) {
                 {/* ── Presentations ── */}
                 <Card title={t('documents.style.deck', 'Presentations')}>
                     <p className="text-sm mb-3" style={{ color: 'var(--text-muted)' }}>
-                        {t('documents.style.deck_hint', 'How a deck the assistant or a routine builds looks. Text colours are always kept readable, whatever the letterhead ink is. Every choice can be overridden on a single deck.')}
+                        {t('documents.style.deck_hint', 'How a deck the assistant or an automation builds looks. Text colours are always kept readable, whatever the letterhead ink is. Every choice can be overridden on a single deck.')}
                     </p>
                     <div className="mb-4" data-testid="house-style-deck-preview">
                         <DeckPreview theme={deckTheme} loading={deckThemeLoading} />

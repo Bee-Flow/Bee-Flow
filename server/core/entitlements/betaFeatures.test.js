@@ -143,11 +143,22 @@ function buildRes() {
 }
 
 (async () => {
+    // ── Registry: features that left beta ───────────────────────────────
+    for (const id of ['meeting_notes', 'advanced_analytics', 'skills']) {
+        assert.strictEqual(beta.getFeatureLifecycle(id), beta.BetaLifecycle.GA, `${id} is GA`);
+    }
+    // `flow` depends on Skills but stays an opt-in beta of its own.
+    assert.strictEqual(beta.getFeatureLifecycle('flow'), beta.BetaLifecycle.BETA, 'flow stays beta');
+    // The KB "beta badge" flag is gone: the chat KB picker is open to every
+    // signed-in account, and a stale id in a stored list is simply unknown.
+    assert.ok(!beta.BETA_FEATURES.some(f => f.id === 'knowledge_bases_beta'),
+        'knowledge_bases_beta is no longer registered');
+
     // ── getUserBetaFeatures ─────────────────────────────────────────────
 
     // Community tier → only the GA features whose licence feature is in the
     // Community tier (the n8n-style free builder — automations + agent_routines —
-    // plus the Learning Center, also free Community core), even when the org has
+    // plus the Learning Center and Skills, also free Community core), even when the org has
     // *enterprise* betas both allowed and active. The set is derived from the
     // registry + the licence tier, so it ignores the org allow-list below the floor.
     resetMocks();
@@ -155,8 +166,12 @@ function buildRes() {
     mockOrgBetaFeatures = ['meeting_notes', 'voice_chat'];
     mockOrgActiveFeatures = ['meeting_notes', 'voice_chat'];
     let features = await beta.getUserBetaFeatures('u1', { user: mockUser });
-    assert.deepStrictEqual(features.sort(), ['agent_routines', 'automations', 'learning_center'],
+    assert.deepStrictEqual(features.sort(), ['agent_routines', 'automations', 'learning_center', 'skills'],
         'community must yield exactly the Community GA features');
+    // meeting_notes and advanced_analytics are GA too, but their licence
+    // features are Enterprise, so GA alone must not leak them to Community.
+    assert.ok(!features.includes('advanced_analytics'),
+        'community must NOT yield a GA beta whose licence feature is Enterprise');
     assert.ok(!features.includes('meeting_notes') && !features.includes('voice_chat'),
         'community must NOT yield enterprise betas even when org-allowed/active');
 

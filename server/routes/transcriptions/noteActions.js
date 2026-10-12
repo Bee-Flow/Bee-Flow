@@ -374,7 +374,7 @@ router.post('/:id/regenerate-summary', requireAuth, validate({ body: RegenerateB
         });
     } catch (err) {
         log.error('[Transcriptions] Regenerate summary error:', err.message);
-        res.status(500).json({ error: `Failed to regenerate: ${err.message}` });
+        res.status(500).json({ error: 'Failed to regenerate' });
     }
 });
 
@@ -426,7 +426,7 @@ router.get('/:id/export', requireAuth, validate({ query: ExportQuery }),
 /**
  * ── WHAT BREAKS, BEFORE IT BREAKS (M2) ──────────────────────────────
  * A meeting is not a local object. A knowledge base collects it by tag and
- * will answer questions from it; a routine runs on it; a notebook holds a
+ * will answer questions from it; an automation runs on it; a notebook holds a
  * copy. None of those failures name this meeting when they happen, and none
  * of them is recoverable, so the first DELETE answers 409 with the list and
  * only a second one carrying `?confirm=1` proceeds — the same two-step the
@@ -436,8 +436,8 @@ router.get('/:id/export', requireAuth, validate({ query: ExportQuery }),
  * `unchecked` COUNTS AS IN USE. A scan that could not run is not a consumer
  * that is absent, and this is the one moment where guessing wrong cannot be
  * undone. That does mean a meeting can sit permanently behind a 409 while
- * some kind is unanswerable (`notebook_sources.source_ref_id` has not landed
- * yet, so today that is every meeting): the client's danger zone names what
+ * some kind is unanswerable (an older notebook meeting source written before
+ * `notebook_sources.source_ref_id` existed keeps notebooks unanswerable): the client's danger zone names what
  * could not be checked, makes the person type the meeting's title against
  * that warning, and then sends `?confirm=1`. The escape hatch is deliberate
  * and it is a CONFIRMED one — never a silent retry.
@@ -468,6 +468,9 @@ router.delete('/:id', requireAuth, validate({ body: NOTHING, query: DeleteQuery 
 
         const deleted = await transcriptionStore.deleteTranscription(req.params.id, userId);
         if (!deleted) return res.status(404).json({ error: 'Not found' });
+        // A task that linked this meeting keeps existing; the link goes (in every project).
+        try { await require('../../stores/projectTaskStore').dropLinksTo(null, 'meeting', req.params.id); }
+        catch (err) { log.warn(`[Transcriptions] task links to meeting ${req.params.id} not dropped: ${err.message}`); }
         res.json({ success: true });
     } catch (err) {
         log.error('[Transcriptions] Delete error:', err.message);

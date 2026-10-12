@@ -16,13 +16,13 @@ import { nOf } from '../KnowledgeStudio/plural';
  *
  * A DIRECTORY, WITH A FORM PAGE BEHIND EACH ROW. A form is still not an
  * object of its own in this product: what a visitor fills in is declared on a
- * routine's TRIGGER (`trigger.kind === 'form'`, `trigger.form`); the pages
- * after page one are `form_page` STEPS in that same routine; and the public
+ * automation's TRIGGER (`trigger.kind === 'form'`, `trigger.form`); the pages
+ * after page one are `form_page` STEPS in that same automation; and the public
  * ADDRESS is a row in `automation_form_pages` that the server mints whenever
  * such a trigger is saved (routes/automation/crud.js's `ensureFormPages`).
  * What a row opens is the FORM PAGE (FormPage.jsx — Questions · Share ·
- * Answers · Settings), addressed by the ROUTINE's id; the trigger's form is
- * edited there without the builder, and "Open the routine" stays for the
+ * Answers · Settings), addressed by the AUTOMATION's id; the trigger's form is
+ * edited there without the builder, and "Open the automation" stays for the
  * rest. "New form" is the section's own dialog (NewFormDialog.jsx): a name and
  * whether the answers are collected in a table.
  *
@@ -30,7 +30,7 @@ import { nOf } from '../KnowledgeStudio/plural';
  * person who FILLS a form in: a tile is the form, and everything else is
  * stripped out. This screen is for the person who BUILDS them, so it says the
  * three things only a builder needs — is it actually live, is anything coming
- * in, and which routine is behind it.
+ * in, and which automation is behind it.
  *
  * ── What this screen must never get wrong ────────────────────────────────
  *
@@ -52,14 +52,14 @@ import { nOf } from '../KnowledgeStudio/plural';
  *
  * UNKNOWN IS NOT "FINE". `live` is the difference between a link that works
  * and one that answers 404 (formPublic.js's loadForm 404s a paused or draft
- * routine). A row that does not say gets its own third pill rather than
+ * automation). A row that does not say gets its own third pill rather than
  * either claim: telling someone their public form is off when it is quietly
  * collecting submissions is the worse half of that guess, and telling them it
  * is live when it is not sends a dead link to a customer.
  *
  * `mine` IS CHECKED FOR TRUE, NOT FOR "NOT FALSE". The list is org-wide but
  * the automation endpoints are still per-user, so only the owner can open the
- * routine behind a form. An absent field is not permission.
+ * automation behind a form. An absent field is not permission.
  */
 
 /** Escape hatch for the pill styles — three states, one place. */
@@ -110,8 +110,8 @@ export function publicFormPath(form) {
     return typeof id === 'string' && id ? `/f/${id}` : null;
 }
 
-/** Whether THIS caller can open the routine behind a form. True, never "not false". */
-export function canOpenRoutine(form) {
+/** Whether THIS caller can open the automation behind a form. True, never "not false". */
+export function canOpenAutomation(form) {
     return form?.mine === true && typeof form?.automationId === 'string' && !!form.automationId;
 }
 
@@ -151,8 +151,8 @@ function StatusPill({ form, t }) {
     }[state];
     const hint = {
         live: t('forms.status.live_hint', 'Colleagues in your organisation can fill this in after signing in.'),
-        off: t('forms.status.off_hint', 'The routine behind it is paused or still a draft, so the link answers “not available”.'),
-        unknown: t('forms.status.unknown_hint', 'This row did not say whether the form is live. Open the routine to check.'),
+        off: t('forms.status.off_hint', 'The automation behind it is paused or still a draft, so the link answers “not available”.'),
+        unknown: t('forms.status.unknown_hint', 'This row did not say whether the form is live. Open the automation to check.'),
     }[state];
     return (
         <span
@@ -200,7 +200,7 @@ function CopyLinkButton({ form, t, onError }) {
 
 /** Whether THIS caller may open the Form page: the owner, or a reader of its answers table. */
 export function canOpenForm(form) {
-    return canOpenRoutine(form) || (!!form?.answers?.grade && typeof form?.automationId === 'string' && !!form.automationId);
+    return canOpenAutomation(form) || (!!form?.answers?.grade && typeof form?.automationId === 'string' && !!form.automationId);
 }
 
 /** The owner's one-glance answer to "who can fill this in": the whole organisation, n people and groups, or nobody yet. */
@@ -214,7 +214,7 @@ function audienceChip(t, audience) {
 function FormRow({ form, onNavigate, onOpen, onError }) {
     const { t } = useTranslation();
     const rel = useRelativeTime();
-    const mine = canOpenRoutine(form);
+    const mine = canOpenAutomation(form);
     const openable = canOpenForm(form);
     const answers = form?.answers || null;
     const submissions = typeof form?.submissions === 'number' && Number.isFinite(form.submissions)
@@ -301,10 +301,10 @@ function FormRow({ form, onNavigate, onOpen, onError }) {
                                 onClick={() => onNavigate && onNavigate(`studio/automations/${form.automationId}`)}
                                 className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-medium border transition-colors hover:bg-[var(--bg-tertiary)]"
                                 style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}
-                                data-testid="form-open-routine"
+                                data-testid="form-open-automation"
                             >
                                 <Workflow className="w-3 h-3" />
-                                {t('forms.studio.open_routine', 'Open the routine')}
+                                {t('forms.studio.open_automation', 'Open the automation')}
                             </button>
                         ) : (
                             /* NOT a disabled button: there is nothing to enable.
@@ -312,7 +312,7 @@ function FormRow({ form, onNavigate, onOpen, onError }) {
                                door does not exist for this caller and saying so
                                beats a control that 403s. */
                             <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }} data-testid="form-not-mine">
-                                {t('forms.studio.not_yours', 'Built by a colleague — only they can open the routine behind it')}
+                                {t('forms.studio.not_yours', 'Built by a colleague — only they can open the automation behind it')}
                             </span>
                         )}
                     </div>
@@ -389,7 +389,7 @@ function FormsHeader({ t, count, loading, creating, onRefresh, onCreate }) {
                     )}
                 </h2>
                 <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
-                    {t('forms.studio.intro', 'A form is the front of a routine: whoever fills it in starts it. A published form has an address anyone in your organisation can open once signed in, so it belongs to the organisation rather than to one person.')}
+                    {t('forms.studio.intro', 'A form is the front of an automation: whoever fills it in starts it. A published form has an address anyone in your organisation can open once signed in, so it belongs to the organisation rather than to one person.')}
                 </p>
             </div>
             {/* Refresh, not a poll. A form appears here the moment a colleague
@@ -427,7 +427,7 @@ function FormsHeader({ t, count, loading, creating, onRefresh, onCreate }) {
 export default function FormsStudio({ user = null, onNavigate = null, initialFormId = null, initialFormTab = null }) {
     const { t } = useTranslation();
     const api = useAutomationApi();
-    // The open form (a routine id), or 'new' for the dialog — adopted from
+    // The open form (an automation id), or 'new' for the dialog — adopted from
     // the URL the way DatatablesStudio adopts its id, and written back to it.
     const [openId, setOpenId] = useState(initialFormId || null);
     const [openTab, setOpenTab] = useState(initialFormTab || null);

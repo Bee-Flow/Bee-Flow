@@ -1,6 +1,6 @@
 // @typecheck
 /**
- * Deck collector — turn WHATEVER a routine or app bound to `slides` into the
+ * Deck collector — turn WHATEVER an automation or app bound to `slides` into the
  * input normalizeDeck understands.
  *
  * The `presentation` step promises one parameter that takes anything sensible:
@@ -14,7 +14,7 @@
  *   - nested lists of any of the above        → flattened
  *
  * That flexibility lives HERE, in one pure function with a test per shape,
- * rather than in the executor — so the App Studio step and the routine step
+ * rather than in the executor — so the App Studio step and the automation step
  * accept exactly the same inputs and a shape that works in one works in both.
  */
 

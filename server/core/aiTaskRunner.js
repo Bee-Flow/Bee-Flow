@@ -1,14 +1,19 @@
 /**
- * AI Task Runner — Background execution engine for scheduled AI tasks.
+ * AI Task Runner — the execution engine behind Cowork schedules.
  *
- * Runs every 60 seconds, picks up due tasks, executes them via the
- * LLM (non-streaming), and delivers results as notifications.
+ * coworkRunner.js polls cowork_schedules every 60 seconds and hands each due
+ * schedule to `executeTask` here, which runs it via the LLM (non-streaming)
+ * and delivers the result as a notification. A schedule with an agent runs
+ * through that agent's full runtime.
  *
- * Tasks now use the owner's connected integrations (Gmail, Calendar,
- * Drive, etc.) by resolving their active session from the DB.
+ * Runs use the owner's connected integrations (Gmail, Calendar, Drive, etc.)
+ * by resolving their active session from the DB.
+ *
+ * The old `ai_tasks` table (prompt tasks and agent schedules) has no poller of
+ * its own any more: both moved to Cowork (migrations/prompt-tasks-to-cowork-
+ * 2026-08 and agent-tasks-to-cowork-2026-10).
  */
 
-const aiTaskStore = require('../stores/aiTaskStore');
 const { utcOffsetString } = require('./llm/clock');
 const { resolveModelForTier, resolveEffectiveOrgId, TIER_DEFAULTS } = require('./llm/modelResolver');
 const { getProviderForModel } = require('./aiAgent');
@@ -17,10 +22,9 @@ const { pool } = require('../db');
 const terminationStore = require('../stores/terminationStore');
 const { sanitizeError } = require('./privacy/errorSanitizer');
 const log = require('../telemetry/log');
+const { createUsageAccumulator, usageLogFields } = require('./providers/usageNormalizer');
 
-const RUNNER_INTERVAL_MS = 60_000; // 60 seconds
-const MAX_CONCURRENT = 5;
-// Routines that fan out across several topics (news digests, multi-source
+// Schedules that fan out across several topics (news digests, multi-source
 // research) routinely chain 6-8 tool calls before producing a final answer.
 // Capping at 5 used to silently truncate them — the loop would exit with no
 // final assistant text and the user got a blank notification. Bumped to 20
@@ -28,9 +32,9 @@ const MAX_CONCURRENT = 5;
 const MAX_TOOL_ITERATIONS = 20;
 
 /**
- * R3: cheap, deterministic topic extraction from a routine result. Looks for
+ * R3: cheap, deterministic topic extraction from a schedule result. Looks for
  * markdown headings (### Topic) and numbered list items (1) Topic — summary)
- * — the two patterns the wizard's routines tend to emit. Falls back to
+ * — the two patterns the wizard's schedules tend to emit. Falls back to
  * top-level headings only when no enumeration is found.
  *
  * Returns `[{ subject, title, summary }]`. `subject` is a stable slug used
@@ -190,61 +194,43 @@ async function resolveUserSession(userId) {
 }
 
 /**
- * How a finished (or failed) run announces itself, per surface.
+ * How a finished (or failed) run announces itself.
  *
- * Cowork gets its own notification category so the bell can label it "Cowork"
- * and link back to /app/cowork/<id> — the run notification was the one place
- * a user could see their cowork and have no way to reach it. Agent routines
- * keep 'ai_task', which the client still labels "Routine".
+ * Its own notification category so the bell can label it "Cowork" and link
+ * back to /app/cowork/<id> — the run notification was the one place a user
+ * could see their cowork and have no way to reach it.
  */
-function notificationShape(surface) {
-    if (surface === 'cowork') {
-        return {
-            category: 'cowork',
-            // No link: the notification IS the result, and the one thing you
-            // want next is to talk about it. The client offers "Open result in
-            // chat" instead of bouncing you to the schedule you already know
-            // about. Failures are the exception — see below.
-            link: null,
-            failureTitle: 'Cowork failed',
-            noun: 'cowork item',
-            // Titles carry no 🤖: the emoji said "a robot did this" on every
-            // single result, which is the one thing the user already knew.
-            prefix: '',
-        };
-    }
-    return {
-        category: 'ai_task',
-        link: null,
-        failureTitle: 'Routine failed',
-        noun: 'routine',
-        prefix: '🤖 ',
-    };
-}
+const NOTIFICATION = Object.freeze({
+    category: 'cowork',
+    // No link: the notification IS the result, and the one thing you
+    // want next is to talk about it. The client offers "Open result in
+    // chat" instead of bouncing you to the schedule you already know
+    // about. Failures are the exception — see below.
+    link: null,
+    failureTitle: 'Cowork failed',
+    noun: 'cowork item',
+    // Titles carry no 🤖: the emoji said "a robot did this" on every
+    // single result, which is the one thing the user already knew.
+    prefix: '',
+});
+
+/** `source` and `agent_type` of the usage and termination rows a run writes. */
+const SOURCE = 'cowork';
 
 /**
- * Execute a single AI task.
+ * Execute one Cowork schedule.
  *
  * Two execution modes:
- *   - Legacy user-scoped task (`task.agentId == null`): inline LLM loop with
- *     the user's integration tools, no agent context.
- *   - Agent routine (`task.agentId` set): dispatch through the full agent
+ *   - A plain prompt (`task.agentId == null`): inline LLM loop with the
+ *     user's integration tools, no agent context.
+ *   - Run as an agent (`task.agentId` set): dispatch through the full agent
  *     runtime so the agent's system prompt, attached skills, knowledge bases,
  *     guardrails, memory, and integrations all participate. Result lands in a
  *     persistent conversation thread on that agent.
  *
  * `store` is the persistence side of a run — markRunning / markCompleted /
- * markError / advanceSchedule / updateTask. It defaults to aiTaskStore; Cowork
- * passes coworkStore, which writes the same state to its own tables and opens
- * a history row per attempt. Everything above that line — model resolution,
- * the tool loop, credential handling, outcome recovery, notifications — is
- * identical for both, which is exactly why it is injected rather than forked.
- *
- * `surface` is what the *user* calls this thing, and it only reaches the
- * notification (see notificationShape). Sharing the runner is right; sharing
- * the vocabulary was not — a cowork item's result used to arrive labelled
- * "Routine", which is the name of a different feature in a different part of
- * the app.
+ * markError / advanceSchedule / updateTask. It is coworkStore, which opens a
+ * history row per attempt; a test hands in a fake.
  */
 /**
  * A schedule repeats either via repeatInterval or via a daysOfWeek list —
@@ -256,9 +242,9 @@ function isRepeating(task) {
     return !!(task.repeatInterval || (Array.isArray(task.daysOfWeek) && task.daysOfWeek.length > 0));
 }
 
-async function executeTask(task, { manual = false, store = aiTaskStore, surface = 'routine' } = {}) {
+async function executeTask(task, { manual = false, store = require('../stores/coworkStore') } = {}) {
     if (task.agentId) {
-        return executeAgentRoutine(task, { manual, store, surface });
+        return executeAgentRun(task, { manual, store });
     }
     const startTime = Date.now();
     log.info(`[AITaskRunner] Executing task "${task.title}" (${task.id})`);
@@ -268,8 +254,9 @@ async function executeTask(task, { manual = false, store = aiTaskStore, surface 
     // iteration 19 has paid for 18 real model rounds.
     let userOrgForTier = null;
     let modelId = null;
-    let promptTokensTotal = 0;
-    let completionTokensTotal = 0;
+    // One accumulator over every round of the loop (providers/usageNormalizer.js):
+    // tokens, cache read/write (with the 5m/1h split), tier and tool counts.
+    const usageAcc = createUsageAccumulator();
     let lastIter = 0;
     let usageLogged = false;
 
@@ -279,9 +266,8 @@ async function executeTask(task, { manual = false, store = aiTaskStore, surface 
      * itself), so scheduled work shows up on the org dashboard and counts
      * against quota instead of running for free. Attribution is an explicit
      * field list — the allow-list form — under the owner and the effective
-     * org the tier was already resolved with. `surface` ('routine'|'cowork')
-     * doubles as source/agent_type, matching the vocabulary of the
-     * notification and the termination log.
+     * org the tier was already resolved with. SOURCE ('cowork') is both
+     * source and agent_type, matching the notification and the termination log.
      *
      * Fire-and-forget with a warn (the terminationStore pattern above):
      * usage logging is bookkeeping, not a gatekeeper — a failing log must
@@ -291,19 +277,17 @@ async function executeTask(task, { manual = false, store = aiTaskStore, surface 
         if (usageLogged || lastIter === 0) return; // nothing spent before the first model call
         usageLogged = true;
         const warn = (err) => log.warn(
-            `[AITaskRunner] Usage log failed for ${surface} ${task.id} (run unaffected): ${err.message}`);
+            `[AITaskRunner] Usage log failed for cowork ${task.id} (run unaffected): ${err.message}`);
         try {
             require('../stores/usageStore').logUsage({
                 user_id: task.userId || null,
                 agent_id: task.agentId || null,
                 agent_name: task.title || null,
-                agent_type: surface,
+                agent_type: SOURCE,
                 model: modelId,
-                source: surface,
+                source: SOURCE,
                 conversation_id: task.id || null,
-                prompt_tokens: promptTokensTotal,
-                completion_tokens: completionTokensTotal,
-                total_tokens: promptTokensTotal + completionTokensTotal,
+                ...usageLogFields(usageAcc.total()),
                 duration_ms: Date.now() - startTime,
                 organization_id: userOrgForTier || null,
             }).catch(warn);
@@ -313,8 +297,7 @@ async function executeTask(task, { manual = false, store = aiTaskStore, surface 
     };
 
     try {
-        // The second argument is ignored by aiTaskStore; coworkStore uses it to
-        // label the history row it opens for this attempt.
+        // coworkStore labels the history row it opens for this attempt with it.
         await store.markRunning(task.id, { triggerKind: manual ? 'manual' : 'schedule' });
 
         // Resolve the model for this task's tier — WITH the owner's org and
@@ -363,7 +346,7 @@ async function executeTask(task, { manual = false, store = aiTaskStore, surface 
             log.info(`[AITaskRunner] Loaded ${tools.length} integration tools for user ${task.userId}`);
         } catch (err) {
             log.warn(`[AITaskRunner] Failed to load integration tools: ${err.message}`);
-            // Fallback: try to load at least web search
+    // Fallback: try to load at least web search
             try {
                 const { buildAgentSearchTool } = require('../integrations/agentSearchTools');
                 if (typeof buildAgentSearchTool === 'function') {
@@ -408,7 +391,7 @@ async function executeTask(task, { manual = false, store = aiTaskStore, surface 
             audit: (fields) => require('../stores/guardrailEventStore').logGuardrailEvent({
                 organization_id: userOrgForTier || null, user_id: task.userId || null,
                 agent_name: task.title || null, conversation_id: task.id || null,
-                ...fields, source: surface, model: modelId,
+                ...fields, source: SOURCE, model: modelId,
             }),
         });
 
@@ -421,13 +404,13 @@ async function executeTask(task, { manual = false, store = aiTaskStore, surface 
             agent_id: task.agentId || null,
             agent_name: task.title || null,
             model: modelId,
-            source: 'routine',
+            source: 'schedule',
             conversation_id: task.id || null,
             iteration_count: lastIter,
             duration_ms: Date.now() - startTime,
-            prompt_tokens: promptTokensTotal,
-            completion_tokens: completionTokensTotal,
-            total_tokens: promptTokensTotal + completionTokensTotal,
+            prompt_tokens: usageAcc.total().prompt_tokens,
+            completion_tokens: usageAcc.total().completion_tokens,
+            total_tokens: usageAcc.total().prompt_tokens + usageAcc.total().completion_tokens,
         });
 
         // Tool-calling loop (max iterations)
@@ -440,12 +423,13 @@ async function executeTask(task, { manual = false, store = aiTaskStore, surface 
                 tools: tools.length > 0 ? tools : undefined,
                 toolChoice: tools.length > 0 ? 'auto' : undefined,
             });
-            promptTokensTotal += response?.usage?.prompt_tokens || 0;
-            completionTokensTotal += response?.usage?.completion_tokens || 0;
+    // adapter.chat returns normalised usage (non-stream Claude/Gemini
+    // included); the accumulator also accepts a raw provider block.
+            usageAcc.add(response?.usage);
 
-            // Track any assistant text the model produced alongside tool
-            // calls — if we later exhaust iterations without a clean break,
-            // this is the best outcome we can surface to the user.
+    // Track any assistant text the model produced alongside tool
+    // calls — if we later exhaust iterations without a clean break,
+    // this is the best outcome we can surface to the user.
             if (response.content && response.content.trim()) {
                 lastAssistantContent = response.content;
             }
@@ -454,7 +438,7 @@ async function executeTask(task, { manual = false, store = aiTaskStore, surface 
                 terminationStore.logTermination({ ...terminationBase(), termination_type: 'max_tokens' }).catch(() => {});
             }
 
-            // Handle tool calls if present
+    // Handle tool calls if present
             if (response.toolCalls && response.toolCalls.length > 0) {
                 // Add assistant message with tool calls
                 // Preserve _thought_signature — required by Gemini 3.x for multi-turn tool calls
@@ -515,12 +499,12 @@ async function executeTask(task, { manual = false, store = aiTaskStore, surface 
                             // ...but keep custom integrations dispatching
                             // exactly as they did before: their runner refuses
                             // unattended calls, so inheriting autoSend here
-                            // would turn working routines into hard failures.
+                            // would turn working schedules into hard failures.
                             unattended: false,
                             // The dispatcher's chokepoint writes this call's
                             // egress row; these say whose run it was.
                             egress: {
-                                source: surface,
+                                source: SOURCE,
                                 model: modelId,
                                 ids: {
                                     organization_id: userOrgForTier || null,
@@ -547,7 +531,7 @@ async function executeTask(task, { manual = false, store = aiTaskStore, surface 
                 continue;
             }
 
-            // No tool calls — this is the final response
+    // No tool calls — this is the final response
             finalResponse = response.content || '';
             hitIterationCap = false;
             break;
@@ -568,14 +552,14 @@ async function executeTask(task, { manual = false, store = aiTaskStore, surface 
         }
 
         if (!finalResponse || !finalResponse.trim()) {
-            log.warn(`[AITaskRunner] Routine "${task.title}" (${task.id}) produced no outcome text. ` +
+            log.warn(`[AITaskRunner] Schedule "${task.title}" (${task.id}) produced no outcome text. ` +
                 `hitIterationCap=${hitIterationCap}, ` +
                 `messages=${messages.length}, ` +
                 `tools=${tools.length}, ` +
                 `lastInterim=${lastAssistantContent.length} chars`);
             finalResponse = hitIterationCap
-                ? `_(${surface === 'cowork' ? 'Deze cowork' : 'De routine'} bereikte de limiet van ${MAX_TOOL_ITERATIONS} tool-aanroepen voordat een eindresultaat werd geproduceerd. Splits de prompt op of koppel een agent met grotere context.)_`
-                : `_(${surface === 'cowork' ? 'Deze cowork is' : 'De routine is'} uitgevoerd, maar er is geen tekstresultaat geproduceerd.)_`;
+                ? `_(Deze cowork bereikte de limiet van ${MAX_TOOL_ITERATIONS} tool-aanroepen voordat een eindresultaat werd geproduceerd. Splits de prompt op of koppel een agent met grotere context.)_`
+                : `_(Deze cowork is uitgevoerd, maar er is geen tekstresultaat geproduceerd.)_`;
         }
 
         // Truncate if needed (safety net — ignore task.maxResultLength since DB defaults to 2000)
@@ -589,14 +573,14 @@ async function executeTask(task, { manual = false, store = aiTaskStore, surface 
 
         // Create notification
         const notificationStore = require('../stores/notificationStore');
-        const shape = notificationShape(surface);
+        const shape = NOTIFICATION;
         await notificationStore.createNotification({
             userId: task.userId,
             taskId: task.id,
-            category: shape.category,
+    category: shape.category,
             title: `${shape.prefix}${task.title}`,
             message: finalResponse,
-            link: shape.link,
+    link: shape.link,
         });
 
         // Advance schedule (skip if this was a manual run-now trigger)
@@ -606,7 +590,7 @@ async function executeTask(task, { manual = false, store = aiTaskStore, surface 
         } else if (isRepeating(task) && manual) {
             log.info(`[AITaskRunner] Task "${task.title}" completed manually (${Date.now() - startTime}ms), next scheduled run unchanged: ${task.nextRunAt}`);
         } else {
-            // One-time task → deactivate
+    // One-time task → deactivate
             await store.updateTask(task.id, { isActive: false });
             log.info(`[AITaskRunner] Task "${task.title}" completed (one-time, ${Date.now() - startTime}ms)`);
         }
@@ -619,7 +603,7 @@ async function executeTask(task, { manual = false, store = aiTaskStore, surface 
             user_id: task.userId || null,
             agent_id: task.agentId || null,
             agent_name: task.title || null,
-            source: 'routine',
+            source: 'schedule',
             conversation_id: task.id || null,
             duration_ms: Date.now() - startTime,
             termination_type: 'error',
@@ -631,17 +615,17 @@ async function executeTask(task, { manual = false, store = aiTaskStore, surface 
         if (isRepeating(task) && !manual) {
             await store.advanceSchedule(task.id, task.nextRunAt, task.repeatInterval, task.daysOfWeek);
         } else if (!manual) {
-            // A failed one-off must come off the scheduler: markError leaves it
-            // active with next_run_at in the past, so the minute tick would
-            // retry it — one model call and one urgent notification per minute
-            // — forever. The failure notification below is the retry signal.
+    // A failed one-off must come off the scheduler: markError leaves it
+    // active with next_run_at in the past, so the minute tick would
+    // retry it — one model call and one urgent notification per minute
+    // — forever. The failure notification below is the retry signal.
             await store.updateTask(task.id, { isActive: false });
         }
 
         // Notify user about failure
         try {
             const notificationStore = require('../stores/notificationStore');
-            const shape = notificationShape(surface);
+            const shape = NOTIFICATION;
             await notificationStore.createNotification({
                 userId: task.userId,
                 taskId: task.id,
@@ -650,36 +634,35 @@ async function executeTask(task, { manual = false, store = aiTaskStore, surface 
                 message: `The scheduled ${shape.noun} "${task.title}" failed to execute: ${err.message}`,
                 // A failure is the one case where the schedule itself is what
                 // you need to reach, so this one does link back.
-                link: surface === 'cowork' ? require('../utils/appPaths').coworkTaskPath(task.id) : null,
+                link: require('../utils/appPaths').coworkTaskPath(task.id),
             });
         } catch (_) { /* don't fail on notification failure */ }
     }
 }
 
 /**
- * Execute an agent-scoped routine: dispatch through the full agent runtime so
+ * Execute a schedule as its agent: dispatch through the full agent runtime so
  * the agent's system prompt, attached skills, knowledge bases, integrations,
  * and guardrails all participate. Result lands in a persistent conversation
  * thread so the user can open it from the notification and continue chatting.
  */
-async function executeAgentRoutine(task, { manual = false, store = aiTaskStore, surface = 'routine' } = {}) {
+async function executeAgentRun(task, { manual = false, store = require('../stores/coworkStore') } = {}) {
     const startTime = Date.now();
-    log.info(`[AITaskRunner] Executing routine "${task.title}" (${task.id}) for agent ${task.agentId}`);
+    log.info(`[AITaskRunner] Executing "${task.title}" (${task.id}) as agent ${task.agentId}`);
 
     try {
-        // The second argument is ignored by aiTaskStore; coworkStore uses it to
-        // label the history row it opens for this attempt.
+        // coworkStore labels the history row it opens for this attempt with it.
         await store.markRunning(task.id, { triggerKind: manual ? 'manual' : 'schedule' });
 
         const agentStore = require('../stores/agentStore');
         const agent = await agentStore.getForRuntime(task.agentId);
         if (!agent) throw new Error(`Linked agent ${task.agentId} no longer exists`);
-        if (agent.owner_id !== task.userId) throw new Error('Routine agent owner mismatch — refusing to run');
+        if (agent.owner_id !== task.userId) throw new Error('Schedule agent owner mismatch — refusing to run');
 
         // Per-org beta-feature gate. The HTTP create/edit surfaces already
-        // refuse to schedule routines without `agent_routines`, but an org
+        // refuse to create schedules run as an agent without `agent_routines`, but an org
         // that *had* the feature enabled and later disabled it would keep
-        // firing previously-scheduled routines without this check.
+        // firing previously-scheduled schedules without this check.
         // FeatureServiceUnavailableError → don't burn the attempt; leave
         // the task to be retried on the next tick (60s).
         if (agent.organization_id) {
@@ -688,24 +671,24 @@ async function executeAgentRoutine(task, { manual = false, store = aiTaskStore, 
                 const allowed = await orgHasBetaFeature(agent.organization_id, 'agent_routines');
                 if (!allowed) {
                     await store.markError(task.id, 'agent_routines beta disabled for organisation');
-                    log.info(`[AITaskRunner] skipped routine ${task.id} — agent_routines disabled for org ${agent.organization_id}`);
+                    log.info(`[AITaskRunner] skipped schedule ${task.id} — agent_routines disabled for org ${agent.organization_id}`);
                     return;
                 }
             } catch (e) {
                 if (e && e.name === 'FeatureServiceUnavailableError') {
-                    log.warn(`[AITaskRunner] beta lookup degraded — deferring routine ${task.id}: ${e.message}`);
+                    log.warn(`[AITaskRunner] beta lookup degraded — deferring schedule ${task.id}: ${e.message}`);
                     return; // markRunning already set; ticks pick it back up on retry
                 }
                 throw e;
             }
         }
 
-        // Resolve OAuth credentials for this routine. Default path: long-lived
-        // encrypted vault (`routine_credentials`) with auto-refresh, so the
-        // routine works even when the user is offline. The legacy
-        // session-borrow path is kept behind ROUTINE_AUTH_LEGACY=1 for one
+        // Resolve OAuth credentials for this schedule. Default path: long-lived
+        // encrypted vault (`automation_credentials`) with auto-refresh, so the
+        // schedule works even when the user is offline. The legacy
+        // session-borrow path is kept behind AUTOMATION_AUTH_LEGACY=1 for one
         // release in case of regressions.
-        const useLegacy = process.env.ROUTINE_AUTH_LEGACY === '1';
+        const useLegacy = require('../utils/automationAuthLegacy').automationAuthLegacy() === '1';
         let userAuth;
         if (useLegacy) {
             const session = await resolveUserSession(task.userId);
@@ -720,13 +703,13 @@ async function executeAgentRoutine(task, { manual = false, store = aiTaskStore, 
                 userOrgId: session?.user?.organizationId || agent.organization_id || null,
             };
         } else {
-            const routineAuth = require('../auth/routineAuth');
+            const automationAuth = require('../auth/automationAuth');
             const enabledIntegrations = Array.isArray(agent?.config?.enabledIntegrations)
                 ? agent.config.enabledIntegrations
                 : [];
-            const built = await routineAuth.buildUserAuth(task.userId, { enabledIntegrations });
+            const built = await automationAuth.buildUserAuth(task.userId, { enabledIntegrations });
             if (!built) {
-                // buildUserAuth already paused dependent routines + emitted a
+                // buildUserAuth already paused dependent schedules + emitted a
                 // reauth notification. Surface the error on this run so the
                 // task row reflects the failure.
                 throw new Error('needs_reauth: required OAuth provider expired or revoked');
@@ -735,7 +718,7 @@ async function executeAgentRoutine(task, { manual = false, store = aiTaskStore, 
                 accessToken: built.accessToken,
                 refreshToken: built.refreshToken,
                 oauthProvider: built.oauthProvider,
-                routineProviders: built.routineProviders,
+                automationProviders: built.automationProviders,
                 nextcloudUrl: null,
                 appPasswordUsername: null,
                 appPassword: null,
@@ -747,7 +730,7 @@ async function executeAgentRoutine(task, { manual = false, store = aiTaskStore, 
 
         const { chatWithAgentStream } = require('./agentRuntime');
 
-        // Per-routine tier override (optional). Falls back to whatever the
+        // Per-schedule tier override (optional). Falls back to whatever the
         // agent itself is configured with.
         const modelTier = task.modelTier && task.modelTier !== 'fast'
             ? task.modelTier
@@ -759,25 +742,25 @@ async function executeAgentRoutine(task, { manual = false, store = aiTaskStore, 
             modelTier: modelTier || undefined,
             userOrgId: userAuth.userOrgId,
             orgId: userAuth.userOrgId,
-            // R3: contextBuilder reads this to inject the "previously covered"
-            // addendum from past runs of the SAME routine.
-            routineId: task.id,
-            // Same reason as buildTaskSystemPrompt's schedule section: an agent
-            // that doesn't know the repeat is already in place tends to close
-            // every run by advising the user to set one up.
-            routineSchedule: describeTaskSchedule(task),
-            // See the executeTool call in the non-agent path: an unattended run
-            // has no one to approve a composed email, so it must send rather
-            // than leave a draft that never goes anywhere.
+    // R3: contextBuilder reads this to inject the "previously covered"
+    // addendum from past runs of the SAME schedule.
+            scheduleId: task.id,
+    // Same reason as buildTaskSystemPrompt's schedule section: an agent
+    // that doesn't know the repeat is already in place tends to close
+    // every run by advising the user to set one up.
+            scheduleText: describeTaskSchedule(task),
+    // See the executeTool call in the non-agent path: an unattended run
+    // has no one to approve a composed email, so it must send rather
+    // than leave a draft that never goes anywhere.
             autoSend: true,
-            // Routines are unattended — never block on streaming back to a UI.
+    // Schedules are unattended — never block on streaming back to a UI.
             ephemeral: false,
         };
 
         // Capture both the streaming token deltas AND any post-stream content
         // replacements (the runtime emits `content_replace` after stripping
         // tool-call XML or after content moderation rewrites the response —
-        // missing those events used to leave routines with an empty outcome).
+        // missing those events used to leave schedules with an empty outcome).
         let collected = '';
         let replaced = null;
         const result = await chatWithAgentStream(
@@ -800,7 +783,7 @@ async function executeAgentRoutine(task, { manual = false, store = aiTaskStore, 
         // Fallback: if the runtime returned no assistant text (e.g. the model
         // ended on a tool call, hit max iterations, or content moderation
         // emptied the buffer), recover the last assistant message from the
-        // conversation that the routine just wrote to. Without this, the
+        // conversation that the schedule just wrote to. Without this, the
         // notification card renders blank and the user has no way to see the
         // outcome of the run.
         if (!finalResponse || !finalResponse.trim()) {
@@ -813,7 +796,7 @@ async function executeAgentRoutine(task, { manual = false, store = aiTaskStore, 
                         const m = msgs[i];
                         if (m?.role === 'assistant' && typeof m.content === 'string' && m.content.trim()) {
                             finalResponse = m.content;
-                            log.info(`[AITaskRunner] Recovered routine outcome from conversation ${convoId} (${finalResponse.length} chars)`);
+                            log.info(`[AITaskRunner] Recovered schedule outcome from conversation ${convoId} (${finalResponse.length} chars)`);
                             break;
                         }
                     }
@@ -824,14 +807,14 @@ async function executeAgentRoutine(task, { manual = false, store = aiTaskStore, 
         }
 
         if (!finalResponse || !finalResponse.trim()) {
-            log.warn(`[AITaskRunner] Routine "${task.title}" (${task.id}) produced no outcome text. ` +
+            log.warn(`[AITaskRunner] Schedule "${task.title}" (${task.id}) produced no outcome text. ` +
                 `result.message=${result?.message?.length || 0} chars, ` +
                 `streamed=${collected.length} chars, ` +
                 `replaced=${replaced?.length || 0} chars, ` +
                 `convoId=${result?.conversationId || task.conversationId || 'none'}, ` +
                 `guardrailViolation=${result?.guardrailViolation || 'none'}, ` +
                 `toolCalls=${result?.toolCalls?.length || 0}`);
-            finalResponse = `_(${surface === 'cowork' ? 'Deze cowork is' : 'De routine is'} uitgevoerd, maar er is geen tekstresultaat geproduceerd. Open de chat om de uitvoering te bekijken.)_`;
+            finalResponse = `_(Deze cowork is uitgevoerd, maar er is geen tekstresultaat geproduceerd. Open de chat om de uitvoering te bekijken.)_`;
         }
 
         const truncated = finalResponse.length > 50000
@@ -847,7 +830,7 @@ async function executeAgentRoutine(task, { manual = false, store = aiTaskStore, 
 
         await store.markCompleted(task.id, truncated);
 
-        // R3: extract topics this run surfaced and write them to the routine's
+        // R3: extract topics this run surfaced and write them to the schedule's
         // coverage memory bucket so the next run knows not to repeat them.
         // Only fires when the agent has memory enabled — opt-in by design.
         if (agent?.config?.memoryEnabled === true) {
@@ -855,15 +838,15 @@ async function executeAgentRoutine(task, { manual = false, store = aiTaskStore, 
                 const topics = extractCoverageTopics(truncated);
                 if (topics.length > 0) {
                     const memoryStore = require('../stores/memoryStore');
-                    await Promise.all(topics.slice(0, 30).map(t => memoryStore.upsertRoutineCoverage({
+                    await Promise.all(topics.slice(0, 30).map(t => memoryStore.upsertScheduleCoverage({
                         userId: task.userId,
                         agentId: task.agentId,
-                        routineId: task.id,
+                        scheduleId: task.id,
                         subject: t.subject,
                         title: t.title,
                         summary: t.summary,
                     })));
-                    log.info(`[AITaskRunner] R3: stored ${Math.min(topics.length, 30)} coverage memorie(s) for routine ${task.id}`);
+                    log.info(`[AITaskRunner] R3: stored ${Math.min(topics.length, 30)} coverage memorie(s) for schedule ${task.id}`);
                 }
             } catch (err) {
                 log.warn(`[AITaskRunner] R3 coverage extraction failed: ${err.message}`);
@@ -874,7 +857,7 @@ async function executeAgentRoutine(task, { manual = false, store = aiTaskStore, 
         // it and continue chatting.
         try {
             const notificationStore = require('../stores/notificationStore');
-            const shape = notificationShape(surface);
+            const shape = NOTIFICATION;
             await notificationStore.createNotification({
                 userId: task.userId,
                 taskId: task.id,
@@ -888,21 +871,21 @@ async function executeAgentRoutine(task, { manual = false, store = aiTaskStore, 
         // Schedule advance — same rules as legacy tasks.
         if (isRepeating(task) && !manual) {
             const next = await store.advanceSchedule(task.id, task.nextRunAt, task.repeatInterval, task.daysOfWeek);
-            log.info(`[AITaskRunner] Routine "${task.title}" completed (${Date.now() - startTime}ms), next run: ${next}`);
+            log.info(`[AITaskRunner] Schedule "${task.title}" completed (${Date.now() - startTime}ms), next run: ${next}`);
         } else if (isRepeating(task) && manual) {
-            log.info(`[AITaskRunner] Routine "${task.title}" completed manually (${Date.now() - startTime}ms)`);
+            log.info(`[AITaskRunner] Schedule "${task.title}" completed manually (${Date.now() - startTime}ms)`);
         } else {
             await store.updateTask(task.id, { isActive: false });
-            log.info(`[AITaskRunner] Routine "${task.title}" completed (one-time, ${Date.now() - startTime}ms)`);
+            log.info(`[AITaskRunner] Schedule "${task.title}" completed (one-time, ${Date.now() - startTime}ms)`);
         }
     } catch (err) {
-        log.error(`[AITaskRunner] Routine "${task.title}" failed:`, err.message);
+        log.error(`[AITaskRunner] Schedule "${task.title}" failed:`, err.message);
         if (!err?._terminationLogged) {
             terminationStore.logTermination({
                 user_id: task.userId || null,
                 agent_id: task.agentId || null,
                 agent_name: task.title || null,
-                source: 'routine',
+                source: 'schedule',
                 conversation_id: task.conversationId || task.id || null,
                 duration_ms: Date.now() - startTime,
                 termination_type: 'error',
@@ -913,13 +896,13 @@ async function executeAgentRoutine(task, { manual = false, store = aiTaskStore, 
         if (isRepeating(task) && !manual) {
             await store.advanceSchedule(task.id, task.nextRunAt, task.repeatInterval, task.daysOfWeek);
         } else if (!manual) {
-            // Same as executeTask: a failed one-off stays active with a stale
-            // next_run_at and would be retried by the minute tick forever.
+    // Same as executeTask: a failed one-off stays active with a stale
+    // next_run_at and would be retried by the minute tick forever.
             await store.updateTask(task.id, { isActive: false });
         }
         try {
             const notificationStore = require('../stores/notificationStore');
-            const shape = notificationShape(surface);
+            const shape = NOTIFICATION;
             await notificationStore.createNotification({
                 userId: task.userId,
                 taskId: task.id,
@@ -928,53 +911,17 @@ async function executeAgentRoutine(task, { manual = false, store = aiTaskStore, 
                 message: `The scheduled ${shape.noun} "${task.title}" failed to execute: ${err.message}`,
                 // A failure is the one case where the schedule itself is what
                 // you need to reach, so this one does link back.
-                link: surface === 'cowork' ? require('../utils/appPaths').coworkTaskPath(task.id) : null,
+                link: require('../utils/appPaths').coworkTaskPath(task.id),
             });
         } catch (_) { /* don't fail on notification failure */ }
     }
 }
 
-/**
- * Process all due tasks (called every 60s by setInterval).
- */
-async function processDueTasks() {
-    try {
-        const dueTasks = await aiTaskStore.getDueTasks();
-        if (dueTasks.length === 0) return;
+// ── Background timer ─────────────────────────────────────
+// Unref'd: a janitor timer has no business keeping the process alive on its
+// own (it hung `node --test` on every suite that merely required this module).
 
-        log.info(`[AITaskRunner] Found ${dueTasks.length} due task(s)`);
-
-        // Process with concurrency limit
-        const batches = [];
-        for (let i = 0; i < dueTasks.length; i += MAX_CONCURRENT) {
-            batches.push(dueTasks.slice(i, i + MAX_CONCURRENT));
-        }
-
-        for (const batch of batches) {
-            await Promise.allSettled(batch.map(task => executeTask(task)));
-        }
-    } catch (err) {
-        log.error('[AITaskRunner] Background checker error:', err.message);
-    }
-}
-
-// ── Start background runner ──────────────────────────────
-// All three handles are UNREF'd. A janitor timer has no business keeping the
-// process alive on its own: nothing here is worth delaying a shutdown for, and
-// a 60s interval that the event loop must wait on is what hung `node --test`
-// on every suite that merely required this module — three of them, silently,
-// until the runner stopped cutting its own output short.
-//
-// The shape is coworkRunner.js:96-109, whose comment already says it copied
-// its start-up from here. This file was the straggler: `_coveragePruneInterval`
-// below was unref'd and these two were not.
-const _interval = setInterval(processDueTasks, RUNNER_INTERVAL_MS);
-if (_interval.unref) _interval.unref();
-// First run after 10s (let stores initialize)
-const _firstRun = setTimeout(processDueTasks, 10_000);
-if (_firstRun.unref) _firstRun.unref();
-
-// R3: prune expired routine_coverage memories once per hour. Keeps the
+// R3: prune expired schedule_coverage memories once per hour. Keeps the
 // "previously covered" addendum from suppressing topics forever (default TTL
 // is 30 days inside memoryStore).
 const _coveragePruneInterval = setInterval(async () => {
@@ -988,7 +935,7 @@ const _coveragePruneInterval = setInterval(async () => {
 }, 60 * 60_000);
 if (_coveragePruneInterval.unref) _coveragePruneInterval.unref();
 
-log.info('[AITaskRunner] Background runner started (60s interval)');
+log.info('[AITaskRunner] Coverage prune armed (hourly)');
 
 /**
  * Stop every timer this module armed at require time.
@@ -999,13 +946,10 @@ log.info('[AITaskRunner] Background runner started (60s interval)');
  * shutting down, or a test that wants the module inert, now has a way.
  */
 function stop() {
-    clearInterval(_interval);
-    clearTimeout(_firstRun);
     clearInterval(_coveragePruneInterval);
 }
 
 module.exports = {
-    processDueTasks,
     executeTask,
     stop,
 };

@@ -3,7 +3,7 @@
  * of agent-hub pages/meeting-notes/lib/meetingRules.js, held to it by
  * rules.lockstep.test.ts, which runs both on the same definitions.
  *
- * A rule is a routine with an `app_event` trigger on provider
+ * A rule is an automation with an `app_event` trigger on provider
  * `meeting-notes` (server/automation/triggerSources/declared/meeting-notes.js).
  * Both readings below use ALLOW-lists so the unknown stands out instead of
  * vanishing: `consequencesOf` names three step kinds, knows which kinds change
@@ -75,7 +75,7 @@ const DATATABLE_READ_OPS = new Set(['find_rows', 'count_rows']);
 /** Step kinds that change nothing outside the run (see the web file for each one's reason). */
 const NO_OUTWARD_EFFECT = new Set([
     'trigger', 'note',
-    'condition', 'switch', 'guard', 'filter', 'limit', 'dedupe', 'aggregate', 'summarize',
+    'condition', 'switch', 'guard', 'filter', 'limit', 'dedupe', 'aggregate', 'summarize', 'flatten',
     'set', 'datetime', 'parse_json', 'wait',
     'tokenize', 'untokenize',
     'loop', 'parallel', 'call_layer', 'layer_output',
@@ -143,7 +143,7 @@ export function openability(row: { userId?: string | null; ownerId?: string | nu
     return owner === currentUserId ? ('ok' as const) : ('foreign' as const);
 }
 
-/** One routine's count in `/_runs/facets` (the READER's runs), or null when nobody counted. */
+/** One automation's count in `/_runs/facets` (the READER's runs), or null when nobody counted. */
 export function runCountOf(facets: unknown, automationId: string): number | null {
     const byId = isObject(facets) ? facets.automationId : null;
     if (!isObject(byId)) return null;

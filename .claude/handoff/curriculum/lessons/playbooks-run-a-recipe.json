@@ -18,7 +18,7 @@
    "id": "why",
    "icon": "🎬",
    "title": "A build you watch, phase by phase",
-   "bodyMd": "Anne keeps the purchase-invoice administration at **Van Dijk Groep**. Every supplier invoice arrives as a PDF in the Nextcloud folder `/Inkoop/Facturen-Q3`, and she retypes each one into a spreadsheet. What she wants instead is a table of those invoices and a small app on top of it.\n\nBy hand that is three jobs in three places: a table, then the routine builder, then the app builder. A **playbook** does the whole set in one sitting — and stops after every phase, so Anne can look at what landed before anything else is built on top of it.\n\nYou find it in **Studio**, in the **Bundle** group, under **Playbooks**: *\"Watch the AI build a table, a routine and an app — one phase at a time.\"* Two things decide whether you get that far. Playbooks needs the **app_studio** capability, or the rail shows the row locked. And every write — starting, continuing, skipping, retrying — needs the **manage apps** permission. Anne's role is **Agent Admin**, which carries it."
+   "bodyMd": "Anne keeps the purchase-invoice administration at **Van Dijk Groep**. Every supplier invoice arrives as a PDF in the Nextcloud folder `/Inkoop/Facturen-Q3`, and she retypes each one into a spreadsheet. What she wants instead is a table of those invoices and a small app on top of it.\n\nBy hand that is three jobs in three places: a table, then the automation builder, then the app builder. A **playbook** does the whole set in one sitting — and stops after every phase, so Anne can look at what landed before anything else is built on top of it.\n\nYou find it in **Studio**, in the **Bundle** group, under **Playbooks**: *\"Watch the AI build a table, an automation and an app — one phase at a time.\"* Two things decide whether you get that far. Playbooks needs the **app_studio** capability, or the rail shows the row locked. And every write — starting, continuing, skipping, retrying — needs the **manage apps** permission. Anne's role is **Agent Admin**, which carries it."
   },
   {
    "type": "quiz",
@@ -57,7 +57,7 @@
    "id": "phases",
    "icon": "🧱",
    "title": "One recipe, six phases",
-   "bodyMd": "Anne presses **New playbook** and picks the built-in recipe **Invoice tracker**. She leaves **Language** on **English**, so the table, its columns and the app's labels all come out in English.\n\nThat recipe runs as six phases, and every one of them leaves something real behind: a table called *Invoices*, a routine that reads the PDFs, real rows in the table, a design, an app, and an approval flow. Nothing here is a preview — a phase either landed or it did not. The approval flow is the one phase that needs the Enterprise plan; without it the playbook shows it locked and skips it.\n\nThe choice card shows the whole chain before you start. Work it out yourself first: each phase needs something the phase before it made."
+   "bodyMd": "Anne presses **New playbook** and picks the built-in recipe **Invoice tracker**. She leaves **Language** on **English**, so the table, its columns and the app's labels all come out in English.\n\nThat recipe runs as six phases, and every one of them leaves something real behind: a table called *Invoices*, an automation that reads the PDFs, real rows in the table, a design, an app, and an approval flow. Nothing here is a preview — a phase either landed or it did not. The approval flow is the one phase that needs the Enterprise plan; without it the playbook shows it locked and skips it.\n\nThe choice card shows the whole chain before you start. Work it out yourself first: each phase needs something the phase before it made."
   },
   {
    "type": "sim",
@@ -74,7 +74,7 @@
      },
      {
       "id": "fill",
-      "label": "First rows — the routine runs once and real rows arrive"
+      "label": "First rows — the automation runs once and real rows arrive"
      },
      {
       "id": "table",
@@ -82,26 +82,26 @@
      },
      {
       "id": "approvals",
-      "label": "Approval flow — a second routine parks an invoice for the Inkoop group"
+      "label": "Approval flow — a second automation parks an invoice for the Inkoop group"
      },
      {
       "id": "design",
       "label": "Design — the AI sketches screens, hierarchy and one accent"
      },
      {
-      "id": "routine",
-      "label": "Routine — the routine builder makes Read invoices"
+      "id": "automation",
+      "label": "Automation — the automation builder makes Read invoices"
      }
     ],
     "solution": [
      "table",
-     "routine",
+     "automation",
      "fill",
      "design",
      "app",
      "approvals"
     ],
-    "feedback": "Each phase feeds the next. The table hands over its real id and column keys; the routine is written against those keys; running it once puts real rows there; the designer works on an app with data behind it; the app is built on that design; and the approval routine needs a status column in the same table. Approvals are decided in Studio → Approvals, not in the app."
+    "feedback": "Each phase feeds the next. The table hands over its real id and column keys; the automation is written against those keys; running it once puts real rows there; the designer works on an app with data behind it; the app is built on that design; and the approval automation needs a status column in the same table. Approvals are decided in Studio → Approvals, not in the app."
    }
   },
   {
@@ -109,7 +109,7 @@
    "id": "kinds",
    "icon": "🧱",
    "title": "Two ways a phase runs",
-   "bodyMd": "That is the chain the choice card shows:\n\n**Table → Routine → First rows → Design → App → Approval flow**\n\nSix phases, but five kinds — and the kind decides what you see:\n\n- **Table**, **First rows** and **Design** run on the server. No builder appears; the page shows the stage, the live panel of what is being built, and polls for progress.\n- **Routine** and **App** mount the *real* builders inside the playbook: the routine builder, then the App Studio editor, each with its brief already handed over. **Approval flow** is a second routine phase, so the routine builder comes back for it.\n\nWhatever they make is a normal routine and a normal app, waiting in Studio → Automations and Studio → Apps afterwards. A playbook keeps no private copy of anything: it drives the tools you already know."
+   "bodyMd": "That is the chain the choice card shows:\n\n**Table → Automation → First rows → Design → App → Approval flow**\n\nSix phases, but five kinds — and the kind decides what you see:\n\n- **Table**, **First rows** and **Design** run on the server. No builder appears; the page shows the stage, the live panel of what is being built, and polls for progress.\n- **Automation** and **App** mount the *real* builders inside the playbook: the automation builder, then the App Studio editor, each with its brief already handed over. **Approval flow** is a second automation phase, so the automation builder comes back for it.\n\nWhatever they make is a normal automation and a normal app, waiting in Studio → Automations and Studio → Apps afterwards. A playbook keeps no private copy of anything: it drives the tools you already know."
   },
   {
    "type": "slide",
@@ -135,9 +135,9 @@
      },
      {
       "id": "folder",
-      "left": "The routine has to know which PDFs to read",
+      "left": "The automation has to know which PDFs to read",
       "right": "Nextcloud folder with the invoices → /Inkoop/Facturen-Q3",
-      "note": "A recipe input. It must be an absolute Nextcloud path starting with a slash, and the routine reads it through Anne's own Nextcloud connection."
+      "note": "A recipe input. It must be an absolute Nextcloud path starting with a slash, and the automation reads it through Anne's own Nextcloud connection."
      },
      {
       "id": "approver",
@@ -165,12 +165,12 @@
    "id": "handoff",
    "icon": "🃏",
    "title": "The handoff card is the consent pause",
-   "bodyMd": "When a phase lands, the stage stops moving and a card slides in under it:\n\n> **Phase 1 of 6 landed — Table**\n\nUnder the heading: the summary of what was actually made — for Anne, the table *Invoices* with its 8 columns —, and then the next phase. For a builder phase you get **\"Next: Routine — the brief the AI gets (edit if you like)\"** with the brief in an editable box of up to 3000 characters. For a server-run phase you get a line instead, such as **\"Next: First rows — the routine runs once so the table has real rows.\"**\n\nThree buttons: **Continue**, **Skip Routine**, **Stop**. On the last phase Continue reads **Finish**.\n\nThe brief box only steers the phase that has not started yet. Once a phase is running, its brief is frozen."
+   "bodyMd": "When a phase lands, the stage stops moving and a card slides in under it:\n\n> **Phase 1 of 6 landed — Table**\n\nUnder the heading: the summary of what was actually made — for Anne, the table *Invoices* with its 8 columns —, and then the next phase. For a builder phase you get **\"Next: Automation — the brief the AI gets (edit if you like)\"** with the brief in an editable box of up to 3000 characters. For a server-run phase you get a line instead, such as **\"Next: First rows — the automation runs once so the table has real rows.\"**\n\nThree buttons: **Continue**, **Skip Automation**, **Stop**. On the last phase Continue reads **Finish**.\n\nThe brief box only steers the phase that has not started yet. Once a phase is running, its brief is frozen."
   },
   {
    "type": "quiz",
    "id": "q-autopilot",
-   "question": "The Routine phase has just landed. Anne switches on the Autopilot toggle in the top bar. What changes?",
+   "question": "The Automation phase has just landed. Anne switches on the Autopilot toggle in the top bar. What changes?",
    "multi": false,
    "choices": [
     {
@@ -204,7 +204,7 @@
    "id": "table-choice",
    "icon": "🗂️",
    "title": "A new table, or one you already have",
-   "bodyMd": "In the **New playbook** dialog, **Where the rows go** has two settings.\n\n**A new table** — the playbook creates one. That needs the *manage datatables* permission; without it the Table phase fails and says so.\n\n**An existing table** — you pick it under **Table**, where each option reads `name · rowCount · Nextcloud`. The hint is blunt: *\"Own table or a Nextcloud mirror — you need edit rights; its columns are checked in the first phase.\"* The Table phase then says **\"Checking the columns…\"** and maps your column names onto the roles the briefs use.\n\nTwo things bite people here. A table you may only read fails the phase — the routine has to add rows. And a table with no **status** column makes the stage warn *\"No status column — the approval flow will be skipped\"*, and that phase is then skipped for you."
+   "bodyMd": "In the **New playbook** dialog, **Where the rows go** has two settings.\n\n**A new table** — the playbook creates one. That needs the *manage datatables* permission; without it the Table phase fails and says so.\n\n**An existing table** — you pick it under **Table**, where each option reads `name · rowCount · Nextcloud`. The hint is blunt: *\"Own table or a Nextcloud mirror — you need edit rights; its columns are checked in the first phase.\"* The Table phase then says **\"Checking the columns…\"** and maps your column names onto the roles the briefs use.\n\nTwo things bite people here. A table you may only read fails the phase — the automation has to add rows. And a table with no **status** column makes the stage warn *\"No status column — the approval flow will be skipped\"*, and that phase is then skipped for you."
   },
   {
    "type": "exercise",
@@ -212,7 +212,7 @@
    "icon": "✍️",
    "exerciseId": "ex-playbooks-run-a-recipe-brief",
    "title": "Your turn: steer the next phase",
-   "instruction": "Phase 1 has landed: the table Invoices exists with the columns Date, Supplier, Invoice number, Excl. VAT, VAT, Total, Status and File. The card now shows the Routine brief in an editable box, and Anne wants to add her own line before she presses Continue.\n\nWrite what she should add, in 2 to 5 sentences. A strong answer says where the invoices are read from, names the columns the routine must fill, insists the routine keeps a manual trigger so the First rows phase can run it once, and stays inside this one phase instead of describing the app.",
+   "instruction": "Phase 1 has landed: the table Invoices exists with the columns Date, Supplier, Invoice number, Excl. VAT, VAT, Total, Status and File. The card now shows the Automation brief in an editable box, and Anne wants to add her own line before she presses Continue.\n\nWrite what she should add, in 2 to 5 sentences. A strong answer says where the invoices are read from, names the columns the automation must fill, insists the automation keeps a manual trigger so the First rows phase can run it once, and stays inside this one phase instead of describing the app.",
    "placeholder": "e.g. Read the PDF files in /Inkoop/Facturen-Q3 through our Nextcloud connection and add one row per invoice, filling …",
    "passScore": 70,
    "maxAttempts": 4
@@ -306,24 +306,24 @@
    "id": "failed",
    "icon": "🛠️",
    "title": "When a phase does not land",
-   "bodyMd": "The card has two other faces.\n\n**\"Phase 3 did not land\"** shows the reason and offers **Retry**, **Skip this phase** and **Stop**. Retry hands the brief over again and counts an attempt. A classic one here: *\"The routine starts on \"schedule\", not by hand\"* — the First rows phase runs the routine once by hand, so its trigger has to be manual.\n\n**\"The builder asked a question\"** means a builder stopped mid-phase and wants an answer: *\"Answer in the chat on the left and the phase goes on.\"* If what is already built is enough, **Mark as done** closes the phase — it is only offered once a routine or an app actually exists.\n\nAnd **Stop** is safe: *\"What has landed stays — the table, the automation draft, the app.\"* Reopen the playbook later and press **Resume**."
+   "bodyMd": "The card has two other faces.\n\n**\"Phase 3 did not land\"** shows the reason and offers **Retry**, **Skip this phase** and **Stop**. Retry hands the brief over again and counts an attempt. A classic one here: *\"The automation starts on \"schedule\", not by hand\"* — the First rows phase runs the automation once by hand, so its trigger has to be manual.\n\n**\"The builder asked a question\"** means a builder stopped mid-phase and wants an answer: *\"Answer in the chat on the left and the phase goes on.\"* If what is already built is enough, **Mark as done** closes the phase — it is only offered once an automation or an app actually exists.\n\nAnd **Stop** is safe: *\"What has landed stays — the table, the automation draft, the app.\"* Reopen the playbook later and press **Resume**."
   },
   {
    "type": "quiz",
    "id": "q-fill",
-   "question": "Phase 3, First rows, fails at once for Van Dijk Groep: \"The routine starts on \"schedule\", not by hand — a manual trigger is needed to run it once here.\" What is the repair?",
+   "question": "Phase 3, First rows, fails at once for Van Dijk Groep: \"The automation starts on \"schedule\", not by hand — a manual trigger is needed to run it once here.\" What is the repair?",
    "multi": false,
    "choices": [
     {
      "id": "a",
-     "label": "Set the routine's trigger to manual in the routine, then press Retry on the failed phase.",
+     "label": "Set the automation's trigger to manual in the automation, then press Retry on the failed phase.",
      "correct": true
     },
     {
      "id": "b",
      "label": "Press Skip this phase — the app will collect the rows itself once it is built.",
      "correct": false,
-     "feedback": "You may skip it, but then the Design and App phases work on an empty table and the routine still never runs by hand. An app does not read invoices; the routine does."
+     "feedback": "You may skip it, but then the Design and App phases work on an empty table and the automation still never runs by hand. An app does not read invoices; the automation does."
     },
     {
      "id": "c",
@@ -333,30 +333,30 @@
     },
     {
      "id": "d",
-     "label": "Edit the brief in the handoff card so it tells the routine to run manually.",
+     "label": "Edit the brief in the handoff card so it tells the automation to run manually.",
      "correct": false,
-     "feedback": "The brief box only steers a phase that has not started yet, and this phase has already run. First rows has no brief for a model in any case: the server simply runs the routine once."
+     "feedback": "The brief box only steers a phase that has not started yet, and this phase has already run. First rows has no brief for a model in any case: the server simply runs the automation once."
     }
    ],
-   "explanation": "The First rows phase runs the existing routine once, as a manual run, and watches the row counter climb. A routine on a schedule or a file trigger cannot be started that way, so the fix lives in the routine, and Retry picks it up from there."
+   "explanation": "The First rows phase runs the existing automation once, as a manual run, and watches the row counter climb. An automation on a schedule or a file trigger cannot be started that way, so the fix lives in the automation, and Retry picks it up from there."
   },
   {
    "type": "slide",
    "id": "recap",
    "icon": "✅",
    "title": "What you can do now",
-   "bodyMd": "- **Start a playbook and drive it.** Studio → Playbooks → New playbook, pick Invoice tracker or describe your own, and press Continue, Skip or Stop on each handoff card. The top bar tells you where you are: \"Phase 2 of 6: Routine\".\n- **Steer before you consent.** Edit the next brief in the card while the phase is still waiting, and choose between a new table and an existing one knowing what each costs you — edit rights, mapped columns, and a status column if you want the approval flow.\n- **Recover without losing work.** Retry a failed phase, answer a builder that asked a question, or Stop and Resume later. What landed stays — and deleting the playbook afterwards leaves the table, the routine and the app exactly where they are."
+   "bodyMd": "- **Start a playbook and drive it.** Studio → Playbooks → New playbook, pick Invoice tracker or describe your own, and press Continue, Skip or Stop on each handoff card. The top bar tells you where you are: \"Phase 2 of 6: Automation\".\n- **Steer before you consent.** Edit the next brief in the card while the phase is still waiting, and choose between a new table and an existing one knowing what each costs you — edit rights, mapped columns, and a status column if you want the approval flow.\n- **Recover without losing work.** Retry a failed phase, answer a builder that asked a question, or Stop and Resume later. What landed stays — and deleting the playbook afterwards leaves the table, the automation and the app exactly where they are."
   }
  ],
  "rubrics": {
   "ex-playbooks-run-a-recipe-brief": {
-   "title": "Steering the Routine brief",
-   "task": "Write the line or lines Anne adds to the Routine brief on the handoff card, after the table Invoices has landed with the columns Date, Supplier, Invoice number, Excl. VAT, VAT, Total, Status and File, before she presses Continue.",
+   "title": "Steering the Automation brief",
+   "task": "Write the line or lines Anne adds to the Automation brief on the handoff card, after the table Invoices has landed with the columns Date, Supplier, Invoice number, Excl. VAT, VAT, Total, Status and File, before she presses Continue.",
    "criteria": [
     "Names the source concretely: the PDF invoices in the Nextcloud folder /Inkoop/Facturen-Q3, read through the Nextcloud connection.",
-    "Says which columns of Invoices the routine must fill, using the real column names rather than 'the fields'.",
-    "Asks for a manual trigger, or at least does not contradict it, so the First rows phase can run the routine once.",
-    "Stays inside the next phase only — it briefs the routine, it does not describe the app, the design or the approval flow."
+    "Says which columns of Invoices the automation must fill, using the real column names rather than 'the fields'.",
+    "Asks for a manual trigger, or at least does not contradict it, so the First rows phase can run the automation once.",
+    "Stays inside the next phase only — it briefs the automation, it does not describe the app, the design or the approval flow."
    ],
    "passScore": 70,
    "guidance": "Pass a concrete, phase-scoped brief even if it is short. Do not pass: a generic 'read the invoices and fill the table' with no folder and no columns; a brief that describes the whole build including the app screens; anything that asks for a schedule or a file trigger, since that breaks the First rows phase; or an answer that invents product behaviour, such as sending invoice data to an outside system."
@@ -366,11 +366,11 @@
   "title": "Running a playbook",
   "summary": "How a phased playbook build runs, pauses for consent and recovers from a failed phase.",
   "facts": [
-   "Playbooks sits in the Bundle group of the Studio rail: \"Watch the AI build a table, a routine and an app — one phase at a time\". Reading needs only a login; starting, continuing, skipping, retrying or deleting one needs the manage apps permission.",
-   "The built-in Invoice tracker recipe runs six phases — Table, Routine, First rows, Design, App, Approval flow; Table, First rows and Design run on the server, while Routine, App and Approval flow mount the real routine builder and the real App Studio editor inside the playbook.",
+   "Playbooks sits in the Bundle group of the Studio rail: \"Watch the AI build a table, an automation and an app — one phase at a time\". Reading needs only a login; starting, continuing, skipping, retrying or deleting one needs the manage apps permission.",
+   "The built-in Invoice tracker recipe runs six phases — Table, Automation, First rows, Design, App, Approval flow; Table, First rows and Design run on the server, while Automation, App and Approval flow mount the real automation builder and the real App Studio editor inside the playbook.",
    "After every phase a handoff card reads \"Phase {n} of {total} landed\" and offers Continue, Skip {next phase} and Stop; on the last phase Continue reads Finish, and the next phase's brief is editable there up to 3000 characters until that phase starts.",
    "Autopilot is a per-user browser preference: a toast at the bottom right reads \"Autopilot continues in {n} s\" with a \"Continue now\" link, and Continue is pressed after 8 seconds on First rows, 6 on Table and Design, 3 elsewhere.",
-   "The Table phase can never be skipped, the First rows phase can only run a routine whose trigger is manual, and a table without a status column makes the Approval flow phase be skipped.",
+   "The Table phase can never be skipped, the First rows phase can only run an automation whose trigger is manual, and a table without a status column makes the Approval flow phase be skipped.",
    "The Language control in the New playbook dialog (English or Nederlands) decides the table's columns, the briefs the AI works from and the app's labels, and the playbook keeps that language after Start.",
    "In the same dialog: Model offers Fast (the default) or Auto, which \"adds a classification step per turn\"; \"Nextcloud folder with the invoices\" must be an absolute path such as /Inkoop/Facturen-Q3; \"Approver group (optional)\" defaults to \"Me (the owner)\".",
    "Choosing \"An existing table\" but leaving the select on \"Pick a table…\" makes Start fail with \"Pick the existing table.\" or \"Check the options.\"; Shift+P on a builder canvas turns on presenter mode — a \"Presenter\" pill, bigger type, the Phases rail at 280 pixels."

@@ -3,7 +3,7 @@
 # requirements.txt, so the tests import the versions the image ships.
 pytest==9.1.1
 pytest-cov==7.1.0
-fastapi==0.141.1
+fastapi==0.142.2
 pydantic==2.13.5
 pydantic-settings==2.15.0
 # TestClient's transport; not in the image.

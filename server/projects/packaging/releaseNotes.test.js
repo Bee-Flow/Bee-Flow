@@ -40,8 +40,8 @@ function manifestOf(entities, version = 1) {
     };
 }
 
-/** Een routine zoals capture hem oplevert: `title`, niet `name`. */
-function routine(overrides = {}) {
+/** Een automatisering zoals capture hem oplevert: `title`, niet `name`. */
+function automation(overrides = {}) {
     return {
         ref: 'aut_1',
         kind: 'automation',
@@ -100,13 +100,13 @@ function wireText(sent) {
 
 test('toegevoegd, gewijzigd en ongewijzigd — alle drie exact, zonder één modelaanroep', () => {
     const before = manifestOf({
-        automations: [routine(), routine({ ref: 'aut_2', title: 'Wekelijkse export' })],
+        automations: [automation(), automation({ ref: 'aut_2', title: 'Wekelijkse export' })],
     });
     const after = manifestOf({
         automations: [
-            routine(),
-            routine({ ref: 'aut_2', title: 'Wekelijkse export', description: 'Nu ook met totalen' }),
-            routine({ ref: 'aut_3', title: 'Nieuwe controle' }),
+            automation(),
+            automation({ ref: 'aut_2', title: 'Wekelijkse export', description: 'Nu ook met totalen' }),
+            automation({ ref: 'aut_3', title: 'Nieuwe controle' }),
         ],
     }, 2);
 
@@ -117,7 +117,7 @@ test('toegevoegd, gewijzigd en ongewijzigd — alle drie exact, zonder één mod
         ['aut_3', 'added'],
     ]);
     // De naam komt uit `title` als er geen `name` is — dat is de vorm die
-    // capture voor routines oplevert.
+    // capture voor automations oplevert.
     assert.deepStrictEqual(notes.map(n => n.name), ['Herinnering Van Dijk BV', 'Wekelijkse export', 'Nieuwe controle']);
     assert.ok(notes.every(n => n.kind === 'automation' && n.text === null));
 });
@@ -131,7 +131,7 @@ test('een sleutel in een andere volgorde is geen wijziging — jsonb bewaart gee
 });
 
 test('de eerste versie heeft geen voorganger: alles is toegevoegd', () => {
-    const notes = diffEntities({ previousManifest: null, manifest: manifestOf({ automations: [routine()] }) });
+    const notes = diffEntities({ previousManifest: null, manifest: manifestOf({ automations: [automation()] }) });
     assert.deepStrictEqual(notes.map(n => n.change), ['added']);
 });
 
@@ -184,8 +184,8 @@ test('een entiteit die de nieuwe versie niet meer bevat krijgt geen regel', () =
     // Het notitieblok is de inhoudsopgave van de NIEUWE versie, en de drie
     // toestanden zijn added/changed/unchanged. Een installatie verwijdert
     // bovendien nooit iets, dus "removed" zou iets beloven wat niet gebeurt.
-    const before = manifestOf({ automations: [routine(), routine({ ref: 'aut_2', title: 'Weg' })] });
-    const after = manifestOf({ automations: [routine()] }, 2);
+    const before = manifestOf({ automations: [automation(), automation({ ref: 'aut_2', title: 'Weg' })] });
+    const after = manifestOf({ automations: [automation()] }, 2);
     assert.deepStrictEqual(
         diffEntities({ previousManifest: before, manifest: after }).map(n => n.entityId),
         ['aut_1'],
@@ -195,12 +195,12 @@ test('een entiteit die de nieuwe versie niet meer bevat krijgt geen regel', () =
 // ── Laag 2: de zin, en wat er gebeurt als hij uitblijft ────────────────────
 
 test('een gewijzigde entiteit krijgt een zin; ongewijzigd en toegevoegd kosten geen aanroep', async () => {
-    const before = manifestOf({ automations: [routine(), routine({ ref: 'aut_2', title: 'Export' })] });
+    const before = manifestOf({ automations: [automation(), automation({ ref: 'aut_2', title: 'Export' })] });
     const after = manifestOf({
         automations: [
-            routine(),
-            routine({ ref: 'aut_2', title: 'Export', description: 'anders' }),
-            routine({ ref: 'aut_3', title: 'Nieuw' }),
+            automation(),
+            automation({ ref: 'aut_2', title: 'Export', description: 'anders' }),
+            automation({ ref: 'aut_3', title: 'Nieuw' }),
         ],
     }, 2);
 
@@ -216,11 +216,11 @@ test('een gewijzigde entiteit krijgt een zin; ongewijzigd en toegevoegd kosten g
 });
 
 test('een omgevallen modelaanroep laat GEEN verzonnen zin achter, en houdt de publicatie niet tegen', async () => {
-    const before = manifestOf({ automations: [routine(), routine({ ref: 'aut_2', title: 'Export' })] });
+    const before = manifestOf({ automations: [automation(), automation({ ref: 'aut_2', title: 'Export' })] });
     const after = manifestOf({
         automations: [
-            routine({ description: 'anders' }),
-            routine({ ref: 'aut_2', title: 'Export', description: 'ook anders' }),
+            automation({ description: 'anders' }),
+            automation({ ref: 'aut_2', title: 'Export', description: 'ook anders' }),
         ],
     }, 2);
 
@@ -254,8 +254,8 @@ test('geen geconfigureerd model = geen zin, geen fout', async () => {
     // resolveModelForTierName geeft null als niemand er een geconfigureerd
     // heeft. Dat is een echt antwoord, geen storing — en geen reden om terug te
     // vallen op een model dat deze werkruimte nooit gekozen heeft.
-    const before = manifestOf({ automations: [routine()] });
-    const after = manifestOf({ automations: [routine({ description: 'anders' })] }, 2);
+    const before = manifestOf({ automations: [automation()] });
+    const after = manifestOf({ automations: [automation({ description: 'anders' })] }, 2);
     const { deps, sent } = llm({ model: null });
 
     const notes = await buildReleaseNotes({ previousManifest: before, manifest: after, userId: 'u_1', deps });
@@ -264,8 +264,8 @@ test('geen geconfigureerd model = geen zin, geen fout', async () => {
 });
 
 test('een onleesbare modelconfig gooit niet — de notes komen gewoon terug', async () => {
-    const before = manifestOf({ automations: [routine()] });
-    const after = manifestOf({ automations: [routine({ description: 'anders' })] }, 2);
+    const before = manifestOf({ automations: [automation()] });
+    const after = manifestOf({ automations: [automation({ description: 'anders' })] }, 2);
     const { deps } = llm({ resolveThrows: true });
 
     const notes = await buildReleaseNotes({ previousManifest: before, manifest: after, userId: 'u_1', deps });
@@ -275,8 +275,8 @@ test('een onleesbare modelconfig gooit niet — de notes komen gewoon terug', as
 test('de tier-resolutie krijgt org-context mee', async () => {
     // Zonder org negeert de resolutie de org-overrides en de EU-modus, en dan
     // ziet een ander model de tekst dan de werkruimte gekozen heeft.
-    const before = manifestOf({ automations: [routine()] });
-    const after = manifestOf({ automations: [routine({ description: 'anders' })] }, 2);
+    const before = manifestOf({ automations: [automation()] });
+    const after = manifestOf({ automations: [automation({ description: 'anders' })] }, 2);
     const { deps, sent } = llm();
 
     await buildReleaseNotes({ previousManifest: before, manifest: after, userOrgId: 'org_1', userId: 'u_1', deps });
@@ -291,8 +291,8 @@ test('modeluitvoer is onvertrouwd: leeg, fout getypeerd of te lang', async () =>
     assert.strictEqual(normalise({ summary: 'x'.repeat(500) }).length, MAX_TEXT_CHARS);
 
     // En hetzelfde langs de echte weg: een geweigerde tool geeft structured null.
-    const before = manifestOf({ automations: [routine()] });
-    const after = manifestOf({ automations: [routine({ description: 'anders' })] }, 2);
+    const before = manifestOf({ automations: [automation()] });
+    const after = manifestOf({ automations: [automation({ description: 'anders' })] }, 2);
     const { deps } = llm({ chat: () => ({ structured: null }) });
     const notes = await buildReleaseNotes({ previousManifest: before, manifest: after, userId: 'u_1', deps });
     assert.strictEqual(notes[0].text, null);
@@ -302,8 +302,8 @@ test('na de deadline blijft de rest zonder zin, in plaats van te blijven wachten
     const entities = { automations: [] };
     const next = { automations: [] };
     for (let i = 1; i <= 5; i++) {
-        entities.automations.push(routine({ ref: `aut_${i}`, title: `R${i}` }));
-        next.automations.push(routine({ ref: `aut_${i}`, title: `R${i}`, description: `anders ${i}` }));
+        entities.automations.push(automation({ ref: `aut_${i}`, title: `R${i}` }));
+        next.automations.push(automation({ ref: `aut_${i}`, title: `R${i}`, description: `anders ${i}` }));
     }
     let clock = 0;
     const { deps } = llm({ summary: 'gewijzigd' });
@@ -321,8 +321,8 @@ test('een release met heel veel gewijzigde entiteiten kost hooguit MAX_SUMMARIES
     const before = { automations: [] };
     const after = { automations: [] };
     for (let i = 1; i <= MAX_SUMMARIES + 6; i++) {
-        before.automations.push(routine({ ref: `aut_${i}`, title: `R${i}` }));
-        after.automations.push(routine({ ref: `aut_${i}`, title: `R${i}`, description: `anders ${i}` }));
+        before.automations.push(automation({ ref: `aut_${i}`, title: `R${i}` }));
+        after.automations.push(automation({ ref: `aut_${i}`, title: `R${i}`, description: `anders ${i}` }));
     }
     const { deps, sent } = llm();
     const notes = await buildReleaseNotes({ previousManifest: manifestOf(before), manifest: manifestOf(after, 2), userId: 'u_1', deps });
@@ -336,7 +336,7 @@ test('een release met heel veel gewijzigde entiteiten kost hooguit MAX_SUMMARIES
 test('de envelop is wat publishRelease aanneemt: een plat object, geen array', () => {
     // `notes JSONB NOT NULL DEFAULT '{}'` en normalizeNotes weigert een array
     // met "Release notes must be an object". De lijst zit dus in een envelop.
-    const notes = diffEntities({ previousManifest: null, manifest: manifestOf({ automations: [routine()] }) });
+    const notes = diffEntities({ previousManifest: null, manifest: manifestOf({ automations: [automation()] }) });
     const payload = releaseNotesPayload(notes);
     assert.ok(payload && typeof payload === 'object' && !Array.isArray(payload));
     assert.deepStrictEqual(payload.entities, notes);
@@ -381,9 +381,9 @@ test('GEEN klantgegeven uit de diff verlaat het systeem', async () => {
     // Dit is de test die de kaart bedoelt: de JSON-diff van een entiteit kan
     // een klantnaam, een e-mailadres en een factuurnummer bevatten. Wat naar
     // het model gaat is de VORM van de wijziging, nooit de inhoud.
-    const before = manifestOf({ automations: [routine()] });
+    const before = manifestOf({ automations: [automation()] });
     const after = manifestOf({
-        automations: [routine({
+        automations: [automation({
             definition: {
                 steps: [
                     { id: 's1', type: 'ai_step', config: { prompt: 'Beste heer Van Dijk, uw factuur staat nog open.' } },
@@ -408,10 +408,10 @@ test('GEEN klantgegeven uit de diff verlaat het systeem', async () => {
 });
 
 test('de NAAM van de entiteit gaat niet mee — het scherm toont hem zelf', async () => {
-    // Een routine kan naar een klant genoemd zijn. De note-rij draagt de naam
+    // Een automatisering kan naar een klant genoemd zijn. De note-rij draagt de naam
     // al, dus het model heeft hem niet nodig om een zin te schrijven.
-    const before = manifestOf({ automations: [routine({ title: 'Oude naam' })] });
-    const after = manifestOf({ automations: [routine({ title: 'Herinnering Van Dijk BV' })] }, 2);
+    const before = manifestOf({ automations: [automation({ title: 'Oude naam' })] });
+    const after = manifestOf({ automations: [automation({ title: 'Herinnering Van Dijk BV' })] }, 2);
 
     const { deps, sent } = llm();
     const notes = await buildReleaseNotes({ previousManifest: before, manifest: after, userId: 'u_1', deps });
@@ -421,7 +421,7 @@ test('de NAAM van de entiteit gaat niet mee — het scherm toont hem zelf', asyn
     // op een scherm.
     const lang = diffEntities({
         previousManifest: null,
-        manifest: manifestOf({ automations: [routine({ title: 'N'.repeat(400) })] }),
+        manifest: manifestOf({ automations: [automation({ title: 'N'.repeat(400) })] }),
     });
     assert.strictEqual(lang[0].name.length, 120);
     const wire = wireText(sent);
@@ -545,8 +545,8 @@ test('diep werk rolt op in plaats van uitgeklapt te worden', () => {
 });
 
 test('de payload is precies { kind, changes } — geen rij, geen entiteit', async () => {
-    const before = manifestOf({ automations: [routine()] });
-    const after = manifestOf({ automations: [routine({ description: 'anders' })] }, 2);
+    const before = manifestOf({ automations: [automation()] });
+    const after = manifestOf({ automations: [automation({ description: 'anders' })] }, 2);
     const { deps, sent } = llm();
     await buildReleaseNotes({ previousManifest: before, manifest: after, userId: 'u_1', deps });
 
@@ -561,8 +561,8 @@ test('het model wordt verteld dat het niets mag verzinnen wat het niet ziet', as
     // Het krijgt alleen paden. Zonder deze instructie vult een model de
     // ontbrekende waarden zelf in, en dan staat er een verzonnen e-mailadres in
     // de releasenotitie.
-    const before = manifestOf({ automations: [routine()] });
-    const after = manifestOf({ automations: [routine({ description: 'anders' })] }, 2);
+    const before = manifestOf({ automations: [automation()] });
+    const after = manifestOf({ automations: [automation({ description: 'anders' })] }, 2);
     const { deps, sent } = llm();
     await buildReleaseNotes({ previousManifest: before, manifest: after, language: 'Dutch', userId: 'u_1', deps });
 
@@ -608,8 +608,8 @@ test('VALUE_PATHS en FIELD_ALLOW zijn bevroren lijsten, geen berekende', () => {
 });
 
 test('summariseChange gooit nooit — ook niet zonder deps of met een kapotte client', async () => {
-    const entity = routine();
-    const changed = routine({ description: 'anders' });
+    const entity = automation();
+    const changed = automation({ description: 'anders' });
     const boom = { llmClient: { chatForcedTool: async () => { throw new Error('boom'); } }, resolveModelForTierName: async () => 'm' };
     assert.strictEqual(await summariseChange({ kind: 'automation', before: entity, after: changed, deps: boom }), null);
 
@@ -621,8 +621,8 @@ test('summariseChange gooit nooit — ook niet zonder deps of met een kapotte cl
 });
 
 test('buildReleaseNotes gooit niet als de hele tekstlaag omvalt', async () => {
-    const before = manifestOf({ automations: [routine()] });
-    const after = manifestOf({ automations: [routine({ description: 'anders' })] }, 2);
+    const before = manifestOf({ automations: [automation()] });
+    const after = manifestOf({ automations: [automation({ description: 'anders' })] }, 2);
     const deps = {
         resolveModelForTierName: async () => 'm',
         llmClient: { chatForcedTool: () => { throw new Error('synchroon stuk'); } },
@@ -655,8 +655,8 @@ test('withTimeout ruimt zijn timer op zodra de belofte wél settelt', async () =
 
 test('een aanroep die blijft hangen levert GEEN zin, en houdt niets tegen', async () => {
     // Gemeten met de echte withTimeout: een chatForcedTool die nooit settelt.
-    const before = manifestOf({ automations: [routine()] });
-    const after = manifestOf({ automations: [routine({ description: 'anders' })] }, 2);
+    const before = manifestOf({ automations: [automation()] });
+    const after = manifestOf({ automations: [automation({ description: 'anders' })] }, 2);
     const deps = {
         resolveModelForTierName: async () => 'fast-model',
         llmClient: { chatForcedTool: () => new Promise(() => {}) },
@@ -678,8 +678,8 @@ test('zonder gebruiker vertrekt er GEEN modelaanroep', async () => {
     // GLOBALE fast-tier. Dan zou de vorm van andermans Oplossing naar het model
     // van de instantie gaan in plaats van naar het model dat die werkruimte
     // koos. Onbekend hoort te versmallen, niet te verbreden.
-    const before = manifestOf({ automations: [routine()] });
-    const after = manifestOf({ automations: [routine({ description: 'anders' })] }, 2);
+    const before = manifestOf({ automations: [automation()] });
+    const after = manifestOf({ automations: [automation({ description: 'anders' })] }, 2);
 
     const { deps, sent } = llm();
     const notes = await buildReleaseNotes({ previousManifest: before, manifest: after, deps });
@@ -691,8 +691,8 @@ test('zonder gebruiker vertrekt er GEEN modelaanroep', async () => {
 test('een persoonlijk project zonder organisatie mag wél — de gebruiker beslist', async () => {
     // `userOrgId` mag null zijn: een project zonder organisatie heeft er geen.
     // De gebruiker is de context die de EU-modus en de Privacy Shield draagt.
-    const before = manifestOf({ automations: [routine()] });
-    const after = manifestOf({ automations: [routine({ description: 'anders' })] }, 2);
+    const before = manifestOf({ automations: [automation()] });
+    const after = manifestOf({ automations: [automation({ description: 'anders' })] }, 2);
 
     const { deps, sent } = llm({ summary: 'De omschrijving is bijgewerkt.' });
     const notes = await buildReleaseNotes({
@@ -705,7 +705,7 @@ test('een persoonlijk project zonder organisatie mag wél — de gebruiker besli
 test('summariseChange zonder gebruiker resolveert niets en roept niets aan', async () => {
     const { deps, sent } = llm();
     const out = await summariseChange({
-        kind: 'automation', before: routine(), after: routine({ description: 'anders' }), deps,
+        kind: 'automation', before: automation(), after: automation({ description: 'anders' }), deps,
     });
     assert.strictEqual(out, null);
     assert.deepStrictEqual(sent, []);
@@ -720,7 +720,7 @@ test('de tweede krimpstap houdt ALLE regels en haalt alleen de zinnen weg', asyn
     // scheidt: `textsDropped`. Staat die vlag verkeerd, dan leest elke
     // gewijzigde regel op het scherm als een mislukte samenvatting.
     const rows = Array.from({ length: 40 }, (_, i) => ({
-        kind: 'automation', entityId: `aut_${i}`, name: `Routine ${i}`,
+        kind: 'automation', entityId: `aut_${i}`, name: `Automation ${i}`,
         change: 'changed', text: 'T'.repeat(150),
     }));
     const full = Buffer.byteLength(JSON.stringify({ entities: rows, omitted: 0, textsDropped: false }), 'utf8');

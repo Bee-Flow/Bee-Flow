@@ -1,6 +1,6 @@
 /**
  * The owner's Form page: Questions · Share · Answers · Settings under the
- * form's header. The routine is open in the flow editor's draft store for as
+ * form's header. The automation is open in the flow editor's draft store for as
  * long as the page is (useQuestionsDraft), so a rename, the questions and
  * "collect answers" all save through it.
  *

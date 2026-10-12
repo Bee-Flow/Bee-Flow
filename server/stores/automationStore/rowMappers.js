@@ -97,7 +97,7 @@ function rowToAutomation(r) {
  *                   saves do not count); 0 when never live. Only present when
  *                   the query selected `pending_changes` (getAutomation and the
  *                   list reads do), else absent rather than a guessed 0.
- *   deletedAt/By    set while the routine sits in the trash.
+ *   deletedAt/By    set while the automation sits in the trash.
  */
 function liveFields(r) {
     const liveVersion = r.live_version ?? null;
@@ -137,7 +137,7 @@ function rowToRun(r) {
         rootRunId: r.root_run_id ?? r.id,
         // FRM-08 — who submitted, when the run is a form journey (null = unknown).
         submittedByUserId: r.submitted_by_user_id || null,
-        // The trigger node the run entered through (multi-trigger routines).
+        // The trigger node the run entered through (multi-trigger automations).
         // NULL on legacy rows and on every primary-trigger run.
         rootStepId: r.root_step_id ?? null,
         cancelRequested: !!r.cancel_requested,
@@ -203,6 +203,10 @@ function rowToRunStep(r) {
         // buttons from. Null on rows from before the columns.
         toolsWithheld: fromJsonb(r.tools_withheld) ?? null,
         errorInfo: fromJsonb(r.error_info) ?? null,
+        // The mappings that found nothing while the step ran, each with the
+        // server's sentence (stores/automationStore/bindingWarnings.js). Null
+        // when none missed, and on rows from before the column.
+        bindingWarnings: fromJsonb(r.binding_warnings) ?? null,
     };
     // A failed row from before the runner wrote error_info still gets the
     // plain-language card, classified from its message, its step type and its

@@ -16,19 +16,19 @@ export type FieldKind = 'text' | 'email' | 'number' | 'yesno' | 'date' | 'choice
 
 export const KINDS: readonly FieldKind[] = Object.freeze(['text', 'email', 'number', 'yesno', 'date', 'choice', 'list', 'group', 'table', 'file', 'unknown']);
 
-/** The i18n key and English word per kind (the web's `routines.kind.*`). */
+/** The i18n key and English word per kind (the web's `automations.kind.*`). */
 export const KIND_WORD: Readonly<Record<FieldKind, { key: string; en: string }>> = Object.freeze({
-    text: { key: 'routines.kind.text', en: 'text' },
-    email: { key: 'routines.kind.email', en: 'email address' },
-    number: { key: 'routines.kind.number', en: 'number' },
-    yesno: { key: 'routines.kind.yesno', en: 'yes/no' },
-    date: { key: 'routines.kind.date', en: 'date' },
-    choice: { key: 'routines.kind.choice', en: 'one of a list' },
-    list: { key: 'routines.kind.list', en: 'list' },
-    group: { key: 'routines.kind.group', en: 'group' },
-    table: { key: 'routines.kind.table', en: 'table' },
-    file: { key: 'routines.kind.file', en: 'file' },
-    unknown: { key: 'routines.kind.unknown', en: 'not seen yet' },
+    text: { key: 'automations.kind.text', en: 'text' },
+    email: { key: 'automations.kind.email', en: 'email address' },
+    number: { key: 'automations.kind.number', en: 'number' },
+    yesno: { key: 'automations.kind.yesno', en: 'yes/no' },
+    date: { key: 'automations.kind.date', en: 'date' },
+    choice: { key: 'automations.kind.choice', en: 'one of a list' },
+    list: { key: 'automations.kind.list', en: 'list' },
+    group: { key: 'automations.kind.group', en: 'group' },
+    table: { key: 'automations.kind.table', en: 'table' },
+    file: { key: 'automations.kind.file', en: 'file' },
+    unknown: { key: 'automations.kind.unknown', en: 'not seen yet' },
 });
 
 /** What the kind is underneath — for tooltips and the schema bridge. */

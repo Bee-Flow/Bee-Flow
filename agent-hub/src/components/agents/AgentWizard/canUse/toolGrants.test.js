@@ -504,7 +504,7 @@ describe('automations als tool', () => {
         expect(rows.find(r => r.id === 'a2').confirm).toBe(CONFIRM.DIRECT);
     });
 
-    it('houdt een grant zonder routine staan in plaats van hem te verzwijgen', () => {
+    it('houdt een grant zonder automatisering staan in plaats van hem te verzwijgen', () => {
         const rows = automationRows({
             toolsConfig: { automations: { a1: { confirm: 'ask' } } },
             automations: null,
@@ -515,9 +515,19 @@ describe('automations als tool', () => {
         expect(rows[0].name).toBe(null);
     });
 
-    it('markeert een routine die de agent niet meer kan aanroepen', () => {
+    it('markeert een automatisering die de agent niet meer kan aanroepen', () => {
         const rows = automationRows({ toolsConfig: { automations: { a2: {} } }, automations: AUTOS });
         expect(rows[0].callable).toBe(false);
+    });
+
+    it('markeert een grant zonder koppeling aan deze agent, en zwijgt als de koppelingen onleesbaar zijn', () => {
+        const toolsConfig = { automations: { a1: {}, a3: {} } };
+        const rows = automationRows({ toolsConfig, automations: AUTOS, linkedIds: ['a1'] });
+        expect(rows.find(r => r.id === 'a1').linked).toBe(true);
+        expect(rows.find(r => r.id === 'a3').linked).toBe(false);
+        expect(automationRows({ toolsConfig, automations: AUTOS, linkedIds: [] }).every(r => r.linked === false)).toBe(true);
+        expect(automationRows({ toolsConfig, automations: AUTOS }).every(r => r.linked === null)).toBe(true);
+        expect(automationRows({ toolsConfig, automations: null, state: READ.ERROR, linkedIds: ['a1'] })[1].linked).toBe(false);
     });
 });
 

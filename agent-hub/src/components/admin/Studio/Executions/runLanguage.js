@@ -15,7 +15,7 @@ import { tokenFor } from '../../../shared/statusTokens';
  * It used to hand back a finished English string, because the status table
  * used to. That is how the runs list rendered a translated Dutch sentence
  * with an English status word inside it: the last branch of whatHappened
- * interpolated this into `routines.runs.status_plain` ("{status}"), and the
+ * interpolated this into `automations.runs.status_plain` ("{status}"), and the
  * interpolated value never passed through t().
  */
 export function outcomeLabel(run) {
@@ -24,38 +24,49 @@ export function outcomeLabel(run) {
 }
 
 /** The trigger kind as a person reads it — the "Started by" column. */
+const TRIGGER_SCHEDULE = ['studio_misc.runlang.trigger_schedule', 'On a schedule'];
+const TRIGGER_MANUAL = ['studio_misc.runlang.trigger_manual', 'Started by hand'];
+const TRIGGER_FORM = ['studio_misc.runlang.trigger_form', 'Someone filled in the form'];
+const TRIGGER_CHAT = ['studio_misc.runlang.trigger_chat', 'Asked from chat'];
 const TRIGGER_LABELS = {
-    schedule: 'On a schedule',
-    cron: 'On a schedule',
-    manual: 'Started by hand',
-    manual_step: 'Started by hand',
-    dry_run: 'Test run',
-    form: 'Someone filled in the form',
-    form_page: 'Someone filled in the form',
-    app_event: 'An app event',
-    chat: 'Asked from chat',
-    agent: 'Asked from chat',
-    webhook: 'A webhook — another system called this',
+    schedule: TRIGGER_SCHEDULE,
+    cron: TRIGGER_SCHEDULE,
+    manual: TRIGGER_MANUAL,
+    manual_step: TRIGGER_MANUAL,
+    dry_run: ['studio_misc.runlang.trigger_dry_run', 'Test run'],
+    form: TRIGGER_FORM,
+    form_page: TRIGGER_FORM,
+    app_event: ['studio_misc.runlang.trigger_app_event', 'An app event'],
+    chat: TRIGGER_CHAT,
+    agent: TRIGGER_CHAT,
+    webhook: ['studio_misc.runlang.trigger_webhook', 'A webhook — another system called this'],
 };
-export function triggerLabel(kind) {
+/** The trigger kind in words; pass `t` for the translated text, English otherwise. */
+export function triggerLabel(kind, t) {
     if (!kind) return '—';
-    return TRIGGER_LABELS[String(kind).toLowerCase()] || String(kind).replace(/_/g, ' ');
+    const hit = TRIGGER_LABELS[String(kind).toLowerCase()];
+    if (!hit) return String(kind).replace(/_/g, ' ');
+    return t ? t(hit[0], hit[1]) : hit[1];
 }
 
 /** The typed error class, in plain words (null for classes we cannot name). */
+const ERR_UNREACHABLE = ['studio_misc.runlang.err_connection', 'a connected app could not be reached'];
 const ERROR_CLASS_LABELS = {
-    auth: 'a connection is no longer signed in',
-    connection: 'a connected app could not be reached',
-    network: 'a connected app could not be reached',
-    timeout: 'it took too long and was stopped',
-    rate_limit: 'a connected app asked us to slow down',
-    validation: 'a step received data it could not accept',
-    permission: 'a permission was missing',
-    cancelled: 'someone stopped it',
+    auth: ['studio_misc.runlang.err_auth', 'a connection is no longer signed in'],
+    connection: ERR_UNREACHABLE,
+    network: ERR_UNREACHABLE,
+    timeout: ['studio_misc.runlang.err_timeout', 'it took too long and was stopped'],
+    rate_limit: ['studio_misc.runlang.err_rate_limit', 'a connected app asked us to slow down'],
+    validation: ['studio_misc.runlang.err_validation', 'a step received data it could not accept'],
+    permission: ['studio_misc.runlang.err_permission', 'a permission was missing'],
+    cancelled: ['studio_misc.runlang.err_cancelled', 'someone stopped it'],
 };
-export function errorClassLabel(errorClass) {
+/** The error class in plain words; pass `t` for the translated text, English otherwise. */
+export function errorClassLabel(errorClass, t) {
     if (!errorClass) return null;
-    return ERROR_CLASS_LABELS[String(errorClass).toLowerCase()] || null;
+    const hit = ERROR_CLASS_LABELS[String(errorClass).toLowerCase()];
+    if (!hit) return null;
+    return t ? t(hit[0], hit[1]) : hit[1];
 }
 
 /** Trim server error text to one legible sentence for a table cell. */
@@ -80,12 +91,12 @@ export function whatHappened(run) {
         if (run?.errorClass === 'ApprovalRejected') {
             const why = firstSentence(String(run?.error || '').replace(/^Approval rejected:?\s*/i, ''), 100);
             return why
-                ? { key: 'routines.runs.rejected_because', params: { reason: why }, en: `Rejected — ${why}`, tone: 'warn' }
-                : { key: 'routines.runs.rejected', params: {}, en: 'Rejected — someone turned this down', tone: 'warn' };
+                ? { key: 'automations.runs.rejected_because', params: { reason: why }, en: `Rejected — ${why}`, tone: 'warn' }
+                : { key: 'automations.runs.rejected', params: {}, en: 'Rejected — someone turned this down', tone: 'warn' };
         }
         const classText = errorClassLabel(run?.errorClass);
         const detail = firstSentence(run?.error) || classText || 'Something went wrong';
-        return { key: 'routines.runs.failed_because', params: { reason: detail }, en: `Failed — ${detail}`, tone: 'error' };
+        return { key: 'automations.runs.failed_because', params: { reason: detail }, en: `Failed — ${detail}`, tone: 'error' };
     }
     if (status === 'success') {
         const handled = Number(run?.handledErrorCount || 0);
@@ -98,27 +109,27 @@ export function whatHappened(run) {
             // one line under the key choice that had just taken it out. Two
             // complete sentences instead, picked together with their key.
             const { key, en } = handled === 1
-                ? { key: 'routines.runs.finished_handled_one', en: `Finished — ${handled} problem handled automatically` }
-                : { key: 'routines.runs.finished_handled', en: `Finished — ${handled} problems handled automatically` };
+                ? { key: 'automations.runs.finished_handled_one', en: `Finished — ${handled} problem handled automatically` }
+                : { key: 'automations.runs.finished_handled', en: `Finished — ${handled} problems handled automatically` };
             return { key, params: { n: handled }, en, tone: 'warn' };
         }
         const summary = firstSentence(run?.summary, 100);
         if (summary) {
-            return { key: 'routines.runs.finished_summary', params: { summary }, en: `Finished — ${summary}`, tone: 'neutral' };
+            return { key: 'automations.runs.finished_summary', params: { summary }, en: `Finished — ${summary}`, tone: 'neutral' };
         }
-        return { key: 'routines.runs.finished', params: {}, en: 'Finished', tone: 'neutral' };
+        return { key: 'automations.runs.finished', params: {}, en: 'Finished', tone: 'neutral' };
     }
     if (status === 'running' || status === 'queued') {
-        return { key: 'routines.runs.still_running', params: {}, en: 'Still running…', tone: 'neutral' };
+        return { key: 'automations.runs.still_running', params: {}, en: 'Still running…', tone: 'neutral' };
     }
     if (status === 'awaiting_approval' || status === 'awaiting_confirm') {
-        return { key: 'routines.runs.waiting_approval', params: {}, en: 'Waiting for someone to approve it', tone: 'warn' };
+        return { key: 'automations.runs.waiting_approval', params: {}, en: 'Waiting for someone to approve it', tone: 'warn' };
     }
     if (status === 'awaiting_form') {
-        return { key: 'routines.runs.waiting_form', params: {}, en: 'Waiting for a form to be filled in', tone: 'warn' };
+        return { key: 'automations.runs.waiting_form', params: {}, en: 'Waiting for a form to be filled in', tone: 'warn' };
     }
     if (status === 'cancelled') {
-        return { key: 'routines.runs.stopped_by_user', params: {}, en: 'Stopped before it finished', tone: 'neutral' };
+        return { key: 'automations.runs.stopped_by_user', params: {}, en: 'Stopped before it finished', tone: 'neutral' };
     }
     // Everything else: the status word IS the sentence. It carries its own
     // key rather than being interpolated into a "{status}" wrapper, so it is
@@ -130,9 +141,14 @@ export function whatHappened(run) {
 /**
  * A run's display name — "Run of 12 Aug 2026, 14:03 · test". Replaces the
  * truncated hex id nobody could read. The raw id stays available in ⋯.
+ *
+ * @param {object} run
+ * @param {string} [locale]
+ * @param {any} [t] the useTranslation `t`
  */
-export function runTitle(run, locale = undefined) {
-    if (!run?.startedAt) return run?.id ? `Run ${String(run.id).slice(0, 8)}` : 'Run';
+export function runTitle(run, locale = undefined, t = undefined) {
+    const tr = (key, en, params) => (t ? t(key, en, params) : en.replace(/\{(\w+)\}/g, (_, k) => String(params?.[k] ?? '')));
+    if (!run?.startedAt) return run?.id ? tr('studio_misc.runlang.run_with_id', 'Run {id}', { id: String(run.id).slice(0, 8) }) : tr('studio_misc.runlang.run', 'Run');
     let stamp;
     try {
         stamp = new Date(run.startedAt).toLocaleString(locale, {
@@ -141,7 +157,9 @@ export function runTitle(run, locale = undefined) {
     } catch {
         stamp = new Date(run.startedAt).toISOString().slice(0, 16).replace('T', ' ');
     }
-    return `Run of ${stamp}${run.mode === 'dry_run' ? ' · test' : ''}`;
+    return run.mode === 'dry_run'
+        ? tr('studio_misc.runlang.run_of_test', 'Run of {stamp} · test', { stamp })
+        : tr('studio_misc.runlang.run_of', 'Run of {stamp}', { stamp });
 }
 
 /**
@@ -162,9 +180,9 @@ export function runIdFromText(text) {
 }
 
 /**
- * Which ENTRY POINT a run came in through, for a routine with more than one
+ * Which ENTRY POINT a run came in through, for an automation with more than one
  * trigger: the label of the definition.triggers[] node it started from, or
- * null when it started from the primary trigger (or the routine has only
+ * null when it started from the primary trigger (or the automation has only
  * one). List rows carry the label resolved server-side against the current
  * definition; an open run resolves it against the versioned snapshot that
  * actually ran, so a trigger renamed since still reads as it was.

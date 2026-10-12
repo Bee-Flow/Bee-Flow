@@ -24,7 +24,7 @@ export interface FlowSheetsProps {
     catalog: FlowCatalog | null;
     editing: Editing;
     runs: TestRuns | null;
-    /** The flowlet on screen, or null for the routine itself. */
+    /** The flowlet on screen, or null for the automation itself. */
     flowlet?: string | null;
     picking: AddTarget | null;
     setPicking: (target: AddTarget | null) => void;

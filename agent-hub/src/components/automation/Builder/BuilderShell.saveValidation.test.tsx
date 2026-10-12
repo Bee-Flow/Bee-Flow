@@ -10,7 +10,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
  * `validation_errors` event. Every save of a definition already got the
  * server's verdict back (warnings on a 200, the blocking records on a 400)
  * and threw it away, so after a manual edit a fixed problem stayed on the
- * chip, a new one never appeared, and a routine built by hand never showed a
+ * chip, a new one never appeared, and an automation built by hand never showed a
  * chip at all. These drive the three save paths — the debounced canvas save,
  * the step inspector and the Settings tab — and read the state the chip and
  * the badges are rendered from.

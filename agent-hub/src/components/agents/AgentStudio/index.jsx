@@ -78,9 +78,9 @@ export default function AgentStudio({ user, initialAgentId = null, onClose, onNa
         setLoading(true);
         setLoadError(null);
         try {
-            // `?usage=1` is opt-in omdat het een pass over elke routine, app en
+            // `?usage=1` is opt-in omdat het een pass over elke automatisering, app en
             // pagina is (routes/agents/published.js). Dit scherm is de ENE plek
-            // die het antwoord toont — de "also in 2 routines, 1 app"-helft van
+            // die het antwoord toont — de "also in 2 automatiseringen, 1 app"-helft van
             // de kaartvoet — dus hier wordt het gevraagd en nergens anders.
             // `/agents/system` kent de parameter niet en rekent geen tellingen
             // uit; die rijen dragen het veld daarom niet, en de voet zwijgt

@@ -210,7 +210,7 @@ function normalisePersona(raw) {
     // ── unknown ──
     // An unreadable or unknown mode lands on 'honest', which is the narrowest
     // of the three: it promises nothing and reaches for nothing. 'web' turns an
-    // app on and 'handoff' hands a routine to the model, so neither may be
+    // app on and 'handoff' hands an automation to the model, so neither may be
     // where a typo ends up.
     const unknown = _plainObject(input.unknown) ? input.unknown : {};
     const mode = UNKNOWN_MODES.includes(unknown.mode) ? unknown.mode : 'honest';
@@ -220,7 +220,7 @@ function normalisePersona(raw) {
         warnings.push(`persona.unknown.mode: "${String(unknown.mode).slice(0, 40)}" is not one of ${UNKNOWN_MODES.join('/')} — using "honest"`);
     }
     if (mode === 'handoff' && !persona.unknown.automationId) {
-        warnings.push('persona.unknown: "hand off" without a routine — the agent will say it does not know instead');
+        warnings.push('persona.unknown: "hand off" without an automation — the agent will say it does not know instead');
     }
 
     // ── language ──
@@ -288,8 +288,8 @@ const UNKNOWN_LINES = Object.freeze({
  * @param {object} persona
  * @param {object} [opts]
  * @param {string} [opts.handoffLabel] The VERIFIED name of the hand-off
- *   routine. Without it a `handoff` persona renders the HONEST line instead:
- *   the caller is the only one that can check that the routine exists, is
+ *   automation. Without it a `handoff` persona renders the HONEST line instead:
+ *   the caller is the only one that can check that the automation exists, is
  *   active and belongs to the agent's owner, and a prompt that tells the model
  *   to use an action it was never given is an instruction to hallucinate one.
  * @returns {string} '' when there is nothing to say — see the note at
@@ -332,10 +332,10 @@ function renderSystemPrompt(persona, opts = {}) {
     // persona normalises to, so it proves nothing; 'web' and 'handoff' are
     // choices somebody made, and both of them have CONSEQUENCES the save
     // writes down (`applyPersonaToConfig` asks for the search app, or grants
-    // the hand-off routine). Leaving them out of this test produced an agent
-    // that was granted a routine, showed its name on a pill, and carried not
+    // the hand-off automation). Leaving them out of this test produced an agent
+    // that was granted an automation, showed its name on a pill, and carried not
     // one word of instruction that ever mentioned it — the Role card promises
-    // "It starts a routine you pick", and that promise has to reach the prompt.
+    // "It starts an automation you pick", and that promise has to reach the prompt.
     // Language stays out on purpose: it is set from the hero on any agent,
     // including one whose role nobody has written yet.
     const chose = p.unknown.mode !== 'honest';
@@ -420,7 +420,7 @@ function renderedPromptFor(persona, opts = {}) {
  *             addition. The runtime still gates the app on credentials and
  *             entitlements, so this is a REQUEST for web search, not a grant of
  *             it.
- *   handoff → a grant for the hand-off routine in `config.tools.automations`,
+ *   handoff → a grant for the hand-off automation in `config.tools.automations`,
  *             and only for an id the CALLER has verified (see `opts`). An
  *             existing grant is never rewritten — the owner's `confirm` there
  *             outranks this default.
@@ -428,7 +428,7 @@ function renderedPromptFor(persona, opts = {}) {
  * @param {object} config
  * @param {object} persona
  * @param {object} [opts]
- * @param {string|null} [opts.handoffAutomationId] The hand-off routine id AFTER
+ * @param {string|null} [opts.handoffAutomationId] The hand-off automation id AFTER
  *   the caller checked that it exists, is active and belongs to the agent's
  *   OWNER. Null/absent ⇒ no grant is written. There is no "unknown" case that
  *   writes one: this module cannot check, so it never assumes.
@@ -476,15 +476,15 @@ function applyPersonaToConfig(config, persona, opts = {}) {
         const autos = _plainObject(tools.automations) ? tools.automations : {};
         if (!_plainObject(autos[handoffId])) {
             // `{confirm:'ask'}`, not `{}`. An empty grant means "run it the
-            // moment the model asks", and nothing here knows what the routine
+            // moment the model asks", and nothing here knows what the automation
             // DOES — there is no automation-level effect classifier yet. Asking
-            // is the only answer that is right whether the routine files a
+            // is the only answer that is right whether the automation files a
             // ticket or mails a customer; the owner can relax it in the picker.
             out = {
                 ...out,
                 tools: { ...tools, automations: { ...autos, [handoffId]: { confirm: 'ask' } } },
             };
-            warnings.push('persona.unknown: the hand-off routine is now the routine this agent may run — pick any others in Apps & actions');
+            warnings.push('persona.unknown: the hand-off automation is now the automation this agent may run — pick any others in Apps & actions');
         }
     }
 

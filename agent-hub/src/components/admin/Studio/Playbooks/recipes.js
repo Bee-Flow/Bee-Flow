@@ -17,7 +17,7 @@ export const RECIPES = Object.freeze([]);
 // phases carry their own `label`; the kind word is the fallback).
 export const PHASE_LABEL_KEYS = Object.freeze({
     table: ['playbooks.phase.table', 'Table'],
-    routine: ['playbooks.phase.routine', 'Automation'],
+    automation: ['playbooks.phase.automation', 'Automation'],
     fill: ['playbooks.phase.fill', 'First rows'],
     design: ['playbooks.phase.design', 'Design'],
     app: ['playbooks.phase.app', 'App'],
@@ -40,7 +40,7 @@ export const PHASE_LABEL_KEYS = Object.freeze({
  */
 export const PHASE_VISUAL = Object.freeze({
     table: 'datatable',
-    routine: 'automation',
+    automation: 'automation',
     fill: 'datatable',
     design: 'app',
     app: 'app',

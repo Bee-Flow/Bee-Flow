@@ -96,15 +96,17 @@ describe('MeetingTasksDialog', () => {
         expect(onClose).toHaveBeenCalled();
     });
 
-    it('selects all or none, and cannot make tasks from nothing', async () => {
+    it('selects all or none from the list header, and cannot make tasks from nothing', async () => {
         const user = userEvent.setup();
         renderDialog();
         await screen.findByTestId('suggestion-ai-1');
-        await user.click(screen.getByRole('button', { name: 'Select none' }));
-        expect(screen.getByRole('button', { name: 'Make 0 tasks' })).toBeDisabled();
-        await user.click(screen.getByRole('button', { name: 'Select all' }));
+        // Two of the four tickable items start ticked: the header box is half on and offers "all".
+        expect(screen.getByRole('checkbox', { name: 'Select all' })).toBePartiallyChecked();
+        await user.click(screen.getByRole('checkbox', { name: 'Select all' }));
         expect(screen.getByRole('button', { name: 'Make 4 tasks' })).toBeEnabled();
         expect(within(screen.getByTestId('suggestion-ai-4')).getByRole('checkbox')).not.toBeChecked();
+        await user.click(screen.getByRole('checkbox', { name: 'Select none' }));
+        expect(screen.getByRole('button', { name: 'Make 0 tasks' })).toBeDisabled();
     });
 
     it('asks which meeting when none is given', async () => {
@@ -127,9 +129,12 @@ describe('MeetingTasksDialog', () => {
 describe('MeetingTasksDialog: the AI expands the items', () => {
     it('fills in description, labels and steps by itself, and picks a person only for an item the notes left open', async () => {
         renderDialog();
+        const user = userEvent.setup();
         const first = await screen.findByTestId('suggestion-ai-1');
-        await waitFor(() => expect(within(first).getByLabelText('Description')).toHaveValue('Eddie sends the offer, so Acme can decide this week.'));
-        expect(within(first).getByText('sales')).toBeInTheDocument();
+        // What the AI wrote folds out under "Details"; its labels and steps show on the row itself.
+        await waitFor(() => expect(within(first).getByText('sales')).toBeInTheDocument());
+        await user.click(within(first).getByRole('button', { name: 'Details' }));
+        expect(within(first).getByLabelText('Description')).toHaveValue('Eddie sends the offer, so Acme can decide this week.');
         expect(within(first).getByText('1 steps')).toBeInTheDocument();
         expect(within(first).getByLabelText('Priority')).toHaveValue('high');
         // The notes named Eddie for the first item: that stays, and is not credited to the AI.
@@ -169,7 +174,7 @@ describe('MeetingTasksDialog: the AI expands the items', () => {
         const user = userEvent.setup();
         renderDialog();
         const second = await screen.findByTestId('suggestion-ai-2');
-        await waitFor(() => expect(within(second).getByLabelText('Description')).toBeInTheDocument());
+        await waitFor(() => expect(screen.getByTestId('ai-detail-ai-2')).toBeInTheDocument());
         await user.click(within(second).getByRole('checkbox'));
         expect(screen.queryByTestId('ai-detail-ai-2')).not.toBeInTheDocument();
     });

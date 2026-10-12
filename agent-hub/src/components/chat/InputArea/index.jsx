@@ -1,17 +1,11 @@
 import { Image, MessageCircle, X } from 'lucide-react';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 
-import useAppsCatalog from '../../../hooks/useAppsCatalog';
-import useTranslation from '../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../utils/helpers';
-import scopedStorage from '../../../utils/scopedStorage';
 import { seedTextForApp } from '../../apps/appCatalog';
 import CoworkComposer from '../../cowork/CoworkComposer';
 import ActiveSkillChips from '../../skills/ActiveSkillChips';
-import { chatKnowledgeBasesAllowed, usableInChat } from '../knowledgeBaseClaim';
+import { usableInChat } from '../knowledgeBaseClaim';
 import useDictation from '../useDictation';
-import VoiceInlinePanel from '../Voice/VoiceInlinePanel';
-import useVoiceChatReady from '../Voice/useVoiceChatReady';
 
 import AttachmentTray from './AttachmentTray';
 import ComposerActions from './ComposerActions';
@@ -25,6 +19,13 @@ import useComposerClaims from './useComposerClaims';
 import useFileIntake from './useFileIntake';
 import useKnowledgeBaseSelection from './useKnowledgeBaseSelection';
 import usePasteAttachments from './usePasteAttachments';
+import useAppsCatalog from '../../../hooks/useAppsCatalog';
+import useTranslation from '../../../hooks/useTranslation';
+import { API_BASE, authFetch } from '../../../utils/helpers';
+import { memoryLockOf, readStoredMemoryMode, storeMemoryMode } from '../../../utils/memoryMode';
+import scopedStorage from '../../../utils/scopedStorage';
+import useVoiceChatReady from '../Voice/useVoiceChatReady';
+import VoiceInlinePanel from '../Voice/VoiceInlinePanel';
 
 // Moved to knowledgeBaseClaim.js, where the rest of the KB pill's reasoning
 // lives; still exported from here for the call sites that import it.
@@ -86,6 +87,11 @@ const InputArea = ({
     // immediately — that is the point, and both are covered by tests.
     placeholder = null,
     compact = false,
+    toolbarExtra = null,
+    // Why the route this composer feeds refused web search on its last turn
+    // (the builder chat's `web_search` event), or null. Set, the switch is
+    // shown disabled with this text instead of on and doing nothing.
+    webSearchUnavailable = null,
     // How many sources this chat can actually draw on — a notebook counts its
     // READY sources. `null` means "this surface has no such thing", which is
     // not the same as zero and shows no pill at all.
@@ -99,6 +105,11 @@ const InputArea = ({
     // all — gating on `user` alone put a green "Personal data is replaced
     // before sending" under a box that replaces nothing.
     shieldApplies = false,
+    // Chat signals: the notice for the endpoint this composer posts to (from
+    // useChatSignals in the host), and the person's "don't count me" switch.
+    // Null everywhere else, so no other composer announces anything.
+    chatSignalsNotice = null,
+    onChatSignalsCounted = null,
 }) => {
     const { t } = useTranslation();
     const [voiceMode, setVoiceMode] = useState(false);
@@ -134,19 +145,15 @@ const InputArea = ({
         const v = scopedStorage.getItem('webSearchEnabled');
         return v === null ? true : v === 'true';
     });
-    // Memory write toggle — when off, the server skips memoryExtractor for this
-    // session. The read path (existing memories injected into prompt) still
-    // works so the user keeps context they've already curated.
-    const [memoryWriteEnabled, setMemoryWriteEnabled] = useState(() => {
-        const v = scopedStorage.getItem('memoryWriteEnabled');
-        return v === null ? true : v === 'true';
-    });
-    const toggleMemoryWrite = useCallback(() => {
-        setMemoryWriteEnabled(prev => {
-            const next = !prev;
-            scopedStorage.setItem('memoryWriteEnabled', String(next));
-            return next;
-        });
+    // Memory mode: On (read + save), Read only (use what is remembered, save
+    // nothing from this chat) or Off for this chat (neither). Stored per user;
+    // the old two-state value `memoryWriteEnabled=false` reads as Read only.
+    // A paused or organisation-off memory locks the control (memoryLockOf).
+    const [memoryMode, setMemoryMode] = useState(readStoredMemoryMode);
+    const memoryLock = memoryLockOf(user);
+    const changeMemoryMode = useCallback((next) => {
+        setMemoryMode(next);
+        storeMemoryMode(next);
     }, []);
     const [showKBPicker, setShowKBPicker] = useState(false);
     const [kbPickerSearch, setKbPickerSearch] = useState('');
@@ -289,8 +296,11 @@ const InputArea = ({
     // `!!kbClaim` is the honesty gate, not a convenience: without the server's
     // list there is no picker to open and nothing truthful to put on a pill,
     // so the whole control stays away rather than offering an empty one.
+    // Any signed-in account may pick (the knowledge_bases_beta gate is gone);
+    // the server re-authorises every id on every read and every turn anyway,
+    // so `!!user` only keeps the picker away from the anonymous embed widget.
     const canPickKBs = !_simpleMode && directMode && typeof onChangeKBIds === 'function'
-        && !!kbClaim && chatKnowledgeBasesAllowed(user);
+        && !!kbClaim && !!user;
     // Someone who may NOT pick still deserves to know. Reading a conversation
     // loads its attached bases whether or not this account has the picker, and
     // every turn then searches them — so without this the grounding would be
@@ -379,9 +389,9 @@ const InputArea = ({
         t, onAttachClick: openFilePicker,
         canCreateMedia, mediaMenuOpen, setMediaMenuOpen,
         canPickApps, appsOpen, setAppsOpen,
-        canWebSearch, webSearchEnabled, webSearchBlocked, setWebSearchEnabled,
+        canWebSearch, webSearchEnabled, webSearchBlocked, webSearchUnavailable, setWebSearchEnabled,
         simpleMode: _simpleMode, showTierSlider,
-        memoryWriteEnabled, toggleMemoryWrite,
+        memoryMode, changeMemoryMode, memoryLock,
         voiceReady, voiceMode, setVoiceMode,
     });
 
@@ -540,7 +550,7 @@ const InputArea = ({
                         handleKeyDown={handleKeyDown}
                         handlePaste={handlePaste}
                         composerPlaceholder={composerPlaceholder}
-                        tools={chatToolsGroup}
+                        tools={toolbarExtra ? <div className="flex items-center gap-1 min-w-0">{chatToolsGroup}{toolbarExtra}</div> : chatToolsGroup}
                         actions={(
                             <ComposerActions
                                 shieldClaim={shieldClaim}
@@ -548,8 +558,9 @@ const InputArea = ({
                                 modelTiers={modelTiers}
                                 selectedTier={selectedTier}
                                 onTierChange={onTierChange}
-                                memoryWriteEnabled={memoryWriteEnabled}
-                                toggleMemoryWrite={toggleMemoryWrite}
+                                memoryMode={memoryMode}
+                                onMemoryModeChange={changeMemoryMode}
+                                memoryLock={memoryLock}
                                 dictation={dictation}
                                 simpleMode={_simpleMode}
                                 compact={compact}
@@ -571,6 +582,8 @@ const InputArea = ({
                             warningText={warningText}
                             footerLine={footerLine}
                             isTouchDevice={isTouchDevice}
+                            chatSignalsNotice={chatSignalsNotice}
+                            onChatSignalsCounted={onChatSignalsCounted}
                         />
                     )}
                 </div>

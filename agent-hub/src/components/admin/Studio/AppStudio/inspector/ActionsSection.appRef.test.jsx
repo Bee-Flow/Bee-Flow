@@ -4,7 +4,7 @@ import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../../../../hooks/useAutomationApi', () => ({
-    default: () => ({ listAutomations: vi.fn(async () => ({ automations: [ROUTINE] })) }),
+    default: () => ({ listAutomations: vi.fn(async () => ({ automations: [AUTOMATION] })) }),
     safeText: vi.fn(async () => ''),
 }));
 
@@ -21,7 +21,7 @@ import ActionsSection, { screenIdOfNode } from './ActionsSection';
  * is nothing to point at, and two thirds of a pointer is worse than none.
  */
 
-const ROUTINE = {
+const AUTOMATION = {
     id: 'aut_1', title: 'Process claim', isActive: true,
     definition: { trigger: { id: 'trg', kind: 'app_trigger', params: [] }, steps: [], edges: [] },
 };
@@ -71,7 +71,7 @@ describe('screenIdOfNode', () => {
     });
 });
 
-describe('the "Open" link on the routine tile', () => {
+describe('the "Open" link on the automation tile', () => {
     it('carries the app, the screen and the button once the app names itself', async () => {
         const { container } = renderActions({ appId: 'app-1' });
         await waitFor(() => expect(container.querySelector('a[href*="/studio/automations/"]')).toBeTruthy());
@@ -88,7 +88,7 @@ describe('the "Open" link on the routine tile', () => {
             .toBe('/app/studio/automations/aut_1');
     });
 
-    it('still renders the routine it points at', async () => {
+    it('still renders the automation it points at', async () => {
         renderActions({ appId: 'app-1' });
         expect(await screen.findByText('Process claim')).toBeTruthy();
     });

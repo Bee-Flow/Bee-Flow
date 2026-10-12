@@ -19,7 +19,7 @@ import type { PaletteCatalog, PaletteItem } from './types';
 export const NOT_INSIDE_A_LAYER: ReadonlySet<string> = new Set(['approval', 'form_page', 'return_to_app']);
 
 const NEEDS_FORM_TRIGGER: ReadonlySet<string> = new Set(['form_page']);
-export const NEEDS_FORM_TRIGGER_REASON = 'Form steps run on the routine\'s own form link — switch the trigger to "Form" to use this.';
+export const NEEDS_FORM_TRIGGER_REASON = 'Form steps run on the automation\'s own form link — switch the trigger to "Form" to use this.';
 
 /**
  * Stamp `disabled` + `disabledReason` on an item whose precondition the graph
@@ -68,7 +68,7 @@ function withReason(it: PaletteItem, t: Translate): PaletteItem {
  * An item's label/description in the viewer's language. An item the picker
  * words itself translates through its own keys; a step item only while it
  * still carries its type's canonical English (a user-named flowlet keeps its
- * own words), through `routines.node.*` as on the web. The same object when
+ * own words), through `automations.node.*` as on the web. The same object when
  * nothing changes.
  */
 export function localised(item: PaletteItem, t: Translate | null | undefined): PaletteItem {

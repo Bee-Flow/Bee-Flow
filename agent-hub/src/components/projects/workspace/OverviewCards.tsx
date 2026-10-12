@@ -2,7 +2,7 @@
 // right-hand column (instructions, members, knowledge). Each card is a door
 // into a tab; none of them edits anything in place.
 
-import { BookOpen, FileText, Mic, NotebookPen, Upload, UserPlus } from 'lucide-react';
+import { BookOpen, ChevronRight, FileText, Mic, NotebookPen, Upload, UserPlus } from 'lucide-react';
 import React from 'react';
 import {
     useProjectMembersQuery, useProjectResourcesQuery, type Project, type ProjectRole,
@@ -12,7 +12,7 @@ import useTranslation from '../../../hooks/useTranslation';
 import { kindColorVar } from '../../shared/kindColors';
 import { useProjectLive } from './ProjectLiveContext';
 import { canEditProject, type WorkspaceIntent, type WorkspaceTabId } from './types';
-import { Avatar, Card, GhostButton, SectionLabel } from './workspaceUi';
+import { Avatar, Card, GhostButton } from './workspaceUi';
 
 export type OpenTab = (tab: WorkspaceTabId, sub?: string | null, intent?: WorkspaceIntent | null) => void;
 
@@ -50,8 +50,12 @@ export function QuickActions({ role, onOpenTab, notebooksEnabled = true }: { rol
     const actions = useQuickActions(role, notebooksEnabled);
     if (actions.length === 0) return null;
     return (
-        <section aria-labelledby="project-quick-actions">
-            <SectionLabel id="project-quick-actions">{t('project_home.quick.title', 'Add to this project')}</SectionLabel>
+        <details className="group rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] px-3.5 py-3" data-testid="overview-quick">
+            <summary className="flex items-center gap-1.5 cursor-pointer list-none [&::-webkit-details-marker]:hidden text-[13px] font-semibold text-[var(--text-primary)] select-none">
+                <ChevronRight className="w-3.5 h-3.5 text-[var(--text-tertiary)] transition-transform group-open:rotate-90" aria-hidden="true" />
+                <span className="flex-1">{t('project_home.quick.title', 'Add to this project')}</span>
+                <span className="text-[11.5px] font-normal text-[var(--text-tertiary)] group-open:hidden">{t('project_home.quick.hint', 'Document, meeting, files…')}</span>
+            </summary>
             <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
                 {actions.map(({ id, Icon, iconStyle, title, description, tab, intent }) => (
                     <button
@@ -69,7 +73,7 @@ export function QuickActions({ role, onOpenTab, notebooksEnabled = true }: { rol
                     </button>
                 ))}
             </div>
-        </section>
+        </details>
     );
 }
 
@@ -103,8 +107,8 @@ export function MembersCard({ role, projectId, onOpenTab }: { role: ProjectRole;
     const members = useProjectMembersQuery(projectId);
     const { online } = useProjectLive();
     const data = members.data;
-    const people = data ? [data.ownerId, ...data.members.filter((m) => m.sharedWithType === 'user').map((m) => m.sharedWithId)] : [];
-    const total = data ? data.members.length + 1 : null;
+    const people = data ? [...new Set([data.ownerId, ...data.members.filter((m) => m.sharedWithType === 'user').map((m) => m.sharedWithId)])] : [];
+    const groups = data?.members.filter(m => m.sharedWithType === 'group').length || 0;
     return (
         <Card
             title={t('project_home.overview.members', 'Members')}
@@ -120,7 +124,12 @@ export function MembersCard({ role, projectId, onOpenTab }: { role: ProjectRole;
                         ))}
                     </div>
                     <span className="text-[12px] text-[var(--text-tertiary)]">
-                        {t('project_home.overview.member_count', '{n} in total', { n: total })}
+                        {people.length === 1
+                            ? t('project_home.overview.people_one', '1 person')
+                            : t('project_home.overview.people', '{n} people', { n: people.length })}
+                        {groups > 0 && ` · ${groups === 1
+                            ? t('project_home.overview.groups_one', '1 group')
+                            : t('project_home.overview.groups', '{n} groups', { n: groups })}`}
                         {online.length > 0 && ` · ${t('project_home.overview.online_count', '{n} online', { n: online.length })}`}
                     </span>
                 </div>

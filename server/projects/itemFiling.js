@@ -13,7 +13,7 @@
  *            feed follows (notebooks, documents, meetings), `resource_added` /
  *            `resource_removed` for the rest; and the project-bound state of
  *            an item that left a project goes with it (its comment threads
- *            there, its compliance signal)
+ *            there, its compliance signal, the links of that project's tasks)
  *
  * Filing an item into the project it is already in changes nothing and
  * records nothing. Feed entries hold ids only.
@@ -28,10 +28,21 @@ const FEED_KINDS = Object.freeze(['notebook', 'document', 'meeting']);
  * @param {{
  *   feed: { recordProjectChange: Function, recordItemMoved: Function },
  *   lifecycle?: { beforeMove: Function, leftProject: Function },
+ *   tasks?: { dropLinksTo: (projectId: string, kind: string, id: string) => Promise<number> },
  * }} deps
  */
 function makeItemFiling(deps) {
     const lifecycle = () => deps.lifecycle || require('../core/projectContent/itemLifecycle');
+    const tasks = () => deps.tasks || require('../stores/projectTaskStore');
+
+    /** The item left `projectId`: its tasks stop pointing at it. The move is done, so a failure only logs. */
+    async function dropTaskLinks(kind, id, projectId) {
+        try {
+            await tasks().dropLinksTo(projectId, kind, id);
+        } catch (err) {
+            require('../telemetry/log').warn(`[ItemFiling] task links to ${kind} ${id} not dropped: ${err && err.message}`);
+        }
+    }
 
     /**
      * @param {{ entry: { setProject: Function }, kind: string, id: string, userId: string,
@@ -68,10 +79,12 @@ function makeItemFiling(deps) {
             if (previous) {
                 await moved(previous, 'out');
                 await lifecycle().leftProject(kind, id, previous);
+                await dropTaskLinks(kind, id, previous);
             }
         } else {
             await moved(projectId, 'out');
             await lifecycle().leftProject(kind, id, projectId);
+            await dropTaskLinks(kind, id, projectId);
         }
         return true;
     }

@@ -6,7 +6,7 @@ import { enginePill, engineSegments, showsRates } from '../../../../shared/build
 import { formatElapsed } from '../../../../shared/builder/formatElapsed';
 
 /**
- * The build banner on the App Studio canvas — the sibling of the routine
+ * The build banner on the App Studio canvas — the sibling of the automation
  * builder's BuildBanner (automation/Builder/flow/CanvasSouthBar.jsx).
  *
  * It REPLACES the amber "AI is editing…" pill on a 55 % dimming overlay: that
@@ -18,7 +18,7 @@ import { formatElapsed } from '../../../../shared/builder/formatElapsed';
  * build, a frozen farewell for a few seconds. Nothing amber, nothing dimmed,
  * 12 px, bottom-centre.
  *
- * `--editor-accent` marks the live thing on this canvas (the routine canvas
+ * `--editor-accent` marks the live thing on this canvas (the automation canvas
  * uses `--accent`; here that is grey by product decision).
  */
 const FAREWELL_MS = 4000;
@@ -75,7 +75,7 @@ function EngineLine({ engine, turn, t }) {
     if (!pill && !segments.length) return null;
     const title = [
         engine && engine.modelId ? String(engine.modelId) : null,
-        showsRates({ engine, turn }) ? 'measured on the last model call' : null,
+        showsRates({ engine, turn }) ? t('studio_apps_edit.build_banner.measured', 'measured on the last model call') : null,
     ].filter(Boolean).join(' · ') || undefined;
     return (
         <span className="hidden min-w-0 truncate text-[11px] tabular-nums text-[var(--text-tertiary)] lg:block" title={title} data-testid="app-build-engine" data-local={engine && engine.local === true ? '' : undefined}>

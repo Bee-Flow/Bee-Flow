@@ -6,6 +6,7 @@
  */
 
 import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { fromError } from '../../../shared/managedPart';
 
 const base = `${API_BASE}/api/studio-apps`;
 const enc = encodeURIComponent;
@@ -24,9 +25,24 @@ async function request(url, options = {}) {
         err.status = res.status;
         err.code = body?.code || null;
         err.body = body;
+        // The stage that manages this app refused the write (409 managed_part)
+        // or the step (managed_part_not_deployed): what the banner needs.
+        const managed = fromError(body);
+        if (managed) err.managed = managed;
         throw err;
     }
     return body;
+}
+
+/**
+ * The stage's refusal as a SAVE result. A 409 here is otherwise "someone else
+ * saved a newer version" (a conflict dialog that offers to overwrite), which is
+ * exactly the wrong answer to a part nobody may write: it is its own outcome,
+ * with the banner info and the server's sentence, and the autosave treats it as
+ * a failed save (never a retry, never an overwrite offer).
+ */
+function managedResult(err) {
+    return err?.managed ? { ok: false, managed: err.managed, error: err.message } : null;
 }
 
 export const studioAppsApi = {
@@ -46,7 +62,7 @@ export const studioAppsApi = {
      * filename }. The JSON body rather than the `?download=1` variant, because
      * the caller saves it with the browser's own download dance (a Blob and an
      * object URL) and wants the warnings alongside — a download tells you
-     * nothing about the three routine references it just cleared.
+     * nothing about the three automation references it just cleared.
      */
     exportTemplate: (templateId) => request(`${base}/templates/${enc(templateId)}/export`),
 
@@ -87,13 +103,23 @@ export const studioAppsApi = {
     listMine: () => request(`${base}/mine`),
     /** body: { name?, description?, icon?, accentColor?, templateId? } */
     createApp: (body = {}) => request(base, { method: 'POST', body: JSON.stringify(body) }),
-    getApp: (id) => request(`${base}/${enc(id)}`),
+    /**
+     * The row, with the `managed` the route sends BESIDE it ({ app, readOnly,
+     * managed }) carried onto it, so every holder of the row (the shell, the
+     * header, the publish modal) can tell a Solution stage's app from its own.
+     */
+    getApp: async (id) => {
+        const res = await request(`${base}/${enc(id)}`);
+        if (res && res.app && res.managed !== undefined) res.app = { ...res.app, managed: res.managed };
+        return res;
+    },
     updateApp: (id, meta) => request(`${base}/${enc(id)}`, { method: 'PUT', body: JSON.stringify(meta) }),
     deleteApp: (id) => request(`${base}/${enc(id)}`, { method: 'DELETE' }),
 
     /**
      * Autosave the working draft. Returns (never throws for these flows):
      *   { ok:true, version, warnings, repairs }
+     *   { ok:false, managed, error }                              // 409 managed_part
      *   { ok:false, conflict:true, currentVersion, definition }   // 409
      *   { ok:false, invalid:true, errors, warnings }              // 422
      * Other statuses throw (incl. 413 definition_too_large).
@@ -106,6 +132,8 @@ export const studioAppsApi = {
             });
             return { ok: true, ...body };
         } catch (err) {
+            const refused = managedResult(err);
+            if (refused) return refused;
             if (err.status === 409) return { ok: false, conflict: true, ...(err.body || {}) };
             if (err.status === 422) return { ok: false, invalid: true, ...(err.body || {}) };
             throw err;
@@ -168,6 +196,7 @@ export const studioAppsApi = {
     /**
      * Persist the data model. Returns (never throws for these flows):
      *   { ok:true, version }
+     *   { ok:false, managed, error }                           // 409 managed_part
      *   { ok:false, conflict:true, currentVersion, model }     // 409
      *   { ok:false, invalid:true, errors }                     // 422
      */
@@ -179,6 +208,8 @@ export const studioAppsApi = {
             });
             return { ok: true, ...body };
         } catch (err) {
+            const refused = managedResult(err);
+            if (refused) return refused;
             if (err.status === 409) return { ok: false, conflict: true, ...(err.body || {}) };
             if (err.status === 422) return { ok: false, invalid: true, ...(err.body || {}) };
             throw err;

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Run one REAL playbook case inside the server container — the whole film:
-# table → routine builder → fill → app builder → app turns — and judge it
+# table → automation builder → fill → app builder → app turns — and judge it
 # against the case's expectation. The case files live in
 # server/scripts/playbook-cases/; the driver is server/scripts/drive-playbook.js.
 #

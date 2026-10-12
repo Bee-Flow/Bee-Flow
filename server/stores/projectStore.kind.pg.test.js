@@ -23,7 +23,9 @@
  *     itself — which is why the delete route asks for the unshare first;
  *   - a caller reads where their OWN conversation is filed, never another's;
  *   - the chats a Solution cannot hold are counted (filed conversations and
- *     team chats).
+ *     team chats);
+ *   - an owner who goes away hands the project to its longest-standing editor, and to nobody
+ *     else: viewers and groups do not inherit it.
  *
  * Run: cd server && node --test stores/projectStore.kind.pg.test.js
  */
@@ -351,4 +353,30 @@ test('an installation without conversation tables has no shared conversations', 
     } finally {
         await bare.close();
     }
+});
+
+test('handOverProject: the longest-standing editor becomes owner and leaves the share list; nobody else inherits', async () => {
+    await insertLegacy('hand-1', 'leaver');
+    const share = (id, type, who, permission, at) => pg.query(
+        `INSERT INTO project_shares (id, project_id, shared_with_type, shared_with_id, permission, created_at)
+         VALUES ($1, 'hand-1', $2, $3, $4, $5)`, [id, type, who, permission, at]);
+    await share('s1', 'user', 'viewer1', 'viewer', '2026-01-01T00:00:00Z');
+    await share('s2', 'group', 'g1', 'editor', '2026-01-02T00:00:00Z');
+    await share('s3', 'user', 'late', 'editor', '2026-03-01T00:00:00Z');
+    await share('s4', 'user', 'early', 'editor', '2026-02-01T00:00:00Z');
+
+    assert.strictEqual(await store.handOverProject('hand-1', 'somebody-else'), null, 'only while the named person still owns it');
+    assert.strictEqual(await store.handOverProject('hand-1', 'leaver'), 'early');
+    const owner = (await pg.query(`SELECT owner_id FROM projects WHERE id = 'hand-1'`)).rows[0].owner_id;
+    assert.strictEqual(owner, 'early');
+    const left = (await pg.query(`SELECT shared_with_id FROM project_shares WHERE project_id = 'hand-1' ORDER BY id`)).rows.map((r) => r.shared_with_id);
+    assert.deepStrictEqual(left, ['viewer1', 'g1', 'late'], 'the new owner is no longer also a member');
+});
+
+test('handOverProject: a project without an editor is not handed to a viewer or a group', async () => {
+    await insertLegacy('hand-2', 'leaver');
+    await pg.query(`INSERT INTO project_shares (id, project_id, shared_with_type, shared_with_id, permission)
+        VALUES ('h2a', 'hand-2', 'user', 'viewer1', 'viewer'), ('h2b', 'hand-2', 'group', 'g1', 'editor')`);
+    assert.strictEqual(await store.handOverProject('hand-2', 'leaver'), null);
+    assert.strictEqual((await pg.query(`SELECT owner_id FROM projects WHERE id = 'hand-2'`)).rows[0].owner_id, 'leaver');
 });

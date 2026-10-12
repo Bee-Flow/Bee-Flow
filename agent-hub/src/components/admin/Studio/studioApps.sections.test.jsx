@@ -43,10 +43,10 @@ describe('the Forms section — a directory, and the reasons it is only that', (
         expect(forms().category).toBe('build');
     });
 
-    it('deep-links by the ROUTINE id only — the page token is a credential and never travels', () => {
+    it('deep-links by the AUTOMATION id only — the page token is a credential and never travels', () => {
         // `form.id` IS the public URL token (stores/automationStore/forms.js —
         // 192 bits, no second factor). The Form page is addressed by the
-        // routine behind the form (`initialFormId` = automationId), so the
+        // automation behind the form (`initialFormId` = automationId), so the
         // token is never in the address bar or the history. Two things keep it
         // that way, asserted rather than trusted: no legacy alias, and no entry
         // in the recents registry — whose sub-panel navigates to
@@ -58,11 +58,11 @@ describe('the Forms section — a directory, and the reasons it is only that', (
         expect(props.initialFormTab).toBe('answers');
     });
 
-    it('"New form" opens the section\'s own dialog — the answers choice is made before the routine exists', () => {
+    it('"New form" opens the section\'s own dialog — the answers choice is made before the automation exists', () => {
         const calls = [];
         forms().create.onCreate({ onNavigate: (target) => calls.push(target) });
         expect(calls).toEqual(['studio/forms/new']);
-        // the old one-shot creator still exists for callers that want a form routine straight away
+        // the old one-shot creator still exists for callers that want a form automation straight away
         expect(typeof createFormAutomation).toBe('function');
     });
 });
@@ -90,15 +90,20 @@ describe('the Runs & log descriptor (H2)', () => {
         expect(STUDIO_RECENT_SOURCES.runs).toBeUndefined();
     });
 
-    it('gates like the rest of the /api/automation mount, and no further', () => {
+    it('gates like Automations — the same mount and the same role permission — and no further', () => {
+        // use_automations, like the Automations section: the log is what YOUR
+        // automations did, and a role that may not build one has nothing in it.
         // Seeing the ORGANISATION's runs instead of your own is a separate
         // permission (manage_automations) that only the server checks, per
         // request. If this gate ever grew that check, a stale permission list
         // in the browser would decide who may ask.
         const gate = runs().gate;
-        expect(gate(ctx({ features: ['automations'], canUseIds: ['automations'] }))).toBe(true);
-        expect(gate(ctx({ features: ['automations'], canUseIds: [] }))).toBe(false);
-        expect(gate(ctx({ features: [], canUseIds: ['automations'] }))).toBe(false);
+        const perms = ['use_automations'];
+        expect(gate(ctx({ features: ['automations'], canUseIds: ['automations'], perms }))).toBe(true);
+        expect(gate(ctx({ features: ['automations'], canUseIds: ['automations'] }))).toBe(false);
+        expect(gate(ctx({ features: ['automations'], canUseIds: [], perms }))).toBe(false);
+        expect(gate(ctx({ features: [], canUseIds: ['automations'], perms }))).toBe(false);
         expect(gate(ctx({ perms: ['manage_automations'] }))).toBe(false);
+        expect(runs().permission).toBe('use_automations');
     });
 });

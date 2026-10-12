@@ -67,7 +67,10 @@ test('normalizeAnswers is an allow-list: unknown keys, free text and foreign pra
     assert.deepStrictEqual(assess.normalizeAnswers(undefined).art5, { answer: 'unknown', practices: [] });
     assert.deepStrictEqual(assess.normalizeAnswers(undefined).annex_iii.domains, UNANSWERED,
         'the ten are always present, so \'not asked\' is a value and not an absence');
-    assert.strictEqual(assess.normalizeAnswers({ annex_iii: { category: 'x'.repeat(100) } }).annex_iii.category.length, 40);
+    // The category is a catalogue id or null: free text (a name, a team) never survives.
+    assert.strictEqual(assess.normalizeAnswers({ annex_iii: { category: 'Jan Jansen, HR' } }).annex_iii.category, null);
+    assert.strictEqual(assess.normalizeAnswers({ annex_iii: { category: 'x'.repeat(100) } }).annex_iii.category, null);
+    assert.strictEqual(assess.normalizeAnswers({ annex_iii: { category: 'employment' } }).annex_iii.category, 'employment');
     assert.strictEqual(assess.normalizeAnswers({ annex_iii: { category: '' } }).annex_iii.category, null);
 });
 

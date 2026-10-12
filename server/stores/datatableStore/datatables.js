@@ -20,10 +20,27 @@
 const { run, getOne, getAll } = require('../../db');
 const { assertScope, orgIdOf } = require('./scope');
 const { initDB } = require('./schema');
-const { newDatatableId, rowToDatatable, inTransaction } = require('./rowMappers');
+const { newDatatableId, rowToDatatable: baseRowToDatatable, inTransaction } = require('./rowMappers');
 const { parseJSONObject } = require('../lib/json');
 const { buildUpdate } = require('../lib/sqlBuilder');
 const { notifyDatatableChanged } = require('./liveChanges');
+const managedParts = require('../lib/managedParts');
+const {
+    tableFingerprint, stageTablesAmong, stageProject, requireCapability, changedTableIds,
+    mirrorReconcileExemptIds, writeRowsLocked,
+} = require('./managedGuard');
+
+/**
+ * The shared mapper plus the two Solution-stage columns. `logicalKey` is the
+ * name a Solution knows the table by (NULL = its `key`), `isReference` whether
+ * a release carries its rows. Spread over the base shape so it stays correct
+ * once rowMappers.rowToDatatable maps them itself.
+ */
+function rowToDatatable(r) {
+    const d = baseRowToDatatable(r);
+    if (!d) return d;
+    return { ...d, logicalKey: r.logical_key || null, isReference: !!r.is_reference };
+}
 
 /** One table by id, scoped to a tenant. Never call this unscoped. */
 async function getDatatable(id, scope) {
@@ -130,9 +147,19 @@ async function getTableMeta(scope, datatableId) {
  * @param {{ scope: {kind: string, id: string}, ownerUserId?: string, key: string, name: string, description?: string,
  *           projectId?: string|null, lawfulBasis?: string|null, rowScope?: string, retentionDays?: number|null,
  *           retentionField?: string, subjectColumn?: string|null, fields?: any[], managedKind?: string|null,
- *           source?: object|null }} def
+ *           source?: object|null, logicalKey?: string|null, isReference?: boolean }} def
+ *   `logicalKey` and `isReference` are the Solution-stage columns (a stage copy
+ *   of a Dev table, and whether a release carries its rows); a reference table
+ *   is refused here on the same rules as setReferenceFlag.
+ * A `projectId` that is a Solution stage project (UAT/PRD) files the table
+ * into a managed part: refused with 409 `managed_part` unless
+ * `opts.managedWrite` is the capability of an active deployment of that stage.
+ * A reference table created there gets `rowsLocked: true` on its model entry,
+ * so every row writer but the deploy's own refuses it (queryCompiler).
+ *
  * @param {object}   [opts]
  * @param {object}   [opts.client]  the caller's transaction, when they own one.
+ * @param {{deploymentId?: string}|null} [opts.managedWrite]  the deploy's capability (see above).
  * @param {(usage: {tables:number, rows:number, bytes:number}) => Promise<any>} [opts.assertQuota]
  *   Runs with the tenant's usage read UNDER the model row's FOR UPDATE lock and
  *   BEFORE anything is written. Injected rather than imported for the same
@@ -149,10 +176,17 @@ async function createDatatable({
     scope, ownerUserId, key, name, description = '', projectId = null,
     lawfulBasis = null, rowScope = 'all', retentionDays = null, retentionField = 'created_at',
     subjectColumn = null, fields = [], managedKind = null, source = null,
-}, { client = null, applyPhysical = null, assertQuota = null } = {}) {
+    logicalKey = null, isReference = false,
+}, { client = null, applyPhysical = null, assertQuota = null, managedWrite = null } = {}) {
     await initDB();
     assertScope(scope, 'createDatatable');
     if (!ownerUserId) throw new Error('createDatatable requires an ownerUserId');
+    if (isReference) {
+        assertReferenceAllowed({
+            subject_column: subjectColumn, row_scope: rowScope === 'own' ? 'own' : 'all',
+            managed_kind: managedKind, source, retention_days: retentionDays,
+        });
+    }
     const id = newDatatableId();
     const organizationId = orgIdOf(scope);
 
@@ -170,19 +204,24 @@ async function createDatatable({
             [scope.kind, scope.id],
         );
 
+        // Filing into a stage project is the deploy's alone (design 5.2).
+        const stage = await stageProject(c, projectId);
+        if (stage) await requireCapability(c, [stage], managedWrite);
+
         if (assertQuota) await assertQuota(await scopeUsage(scope, { client: c }));
 
         await c.query(
             `INSERT INTO datatables
                 (id, scope_kind, scope_id, organization_id, owner_user_id, project_id, key, name,
                  description, lawful_basis, row_scope, retention_days, retention_field, subject_column,
-                 managed_kind, source)
-             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16::jsonb)`,
+                 managed_kind, source, logical_key, is_reference)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16::jsonb,$17,$18)`,
             [id, scope.kind, scope.id, organizationId, ownerUserId, projectId, key, name,
                 description, lawfulBasis, rowScope === 'own' ? 'own' : 'all',
                 retentionDays, retentionField, subjectColumn,
                 managedKind || null,
-                source ? JSON.stringify(source) : null],
+                source ? JSON.stringify(source) : null,
+                logicalKey || null, !!isReference],
         );
 
         const stored = cur.rows.length
@@ -196,7 +235,11 @@ async function createDatatable({
         const before = { ...stored, tables: [...storedTables] };
         const next = {
             ...stored,
-            tables: [...storedTables, { id, key, name, fields: Array.isArray(fields) ? fields : [] }],
+            tables: [...storedTables, {
+                id, key, name, fields: Array.isArray(fields) ? fields : [],
+                // A stage's reference table: its rows are the release's.
+                ...(stage && isReference ? { rowsLocked: true } : {}),
+            }],
         };
         const modelVersion = (cur.rows.length ? Number(cur.rows[0].model_version) || 0 : 0) + 1;
 
@@ -231,16 +274,35 @@ async function createDatatable({
  *   { ok:true,  model, modelVersion }
  *   { ok:false, conflict:true, currentVersion, model }
  *
+ * ── MANAGED TABLES ─────────────────────────────────────────────────────
+ * Every table entry is diffed between the locked `before` and `next`. A
+ * changed, added or removed entry of a table that belongs to a Solution stage
+ * project needs `opts.managedWrite` (the capability of an active deployment of
+ * that stage), or the save is refused with 409 `managed_part`. An edit to an
+ * unrelated table of the same scope never needs one.
+ *
+ * @param {object|null} proposed  the whole next model; ignored when `opts.buildNext` is given.
  * @param {object}   [opts]
  * @param {number|null} [opts.expectedVersion]
+ * @param {(lockedBefore: object) => object|Promise<object>} [opts.buildNext]
+ *   Computes the next model from a deep copy of the model read UNDER THE LOCK,
+ *   so a writer that replaces only its own entries cannot overwrite a
+ *   concurrent edit to another table (the deploy commit, design 3.2 step 6).
+ *   Throwing rolls the save back.
+ * @param {{deploymentId?: string}|null} [opts.managedWrite]  the deploy's capability (see above).
+ * @param {boolean} [opts.mirrorReconcile]  the mirror schema reconcile of a sync or (re)link:
+ *   a stage table that is a source mirror (`source IS NOT NULL`) may then change
+ *   its `fields` (and take its row's name) without a capability, because its
+ *   columns follow its source, not a release. Any other change still needs one.
  * @param {object}   [opts.client]  the caller's transaction, when they own one.
  * @param {(client: object, ctx: {before: object, next: object, modelVersion: number}) => Promise<any>} [opts.applyPhysical]
  *   `before` is the model as read UNDER THE LOCK — the only baseline a plan may
  *   be diffed against. Throwing rolls the model write back with it, so a failed
  *   ALTER can never leave `model_version` claiming a column that is not there.
  */
-async function saveModel(scope, model, {
-    expectedVersion = null, client = null, applyPhysical = null,
+async function saveModel(scope, proposed, {
+    expectedVersion = null, client = null, applyPhysical = null, buildNext = null, managedWrite = null,
+    mirrorReconcile = false,
 } = {}) {
     await initDB();
     assertScope(scope, 'saveModel');
@@ -262,6 +324,18 @@ async function saveModel(scope, model, {
         const before = cur.rows.length
             ? parseJSONObject(cur.rows[0].model, { modelVersion: 1, tables: [] })
             : { modelVersion: 1, tables: [] };
+        // A copy, so a buildNext that edits in place cannot change `before`,
+        // the baseline applyPhysical diffs against.
+        const model = buildNext ? await buildNext(JSON.parse(JSON.stringify(before))) : proposed;
+        if (!model || typeof model !== 'object' || Array.isArray(model)) {
+            throw new TypeError('saveModel: the next model must be an object');
+        }
+        let changed = changedTableIds(before, model);
+        if (mirrorReconcile) {
+            const exempt = await mirrorReconcileExemptIds(c, before, model, changed);
+            changed = changed.filter(id => !exempt.has(id));
+        }
+        await requireCapability(c, await stageTablesAmong(c, changed), managedWrite);
         if (cur.rows.length) {
             await c.query(
                 `UPDATE datatable_models
@@ -327,8 +401,28 @@ const META_COLUMNS = Object.freeze({
  * it did not know, so a rename in the caller turned a save into a no-op that
  * still answered 200 and the setting simply never took. Here the same mistake
  * is a 400 the caller cannot miss.
+ *
+ * On a reference table the patch is merged over the row and held to the same
+ * rules as setReferenceFlag: a subject column, `row_scope = 'own'` or a
+ * retention rule is a 409 `reference_not_allowed`, because a release would
+ * otherwise go on copying rows the owner has just said identify people. The
+ * row is read FOR UPDATE in the write's transaction, so a concurrent
+ * setReferenceFlag cannot slip between the check and the write.
+ *
+ * On a table of a Solution stage project only the allow-listed settings
+ * (lawful basis, retention, subject column; managedParts.ALLOWED.datatable)
+ * may change without `opts.managedWrite`; a changed name, description or row
+ * scope is a 409 `managed_part`. Keys whose value does not change are not
+ * counted, so a form that resends the whole row still saves.
+ *
+ * @param {string} id
+ * @param {{kind: string, id: string}} scope
+ * @param {Record<string, any>} patch
+ * @param {object} [opts]
+ * @param {object} [opts.client]  the caller's transaction, when they own one.
+ * @param {{deploymentId?: string}|null} [opts.managedWrite]  the deploy's capability.
  */
-async function updateDatatableMeta(id, scope, patch) {
+async function updateDatatableMeta(id, scope, patch, { client = null, managedWrite = null } = {}) {
     await initDB();
     assertScope(scope, 'updateDatatableMeta');
     const updates = {};
@@ -352,10 +446,135 @@ async function updateDatatableMeta(id, scope, patch) {
             { col: 'scope_kind', value: scope.kind },
             { col: 'scope_id', value: scope.id },
         ],
+        returning: '*',
     });
     if (!built) return getDatatable(id, scope);
-    await run(built.sql, built.params);
-    return getDatatable(id, scope);
+    return inTransaction(client, async (c) => {
+        const cur = await c.query(
+            `SELECT * FROM datatables WHERE id = $1 AND scope_kind = $2 AND scope_id = $3 FOR UPDATE`,
+            [id, scope.kind, scope.id],
+        );
+        if (!cur.rows.length) return null;
+        const stage = await stageProject(c, cur.rows[0].project_id);
+        if (stage) {
+            const allowed = managedParts.ALLOWED.datatable;
+            const changed = managedParts.changedKeysOf(cur.rows[0], updates, META_COLUMNS);
+            if (!changed.every(k => allowed.includes(k))) await requireCapability(c, [stage], managedWrite);
+        }
+        if (cur.rows[0].is_reference) {
+            const merged = { ...cur.rows[0] };
+            for (const [key, value] of Object.entries(updates)) merged[META_COLUMNS[key]] = value;
+            assertReferenceAllowed(merged);
+        }
+        const r = await c.query(built.sql, built.params);
+        return rowToDatatable(r.rows[0]);
+    });
+}
+
+/**
+ * Why a table may not be a reference table, or null when it may.
+ *
+ * A release copies a reference table's rows from Dev into every stage, so the
+ * rows must be configuration (a price list, a lookup), never people. Each rule
+ * names one way a table says "this holds personal data" or "these rows are not
+ * yours to copy": a data subject column, rows owned per user, a column
+ * contract the platform owns, rows mirrored from elsewhere, or a retention
+ * rule that promises deletion a copy would outlive. Takes the snake_case row.
+ *
+ * @param {{subject_column?: string|null, row_scope?: string, managed_kind?: string|null,
+ *          source?: any, retention_days?: number|null}} row
+ * @returns {{reason: string, message: string}|null}
+ */
+function referenceRefusal(row) {
+    if (row.subject_column) {
+        return { reason: 'subject_column', message: 'A table with a data subject column holds personal data, so its rows cannot be carried to other stages' };
+    }
+    if (row.row_scope === 'own') {
+        return { reason: 'row_scope_own', message: 'A table whose rows belong to the person who added them cannot be a reference table' };
+    }
+    if (row.managed_kind) {
+        return { reason: 'managed', message: 'A table the platform manages cannot be a reference table' };
+    }
+    if (row.source !== null && row.source !== undefined) {
+        return { reason: 'source_mirror', message: 'A table that mirrors rows from another source cannot be a reference table' };
+    }
+    if (row.retention_days !== null && row.retention_days !== undefined) {
+        return { reason: 'retention', message: 'A table with a retention rule cannot be a reference table: a copied row would outlive its deletion' };
+    }
+    return null;
+}
+
+/**
+ * Throw the 409 the route passes through when `row` may not be a reference
+ * table. Built as the HttpError shape (status, code, expose, details) rather
+ * than imported from core/http: a store is platform and may not depend on core.
+ */
+function assertReferenceAllowed(row) {
+    const refusal = referenceRefusal(row);
+    if (!refusal) return;
+    /** @type {Error & {status?: number, code?: string, expose?: boolean, details?: object, reason?: string}} */
+    const e = new Error(refusal.message);
+    e.status = 409;
+    e.code = 'reference_not_allowed';
+    e.expose = true;
+    e.details = { reason: refusal.reason };
+    // Also top-level: routes/datatables answerDatatableError forwards a string
+    // `reason`, so the client can name the rule without parsing the message.
+    e.reason = refusal.reason;
+    throw e;
+}
+
+/**
+ * Mark a table as a reference table (its rows travel with a Solution release)
+ * or clear the mark. Clearing is always allowed; setting is refused with 409
+ * `reference_not_allowed` (and `details.reason`) for any shape referenceRefusal
+ * names. The row is read FOR UPDATE and written in the same transaction, so a
+ * concurrent edit that gives the table a subject column cannot slip between
+ * the check and the write.
+ *
+ * @param {string} id
+ * @param {{kind: string, id: string}} scope
+ * @param {boolean} isReference
+ * On a table of a Solution stage project the mark is the release's (it
+ * decides whether a deploy carries the rows), so changing it there needs
+ * `opts.managedWrite`, like any other managed setting.
+ *
+ * @param {object} [opts]
+ * @param {object} [opts.client]  the caller's transaction, when they own one.
+ * @param {{deploymentId?: string}|null} [opts.managedWrite]  the deploy's capability.
+ * @returns {Promise<object|null>} the table, or null when it is not in `scope`.
+ */
+async function setReferenceFlag(id, scope, isReference, { client = null, managedWrite = null } = {}) {
+    await initDB();
+    assertScope(scope, 'setReferenceFlag');
+    const on = !!isReference;
+    return inTransaction(client, async (c) => {
+        // The model lock first, in the same order as create and saveModel: a
+        // stage table's `rowsLocked` key follows the mark (below).
+        const locked = await c.query(
+            `SELECT model FROM datatable_models
+              WHERE scope_kind = $1 AND scope_id = $2 FOR UPDATE`,
+            [scope.kind, scope.id],
+        );
+        const cur = await c.query(
+            `SELECT * FROM datatables WHERE id = $1 AND scope_kind = $2 AND scope_id = $3 FOR UPDATE`,
+            [id, scope.kind, scope.id],
+        );
+        if (!cur.rows.length) return null;
+        const stage = await stageProject(c, cur.rows[0].project_id);
+        if (stage && !!cur.rows[0].is_reference !== on) await requireCapability(c, [stage], managedWrite);
+        if (on) assertReferenceAllowed(cur.rows[0]);
+        // A stage's reference rows are the release's: the compiler reads the
+        // lock from the model entry, so it moves with the mark.
+        if (stage) await writeRowsLocked(c, scope, locked, id, on);
+        const r = await c.query(
+            `UPDATE datatables SET is_reference = $4, updated_at = NOW()
+              WHERE id = $1 AND scope_kind = $2 AND scope_id = $3
+              RETURNING *`,
+            [id, scope.kind, scope.id, on],
+        );
+        return rowToDatatable(r.rows[0]);
+    });
 }
 
 /**
@@ -395,13 +614,18 @@ async function bumpAfterWrite(id, scope, delta = 0) {
  * rij-mutatie (`notifyDatatableChanged`), zodat een openbare snapshot die deze
  * rijen ingebakken heeft herschreven wordt — zie de reden bij de aanroep.
  *
+ * A table of a Solution stage project is the release's: deleting it needs
+ * `opts.managedWrite` (the capability of an active deployment of that stage,
+ * a `remove` deployment or a release that drops it), else 409 `managed_part`.
+ *
  * @param {object}   [opts]
  * @param {object}   [opts.client]  the caller's transaction, when they own one.
+ * @param {{deploymentId?: string}|null} [opts.managedWrite]  the deploy's capability.
  * @param {(client: object, ctx: {before: object, next: object, modelVersion: number}) => Promise<any>} [opts.dropPhysical]
  *   Runs on the transaction's own client, after the metadata is gone and only
  *   when a row was actually deleted. Throwing rolls the whole delete back.
  */
-async function deleteDatatable(id, scope, { dropPhysical = null, client: outerClient = null } = {}) {
+async function deleteDatatable(id, scope, { dropPhysical = null, client: outerClient = null, managedWrite = null } = {}) {
     await initDB();
     assertScope(scope, 'deleteDatatable');
     const deleted = await inTransaction(outerClient, async (client) => {
@@ -410,6 +634,7 @@ async function deleteDatatable(id, scope, { dropPhysical = null, client: outerCl
               WHERE scope_kind = $1 AND scope_id = $2 FOR UPDATE`,
             [scope.kind, scope.id],
         );
+        await requireCapability(client, await stageTablesAmong(client, [id]), managedWrite);
         let before = null;
         let model = null;
         let modelVersion = 0;
@@ -466,9 +691,12 @@ module.exports = {
     getTableMeta,
     createDatatable,
     saveModel,
+    tableFingerprint,
     setSharing,
     META_COLUMNS,
     updateDatatableMeta,
+    referenceRefusal,
+    setReferenceFlag,
     bumpAfterWrite,
     deleteDatatable,
 };

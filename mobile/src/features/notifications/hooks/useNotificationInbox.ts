@@ -38,7 +38,7 @@ export function useNotificationInbox() {
         const target = targetForNotification(notification);
         // A result notification carries its whole output in `message`, so
         // "open" means "show me the rest of it", not "navigate" — even when it
-        // has somewhere to go: neither the routine list nor a Cowork item
+        // has somewhere to go: neither the automation list nor a Cowork item
         // shows this result in full. The expanded row offers that place as
         // its own button (follow).
         if (target.href && !RESULT_CATEGORIES.has(notification.category)) {

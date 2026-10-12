@@ -76,8 +76,8 @@ test('history is windowed head-first in whole blocks, never a sliding tail', () 
     assert.equal(c2.windowedHistory[0].content, kept[0].content, 'same head after a small append');
 });
 
-test('two users with different routines share the whole stable prefix; only the folded tail differs', () => {
-    // The owner's routines/documents used to be rendered INTO the system
+test('two users with different automations share the whole stable prefix; only the folded tail differs', () => {
+    // The owner's automations/documents used to be rendered INTO the system
     // prompt (per user), so two users of one local box never shared the
     // ~7k-token prefix. They ride the OWNER CONTEXT note now, in the last
     // message, and the system prompt is one text for everyone.

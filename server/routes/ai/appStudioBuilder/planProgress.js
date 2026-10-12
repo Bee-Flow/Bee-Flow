@@ -1,7 +1,7 @@
 /**
  * Tick the App Studio builder's plan checklist from what the tool calls did.
  *
- * Same reason as the routine builder's planProgress.js: the prompt asks the
+ * Same reason as the automation builder's planProgress.js: the prompt asks the
  * model to bundle app_set_plan({markDone}) with every build call, and the
  * small local models do not — a finished app with the checklist at 0/6 is
  * not a progress view. So the ROUTE infers progress from the tool results it

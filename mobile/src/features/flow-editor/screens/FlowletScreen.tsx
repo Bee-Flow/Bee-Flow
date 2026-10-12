@@ -1,12 +1,12 @@
 /**
- * One flowlet of a routine, built as if it were the routine — the web
+ * One flowlet of an automation, built as if it were the automation — the web
  * builder's flowlet scope (useFlowletScope): its own Steps outline and
- * Canvas, the same cards, picker and menus, over the routine's draft store
+ * Canvas, the same cards, picker and menus, over the automation's draft store
  * seen through the flowlet (state/scopedStore), so every edit here is an
- * undoable edit of the whole routine, saved by its autosave. The picker
+ * undoable edit of the whole automation, saved by its autosave. The picker
  * offers what a flowlet may hold, and its one "Return" while it has none.
- * A flowlet is run by the routine that calls it, so there is no test run
- * here; its findings are the routine's.
+ * A flowlet is run by the automation that calls it, so there is no test run
+ * here; its findings are the automation's.
  */
 
 import { useRouter } from 'expo-router';
@@ -48,7 +48,7 @@ function FlowletEditor({ draft, definition, layerKey }: { draft: FlowDraft; defi
     const title = typeof definition.title === 'string' && definition.title ? definition.title : layerKey;
     return (
         <Screen edges={['top', 'bottom']}>
-            <FlowletHeader title={title} routine={draft.automation?.title || t('mobile.flow.untitled', 'Untitled routine')} onRename={() => setRenaming(true)} />
+            <FlowletHeader title={title} automation={draft.automation?.title || t('automations.library.untitled', 'Untitled automation')} onRename={() => setRenaming(true)} />
             <BuildBody draft={draft} definition={definition} card={card} catalog={catalog} editing={editing} runs={null} onAdd={setPicking} onOpen={openStep} onRunDetails={() => undefined} />
             <FlowSheets
                 draft={draft} definition={definition} card={card} catalog={catalog} editing={editing} runs={null} flowlet={layerKey}
@@ -66,7 +66,7 @@ function FlowletEditor({ draft, definition, layerKey }: { draft: FlowDraft; defi
 }
 
 export interface FlowletScreenProps {
-    /** The routine's id (or an open new routine's draft key). */
+    /** The automation's id (or an open new automation's draft key). */
     id: string;
     /** The flowlet's key in definition.layers. */
     layerKey: string;
@@ -75,19 +75,19 @@ export interface FlowletScreenProps {
 export function FlowletScreen({ id, layerKey }: FlowletScreenProps) {
     const t = useTranslation();
     const router = useRouter();
-    const routine = useFlowDraft(id);
-    const draft = useFlowletDraft(routine, layerKey);
-    const ready = useDraftState(routine.store, (s) => s.ready);
+    const automation = useFlowDraft(id);
+    const draft = useFlowletDraft(automation, layerKey);
+    const ready = useDraftState(automation.store, (s) => s.ready);
     const definition = useDraftState(draft.store, (s) => s.definition);
     if (!ready) {
-        return <Screen>{routine.error ? <ErrorState error={routine.error} onRetry={routine.refetch} /> : <LoadingState />}</Screen>;
+        return <Screen>{automation.error ? <ErrorState error={automation.error} onRetry={automation.refetch} /> : <LoadingState />}</Screen>;
     }
     if (!definition) {
         return (
             <Screen>
                 <EmptyState
                     icon="Layers"
-                    title={t('mobile.flow.flowlets.missing', 'This flowlet is not in the routine any more')}
+                    title={t('mobile.flow.flowlets.missing', 'This flowlet is not in the automation any more')}
                     message={t('mobile.flow.flowlets.missing_hint', 'It was deleted — by an undo, the AI builder, or on another device.')}
                     actionLabel={t('common.back', 'Back')}
                     onAction={() => router.back()}

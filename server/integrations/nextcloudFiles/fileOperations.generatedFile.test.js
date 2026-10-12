@@ -1,6 +1,6 @@
 /**
  * nextcloud_upload_file with sourceHandle { kind: 'generated_file' } — the
- * bridge that lets a routine push the deck (or PDF) a document step kept
+ * bridge that lets an automation push the deck (or PDF) a document step kept
  * into Nextcloud Files. The handle resolver is a double; what is pinned is
  * the wiring: the run scope reaches the tool, the bytes and MIME come from
  * the ledger, a folder path takes the file's own name, and the two refusals.
@@ -64,8 +64,36 @@ test('refusals: not a live file of this run; used outside a run', async () => {
     const gone = await executeFileOperationTool('nextcloud_upload_file', { path: '/Decks/', sourceHandle: { kind: 'generated_file', fileId: 'old' } }, ctx);
     assert.match(gone.error, /not a live file of this run/);
 
-    resolver.throwWith = Object.assign(new Error('A generated_file handle can only be used inside a routine run — the file belongs to that run.'), { errorClass: 'handle_scope_missing' });
+    resolver.throwWith = Object.assign(new Error('A generated_file handle can only be used inside an automation run — the file belongs to that run.'), { errorClass: 'handle_scope_missing' });
     const chat = await executeFileOperationTool('nextcloud_upload_file', { path: '/Decks/', sourceHandle: { kind: 'generated_file', fileId: 'f1' } }, makeCtx(null).ctx);
-    assert.match(chat.error, /inside a routine run/);
+    assert.match(chat.error, /inside an automation run/);
     resolver.throwWith = null;
+});
+
+test('a missing parent folder is created once and the PUT retried', async () => {
+    resolver.answer = { buffer: Buffer.from('%PDF-1.7'), filename: 'Scaleway-2026-09-1.pdf', mimeType: 'application/pdf', size: 8 };
+    const calls = [];
+    let puts = 0;
+    const ncFetch = async (url, opts = {}) => {
+        const method = opts.method || 'GET';
+        calls.push({ url, method });
+        if (method === 'PUT') {
+            puts += 1;
+            return { ok: puts > 1, status: puts > 1 ? 201 : 409, headers: new Headers(), text: async () => '' };
+        }
+        return { ok: true, status: 201, headers: new Headers(), text: async () => '' };
+    };
+    const ctx = { ncFetch, authError: 'Reconnect', root: ROOT, baseUrl: 'https://nc.example.test', uid: 'alice', session: {}, runScope: { runId: 'run-1' } };
+    const res = await executeFileOperationTool('nextcloud_upload_file', { path: '/Facturen/Scaleway/', sourceHandle: { kind: 'generated_file', fileId: 'f1' } }, ctx);
+    assert.strictEqual(res.success, true, JSON.stringify(res));
+    assert.deepStrictEqual(calls.map((c) => c.method), ['PUT', 'MKCOL', 'MKCOL', 'PUT']);
+    assert.ok(calls[1].url.endsWith('/Facturen'));
+    assert.ok(calls[2].url.endsWith('/Facturen/Scaleway'));
+});
+
+test('an upload into an existing folder costs a single PUT', async () => {
+    resolver.answer = { buffer: Buffer.from('%PDF-1.7'), filename: 'a.pdf', mimeType: 'application/pdf', size: 8 };
+    const { ctx, calls } = makeCtx({ runId: 'run-1' });
+    await executeFileOperationTool('nextcloud_upload_file', { path: '/Facturen/Scaleway/', sourceHandle: { kind: 'generated_file', fileId: 'f1' } }, ctx);
+    assert.deepStrictEqual(calls.map((c) => c.method), ['PUT']);
 });

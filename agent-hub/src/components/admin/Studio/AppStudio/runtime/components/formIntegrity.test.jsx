@@ -131,7 +131,7 @@ describe('AppInputMultiselect — a scalar pushed into a list field', () => {
         expect(screen.getByLabelText('Remove Billing')).toBeTruthy();
     });
 
-    // Submitting untouched used to send the raw string where the routine
+    // Submitting untouched used to send the raw string where the automation
     // expected an array — and adding one chip replaced the whole value.
     it('submits an array, and adding a chip keeps what was already there', async () => {
         const { runAction } = renderForm([node], <AppInputMultiselect node={node} />);
@@ -270,7 +270,7 @@ describe('AppInputRelation — a candidate query that failed', () => {
         const binding = { kind: 'records', tableId: 't1', limit: CANDIDATE_LIMIT };
         const key = dataCacheKey(binding);
         const dataState = {
-            [key]: { status: 'error', error: 'Connect Gmail in Settings → Integrations to load this.', tableId: 't1' },
+            [key]: { status: 'error', error: 'Connect Gmail in Settings → Connections to load this.', tableId: 't1' },
         };
         const node = {
             id: 'cmp_rel', type: 'input_relation', visible: true, style: { span: 6 },
@@ -287,7 +287,7 @@ describe('AppInputRelation — a candidate query that failed', () => {
             </RuntimeProvider>,
         );
         fireEvent.focus(screen.getByLabelText('Search Owner'));
-        expect(screen.getByText('Connect Gmail in Settings → Integrations to load this.')).toBeTruthy();
+        expect(screen.getByText('Connect Gmail in Settings → Connections to load this.')).toBeTruthy();
         expect(screen.queryByText('No matching records.')).toBeNull();
     });
 });
@@ -311,7 +311,7 @@ describe('AppInputRichtext — the toolbar', () => {
 
     it('offers the formatting it can actually round-trip, and nothing else', () => {
         mount();
-        for (const label of ['Vet', 'Cursief', 'Opsomming', 'Genummerde lijst', 'Link']) {
+        for (const label of ['Bold', 'Italic', 'Bulleted list', 'Numbered list', 'Link']) {
             expect(screen.getByLabelText(label).disabled).toBe(false);
         }
         expect(screen.queryByText('Preview')).toBeNull();
@@ -320,7 +320,7 @@ describe('AppInputRichtext — the toolbar', () => {
     it('takes the link address inline — window.prompt is blocked in the Nextcloud embed', () => {
         mount();
         fireEvent.mouseDown(screen.getByLabelText('Link'));
-        expect(screen.getByLabelText('Adres van de link')).toBeTruthy();
+        expect(screen.getByLabelText('Link address')).toBeTruthy();
     });
 
     it('keeps the markdown value reachable by field name', () => {

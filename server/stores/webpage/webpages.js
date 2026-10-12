@@ -11,7 +11,8 @@ const { buildUpdate } = require('../lib/sqlBuilder');
 const { VERSIONED_SLOTS, keyFor, mapWebpageRow } = require('./shared');
 const { thumbnailKey, purgeWebpageObjects } = require('./storage');
 const { extraKey } = require('./extraFiles');
-const { DEFAULT_BRIDGE_GRANTS } = require('./bridgeGrants');
+const { DEFAULT_BRIDGE_GRANTS, assertWebpageWrite } = require('./bridgeGrants');
+const managedParts = require('../lib/managedParts');
 const log = require('../../telemetry/log');
 
 // ── Webpage CRUD ─────────────────────────────────────────────────────
@@ -127,18 +128,30 @@ async function setWebpagePublished(id, isPublished, ownerId, sharedGroups = unde
  * another page's version would serve that page's bytes to this page's
  * readers, which is the whole class of bug this column exists to prevent.
  *
+ * On a managed page (a Solution stage) a NON-null pin is the deploy commit's:
+ * it needs `managedWrite`, and passes `client` so the pointer moves inside
+ * the commit transaction. Clearing it stays allowed.
+ *
  * Returns true when the pointer was written.
+ *
+ * @param {string} id
+ * @param {string} ownerId
+ * @param {string|null} versionId
+ * @param {{ client?: any, managedWrite?: { deploymentId?: string }|null }} [opts]
  */
-async function setPublishedVersion(id, ownerId, versionId) {
+async function setPublishedVersion(id, ownerId, versionId, { client = null, managedWrite = null } = {}) {
     await initDB();
+    const write = async (sql, params) => (client ? client.query(sql, params) : run(sql, params));
+    const readOne = async (sql, params) => (client ? (await client.query(sql, params)).rows[0] : getOne(sql, params));
     if (versionId) {
-        const v = await getOne(
+        await assertWebpageWrite(id, ['publishedVersionId'], { managedWrite, client });
+        const v = await readOne(
             'SELECT id FROM webpage_versions WHERE id = $1 AND webpage_id = $2',
             [versionId, id]
         );
         if (!v) return false;
     }
-    const { rowCount } = await run(
+    const { rowCount } = await write(
         'UPDATE webpages SET published_version_id = $1, updated_at = NOW() WHERE id = $2 AND user_id = $3',
         [versionId || null, id, ownerId]
     );
@@ -166,8 +179,35 @@ const METADATA_COLUMNS = {
     thumbnailSize: 'thumbnail_size',
 };
 
-async function updateWebpageMetadata(id, userId, updates) {
+// What a metadata write may change on a managed page: the page's own
+// data.db and its thumbnail (ALLOWED.webpage). Everything else (name,
+// instructions, knowledge bases, settings, file hashes) comes from a deploy.
+const MANAGED_FREE_METADATA = Object.freeze(['dbSha', 'dbSize', 'thumbnailSha', 'thumbnailSize']);
+
+/**
+ * The managed-part guard for a metadata write: compared against the stored
+ * row, so a save that resends unchanged values (the editor sends every field)
+ * is not refused for keys it does not change.
+ */
+async function guardMetadataWrite(id, updates, managedWrite) {
+    const supplied = Object.fromEntries(Object.entries(updates || {})
+        .filter(([k, v]) => v !== undefined && Object.prototype.hasOwnProperty.call(METADATA_COLUMNS, k)));
+    if (Object.keys(supplied).every((k) => MANAGED_FREE_METADATA.includes(k))) return;
+    const row = await getOne('SELECT * FROM webpages WHERE id = $1', [id]);
+    if (!row || !row.project_id) return;
+    const changed = managedParts.changedKeysOf(row, supplied, METADATA_COLUMNS);
+    await assertWebpageWrite(id, changed, { managedWrite, projectId: row.project_id });
+}
+
+/**
+ * @param {string} id
+ * @param {string} userId
+ * @param {Record<string, any>} updates
+ * @param {{ managedWrite?: { deploymentId?: string }|null }} [opts]
+ */
+async function updateWebpageMetadata(id, userId, updates, { managedWrite = null } = {}) {
     await initDB();
+    await guardMetadataWrite(id, updates, managedWrite);
     const built = buildUpdate({
         table: 'webpages',
         updates,
@@ -201,8 +241,10 @@ async function getChatMessages(id, userId) {
  * overwrite (no merge logic needed). Validates the shape and trims to a
  * reasonable size to keep the row lean.
  */
-async function setChatMessages(id, userId, messages) {
+async function setChatMessages(id, userId, messages, { managedWrite = null } = {}) {
     await initDB();
+    // The AI builder's conversation edits a managed page's content: refused there.
+    await assertWebpageWrite(id, ['chatMessages'], { managedWrite });
     const safe = Array.isArray(messages) ? messages : [];
     // Cap at the most recent 200 messages to prevent unbounded row growth.
     const trimmed = safe.slice(-200);
@@ -322,10 +364,12 @@ async function cloneWebpage({ sourceId, newOwnerId, newName }) {
     return mapWebpageRow({ ...src, id: newId, user_id: newOwnerId, name, is_published: false, shared_groups: '[]', organization_id: null, published_version_id: null, chat_messages: [], source_count: 0, created_at: new Date(), updated_at: new Date() });
 }
 
-async function deleteWebpage(id, userId) {
+async function deleteWebpage(id, userId, { managedWrite = null } = {}) {
     await initDB();
     const r = await getOne('SELECT * FROM webpages WHERE id = $1 AND user_id = $2', [id, userId]);
     if (!r) return null;
+    // A managed page is retired by a deploy (unpublished), never deleted.
+    await assertWebpageWrite(id, ['delete'], { managedWrite, projectId: r.project_id || null });
     // Sources cascade-delete via FK.  Versions too.
     await run('DELETE FROM webpages WHERE id = $1 AND user_id = $2', [id, userId]);
     // Purge RustFS objects (best-effort, non-blocking on failure)

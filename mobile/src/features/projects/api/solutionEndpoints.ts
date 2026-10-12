@@ -37,7 +37,8 @@ export async function getCompleteness(id: string, signal?: AbortSignal): Promise
  * Where each movable kind's own listing lives, and the property its rows come
  * in (null = a bare array). Each was read off its route:
  * notebooks.js, studioApps.js, automation/crud.js, webpages/crud.js,
- * datatables/tables.js, agents/crud.js and knowledgeBases/list.js.
+ * datatables/tables.js, agents/crud.js, skills.js, studioDocuments.js (templates)
+ * and knowledgeBases/list.js.
  *
  * The web reads routines from /api/ai-tasks, which lists scheduled AI tasks —
  * a different store whose ids PUT /:id/resources cannot file. The phone reads
@@ -50,6 +51,8 @@ const SOURCES: Readonly<Record<string, { path: string; key: string | null }>> = 
     webpage: { path: '/api/webpages', key: 'webpages' },
     datatable: { path: '/api/datatables', key: 'datatables' },
     agent: { path: '/agents', key: null },
+    skill: { path: '/api/skills', key: null },
+    document_template: { path: '/api/studio-documents?kind=template&limit=200', key: 'documents' },
     knowledge_base: { path: '/api/kb', key: null },
 };
 

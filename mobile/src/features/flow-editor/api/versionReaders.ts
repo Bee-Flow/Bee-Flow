@@ -1,5 +1,5 @@
 /**
- * Contract readers for a routine's version history
+ * Contract readers for an automation's version history
  * (routes/automation/versions.js over stores/automationStore/versions.js).
  */
 

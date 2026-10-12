@@ -65,7 +65,11 @@ test('the step\'s own schema wins; then the skill, widened by fields read downst
         schema: { type: 'object', properties: { amount: { type: 'number' }, vendor: { type: 'string' } } },
         source: 'skill', declared: true,
     });
-    assert.deepStrictEqual(S.effectiveOutputSchema({ inferredFields: ['x'] }), { schema: { x: 'string' }, source: 'inferred', declared: false });
+    assert.deepStrictEqual(S.effectiveOutputSchema({ inferredFields: ['x'] }), { schema: { type: 'object', properties: { x: { type: 'string' } } }, source: 'inferred', declared: false });
+    // The reads' own nested schema wins over plain text (aiOutputInference.js).
+    const nested = { type: 'object', properties: { items: { type: 'array', items: { type: 'object', properties: { sku: { type: 'string' } } } } } };
+    assert.deepStrictEqual(S.effectiveOutputSchema({ inferredFields: ['items'], inferredSchema: nested }), { schema: nested, source: 'inferred', declared: false });
+    assert.deepStrictEqual(S.effectiveOutputSchema({ skillSchema: sk, inferredFields: ['items'], inferredSchema: nested }).schema.properties.items, nested.properties.items);
     assert.deepStrictEqual(S.effectiveOutputSchema({}), { schema: null, source: null, declared: false });
 });
 
@@ -105,13 +109,13 @@ test('every grant hangs on its own switch', () => {
     assert.deepStrictEqual(S.grantsUnderPermissions(g, { useTools: 'yes' }).apps, [], 'only a real true opens a switch');
 });
 
-test('skill routines join a CURATED agent only, as a copy', () => {
+test('skill automations join a CURATED agent only, as a copy', () => {
     const curated = { tools: { automations: { r1: { confirm: 'direct' } } } };
     const out = S.configWithSkillAutomations(curated, ['r2', 'r1']);
     assert.deepStrictEqual(out.tools.automations, { r1: { confirm: 'direct' }, r2: {} });
     assert.deepStrictEqual(curated.tools.automations, { r1: { confirm: 'direct' } }, 'not mutated');
     const uncurated = { tools: {} };
-    assert.strictEqual(S.configWithSkillAutomations(uncurated, ['r2']), uncurated, 'an uncurated agent already has every routine');
+    assert.strictEqual(S.configWithSkillAutomations(uncurated, ['r2']), uncurated, 'an uncurated agent already has every automation');
     const unreadable = { tools: { automations: 'all' } };
     assert.strictEqual(S.configWithSkillAutomations(unreadable, ['r2']), unreadable, 'an unreadable choice is not widened');
     assert.strictEqual(S.configWithSkillAutomations(curated, []), curated);

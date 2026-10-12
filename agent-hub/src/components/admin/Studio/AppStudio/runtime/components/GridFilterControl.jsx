@@ -1,5 +1,6 @@
 import { ChevronDown } from 'lucide-react';
 import { FILTER_KIND } from './gridColumnFilters';
+import useTranslation from '../../../../../../hooks/useTranslation';
 
 /**
  * One column's filter control, shaped by the column's kind (see
@@ -34,6 +35,7 @@ function Arrow() {
 }
 
 export default function GridFilterControl({ kind, name, value, options, active, onChange }) {
+    const { t } = useTranslation();
     const range = value && typeof value === 'object' ? value : {};
     const setPart = (part, v) => {
         const next = { ...range, [part]: v };
@@ -46,16 +48,16 @@ export default function GridFilterControl({ kind, name, value, options, active, 
         return (
             <div className={BOX} style={boxStyle(active)} role="group" aria-label={name}>
                 <input
-                    type="number" inputMode="decimal" placeholder="Min"
-                    aria-label={`${name} from`}
+                    type="number" inputMode="decimal" placeholder={t('studio_apps_runtime.grid.filter_min', 'Min')}
+                    aria-label={t('studio_apps_runtime.grid.filter_name_from', '{name} from', { name })}
                     value={range.min ?? ''}
                     onChange={(e) => setPart('min', e.target.value)}
                     className={FIELD}
                 />
                 <Dash />
                 <input
-                    type="number" inputMode="decimal" placeholder="Max"
-                    aria-label={`${name} to`}
+                    type="number" inputMode="decimal" placeholder={t('studio_apps_runtime.grid.filter_max', 'Max')}
+                    aria-label={t('studio_apps_runtime.grid.filter_name_to', '{name} to', { name })}
                     value={range.max ?? ''}
                     onChange={(e) => setPart('max', e.target.value)}
                     className={FIELD}
@@ -69,7 +71,7 @@ export default function GridFilterControl({ kind, name, value, options, active, 
             <div className={BOX} style={boxStyle(active)} role="group" aria-label={name}>
                 <input
                     type="date"
-                    aria-label={`${name} from`}
+                    aria-label={t('studio_apps_runtime.grid.filter_name_from', '{name} from', { name })}
                     value={range.from ?? ''}
                     onChange={(e) => setPart('from', e.target.value)}
                     className={FIELD}
@@ -77,7 +79,7 @@ export default function GridFilterControl({ kind, name, value, options, active, 
                 <Dash />
                 <input
                     type="date"
-                    aria-label={`${name} to`}
+                    aria-label={t('studio_apps_runtime.grid.filter_name_to', '{name} to', { name })}
                     value={range.to ?? ''}
                     onChange={(e) => setPart('to', e.target.value)}
                     className={FIELD}
@@ -88,7 +90,7 @@ export default function GridFilterControl({ kind, name, value, options, active, 
 
     if (kind === FILTER_KIND.boolean || kind === FILTER_KIND.select) {
         const items = kind === FILTER_KIND.boolean
-            ? [{ value: 'true', label: 'Yes' }, { value: 'false', label: 'No' }]
+            ? [{ value: 'true', label: t('studio_apps_runtime.grid.filter_yes_label', 'Yes') }, { value: 'false', label: t('studio_apps_runtime.grid.filter_no_label', 'No') }]
             : (options || []);
         return (
             <div className={`${BOX} relative`} style={boxStyle(active)}>
@@ -99,7 +101,7 @@ export default function GridFilterControl({ kind, name, value, options, active, 
                     className={SELECT}
                     style={{ color: active ? 'var(--text-primary)' : 'var(--text-muted)' }}
                 >
-                    <option value="">{kind === FILTER_KIND.boolean ? 'Any' : 'All'}</option>
+                    <option value="">{kind === FILTER_KIND.boolean ? t('studio_apps_runtime.grid.filter_any', 'Any') : t('studio_apps_runtime.grid.filter_all', 'All')}</option>
                     {items.map((o) => <option key={o.value} value={o.value}>{o.label ?? o.value}</option>)}
                 </select>
                 <Arrow />
@@ -112,7 +114,7 @@ export default function GridFilterControl({ kind, name, value, options, active, 
             <input
                 value={value ?? ''}
                 onChange={(e) => onChange(e.target.value || undefined)}
-                placeholder="Contains…"
+                placeholder={t('studio_apps_runtime.grid.filter_contains', 'Contains…')}
                 aria-label={name}
                 className={FIELD}
             />

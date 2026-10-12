@@ -37,8 +37,8 @@ export function CategoryField({ value, onCommit }: { value: string; onCommit?: (
                 onChange={(e) => setDraft(e.target.value)}
                 onBlur={commit}
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); } }}
-                placeholder={t('routines.header.step_category_placeholder', 'Add a category')}
-                title={t('routines.header.step_category_title', 'Group this Step under a category in the add-step menu')}
+                placeholder={t('automations.header.step_category_placeholder', 'Add a category')}
+                title={t('automations.header.step_category_title', 'Group this Step under a category in the add-step menu')}
                 maxLength={60}
                 className="w-32 px-1.5 py-0.5 text-xs rounded bg-transparent border border-transparent hover:border-[var(--border-default)] focus:border-[var(--accent-primary)] focus:bg-[var(--bg-secondary)] text-[var(--text-secondary)] focus:outline-none transition"
             />
@@ -92,23 +92,23 @@ export function StepActionCluster({ busy = false, step, orgGroups = [], onPublis
                 type="button"
                 onClick={() => onSetStepExpose?.(!exposed)}
                 disabled={busy}
-                title={t('routines.header.step_in_chat_title', 'Make this Step callable as a tool in direct and agent chat')}
+                title={t('automations.header.step_in_chat_title', 'Make this Step callable as a tool in direct and agent chat')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] border transition disabled:opacity-50 ${
                     exposed
                         ? 'bg-[color-mix(in_srgb,var(--accent-primary)_15%,transparent)] text-[var(--text-primary)] border-[var(--accent-primary)]'
                         : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] border-[var(--border-default)] hover:bg-[var(--bg-tertiary)]'
                 }`}
             >
-                <MessageSquare size={13} /> {t('routines.header.step_in_chat', 'In chat')}
+                <MessageSquare size={13} /> {t('automations.header.step_in_chat', 'In chat')}
             </button>
             <button
                 type="button"
                 onClick={() => onPublishStep?.()}
                 disabled={busy}
-                title={t('routines.header.step_publish_title', 'Publish: automations and chats using this Step pick up the change')}
+                title={t('automations.header.step_publish_title', 'Publish: automations and chats using this Step pick up the change')}
                 className="flex items-center gap-1.5 px-3.5 h-8 rounded-lg text-[12px] font-semibold bg-[var(--accent-primary)] text-[var(--accent-primary-fg)] hover:brightness-95 transition disabled:opacity-50"
             >
-                <Upload size={13} /> {t('routines.header.step_publish', 'Publish')}
+                <Upload size={13} /> {t('automations.header.step_publish', 'Publish')}
             </button>
         </div>
     );

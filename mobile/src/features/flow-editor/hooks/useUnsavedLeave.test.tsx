@@ -1,5 +1,5 @@
 /**
- * Leaving the last screen of a routine whose save is failing asks first; a
+ * Leaving the last screen of an automation whose save is failing asks first; a
  * healthy draft, or a screen that is not the last holder, leaves at once.
  */
 

@@ -259,7 +259,7 @@ test('GET /:id/usage answers { usage } and scans the SKILL\'S org, not the calle
 /**
  * The half that could never fire before. `listSkillUsage` has a branch that
  * skips the `automation` kind entirely (no automations table on an install
- * without routines) and this route answered a bare `{ usage }`, so the client
+ * without automations) and this route answered a bare `{ usage }`, so the client
  * side that was BUILT for this — useUsage's `normaliseUnchecked`, UsedByTab's
  * narrower empty line, DangerZone's narrower delete line — could not be
  * reached down the real path. The tab said "No agent or automation uses this

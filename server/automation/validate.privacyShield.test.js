@@ -7,7 +7,7 @@
  * author's first sign of trouble was an empty output at run time.
  *
  * It is a WARNING, never an error. The hide may legitimately live in a Step or
- * flowlet this document only calls, and a routine has to stay savable and
+ * flowlet this document only calls, and an automation has to stay savable and
  * activatable while it is half-built — a rule that blocks the save would be
  * worse than the problem it reports.
  *
@@ -37,11 +37,11 @@ test('a reveal with nothing that hides is warned about', () => {
     assert.ok(codesOf(r).includes('untokenize.no_hide_step'));
     const w = r.warnings.find(x => x.code === 'untokenize.no_hide_step');
     assert.equal(w.severity, 'warning');
-    assert.match(w.message, /nothing in this routine hides personal data/i);
+    assert.match(w.message, /nothing in this automation hides personal data/i);
     assert.match(w.hint, /Hide personal data|Check and hide/);
 });
 
-test('it warns but never blocks — the routine still saves and still activates', () => {
+test('it warns but never blocks — the automation still saves and still activates', () => {
     const r = validateDefinition(def([reveal()]));
     assert.equal(r.errors.length, 0, `unexpected errors: ${JSON.stringify(r.errors)}`);
     assert.ok(r.ok, 'a warning must leave the definition valid');
@@ -95,7 +95,7 @@ test('hiding inside a layer counts', () => {
     assert.ok(!codesOf(r).includes('untokenize.no_hide_step'));
 });
 
-test('every reveal gets its own warning, so a long routine names them all', () => {
+test('every reveal gets its own warning, so a long automation names them all', () => {
     const r = validateDefinition(def([reveal('u1'), reveal('u2')]));
     const hits = r.warnings.filter(x => x.code === 'untokenize.no_hide_step');
     assert.equal(hits.length, 2);
@@ -103,7 +103,7 @@ test('every reveal gets its own warning, so a long routine names them all', () =
     assert.ok(hits.some(h => h.message.includes('u2')));
 });
 
-test('a routine with no reveal at all is silent', () => {
+test('an automation with no reveal at all is silent', () => {
     const r = validateDefinition(def([hide(), plainCheck('g2')]));
     assert.ok(!codesOf(r).includes('untokenize.no_hide_step'));
 });

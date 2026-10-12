@@ -2,7 +2,7 @@ import React from 'react';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { Input, SectionCard, StatusBadge } from './components';
 
-export default function OpenAISection({ azureEndpoint, setAzureEndpoint, azureApiKey, setAzureApiKey, hasAzureApiKey, azureApiVersion, setAzureApiVersion, azureModels, setAzureModels, handleSave, saving, saved }) {
+export default function OpenAISection({ azureEndpoint, setAzureEndpoint, azureApiKey, setAzureApiKey, hasAzureApiKey, azureModels, setAzureModels, handleSave, saving, saved }) {
     const { t } = useTranslation();
     const modelCount = azureModels ? azureModels.split(',').filter(m => m.trim()).length : 0;
     const isConfigured = !!azureEndpoint && hasAzureApiKey;
@@ -11,7 +11,7 @@ export default function OpenAISection({ azureEndpoint, setAzureEndpoint, azureAp
         <SectionCard
             title={t('azure.openai_title')}
             description={t('azure.openai_section_desc')}
-            onSave={() => handleSave('openai', { azureEndpoint, azureApiKey: azureApiKey || undefined, azureApiVersion, azureModels })}
+            onSave={() => handleSave('openai', { azureEndpoint, azureApiKey: azureApiKey || undefined, azureModels })}
             saving={saving}
             saved={saved}
         >
@@ -29,7 +29,7 @@ export default function OpenAISection({ azureEndpoint, setAzureEndpoint, azureAp
                 <div className="flex gap-1.5">
                     {azureEndpoint && <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-500/20 text-green-400">{t('azure.endpoint_badge')}</span>}
                     {hasAzureApiKey && <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-500/20 text-green-400">{t('azure.key_badge')}</span>}
-                    {modelCount > 0 && <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400">{modelCount} model{modelCount !== 1 ? 's' : ''}</span>}
+                    {modelCount > 0 && <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400">{modelCount === 1 ? t('azure.open_ai_model_one', '{count} model', { count: 1 }) : t('azure.open_ai_model_other', '{count} models', { count: modelCount })}</span>}
                 </div>
             </div>
 
@@ -49,17 +49,10 @@ export default function OpenAISection({ azureEndpoint, setAzureEndpoint, azureAp
                 helpText={hasAzureApiKey ? t('azure.api_key_help_set') : t('azure.api_key_help_empty')}
             />
             <Input
-                label={t('azure.api_version')}
-                value={azureApiVersion}
-                onChange={setAzureApiVersion}
-                placeholder="2024-04-01-preview"
-                helpText={t('azure.api_version_help')}
-            />
-            <Input
                 label={t('azure.deployed_models')}
                 value={azureModels}
                 onChange={setAzureModels}
-                placeholder="gpt-4.1, gpt-5-mini, gpt-5.4"
+                placeholder={t('azure.open_ai_gpt_4_1_gpt_5_mini_gpt_5_4', 'gpt-4.1, gpt-5-mini, gpt-5.4')}
                 helpText={t('azure.deployed_models_help')}
             />
 

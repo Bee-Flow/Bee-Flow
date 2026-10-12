@@ -2,7 +2,7 @@
  * DIFFERENTIAL lockstep: `liveStateOf` against the web's
  * `Builder/header/liveState.ts`, run on the same rows (every combination of
  * the fields it reads, junk included). TEXTUAL for the words: every
- * `routines.header.*` key the phone's header, banner and model say goes out
+ * `automations.header.*` key the phone's header, banner and model say goes out
  * with the English the web's header files give it. Plus unit tests for the
  * phone's own reading (whether the server has the split, the pending line).
  */
@@ -51,7 +51,7 @@ describe('liveStateOf decides as the web does', () => {
         }
     });
 
-    it('offers Make live only on a live routine that is ahead', () => {
+    it('offers Make live only on a live automation that is ahead', () => {
         expect(liveStateOf({ isActive: true, version: 5, liveVersion: 3, neverLive: false, pendingChanges: 2 }).primary).toBe('publish');
         expect(liveStateOf({ isActive: false, version: 5, liveVersion: 3, neverLive: false, pendingChanges: 2 }).primary).toBe('activate');
         expect(liveStateOf({ isActive: true, version: 3, liveVersion: 3, neverLive: false, pendingChanges: 0 }).primary).toBeNull();
@@ -61,11 +61,11 @@ describe('liveStateOf decides as the web does', () => {
 });
 
 describe('the words are the web header\'s', () => {
-    const PAIR = /\bt\(\s*'(routines\.header\.[a-z_]+)',\s*'([^']*)'/g;
+    const PAIR = /\bt\(\s*'(automations\.header\.[a-z_]+)',\s*'([^']*)'/g;
     const pairs = (src: string) => [...src.matchAll(PAIR)].map((m) => `${m[1]}|${m[2]}`);
     const webPairs = new Set([...WEB_HEADER, WEB_BAR].flatMap(pairs));
 
-    it.each(['liveState.ts', 'PublishBanner.tsx', 'BuildHeader.tsx'])('%s says each routines.header key as the web does', (file) => {
+    it.each(['liveState.ts', 'PublishBanner.tsx', 'BuildHeader.tsx'])('%s says each automations.header key as the web does', (file) => {
         const mine = pairs(fs.readFileSync(`${__dirname}/${file}`, 'utf8'));
         expect(mine.length).toBeGreaterThan(0);
         expect(mine.filter((pair) => !webPairs.has(pair))).toEqual([]);
@@ -96,7 +96,7 @@ describe('the phone\'s reading', () => {
         expect(pendingText(liveStateOf({ isActive: false, version: 2, liveVersion: null, neverLive: true, pendingChanges: 0 }), english)).toBeNull();
     });
 
-    it('names the live version only for a routine switched on', () => {
+    it('names the live version only for an automation switched on', () => {
         expect(liveVersionWord(liveStateOf({ isActive: true, version: 5, liveVersion: 3, neverLive: false }), english)).toBe('Live · v3');
         expect(liveVersionWord(liveStateOf({ isActive: false, version: 5, liveVersion: 3, neverLive: false }), english)).toBeNull();
         expect(liveVersionWord(null, english)).toBeNull();

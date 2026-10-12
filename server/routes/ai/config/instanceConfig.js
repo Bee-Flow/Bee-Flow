@@ -33,6 +33,7 @@ const ConfigBody = bodyOf({
     url: cfgText, model: cfgText, apiKey: cfgText, mistralApiKey: cfgText, openaiApiKey: cfgText,
     claudeApiKey: cfgText, googleApiKey: cfgText, eugptApiKey: cfgText, elevenlabsApiKey: cfgText, googleVertexProject: cfgText,
     googleVertexLocation: cfgText, googleVertexServiceAccountKey: cfgText, azureEndpoint: cfgText,
+    // azureApiVersion: accepted and ignored (Azure runs on v1 GA; old clients send it).
     azureApiKey: cfgText, azureApiVersion: cfgText, agentSearchUrl: cfgText, lakeraApiKey: cfgText,
     embeddingModel: cfgText, embeddingProviderId: cfgText, googleMapsApiKey: cfgText, serperApiKey: cfgText,
     azureDocIntelligenceEndpoint: cfgText, azureDocIntelligenceKey: cfgText,
@@ -97,7 +98,6 @@ router.get('/config', requireAuth, async (req, res) => {
         hasGoogleVertexServiceAccountKey: !!(await configStore.getSecret('google_vertex_service_account_key')),
         hasAzureEndpoint: !!(await configStore.getConfig('azure_endpoint')),
         hasAzureApiKey: !!(await configStore.getSecret('azure_api_key')),
-        azureApiVersion: await configStore.getConfig('azure_api_version') || '2025-04-01-preview',
         azureModels: await configStore.getConfig('azure_models') || '',
         hasFirefliesKey: !!(req.session?.user?.id && (await configStore.getSecret(`fireflies_api_key_user_${req.session.user.id}`))),
         hasAgentSearchUrl: !!process.env.SEARCH_SERVICE_URL || !!(await configStore.getConfig('agent_search_url')),
@@ -204,7 +204,7 @@ router.post('/config', requireAuth, validate({ body: ConfigBody }), async (req, 
     if (!(await isAdminUser(req))) {
         return res.status(403).json({ error: 'Admin access required' });
     }
-    const { url, model, apiKey, mistralApiKey, openaiApiKey, claudeApiKey, googleApiKey, eugptApiKey, elevenlabsApiKey, googleVertexProject, googleVertexLocation, googleVertexServiceAccountKey, azureEndpoint, azureApiKey, azureApiVersion, azureModels, agentSearchUrl, lakeraApiKey, regexGuardrails, piiDetectionEnabled, piiDetectionCategories, piiDetectionConfidenceThreshold, piiDetectionScope, piiDetectionAction, embeddingModel, embeddingProviderId, allowedModelsByAgentType, directChatRegexGuardrails, googleMapsApiKey, serperApiKey, azureDocIntelligenceEndpoint, azureDocIntelligenceKey, azureOpenaiEmbeddingEndpoint, azureOpenaiEmbeddingKey, azureOpenaiEmbeddingModel, useAzureDocProcessing, serviceEmailDisplayName, azureSpeechKey, azureSpeechRegion, transcriptionProvider, notebooksEnabled, projectsEnabled, askAiEnabled, exportEnabled, openInNotebookEnabled, notebooksMenuEnabled, azureRerankerEndpoint, azureRerankerKey, azureRerankerModel, stripeSecretKey, stripeWebhookSecret, stripePublishableKey, stripeEnabled, stripeTaxEnabled, stripeTaxCountry, subscriptionNotifyEmail } = req.body;
+    const { url, model, apiKey, mistralApiKey, openaiApiKey, claudeApiKey, googleApiKey, eugptApiKey, elevenlabsApiKey, googleVertexProject, googleVertexLocation, googleVertexServiceAccountKey, azureEndpoint, azureApiKey, azureModels, agentSearchUrl, lakeraApiKey, regexGuardrails, piiDetectionEnabled, piiDetectionCategories, piiDetectionConfidenceThreshold, piiDetectionScope, piiDetectionAction, embeddingModel, embeddingProviderId, allowedModelsByAgentType, directChatRegexGuardrails, googleMapsApiKey, serperApiKey, azureDocIntelligenceEndpoint, azureDocIntelligenceKey, azureOpenaiEmbeddingEndpoint, azureOpenaiEmbeddingKey, azureOpenaiEmbeddingModel, useAzureDocProcessing, serviceEmailDisplayName, azureSpeechKey, azureSpeechRegion, transcriptionProvider, notebooksEnabled, projectsEnabled, askAiEnabled, exportEnabled, openInNotebookEnabled, notebooksMenuEnabled, azureRerankerEndpoint, azureRerankerKey, azureRerankerModel, stripeSecretKey, stripeWebhookSecret, stripePublishableKey, stripeEnabled, stripeTaxEnabled, stripeTaxCountry, subscriptionNotifyEmail } = req.body;
     // The instance-wide PII action. It was stored as given, and 'allow' — a
     // per-call override for trusted first-party flows in piiDetection/validate
     // — makes the scan skip entirely, for every org that falls back to this
@@ -270,7 +270,7 @@ router.post('/config', requireAuth, validate({ body: ConfigBody }), async (req, 
         await configStore.setSecret('linkedin_client_secret', req.body.linkedinClientSecret || '');
     }
     // Withings health connector — one developer app per deployment, the same
-    // admin-global shape LinkedIn uses. Per-user tokens live in the routine
+    // admin-global shape LinkedIn uses. Per-user tokens live in the automation
     // vault, never here.
     if (req.body.withingsClientId !== undefined) {
         await configStore.setSecret('withings_client_id', req.body.withingsClientId || '');
@@ -475,7 +475,6 @@ router.post('/config', requireAuth, validate({ body: ConfigBody }), async (req, 
         googleVertexServiceAccountKey: googleVertexServiceAccountKey !== undefined ? googleVertexServiceAccountKey : undefined,
         azureEndpoint: azureEndpoint !== undefined ? azureEndpoint : undefined,
         azureApiKey: azureApiKey !== undefined ? azureApiKey : undefined,
-        azureApiVersion: azureApiVersion !== undefined ? azureApiVersion : undefined,
         lakeraApiKey: lakeraApiKey !== undefined ? lakeraApiKey : undefined,
         regexGuardrails: regexGuardrails !== undefined ? regexGuardrails : existing.regexGuardrails,
         piiDetectionEnabled: piiDetectionEnabled !== undefined ? piiDetectionEnabled : existing.piiDetectionEnabled,
@@ -539,7 +538,7 @@ router.delete('/config/key/:keyName', requireAuth, async (req, res) => {
 // Also support deleting non-secret config keys (like vertex project/location)
 const DELETABLE_CONFIG_KEYS = [
     'google_vertex_project', 'google_vertex_location',
-    'azure_endpoint', 'azure_api_version', 'azure_models',
+    'azure_endpoint', 'azure_models',
     'azure_content_safety_endpoint', 'azure_doc_intelligence_endpoint',
     'azure_openai_embedding_endpoint', 'azure_openai_embedding_model',
     'azure_speech_region', 'agent_search_url', 'service_email_address',

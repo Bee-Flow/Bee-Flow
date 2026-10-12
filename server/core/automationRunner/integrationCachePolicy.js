@@ -21,7 +21,7 @@
  * Three levels rather than one because they answer three different questions:
  * an operator needs to switch it off for the whole box without touching data,
  * an organisation needs to decide whether third-party answers may be stored at
- * all, and the person building a routine is the only one who knows whether
+ * all, and the person building an automation is the only one who knows whether
  * THIS look-up's answer is still true five minutes later.
  *
  * ── WHAT IT IS NEVER ALLOWED TO DO ──────────────────────────────────
@@ -73,7 +73,7 @@ const _cache = new Map();   // orgId|'' → { at, policy }
  * into. `AUTOMATION_ASK_ONCE_DISABLED=0` is a non-empty string, so a
  * `!process.env.X` test switches the feature OFF at the exact moment someone
  * writes the word they think means "leave it on" — and the only symptom is a
- * routine quietly getting slower.
+ * automation quietly getting slower.
  */
 function envFlagOn(name) {
     const raw = String(process.env[name] || '').trim().toLowerCase();

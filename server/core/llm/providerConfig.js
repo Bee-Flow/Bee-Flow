@@ -17,7 +17,7 @@ const configStore = require('../../stores/configStore');
 const log = require('../../telemetry/log');
 const { LOCAL_RUNTIMES, isLocalProviderType } = require('../providers/localModels');
 const { SCALEWAY_BASE_URL } = require('../providers/scalewayModels');
-const { EUGPT_BASE_URL } = require('../providers/eugptModels');
+const { EUGPT_BASE_URL, EUGPT_LEGACY_BASE_URL } = require('../providers/eugptModels');
 
 // Self-hosted runtimes are presets too — same shape, derived from the single
 // runtime table so the admin UI and the backend never disagree about which
@@ -69,6 +69,7 @@ async function getFullConfig() {
 async function getAIConfig() {
     try {
         const ai = await configStore.getConfig('ai') || {};
+        const mistralSecret = await configStore.getSecret('mistral_api_key');
 
         // If we have providers, return the default one
         if (ai.providers && ai.providers.length > 0 && ai.defaultProviderId) {
@@ -76,8 +77,14 @@ async function getAIConfig() {
             if (defaultProvider) {
                 return {
                     url: defaultProvider.url || DEFAULT_CONFIG.url,
+                    // The default provider's type, so a caller that needs a key for ONE
+                    // vendor (Mistral OCR) can tell whether `apiKey` is that vendor's.
+                    providerType: defaultProvider.type || null,
                     model: defaultProvider.model || DEFAULT_CONFIG.model,
-                    apiKey: await configStore.getSecret('mistral_api_key') || defaultProvider.apiKey || DEFAULT_CONFIG.apiKey,
+                    apiKey: mistralSecret || defaultProvider.apiKey || DEFAULT_CONFIG.apiKey,
+                    // The Mistral secret on its own, whatever the default provider is
+                    // (Mistral OCR may use it next to a Claude/OpenAI default).
+                    mistralApiKey: mistralSecret || null,
                     lakeraApiKey: ai.lakeraApiKey || DEFAULT_CONFIG.lakeraApiKey,
                     mistralOcrApiKey: ai.mistralOcrApiKey || null,
                     regexGuardrails: ai.regexGuardrails || null,
@@ -96,7 +103,8 @@ async function getAIConfig() {
         return {
             url: ai.url || DEFAULT_CONFIG.url,
             model: ai.model || DEFAULT_CONFIG.model,
-            apiKey: await configStore.getSecret('mistral_api_key') || ai.apiKey || DEFAULT_CONFIG.apiKey,
+            apiKey: mistralSecret || ai.apiKey || DEFAULT_CONFIG.apiKey,
+            mistralApiKey: mistralSecret || null,
             lakeraApiKey: ai.lakeraApiKey || DEFAULT_CONFIG.lakeraApiKey,
             mistralOcrApiKey: ai.mistralOcrApiKey || null,
             regexGuardrails: ai.regexGuardrails || null,
@@ -167,9 +175,6 @@ async function saveAIConfig(aiConfig) {
         }
         if (aiConfig.azureApiKey !== undefined) {
             await configStore.setSecret('azure_api_key', aiConfig.azureApiKey || '');
-        }
-        if (aiConfig.azureApiVersion !== undefined) {
-            await configStore.setConfig('azure_api_version', aiConfig.azureApiVersion || '');
         }
 
         const ai = await configStore.getConfig('ai') || {};
@@ -401,13 +406,12 @@ async function ensureAzureProvider() {
 
     if (!ai.providers) ai.providers = [];
 
-    const apiVersion = await configStore.getConfig('azure_api_version') || '2025-04-01-preview';
-
     const existing = ai.providers.find(p => p.id === 'azure-default');
     if (existing) {
         existing.url = endpoint;
         existing.apiKey = apiKey;
-        existing.apiVersion = apiVersion;
+        // Leftover from the dated Azure API; the adapter runs on v1 GA.
+        delete existing.apiVersion;
     } else {
         ai.providers.push({
             id: 'azure-default',
@@ -416,7 +420,6 @@ async function ensureAzureProvider() {
             url: endpoint,
             model: '',
             apiKey,
-            apiVersion,
         });
         log.info('[AIAgent] Auto-created default Azure AI provider');
     }
@@ -488,10 +491,17 @@ async function ensureEuGptProvider() {
 
     const existing = ai.providers.find(p => p.id === 'eugpt-default');
     if (existing) {
+        // The old seed pointed at the chat web app, which answers every API
+        // call with a 412 from its storage bucket. An admin-chosen URL stays.
+        const movesHost = (existing.url || '').replace(/\/+$/, '') === EUGPT_LEGACY_BASE_URL;
         // Not an authentication check: both sides are this server's own
         // config, and the answer only decides whether to write it again.
-        if (existing.apiKey === apiKey) return; // nosemgrep: ajinabraham.njsscan.crypto.timing_attack_node.node_timing_attack
+        if (existing.apiKey === apiKey && !movesHost) return; // nosemgrep: ajinabraham.njsscan.crypto.timing_attack_node.node_timing_attack
         existing.apiKey = apiKey;
+        if (movesHost) {
+            existing.url = EUGPT_BASE_URL;
+            log.info('[AIAgent] Moved the EU GPT provider to the API host');
+        }
     } else {
         ai.providers.push({
             id: 'eugpt-default',
@@ -597,8 +607,6 @@ async function addProvider(provider) {
         if (provider.project) newProvider.project = provider.project;
         if (provider.location) newProvider.location = provider.location;
         if (provider.serviceAccountKey) newProvider.serviceAccountKey = provider.serviceAccountKey;
-        // Azure specific fields
-        if (provider.apiVersion) newProvider.apiVersion = provider.apiVersion;
 
         ai.providers.push(newProvider);
 
@@ -635,7 +643,6 @@ async function updateProvider(providerId, updates) {
             project: updates.project !== undefined ? updates.project : existing.project,
             location: updates.location !== undefined ? updates.location : existing.location,
             serviceAccountKey: updates.serviceAccountKey !== undefined ? updates.serviceAccountKey : existing.serviceAccountKey,
-            apiVersion: updates.apiVersion !== undefined ? updates.apiVersion : existing.apiVersion,
         };
 
         await configStore.setConfig('ai', ai);

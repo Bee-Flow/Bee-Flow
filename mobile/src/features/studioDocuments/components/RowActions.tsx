@@ -1,7 +1,7 @@
 /**
  * A library row's actions, as on the web: duplicate (which is also how a
  * template is used — the copy is a private document) and archive, which asks
- * first. Archiving keeps the versions a routine or an app still references.
+ * first. Archiving keeps the versions an automation or an app still references.
  */
 
 import React from 'react';

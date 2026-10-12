@@ -24,7 +24,7 @@ test('the schema is a valid datatable schema (types the engine has, a select wit
 
 test('every brief stays under the cap, names the REAL table and keys, and never a placeholder id', () => {
     const briefs = {
-        routine: R.composeRoutineBrief({ table: TABLE, folderPath: '/Invoices-Test' }),
+        automation: R.composeAutomationBrief({ table: TABLE, folderPath: '/Invoices-Test' }),
         app: R.composeAppBrief({ table: TABLE, title: 'Facturen' }),
         approvals: R.composeApprovalsBrief({ table: TABLE, approver: { userId: 'u_owner_1' } }),
     };
@@ -41,17 +41,17 @@ test('every brief stays under the cap, names the REAL table and keys, and never 
         assert.match(b, /`/, `${name} puts tool names in backticks`);
     }
     // The two automations number their steps; the app lists its screens.
-    assert.match(briefs.routine, /\n1\. /);
+    assert.match(briefs.automation, /\n1\. /);
     assert.match(briefs.approvals, /\n1\. /);
     assert.match(briefs.app, /\n- /);
-    // Routine: manual trigger, the four steps, the real id, the six fields, the status literal.
-    assert.match(briefs.routine, /^## Build an automation\nI start it by hand: manual trigger/);
-    assert.match(briefs.routine, /nextcloud_list_files` on folder "\/Invoices-Test"/);
-    assert.match(briefs.routine, /nextcloud_read_file` for each item/);
-    assert.match(briefs.routine, /data_extraction` .* datum \(date\), leverancier \(string\), factuurnummer \(string\), excl_btw \(number\), btw \(number\), totaal \(number\)/);
-    assert.match(briefs.routine, /datatable add_row` .* \*\*"Facturen"\*\* \(id `tbl_ac8bd9ea1182`, key `facturen`\)/);
-    assert.match(briefs.routine, /set status to the literal "open"/);
-    assert.doesNotMatch(briefs.routine, /Nextcloud Tables mirror/);
+    // Automation: manual trigger, the four steps, the real id, the six fields, the status literal.
+    assert.match(briefs.automation, /^## Build an automation\nI start it by hand: manual trigger/);
+    assert.match(briefs.automation, /nextcloud_list_files` on folder "\/Invoices-Test"/);
+    assert.match(briefs.automation, /nextcloud_read_file` for each item/);
+    assert.match(briefs.automation, /data_extraction` .* datum \(date\), leverancier \(string\), factuurnummer \(string\), excl_btw \(number\), btw \(number\), totaal \(number\)/);
+    assert.match(briefs.automation, /datatable add_row` .* \*\*"Facturen"\*\* \(id `tbl_ac8bd9ea1182`, key `facturen`\)/);
+    assert.match(briefs.automation, /set status to the literal "open"/);
+    assert.doesNotMatch(briefs.automation, /Nextcloud Tables mirror/);
     // App: plan first, link by name, never create/seed, both screens, Dutch labels, finalize.
     // By ID: three tables called "Facturen" exist on the box (measured 2026-09-13) and {name} was ambiguous.
     assert.match(briefs.app, /`app_set_plan`, then `app_link_datatable \{datatableId:"tbl_ac8bd9ea1182"\}`/);
@@ -61,12 +61,12 @@ test('every brief stays under the cap, names the REAL table and keys, and never 
     assert.match(briefs.app, /### Screen "Factuur"\n- A `record_detail`/);
     assert.match(briefs.app, /Finish with `app_finalize`/);
     // Approvals: writable re-link, the literal stage shape with the owner's id, the list screen.
-    // The approval flow is a ROUTINE on Studio → Approvals — the app is never touched.
+    // The approval flow is a AUTOMATION on Studio → Approvals — the app is never touched.
     assert.match(briefs.approvals, /^## Build an automation "Facturen goedkeuren"\nI start it by hand: manual trigger/);
     assert.match(briefs.approvals, /find_rows` in the EXISTING datatable \*\*"Facturen"\*\* \(id `tbl_ac8bd9ea1182`, key `facturen`\): where status equals "open", sort datum ascending, limit 1/);
     assert.match(briefs.approvals, /set status to "in_beoordeling"/);
     assert.match(briefs.approvals, /builder_add_approval` with assignee \{userId:"u_owner_1"\}, expiresInHours 168/);
-    assert.match(briefs.approvals, /\{\{steps\.<step1>\.output\.rows\.0\.factuurnummer\}\}/, 'the routine bindings survive the recipe template');
+    assert.match(briefs.approvals, /\{\{steps\.<step1>\.output\.rows\.0\.factuurnummer\}\}/, 'the automation bindings survive the recipe template');
     assert.match(briefs.approvals, /set status to "goedgekeurd"/);
     assert.doesNotMatch(briefs.approvals, /app_|approval_list|screen/i);
     assert.match(R.composeApprovalsBrief({ table: TABLE, approver: { groupId: 'grp_fin' } }), /assignee \{groupId:"grp_fin"\}/);
@@ -74,7 +74,7 @@ test('every brief stays under the cap, names the REAL table and keys, and never 
     // a custom playbook copied from this one starts from the same words.
     const doc = require('../recipeDoc').fromDocument(R.DOCUMENT);
     const ctx = { table: TABLE, options: { folderPath: '/Invoices-Test' }, playbook: { title: 'Facturen', userId: 'u_owner_1' } };
-    assert.equal(doc.composeBrief('routine', ctx), briefs.routine);
+    assert.equal(doc.composeBrief('automation', ctx), briefs.automation);
     assert.equal(doc.composeBrief('app', ctx), briefs.app);
     assert.equal(doc.composeBrief('approvals', ctx), briefs.approvals);
     assert.equal(require('../recipeDoc').validateRecipeDoc(R.DOCUMENT).ok, true);
@@ -93,11 +93,11 @@ test('an existing table is addressed by ITS keys: mirror titles map onto roles; 
     assert.equal(titled.ok, true);
     assert.deepEqual(titled.mapping, { datum: 'c1', leverancier: 'c2', factuurnummer: 'c3', excl_btw: 'c4', totaal: 'c5' });
     assert.deepEqual(titled.typeWarnings, []);
-    const routine = R.composeRoutineBrief({ table: { id: 'tbl_m1', name: 'Facturen (NC)', key: 'facturen_nc', mapping: titled.mapping, isMirror: true, hasStatus: false }, folderPath: '/Invoices' });
-    assert.match(routine, /c1 \(date\), c2 \(string\), c3 \(string\), c4 \(number\), c5 \(number\)/);
-    assert.match(routine, /Map the fields by column key\./);
-    assert.doesNotMatch(routine, /literal "open"/);
-    assert.match(routine, /Nextcloud Tables mirror; rows go to Nextcloud/);
+    const automation = R.composeAutomationBrief({ table: { id: 'tbl_m1', name: 'Facturen (NC)', key: 'facturen_nc', mapping: titled.mapping, isMirror: true, hasStatus: false }, folderPath: '/Invoices' });
+    assert.match(automation, /c1 \(date\), c2 \(string\), c3 \(string\), c4 \(number\), c5 \(number\)/);
+    assert.match(automation, /Map the fields by column key\./);
+    assert.doesNotMatch(automation, /literal "open"/);
+    assert.match(automation, /Nextcloud Tables mirror; rows go to Nextcloud/);
     const app = R.composeAppBrief({ table: { name: 'Facturen (NC)', key: 'facturen_nc', mapping: titled.mapping } });
     assert.match(app, /- A `filter_bar` on c2, c1\./);
     assert.doesNotMatch(app, /totaal btw/);
@@ -110,7 +110,7 @@ test('an existing table is addressed by ITS keys: mirror titles map onto roles; 
 
 test('phasesFor: table ready, the rest pending, approvals locked without the capability', () => {
     const open = R.phasesFor({ tableMode: 'new' }, { approvalsAllowed: true });
-    assert.deepEqual(open.map((p) => [p.key, p.status]), [['table', 'ready'], ['routine', 'pending'], ['fill', 'pending'], ['design', 'pending'], ['app', 'pending'], ['approvals', 'pending']]);
+    assert.deepEqual(open.map((p) => [p.key, p.status]), [['table', 'ready'], ['automation', 'pending'], ['fill', 'pending'], ['design', 'pending'], ['app', 'pending'], ['approvals', 'pending']]);
     assert.match(open[3].goal, /factuur-app/);
     const locked = R.phasesFor({ tableMode: 'existing' }, { approvalsAllowed: false });
     assert.equal(locked[5].status, 'locked');
@@ -134,16 +134,16 @@ test('an English workspace builds an English demo: English columns, briefs and l
     assert.deepEqual(back.mapping, mapping);
 
     const table = { id: 'tbl_en1', name: 'Invoices', key: 'invoices', mapping, isMirror: false, hasStatus: true };
-    const routine = R.composeRoutineBrief({ table, folderPath: '/Invoices', locale: 'en' });
+    const automation = R.composeAutomationBrief({ table, folderPath: '/Invoices', locale: 'en' });
     const app = R.composeAppBrief({ table, title: 'Invoices', locale: 'en' });
     const approvals = R.composeApprovalsBrief({ table, approver: { userId: 'u_owner_1' }, locale: 'en' });
-    for (const [name, b] of Object.entries({ routine, app, approvals })) {
+    for (const [name, b] of Object.entries({ automation, app, approvals })) {
         assert.ok(b.length <= R.MAX_BRIEF_CHARS, `${name}: ${b.length} chars`);
         assert.doesNotMatch(b, /Facturen|factuur|btw|Datum|Leverancier|goedkeur/i, `${name} says nothing Dutch`);
     }
-    assert.match(routine, /date \(date\), supplier \(string\), invoice_number \(string\), excl_vat \(number\), vat \(number\), total \(number\)/);
-    assert.match(routine, /set status to the literal "open"/);
-    assert.match(routine, /Title "Read invoices"/);
+    assert.match(automation, /date \(date\), supplier \(string\), invoice_number \(string\), excl_vat \(number\), vat \(number\), total \(number\)/);
+    assert.match(automation, /set status to the literal "open"/);
+    assert.match(automation, /Title "Read invoices"/);
     assert.match(app, /### Screen "Overview"\n- Stat tiles: invoice count \(count\), total excl\. VAT \(sum excl_vat\)/);
     assert.match(app, /### Screen "Invoice"\n- A `record_detail`/);
     assert.match(app, /English labels everywhere \(Date, Supplier, Invoice number, Excl\. VAT, VAT, Total, Status\)/);
@@ -157,7 +157,7 @@ test('an English workspace builds an English demo: English columns, briefs and l
     const docAdapter = require('../recipeDoc').fromDocument(doc);
     const ctx = { table, options: { folderPath: '/Invoices' }, playbook: { title: 'Invoices', userId: 'u_owner_1' } };
     assert.equal(require('../recipeDoc').validateRecipeDoc(doc).ok, true);
-    assert.equal(docAdapter.composeBrief('routine', ctx), routine);
+    assert.equal(docAdapter.composeBrief('automation', ctx), automation);
     assert.equal(docAdapter.composeBrief('app', ctx), app);
     assert.equal(docAdapter.composeBrief('approvals', ctx), approvals);
     // A copy of the document behaves like the module: role → the table's key.
@@ -185,6 +185,6 @@ test('the registry still resolves the recipe, and offers none', () => {
     assert.deepEqual(listRecipes(), []);
     assert.deepEqual(listRecipes('en'), []);
     // The document it would be listed AS is unchanged (recipeDoc.js shape).
-    assert.deepEqual([R.DOCUMENT.id, R.DOCUMENT.title, R.DOCUMENT.source, R.DOCUMENT.phases.map((p) => `${p.key}:${p.kind}`)], ['invoice_tracker', 'Facturen bijhouden', 'builtin', ['table:table', 'routine:routine', 'fill:fill', 'design:design', 'app:app', 'approvals:routine']]);
+    assert.deepEqual([R.DOCUMENT.id, R.DOCUMENT.title, R.DOCUMENT.source, R.DOCUMENT.phases.map((p) => `${p.key}:${p.kind}`)], ['invoice_tracker', 'Facturen bijhouden', 'builtin', ['table:table', 'automation:automation', 'fill:fill', 'design:design', 'app:app', 'approvals:automation']]);
     assert.equal(R.toDocument('en').title, 'Invoice tracker');
 });

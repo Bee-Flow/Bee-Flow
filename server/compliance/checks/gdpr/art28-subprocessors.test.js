@@ -62,7 +62,7 @@ test('module shape and cross-framework tags', () => {
 test('the ledger query is unchanged: 30-day window, org-scoped, local and dry-run calls excluded', async () => {
     await check.evaluate('org-1');
     assert.deepEqual(state.lastParams, ['org-1']);
-    assert.match(state.lastSql, /FROM integration_activity_log WHERE organization_id = \$1/);
+    assert.match(state.lastSql, /FROM integration_activity_log WHERE \(organization_id = \$1 OR \(\$1::text = 'default' AND \(organization_id IS NULL OR organization_id = ''\)\)\)/);
     assert.match(state.lastSql, /INTERVAL '30 days'/);
     assert.match(state.lastSql, /COALESCE\(is_local, false\) = false/);
     assert.match(state.lastSql, /COALESCE\(is_dry_run, false\) = false/);
@@ -75,6 +75,25 @@ test('no ledger table → not_applicable with the historical reason', async () =
     const r = await check.evaluate('org-1');
     assert.equal(r.status, 'not_applicable');
     assert.deepEqual(r.evidence, { reason: 'activity ledger not available' });
+});
+
+test('a single-tenant install: the default bucket reads the ledger rows written with no organisation', async () => {
+    // logToolEgress writes organization_id NULL for a user with no org, while
+    // the scheduler sweeps that install as 'default'. The parameter stays the
+    // org id; the predicate maps NULL/'' onto 'default' only.
+    await check.evaluate('default');
+    assert.deepEqual(state.lastParams, ['default']);
+    assert.match(state.lastSql, /organization_id IS NULL OR organization_id = ''/);
+});
+
+test('a ledger that cannot be read → warn with the SQLSTATE, not "no ledger yet"', async () => {
+    // not_applicable leaves the score, so a timeout used to look like a fresh
+    // install. Only 42P01/42703 mean "not provisioned".
+    state.queryError = Object.assign(new Error('canceling statement due to statement timeout'), { code: '57014' });
+    const r = await check.evaluate('org-1');
+    assert.equal(r.status, 'warn');
+    assert.equal(r.evidence.sqlstate, '57014');
+    assert.ok(!JSON.stringify(r).includes('canceling statement'), 'the raw error message stays out of the evidence');
 });
 
 test('a quiet ledger → not_applicable', async () => {

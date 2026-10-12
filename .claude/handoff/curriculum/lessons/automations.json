@@ -2,37 +2,37 @@
   "id": "automations",
   "icon": "⚙️",
   "estMinutes": 9,
-  "title": "What a routine actually is",
+  "title": "What an automation actually is",
   "desc": "One trigger, some steps, a run — and how it differs from Cowork and from a chat.",
   "gate": {
     "feature": "automations"
   },
-  "learningGoal": "After this lesson the learner can decide whether a job belongs in a chat, in Cowork, or in a routine — and can say what a run records and why nothing fires until someone activates it.",
+  "learningGoal": "After this lesson the learner can decide whether a job belongs in a chat, in Cowork, or in an automation — and can say what a run records and why nothing fires until someone activates it.",
   "steps": [
     {
       "type": "slide",
       "id": "friday-hour",
       "icon": "🧭",
       "title": "The Friday hour at Van Dijk Groep",
-      "bodyMd": "Van Dijk Groep is an installation firm near Zwolle: sixty people who fit kitchens and window frames for housing associations and private clients, one sales lead, a lot of quotations.\n\nEvery Friday afternoon somebody opens the quotations table, picks out the ones still open, writes five bullets about them and mails that to the sales lead. It takes an hour. In a busy week it does not happen at all.\n\nA **routine** is that hour written down once, as a drawing the product walks through on its own:\n\n- a **trigger** that says when it starts,\n- **steps** that do the work,\n- a **run** — the record of what happened the time it fired.\n\nThis chapter is only about deciding which of your jobs deserves one. The canvas comes in chapter 3."
+      "bodyMd": "Van Dijk Groep is an installation firm near Zwolle: sixty people who fit kitchens and window frames for housing associations and private clients, one sales lead, a lot of quotations.\n\nEvery Friday afternoon somebody opens the quotations table, picks out the ones still open, writes five bullets about them and mails that to the sales lead. It takes an hour. In a busy week it does not happen at all.\n\nA **automation** is that hour written down once, as a drawing the product walks through on its own:\n\n- a **trigger** that says when it starts,\n- **steps** that do the work,\n- a **run** — the record of what happened the time it fired.\n\nThis chapter is only about deciding which of your jobs deserves one. The canvas comes in chapter 3."
     },
     {
       "type": "tour",
       "id": "nav-studio",
       "target": "[data-tour=\"nav-studio\"]",
-      "navigateTo": "studio/routines",
+      "navigateTo": "studio/automations",
       "placement": "right",
       "optional": true,
       "timeoutMs": 7000,
       "icon": "🏛️",
-      "title": "Routines live in Studio",
-      "body": "Studio is the workshop: agents, knowledge, tables, forms — and the section called Automations, \"Multi-step routines that run for you\". The objects inside it are the routines."
+      "title": "Automations live in Studio",
+      "body": "Studio is the workshop: agents, knowledge, tables, forms — and the section called Automations, \"Multi-step automations that run for you\". The objects inside it are the automations."
     },
     {
       "type": "tour",
       "id": "start-screen",
       "target": "[data-tour=\"automation-start-tabs\"]",
-      "navigateTo": "studio/routines",
+      "navigateTo": "studio/automations",
       "placement": "bottom",
       "optional": true,
       "timeoutMs": 7000,
@@ -45,13 +45,13 @@
       "id": "anatomy",
       "icon": "🧩",
       "title": "One trigger, some steps, a run",
-      "bodyMd": "Open an empty canvas and it asks one question: **\"What does this routine start with?\"** — with the line **\"Every routine has exactly one trigger.\"**\n\nThat is the shape of every routine, and it never varies:\n\n- **one trigger** — the single event that starts it. Seven cards to pick from: Manual, Form, Schedule, Webhook, App event, Agent call and Studio App. Chapter 2 takes them apart.\n- **steps** that follow it — an app action, an AI step, a condition, an approval, a datatable write. Each step can read what an earlier step produced.\n\nFor Van Dijk Groep's Friday hour the trigger picks itself: **On a schedule**, weekly, Friday at 16:00. The steps are the hour itself: read the open quotations, write the five bullets, mail the sales lead."
+      "bodyMd": "Open an empty canvas and it asks one question: **\"What does this automation start with?\"** — with the line **\"Every automation has exactly one trigger.\"**\n\nThat is the shape of every automation, and it never varies:\n\n- **one trigger** — the single event that starts it. Seven cards to pick from: Manual, Form, Schedule, Webhook, App event, Agent call and Studio App. Chapter 2 takes them apart.\n- **steps** that follow it — an app action, an AI step, a condition, an approval, a datatable write. Each step can read what an earlier step produced.\n\nFor Van Dijk Groep's Friday hour the trigger picks itself: **On a schedule**, weekly, Friday at 16:00. The steps are the hour itself: read the open quotations, write the five bullets, mail the sales lead."
     },
     {
       "type": "sim",
       "id": "where-does-it-go",
       "icon": "🧭",
-      "title": "Chat, Cowork, or a routine?",
+      "title": "Chat, Cowork, or an automation?",
       "instruction": "Four jobs from Van Dijk Groep's week. Pair each one with the place it belongs.",
       "sim": {
         "kind": "match",
@@ -71,14 +71,14 @@
           {
             "id": "p3",
             "left": "Every invoice mail with an attachment: read the total, and anything over 2,500 euro waits for the purchasing manager before a row is written.",
-            "right": "A routine",
-            "note": "It branches, it pauses for a person, and it writes to a table that outlives the run. That is exactly what a routine is for."
+            "right": "An automation",
+            "note": "It branches, it pauses for a person, and it writes to a table that outlives the run. That is exactly what an automation is for."
           },
           {
             "id": "p4",
-            "left": "\"Pull the VAT number out of this PDF\" — needed inside three different routines.",
-            "right": "A reusable Step",
-            "note": "A Step takes an input, does some work, returns an output. Build it once, drop it into any routine, or let an agent call it in chat."
+            "left": "\"Pull the VAT number out of this PDF\" — needed inside three different automations.",
+            "right": "A building block",
+            "note": "A building block takes an input, does some work, returns an output. Build it once, drop it into any automation, or let an agent call it in chat."
           }
         ]
       }
@@ -86,7 +86,7 @@
     {
       "type": "quiz",
       "id": "q-run",
-      "question": "One of Van Dijk Groep's routines fired last night. What exactly is the run it left behind?",
+      "question": "One of Van Dijk Groep's automations fired last night. What exactly is the run it left behind?",
       "multi": false,
       "choices": [
         {
@@ -96,9 +96,9 @@
         },
         {
           "id": "b",
-          "label": "A copy of the routine as it is designed today, so the timeline always matches your latest edits.",
+          "label": "A copy of the automation as it is designed today, so the timeline always matches your latest edits.",
           "correct": false,
-          "feedback": "A run keeps the snapshot of the version that actually ran. Edit the routine tomorrow and last night's timeline still shows the old shape — which is right, and surprises almost everyone the first time."
+          "feedback": "A run keeps the snapshot of the version that actually ran. Edit the automation tomorrow and last night's timeline still shows the old shape — which is right, and surprises almost everyone the first time."
         },
         {
           "id": "c",
@@ -108,68 +108,68 @@
         },
         {
           "id": "d",
-          "label": "Very little, unless you switched run logging on for that routine before it fired.",
+          "label": "Very little, unless you switched run logging on for that automation before it fired.",
           "correct": false,
           "feedback": "There is no logging switch. Every run and every step is recorded, and the history is kept for 90 days."
         }
       ],
-      "explanation": "Studio → Runs & log answers \"every time a routine fired: what started it, what it did, and what went wrong\". Opening a run shows it step by step, with a status word per run — Finished, Failed, Running, Waiting for approval, Waiting for a form, Skipped, Nothing to do, Recovered, Frozen data — and a small dry-run pill when it was only a preview."
+      "explanation": "Studio → Runs & log answers \"every time an automation fired: what started it, what it did, and what went wrong\". Opening a run shows it step by step, with a status word per run — Finished, Failed, Running, Waiting for approval, Waiting for a form, Skipped, Nothing to do, Recovered, Frozen data — and a small dry-run pill when it was only a preview."
     },
     {
       "type": "slide",
       "id": "owner-private",
       "icon": "🔒",
       "title": "Yours, and only yours",
-      "bodyMd": "The Friday routine belongs to the person who drew it. **A routine is owner-private on every licence tier** — there is no share switch on the routine itself, and a colleague cannot open, edit or run yours.\n\nTwo things look like exceptions and are not:\n\n- **Folders** in the left rail are organisation-wide labels, but the routines filed in them stay per person. Deleting a folder detaches its routines; it does not delete them.\n- An **organisation admin** can switch Runs & log to **Organisation** and see everybody's runs — and even there, only the person who started a run can open it.\n\nOne exception is real. **A reusable Step is a shareable object**: it lives in its own library, and its share menu offers keeping it personal, the whole organisation, or chosen groups. So a block inside your canvas can belong to a colleague — press Publish and *\"automations and chats using this Step pick up the change\"*, without anyone touching your drawing. A later lesson takes Steps apart.\n\nWhat you share is the output, not the routine: the mail to the sales lead, a form link, a datatable row, an approval on a colleague's desk."
+      "bodyMd": "The Friday automation belongs to the person who drew it. **An automation is owner-private on every licence tier** — there is no share switch on the automation itself, and a colleague cannot open, edit or run yours.\n\nTwo things look like exceptions and are not:\n\n- **Folders** in the left rail are organisation-wide labels, but the automations filed in them stay per person. Deleting a folder detaches its automations; it does not delete them.\n- An **organisation admin** can switch Runs & log to **Organisation** and see everybody's runs — and even there, only the person who started a run can open it.\n\nOne exception is real. **A building block is a shareable object**: it lives in its own library — the Building blocks group of the Automations list — and its share menu offers keeping it personal, the whole organisation, or chosen groups. So a block inside your canvas can belong to a colleague — press Publish and *\"automations and chats using this Step pick up the change\"*, without anyone touching your drawing. A later lesson takes building blocks apart.\n\nWhat you share is the output, not the automation: the mail to the sales lead, a form link, a datatable row, an approval on a colleague's desk."
     },
     {
       "type": "quiz",
       "id": "q-private",
-      "question": "The sales lead likes your Friday routine and asks for a copy she can edit herself. What can you actually do?",
+      "question": "The sales lead likes your Friday automation and asks for a copy she can edit herself. What can you actually do?",
       "multi": false,
       "choices": [
         {
           "id": "a",
-          "label": "Nothing that hands over the routine — she gets its output, not the drawing. If a piece of it is worth sharing, that piece can become a reusable Step; the routine itself stays yours.",
+          "label": "Nothing that hands over the automation — she gets its output, not the drawing. If a piece of it is worth sharing, that piece can become a building block; the automation itself stays yours.",
           "correct": true
         },
         {
           "id": "b",
-          "label": "Open the routine's menu, use Share, and give her edit rights on your copy.",
+          "label": "Open the automation's menu, use Share, and give her edit rights on your copy.",
           "correct": false,
-          "feedback": "There is no share switch on a routine — routines are owner-private on every licence tier. The share menu you may be picturing belongs to a reusable **Step**, which is a different object with its own library."
+          "feedback": "There is no share switch on an automation — automations are owner-private on every licence tier. The share menu you may be picturing belongs to a **building block**, which is a different object with its own library."
         },
         {
           "id": "c",
-          "label": "Move it into a folder you both use — folders are organisation-wide, so the routines inside one are too.",
+          "label": "Move it into a folder you both use — folders are organisation-wide, so the automations inside one are too.",
           "correct": false,
-          "feedback": "Half right: the folders really are organisation-wide labels. The routines filed in them stay private to their owner, and deleting a folder only detaches them."
+          "feedback": "Half right: the folders really are organisation-wide labels. The automations filed in them stay private to their owner, and deleting a folder only detaches them."
         },
         {
           "id": "d",
-          "label": "Ask an organisation admin to open it for her, since admins can run anyone's routine.",
+          "label": "Ask an organisation admin to open it for her, since admins can run anyone's automation.",
           "correct": false,
-          "feedback": "An admin can switch Runs & log to Organisation and see that everybody's runs exist, but only the person who started a run can open it. There is no admin route into your routine."
+          "feedback": "An admin can switch Runs & log to Organisation and see that everybody's runs exist, but only the person who started a run can open it. There is no admin route into your automation."
         }
       ],
-      "explanation": "Owner-private is both the default and the ceiling for a routine: nobody else opens, edits or runs it, on any tier. Two things do cross the line, and neither is the routine — its **output** (a mail, a form link, a datatable row, an approval on someone's desk) and a **reusable Step**, which has a real share menu: personal, the whole organisation, or chosen groups."
+      "explanation": "Owner-private is both the default and the ceiling for an automation: nobody else opens, edits or runs it, on any tier. Two things do cross the line, and neither is the automation — its **output** (a mail, a form link, a datatable row, an approval on someone's desk) and a **building block**, which has a real share menu: personal, the whole organisation, or chosen groups."
     },
     {
       "type": "slide",
       "id": "draft-active",
       "icon": "🚦",
       "title": "Nothing fires until someone activates it",
-      "bodyMd": "Your Friday routine stays a **draft** until you say otherwise, and a draft is inactive. Save it, wire it, dry-run it all afternoon — it will not fire.\n\nPressing **Activate** is the moment it becomes real. The server then runs its strict check and refuses the ones that would fail in the dark: an unknown tool, a required input left empty, a knowledge base you are not allowed to read, a schedule with no upcoming run time (*\"Cannot activate — schedule … has no upcoming run time. Check the day/month combination.\"*).\n\nThis matters most with **Build with AI**. The assistant wires the steps, dry-runs them and saves — and then stops. It cannot switch a routine on. Activation is a human decision, on purpose.\n\n**Pause** puts it straight back. Nothing about activating is one-way."
+      "bodyMd": "Your Friday automation stays a **draft** until you say otherwise, and a draft is inactive. Save it, wire it, dry-run it all afternoon — it will not fire.\n\nPressing **Activate** is the moment it becomes real. The server then runs its strict check and refuses the ones that would fail in the dark: an unknown tool, a required input left empty, a knowledge base you are not allowed to read, a schedule with no upcoming run time (*\"Cannot activate — schedule … has no upcoming run time. Check the day/month combination.\"*).\n\nThis matters most with **Build with AI**. The assistant wires the steps, dry-runs them and saves — and then stops. It cannot switch an automation on. Activation is a human decision, on purpose.\n\n**Pause** puts it straight back. Nothing about activating is one-way."
     },
     {
       "type": "quiz",
       "id": "q-activate",
-      "question": "It is Thursday evening. You described the Friday routine to Build with AI; it reports \"Built · 9 steps\" and says it saved the routine. What happens tomorrow at 16:00?",
+      "question": "It is Thursday evening. You described the Friday automation to Build with AI; it reports \"Built · 9 steps\" and says it saved the automation. What happens tomorrow at 16:00?",
       "multi": false,
       "choices": [
         {
           "id": "a",
-          "label": "Nothing. It is saved as a draft and inactive, and the scheduler only picks up routines a person has activated.",
+          "label": "Nothing. It is saved as a draft and inactive, and the scheduler only picks up automations a person has activated.",
           "correct": true
         },
         {
@@ -180,15 +180,15 @@
         },
         {
           "id": "c",
-          "label": "It fires, because the builder activates a routine itself once the routine is finished.",
+          "label": "It fires, because the builder activates an automation itself once the automation is finished.",
           "correct": false,
-          "feedback": "The builder tooling cannot switch a routine on. Finalising the draft is as far as it goes — activation is left to a person, on purpose."
+          "feedback": "The builder tooling cannot switch an automation on. Finalising the draft is as far as it goes — activation is left to a person, on purpose."
         },
         {
           "id": "d",
-          "label": "Nothing, and nothing ever will: a routine the assistant drew has to be redrawn by hand before it can go live.",
+          "label": "Nothing, and nothing ever will: an automation the assistant drew has to be redrawn by hand before it can go live.",
           "correct": false,
-          "feedback": "The drawing is real and complete. Press Activate and the server runs its strict check — unknown tool, empty required input, a knowledge base you may not read, a schedule with no upcoming run time — and if it passes, the routine is live."
+          "feedback": "The drawing is real and complete. Press Activate and the server runs its strict check — unknown tool, empty required input, a knowledge base you may not read, a schedule with no upcoming run time — and if it passes, the automation is live."
         }
       ],
       "explanation": "Everything new starts as a draft and inactive, whether you drew it or described it. **Activate** is the single gate between a drawing and a thing that runs, it is the moment the strict check happens, and **Pause** puts it straight back. Nothing about it is one-way — and nothing, not a clean save and not a clean preview, walks through that gate for you."
@@ -198,12 +198,12 @@
       "id": "dry-run",
       "icon": "🧪",
       "title": "Dry-run proves the shape, not the outcome",
-      "bodyMd": "The Run button in the builder has two halves. The visible one is **Dry-run** — *\"no real actions, a safe preview\"*. **Run live** sits behind the chevron, one deliberate click further.\n\nA dry-run walks the whole routine for real, and every step records what it received and what it produced. Anything with a consequence is faked instead of done: no mail leaves, no row is written, no saved credential is decrypted. A Privacy Shield block becomes a note saying it *would* have blocked, instead of failing the run.\n\nSo the two buttons answer two different questions: **did the wiring hold** (dry-run) and **did the work happen** (live). For now, all you need is to know which one you are pressing. Chapter 4 puts the preview under pressure and makes you hunt for what a green one can still be hiding."
+      "bodyMd": "The Run button in the builder has two halves. The visible one is **Dry-run** — *\"no real actions, a safe preview\"*. **Run live** sits behind the chevron, one deliberate click further.\n\nA dry-run walks the whole automation for real, and every step records what it received and what it produced. Anything with a consequence is faked instead of done: no mail leaves, no row is written, no saved credential is decrypted. A Privacy Shield block becomes a note saying it *would* have blocked, instead of failing the run.\n\nSo the two buttons answer two different questions: **did the wiring hold** (dry-run) and **did the work happen** (live). For now, all you need is to know which one you are pressing. Chapter 4 puts the preview under pressure and makes you hunt for what a green one can still be hiding."
     },
     {
       "type": "quiz",
       "id": "q-justify",
-      "question": "Four more jobs from Van Dijk Groep's week. Which one genuinely earns a routine rather than a chat or a Cowork item?",
+      "question": "Four more jobs from Van Dijk Groep's week. Which one genuinely earns an automation rather than a chat or a Cowork item?",
       "multi": false,
       "choices": [
         {
@@ -215,22 +215,22 @@
           "id": "b",
           "label": "Work out how many hours we billed last quarter, so the sales lead can quote the number in tomorrow's meeting — one answer, needed today.",
           "correct": false,
-          "feedback": "A one-off question needs no saved routine. Ask it in a chat, or hand it to Cowork once with When set to Run now."
+          "feedback": "A one-off question needs no saved automation. Ask it in a chat, or hand it to Cowork once with When set to Run now."
         },
         {
           "id": "c",
           "label": "At eight every morning, a three-line summary of the overnight support mail, waiting for me when I sit down.",
           "correct": false,
-          "feedback": "One brief, one unattended result, nothing to decide along the way — that is Cowork's territory. Reach for a routine when the work branches, waits for a person, or writes somewhere that outlives the run."
+          "feedback": "One brief, one unattended result, nothing to decide along the way — that is Cowork's territory. Reach for an automation when the work branches, waits for a person, or writes somewhere that outlives the run."
         },
         {
           "id": "d",
           "label": "Decide which of three window-frame suppliers to go with, arguing it back and forth with me until we land on one.",
           "correct": false,
-          "feedback": "You are changing your mind as you read. A routine fires and finishes on its own; it cannot stop to ask what you made of the second option."
+          "feedback": "You are changing your mind as you read. An automation fires and finishes on its own; it cannot stop to ask what you made of the second option."
         }
       ],
-      "explanation": "The tell is not \"is it repetitive\" — Cowork repeats too. The tell is a decision inside the work (a condition), a pause for a person (an approval or a second form page), or a result that has to survive the run (a datatable row, a knowledge base entry). Any of those three and you want a routine."
+      "explanation": "The tell is not \"is it repetitive\" — Cowork repeats too. The tell is a decision inside the work (a condition), a pause for a person (an approval or a second form page), or a result that has to survive the run (a datatable row, a knowledge base entry). Any of those three and you want an automation."
     },
     {
       "type": "exercise",
@@ -238,7 +238,7 @@
       "icon": "🎯",
       "exerciseId": "ex-automations-one-sentence",
       "title": "Your turn: one sentence, three facts",
-      "instruction": "Pick a job from your own week that you think deserves a routine, and write it as ONE sentence that names three things: WHEN it should start (the moment or the event), WHAT should happen to the data, and WHERE the result should end up. Then add a second short line saying why it is not simply a Cowork item — the branch, the person who has to approve, or the table it writes to.",
+      "instruction": "Pick a job from your own week that you think deserves an automation, and write it as ONE sentence that names three things: WHEN it should start (the moment or the event), WHAT should happen to the data, and WHERE the result should end up. Then add a second short line saying why it is not simply a Cowork item — the branch, the person who has to approve, or the table it writes to.",
       "placeholder": "e.g. \"Whenever a mail with an attachment and 'factuur' in the subject arrives, read the supplier, invoice number and total out of the PDF and add a row to our invoices table.\" Not Cowork because anything over 2,500 euro has to wait for the purchasing manager's approval first.",
       "passScore": 70,
       "maxAttempts": 4
@@ -248,34 +248,34 @@
       "id": "whats-next",
       "icon": "🧾",
       "title": "What you can do now",
-      "bodyMd": "- **Place a job.** A chat when you steer it. A Cowork item for one brief and one unattended result. A routine when the work branches, waits for a person, or writes something that lasts — and a reusable Step when three routines need the same trick.\n- **Read the state of one.** Draft or active, and only a person activates. Dry-run for the shape, a live run for the truth.\n- **Know what you get back.** Every firing is a run in Runs & log, step by step, kept for 90 days.\n\nNext: chapter 2 takes triggers and steps apart, chapter 3 walks the canvas, chapter 4 lets you assemble one with nothing at stake, chapter 5 builds yours for real — and chapter 6 teaches you to brief it before you open the canvas."
+      "bodyMd": "- **Place a job.** A chat when you steer it. A Cowork item for one brief and one unattended result. An automation when the work branches, waits for a person, or writes something that lasts — and a building block when three automations need the same trick.\n- **Read the state of one.** Draft or active, and only a person activates. Dry-run for the shape, a live run for the truth.\n- **Know what you get back.** Every firing is a run in Runs & log, step by step, kept for 90 days.\n\nNext: chapter 2 takes triggers and steps apart, chapter 3 walks the canvas, chapter 4 lets you assemble one with nothing at stake, chapter 5 builds yours for real — and chapter 6 teaches you to brief it before you open the canvas."
     }
   ],
   "rubrics": {
     "ex-automations-one-sentence": {
       "title": "One sentence, three facts",
-      "task": "The learner described a job from their own week as one sentence naming when it starts, what happens to the data, and where the result lands — plus a short line justifying why it is a routine rather than a Cowork item.",
+      "task": "The learner described a job from their own week as one sentence naming when it starts, what happens to the data, and where the result lands — plus a short line justifying why it is an automation rather than a Cowork item.",
       "criteria": [
         "Names a concrete starting moment or event (a time and a repeat, an inbound mail or app event, a form submission) rather than 'regularly' or 'when needed'.",
         "Says what happens to the data in between — reading, extracting, summarising, deciding — specifically enough that someone else could recognise the steps.",
         "Names a destination: a table, a mailbox, a notification, a document, a knowledge base, a colleague.",
-        "Justifies the routine with at least one of: a condition or branch, a pause for a person, or a result that must outlive the run."
+        "Justifies the automation with at least one of: a condition or branch, a pause for a person, or a result that must outlive the run."
       ],
       "passScore": 70,
       "guidance": "Pass a plain, specific sentence even if it is clumsy; the skill being graded is precision, not style. Do not pass 'automate my invoices' or 'send me reports every week' — no destination and no reason it is not Cowork. Do not pass a job that is plainly interactive ('help me write X while I read it'), and do not pass a justification that only says 'because it repeats' — repetition alone is Cowork's job. A brief that names a branch, an approval or a table it writes to should pass even if the wording is informal or partly in Dutch."
     }
   },
   "practiceTopic": {
-    "title": "Routines: what they are and where they live",
-    "summary": "The anatomy of a routine, the draft-versus-active gate, what a run records, why a routine is owner-private while a reusable Step is not, and the boundary between a chat, a Cowork item and a routine.",
+    "title": "Automations: what they are and where they live",
+    "summary": "The anatomy of an automation, the draft-versus-active gate, what a run records, why an automation is owner-private while a building block is not, and the boundary between a chat, a Cowork item and an automation.",
     "facts": [
-      "Routines live in Studio under the section Automations, whose subtitle reads \"Multi-step routines that run for you\".",
-      "An empty canvas asks \"What does this routine start with?\" and states that every routine has exactly one trigger; the seven cards are Manual, Form, Schedule, Webhook, App event, Agent call and Studio App.",
-      "The start screen has four tabs: All automations, Find repeating work, Templates and Runs. Building blocks (reusable Steps) sit in the automations list itself, and the arrow next to + makes one.",
-      "A new routine is a draft and inactive; Activate is a human decision, and the Build with AI assistant cannot switch a routine on.",
+      "Automations live in Studio under the section Automations, whose subtitle reads \"Multi-step automations that run for you\".",
+      "An empty canvas asks \"What does this automation start with?\" and states that every automation has exactly one trigger; the seven cards are Manual, Form, Schedule, Webhook, App event, Agent call and Studio App.",
+      "The start screen has four tabs: All automations, Find repeating work, Templates and Runs. Building blocks (a step you build once and reuse in any automation) sit in the automations list itself, and the arrow next to + makes one.",
+      "A new automation is a draft and inactive; Activate is a human decision, and the Build with AI assistant cannot switch an automation on.",
       "The Run button's visible half is Dry-run, described as \"no real actions, a safe preview\"; Run live sits behind the chevron and executes every step for real.",
       "Studio → Runs & log records every firing: what started it, each step's input, output, error and duration, and the flow as it looked at run time; history is kept for 90 days.",
-      "A routine is owner-private on every licence tier and has no share switch; an organisation admin can list the organisation's runs, but only the person who started a run can open it. A reusable **Step** is the shareable object: its share menu offers personal, the whole organisation, or chosen groups.",
+      "An automation is owner-private on every licence tier and has no share switch; an organisation admin can list the organisation's runs, but only the person who started a run can open it. A building block is the shareable object: its share menu offers personal, the whole organisation, or chosen groups.",
       "Run status words include Finished, Failed, Running, Waiting for approval, Waiting for a form, Skipped, Nothing to do, Recovered and Frozen data, with a small dry-run pill beside the outcome when it was a preview."
     ]
   },

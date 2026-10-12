@@ -36,4 +36,18 @@ module.exports = {
     "app.retry_connection": "Retry Connection",
     "app.server_unavailable_desc": "Could not connect to the Bee Flow server. Please make sure the server is running and try again.",
     "app.server_unavailable_title": "Server Unavailable",
+    // Hardcoded literals converted (2026-10)
+    'app.agent_hub_no_editor_access_title': 'No access to the Agent Editor',
+    'app.agent_hub_no_editor_access_body': 'You don\'t have permission to edit agents. Contact an administrator if you need access.',
+    'app.agent_hub_logo_alt': 'Bee Flow',
+    'app.agent_hub_welcome_title': 'Welcome to Bee Flow',
+    'app.agent_hub_welcome_body': 'Select an agent from the marketplace to start chatting, or create your own custom AI assistant.',
+    'app.agent_hub_browse_agents': 'Browse Agents',
+    'app.shell_logo_alt': 'Bee Flow',
+    'app.shell_no_org_title': 'No Organisation Found',
+    'app.shell_no_org_body': 'Your account is not linked to any organisation yet. Please ask your administrator to create an account for you, or sign up with a new organisation.',
+    'app.shell_sign_up_instead': 'Sign Up Instead',
+    'app.shell_awaiting_approval_title': 'Awaiting Approval',
+    'app.shell_awaiting_approval_consumer': 'Your account has been created and is being reviewed. An administrator will approve your access shortly.',
+    'app.shell_awaiting_approval_org': 'Your account has been created and linked to an organisation, but it needs to be approved by an administrator before you can access the platform.',
 };

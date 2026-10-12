@@ -5,7 +5,7 @@
  *
  * The web's resolveOwningStepId (model/issues.ts, pinned to the web) matches a
  * TOP-LEVEL id inside the path, so a finding about a step in a flowlet, in a
- * loop body or on a second trigger named no step: its row said "This routine"
+ * loop body or on a second trigger named no step: its row said "This automation"
  * and could not be tapped. This follows the paths the server writes
  * (server/automation/validate/graph.js stepIdFromPath): a top-level step by
  * index or id (`steps[3]`, `steps[<id>]`), a nested one by id
@@ -19,7 +19,7 @@ import type { DefinitionInput, FlowDefinition } from '@/features/flow-editor/mod
 export interface IssueLocation {
     /** The step editor's address: an id, or `container/child` for a held step. */
     address: string;
-    /** The flowlet (definition.layers key) the step is in; null in the routine itself. */
+    /** The flowlet (definition.layers key) the step is in; null in the automation itself. */
     flowlet: string | null;
 }
 

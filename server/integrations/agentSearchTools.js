@@ -8,6 +8,7 @@
 
 const configStore = require('../stores/configStore');
 const log = require('../telemetry/log');
+const { READ_URL_TOOLS } = require('./readUrlTools');
 
 /**
  * Tool definitions in OpenAI function-calling format.
@@ -19,7 +20,7 @@ const AGENT_SEARCH_TOOLS = [
             name: 'agent_search',
             description: `Search the web for current information via Google. Use this for up-to-date facts, news, weather, prices, technical docs, or to verify claims.
 
-WHEN NOT TO USE: if the user already gave you a specific URL, or you need the live/JS-rendered content of a known page, use the browse_web tool to open it instead — agent_search is for DISCOVERING pages when you don't have a URL.
+WHEN NOT TO USE: if the user already gave you a specific URL, read that page with the read_url tool (use its find parameter for a specific article or paragraph) instead of searching. Use browse_web only for interactive or JS-rendered pages, logins and PDFs. agent_search is for DISCOVERING pages when you don't have a URL.
 
 MODE SELECTION — pick the right mode for the task:
 • "web" (DEFAULT) — fetches full pages + reranking, ~2s. Best answer quality. Use for most queries.
@@ -271,6 +272,11 @@ async function executeWebSearch(toolName, args) {
     }
     return await executeAgentSearchTool(toolName, args);
 }
+
+// read_url rides on the web-search app: same gate (provider configured, app on),
+// same registry attribution (curated-agent grants, automation palette), so it
+// can never be reachable where web search is not.
+AGENT_SEARCH_TOOLS.push(...READ_URL_TOOLS);
 
 module.exports = {
     AGENT_SEARCH_TOOLS,

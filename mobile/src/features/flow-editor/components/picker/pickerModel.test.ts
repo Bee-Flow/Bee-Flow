@@ -41,10 +41,12 @@ describe('the picker for a "+" in the main flow', () => {
     const def = clone(chain);
     const scope = pickerScope(def, { kind: 'after', sourceId: 'c11', handle: null }, { catalog: CATALOG });
 
-    it('lists the web groups in order: triggers, AI, an app category, the four flow sections', () => {
+    it('lists the web groups in order: triggers, AI, an app category, the flow sections', () => {
         const titles = pickerSections(scope, '').map((s) => s.title);
         expect(titles.slice(0, 2)).toEqual(['Trigger', 'AI']);
-        expect(titles).toEqual(expect.arrayContaining(['Flow control', 'People & waiting', 'Data & lists', 'Integrations']));
+        expect(titles).toEqual(expect.arrayContaining(['Flow control', 'People & waiting', 'Data & lists']));
+        // Code and Call a web service live in Flow control now, not in a section of their own.
+        expect(titles).not.toContain('Integrations');
         expect(titles.some((title) => title.startsWith('Action · '))).toBe(true);
     });
 
@@ -152,7 +154,7 @@ describe('the picker inside a flowlet', () => {
 });
 
 describe('flowlets and glyphs', () => {
-    it('lists the routine’s flowlets', () => {
+    it('lists the automation’s flowlets', () => {
         expect(layersOf({ steps: [], edges: [], layers: { l1: { title: 'Lookup', steps: [], edges: [], params: [{ name: 'q' }] } } })).toEqual([
             { key: 'l1', title: 'Lookup', params: [{ name: 'q' }] },
         ]);

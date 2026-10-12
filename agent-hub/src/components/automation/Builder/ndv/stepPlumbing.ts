@@ -31,8 +31,8 @@ export default function stepPlumbing({
         else if (canPin) await persistStepPatch({ pinnedOutput: runStep?.output, pinnedAt: new Date().toISOString(), pinnedSource: undefined });
     };
     const pinTitle = outputPinned
-        ? t('routines.ndv.unpin_title', 'Unpin output (re-enable live execution)')
-        : t('routines.ndv.pin_title', 'Pin this output (skip live execution; reuse the latest output)');
+        ? t('automations.ndv.unpin_title', 'Unpin output (re-enable live execution)')
+        : t('automations.ndv.pin_title', 'Pin this output (skip live execution; reuse the latest output)');
     // Never on a trigger: the runner never enters dispatchStep for it (so
     // Disable would be a lie) and it never gets a run row (so Pin could only
     // ever be disabled). The quick dialog leaves the plumbing out too.

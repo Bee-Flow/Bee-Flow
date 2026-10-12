@@ -10,7 +10,7 @@
  *      opdracht om alles weg te gooien. Kan de app-rij of haar definitie niet
  *      gelezen worden, dan MOET er niets geschreven worden — anders leest de
  *      capsule na één storing "wordt nergens gebruikt", en dat is precies de
- *      zin waarop iemand een routine verwijdert die een knop in productie
+ *      zin waarop iemand een automatisering verwijdert die een knop in productie
  *      aanzet.
  *   2. EEN SLEUTEL DIE MEEBEWEEGT. `ref_id` is de halve primaire sleutel. Een
  *      sequence-stap heeft geen id, dus zijn POSITIE zou de enige andere
@@ -22,7 +22,7 @@
  *      hij al aan het lezen was toen de purge langskwam.
  *
  * Plus de reden dat de index breder is dan "wat je kunt indrukken": een actie
- * die aan een routine hangt maar aan geen enkele knop telt WEL mee, met
+ * die aan een automatisering hangt maar aan geen enkele knop telt WEL mee, met
  * `wired:false`. Een rij te veel maakt een verwijdering luidruchtiger, een rij
  * te weinig maakt hem stil.
  *
@@ -113,7 +113,7 @@ test('een run_automation DIEP in een sequence telt mee — steps, then, else en 
     assert.deepStrictEqual(ids, ['auto_case', 'auto_loop', 'auto_then']);
 });
 
-test('dezelfde routine twee keer in één actie is ÉÉN rij; twee routines zijn er twee', () => {
+test('dezelfde automation twee keer in één actie is ÉÉN rij; twee automatiseringen zijn er twee', () => {
     const d = def({
         actions: {
             act_seq: {
@@ -129,7 +129,7 @@ test('dezelfde routine twee keer in één actie is ÉÉN rij; twee routines zijn
     });
     const rows = refs.collectAutomationRefs(d).entries;
     assert.strictEqual(rows.length, 2);
-    // Regel 2: dezelfde actie, dus dezelfde ref — de routine maakt het verschil.
+    // Regel 2: dezelfde actie, dus dezelfde ref — de automatisering maakt het verschil.
     assert.deepStrictEqual(rows.map(r => r.refId), ['act:act_seq', 'act:act_seq']);
     assert.deepStrictEqual(rows.map(r => r.automationId), ['auto_a', 'auto_b']);
 });
@@ -164,7 +164,7 @@ test('een actie zonder knop telt mee, maar zegt dat ze onbedraad is', () => {
     assert.strictEqual(row.nodeId, null);
 });
 
-test('een run_automation zonder gekozen routine is geen gebruik, maar wordt wel geteld', () => {
+test('een run_automation zonder gekozen automatisering is geen gebruik, maar wordt wel geteld', () => {
     const d = def({
         actions: {
             act_leeg: { kind: 'run_automation', automationId: null },
@@ -227,14 +227,14 @@ test('de knoppenloop kent exact dezelfde bedradingsvormen als de validator', () 
  * (`automationsInAction`) heeft zijn eigen spiegel: `containsStepKind` in
  * appStudio/validate/actions.js. Die had vijf ingangen — `steps`, `then`,
  * `else`, `cases[].steps` én `default` — en de scan hier had er vier: een
- * routine die alleen in de `default`-tak van een switch stond, draaide wel
+ * automatisering die alleen in de `default`-tak van een switch stond, draaide wel
  * (browser: `execSteps(hit ? hit.steps : step.default)`; server:
  * actionSequence.js) en kwam nooit in de index. De capsule zei dan "No app
- * button runs this routine yet" op precies het scherm waarop iemand besluit
+ * button runs this automation yet" op precies het scherm waarop iemand besluit
  * hem te verwijderen.
  *
  * Vandaar twee bewijzen naast elkaar: de vorm (welke velden de recursie
- * afdaalt, uit de bron gelezen) en het gedrag (een fixture met een routine in
+ * afdaalt, uit de bron gelezen) en het gedrag (een fixture met een automatisering in
  * élke tak).
  */
 test('de stappen-loop daalt in exact dezelfde takken af als containsStepKind', () => {
@@ -258,11 +258,11 @@ test('de stappen-loop daalt in exact dezelfde takken af als containsStepKind', (
     const validator = branchesOf(readSrc('./validate/actions.js'), 'function containsStepKind', 'containsStepKind');
     assert.deepStrictEqual([...mine].sort(), [...validator].sort(),
         'automationRefs.walkSteps en validate/actions.containsStepKind moeten dezelfde takken aflopen — '
-        + 'een tak die de ene wel kent en de andere niet is een routine die draait en niet in de index staat');
+        + 'een tak die de ene wel kent en de andere niet is een automatisering die draait en niet in de index staat');
     assert.ok(mine.has('default'), 'de default-tak van een switch wordt echt uitgevoerd, dus hij telt mee');
 });
 
-test('een routine in ELKE taksoort belandt in de index', () => {
+test('een automatisering in ELKE taksoort belandt in de index', () => {
     const action = {
         kind: 'sequence',
         steps: [
@@ -335,7 +335,7 @@ test('een app zonder eigenaar laat de index staan — een ongegrendelde INSERT b
     assert.deepStrictEqual(store.calls.reconcile, []);
 });
 
-test('entries maar NUL geschreven rijen is geen succes — de routine is weg of van iemand anders', async () => {
+test('entries maar NUL geschreven rijen is geen succes — de automatisering is weg of van iemand anders', async () => {
     const log = silentLog();
     const store = fakeStore({ written: 0 });
     const out = await sync.reconcileAppAutomationUsage(APP, {
@@ -482,7 +482,7 @@ test('zonder id doet niets iets', async () => {
 // draft indexeren gaat op precies één moment fout, en dat is het gevaarlijkste
 // dat er is: de eigenaar haalt de knop midden in een herontwerp uit het scherm,
 // publiceert nog niet, de autosave herindexeert — en de capsule zegt vanaf dat
-// moment met volle zekerheid "No app button runs this routine yet" terwijl de
+// moment met volle zekerheid "No app button runs this automation yet" terwijl de
 // LIVE app die knop nog heeft.
 
 // Eigen naam: de helpers bovenaan dit bestand heten al `screenWithButton`, en

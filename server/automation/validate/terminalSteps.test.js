@@ -3,7 +3,7 @@
  *
  * Een stapsoort is pas terminaal als ÉLKE lezer dat weet. Kent de ene plek hem
  * wel en de andere niet, dan is dezelfde graaf op de ene plek geldig en op de
- * andere niet, en dat merkt iemand pas als een routine halverwege stopt of een
+ * andere niet, en dat merkt iemand pas als een automatisering halverwege stopt of een
  * editor een rand accepteert die de validator weigert. Dit bestand is de reden
  * dat dat niet stil kan gebeuren: het loopt de lijst
  * (validate/constants.js TERMINAL_STEP_TYPES) af en eist per soort dat elk van
@@ -89,8 +89,11 @@ const SERVER_SITES = [
     },
     {
         what: 'het model leest de soort in de typecatalogus (automation/builderPrompt.js)',
-        check: (type) => read('automation/builderPrompt.js').includes(`  ${type}`),
-        fix: 'beschrijf de soort in de stapcatalogus van builderPrompt.js, inclusief dat er niets na komt',
+        // De GERENDERDE prompt, niet de broncode: een deel van de stapcatalogus
+        // (de canvas-only-soorten) komt uit builderTools/stepTypeTable.js, en het
+        // model leest wat hier uitkomt.
+        check: (type) => require('../builderPrompt').buildFullSystemPrompt({ catalog: { apps: [] }, codeStepEnabled: false }).includes(`  ${type}`),
+        fix: 'beschrijf de soort in de stapcatalogus van builderPrompt.js (of, voor een canvas-only soort, in builderTools/stepTypeTable.js), inclusief dat er niets na komt',
     },
     {
         what: 'het model leest het on_error-verbod (builderPrompt.js + builderTools/schemas.js)',

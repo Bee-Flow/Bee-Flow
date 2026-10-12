@@ -31,7 +31,7 @@
  * caller: an approval that cannot be announced must still exist.
  *
  * ── What the card and the bell say (BFSF-441) ──────────────────────────────
- * The routine's name, "approval needed", the role it is asked of and the
+ * The automation's name, "approval needed", the role it is asked of and the
  * link: nothing else. Both texts are rendered from the allow-listed object
  * approvalAnnouncement.js builds, never from the approval row, so the prompt,
  * the details, the questions and the attachments stay in Bee Flow.
@@ -61,7 +61,7 @@ function talkRoomConfigKey(orgId) {
  * is a different product decision than the one this feature made.
  */
 async function resolveTalkRoom({ automation = null, approval = null, orgId = null }) {
-    // `talkRoom` is the handoff 5 name; `ncTalkRoom` what older routines stored.
+    // `talkRoom` is the handoff 5 name; `ncTalkRoom` what older automations stored.
     const onApproval = automation?.definition?.notificationSettings?.onApproval;
     const fromAutomation = onApproval?.talkRoom || onApproval?.ncTalkRoom;
     if (typeof fromAutomation === 'string' && fromAutomation.trim()) return fromAutomation.trim();

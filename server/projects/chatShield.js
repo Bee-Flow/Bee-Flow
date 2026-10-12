@@ -59,6 +59,7 @@ class PrivacyBlocked extends Error {
  * @param {Function} [deps.getAIConfig]          () => global AI config
  * @param {object}   [deps.dlp]                  { scan, applyRedactionChoice, clearConversationState }
  * @param {Function} [deps.validateInputForPii]  core/privacy/piiDetection.validateInputForPii
+ * @param {Function} [deps.detectPii]            core/privacy/piiDetection.detectPii (the Web Search Guard)
  * @param {Function} [deps.logGuardrailEvent]    stores/guardrailEventStore.logGuardrailEvent
  * @param {string}   [deps.source]               guardrail event source: `project_chat` (the
  *                                               answer), `project_chat_gate` (the relevance
@@ -72,6 +73,7 @@ function makeChatShield(deps = {}) {
     const dlp = () => deps.dlp || require('../core/dlp/dlpRunner');
     const validateInputForPii = deps.validateInputForPii
         || ((...args) => require('../core/privacy/piiDetection').validateInputForPii(...args));
+    const detectPii = deps.detectPii || ((...args) => require('../core/privacy/piiDetection').detectPii(...args));
     const logGuardrailEvent = deps.logGuardrailEvent
         || ((event) => require('../stores/guardrailEventStore').logGuardrailEvent(event));
 
@@ -204,6 +206,37 @@ function makeChatShield(deps = {}) {
         });
     }
 
+    /**
+     * The Web Search Guard, as a normal chat runs it on a search query: the
+     * kinds of personal data the admin listed are looked for in the query, every
+     * hit is written to the guardrail events, and the search is refused only
+     * when the guard is switched on (otherwise it is monitoring). A detector
+     * that fails lets the search through, as in a normal chat.
+     * The query is checked as the model wrote it, placeholders and all: a real
+     * value never reaches a search provider.
+     *
+     * @returns {(query: string) => Promise<{ modelError: string } | null>}
+     */
+    function searchGuard({ shield, orgId, userId, auditBase = {} }) {
+        const base = { organization_id: orgId || null, user_id: userId, ...auditBase };
+        const categories = Array.isArray(shield?.webSearchGuardPiiCategories) ? shield.webSearchGuardPiiCategories : [];
+        return async (query) => {
+            if (!shield?.enabled || categories.length === 0) return null;
+            try {
+                const found = await detectPii(query, categories);
+                if (!found?.hasPii) return null;
+                const cats = [...new Set((found.entities || []).map((e) => e.label))].join(', ');
+                const blocking = shield.webSearchGuardEnabled === true;
+                audit(base, { violation_type: 'pii', violation_categories: cats, action_taken: blocking ? 'search_blocked' : 'pii_detected' });
+                if (!blocking) return null;
+                return { modelError: `Web search blocked: the query contains sensitive personal information (${cats}). Search again without it.` };
+            } catch (err) {
+                log.warn('[ProjectChat] Web Search Guard check failed (fail-open):', err && err.message);
+                return null;
+            }
+        };
+    }
+
     /** What the model wrote as tool arguments, with the placeholders replaced by the real values. */
     function restoreArgs(args, tokenMap) {
         return require('../core/dlp/applyTokenMapToOutbound').untokeniseToolArgs(args, tokenMap);
@@ -227,7 +260,7 @@ function makeChatShield(deps = {}) {
         try { dlp().clearConversationState(conversationId, { ephemeral: true }); } catch (_) { /* nothing held */ }
     }
 
-    return { resolve, protect, tokenAddendum, restore, release, toolGate, restoreArgs };
+    return { resolve, protect, tokenAddendum, restore, release, toolGate, restoreArgs, searchGuard };
 }
 
 module.exports = { makeChatShield, PrivacyBlocked };

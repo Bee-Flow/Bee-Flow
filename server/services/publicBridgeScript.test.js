@@ -538,7 +538,7 @@ const BRIDGE_TWIN = {
     beeflowAutomations: {
         shared: ['run', 'list'],
         missingHere: {
-            getRun: 'run() is hier een no-op, dus er is geen draaiende routine om naar te vragen — maar een pagina '
+            getRun: 'run() is hier een no-op, dus er is geen draaiende automatisering om naar te vragen — maar een pagina '
                 + 'die het tóch doet, krijgt "is not a function" in plaats van een uitleg.',
             getSteps: 'zelfde gat als getRun: een voortgangslijst opvragen loopt hier stuk op een TypeError.',
             cancel: 'zelfde gat als getRun: er valt niets af te breken, maar de pagina hoort dat te horen in '
@@ -758,7 +758,7 @@ test('de stub laat "leeg" en "gelukt" niet op hetzelfde uitkomen', () => {
     const stub = buildStubBridgeScript('reactShare');
     // Een no-op die RESOLVET is het gevaarlijkst van allemaal: een zelfgebouwde
     // knop meldt dan succes zonder dat er iets is gedraaid. Zowel de tabelbrug
-    // als de routine-brug moet daarom WEIGEREN, met een reden.
+    // als de automation-brug moet daarom WEIGEREN, met een reden.
     assert.match(stub, /beeflowTables is not available here/);
     assert.match(stub, /beeflowAutomations\.run is not available here/);
     assert.ok(!/run:noop/.test(stub),

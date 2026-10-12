@@ -1,6 +1,7 @@
 import { render, screen, fireEvent, cleanup, act, waitFor, within } from '@testing-library/react';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import userEvent from '@testing-library/user-event';
 import { ndvProps } from './ndv/ndvTestProps';
 
 const { api } = vi.hoisted(() => ({
@@ -66,6 +67,9 @@ describe('NodeDetailView — form trigger', () => {
         // uses — a bare "Trigger" said nothing about which one you opened.
         expect(screen.getByText('Form trigger')).toBeTruthy();
         expect(screen.getByDisplayValue('Get in touch')).toBeTruthy();
+        // Questions start collapsed to one row; opening one shows its editor.
+        expect(screen.getByText('Your name')).toBeTruthy();
+        await userEvent.click(screen.getByLabelText('Expand question 1'));
         expect(screen.getByDisplayValue('Your name')).toBeTruthy();
     });
 
@@ -193,42 +197,16 @@ describe('NodeDetailView — form trigger', () => {
             expect(saved.steps.some(st => st.pinnedOutput)).toBe(false);
         });
 
-        it('shows the live preview OPEN by default, with real visual weight, when it is submittable', async () => {
-            // BFSF-408, reopened: "hit play... no preview is shown... we do
-            // not see a visual form example" was the tester's literal
-            // complaint. The preview used to default closed behind a small
-            // text link after Theme settings — undiscoverable. Whenever
-            // onTestSubmit is wired (a canExecute'able form trigger, i.e. the
-            // primary trigger with a live onExecuteStep), it now shows without
-            // any click, and no click is needed to reach it.
-            await act(async () => { render(<NodeDetailView {...withActions(formTrigger(FIELDS))} />); });
-            expect(screen.getByTestId('form-preview')).toBeTruthy();
-            // Still toggleable, not force-shown.
-            await act(async () => { fireEvent.click(screen.getByText('Hide preview')); });
-            expect(screen.queryByTestId('form-preview')).toBeNull();
-        });
-
-        it('the live preview is submittable, and sends the typed answers as the run payload', async () => {
-            // BFSF-408(a) — an inline test, with no public-route change.
-            // Deliberately NOT "copy the test link": formPublic.js 404s the
-            // hosted page unless the routine is active and non-draft, i.e. it
-            // fails precisely while you are building, and a real submission
-            // there fires every downstream step for real. mode 'only' does not.
+        it('replaces the big inline preview by a compact test bar that runs the shell\'s own test path', async () => {
+            // The form used to render in full inside the narrow panel. Now the
+            // panel carries a "Test this form" button; Execute on a bare form
+            // trigger is what the shell turns into the form overlay.
             const onExecuteStep = vi.fn().mockResolvedValue({});
             await act(async () => { render(<NodeDetailView {...withActions(formTrigger(FIELDS), { onExecuteStep })} />); });
-            // No click needed — the preview is open by default now.
-
-            const preview = within(screen.getByTestId('form-preview'));
-            fireEvent.change(preview.getByLabelText(/Your name/), { target: { value: 'Ada' } });
-            fireEvent.change(preview.getByLabelText(/Your email/), { target: { value: 'ada@example.com' } });
-            await act(async () => { fireEvent.click(preview.getByRole('button', { name: 'Submit' })); });
-
-            expect(onExecuteStep).toHaveBeenCalledWith('trg', {
-                mode: 'only',
-                // The honeypot is anti-bot plumbing, not an answer — it must
-                // not end up in what the next steps map against.
-                triggerPayload: { name: 'Ada', email: 'ada@example.com' },
-            });
+            expect(screen.queryByTestId('form-preview')).toBeNull();
+            await userEvent.click(screen.getByText('Test this form'));
+            expect(onExecuteStep).toHaveBeenCalledWith('trg', { openForm: true });
+            expect(screen.getByText('Open form editor')).toBeTruthy();
         });
 
         it('leaves the identical preview inert on a form_page step', async () => {
@@ -263,8 +241,8 @@ describe('NodeDetailView — the empty-answers shortcut speaks the dictionary', 
         // tests never reach it — and it sits on OutputEditorPanel, which had
         // no useTranslation hook at all.
         transOverride.current = {
-            'routines.ndv.use_empty_answers': 'Lege antwoorden gebruiken',
-            'routines.ndv.empty_answers_title': 'Elke vraag met een leeg antwoord invullen',
+            'automations.ndv.use_empty_answers': 'Lege antwoorden gebruiken',
+            'automations.ndv.empty_answers_title': 'Elke vraag met een leeg antwoord invullen',
         };
         render(<NodeDetailView {...props(formTrigger(FIELDS))} />);
         fireEvent.click(screen.getByTestId('ndv-edit-output'));

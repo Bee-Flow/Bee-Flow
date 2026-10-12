@@ -23,7 +23,7 @@ const viewer = (over = {}) => ({
 test('the owner can always decide', () => {
     assert.ok(canDecide(approval(), viewer({ userId: 'owner' })));
     // …including when the approval is assigned to someone else: the owner is
-    // the fallback approver, never locked out of their own routine.
+    // the fallback approver, never locked out of their own automation.
     assert.ok(canDecide(approval({ assigneeUserId: 'colleague' }), viewer({ userId: 'owner' })));
 });
 

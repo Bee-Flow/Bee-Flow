@@ -1,5 +1,5 @@
 /**
- * core/webpages/webpageBindings — de USAGE-INDEX: WELKE tabel, WELKE routine,
+ * core/webpages/webpageBindings — de USAGE-INDEX: WELKE tabel, WELKE automatisering,
  * WELKE agent hangt er via een `bf-*`-element aan deze pagina?
  *
  * De buurtest van webpageBindings.bfMarks.test.js. Die gaat over WAAR een
@@ -14,7 +14,7 @@
  *
  * Dat laatste is het gevaarlijkst van de twee. `{id}` uit een JSX-uitdrukking
  * ziet er in een usage-index precies zo echt uit als `tbl_1`; wie erop afgaat,
- * verwijdert de verkeerde tabel of denkt dat er een routine aan hangt die niet
+ * verwijdert de verkeerde tabel of denkt dat er een automatisering aan hangt die niet
  * bestaat. "Niet te lezen" is een antwoord, een verzonnen id niet.
  *
  * Apart van webpageBindings.test.js omdat `node --test --test-force-exit` bij
@@ -57,7 +57,7 @@ function stubs({
     ];
 }
 
-// ── de elementen: welke tabel, welke routine, welke agent ─────────────
+// ── de elementen: welke tabel, welke automatisering, welke agent ─────────────
 //
 // De markeringen (`scanBfElements`) zeggen WAAR een element staat; de index
 // (`collectUses`) zegt WAARAAN het hangt. Wat hier vastligt is niet dat de
@@ -102,8 +102,8 @@ test('all five elements are recognised, each with the thing it binds', () => {
 });
 
 test('every binding family the vocabulary declares gets a key, even when nothing uses it', () => {
-    // Anders is "deze pagina gebruikt geen routines" niet te onderscheiden van
-    // "deze index kent het woord routine niet".
+    // Anders is "deze pagina gebruikt geen automations" niet te onderscheiden van
+    // "deze index kent het woord automatisering niet".
     const kinds = new Set();
     for (const def of bfElements.BF_ELEMENTS) if (def.binding) kinds.add(def.binding.kind);
     assert.ok(kinds.size >= 3, 'sanity: het vocabulaire kent meerdere families');

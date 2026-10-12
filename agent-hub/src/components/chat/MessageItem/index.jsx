@@ -24,7 +24,7 @@ import KeepDraftCard from './KeepDraftCard';
 // Subtrees lifted out of this file verbatim — each one owns markup only; every
 // piece of state still lives on this component's fiber and is threaded down.
 import AnswerChips from './AnswerChips';
-import CitationOverlay from '../../../pages/notebooks/CitationOverlay';
+import CitationOverlay from '../../../pages/documents/notebook/CitationOverlay';
 import { GeneratedImages, GeneratedAudio, GeneratedVideos, GeneratedFiles } from './GeneratedMedia';
 import HowIGotThisAnswer from './HowIGotThisAnswer';
 import MessageActionsRow from './MessageActionsRow';
@@ -523,7 +523,7 @@ const MessageItem = ({
                 )}
 
                 {/* What the assistant did for this answer — the same numbered
-                    timeline the routine and app builders show while they build.
+                    timeline the automation and app builders show while they build.
                     Live rows spin, finished rows tick, and the card stays after
                     the turn: the tools are the story of the answer. */}
                 {!isUser && !isTool && (
@@ -643,6 +643,16 @@ const MessageItem = ({
                         showProcess={showAnswerChips}
                         t={t}
                     />
+                )}
+
+                {/* What memory did for this answer: what it read, and what it saved. */}
+                {!isUser && !isTool && !msg.isStreaming && (
+                    <>
+                        <MemoryUsedDisclosure items={memoryUsedOf(msg)} />
+                        {msg.memoryWatch && (
+                            <RememberedChip conversationId={msg.memoryWatch.conversationId} since={msg.memoryWatch.since} until={msg.memoryWatch.until} />
+                        )}
+                    </>
                 )}
 
                 {/* How I got this answer — comprehensive collapsed section */}
@@ -824,6 +834,8 @@ const MessageItem = ({
 // conversation. The boundary is inside React.memo so the identity wrapping is
 // preserved.
 import { MessageErrorBoundary } from '../../shell/ErrorBoundary';
+import MemoryUsedDisclosure, { memoryUsedOf } from '../memory/MemoryUsedDisclosure';
+import RememberedChip from '../memory/RememberedChip';
 
 const MemoMessageItem = React.memo(MessageItem);
 

@@ -11,7 +11,7 @@
  * On the next open, `restoreFromDisk` puts it back. When the server's copy is
  * still the one the edits started from, the edits are simply re-applied as
  * one undoable step, and autosave sends them. When someone changed the
- * routine elsewhere in the meantime, it is not the phone's call which copy
+ * automation elsewhere in the meantime, it is not the phone's call which copy
  * wins: the screen asks (LocalDraftBanner).
  */
 
@@ -43,8 +43,8 @@ export interface DiskKeeper {
 
 /**
  * Mirror the store's unsaved draft to disk: written (debounced) while dirty,
- * removed once saved. Only a routine with an id is kept — until its first save
- * a new routine has nothing on the server to come back to.
+ * removed once saved. Only an automation with an id is kept — until its first save
+ * a new automation has nothing on the server to come back to.
  */
 export function keepOnDisk(store: DraftStore, io: DiskIO, now: () => number = Date.now, delayMs = DISK_WRITE_DELAY_MS): DiskKeeper {
     let timer: ReturnType<typeof setTimeout> | null = null;

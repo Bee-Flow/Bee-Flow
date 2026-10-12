@@ -1,5 +1,5 @@
 /**
- * A routine's notification policy — when a run alerts someone, through which
+ * An automation's notification policy — when a run alerts someone, through which
  * channels, how urgently and to whom — as the web's Settings page edits it
  * (`definition.notificationSettings`, the handoff-5 shape). Port of agent-hub
  * `Builder/settings/notificationSettings.ts`, plus the words
@@ -8,7 +8,7 @@
  *
  *   - any stored value (the new shape, the older one with a `level` and
  *     inapp/nc_talk channels, or nothing) reads as a complete policy, rule for
- *     rule the server's normalizeEventSettings, so a routine saved before this
+ *     rule the server's normalizeEventSettings, so an automation saved before this
  *     page keeps the choices it had;
  *   - switching an event's last channel off switches the event off;
  *   - the whole policy is written back, as the web saves it.
@@ -201,40 +201,40 @@ export function withNotificationSettings(definition: FlowDefinition, next: Notif
 // ── Words (NotificationEventEditor.tsx) ─────────────────────────────────
 
 export function eventTitle(event: NotificationEvent, t: Translate): string {
-    if (event === 'onError') return t('routines.notify.event_error', 'Something goes wrong');
-    if (event === 'onApproval') return t('routines.notify.event_approval', 'Someone must approve');
-    return t('routines.notify.event_success', 'It worked');
+    if (event === 'onError') return t('automations.notify.event_error', 'Something goes wrong');
+    if (event === 'onApproval') return t('automations.notify.event_approval', 'Someone must approve');
+    return t('automations.notify.event_success', 'It worked');
 }
 
 /** "· summary" when the event only goes into the daily summary, "· right away" for errors otherwise. */
 export function eventQualifier(event: NotificationEvent, t: Translate, value?: EventSettings, digestOn = false): string {
-    if (value?.delivery === 'digest' && digestOn) return t('routines.notify.event_success_when', 'summary');
-    if (event === 'onError') return t('routines.notify.event_error_when', 'right away');
+    if (value?.delivery === 'digest' && digestOn) return t('automations.notify.event_success_when', 'summary');
+    if (event === 'onError') return t('automations.notify.event_error_when', 'right away');
     return '';
 }
 
 export function channelLabel(c: Channel, t: Translate, short = false): string {
-    if (c === 'bell') return short ? t('routines.notify.channel_bell_short', 'Bell') : t('routines.notify.channel_bell', 'Bell in Nextcloud');
-    if (c === 'email') return t('routines.notify.channel_email', 'Email');
-    return t('routines.notify.channel_talk', 'Talk');
+    if (c === 'bell') return short ? t('automations.notify.channel_bell_short', 'Bell') : t('automations.notify.channel_bell', 'Bell in Nextcloud');
+    if (c === 'email') return t('automations.notify.channel_email', 'Email');
+    return t('automations.notify.channel_talk', 'Talk');
 }
 
 export function urgencyLabel(u: Urgency, t: Translate): string {
-    if (u === 'silent') return t('routines.notify.urgency_silent', 'Silent');
-    if (u === 'urgent') return t('routines.notify.urgency_urgent', 'Urgent');
-    return t('routines.notify.urgency_normal', 'Normal');
+    if (u === 'silent') return t('automations.notify.urgency_silent', 'Silent');
+    if (u === 'urgent') return t('automations.notify.urgency_urgent', 'Urgent');
+    return t('automations.notify.urgency_normal', 'Normal');
 }
 
 /** A recipient in words. `names` resolves people and groups picked by id (`user:<id>` / `group:<id>`). */
 export function recipientLabel(r: Recipient, t: Translate, ownerName: string, names: ReadonlyMap<string, string>): string {
-    if (r.type === 'owner') return t('routines.notify.to_owner', '{name} (owner)', { name: ownerName });
-    if (r.type === 'approver') return t('routines.notify.to_approver', 'The approver');
+    if (r.type === 'owner') return t('automations.notify.to_owner', '{name} (owner)', { name: ownerName });
+    if (r.type === 'approver') return t('automations.notify.to_approver', 'The approver');
     const name = names.get(recipientKey(r));
-    if (r.type === 'group') return name ? t('routines.notify.to_group', 'Group {name}', { name }) : t('routines.notify.to_group_unknown', 'A group');
-    return name || t('routines.notify.to_person_unknown', 'A person');
+    if (r.type === 'group') return name ? t('automations.notify.to_group', 'Group {name}', { name }) : t('automations.notify.to_group_unknown', 'A group');
+    return name || t('automations.notify.to_person_unknown', 'A person');
 }
 
-/** People and groups by recipient key, from the routine's directory (GET /:id/principals). */
+/** People and groups by recipient key, from the automation's directory (GET /:id/principals). */
 export function directoryNames(directory: ApprovalDirectory | null | undefined): Map<string, string> {
     return new Map([
         ...(directory?.members ?? []).map((m): [string, string] => [`user:${m.id}`, m.name]),
@@ -251,10 +251,10 @@ export function whoLine(value: EventSettings, t: Translate, ownerName: string, n
 
 /** A collapsed event in one line: "Bell + Email · to Ada (owner) · urgent", or "off". */
 export function eventSummary(value: EventSettings, t: Translate, ownerName: string, names: ReadonlyMap<string, string>): string {
-    if (!value.enabled || !value.channels.length) return t('routines.notify.off', 'off');
+    if (!value.enabled || !value.channels.length) return t('automations.notify.off', 'off');
     const via = value.channels.map((c) => channelLabel(c, t, true)).join(' + ');
     const to = value.recipients.map((r) => recipientLabel(r, t, ownerName, names)).join(', ');
-    return [via, to && t('routines.notify.summary_to', 'to {who}', { who: to }), urgencyLabel(value.urgency, t).toLowerCase()]
+    return [via, to && t('automations.notify.summary_to', 'to {who}', { who: to }), urgencyLabel(value.urgency, t).toLowerCase()]
         .filter(Boolean).join(' · ');
 }
 
@@ -262,30 +262,30 @@ export function eventSummary(value: EventSettings, t: Translate, ownerName: stri
 export const THROTTLE_OPTIONS: readonly (number | null)[] = [1, 4, null];
 
 export function throttleLabel(n: number | null, t: Translate): string {
-    if (n == null) return t('routines.notify.repeat_every', 'Every time');
-    if (n === 1) return t('routines.notify.repeat_once_hour', 'once per hour');
-    return t('routines.notify.repeat_n_hour', '{n} times per hour', { n });
+    if (n == null) return t('automations.notify.repeat_every', 'Every time');
+    if (n === 1) return t('automations.notify.repeat_once_hour', 'once per hour');
+    return t('automations.notify.repeat_n_hour', '{n} times per hour', { n });
 }
 
-/** The example message an event sends, with the routine's own name in it. */
+/** The example message an event sends, with the automation's own name in it. */
 export function exampleMessage(event: NotificationEvent, title: string, t: Translate): { heading: string; body: string; link: string } {
     if (event === 'onError') {
         return {
-            heading: t('routines.notify.example_error_title', '{title} has stopped', { title }),
-            body: t('routines.notify.example_error_body', 'A step could not finish.'),
-            link: t('routines.notify.example_error_link', 'View and fix'),
+            heading: t('automations.notify.example_error_title', '{title} has stopped', { title }),
+            body: t('automations.notify.example_error_body', 'A step could not finish.'),
+            link: t('automations.notify.example_error_link', 'View and fix'),
         };
     }
     if (event === 'onApproval') {
         return {
-            heading: t('routines.notify.example_approval_title', '{title} needs your approval', { title }),
-            body: t('routines.notify.example_approval_body', 'A step is waiting for your decision.'),
-            link: t('routines.notify.example_approval_link', 'Open and decide'),
+            heading: t('automations.notify.example_approval_title', '{title} needs your approval', { title }),
+            body: t('automations.notify.example_approval_body', 'A step is waiting for your decision.'),
+            link: t('automations.notify.example_approval_link', 'Open and decide'),
         };
     }
     return {
-        heading: t('routines.notify.example_success_title', '{title} is done', { title }),
-        body: t('routines.notify.example_success_body', 'All steps went well.'),
-        link: t('routines.notify.example_success_link', 'View the run'),
+        heading: t('automations.notify.example_success_title', '{title} is done', { title }),
+        body: t('automations.notify.example_success_body', 'All steps went well.'),
+        link: t('automations.notify.example_success_link', 'View the run'),
     };
 }

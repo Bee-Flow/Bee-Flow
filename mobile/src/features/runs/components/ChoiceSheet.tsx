@@ -1,6 +1,6 @@
 /**
  * One of several, in a sheet — the phone's form of the web filter bar's
- * <select>s (trigger, live or test, which routine). The chosen row carries the
+ * <select>s (trigger, live or test, which automation). The chosen row carries the
  * check; picking one closes the sheet.
  */
 

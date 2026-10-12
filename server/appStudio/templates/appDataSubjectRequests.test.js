@@ -619,7 +619,7 @@ test('nothing in the app requires Nextcloud to be connected', () => {
     walk(definition);
     assert.equal(kinds.has('connector'), false, 'a connector binding would need an external system configured');
     assert.equal(dataModel.connectors, undefined);
-    assert.equal(kinds.has('run_automation'), false, 'a routine dependency would install unwired');
+    assert.equal(kinds.has('run_automation'), false, 'an automation dependency would install unwired');
     assert.equal(kinds.has('send_email'), false, 'no mailbox is configured on a fresh install');
 });
 

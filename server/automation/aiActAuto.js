@@ -19,7 +19,7 @@
  *        that and is valid. Nothing is written for a viewer (`record: false`).
  *
  *   gate: the same check inside activate and publish, before the gate
- *   (routes/automation/activate.js): the routine goes live when Bee could
+ *   (routes/automation/activate.js): the automation goes live when Bee could
  *   answer everything, else 409 `ai_act_check_required` with ONLY the open
  *   questions (aiActCheck.gateRefusal).
  *
@@ -55,7 +55,7 @@ function priorQuestions(row, now) {
     return ev && isObject(ev.questions) ? ev.questions : {};
 }
 
-/** A row this file (or the routine's own editor) wrote, as opposed to a hub or older one. */
+/** A row this file (or the automation's own editor) wrote, as opposed to a hub or older one. */
 function hasEvidence(row) { return !!row && isObject(row.evidence) && isObject(row.evidence.questions); }
 
 /**
@@ -309,7 +309,7 @@ function makeAiActAuto(deps) {
 /**
  * The real IO, required lazily so requiring this file opens no connection:
  * the licence and register (aiActCheck.defaultAiActState), the shared
- * attestation writer, the fast-model classifier, the routine's signals and
+ * attestation writer, the fast-model classifier, the automation's signals and
  * the reusable Steps it calls.
  */
 function defaultAiActAuto() {

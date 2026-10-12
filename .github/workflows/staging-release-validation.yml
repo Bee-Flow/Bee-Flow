@@ -1,0 +1,89 @@
+name: Validate release candidate on staging
+on:
+  workflow_dispatch:
+    inputs:
+      candidate_run_id:
+        description: 'Successful Build & Push run containing the release-candidate artifact'
+        required: true
+      manual_acceptance:
+        description: 'JSON evidence for both installation paths, SSO/linking, scoped sync, rotation, repeatability, backup restore, patched Docker host, Nextcloud HaRP and Azure calls through the staged application'
+        required: true
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: staging-release-validation
+  cancel-in-progress: false
+jobs:
+  validate-staging:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: staging
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+      - id: provenance
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CANDIDATE_RUN_ID: ${{ inputs.candidate_run_id }}
+        run: node scripts/release-workflow-evidence.mjs "$CANDIDATE_RUN_ID" .github/workflows/build-push-ghcr.yml
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: release-candidate-${{ steps.provenance.outputs.attempt }}
+          path: ${{ runner.temp }}/candidate
+          run-id: ${{ inputs.candidate_run_id }}
+          github-token: ${{ github.token }}
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ steps.provenance.outputs.commit }}
+          persist-credentials: false
+      - name: Validate candidate provenance
+        env:
+          EXPECTED_COMMIT: ${{ steps.provenance.outputs.commit }}
+          EXPECTED_RUN: ${{ inputs.candidate_run_id }}
+          EXPECTED_ATTEMPT: ${{ steps.provenance.outputs.attempt }}
+        run: |
+          node scripts/release-manifest.mjs validate "$RUNNER_TEMP/candidate/release-candidate.json"
+          node -e 'const c=require(process.env.RUNNER_TEMP+"/candidate/release-candidate.json");if(c.commit!==process.env.EXPECTED_COMMIT || String(c.runId)!==process.env.EXPECTED_RUN || String(c.runAttempt)!==process.env.EXPECTED_ATTEMPT)throw Error("Candidate commit mismatch")'
+      - name: Install candidate SDKs
+        working-directory: server
+        run: npm ci
+      - name: Test real Azure capabilities against the staged candidate
+        env:
+          STAGING_BASE_URL: ${{ vars.STAGING_BASE_URL }}
+          RELEASE_COMMIT: ${{ steps.provenance.outputs.commit }}
+          AZURE_OPENAI_ENDPOINT: ${{ vars.AZURE_OPENAI_ENDPOINT }}
+          AZURE_OPENAI_KEY: ${{ secrets.AZURE_OPENAI_KEY }}
+          AZURE_RESPONSES_DEPLOYMENT: ${{ vars.AZURE_RESPONSES_DEPLOYMENT }}
+          AZURE_EMBEDDINGS_DEPLOYMENT: ${{ vars.AZURE_EMBEDDINGS_DEPLOYMENT }}
+          AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT: ${{ vars.AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT }}
+          AZURE_DOCUMENT_INTELLIGENCE_KEY: ${{ secrets.AZURE_DOCUMENT_INTELLIGENCE_KEY }}
+          AZURE_SPEECH_KEY: ${{ secrets.AZURE_SPEECH_KEY }}
+          AZURE_SPEECH_REGION: ${{ vars.AZURE_SPEECH_REGION }}
+          AZURE_SMOKE_REPORT: ${{ runner.temp }}/azure-smoke.json
+        run: node server/scripts/azure-release-smoke.js
+      - name: Record reviewed installation and identity acceptance
+        env:
+          MANUAL_ACCEPTANCE: ${{ inputs.manual_acceptance }}
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const report = JSON.parse(process.env.MANUAL_ACCEPTANCE);
+          report.checkedBy = process.env.GITHUB_ACTOR;
+          report.checkedAt = new Date().toISOString();
+          const smoke = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/azure-smoke.json'));
+          if (!Object.values(smoke.checks).every(v=>v===true)) throw Error('Azure smoke test incomplete');
+          report.checks = {...report.checks,azureLiveRequests:true};
+          fs.writeFileSync(process.env.RUNNER_TEMP+'/manual-acceptance.json', JSON.stringify(report));
+          NODE
+          node scripts/release-manifest.mjs staging "$RUNNER_TEMP/candidate/release-candidate.json" "$RUNNER_TEMP/manual-acceptance.json" staging-acceptance.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: staging-acceptance-${{ github.run_attempt }}
+          path: staging-acceptance.json
+          if-no-files-found: error

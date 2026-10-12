@@ -1,13 +1,13 @@
 /**
- * A new routine's hand-over to its own build route. The draft store creates
+ * A new automation's hand-over to its own build route. The draft store creates
  * the row on the first edit (or the first test run) and useFlowDraft calls
- * `onCreated` once with the id; the new-routine screen then REPLACES itself
+ * `onCreated` once with the id; the new-automation screen then REPLACES itself
  * with /automations/<id>/build — the store is registered under the id too,
  * so its undo history comes along. Only while this screen is on top: with
  * the step editor pushed over it, a replace would swap out the editor, so the
  * hand-over waits until the screen is focused again.
  *
- * `hold` waits too: while the AI builder streams into a routine its first
+ * `hold` waits too: while the AI builder streams into an automation its first
  * turn created (or its sheet is open), replacing the screen would end the
  * turn, so the hand-over happens once the turn is over and the sheet closed.
  */

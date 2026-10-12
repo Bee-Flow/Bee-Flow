@@ -8,6 +8,7 @@
 // Phase 4 will add achievement + certificate endpoints to this same router.
 
 const express = require('express');
+const { usageLogFields } = require('../../core/providers/usageNormalizer');
 const log = require('../../telemetry/log');
 const router = express.Router();
 const crypto = require('crypto');
@@ -151,11 +152,9 @@ async function logCoachUsage({ userId, userOrgId, modelId, usage, startMs, sourc
             agent_name: source === 'learning_practice' ? 'learning-practice' : 'learning-coach',
             agent_type: 'system',
             model: modelId,
-            prompt_tokens: usage?.prompt_tokens || 0,
-            completion_tokens: usage?.completion_tokens || 0,
-            total_tokens: usage?.total_tokens || ((usage?.prompt_tokens || 0) + (usage?.completion_tokens || 0)),
-            cached_tokens: usage?.cached_tokens || 0,
-            cache_creation_tokens: usage?.cache_creation_tokens || 0,
+            // Normalised by the adapter (providers/usageNormalizer.js): cache read/write,
+            // the 5m/1h split and reasoning tokens ride along.
+            ...usageLogFields(usage),
             source,
             duration_ms: Date.now() - startMs,
             organization_id: userOrgId || null,

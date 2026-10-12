@@ -79,7 +79,7 @@ export default function AppStage({ playbook, phase, dispatch, onBack, t, forcedT
             // An app_turn is "a further turn of the app builder on the same
             // app" and composeRecipe FORBIDS it from being an approval flow —
             // yet every one of them landed saying "Approval flow added". Name
-            // the turn instead, the way the routine stage names its routine.
+            // the turn instead, the way the automation stage names its automation.
             const summary = kindOf(phase) === 'app_turn'
                 ? t('playbooks.app.summary_turn', '{phase} landed on "{name}".', { phase: phaseLabel(phase, t), name: (app && app.name) || playbook.title || '' })
                 : t('playbooks.app.summary_app', 'App "{name}" built.', { name: (app && app.name) || playbook.title || '' });

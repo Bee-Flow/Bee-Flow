@@ -110,7 +110,7 @@ describe('destinationForKind — run opent dezelfde deur als het "Nieuw"-menu', 
         expect(body.title).toBe('Aanmelding');
         expect(NAME_SUPPORT.form).toBe(true);
         expect(destinationForKind('form', { sections: allOpen(), t }).carriesName).toBe(true);
-        // niet de routine-bouwer: de Form-pagina
+        // niet de automation-bouwer: de Form-pagina
         expect(onNavigate).toHaveBeenCalledWith('studio/forms/f1/questions');
         // de brief staat geparkeerd ONDER HET ID — een kale 'form'-brief zou
         // door de eerstvolgende Vragen-tab van elk formulier worden opgepakt

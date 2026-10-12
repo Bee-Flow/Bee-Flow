@@ -26,7 +26,6 @@ const TokenVaultSection = () => {
     const [search, setSearch] = useState('');
     const [offset, setOffset] = useState(0);
     const [busyId, setBusyId] = useState(null);
-    const [confirmClear, setConfirmClear] = useState(false);
 
     const load = useCallback(async (nextOffset = 0, nextSearch = '') => {
         setState(s => ({ ...s, loading: true, error: '' }));
@@ -73,11 +72,21 @@ const TokenVaultSection = () => {
         }
     };
 
+    // The same confirm dialog as forgetting one entry (removeEntry above).
     const clearAll = async () => {
+        const ok = await confirm({
+            title: t('vault.clear', 'Forget everything in this vault'),
+            description: t('vault.clear_warning',
+                'Forget all stored values? Placeholders already saved in your conversations will stay as placeholders — this cannot be undone.'),
+            confirmLabel: t('vault.clear_confirm', 'Yes, forget everything'),
+            cancelLabel: t('common.cancel', 'Cancel'),
+            destructive: true,
+        });
+        if (!ok) return;
         setBusyId('__all__');
         try {
             const res = await authFetch(`${API_BASE}/api/privacy/token-vault`, { method: 'DELETE' });
-            if (res.ok) { setConfirmClear(false); setOffset(0); await load(0, search); }
+            if (res.ok) { setOffset(0); await load(0, search); }
         } finally {
             setBusyId(null);
         }
@@ -129,7 +138,7 @@ const TokenVaultSection = () => {
             </div>
 
             {error && (
-                <div className="flex items-center gap-2 p-3 rounded-lg text-xs" style={{ background: 'rgba(239,68,68,0.10)', color: 'rgb(153,27,27)' }}>
+                <div className="flex items-center gap-2 p-3 rounded-lg text-xs bg-[color-mix(in_srgb,var(--error)_10%,transparent)] text-[var(--error-ink)]">
                     <AlertTriangle className="w-4 h-4 shrink-0" aria-hidden="true" />
                     {error}
                 </div>
@@ -213,44 +222,19 @@ const TokenVaultSection = () => {
                 </div>
             )}
 
-            {/* Destructive action, kept below the list and behind a second step. */}
+            {/* Destructive action, kept below the list and behind the confirm dialog. */}
             {total > 0 && (
                 <div className="pt-3 border-t border-[var(--border-subtle)]">
-                    {confirmClear ? (
-                        <div className="flex items-start gap-3 p-3 rounded-lg" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>
-                            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-red-500" aria-hidden="true" />
-                            <div className="flex-1">
-                                <p className="text-xs text-[var(--text-primary)] leading-relaxed">
-                                    {t('vault.clear_warning',
-                                        'Forget all stored values? Placeholders already saved in your conversations will stay as placeholders — this cannot be undone.')}
-                                </p>
-                                <div className="flex gap-2 mt-3">
-                                    <button
-                                        onClick={clearAll}
-                                        disabled={busyId === '__all__'}
-                                        className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50"
-                                    >
-                                        {busyId === '__all__'
-                                            ? t('vault.clearing', 'Forgetting…')
-                                            : t('vault.clear_confirm', 'Yes, forget everything')}
-                                    </button>
-                                    <button
-                                        onClick={() => setConfirmClear(false)}
-                                        className="px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--text-secondary)] border border-[var(--border-subtle)]"
-                                    >
-                                        {t('common.cancel', 'Cancel')}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    ) : (
-                        <button
-                            onClick={() => setConfirmClear(true)}
-                            className="text-xs font-medium text-red-500 hover:underline"
-                        >
-                            {t('vault.clear', 'Forget everything in this vault')}
-                        </button>
-                    )}
+                    <button
+                        type="button"
+                        onClick={clearAll}
+                        disabled={busyId === '__all__'}
+                        className="text-xs font-medium text-[var(--error-ink)] hover:underline disabled:opacity-50"
+                    >
+                        {busyId === '__all__'
+                            ? t('vault.clearing', 'Forgetting…')
+                            : t('vault.clear', 'Forget everything in this vault')}
+                    </button>
                 </div>
             )}
             {confirmDialog}

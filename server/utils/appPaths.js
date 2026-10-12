@@ -211,7 +211,11 @@ function orgLicenseSettingsPath() {
     return '/app/settings/organisation/license';
 }
 
-/** A settings tab by query param — Stripe billing-portal return URLs. */
+/**
+ * A settings tab by query param. The Stripe billing portal used to return here;
+ * it now returns to accountLicenseSettingsPath()/orgLicenseSettingsPath(), but
+ * the shape stays frozen for links minted before that.
+ */
 function settingsTabPath(tab) {
     return `/app/settings?tab=${tab}`;
 }

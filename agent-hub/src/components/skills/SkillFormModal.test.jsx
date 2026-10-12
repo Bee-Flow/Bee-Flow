@@ -150,3 +150,62 @@ describe('SkillFormModal', () => {
         expect(field.value).toHaveLength(4000);
     });
 });
+
+describe('SkillFormModal: a skill a Solution stage manages', () => {
+    const MANAGED = { solutionId: 's1', solutionName: 'Intake', stage: 'prd', releaseSeq: 7, devRef: { kind: 'skill', id: 'dev-skill' } };
+    const managedSkill = { ...WITH_STRUCTURE, instructions: 'Be brief.', isShared: false, sharedGroups: [], managed: MANAGED };
+
+    it('reads, and says who manages it', () => {
+        open({ skill: managedSkill });
+        expect(screen.getByTestId('managed-part-banner').textContent).toContain('Managed by Intake · Production · Release 7.');
+        expect(screen.getByLabelText('Skill name').readOnly).toBe(true);
+        expect(screen.getByLabelText('Description').readOnly).toBe(true);
+        expect(screen.getByLabelText('Instructions').readOnly).toBe(true);
+        expect(screen.getByRole('button', { name: 'Choose icon' }).disabled).toBe(true);
+        // The structure warning is about rewriting text, which cannot happen here.
+        fireEvent.click(screen.getByRole('button', { name: 'Workflow' }));
+        expect(screen.queryByTestId('skill-form-structure-warning')).toBeNull();
+    });
+
+    it('saves the sharing fields alone', () => {
+        const onSave = vi.fn();
+        open({ skill: managedSkill, onSave });
+        fireEvent.click(screen.getByRole('button', { name: /Private/ }));
+        fireEvent.click(screen.getByRole('button', { name: /Update skill/ }));
+        expect(onSave).toHaveBeenCalledTimes(1);
+        expect(onSave.mock.calls[0][0]).toEqual({ isShared: true, sharedGroups: [] });
+    });
+
+    it('an ordinary skill is still editable and still saves its text', () => {
+        const onSave = vi.fn();
+        open({ skill: WITH_STRUCTURE, onSave });
+        expect(screen.queryByTestId('managed-part-banner')).toBeNull();
+        expect(screen.getByLabelText('Skill name').readOnly).toBe(false);
+        fireEvent.change(screen.getByLabelText('Skill name'), { target: { value: 'Renamed' } });
+        fireEvent.click(screen.getByRole('button', { name: /Update skill/ }));
+        expect(onSave.mock.calls[0][0].name).toBe('Renamed');
+    });
+
+    it('a list row without `managed` is asked once, and turns read-only on the answer', async () => {
+        const { authFetch } = await import('../../utils/helpers');
+        authFetch.mockImplementation(async (url) => (String(url).endsWith('/skills/s1')
+            ? { ok: true, status: 200, json: async () => ({ ...WITH_STRUCTURE, managed: MANAGED }) }
+            : { ok: true, status: 200, json: async () => [] }));
+        open({ skill: WITH_STRUCTURE });
+        expect(await screen.findByTestId('managed-part-banner')).toBeTruthy();
+        expect(screen.getByLabelText('Skill name').readOnly).toBe(true);
+        expect(authFetch.mock.calls.filter(([u]) => String(u).endsWith('/skills/s1'))).toHaveLength(1);
+        authFetch.mockImplementation(async () => ({ ok: true, status: 200, json: async () => [] }));
+    });
+
+    it('a save the stage refuses turns an open modal read-only', async () => {
+        const refusal = Object.assign(new Error('refused'), {
+            status: 409, code: 'managed_part',
+            body: { error: 'refused', code: 'managed_part', details: { solutionId: 's2', stage: 'uat' } },
+        });
+        open({ skill: WITH_STRUCTURE, onSave: vi.fn().mockRejectedValue(refusal) });
+        fireEvent.click(screen.getByRole('button', { name: /Update skill/ }));
+        expect(await screen.findByTestId('managed-part-banner')).toBeTruthy();
+        expect(screen.getByLabelText('Skill name').readOnly).toBe(true);
+    });
+});

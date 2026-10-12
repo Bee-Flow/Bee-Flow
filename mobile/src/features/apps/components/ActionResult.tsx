@@ -46,7 +46,7 @@ export function ActionResult({ result, polling }: { result: AppActionResult; pol
     const styles = useThemedStyles(makeStyles);
 
     if (result.status === 'skipped') {
-        return <Banner tone="warning">{result.message ?? t('mobile.apps.already_running', 'This routine was already running.')}</Banner>;
+        return <Banner tone="warning">{result.message ?? t('mobile.apps.already_running', 'This automation was already running.')}</Banner>;
     }
 
     const token = statusToken(result.status === 'pending' ? 'running' : (result.status ?? 'idle'));
@@ -56,7 +56,7 @@ export function ActionResult({ result, polling }: { result: AppActionResult; pol
             <View style={styles.heading}>
                 {polling ? <Spinner /> : <StatusIcon status={result.status ?? 'idle'} size={16} />}
                 <Text variant="caption" weight="medium" style={styles.word}>
-                    {polling ? t('routines.runs.still_running', 'Still running…') : statusLabel(t, token)}
+                    {polling ? t('automations.runs.still_running', 'Still running…') : statusLabel(t, token)}
                 </Text>
                 {result.approvalId ? <Badge label={t('mobile.apps.needs_approval', 'Needs approval')} tone="warning" /> : null}
             </View>

@@ -23,11 +23,11 @@
  * things away:
  *   `ephemeral: true`   nothing is written to a conversation;
  *   `testSandbox: true` toolStackAssembly drops everything that sends, every
- *                       routine, and everything that would ask for approval;
+ *                       automation, and everything that would ask for approval;
  *   `unattended: true`  the existing headless rule, so a curated agent's
  *                       confirm-tools are dropped by the policy as well.
  * `autoSend` is passed as an explicit `false`. It is the flag that turns a
- * draft into a real send for headless routines, and `unattended` alone is
+ * draft into a real send for headless automations, and `unattended` alone is
  * enough to get the drop — writing it out means nobody can add it here by
  * reflex later.
  *
@@ -95,6 +95,7 @@
 'use strict';
 
 const express = require('express');
+const { usageLogFields } = require('../../core/providers/usageNormalizer');
 const log = require('../../telemetry/log');
 const router = express.Router();
 const { validate } = require('../../core/http/validate');
@@ -606,11 +607,9 @@ async function logTestModelUsage({ userId, userOrgId, modelId, usage, startMs, a
             agent_name: agentName,
             agent_type: 'system',
             model: modelId,
-            prompt_tokens: usage?.prompt_tokens || 0,
-            completion_tokens: usage?.completion_tokens || 0,
-            total_tokens: usage?.total_tokens || ((usage?.prompt_tokens || 0) + (usage?.completion_tokens || 0)),
-            cached_tokens: usage?.cached_tokens || 0,
-            cache_creation_tokens: usage?.cache_creation_tokens || 0,
+            // Normalised by the adapter (providers/usageNormalizer.js): cache read/write,
+            // the 5m/1h split and reasoning tokens ride along.
+            ...usageLogFields(usage),
             source,
             duration_ms: Date.now() - startMs,
             organization_id: userOrgId || null,
@@ -692,7 +691,7 @@ async function runOneTest({ agentId, test, userId, userAuth, orgId, timezone, si
                 testSandbox: true,
                 unattended: true,
                 // Never. This is the flag that turns a composed mail into a
-                // sent one for headless routines.
+                // sent one for headless automations.
                 autoSend: false,
                 userOrgId: userAuth?.userOrgId || null,
                 orgId: orgId || null,

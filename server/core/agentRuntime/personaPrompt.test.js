@@ -46,7 +46,7 @@ test('anything unreadable normalises to the empty persona instead of throwing', 
 });
 
 test('an unknown-mode nobody can read lands on "honest", never on web or handoff', () => {
-    // 'web' switches an app on and 'handoff' hands a routine to the model.
+    // 'web' switches an app on and 'handoff' hands an automation to the model.
     // A typo may not reach either of them.
     for (const bad of ['web ', 'WEB', 'search', true, 1, null, {}]) {
         const { persona } = normalisePersona({ unknown: { mode: bad } });
@@ -62,7 +62,7 @@ test('an unknown-mode nobody can read lands on "honest", never on web or handoff
 test('an automationId only survives on the handoff mode', () => {
     const { persona } = normalisePersona({ unknown: { mode: 'web', automationId: 'auto-1' } });
     assert.strictEqual(persona.unknown.automationId, null,
-        'a routine id parked on a non-handoff persona is a grant waiting for a mode flip');
+        'an automation id parked on a non-handoff persona is a grant waiting for a mode flip');
 });
 
 test('a language we cannot name is dropped, and says so', () => {
@@ -142,7 +142,7 @@ test('free mode renders the free text verbatim', () => {
     assert.strictEqual(renderSystemPrompt({ mode: 'free', freeText: 'line one\nline two' }), 'line one\nline two');
 });
 
-test('a hand-off without a VERIFIED routine renders the honest line, never a promise', () => {
+test('a hand-off without a VERIFIED automation renders the honest line, never a promise', () => {
     const persona = { ...FIELDS, unknown: { mode: 'handoff', automationId: 'auto-1' } };
     const unverified = renderSystemPrompt(persona);
     assert.match(unverified, /say so plainly/);
@@ -170,10 +170,10 @@ test('the DEFAULT unknown line and the language line never ship on their own', (
 });
 
 test('an explicit unknown CHOICE is content — the card promises it reaches the prompt', () => {
-    // De Rol-kaart zegt bij "Hand it to a person": "It starts a routine you
+    // De Rol-kaart zegt bij "Hand it to a person": "It starts an automation you
     // pick and tells the user the question was handed over." Zonder deze tak
-    // kreeg zo'n agent wel de routine-grant (applyPersonaToConfig) en een pil
-    // met de routinenaam, maar geen woord instructie die de routine noemde.
+    // kreeg zo'n agent wel de automation-grant (applyPersonaToConfig) en een pil
+    // met de automatiseringsnaam, maar geen woord instructie die de automation noemde.
     const handoff = { mode: 'fields', unknown: { mode: 'handoff', automationId: 'auto-1' } };
     const rendered = renderSystemPrompt(handoff, { handoffLabel: 'automation_auto_1' });
     assert.match(rendered, /hand it over with the "automation_auto_1" action/);
@@ -275,7 +275,7 @@ test('"search the web" does not CREATE the app list — that would read as "ever
     assert.ok(warnings.some(w => w.includes(WEB_SEARCH_APP_ID)));
 });
 
-test('a hand-off grant is written ONLY for a routine the caller verified', () => {
+test('a hand-off grant is written ONLY for an automation the caller verified', () => {
     const persona = { ...FIELDS, unknown: { mode: 'handoff', automationId: 'auto-1' } };
 
     const unverified = applyPersonaToConfig({ enabledIntegrations: [] }, persona, {});
@@ -284,7 +284,7 @@ test('a hand-off grant is written ONLY for a routine the caller verified', () =>
 
     const verified = applyPersonaToConfig({ enabledIntegrations: [] }, persona, { handoffAutomationId: 'auto-1' });
     assert.deepStrictEqual(verified.config.tools.automations, { 'auto-1': { confirm: 'ask' } },
-        'nothing here knows what the routine DOES, so it asks');
+        'nothing here knows what the automation DOES, so it asks');
 });
 
 test('an existing hand-off grant is left exactly as the owner set it', () => {

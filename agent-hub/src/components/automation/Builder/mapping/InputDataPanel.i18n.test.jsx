@@ -28,8 +28,8 @@ const EMPTY_GROUP = {
 };
 
 const NL = {
-    'routines.mapping.fields': 'Velden',
-    'routines.mapping.no_data_yet': 'Nog geen data — draai de vorige stap om die vast te leggen.',
+    'automations.mapping.fields': 'Velden',
+    'automations.mapping.no_data_yet': 'Nog geen data — draai de vorige stap om die vast te leggen.',
 };
 
 /** Render, then take the table takeover — where both strings live. */

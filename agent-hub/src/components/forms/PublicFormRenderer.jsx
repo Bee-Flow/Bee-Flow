@@ -1,9 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Loader2, Paperclip, Check, X, Download, BookOpen, Copy, Search } from 'lucide-react';
+import { Loader2, Paperclip, Check, X, Download, BookOpen, Copy, Search, FileText, FileDown, Globe } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { resultFilename, saveBlob } from './resultFile';
+import useTranslation from '../../hooks/useTranslation';
 import themeVars from '../admin/Studio/AppStudio/runtime/themeVars';
 import { Field, INPUT_CLASS, inputStyle } from '../admin/Studio/AppStudio/runtime/uiBits';
+import { normaliseOptions } from './formOptions';
 
 /**
  * Renders one form-trigger form. Used by the PUBLIC hosted page and by the
@@ -33,10 +36,11 @@ import { Field, INPUT_CLASS, inputStyle } from '../admin/Studio/AppStudio/runtim
  *   showSuccess — whether a resolved submit swaps the form for its
  *               successMessage. TRUE for a single-page form, where this
  *               component owns the ending. FALSE for a multi-page one, where
- *               the routine may still pause for another page and only the page
+ *               the automation may still pause for another page and only the page
  *               that is polling knows what comes next.
  */
 export default function PublicFormRenderer({ form, onSubmit = null, onUpload = null, onSearchApp = null, preview = false, showSuccess = true, downloadHref = null, onOpenInNotebooks = null }) {
+    const { t } = useTranslation();
     const fields = form?.fields || [];
     const theme = form?.theme || {};
 
@@ -123,7 +127,7 @@ export default function PublicFormRenderer({ form, onSubmit = null, onUpload = n
                 {/* Honeypot — hidden from people AND from assistive tech, so
                     only an indiscriminate bot fills it in. */}
                 <div aria-hidden="true" style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, overflow: 'hidden' }}>
-                    <label htmlFor="website_url">Leave this field empty</label>
+                    <label htmlFor="website_url">{t('forms.honeypot_label', 'Leave this field empty')}</label>
                     <input id="website_url" name="website_url" type="text" tabIndex={-1} autoComplete="off" value={honeypot} onChange={(e) => setHoneypot(e.target.value)} />
                 </div>
 
@@ -154,7 +158,7 @@ export default function PublicFormRenderer({ form, onSubmit = null, onUpload = n
  * on its final step.
  */
 // Every description on a form page — a mid-run question as much as the closing
-// summary — is where the routine SHOWS the visitor something: the keyword it
+// summary — is where the automation SHOWS the visitor something: the keyword it
 // picked and why, the competitor analysis it just did, the text it wrote, a
 // link to the document. Rendered as a flat paragraph that meant reading raw
 // `##` and `**` and copy-pasting URLs by hand.
@@ -204,20 +208,20 @@ export function FormRichText({ children, className = '', style = null }) {
 }
 
 /**
- * The screen a visitor sits on while the routine works.
+ * The screen a visitor sits on while the automation works.
  *
  * A multi-page form pauses the run at every question, and the stretch between
  * two questions is whatever the author put there — a web search, a model call,
  * a document being written. That is regularly a minute or more, and a bare
  * spinner over an empty page reads as "this broke".
  *
- * So it says WHERE the routine is. `progress` is the trail the poll sends:
+ * So it says WHERE the automation is. `progress` is the trail the poll sends:
  * titles only, outermost flowlet first, the node it is on last. The last
  * segment is the headline because that is the thing actually happening; the
  * flowlets above it are context and sit in the eyebrow.
  *
  * `note` is the running flowlet's own one-line description, when its author
- * gave it one. A name says where the routine is; the description says what it
+ * gave it one. A name says where the automation is; the description says what it
  * is doing — "Searches Google for a given term and lets AI analyse top-ranking
  * pages…" is the difference between a wait that reads as progress and one that
  * reads as a hang. It takes the place of the generic reassurance line, which
@@ -283,7 +287,7 @@ export function FormWaitingView({ theme = null, progress = null, note = null, la
                     </div>
                 </div>
 
-                {/* Indeterminate on purpose. The routine cannot say how far
+                {/* Indeterminate on purpose. The automation cannot say how far
                     along it is — a percentage here would be a lie. */}
                 <span
                     aria-hidden="true"
@@ -317,37 +321,39 @@ const WAITING_KEYFRAMES = `
 // Short closings ("Thanks!") stay centred under the tick, the way they always
 // looked. A long one is a document — centring a blog is unreadable. The same
 // split gates the export bar below: a one-line "Thanks!" has nothing worth
-// keeping, a routine's real output does.
+// keeping, an automation's real output does.
 const LONG_ENDING_CHARS = 240;
 
 /**
  * The generic fallback for a closing page that has no `generate_document`
- * step at all (BFSF-419, Track 1) — the common case: the routine's whole
- * "result" is markdown sitting in `form.description` (a blog post, a
- * summary, an analysis), with no download/notebook field wired, because the
- * author never added one. Without this, closing the tab loses the text for
- * good.
+ * step at all (BFSF-419) — the common case: the automation's whole "result" is
+ * markdown sitting in `form.description` (a blog post, a summary, an
+ * analysis), with no download/notebook field wired, because the author never
+ * added one. Without this, closing the tab loses the text for good.
  *
  * Independent of any download/notebook field on purpose — those need the
- * routine to have produced an actual generated file; this needs nothing
- * from the routine at all, because the text is already sitting right there
+ * automation to have produced an actual generated file; this needs nothing
+ * from the automation at all, because the text is already sitting right there
  * in the page.
  *
  * "Download as .txt" and "Copy text" are pure client-side operations on the
  * text already in hand — no backend round trip, so they work even in the
- * builder's live preview. "Save to Notebook" is a write (it needs a real,
- * signed-in visitor and a real session to attribute it to), so it renders
- * only when the caller hands over a working `onSaveToNotebook` — exactly the
- * same "no handler ⇒ no button" rule the file-based "Open in Notebooks"
- * button already follows for the builder preview.
+ * builder's live preview. Word, PDF, Notebook and Webpage go through the
+ * server (it renders or stores the run's own result), so each renders only
+ * when the caller hands over a working handler — the same "no handler ⇒ no
+ * button" rule the file-based "Open in Notebooks" button follows for the
+ * builder preview.
  */
-function FormExportBar({ text, filename, onSaveToNotebook }) {
+function FormExportBar({ text, title, onDownloadAs, onSaveToNotebook, onSaveAsWebpage }) {
+    const { t } = useTranslation();
     // Hooks first, always — the "is this worth exporting?" bail-out below has
     // to come after every hook call, or a length change across renders would
     // call them in a different order.
     const [copied, setCopied] = useState(false);
-    const [saving, setSaving] = useState(false);
-    const [saveError, setSaveError] = useState(null);
+    // One action at a time: which one is running ('docx', 'pdf', 'notebook',
+    // 'webpage'), and what went wrong with the last one.
+    const [busy, setBusy] = useState(null);
+    const [actionError, setActionError] = useState(null);
 
     // Same split the layout above uses to tell a real result from a one-line
     // "Thanks!" — recomputed here (not passed down as a bool) so this stays
@@ -358,17 +364,7 @@ function FormExportBar({ text, filename, onSaveToNotebook }) {
         // Ship the raw markdown as-is. Stripping `##` / `**` back to plain
         // prose is a project of its own — a .txt with a few stray symbols in
         // it is still far better than a tab the visitor can no longer get back.
-        // A Blob + object URL, same as every other export-to-file button on
-        // this stack (RowBrowser's CSV export, the CMS page export) — never
-        // an `<a href>` at a real endpoint, which carries no auth header.
-        const url = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
+        saveBlob(new Blob([text], { type: 'text/plain;charset=utf-8' }), resultFilename(title, 'txt'));
     };
 
     const copyText = async () => {
@@ -382,17 +378,22 @@ function FormExportBar({ text, filename, onSaveToNotebook }) {
         }
     };
 
-    const saveToNotebook = async () => {
-        if (!onSaveToNotebook || saving) return;
-        setSaving(true);
-        setSaveError(null);
+    /**
+     * Run one server-side action. A save navigates away on success, so its
+     * button stays disabled (mirroring "Open in Notebooks": a button that
+     * re-enables first reads as "nothing happened, press again"); a download
+     * leaves the visitor here and frees the bar again.
+     */
+    const run = async (key, action, { navigates }) => {
+        if (!action || busy) return;
+        setBusy(key);
+        setActionError(null);
         try {
-            await onSaveToNotebook();
-            // No setSaving(false) on success, mirroring "Open in Notebooks":
-            // the page is about to navigate away.
+            await action();
+            if (!navigates) setBusy(null);
         } catch (e) {
-            setSaveError(e?.message || 'Could not save this to Notebooks.');
-            setSaving(false);
+            setActionError(e?.message || t('forms.result.failed'));
+            setBusy(null);
         }
     };
 
@@ -403,37 +404,49 @@ function FormExportBar({ text, filename, onSaveToNotebook }) {
         background: 'var(--bg-card, var(--bg-secondary))',
         color: 'var(--text-primary)',
     };
+    const actionButton = (key, Icon, label, busyLabel, onClick) => (
+        <button
+            type="button"
+            onClick={onClick}
+            disabled={busy === key}
+            aria-disabled={busy === key}
+            className={actionClass}
+            style={actionStyle}
+            data-testid={`form-export-${key}`}
+        >
+            {busy === key ? <Loader2 size={14} className="animate-spin" /> : <Icon size={14} />}
+            {busy === key ? busyLabel : label}
+        </button>
+    );
 
     return (
         <div className="flex flex-col gap-1.5" data-testid="form-export-bar">
             <div className="flex flex-wrap gap-2">
                 <button type="button" onClick={downloadTxt} className={actionClass} style={actionStyle} data-testid="form-export-download">
-                    <Download size={14} /> Download as .txt
+                    <Download size={14} /> {t('forms.result.download_txt')}
                 </button>
-                <button type="button" onClick={copyText} className={actionClass} style={actionStyle} data-testid="form-export-copy">
-                    {copied ? <Check size={14} /> : <Copy size={14} />} {copied ? 'Copied' : 'Copy text'}
-                </button>
-                {onSaveToNotebook ? (
-                    <button
-                        type="button"
-                        onClick={saveToNotebook}
-                        disabled={saving}
-                        aria-disabled={saving}
-                        className={actionClass}
-                        style={actionStyle}
-                        data-testid="form-export-notebook"
-                    >
-                        {saving ? <Loader2 size={14} className="animate-spin" /> : <BookOpen size={14} />}
-                        {saving ? 'Saving…' : 'Save to Notebook'}
-                    </button>
+                {onDownloadAs ? (
+                    <>
+                        {actionButton('docx', FileText, t('forms.result.download_docx'), t('forms.result.preparing'), () => run('docx', () => onDownloadAs('docx'), { navigates: false }))}
+                        {actionButton('pdf', FileDown, t('forms.result.download_pdf'), t('forms.result.preparing'), () => run('pdf', () => onDownloadAs('pdf'), { navigates: false }))}
+                    </>
                 ) : null}
+                <button type="button" onClick={copyText} className={actionClass} style={actionStyle} data-testid="form-export-copy">
+                    {copied ? <Check size={14} /> : <Copy size={14} />} {copied ? t('forms.result.copied') : t('forms.result.copy')}
+                </button>
+                {onSaveToNotebook
+                    ? actionButton('notebook', BookOpen, t('forms.result.save_notebook'), t('forms.result.saving'), () => run('notebook', onSaveToNotebook, { navigates: true }))
+                    : null}
+                {onSaveAsWebpage
+                    ? actionButton('webpage', Globe, t('forms.result.save_webpage'), t('forms.result.saving'), () => run('webpage', onSaveAsWebpage, { navigates: true }))
+                    : null}
             </div>
-            {saveError ? <p className="text-xs" role="alert" style={{ color: '#ef4444' }}>{saveError}</p> : null}
+            {actionError ? <p className="text-xs text-[#ef4444]" role="alert">{actionError}</p> : null}
         </div>
     );
 }
 
-export function FormEndingView({ form, downloadHref = null, onOpenInNotebooks = null, onSaveToNotebook = null }) {
+export function FormEndingView({ form, downloadHref = null, onOpenInNotebooks = null, onSaveToNotebook = null, onSaveAsWebpage, onDownloadAs }) {
     const style = useMemo(() => themeVars(form?.theme || {}), [form]);
     const description = form?.description || '';
     const isLong = description.length > LONG_ENDING_CHARS;
@@ -460,11 +473,17 @@ export function FormEndingView({ form, downloadHref = null, onOpenInNotebooks = 
                             itself decides whether description is substantial
                             enough to bother with — nothing else here needs to
                             know that threshold. */}
-                        <FormExportBar text={description} filename={txtFilename(form?.title)} onSaveToNotebook={onSaveToNotebook} />
+                        <FormExportBar
+                            text={description}
+                            title={form?.title}
+                            onDownloadAs={onDownloadAs}
+                            onSaveToNotebook={onSaveToNotebook}
+                            onSaveAsWebpage={onSaveAsWebpage}
+                        />
                     </>
                 ) : null}
                 {/* The closing page is where a produced document usually lands
-                    — "here is the thing the routine just made for you". Only
+                    — "here is the thing the automation just made for you". Only
                     display fields render here; a closing page collects nothing,
                     so anything else on it would have no way to be submitted. */}
                 {(form?.fields || []).filter(isDisplayField).map(field => (
@@ -473,13 +492,6 @@ export function FormEndingView({ form, downloadHref = null, onOpenInNotebooks = 
             </div>
         </div>
     );
-}
-
-/** A safe, boring .txt filename from the closing page's own title. */
-function txtFilename(title) {
-    const base = String(title || 'result').trim().toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
-    return `${base || 'result'}.txt`;
 }
 
 // Display-only field types: they show something instead of collecting it, so
@@ -493,7 +505,7 @@ const isDisplayField = (f) => DISPLAY_FIELD_TYPES.includes(f?.type);
  * before anyone types anything.
  *
  * Exported (BFSF-408b) because it is also the free answer to "what does this
- * trigger hand my next step?": the routine builder seeds an edited trigger
+ * trigger hand my next step?": the automation builder seeds an edited trigger
  * payload from it, so the author sees every declared key without filling the
  * form in. Deliberately the SAME function the renderer seeds its own state
  * with — a second generator would drift from the real submission shape (the
@@ -538,7 +550,7 @@ function fileKind(filename) {
 }
 
 /**
- * The document the routine produced, offered as a download.
+ * The document the automation produced, offered as a download.
  *
  * A plain anchor, not a fetch: the browser's own download handling is what a
  * visitor expects, works without JavaScript state, and keeps the bytes out of
@@ -697,7 +709,7 @@ function FormField({ field, value, error, disabled, onChange, onUpload, onSearch
     const id = `ff_${field.name}`;
     const common = { id, name: field.name, disabled, className: INPUT_CLASS, style: inputStyle(!!error) };
 
-    // A download is the one field that GIVES rather than asks: the routine made
+    // A download is the one field that GIVES rather than asks: the automation made
     // a document and this hands it over. It collects nothing, so it has no
     // value, no error and no place in the submission.
     if (field.type === 'download') return <FormDownload field={field} href={downloadHref} />;
@@ -735,7 +747,7 @@ function FormField({ field, value, error, disabled, onChange, onUpload, onSearch
             ) : field.type === 'select' ? (
                 <select {...common} value={value || ''} onChange={(e) => onChange(e.target.value)}>
                     <option value="">{field.placeholder || 'Choose…'}</option>
-                    {(field.options || []).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    {normaliseOptions(field.options).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
             ) : field.type === 'file' ? (
                 <FileField field={field} value={value} disabled={disabled} onChange={onChange} onUpload={onUpload} onError={onError} />
@@ -761,7 +773,7 @@ function FormField({ field, value, error, disabled, onChange, onUpload, onSearch
  * What travels with the submission is a REFERENCE — `{ kind:'app_pick',
  * recordId, title }` — never the record itself. The server re-reads the record
  * as the person submitting, at submit time, which is what keeps this from being
- * a way to post someone else's transcript into a routine by hand-crafting a
+ * a way to post someone else's transcript into an automation by hand-crafting a
  * body.
  *
  * The search runs against the FILLER's own account. So "no results" here can
@@ -769,6 +781,7 @@ function FormField({ field, value, error, disabled, onChange, onUpload, onSearch
  * next to the box rather than thrown, because it is not the person's mistake.
  */
 function AppPickField({ field, value, disabled, onChange, onSearch }) {
+    const { t } = useTranslation();
     const [query, setQuery] = useState('');
     const [results, setResults] = useState([]);
     const [searching, setSearching] = useState(false);
@@ -885,7 +898,7 @@ function AppPickField({ field, value, disabled, onChange, onSearch }) {
                     />
                     {searching && (
                         <span className="flex items-center gap-1.5 px-1 py-1 text-xs" style={{ color: 'var(--text-muted)' }}>
-                            <Loader2 size={12} className="animate-spin" /> Searching…
+                            <Loader2 size={12} className="animate-spin" /> {t('forms.searching', 'Searching…')}
                         </span>
                     )}
                     {!searching && note && (

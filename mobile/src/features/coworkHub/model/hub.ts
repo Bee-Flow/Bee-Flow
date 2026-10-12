@@ -31,7 +31,7 @@ export function selectNeedsYou(runs: AutomationRun[], now: number): AutomationRu
             // so it stays.
             const startedAt = run.startedAt ? new Date(run.startedAt).getTime() : null;
             if (!waiting && startedAt !== null && now - startedAt > NEEDS_YOU_WINDOW_MS) return false;
-            // One card per automation. A routine that fails on a schedule
+            // One card per automation. An automation that fails on a schedule
             // produces the SAME failure every run, so without this one broken
             // automation fills the section and hides everything else.
             if (seen.has(run.automationId)) return false;

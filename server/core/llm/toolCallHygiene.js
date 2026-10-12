@@ -59,7 +59,7 @@ function noteRepeatedRejection(name, args, result, state, { mutating } = {}) {
     let sig;
     try { sig = signature(name, args); } catch (_) { return result; }
     const prev = state._lastRejected;
-    // The fix a rejection carries (a `_suggestedPatch` in the routine builder's
+    // The fix a rejection carries (a `_suggestedPatch` in the automation builder's
     // shape: { ops:[{op:'set', path, value}], why }) is remembered so the
     // identical resend can have it applied before dispatch — rung 2 of the
     // ladder. Kept across the count.

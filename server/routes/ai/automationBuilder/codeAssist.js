@@ -17,7 +17,7 @@
  * The server edits the code the request carried, in memory, and saves
  * nothing: the client shows the change with Keep/Undo and its own autosave
  * writes the step. So the access check is about who may ASK: a person who
- * may build routines, and, when the request names a routine, one who may
+ * may build automations, and, when the request names an automation, one who may
  * edit it (automation/access.js). Refusals before the stream opens are plain
  * JSON, like the rest of this router.
  *
@@ -78,7 +78,7 @@ const CodeAssistBody = bodyOf({
         label: z.string({ invalid_type_error: 'An upstream field label is text.' }).max(300).nullish(),
         type: z.string({ invalid_type_error: 'An upstream field type is text.' }).max(60).nullish(),
     }), { invalid_type_error: 'upstreamFields is a list of { path, label, type }.' }).max(MAX_UPSTREAM_FIELDS).nullish(),
-    automationId: text('automationId is the id of the routine.', 200).nullish(),
+    automationId: text('automationId is the id of the automation.', 200).nullish(),
     stepId: text('stepId is the id of the code step.', 200).nullish(),
     modelTier: text('modelTier is the name of a model tier.', 100).nullish(),
 }, 'A code assistant turn');
@@ -217,7 +217,7 @@ function makeCodeAssistRouter(overrides = {}) {
         const automationId = body.automationId || null;
         if (automationId) {
             const automation = await Promise.resolve(deps.getAutomation(automationId)).catch(() => null);
-            if (!automation) return refuse(res, 404, 'Routine not found.', 'automation_not_found');
+            if (!automation) return refuse(res, 404, 'Automation not found.', 'automation_not_found');
             if (!await deps.guardEdit(req, res, automation)) return;
         }
 

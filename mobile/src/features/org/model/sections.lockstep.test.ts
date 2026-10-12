@@ -7,7 +7,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { WEB_ORG_SECTIONS } from './sections';
+import { WEB_ONLY_ORG_SECTIONS, WEB_ORG_SECTIONS } from './sections';
 
 const WEB = path.resolve(__dirname, '../../../../../agent-hub/src');
 
@@ -34,6 +34,12 @@ describe('the organisation sections', () => {
     });
 
     it('lists the same sections, with the same label keys, in the same order', () => {
-        expect(WEB_ORG_SECTIONS.map(({ id, labelKey }) => ({ id, labelKey }))).toEqual(web);
+        // Minus the sections the phone leaves to the web on purpose.
+        const offered = web.filter((r) => !WEB_ONLY_ORG_SECTIONS.includes(r.id));
+        expect(WEB_ORG_SECTIONS.map(({ id, labelKey }) => ({ id, labelKey }))).toEqual(offered);
+    });
+
+    it('every web-only section still exists on the web (no stale exception)', () => {
+        for (const id of WEB_ONLY_ORG_SECTIONS) expect(web.map((r) => r.id)).toContain(id);
     });
 });

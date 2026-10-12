@@ -304,17 +304,17 @@ export function aiStepCardText(step, { t, agentName = null, typeLabel = 'AI step
     const { skillIds, tools } = aiStepPortCounts(step);
     if (variant === 'agent') {
         const skills = skillIds.length === 1
-            ? t('routines.card.n_skills', '{count} skill', { count: 1 })
-            : t('routines.card.n_skills_plural', '{count} skills', { count: skillIds.length });
+            ? t('automations.card.n_skills', '{count} skill', { count: 1 })
+            : t('automations.card.n_skills_plural', '{count} skills', { count: skillIds.length });
         const toolText = tools === 1
-            ? t('routines.card.n_tools', '{count} tool', { count: 1 })
-            : t('routines.card.n_tools_plural', '{count} tools', { count: tools });
-        const sub = [agentName || t('routines.card.agent_unnamed', 'an agent'), skillIds.length ? skills : null, tools ? toolText : null]
+            ? t('automations.card.n_tools', '{count} tool', { count: 1 })
+            : t('automations.card.n_tools_plural', '{count} tools', { count: tools });
+        const sub = [agentName || t('automations.card.agent_unnamed', 'an agent'), skillIds.length ? skills : null, tools ? toolText : null]
             .filter(Boolean).join(' · ');
-        return { variant, typeLabel: t('routines.card.ai_step_agent', 'AI step · agent'), sub, subTitle: undefined };
+        return { variant, typeLabel: t('automations.card.ai_step_agent', 'AI step · agent'), sub, subTitle: undefined };
     }
     if (variant === 'skill') {
-        return { variant, typeLabel: t('routines.card.ai_step_skill', 'AI step · skill'), sub: t('routines.card.skill_no_agent', 'skill · no agent'), subTitle: undefined };
+        return { variant, typeLabel: t('automations.card.ai_step_skill', 'AI step · skill'), sub: t('automations.card.skill_no_agent', 'skill · no agent'), subTitle: undefined };
     }
     // The first line of the prompt is the summary: the card has one line.
     const promptPreview = (step.prompt || '').split('\n').map((l) => l.trim()).filter(Boolean).join(' ');

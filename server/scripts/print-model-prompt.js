@@ -19,15 +19,15 @@
  * block is measured as a delta too.
  *
  * Usage, from the host (the router proxies by `model`):
- *   node server/scripts/print-model-prompt.js --builder routine [--band small]
+ *   node server/scripts/print-model-prompt.js --builder automation [--band small]
  *   node server/scripts/print-model-prompt.js --builder app --band small --brief server/scripts/builder-briefs/invoice-tracker.json
  *   node server/scripts/print-model-prompt.js --builder compose [--locale en] [--no-approvals]
  *
- *   --builder routine|app|compose   which request to compose (required)
+ *   --builder automation|app|compose   which request to compose (required)
  *   --band small|mid|reasoning|frontier   the builder profile (default small)
  *   --brief <file|text>             a builder-briefs JSON ({brief}), a text file,
  *                                   or the message itself (default: a fixed brief)
- *   --catalog empty|sample          routine only: the per-user catalog in the
+ *   --catalog empty|sample          automation only: the per-user catalog in the
  *                                   dynamic message (default empty = the baseline)
  *   --few-shots N  --temperature T  --batch-tools true|false
  *                                   the per-model tweaks builder_model_profiles
@@ -76,8 +76,8 @@ const MAX_SYSTEM = Number(arg('max-system-tokens', 0)) || 0;
 const MAX_PREFIX = Number(arg('max-prefix-tokens', 0)) || 0;
 const DUMP = arg('dump', null);
 
-if (!['routine', 'app', 'compose'].includes(BUILDER)) {
-    console.error('usage: --builder routine|app|compose [--band small|mid|reasoning|frontier] [--brief <file|text>] [--url] [--model] [--json] [--max-system-tokens N] [--max-prefix-tokens N]');
+if (!['automation', 'app', 'compose'].includes(BUILDER)) {
+    console.error('usage: --builder automation|app|compose [--band small|mid|reasoning|frontier] [--brief <file|text>] [--url] [--model] [--json] [--max-system-tokens N] [--max-prefix-tokens N]');
     process.exit(2);
 }
 
@@ -87,7 +87,7 @@ const req = (p) => require(path.join(SERVER, p));
 
 // ── Default briefs (the live-gate briefs, so a measurement matches a run) ──
 const DEFAULT_BRIEF = {
-    routine: 'Maak een routine die ik met de hand start.\n\nLees elke PDF-factuur in de Nextcloud-map /Invoices-Test, haal datum, leverancier, factuurnummer, bedrag excl. btw, btw en totaal eruit en zet elke factuur als rij in de tabel Facturen.',
+    automation: 'Maak een automatisering die ik met de hand start.\n\nLees elke PDF-factuur in de Nextcloud-map /Invoices-Test, haal datum, leverancier, factuurnummer, bedrag excl. btw, btw en totaal eruit en zet elke factuur als rij in de tabel Facturen.',
     app: 'Can you create an app with tables where invoices from different suppliers are being tracked: a dashboard with the count of invoices and the sum of totals, a table of all invoices with a filter on supplier, and a detail screen per invoice.',
     compose: 'Read the PDF invoices in the Nextcloud folder /Invoices-Q3 into a table with invoice date, supplier, invoice number, amount excl. VAT, VAT and total. Build an app with a dashboard: count of invoices, sum of totals, a table of all invoices with a filter on supplier, and a detail screen per invoice.',
 };
@@ -171,7 +171,7 @@ function withOverrides(profile) {
 // with the tools it carries (Gemma renders tools inside the system turn, so
 // the [system] slice renders WITHOUT tools and [system + tools] with them).
 
-function composeRoutine(brief) {
+function composeAutomation(brief) {
     const { getProfile, effortForIteration, CORE_TOOL_NAMES } = req('automation/builderModelProfiles');
     const { TOOL_SCHEMAS } = req('automation/builderTools');
     const { projectToolSchemas } = req('automation/builderTools/schemaProjection');
@@ -277,7 +277,7 @@ function composeApp(brief) {
         fewShots: systemPrefixFingerprint(JSON.stringify(full.fewShotMessages)),
     };
     const checks = [
-        { name: 'owner context', ok: !sys.includes('## Routines\n') || sys.includes('OWNER CONTEXT'), detail: sys.includes('OWNER CONTEXT') ? 'routines/documents ride the per-turn note' : 'no owner-context pointer in the system prompt' },
+        { name: 'owner context', ok: !sys.includes('## Automations\n') || sys.includes('OWNER CONTEXT'), detail: sys.includes('OWNER CONTEXT') ? 'automations/documents ride the per-turn note' : 'no owner-context pointer in the system prompt' },
         { name: 'menu size', ok: true, detail: `${tools.length} tools (${profile.toolset}), ${JSON.stringify(tools).length} JSON chars` },
         { name: 'few-shots', ok: true, detail: `${full.fewShotMessages.length} messages, ${JSON.stringify(full.fewShotMessages).length} JSON chars (policy ${profile.fewShotPolicy})` },
         { name: 'round-0 promptChars', ok: true, detail: `${JSON.stringify(full.messages).length} (what round_start reports; drive-app-builder expect.maxPromptChars)` },
@@ -370,7 +370,7 @@ function quietly(fn) {
 
 async function main() {
     const brief = readBrief();
-    const { value: composed, captured } = quietly(() => (BUILDER === 'routine' ? composeRoutine(brief) : BUILDER === 'app' ? composeApp(brief) : composeCompose(brief)));
+    const { value: composed, captured } = quietly(() => (BUILDER === 'automation' ? composeAutomation(brief) : BUILDER === 'app' ? composeApp(brief) : composeCompose(brief)));
     const { value: { localAdapters } } = quietly(() => req('core/providers/index'));
     if (flag('verbose') && captured.length) console.error(captured.join('\n'));
     // The stores keep trying their connection after require time and report
@@ -430,11 +430,11 @@ async function main() {
         { name: "no ['STRING', 'NULL'] union literal in the rendered prompt", ok: !/\[\s*'?STRING'?\s*,\s*'?NULL'?\s*\]/i.test(lastPrompt), detail: 'type:[T,null] unions are lifted to nullable by core/llm/toolSchemaProjection' },
         // The template renders additionalProperties as a raw key. It is kept
         // on purpose on ONE node (builder_add_steps.steps.items: measured
-        // 2/12 → 0/12 corrupt keys), so one occurrence on the routine builder
+        // 2/12 → 0/12 corrupt keys), so one occurrence on the automation builder
         // is the expected shape; anywhere else it is a leak.
         (() => {
             const n = (lastPrompt.match(/additionalProperties/g) || []).length;
-            const expected = BUILDER === 'routine' ? 1 : 0;
+            const expected = BUILDER === 'automation' ? 1 : 0;
             return { name: 'additionalProperties rendered as a raw key', ok: n <= expected, detail: `${n} occurrence(s), ${expected} expected${expected ? ' (builder_add_steps.steps.items, kept on purpose)' : ''}` };
         })(),
         ...(BUILDER === 'compose' ? [(() => {

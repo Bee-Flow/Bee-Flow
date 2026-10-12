@@ -37,7 +37,6 @@ export const SECONDARY_NAV = [
     { key: 'studio', labelKey: 'studio.sidebar_link', labelFallback: 'Studio', icon: 'LayoutGrid', href: '/studio' },
     { key: 'apps', labelKey: 'sidebar.apps', labelFallback: 'Apps', icon: 'AppWindow', href: '/apps' },
     { key: 'forms', labelKey: 'sidebar.forms', labelFallback: 'Forms', icon: 'ClipboardList', href: '/forms' },
-    { key: 'notebooks', labelKey: 'sidebar.notebooks', labelFallback: 'Notebooks', icon: 'FileText', href: '/notebooks' },
 ] as const satisfies readonly NavSpec[];
 
 export type CoreKey = (typeof CORE_NAV)[number]['key'];

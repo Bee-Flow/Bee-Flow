@@ -2,6 +2,7 @@ import React from 'react';
 import FormField from '../../../../shared/FormField';
 import { FONT_OPTIONS } from '../../../ThemeContext';
 import { SECTION_IDS } from '../useLookForm';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 
 // Sample text shown next to each font so admins can preview at a glance.
 const FONT_SAMPLE = 'The quick brown fox jumps over the lazy dog.';
@@ -14,6 +15,7 @@ const FONT_STACKS_PREVIEW = {
 };
 
 export default function TypographySection({ form, setForm, saving }) {
+    const { t } = useTranslation();
     return (
         <section
             id={SECTION_IDS.typography}
@@ -24,10 +26,10 @@ export default function TypographySection({ form, setForm, saving }) {
                 className="text-base font-semibold mb-1"
                 style={{ color: 'var(--text-primary)' }}
             >
-                Typography
+                {t('appearance.typography_typography', 'Typography')}
             </h3>
             <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
-                Applied app-wide. The first option uses the operating system's native UI font.
+                {t('appearance.typography_applied_app_wide_the_first_option_uses', 'Applied app-wide. The first option uses the operating system\'s native UI font.')}
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {FONT_OPTIONS.map((font) => {

@@ -136,7 +136,7 @@ describe('RoleCards — schrijven levert altijd een VOLLEDIGE persona', () => {
         expect(onChange.mock.calls[0][0].tone.chips).toEqual(['formal', 'concise']);
     });
 
-    it('laat het gekozen routine-id vallen zodra de modus geen handoff meer is', () => {
+    it('laat het gekozen automation-id vallen zodra de modus geen handoff meer is', () => {
         const onChange = vi.fn();
         const handoff = { ...PERSONA, unknown: { mode: 'handoff', automationId: 'a1' } };
         render(<RoleCards {...base} persona={handoff} onChange={onChange} />);

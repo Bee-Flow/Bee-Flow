@@ -46,7 +46,7 @@ function JsonDisclosure({ open, onToggle }: { open: boolean; onToggle: () => voi
         >
             <Icon name={open ? 'ChevronDown' : 'ChevronRight'} size={16} color={styles.glyph.color} />
             <Text variant="caption" tone="secondary" weight="medium">
-                {t('mobile.flow.ndv.edit_as_json', 'Edit as JSON')}
+                {t('automations.builder.json_view_open', 'Edit as JSON')}
             </Text>
         </Pressable>
     );
@@ -81,15 +81,15 @@ export function OutputEditor({ seed, canRemove, onSave, onRemove, onCancel }: Ou
         <View style={styles.box} testID="output-editor">
             <Text variant="caption" tone="tertiary">
                 {t(
-                    'routines.ndv.output_editor_hint',
-                    'What the steps after this one should see. Saved with the routine and replayed instead of running this step — so it is a stand-in for real data, not a note.',
+                    'automations.ndv.output_editor_hint',
+                    'What the steps after this one should see. Saved with the automation and replayed instead of running this step — so it is a stand-in for real data, not a note.',
                 )}
             </Text>
             {shape ? <OutputFieldsEditor shape={shape} text={text} onChange={change} /> : null}
             {shape ? <JsonDisclosure open={rawOpen} onToggle={() => setRawOpen((o) => !o)} /> : null}
             {rawShown ? (
                 <TextField
-                    label={t('routines.ndv.output_json', 'Output JSON')}
+                    label={t('automations.ndv.output_json', 'Output JSON')}
                     value={text}
                     onChangeText={change}
                     multiline
@@ -105,7 +105,7 @@ export function OutputEditor({ seed, canRemove, onSave, onRemove, onCancel }: Ou
             <View style={styles.actions}>
                 {canRemove ? <Button size="sm" variant="danger" label={t('common.remove', 'Remove')} onPress={onRemove} /> : null}
                 <Button size="sm" variant="ghost" label={t('common.cancel', 'Cancel')} onPress={onCancel} />
-                <Button size="sm" label={t('routines.ndv.save_output', 'Save output')} onPress={save} testID="output-save" />
+                <Button size="sm" label={t('automations.ndv.save_output', 'Save output')} onPress={save} testID="output-save" />
             </View>
         </View>
     );

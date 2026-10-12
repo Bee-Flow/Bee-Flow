@@ -19,7 +19,7 @@ module.exports = {
     'projects.someone_typing': '{name} is typing…',
     'projects.resources': 'In this project',
     'projects.notebooks': 'Notebooks',
-    'projects.routines': 'Routines',
+    'projects.automations': 'Automations',
     'projects.apps': 'Apps',
     'projects.webpages': 'Webpages',
     'projects.approvals': 'Approvals',
@@ -37,7 +37,7 @@ module.exports = {
     'projects.flow_completeness_unknown': 'This view could not confirm it read the whole project, so treat it as partial.',
     'projects.flow_no_problems_partial': 'Nothing was wrong in the parts that could be read.',
     'projects.flow_nothing_wired_partial': 'Nothing that could be read calls anything else.',
-    'projects.blueprint_intro': 'A Blueprint is this Solution written down — its routines, apps and webpages, and the links between them — so it can be installed somewhere else. Decisions, credentials and people never travel with it.',
+    'projects.blueprint_intro': 'A Blueprint is this Solution written down — its automations, apps and webpages, and the links between them — so it can be installed somewhere else. Decisions, credentials and people never travel with it.',
     'projects.blueprint_export': 'Package this Solution',
     'projects.blueprint_download': 'Download',
     'projects.blueprint_owner_only': 'Only the project owner can package it.',
@@ -54,4 +54,5 @@ module.exports = {
     'projects.remove_from_project': 'Remove from project',
     'projects.conflict': 'This project was changed by someone else. Reload to see their changes — your edits are still in the form.',
     'projects.access_revoked': 'Your access to this project was revoked.',
+    'projects.flow_edge_problem': 'Problem with this link',
 };

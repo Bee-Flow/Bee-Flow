@@ -63,7 +63,7 @@ export const EDITOR_BY_KIND = {
  * rather than showing a raw `app_studio.…` id.
  */
 export const KIND_OPTIONS = [
-    { value: 'run_automation', labelKey: 'app_studio.inspector.kind_run_automation', labelEn: 'Run routine' },
+    { value: 'run_automation', labelKey: 'app_studio.inspector.kind_run_automation', labelEn: 'Run automation' },
     { value: 'ai_extract', labelKey: 'app_studio.inspector.kind_ai_extract', labelEn: 'AI · extract from document' },
     { value: 'ai_generate', labelKey: 'app_studio.inspector.kind_ai_generate', labelEn: 'AI · generate / summarize' },
     { value: 'kb_query', labelKey: 'app_studio.inspector.kind_kb_query', labelEn: 'AI · search knowledge base' },
@@ -91,9 +91,9 @@ export const NOT_OFFERED_HERE = {};
 export const CARD_COPY = {
     run_automation: {
         labelKey: 'app_studio.inspector.kind_run_automation',
-        labelEn: 'Run routine',
+        labelEn: 'Run automation',
         blurbKey: 'app_studio.inspector.blurb_run_automation',
-        blurbEn: 'Hand the work to one of your routines and use what it sends back.',
+        blurbEn: 'Hand the work to one of your automations and use what it sends back.',
     },
     navigate: {
         labelKey: 'app_studio.inspector.kind_navigate',

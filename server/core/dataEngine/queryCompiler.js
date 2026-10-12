@@ -98,6 +98,41 @@ class CompileError extends Error {
     }
 }
 
+/**
+ * A row write to a table whose rows a Solution release owns (a reference
+ * table in a UAT or PRD stage: its model descriptor carries `rowsLocked:
+ * true`). 409 `managed_part`, the same refusal as any other write to a managed
+ * part, and deliberately NOT a CompileError: every caller that turns a compile
+ * failure into a 400/422 (or a per-row import error) has to let this one
+ * through, because the request was well formed and the answer is "change it in
+ * Dev and deploy", not "fix your descriptor". `errorClass` names it for a
+ * automation's on_error branch; `expose` lets the terminal handler answer it.
+ */
+class RowsLockedError extends Error {
+    constructor(message = 'The rows of this table are managed by a Solution release. Change them in Dev and deploy.') {
+        super(message);
+        this.name = 'RowsLockedError';
+        this.status = 409;
+        this.code = 'managed_part';
+        this.errorClass = 'managed_part';
+        this.expose = true;
+    }
+}
+
+/**
+ * Throw RowsLockedError when `tableMeta` is a locked reference table, unless
+ * the caller is the deploy itself (`allowLockedRows: true`). Exported so a
+ * caller can refuse BEFORE it spends a quota read or synthesises a preview.
+ *
+ * @param {object} tableMeta
+ * @param {{ allowLockedRows?: boolean }} [opts]
+ */
+function assertRowsWritable(tableMeta, opts) {
+    if (!tableMeta || tableMeta.rowsLocked !== true) return;
+    if (opts && opts.allowLockedRows === true) return;
+    throw new RowsLockedError();
+}
+
 // ── Identifier quoting ──────────────────────────────────────────────
 function qi(name) {
     return '"' + String(name).replace(/"/g, '""') + '"';
@@ -607,9 +642,12 @@ function compileAggregate(tableMeta, opts = {}, accessFilter) {
  * set id/created_at/updated_at/created_by/org_id (those keys are dropped).
  * Returns { sql, params, id }.
  */
-function compileInsert(tableMeta, values, { createdBy = null, orgId = null, dialect: dialectOpt, id: idOpt } = {}) {
+function compileInsert(tableMeta, values, {
+    createdBy = null, orgId = null, dialect: dialectOpt, id: idOpt, allowLockedRows = false,
+} = {}) {
     const dialect = resolveDialect({ dialect: dialectOpt });
     assertTableMeta(tableMeta);
+    assertRowsWritable(tableMeta, { allowLockedRows });
     const fm = fieldMap(tableMeta);
     // `id` is a SERVER-ONLY option, never read from `values` (a client's
     // `values.id` is still dropped below with the other system columns). A
@@ -654,9 +692,12 @@ function compileInsert(tableMeta, values, { createdBy = null, orgId = null, dial
  * last-write-wins because they are server-authoritative flows with no user
  * holding a stale copy; the record API + inline grid edits pass the token.
  */
-function compileUpdate(tableMeta, id, values, accessFilter, { expectedUpdatedAt = null, dialect: dialectOpt } = {}) {
+function compileUpdate(tableMeta, id, values, accessFilter, {
+    expectedUpdatedAt = null, dialect: dialectOpt, allowLockedRows = false,
+} = {}) {
     const dialect = resolveDialect({ dialect: dialectOpt });
     assertTableMeta(tableMeta);
+    assertRowsWritable(tableMeta, { allowLockedRows });
     assertAccessFilter(accessFilter);
     if (typeof id !== 'string' || !id) throw new CompileError('record id is required');
     const fm = fieldMap(tableMeta);
@@ -695,6 +736,7 @@ function compileUpdate(tableMeta, id, values, accessFilter, { expectedUpdatedAt 
 function compileDelete(tableMeta, id, accessFilter, opts = {}) {
     resolveDialect(opts);
     assertTableMeta(tableMeta);
+    assertRowsWritable(tableMeta, opts);
     assertAccessFilter(accessFilter);
     if (typeof id !== 'string' || !id) throw new CompileError('record id is required');
     return {
@@ -748,7 +790,7 @@ function compileKeyIndex(tableMeta, keyFieldName, keys, accessFilter, opts = {})
  *
  * So the unique declaration is CHECKED, not assumed: without it Postgres
  * answers "no unique or exclusion constraint matching the ON CONFLICT
- * specification", which is a 500 from inside somebody's nightly routine.
+ * specification", which is a 500 from inside somebody's nightly automation.
  *
  * THE ACCESS FILTER GUARDS THE UPDATE HALF. `ON CONFLICT … DO UPDATE … WHERE`
  * takes a predicate over the EXISTING row, so a row the caller may not write is
@@ -762,11 +804,12 @@ function compileKeyIndex(tableMeta, keyFieldName, keys, accessFilter, opts = {})
  * reachable from is a datatable, which is always Postgres.
  */
 function compileUpsertByKey(tableMeta, keyFieldName, values, accessFilter, {
-    createdBy = null, orgId = null, dialect: dialectOpt,
+    createdBy = null, orgId = null, dialect: dialectOpt, allowLockedRows = false,
 } = {}) {
     const dialect = resolveDialect({ dialect: dialectOpt });
     if (dialect !== 'pg') throw new CompileError('compileUpsertByKey is Postgres-only');
     assertTableMeta(tableMeta);
+    assertRowsWritable(tableMeta, { allowLockedRows });
     assertAccessFilter(accessFilter);
     const fm = fieldMap(tableMeta);
     const keyField = fm.get(keyFieldName);
@@ -824,11 +867,12 @@ function compileUpsertByKey(tableMeta, keyFieldName, values, accessFilter, {
  * Postgres only, for the same reason.
  */
 function compileUpsertById(tableMeta, id, values, accessFilter, {
-    createdBy = null, orgId = null, dialect: dialectOpt,
+    createdBy = null, orgId = null, dialect: dialectOpt, allowLockedRows = false,
 } = {}) {
     const dialect = resolveDialect({ dialect: dialectOpt });
     if (dialect !== 'pg') throw new CompileError('compileUpsertById is Postgres-only');
     assertTableMeta(tableMeta);
+    assertRowsWritable(tableMeta, { allowLockedRows });
     assertAccessFilter(accessFilter);
     assertRecordId(id);
     const fm = fieldMap(tableMeta);
@@ -911,6 +955,7 @@ function compileKeyValues(tableMeta, fieldName, accessFilter, opts = {}) {
 function compileDeleteAll(tableMeta, accessFilter, opts = {}) {
     resolveDialect(opts);
     assertTableMeta(tableMeta);
+    assertRowsWritable(tableMeta, opts);
     assertAccessFilter(accessFilter);
     return {
         sql: `DELETE FROM ${qi(tableMeta.key)} WHERE ${accessFilter.where}`,
@@ -951,8 +996,10 @@ function olderThanWhere(tableMeta, accessFilter, { field, cutoffIso }) {
  * through resolveColumn, so an unknown or unstored field is a CompileError
  * rather than an injection point.
  */
-function compileDeleteOlderThan(tableMeta, accessFilter, { field, cutoffIso, dialect: dialectOpt }) {
+function compileDeleteOlderThan(tableMeta, accessFilter, { field, cutoffIso, dialect: dialectOpt, allowLockedRows = false }) {
     resolveDialect({ dialect: dialectOpt });
+    assertTableMeta(tableMeta);
+    assertRowsWritable(tableMeta, { allowLockedRows });
     const { where, params } = olderThanWhere(tableMeta, accessFilter, { field, cutoffIso });
     return {
         sql: `DELETE FROM ${qi(tableMeta.key)} WHERE ${where}`,
@@ -1009,9 +1056,12 @@ function compileSelectOlderThan(tableMeta, accessFilter, { field, cutoffIso, lim
  * an age from. Callers pass `sweepNull: false` there, and only rows that point
  * AT a vanished parent are collected.
  */
-function compileDeleteOrphans(tableMeta, accessFilter, { relationField, parentTableMeta, sweepNull = true, dialect: dialectOpt }) {
+function compileDeleteOrphans(tableMeta, accessFilter, {
+    relationField, parentTableMeta, sweepNull = true, dialect: dialectOpt, allowLockedRows = false,
+}) {
     resolveDialect({ dialect: dialectOpt });
     assertTableMeta(tableMeta);
+    assertRowsWritable(tableMeta, { allowLockedRows });
     assertTableMeta(parentTableMeta);
     assertAccessFilter(accessFilter);
     const column = resolveColumn(tableMeta, relationField);
@@ -1049,6 +1099,8 @@ module.exports = {
     // re-deriving one that disagrees with it.
     clampLimit,
     CompileError,
+    RowsLockedError,
+    assertRowsWritable,
     MATCH_MODES,
     MAX_RESULT_ROWS,
     DEFAULT_LIMIT,

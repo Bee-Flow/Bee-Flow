@@ -29,7 +29,7 @@ const studioAppDataStore = require('../../stores/studioAppDataStore');
 const { buildServerScope, resolveBinding, coerceRecordId } = require('./shared');
 const log = require('../../telemetry/log');
 
-// A document is a page of paper. The same cap the routine step and the
+// A document is a page of paper. The same cap the automation step and the
 // validator use, so "how many values may a document be filled with" has one
 // answer across the product.
 const MAX_VALUES = 200;

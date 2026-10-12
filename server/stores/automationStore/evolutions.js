@@ -1,6 +1,6 @@
 // @typecheck
 /**
- * automationStore — routine evolution proposals (automation_evolutions) and
+ * automationStore — automation evolution proposals (automation_evolutions) and
  * the run-outcome summaries an evolution is proposed from and judged by.
  * See migrations/automation-evolution-2026-09.js for the lifecycle.
  */
@@ -88,7 +88,7 @@ async function listCanaryEvolutions() {
 }
 
 /**
- * Outcome summary of one routine's LIVE runs: totals by status and error
+ * Outcome summary of one automation's LIVE runs: totals by status and error
  * class, handled errors, average duration, and a per-root breakdown. `since`
  * (ISO) bounds the window; `minVersion` restricts to runs of that definition
  * version or later — the canary reads only the runs of the new version.

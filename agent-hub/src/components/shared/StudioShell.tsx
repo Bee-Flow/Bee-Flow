@@ -2,9 +2,9 @@ import React from 'react';
 
 /**
  * StudioShell — two-pane layout (left sidebar + main content) used by the
- * three Studio panels: Routines, Skills, Knowledge Bases. Replaces the
+ * three Studio panels: Automations, Skills, Knowledge Bases. Replaces the
  * duplicated chrome in:
- *   - components/admin/Studio/RoutinesStudio/
+ *   - components/admin/Studio/AutomationsStudio/
  *   - components/admin/Studio/SkillsStudio/index.jsx
  *   - components/admin/Studio/KBsStudio/index.jsx
  *

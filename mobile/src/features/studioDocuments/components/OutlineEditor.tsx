@@ -31,7 +31,7 @@ function grammar(t: TranslateFn): [string, string][] {
         ['<!-- layout: timeline -->', t('mobile.studio_documents.outline.layout', 'bullets as steps; also closing, cards')],
         ['<!-- style: accent -->', t('mobile.studio_documents.outline.style', 'an emphasis slide (or dark)')],
         ['Notes: …', t('mobile.studio_documents.outline.notes', 'speaker notes for the slide')],
-        ['{{customer.name}}', t('mobile.studio_documents.outline.placeholder', 'a placeholder a routine fills')],
+        ['{{customer.name}}', t('mobile.studio_documents.outline.placeholder', 'a placeholder an automation fills')],
     ];
 }
 

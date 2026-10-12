@@ -15,7 +15,7 @@ import SaveStatusChip from './SaveStatusChip';
 import { ICON_BUTTON, PRIMARY_BUTTON, TOOL_BUTTON, TOOL_BUTTON_ACTIVE } from './ui';
 
 export type EditorMode = 'viewing' | 'editing';
-export type SidePanel = 'outline' | 'history' | 'comments' | null;
+export type SidePanel = 'outline' | 'history' | 'comments' | 'suggestions' | null;
 
 export interface DesignedToolbarProps {
     doc: StudioDocument;

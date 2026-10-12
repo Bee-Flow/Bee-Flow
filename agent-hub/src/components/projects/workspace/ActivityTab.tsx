@@ -1,3 +1,5 @@
+import { useProjectSearch } from '../../../api/queries/projectDiscovery';
+import { itemTab } from './ProjectDiscovery';
 // Activity: what happened in the project, newest first, in sentences.
 // The feed is live — ProjectLiveProvider invalidates it on every durable
 // event — and pages further back with "Load more".
@@ -7,7 +9,7 @@
 // per editing session, with the item's title as the reader may see it now.
 
 import { Activity, Sparkles } from 'lucide-react';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useProjectChangeLogQuery } from '../../../api/queries/projectChanges';
 import {
     useProjectActivityQuery, useProjectMembersQuery, type ProjectMembers,
@@ -18,7 +20,7 @@ import {
     activityCategory, changeMeta, describeActivity, type ActivityCategory, type ActivityEntry, type ActivityNames,
 } from './activityText';
 import { FilterPills, StudioSectionHeader } from './studioParts';
-import type { WorkspaceTabProps } from './types';
+import type { WorkspaceTabProps, OpenThreadTarget } from './types';
 import { Avatar, ErrorText, LoadingRow, SecondaryButton } from './workspaceUi';
 
 type Filter = 'all' | 'changes' | ActivityCategory;
@@ -41,10 +43,11 @@ function namesFrom(data: ProjectMembers | undefined, currentUserId: string | nul
         },
         group: (id) => (id ? data?.groups?.[id]?.name || null : null),
         currentUserId,
+        rosterKnown: !!data,
     };
 }
 
-function ActivityRow({ item, names }: { item: ActivityEntry; names: ActivityNames }) {
+function ActivityRow({ item, names, onOpen }: { item: ActivityEntry; names: ActivityNames; onOpen?: () => void }) {
     const { t } = useTranslation();
     const rel = useRelativeTime();
     const actorName = item.actorId ? names.person(item.actorId) : null;
@@ -54,7 +57,7 @@ function ActivityRow({ item, names }: { item: ActivityEntry; names: ActivityName
         <li className="flex items-start gap-3 px-3.5 py-2.5 border-b border-[var(--border-subtle)] last:border-b-0" data-testid="activity-row">
             <Avatar name={actorName || (item.actorKind === 'ai' ? t('project_home.activity.ai_name', 'AI') : '?')} size="sm" />
             <div className="flex-1 min-w-0">
-                <p className="text-[13px] text-[var(--text-primary)] m-0">{describeActivity(item, names, t)}</p>
+                <p className="text-[13px] text-[var(--text-primary)] m-0">{onOpen ? <button className="text-left hover:underline" onClick={onOpen}>{describeActivity(item, names, t)}</button> : describeActivity(item, names, t)}</p>
                 {(meta || withAi) && (
                     <p className="m-0 mt-0.5 flex items-center gap-1.5 text-[11.5px] text-[var(--text-tertiary)]" data-testid="activity-meta">
                         {withAi && <Sparkles className="w-3 h-3 text-[var(--accent-primary)]" aria-label={t('project_home.activity.with_ai', 'With AI')} />}
@@ -85,7 +88,8 @@ function useFilterOptions() {
     ];
 }
 
-function ActivityBody({ items, names, filter, feed }: {
+function ActivityBody({ items, names, filter, feed, openItem }: {
+    openItem: (item: ActivityEntry) => (() => void) | undefined;
     items: ActivityEntry[];
     names: ActivityNames;
     filter: Filter;
@@ -114,7 +118,7 @@ function ActivityBody({ items, names, filter, feed }: {
                 </p>
             ) : (
                 <ol className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] overflow-hidden m-0 p-0 list-none">
-                    {shown.map((item) => <ActivityRow key={item.id} item={item} names={names} />)}
+                    {shown.map((item) => <ActivityRow key={item.id} item={item} names={names} onOpen={openItem(item)} />)}
                 </ol>
             )}
             {feed.hasNextPage && (
@@ -128,8 +132,18 @@ function ActivityBody({ items, names, filter, feed }: {
     );
 }
 
-export default function ActivityTab({ projectId, currentUser }: WorkspaceTabProps) {
+export default function ActivityTab({ projectId, currentUser, onOpenTab, onOpenThread }: WorkspaceTabProps & { onOpenThread?: (thread: OpenThreadTarget) => void }) {
     const { t } = useTranslation();
+    const catalogue = useProjectSearch(projectId, '', '', true);
+    useEffect(() => { if (catalogue.hasNextPage && !catalogue.isFetchingNextPage) void catalogue.fetchNextPage(); }, [catalogue.hasNextPage, catalogue.isFetchingNextPage, catalogue.fetchNextPage]);
+    const openItem = (entry: ActivityEntry) => {
+        const type = entry.targetType === 'project_task' ? 'task' : ['project_chat', 'direct', 'agent'].includes(entry.targetType || '') ? 'chat' : entry.targetType;
+        const item = catalogue.data?.pages.flatMap(page => page?.items || []).find(item => item.type === type && item.id === entry.targetId);
+        if (!item || catalogue.isError) return undefined;
+        return item.threadType
+            ? () => onOpenThread?.({ id: item.id, type: item.threadType!, agentId: item.agentId || null })
+            : () => onOpenTab?.(itemTab(item), item.id);
+    };
     const [filter, setFilter] = useState<Filter>('all');
     const changesOnly = filter === 'changes';
     const all = useProjectActivityQuery(projectId);
@@ -152,7 +166,7 @@ export default function ActivityTab({ projectId, currentUser }: WorkspaceTabProp
                         ariaLabel={t('project_home.activity.filter', 'Show activity about')}
                         testId="activity-filter"
                     />
-                    <ActivityBody items={items} names={names} filter={filter} feed={feed} />
+                    <ActivityBody openItem={openItem} items={items} names={names} filter={filter} feed={feed} />
                 </div>
             </div>
         </div>

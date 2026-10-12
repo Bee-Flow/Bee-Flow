@@ -11,6 +11,7 @@ const {
 } = require('./shared');
 const { getProject } = require('./projects');
 const { getPage } = require('./pages');
+const { listPosts, collectPostLocaleOverrides } = require('./posts');
 const log = require('../../telemetry/log');
 
 // ── Publishing ───────────────────────────────────────────────────────
@@ -113,6 +114,22 @@ async function publishSite(siteId) {
         };
     }
 
+    /* Blog posts. Drafts never enter the snapshot — a draft is private until
+       its status says otherwise. Scheduled posts DO enter it, with their date:
+       the public readers show a post only once publishedAt has passed
+       (posts.isPostVisible), so a scheduled post appears on time without a
+       job and without another publish. Additive keys, like pageMeta. */
+    const allPosts = await listPosts(siteId, { fresh: true });
+    const posts = {};
+    for (const post of allPosts) {
+        if (post.status === 'published' || post.status === 'scheduled') posts[post.id] = post;
+    }
+    const allPostOverrides = await collectPostLocaleOverrides(siteId, { fresh: true });
+    const postLocaleOverrides = {};
+    for (const id of Object.keys(posts)) {
+        if (allPostOverrides[id]) postLocaleOverrides[id] = allPostOverrides[id];
+    }
+
     const snapshot = {
         version: PUBLISHED_VERSION,
         publishedAt,
@@ -121,6 +138,8 @@ async function publishSite(siteId) {
         pageMeta,
         siteLocaleOverrides,
         pageLocaleOverrides,
+        posts,
+        postLocaleOverrides,
     };
     await configStore.setConfig(publishedKey(siteId), snapshot);
     return { publishedAt: snapshot.publishedAt };

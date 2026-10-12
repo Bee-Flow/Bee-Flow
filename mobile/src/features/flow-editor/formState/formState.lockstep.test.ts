@@ -90,6 +90,11 @@ const CRAFTED = [
     { id: 'dd', type: 'dedupe', arrayRef: 'x', keyField: ' k ' },
     { id: 'ag', type: 'aggregate', field: 'f' },
     { id: 'sm', type: 'summarize', op: 'avg', maxItems: 0 },
+    {
+        id: 'fl', type: 'flatten', arrayRef: 'steps.g.output.messages[*].attachments', keepEmpty: true, maxItems: 50,
+        parents: [{ overRef: 'steps.g.output.messages', itemVar: 'message', auto: true, fields: [{ from: 'subject', to: 'subject', mode: 'copy' }] }],
+    },
+    { id: 'fl2', type: 'flatten' },
     { id: 'dtab', type: 'datatable', datatableId: 'd', op: 'insert', where: [{ field: 'a', op: 'eq', value: 1 }, { value: 2 }], values: { a: 1, b: '', c: null }, matchColumn: 'a', limit: 5, forEach: { overRef: 'x' } },
     { id: 'kw', type: 'knowledge_write', knowledgeBaseId: 'kb', title: 't', content: 'c', sourceUri: 's', nearDuplicateStrategy: 'replace' },
     { id: 'note', type: 'note', label: 'N', icon: 'x' },

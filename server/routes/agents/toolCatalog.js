@@ -16,7 +16,7 @@
  *
  * So this is a SECOND, UNGATED source for the same facts — not a copy of that
  * endpoint. It answers the four questions the agent tool picker asks and
- * nothing else (no routine steps, no output schemas, no dry-run samples), and
+ * nothing else (no automation steps, no output schemas, no dry-run samples), and
  * it answers them from the same primitives the runtime uses, so the picker and
  * the runtime cannot disagree:
  *

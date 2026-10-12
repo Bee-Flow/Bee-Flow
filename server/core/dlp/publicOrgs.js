@@ -44,7 +44,7 @@ const PUBLIC_ORGANISATIONS = [
     'OpenAI', 'ChatGPT', 'Anthropic', 'Claude', 'Mistral', 'Hugging Face',
     'GitHub', 'GitLab', 'Atlassian', 'Jira', 'Confluence', 'Slack', 'Zoom',
     'Notion', 'Figma', 'Canva', 'Dropbox', 'Docker', 'Kubernetes', 'Red Hat',
-    'VMware', 'Citrix', 'Fortinet', 'Palo Alto Networks', 'Cloudflare',
+    'VMware', 'Citrix', 'Fortinet', 'Palo Alto Networks', 'Cloudflare', 'Scaleway',
     'Nextcloud', 'WordPress', 'Shopify', 'Stripe', 'PayPal', 'Adyen', 'Mollie',
     'Exact', 'AFAS', 'Twinfield', 'Visma', 'Unit4', 'TOPdesk', 'Zendesk', 'vPlan',
     'HubSpot', 'Mailchimp', 'Trello', 'Asana', 'Monday.com', 'ServiceNow',

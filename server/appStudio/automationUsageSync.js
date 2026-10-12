@@ -1,10 +1,10 @@
 /**
  * De schrijver van `automation_usage` voor één STUDIO-APP (P4 deel C).
  *
- * De index beantwoordt één vraag: WELKE KNOP DRAAIT DEZE ROUTINE? De
- * routine-editor toont het antwoord als de capsule "Gebruikt door 1 knop", en
+ * De index beantwoordt één vraag: WELKE KNOP DRAAIT DEZE AUTOMATISERING? De
+ * automation-editor toont het antwoord als de capsule "Gebruikt door 1 knop", en
  * dat is geen sierstrook: het is het enige scherm waarop iemand die op het
- * punt staat een routine te verwijderen, te hernoemen of te deactiveren ziet
+ * punt staat een automatisering te verwijderen, te hernoemen of te deactiveren ziet
  * dat er een app-knop aan hangt.
  *
  * Deze module is de exacte vorm van `core/webpages/webpageUsageSync.js` (W5),
@@ -19,7 +19,7 @@
  *    databaselees valt om, de definitie komt terug als iets dat geen definitie
  *    is — en dan is de eerlijke uitslag "ik weet het niet", niet "deze app
  *    gebruikt niets". Zou dat laatste hier gebeuren, dan leest de capsule na
- *    één storing "wordt nergens gebruikt" en verwijdert iemand een routine die
+ *    één storing "wordt nergens gebruikt" en verwijdert iemand een automatisering die
  *    een knop in productie aanzet. Onbekend versmalt: de oude rijen blijven
  *    staan, en dat wordt LUID gezegd (`ok:false` + een regel in het log),
  *    nooit stil. Dit is dezelfde val die W5 bij de 409-poort dichtzette.
@@ -41,14 +41,14 @@
  *    kost zo één scan in plaats van tien.
  *
  *    Idempotent is hij per constructie: `ref_id` is `act:<actionId>`, één rij
- *    per (actie, routine). Een sequence-stap heeft geen id, dus zijn POSITIE
+ *    per (actie, automatisering). Een sequence-stap heeft geen id, dus zijn POSITIE
  *    zou de enige andere sleutel zijn — en een positie schuift bij elke
  *    bewerking op. Zie appStudio/automationRefs.js.
  *
  * 3. EEN VERWIJDERDE APP LAAT NIETS ACHTER. Er is geen FK van deze index naar
  *    `studio_apps` (andere store, eigen boot-DDL), dus niets ruimt de rijen op.
  *    `listUsageOfAutomation` LEFT JOINt, en een achtergebleven rij vertelt een
- *    routine-eigenaar dat een knop die hij niet kan zien zijn routine aanzet.
+ *    automation-eigenaar dat een knop die hij niet kan zien zijn automatisering aanzet.
  *    Vandaar `purgeAppAutomationUsage` op het delete-pad — én, als vangnet,
  *    een reconcile die geen app-rij meer vindt en dan zelf opruimt in plaats
  *    van te schrijven. Afzeggen dekt ook de pass die AL LIEP: `_purgeEpoch`
@@ -59,14 +59,14 @@
  *
  * `reconcileAutomationUsage` grendelt zijn INSERT op `automations.user_id =
  * ownerUserId`, en die eigenaar komt hier van de APP-rij (`app.userId`) —
- * nooit van wie de save deed. Dat is niet dezelfde persoon: `CreateRoutineRow`
- * maakt een routine onder `req.session.user.id`, en bij een geïnstalleerde of
+ * nooit van wie de save deed. Dat is niet dezelfde persoon: `CreateAutomationRow`
+ * maakt een automatisering onder `req.session.user.id`, en bij een geïnstalleerde of
  * overgedragen Oplossing loopt die uiteen met `app.userId`. Een verwijzing
  * over die grens heen kan sowieso niet draaien — `automationBridge` weigert
  * bij `automation.userId !== app.userId` — dus indexeren zou een koppeling
  * tonen die bij de eerste klik weigert, mét de naam van andermans app erbij.
  *
- * Het gevolg: `entries` niet leeg en `written === 0` betekent "de routine
+ * Het gevolg: `entries` niet leeg en `written === 0` betekent "de automatisering
  * bestaat niet meer, of is niet van deze eigenaar" — een reden, geen succes.
  * Zonder die tak heet dat `{ok:true, written:0}` en zegt de capsule stil
  * "wordt nergens gebruikt".
@@ -88,13 +88,13 @@ const REASONS = Object.freeze({
     'no-owner': 'the app row has no owner',
     'unreadable-app': 'the app row could not be read',
     'unreadable-definition': 'the app definition could not be read, so what it runs is unknown',
-    'not-indexed': 'the routines it names do not exist, or do not belong to the app owner',
+    'not-indexed': 'the automations it names do not exist, or do not belong to the app owner',
     superseded: 'the app was deleted while this pass was running',
     failed: 'the reconcile itself failed',
 });
 
 /**
- * Wat draait deze app NU aan routines?
+ * Wat draait deze app NU aan automatiseringen?
  *
  * @returns {Promise<{ok:boolean, reason:string, ownerId?:string|null,
  *                    entries?:Array, unset?:number}>}
@@ -128,8 +128,8 @@ async function collectAppAutomationUsage(appId, deps = {}) {
     // dat is het gevaarlijkste moment dat er is: de eigenaar haalt de knop
     // midden in een herontwerp uit het scherm, publiceert nog niet, de
     // autosave herindexeert — en de capsule zegt vanaf dat moment met volle
-    // zekerheid "No app button runs this routine yet" terwijl de LIVE app die
-    // knop nog gewoon heeft. Hij gooit de routine weg en de live app breekt.
+    // zekerheid "No app button runs this automation yet" terwijl de LIVE app die
+    // knop nog gewoon heeft. Hij gooit de automatisering weg en de live app breekt.
     //
     // Dus de UNIE. Een rij te veel maakt een verwijdering luidruchtiger, een
     // rij te weinig maakt hem stil — dezelfde richting als bij de onbedrade
@@ -175,7 +175,7 @@ async function collectAppAutomationUsage(appId, deps = {}) {
 }
 
 /**
- * Zet de index gelijk aan wat deze app nu aan routines aanzet.
+ * Zet de index gelijk aan wat deze app nu aan automatiseringen aanzet.
  *
  * Gooit nooit. Het antwoord zegt of er IETS is geschreven en waarom niet:
  * `ok:false` betekent dat de bestaande rijen zijn blijven staan.
@@ -207,7 +207,7 @@ async function reconcileAppAutomationUsage(appId, deps = {}) {
 
         if (!collected.ok) {
             // Regel 1: zeggen, niet wissen.
-            log.warn(`[${LABEL}] ${appId}: routine usage index left as-is — ${REASONS[collected.reason] || collected.reason}`);
+            log.warn(`[${LABEL}] ${appId}: automation usage index left as-is — ${REASONS[collected.reason] || collected.reason}`);
             return { ok: false, reason: collected.reason, written: 0 };
         }
 
@@ -215,7 +215,7 @@ async function reconcileAppAutomationUsage(appId, deps = {}) {
         // rijen terugzetten die de purge net heeft weggehaald — een spookrij
         // die daarna namens een knop spreekt die niemand meer kan indrukken.
         if ((_purgeEpoch.get(appId) || 0) !== epochAtStart) {
-            log.warn(`[${LABEL}] ${appId}: routine usage index left as-is — ${REASONS.superseded}`);
+            log.warn(`[${LABEL}] ${appId}: automation usage index left as-is — ${REASONS.superseded}`);
             return { ok: false, reason: 'superseded', written: 0 };
         }
 
@@ -223,11 +223,11 @@ async function reconcileAppAutomationUsage(appId, deps = {}) {
 
         // NUL rijen op een NIET-lege lijst is geen geslaagde reconcile. De
         // INSERT is gegrendeld op `automations.user_id = ownerId`, dus dit is
-        // precies de vorm waarin een verwijderde of andermans routine zich
+        // precies de vorm waarin een verwijderde of andermans automatisering zich
         // meldt: de DELETE liep wél, de INSERT niet. Zonder deze tak heet dat
         // `{ok:true, written:0}` en zegt de capsule stil "nergens gebruikt".
         if (written === 0 && collected.entries.length > 0) {
-            log.warn(`[${LABEL}] ${appId}: ${collected.entries.length} routine reference(s) but nothing indexed — ${REASONS['not-indexed']}`);
+            log.warn(`[${LABEL}] ${appId}: ${collected.entries.length} automation reference(s) but nothing indexed — ${REASONS['not-indexed']}`);
             return {
                 ok: false,
                 reason: 'not-indexed',
@@ -236,12 +236,12 @@ async function reconcileAppAutomationUsage(appId, deps = {}) {
                 unset: collected.unset || 0,
             };
         }
-        // Een `run_automation` zonder gekozen routine is de stand waarin elk
+        // Een `run_automation` zonder gekozen automatisering is de stand waarin elk
         // sjabloon wordt uitgeleverd. Het blokkeert niets, dus het hoort niet
         // in `ok` — maar zonder deze regel gaf een app met tien onbedrade
         // acties nul signaal, want het detached pad gooit de returnwaarde weg.
         if (collected.unset > 0) {
-            log.warn(`[${LABEL}] ${appId}: ${collected.unset} action(s) still have no routine selected — indexed ${written} row(s) from the rest`);
+            log.warn(`[${LABEL}] ${appId}: ${collected.unset} action(s) still have no automation selected — indexed ${written} row(s) from the rest`);
         }
         return {
             ok: true,
@@ -251,7 +251,7 @@ async function reconcileAppAutomationUsage(appId, deps = {}) {
             unset: collected.unset || 0,
         };
     } catch (e) {
-        log.warn(`[${LABEL}] ${appId}: routine usage index left as-is — ${REASONS.failed} (${e.message})`);
+        log.warn(`[${LABEL}] ${appId}: automation usage index left as-is — ${REASONS.failed} (${e.message})`);
         return { ok: false, reason: 'failed', written: 0 };
     }
 }
@@ -302,7 +302,7 @@ function reconcileAppAutomationUsageDetached(appId, deps = {}) {
         _pending.delete(appId);
         Promise.resolve()
             .then(() => reconcileAppAutomationUsage(appId, deps))
-            .catch(e => logger.warn(`[${LABEL}] routine usage reconcile failed for ${appId}: ${e.message}`));
+            .catch(e => logger.warn(`[${LABEL}] automation usage reconcile failed for ${appId}: ${e.message}`));
     }, delayMs);
     // Een wachtende pass mag het proces bij afsluiten niet openhouden.
     timer.unref?.();
@@ -330,7 +330,7 @@ async function purgeAppAutomationUsage(appId, deps = {}) {
         // gebruiker een 500 geven over een app die weg IS. De rijen blijven dan
         // staan — hinderlijk, maar zichtbaar in het log, en de volgende
         // reconcile op dat id ruimt ze via het vangnet alsnog op.
-        (deps.log || console).warn(`[${LABEL}] ${appId}: routine usage purge failed — ${e.message}`);
+        (deps.log || console).warn(`[${LABEL}] ${appId}: automation usage purge failed — ${e.message}`);
         return 0;
     }
 }
@@ -340,8 +340,8 @@ async function purgeAppAutomationUsage(appId, deps = {}) {
  *
  * De tabel wordt leeg aangelegd en vult zich alleen bij een save, een create
  * of een teruggezette versie. Op de dag van uitrol is zij dus leeg voor élke
- * bestaande app, en dan leest elke routine-eigenaar "No app button runs this
- * routine yet" over knoppen die gewoon draaien — een uitspraak over de wereld,
+ * bestaande app, en dan leest elke automation-eigenaar "No app button runs this
+ * automatisering yet" over knoppen die gewoon draaien — een uitspraak over de wereld,
  * gedaan op een tabel die nog nooit is gevuld. En dat blijft zo tot iemand
  * toevallig die app opslaat.
  *
@@ -377,12 +377,12 @@ async function backfillAutomationUsage(deps = {}) {
             if (out.ok) indexed += 1; else failed += 1;
         }
         if (indexed || failed) {
-            log.warn(`[${LABEL}] routine usage backfill: indexed ${indexed} app(s)`
+            log.warn(`[${LABEL}] automation usage backfill: indexed ${indexed} app(s)`
                 + (failed ? `, ${failed} left for the next pass` : ''));
         }
         return { ok: true, reason: 'backfilled', indexed, failed };
     } catch (e) {
-        log.warn(`[${LABEL}] routine usage backfill failed — ${e.message}`);
+        log.warn(`[${LABEL}] automation usage backfill failed — ${e.message}`);
         return { ok: false, reason: 'failed', indexed, failed };
     } finally {
         _backfillRunning = false;
@@ -393,7 +393,7 @@ async function backfillAutomationUsage(deps = {}) {
 function backfillAutomationUsageDetached(deps = {}) {
     Promise.resolve()
         .then(() => backfillAutomationUsage(deps))
-        .catch(e => logger.warn(`[${LABEL}] routine usage backfill failed: ${e.message}`));
+        .catch(e => logger.warn(`[${LABEL}] automation usage backfill failed: ${e.message}`));
 }
 
 module.exports = {

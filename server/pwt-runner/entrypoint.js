@@ -52,7 +52,13 @@ async function runServe() {
     const server = await chromium.launchServer(launchOpts);
 
     // Single, greppable line the worker waits for. Flush before idling.
-    process.stdout.write(`PWT_WS_ENDPOINT=${server.wsEndpoint()}\n`);
+    // With a static PWT_SERVE_WS_PATH nobody scrapes this line, and that path
+    // is the only thing guarding an unauthenticated server: keep it out of
+    // `docker logs` and log shippers.
+    const endpoint = SERVE_WS_PATH
+        ? server.wsEndpoint().replace(SERVE_WS_PATH, '/<PWT_SERVE_WS_PATH>')
+        : server.wsEndpoint();
+    process.stdout.write(`PWT_WS_ENDPOINT=${endpoint}\n`);
 
     const shutdown = async () => {
         try { await server.close(); } catch (_) { /* ignore */ }
@@ -66,9 +72,14 @@ async function runServe() {
     setInterval(() => {}, 1 << 30);
 }
 
+// What `npx playwright` resolved to: @playwright/test's bin (package.json "bin": cli.js).
+const PLAYWRIGHT_CLI = '/runner/node_modules/@playwright/test/cli.js';
+
 function runSuite() {
     const { spawn } = require('child_process');
-    const child = spawn('npx', ['playwright', 'test', '--config', '/work/playwright.config.ts'], {
+    // The test runner's own CLI, started with this node: the image carries no
+    // npm/npx (the release container gate fails on the base's bundled npm).
+    const child = spawn(process.execPath, [PLAYWRIGHT_CLI, 'test', '--config', '/work/playwright.config.ts'], {
         cwd: '/runner',
         env: { ...process.env, CI: '1' },
         stdio: 'inherit',

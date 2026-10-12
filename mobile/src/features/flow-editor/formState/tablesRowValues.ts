@@ -88,12 +88,12 @@ export function columnKind(col: { type?: unknown; subtype?: unknown } | null | u
 
 /** i18n key + English word for the type badge, per Nextcloud column type. */
 export const TYPE_LABEL: Readonly<Record<string, readonly [string, string]>> = Object.freeze({
-    text: ['routines.ndv.tables_row.type_text', 'text'],
-    number: ['routines.ndv.tables_row.type_number', 'number'],
-    datetime: ['routines.ndv.tables_row.type_datetime', 'date & time'],
-    selection: ['routines.ndv.tables_row.type_selection', 'selection'],
-    usergroup: ['routines.ndv.tables_row.type_usergroup', 'user / group'],
+    text: ['automations.ndv.tables_row.type_text', 'text'],
+    number: ['automations.ndv.tables_row.type_number', 'number'],
+    datetime: ['automations.ndv.tables_row.type_datetime', 'date & time'],
+    selection: ['automations.ndv.tables_row.type_selection', 'selection'],
+    usergroup: ['automations.ndv.tables_row.type_usergroup', 'user / group'],
 });
-export const TYPE_LABEL_UNKNOWN: readonly [string, string] = Object.freeze(['routines.ndv.tables_row.type_unknown', 'type unknown']);
+export const TYPE_LABEL_UNKNOWN: readonly [string, string] = Object.freeze(['automations.ndv.tables_row.type_unknown', 'type unknown']);
 
 export { readValuesMap, placeKeys, candidateFields, mappableGroups, feedingGroup, parseTitleList } from './tablesRowMap';

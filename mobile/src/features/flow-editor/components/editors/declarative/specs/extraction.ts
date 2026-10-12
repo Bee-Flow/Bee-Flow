@@ -1,7 +1,7 @@
 /**
  * Extract data — the web's DataExtractionFields
  * (actionEditors/dataExtractionFields.jsx), whose words are the web's own
- * `routines.ndv.extraction.*` keys: the text to read (a binding), the field
+ * `automations.ndv.extraction.*` keys: the text to read (a binding), the field
  * rows (name, type, required, what to look for), and optional instructions.
  */
 
@@ -10,7 +10,7 @@ import { MAX_EXTRACTION_INSTRUCTIONS } from '@/features/flow-editor/formState';
 import { msg, type EditorSpec } from '../spec';
 import { FOR_EACH, repeatsOrRetries, RETRY, TITLES } from './common';
 
-const X = 'routines.ndv.extraction';
+const X = 'automations.ndv.extraction';
 
 export const DATA_EXTRACTION: EditorSpec = {
     type: 'data_extraction',

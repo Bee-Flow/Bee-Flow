@@ -63,6 +63,9 @@ const RefTokenInput = forwardRef(function RefTokenInput({
     ariaLabel = null,
     disabled = false,
     onPillClick = null,
+    // Put a space between a dropped reference and a neighbouring word. Off
+    // for a data slot (a URL, a JSON body), where a space changes the value.
+    spaced = true,
 }, ref) {
     const hostRef = useRef(null);
     // The exact string we last handed to onChange. The parent echoes it back as
@@ -117,7 +120,12 @@ const RefTokenInput = forwardRef(function RefTokenInput({
             const host = hostRef.current;
             if (!host || !snippet) return;
             host.focus();
-            insertAtCaret(host, nodesFor(snippet, mode, stepLabelById, stepTypeById), { range: caret.current });
+            // Spaced in BOTH modes: in a formula a second pick right after a
+            // reference used to fuse into one bogus path
+            // (`…output.emailsteps.b.output.email`) that looked valid and
+            // resolved to nothing. A separate operand is a formula the checker
+            // flags until an operator goes between them.
+            insertAtCaret(host, nodesFor(snippet, mode, stepLabelById, stepTypeById), { range: caret.current, spaced });
             caret.current = null;
             emit();
         },
@@ -135,7 +143,7 @@ const RefTokenInput = forwardRef(function RefTokenInput({
             if (!host || !snippet) return;
             const range = point ? rangeFromPoint(host, point.x, point.y) : null;
             host.focus();
-            insertAtCaret(host, nodesFor(snippet, mode, stepLabelById, stepTypeById), { range: range || caret.current });
+            insertAtCaret(host, nodesFor(snippet, mode, stepLabelById, stepTypeById), { range: range || caret.current, spaced });
             caret.current = null;
             emit();
         },

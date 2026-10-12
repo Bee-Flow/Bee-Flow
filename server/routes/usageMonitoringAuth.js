@@ -23,7 +23,7 @@
  *                                  ?user= param can't widen the scope
  *
  * Also stamps `excludeDryRun` on the filters: every consumer of this
- * middleware is a dashboard, and dry-run routine traffic is rehearsal, not
+ * middleware is a dashboard, and dry-run automation traffic is rehearsal, not
  * egress — the compliance checks already excluded it, the dashboards did not.
  *
  * Runs AFTER usage.js's attachOrgFilter, which owns 401 + filter construction.

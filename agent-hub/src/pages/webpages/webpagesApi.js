@@ -80,7 +80,10 @@ export async function fetchExtraContent(webpageId, meta) {
  * discipline starts from a clean, "already saved" snapshot.
  */
 export async function fetchWebpageBundle(id) {
-    const { webpage, sources, files, chatMessages, extraFiles } = await api(`/${id}`);
+    const { webpage: row, sources, files, chatMessages, extraFiles, managed } = await api(`/${id}`);
+    // The GET carries `managed` beside the row; every holder of the row (the
+    // header, the IDE) reads it from the row.
+    const webpage = managed !== undefined && row ? { ...row, managed } : row;
     const extrasList = Array.isArray(extraFiles) ? extraFiles : [];
     const extraContents = {};
     await Promise.all(extrasList.map(async (meta) => {

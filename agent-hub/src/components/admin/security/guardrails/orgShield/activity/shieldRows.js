@@ -48,7 +48,7 @@ function destinationOf(row) {
 /**
  * @param {object[]} rows      raw guardrail events
  * @param {object}   [opts]
- * @param {Function} [opts.placeLabel]  row → "Direct chat" / "Routine · polismail"
+ * @param {Function} [opts.placeLabel]  row → "Direct chat" / "Automation · polismail"
  * @param {object}   [opts.window]      { start, end, buckets } to bucket rows by; omitted, `bucket` is null
  */
 export function normaliseGuardRows(rows, { placeLabel, window: win } = {}) {

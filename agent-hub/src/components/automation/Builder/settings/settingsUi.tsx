@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef } from 'react';
 
 /**
- * Shared chrome of the routine Settings page (handoff 5, artboards 5b/5e):
+ * Shared chrome of the automation Settings page (handoff 5, artboards 5b/5e):
  * section headings, the 180px label column, button looks, and the debounced
  * autosave every text field on the page uses. The page saves by itself; only
  * a dialog with its own "Save" button waits for a click.
@@ -9,7 +9,7 @@ import React, { useCallback, useEffect, useRef } from 'react';
 
 export type SaveFn = (patch: Record<string, unknown>) => Promise<unknown> | unknown;
 
-/** The builder's routine row, as far as the Settings page reads it. */
+/** The builder's automation row, as far as the Settings page reads it. */
 export interface SettingsAutomation {
     id?: string;
     title?: string;
@@ -170,11 +170,11 @@ export function useQueuedSave(onSave: SaveFn, definition: Record<string, unknown
 }
 
 /**
- * May the viewer change this routine's settings? Owners and editors may
+ * May the viewer change this automation's settings? Owners and editors may
  * (routes: PUT /:id needs `edit`); a row without `myRole` predates sharing,
  * so only its owner could have loaded it.
  */
-export function canEditRoutine(a: SettingsAutomation | null | undefined): boolean {
+export function canEditAutomation(a: SettingsAutomation | null | undefined): boolean {
     const role = a?.myRole;
     return role == null || role === 'owner' || role === 'edit';
 }
@@ -191,7 +191,7 @@ export function ReadOnlyFieldset({ readOnly, children, className = '' }: { readO
     );
 }
 
-/** The routine definition with one key replaced, ready for `onSave`. */
+/** The automation definition with one key replaced, ready for `onSave`. */
 export function withDefinition(automation: SettingsAutomation | null | undefined, key: string, value: unknown) {
     return { definition: { ...(automation?.definition || {}), [key]: value } };
 }

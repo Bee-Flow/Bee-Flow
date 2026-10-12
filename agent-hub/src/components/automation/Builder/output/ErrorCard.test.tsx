@@ -78,7 +78,7 @@ describe('the fixes as the server sends them (D4s)', () => {
         const info: StepErrorInfo = {
             ...NOT_SHARED,
             fixes: [
-                { id: 'share_folder', label: 'Share the folder with bee-bot', labelKey: 'routines.output.fix_share_with', params: { folder: '/Invoices', account: 'bee-bot' } },
+                { id: 'share_folder', label: 'Share the folder with bee-bot', labelKey: 'automations.output.fix_share_with', params: { folder: '/Invoices', account: 'bee-bot' } },
                 { id: 'custom_fix', label: 'Ask IT' },
             ],
         };

@@ -1,0 +1,23 @@
+{
+ "$doc": "Dutch for keys an earlier catalogue shipped as the English text (a sameAsEnglish list that was too generous), plus six compliance keys no catalogue had. Set when the stored value is missing or still the English default; a workspace's own wording is kept.",
+ "translations": {
+  "compliance.fw_affects_automations": "automatiseringen",
+  "compliance.fw_pa_kind_automation": "automatisering",
+  "compliance.mach_source_automation": "automatisering",
+  "compliance.pf_gap_document_suggestions": "Geen eigen exportroute — suggesties zijn voorstellen op tekst die de documentexport al meeneemt.",
+  "compliance.pf_kind_automations": "Automatiseringen",
+  "compliance.pf_kind_document_suggestions": "Suggesties bij documenten",
+  "connections.field_scaleway_billing_key": "Geheime sleutel",
+  "connections.field_scaleway_billing_org": "Organisatie-ID",
+  "integ.scaleway_billing_key_label": "Geheime sleutel",
+  "integ.scaleway_billing_org_label": "Organisatie-ID",
+  "projects.webpages": "Webpagina's",
+  "solutions.install_count_agents": "{count} Agent",
+  "solutions.install_count_agents_plural": "{count} Agents",
+  "solutions.install_count_apps": "{count} App",
+  "solutions.install_count_apps_plural": "{count} Apps",
+  "solutions.install_in_flowlet": "Flowlet {key}",
+  "solutions.title": "Oplossingen",
+  "studio.tab.solutions": "Oplossingen"
+ }
+}

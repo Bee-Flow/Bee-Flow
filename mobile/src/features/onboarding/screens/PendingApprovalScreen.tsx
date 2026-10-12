@@ -79,7 +79,7 @@ export function PendingApprovalScreen() {
             ) : null}
 
             <Button
-                label={t('mobile.onboarding.pending_check', 'Check again')}
+                label={t('forms.public_check_again', 'Check again')}
                 onPress={() => {
                     setChecking(true);
                     void refresh().finally(() => setChecking(false));

@@ -90,13 +90,13 @@ function tierRank(tier) {
 }
 
 /**
- * Decide which activity-log filter key to use. Org users scope to the org
- * (team-wide repeating work); consumer users have organization_id = NULL and
- * MUST scope to their own user_id — passing { organizationId: null } would be
- * dropped by buildFilters and silently widen the query, so we never do that.
+ * The activity-log filter for a suggestion scan: ALWAYS the user's own rows.
+ * An org filter fed every colleague's tool calls into one person's scan and
+ * prompt, so `organizationId` is accepted for call-site compatibility and
+ * ignored. With no user nothing identifies the caller and the filter is empty;
+ * callers must treat that as "no activity", never as "everything".
  */
-function resolveActivityFilter({ organizationId, userId } = {}) {
-    if (organizationId) return { organizationId };
+function resolveActivityFilter({ userId } = {}) {
     if (userId) return { userId };
     return {};
 }

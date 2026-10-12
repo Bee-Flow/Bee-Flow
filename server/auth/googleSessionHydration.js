@@ -1,12 +1,12 @@
 // @typecheck
 /**
- * Google session hydration from the routine-credential vault (BFSF-255).
+ * Google session hydration from the automation-credential vault (BFSF-255).
  *
  * Historically, Google Workspace tools only worked when the LIVE SESSION was
  * created by Google-SSO login (session.accessToken/oauthProvider set in the
  * OAuth callback). Password-account users who connect Google via the
  * Settings → Connections tile store their tokens in the encrypted
- * routine_credentials vault instead — this helper copies an active vault
+ * automation_credentials vault instead — this helper copies an active vault
  * credential into the session on demand so every session-based Google surface
  * (chat tool building, /api/integrations/{gmail,gdrive,calendar,contacts,keep}
  * pickers) lights up for them too.
@@ -20,7 +20,7 @@
  *    layer can distinguish them from real SSO logins (the forced-MFA gate for
  *    password accounts must NOT be silently bypassed by connecting Google).
  *  - getProviderAuth refreshes stale tokens and flips the credential to
- *    needs_reauth on refresh failure (pausing routines + notifying) — after
+ *    needs_reauth on refresh failure (pausing automations + notifying) — after
  *    that it returns null quickly, so this helper stays cheap on the hot path.
  */
 const log = require('../telemetry/log');
@@ -32,7 +32,7 @@ async function hydrateGoogleSessionFromVault(session) {
     if (session.oauthProvider) return false;
 
     try {
-        const { getProviderAuth } = require('./routineAuth');
+        const { getProviderAuth } = require('./automationAuth');
         const cred = await getProviderAuth(userId, 'google');
         if (!cred?.accessToken) return false;
 

@@ -22,11 +22,13 @@
 
 const test = require('node:test');
 const assert = require('node:assert');
+const { HttpError } = require('../../core/http/errors');
 const { serve, assertRefused } = require('../../core/http/routeHarness');
 const membership = require('../../projects/membership');
 const { makeContentRouter } = require('./content');
 const { makeChangeFeed } = require('../../projects/changeFeed');
 const { makeNotebookGate } = require('./notebookGate');
+const { makeSwaps } = require('../../testUtils/swaps');
 
 const OWNER = { id: 'u_owner', organizationId: 'org1' };
 const EDITOR = { id: 'u_editor', organizationId: 'org1' };
@@ -35,7 +37,7 @@ const STRANGER = { id: 'u_stranger', organizationId: 'org1' };
 const FOREIGN_EDITOR = { id: 'u_foreign', organizationId: 'org2' };
 
 const ROLES = {
-    p1: { u_owner: 'owner', u_editor: 'editor', u_viewer: 'viewer', u_foreign: 'editor' },
+    p1: { u_owner: 'owner', u_editor: 'editor', u_viewer: 'viewer', u_foreign: 'editor', u_group: 'editor' },
     legacy: { u_owner: 'owner', u_editor: 'editor' },
     sol: { u_owner: 'owner', u_editor: 'editor' },
     gone: { u_editor: 'editor' },
@@ -51,7 +53,14 @@ const USERS = {
     u_editor: { id: 'u_editor', organizationId: 'org1' },
     u_viewer: { id: 'u_viewer', organizationId: 'org1' },
     u_foreign: { id: 'u_foreign', organizationId: 'org2' },
+    // Organisation only through a group: none on the account row.
+    u_group: { id: 'u_group', organizationId: '', groups: '["g1"]' },
 };
+const GROUPS = [{ id: 'g1', organizationId: 'org1' }];
+// The membership check reads the caller's organisations through auth/orgScope, which reads the user store.
+const userStore = require('../../stores/userStore');
+makeSwaps().swap(userStore, 'getUser', async (id) => USERS[id] || null);
+makeSwaps().swap(userStore, 'getAllGroups', async () => GROUPS);
 const ORDER = { viewer: 0, editor: 1, owner: 2 };
 
 // ── Recording fakes ───────────────────────────────────────────────────
@@ -62,6 +71,20 @@ let activityFails = false;
 // use_notebooks): null lets the caller through, a status refuses as the real
 // gate would, by writing a response.
 let notebooksRefusal = null;
+// What the sheet gate answers: null passes, an HttpError-like refusal throws as the real gate does.
+let sheetsRefusal = null;
+let getDocumentCalls = 0;
+let createDocumentFails = null;
+const tables = { made: [], dropped: [] };
+// Templates the fake store lets a caller read (it returns only what that caller may read).
+const LIBRARY = {
+    tpl1: { id: 'tpl1', userId: 'u_editor', kind: 'template', docType: 'report', versionId: 'v7', name: 'Quarterly',
+        description: 'Q report', bodyHtml: '<h1>Q</h1>', css: '.q{}', categories: ['finance'], folderId: 'f1', visibility: 'team',
+        settings: { contract: { parameters: [] }, sampleValues: { a: 1 }, sectionOverrides: { s: 1 } } },
+    plain: { id: 'plain', userId: 'u_editor', kind: 'document', docType: 'report', settings: {} },
+    sheetTpl: { id: 'sheetTpl', userId: 'u_editor', kind: 'template', docType: 'spreadsheet', settings: {} },
+    theirs: { id: 'theirs', userId: 'u_owner', kind: 'template', docType: 'report', settings: {}, readableBy: ['u_owner'] },
+};
 const reset = () => {
     for (const k of ['documents', 'notebooks', 'activity', 'events']) rec[k].length = 0;
     rec.limited = 0;
@@ -69,6 +92,11 @@ const reset = () => {
     activityFails = false;
     notebooksRefusal = null;
     rec.notebookGateRuns = 0;
+    sheetsRefusal = null;
+    getDocumentCalls = 0;
+    createDocumentFails = null;
+    tables.made.length = 0;
+    tables.dropped.length = 0;
 };
 
 const STARTERS = [
@@ -89,12 +117,27 @@ const router = makeContentRouter({
     getProject: async (id) => PROJECTS[id] || null,
     getUser: async (id) => USERS[id] || null,
     documents: {
+        async getDocument(id, userId) {
+            getDocumentCalls += 1;
+            const d = LIBRARY[id];
+            if (!d || (d.readableBy && !d.readableBy.includes(userId))) return null;
+            return d;
+        },
         async createDocument(input) {
             if (storeRefusal) throw storeRefusal;
+            if (createDocumentFails) throw createDocumentFails;
             rec.documents.push(input);
             return { id: 'doc-1', userId: input.userId, name: input.name, docType: input.docType || 'document',
                 kind: input.kind, projectId: input.projectId, bodyHtml: input.bodyHtml || '', css: input.css || '' };
         },
+    },
+    cells: {
+        async createSheetTable(input) { tables.made.push(input); return { id: 'tbl-1' }; },
+        async dropSheetTable(userId, id) { tables.dropped.push({ userId, id }); },
+    },
+    requireSheets: async function requireSheetsMw(req, res, next) {
+        if (sheetsRefusal) throw sheetsRefusal;
+        next();
     },
     notebooks: {
         async createNotebook(input) {
@@ -135,6 +178,7 @@ test.after(api.close);
 
 const nothingHappened = () => {
     assert.deepStrictEqual(rec.documents, [], 'no document was created');
+    assert.deepStrictEqual(tables.made, [], 'no table was created');
     assert.deepStrictEqual(rec.notebooks, [], 'no notebook was created');
     assert.deepStrictEqual(rec.activity, [], 'no activity row');
     assert.deepStrictEqual(rec.events, [], 'no live event');
@@ -151,6 +195,7 @@ test('an editor creates a document: theirs, private, filed in the project, annou
     assert.deepStrictEqual(rec.documents, [{
         userId: 'u_editor', name: 'Launch plan', docType: 'report', description: undefined,
         bodyHtml: undefined, css: undefined, settings: undefined, kind: 'document', visibility: 'private', projectId: 'p1',
+        projectOrgChecked: true,
     }]);
     // One "created" entry, not a `resource_added` next to it: the document was
     // made here, and "since your last visit" must count it once.
@@ -200,6 +245,16 @@ test('a Studio Solution holds no documents: 409, and nothing is made', async () 
     assert.strictEqual(res.body.code, 'KIND_NOT_ALLOWED');
     assert.match(res.body.error, /Solution/);
     nothingHappened();
+});
+
+test('a member whose organisation only comes from a group can make documents and notebooks in the project', async () => {
+    reset();
+    const asGroupMember = { user: USERS.u_group };
+    const doc = await api.call('POST', '/api/projects/p1/documents', { body: { name: 'Plan' }, ...asGroupMember });
+    assert.strictEqual(doc.status, 201, doc.text);
+    const nb = await api.call('POST', '/api/projects/p1/notebooks', { body: { name: 'Notes' }, ...asGroupMember });
+    assert.strictEqual(nb.status, 201, nb.text);
+    assert.strictEqual(rec.notebooks[0].organizationId, 'org1', 'the notebook carries the organisation the project stores');
 });
 
 test('a member from another organisation cannot make content in this one', async () => {
@@ -255,6 +310,109 @@ test('a feed that fails after the create still answers 201, and announces nothin
     // (projects/changeFeed): an event nobody can find in the activity log is
     // exactly what that rules out, so a failed write sends neither.
     assert.deepStrictEqual(rec.events, []);
+});
+
+// ── Spreadsheets and templates ───────────────────────────────────────
+
+const POST_DOC = '/api/projects/p1/documents';
+
+test('a spreadsheet: its table is made first, the document carries it and the project, one feed entry', async () => {
+    reset();
+    const res = await api.call('POST', POST_DOC, { body: { name: 'Budget', docType: 'spreadsheet' } });
+    assert.strictEqual(res.status, 201, res.text);
+    assert.deepStrictEqual(tables.made, [{ ownerUserId: 'u_editor', name: 'Budget' }]);
+    assert.strictEqual(rec.documents.length, 1);
+    const made = rec.documents[0];
+    assert.strictEqual(made.docType, 'spreadsheet');
+    assert.strictEqual(made.sheetTableId, 'tbl-1');
+    assert.strictEqual(made.projectId, 'p1');
+    assert.strictEqual(made.kind, 'document');
+    assert.strictEqual(made.visibility, 'private');
+    assert.strictEqual(made.projectOrgChecked, true);
+    assert.deepStrictEqual(tables.dropped, []);
+    assert.strictEqual(rec.activity.length, 1);
+    assert.strictEqual(rec.activity[0].action, 'content.created');
+    assert.strictEqual(rec.events.length, 1);
+});
+
+test('a spreadsheet the sheet gate refuses is 403 sheets_unavailable (503 sheets_unknown): no table, no document', async () => {
+    reset();
+    sheetsRefusal = new HttpError(403, 'sheets_unavailable', 'Spreadsheets are not available to you.');
+    const refused = await api.call('POST', POST_DOC, { body: { name: 'Budget', docType: 'spreadsheet' } });
+    assert.strictEqual(refused.status, 403, refused.text);
+    assert.strictEqual(refused.body.error?.code ?? refused.body.code, 'sheets_unavailable');
+    nothingHappened();
+    sheetsRefusal = new HttpError(503, 'sheets_unknown', 'Could not be checked.');
+    assert.strictEqual((await api.call('POST', POST_DOC, { body: { name: 'Budget', docType: 'spreadsheet' } })).status, 503);
+    nothingHappened();
+});
+
+test('the sheet gate runs for spreadsheets only, and after the role gate', async () => {
+    reset();
+    sheetsRefusal = new HttpError(403, 'sheets_unavailable', 'no');
+    assert.strictEqual((await api.call('POST', POST_DOC, { body: { name: 'Doc' } })).status, 201, 'a plain document does not meet it');
+    assert.strictEqual((await api.call('POST', POST_DOC, { body: { name: 'S', docType: 'spreadsheet' }, user: STRANGER })).status, 404);
+    assert.strictEqual((await api.call('POST', POST_DOC, { body: { name: 'S', docType: 'spreadsheet' }, user: VIEWER })).status, 403);
+    assert.deepStrictEqual(tables.made, []);
+});
+
+test('a spreadsheet whose document cannot be made takes its table down with it', async () => {
+    reset();
+    createDocumentFails = Object.assign(new Error('Document limit reached'), { status: 403, errorClass: 'document_limit' });
+    const res = await api.call('POST', POST_DOC, { body: { name: 'Budget', docType: 'spreadsheet' } });
+    assert.strictEqual(res.status, 403, res.text);
+    assert.deepStrictEqual(tables.made.length, 1);
+    assert.deepStrictEqual(tables.dropped, [{ userId: 'u_editor', id: 'tbl-1' }]);
+    assert.deepStrictEqual(rec.documents, []);
+    assert.deepStrictEqual(rec.activity, []);
+});
+
+test('from a template: a private project document built from an allow-list', async () => {
+    reset();
+    const res = await api.call('POST', POST_DOC, { body: { name: 'Q3 report', templateId: 'tpl1' } });
+    assert.strictEqual(res.status, 201, res.text);
+    assert.deepStrictEqual(rec.documents, [{
+        userId: 'u_editor', name: 'Q3 report', kind: 'document', visibility: 'private', projectId: 'p1', projectOrgChecked: true,
+        docType: 'report', description: 'Q report', bodyHtml: '<h1>Q</h1>', css: '.q{}',
+        settings: { contract: { parameters: [] }, source: { documentId: 'tpl1', versionId: 'v7' } },
+    }]);
+    assert.ok(!('categories' in rec.documents[0]) && !('folderId' in rec.documents[0]));
+    assert.ok(!('sampleValues' in rec.documents[0].settings) && !('sectionOverrides' in rec.documents[0].settings));
+    assert.deepStrictEqual(LIBRARY.tpl1.settings.sampleValues, { a: 1 }, 'the template itself is untouched');
+    assert.strictEqual(rec.activity.length, 1);
+});
+
+test('a template that is missing, not a template, a spreadsheet or someone else\'s is 404 template_not_found', async () => {
+    for (const templateId of ['nope', 'plain', 'sheetTpl', 'theirs']) {
+        reset();
+        const res = await api.call('POST', POST_DOC, { body: { name: 'x', templateId } });
+        assert.strictEqual(res.status, 404, `${templateId}: ${res.text}`);
+        assert.strictEqual(res.body.error?.code ?? res.body.code, 'template_not_found');
+        nothingHappened();
+    }
+});
+
+test('templateId with starterId, and a spreadsheet with either, is 400 and creates nothing', async () => {
+    reset();
+    for (const body of [
+        { name: 'x', templateId: 'tpl1', starterId: 'letter' },
+        { name: 'x', docType: 'spreadsheet', starterId: 'letter' },
+        { name: 'x', docType: 'spreadsheet', templateId: 'tpl1' },
+    ]) {
+        const res = await api.call('POST', POST_DOC, { body });
+        assert.strictEqual(res.status, 400, res.text);
+    }
+    assert.strictEqual(getDocumentCalls, 0);
+    nothingHappened();
+    assertRefused(assert, await api.call('POST', POST_DOC, { body: { name: 'x', templateId: '' } }), 'body.templateId', /templateId is the id/);
+});
+
+test('a viewer with a templateId is 403 before any store read', async () => {
+    reset();
+    assert.strictEqual((await api.call('POST', POST_DOC, { body: { name: 'x', templateId: 'tpl1' }, user: VIEWER })).status, 403);
+    assert.strictEqual((await api.call('POST', POST_DOC, { body: { name: 'x', templateId: 'tpl1' }, user: STRANGER })).status, 404);
+    assert.strictEqual(getDocumentCalls, 0);
+    nothingHappened();
 });
 
 // ═══ POST /:id/notebooks ═════════════════════════════════════════════

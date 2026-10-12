@@ -37,12 +37,15 @@ const express = require('express');
 const { z } = require('zod');
 const log = require('../telemetry/log');
 const router = express.Router();
+router.use(require('../stores/lib/documentCrypto').withDocumentEncryptionSession);
 const { validate } = require('../core/http/validate');
 const { buildExportHTML, cleanContentForExport } = require('../templates/exportTemplate');
-const houseStyleStore = require('../stores/houseStyleStore');
+const { resolveHouseStyle, buildDocxStylingFromHouseStyle, applyInlineStyles, NO_SUCH_STYLE } = require('../core/documents/docxHouseStyle');
 const notebookStore = require('../stores/notebookStore');
 const userStore = require('../stores/userStore');
 const browserProvider = require('../services/browserProvider');
+const { HttpError } = require('../core/http/errors');
+const NOTEBOOK_TEXT = require('../i18n/defaults/en/notebooks');
 
 // requireAuth is the canonical gate from auth/permissions (verifies the
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
@@ -122,14 +125,6 @@ const NextcloudBody = z.object({
         .nullish(),
 }).strict();
 
-/** resolveHouseStyle's answer for an explicit id that names no style of this org. */
-const NO_SUCH_STYLE = Symbol('no such house style');
-
-function escapeHtml(s) {
-    if (s == null) return '';
-    return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-}
-
 // Pull the user's org id from session/user record. Returns null when unknown.
 async function userOrgId(req) {
     const u = req.session?.user;
@@ -143,101 +138,51 @@ async function userOrgId(req) {
     }
 }
 
-/**
- * Resolve the house style to apply to an export.
- *   - explicit `houseStyleId === 'none'`  → no style
- *   - explicit `houseStyleId === '<id>'`  → that style if it belongs to user's org,
- *                                           else NO_SUCH_STYLE (the route 404s)
- *   - otherwise                           → the org's default style (or null)
- */
-async function resolveHouseStyle(req, houseStyleId) {
-    if (houseStyleId === 'none') return null;
-    const orgId = await userOrgId(req);
-    if (houseStyleId) {
-        if (!orgId) return NO_SUCH_STYLE;
-        const style = await houseStyleStore.getById(houseStyleId, orgId).catch(() => null);
-        return style || NO_SUCH_STYLE;
-    }
-    if (!orgId) return null;
-    return await houseStyleStore.getDefaultForOrg(orgId).catch(() => null);
-}
-
-/**
- * Build a CSS block + html-to-docx options object from a house style.
- * Returns sensible defaults when style is null so callers don't branch.
- */
-function buildDocxStylingFromHouseStyle(style) {
-    const meta = style?.styleMeta || {};
-    const defaultFont = meta.defaultFont || 'Calibri';
-    const defaultSize = Number(meta.defaultFontSize) || 11;
-    const margins = meta.margins || { top: 1440, right: 1440, bottom: 1440, left: 1440 };
-    const h1 = meta.headings?.h1 || { font: defaultFont, size: 20, bold: true, color: '#111111' };
-    const h2 = meta.headings?.h2 || { font: defaultFont, size: 16, bold: true, color: '#1e293b' };
-    const h3 = meta.headings?.h3 || { font: defaultFont, size: 13, bold: true, color: '#334155' };
-
-    const css = `
-        body { font-family: "${defaultFont}", Calibri, Arial, sans-serif; font-size: ${defaultSize}pt; line-height: 1.5; color: #1a1a1a; }
-        h1 { font-family: "${h1.font || defaultFont}", sans-serif; font-size: ${h1.size}pt; font-weight: ${h1.bold ? 'bold' : 'normal'}; color: ${h1.color || '#111111'}; margin-top: 18pt; margin-bottom: 8pt; }
-        h2 { font-family: "${h2.font || defaultFont}", sans-serif; font-size: ${h2.size}pt; font-weight: ${h2.bold ? 'bold' : 'normal'}; color: ${h2.color || '#1e293b'}; margin-top: 14pt; margin-bottom: 6pt; }
-        h3 { font-family: "${h3.font || defaultFont}", sans-serif; font-size: ${h3.size}pt; font-weight: ${h3.bold ? 'bold' : 'normal'}; color: ${h3.color || '#334155'}; margin-top: 12pt; margin-bottom: 4pt; }
-        p { margin-bottom: 6pt; }
-        table { width: 100%; border-collapse: collapse; margin: 8pt 0; }
-        th, td { border: 1pt solid #999; padding: 4pt 8pt; vertical-align: top; text-align: left; }
-        th { background-color: #f0f0f0; font-weight: bold; }
-        blockquote { border-left: 3pt solid ${meta.accents?.secondary || '#3b82f6'}; padding: 6pt 12pt; margin: 8pt 0; background: #f8f9fa; }
-        code { font-family: Consolas, monospace; font-size: 9pt; background: #f1f5f9; padding: 1pt 3pt; }
-        pre { background: #f5f5f5; padding: 10pt; font-family: Consolas, monospace; font-size: 9pt; margin: 8pt 0; border: 1pt solid #ddd; }
-        pre code { background: none; padding: 0; }
-        ul, ol { margin-left: 0.4in; margin-bottom: 6pt; }
-        li { margin-bottom: 2pt; }
-        img { max-width: 100%; }
-    `;
-
-    const opts = {
-        margin: margins,
-        font: defaultFont,
-        fontSize: defaultSize * 2, // html-to-docx wants half-points
-    };
-
-    // Header / footer best-effort text injection. html-to-docx accepts these
-    // as HTML fragments wrapped in <body>…</body>; we keep them minimal.
-    if (meta.header?.text) {
-        opts.header = true;
-        opts.headerType = 'default';
-        opts.headerHTML = `<p style="font-family:'${defaultFont}',sans-serif;font-size:${Math.max(8, defaultSize - 2)}pt;color:#555">${escapeHtml(meta.header.text)}</p>`;
-    }
-    if (meta.footer?.text) {
-        opts.footer = true;
-        opts.footerHTML = `<p style="font-family:'${defaultFont}',sans-serif;font-size:${Math.max(8, defaultSize - 2)}pt;color:#555">${escapeHtml(meta.footer.text)}</p>`;
-    }
-
-    return { css, opts };
-}
-
 // ── PDF Export (remote headless Chromium via browserProvider) ────────────────
+
+/** Playwright gives up on a page that does not load in time (`TimeoutError`). */
+function isRenderTimeout(err) {
+    return !!err && (err.name === 'TimeoutError' || /Timeout \d+ms exceeded/.test(String(err.message || '')));
+}
+
+/** Upper bound for loading the export page; env override for slow hosts. */
+const PDF_LOAD_TIMEOUT_MS = Number(process.env.PDF_EXPORT_LOAD_TIMEOUT_MS) > 0
+    ? Number(process.env.PDF_EXPORT_LOAD_TIMEOUT_MS) : 45000;
+
+/**
+ * What an export route does with a failure. The backend's own words (docker
+ * socket paths, ENOENT, env var names) are for the operator and go to the log
+ * only; they used to be concatenated into the answer the end user saw. A
+ * missing or unreachable browser is a 503 with a sentence the user can act on
+ * (the client translates it by its code); anything else is the terminal
+ * handler's generic 500 with a correlation id.
+ */
+function exportFailure(what, err, next) {
+    log.error(`[Export] ${what} failed:`, err);
+    if (err instanceof HttpError) return next(err);
+    if (isRenderTimeout(err)) {
+        return next(new HttpError(504, 'pdf_render_timeout', NOTEBOOK_TEXT['notebooks.pdf_render_timeout']));
+    }
+    if (browserProvider.isBackendUnavailable(err)) {
+        return next(new HttpError(503, 'pdf_renderer_unavailable', NOTEBOOK_TEXT['notebooks.pdf_renderer_unavailable']));
+    }
+    return next(err);
+}
 
 /**
  * Render fully-inlined export HTML (base64 images already embedded) to a Letter
- * PDF on the shared remote browser. Waits for Google Fonts + Mermaid diagrams to
- * settle before printing. Shared by the pdf / signrequest / nextcloud routes.
+ * PDF on the shared remote browser. Loads the self-contained HTML (no network
+ * needed) before printing. Shared by the pdf / signrequest / nextcloud routes.
  */
 async function renderNotebookPdf(exportHTML, { title = 'Notebook' } = {}) {
     const safeTitle = String(title).replace(/"/g, '&quot;').replace(/</g, '&lt;');
     return browserProvider.withContext({}, async (context) => {
         const page = await context.newPage();
-        // Set content (base64 images are already embedded)
-        await page.setContent(exportHTML, { waitUntil: 'networkidle' });
-        // Wait for Google Fonts + Mermaid diagrams to render
-        await page.waitForTimeout(1500);
-        // Wait for mermaid diagrams to finish rendering (if any exist)
-        try {
-            await page.waitForFunction(
-                () => document.querySelectorAll('div[data-type="mermaid-diagram"]').length === 0,
-                { timeout: 10000 });
-        } catch {
-            // If mermaid rendering takes too long, continue with PDF anyway
-            log.warn('[Export] Mermaid rendering timed out, proceeding with PDF');
-        }
+        // The export HTML has no external resources (system fonts, images inlined),
+        // so 'load' is enough; 'networkidle' never settled on servers without internet.
+        await page.setContent(exportHTML, { waitUntil: 'load', timeout: PDF_LOAD_TIMEOUT_MS });
+        // Let fonts and decoded images settle before printing.
+        await page.evaluate(() => document.fonts && document.fonts.ready).catch(() => {});
         return page.pdf({
             format: 'Letter',
             margin: { top: '0.75in', right: '0.85in', bottom: '0.9in', left: '0.85in' },
@@ -249,7 +194,7 @@ async function renderNotebookPdf(exportHTML, { title = 'Notebook' } = {}) {
     });
 }
 
-router.post('/:id/export/pdf', requireAuth, requireNotebookOwner, validate({ body: PdfBody }), async (req, res) => {
+router.post('/:id/export/pdf', requireAuth, requireNotebookOwner, validate({ body: PdfBody }), async (req, res, next) => {
     const { content, title } = req.body;
 
     const author = req.session.user.name || req.session.user.email || '';
@@ -275,14 +220,13 @@ router.post('/:id/export/pdf', requireAuth, requireNotebookOwner, validate({ bod
         res.send(pdfBuffer);
 
     } catch (err) {
-        log.error('[Export] PDF generation failed:', err);
-        res.status(500).json({ error: 'PDF generation failed: ' + err.message });
+        exportFailure('PDF generation', err, next);
     }
 });
 
 // ── DOCX Export (html-to-docx) ──────────────────────────────────────────────
 
-router.post('/:id/export/docx', requireAuth, requireNotebookOwner, validate({ body: DocxBody }), async (req, res) => {
+router.post('/:id/export/docx', requireAuth, requireNotebookOwner, validate({ body: DocxBody }), async (req, res, next) => {
     const { content, title, houseStyleId } = req.body;
 
     try {
@@ -291,7 +235,7 @@ router.post('/:id/export/docx', requireAuth, requireNotebookOwner, validate({ bo
 
         let HTMLtoDOCX;
         try {
-            HTMLtoDOCX = require('html-to-docx');
+            HTMLtoDOCX = require('@turbodocx/html-to-docx');
             // Handle both default and named exports
             if (HTMLtoDOCX.default) HTMLtoDOCX = HTMLtoDOCX.default;
         } catch (e) {
@@ -299,11 +243,11 @@ router.post('/:id/export/docx', requireAuth, requireNotebookOwner, validate({ bo
         }
 
         // Resolve which house style to apply (explicit id, org default, or none).
-        const houseStyle = await resolveHouseStyle(req, houseStyleId);
+        const houseStyle = await resolveHouseStyle(await userOrgId(req), houseStyleId);
         if (houseStyle === NO_SUCH_STYLE) {
             return res.status(404).json({ error: 'That house style does not exist in your organisation.' });
         }
-        const { css, opts: styleOpts } = buildDocxStylingFromHouseStyle(houseStyle);
+        const { css, opts: styleOpts, inline: inlineStyles } = buildDocxStylingFromHouseStyle(houseStyle);
         if (houseStyle) log.info(`[Export] Applying house style "${houseStyle.name}" (${houseStyle.id})`);
 
         // Clean content for Word export
@@ -319,7 +263,9 @@ router.post('/:id/export/docx', requireAuth, requireNotebookOwner, validate({ bo
             log.info(`[Export] Sample font span:`, sampleMatch?.[0] || 'none found');
         }
 
-        // Wrap in a minimal HTML structure that html-to-docx expects
+        // Wrap in a minimal HTML structure that html-to-docx expects. It does
+        // not read the <style> block: the heading fonts, sizes and colours go
+        // onto the tags inline (applyInlineStyles).
         const htmlForDocx = `<!DOCTYPE html>
 <html>
 <head>
@@ -328,17 +274,22 @@ router.post('/:id/export/docx', requireAuth, requireNotebookOwner, validate({ bo
 <style>${css}</style>
 </head>
 <body>
-    ${cleanedContent}
+    ${applyInlineStyles(cleanedContent, inlineStyles)}
 </body>
 </html>`;
 
-        const docxBuffer = await HTMLtoDOCX(htmlForDocx, null, {
+        // html-to-docx takes the header and footer HTML as POSITIONAL
+        // arguments (html, header, options, footer); passed as option keys
+        // they were silently ignored and the house style's header and footer
+        // text never reached the file.
+        const { headerHTML = null, footerHTML = null, ...docxStyleOpts } = styleOpts;
+        const docxBuffer = await HTMLtoDOCX(htmlForDocx, headerHTML, {
             table: { row: { cantSplit: true } },
             footer: true,
             pageNumber: true,
             title: title,
-            ...styleOpts,
-        });
+            ...docxStyleOpts,
+        }, footerHTML);
 
         const duration = Date.now() - startTime;
         const buffer = Buffer.from(docxBuffer);
@@ -351,14 +302,13 @@ router.post('/:id/export/docx', requireAuth, requireNotebookOwner, validate({ bo
         res.send(buffer);
 
     } catch (err) {
-        log.error('[Export] DOCX generation failed:', err);
-        res.status(500).json({ error: 'DOCX generation failed: ' + err.message });
+        exportFailure('DOCX generation', err, next);
     }
 });
 
 // ── SignRequest Export (PDF → e-Signature) ──────────────────────────────────
 
-router.post('/:id/export/signrequest', requireAuth, requireNotebookOwner, validate({ body: SignRequestBody }), async (req, res) => {
+router.post('/:id/export/signrequest', requireAuth, requireNotebookOwner, validate({ body: SignRequestBody }), async (req, res, next) => {
     const { content, title, signers, subject, message } = req.body;
 
     const userId = req.session.user.id;
@@ -406,14 +356,17 @@ router.post('/:id/export/signrequest', requireAuth, requireNotebookOwner, valida
         });
 
     } catch (err) {
-        log.error('[Export] SignRequest export failed:', err);
-        res.status(500).json({ error: 'SignRequest export failed: ' + err.message });
+        if (err && err.code === 'signrequest_not_configured') {
+            log.warn('[Export] SignRequest export refused: not configured for this user');
+            return next(new HttpError(400, err.code, err.message));
+        }
+        exportFailure('SignRequest export', err, next);
     }
 });
 
 // ── Nextcloud Export (PDF → WebDAV upload) ──────────────────────────────────
 
-router.post('/:id/export/nextcloud', requireAuth, requireNotebookOwner, validate({ body: NextcloudBody }), async (req, res) => {
+router.post('/:id/export/nextcloud', requireAuth, requireNotebookOwner, validate({ body: NextcloudBody }), async (req, res, next) => {
     const { content, title, folder } = req.body;
 
     const userId = req.session.user.id;
@@ -508,8 +461,7 @@ router.post('/:id/export/nextcloud', requireAuth, requireNotebookOwner, validate
         });
 
     } catch (err) {
-        log.error('[Export] Nextcloud upload failed:', err);
-        res.status(500).json({ error: 'Nextcloud upload failed: ' + err.message });
+        exportFailure('Nextcloud upload', err, next);
     }
 });
 

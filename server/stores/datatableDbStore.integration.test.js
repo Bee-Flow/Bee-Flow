@@ -265,7 +265,7 @@ test('save_row on an existing key leaves ONE row, not two', async () => {
     assert.strictEqual(res.output.updated, 1);
 
     const rows = await realRows(ORG, 'customers');
-    assert.strictEqual(rows.length, 1, 'a nightly routine keyed on an e-mail address grew one duplicate per run');
+    assert.strictEqual(rows.length, 1, 'a nightly automation keyed on an e-mail address grew one duplicate per run');
     assert.strictEqual(rows[0].status, 'seen');
 });
 

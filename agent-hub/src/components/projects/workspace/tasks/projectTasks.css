@@ -1,0 +1,21 @@
+/* Project tasks style themselves with Tailwind classes on theme tokens. This
+   file keeps only what Tailwind cannot say cleanly: the SVG dependency strokes
+   of the timeline with their legend swatches, and the task dialog's surface. */
+
+/* Timeline relationships: one stroke recipe, the relation picks the dash and the tone. */
+.task-timeline-dependency { --dependency-color: var(--info-ink); }
+.task-timeline-dependency[data-conflict="true"] { --dependency-color: var(--warning-ink); }
+.task-timeline-dependency path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.task-timeline-dependency-halo { stroke: var(--bg-card); stroke-width: 6; }
+.task-timeline-dependency-line { stroke: var(--dependency-color); stroke-width: 2.5; }
+.task-timeline-dependency-anchor { fill: var(--dependency-color); stroke: var(--bg-card); stroke-width: 1; }
+.task-timeline-dependency[data-relation="parent_child"] { --dependency-color: var(--text-secondary); }
+.task-timeline-dependency[data-relation="related"] { --dependency-color: var(--text-tertiary); }
+.task-timeline-dependency[data-relation="parent_child"] .task-timeline-dependency-line { stroke-dasharray: 6 4; }
+.task-timeline-dependency[data-relation="related"] .task-timeline-dependency-line { stroke-dasharray: 2 5; }
+.task-timeline-relation-swatch { display: inline-block; width: 28px; color: var(--info-ink); }
+.task-timeline-relation-swatch[data-relation="parent_child"] { border-top: 2px dashed var(--text-secondary); }
+.task-timeline-relation-swatch[data-relation="related"] { border-top: 2px dotted var(--text-tertiary); }
+
+/* The task dialog sits on the card surface, like the rest of the tasks area. */
+.project-task-dialog[role="dialog"] { background: var(--bg-card); }

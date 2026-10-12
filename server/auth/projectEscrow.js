@@ -184,6 +184,9 @@ async function getProjectKey(projectId, rawOrgId) {
  *                            'project'` rows use the project key
  *   project_comment_threads  comment threads (stores/projectCommentStore.js):
  *                            a sealed anchor, and comments sealed the same way
+ *   user_memories            a project's shared memory pool (stores/memoryStore.js):
+ *                            only the rows with a project_id, and only those
+ *                            sealed (content starts with the envelope marker)
  *
  * The table and alias names are constants of this file, never input.
  */
@@ -202,6 +205,12 @@ const SEALED_UNDER_PROJECT_KEYS = Object.freeze([
         table: 'project_comment_threads', alias: 'ct', where: '',
         what: 'project comment thread(s)', loses: 'their comments',
         remedy: 'Delete them before rotating',
+    },
+    {
+        table: 'user_memories', alias: 'um',
+        where: "um.project_id IS NOT NULL AND um.content LIKE '{\"_bfenc\"%' AND ",
+        what: 'encrypted project memory row(s)', loses: 'their text',
+        remedy: "Clear the project's shared memory before rotating",
     },
 ]);
 

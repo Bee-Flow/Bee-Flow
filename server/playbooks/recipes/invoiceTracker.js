@@ -16,7 +16,7 @@
  *
  * The demo's language is the interface language the playbook was started in
  * (`options.locale`, Dutch or English — see playbooks/copy.js). It decides
- * the table's column names and keys, the routine and app titles, the screen
+ * the table's column names and keys, the automation and app titles, the screen
  * names, the status values and the labels the builders are asked for, so an
  * English workspace never watches a Dutch app being built. The ROLES below
  * are the constant in between: a brief always addresses a table by the keys
@@ -24,7 +24,7 @@
  *
  * Every brief exists twice over — as the function the lifecycle calls and as
  * the {{placeholder}} template of the recipe DOCUMENT — and both come out of
- * ONE writer (`routineText`/`appText`/`approvalsText` with a `vocabulary`),
+ * ONE writer (`automationText`/`appText`/`approvalsText` with a `vocabulary`),
  * so a change can never land in one and not the other.
  */
 
@@ -41,18 +41,18 @@ const BRIEF_VERSION = 1;
 // person reads the brief rendered — in the handoff card and again as the
 // builder's first message — so it has to be a document, not a paragraph.
 const MAX_BRIEF_CHARS = 1200;
-const PHASE_KEYS = Object.freeze(['table', 'routine', 'fill', 'design', 'app', 'approvals']);
-// The five phase kinds, in order. `approvals` is a SECOND routine: the person
-// decides in Studio → Approvals, the routine parks the invoice and writes the
+const PHASE_KEYS = Object.freeze(['table', 'automation', 'fill', 'design', 'app', 'approvals']);
+// The five phase kinds, in order. `approvals` is a SECOND automation: the person
+// decides in Studio → Approvals, the automation parks the invoice and writes the
 // outcome back. The app is not touched (measured 2026-09-14: an approval turn
 // on the app rebuilt screens the person never asked for).
 const PHASE_SHAPE = Object.freeze([
     { key: 'table', kind: 'table' },
-    { key: 'routine', kind: 'routine' },
+    { key: 'automation', kind: 'automation' },
     { key: 'fill', kind: 'fill' },
     { key: 'design', kind: 'design' },
     { key: 'app', kind: 'app' },
-    { key: 'approvals', kind: 'routine', requires: 'approvals', requiresRole: 'status' },
+    { key: 'approvals', kind: 'automation', requires: 'approvals', requiresRole: 'status' },
 ]);
 
 // What the briefs need from a table, by ROLE — an existing table (a Nextcloud
@@ -74,7 +74,7 @@ const ROLE_ORDER = Object.freeze(Object.keys(ROLES));
 
 // ── the two languages the demo speaks ──────────────────────────────────────
 // Datatable field types only (no relation/computed): datatableFields.js.
-// 'in_beoordeling' / 'in_review' is the approval routine's parking state: the
+// 'in_beoordeling' / 'in_review' is the approval automation's parking state: the
 // row is with the approver; declined stays there (visible in Approvals).
 const PACKS = Object.freeze({
     nl: Object.freeze({
@@ -82,11 +82,11 @@ const PACKS = Object.freeze({
         title: 'Facturen bijhouden',
         description: 'Lees een map met facturen in, vul er een tabel mee en bouw er een factuur-app met goedkeuringen op.',
         tableTitle: 'Facturen',
-        routineTitle: 'Facturen inlezen',
+        automationTitle: 'Facturen inlezen',
         approvalsTitle: 'Facturen goedkeuren',
         appTitle: 'Facturen',
         folderLabel: 'Nextcloud-map met de facturen',
-        phaseLabels: { table: 'Tabel', routine: 'Automatisering', fill: 'Eerste rijen', design: 'Ontwerp', app: 'App', approvals: 'Goedkeuringsflow' },
+        phaseLabels: { table: 'Tabel', automation: 'Automatisering', fill: 'Eerste rijen', design: 'Ontwerp', app: 'App', approvals: 'Goedkeuringsflow' },
         designGoal: 'Een professionele factuur-app op de tabel: een overzicht met kerncijfers (aantal, totaal excl. btw, btw, totaal incl.), een grafiek van het totaal per maand, een filterbare lijst van alle facturen en een detailscherm per factuur; later komt er een goedkeuringsflow bij.',
         screens: { overview: 'Overzicht', detail: 'Factuur' },
         tiles: { count: 'aantal facturen', excl: 'totaal excl. btw', vat: 'totaal btw', total: 'totaal incl. btw' },
@@ -109,11 +109,11 @@ const PACKS = Object.freeze({
         title: 'Invoice tracker',
         description: 'Read an invoice folder, load a table, build an invoice app with approvals.',
         tableTitle: 'Invoices',
-        routineTitle: 'Read invoices',
+        automationTitle: 'Read invoices',
         approvalsTitle: 'Approve invoices',
         appTitle: 'Invoices',
         folderLabel: 'Nextcloud folder with the invoices',
-        phaseLabels: { table: 'Table', routine: 'Automation', fill: 'First rows', design: 'Design', app: 'App', approvals: 'Approval flow' },
+        phaseLabels: { table: 'Table', automation: 'Automation', fill: 'First rows', design: 'Design', app: 'App', approvals: 'Approval flow' },
         designGoal: 'A professional invoice app on the table: an overview with the key figures (count, total excl. VAT, VAT, total incl.), a chart of the total per month, a filterable list of every invoice and a detail screen per invoice; an approval flow follows later.',
         screens: { overview: 'Overview', detail: 'Invoice' },
         tiles: { count: 'invoice count', excl: 'total excl. VAT', vat: 'total VAT', total: 'total incl. VAT' },
@@ -225,8 +225,8 @@ function vocabulary(mode, { table = null, folderPath = '', title = '', approver 
     };
 }
 
-/** Phase `routine`: the manual-trigger routine that fills the table. */
-function routineText(v, pack, title) {
+/** Phase `automation`: the manual-trigger automation that fills the table. */
+function automationText(v, pack, title) {
     return [
         '## Build an automation',
         'I start it by hand: manual trigger, no schedule, no file event.',
@@ -268,8 +268,8 @@ function appText(v, pack) {
 }
 
 /**
- * Phase `approvals`: a SECOND routine — the approval lives in Studio →
- * Approvals, the routine parks the oldest open invoice, asks, and writes the
+ * Phase `approvals`: a SECOND automation — the approval lives in Studio →
+ * Approvals, the automation parks the oldest open invoice, asks, and writes the
  * outcome back. One invoice per run (an approval never sits in a loop); the
  * person starts it by hand and may put it on a schedule later.
  */
@@ -292,9 +292,9 @@ function approvalsText(v, pack, title) {
 /**
  * @param {{ table:{ id, name, key, mapping, isMirror?, hasStatus? }, folderPath, title?, locale? }} p
  */
-function composeRoutineBrief({ table, folderPath, title, locale }) {
+function composeAutomationBrief({ table, folderPath, title, locale }) {
     const pack = packFor(locale);
-    return assertLength(routineText(vocabulary('render', { table, folderPath }), pack, title || pack.routineTitle), 'routine');
+    return assertLength(automationText(vocabulary('render', { table, folderPath }), pack, title || pack.automationTitle), 'automation');
 }
 
 /**
@@ -322,7 +322,7 @@ function composeBrief(key, { table, options = {}, playbook = {} }) {
     const locale = localeOf(options);
     const pack = packFor(locale);
     switch (key) {
-        case 'routine': return composeRoutineBrief({ table, folderPath: options.folderPath || (options.inputs && options.inputs.folderPath) || '/Invoices', title: options.routineTitle || pack.routineTitle, locale });
+        case 'automation': return composeAutomationBrief({ table, folderPath: options.folderPath || (options.inputs && options.inputs.folderPath) || '/Invoices', title: options.automationTitle || pack.automationTitle, locale });
         case 'app': return composeAppBrief({ table, title: playbook.title || pack.appTitle, locale });
         case 'approvals': return composeApprovalsBrief({ table, approver: options.approverGroupId ? { groupId: options.approverGroupId } : { userId: playbook.userId }, locale });
         default: return null;
@@ -354,7 +354,7 @@ function buildDocument(locale) {
             ...(requires ? { requires } : {}),
             ...(requiresRole ? { requiresRole } : {}),
             ...(kind === 'design' ? { goal: pack.designGoal } : {}),
-            ...(key === 'routine' ? { brief: routineText(v, pack, pack.routineTitle) } : {}),
+            ...(key === 'automation' ? { brief: automationText(v, pack, pack.automationTitle) } : {}),
             ...(kind === 'app' ? { brief: appText(v, pack) } : {}),
             ...(key === 'approvals' ? { brief: approvalsText(v, pack, pack.approvalsTitle) } : {}),
         })),
@@ -399,7 +399,7 @@ module.exports = {
     schemaMapping,
     defaultTableKey,
     phasesFor,
-    composeRoutineBrief,
+    composeAutomationBrief,
     composeAppBrief,
     composeApprovalsBrief,
 };

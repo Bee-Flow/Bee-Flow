@@ -53,19 +53,19 @@ export default function TopicValueSlot({ value, threshold, onChange }: Props) {
                 value={topic}
                 maxLength={80}
                 onChange={(e) => onChange({ value: { kind: 'literal', value: e.target.value } })}
-                placeholder={t('routines.builder.topics.placeholder', 'a complaint')}
-                aria-label={t('routines.builder.topics.topic_label', 'Topic')}
+                placeholder={t('automations.builder.topics.placeholder', 'a complaint')}
+                aria-label={t('automations.builder.topics.topic_label', 'Topic')}
                 className={denseInputClass('w-full min-w-0')}
             />
             <select
                 value={level}
                 onChange={(e) => setLevel(e.target.value)}
-                aria-label={t('routines.builder.topics.sensitivity', 'How sure it must be')}
-                title={t('routines.builder.topics.sensitivity', 'How sure it must be')}
+                aria-label={t('automations.builder.topics.sensitivity', 'How sure it must be')}
+                title={t('automations.builder.topics.sensitivity', 'How sure it must be')}
                 className={denseInputClass('w-auto shrink-0')}
             >
-                <option value="normal">{t('routines.builder.topics.sensitivity_normal', 'Normal')}</option>
-                <option value="loose">{t('routines.builder.topics.sensitivity_loose', 'Loose')}</option>
+                <option value="normal">{t('automations.builder.topics.sensitivity_normal', 'Normal')}</option>
+                <option value="loose">{t('automations.builder.topics.sensitivity_loose', 'Loose')}</option>
                 {level === 'custom' && <option value="custom">{String(threshold)}</option>}
             </select>
         </div>

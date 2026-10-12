@@ -4,7 +4,7 @@
  * Until now `core/mcpManager.js` was consume-only: Bee Flow could call other
  * people's MCP servers, but nothing could call Bee Flow. That makes us an app.
  * Serving MCP makes us a platform — and specifically it makes every Bee Flow
- * integration tool and every agent-callable routine available inside
+ * integration tool and every agent-callable automation available inside
  * Nextcloud's own Assistant, because Context Agent takes remote MCP servers
  * straight from its admin settings:
  *
@@ -24,6 +24,12 @@
  * store, which is the same per-user secret mechanism MCP *client* credentials
  * already use. The scheme itself — mint, parse, verify — is `auth/mcpToken.js`,
  * which the sibling routers and the CLI minter read without loading a router.
+ *
+ * Named tokens (`bfmcp_<id>_<secret>`, scoped per server and level, with an
+ * optional expiry and IP list) and the organisation's access policy sit in front
+ * of all this: every MCP endpoint goes through `auth/mcpAccess/gate.js`, and
+ * `tools/list` / `tools/call` honour the token's scopes. The legacy token above
+ * keeps working with full scope unless the organisation refuses it.
  *
  * A token grants exactly what that user can do in chat — no more. Tool
  * availability is resolved per request through `getIntegrationTools`, so org,
@@ -47,6 +53,11 @@ const { z } = require('zod');
 const { isSideEffect } = require('../automation/sideEffectMap');
 const log = require('../telemetry/log');
 const { SECRET_KEY, mintToken, parseToken, authenticateToken } = require('../auth/mcpToken');
+// Imported as authenticateMcp...: the access-registry sweep recognises a handler
+// that authenticates by the name of its check, and this IS the credential gate.
+const { gateRequest: authenticateMcpRequest, rpcDenied } = require('../auth/mcpAccess/gate');
+const { batchTooLarge, rpcBatchTooLarge } = require('../auth/mcpAccess/batch');
+const { scopeAllowsTool, filterToolsByScope } = require('../auth/mcpAccess/scopes');
 
 const router = express.Router();
 
@@ -54,8 +65,8 @@ const router = express.Router();
 
 /**
  * Build the caller's tool list. `loadSession` is the same offline-session
- * builder unattended routines use, so a connector-bound user reaches Nextcloud
- * through the ExApp proxy exactly as they would in a scheduled routine.
+ * builder unattended automations use, so a connector-bound user reaches Nextcloud
+ * through the ExApp proxy exactly as they would in a scheduled automation.
  */
 async function toolsForUser(userId) {
     const { loadSession } = require('../automation/triggerBus');
@@ -185,8 +196,13 @@ function parseToolCall(params) {
 /**
  * @param {object} [deps]  test seam: `{ toolsForUser }`. The real one needs
  *                         Postgres, and this router's tests run without it.
+ * @param {{ token?: { scopes?: object } }|null} [access]  what the access gate
+ *                         resolved for this request. Its token's scopes narrow
+ *                         tools/list and are re-checked on tools/call. Absent
+ *                         (unit tests calling this directly) = no narrowing.
  */
-async function handleRpc(message, userId, deps = {}) {
+async function handleRpc(message, userId, deps = {}, access = null) {
+    const scopes = access?.token?.scopes || null;
     const listTools = deps.toolsForUser || toolsForUser;
     const call = classifyRpc(message);
     if (call.kind === 'invalid') return rpcError(call.id, -32600, INVALID_REQUEST);
@@ -209,11 +225,12 @@ async function handleRpc(message, userId, deps = {}) {
 
         case 'tools/list': {
             const { tools } = await listTools(userId);
+            const listed = tools
+                .map(t => t.function)
+                .filter(Boolean)
+                .map(toMcpTool);
             return rpcResult(id, {
-                tools: tools
-                    .map(t => t.function)
-                    .filter(Boolean)
-                    .map(toMcpTool),
+                tools: scopes ? filterToolsByScope(scopes, 'integrations', listed) : listed,
             });
         }
 
@@ -226,7 +243,9 @@ async function handleRpc(message, userId, deps = {}) {
             // long-lived MCP client would otherwise keep calling a tool after
             // an admin revoked the integration.
             const { tools, session } = await listTools(userId);
-            const permitted = tools.some(t => t.function?.name === name);
+            const permitted = tools.some(t => t.function?.name === name)
+                // The token's own scope, on top of what the account may use.
+                && (!scopes || scopeAllowsTool(scopes, 'integrations', name, { readOnly: !isSideEffect(name) }));
             if (!permitted) {
                 return rpcResult(id, {
                     content: [{ type: 'text', text: `Tool "${name}" is not available to this account.` }],
@@ -248,7 +267,7 @@ async function handleRpc(message, userId, deps = {}) {
                 });
                 const text = typeof result === 'string' ? result : JSON.stringify(result ?? null);
                 // A tool that returns {error} is a failure the model must see as
-                // one — the same soft-error trap that made routines report
+                // one — the same soft-error trap that made automations report
                 // success while doing nothing.
                 const isError = !!(result && typeof result === 'object' && result.error);
                 return rpcResult(id, { content: [{ type: 'text', text }], isError });
@@ -270,18 +289,17 @@ async function handleRpc(message, userId, deps = {}) {
 // this surface pushes server-initiated messages, and claiming the capability
 // would leave clients waiting on a stream that never emits.
 router.post('/', express.json({ limit: '4mb' }), async (req, res) => {
-    const userId = await authenticateToken(req.headers.authorization);
-    if (!userId) {
-        res.set('WWW-Authenticate', 'Bearer realm="bee-flow"');
-        return res.status(401).json(rpcError(null, -32001, 'Unauthorized'));
-    }
+    const access = await authenticateMcpRequest(req, 'integrations');
+    if (!access.ok) return rpcDenied(res, access.status, null, access.retryAfter);
+    const userId = access.user.id;
 
+    if (batchTooLarge(req.body)) return rpcBatchTooLarge(res);
     const body = req.body;
     const messages = Array.isArray(body) ? body : [body];
     const responses = [];
     for (const message of messages) {
         try {
-            const out = await handleRpc(message, userId);
+            const out = await handleRpc(message, userId, {}, access);
             if (out) responses.push(out);
         } catch (err) {
             log.error('[MCP server] handler error:', err.message);
@@ -296,11 +314,8 @@ router.post('/', express.json({ limit: '4mb' }), async (req, res) => {
 // Some clients probe with GET before POSTing. Answer honestly rather than
 // leaving them hanging on a stream we never write to.
 router.get('/', async (req, res) => {
-    const userId = await authenticateToken(req.headers.authorization);
-    if (!userId) {
-        res.set('WWW-Authenticate', 'Bearer realm="bee-flow"');
-        return res.status(401).json(rpcError(null, -32001, 'Unauthorized'));
-    }
+    const access = await authenticateMcpRequest(req, 'integrations');
+    if (!access.ok) return rpcDenied(res, access.status, null, access.retryAfter);
     return res.status(405).json(rpcError(null, -32000, 'This MCP endpoint is POST-only; it does not open an SSE stream.'));
 });
 

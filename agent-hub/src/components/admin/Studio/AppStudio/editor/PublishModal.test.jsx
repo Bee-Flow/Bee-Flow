@@ -75,8 +75,8 @@ const ERR_BUTTON = {
     code: 'action.automation_missing',
     severity: 'error',
     path: 'screens[0].sections[1].children[0].children[0].props.onClick',
-    message: 'Button "Go" references a routine the owner does not have.',
-    hint: 'Pick a routine the app owner owns.',
+    message: 'Button "Go" references an automation the owner does not have.',
+    hint: 'Pick an automation the app owner owns.',
 };
 const ERR_NO_PATH = {
     code: 'screens.missing',

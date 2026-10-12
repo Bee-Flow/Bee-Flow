@@ -64,7 +64,12 @@ describe('the demo route', () => {
     // demo added on one side and forgotten on the other shows up as a failing
     // test rather than as a validator warning nobody reads.
     it('registers exactly the features the server knows about', () => {
-        expect([...DEMO_FEATURE_IDS].sort()).toEqual(['agents', 'app-studio', 'compliance', 'knowledge', 'meeting-notes', 'monitoring', 'notebooks', 'privacy-shield', 'routines', 'skills', 'support']);
+        expect([...DEMO_FEATURE_IDS].sort()).toEqual(['agents', 'app-studio', 'automations', 'compliance', 'knowledge', 'meeting-notes', 'monitoring', 'notebooks', 'privacy-shield', 'skills', 'support']);
+    });
+
+    it('still opens the automations demo at its old id, so an embed made before the rename keeps working', async () => {
+        render(<DemoHost feature="routines" />);
+        expect(screen.queryByText('Demo not found')).toBeNull();
     });
 
     it('shows a clear message for an unknown feature instead of a blank frame', async () => {
@@ -113,7 +118,7 @@ describe('the demo route', () => {
         ).toBeNull();
     // Per-test timeout must exceed the waitFor budget above, or the intended
     // wait can never be spent — vitest's 5s default killed the test first.
-    // `routines` needs the headroom: it mounts the whole React Flow canvas with
+    // `automations` needs the headroom: it mounts the whole React Flow canvas with
     // a populated workflow AND (since the run-rehydration work) the last run's
     // rows — edge chips, run status, decorated edges — at first paint. It runs
     // ~2s on its own, 4-5x every other demo, and is the one that tips over
@@ -135,7 +140,7 @@ describe('the demo route', () => {
         expect(missing, `unfixtured routes:\n  ${missing.join('\n  ')}`).toEqual([]);
     }, 25_000);
 
-    // A demo that mounts cleanly can still be useless: the Routines demo
+    // A demo that mounts cleanly can still be useless: the Automations demo
     // first shipped landing on an empty "New automation" canvas, and the
     // meeting showed "Speaker 1..4" because the UI labels speakers by their
     // id. Both looked fine to every other assertion here. So: pin that each
@@ -157,14 +162,14 @@ describe('the demo route', () => {
     // is that it adds no chrome of its own when framed; the one standalone
     // exception (the ?vw= close button) is pinned in its own describe below.
     it('renders the feature full-bleed, with no demo chrome of its own', async () => {
-        render(<DemoHost feature="routines" />);
+        render(<DemoHost feature="automations" />);
         await waitFor(() => expect(document.querySelector('[data-demo-feature]')).not.toBeNull(), { timeout: 8000 });
         expect(screen.queryByText('Live demo')).toBeNull();
         expect(screen.queryByText(/Open the real thing/)).toBeNull();
     });
 
     it('removes the demo transport on unmount so the app is unaffected', async () => {
-        const { unmount } = render(<DemoHost feature="routines" />);
+        const { unmount } = render(<DemoHost feature="automations" />);
         await waitFor(() => expect(isDemoMode()).toBe(true));
         unmount();
         expect(isDemoMode()).toBe(false);

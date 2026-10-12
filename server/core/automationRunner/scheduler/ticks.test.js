@@ -143,11 +143,11 @@ try {
     globalThis.setTimeout = realSetTimeout;
 }
 
-test('start() mounted the nine ticks and the four boot kickoffs', () => {
+test('start() mounted the ten ticks and the four boot kickoffs', () => {
     assert.strictEqual(startError, null, startError && startError.stack);
     // Nine since handoff 5: the notification digest (throttle bundles and the
     // daily summary) has its own five-minute tick and lock.
-    assert.strictEqual(intervals.length, 9, 'expected nine setInterval ticks');
+    assert.strictEqual(intervals.length, 10, 'expected ten setInterval ticks');
     assert.strictEqual(timeouts.length, 4, 'expected four one-shot boot kickoffs');
     assert.deepStrictEqual(timeouts.map(t => t.delay), [10_000, 15_000, 60_000, 90_000]);
 });
@@ -253,6 +253,6 @@ test('stop() cancels the pending kickoffs, not just the intervals', async () => 
         );
     }
     for (const i of intervals) assert.ok(cleared.includes(i.handle), 'an interval handle went untracked');
-    assert.strictEqual(cleared.length, 13, 'expected all nine intervals and all four kickoffs to be cleared');
+    assert.strictEqual(cleared.length, 14, 'expected all ten intervals and all four kickoffs to be cleared');
     assert.strictEqual(calls.flushEgress, 1, 'stop() did not flush the detached egress logs');
 });

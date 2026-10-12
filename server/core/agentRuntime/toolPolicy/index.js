@@ -29,7 +29,7 @@
  *                 BOTH dispatch sites, streaming and non-streaming. A gate on
  *                 one of two dispatches is the same lie in a smaller room:
  *                 nobody can see which route their call took;
- *   `automations` which routines are offered and whether they ask first —
+ *   `automations` which automations are offered and whether they ask first —
  *                 automationGrantsOf / automationConfirmsFor;
  *   `datatables`  which tables `datatable_query` will read, whose rows and
  *                 which columns — datatableGrantsOf, read by
@@ -95,7 +95,7 @@
  * confirms itself: `gmail_compose` returns an `email_draft` instead of
  * sending, and a headless run flips that with `autoSend`. Holding those calls
  * back on the strength of `confirmByTool` alone would take the draft card away
- * from every agent that exists, and would stop every mailing routine dead.
+ * from every agent that exists, and would stop every mailing automation dead.
  * So the hold-back only ever engages once someone has stored a `tools` map
  * with something in it — i.e. once the agent has been through the picker,
  * which is also where the confirm card gets drawn. An agent from before that

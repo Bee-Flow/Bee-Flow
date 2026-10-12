@@ -141,7 +141,7 @@ test('an owner\'s own choice is never re-opened', async () => {
 });
 
 test('a project holding items the target refuses is refused, with the counts, and nothing changes', async () => {
-    // A legacy project with a published app and a routine in it: as a
+    // A legacy project with a published app and an automation in it: as a
     // workspace it would hide them from every screen while every member
     // could still open the app.
     fx.held.workspace = { apps: 1, automations: 2 };

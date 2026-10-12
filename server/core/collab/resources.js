@@ -52,7 +52,7 @@ const SCAN_SUBJECT = Object.freeze({ notebook: 'notebook_document', document: 's
  *           notebookStore?: any, documentStore?: any, log?: any }} [deps]
  */
 function makeResources(deps = {}) {
-    const getOne = (/** @type {string} */ sql, /** @type {any[]} */ params) => (deps.getOne || require('../../db').getOne)(sql, params);
+    const getOne = async (/** @type {string} */ sql, /** @type {any[]} */ params) => require('../../stores/lib/documentCrypto').openRow(await (deps.getOne || require('../../db').getOne)(sql, params));
     const notebookStore = () => deps.notebookStore || require('../../stores/notebookStore');
     const documentStore = () => deps.documentStore || require('../../stores/documentStore');
     const logger = deps.log || log;

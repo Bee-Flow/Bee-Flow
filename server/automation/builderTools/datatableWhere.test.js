@@ -9,7 +9,7 @@
  * values" as though it had worked.
  *
  * That is unfixable from the model's side, and it looped twice on one build.
- * Measured 2026-09-16 on a live "Facturen goedkeuren" routine: three identical
+ * Measured 2026-09-16 on a live "Facturen goedkeuren" automation: three identical
  * builder_replace_step calls, each answered `replaced` with `where: []`, and
  * four identical builder_update_steps answered "Nothing changed". The model was
  * reading the draft, seeing the filter it had just sent was missing, and
@@ -74,5 +74,7 @@ test('a ref binding in the object form survives as a ref', () => {
     const out = sanitize({ where: { id: { kind: 'ref', path: 'steps.dt_0a9ab1.output.rows.0.id' } } });
     assert.strictEqual(out.where[0].field, 'id');
     assert.strictEqual(out.where[0].value.kind, 'ref');
-    assert.strictEqual(out.where[0].value.path, 'steps.dt_0a9ab1.output.rows.0.id');
+    // Stored in the canonical spelling: `.0` is an index, written `[0]`
+    // (the old `rows.0.id` did not resolve at run time).
+    assert.strictEqual(out.where[0].value.path, 'steps.dt_0a9ab1.output.rows[0].id');
 });

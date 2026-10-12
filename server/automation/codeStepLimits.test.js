@@ -230,7 +230,7 @@ test('a limit named after an Object.prototype member is refused like any other i
         assert.match(built.error, new RegExp(`limits\\.${key.replace(/[$]/g, '')} is not a limit the sandbox reads`));
 
         const { errors, warnings } = codesOf(defWithCode({ limits: raw }));
-        assert.deepStrictEqual(errors, [], `limits.${key} must warn, not block a routine — same as any other invented key`);
+        assert.deepStrictEqual(errors, [], `limits.${key} must warn, not block an automation — same as any other invented key`);
         assert.ok(warnings.includes('code.limits_unknown_key'), `limits.${key} passed the validator in silence`);
     }
 
@@ -281,7 +281,7 @@ test('a limit that is not a whole number, and a limits block that is not an obje
     assert.ok(codesOf(defWithCode({ limits: [1, 2] })).errors.includes('code.limits_shape'));
 });
 
-test('an invented limit key is a warning — it does nothing, but it must not block a routine', () => {
+test('an invented limit key is a warning — it does nothing, but it must not block an automation', () => {
     const { errors, warnings, all } = codesOf(defWithCode({ limits: { cpuMs: 2000, retries: 3 } }));
     assert.deepStrictEqual(errors, []);
     assert.ok(warnings.includes('code.limits_unknown_key'), `got ${warnings.join(', ')}`);

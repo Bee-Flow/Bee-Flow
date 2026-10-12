@@ -16,7 +16,7 @@ const complianceStore = require('../../stores/complianceStore');
 const userStore = require('../../stores/userStore');
 const runner = require('../../compliance/runner');
 const { getAll } = require('../../db');
-const { SUPPLIER_ROW, NON_EU, LOC_STATE } = require('../../stores/integrationLocationSql');
+const { ledgerProcessors } = require('../../compliance/ropa/ledgerProcessors');
 const { requireAuth, requirePermission } = require('../../auth/permissions');
 const { resolveOrgId } = require('./shared');
 const { onEvidenceWriteFailed } = require('../../compliance/evidence/writeFailures');
@@ -97,37 +97,9 @@ async function _buildRopa(orgId) {
 
         let processors = [];
         try {
-            // Rows flagged served_from_cache are deliberately INCLUDED. The
-            // processor register asks "does this organisation use this
-            // processor, and when did it last do so" — and a run that acted on
-            // a stored answer is still that organisation processing personal
-            // data obtained from them. Excluding cache hits would let a
-            // processor drop out of an Art-30 record entirely once a cross-run
-            // hit answers every call for a day. The Art-44 TRANSFER count is
-            // the query that excludes them, because that one asks a different
-            // question: did bytes actually leave.
-            // Local calls are no processor, and a row with neither operator nor
-            // location names nobody; a global network (Cloudflare, …) is one.
-            // outside_calls / via_network_calls say which processors take data
-            // out of Europe, and which only through a network whose final
-            // location the connection cannot see.
-            processors = await getAll(`
-                SELECT operator,
-                       MAX(country_code) AS country_code,
-                       MAX(country_name) AS country_name,
-                       BOOL_OR(is_eu) AS is_eu,
-                       COUNT(*)::int AS calls,
-                       COUNT(*) FILTER (WHERE ${NON_EU})::int AS outside_calls,
-                       COUNT(*) FILTER (WHERE ${LOC_STATE} = 'via_network')::int AS via_network_calls,
-                       MIN(timestamp) AS first_seen,
-                       MAX(timestamp) AS last_seen
-                FROM integration_activity_log
-                WHERE organization_id = $1
-                  AND timestamp >= NOW() - INTERVAL '180 days'
-                  AND ${SUPPLIER_ROW}
-                GROUP BY operator
-                ORDER BY calls DESC
-            `, [orgId]);
+            // The ledger's processors over 180 days, the 'default' bucket
+            // included (compliance/ropa/ledgerProcessors.js says why).
+            processors = await ledgerProcessors(orgId);
         } catch { /* fresh */ }
 
         const activities = agents.map(a => ({
@@ -173,6 +145,15 @@ async function _buildRopa(orgId) {
             activities.push(...await require('../../compliance/ropa/projectActivities').projectActivities(orgId));
         } catch (e) {
             log.warn('[ROPA] project activities unavailable:', e.message);
+        }
+
+        // Chat signals (checking whether the Privacy Shield works) while they
+        // are on or scheduled, or while collected counts remain —
+        // compliance/ropa/chatMonitoringActivity.js.
+        try {
+            activities.push(...await require('../../compliance/ropa/chatMonitoringActivity').chatMonitoringActivity(orgId));
+        } catch (e) {
+            log.warn('[ROPA] chat signals activity unavailable:', e.message);
         }
 
         // Product measurement.

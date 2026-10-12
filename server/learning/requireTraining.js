@@ -55,7 +55,7 @@ const AREA_PATHS = Object.freeze({
     knowledge: [/^\/$/, /^\/[^/]+$/, /^\/[^/]+\/(sources|documents|ingest|reindex|categories)(\/|$)/,
         /^\/categories(\/|$)/],
     skills: [/^\/$/, /^\/[^/]+$/],
-    // Authoring a routine. NOT /:id/run, /dry-run, /activate, /runs/*,
+    // Authoring an automation. NOT /:id/run, /dry-run, /activate, /runs/*,
     // /approvals/*, /webhook/*, /form/:token (the public form) or /events/*.
     automations: [/^\/$/, /^\/import$/, /^\/[^/]+$/, /^\/folders(\/|$)/,
         /^\/[^/]+\/versions\//, /^\/[^/]+\/form$/, /^\/forms\/ai\//],

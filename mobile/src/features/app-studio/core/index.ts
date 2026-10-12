@@ -10,7 +10,7 @@
  *   flow/*           step graph codec, step references, step catalog
  *   runtime/*        bindings, variables, forms, nav model, scope, step index,
  *                    style descriptors and their React Native mapping
- *   logicRows        the Logic tab's rows, notices and routines
+ *   logicRows        the Logic tab's rows, notices and automations
  */
 
 export * from './types';

@@ -9,7 +9,7 @@
  *   verdwijnt — precies wat deze stap moest voorkomen.
  *
  *   ONAF (nog geen scherm gekozen, nog niets ingevuld) is completeness: je bouwt
- *   een routine stap voor stap en de builder PUT bij elke toetsaanslag de hele
+ *   een automatisering stap voor stap en de builder PUT bij elke toetsaanslag de hele
  *   definitie. Waarschuwen tijdens het bouwen, blokkeren bij activeren.
  *
  *   TERMINAAL (een rand erachter, een on_error-tak eruit, in een flowlet) hoort
@@ -200,7 +200,7 @@ test('both templates are checked like any other reference — a typo warns inste
 //                  andere takken en alles ná de parallel nog draaien.
 //
 // Vandaar: hard weigeren op ELKE trap, net als de flowlet-tweeling. De stapsoort
-// is met P4 zelf geïntroduceerd, dus er is geen opgeslagen routine van vóór de
+// is met P4 zelf geïntroduceerd, dus er is geen opgeslagen automatisering van vóór de
 // regel die hierdoor onbewerkbaar wordt — daarom staat de code bewust NIET in
 // COMPLETENESS_CODES.
 

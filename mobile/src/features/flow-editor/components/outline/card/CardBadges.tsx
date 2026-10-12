@@ -24,7 +24,7 @@ export function CardBadges({ card, styles }: { card: CardModel; styles: OutlineS
             {badge && tone ? <Badge label={t(badge.key, badge.en)} tone={BADGE_TONE[tone]} /> : null}
             {!badge && card.result ? <Badge label={card.result} tone="neutral" /> : null}
             {/* A pinned step with no run row wears a `pinned` run stub (run/runStatus.ts): one pin chip, not two. */}
-            {card.pinned && card.status !== 'pinned' ? <Badge label={t('routines.card.badge_pinned', 'pinned')} tone="pinned" icon="Pin" /> : null}
+            {card.pinned && card.status !== 'pinned' ? <Badge label={t('automations.card.badge_pinned', 'pinned')} tone="pinned" icon="Pin" /> : null}
             {card.errors ? <Badge label={String(card.errors)} tone="error" icon="CircleAlert" /> : null}
             {!card.errors && card.warnings ? <Badge label={String(card.warnings)} tone="warning" icon="TriangleAlert" /> : null}
         </View>

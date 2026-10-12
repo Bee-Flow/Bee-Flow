@@ -71,6 +71,12 @@ describe('what changed', () => {
         expect(getByTestId('version-group-unchanged').textContent).toMatch(/1 thing is unchanged/);
     });
 
+    it('every row wears a chip with the word for what happened', () => {
+        const { getAllByTestId } = render(<SolutionVersionsTab remote={ok([NO_SUMMARIES])} />);
+        const chips = getAllByTestId('version-change-chip').map(c => c.textContent);
+        expect(chips.sort()).toEqual(['Added', 'Changed', 'Changed', 'Unchanged']);
+    });
+
     it('…and says, per row, that the line is the thing that is missing', () => {
         const { getAllByTestId } = render(<SolutionVersionsTab remote={ok([NO_SUMMARIES])} />);
         // Alleen op de twee GEWIJZIGDE rijen: een ongewijzigde rij mist geen

@@ -40,7 +40,7 @@ async function setDefinitionSource(id, scope, source) {
 }
 
 /**
- * Every answers table that says it belongs to this routine — unscoped on
+ * Every answers table that says it belongs to this automation — unscoped on
  * purpose (the row is the authority on its tenant; the caller checks the
  * scope), oldest first so "the" table is stable across calls.
  */
@@ -56,7 +56,7 @@ async function listAnswersTablesForAutomation(automationId) {
     return (res || []).map(rowToDatatable);
 }
 
-/** The same for a whole directory of routines, in one round trip. */
+/** The same for a whole directory of automations, in one round trip. */
 async function listAnswersTablesForAutomations(automationIds) {
     await initDB();
     const ids = (Array.isArray(automationIds) ? automationIds : []).filter(Boolean).map(String);

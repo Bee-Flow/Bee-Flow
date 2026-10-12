@@ -5,7 +5,7 @@
  * NO LONGER ON THE RUNTIME PATH. The terms are now the org's own data types
  * ("Your own data", core/privacy/customTypes): migrated to `words`/`pattern`
  * types and run inside detectPii everywhere the shield runs, not only in chat
- * DLP and routines. This scanner stays for one release as the PARITY
+ * DLP and automations. This scanner stays for one release as the PARITY
  * REFERENCE (core/privacy/customTypes/parity.test.js runs its old fixtures
  * through both) and is removed with the `customSensitiveTerms` mirror.
  *

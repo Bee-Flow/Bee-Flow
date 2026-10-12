@@ -59,8 +59,8 @@ describe('LoopNode — collapsed', () => {
         // count. It used to sit loose in the JSX: the number translated and the
         // word did not, which is why the override below is the whole clause.
         transOverride.current = {
-            'routines.canvas.loop_body_inside': '{n} stap erin',
-            'routines.canvas.loop_body_inside_plural': '{n} stappen erin',
+            'automations.canvas.loop_body_inside': '{n} stap erin',
+            'automations.canvas.loop_body_inside_plural': '{n} stappen erin',
         };
         renderLoop();
         expect(screen.getByText(/2 stappen erin/)).toBeTruthy();
@@ -109,8 +109,8 @@ describe('LoopNode — collapsed, in another language', () => {
         // string: the dictionary got a stem and JavaScript welded the rest on.
         // Two keys, one per shape, chosen around the KEY.
         transOverride.current = {
-            'routines.canvas.loop_over': 'per {list}, als loop.{item}',
-            'routines.canvas.loop_over_batched': 'per {list}, als loop.{item}, {batch} tegelijk',
+            'automations.canvas.loop_over': 'per {list}, als loop.{item}',
+            'automations.canvas.loop_over_batched': 'per {list}, als loop.{item}, {batch} tegelijk',
         };
         renderLoop();
         expect(screen.getByText('per ‹Search email›.results, als loop.item')).toBeTruthy();
@@ -120,7 +120,7 @@ describe('LoopNode — collapsed, in another language', () => {
     });
 
     it('translates the "no list yet" line too, instead of leaving it English', () => {
-        transOverride.current = { 'routines.canvas.loop_no_list': 'nog geen lijst · als loop.{item}' };
+        transOverride.current = { 'automations.canvas.loop_no_list': 'nog geen lijst · als loop.{item}' };
         renderLoop({ step: { ...STEP, overRef: '' } });
         expect(screen.getByText('nog geen lijst · als loop.item')).toBeTruthy();
     });
@@ -130,8 +130,8 @@ describe('LoopNode — collapsed, in another language', () => {
         // are rendered by StepNodeBase. Hardcoded, they were the one part of
         // the card no dictionary could reach.
         transOverride.current = {
-            'routines.canvas.loop_port_done': 'Klaar',
-            'routines.canvas.loop_port_on_error': 'Bij fout',
+            'automations.canvas.loop_port_done': 'Klaar',
+            'automations.canvas.loop_port_on_error': 'Bij fout',
         };
         renderLoop();
         expect(screen.getByText('Klaar')).toBeTruthy();
@@ -141,22 +141,22 @@ describe('LoopNode — collapsed, in another language', () => {
     it('passes t to the node definition, so the type label is translatable', () => {
         // nodeTypeLabel/nodeHelp/nodeDefaultLabel answer in English when they
         // get no `t` — the keys existed all along and the card ignored them.
-        transOverride.current = { 'routines.node.loop.typeLabel': 'Herhaal' };
+        transOverride.current = { 'automations.node.loop.typeLabel': 'Herhaal' };
         renderLoop();
         expect(screen.getByText('Herhaal')).toBeTruthy();
     });
 
     it('names the node from the dictionary when the step has no label of its own', () => {
-        transOverride.current = { 'routines.node.loop.defaultLabel': 'Herhaal voor elk' };
+        transOverride.current = { 'automations.node.loop.defaultLabel': 'Herhaal voor elk' };
         renderLoop({ step: { ...STEP, label: '' } });
         expect(screen.getByText('Herhaal voor elk')).toBeTruthy();
     });
 
     it('translates the two chip tooltips and the expand affordance', () => {
         transOverride.current = {
-            'routines.canvas.loop_body_title': 'Stappen per item',
-            'routines.canvas.loop_max_title': 'Max. herhalingen',
-            'routines.canvas.loop_expand': 'Uitklappen op het canvas',
+            'automations.canvas.loop_body_title': 'Stappen per item',
+            'automations.canvas.loop_max_title': 'Max. herhalingen',
+            'automations.canvas.loop_expand': 'Uitklappen op het canvas',
         };
         renderLoop({ rt: { onToggleInline: vi.fn() } });
         expect(screen.getByTitle('Stappen per item')).toBeTruthy();
@@ -221,8 +221,8 @@ describe('LoopNode — expanded container', () => {
 
     it('summarises the loop in one translatable sentence, batch clause and all', () => {
         transOverride.current = {
-            'routines.canvas.loop_over_summary': 'over {list} · als loop.{item} · ≤{max}',
-            'routines.canvas.loop_over_summary_batched': 'over {list} · als loop.{item} · ×{batch} · ≤{max}',
+            'automations.canvas.loop_over_summary': 'over {list} · als loop.{item} · ≤{max}',
+            'automations.canvas.loop_over_summary_batched': 'over {list} · als loop.{item} · ×{batch} · ≤{max}',
         };
         renderLoop({ data: expanded });
         expect(screen.getByText('over ‹Search email›.results · als loop.item · ≤100')).toBeTruthy();
@@ -233,9 +233,9 @@ describe('LoopNode — expanded container', () => {
 
     it('translates the not-recorded note and the collapse control', () => {
         transOverride.current = {
-            'routines.canvas.loop_not_recorded': 'losse stappen worden niet vastgelegd',
-            'routines.canvas.loop_not_recorded_title': 'De lus draagt zelf de status.',
-            'routines.canvas.loop_collapse': 'Inklappen',
+            'automations.canvas.loop_not_recorded': 'losse stappen worden niet vastgelegd',
+            'automations.canvas.loop_not_recorded_title': 'De lus draagt zelf de status.',
+            'automations.canvas.loop_collapse': 'Inklappen',
         };
         renderLoop({ data: expanded, rt: { onToggleInline: vi.fn() } });
         expect(screen.getByText('losse stappen worden niet vastgelegd')).toBeTruthy();

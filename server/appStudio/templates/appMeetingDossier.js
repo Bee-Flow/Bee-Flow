@@ -30,9 +30,9 @@
  * ── THE AI SEAM, STATED HONESTLY ───────────────────────────────────────────
  *
  * There is no `transcribe` step. Transcription reaches WhisperX through a
- * ROUTINE, so "Send for transcription" flips the recording to `queued` and then
+ * AUTOMATION, so "Send for transcription" flips the recording to `queued` and then
  * fires { kind:'run_automation', automationId:null } — the one tolerated
- * warning at install (action.automation_unset). The routine's contract is a
+ * warning at install (action.automation_unset). The automation's contract is a
  * QUEUE, not an argument list: pick up recordings whose transcription_status is
  * 'queued', run WhisperX, write the diarised text back into `transcript_text`,
  * set the status to 'done'. That is said in the Dossier callout and again on
@@ -40,7 +40,7 @@
  *
  * Reading decisions and actions OUT of a transcript, by contrast, IS an app
  * step: two `ai_extract` steps with a schema, a writeTo and provenance
- * constants. It needs no routine and no configuration.
+ * constants. It needs no automation and no configuration.
  *
  * And the whole app works with neither. Paste or type the transcript, or skip
  * it entirely and write the decisions and actions in by hand — "Record a
@@ -234,7 +234,7 @@ const SOURCE_OPTIONS = [
     { value: 'notes', label: 'Typed notes' },
 ];
 
-/** The routine's state machine, and the only column it has to write back. */
+/** The automation's state machine, and the only column it has to write back. */
 const TRANSCRIPTION_OPTIONS = [
     { value: 'none', label: 'Not requested' },
     { value: 'queued', label: 'Queued for transcription' },
@@ -875,7 +875,7 @@ const SCREEN_DOSSIER = {
                     type: 'callout',
                     props: {
                         title: 'How transcription works here',
-                        text: 'Reading decisions and actions out of a transcript needs nothing configured — it runs in the app. **Send for transcription** is different: it marks the recording `queued` and asks a routine to pick it up, so someone has to wire one first (Automations → a routine that takes queued recordings, runs WhisperX, writes the text back and sets the status to Transcribed). Until then, paste or upload the transcript yourself — or skip it entirely and write the decisions and actions in by hand. Nothing below depends on the AI.',
+                        text: 'Reading decisions and actions out of a transcript needs nothing configured — it runs in the app. **Send for transcription** is different: it marks the recording `queued` and asks an automation to pick it up, so someone has to wire one first (Automations → an automation that takes queued recordings, runs WhisperX, writes the text back and sets the status to Transcribed). Until then, paste or upload the transcript yourself — or skip it entirely and write the decisions and actions in by hand. Nothing below depends on the AI.',
                         tone: 'info',
                     },
                     style: { span: 12 },
@@ -936,7 +936,7 @@ const SCREEN_DOSSIER = {
                             id: 'cmp_mdtxt',
                             type: 'markdown',
                             props: {
-                                content: '### Transcript\n\nPick a recording on the left. When it has been transcribed — by the routine, or by pasting the text in yourself — it appears here, speaker by speaker.',
+                                content: '### Transcript\n\nPick a recording on the left. When it has been transcribed — by the automation, or by pasting the text in yourself — it appears here, speaker by speaker.',
                                 contentFrom: { kind: 'formula', expr: 'vars.rec.transcript_text' },
                             },
                             style: { span: 12 },
@@ -1761,7 +1761,7 @@ const SCREEN_SETUP = {
                     type: 'callout',
                     props: {
                         title: 'The one thing that needs wiring',
-                        text: 'Everything in this app works out of the box except **Send for transcription**. That button sets a recording to `queued` and asks a routine to run; without one, nothing happens. Build a routine that reads recordings with status `queued`, sends the file to the self-hosted WhisperX service, writes the diarised text back into `transcript_text` and sets the status to `done`. Reading decisions and actions out of a transcript needs no routine at all.',
+                        text: 'Everything in this app works out of the box except **Send for transcription**. That button sets a recording to `queued` and asks an automation to run; without one, nothing happens. Build an automation that reads recordings with status `queued`, sends the file to the self-hosted WhisperX service, writes the diarised text back into `transcript_text` and sets the status to `done`. Reading decisions and actions out of a transcript needs no automation at all.',
                         tone: 'warning',
                     },
                     style: { span: 12 },
@@ -2132,9 +2132,9 @@ const actions = {
     },
 
     /**
-     * THE ROUTINE HOP. There is no transcribe step, so this is deliberately two
-     * halves: the app sets the queue flag it owns, then asks a routine to run.
-     * The routine takes no arguments — its contract is the QUEUE (status
+     * THE AUTOMATION HOP. There is no transcribe step, so this is deliberately two
+     * halves: the app sets the queue flag it owns, then asks an automation to run.
+     * The automation takes no arguments — its contract is the QUEUE (status
      * 'queued'), which is also the only contract that survives it being run on
      * a schedule instead of by this button.
      */
@@ -2155,7 +2155,7 @@ const actions = {
                     // automationId:null is the honest state of an unwired hop —
                     // it installs cleanly and warns rather than pretending.
                     { kind: 'run_automation', automationId: null },
-                    { kind: 'toast', message: 'Queued for transcription. This needs a routine wired in Automations — see Setup.', tone: 'info' },
+                    { kind: 'toast', message: 'Queued for transcription. This needs an automation wired in Automations — see Setup.', tone: 'info' },
                 ],
                 else: [
                     { kind: 'toast', message: 'Select a recording on the left first.', tone: 'info' },
@@ -2316,7 +2316,7 @@ const actions = {
                     // just-deleted transcript on screen under a toast saying it
                     // is gone, and — worse — leave "Send for transcription"
                     // visible over a row with no media, which would queue a
-                    // recording the routine can only fail on. Clearing the
+                    // recording the automation can only fail on. Clearing the
                     // selection is the honest end of a purge: the media buttons
                     // are all gated on vars.rec.id, and re-picking the row shows
                     // the tombstone as it now actually is.

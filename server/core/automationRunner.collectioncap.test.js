@@ -47,7 +47,7 @@ mock('../stores/userStore', { getUser: async () => null, getOrganization: async 
 mock('../db', { pool: { query: async () => ({ rows: [] }) } });
 mock('./aiAgent', { getProviderForModel: async () => null });
 mock('./providers', { getAdapter: () => ({}) });
-mock('../auth/routineAuth', { buildUserAuth: async () => null });
+mock('../auth/automationAuth', { buildUserAuth: async () => null });
 mock('../auth/audience', { resolveUserGroups: async () => [] });
 mock('../automation/codeSandbox', { run: async () => ({}) });
 
@@ -170,7 +170,7 @@ function dagState(arr) {
  * The SETTLED row for a step.
  *
  * runDag records a step twice: a `status: 'running'` row the moment it starts,
- * so a public form page has something to show while the routine works, and then
+ * so a public form page has something to show while the automation works, and then
  * the real one. Against Postgres those are ONE row — recordRunStep upserts on
  * (run_id, step_id, attempts) — but the mock above is an append log, so both
  * survive here and `.find()` returns the placeholder: status 'running', and no

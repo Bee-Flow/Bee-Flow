@@ -5,7 +5,7 @@
  *
  * These events are the GENERAL-PURPOSE reaction channel: "when a quote is
  * approved, post to the team channel / send the customer an email / kick off
- * the next routine". App Studio's own primary channel is the on_decided
+ * the next automation". App Studio's own primary channel is the on_decided
  * record-write hook (executed synchronously inside the decision), so an app
  * does not need an automation wired to react; these fire as well, for
  * everything that lives outside the app.

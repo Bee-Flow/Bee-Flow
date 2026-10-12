@@ -52,13 +52,13 @@ function buildFewShotMessages(count = 0, { toolset = 'full' } = {}) {
     return shots.slice(0, Math.max(0, count)).flat();
 }
 
-// The original shot: a search form wired to a ROUTINE (run_automation with
+// The original shot: a search form wired to a AUTOMATION (run_automation with
 // inputMapping). Full toolset only since 2026-09-13 — on the core menu it was
 // the sole form→action precedent, and the small model carried its
 // `inputMapping` / {kind:"field"} / onError vocabulary straight into a
 // create_record action four times in one turn. FORM_SAVE teaches that shape.
 const LOOKUP_SHOT = [
-        { role: 'user', content: 'Build a lookup console: a search form that runs my "Find customer" routine and shows the matches in a table with a count.' },
+        { role: 'user', content: 'Build a lookup console: a search form that runs my "Find customer" automation and shows the matches in a table with a count.' },
         {
             role: 'assistant',
             content: '',
@@ -67,7 +67,7 @@ const LOOKUP_SHOT = [
                     id: 'ex_a1', type: 'function',
                     function: {
                         name: 'app_set_meta',
-                        arguments: JSON.stringify({ name: 'Lookup console', description: 'Search customer records via a routine.', icon: 'Search' }),
+                        arguments: JSON.stringify({ name: 'Lookup console', description: 'Search customer records via an automation.', icon: 'Search' }),
                     },
                 },
                 {
@@ -89,7 +89,7 @@ const LOOKUP_SHOT = [
                 },
             ],
         },
-        { role: 'tool', tool_call_id: 'ex_a1', content: JSON.stringify({ meta: { name: 'Lookup console', description: 'Search customer records via a routine.', icon: 'Search' } }) },
+        { role: 'tool', tool_call_id: 'ex_a1', content: JSON.stringify({ meta: { name: 'Lookup console', description: 'Search customer records via an automation.', icon: 'Search' } }) },
         {
             // Byte-true to applySetTheme({preset:'mono',font:'geist'}): mono's
             // navStyle is "tabs", the default, which canonicalize prunes — so
@@ -193,7 +193,7 @@ const LOOKUP_SHOT = [
         { role: 'tool', tool_call_id: 'ex_a7', content: JSON.stringify({ finalized: true, appId: 'app-ex1', version: 5, name: 'Lookup console' }) },
         {
             role: 'assistant',
-            content: 'Done — your Lookup console is ready. The Search screen has a query form wired to your "Find customer" routine; matches land in the table with a live count above it. Open the app and try a search.',
+            content: 'Done — your Lookup console is ready. The Search screen has a query form wired to your "Find customer" automation; matches land in the table with a live count above it. Open the app and try a search.',
         },
 ];
 

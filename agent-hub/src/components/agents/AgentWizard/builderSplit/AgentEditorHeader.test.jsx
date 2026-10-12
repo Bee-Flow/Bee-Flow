@@ -150,3 +150,29 @@ describe('publishedVersionOf', () => {
         expect(publishedVersionOf(null)).toBe(0);
     });
 });
+
+describe('AgentEditorHeader — an agent a Solution stage manages', () => {
+    const MANAGED = { solutionId: 's1', solutionName: 'Intake', stage: 'prd', releaseSeq: 4, devRef: { kind: 'agent', id: 'dev-agent' } };
+
+    it('says who manages it and where to change it', () => {
+        render(<AgentEditorHeader {...baseProps} publishedVersion={3} agent={{ id: 'a1', name: 'Test Agent', managed: MANAGED }} />);
+        expect(screen.getByTestId('managed-part-banner').textContent).toContain('Managed by Intake · Production · Release 4.');
+        expect(screen.getByText('Open in Dev').getAttribute('href')).toBe('/app/studio/agents/dev-agent');
+    });
+
+    it('drops rename and the publish button, but keeps the audience and the tabs', () => {
+        render(<AgentEditorHeader {...baseProps} publishedVersion={3} managed={MANAGED} />);
+        expect(screen.queryByTestId('agent-publish-pill')).toBeNull();
+        expect(screen.queryByTestId('agent-save-draft')).toBeNull();
+        expect(screen.getByTestId('studio-section-title').tagName).not.toBe('BUTTON');
+        expect(screen.getByRole('radiogroup')).toBeTruthy();
+        // The "no permission" chip would lie here: this is not a permissions matter.
+        expect(screen.queryByTestId('agent-readonly-chip')).toBeNull();
+    });
+
+    it('an ordinary agent keeps everything', () => {
+        render(<AgentEditorHeader {...baseProps} publishedVersion={3} />);
+        expect(screen.queryByTestId('managed-part-banner')).toBeNull();
+        expect(screen.getByTestId('agent-publish-pill')).toBeTruthy();
+    });
+});

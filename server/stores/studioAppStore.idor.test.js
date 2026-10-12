@@ -73,10 +73,10 @@ test('updateStudioApp carries user_id and refuses a foreign app', async () => {
     reset();
     const out = await store.updateStudioApp('app-bob', { name: 'hax' }, 'alice');
     assert.strictEqual(out, null, 'foreign app must not update');
-    const upd = calls.getOne.find(c => /^UPDATE studio_apps/i.test(c.sql.trim()));
-    assert.ok(upd, 'the UPDATE runs (and matches nothing)');
-    assert.match(upd.sql, /WHERE[\s\S]*user_id\s*=\s*\$\d+/i, 'UPDATE must scope by user_id');
-    assert.ok(upd.params.includes('alice'), 'scoped to the caller, not the row owner');
+    const lock = calls.client.find(c => /FOR UPDATE/i.test(c.sql));
+    assert.match(lock.sql, /WHERE\s+id\s*=\s*\$1\s+AND\s+user_id\s*=\s*\$2/i, 'locking SELECT must scope by user_id');
+    assert.deepStrictEqual(lock.params, ['app-bob', 'alice']);
+    assert.ok(!calls.client.some(c => /^UPDATE/i.test(c.sql.trim())), 'no UPDATE after the failed lock');
 });
 
 test('saveDefinition enforces ownership in the locking SELECT', async () => {
@@ -123,7 +123,7 @@ test('deleteStudioApp DELETE carries user_id for the owner', async () => {
     reset();
     const out = await store.deleteStudioApp('app-alice', 'alice');
     assert.ok(out && out.id === 'app-alice');
-    const del = calls.run.find(c => /^DELETE FROM studio_apps/i.test(c.sql.trim()));
+    const del = calls.client.find(c => /^DELETE FROM studio_apps/i.test(c.sql.trim()));
     assert.match(del.sql, /WHERE\s+id\s*=\s*\$1\s+AND\s+user_id\s*=\s*\$2/i);
     assert.deepStrictEqual(del.params, ['app-alice', 'alice']);
 });

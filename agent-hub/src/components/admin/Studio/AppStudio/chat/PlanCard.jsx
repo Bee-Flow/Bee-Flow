@@ -1,5 +1,6 @@
 import { Database, HelpCircle, Layers, Plus, Shield, Trash2, Users } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import useTranslation from '../../../../../hooks/useTranslation';
 
 /**
  * App Studio AI builder — the editable PLAN card (Wave 5, plan-first UX).
@@ -101,6 +102,7 @@ function normalizePlan(plan) {
 }
 
 export default function PlanCard({ pendingPlan, onBuild, onDiscuss, disabled = false }) {
+    const { t } = useTranslation();
     const planId = pendingPlan?.planId ?? null;
     const [draft, setDraft] = useState(() => normalizePlan(pendingPlan?.plan));
 
@@ -158,8 +160,8 @@ export default function PlanCard({ pendingPlan, onBuild, onDiscuss, disabled = f
                     value={draft.title}
                     disabled={disabled}
                     onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
-                    aria-label="Plan title"
-                    placeholder="Untitled plan"
+                    aria-label={t('studio_apps_edit.plan_card.plan_title', 'Plan title')}
+                    placeholder={t('studio_apps_edit.plan_card.untitled_plan', 'Untitled plan')}
                     className="w-full bg-transparent text-sm font-semibold outline-none disabled:opacity-60"
                     style={{ color: 'var(--text-primary)' }}
                 />
@@ -173,7 +175,7 @@ export default function PlanCard({ pendingPlan, onBuild, onDiscuss, disabled = f
                 <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-2">
                     <div className="mb-1 flex items-center gap-1.5 font-medium text-amber-700 dark:text-amber-400">
                         <HelpCircle className="h-3.5 w-3.5" aria-hidden="true" />
-                        A few questions
+                        {t('studio_apps_edit.plan_card.open_questions', 'A few questions')}
                     </div>
                     <ul className="flex list-disc flex-col gap-0.5 pl-4 text-amber-700/90 dark:text-amber-300/90">
                         {openQuestions.map((q, i) => <li key={i}>{q}</li>)}
@@ -182,91 +184,91 @@ export default function PlanCard({ pendingPlan, onBuild, onDiscuss, disabled = f
             ) : null}
 
             {/* Screens */}
-            <Section icon={Layers} title="Screens">
+            <Section icon={Layers} title={t('studio_apps_edit.plan_card.screens', 'Screens')}>
                 {draft.screens.map((s, i) => (
                     <Row
                         key={rowKey(s, i)}
                         value={labelOf(s, 'name', 'title')}
-                        placeholder="Screen name"
-                        ariaLabel="Screen name"
+                        placeholder={t('studio_apps_edit.plan_card.screen_name', 'Screen name')}
+                        ariaLabel={t('studio_apps_edit.plan_card.screen_name', 'Screen name')}
                         subtitle={labelOf(s, 'purpose')}
                         disabled={disabled}
                         onChange={(v) => renameAt('screens', i, v, 'name')}
                         onRemove={() => removeAt('screens', i)}
                     />
                 ))}
-                <AddRow label="Add screen" disabled={disabled} onAdd={(v) => addRow('screens', { name: v })} />
+                <AddRow label={t('studio_apps_edit.plan_card.add_screen', 'Add screen')} disabled={disabled} onAdd={(v) => addRow('screens', { name: v })} />
             </Section>
 
             {/* Data — tables with their fields */}
-            <Section icon={Database} title="Data">
-                {draft.tables.map((t, ti) => (
-                    <div key={rowKey(t, ti)} className="rounded-lg border p-2" style={{ borderColor: 'var(--border-default)' }}>
+            <Section icon={Database} title={t('studio_apps_edit.plan_card.data', 'Data')}>
+                {draft.tables.map((tbl, ti) => (
+                    <div key={rowKey(tbl, ti)} className="rounded-lg border p-2" style={{ borderColor: 'var(--border-default)' }}>
                         <Row
-                            value={labelOf(t, 'name', 'key')}
-                            placeholder="Table name"
-                            ariaLabel="Table name"
-                            subtitle={typeof t?.seedCount === 'number' ? `${t.seedCount} sample rows` : ''}
+                            value={labelOf(tbl, 'name', 'key')}
+                            placeholder={t('studio_apps_edit.plan_card.table_name', 'Table name')}
+                            ariaLabel={t('studio_apps_edit.plan_card.table_name', 'Table name')}
+                            subtitle={typeof tbl?.seedCount === 'number' ? t('studio_apps_edit.plan_card.sample_rows', '{n} sample rows', { n: tbl.seedCount }) : ''}
                             disabled={disabled}
                             onChange={(v) => renameTable(ti, v)}
                             onRemove={() => removeAt('tables', ti)}
                         />
                         <div className="mt-1.5 flex flex-col gap-1 pl-2">
-                            {tableFields(t).map((f, fi) => (
+                            {tableFields(tbl).map((f, fi) => (
                                 <Row
                                     key={rowKey(f, fi)}
                                     value={labelOf(f, 'key', 'name')}
-                                    placeholder="Field"
-                                    ariaLabel="Field name"
+                                    placeholder={t('studio_apps_edit.plan_card.field', 'Field')}
+                                    ariaLabel={t('studio_apps_edit.plan_card.field_name', 'Field name')}
                                     subtitle={labelOf(f, 'type')}
                                     small
                                     disabled={disabled}
-                                    onChange={(v) => setTableFields(ti, tableFields(t).map((row, j) => (j === fi ? renameRow(row, slugKey(v), IDENTITY.fields) : row)))}
-                                    onRemove={() => setTableFields(ti, tableFields(t).filter((_, j) => j !== fi))}
+                                    onChange={(v) => setTableFields(ti, tableFields(tbl).map((row, j) => (j === fi ? renameRow(row, slugKey(v), IDENTITY.fields) : row)))}
+                                    onRemove={() => setTableFields(ti, tableFields(tbl).filter((_, j) => j !== fi))}
                                 />
                             ))}
                             <AddRow
-                                label="Add field"
+                                label={t('studio_apps_edit.plan_card.add_field', 'Add field')}
                                 small
                                 disabled={disabled}
-                                onAdd={(v) => setTableFields(ti, [...tableFields(t), tagRow({ key: slugKey(v), type: 'text' })])}
+                                onAdd={(v) => setTableFields(ti, [...tableFields(tbl), tagRow({ key: slugKey(v), type: 'text' })])}
                             />
                         </div>
                     </div>
                 ))}
-                <AddRow label="Add table" disabled={disabled} onAdd={(v) => addRow('tables', { key: slugKey(v), name: v, fields: [] })} />
+                <AddRow label={t('studio_apps_edit.plan_card.add_table', 'Add table')} disabled={disabled} onAdd={(v) => addRow('tables', { key: slugKey(v), name: v, fields: [] })} />
             </Section>
 
             {/* Roles */}
-            <Section icon={Shield} title="Roles">
+            <Section icon={Shield} title={t('studio_apps_edit.plan_card.roles', 'Roles')}>
                 {draft.roles.map((r, i) => (
                     <Row
                         key={rowKey(r, i)}
                         value={labelOf(r, 'label', 'key')}
-                        placeholder="Role"
-                        ariaLabel="Role name"
+                        placeholder={t('studio_apps_edit.plan_card.role', 'Role')}
+                        ariaLabel={t('studio_apps_edit.plan_card.role_name', 'Role name')}
                         disabled={disabled}
                         onChange={(v) => renameAt('roles', i, v, IDENTITY.roles)}
                         onRemove={() => removeAt('roles', i)}
                     />
                 ))}
-                <AddRow label="Add role" disabled={disabled} onAdd={(v) => addRow('roles', { key: slugKey(v), label: v })} />
+                <AddRow label={t('studio_apps_edit.plan_card.add_role', 'Add role')} disabled={disabled} onAdd={(v) => addRow('roles', { key: slugKey(v), label: v })} />
             </Section>
 
             {/* Datasets */}
-            <Section icon={Users} title="Datasets">
+            <Section icon={Users} title={t('studio_apps_edit.plan_card.datasets', 'Datasets')}>
                 {draft.datasets.map((ds, i) => (
                     <Row
                         key={rowKey(ds, i)}
                         value={labelOf(ds, 'name', 'key')}
-                        placeholder="Dataset"
-                        ariaLabel="Dataset name"
+                        placeholder={t('studio_apps_edit.plan_card.dataset', 'Dataset')}
+                        ariaLabel={t('studio_apps_edit.plan_card.dataset_name', 'Dataset name')}
                         disabled={disabled}
                         onChange={(v) => renameAt('datasets', i, v, 'name')}
                         onRemove={() => removeAt('datasets', i)}
                     />
                 ))}
-                <AddRow label="Add dataset" disabled={disabled} onAdd={(v) => addRow('datasets', { name: v })} />
+                <AddRow label={t('studio_apps_edit.plan_card.add_dataset', 'Add dataset')} disabled={disabled} onAdd={(v) => addRow('datasets', { name: v })} />
             </Section>
 
             {/* Actions */}
@@ -278,7 +280,7 @@ export default function PlanCard({ pendingPlan, onBuild, onDiscuss, disabled = f
                     className="rounded-lg border px-3 py-1.5 text-xs font-medium transition-opacity hover:bg-[var(--bg-tertiary)] disabled:opacity-40"
                     style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
                 >
-                    Discuss
+                    {t('studio_apps_edit.plan_card.discuss', 'Discuss')}
                 </button>
                 <button
                     type="button"
@@ -287,7 +289,7 @@ export default function PlanCard({ pendingPlan, onBuild, onDiscuss, disabled = f
                     className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-opacity disabled:opacity-40"
                     style={{ background: 'var(--accent-primary)' }}
                 >
-                    Build it
+                    {t('studio_apps_edit.plan_card.build_it', 'Build it')}
                 </button>
             </div>
         </div>
@@ -309,6 +311,7 @@ function Section({ icon: Icon, title, children }) {
 
 /** One editable row: inline-rename input + optional subtitle + delete. */
 function Row({ value, placeholder, ariaLabel, subtitle, small = false, disabled, onChange, onRemove }) {
+    const { t } = useTranslation();
     return (
         <div className="flex items-center gap-1.5">
             <input
@@ -328,7 +331,7 @@ function Row({ value, placeholder, ariaLabel, subtitle, small = false, disabled,
                 type="button"
                 disabled={disabled}
                 onClick={onRemove}
-                aria-label={`Remove ${value || placeholder || 'row'}`}
+                aria-label={t('studio_apps_edit.plan_card.remove_item', 'Remove {name}', { name: value || placeholder || t('studio_apps_edit.plan_card.row', 'row') })}
                 className="shrink-0 rounded p-1 text-red-500 transition-opacity hover:bg-red-500/10 disabled:opacity-40"
             >
                 <Trash2 className="h-3 w-3" aria-hidden="true" />

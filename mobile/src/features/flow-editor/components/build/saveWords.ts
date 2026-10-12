@@ -19,7 +19,7 @@ export function saveWords(state: Pick<DraftState, 'status' | 'saveError'>, t: Tr
         case 'error': {
             const why = state.saveError ? describeError(state.saveError.error).message : '';
             const retrying = state.saveError?.willRetry ? t('mobile.flow.save.retrying', 'trying again') : '';
-            return { text: [t('routines.header.save_failed', 'Not saved'), retrying || why].filter(Boolean).join(' — '), error: true };
+            return { text: [t('automations.header.save_failed', 'Not saved'), retrying || why].filter(Boolean).join(' — '), error: true };
         }
         default:
             return { text: '', error: false };

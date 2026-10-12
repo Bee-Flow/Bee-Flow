@@ -43,7 +43,7 @@ async function upgradeSchema() {
             ADD COLUMN IF NOT EXISTS connect_ms INTEGER,
             ADD COLUMN IF NOT EXISTS is_local BOOLEAN DEFAULT false,
             ADD COLUMN IF NOT EXISTS operator TEXT,
-            -- Automation/routine egress attribution.
+            -- Automation egress attribution.
             ADD COLUMN IF NOT EXISTS automation_id TEXT,
             ADD COLUMN IF NOT EXISTS run_id TEXT,
             ADD COLUMN IF NOT EXISTS step_id TEXT,
@@ -143,6 +143,15 @@ async function upgradeSchema() {
         `CREATE INDEX IF NOT EXISTS idx_integ_org_ts_live ON integration_activity_log(organization_id, timestamp DESC) WHERE is_dry_run = false`,
         `CREATE INDEX IF NOT EXISTS idx_integ_org_ts_noneu ON integration_activity_log(organization_id, timestamp DESC) WHERE is_eu = false AND is_local = false AND is_dry_run = false`,
         `CREATE INDEX IF NOT EXISTS idx_integ_user ON integration_activity_log(user_id)`,
+        // Per-user time window ("Find repeating work" reads one user's last 90
+        // days, integrationManualActivity.js). Here for FRESH installs only,
+        // where the build is free: the warm-boot probe is deliberately not
+        // pointed at it, so an existing install never builds it under boot
+        // locks. Runbook for those, once, outside a transaction:
+        //   CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_integ_user_ts
+        //     ON integration_activity_log(user_id, timestamp DESC);
+        // Until then idx_integ_user serves the same query.
+        `CREATE INDEX IF NOT EXISTS idx_integ_user_ts ON integration_activity_log(user_id, timestamp DESC)`,
         `CREATE INDEX IF NOT EXISTS idx_integ_type ON integration_activity_log(integration_type)`,
         `CREATE INDEX IF NOT EXISTS idx_integ_tool ON integration_activity_log(tool_name)`,
         `CREATE INDEX IF NOT EXISTS idx_integ_run ON integration_activity_log(run_id)`,

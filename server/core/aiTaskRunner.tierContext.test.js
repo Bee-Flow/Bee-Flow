@@ -4,7 +4,7 @@
  * Elke route-aanroep van resolveModelForTier geeft {userOrgId, userId} mee;
  * de taakrunner deed dat niet. Gevolg: applyEUOverrides zag nooit een org,
  * dus een organisatie die EU-modus aanzette kreeg EU-modellen in chat
- * terwijl haar nachtelijke routines stil op het niet-EU-model bleven
+ * terwijl haar nachtelijke coworks stil op het niet-EU-model bleven
  * draaien — precies het soort stille afwijking dat dit product verkoopt
  * niet te hebben. Dit is een GEDRAGStest, geen bronscan: hij draait de
  * echte modelResolver met een gestubde configlaag en laat executeTask
@@ -29,9 +29,9 @@ const CONFIGS = {
 
 const restore = installResolveStub({
     // — de runner zelf —
-    '../stores/aiTaskStore': {
+    '../stores/coworkStore': {
         markRunning: async () => {}, markCompleted: async () => {},
-        markError: async () => {}, getDueTasks: async () => [],
+        markError: async () => {},
         updateTask: async () => {}, advanceSchedule: async () => {},
     },
     '../db': { pool: { query: async () => ({ rows: [] }) } },

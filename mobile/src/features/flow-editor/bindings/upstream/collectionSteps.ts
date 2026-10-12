@@ -10,24 +10,25 @@
 import { translate as t } from '@/core/i18n';
 import { nodeDefaultLabel } from '@/features/flow-editor/model/nodeDefs';
 import { SET_STEP_NAME } from '@/features/flow-editor/model/stepDisplayName';
+import { appendKey, flattenShape, type FlattenStepLike } from '@/shared/expr';
 
 import { datetimeTargetColumn, isDateTimeListMode } from '../flowDeps/datetimeTarget';
 import { applyOpsToSampleRow } from '../flowDeps/setOperations';
 import { isObj } from '../json';
 import type { FlowNode, VariableField, VariableGroup } from '../types';
 import { walkPath } from '../walkPath';
+import { fieldFor } from './fieldTree';
 import { resolveElementSample, stepGroup } from './sampleFields';
 
 export { describeParseJson } from './parseJsonStep';
 
+/** The `{ items, … }` wrapper, its `items` opening into the element's fields at every level, quoted. */
 function collectionItemsFields(node: FlowNode, elementSample: unknown, wrapperSample: Record<string, unknown>): VariableField[] {
     const base = `steps.${node.id}.output`;
     return Object.entries(wrapperSample).map(([k, v]) => {
-        const field: VariableField = { key: k, path: `${base}.${k}`, sample: v };
-        if (k === 'items' && isObj(elementSample)) {
-            field.children = Object.entries(elementSample).map(([ck, cv]) => ({ key: ck, path: `${base}.items[*].${ck}`, sample: cv }));
-        }
-        return field;
+        const path = appendKey(base, k);
+        if (k === 'items' && isObj(elementSample)) return fieldFor(k, path, v);
+        return { key: k, path, sample: v };
     });
 }
 
@@ -100,6 +101,19 @@ export function describeDedupe(node: FlowNode, sampleRoot: unknown = null): Vari
     const sample = { items: element != null ? [element] : [], removed: 0 };
     const label = node.label || nodeDefaultLabel('dedupe', t);
     return stepGroup(node, { label, kind: 'collection' }, sample, collectionItemsFields(node, element, sample));
+}
+
+/**
+ * Flatten a list (F46): one row per inner item, the merged row of the shared
+ * `flattenShape` (child fields, then the planned parent fields) under `items`,
+ * plus the three counts. Exactly what the runner's `flattenRows` makes.
+ */
+export function describeFlatten(node: FlowNode, sampleRoot: unknown = null): VariableGroup {
+    const row = node.arrayRef ? flattenShape(sampleRoot, { ...node, arrayRef: node.arrayRef } as FlattenStepLike) : null;
+    const hasRow = isObj(row) && Object.keys(row).length > 0;
+    const sample = { items: hasRow ? [row] : [], count: 0, inputCount: 0, emptyCount: 0 };
+    const label = node.label || nodeDefaultLabel('flatten', t);
+    return stepGroup(node, { label, kind: 'collection' }, sample, collectionItemsFields(node, hasRow ? row : null, sample));
 }
 
 export function describeAggregate(node: FlowNode, sampleRoot: unknown = null): VariableGroup {

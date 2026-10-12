@@ -41,7 +41,7 @@ const MOCKS = {
         getConfig: async (k) => (k.startsWith('microsoft365_email_user_') ? 'stored@example.com' : null),
         deleteConfig: async () => {},
     },
-    '../../stores/routineCredentialStore': {
+    '../../stores/automationCredentialStore': {
         upsertCredential: async (row) => { fx.upserts.push(row); },
         getCredential: async () => fx.cred,
     },

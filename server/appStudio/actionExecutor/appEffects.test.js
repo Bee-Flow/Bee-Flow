@@ -6,7 +6,7 @@
  * `deriveFinalOutput` levert "de output van de LAATST uitgevoerde TOP-LEVEL
  * stap", en een `return_to_app` IS per constructie die laatste stap. Zonder een
  * uitzondering zou dus élke bestaande `actionResult`-binding in élke app van de
- * ene dag op de andere niet meer de data van de routine lezen maar het
+ * ene dag op de andere niet meer de data van de automatisering lezen maar het
  * effectenobject — geruisloos, op het moment dat iemand een terugkeerstap
  * toevoegt. Daarom staat `return_to_app` in NON_ANSWER_STEP_TYPES, naast
  * `trigger` en `wait`, en reizen de effecten in hun eigen veld.
@@ -56,7 +56,7 @@ test('a run with no return step answers exactly as it always did — no new fiel
     });
 });
 
-test('a routine whose ONLY step is the return has no answer to give, but still has instructions', async () => {
+test('an automation whose ONLY step is the return has no answer to give, but still has instructions', async () => {
     await withSteps([ROWS[0], ROWS[2]], async () => {
         const { output, appEffects } = await deriveRunOutcome({ id: 'r', status: 'success' });
         assert.strictEqual(output, null, 'the effects are not data');
@@ -130,7 +130,7 @@ test('…terwijl dezelfde regel ZONDER branchIndex wel telt — anders bewijst d
  * EEN MISLUKTE LEES IS GEEN "GEEN INSTRUCTIES".
  *
  * Als `getRunSteps` gooit (DB-hik, timeout) was het antwoord byte-identiek aan
- * dat van een routine zónder terugkeerstap: `_appEffects` ontbreekt gewoon in
+ * dat van een automatisering zónder terugkeerstap: `_appEffects` ontbreekt gewoon in
  * het runbody, de bezoeker ziet niets gebeuren en er is geen enkel spoor. Voor
  * `output` was dat bestaand gedrag; aan diezelfde stille tak hangt sinds P4 een
  * NIEUWE belofte. De vlag reist mee, zodat de app het kan zeggen.

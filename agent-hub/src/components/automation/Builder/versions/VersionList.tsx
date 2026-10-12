@@ -16,19 +16,19 @@ export default function VersionList({ rows, selectedId, onSelect, milestones, on
     const { t } = useTranslation();
     const groups = groupVersions(milestones ? milestonesOnly(rows) : rows);
     const groupLabel = {
-        pending: t('routines.versions.group.pending', 'Not live yet'),
-        live: t('routines.versions.group.live', 'Live'),
-        earlier: t('routines.versions.group.earlier', 'Earlier'),
+        pending: t('automations.versions.group.pending', 'Not live yet'),
+        live: t('automations.versions.group.live', 'Live'),
+        earlier: t('automations.versions.group.earlier', 'Earlier'),
     };
 
     return (
         <div className="flex flex-col min-h-0 bg-[var(--bg-card)] text-[12px]">
             <div className="flex items-center gap-2 px-4 py-3 border-b border-[var(--border-default)]">
                 <span className="font-semibold text-[13px] text-[var(--text-primary)]">
-                    {t('routines.versions.history', 'History')}
+                    {t('automations.versions.history', 'History')}
                 </span>
                 <label className="ml-auto flex items-center gap-1.5 text-[var(--text-secondary)] cursor-pointer select-none">
-                    {t('routines.versions.milestonesOnly', 'Milestones only')}
+                    {t('automations.versions.milestonesOnly', 'Milestones only')}
                     <input
                         type="checkbox"
                         role="switch"
@@ -49,8 +49,8 @@ export default function VersionList({ rows, selectedId, onSelect, milestones, on
                 {groups.length === 0 && (
                     <div className="px-4 py-6 text-[var(--text-tertiary)]">
                         {milestones
-                            ? t('routines.versions.noMilestones', 'No named milestones yet. Select a version and give it a name.')
-                            : t('routines.versions.empty', 'No saved versions yet.')}
+                            ? t('automations.versions.noMilestones', 'No named milestones yet. Select a version and give it a name.')
+                            : t('automations.versions.empty', 'No saved versions yet.')}
                     </div>
                 )}
                 {groups.map((g, gi) => (
@@ -94,18 +94,18 @@ function VersionListRow({ row, selected, earlier, onSelect }: {
                 </span>
                 {row.isEditing && (
                     <span className="shrink-0 px-1.5 rounded-full bg-[var(--bg-tertiary)] text-[10px] font-semibold text-[var(--text-primary)]">
-                        {t('routines.versions.chip.editing', 'editing')}
+                        {t('automations.versions.chip.editing', 'editing')}
                     </span>
                 )}
                 {row.isLive && (
                     <span className="shrink-0 px-1.5 rounded-full bg-[color-mix(in_srgb,var(--success)_14%,transparent)] text-[var(--success)] text-[10px] font-semibold">
                         {liveSince
-                            ? t('routines.versions.chip.liveSince', 'live since {date}', { date: liveSince })
-                            : t('routines.versions.chip.live', 'live')}
+                            ? t('automations.versions.chip.liveSince', 'live since {date}', { date: liveSince })
+                            : t('automations.versions.chip.live', 'live')}
                     </span>
                 )}
                 {row.name && (
-                    <Flag size={12} className="shrink-0 text-[var(--type-branch)]" aria-label={t('routines.versions.milestone', 'Milestone')} />
+                    <Flag size={12} className="shrink-0 text-[var(--type-branch)]" aria-label={t('automations.versions.milestone', 'Milestone')} />
                 )}
             </span>
             <span />

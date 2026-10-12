@@ -124,7 +124,7 @@ test('a javascript: link is defused', async () => {
 
 test('the page itself reaches for nothing on the network', async () => {
     // The wrapper is deliberately not templates/exportTemplate.js's, which
-    // pulls mermaid from jsdelivr: a routine producing a document must not make
+    // pulls mermaid from jsdelivr: an automation producing a document must not make
     // the server fetch a CDN script, and must work on an air-gapped self-host.
     reset();
     await renderDocument({ content: MD, title: 'Rapport', format: 'pdf' });

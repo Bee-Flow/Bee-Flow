@@ -61,7 +61,7 @@ function surfaceWhen(t, surface) {
     }
 }
 
-/** De triggersoort van een routine, in een zin. */
+/** De triggersoort van een automatisering, in een zin. */
 function triggerWhen(t, kind) {
     switch (kind) {
         case 'schedule': return t('app_studio.logic.when_schedule', 'On a schedule');
@@ -335,8 +335,8 @@ function labelOf(entry) {
 /**
  * Alle rijen voor de tabel, in leesvolgorde.
  *
- * `titleFor(automationId)` naamt een routine; wie hem niet heeft krijgt
- * "Run routine" onopgesmukt, zoals overal elders.
+ * `titleFor(automationId)` naamt een automatisering; wie hem niet heeft krijgt
+ * "Run automation" onopgesmukt, zoals overal elders.
  */
 export default function logicRows(definition, { titleFor = null, t = EN_ONLY } = {}) {
     const rows = [];
@@ -363,7 +363,7 @@ export default function logicRows(definition, { titleFor = null, t = EN_ONLY } =
 
     // Acties waar niets naar wijst. De server geeft hier een
     // `action.unreachable`-waarschuwing over af (validate.js) en de oude
-    // weergave liet ze weg — waardoor een routine die je net koos nergens te
+    // weergave liet ze weg — waardoor een automatisering die je net koos nergens te
     // zien was en je hem een tweede keer toevoegde.
     for (const [actionId, action] of Object.entries(actionsOf(definition))) {
         if (referenced.has(actionId)) continue;
@@ -384,14 +384,14 @@ export default function logicRows(definition, { titleFor = null, t = EN_ONLY } =
 }
 
 /**
- * Hoort deze routine bij deze app? Drie voorwaarden, alle drie versmallend:
+ * Hoort deze automatisering bij deze app? Drie voorwaarden, alle drie versmallend:
  * hij staat in dezelfde oplossing, hij hangt nog niet aan een knop (dan staat
  * hij hierboven al) en hij raakt een tabel waar de app aan gebonden is.
  */
 function belongsToApp(row, { projectId, tables, wired }) {
     if (!row?.id || row.projectId !== projectId) return false;
     if (wired.has(row.id)) return false;
-    return routineTouchesTables(row, tables);
+    return automationTouchesTables(row, tables);
 }
 
 /** Een Set van wat er binnenkomt: een Set blijft zichzelf, een lijst wordt er een. */
@@ -400,21 +400,21 @@ function asSet(value) {
     return new Set(Array.isArray(value) ? value : []);
 }
 
-/** De triggersoort van een routinerij, zoals RoutinePicker hem ook leest. */
+/** De triggersoort van een routinerij, zoals AutomationPicker hem ook leest. */
 function triggerKindOf(row) {
     return row?.definition?.trigger?.kind || row?.triggerType || 'manual';
 }
 
 /**
- * Raakt deze routine een van deze tabellen?
+ * Raakt deze automatisering een van deze tabellen?
  *
  * Een `datatable`-stap draagt `datatableId` (of `datatableKey`); een
  * tabeltrigger draagt zijn tabel in `trigger.filter.tableId`. Stappen kunnen
  * genest zijn (loop-body, if/else, switch-cases), dus de walk gaat er doorheen
- * — een routine die alleen ín een lus naar de tabel schrijft raakt hem net zo
+ * — een automatisering die alleen ín een lus naar de tabel schrijft raakt hem net zo
  * goed.
  */
-export function routineTouchesTables(row, tableIds) {
+export function automationTouchesTables(row, tableIds) {
     if (!(tableIds instanceof Set) || tableIds.size === 0) return false;
     const hit = (v) => typeof v === 'string' && v && tableIds.has(v);
     if (hit(row?.definition?.trigger?.filter?.tableId)) return true;
@@ -433,39 +433,39 @@ export function routineTouchesTables(row, tableIds) {
 }
 
 /**
- * "Routines van deze app" — routines in DEZELFDE OPLOSSING die de tabellen
+ * "Automations van deze app" — automatiseringen in DEZELFDE OPLOSSING die de tabellen
  * raken waar deze app aan gebonden is.
  *
  * AFWIJKING VAN HET ARTBOARD, bewust. Het artboard toont dit als een lijst die
- * bij de app hoort, alsof de app een veld "mijn routines" heeft. Dat veld
+ * bij de app hoort, alsof de app een veld "mijn automations" heeft. Dat veld
  * bestaat niet en moet ook niet bestaan: een tweede plek waar staat welke
- * routines bij een app horen is een tweede waarheid die stil uit de pas loopt
- * zodra iemand de routine hernoemt, verplaatst of weggooit. De lijst is dus
+ * automatiseringen bij een app horen is een tweede waarheid die stil uit de pas loopt
+ * zodra iemand de automatisering hernoemt, verplaatst of weggooit. De lijst is dus
  * AFGELEID uit twee dingen die al waar zijn — `app.projectId` (de oplossing
  * waar de app in gearchiveerd staat, studioAppStore.mapAppMetaRow) en de
  * tabellen die de definitie bindt.
  *
- * Beide voorwaarden zijn nodig. Alleen "zelfde oplossing" zou elke routine in
+ * Beide voorwaarden zijn nodig. Alleen "zelfde oplossing" zou elke automatisering in
  * de map opsommen, ook de nachtelijke factuurmail die niets met deze app te
- * maken heeft; alleen "raakt de tabel" zou routines van collega's uit andere
+ * maken heeft; alleen "raakt de tabel" zou automatiseringen van collega's uit andere
  * oplossingen binnenhalen. Een app ZONDER oplossing (`projectId` null) levert
- * daarom een lege lijst op — "alle routines die deze tabel raken" is een
+ * daarom een lege lijst op — "alle automatiseringen die deze tabel raken" is een
  * andere vraag, en het antwoord daarop achteloos hier neerzetten is precies de
  * verbreding die dit scherm niet mag doen.
  *
- * Routines die al aan een knop hangen komen NIET terug: die staan hierboven
+ * Automatiseringen die al aan een knop hangen komen NIET terug: die staan hierboven
  * al, met de knop erbij. Wat overblijft is het antwoord op "welke van MIJN
- * routines draaien er nog meer op deze gegevens" — en dat was nergens te zien.
+ * automatiseringen draaien er nog meer op deze gegevens" — en dat was nergens te zien.
  *
  * DERDE VERSMALLING, en die zit niet hier maar in de bron: `automationRows`
  * komt van GET /api/automation → getAutomationsForUser (`WHERE user_id = $1`),
- * dus dit zijn de routines van de KIJKER. De nachtelijke routine van een
+ * dus dit zijn de automatiseringen van de KIJKER. De nachtelijke automatisering van een
  * collega, in dezelfde oplossing en op dezelfde tabel, staat er niet in. Dat
  * mag — maar dan moet de kop het zeggen, want een lege sectie is niet te
- * onderscheiden van "die zijn er niet". LogicaTab zet er daarom "Your routines
+ * onderscheiden van "die zijn er niet". LogicaTab zet er daarom "Your automatiseringen
  * in this solution" boven en noemt de uitsluiting in de ondertitel.
  */
-export function routineRows({ app, automationRows, boundTableIds, wiredAutomationIds = null, t = EN_ONLY } = {}) {
+export function derivedAutomationRows({ app, automationRows, boundTableIds, wiredAutomationIds = null, t = EN_ONLY } = {}) {
     const projectId = app?.projectId || null;
     if (!projectId) return [];
     const tables = asSet(boundTableIds);
@@ -475,13 +475,13 @@ export function routineRows({ app, automationRows, boundTableIds, wiredAutomatio
     for (const row of Object.values(automationRows || {})) {
         if (!belongsToApp(row, { projectId, tables, wired })) continue;
         rows.push(baseRow({
-            key: `routine:${row.id}`,
-            kind: 'routine',
+            key: `automation:${row.id}`,
+            kind: 'automation',
             wired: true,
             automationId: row.id,
             actionKind: 'run_automation',
             when: triggerWhen(t, triggerKindOf(row)),
-            what: row.title || t('app_studio.inspector.tile_unnamed', 'This routine'),
+            what: row.title || t('app_studio.inspector.tile_unnamed', 'This automation'),
         }));
     }
     return rows;

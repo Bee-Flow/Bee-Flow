@@ -5,7 +5,7 @@
  *
  * The Used-by answer is already loaded for the tab, so the sheet opens on it
  * rather than on a refusal: `confirmBreaking` goes out only when that answer
- * named something. Should a routine have started using the table in between,
+ * named something. Should an automation have started using the table in between,
  * the server still refuses (409 `in_use`) and the sheet shows the new list.
  * A linked table is UNLINKED: the copy goes, the source stays.
  */

@@ -50,7 +50,9 @@ const isNormalAgent = (a) => {
 };
 
 /* ── Agent Card ── */
-const AgentCard = React.memo(({ agentId, name, avatar, description, typeLabel, isFavorite, isOwner, onSelect, onToggleFavorite, onUnpublish, onEdit }) => (
+const AgentCard = React.memo(({ agentId, name, avatar, description, typeLabel, isFavorite, isOwner, onSelect, onToggleFavorite, onUnpublish, onEdit }) => {
+    const { t } = useTranslation();
+    return (
     <div
         onClick={onSelect}
         className="group relative p-4 rounded-xl border cursor-pointer transition-shadow duration-150 hover:shadow-md flex flex-col"
@@ -63,7 +65,7 @@ const AgentCard = React.memo(({ agentId, name, avatar, description, typeLabel, i
                     onClick={(e) => { e.stopPropagation(); onEdit(); }}
                     className="p-1.5 rounded-lg transition-opacity opacity-0 group-hover:opacity-100 hover:brightness-90"
                     style={{ background: 'var(--bg-tertiary)' }}
-                    title="Edit agent"
+                    title={t('agent.agent_marketplace_edit_agent', 'Edit agent')}
                     data-testid={`agent-edit-${agentId}`}
                 >
                     <Pencil className="w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} />
@@ -74,7 +76,7 @@ const AgentCard = React.memo(({ agentId, name, avatar, description, typeLabel, i
                     onClick={(e) => { e.stopPropagation(); onUnpublish(agentId); }}
                     className="p-1.5 rounded-lg transition-opacity opacity-0 group-hover:opacity-100"
                     style={{ background: 'var(--bg-tertiary)' }}
-                    title="Unpublish agent"
+                    title={t('agent.agent_marketplace_unpublish_agent', 'Unpublish agent')}
                 >
                     <EyeOff className="w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} />
                 </button>
@@ -114,7 +116,8 @@ const AgentCard = React.memo(({ agentId, name, avatar, description, typeLabel, i
             </div>
         </div>
     </div>
-));
+);
+});
 
 
 /* ── Main Store ── */
@@ -350,7 +353,7 @@ const AgentMarketplace = ({ agents = [], favorites = [], categories = [], onTogg
                             </select>
                             {hasActiveFilters && (
                                 <button onClick={() => { setActiveCategory('popular'); setActiveJobs([]); setSortBy('top'); }}
-                                    className="text-xs ml-auto hover:underline" style={{ color: 'var(--text-muted)' }}>Reset</button>
+                                    className="text-xs ml-auto hover:underline" style={{ color: 'var(--text-muted)' }}>{t('agent.agent_marketplace_reset', 'Reset')}</button>
                             )}
                         </div>
                     </div>

@@ -1,5 +1,5 @@
 /**
- * What the canvas's gestures and buttons DO to the routine, and the canvas's
+ * What the canvas's gestures and buttons DO to the automation, and the canvas's
  * own modes. Every edit is one pure operation through the draft store's
  * `applyOp`, so each is one undo step and is saved by the autosave; opening
  * a step, a card's menu and the step picker are the build screen's own

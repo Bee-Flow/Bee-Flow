@@ -120,7 +120,7 @@ export interface RowLayoutOptions {
 
 /**
  * The viewport-free row layout: dagre for the ranking, then rows of a fixed
- * width. What every node without a position gets, so a routine built step by
+ * width. What every node without a position gets, so an automation built step by
  * step grows into rows.
  */
 export function rowLayoutPositions(

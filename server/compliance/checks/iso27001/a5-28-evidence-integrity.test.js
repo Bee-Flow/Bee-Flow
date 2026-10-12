@@ -160,6 +160,15 @@ test('an unreachable ledger warns with the fresh-install wording', async () => {
     assert.equal(r.evidence.ledger_reachable, false);
 });
 
+test('an unreachable ledger records the SQLSTATE, never the driver message (the row enters the chain)', async () => {
+    dbError = Object.assign(new Error('invalid input syntax for type uuid: "jan@example.com"'), { code: '22P02', severity: 'ERROR' });
+    const r = await check.evaluate('org');
+    assert.equal(r.evidence.ledger_reachable, false);
+    assert.equal(r.evidence.error_code, '22P02');
+    assert.equal(r.evidence.error_name, 'Error');
+    assert.ok(!JSON.stringify(r).includes('jan@example.com'));
+});
+
 test('no evidence rows at all warns with the "no rows" wording', async () => {
     const r = await check.evaluate('org');
     assert.equal(r.status, 'warn');

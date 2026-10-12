@@ -7,7 +7,7 @@ import { NodeRuntimeContext } from '../NodeRuntimeContext';
 /**
  * A schedule trigger has to say how often it runs in words the author can
  * read. The canvas used to print the raw pattern (`0 9 * * *`), which is the
- * one thing most people who build routines have never seen.
+ * one thing most people who build automations have never seen.
  */
 function renderTrigger(step) {
     return render(

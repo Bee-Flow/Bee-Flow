@@ -1,7 +1,7 @@
 /**
  * The lines. Each is its own small <Svg>, the size of the box the line
  * occupies: Android draws an Svg into a bitmap as big as its box, so one Svg
- * for the whole canvas would be hundreds of megabytes on a long routine,
+ * for the whole canvas would be hundreds of megabytes on a long automation,
  * while a line between neighbours is a few hundred kilobytes. Each is
  * memoised on its path and ink, so an edit elsewhere never redraws it, and
  * drawn at the zoom's resolution within a per-line pixel budget

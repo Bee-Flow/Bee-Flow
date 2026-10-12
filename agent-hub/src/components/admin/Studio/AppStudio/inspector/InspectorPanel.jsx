@@ -232,7 +232,7 @@ export default function InspectorPanel({ onCommit, onTestActionResult }) {
                                     onCommit={onCommit}
                                     onTestActionResult={onTestActionResult}
                                     disabled={disabled}
-                                    // Needed to NAME this app in a routine made
+                                    // Needed to NAME this app in an automation made
                                     // from here (trigger.appRef) and in the link
                                     // that opens one. Absent = no back-pointer,
                                     // never a guessed one.

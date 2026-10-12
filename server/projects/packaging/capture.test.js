@@ -5,7 +5,7 @@
  * rewritten to `$ref` first and survive the trip, and only what could not be
  * resolved locally is nulled by the scrub and reported as a dependency. Reverse
  * those two and every Blueprint installs inert — an app that no longer knows
- * which routine it runs — which is the exact failure every other packaging path
+ * which automation it runs — which is the exact failure every other packaging path
  * in this product accepts and this one exists to avoid.
  *
  * The other half is that nothing which must not leave an installation does:
@@ -27,6 +27,10 @@ const agentStorePath = require.resolve('../../stores/agentStore');
 const knowledgeBasesPath = require.resolve('../../stores/knowledgeBases');
 const projectStorePath = require.resolve('../../stores/projectStore');
 const notebookStorePath = require.resolve('../../stores/notebookStore');
+const studioAppDataStorePath = require.resolve('../../stores/studioAppDataStore');
+const skillStorePath = require.resolve('../../stores/skillStore');
+const documentStorePath = require.resolve('../../stores/documentStore');
+const solutionTemplatesPath = require.resolve('../../stores/document/solutionTemplates');
 
 const fx = {
     automations: [], apps: [], webpages: [], extraFiles: [],
@@ -35,6 +39,11 @@ const fx = {
     // the count exists only so the capture can say so. `null` makes the count
     // itself fail, which is a third answer and not the same as zero.
     notebookCount: 0,
+    // studio_app_data_meta rows by app id: the app's own data model (F13).
+    dataModels: {},
+    // Skills (full rows, as skillStore.mapRow shapes them) and the document
+    // templates filed into the Solution (full rows, as documentStore.mapRow).
+    skills: [], documents: [],
 };
 
 require.cache[automationStorePath] = {
@@ -47,6 +56,35 @@ require.cache[studioAppStorePath] = {
         listProjectApps: async () => fx.apps.map(a => ({ id: a.id })),
         getStudioApp: async (id) => fx.apps.find(a => a.id === id) || null,
     },
+};
+require.cache[studioAppDataStorePath] = {
+    id: studioAppDataStorePath, filename: studioAppDataStorePath, loaded: true,
+    // An Error in the fixture makes the read FAIL, which is not "no model".
+    exports: {
+        getDataModel: async (appId) => {
+            if (fx.dataModels[appId] instanceof Error) throw fx.dataModels[appId];
+            return fx.dataModels[appId] || null;
+        },
+    },
+};
+require.cache[skillStorePath] = {
+    id: skillStorePath, filename: skillStorePath, loaded: true,
+    exports: {
+        listProjectSkills: async () => fx.skills.map(k => ({ id: k.id })),
+        getSkillScope: async (id) => {
+            const k = fx.skills.find(x => x.id === id);
+            return k ? { org_id: k.orgId || null, user_id: k.userId } : null;
+        },
+        getSkill: async (id) => fx.skills.find(k => k.id === id) || null,
+    },
+};
+require.cache[solutionTemplatesPath] = {
+    id: solutionTemplatesPath, filename: solutionTemplatesPath, loaded: true,
+    exports: { listSolutionTemplates: async () => fx.documents.map(d => ({ id: d.id, userId: d.userId })) },
+};
+require.cache[documentStorePath] = {
+    id: documentStorePath, filename: documentStorePath, loaded: true,
+    exports: { getDocument: async (id) => fx.documents.find(d => d.id === id) || null },
 };
 require.cache[webpageStorePath] = {
     id: webpageStorePath, filename: webpageStorePath, loaded: true,
@@ -108,13 +146,16 @@ function reset() {
     fx.tableMeta = {};
     fx.agents = [];
     fx.knowledgeBases = [];
+    fx.dataModels = {};
+    fx.skills = [];
+    fx.documents = [];
 }
 
 const capture = () => captureSolution({ project: PROJECT, exportedAt: '2026-08-23T00:00:00Z' });
 
 // ═══ The ordering that makes a Blueprint arrive wired ════════════════
 
-test('an in-bundle routine reference survives as a $ref', async () => {
+test('an in-bundle automation reference survives as a $ref', async () => {
     reset();
     fx.automations = [{
         id: 'aut_live', title: 'Nightly', userId: 'alice', kind: 'automation',
@@ -239,7 +280,7 @@ test('an empty project still produces a valid, honest Blueprint', async () => {
     const { manifest } = await capture();
     assert.strictEqual(sanitizeManifest(manifest).ok, true);
     assert.deepStrictEqual(manifest.solution.report.counts, {
-        automations: 0, apps: 0, webpages: 0, datatables: 0, agents: 0, knowledgeBases: 0,
+        automations: 0, apps: 0, webpages: 0, datatables: 0, agents: 0, knowledgeBases: 0, skills: 0, documents: 0,
     });
     assert.strictEqual(manifest.solution.name, 'Onboarding');
 });
@@ -453,13 +494,13 @@ test('a dependency is counted under its OWN kind', async () => {
     const kinds = manifest.solution.requires.map(r => r.kind).sort();
     assert.ok(kinds.includes('knowledge_base'), 'a missing base is named as a base');
     assert.ok(kinds.includes('skill'), 'and a skill as a skill');
-    assert.ok(!kinds.includes('automation'), 'and neither is called a routine');
+    assert.ok(!kinds.includes('automation'), 'and neither is called an automation');
 });
 
 test('not one real id of this installation appears anywhere in the file', async () => {
     // The payload was always careful — positional $refs exist for exactly this
     // — and the REPORT beside it was not: node ids, target ids and the prose
-    // that quoted them carried this install's routine, app and (once agents
+    // that quoted them carried this install's automation, app and (once agents
     // could depend on them) knowledge-base ids into every exported file.
     reset();
     fx.automations = [{
@@ -497,7 +538,7 @@ test('a problem still says WHAT is wrong and WHICH bundled entity holds it', asy
     assert.strictEqual(problem.code, 'unwired');
     assert.strictEqual(problem.severity, 'warning');
     assert.strictEqual(problem.ref, 'app_1', 'named by its bundle ref, the only name a Blueprint may use');
-    assert.match(problem.message, /never got a routine picked/);
+    assert.match(problem.message, /never got an automation picked/);
 });
 
 test('externals travel as a count per kind, not as a list of ids', async () => {
@@ -521,7 +562,7 @@ test('externals travel as a count per kind, not as a list of ids', async () => {
 //
 // Carrying notebooks is a manifest change and belongs to O4. Saying they do
 // not travel belongs here, in the same channel that already tells the person
-// capturing which routines they will have to reconnect by hand.
+// capturing which automations they will have to reconnect by hand.
 
 test('a Solution with notebooks says they are not coming along', async () => {
     fx.notebookCount = 3;
@@ -551,4 +592,369 @@ test('a count that could not be read is its own answer, not zero', async () => {
     assert.ok(said, 'an unreadable count is still worth saying');
     assert.match(said, /Could not check/i);
     fx.notebookCount = 0;
+});
+
+// ═══ Pipeline mode, stable refs and the sweep (design 2, F1, F9, F13, F14) ═══
+
+const pipeline = (extra = {}) => captureSolution({ project: PROJECT, exportedAt: '2026-08-23T00:00:00Z', pipeline: true, ...extra });
+const automation = (id, steps, extra = {}) => ({
+    id, title: id.toUpperCase(), userId: 'alice', kind: 'automation', version: 4,
+    definition: { schemaVersion: 2, trigger: { id: 't', type: 'trigger', kind: 'manual' }, steps, ...extra },
+});
+
+test('pipeline: an approval step with a panel, escalateTo and finalApprover gives ONE seats slot in the release', async () => {
+    reset();
+    fx.notebookCount = 0;
+    fx.automations = [automation('aut_live', [{
+        id: 's1', type: 'approval', prompt: 'Ship?',
+        approval: { approvers: [{ userId: 'usr_a' }, { userId: 'usr_b' }], rule: 'all', escalateTo: { groupId: 'grp_esc' }, finalApprover: { userId: 'usr_cfo' }, expiresInHours: 24 },
+    }])];
+    const out = await pipeline();
+    const seats = out.manifest.solution.slots.filter(x => x.kind === 'approver_seats');
+    assert.strictEqual(seats.length, 1);
+    assert.strictEqual(seats[0].slot, 'seats:aut_1:s1');
+    assert.deepStrictEqual(Object.keys(seats[0].suggested).sort(), ['approvers', 'escalateTo', 'finalApprover', 'rule']);
+    const step = out.manifest.solution.entities.automations[0].definition.steps[0];
+    assert.strictEqual(step.approval.expiresInHours, 24);
+    assert.ok(!JSON.stringify(out.manifest.solution.entities).includes('usr_cfo'), 'the seats live in the slot, not the definition');
+    assert.strictEqual(sanitizeManifest(out.manifest).ok, true, 'every slot ref is declared');
+    assert.strictEqual(out.manifest.schemaVersion, 2);
+});
+
+test('gallery: the same step carries no slots section and no seats', async () => {
+    reset();
+    fx.automations = [automation('aut_live', [{ id: 's1', type: 'approval', approval: { assignee: { userId: 'usr_a' } } }])];
+    const out = await capture();
+    assert.strictEqual('slots' in out.manifest.solution, false);
+    assert.ok(!JSON.stringify(out).includes('usr_a'), 'not in the file, not in the slots either');
+});
+
+test('pipeline: notificationSettings recipients become a notify slot', async () => {
+    reset();
+    fx.automations = [automation('aut_live', [], {
+        notificationSettings: { onError: { enabled: true, channels: ['email'], recipients: [{ type: 'owner' }, { type: 'user', id: 'usr_ops' }] } },
+    })];
+    const out = await pipeline();
+    const notify = out.slots.find(x => x.slot === 'notify:aut_1');
+    assert.deepStrictEqual(notify.suggested, { onError: { recipients: [{ type: 'user', id: 'usr_ops' }] } });
+    assert.deepStrictEqual(out.manifest.solution.entities.automations[0].definition.notificationSettings.onError.recipients, [{ type: 'owner' }]);
+});
+
+test('connection slots are keyed by the ledger map', async () => {
+    reset();
+    fx.automations = [
+        automation('aut_a', [{ id: 'h1', type: 'http_request', url: 'https://api.example', auth: { connectionId: 'conn_dev', kind: 'bearer' } }]),
+        automation('aut_b', [{ id: 'h2', type: 'http_request', url: 'https://api.example', auth: { connectionId: 'conn_dev' } }]),
+    ];
+    const out = await pipeline({ connSlots: new Map([['conn_dev', 'cn_1']]) });
+    assert.deepStrictEqual(out.slots.filter(x => x.kind === 'connection').map(x => [x.slot, x.ref]), [['connection:cn_1', 'aut_1'], ['connection:cn_1', 'aut_2']]);
+    assert.deepStrictEqual(out.manifest.solution.entities.automations[0].definition.steps[0].auth, { connectionId: null, kind: 'bearer' });
+});
+
+test('an in-bundle table and KB are $refs in an automation; an outside one is a slot', async () => {
+    reset();
+    fx.datatables = [{ id: 'tbl_live', key: 'invoices', name: 'Invoices', scope: { kind: 'org', id: 'org1' } }];
+    fx.knowledgeBases = [{ id: 'kb_live', name: 'Handbook' }];
+    fx.automations = [automation('aut_live', [
+        { id: 's1', type: 'datatable', datatableId: 'tbl_live', datatableKey: 'invoices' },
+        { id: 's2', type: 'datatable', datatableId: 'tbl_other', datatableKey: 'customers' },
+        { id: 's3', type: 'ai_step', knowledgeBaseIds: ['kb_live', 'kb_other'] },
+    ])];
+    const out = await pipeline();
+    const steps = out.manifest.solution.entities.automations[0].definition.steps;
+    assert.deepStrictEqual(steps[0].datatableId, { $ref: 'dt_1' });
+    assert.strictEqual(steps[1].datatableId, '');
+    assert.deepStrictEqual(steps[2].knowledgeBaseIds, [{ $ref: 'kb_1' }]);
+    assert.deepStrictEqual(out.slots.map(x => x.slot).sort(), ['kb:aut_1:knowledgeBaseIds:s3', 'table:customers']);
+});
+
+test('the agent keeps KB and skill refs in pipeline mode and drops them in gallery mode', async () => {
+    reset();
+    fx.knowledgeBases = [{ id: 'kb_live', name: 'Handbook' }];
+    fx.agents = [{ id: 'ag_live', name: 'Desk', avatar: '/desk.png', persona: { mode: 'free' }, config: { knowledge_base_ids: ['kb_live'], attachedSkillIds: ['skl_dev'] } }];
+    const pip = await pipeline();
+    const agent = pip.manifest.solution.entities.agents[0];
+    assert.deepStrictEqual(agent.config.knowledge_base_ids, [{ $ref: 'kb_1' }]);
+    assert.deepStrictEqual(agent.config.attachedSkillIds, []);
+    assert.strictEqual(agent.avatar, '/desk.png');
+    assert.deepStrictEqual(pip.findings.map(f => [f.code, f.severity, f.ref]), [['agent.skill_not_in_solution', 'blocking', 'agt_1']]);
+
+    const gal = await capture();
+    assert.strictEqual(gal.manifest.solution.entities.agents[0].config.knowledge_base_ids, undefined);
+    assert.strictEqual(gal.manifest.solution.entities.agents[0].avatar, undefined);
+    assert.deepStrictEqual(gal.findings, []);
+});
+
+test('datatable column ids and lawfulBasis are kept only in pipeline mode', async () => {
+    reset();
+    fx.datatables = [{ id: 'tbl_live', key: 'inv', name: 'Inv', lawfulBasis: 'contract', scope: { kind: 'org', id: 'org1' } }];
+    fx.tableMeta = { tbl_live: { fields: [{ id: 'fld_a', key: 'amount', name: 'Amount', type: 'number' }] } };
+    const pip = (await pipeline()).manifest.solution.entities.datatables[0];
+    assert.strictEqual(pip.columns[0].id, 'fld_a');
+    assert.strictEqual(pip.lawfulBasis, 'contract');
+    const gal = (await capture()).manifest.solution.entities.datatables[0];
+    assert.strictEqual(gal.columns[0].id, undefined);
+    assert.strictEqual(gal.lawfulBasis, undefined);
+});
+
+test('a page with extra files is blocking in pipeline mode and a warning in a gallery file', async () => {
+    reset();
+    fx.webpages = [{ id: 'w1', name: 'Status', userId: 'alice', bridgeGrants: {} }];
+    fx.extraFiles = [{ path: 'logo.png' }];
+    const pip = await pipeline();
+    assert.deepStrictEqual(pip.findings.map(f => [f.code, f.severity, f.ref]), [['webpage.extra_files', 'blocking', 'web_1']]);
+    const gal = await capture();
+    assert.deepStrictEqual(gal.findings, []);
+    assert.ok(gal.manifest.solution.report.warnings.some(w => /1 additional file/.test(w)));
+});
+
+test('a page carries its table grants and knowledge bases as $ref (F14)', async () => {
+    reset();
+    fx.datatables = [{ id: 'tbl_0123456789ab', key: 'orders', name: 'Orders', scope: { kind: 'org', id: 'org1' } }];
+    fx.knowledgeBases = [{ id: 'kb_live', name: 'Handbook' }];
+    fx.webpages = [{
+        id: 'w1', name: 'Status', userId: 'alice', knowledgeBaseIds: ['kb_live'],
+        bridgeGrants: { tables: [{ datatableId: 'tbl_0123456789ab', mode: 'read', columns: ['a'], publicColumns: [] }] },
+    }];
+    const out = await capture();
+    const page = out.manifest.solution.entities.webpages[0];
+    assert.deepStrictEqual(page.bridgeGrants.tables, [{ datatableId: { $ref: 'dt_1' }, mode: 'read', columns: ['a'], publicColumns: [] }]);
+    assert.deepStrictEqual(page.knowledgeBaseIds, [{ $ref: 'kb_1' }]);
+    assert.strictEqual(sanitizeManifest(out.manifest).ok, true);
+});
+
+test('refs from the passed map are stable across reordering', async () => {
+    reset();
+    const ledger = new Map([['aut_a', 'aut_7'], ['aut_b', 'aut_2']]);
+    fx.automations = [automation('aut_a', []), automation('aut_b', [])];
+    const first = (await pipeline({ refs: ledger })).manifest.solution.entities.automations.map(a => [a.title, a.ref]);
+    fx.automations = [automation('aut_b', []), automation('aut_a', [])];
+    const second = (await pipeline({ refs: ledger })).manifest.solution.entities.automations.map(a => [a.title, a.ref]);
+    assert.deepStrictEqual(first.sort(), second.sort());
+    assert.deepStrictEqual(Object.fromEntries(first), { AUT_A: 'aut_7', AUT_B: 'aut_2' });
+});
+
+test('the sweep finds a member id hidden in a code step', async () => {
+    reset();
+    fx.automations = [
+        automation('aut_target_live', []),
+        automation('aut_caller', [{ id: 'c1', type: 'code', inputs: { code: { kind: 'literal', value: "run('aut_target_live')" } } }]),
+    ];
+    const out = await pipeline();
+    assert.deepStrictEqual(out.rawIds, [{ ref: 'aut_2', path: 'definition.steps[0].inputs.code.value', id: 'aut_target_live' }]);
+});
+
+test('a literal in-bundle table id in page code is listed as substitutable', async () => {
+    reset();
+    fx.datatables = [{ id: 'tbl_0123456789ab', key: 'orders', name: 'Orders', scope: { kind: 'org', id: 'org1' } }];
+    fx.webpages = [{ id: 'w1', name: 'Status', userId: 'alice', bridgeGrants: {} }];
+    const webpageStore = require.cache[webpageStorePath].exports;
+    const readAllSlots = webpageStore.readAllSlots;
+    webpageStore.readAllSlots = async () => ({ html: '<bf-table source="tbl_0123456789ab"></bf-table>', css: '', js: '' });
+    try {
+        const out = await pipeline();
+        assert.deepStrictEqual(out.rawIds, [{ ref: 'web_1', path: 'files.html', id: 'tbl_0123456789ab', substitutable: true }]);
+    } finally {
+        webpageStore.readAllSlots = readAllSlots;
+    }
+});
+
+test('steeringNames lists the variables that steer a request', async () => {
+    reset();
+    fx.automations = [automation('aut_live', [{ id: 'h', type: 'http_request', url: '{{vars.api_base}}/v1', headers: {} }, { id: 'a', type: 'ai_step', prompt: '{{vars.tone}}' }])];
+    assert.deepStrictEqual((await pipeline()).steeringNames, ['api_base']);
+});
+
+test('an app carries its data model shape, and the cut token its data_model_version (F13)', async () => {
+    reset();
+    fx.datatables = [{ id: 'tbl_live', key: 'orders', name: 'Orders', scope: { kind: 'org', id: 'org1' } }];
+    fx.apps = [{ id: 'app_live', name: 'Desk', userId: 'alice', definitionVersion: 5, definition: {} }];
+    fx.dataModels = {
+        app_live: {
+            modelVersion: 3, rowCounts: { t1: 900 },
+            model: { tables: [{ id: 't1', key: 'orders', source: { kind: 'datatable', datatableId: 'tbl_live', mode: 'read' }, fields: [] }], roles: [] },
+        },
+    };
+    const out = await pipeline();
+    const app = out.manifest.solution.entities.apps[0];
+    assert.deepStrictEqual(app.dataModel.tables[0].source.datatableId, { $ref: 'dt_1' });
+    assert.ok(!JSON.stringify(app).includes('900'), 'shape only: no counts, no rows');
+    assert.deepStrictEqual(out.cutTokens.app_1, { definitionVersion: 5, dataModelVersion: 3 });
+});
+
+test('an app whose data model cannot be read is a warning, a blocking finding in a release, and no token', async () => {
+    reset();
+    fx.apps = [{ id: 'app_live', name: 'Desk', userId: 'alice', definitionVersion: 5, definition: {} }];
+    fx.dataModels = { app_live: new Error('connection reset') };
+    const out = await pipeline();
+    assert.deepStrictEqual(out.findings.map(f => [f.code, f.severity, f.ref]), [['app.data_model_unreadable', 'blocking', 'app_1']]);
+    assert.deepStrictEqual(out.cutTokens.app_1, { definitionVersion: 5, dataModelVersion: null }, 'never a 0 for a model nobody read');
+    assert.ok(out.manifest.solution.report.warnings.some(w => /Could not read the data model of "Desk"/.test(w)));
+
+    const gal = await capture();
+    assert.deepStrictEqual(gal.findings, [], 'a gallery file warns but is not refused');
+    assert.ok(gal.manifest.solution.report.warnings.some(w => /data model of "Desk"/.test(w)));
+});
+
+test('an app with NO data model row still cuts token 0 and says nothing', async () => {
+    reset();
+    fx.apps = [{ id: 'app_live', name: 'Desk', userId: 'alice', definitionVersion: 2, definition: {} }];
+    const out = await pipeline();
+    assert.deepStrictEqual(out.cutTokens.app_1, { definitionVersion: 2, dataModelVersion: 0 });
+    assert.deepStrictEqual(out.findings, []);
+});
+
+test('a page bound to an in-bundle agent keeps it as a $ref; an outside agent is flagged', async () => {
+    reset();
+    fx.agents = [{ id: 'agt_live', name: 'Helper', config: {} }];
+    fx.webpages = [{ id: 'w1', name: 'Status', userId: 'alice', bridgeGrants: { agent: { agentId: 'agt_live' } } }];
+    const out = await pipeline();
+    assert.deepStrictEqual(out.manifest.solution.entities.webpages[0].bridgeGrants.agent, { agentId: { $ref: 'agt_1' } });
+    assert.deepStrictEqual(out.findings, []);
+
+    fx.webpages = [{ id: 'w1', name: 'Status', userId: 'alice', bridgeGrants: { agent: { agentId: 'agt_elsewhere' } } }];
+    const rel = await pipeline();
+    assert.deepStrictEqual(rel.findings.map(f => f.code), ['webpage.agent_not_in_solution']);
+    const gal = await capture();
+    assert.ok(gal.manifest.solution.report.warnings.some(w => /talks to an agent outside this project/.test(w)));
+    assert.ok(!JSON.stringify(gal.manifest).includes('agt_elsewhere'));
+});
+
+// ═══ Skills and document templates (design section 2) ═══════════════
+
+const skillRow = (extra = {}) => ({
+    id: 'skl_live', orgId: 'org1', userId: 'usr_alice', name: 'Tone of voice', description: 'Write like us',
+    instructions: 'Be brief.', workflow: '1. Read', rules: '- no jargon', examples: 'ex', icon: '📝',
+    isShared: true, sharedGroups: ['grp_LEAK'], dynamicActivation: true, automationId: null,
+    enabledIntegrations: ['gmail'], steps: [{ id: 's1', text: 'Read' }], rulesV2: [{ id: 'r1', text: 'no jargon' }],
+    examplesV2: [], outputSchema: { type: 'object' }, knowledgeBaseIds: [], allowedAutomationIds: [],
+    projectId: 'p1', version: 7, lastUsedAt: '2026-01-01T00:00:00Z', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-02T00:00:00Z',
+    ...extra,
+});
+const docRow = (extra = {}) => ({
+    id: 'doc_live', userId: 'usr_alice', organizationId: 'org1', name: 'Offer', docType: 'document', kind: 'template',
+    description: 'An offer letter', bodyHtml: '<p>{{customer}}</p>', css: '.a{}', visibility: 'team', folderId: 'fld_LEAK',
+    categories: ['cat_LEAK'], versionId: 'ver_dev', baselineVersionId: 'ver_dev0', archived: false, projectId: null,
+    solutionProjectId: 'p1', updatedBy: 'usr_alice', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-02T00:00:00Z',
+    settings: { margin: 12, sampleValues: { customer: 'LEAK-CUSTOMER' }, sectionOverrides: { a: 'LEAK' }, resolvedHouseStyleCss: 'body{color:red}' },
+    ...extra,
+});
+
+test('a skill travels as an allow-list: the content, with in-bundle links as $ref, and nobody\'s identity', async () => {
+    reset();
+    fx.knowledgeBases = [{ id: 'kb_live', name: 'Handbook' }];
+    fx.automations = [automation('aut_live', [])];
+    fx.skills = [skillRow({ knowledgeBaseIds: ['kb_live', 'kb_elsewhere'], allowedAutomationIds: ['aut_live', 'aut_elsewhere'], automationId: 'aut_live' })];
+    const { manifest } = await capture();
+    const [skill] = manifest.solution.entities.skills;
+    assert.strictEqual(skill.ref, 'skl_1');
+    assert.deepStrictEqual(
+        Object.keys(skill).sort(),
+        ['allowed_automation_ids', 'automation_id', 'description', 'dynamic_activation', 'examples', 'examples_v2', 'icon', 'instructions',
+            'knowledge_base_ids', 'name', 'output_schema', 'ref', 'rules', 'rules_v2', 'steps', 'workflow'],
+    );
+    assert.strictEqual(skill.instructions, 'Be brief.');
+    assert.strictEqual(skill.dynamic_activation, true);
+    assert.deepStrictEqual(skill.output_schema, { type: 'object' });
+    assert.deepStrictEqual(skill.knowledge_base_ids, [{ $ref: 'kb_1' }], 'a base outside the bundle does not travel');
+    assert.deepStrictEqual(skill.allowed_automation_ids, [{ $ref: 'aut_1' }]);
+    assert.deepStrictEqual(skill.automation_id, { $ref: 'aut_1' });
+    const wire = JSON.stringify(manifest);
+    for (const leak of ['kb_elsewhere', 'aut_elsewhere', 'grp_LEAK', 'usr_alice', 'org1', 'skl_live', 'gmail']) {
+        assert.ok(!wire.includes(leak), `${leak} must not travel`);
+    }
+    assert.ok(manifest.solution.requires.some(r => r.kind === 'integration' && r.count === 1), 'enabled apps arrive as a requirement');
+    assert.ok(manifest.solution.report.warnings.some(w => /"Tone of voice" is linked to knowledge bases or automations outside/.test(w)));
+    assert.strictEqual(manifest.solution.report.counts.skills, 1);
+    assert.strictEqual(sanitizeManifest(manifest).ok, true, 'every $ref resolves inside the file');
+});
+
+test('a skill pointing outside the Solution is a blocking finding in a release, a warning in a gallery file', async () => {
+    reset();
+    fx.skills = [skillRow({ knowledgeBaseIds: ['kb_elsewhere'], automationId: 'aut_elsewhere' })];
+    const rel = await pipeline();
+    assert.deepStrictEqual(rel.findings.map(f => [f.code, f.severity, f.ref, f.field]), [
+        ['skill.resource_not_in_solution', 'blocking', 'skl_1', 'knowledge_base_ids'],
+        ['skill.resource_not_in_solution', 'blocking', 'skl_1', 'automation_id'],
+    ]);
+    assert.deepStrictEqual(rel.manifest.solution.entities.skills[0].automation_id, null);
+    assert.ok(!JSON.stringify(rel.manifest).includes('elsewhere'));
+    assert.deepStrictEqual((await capture()).findings, []);
+});
+
+test('a skill step reference to a Solution member travels as $ref, one to something outside is dropped and reported', async () => {
+    reset();
+    fx.automations = [automation('aut_live', [])];
+    const steps = [{ id: 's1', text: 'call', refs: [{ kind: 'automation', id: 'aut_live' }, { kind: 'automation', id: 'aut_elsewhere' }] }, { id: 's2', text: 'plain' }];
+    fx.skills = [skillRow({ steps })];
+    const gal = await capture();
+    const [skill] = gal.manifest.solution.entities.skills;
+    assert.deepStrictEqual(skill.steps[0].refs, [{ kind: 'automation', id: { $ref: 'aut_1' } }]);
+    assert.deepStrictEqual(skill.steps[1], { id: 's2', text: 'plain' });
+    assert.ok(!JSON.stringify(gal.manifest).includes('aut_elsewhere'));
+    assert.ok(!JSON.stringify(gal.manifest).includes('aut_live'));
+    assert.strictEqual(sanitizeManifest(gal.manifest).ok, true);
+    const rel = await pipeline();
+    assert.deepStrictEqual(rel.findings.map(f => [f.code, f.severity, f.ref, f.field]), [
+        ['skill.resource_not_in_solution', 'blocking', 'skl_1', 'steps.refs'],
+    ]);
+    assert.deepStrictEqual((await capture()).findings, []);
+});
+
+test('a document template travels as name, type, body, stylesheet and settings, minus what its author typed', async () => {
+    reset();
+    fx.documents = [docRow()];
+    const { manifest, rawIds } = await capture();
+    const [doc] = manifest.solution.entities.documents;
+    assert.strictEqual(doc.ref, 'doc_1');
+    assert.deepStrictEqual(
+        Object.keys(doc).sort(),
+        ['body_html', 'css', 'description', 'doc_type', 'kind', 'name', 'ref', 'settings'],
+    );
+    assert.strictEqual(doc.body_html, '<p>{{customer}}</p>');
+    assert.deepStrictEqual(doc.settings, { margin: 12 }, 'no sample values, no overrides, no frozen house style in a gallery file');
+    const wire = JSON.stringify(manifest);
+    for (const leak of ['LEAK', 'usr_alice', 'org1', 'fld_', 'cat_', 'ver_dev', 'doc_live']) {
+        assert.ok(!wire.includes(leak), `${leak} must not travel`);
+    }
+    assert.deepStrictEqual(rawIds, []);
+    assert.strictEqual(manifest.solution.report.counts.documents, 1);
+
+    const rel = await pipeline();
+    assert.deepStrictEqual(rel.manifest.solution.entities.documents[0].settings, { margin: 12, resolvedHouseStyleCss: 'body{color:red}' },
+        'the stages share one organisation, so its house style stays');
+    assert.deepStrictEqual(rel.cutTokens.doc_1, { versionId: 'ver_dev' });
+});
+
+test('a fill_document step on an in-bundle template becomes a $ref and loses Dev\'s version pin', async () => {
+    reset();
+    fx.documents = [docRow()];
+    fx.automations = [automation('aut_live', [
+        { id: 'f1', type: 'fill_document', documentId: 'doc_live', documentVersionId: 'ver_dev', values: {} },
+        { id: 'f2', type: 'fill_document', documentId: 'doc_elsewhere', documentVersionId: 'ver_other', values: {} },
+    ])];
+    const { manifest } = await capture();
+    const [inBundle, outside] = manifest.solution.entities.automations[0].definition.steps;
+    assert.deepStrictEqual(inBundle.documentId, { $ref: 'doc_1' });
+    assert.ok(!('documentVersionId' in inBundle), 'Dev\'s revision is not the copy\'s revision');
+    assert.ok(!JSON.stringify(manifest).includes('ver_dev'));
+    assert.strictEqual(outside.documentVersionId, 'ver_other', 'a template outside the bundle is not this packager\'s business');
+    assert.strictEqual(sanitizeManifest(manifest).ok, true);
+});
+
+test('skills and templates keep their ref when the ledger gives one, and a skill and a template version are cut tokens', async () => {
+    reset();
+    fx.skills = [skillRow({ id: 'skl_a' }), skillRow({ id: 'skl_b', name: 'Second' })];
+    const refs = new Map([['skl_b', 'skl_7']]);
+    const out = await captureSolution({ project: PROJECT, pipeline: true, refs });
+    assert.deepStrictEqual(out.manifest.solution.entities.skills.map(k => k.ref), ['skl_8', 'skl_7']);
+    assert.deepStrictEqual(out.cutTokens.skl_7, { version: 7 });
+});
+
+test('a member id hidden in a skill\'s instructions is found by the raw-id sweep', async () => {
+    reset();
+    fx.automations = [automation('aut_live', [])];
+    fx.skills = [skillRow({ instructions: 'Call aut_live when done.' })];
+    const { rawIds } = await capture();
+    assert.deepStrictEqual(rawIds.map(h => [h.ref, h.path, h.id]), [['skl_1', 'instructions', 'aut_live']]);
 });

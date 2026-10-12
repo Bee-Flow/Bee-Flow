@@ -13,7 +13,7 @@ describe('outcomeOfAction', () => {
     });
 
     it('reads the action together with its violation type', () => {
-        // A routine told to fail closed: the content never left.
+        // An automation told to fail closed: the content never left.
         expect(outcomeOfAction('scan_failed', 'scan_failed')).toBe('stopped');
         // The chat's pre-send check could not run and the message went out unchecked.
         expect(outcomeOfAction('scan_failed', 'dlp_decision')).toBe('passed');

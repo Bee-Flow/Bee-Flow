@@ -50,7 +50,7 @@ export interface PickerSection {
 }
 
 /**
- * The routine's flowlets, as the picker lists them. Inside a flowlet, every
+ * The automation's flowlets, as the picker lists them. Inside a flowlet, every
  * flowlet whose calls reach it (itself included) is left out: calling one
  * from there would be a cycle (the web's paletteLayers).
  */

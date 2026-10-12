@@ -245,7 +245,7 @@ test('update (key mode): the copy is probed first — stale token → no source 
 });
 
 test('csv_put: a formula-shaped text (a phone number, a pasted =formula) lands in the file with a `\'` prefix and in the copy — and the answer — without it', async () => {
-    // A public form, a routine or a model may write this row: the file must
+    // A public form, an automation or a model may write this row: the file must
     // stay safe to double-click, and the mirror must show what was typed.
     const r = await wt.insertRow(ctx(), { factuurnummer: 'F-3', leverancier: '=cmd|\'/C calc\'!A0', totaal: -5 });
     assert.deepStrictEqual(lines()[3], "F-3;'=cmd|'/C calc'!A0;-5;", 'the text column prefixed, the number column bare');

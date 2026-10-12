@@ -34,7 +34,6 @@ export interface AzureGroupSyncStatus {
 export interface AzureConfig {
     azureEndpoint: string;
     hasAzureApiKey: boolean;
-    azureApiVersion: string;
     /** Comma-separated deployment names; also the chat-tier model list. */
     azureModels: string;
     chatModelTiers: Record<string, AzureTier>;

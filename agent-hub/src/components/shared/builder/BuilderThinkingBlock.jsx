@@ -28,7 +28,7 @@ function headerLabel(msg, isStreaming, nowTs, t) {
     // want one.
     // Translated: this is the one line the whole column shows for minutes on
     // a local model, and it sat next to a translated waiting card in English.
-    const thinking = t('routines.builder.thinking', 'Thinking…');
+    const thinking = t('automations.builder.thinking', 'Thinking…');
     if (isStreaming) return elapsed ? `${thinking} ${elapsed}` : thinking;
     return ms == null ? 'Reasoning' : `Thought for ${elapsed}`;
 }

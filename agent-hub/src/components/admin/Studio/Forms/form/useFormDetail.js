@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import useAutomationApi from '../../../../../hooks/useAutomationApi';
+import { managedOf, managedRefusalOf } from '../../../../shared/managedPart';
 
 /**
  * One form, loaded from GET /api/automation/forms/:automationId, with a
@@ -10,6 +11,13 @@ import useAutomationApi from '../../../../../hooks/useAutomationApi';
  *
  * `definition` is present only for the owner; `dirty` compares the draft
  * with the saved trigger form by value.
+ *
+ * A form is an automation, so a Solution stage can manage it. `managed` is what the
+ * GET said about it (managedPart.managedOf) or, for a tab opened before the
+ * stage took the automation over, what the refused save said (409 managed_part,
+ * which `save` maps instead of leaving it as a bare failure): the host mounts
+ * the ManagedPartBanner from it and stops offering Save. `refusal` is the
+ * banner info of that 409 (`reason: 'managed'`).
  */
 export default function useFormDetail(automationId) {
     const api = useAutomationApi();
@@ -19,6 +27,7 @@ export default function useFormDetail(automationId) {
     const [draft, setDraft] = useState(null);
     const [saving, setSaving] = useState(false);
     const [saveError, setSaveError] = useState(null);
+    const [refusal, setRefusal] = useState(null);
     const alive = useRef(true);
     useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
 
@@ -61,7 +70,13 @@ export default function useFormDetail(automationId) {
             await reload();
             return body;
         } catch (e) {
-            if (alive.current) setSaveError(e);
+            if (alive.current) {
+                // The stage's refusal is not "your draft is bad": keep the
+                // draft, say who manages the automation, stop offering Save.
+                const info = managedRefusalOf(e);
+                if (info) setRefusal(info);
+                setSaveError(e);
+            }
             throw e;
         } finally {
             if (alive.current) setSaving(false);
@@ -72,5 +87,8 @@ export default function useFormDetail(automationId) {
         setDraft(savedForm ? JSON.parse(JSON.stringify(savedForm)) : null);
     }, [savedForm]);
 
-    return { detail, loading, error, reload, draft, setDraft, dirty, save, discard, saving, saveError };
+    const managed = managedOf(detail) ?? refusal?.managed ?? null;
+    const readOnly = !!managed || refusal != null;
+
+    return { detail, loading, error, reload, draft, setDraft, dirty, save, discard, saving, saveError, managed, refusal, readOnly };
 }

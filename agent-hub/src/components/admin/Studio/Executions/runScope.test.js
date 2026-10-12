@@ -25,10 +25,10 @@ describe('effectiveRunScope — only the global surface has two scopes', () => {
         expect(effectiveRunScope('global', undefined)).toBe('mine');
     });
 
-    it('forces "mine" on a per-routine or per-Step surface', () => {
-        // The builder's history tab is already about one routine the caller
+    it('forces "mine" on a per-automation or per-Step surface', () => {
+        // The builder's history tab is already about one automation the caller
         // owns. An 'org' left in storage by the Studio section must not follow
-        // the user in there and turn it into "this routine's runs by anyone".
+        // the user in there and turn it into "this automation's runs by anyone".
         expect(effectiveRunScope('automation', 'org')).toBe('mine');
         expect(effectiveRunScope('step', 'org')).toBe('mine');
         expect(effectiveRunScope(undefined, 'org')).toBe('mine');

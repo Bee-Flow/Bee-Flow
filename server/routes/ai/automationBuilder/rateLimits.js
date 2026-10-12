@@ -29,6 +29,13 @@ const layerAgentRateLimit = perUserRateLimit({ windowMs: 60_000, max: 8 });
 // per click; 20/min/user starves a script using it as a free LLM proxy.
 const mapJsonFieldsRateLimit = perUserRateLimit({ windowMs: 60_000, max: 20 });
 
+// Auto-map's AI fallback: one fast-tier call per click on the Auto-map wand,
+// and only for the inputs the deterministic pass left empty. Its own budget
+// so wand clicks never compete with Map-with-AI. 20/min/user covers an author
+// working through a flow step by step and starves a script using it as a
+// free LLM proxy; on 429 the editor keeps the deterministic result silently.
+const suggestMappingsRateLimit = perUserRateLimit({ windowMs: 60_000, max: 20 });
+
 // The Condition node's "ask the AI" fallback. It only fires when the OFFLINE
 // catalogue (agent-hub .../settings/routeIntents.js) did not understand the
 // sentence, so a human hits it far less often than Map-with-AI: they type,
@@ -58,6 +65,7 @@ module.exports = {
     summariseLayerRateLimit,
     layerAgentRateLimit,
     mapJsonFieldsRateLimit,
+    suggestMappingsRateLimit,
     routeRulesRateLimit,
     topicPreviewRateLimit,
     suggestRateLimit,

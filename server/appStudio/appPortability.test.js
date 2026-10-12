@@ -306,7 +306,7 @@ test('an archive with no template at all is refused', () => {
     assert.match(out.errors[0], /carries no app/);
 });
 
-test('a routine reference is scrubbed on the way in, like a template', () => {
+test('an automation reference is scrubbed on the way in, like a template', () => {
     const e = envelope();
     e.template.definition.actions = { act_run: { kind: 'run_automation', automationId: 'auto-over-there' } };
     const out = sanitizeAppImport(e);

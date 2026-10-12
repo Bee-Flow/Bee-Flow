@@ -2,9 +2,9 @@
  * The sidebar folders (routes/automation/crud.js, /folders).
  *
  * One flat level, organisation-wide: anyone in the organisation can read and
- * edit a folder, while the routines inside stay per-user. Deleting a folder
- * DETACHES its routines — it never deletes one, because a folder may hold
- * routines of colleagues the deleting user cannot see. A duplicate name is a
+ * edit a folder, while the automations inside stay per-user. Deleting a folder
+ * DETACHES its automations — it never deletes one, because a folder may hold
+ * automations of colleagues the deleting user cannot see. A duplicate name is a
  * 409 `folder_name_taken` (case-insensitive per organisation).
  */
 
@@ -29,12 +29,12 @@ export async function updateFolder(folderId: string, patch: Partial<FolderBody>)
     return readFolderResponse(await api.put<unknown>(folderPath(folderId), patch));
 }
 
-/** How many routines went back to the top level. */
+/** How many automations went back to the top level. */
 export async function deleteFolder(folderId: string): Promise<number> {
     return readFolderDeleted(await api.delete<unknown>(folderPath(folderId), { retry: false }));
 }
 
-/** File a routine in a folder, or `null` to move it back to the top level. */
+/** File an automation in a folder, or `null` to move it back to the top level. */
 export function moveToFolder(id: string, folderId: string | null): Promise<SaveResult> {
     return saveFlow(id, { folderId });
 }

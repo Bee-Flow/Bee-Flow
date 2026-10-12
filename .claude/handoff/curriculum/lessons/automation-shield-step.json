@@ -1,0 +1,301 @@
+{
+  "id": "automation-shield-step",
+  "icon": "🛡️",
+  "estMinutes": 9,
+  "title": "Hide the customer, keep the work",
+  "desc": "Your automation meets personal data at 07:00 with nobody watching. One palette entry decides whether it branches on it, hides it, or puts the real values back.",
+  "gate": {
+    "feature": "automations"
+  },
+  "learningGoal": "After this lesson you can place a Privacy Shield step in an automation, pick the right mode, bind what it scans, wire its two ways out, and read what it reports when the detector could not look.",
+  "steps": [
+    {
+      "type": "slide",
+      "id": "why",
+      "icon": "🌅",
+      "title": "The 07:00 run nobody is watching",
+      "bodyMd": "Van Dijk Groep has an automation that reads last week's complaint e-mails, asks the AI for a summary, and files it. It runs on Monday at 07:00 — with no colleague reading along.\n\nThe organisation's Privacy Shield may already be watching that run: the org setting **Also protect automations** is on by default. But that is one policy for the whole organisation, applied somewhere you cannot see it. It can stop a message or swap values for placeholders — it cannot send *your* run down a different path, and it cannot be tuned for one step.\n\nThat is what the **Privacy Shield step** is for: the same detector, placed where you can see it and react to it."
+    },
+    {
+      "type": "slide",
+      "id": "palette",
+      "icon": "🧩",
+      "title": "One entry, four modes",
+      "bodyMd": "In the canvas palette, under **Flow control**, there is one entry: **Privacy Shield** — *\"Check for personal data, hide it, or show the real values again\"*.\n\nDrop it and the panel's first question is **\"What should this step do?\"** with four buttons:\n\n- **Check for personal data** — scan a value and send the run down one path or the other\n- **Check and hide** — scan, branch on the answer, and replace what was found with placeholders\n- **Hide personal data** — replace personal data with placeholders; the real values come back later\n- **Show real values again** — put the real values back where a step still holds placeholders\n\nA fresh drop starts on **Check for personal data**: it is the only mode that changes no data."
+    },
+    {
+      "type": "sim",
+      "id": "modes",
+      "icon": "🎚️",
+      "title": "Which mode does this job?",
+      "instruction": "Four things Van Dijk Groep wants from an automation. Pair each with the mode that does it.",
+      "sim": {
+        "kind": "match",
+        "pairs": [
+          {
+            "id": "p1",
+            "left": "The complaint mails go to the AI for a summary, and customer names must not reach the model.",
+            "right": "Hide personal data",
+            "note": "Hiding swaps every detected value for a placeholder before the value travels on."
+          },
+          {
+            "id": "p2",
+            "left": "A document is about to be filed in a shared folder; if it holds personal data an alert must go out, otherwise the run just continues.",
+            "right": "Check for personal data",
+            "note": "A check changes nothing — it only decides which way out the run takes."
+          },
+          {
+            "id": "p3",
+            "left": "The same scan should raise the alert AND hand the next step a copy with the names taken out.",
+            "right": "Check and hide",
+            "note": "One node, two ways out, and a hidden copy on output.text for the path that found something."
+          },
+          {
+            "id": "p4",
+            "left": "A table column still reads [email_1] because that value never came back through the run.",
+            "right": "Show real values again",
+            "note": "This mode does not scan at all: it looks placeholders up in the run's own vault."
+          }
+        ]
+      }
+    },
+    {
+      "type": "slide",
+      "id": "ports",
+      "icon": "🔀",
+      "title": "Two ways out, and what to do on the bad one",
+      "bodyMd": "The two checking modes leave the node by **personal data** or by **clean** — wire your alert to the first one. The two other modes have a single way on, so switching mode changes the node's shape on the canvas; when a switch would cost you a connection the editor asks first and names the one it would remove.\n\nUnder **On personal data** there are two tick boxes:\n\n- **Stop the run** — the run fails, and the failure says which categories were found.\n- **Pass a masked copy on** — adds `output.masked`, with every value replaced by `[person]`. Irreversible: the original cannot be recovered from it.\n\nThat last one is the opposite of hiding, which mints placeholders the run can undo."
+    },
+    {
+      "type": "quiz",
+      "id": "q-mask",
+      "question": "Check and hide mints placeholders like [email_1]. How does that differ from ticking \"Pass a masked copy on\"?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Masking writes [person] without a counter and cannot be undone; the placeholders a hide mints are reversible from the run's vault.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "They are the same mechanism, written differently — both can be restored later in the run.",
+          "correct": false,
+          "feedback": "A masked copy drops the counter on purpose, so two occurrences can no longer be linked and nothing can put the original back."
+        },
+        {
+          "id": "c",
+          "label": "Masking covers more categories than hiding does.",
+          "correct": false,
+          "feedback": "Both work from the same scan and the same category list. The difference is reversibility, not coverage."
+        },
+        {
+          "id": "d",
+          "label": "A masked copy is what the clean way out carries.",
+          "correct": false,
+          "feedback": "There is nothing to mask on the clean path. output.masked only appears when the scan actually found something."
+        }
+      ],
+      "explanation": "Masking is a one-way door for text you never want restored; hiding is a round trip, because the mapping is minted into the run's token vault."
+    },
+    {
+      "type": "slide",
+      "id": "inherit",
+      "icon": "⚙️",
+      "title": "What you set, and what you inherit",
+      "bodyMd": "**What to scan** (the label changes per mode — *What to scan and hide*, *What to hide it in*, *What to restore*) is the only required field. Pick a value from an earlier step; the panel offers **Text from previous steps** as one-click picks. An object is scanned whole.\n\nOpen **Advanced** and you can narrow, never widen:\n\n- **Look for** (labelled **Hide** on a hide-only step) — chips for all 21 categories, such as Person Names, Email Addresses, IBAN Numbers. Nothing narrowed means \"everything the organisation looks for\". A step may look for *less* than the Privacy Shield does, never more.\n- **Only report matches above** — a number between 0 and 1. Left empty it reads **inherited**, and a value below the organisation's threshold is ignored: it can only raise it."
+    },
+    {
+      "type": "sim",
+      "id": "build",
+      "icon": "🏗️",
+      "title": "Build Van Dijk Groep's Monday briefing",
+      "instruction": "Pick the trigger, then drag in the steps this automation needs — in order, and no more than it needs.",
+      "sim": {
+        "kind": "flow-build",
+        "scenarios": [
+          {
+            "id": "briefing",
+            "brief": "\"Every Monday at 07:00, take last week's complaint e-mails, let the AI write a five-line summary, and put that summary in our datatable. The mails are full of customer names and addresses, and the model must not see them.\"",
+            "trigger": {
+              "options": [
+                {
+                  "id": "manual",
+                  "label": "Trigger manually",
+                  "desc": "Run from a button click"
+                },
+                {
+                  "id": "form",
+                  "label": "On form submission",
+                  "desc": "Publish a form; every submission runs this"
+                },
+                {
+                  "id": "schedule",
+                  "label": "On a schedule",
+                  "desc": "Run at a fixed time, over and over"
+                },
+                {
+                  "id": "webhook",
+                  "label": "On webhook call",
+                  "desc": "Run when an HTTP request arrives"
+                },
+                {
+                  "id": "app_event",
+                  "label": "On app event",
+                  "desc": "Run when something happens in a connected app"
+                }
+              ],
+              "correct": "schedule",
+              "feedback": {
+                "manual": "Somebody would have to remember every Monday at 07:00 — the brief asks for a fixed time, over and over.",
+                "form": "Nobody submits anything here; the briefing is about mails that already arrived.",
+                "webhook": "A webhook fires when an outside system calls in. Nothing outside knows it is Monday.",
+                "app_event": "An app event fires per incoming mail, which would give you one briefing per complaint instead of one per week."
+              }
+            },
+            "steps": {
+              "palette": [
+                {
+                  "id": "hide",
+                  "label": "Privacy Shield — Hide personal data"
+                },
+                {
+                  "id": "ai",
+                  "label": "AI step"
+                },
+                {
+                  "id": "table",
+                  "label": "Datatable"
+                },
+                {
+                  "id": "reveal",
+                  "label": "Privacy Shield — Show real values again"
+                },
+                {
+                  "id": "stop",
+                  "label": "Stop with an error"
+                }
+              ],
+              "solution": [
+                "hide",
+                "ai",
+                "table"
+              ],
+              "feedback": {
+                "reveal": "Not needed here. The real values are put back automatically wherever the run uses a value again — an AI reply is exactly such a moment. Add this mode only for a value that never came back that way.",
+                "stop": "Stopping is a choice you make on a checking step when personal data must not be there at all. Here it is expected — it simply must not reach the model."
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "slide",
+      "id": "degraded",
+      "icon": "⚠️",
+      "title": "\"Nothing found\" is not \"we could not look\"",
+      "bodyMd": "If the detector is missing or down, a checking step never quietly reports **clean**. It reports that it was degraded, and your organisation's failure mode decides which way out the run takes — an organisation that fails closed (the default) takes the personal-data path, so the alert still fires.\n\nA step in **Hide personal data** mode is stricter still: rather than hand the next step the original while you believe it was hidden, it fails the run and says that it could not scan, so nothing was hidden. **Check and hide** does not hand the original on either — it leaves the hidden copy empty and reports why.\n\nThe panel warns you up front too, when the detector is not installed, not responding, or its model has not loaded. And a step with nothing bound fails rather than scanning an empty string and calling it clean."
+    },
+    {
+      "type": "quiz",
+      "id": "q-diag",
+      "question": "A run finished successfully, but the letter it generated opens with \"Beste [person_5]\". The automation hides the mail body, the AI writes the letter, and an Edit data step carries a field forward into the document. Where do you look?",
+      "multi": false,
+      "choices": [
+        {
+          "id": "a",
+          "label": "Add a Show real values again step on that carried-forward field, and read its unresolved count — a value carried forward never passed a point where the run restores.",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "label": "The organisation's category list — Person Names must be switched off.",
+          "correct": false,
+          "feedback": "The opposite: [person_5] exists precisely because names were detected and hidden. A category that is off produces no placeholder at all."
+        },
+        {
+          "id": "c",
+          "label": "The threshold — set \"Only report matches above\" higher and the placeholder goes away.",
+          "correct": false,
+          "feedback": "The threshold decides what gets detected, not what gets restored. Raising it would hide less, not put values back."
+        },
+        {
+          "id": "d",
+          "label": "Nothing is wrong — placeholders in a finished document are normal.",
+          "correct": false,
+          "feedback": "They read as ordinary text and look deliberate, which is why leftovers are counted and reported rather than left for a customer to find."
+        }
+      ],
+      "explanation": "Values come back on their own where the run takes them back in — an AI reply, a tool result. A value carried forward by another step, or written to a table, stays hidden until a Show real values again step restores it, and that step reports what it could not resolve."
+    },
+    {
+      "type": "slide",
+      "id": "dryrun",
+      "icon": "🧪",
+      "title": "Try it before it is real",
+      "bodyMd": "Dry-run the automation before you activate it. In a dry run a Privacy Shield block does not fail the run — it is downgraded to an annotation that says it *would* stop here, so you can see the branch you built without breaking the preview.\n\nTwo things to look at afterwards:\n\n- Which way out the run took, and whether the step reported that it was degraded.\n- For a hide, whether the next step really reads the hidden copy. Bind it to `output.text`, not to the original value — otherwise the model still sees the real name and nothing tells you."
+    },
+    {
+      "type": "action",
+      "id": "do",
+      "icon": "🏗️",
+      "checkId": "shield-step-added",
+      "title": "Put one in an automation",
+      "instruction": "Open an automation of yours (or make a new one), drag Privacy Shield out of the Flow control group, and pick a mode. Bind What to scan to a real value from an earlier step, then save. Do not activate anything you were not planning to run.",
+      "launch": {
+        "navigateTo": "studio/automations",
+        "label": "Open Automations"
+      }
+    },
+    {
+      "type": "slide",
+      "id": "recap",
+      "icon": "✅",
+      "title": "What you can do now",
+      "bodyMd": "- **Pick the mode by the job**: check to branch, check and hide to do both, hide before the data travels on, show real values again only where a value never came back on its own.\n- **Narrow, never widen**: Look for and Only report matches above can tighten the organisation's Privacy Shield for one step, never loosen it.\n- **Read the honest answers**: a degraded scan is not a clean one, a masked copy is one-way, and leftover placeholders are counted and reported rather than hidden from you."
+    }
+  ],
+  "practiceTopic": {
+    "title": "The Privacy Shield step in automations",
+    "summary": "One palette entry with four modes that scans, branches, hides or restores personal data inside an automation.",
+    "facts": [
+      "The Privacy Shield entry sits in the Flow control group of the step palette and reads \"Check for personal data, hide it, or show the real values again\".",
+      "The four modes are Check for personal data, Check and hide, Hide personal data and Show real values again; a fresh drop starts on the check, because it changes no data.",
+      "Only the two checking modes branch — the run leaves by personal data or by clean; hide and reveal have one way on.",
+      "On personal data offers Stop the run (the failure names the categories found) and Pass a masked copy on (output.masked, every value replaced by [person], irreversible).",
+      "Hiding mints reversible placeholders like [email_1], and the real values are put back automatically wherever the run uses a value again, such as an AI reply or a tool result.",
+      "Advanced holds Look for (21 categories, all of them unless you narrow; labelled Hide on a hide-only step) and Only report matches above (0 to 1, empty reads \"inherited\"); a step may only tighten the organisation's policy.",
+      "A detector that is missing or down produces a degraded result, never a clean one, and the organisation's failure mode decides the branch; a step in Hide personal data mode fails the run instead of passing the original on.",
+      "In a dry run a Privacy Shield block becomes a \"would stop\" annotation instead of a failure."
+    ]
+  },
+  "actionChecks": [
+    {
+      "checkId": "shield-step-added",
+      "existing": false,
+      "label": "Add a Privacy Shield step to an automation",
+      "hint": "In Studio → Automations, open or create an automation, drag Privacy Shield from the Flow control group onto the canvas, bind what it should scan, and save.",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/automation",
+          "returns": "{ automations: [...] } — the caller's own automations, each row carrying id, title, userId and its definition"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "has-step",
+          "label": "An automation of your own exists",
+          "hint": "Open or create one in Studio → Automations. The Privacy Shield step and what it scans are stored inside the automation, where this check cannot look — the step on the canvas is your proof.",
+          "rule": "GET /api/automation → automations[] holds a row of the caller (definition.steps is per row and not readable by the runtime)",
+          "endpoint": "/api/automation",
+          "expect": {
+            "kind": "rows",
+            "field": "automations"
+          }
+        }
+      ]
+    }
+  ]
+}

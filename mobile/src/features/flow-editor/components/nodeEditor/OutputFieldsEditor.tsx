@@ -54,7 +54,7 @@ function RecordRows({ rec, canAddFields, onRows, testID }: Omit<RecordProps, 'in
                 />
             ))}
             {canAddFields ? (
-                <AddButton label={t('routines.ndv.extraction.add_field', 'Add field')} onPress={() => onRows([...rec.rows, blankField()])} testID={`${testID}-add-field`} />
+                <AddButton label={t('automations.ndv.extraction.add_field', 'Add field')} onPress={() => onRows([...rec.rows, blankField()])} testID={`${testID}-add-field`} />
             ) : null}
         </>
     );

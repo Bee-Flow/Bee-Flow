@@ -3,7 +3,7 @@
  * What changed in a project, per reader.
  *
  *   GET  /:id/changes?since=visit|unread|<iso>&group=item|person   viewer
- *        → { groups, since, prevVisitAt, visitStartedAt }
+ *        → { groups, truncated, since, prevVisitAt, visitStartedAt }   `truncated`: older changes are not in the groups
  *   GET  /:id/changes/log?limit=&offset=                           viewer
  *        → { items, hasMore }   the Activity tab's "Changes only" view
  *   POST /:id/visit                                               viewer
@@ -40,12 +40,15 @@ const { lazyProjectRoleGate } = require('./roleGate');
 const { notFound } = require('../../core/http/errors');
 const S = require('./changesSchemas');
 
+/** How many change rows one read of the feed looks at. */
+const CHANGE_ROWS_READ = 500;
+
 /**
  * @param {object} [deps]
  * @param {Function} [deps.requireProjectRole]  (minRole) => middleware named requireProjectRoleMw
  * @param {object}   [deps.store]              projectStore change-feed surface
  * @param {object}   [deps.titles]             projects/changeTitles surface ({ resolveTitles })
- * @param {object}   [deps.feed]               projects/changeFeed surface ({ summarizeChanges, changeWindow, VISIT_GAP_MS })
+ * @param {object}   [deps.feed]               projects/changeFeed surface ({ summarizeChangesPage, changeWindow, VISIT_GAP_MS })
  * @param {Function} [deps.markLimiter]        rate limit for the visit and seen writes
  */
 function makeChangesRouter(deps = {}) {
@@ -83,7 +86,7 @@ function makeChangesRouter(deps = {}) {
         const userId = userIdOf(req);
         const since = req.query.since || 'visit';
         const groupBy = req.query.group === 'person' ? 'person' : 'item';
-        const { summarizeChanges, changeWindow } = feed();
+        const { summarizeChangesPage, changeWindow } = feed();
 
         const state = await store().getMemberState(projectId, userId);
         const base = {
@@ -95,7 +98,7 @@ function makeChangesRouter(deps = {}) {
         if (!start) return res.json({ groups: [], ...base });
 
         const rows = await store().listChangeRows(projectId, {
-            sinceAt: start.toISOString(), excludeActorId: userId, limit: 500,
+            sinceAt: start.toISOString(), excludeActorId: userId, limit: CHANGE_ROWS_READ,
         });
         const touched = new Map();
         for (const r of rows) {
@@ -104,14 +107,17 @@ function makeChangesRouter(deps = {}) {
             if (type && id) touched.set(`${type}:${id}`, { type, id });
         }
         const reads = await store().listItemReads(projectId, userId, [...touched.values()]);
-        const summary = summarizeChanges(rows, { state, reads, groupBy, onlyUnread: since === 'unread' });
+        const page = summarizeChangesPage(rows, { state, reads, groupBy, onlyUnread: since === 'unread' });
+        const summary = page.groups;
+        // Either the groups were cut to the newest few, or the rows read were (what lies beyond them is not counted at all).
+        const truncated = page.truncated || rows.length >= CHANGE_ROWS_READ;
 
         if (groupBy === 'person') {
             const named = await withTitles(projectId, summary.flatMap((p) => p.items));
             const groups = summary
                 .map((p) => ({ ...p, items: p.items.map(named).filter((i) => i.available) }))
                 .filter((p) => p.items.length > 0);
-            return res.json({ groups, ...base });
+            return res.json({ groups, truncated, ...base });
         }
 
         const named = await withTitles(projectId, summary.map((g) => g.item));
@@ -120,7 +126,7 @@ function makeChangesRouter(deps = {}) {
             // Leaving the project is itself worth saying; anything else about
             // an item the reader can no longer open is not.
             .filter((g) => g.item.available || (since !== 'unread' && g.kinds.includes('removed')));
-        return res.json({ groups, ...base });
+        return res.json({ groups, truncated, ...base });
     });
 
     router.get('/:id/changes/log', requireRole('viewer'), validate({ query: S.ChangeLogQuery }), async (req, res) => {

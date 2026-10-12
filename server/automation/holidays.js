@@ -28,7 +28,7 @@
  * Koninginnedag on 30 April; nothing here needs the past, so it is not modelled.
  *
  * Holiday names are returned as a stable `key` plus an English `name`; the UI
- * translates the key (`routines.holidays.<key>`).
+ * translates the key (`automations.holidays.<key>`).
  *
  * Pure apart from a per-year and per-time-zone cache.
  */

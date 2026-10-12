@@ -2,7 +2,7 @@
  * Required training — an organisation may insist a course is finished before a
  * feature can be used.
  *
- * "New people ship a broken routine in week one" is an onboarding problem, not
+ * "New people ship a broken automation in week one" is an onboarding problem, not
  * a permissions problem: the role is right, the training is missing. So this is
  * a THIRD axis beside the two the product already has. A permission says who
  * you are, a capability says what the plan includes, and a training gate says
@@ -79,7 +79,7 @@ const TRAINING_AREAS = Object.freeze([
     }),
     Object.freeze({
         id: 'automations', defaultCourseId: 'course-automations-mastery', capability: 'automations',
-        labelFallback: 'Creating and editing routines',
+        labelFallback: 'Creating and editing automations',
         labelKey: 'learn.training_area.automations',
     }),
     Object.freeze({

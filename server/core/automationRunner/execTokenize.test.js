@@ -173,7 +173,7 @@ test('no policy to read is a failure too, and says which one', async () => {
     reset();
     for (const [over, wording] of [
         [{ orgId: null }, /belongs to no organisation/],
-        [{ disabledForAutomations: true }, /excluded routines/],
+        [{ disabledForAutomations: true }, /excluded automations/],
         [{ piiEnabled: false }, /PII detection switched off/],
     ]) {
         await assert.rejects(
@@ -211,7 +211,7 @@ test('a step category list narrows what gets hidden', async () => {
 // ── putting the real values back, on purpose ───────────────────────────────
 //
 // The runner restores automatically wherever a value comes BACK into the
-// routine (an AI reply, a tool result). This step is for the values that never
+// automation (an AI reply, a tool result). This step is for the values that never
 // do: carried forward by a `set`, written to a table, read straight off the
 // tokenize step's own output.
 

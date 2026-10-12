@@ -1,3 +1,4 @@
+import { Users, Link2, BarChart2, Cloud, CreditCard, Shield, FolderGit2, Sparkles, GraduationCap, ArrowLeft, FileText, Scale, Plug, ShieldCheck } from 'lucide-react';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
     SETTINGS_ORG_ID_TO_URL,
@@ -5,42 +6,48 @@ import {
     settingsPathForTab,
     settingsOrgDeepSegsFromPath,
 } from '../authedApp/settingsRoutes';
+import ComplianceHub from '../components/admin/compliance';
+import useComplianceCounts from '../components/admin/compliance/data/useComplianceCounts';
+import { SECTIONS as ORG_SECTIONS } from '../components/admin/org/OrgInfoPanel';
+import OrgAzureConfigPanel from '../components/integrations/azure/index';
 import MemoryPanel from '../components/knowledge/memory/MemoryPanel';
 import { useEntitlements } from '../components/licensing/EntitlementsContext';
-import { API_BASE, authFetch } from '../utils/helpers';
-import scopedStorage from '../utils/scopedStorage';
-import { formatVersion, formatVersionWithDate } from '../utils/appVersion';
+import { useCan } from '../components/licensing/Gate';
+import { RequireTier } from '../components/licensing/LicenseContext';
+import { useSubscriptionContext } from '../components/licensing/SubscriptionContext';
+import NavCountBadge from '../components/shared/NavCountBadge';
+import { ROW_ACTIVE, ROW_IDLE, SECTION_LBL } from '../components/shell/sidebar/sidebarTokens';
+import usePermissionCheck from '../hooks/usePermissionCheck';
+import useProjectsAvailable from '../hooks/useProjectsAvailable';
 import { useTranslation } from '../hooks/useTranslation';
 import { useViewport } from '../hooks/useViewport';
-import { useSubscriptionContext } from '../components/licensing/SubscriptionContext';
-import { useCan } from '../components/licensing/Gate';
-import PreferencesSection from './settings/PreferencesSection';
-import MemorySection from './settings/MemorySection';
-import IntegrationsSection from './settings/IntegrationsSection';
-import OrganisationSection from './settings/OrganisationSection';
+import { formatVersion, formatVersionWithDate } from '../utils/appVersion';
+import { API_BASE, authFetch } from '../utils/helpers';
+import scopedStorage from '../utils/scopedStorage';
+import AppearanceSection from './settings/AppearanceSection';
+import { rewriteComplianceNav, rewriteAdminEscape } from './settings/complianceNavAdapter';
+import ConsumerBetaFeaturesSection from './settings/ConsumerBetaFeaturesSection';
+import ConsumerIntegrationsSection from './settings/ConsumerIntegrationsSection';
 import ConsumerLicenseSection from './settings/ConsumerLicenseSection';
 import ConsumerPrivacySection from './settings/ConsumerPrivacySection';
 import ConsumerUsageSection from './settings/ConsumerUsageSection';
-import ConsumerIntegrationsSection from './settings/ConsumerIntegrationsSection';
-import ConsumerBetaFeaturesSection from './settings/ConsumerBetaFeaturesSection';
-import AppearanceSection from './settings/AppearanceSection';
-import SecuritySection from './settings/SecuritySection';
 import HelpSupportSection from './settings/HelpSupportSection';
+import IntegrationsSection from './settings/IntegrationsSection';
 import LearningCenterSection from './settings/LearningCenterSection';
-import { SECTIONS as ORG_SECTIONS } from '../components/admin/org/OrgInfoPanel';
-import OrgAzureConfigPanel from '../components/integrations/azure/index';
-import ComplianceHub from '../components/admin/compliance';
-import { RequireTier } from '../components/licensing/LicenseContext';
-import usePermissionCheck from '../hooks/usePermissionCheck';
-import { rewriteComplianceNav, rewriteAdminEscape } from './settings/complianceNavAdapter';
-import { NAV_ITEMS, MOBILE_VISIBLE_TOP_TABS, MOBILE_EXTRA_TABS } from './settings/settingsNavItems';
-import useComplianceCounts from '../components/admin/compliance/data/useComplianceCounts';
-import NavCountBadge from '../components/shared/NavCountBadge';
-import { Users, Link2, BarChart2, Cloud, CreditCard, Shield, FolderGit2, Sparkles, GraduationCap, ArrowLeft, FileText, Scale } from 'lucide-react';
+import MemorySection from './settings/MemorySection';
+import NotificationsSection from './settings/NotificationsSection';
+import OrganisationSection from './settings/OrganisationSection';
+import PreferencesSection from './settings/PreferencesSection';
+import { roleLabel } from './settings/roleLabel';
+import SecuritySection from './settings/SecuritySection';
+import { NAV_ITEMS, MOBILE_VISIBLE_TOP_TABS, MOBILE_EXTRA_TABS, SETTINGS_RESOURCE_TABS } from './settings/settingsNavItems';
 
 /* ── Org sub-items (use labelKey for i18n) ────────────────────────────────── */
+/* Source order (ids, label keys): pinned row for row by the phone's
+ * sections.lockstep.test.ts. The sidebar draws the rows in ORG_NAV_GROUPS
+ * below, so reorder there, not here. */
 const BASE_ORG_SUB_ITEMS = [
-    ...ORG_SECTIONS,                                            // license, auth, privacy, info — already use labelKey
+    ...ORG_SECTIONS,                                            // OrgInfoPanel's seven sections (license … info); already use labelKey
     { id: 'org_usage', labelKey: 'settings.usage_monitoring', icon: BarChart2, color: '#f59e0b' },
     // Scale (the balance) is the Compliance Center's own glyph, and its
     // colour is the kind token the whole hub is drawn in — not a hex green
@@ -50,13 +57,62 @@ const BASE_ORG_SUB_ITEMS = [
     { id: 'org_users', labelKey: 'settings.users_groups', icon: Users, color: '#3b82f6' },
     { id: 'org_academy', labelKey: 'settings.academy', icon: GraduationCap, color: '#059669' },
     { id: 'org_integrations', labelKey: 'settings.integrations', icon: Link2, color: '#0ea5e9' },
+    // Remote MCP servers for this organisation, and who uses the server-wide
+    // ones (pages/settings → components/mcpLibrary). Licence-gated on the
+    // server (mcp_marketplace); the page explains a plan without it.
+    { id: 'org_mcp', labelKey: 'mcp_library.nav', icon: Plug, color: '#f59e0b' },
+    // The org-wide rules every MCP request passes through (IP allow-list, who
+    // may use MCP, legacy tokens). Org admins only; named tokens live in the
+    // member's own Settings → Security.
+    { id: 'org_mcp_access', labelKey: 'mcp_access.nav', icon: ShieldCheck, color: '#ef4444' },
     { id: 'org_github_sync', labelKey: 'settings.github_sync', icon: FolderGit2, color: '#8b5cf6' },
     { id: 'org_nextcloud_sync', labelKey: 'settings.nextcloud_sync', icon: Cloud, color: '#0082C9' },
     { id: 'org_meeting_templates', labelKey: 'settings.meeting_templates', icon: FileText, color: '#a855f7' },
 ];
 const AZURE_SUB_ITEM = { id: 'org_azure', labelKey: 'settings.azure_config', icon: Cloud, color: '#0078D4' };
+
+/* The order the sidebar draws the visible org rows in: topic groups with a
+ * thin rule between them, no captions. 1 the organisation and its plan,
+ * 2 people and access, 3 privacy and security, 4 AI and data, 5 integrations
+ * (MCP access next to the MCP library). A visible row that is not filed here
+ * is still drawn, in a group of its own at the end. The phone files the same
+ * sections in its own captioned groups (mobile sections.ts ORG_HUB_GROUPS). */
+const ORG_NAV_GROUPS = [
+    ['info', 'license', 'org_usage'],
+    ['org_users', 'auth', 'org_academy'],
+    ['privacy', 'encryption', 'org_compliance'],
+    ['ai_context', 'integration_cache', 'org_meeting_templates'],
+    ['org_integrations', 'org_mcp', 'org_mcp_access', 'org_github_sync', 'org_nextcloud_sync', 'org_azure'],
+];
+
+/* Every org sub-tab id, taken from the URL table: each one has an address
+ * there (settingsRoutes.js), so this is the same set without a second list. */
+const ALL_ORG_IDS = Object.keys(SETTINGS_ORG_ID_TO_URL);
+
+/* The consumer (org-less cloud) account rows. Ids are settingsRoutes.js's
+ * SETTINGS_ACCOUNT_ID_TO_URL keys. */
+const CONSUMER_NAV_ITEMS = [
+    { id: 'consumer_license', labelKey: 'settings.license_usage', icon: <CreditCard className="w-[15px] h-[15px]" /> },
+    { id: 'consumer_privacy', labelKey: 'settings.privacy_shield', icon: <Shield className="w-[15px] h-[15px]" /> },
+    { id: 'consumer_usage', labelKey: 'settings.usage_monitoring', icon: <BarChart2 className="w-[15px] h-[15px]" /> },
+    { id: 'consumer_integrations', labelKey: 'settings.integrations', icon: <Link2 className="w-[15px] h-[15px]" /> },
+    { id: 'consumer_beta', labelKey: 'settings.beta_features', icon: <Sparkles className="w-[15px] h-[15px]" /> },
+];
+
 // Stable identity for usePermissionCheck (its memo keys on the array reference).
 const COMPLIANCE_PERMS = ['admin_compliance'];
+
+/* The Settings → Connections rows whose connected state lives in `statuses`.
+ * Their onSaved fires for connect AND disconnect, so the state is re-read
+ * rather than forced to true (which showed "Connected" after a Disconnect, or
+ * after a partial save). GitHub is here for the org GitHub Sync row, which is
+ * drawn on statuses.githubConnected. */
+const STATUS_BACKED_KEYS = ['fireflies', 'youtrack', 'signrequest', 'gamma', 'afas-profit', 'vplan', 'scaleway-billing', 'nmbrs', 'linkedin', 'nextcloud', 'github'];
+
+/* A thin rule between groups of rows. */
+const NavDivider = ({ inset = false }) => (
+    <div aria-hidden="true" className={`h-px bg-[var(--border-subtle)] ${inset ? 'mt-1 mb-1 ml-9 mr-3' : 'my-1.5 mx-2'}`} />
+);
 
 /* ── URL ⟷ activeTab mapping → authedApp/settingsRoutes.js ────────────────
  * The three segment tables and their two readers used to sit here. They live
@@ -70,6 +126,7 @@ const COMPLIANCE_PERMS = ['admin_compliance'];
  */
 
 export const AvatarDisplay = ({ user, size = 40, className = '' }) => {
+    const { t } = useTranslation();
     const sizeStyle = { width: `${size}px`, height: `${size}px`, flexShrink: 0 };
     if (user?.avatarType === 'emoji' && user?.avatar) {
         return (
@@ -82,7 +139,7 @@ export const AvatarDisplay = ({ user, size = 40, className = '' }) => {
         );
     }
     if (user?.avatarType === 'url' && user?.avatar) {
-        return <img src={user.avatar} alt="Avatar" className={`rounded-full object-cover ${className}`} style={sizeStyle} />;
+        return <img src={user.avatar} alt={t('settings.avatar_alt', 'Avatar')} className={`rounded-full object-cover ${className}`} style={sizeStyle} />;
     }
     return (
         <div
@@ -121,29 +178,31 @@ const Chevron = ({ open }) => (
     <svg
         width="11" height="11" viewBox="0 0 24 24" fill="none"
         stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-        style={{ transition: 'transform 200ms', transform: open ? 'rotate(90deg)' : 'none', flexShrink: 0 }}
+        aria-hidden="true"
+        className={`flex-shrink-0 transition-transform duration-200 ${open ? 'rotate-90' : ''}`}
     >
         <path d="M9 18l6-6-6-6" />
     </svg>
 );
 
 /* ── NavItem ─────────────────────────────────────────────────────────────── */
-const NavItem = ({ id, label, icon, isActive, onClick, rightSlot }) => (
+/* Row states come from the app sidebar's tokens (sidebarTokens.js): a tint of
+ * the theme's own accent and text colour, so the active and hover rows stay
+ * visible on the dark themes, where a black rgba tint did not. `title` shows
+ * the whole label when the narrow sidebar truncates it. */
+const NavItem = ({ id, label, icon, isActive, onClick, rightSlot, ariaExpanded, ariaControls }) => (
     <button
+        type="button"
         onClick={() => onClick(id)}
-        className="w-full flex items-center gap-2.5 px-3 rounded-md text-left transition-all duration-100"
-        style={{
-            height: '32px',
-            background: isActive ? 'rgba(0,0,0,0.07)' : 'transparent',
-        }}
-        onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'rgba(0,0,0,0.04)'; }}
-        onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
+        className={`w-full flex items-center gap-2.5 h-8 px-3 rounded-md text-left transition-colors duration-100 ${isActive ? ROW_ACTIVE : ROW_IDLE}`}
+        aria-current={isActive ? 'page' : undefined}
+        aria-expanded={ariaExpanded}
+        aria-controls={ariaControls}
+        title={label}
+        data-testid={`settings-nav-${id}`}
     >
-        <span style={{ color: isActive ? 'var(--text-primary)' : 'var(--text-muted)', flexShrink: 0, display: 'flex' }}>{icon}</span>
-        <span
-            className="flex-1 text-[13px] truncate"
-            style={{ color: 'var(--text-primary)', fontWeight: isActive ? 600 : 400 }}
-        >
+        <span className={`flex flex-shrink-0 ${isActive ? 'text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}`}>{icon}</span>
+        <span className={`min-w-0 flex-1 text-[13px] truncate text-[var(--text-primary)] ${isActive ? 'font-semibold' : 'font-normal'}`}>
             {label}
         </span>
         {rightSlot}
@@ -155,34 +214,28 @@ const OrgSubItem = ({ section, label, isActive, onClick, rightSlot = null }) => 
     const Icon = section.icon;
     return (
         <button
+            type="button"
             onClick={() => onClick(section.id)}
-            className="w-full flex items-center gap-2 rounded-md text-left transition-all duration-100"
-            style={{
-                height: '28px',
-                paddingLeft: '36px',
-                paddingRight: '12px',
-                background: isActive ? 'rgba(0,0,0,0.07)' : 'transparent',
-            }}
-            onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'rgba(0,0,0,0.04)'; }}
-            onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
+            className={`w-full flex items-center gap-2 h-7 pl-9 pr-3 rounded-md text-left transition-colors duration-100 ${isActive ? ROW_ACTIVE : ROW_IDLE}`}
+            aria-current={isActive ? 'page' : undefined}
+            title={label}
+            data-testid={`settings-nav-${section.id}`}
         >
-            <Icon style={{ width: '12px', height: '12px', color: isActive ? section.color : 'var(--text-muted)', flexShrink: 0 }} />
-            <span
-                className="text-[12px] truncate"
-                style={{ color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: isActive ? 500 : 400 }}
-            >
+            {/* The row's own accent only while active; `section.color` is a
+                per-row value (a hex or a var()), so it stays a style. */}
+            <Icon className="w-3 h-3 flex-shrink-0" style={{ color: isActive ? section.color : 'var(--text-muted)' }} />
+            <span className={`min-w-0 flex-1 text-[12px] truncate ${isActive ? 'text-[var(--text-primary)] font-medium' : 'text-[var(--text-secondary)] font-normal'}`}>
                 {label}
             </span>
             {/* A count pill ('Settings Nav.dc.html': Compliance carries its open
-                items). `ml-auto` rather than a flex-1 label, so a row without
-                one keeps the exact layout it has today. */}
-            {rightSlot && <span className="ml-auto flex items-center">{rightSlot}</span>}
+                items). */}
+            {rightSlot && <span className="flex items-center">{rightSlot}</span>}
         </button>
     );
 };
 
 /* ── Main component ──────────────────────────────────────────────────────── */
-const AdvancedSettings = ({ onBack, onNavigate, onLogout, user, onUpdateUser, onClose }) => {
+const AdvancedSettings = ({ onNavigate, onLogout, user, onUpdateUser, onClose }) => {
     const { t } = useTranslation();
     // Phones show a trimmed, user-only settings surface (see MOBILE_VISIBLE_TOP_TABS).
     const { isMobile } = useViewport();
@@ -212,10 +265,7 @@ const AdvancedSettings = ({ onBack, onNavigate, onLogout, user, onUpdateUser, on
         window.addEventListener('popstate', onPop);
         return () => window.removeEventListener('popstate', onPop);
     }, []);
-    const [orgExpanded, setOrgExpanded] = useState(() => {
-        const tab = settingsTabFromPath();
-        return !!tab && Object.prototype.hasOwnProperty.call(SETTINGS_ORG_ID_TO_URL, tab);
-    });
+    const [orgExpanded, setOrgExpanded] = useState(() => ALL_ORG_IDS.includes(settingsTabFromPath()));
 
     const perms = user?.permissions || [];
     const canSeeOrg = perms.includes('all') || perms.includes('org_admin') || user?.orgRole === 'admin' || user?.orgRole === 'org_admin';
@@ -224,8 +274,21 @@ const AdvancedSettings = ({ onBack, onNavigate, onLogout, user, onUpdateUser, on
     // include it; the /ai/learning API is gated server-side too.
     const canUseLearning = useCan('learning_center');
     // useCan is also false while the snapshot loads; the bounce below must only
-    // fire once the answer is known.
-    const { loading: entitlementsLoading } = useEntitlements();
+    // fire once the answer is known. `inCeiling` is the org's plan ceiling (not
+    // this member's grants), the gate for org-admin rows such as Meeting
+    // Templates.
+    const {
+        loading: entitlementsLoading, inCeiling,
+        error: entitlementsError, degraded: entitlementsDegraded,
+    } = useEntitlements();
+    // A failed or degraded snapshot says nothing about the plan: the rows that
+    // hide on an entitlement fail OPEN then, like RequireTier/LockedIfBelow do,
+    // rather than taking a page away from everyone during a resolver outage.
+    const entitlementsUnknown = !!entitlementsError || !!entitlementsDegraded;
+    // Notifications holds only project events (NotificationsSection), so it is
+    // offered on the same answer as Projects itself. Like useCan, this reads
+    // false while the snapshot loads; its bounce waits for it below.
+    const projectsOn = useProjectsAvailable(user);
     // Compliance Center — RBAC (org_admin / dpo / custom roles carrying
     // admin_compliance) AND the enterprise licence capability. The capability is
     // implicitly granted to all members of an enterprise org (non-groupTogglable
@@ -251,13 +314,6 @@ const AdvancedSettings = ({ onBack, onNavigate, onLogout, user, onUpdateUser, on
     const deploymentMode = user?.featureFlags?.deploymentMode || 'cloud';
     const isSelfHosted = deploymentMode === 'self-hosted';
     const isConsumerAccount = !!user?.isConsumerAccount;
-    const ei = user?.enabledIntegrations;
-    // The Integrations sub-item is shown when the org has anything to toggle —
-    // either a super-admin integration allow-list (legacy gate) OR a beta-
-    // feature grant. Orgs that only have beta features granted still need the
-    // item so the org admin can flip those on/off.
-    const hasOrgBetaFeatures = Array.isArray(user?.betaFeatures) && user.betaFeatures.length > 0;
-    const hasOrgIntegrations = !ei || (Array.isArray(ei) && ei.length > 0) || hasOrgBetaFeatures;
     // Users coming in through the Nextcloud ExApp connector authenticate via
     // their NC session — the Bee Flow "Sign-in Method" panel (password/SSO/
     // OAuth provider config) doesn't apply because identity is delegated to
@@ -274,8 +330,13 @@ const AdvancedSettings = ({ onBack, onNavigate, onLogout, user, onUpdateUser, on
     const isSuperAdmin = perms.includes('all') || user?.role === 'admin';
     const showNcSync = isNcOrg || isSuperAdmin;
 
-    const ALL_ORG_IDS = [...BASE_ORG_SUB_ITEMS.map(s => s.id), AZURE_SUB_ITEM.id, 'org_github_sync', 'org_nextcloud_sync'];
     const isOrgSubTab = ALL_ORG_IDS.includes(activeTab);
+    // The pages a phone may open although their rows are hidden there: the org
+    // licence page when the org has no active plan (SubscriptionGate sends it
+    // there to subscribe), and the consumer licence page, which is the Stripe
+    // return URL /app/settings/account/license and where /app/billing lands.
+    const phoneExemptTab = (activeTab === 'license' && !hasActiveSub)
+        || (activeTab === 'consumer_license' && isConsumerAccount);
 
     // Simple Mode collapses the settings sidebar to just Preferences. If the
     // user arrives on a deep link (or toggles ON while on another section),
@@ -304,19 +365,28 @@ const AdvancedSettings = ({ onBack, onNavigate, onLogout, user, onUpdateUser, on
         }
     }, [activeTab, entitlementsLoading, canUseLearning, setActiveTab]);
 
+    // Notifications without Projects: every switch on it is a project event.
+    // The segment keeps parsing; it lands on Preferences once the licence
+    // snapshot is known (not while it loads, like the Learning Center bounce).
+    useEffect(() => {
+        if (activeTab === 'notifications' && !entitlementsLoading && !entitlementsUnknown && !projectsOn) {
+            setActiveTab('preferences');
+        }
+    }, [activeTab, entitlementsLoading, entitlementsUnknown, projectsOn, setActiveTab]);
+
     // Mobile: bounce hidden tabs (Connections, Learning Center, org/account
     // sub-tabs) to Preferences. Covers deep-links/hard-refresh to e.g.
     // /app/settings/connections or /app/settings/organisation/* and a resize
-    // that crosses the breakpoint while sitting on a now-hidden tab. The License
-    // tab is exempt when the org has no active plan so SubscriptionGate's
-    // subscribe redirect still lands somewhere usable.
+    // that crosses the breakpoint while sitting on a now-hidden tab. The two
+    // licence pages in phoneExemptTab stay, so a subscribe redirect or a
+    // Stripe return still lands somewhere usable.
     useEffect(() => {
         if (!isMobile) return;
-        if (activeTab === 'license' && !hasActiveSub) return;
+        if (phoneExemptTab) return;
         if (!MOBILE_VISIBLE_TAB_SET.has(activeTab)) {
             setActiveTab('preferences');
         }
-    }, [isMobile, activeTab, hasActiveSub, setActiveTab]);
+    }, [isMobile, activeTab, phoneExemptTab, setActiveTab]);
 
     // orgSubItems is computed below — it depends on `statuses.githubConnected`
     // which is hydrated in fetchSettingsStatuses() and the `statuses` state
@@ -329,6 +399,8 @@ const AdvancedSettings = ({ onBack, onNavigate, onLogout, user, onUpdateUser, on
     }, [isOrgSubTab]);
 
     const [showMemoryPanel, setShowMemoryPanel] = useState(false);
+    // 'review' when the pending-review row of Settings → Memory opened the panel.
+    const [memoryPanelView, setMemoryPanelView] = useState('active');
     const [memoryStats, setMemoryStats] = useState(null);
     // loading | ok | error — MemorySection must never paint a zero for a
     // pending or failed fetch (see its header comment).
@@ -336,9 +408,10 @@ const AdvancedSettings = ({ onBack, onNavigate, onLogout, user, onUpdateUser, on
     const [agents, setAgents] = useState([]);
     const [statuses, setStatuses] = useState({
         hasFirefliesKey: false, hasYouTrackConfig: false, hasGammaKey: false, hasAfasConfig: false,
-        hasVplanConfig: false,
+        hasVplanConfig: false, hasScalewayBillingConfig: false,
         hasNmbrsConfig: false, nmbrsApiMode: 'soap', nmbrsSubdomain: '', nmbrsEmail: '', nmbrsEnv: 'production',
-        hasN8nConfig: false, linkedInConnected: false, linkedInName: null, hasLinkedInConfig: false,
+        hasSignRequestConfig: false,
+        linkedInConnected: false, linkedInName: null, hasLinkedInConfig: false,
         hasNextcloudAppPassword: false, isNextcloudUser: false,
         githubConnected: false,
     });
@@ -361,26 +434,36 @@ const AdvancedSettings = ({ onBack, onNavigate, onLogout, user, onUpdateUser, on
             // Academy overview only makes sense when the plan carries the
             // Learning Center at all (entitlements-gated like the member tab).
             if (s.id === 'org_academy') return canSeeOrg && canUseLearning;
-            // Always show Integrations to org admins — the panel inside
-            // displays empty states for orgs without grants, and beta-feature
-            // toggling lives here too (not just integrations).
+            // Always show Integrations to org admins — the page (who gets which
+            // integration, and the integrations' own settings) has empty
+            // states for orgs without grants.
             if (s.id === 'org_integrations') return canSeeOrg;
+            if (s.id === 'org_mcp') return canSeeOrg;
+            if (s.id === 'org_mcp_access') return canSeeOrg;
+            // Meeting Templates (and the Meet / Teams meeting-notes panels on
+            // the same page) is behind the meeting_notes licence on the
+            // server, so without it the page is empty. The org's plan ceiling,
+            // not this admin's own grants: a group rollout must not hide it.
+            // Not drawn while the snapshot loads; the deep link still renders.
+            if (s.id === 'org_meeting_templates') return canSeeOrg && !entitlementsLoading && (entitlementsUnknown || !!inCeiling?.('meeting_notes'));
             // NC-bound orgs: auth is delegated to Nextcloud entirely. The
             // Sign-in Method panel configures username/password + OAuth
             // providers which are no-ops once identity comes from NC, so
             // hide it for everyone — including super-admins.
             if ((isNcOrg || isNcConnectorUser) && s.id === 'auth') return false;
             // Sign-in method is a one-time, locked choice. Once the org has
-            // picked one, the panel only shows a "locked" notice with no
+            // picked one, the cloud panel only shows a "locked" notice with no
             // editable controls — drop the sidebar entry so admins aren't
-            // pointed at a dead-end page.
-            if (orgAuthLocked && s.id === 'auth') return false;
+            // pointed at a dead-end page. Self-hosted keeps it: the same page
+            // hosts the Allowed Domains editor, which stays editable after
+            // the lock.
+            if (orgAuthLocked && s.id === 'auth' && !isSelfHosted) return false;
             // Nextcloud Sync — visible when the user's own org is NC-bound,
             // OR when the user is a super-admin who could be managing NC orgs.
             if (s.id === 'org_nextcloud_sync' && !showNcSync) return false;
-            // GitHub Sync only matters once the org has actually connected a
-            // GitHub account in Settings → Integrations. Hide the menu item
-            // until then so admins aren't dropped on a "Not connected" stub.
+            // GitHub Sync only matters once a GitHub account is connected in
+            // Settings → Connections. Hide the menu item until then so admins
+            // aren't dropped on a "Not connected" stub.
             if (s.id === 'org_github_sync' && !statuses.githubConnected) return false;
 
             return true;
@@ -390,17 +473,29 @@ const AdvancedSettings = ({ onBack, onNavigate, onLogout, user, onUpdateUser, on
             items.push(AZURE_SUB_ITEM);
         }
         return items;
-    }, [canSeeOrg, canManageUsers, canUseLearning, showComplianceNav, isSelfHosted, hasOrgIntegrations, isNcConnectorUser, isNcOrg, isSuperAdmin, showNcSync, statuses.githubConnected, orgAuthLocked]);
+    }, [canSeeOrg, canManageUsers, canUseLearning, showComplianceNav, isSelfHosted, isNcConnectorUser, isNcOrg, showNcSync, statuses.githubConnected, orgAuthLocked, entitlementsLoading, entitlementsUnknown, inCeiling]);
+
+    // The rows as the sidebar draws them: ORG_NAV_GROUPS order, empty groups dropped.
+    const orgNavGroups = useMemo(() => {
+        const byId = new Map(orgSubItems.map(s => [s.id, s]));
+        const filed = new Set(ORG_NAV_GROUPS.flat());
+        return [
+            ...ORG_NAV_GROUPS.map(ids => ids.map(id => byId.get(id)).filter(Boolean)),
+            orgSubItems.filter(s => !filed.has(s.id)),
+        ].filter(g => g.length > 0);
+    }, [orgSubItems]);
+    const firstOrgSubItemId = orgNavGroups[0]?.[0]?.id;
 
     // The per-org "License & Usage" section is hidden on self-hosted (see the
     // orgSubItems filter above). A default/deep-link can still resolve activeTab
-    // to 'license', so bounce it to the first visible org section. Placed after
-    // orgSubItems so the dependency array can reference it without a TDZ error.
+    // to 'license', so bounce it to the first row the sidebar draws. Placed
+    // after orgNavGroups so the dependency array can reference it without a
+    // TDZ error.
     useEffect(() => {
         if (isSelfHosted && activeTab === 'license') {
-            setActiveTab(orgSubItems[0]?.id || 'org_usage');
+            setActiveTab(firstOrgSubItemId || 'org_usage');
         }
-    }, [isSelfHosted, activeTab, orgSubItems, setActiveTab]);
+    }, [isSelfHosted, activeTab, firstOrgSubItemId, setActiveTab]);
 
     // User-scoped: these are personal "which agent do I start on?" preferences.
     const [defaultAgentMode, setDefaultAgentMode] = useState(() => scopedStorage.getItem('defaultAgentMode') || 'last-used');
@@ -443,11 +538,14 @@ const AdvancedSettings = ({ onBack, onNavigate, onLogout, user, onUpdateUser, on
         } catch (e) { /* non-critical */ }
     };
     const fetchSettingsStatuses = async () => {
+        // nosemgrep: ajinabraham.njsscan.generic.error_disclosure.generic_error_disclosure -- browser-side console log of a failed status fetch; nothing reaches another user or a response
         try {
             const res = await authFetch(`${API_BASE}/ai/user-settings`);
             if (res.ok) {
                 const data = await res.json();
-                setStatuses({ hasFirefliesKey: !!data.hasFirefliesKey, hasYouTrackConfig: !!data.hasYouTrackConfig, hasGammaKey: !!data.hasGammaKey, hasAfasConfig: !!data.hasAfasConfig, hasVplanConfig: !!data.hasVplanConfig, hasNmbrsConfig: !!data.hasNmbrsConfig, nmbrsApiMode: data.nmbrsApiMode || 'soap', nmbrsSubdomain: data.nmbrsSubdomain || '', nmbrsEmail: data.nmbrsEmail || '', nmbrsEnv: data.nmbrsEnv || 'production', hasN8nConfig: !!data.hasN8nConfig, hasLinkedInConfig: !!data.hasLinkedInConfig });
+                // A merge: the LinkedIn, Nextcloud and GitHub fields below come
+                // from their own calls and must survive this one.
+                setStatuses(p => ({ ...p, hasFirefliesKey: !!data.hasFirefliesKey, hasYouTrackConfig: !!data.hasYouTrackConfig, hasSignRequestConfig: !!data.hasSignRequestConfig, hasGammaKey: !!data.hasGammaKey, hasAfasConfig: !!data.hasAfasConfig, hasVplanConfig: !!data.hasVplanConfig, hasScalewayBillingConfig: !!data.hasScalewayBillingConfig, hasNmbrsConfig: !!data.hasNmbrsConfig, nmbrsApiMode: data.nmbrsApiMode || 'soap', nmbrsSubdomain: data.nmbrsSubdomain || '', nmbrsEmail: data.nmbrsEmail || '', nmbrsEnv: data.nmbrsEnv || 'production', hasLinkedInConfig: !!data.hasLinkedInConfig }));
             }
         } catch (e) { console.error(e); }
         try {
@@ -459,7 +557,7 @@ const AdvancedSettings = ({ onBack, onNavigate, onLogout, user, onUpdateUser, on
             if (ncRes.ok) { const d = await ncRes.json(); setStatuses(p => ({ ...p, hasNextcloudAppPassword: !!d.hasAppPassword, isNextcloudUser: !!d.isNextcloudUser, nextcloudUrl: d.nextcloudUrl || '' })); }
         } catch (e) { }
         // GitHub Sync menu item is hidden until the org-admin connects a
-        // GitHub account in Settings → Integrations. The org-sync panel
+        // GitHub account in Settings → Connections. The org-sync panel
         // itself prompts for that step, but there's no point exposing the
         // sub-tab to admins who haven't reached integration setup yet.
         try {
@@ -468,16 +566,7 @@ const AdvancedSettings = ({ onBack, onNavigate, onLogout, user, onUpdateUser, on
         } catch (e) { }
     };
     const handleIntegrationSaved = (key) => {
-        const keyMap = { fireflies: 'hasFirefliesKey', youtrack: 'hasYouTrackConfig', gamma: 'hasGammaKey' };
-        if (keyMap[key]) setStatuses(p => ({ ...p, [keyMap[key]]: true }));
-        // AFAS fires onSaved for connect AND disconnect — re-fetch instead of
-        // optimistically forcing true (which would show "Connected" after a
-        // disconnect, or after a token-only save that isn't fully configured).
-        if (key === 'afas-profit') fetchSettingsStatuses();
-        if (key === 'vplan') fetchSettingsStatuses();
-        if (key === 'nmbrs') fetchSettingsStatuses();
-        if (key === 'linkedin') fetchSettingsStatuses();
-        if (key === 'nextcloud') fetchSettingsStatuses();
+        if (STATUS_BACKED_KEYS.includes(key)) fetchSettingsStatuses();
     };
     const handleClose = () => {
         if (onClose) onClose();
@@ -486,7 +575,7 @@ const AdvancedSettings = ({ onBack, onNavigate, onLogout, user, onUpdateUser, on
 
     // Map org sub-tab ids to the activeSection prop OrganisationSection expects
     const orgActiveSection = isOrgSubTab
-        ? (activeTab === 'org_users' ? 'users' : activeTab === 'org_academy' ? 'academy' : activeTab === 'org_integrations' ? 'integrations' : activeTab === 'org_usage' ? 'usage' : activeTab === 'org_azure' ? 'azure' : activeTab === 'org_github_sync' ? 'github_sync' : activeTab === 'org_nextcloud_sync' ? 'nextcloud_sync' : activeTab === 'org_meeting_templates' ? 'meeting_templates' : activeTab)
+        ? (activeTab === 'org_users' ? 'users' : activeTab === 'org_academy' ? 'academy' : activeTab === 'org_integrations' ? 'integrations' : activeTab === 'org_mcp' ? 'mcp' : activeTab === 'org_mcp_access' ? 'mcp_access' : activeTab === 'org_usage' ? 'usage' : activeTab === 'org_azure' ? 'azure' : activeTab === 'org_github_sync' ? 'github_sync' : activeTab === 'org_nextcloud_sync' ? 'nextcloud_sync' : activeTab === 'org_meeting_templates' ? 'meeting_templates' : activeTab)
         : 'license';
 
     // Admin-dashboard destinations that have an organisation-settings
@@ -505,15 +594,20 @@ const AdvancedSettings = ({ onBack, onNavigate, onLogout, user, onUpdateUser, on
     }, [canSeeOrg]);
 
     // ComplianceHub always emits admin-dashboard paths. Keep compliance-internal
-    // navigation on the settings surface (deep URL incl. section/check id),
-    // land remediation links on their settings equivalents where possible, and
-    // forward the rest to the app router.
-    const handleComplianceNavigate = useCallback((path) => {
+    // navigation on the settings surface (deep URL incl. section/check id and
+    // the header tab in `?tab=`), land remediation links on their settings
+    // equivalents where possible, and forward the rest to the app router.
+    // `{ replace: true }` is the hub redirecting a legacy link: the old URL
+    // must not stay in the history, or Back would land on it again.
+    const handleComplianceNavigate = useCallback((path, opts) => {
         const hit = rewriteComplianceNav(path);
         if (hit) {
             setOrgDeepSegs({ seg1: hit.section, seg2: hit.checkId });
             setActiveTabState('org_compliance');
-            if (window.location.pathname !== hit.url) window.history.pushState({}, '', hit.url);
+            if (window.location.pathname + window.location.search !== hit.url) {
+                if (opts?.replace) window.history.replaceState({}, '', hit.url);
+                else window.history.pushState({}, '', hit.url);
+            }
             return;
         }
         if (applyAdminEscape(path)) return;
@@ -522,9 +616,9 @@ const AdvancedSettings = ({ onBack, onNavigate, onLogout, user, onUpdateUser, on
 
     const renderContent = () => {
         // Mobile: never render a hidden section's panel (covers the one frame
-        // before the bounce effect moves activeTab to Preferences). License stays
-        // renderable for no-plan orgs so they can subscribe.
-        if (isMobile && !MOBILE_VISIBLE_TAB_SET.has(activeTab) && !(activeTab === 'license' && !hasActiveSub)) {
+        // before the bounce effect moves activeTab to Preferences). The two
+        // licence pages in phoneExemptTab stay renderable.
+        if (isMobile && !MOBILE_VISIBLE_TAB_SET.has(activeTab) && !phoneExemptTab) {
             return null;
         }
         // Compliance is reachable for pure-DPO users too (admin_compliance
@@ -559,11 +653,19 @@ const AdvancedSettings = ({ onBack, onNavigate, onLogout, user, onUpdateUser, on
             case 'preferences': return <PreferencesSection defaultAgentMode={defaultAgentMode} setDefaultAgentMode={setDefaultAgentMode} defaultAgentId={defaultAgentId} setDefaultAgentId={setDefaultAgentId} agents={agents} onLogout={onLogout} user={user} onUpdateUser={onUpdateUser} />;
             case 'appearance': return <AppearanceSection />;
             case 'security': return <SecuritySection />;
-            case 'memory': return <MemorySection memoryStats={memoryStats} statsStatus={memoryStatsStatus} onRetryStats={fetchMemoryStats} user={user} onUpdateUser={onUpdateUser} onOpenMemory={() => setShowMemoryPanel(true)} onImported={fetchMemoryStats} />;
-            case 'integrations': return <IntegrationsSection statuses={statuses} onSaved={handleIntegrationSaved} isOrgAdmin={canSeeOrg} user={user} showOrgIntegrations={isConsumerAccount} />;
+            case 'memory': return <MemorySection memoryStats={memoryStats} statsStatus={memoryStatsStatus} onRetryStats={fetchMemoryStats} user={user} onUpdateUser={onUpdateUser} onOpenMemory={(view) => { setMemoryPanelView(view === 'review' ? 'review' : 'active'); setShowMemoryPanel(true); }} onImported={fetchMemoryStats} />;
+            case 'notifications': return (projectsOn || entitlementsUnknown) ? <NotificationsSection /> : null;
+            case 'integrations': return <IntegrationsSection statuses={statuses} onSaved={handleIntegrationSaved} user={user} />;
             case 'learning': return canUseLearning ? <LearningCenterSection user={user} /> : null;
-            case 'help_support': return isSelfHosted ? null : <HelpSupportSection user={user} />;
-            case 'organisation': return canSeeOrg ? <OrganisationSection user={user} activeSection={isSelfHosted ? 'auth' : 'license'} /> : null;
+            // The Learning Center link on that page only where its page opens:
+            // not on a phone (desktop-only tab) and not without the plan.
+            case 'help_support': return isSelfHosted ? null : (
+                <HelpSupportSection
+                    user={user}
+                    showLearningLink={canUseLearning && !isMobile}
+                    onOpenLearning={() => setActiveTab('learning')}
+                />
+            );
             default: return null;
         }
     };
@@ -572,44 +674,70 @@ const AdvancedSettings = ({ onBack, onNavigate, onLogout, user, onUpdateUser, on
     // content ('detail') are shown one at a time on phones. Desktop shows both
     // side by side and ignores this flag.
     const [mobileDetail, setMobileDetail] = useState(false);
-    // SubscriptionGate routes a no-plan org to the License tab; surface it
-    // directly on mobile so they can still subscribe (the org menu is hidden).
+    // SubscriptionGate routes a no-plan org to the License tab, and a consumer's
+    // Stripe return lands on theirs; surface those directly on mobile (their
+    // rows are hidden there) so the plan and the checkout result are visible.
     useEffect(() => {
-        if (isMobile && activeTab === 'license' && !hasActiveSub) setMobileDetail(true);
-    }, [isMobile, activeTab, hasActiveSub]);
+        if (isMobile && phoneExemptTab) setMobileDetail(true);
+    }, [isMobile, phoneExemptTab]);
 
     const handleNavClick = (id) => {
         if (id === 'organisation') {
-            // toggle expand; if collapsing from an org sub-tab go to first sub-item
-            if (orgExpanded && isOrgSubTab) {
-                setOrgExpanded(false);
-                setActiveTab('preferences');
-            } else {
-                const newExpanded = !orgExpanded;
-                setOrgExpanded(newExpanded);
-                if (newExpanded && !isOrgSubTab) {
-                    // auto-select first sub-item
-                    setActiveTab(orgSubItems[0]?.id || 'licence');
-                }
-            }
+            // The parent row only opens and closes the group; collapsing it
+            // keeps the page that is open. Opening it from outside the group
+            // selects the first row the sidebar draws.
+            const next = !orgExpanded;
+            setOrgExpanded(next);
+            if (next && !isOrgSubTab && firstOrgSubItemId) setActiveTab(firstOrgSubItemId);
         } else {
             setActiveTab(id);
             if (isMobile) setMobileDetail(true);   // drill into the section
         }
     };
 
-    // Phone title bar shows the section name while in detail view.
-    const activeNavItem = NAV_ITEMS.find(i => i.id === activeTab);
+    // Phone title bar shows the section name while in detail view: a top-level
+    // row, an org sub-tab (Compliance, the no-plan licence page) or a consumer
+    // row (the Stripe return), else the screen title.
+    const activeNavItem = NAV_ITEMS.find(i => i.id === activeTab)
+        || [...BASE_ORG_SUB_ITEMS, AZURE_SUB_ITEM].find(s => s.id === activeTab)
+        || CONSUMER_NAV_ITEMS.find(i => i.id === activeTab);
     const mobileInDetail = isMobile && mobileDetail;
-    const titleLabel = mobileInDetail
-        ? (activeNavItem ? t(activeNavItem.labelKey) : t('settings.title'))
-        : t('settings.title');
+    const titleLabel = mobileInDetail && activeNavItem ? t(activeNavItem.labelKey) : t('settings.title');
     // The Compliance Center draws its OWN 44px top bar on a phone (back
     // chevron, kind tile, title, run-now) — stacking the settings bar above it
     // costs 48px of an 844px screen and shows two back buttons that mean
     // different things. Only in detail view: on the section LIST the bar is
     // the way out of Settings.
     const hideTitleBar = mobileInDetail && activeTab === 'org_compliance';
+
+    // The top-level rows this person gets, split into the settings and the
+    // resources below a thin rule (SETTINGS_RESOURCE_TABS). Simple Mode keeps
+    // only the first row.
+    const visibleNavItems = isSimpleMode ? [NAV_ITEMS[0]] : NAV_ITEMS.filter(item => {
+        if (item.id === 'learning' && !canUseLearning) return false;
+        // Every switch on Notifications is a project event.
+        if (item.id === 'notifications' && !projectsOn && !entitlementsUnknown) return false;
+        // Help & Support is a Bee Flow Cloud surface (the support
+        // inbox talks to the Bee Flow team) — hidden on self-hosted.
+        if (item.id === 'help_support' && isSelfHosted) return false;
+        // Mobile hides Connections + Learning Center.
+        if (isMobile && !MOBILE_VISIBLE_TAB_SET.has(item.id)) return false;
+        return true;
+    });
+    const settingsNavRows = visibleNavItems.filter(item => !SETTINGS_RESOURCE_TABS.includes(item.id));
+    const resourceNavRows = visibleNavItems.filter(item => SETTINGS_RESOURCE_TABS.includes(item.id));
+    const renderTopRow = (item) => (
+        <NavItem
+            key={item.id}
+            {...item}
+            label={t(item.labelKey)}
+            isActive={activeTab === item.id && !isOrgSubTab}
+            onClick={handleNavClick}
+        />
+    );
+    const effectiveRole = user?.orgRole || user?.role;
+    const roleChip = roleLabel(effectiveRole, t);
+    const roleIsAdmin = effectiveRole === 'admin' || effectiveRole === 'org_admin';
 
     return (
         <div className="h-full flex flex-col" style={{ background: 'var(--bg-primary)', position: 'relative' }}>
@@ -651,89 +779,59 @@ const AdvancedSettings = ({ onBack, onNavigate, onLogout, user, onUpdateUser, on
                 >
                     {/* User mini-card */}
                     <button
+                        type="button"
                         onClick={() => { setActiveTab('preferences'); if (isMobile) setMobileDetail(true); }}
-                        className="flex items-center gap-3 px-4 py-3.5 transition-colors text-left w-full flex-shrink-0"
-                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.04)'}
-                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                        className="flex items-center gap-3 px-4 py-3.5 transition-colors text-left w-full flex-shrink-0 hover:bg-[var(--item-hover-bg)]"
                     >
                         <AvatarDisplay user={user} size={34} />
                         <div className="flex-1 min-w-0">
-                            <p className="text-[13px] font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                            <p className="text-[13px] font-semibold truncate text-[var(--text-primary)]">
                                 {user?.displayName || user?.username || 'User'}
                             </p>
-                            {(() => {
-                                const effectiveRole = user?.orgRole || user?.role;
-                                if (!effectiveRole) return null;
-                                const ROLE_LABELS = { admin: 'Admin', org_admin: 'Organisation Admin', agent_admin: 'Agent Admin', agent_editor: 'Agent Editor', user: 'User', member: 'Member' };
-                                const label = ROLE_LABELS[effectiveRole] || effectiveRole.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-                                const isAdmin = ['admin', 'org_admin'].includes(effectiveRole);
-                                return (
-                                    <span
-                                        className="text-[10px] px-1.5 py-0.5 rounded font-medium"
-                                        style={{
-                                            background: isAdmin ? 'rgba(5,150,105,0.1)' : 'var(--bg-tertiary)',
-                                            color: isAdmin ? '#059669' : 'var(--text-muted)',
-                                        }}
-                                    >
-                                        {label}
-                                    </span>
-                                );
-                            })()}
+                            {roleChip && (
+                                <span
+                                    className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${roleIsAdmin
+                                        ? 'bg-[color-mix(in_srgb,var(--success)_14%,transparent)] text-[var(--success-ink)]'
+                                        : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)]'}`}
+                                >
+                                    {roleChip}
+                                </span>
+                            )}
                         </div>
                     </button>
 
-                    <div style={{ height: '1px', background: 'var(--border-subtle)', margin: '0 12px' }} />
+                    <div aria-hidden="true" className="h-px mx-3 bg-[var(--border-subtle)]" />
 
                     {/* Nav */}
-                    <div className="flex-1 overflow-y-auto px-2 py-2 space-y-px">
-                        <p className="text-[9px] font-semibold uppercase tracking-widest px-3 pb-1 pt-1.5" style={{ color: 'var(--text-muted)' }}>
-                            {t('settings.profile_section')}
+                    <div className="flex-1 overflow-y-auto px-2 py-2 space-y-px" role="navigation" aria-label={t('settings.title')}>
+                        <p className={`${SECTION_LBL} px-3 pb-1 pt-1.5`}>
+                            {t('settings.personal_section', 'Personal')}
                         </p>
 
-                        {isSimpleMode ? (
-                            <NavItem
-                                key={NAV_ITEMS[0].id}
-                                {...NAV_ITEMS[0]}
-                                label={t(NAV_ITEMS[0].labelKey)}
-                                isActive={activeTab === NAV_ITEMS[0].id}
-                                onClick={handleNavClick}
-                            />
-                        ) : (
-                            NAV_ITEMS.filter(item => {
-                                if (item.id === 'learning' && !canUseLearning) return false;
-                                // Help & Support is a Bee Flow Cloud surface (the support
-                                // inbox talks to the Bee Flow team) — hidden on self-hosted.
-                                if (item.id === 'help_support' && isSelfHosted) return false;
-                                // Mobile hides Connections + Learning Center.
-                                if (isMobile && !MOBILE_VISIBLE_TAB_SET.has(item.id)) return false;
-                                return true;
-                            }).map(item => (
-                                <NavItem
-                                    key={item.id}
-                                    {...item}
-                                    label={item.labelKey ? t(item.labelKey) : item.label}
-                                    isActive={activeTab === item.id && !isOrgSubTab}
-                                    onClick={handleNavClick}
-                                />
-                            ))
-                        )}
+                        {settingsNavRows.map(renderTopRow)}
 
                         {/* Compliance on a phone. The Organisation group it
                             normally lives in stays hidden here, so the section
                             is promoted to a top-level row rather than being
                             unreachable: artboard frame 1h is a phone frame, and
                             the deadline a DPO is chasing does not wait for a
-                            laptop. Same id, same address — only the row moves. */}
+                            laptop. Same id, same address — only the row moves.
+                            It is a setting, so it sits above the resources. */}
                         {!isSimpleMode && isMobile && showComplianceNav && (
                             <NavItem
                                 id="org_compliance"
                                 label={t('settings.compliance')}
-                                icon={<Scale style={{ width: '15px', height: '15px', color: 'var(--kind-compliance)' }} />}
+                                icon={<Scale className="w-[15px] h-[15px] text-[var(--kind-compliance)]" />}
                                 isActive={activeTab === 'org_compliance'}
                                 onClick={handleNavClick}
                                 rightSlot={complianceBadge}
                             />
                         )}
+
+                        {/* Learning Center and Help & Support are resources,
+                            not settings: a thin rule above the first of them. */}
+                        {resourceNavRows.length > 0 && <NavDivider />}
+                        {resourceNavRows.map(renderTopRow)}
 
                         {/* Organisation accordion — only if permitted. Hidden on
                             mobile: phones show user settings only. Pure-DPO users
@@ -741,36 +839,42 @@ const AdvancedSettings = ({ onBack, onNavigate, onLogout, user, onUpdateUser, on
                             with just the Compliance entry. */}
                         {!isSimpleMode && !isMobile && (canSeeOrg || showComplianceNav) && (
                             <>
-                                <div style={{ height: '1px', background: 'var(--border-subtle)', margin: '6px 8px' }} />
-                                <p className="text-[9px] font-semibold uppercase tracking-widest px-3 pb-1 pt-1" style={{ color: 'var(--text-muted)' }}>
+                                <NavDivider />
+                                <p className={`${SECTION_LBL} px-3 pb-1 pt-1`}>
                                     {t('settings.workspace_section')}
                                 </p>
-                                {/* Parent row */}
+                                {/* Parent row: only opens and closes the group.
+                                    Active while the group is closed on one of
+                                    its pages. */}
                                 <NavItem
                                     id="organisation"
                                     label={t(ORG_PARENT_ITEM.labelKey)}
                                     icon={ORG_PARENT_ITEM.icon}
-                                    isActive={isOrgSubTab && !orgExpanded ? true : false}
+                                    isActive={isOrgSubTab && !orgExpanded}
                                     onClick={handleNavClick}
                                     rightSlot={<Chevron open={orgExpanded} />}
+                                    ariaExpanded={orgExpanded}
+                                    ariaControls={orgExpanded ? 'settings-org-subnav' : undefined}
                                 />
 
-                                {/* Sub-items — animated slide-down */}
+                                {/* Sub-items — animated slide-down, in topic
+                                    groups (ORG_NAV_GROUPS) with a thin rule
+                                    between them. */}
                                 {orgExpanded && (
-                                    <div className="space-y-px overflow-hidden" style={{ animation: 'fadeIn 120ms ease' }}>
-                                        {orgSubItems.map((s, i) => (
-                                            <React.Fragment key={s.id}>
-                                                {/* Divider before Users & Groups */}
-                                                {s.id === 'org_users' && (
-                                                    <div style={{ height: '1px', background: 'var(--border-subtle)', margin: '4px 12px 4px 36px' }} />
-                                                )}
-                                                <OrgSubItem
-                                                    section={s}
-                                                    label={t(s.labelKey)}
-                                                    isActive={activeTab === s.id}
-                                                    onClick={setActiveTab}
-                                                    rightSlot={s.id === 'org_compliance' ? complianceBadge : null}
-                                                />
+                                    <div id="settings-org-subnav" className="space-y-px overflow-hidden" style={{ animation: 'fadeIn 120ms ease' }}>
+                                        {orgNavGroups.map((group, gi) => (
+                                            <React.Fragment key={group[0].id}>
+                                                {gi > 0 && <NavDivider inset />}
+                                                {group.map(s => (
+                                                    <OrgSubItem
+                                                        key={s.id}
+                                                        section={s}
+                                                        label={t(s.labelKey)}
+                                                        isActive={activeTab === s.id}
+                                                        onClick={setActiveTab}
+                                                        rightSlot={s.id === 'org_compliance' ? complianceBadge : null}
+                                                    />
+                                                ))}
                                             </React.Fragment>
                                         ))}
                                     </div>
@@ -782,45 +886,19 @@ const AdvancedSettings = ({ onBack, onNavigate, onLogout, user, onUpdateUser, on
                             Hidden on mobile (user settings only). */}
                         {!isSimpleMode && !isMobile && isConsumerAccount && !canSeeOrg && (
                             <>
-                                <div style={{ height: '1px', background: 'var(--border-subtle)', margin: '6px 8px' }} />
-                                <p className="text-[9px] font-semibold uppercase tracking-widest px-3 pb-1 pt-1" style={{ color: 'var(--text-muted)' }}>
+                                <NavDivider />
+                                <p className={`${SECTION_LBL} px-3 pb-1 pt-1`}>
                                     {t('settings.account_section', 'Account')}
                                 </p>
-                                <NavItem
-                                    id="consumer_license"
-                                    label={t('settings.license_usage', 'License & Usage')}
-                                    icon={<CreditCard style={{ width: '15px', height: '15px' }} />}
-                                    isActive={activeTab === 'consumer_license'}
-                                    onClick={handleNavClick}
-                                />
-                                <NavItem
-                                    id="consumer_privacy"
-                                    label={t('settings.privacy_shield', 'Privacy Shield')}
-                                    icon={<Shield style={{ width: '15px', height: '15px' }} />}
-                                    isActive={activeTab === 'consumer_privacy'}
-                                    onClick={handleNavClick}
-                                />
-                                <NavItem
-                                    id="consumer_usage"
-                                    label={t('settings.usage_monitoring', 'Usage & Monitoring')}
-                                    icon={<BarChart2 style={{ width: '15px', height: '15px' }} />}
-                                    isActive={activeTab === 'consumer_usage'}
-                                    onClick={handleNavClick}
-                                />
-                                <NavItem
-                                    id="consumer_integrations"
-                                    label={t('settings.integrations', 'Integrations')}
-                                    icon={<Link2 style={{ width: '15px', height: '15px' }} />}
-                                    isActive={activeTab === 'consumer_integrations'}
-                                    onClick={handleNavClick}
-                                />
-                                <NavItem
-                                    id="consumer_beta"
-                                    label={t('settings.beta_features', 'Beta features')}
-                                    icon={<Sparkles style={{ width: '15px', height: '15px' }} />}
-                                    isActive={activeTab === 'consumer_beta'}
-                                    onClick={handleNavClick}
-                                />
+                                {CONSUMER_NAV_ITEMS.map(item => (
+                                    <NavItem
+                                        key={item.id}
+                                        {...item}
+                                        label={t(item.labelKey)}
+                                        isActive={activeTab === item.id}
+                                        onClick={handleNavClick}
+                                    />
+                                ))}
                             </>
                         )}
                     </div>
@@ -840,7 +918,12 @@ const AdvancedSettings = ({ onBack, onNavigate, onLogout, user, onUpdateUser, on
                 {/* ── Content panel ── */}
                 <div className={`flex-1 overflow-auto ${mobileDetail ? 'block' : 'hidden md:block'}`} style={{ background: 'var(--bg-primary)' }}>
                     <div
-                        className={`mx-auto py-6 md:py-8 px-4 md:px-8 ${(isOrgSubTab || activeTab === 'consumer_usage' || activeTab === 'consumer_integrations') ? 'max-w-5xl' : 'max-w-[640px]'}`}
+                        // Every organisation page and every consumer account
+                        // page gets the wide column: the consumer licence page
+                        // is the same plan grid as the org one, and squeezed
+                        // into 640px it lost its columns. Personal settings
+                        // keep the reading width.
+                        className={`mx-auto py-6 md:py-8 px-4 md:px-8 ${(isOrgSubTab || activeTab.startsWith('consumer_')) ? 'max-w-5xl' : 'max-w-[640px]'}`}
                         style={activeTab === 'org_usage' ? { maxWidth: '100%', padding: '24px 32px 32px' }
                             // Sections that own their whole viewport: they bring
                             // their own header, their own scroll region and their
@@ -862,7 +945,13 @@ const AdvancedSettings = ({ onBack, onNavigate, onLogout, user, onUpdateUser, on
 
             {showMemoryPanel && (
                 <div style={{ position: 'absolute', inset: 0, zIndex: 10, background: 'var(--bg-primary)' }}>
-                    <MemoryPanel onClose={() => { setShowMemoryPanel(false); fetchMemoryStats(); }} />
+                    <MemoryPanel
+                        initialView={memoryPanelView}
+                        sensitiveOptIn={user?.memorySensitiveOptIn === true}
+                        orgMemoryOff={user?.orgMemoryEnabled === false}
+                        onChanged={fetchMemoryStats}
+                        onClose={() => { setShowMemoryPanel(false); fetchMemoryStats(); }}
+                    />
                 </div>
             )}
         </div>

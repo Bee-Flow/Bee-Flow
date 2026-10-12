@@ -31,7 +31,7 @@ afterEach(() => setPreview(false));
 
 describe('step chapters', () => {
     it('marks a chapter with no media as copy-only', () => {
-        const { container } = chapters([{ title: 'A routine', body: 'b', number: '1' }]);
+        const { container } = chapters([{ title: 'An automation', body: 'b', number: '1' }]);
         const chapter = container.querySelector('.step-chapter');
         expect(chapter.className).toContain('step-chapter--copy');
     });

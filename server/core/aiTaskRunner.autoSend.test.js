@@ -10,7 +10,7 @@
  *
  * The second half matters as much: `unattended` is derived from autoSend and
  * the custom-integration runner refuses unattended calls outright, so turning
- * autoSend on naively would convert working routines into hard failures. The
+ * autoSend on naively would convert working automations into hard failures. The
  * task runner pins unattended:false to keep that path exactly as it was.
  *
  * Run: node --test core/aiTaskRunner.autoSend.test.js
@@ -69,11 +69,11 @@ test('the dispatcher lets unattended be set independently of autoSend', () => {
     );
 });
 
-test('the agent-routine path passes autoSend through its metadata', () => {
+test('the agent path passes autoSend through its metadata', () => {
     // The metadata literal, delimited by braces — `chatWithAgentStream` is
     // required further up the function, so it is not a usable end marker.
     const at = RUNNER.indexOf('const messageMetadata');
-    assert.notStrictEqual(at, -1, 'executeAgentRoutine no longer builds messageMetadata');
+    assert.notStrictEqual(at, -1, 'executeAgentAutomation no longer builds messageMetadata');
     const open = RUNNER.indexOf('{', at);
     let depth = 0;
     let meta = '';
@@ -84,7 +84,7 @@ test('the agent-routine path passes autoSend through its metadata', () => {
             if (depth === 0) { meta = RUNNER.slice(open, i + 1); break; }
         }
     }
-    assert.match(meta, /autoSend:\s*true/, 'executeAgentRoutine must mark the run unattended-sending');
+    assert.match(meta, /autoSend:\s*true/, 'executeAgentAutomation must mark the run unattended-sending');
 });
 
 test('the agent runtime forwards autoSend to the dispatcher', () => {
@@ -98,7 +98,7 @@ test('the agent runtime also pins unattended, so chat is unchanged', () => {
 });
 
 test('normal chat still gets a draft to approve', () => {
-    // messageMetadata.autoSend is absent outside routine runs, so the
+    // messageMetadata.autoSend is absent outside automation runs, so the
     // expression above evaluates false and the preview flow is untouched.
     assert.doesNotMatch(
         CHAT_STREAM,

@@ -43,7 +43,7 @@ const CARD_CHANNELS = ['talk', 'nc_talk'];
 
 /**
  * The automation's approval policy, or the shared default when there is no
- * automation to ask (an App Studio request_approval has no routine behind it).
+ * automation to ask (an App Studio request_approval has no automation behind it).
  * The default is `channels: ['bell']`, so an app-sourced row behaves exactly
  * as it does today.
  */
@@ -66,7 +66,7 @@ function approvalPolicy(automation) {
  *
  * @param {object}   p
  * @param {object}   p.approval      the durable approval row
- * @param {object}   [p.automation]  the routine behind it, when there is one
+ * @param {object}   [p.automation]  the automation behind it, when there is one
  * @param {string[]} p.recipientIds  who hears about it (already resolved by
  *                                   the caller — seats, group members, owner)
  * @param {string}   p.title         the bell title, verbatim
@@ -111,7 +111,7 @@ async function notifyApproval({
         const { deliverApprovalToNextcloud } = require('./approvalDelivery');
         // The card only: every recipient already heard through the Bee Flow
         // bell above, which is the only one of these texts that quotes the
-        // prompt. The card itself carries the routine name, the event, the
+        // prompt. The card itself carries the automation name, the event, the
         // role and the link (BFSF-441; approvalAnnouncement.js).
         const report = await deliverApprovalToNextcloud({
             approval, automation, channels: ['nc_talk'], recipientIds: [...seen],
@@ -124,7 +124,7 @@ async function notifyApproval({
 }
 
 /**
- * The routine behind an approval row, or null. A convenience for the sweep
+ * The automation behind an approval row, or null. A convenience for the sweep
  * paths, which hold an approval row and nothing else — without it they cannot
  * resolve a policy and every announcement stays bell-only.
  */

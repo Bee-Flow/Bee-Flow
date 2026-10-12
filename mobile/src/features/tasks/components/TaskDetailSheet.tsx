@@ -118,7 +118,7 @@ export function TaskDetailSheet({ task, onClose }: { task: AiTask | null; onClos
     if (task) {
         subtitle = task.isActive
             ? t('mobile.tasks.next_run', 'Next {when}', { when: absoluteTime(task.nextRunAt).toLowerCase() })
-            : t('routines.paused', 'Paused');
+            : t('automations.paused', 'Paused');
     }
 
     return (

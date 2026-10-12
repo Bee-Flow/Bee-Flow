@@ -48,24 +48,24 @@ export default function useOutputEditor({
     const apply = async () => {
         let parsed: unknown;
         try { parsed = JSON.parse(text); } catch (e) {
-            setError(t('routines.ndv.err_invalid_json', 'Invalid JSON: {message}', { message: (e as Error).message }));
+            setError(t('automations.ndv.err_invalid_json', 'Invalid JSON: {message}', { message: (e as Error).message }));
             return;
         }
         if (parsed === null) {
-            setError(t('routines.ndv.err_nothing_to_save', 'Nothing to save — use {remove} to clear the saved output.', { remove: t('common.remove', 'Remove') }));
+            setError(t('automations.ndv.err_nothing_to_save', 'Nothing to save — use {remove} to clear the saved output.', { remove: t('common.remove', 'Remove') }));
             return;
         }
         if (isTruncated(parsed)) {
-            setError(t('routines.ndv.err_truncated_placeholder', 'That is the server\'s "output too large" placeholder, not data. Replace it with the shape the next steps should see.'));
+            setError(t('automations.ndv.err_truncated_placeholder', 'That is the server\'s "output too large" placeholder, not data. Replace it with the shape the next steps should see.'));
             return;
         }
         // Capped BEFORE the PUT: the drawer PUTs the whole definition on every
         // save, so one oversized pin would 400 every later, unrelated edit.
         const bytes = jsonByteLength(parsed);
-        if (bytes == null) { setError(t('routines.ndv.err_not_json', 'That value cannot be stored as JSON.')); return; }
+        if (bytes == null) { setError(t('automations.ndv.err_not_json', 'That value cannot be stored as JSON.')); return; }
         if (bytes > MAX_PINNED_BYTES) {
             setError(t(
-                'routines.ndv.err_too_big',
+                'automations.ndv.err_too_big',
                 'Too big to save: {size} KB, and the limit is {limit} KB. '
                 + 'Keep a representative record or two — what the steps downstream map against is the shape, not the volume.',
                 { size: Math.ceil(bytes / 1024), limit: MAX_PINNED_BYTES / 1024 },
@@ -77,7 +77,7 @@ export default function useOutputEditor({
             setOpen(false);
             setError(null);
         } catch (e) {
-            setError((e as Error)?.message || t('routines.ndv.save_failed', 'Save failed'));
+            setError((e as Error)?.message || t('automations.ndv.save_failed', 'Save failed'));
         }
     };
     const remove = async () => {
@@ -107,13 +107,13 @@ export default function useOutputEditor({
             data-testid="ndv-edit-output"
             onClick={open ? close : openEditor}
             aria-expanded={open}
-            title={t('routines.ndv.edit_output_hint', "Write this step's output by hand, so the steps after it can be built and tested before this one has ever run")}
+            title={t('automations.ndv.edit_output_hint', "Write this step's output by hand, so the steps after it can be built and tested before this one has ever run")}
             className={`inline-flex items-center gap-1 normal-case tracking-normal text-[11px] px-2 py-0.5 rounded border transition ${
                 outputEdited
                     ? 'border-[var(--pinned)] text-[var(--pinned)] bg-[color-mix(in_srgb,var(--pinned)_15%,transparent)]'
                     : 'border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]'}`}
         >
-            <Pencil size={11} /> {outputEdited ? t('routines.ndv.edited', 'Edited') : t('routines.ndv.edit', 'Edit')}
+            <Pencil size={11} /> {outputEdited ? t('automations.ndv.edited', 'Edited') : t('automations.ndv.edit', 'Edit')}
         </button>
     ) : null;
 

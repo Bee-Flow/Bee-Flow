@@ -1,5 +1,5 @@
 /**
- * `definition.runPolicy` — how a routine behaves when it runs (Studio →
+ * `definition.runPolicy` — how an automation behaves when it runs (Studio →
  * Automations handoff 5, Settings › Advanced):
  *
  *   {
@@ -22,9 +22,9 @@
  *                   Wait step, an approval or a form page does not count
  *                   (the runner already extends its deadline for those).
  *   concurrency     'serial' (default): one live run at a time, as before.
- *                   'parallel': a live run that finds the routine busy runs
+ *                   'parallel': a live run that finds the automation busy runs
  *                   alongside instead of waiting or being skipped.
- *   retentionDays   run history for THIS routine is deleted after
+ *   retentionDays   run history for THIS automation is deleted after
  *                   min(platform retention, retentionDays) days
  *                   (jobs/runRetention.js).
  *
@@ -142,14 +142,14 @@ function resolveRunPolicy(definition) {
     };
 }
 
-/** The retry a step gets: its own when it has one, else the routine's default (or null). */
+/** The retry a step gets: its own when it has one, else the automation's default (or null). */
 function stepRetryFor(step, policy) {
     if (step && step.retry) return step.retry;
     const max = policy?.retry?.max || 0;
     return max > 0 ? { max } : null;
 }
 
-/** The run timeout in ms the routine asks for, or null for "use the row / platform default". */
+/** The run timeout in ms the automation asks for, or null for "use the row / platform default". */
 function runTimeoutMsFor(policy) {
     return policy && isInt(policy.maxDurationMin) ? policy.maxDurationMin * 60_000 : null;
 }

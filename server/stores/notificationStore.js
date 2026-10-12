@@ -73,7 +73,7 @@ function createNotificationStore(pool, { tag = 'NotificationStore' } = {}) {
         await initDB();
         const id = crypto.randomUUID();
         // 'cowork' is its own category rather than reusing 'ai_task': the client
-        // labels ai_task "Routine", which is a different feature living in a
+        // labels ai_task "Automation", which is a different feature living in a
         // different part of the app, so a cowork result announced itself under
         // someone else's name.
         // 'learning' is the Learning Center's own voice (review nudges) — added

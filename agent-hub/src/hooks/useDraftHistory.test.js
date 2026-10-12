@@ -5,7 +5,7 @@ import useDraftHistory from './useDraftHistory';
 /**
  * Undo/redo stack for JSON drafts.
  *
- * The `null` baseline case is BFSF-318: a brand-new routine starts with no
+ * The `null` baseline case is BFSF-318: a brand-new automation starts with no
  * definition, so the first commit used to push `null` onto the past stack. One
  * click of Undo then applied `null` as a definition, which the save path PUT to
  * the server, which stored it as `{}` — and that truthy-but-empty object went
@@ -27,6 +27,21 @@ function setup(initialDraft) {
 
 const A = { trigger: { id: 'trg' }, steps: [], edges: [] };
 const B = { trigger: { id: 'trg' }, steps: [{ id: 's1' }], edges: [] };
+
+describe('assistant turn checkpoints', () => {
+    it('undoes a streamed turn in one operation and can redo it', () => {
+        const { result, rerender, apply, draft, sync } = setup(A);
+        draft.current = B;
+        rerender({ currentDraft: B });
+        act(() => result.current.checkpoint(A));
+        expect(apply).not.toHaveBeenCalled();
+        act(() => result.current.undo());
+        expect(apply).toHaveBeenLastCalledWith(A);
+        sync();
+        act(() => result.current.redo());
+        expect(apply).toHaveBeenLastCalledWith(B);
+    });
+});
 
 describe('useDraftHistory — null baseline (BFSF-318)', () => {
     it('does not make the pre-first-edit null state undoable', () => {

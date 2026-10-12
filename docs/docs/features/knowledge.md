@@ -8,7 +8,7 @@ A **Knowledge Base** (KB) is a collection of documents the assistant can search.
 
 ## Two backends
 
-KB ingestion + retrieval can run in either of two backends. Both expose the same `kb_search` tool to agents — choice is invisible to skills and routines.
+KB ingestion + retrieval can run in either of two backends. Both expose the same `kb_search` tool to agents — choice is invisible to skills and automations.
 
 | Backend | Storage | Pipeline | Best for |
 |---|---|---|---|

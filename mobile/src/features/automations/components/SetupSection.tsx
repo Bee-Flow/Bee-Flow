@@ -1,5 +1,5 @@
 /**
- * How the routine is set up: on/off, what starts it, and its flow — each
+ * How the automation is set up: on/off, what starts it, and its flow — each
  * with the place to change it. A schedule has its own quick picker; any other
  * trigger, and the steps, open in the flow editor.
  */
@@ -54,7 +54,7 @@ export function SetupSection({
                 <Divider inset={theme.spacing.lg} />
 
                 <TriggerRow
-                    label={t('routine_editor.section.trigger', 'Trigger')}
+                    label={t('automation_editor.section.trigger', 'Trigger')}
                     value={describeTrigger(trigger)}
                     onEdit={trigger?.kind === 'schedule' ? onEditSchedule : editFlow}
                 />

@@ -113,7 +113,7 @@ function makeRunRowDecorator(deps = {}) {
     /**
      * @param {Array<object>} runs  rows from listRunsScoped (journey heads)
      * @param {{ automation?: object|null, withStarter?: boolean, withApprovals?: boolean }} [opts]
-     *   automation     the routine when the page is one routine's: its
+     *   automation     the automation when the page is one automation's: its
      *                  current definition stands in for a missing snapshot
      *   withStarter    false on the org-wide log, whose rows carry no identity
      *   withApprovals  false where the caller cannot open approvals anyway

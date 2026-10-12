@@ -17,7 +17,7 @@ const { automationForRun, withWorkingSettings } = require('./definitionForRun');
  * Continue a paused run from its awaiting step.
  *
  * `rootStepId` defaults to the one the paused run recorded (`root_step_id`,
- * automation-multi-trigger-2026-09): a routine entered through a SECONDARY
+ * automation-multi-trigger-2026-09): an automation entered through a SECONDARY
  * trigger used to resume from the primary one — the approval decision then
  * re-entered a DAG with no replay data on the primary path and drained to
  * "success" having dispatched nothing. A caller that knows better (the public

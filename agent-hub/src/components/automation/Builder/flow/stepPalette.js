@@ -2,7 +2,7 @@ import {
     Sparkles, Repeat, Code, Bell, Webhook, Clock, MousePointer2, Zap, Bot, AppWindow,
     Pencil, Hourglass, OctagonX, Split, ChevronsDown, Copy, Layers, Sigma, LogOut, Box, Globe,
     ClipboardList, CheckCircle2, ShieldAlert, ShieldCheck, FileText, FileSignature, Table2, StickyNote, BookOpen, ScanText,
-    RectangleHorizontal, Presentation } from 'lucide-react';
+    RectangleHorizontal, Presentation, ListFilter, Rows3 } from 'lucide-react';
 import { STEP_ICON_MAP } from './stepIcons';
 import { nodeLabel, nodeDesc, nodeDefaultLabel } from './nodeDefs';
 import {
@@ -16,7 +16,7 @@ import { shortAppLabel, actionLabelMap, uiDescription } from './appLabels';
 import { OTHER_CATEGORY } from './appsRibbonLayout';
 
 /**
- * Shared step-catalog data + search/grouping for the routines builder's
+ * Shared step-catalog data + search/grouping for the automations builder's
  * "Add step" surfaces. Presentation-free (icons are lucide COMPONENT refs,
  * never rendered here) so it can feed both the top ribbon (AddStepRibbon)
  * and the edge-drop popover (AddStepMenu). Payload shapes are unchanged from
@@ -35,7 +35,7 @@ export const TRIGGERS = [
     { id: 'manual', icon: MousePointer2, label: 'Trigger manually', desc: 'Run from a button click',
       keywords: 'manual click run button start', payload: trigger('manual') },
     // Second on purpose: "someone fills in a form" is the most common
-    // non-manual way a routine starts, and one drag gives a working form.
+    // non-manual way an automation starts, and one drag gives a working form.
     { id: 'form', icon: ClipboardList, label: 'On form submission', desc: 'Publish a form; every submission runs this',
       keywords: 'form submission survey intake contact request public page fields upload trigger start',
       payload: trigger('form') },
@@ -68,10 +68,10 @@ export const SECONDARY_TRIGGERS = TRIGGERS
     .map(t => ({ ...t, payload: { ...t.payload, asSecondaryTrigger: true } }));
 
 /**
- * The trigger list as offered ALONGSIDE the steps, once a routine already has
+ * The trigger list as offered ALONGSIDE the steps, once an automation already has
  * its trigger. Searching "trigger" / "click" / "schedule" in the step picker
  * used to return nothing at all — triggers lived behind a mode flag that no
- * real routine ever hits, and a two-entry ribbon menu was the only way in
+ * real automation ever hits, and a two-entry ribbon menu was the only way in
  * (BFSF-325).
  *
  * The two the validator accepts in `definition.triggers[]` ADD an entry point;
@@ -81,7 +81,7 @@ export const SECONDARY_TRIGGERS = TRIGGERS
  */
 export function additionalTriggerItems() {
     return TRIGGERS.map(t => (CAN_BE_SECONDARY.has(t.payload.triggerKind)
-        ? { ...t, desc: 'Adds another way to start this routine', payload: { ...t.payload, asSecondaryTrigger: true } }
+        ? { ...t, desc: 'Adds another way to start this automation', payload: { ...t.payload, asSecondaryTrigger: true } }
         : { ...t, desc: 'Replaces the current trigger' }));
 }
 
@@ -119,6 +119,8 @@ const stepItem = (kind, id, icon, keywords, payloadExtra = null) => ({
  */
 function localised(it, t) {
     if (!t) return it;
+    // An entry with words of its own (not its type's) names its keys itself.
+    if (it.i18n) return { ...it, label: t(it.i18n.label, it.label), desc: t(it.i18n.desc, it.desc) };
     const kind = it.payload?.kind;
     const canonicalLabel = kind ? nodeLabel(kind) : '';
     if (!canonicalLabel || it.label !== canonicalLabel) return it;
@@ -182,13 +184,32 @@ export const DATA_ITEMS = [
         'presentation presentatie powerpoint pptx deck slides slide pitch keynote impress export download house style huisstijl'),
 ];
 
+// "Filter a list" (BFSF-485 F1). Keeping the matching items of a list is the
+// Condition node working through that list, which nobody found under the name
+// "Condition". This entry drops the SAME node, already in list mode (a
+// `filter` with an empty `arrayRef`, which auto-map binds to the nearest list
+// exactly as it does for an inserted Condition), and the card keeps the one
+// node name. Its words are its own, not the `filter` type's (that type has no
+// palette words: nodeDefs' PALETTE_ABSENT), so it names its i18n keys itself.
+export const FILTER_LIST_ITEM = {
+    id: 'filter_list', icon: ListFilter,
+    keywords: 'filter keep where only matching items rows list drop exclude subset select',
+    label: 'Filter a list',
+    desc: 'Keep only the items of a list that match; the rest stop here.',
+    i18n: { label: 'condition_node.palette.filter_label', desc: 'condition_node.palette.filter_desc' },
+    payload: { kind: 'filter', label: nodeDefaultLabel('filter') },
+};
+
 export const COLLECTION_ITEMS = [
+    FILTER_LIST_ITEM,
+    stepItem('flatten', 'flatten', Rows3,
+        'flatten split out unnest expand explode one row per each inside nested attachments line items lines table rows'),
     stepItem('limit', 'limit', ChevronsDown,
         'limit take first last slice top head tail trim shorten cap fewer'),
     stepItem('dedupe', 'dedupe', Copy,
         'dedupe duplicates unique distinct same repeated identical once'),
     stepItem('aggregate', 'aggregate', Layers,
-        'aggregate collect pluck pick field values flatten column extract list of'),
+        'aggregate collect pluck pick field values column extract list of'),
     stepItem('summarize', 'summarize', Sigma,
         'summarize summarise sum count avg average min max statistics aggregate total add up how many'),
 ];
@@ -237,7 +258,7 @@ export const ROUTE_ITEM = {
  */
 export const NOT_INSIDE_A_LAYER = new Set(['approval', 'form_page', 'return_to_app']);
 
-// A form page is served on the routine's OWN public form URL, so without a
+// A form page is served on the automation's OWN public form URL, so without a
 // form trigger there is no page to put it on — server/automation/validate.js
 // rejects the definition with `form_page.no_form_trigger`. Adding it anyway
 // sells the author a guaranteed validation error.
@@ -247,7 +268,7 @@ export const NOT_INSIDE_A_LAYER = new Set(['approval', 'form_page', 'return_to_a
 // behind it unknowable (BFSF-348). The reason travels with the item, so every
 // surface that renders one can say it.
 const NEEDS_FORM_TRIGGER = new Set(['form_page']);
-export const NEEDS_FORM_TRIGGER_REASON = 'Form steps run on the routine\'s own form link — switch the trigger to "Form" to use this.';
+export const NEEDS_FORM_TRIGGER_REASON = 'Form steps run on the automation\'s own form link — switch the trigger to "Form" to use this.';
 
 /**
  * Stamp `disabled` + `disabledReason` on the items whose preconditions the
@@ -258,7 +279,7 @@ export const NEEDS_FORM_TRIGGER_REASON = 'Form steps run on the routine\'s own f
  * isn't), and undefined/null — "the caller didn't say". It used to default to
  * `false`, so every surface that forgot to pass it (the "Add step here"
  * popover in BuildTab.jsx) told the author a form step was impossible even
- * when a form trigger was sitting right there in the routine. Only a definite
+ * when a form trigger was sitting right there in the automation. Only a definite
  * `false` disables: claiming "you can't have this" is a claim, and a surface
  * that doesn't know had better not make it (BFSF-348).
  *
@@ -312,7 +333,7 @@ export const FLOW_CONTROL_ITEMS = [
     // the consolidation has simply hidden the feature.
     PRIVACY_SHIELD_ITEM,
     // Last: an annotation, not a flow step — it belongs at the end of the
-    // list of things you'd reach for to build the routine itself.
+    // list of things you'd reach for to build the automation itself.
     // After the shield, before the note: the design's Flow control order.
     stepItem('stop_error', 'stop_error', OctagonX,
         'stop error throw halt fail abort guardrail end'),
@@ -358,8 +379,10 @@ export const PEOPLE_ITEMS = [
 export const LOGIC_ITEMS = [...FLOW_CONTROL_ITEMS, ...PEOPLE_ITEMS];
 
 /**
- * "Integrations" (design 1f): reaching outside the routine — a web service,
- * your own code, and (on the Apps tab) every connected app.
+ * Calling a web service: Bee Flow's own way to reach anything with an HTTP
+ * API. It sits in Flow control (the ribbon's Logic tab) with Code, right after
+ * the loop: the two steps where you write the logic yourself. Connected apps
+ * have tabs of their own.
  */
 export const INTEGRATION_ITEMS = [
     stepItem('http_request', 'http_request', Globe,
@@ -610,26 +633,25 @@ export function buildStepGroups({ catalog = null, mode = 'step', layers = [], in
     ];
     const codeItem = codeItemFor(catalog);
     const flowSections = [
-        // The four content sections of the design's Home tab (1f). Every step
-        // has exactly ONE of them — stepPalette.oneHome.test.js proves it.
+        // The content sections of the design's Home tab (1f). Every step has
+        // exactly ONE of them — stepPalette.oneHome.test.js proves it.
         // Beide secties door hetzelfde filter: `return_to_app` zit in Flow
         // control en die sectie ging ONGEFILTERD door, dus de loop-body- en
         // flowlet-editor boden "Back to the app" aan terwijl de validator hem
         // daar hard weigert.
-        { key: 'flow_control', title: t ? t('routines.node.group.flow_control', 'Flow control') : 'Flow control',
-          items: FLOW_CONTROL_ITEMS.filter(it => !inLayer || !NOT_INSIDE_A_LAYER.has(it.payload.kind)).map(it => localised(it, t)) },
-        { key: 'people', title: t ? t('routines.node.group.people', 'People & waiting') : 'People & waiting',
+        // Code and Call a web service sit right after the loop: the logic you
+        // write yourself. codeItemFor, not `flags.code` directly: the Code
+        // entry is also offered DISABLED, with the reason the server gave,
+        // when a code step would be refused at run time.
+        { key: 'flow_control', title: t ? t('automations.node.group.flow_control', 'Flow control') : 'Flow control',
+          items: withOwnLogicAfterLoop(FLOW_CONTROL_ITEMS.filter(it => !inLayer || !NOT_INSIDE_A_LAYER.has(it.payload.kind)), codeItem).map(it => localised(it, t)) },
+        { key: 'people', title: t ? t('automations.node.group.people', 'People & waiting') : 'People & waiting',
           items: PEOPLE_ITEMS.filter(it => !inLayer || !NOT_INSIDE_A_LAYER.has(it.payload.kind)).map(it => localised(gated(it, hasFormTrigger), t)) },
         // ONE data section. "Data" and "Lists" sat next to each other with no
         // line an author could draw between them (BFSF-361), so they are one
         // group, ordered records-first then whole-list operations.
-        { key: 'data', title: t ? t('routines.node.group.data_lists', 'Data & lists') : 'Data & lists',
+        { key: 'data', title: t ? t('automations.node.group.data_lists', 'Data & lists') : 'Data & lists',
           items: [...DATA_ITEMS, ...COLLECTION_ITEMS].map(it => localised(it, t)) },
-        { key: 'integrations', title: t ? t('routines.node.group.integrations', 'Integrations') : 'Integrations',
-          // codeItemFor, not `flags.code` directly: the entry is also offered
-          // DISABLED, with the reason the server gave, when a code step would
-          // be refused at run time.
-          items: [...INTEGRATION_ITEMS, ...(codeItem ? [codeItem] : [])].map(it => localised(it, t)) },
     ];
     const groups = [
         // Browsing has to find triggers too — search alone would still leave a
@@ -652,6 +674,13 @@ export function buildStepGroups({ catalog = null, mode = 'step', layers = [], in
             : { key: 'steps', title: 'Steps', kind: 'sections', sections });
     }
     return groups;
+}
+
+/** Flow control's items with Code (when the catalog offers it) and Call a web service right after the loop. */
+function withOwnLogicAfterLoop(items, codeItem) {
+    const own = [...(codeItem ? [codeItem] : []), ...INTEGRATION_ITEMS];
+    const at = items.findIndex(it => it.payload.kind === 'loop');
+    return at < 0 ? [...items, ...own] : [...items.slice(0, at + 1), ...own, ...items.slice(at + 1)];
 }
 
 /** Look up a catalog item by id from a flat item list (for ribbon inline buttons). */
@@ -683,10 +712,12 @@ export function itemForKey(key, { catalog = null, layers = [] } = {}) {
     if (type === 'trigger') return asResult(additionalTriggerItems().find(t => t.payload.triggerKind === rest));
 
     if (type === 'step') {
-        // The four merged deciding steps keep their recorded usage: whichever
-        // of them a user reached for, the one Filter item is what we
-        // now offer back.
-        if (rest === 'condition' || rest === 'switch' || rest === 'filter' || rest === 'filter_route') return asResult(ROUTE_ITEM);
+        // The merged deciding steps keep their recorded usage: whichever of
+        // them a user reached for, the one Condition item is what we now
+        // offer back, except a `filter`: that is what "Filter a list" drops,
+        // so its usage comes back as that entry (BFSF-485 F1).
+        if (rest === 'filter') return asResult(FILTER_LIST_ITEM);
+        if (rest === 'condition' || rest === 'switch' || rest === 'filter_route') return asResult(ROUTE_ITEM);
         // Parse JSON left the palette; its ability lives in Edit data now, so
         // recorded usage keeps resolving to something addable.
         if (rest === 'parse_json') return asResult(EDIT_DATA_ITEM);
@@ -713,7 +744,7 @@ export function itemForKey(key, { catalog = null, layers = [] } = {}) {
         // there would still add the step. Until that row learns the stamp, not
         // offering the shortcut is the only answer that is true on BOTH
         // surfaces, and the step itself stays visible-with-its-reason in the
-        // palette's Integrations section, which is where the capability and
+        // palette's Flow control section, which is where the capability and
         // the rule behind it are meant to be discoverable (BFSF-348).
         if (rest === 'code') {
             const code = codeItemFor(catalog);
@@ -778,7 +809,7 @@ export function buildSearchResults(query, { catalog = null, mode = 'step', layer
         return rank(candidates, q);
     }
 
-    // Triggers stay findable once the routine has one — they are the first
+    // Triggers stay findable once the automation has one — they are the first
     // thing a user searches for and used to return nothing (BFSF-325). Not
     // inside a flowlet (its trigger IS its input contract) or a loop body /
     // block root, where buildStepFromPayload rejects them anyway.
@@ -788,8 +819,9 @@ export function buildSearchResults(query, { catalog = null, mode = 'step', layer
 
     for (const it of AI_ITEMS) pushItem(localised(it, t), 'AI');
     for (const it of DATA_ITEMS) pushItem(localised(it, t), 'Data');
-    for (const it of INTEGRATION_ITEMS) pushItem(localised(it, t), 'Integrations');
-    for (const it of COLLECTION_ITEMS) pushItem(localised(it, t), 'Collection');
+    for (const it of INTEGRATION_ITEMS) pushItem(localised(it, t), 'Flow');
+    // The browse group is called "Lists"; a search result names the same group.
+    for (const it of COLLECTION_ITEMS) pushItem(localised(it, t), 'Lists');
     for (const it of LOGIC_ITEMS) {
         if (inLayer && NOT_INSIDE_A_LAYER.has(it.payload.kind)) continue;
         pushItem(localised(gated(it, hasFormTrigger), t), 'Flow');

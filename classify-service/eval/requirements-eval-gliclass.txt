@@ -3,6 +3,6 @@
 # own requirements file (gliner2[local] requires transformers<5).
 # The +cpu build exists only on PyTorch's own index; PyPI carries the CUDA one.
 --extra-index-url https://download.pytorch.org/whl/cpu
-torch==2.14.0+cpu
-transformers==5.17.0
+torch==2.14.1+cpu
+transformers==5.18.0
 gliclass==0.1.20

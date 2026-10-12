@@ -95,7 +95,7 @@ export default function OutputFieldsCard({ outputSchema, onChange, readOnly = fa
                             <li key={field.key} className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
                                 <FieldKindIcon kind={kind} size={13} />
                                 <span className="text-[var(--text-tertiary)]">
-                                    {t(KIND_WORD[kind]?.key || 'routines.kind.unknown', KIND_WORD[kind]?.en || 'not seen yet')}
+                                    {t(KIND_WORD[kind]?.key || 'automations.kind.unknown', KIND_WORD[kind]?.en || 'not seen yet')}
                                 </span>
                                 <span className="text-[var(--text-primary)] font-medium truncate">{field.key}</span>
                                 {unit && <span className="text-[var(--text-tertiary)]">· {unit}</span>}

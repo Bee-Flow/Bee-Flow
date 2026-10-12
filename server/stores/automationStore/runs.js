@@ -10,6 +10,7 @@ const { buildUpdate } = require('../lib/sqlBuilder');
 const { redactForPersistence, safeOutputKeysForTool } = require('../../automation/runLogRedaction');
 const { truncatePayload } = require('../../automation/payloadTruncation');
 const { persistableOutput } = require('./runFullOutputs');
+const { persistableBindingWarnings } = require('./bindingWarnings');
 const log = require('../../telemetry/log');
 
 // ── Runs ───────────────────────────────────────────────
@@ -208,7 +209,7 @@ function decodeRunCursor(cursor) {
 /**
  * The JOURNEY join: for a run row `r`, the newest run that shares its root.
  *
- * A routine that pauses on a form or an approval is continued by a CHILD run
+ * An automation that pauses on a form or an approval is continued by a CHILD run
  * (see the automation-run-root-2026-08 migration), so the row a person thinks
  * of as "the run" is really a chain of them. `r` stays the head — it owns the
  * start time, and therefore the keyset cursor — while `j` carries the outcome:
@@ -235,17 +236,17 @@ const JOURNEY_HEAD_ONLY = '(r.root_run_id IS NULL OR r.root_run_id = r.id)';
  * `COALESCE(a.organization_id, u."organizationId")`, exactly as
  * stores/automationStore/forms.js does it, and for exactly the same reason:
  * `automations.organization_id` has only been written since the create/import
- * routes started stamping it (routes/automation/crud.js), so every routine
+ * routes started stamping it (routes/automation/crud.js), so every automation
  * that predates that change still has it NULL. A query narrowed to
  * `a.organization_id = $1` drops all of those without a word — an org-wide
- * runs list that silently loses the organisation's OLDEST routines, which is
+ * runs list that silently loses the organisation's OLDEST automations, which is
  * the "0 that is not a 0" this codebase keeps finding. Any new org-wide read
  * over `automations` copies this JOIN rather than simplifying it.
  */
 // LEFT, and the word is load-bearing. This join exists ONLY to reach
 // `u."organizationId"` for the COALESCE below — `u` appears nowhere else in
 // either query. As an INNER join it also silently decided WHICH runs the
-// organisation is allowed to see: a routine whose owner no longer has a users
+// organisation is allowed to see: an automation whose owner no longer has a users
 // row (deleted account, a tenant cleaned up, a seed that never wrote one) fell
 // out of the org log entirely, even when `a.organization_id` was filled in and
 // matched. Runs vanishing from an audit log is the one thing an audit log may
@@ -269,7 +270,7 @@ const ORG_SCOPE_WHERE = 'COALESCE(a.organization_id, u."organizationId") = $$';
 //
 //   { user: { userId } }  — MY runs. What /_runs/recent and /_runs/facets have
 //                           always answered, and still the only thing they do.
-//   { org:  { orgId } }   — every run of every routine filed under one
+//   { org:  { orgId } }   — every run of every automation filed under one
 //                           organisation. Reachable ONLY through the endpoints
 //                           that prove a manage_automations permission first
 //                           (routes/automation/runs.js).
@@ -297,8 +298,8 @@ function buildRunFilterWhere(scope, filters = {}, startIdx = 1) {
 
     const userId = scope && scope.user ? scope.user.userId : null;
     const orgId = scope && scope.org ? scope.org.orgId : null;
-    // Handoff 5 (sharing): ONE routine's runs, whoever owned it when they ran.
-    // The route proves the caller's role on that routine first
+    // Handoff 5 (sharing): ONE automation's runs, whoever owned it when they ran.
+    // The route proves the caller's role on that automation first
     // (automation/access.js); a run-only caller adds `startedByUserId`.
     const automationScopeId = scope && scope.automation ? scope.automation.automationId : null;
     let joinUsers = false;
@@ -314,8 +315,8 @@ function buildRunFilterWhere(scope, filters = {}, startIdx = 1) {
         clauses.push('FALSE');
     }
     clauses.push(JOURNEY_HEAD_ONLY);
-    // Handoff 5: a routine in the trash is gone from every list, and so are
-    // its runs (kept only for a restore). The one-routine scope is reached
+    // Handoff 5: an automation in the trash is gone from every list, and so are
+    // its runs (kept only for a restore). The one-automation scope is reached
     // through getAutomation, which already answers 404 for a trashed one.
     if ((userId || orgId) && !automationScopeId && !(userId && orgId)) clauses.push('a.deleted_at IS NULL');
     // Everything below NARROWS. Each clause is ANDed onto the scope above, so a
@@ -441,9 +442,9 @@ async function listRunsForOrg(orgId, filters = {}, { viewerUserId = null } = {})
 }
 
 /**
- * One routine's runs (handoff 5 sharing): scoped by the routine, not by who
- * owned it at run time, so a routine handed to a new owner keeps its history.
- * Only for a caller whose role on the routine was checked; pass
+ * One automation's runs (handoff 5 sharing): scoped by the automation, not by who
+ * owned it at run time, so an automation handed to a new owner keeps its history.
+ * Only for a caller whose role on the automation was checked; pass
  * `filters.startedByUserId` for a run-only caller.
  */
 async function listRunsForAutomation(automationId, filters = {}) {
@@ -464,7 +465,7 @@ async function getRecentRunsForUser(userId, { limit = 50 } = {}) {
  * the list (minus the dimension being counted is NOT excluded here — the counts
  * reflect the active filter, n8n-style). Returns
  * { status, triggerKind, automationId, errorClass } maps of value→count, plus
- * `automations`: the per-routine rollup the Studio "Now running · last 24
+ * `automations`: the per-automation rollup the Studio "Now running · last 24
  * hours" strip is drawn from.
  *
  * The rollup rides along in the SAME scan rather than in a second query: the
@@ -509,7 +510,7 @@ async function getRunFacetsScoped(scope, filters = {}) {
                 lastRunAt: null,
                 lastErrorAt: null,
                 // The error CLASS, never the free-text message. The strip is a
-                // one-line-per-routine summary and, in the org scope, a summary
+                // one-line-per-automation summary and, in the org scope, a summary
                 // of somebody ELSE's run: a class ('HttpError', 'Timeout') says
                 // what broke, a message can quote a customer.
                 lastErrorClass: null,
@@ -537,7 +538,7 @@ async function getRunFacetsForUser(userId, filters = {}) {
     return getRunFacetsScoped({ user: { userId } }, filters);
 }
 
-/** One routine's facets (handoff 5): scoped like listRunsForAutomation. */
+/** One automation's facets (handoff 5): scoped like listRunsForAutomation. */
 async function getRunFacetsForAutomation(automationId, filters = {}) {
     return getRunFacetsScoped({ automation: { automationId } }, filters);
 }
@@ -572,9 +573,9 @@ async function getRunCountForUserSince(userId, sinceTs, { mode = 'live' } = {}) 
 }
 
 /**
- * The last few outcomes of each of the caller's OWN routines, newest first.
+ * The last few outcomes of each of the caller's OWN automations, newest first.
  *
- * Studio Home's "Needs attention" asks one question of this: is a routine
+ * Studio Home's "Needs attention" asks one question of this: is an automation
  * failing over and over? Nothing in the schema answers that today and the
  * three columns that look like they do are all something else —
  * `automation_event_subscriptions.consecutive_failures` counts a TRIGGER's
@@ -586,7 +587,7 @@ async function getRunCountForUserSince(userId, sinceTs, { mode = 'live' } = {}) 
  * a row" is a rule, and a rule that lives in SQL cannot be unit-tested in a
  * container with no Postgres. So this returns the window and
  * routes/studio/attentionChecks.js counts the streak as a pure function over
- * plain objects. The window is per routine (`ROW_NUMBER`), so one busy routine
+ * plain objects. The window is per automation (`ROW_NUMBER`), so one busy automation
  * cannot crowd another one out of the answer.
  *
  * Scoping and journey semantics are buildRunFilterWhere's, exactly as
@@ -598,9 +599,9 @@ async function getRunCountForUserSince(userId, sinceTs, { mode = 'live' } = {}) 
  *
  * @param {string} userId
  * @param {object} [opts]
- * @param {number} [opts.perAutomation=10]  window size per routine
+ * @param {number} [opts.perAutomation=10]  window size per automation
  * @param {string|null} [opts.sinceTs]      ISO lower bound on started_at
- * @returns {Promise<Array<{automationId, title, status}>>} newest first per routine
+ * @returns {Promise<Array<{automationId, title, status}>>} newest first per automation
  */
 async function getRecentRunStatusesForUser(userId, { perAutomation = 10, sinceTs = null } = {}) {
     await initDB();
@@ -635,10 +636,10 @@ async function getRecentRunStatusesForUser(userId, { perAutomation = 10, sinceTs
  *
  * That function is scoped to `r.user_id`, and deliberately: the executions
  * table is MY runs. A Solution's card is a different question — a project is a
- * shared workspace, its Content tab already lists every member's routines under
+ * shared workspace, its Content tab already lists every member's automations under
  * one project role, and a tally that counted only the reader's own runs would
  * say "0 today" on a Solution that ran forty times this morning. So this counts
- * every run of every routine filed into the project.
+ * every run of every automation filed into the project.
  *
  * That widening is bounded by the CALLER, not by this query: it counts exactly
  * the project ids it is handed, and the only caller hands it the ids the reader
@@ -698,7 +699,7 @@ async function touchRunHeartbeat(runId) {
 
 /**
  * Active (running / paused-on-a-human) runs for a user. Powers the
- * "● Running" dot in the routine list sidebar and the concurrent-run
+ * "● Running" dot in the automation list sidebar and the concurrent-run
  * guard. Joins to automations so the caller can match by automationId
  * without a second round-trip.
  */
@@ -789,8 +790,16 @@ async function saveRunTokenMap(runId, tokenMap) {
     return rowCount > 0;
 }
 
-async function recordRunStep({ runId, stepId, parentStepId = null, stepType, attempts = 1, status, startedAt, finishedAt, input, output, error, errorClass = null, branchIndex = null, piiSummary = null, secretValues = [], toolName = null, toolsWithheld = null, errorInfo = null }) {
+async function recordRunStep(args) {
     await initDB();
+    return recordRunStepWith(run, args);
+}
+
+/**
+ * recordRunStep's body over an injected `run(sql, params)`, so a test can put
+ * its real SQL against an in-process Postgres without mocking the store's db.
+ */
+async function recordRunStepWith(run, { runId, stepId, parentStepId = null, stepType, attempts = 1, status, startedAt, finishedAt, input, output, error, errorClass = null, branchIndex = null, piiSummary = null, secretValues = [], toolName = null, toolsWithheld = null, errorInfo = null, bindingWarnings = null }) {
     if (!runId || !stepId) {
         // Defensive: NOT NULL columns; skip rather than crash the whole run.
         log.warn(`[AutomationStore] recordRunStep called with null runId/stepId — skipping (runId=${runId}, stepId=${stepId})`);
@@ -850,9 +859,14 @@ async function recordRunStep({ runId, stepId, parentStepId = null, stepType, att
     // params quote the step's settings, so it gets the same pass as `error`.
     const withheldJson = toolsWithheld != null ? JSON.stringify(toolsWithheld) : null;
     const errorInfoJson = errorInfo != null ? JSON.stringify(stripNulDeep(redact(errorInfo))) : null;
+    // The mappings that found nothing while the step ran (bindingWarnings.js):
+    // paths and names, never the data, but a formula's text can quote a
+    // literal, so the same redaction pass as `error`. Null when none missed.
+    const warnings = persistableBindingWarnings(bindingWarnings, { clean: (v) => stripNulDeep(redact(v)) });
+    const warningsJson = warnings ? JSON.stringify(warnings) : null;
     await run(
-        `INSERT INTO automation_run_steps (run_id, step_id, parent_step_id, step_type, attempts, status, started_at, finished_at, input_json, output_json, error, error_class, branch_index, pii_summary, tools_withheld, error_info)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+        `INSERT INTO automation_run_steps (run_id, step_id, parent_step_id, step_type, attempts, status, started_at, finished_at, input_json, output_json, error, error_class, branch_index, pii_summary, tools_withheld, error_info, binding_warnings)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
          ON CONFLICT (run_id, step_id, attempts) DO UPDATE SET
             status = EXCLUDED.status,
             finished_at = EXCLUDED.finished_at,
@@ -872,7 +886,8 @@ async function recordRunStep({ runId, stepId, parentStepId = null, stepType, att
             -- about these (runDag flipping a row to handled_error) must not
             -- erase what the step recorded.
             tools_withheld = COALESCE(EXCLUDED.tools_withheld, automation_run_steps.tools_withheld),
-            error_info = COALESCE(EXCLUDED.error_info, automation_run_steps.error_info)`,
+            error_info = COALESCE(EXCLUDED.error_info, automation_run_steps.error_info),
+            binding_warnings = COALESCE(EXCLUDED.binding_warnings, automation_run_steps.binding_warnings)`,
         [
             runId, stepId, parentStepId || null, stepType, attempts, status,
             startedAt || null, finishedAt || null,
@@ -884,6 +899,7 @@ async function recordRunStep({ runId, stepId, parentStepId = null, stepType, att
             piiJson,
             withheldJson,
             errorInfoJson,
+            warningsJson,
         ],
     );
 }
@@ -965,7 +981,7 @@ async function getLatestRunInChain(runId) {
  * runPartial rebuilds a step's upstream from the last REPLAY_RUN_WINDOW runs.
  * Doing that with getRunSteps() is N+1, and `SELECT *` drags ten runs' worth of
  * input_json across the wire so the seeding can read six columns — on an
- * API-heavy routine that is most of the "several seconds" a single ▶ Execute
+ * API-heavy automation that is most of the "several seconds" a single ▶ Execute
  * costs.
  *
  * NOT a drop-in replacement for getRunSteps: the projection omits input_json
@@ -991,4 +1007,4 @@ async function getRunStepsForRuns(runIds) {
     return rows.map(rowToRunStep);
 }
 
-module.exports = { createRun, getRun, getRunsForAutomation, getRecentRunsForUser, listRunsForUser, listRunsForOrg, listRunsForAutomation, getRunFacetsForUser, getRunFacetsForOrg, getRunFacetsForAutomation, getRunCountForUserSince, getRecentRunStatusesForUser, getRunCountsForProjects, touchRunHeartbeat, getActiveRunsForUser, updateRun, requestCancelRun, recordRunStep, getRunSteps, getRunStepsForRuns, getRunsInChain, getRunStepsForChain, getLatestRunInChain, getRunTokenMap, saveRunTokenMap, encodeRunCursor, decodeRunCursor, buildRunFilterWhere, rowToOrgRunRow, RUN_FACET_AUTOMATIONS_CAP };
+module.exports = { createRun, getRun, getRunsForAutomation, getRecentRunsForUser, listRunsForUser, listRunsForOrg, listRunsForAutomation, getRunFacetsForUser, getRunFacetsForOrg, getRunFacetsForAutomation, getRunCountForUserSince, getRecentRunStatusesForUser, getRunCountsForProjects, touchRunHeartbeat, getActiveRunsForUser, updateRun, requestCancelRun, recordRunStep, recordRunStepWith, getRunSteps, getRunStepsForRuns, getRunsInChain, getRunStepsForChain, getLatestRunInChain, getRunTokenMap, saveRunTokenMap, encodeRunCursor, decodeRunCursor, buildRunFilterWhere, rowToOrgRunRow, RUN_FACET_AUTOMATIONS_CAP };

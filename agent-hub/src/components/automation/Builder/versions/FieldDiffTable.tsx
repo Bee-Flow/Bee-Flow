@@ -26,23 +26,23 @@ const VALUE = 'w-fit max-w-full px-2 py-0.5 rounded-md line-clamp-4 wrap-anywher
 /** Step · Setting · Was (vX) · Becomes (vY), one row per changed setting. */
 export default function FieldDiffTable({ changes, from, to }: Props) {
     const { t } = useTranslation();
-    const nothing = <span className="inline-block py-0.5 text-[var(--text-tertiary)]">{t('routines.versions.diff.nothing', 'nothing')}</span>;
+    const nothing = <span className="inline-block py-0.5 text-[var(--text-tertiary)]">{t('automations.versions.diff.nothing', 'nothing')}</span>;
     return (
         <div role="table" className="@container/fielddiff rounded-[10px] border border-[var(--border-default)] bg-[var(--bg-card)] text-[12px]">
             <div role="row" className={`${COLS} py-2 rounded-t-[10px] bg-[var(--bg-secondary)] font-semibold text-[var(--text-secondary)]`}>
-                <span role="columnheader">{t('routines.versions.diff.step', 'Step')}</span>
-                <span role="columnheader">{t('routines.versions.diff.setting', 'Setting')}</span>
-                <span role="columnheader">{t('routines.versions.diff.was', 'Was (v{version})', { version: from })}</span>
-                <span role="columnheader">{t('routines.versions.diff.becomes', 'Becomes (v{version})', { version: to })}</span>
+                <span role="columnheader">{t('automations.versions.diff.step', 'Step')}</span>
+                <span role="columnheader">{t('automations.versions.diff.setting', 'Setting')}</span>
+                <span role="columnheader">{t('automations.versions.diff.was', 'Was (v{version})', { version: from })}</span>
+                <span role="columnheader">{t('automations.versions.diff.becomes', 'Becomes (v{version})', { version: to })}</span>
             </div>
             {changes.map((c, i) => {
-                // Routine-level rows (runPolicy, description, ...) have no step.
-                const stepText = c.stepId ? c.stepLabel : t('routines.versions.routineRow', 'Routine');
+                // Automation-level rows (runPolicy, description, ...) have no step.
+                const stepText = c.stepId ? c.stepLabel : t('automations.versions.automationRow', 'Automation');
                 const before = formatValue(c.before);
                 const after = formatValue(c.after);
-                const setting = c.change === 'added' ? t('routines.versions.diff.newStep', 'New step')
-                    : c.change === 'removed' ? t('routines.versions.diff.removedStep', 'Step removed')
-                        : c.change === 'moved' ? t('routines.versions.diff.moved', 'Position in the flow')
+                const setting = c.change === 'added' ? t('automations.versions.diff.newStep', 'New step')
+                    : c.change === 'removed' ? t('automations.versions.diff.removedStep', 'Step removed')
+                        : c.change === 'moved' ? t('automations.versions.diff.moved', 'Position in the flow')
                             : settingName(t, c.setting, c.settingLabel);
                 return (
                     <div role="row" key={`${c.stepId}:${c.setting ?? c.change}:${i}`} className={`${COLS} py-2.5 border-t border-[var(--border-default)] items-start`}>

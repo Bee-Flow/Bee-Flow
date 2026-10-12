@@ -10,7 +10,7 @@ import DestinationPicker from './DestinationPicker';
  * The action cards (Meeting Notes artboard 1a, right column).
  *
  * ── WHO SEES A DESTINATION ──────────────────────────────────────────
- * The chip names another object — a routine, a table, a knowledge base — that
+ * The chip names another object — an automation, a table, a knowledge base — that
  * lives in the OWNER's workspace, and a published note is read by colleagues
  * who may have no access to any of the three. So the chip is drawn only when
  * `onSetDestination` is given, which MeetingDetail does for the owner alone.

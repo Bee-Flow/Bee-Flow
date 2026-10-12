@@ -5,7 +5,7 @@
  * mirror's row id is therefore DERIVED, in one of two modes the linker chose
  * in the wizard (`source.identity`):
  *   { mode:'key', keyFieldId }  the value of one column, normalised — a
- *                               routine then sees `F-2026-001` as the id, a
+ *                               automation then sees `F-2026-001` as the id, a
  *                               row keeps its id when rows are sorted or
  *                               inserted above it, and an edit of the key
  *                               column MOVES the row to a new id;
@@ -15,7 +15,7 @@
  *                               available, but an insert above shifts every
  *                               id below it.
  *
- * Ids travel in URL paths, routine bindings and CSV exports, so a key is used
+ * Ids travel in URL paths, automation bindings and CSV exports, so a key is used
  * VERBATIM only when it is plain (`KEY_VERBATIM_RE`: letters, digits, `. _ : -`,
  * ≤ 60 chars, ≤ 64 per queryCompiler.assertRecordId); anything else — spaces,
  * slashes, quotes, accents — becomes `k_<sha256 hex[0:32]>`. Case-sensitive:

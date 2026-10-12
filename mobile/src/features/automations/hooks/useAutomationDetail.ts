@@ -1,5 +1,5 @@
 /**
- * Everything an automation's detail screen watches: the routine, its latest
+ * Everything an automation's detail screen watches: the automation, its latest
  * runs, whether one is running now, and the three things you can do from
  * here — run it, stop it, switch it on or off.
  *
@@ -40,7 +40,7 @@ export function useAutomationDetail(id: string) {
     );
 
     const refresh = useAutomationRefresh(id);
-    // A run that ends also changes this routine's row in the list behind.
+    // A run that ends also changes this automation's row in the list behind.
     const refreshList = useSettledRunRefresh();
     const stream = useRunStream({
         automationId: id,

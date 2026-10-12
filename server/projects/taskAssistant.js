@@ -23,6 +23,7 @@
 
 const crypto = require('crypto');
 const log = require('../telemetry/log');
+const { usageLogFields } = require('../core/providers/usageNormalizer');
 const { HttpError } = require('../core/http/errors');
 const { makeChatShield } = require('./chatShield');
 const { resolveChatModel } = require('./chatModel');
@@ -165,8 +166,7 @@ function makeTaskAssistant(deps = {}) {
                 const u = result && result.usage ? result.usage : {};
                 await logUsage({
                     user_id: userId, organization_id: orgId || null, agent_name: 'project-task-ai', agent_type: 'chat', model: model.modelId,
-                    prompt_tokens: u.prompt_tokens ?? u.promptTokens ?? 0, completion_tokens: u.completion_tokens ?? u.completionTokens ?? 0,
-                    total_tokens: u.total_tokens ?? u.totalTokens ?? 0, source: `project_task_ai_${kind}`, duration_ms: Date.now() - started,
+                    ...usageLogFields(u), source: `project_task_ai_${kind}`, duration_ms: Date.now() - started,
                     conversation_id: project.id,
                 });
             } catch (err) { log.warn(`[ProjectTaskAI] usage not logged: ${err && err.message}`); }

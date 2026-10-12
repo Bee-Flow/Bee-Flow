@@ -1,4 +1,5 @@
 import React from 'react';
+import useTranslation from '../../../../../hooks/useTranslation';
 import { TextField, TextAreaField, IconField } from './panels/kit';
 import { SCREEN_DEFAULTS, SCREEN_ENUMS, THEME_ENUMS } from './styleKnobMeta';
 import ColorPicker from '../../../../shared/ColorPicker';
@@ -24,47 +25,64 @@ import DesignPresetGallery from './DesignPresetGallery';
  * looking at". No new selection semantics, no reducer change.
  */
 
-const ENUM_LABELS = {
-    none: 'None', sm: 'S', md: 'M', lg: 'L', xl: 'XL',
-    compact: 'Compact', comfortable: 'Comfy', spacious: 'Spacious',
-    light: 'Light', dark: 'Dark', auto: 'Auto',
+const enumLabels = (t) => ({
+    none: t('studio_apps_insp.theme.enum_none', 'None'), sm: 'S', md: 'M', lg: 'L', xl: 'XL',
+    compact: t('studio_apps_insp.theme.enum_compact', 'Compact'),
+    comfortable: t('studio_apps_insp.theme.enum_comfortable', 'Comfy'),
+    spacious: t('studio_apps_insp.theme.enum_spacious', 'Spacious'),
+    light: t('studio_apps_insp.theme.enum_light', 'Light'),
+    dark: t('studio_apps_insp.theme.enum_dark', 'Dark'),
+    auto: t('studio_apps_insp.theme.enum_auto', 'Auto'),
     // App Design v2
-    hairline: 'Outline', flat: 'Flat', soft: 'Soft', elevated: 'Raised',
-    subtle: 'Subtle', full: 'Full',
-    classic: 'Classic', brand: 'Brand',
-};
+    hairline: t('studio_apps_insp.theme.enum_hairline', 'Outline'),
+    flat: t('studio_apps_insp.theme.enum_flat', 'Flat'),
+    soft: t('studio_apps_insp.theme.enum_soft', 'Soft'),
+    elevated: t('studio_apps_insp.theme.enum_elevated', 'Raised'),
+    subtle: t('studio_apps_insp.theme.enum_subtle', 'Subtle'),
+    full: t('studio_apps_insp.theme.enum_full', 'Full'),
+    classic: t('studio_apps_insp.theme.enum_classic', 'Classic'),
+    brand: t('studio_apps_insp.theme.enum_brand', 'Brand'),
+});
 
-const DESIGN_FIELDS = [
-    { key: 'surface', label: 'Surfaces', hint: 'How cards, stats and grids sit on the page.' },
-    { key: 'motion', label: 'Motion', hint: 'Animation level. Viewers who ask for reduced motion always get none.' },
-    { key: 'chartPalette', label: 'Chart colours', hint: 'Brand derives chart colours from the primary colour.' },
+const designFields = (t) => [
+    { key: 'surface', label: t('studio_apps_insp.theme.design_surface', 'Surfaces'), hint: t('studio_apps_insp.theme.design_surface_hint', 'How cards, stats and grids sit on the page.') },
+    { key: 'motion', label: t('studio_apps_insp.theme.design_motion', 'Motion'), hint: t('studio_apps_insp.theme.design_motion_hint', 'Animation level. Viewers who ask for reduced motion always get none.') },
+    { key: 'chartPalette', label: t('studio_apps_insp.theme.design_chart_colours', 'Chart colours'), hint: t('studio_apps_insp.theme.design_chart_colours_hint', 'Brand derives chart colours from the primary colour.') },
 ];
 
 // Typeface pairings. Self-hosted families load from our own server — no
 // request to Google — which is worth saying out loud in a privacy product.
-const FONT_LABELS = {
-    system: 'System', inter: 'Inter', satoshi: 'Satoshi (local)',
-    'general-sans': 'General Sans (local)', cabinet: 'Cabinet Grotesk (local)',
+const fontLabels = (t) => ({
+    system: t('studio_apps_insp.theme.font_system', 'System'), inter: 'Inter',
+    satoshi: t('studio_apps_insp.theme.font_satoshi', 'Satoshi (local)'),
+    'general-sans': t('studio_apps_insp.theme.font_general_sans', 'General Sans (local)'),
+    cabinet: t('studio_apps_insp.theme.font_cabinet', 'Cabinet Grotesk (local)'),
     geist: 'Geist', plex: 'IBM Plex Sans', poppins: 'Poppins',
-};
+});
 
 // Light grounds for the canvas picker — the platform's own off-white first,
 // then warm/cool paper tones. A brand yellow is a custom hex away.
 const CANVAS_PRESETS = ['#fafafa', '#f5f5f4', '#fef9c3', '#fff7ed', '#ecfdf5', '#eff6ff'];
 
-const WIDTH_LABELS = { narrow: 'S', medium: 'M', wide: 'L', full: 'Full' };
-const REFRESH_LABELS = { 0: 'Off', 15: '15s', 30: '30s', 60: '1m', 300: '5m' };
-const NAV_STYLE_LABELS = { tabs: 'Tabs', sidebar: 'Sidebar', mega: 'Mega', rail: 'Rail' };
+const widthLabels = (t) => ({ narrow: 'S', medium: 'M', wide: 'L', full: t('studio_apps_insp.theme.enum_full', 'Full') });
+const refreshLabels = (t) => ({ 0: t('studio_apps_insp.theme.refresh_off', 'Off'), 15: '15s', 30: '30s', 60: '1m', 300: '5m' });
+const navStyleLabels = (t) => ({
+    tabs: t('studio_apps_insp.theme.nav_tabs', 'Tabs'),
+    sidebar: t('studio_apps_insp.theme.nav_sidebar', 'Sidebar'),
+    mega: t('studio_apps_insp.theme.nav_mega', 'Mega'),
+    rail: t('studio_apps_insp.theme.nav_rail', 'Rail'),
+});
 
-function options(values) {
-    return values.map((v) => ({ value: v, label: ENUM_LABELS[v] || v }));
+function options(t, values) {
+    const labels = enumLabels(t);
+    return values.map((v) => ({ value: v, label: labels[v] || v }));
 }
 
-const THEME_FIELDS = [
-    { key: 'radius', label: 'Corners' },
-    { key: 'density', label: 'Density' },
-    { key: 'fontScale', label: 'Text size' },
-    { key: 'appearance', label: 'Appearance' },
+const themeFields = (t) => [
+    { key: 'radius', label: t('studio_apps_insp.theme.field_corners', 'Corners') },
+    { key: 'density', label: t('studio_apps_insp.theme.field_density', 'Density') },
+    { key: 'fontScale', label: t('studio_apps_insp.theme.field_text_size', 'Text size') },
+    { key: 'appearance', label: t('studio_apps_insp.theme.field_appearance', 'Appearance') },
 ];
 
 // Mirror of THEME_SPEC defaults (componentSpecs.js, authoritative).
@@ -77,6 +95,7 @@ const THEME_DEFAULTS = { radius: 'md', density: 'comfortable', fontScale: 'md', 
  * drops it), so a theme that never chose stays byte-identical.
  */
 function OptionalColorField({ label, hint, value, fallback, presets, onChange, disabled, ariaLabel }) {
+    const { t } = useTranslation();
     const on = typeof value === 'string' && value.length > 0;
     return (
         <FormField label={label} hint={hint}>
@@ -85,7 +104,7 @@ function OptionalColorField({ label, hint, value, fallback, presets, onChange, d
                     checked={on}
                     onChange={(next) => onChange(next ? fallback : null)}
                     disabled={disabled}
-                    ariaLabel={`${ariaLabel}: use a separate colour`}
+                    ariaLabel={t('studio_apps_insp.theme.separate_colour_aria', '{label}: use a separate colour', { label: ariaLabel })}
                     size="sm"
                 />
                 {on ? (
@@ -118,52 +137,53 @@ function SectionTitle({ children }) {
  * ThemePanel purely for length — it is only ever rendered there.
  */
 function ScreenSettings({ screen, onCommit: commitScreen, disabled }) {
+    const { t } = useTranslation();
     if (!screen) return null;
     return (
         <div data-testid="screen-settings">
-            <SectionTitle>This screen</SectionTitle>
+            <SectionTitle>{t('studio_apps_insp.theme.this_screen', 'This screen')}</SectionTitle>
             <div className="flex flex-col gap-4">
-                <FormField label="Width" hint="How much of the window the screen may use.">
+                <FormField label={t('studio_apps_insp.theme.screen_width', 'Width')} hint={t('studio_apps_insp.theme.screen_width_hint', 'How much of the window the screen may use.')}>
                     <SegmentedControl
                         value={screen.maxWidth ?? SCREEN_DEFAULTS.maxWidth}
                         onChange={(v) => commitScreen({ maxWidth: v })}
-                        options={SCREEN_ENUMS.maxWidth.map((v) => ({ value: v, label: WIDTH_LABELS[v] }))}
+                        options={SCREEN_ENUMS.maxWidth.map((v) => ({ value: v, label: widthLabels(t)[v] }))}
                         size="sm"
                         fullWidth
                         disabled={disabled}
-                        ariaLabel="Screen width"
+                        ariaLabel={t('studio_apps_insp.theme.screen_width_aria', 'Screen width')}
                     />
                 </FormField>
-                <FormField label="Auto-refresh" hint="Reload this screen's data in the background.">
+                <FormField label={t('studio_apps_insp.theme.auto_refresh', 'Auto-refresh')} hint={t('studio_apps_insp.theme.auto_refresh_hint', "Reload this screen's data in the background.")}>
                     <SegmentedControl
                         value={screen.refreshInterval ?? SCREEN_DEFAULTS.refreshInterval}
                         onChange={(v) => commitScreen({ refreshInterval: Number(v) })}
-                        options={SCREEN_ENUMS.refreshInterval.map((v) => ({ value: v, label: REFRESH_LABELS[v] }))}
+                        options={SCREEN_ENUMS.refreshInterval.map((v) => ({ value: v, label: refreshLabels(t)[v] }))}
                         size="sm"
                         fullWidth
                         disabled={disabled}
-                        ariaLabel="Auto-refresh interval"
+                        ariaLabel={t('studio_apps_insp.theme.auto_refresh_aria', 'Auto-refresh interval')}
                     />
                 </FormField>
                 <IconField
-                    label="Screen icon"
+                    label={t('studio_apps_insp.theme.screen_icon', 'Screen icon')}
                     value={screen.icon}
                     onChange={(v) => commitScreen({ icon: v })}
                     disabled={disabled}
                 />
                 <TextField
-                    label="Menu description"
+                    label={t('studio_apps_insp.theme.menu_description', 'Menu description')}
                     value={screen.description || ''}
                     onChange={(v) => commitScreen({ description: v && v.trim() ? v.trim() : null })}
-                    placeholder="Triage what came in today"
+                    placeholder={t('studio_apps_insp.theme.menu_description_placeholder', 'Triage what came in today')}
                     disabled={disabled}
                 />
-                <FormField label="Show in navigation">
+                <FormField label={t('studio_apps_insp.theme.show_in_nav', 'Show in navigation')}>
                     <Toggle
                         checked={screen.showInNav !== false}
                         onChange={(v) => commitScreen({ showInNav: v })}
                         disabled={disabled}
-                        ariaLabel="Show this screen in navigation"
+                        ariaLabel={t('studio_apps_insp.theme.show_in_nav_aria', 'Show this screen in navigation')}
                     />
                 </FormField>
             </div>
@@ -172,6 +192,7 @@ function ScreenSettings({ screen, onCommit: commitScreen, disabled }) {
 }
 
 export default function ThemePanel({ definition, onCommit, disabled = false, screenId = null }) {
+    const { t } = useTranslation();
     const theme = definition?.theme || {};
     const meta = definition?.meta || {};
     const design = definition?.design || {};
@@ -217,7 +238,7 @@ export default function ThemePanel({ definition, onCommit, disabled = false, scr
             <ScreenSettings screen={screen} onCommit={commitScreen} disabled={disabled} />
 
             <div>
-                <SectionTitle>Look</SectionTitle>
+                <SectionTitle>{t('studio_apps_insp.theme.look', 'Look')}</SectionTitle>
                 <div className="flex flex-col gap-3">
                     <DesignPresetGallery
                         activePreset={design.preset || null}
@@ -226,16 +247,16 @@ export default function ThemePanel({ definition, onCommit, disabled = false, scr
                     />
                     <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
                         {design.preset && design.preset !== 'custom'
-                            ? 'A preset sets colour, corners, density, typeface, surfaces, motion and navigation in one go. Adjust anything below — it becomes your own look.'
-                            : 'Pick a starting point, then adjust anything below.'}
+                            ? t('studio_apps_insp.theme.look_preset_active', 'A preset sets colour, corners, density, typeface, surfaces, motion and navigation in one go. Adjust anything below — it becomes your own look.')
+                            : t('studio_apps_insp.theme.look_pick_start', 'Pick a starting point, then adjust anything below.')}
                     </p>
                 </div>
             </div>
 
             <div>
-                <SectionTitle>App theme</SectionTitle>
+                <SectionTitle>{t('studio_apps_insp.theme.app_theme', 'App theme')}</SectionTitle>
                 <div className="flex flex-col gap-4">
-                    <FormField label="Primary color">
+                    <FormField label={t('studio_apps_insp.theme.primary_color', 'Primary color')}>
                         <ColorPicker
                             value={theme.primary || APP_COLOR_PRESETS[0]}
                             onChange={(hex) => commitTheme({ primary: hex })}
@@ -243,35 +264,35 @@ export default function ThemePanel({ definition, onCommit, disabled = false, scr
                             allowCustom
                             disabled={disabled}
                             swatchSize={24}
-                            ariaLabel="Theme primary color"
+                            ariaLabel={t('studio_apps_insp.theme.primary_color_aria', 'Theme primary color')}
                         />
                     </FormField>
                     <OptionalColorField
-                        label="Button colour"
-                        hint="Primary buttons and form submits. Off = the primary colour."
+                        label={t('studio_apps_insp.theme.button_colour', 'Button colour')}
+                        hint={t('studio_apps_insp.theme.button_colour_hint', 'Primary buttons and form submits. Off = the primary colour.')}
                         value={theme.accent || null}
                         fallback={theme.primary || APP_COLOR_PRESETS[0]}
                         presets={APP_COLOR_PRESETS}
                         onChange={(hex) => commitTheme({ accent: hex })}
                         disabled={disabled}
-                        ariaLabel="Theme button colour"
+                        ariaLabel={t('studio_apps_insp.theme.button_colour_aria', 'Theme button colour')}
                     />
                     <OptionalColorField
-                        label="Page background"
-                        hint="The ground behind the sections. Off = the platform's own light or dark ground."
+                        label={t('studio_apps_insp.theme.page_background', 'Page background')}
+                        hint={t('studio_apps_insp.theme.page_background_hint', "The ground behind the sections. Off = the platform's own light or dark ground.")}
                         value={theme.canvas || null}
                         fallback={CANVAS_PRESETS[0]}
                         presets={CANVAS_PRESETS}
                         onChange={(hex) => commitTheme({ canvas: hex })}
                         disabled={disabled}
-                        ariaLabel="Theme page background"
+                        ariaLabel={t('studio_apps_insp.theme.page_background_aria', 'Theme page background')}
                     />
-                    {THEME_FIELDS.map(({ key, label }) => (
+                    {themeFields(t).map(({ key, label }) => (
                         <FormField key={key} label={label}>
                             <SegmentedControl
                                 value={theme[key] ?? THEME_DEFAULTS[key]}
                                 onChange={(v) => commitTheme({ [key]: v })}
-                                options={options(THEME_ENUMS[key])}
+                                options={options(t, THEME_ENUMS[key])}
                                 size="sm"
                                 fullWidth
                                 disabled={disabled}
@@ -283,28 +304,28 @@ export default function ThemePanel({ definition, onCommit, disabled = false, scr
             </div>
 
             <div>
-                <SectionTitle>Design</SectionTitle>
+                <SectionTitle>{t('studio_apps_insp.theme.design', 'Design')}</SectionTitle>
                 <div className="flex flex-col gap-4">
-                    <FormField label="Typeface" hint="“(local)” fonts are served from Bee Flow itself — no request leaves the browser.">
+                    <FormField label={t('studio_apps_insp.theme.typeface', 'Typeface')} hint={t('studio_apps_insp.theme.typeface_hint', '“(local)” fonts are served from Bee Flow itself — no request leaves the browser.')}>
                         <select
                             value={design.font ?? DESIGN_DEFAULTS.font}
                             onChange={(e) => commitDesign({ font: e.target.value })}
                             disabled={disabled}
-                            aria-label="Typeface"
+                            aria-label={t('studio_apps_insp.theme.typeface', 'Typeface')}
                             className="w-full border px-2 py-1.5 text-sm outline-none focus:border-[var(--app-primary)] disabled:opacity-50"
                             style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', borderRadius: '6px', color: 'var(--text-primary)' }}
                         >
                             {DESIGN_ENUMS.font.map((v) => (
-                                <option key={v} value={v}>{FONT_LABELS[v] || v}</option>
+                                <option key={v} value={v}>{fontLabels(t)[v] || v}</option>
                             ))}
                         </select>
                     </FormField>
-                    {DESIGN_FIELDS.map(({ key, label, hint }) => (
+                    {designFields(t).map(({ key, label, hint }) => (
                         <FormField key={key} label={label} hint={hint}>
                             <SegmentedControl
                                 value={design[key] ?? DESIGN_DEFAULTS[key]}
                                 onChange={(v) => commitDesign({ [key]: v })}
-                                options={options(DESIGN_ENUMS[key])}
+                                options={options(t, DESIGN_ENUMS[key])}
                                 size="sm"
                                 fullWidth
                                 disabled={disabled}
@@ -313,55 +334,55 @@ export default function ThemePanel({ definition, onCommit, disabled = false, scr
                         </FormField>
                     ))}
                     <TextField
-                        label="Logo URL"
+                        label={t('studio_apps_insp.theme.logo_url', 'Logo URL')}
                         value={design.logoUrl || ''}
                         onChange={(v) => commitDesign({ logoUrl: v && v.trim() ? v.trim() : null })}
-                        placeholder="https://…"
+                        placeholder={t('studio_apps_insp.theme.url_placeholder', 'https://…')}
                         disabled={disabled}
                     />
                 </div>
             </div>
 
             <div>
-                <SectionTitle>Navigation</SectionTitle>
+                <SectionTitle>{t('studio_apps_insp.theme.navigation', 'Navigation')}</SectionTitle>
                 <div className="flex flex-col gap-4">
                     <FormField
-                        label="Style"
-                        hint="Tabs along the top, a sidebar or an icon rail on the left, or Mega — a top bar whose groups open a panel with a description per screen. Group screens via the screen strip's menu; Mega needs at least one group."
+                        label={t('studio_apps_insp.theme.nav_style', 'Style')}
+                        hint={t('studio_apps_insp.theme.nav_style_hint', "Tabs along the top, a sidebar or an icon rail on the left, or Mega — a top bar whose groups open a panel with a description per screen. Group screens via the screen strip's menu; Mega needs at least one group.")}
                     >
                         <SegmentedControl
                             value={NAV_STYLES.includes(definition?.nav?.style) ? definition.nav.style : NAV_DEFAULT_STYLE}
                             onChange={(v) => commitNav({ style: v })}
-                            options={NAV_STYLES.map((v) => ({ value: v, label: NAV_STYLE_LABELS[v] || v }))}
+                            options={NAV_STYLES.map((v) => ({ value: v, label: navStyleLabels(t)[v] || v }))}
                             size="sm"
                             fullWidth
                             disabled={disabled}
-                            ariaLabel="Navigation style"
+                            ariaLabel={t('studio_apps_insp.theme.nav_style_aria', 'Navigation style')}
                         />
                     </FormField>
                 </div>
             </div>
 
             <div>
-                <SectionTitle>App</SectionTitle>
+                <SectionTitle>{t('studio_apps_insp.theme.app', 'App')}</SectionTitle>
                 <div className="flex flex-col gap-4">
                     <TextField
-                        label="Name"
+                        label={t('studio_apps_insp.theme.name', 'Name')}
                         value={meta.name}
                         onChange={(v) => commitMeta({ name: v })}
-                        placeholder="Untitled app"
+                        placeholder={t('studio_apps_insp.theme.name_placeholder', 'Untitled app')}
                         disabled={disabled}
                     />
                     <TextAreaField
-                        label="Description"
+                        label={t('studio_apps_insp.theme.description', 'Description')}
                         value={meta.description}
                         onChange={(v) => commitMeta({ description: v })}
-                        placeholder="What does this app do?"
+                        placeholder={t('studio_apps_insp.theme.description_placeholder', 'What does this app do?')}
                         rows={3}
                         disabled={disabled}
                     />
                     <IconField
-                        label="Icon"
+                        label={t('studio_apps_insp.theme.icon', 'Icon')}
                         value={meta.icon}
                         onChange={(v) => commitMeta({ icon: v })}
                         disabled={disabled}
@@ -391,6 +412,7 @@ export default function ThemePanel({ definition, onCommit, disabled = false, scr
  * an app that browses on a viewer's behalf.
  */
 function AiBrowsingSettings({ value, onCommit, disabled }) {
+    const { t } = useTranslation();
     const enabled = value?.enabled === true;
     const domains = Array.isArray(value?.allowedDomains) ? value.allowedDomains : [];
     const [draft, setDraft] = React.useState(domains.join('\n'));
@@ -407,24 +429,22 @@ function AiBrowsingSettings({ value, onCommit, disabled }) {
 
     return (
         <div>
-            <SectionTitle>AI browsing</SectionTitle>
+            <SectionTitle>{t('studio_apps_insp.theme.ai_browsing', 'AI browsing')}</SectionTitle>
             <div className="flex flex-col gap-3">
                 <Toggle
-                    label="Let this app browse the web"
+                    label={t('studio_apps_insp.theme.ai_browsing_toggle', 'Let this app browse the web')}
                     checked={enabled}
                     onChange={(v) => onCommit({ enabled: v })}
                     disabled={disabled}
                     size="sm"
                 />
                 <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                    An AI browsing step opens a real browser as you, and viewers watch it work.
-                    Only you can switch this on — the app builder cannot. Your organisation can
-                    revoke it at any time by turning off the Browse Web integration.
+                    {t('studio_apps_insp.theme.ai_browsing_explainer', 'An AI browsing step opens a real browser as you, and viewers watch it work. Only you can switch this on — the app builder cannot. Your organisation can revoke it at any time by turning off the Browse Web integration.')}
                 </p>
                 {enabled ? (
                     <FormField
-                        label="Sites it may open"
-                        hint="One per line. Subdomains are included. Leave empty to allow any public site — rarely what you want."
+                        label={t('studio_apps_insp.theme.sites_label', 'Sites it may open')}
+                        hint={t('studio_apps_insp.theme.sites_hint', 'One per line. Subdomains are included. Leave empty to allow any public site — rarely what you want.')}
                     >
                         <textarea
                             className="w-full rounded-lg text-sm p-2 outline-none focus:ring-2"
@@ -440,7 +460,7 @@ function AiBrowsingSettings({ value, onCommit, disabled }) {
                             onBlur={commitDomains}
                             placeholder={'nhs.uk\nwho.int'}
                             disabled={disabled}
-                            aria-label="Sites it may open"
+                            aria-label={t('studio_apps_insp.theme.sites_label', 'Sites it may open')}
                         />
                     </FormField>
                 ) : null}

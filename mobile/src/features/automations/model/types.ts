@@ -65,7 +65,7 @@ export interface AutomationStepDef {
 
 export interface AutomationDefinition {
     trigger?: AutomationTrigger | null;
-    /** Extra triggers on a multi-trigger routine (crud.multiTrigger.test.js). */
+    /** Extra triggers on a multi-trigger automation (crud.multiTrigger.test.js). */
     triggers?: AutomationTrigger[];
     steps?: AutomationStepDef[];
     edges?: unknown[];
@@ -101,11 +101,11 @@ export interface Automation {
     icon?: string | null;
     createdAt: string | null;
     updatedAt: string | null;
-    // Handoff 5, the live split (rowMappers.js liveFields): once a routine has
+    // Handoff 5, the live split (rowMappers.js liveFields): once an automation has
     // gone live, a save changes only its working copy and runs keep executing
     // the live version until POST /:id/publish. A server from before the
     // split sends none of these, so each stays absent (undefined) there;
-    // `liveVersion: null` is a server WITH the split and a routine never live.
+    // `liveVersion: null` is a server WITH the split and an automation never live.
     /** The version runs execute; null while never live. */
     liveVersion?: number | null;
     /** When that version went live. */
@@ -260,7 +260,7 @@ export interface CreateAutomationResult {
 
 /**
  * PUT /api/automation/:id — UpdateAutomationBody in routes/automation/crud.js
- * (strict: any other key is a 400). `folderId: null` moves a routine back to
+ * (strict: any other key is a 400). `folderId: null` moves an automation back to
  * the top level.
  */
 export interface AutomationPatch {
@@ -289,7 +289,7 @@ export interface AutomationCounts {
 }
 
 /**
- * One app button that starts this routine (automationUsageStore.mapRow plus
+ * One app button that starts this automation (automationUsageStore.mapRow plus
  * the route's `canOpen`). `canOpen` is the server's answer to "may this viewer
  * open the app's editor" — never derived here.
  */

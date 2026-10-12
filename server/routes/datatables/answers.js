@@ -42,7 +42,7 @@ function requireAnswersTable(req, res, next) {
     next();
 }
 
-/** The routine behind an answers table, as the dashboard names it. */
+/** The automation behind an answers table, as the dashboard names it. */
 async function formOf(req) {
     const automationId = req.datatable.source?.automationId || null;
     if (!automationId) return null;
@@ -138,7 +138,7 @@ function register(router) {
                 const next = stored.filter(f => f.id !== req.params.fieldId);
                 const breaking = await breakingColumnUsage(req.datatable.id, stored, next);
                 if (breaking.length && !confirmedBreaking(req)) {
-                    return res.status(409).json({ error: 'Routines still use the column you are removing', code: 'breaking_change', breaking });
+                    return res.status(409).json({ error: 'Automations still use the column you are removing', code: 'breaking_change', breaking });
                 }
                 const formAnswers = require('../../automation/formAnswers');
                 const out = await formAnswers.deleteRetiredColumn(req.datatable, req.datatableScope, req.params.fieldId);

@@ -60,27 +60,36 @@ export function segmentForSection(section) {
     return app ? app.urlSegment : section;
 }
 
-// Parse /app/studio/{section}/{id?}/{sub?}/{subId?} → { section, id?, sub?, subId?, routineKind? }
+// Parse /app/studio/{section}/{id?}/{sub?}/{subId?} → { section, id?, sub?, subId?, automationKind? }
 // 'routines' is the canonical URL slug; 'ai-tasks' is accepted for backward compat.
 //
 // The FOURTH segment (`subId`) exists for a screen nested inside a tab:
 // Knowledge uses `/studio/knowledge/<kb>/sources/<sourceId>`, so "these two
-// files were skipped" is a link somebody can send. Routines already consumed
+// files were skipped" is a link somebody can send. Automations already consumed
 // the same slot for a reusable step's flowlet, which is why the reserved
 // "steps" branch below shifts everything one segment along.
 export function parseStudioUrl(pathname) {
     // Legacy /app/webpages[/<id>] paths route into Studio's Webpages section.
     const wp = pathname.match(/^\/app\/webpages(?:\/([^/]+))?/);
-    if (wp) return { section: 'webpages', id: wp[1] || null, sub: null, subId: null, routineKind: null };
+    if (wp) return { section: 'webpages', id: wp[1] || null, sub: null, subId: null, automationKind: null };
+    // Legacy /app/notebooks[/<id>] paths: a notebook is a document type, so they
+    // land in Documents, on that notebook (`notebook/<id>`, see notebookRef).
+    const nb = pathname.match(/^\/app\/notebooks(?:\/([^/]+))?/);
+    if (nb) return { section: 'documents', id: nb[1] ? 'notebook' : null, sub: nb[1] || null, subId: null, automationKind: null };
     // Legacy /app/meeting-notes[/<id>] paths route into Studio's Meeting Notes section.
     const mn = pathname.match(/^\/app\/meeting-notes(?:\/([^/]+))?/);
-    if (mn) return { section: 'meetingNotes', id: mn[1] || null, sub: null, subId: null, routineKind: null };
+    if (mn) return { section: 'meetingNotes', id: mn[1] || null, sub: null, subId: null, automationKind: null };
+    // Legacy top-level /app/automations, /app/routines and /app/ai-tasks
+    // [/<id>]: the old standalone page. Automations live in Studio, so these
+    // open that section, on the automation the path names.
+    const au = pathname.match(/^\/app\/(?:automations|routines|ai-tasks)(?:\/([^/]+))?/);
+    if (au) return { section: 'aiTasks', id: au[1] || null, sub: null, subId: null, automationKind: null };
     const m = pathname.match(/^\/app\/studio(?:\/([^/]+))?(?:\/([^/]+))?(?:\/([^/]+))?(?:\/([^/]+))?(?:\/([^/]+))?/);
     // No segment → Start (sectionFromRaw draws the same line for the same
     // reason); an unknown one still falls back to Agents inside it.
     const seg = m?.[1] || STUDIO_START.urlSegment;
     let id = m?.[2] || null;
-    // Third path segment — Routines uses it for a flowlet (layer) key,
+    // Third path segment — Automations uses it for a flowlet (layer) key,
     // Knowledge for the open tab.
     let sub = m?.[3] || null;
     // Fourth — a thing inside that tab (Knowledge: the open source).
@@ -89,22 +98,22 @@ export function parseStudioUrl(pathname) {
     // The literal "steps" id segment is reserved (no automation can use it).
     // 'routines' / 'ai-tasks' are the slugs this tab used before it was named
     // after the one thing it holds; both still parse.
-    let routineKind = null;
+    let automationKind = null;
     if ((seg === 'automations' || seg === 'routines' || seg === 'ai-tasks') && id === 'steps') {
-        routineKind = 'step';
+        automationKind = 'step';
         id = m?.[3] || null;
         sub = m?.[4] || null;
         subId = m?.[5] || null;
     }
     const section = sectionFromRaw(seg);
-    return { section, id, sub, subId, routineKind };
+    return { section, id, sub, subId, automationKind };
 }
 
 // ── Query-string state: ?view=<view>&run=<runId>&step=<stepId> ─────────────
 // The builder's open VIEW, open RUN and selected run STEP live in the query
 // string, so a run — and the step inside it — can be bookmarked, refreshed,
 // pasted to a colleague, and re-opened by Back/Forward. parseStudioUrl's
-// return shape stays untouched: path = which routine, query = what of it is
+// return shape stays untouched: path = which automation, query = what of it is
 // open.
 //
 // URL word is `runs` (user-facing); the builder tab id stays `history`
@@ -125,7 +134,7 @@ export function parseStudioQuery(search) {
 /**
  * Build the query-string suffix for a builder state. Omits nulls, omits
  * `view` when it is the default Editor ('build'), and returns '' when
- * nothing needs saying — so plain routine URLs stay exactly as they were.
+ * nothing needs saying — so plain automation URLs stay exactly as they were.
  */
 export function buildStudioSearch({ view = null, runId = null, stepId = null, from = null } = {}) {
     const q = new URLSearchParams();
@@ -183,9 +192,9 @@ export function parseAppRefParam(from) {
 }
 
 /**
- * Which routine a `from` token still belongs to, as the open routine changes.
+ * Which automation a `from` token still belongs to, as the open automation changes.
  *
- * `?from=` is about ONE routine — the one that was open when the link was
+ * `?from=` is about ONE automation — the one that was open when the link was
  * followed — and both halves of that have bitten before:
  *
  *   it must STICK. The builder rebuilds its whole query string from a state
@@ -193,22 +202,22 @@ export function parseAppRefParam(from) {
  *   carried disappears on the first click. A way back that only works before
  *   you touch anything is not a way back.
  *
- *   it must NOT FOLLOW YOU. Opening a different routine keeps the same
- *   component mounted; re-attaching the trail there would claim that routine
+ *   it must NOT FOLLOW YOU. Opening a different automation keeps the same
+ *   component mounted; re-attaching the trail there would claim that automation
  *   was made from a button it has never heard of.
  *
- * A builder opened with no routine in the path (a brand-new one, made from the
- * app) ADOPTS the first id that appears — that is the routine the link was
+ * A builder opened with no automation in the path (a brand-new one, made from the
+ * app) ADOPTS the first id that appears — that is the automation the link was
  * about, it just did not have an id yet.
  *
- * @param {{routineId: string|null, token: string|null}} prev
- * @param {string|null} routineId  the routine open right now
+ * @param {{automationId: string|null, token: string|null}} prev
+ * @param {string|null} automationId  the automation open right now
  * @returns the same object when nothing changed, so callers can `!==`-check.
  */
-export function stickyFrom(prev, routineId) {
+export function stickyFrom(prev, automationId) {
     if (!prev || !prev.token) return prev;
-    if (prev.routineId == null && routineId) return { routineId, token: prev.token };
-    if (routineId && routineId !== prev.routineId) return { routineId, token: null };
+    if (prev.automationId == null && automationId) return { automationId, token: prev.token };
+    if (automationId && automationId !== prev.automationId) return { automationId, token: null };
     return prev;
 }
 

@@ -8,6 +8,7 @@ const CATALOG = [
     { id: 'gmail', label: 'Gmail', group: 'google' },
     { id: 'google-calendar', label: 'Calendar', group: 'google' },
     { id: 'outlook', label: 'Outlook', group: 'microsoft' },
+    { id: 'onedrive', label: 'OneDrive', group: 'microsoft' },
     { id: 'fireflies', label: 'Fireflies', group: 'third-party' },
     { id: 'youtrack', label: 'YouTrack', group: 'third-party' },
     { id: 'gamma', label: 'Gamma', group: 'third-party' },
@@ -38,8 +39,6 @@ describe('filterAvailableIntegrations', () => {
         expect(none).not.toContain('gamma');
         expect(none).not.toContain('n8n');
         expect(none).not.toContain('linkedin');
-        // Non-gated entries stay
-        expect(none).toContain('outlook');
 
         const all = ids(filterAvailableIntegrations(CATALOG, {
             hasFirefliesKey: true, hasYouTrackConfig: true, hasGammaKey: true,
@@ -48,9 +47,23 @@ describe('filterAvailableIntegrations', () => {
         expect(all).toEqual(expect.arrayContaining(['fireflies', 'youtrack', 'gamma', 'n8n', 'linkedin']));
     });
 
+    it('gates microsoft-group apps on the Microsoft login, Outlook also on a 365 connection', () => {
+        const none = ids(filterAvailableIntegrations(CATALOG, { isGoogleUser: true }));
+        expect(none).not.toContain('outlook');
+        expect(none).not.toContain('onedrive');
+
+        // Google SSO + Microsoft 365 connected in Settings: only Outlook.
+        const connected = ids(filterAvailableIntegrations(CATALOG, { isGoogleUser: true, hasMicrosoftConnection: true }));
+        expect(connected).toContain('outlook');
+        expect(connected).not.toContain('onedrive');
+
+        const msUser = ids(filterAvailableIntegrations(CATALOG, { isMicrosoftUser: true }));
+        expect(msUser).toEqual(expect.arrayContaining(['outlook', 'onedrive']));
+    });
+
     it('org-enabled list filters everything except ALWAYS_AVAILABLE', () => {
         const out = ids(filterAvailableIntegrations(CATALOG, {
-            orgEnabledIntegrations: ['outlook'], isGoogleUser: true,
+            orgEnabledIntegrations: ['outlook'], isGoogleUser: true, isMicrosoftUser: true,
         }));
         expect(out).toEqual(['agent-search', 'outlook']);
         expect(ALWAYS_AVAILABLE.has('agent-search')).toBe(true);

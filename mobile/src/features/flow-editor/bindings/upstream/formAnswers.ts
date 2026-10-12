@@ -5,9 +5,11 @@
  */
 
 import { translate as t } from '@/core/i18n';
+import { appendKey } from '@/shared/expr';
 
 import { pickSourceById } from '../flowDeps/pickSources';
 import type { FlowNode, FormFieldDecl, VariableGroup } from '../types';
+import { fieldFor } from './fieldTree';
 
 // Example payload values (data, not copy): what a picked record reads like.
 const PICK_EXAMPLE = {
@@ -71,10 +73,10 @@ export function describeFormPage(node: FlowNode): VariableGroup | null {
     const base = `steps.${node.id}.output`;
     return {
         id: node.id,
-        label: node.label || node.form?.title || t('routines.node.form_page.typeLabel', 'Form page'),
+        label: node.label || node.form?.title || t('automations.node.form_page.typeLabel', 'Form page'),
         kind: 'form_page',
         basePath: base,
         sample: Object.fromEntries(fields.map((f) => [f.name, answerSample(f)])),
-        fields: fields.map((f) => ({ key: f.name as string, path: `${base}.${f.name}`, sample: answerSample(f) })),
+        fields: fields.map((f) => fieldFor(f.name as string, appendKey(base, f.name as string), answerSample(f))),
     };
 }

@@ -30,7 +30,6 @@ const InstallBody = z.object({
     aiProvider: z.string().regex(/^[A-Za-z0-9_]{0,32}$/, 'aiProvider must be a provider id').optional(),
     azureEndpoint: str().optional(),
     azureKey: str().optional(),
-    azureVersion: str(64).optional(),
     azureModels: str().optional(),
     genericKey: str().optional(),
     officeAppsEnabled: z.boolean().optional(),
@@ -107,7 +106,6 @@ function buildInstallConfig(input, generateSecret) {
         aiProvider = '',
         azureEndpoint = '',
         azureKey = '',
-        azureVersion = '2024-04-01-preview',
         azureModels = '',
         genericKey = '',
         officeAppsEnabled = false,
@@ -207,7 +205,6 @@ function buildInstallConfig(input, generateSecret) {
     if (deploymentType === 'azure') {
         if (azureEndpoint) configEnv.AZURE_OPENAI_ENDPOINT    = azureEndpoint;
         if (azureKey)      configEnv.AZURE_OPENAI_API_KEY     = azureKey;
-        configEnv.AZURE_OPENAI_API_VERSION = azureVersion;
         if (azureModels)   configEnv.AZURE_OPENAI_MODELS      = azureModels;
         configEnv.OFFICE_APPS_ENABLED = String(officeAppsEnabled);
     }
@@ -250,7 +247,6 @@ function buildInstallConfig(input, generateSecret) {
     if (deploymentType === 'azure') {
         if (azureEndpoint) configEnv.INIT_AZURE_ENDPOINT    = azureEndpoint;
         if (azureKey)      configEnv.INIT_AZURE_API_KEY     = azureKey;
-        if (azureVersion)  configEnv.INIT_AZURE_API_VERSION = azureVersion;
         if (azureModels)   configEnv.INIT_AZURE_MODELS      = azureModels;
     }
     if (bingKey) configEnv.INIT_BING_SEARCH_KEY = bingKey;

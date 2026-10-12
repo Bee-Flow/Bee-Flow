@@ -47,7 +47,7 @@ const SEARCH_SERVICE_URL = process.env.SEARCH_SERVICE_URL || 'https://services.b
  *
  * 'ai_step' (K1) is the automation ai-step picker. It is deliberately its own
  * context and not folded into 'agent': an org that switches a KB off for agents
- * must not silently switch it off for every routine that already reads it.
+ * must not silently switch it off for every automation that already reads it.
  * migrations/kb-sources-backfill.js grants 'ai_step' to every KB that has
  * 'agent' plus every KB id an automation actually references.
  */
@@ -185,7 +185,9 @@ async function decorateKbList(kbs) {
             sourceCount: Number(c.sourceCount || 0),
             autoRefreshCount: Number(c.autoRefreshCount || 0),
             lastRefreshAt: c.lastRefreshAt || null,
-            lastContentAt: kb.last_content_at || null,
+            // last_content_at is stamped since K1; a base filled before that
+            // has documents but no stamp, so its newest document stands in.
+            lastContentAt: kb.last_content_at || kb.last_document_at || null,
         };
     });
 }

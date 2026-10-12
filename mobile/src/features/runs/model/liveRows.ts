@@ -3,7 +3,7 @@
  * useExecutions.applyEvent, as a pure function over one list.
  *
  * The stream is a notification, not the record: it carries the LEG that fired
- * (a routine continued after a form runs in a child run the list never shows),
+ * (an automation continued after a form runs in a child run the list never shows),
  * so an event addresses its journey's head row and a continuation is never
  * inserted as a row of its own. A run that has just started is only inserted
  * when the status chip would show it. Everything else waits for the refetch.

@@ -37,23 +37,29 @@ const STEPS: { step: Step; key: string; fallback: string }[] = [
     { step: 2, key: 'shield_data.step_apply', fallback: 'Where it applies' },
 ];
 
-function Steps({ current, t }: { current: Step; t: TranslateFn }) {
+function Steps({ current, onGo, t }: { current: Step; onGo: (step: Step) => void; t: TranslateFn }) {
     return (
         <ol className="flex items-center gap-2 flex-wrap list-none p-0 m-0" aria-label={t('shield_data.steps_label', 'Steps')}>
             {STEPS.map(({ step, key, fallback }) => {
                 const active = step === current;
                 const done = step < current;
-                return (
-                    <li
-                        key={step}
-                        aria-current={active ? 'step' : undefined}
-                        className={'inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border '
-                            + (active
-                                ? 'bg-[var(--text-primary)] text-[rgb(from_var(--bg-card)_r_g_b_/_1)] border-[var(--text-primary)] font-semibold'
-                                : 'border-[var(--border-default)] text-[var(--text-secondary)]')}
-                    >
+                const className = 'inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border '
+                    + (active
+                        ? 'bg-[var(--text-primary)] text-[rgb(from_var(--bg-card)_r_g_b_/_1)] border-[var(--text-primary)] font-semibold'
+                        : 'border-[var(--border-default)] text-[var(--text-secondary)]')
+                    + (done ? ' cursor-pointer hover:border-[var(--text-secondary)]' : '');
+                const content = (
+                    <>
                         <span aria-hidden="true">{done ? <Check className="w-3 h-3" /> : step + 1}</span>
                         {t(key, fallback)}
+                    </>
+                );
+                // Finished steps double as a way back; future steps stay inert.
+                return (
+                    <li key={step} aria-current={active ? 'step' : undefined} className={done ? 'contents' : className}>
+                        {done
+                            ? <button type="button" className={className} onClick={() => onGo(step)}>{content}</button>
+                            : content}
                     </li>
                 );
             })}
@@ -114,7 +120,7 @@ export function TypeWizard({ init, ctx, confirm, onCommit, onCancel, t }: TypeWi
         <Card className="flex flex-col min-h-0">
             <div className="flex items-center gap-3 flex-wrap px-4 pt-3.5 pb-3 border-b border-[var(--border-subtle)]">
                 <h3 className="text-[13px] font-semibold m-0 text-[var(--text-primary)]">{title}</h3>
-                <Steps current={state.step} t={t} />
+                <Steps current={state.step} onGo={step => dispatch({ type: 'go', step })} t={t} />
             </div>
             <div className="px-4 py-4">
                 {state.step === 0 && <StepDescribe state={state} dispatch={dispatch} ctx={ctx} t={t} />}

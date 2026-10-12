@@ -16,7 +16,7 @@
 
 import { getComponentEntry } from '../runtime/componentRegistry';
 
-/** Past tense, product wording — the same convention as the routine builder's VERBS. */
+/** Past tense, product wording — the same convention as the automation builder's VERBS. */
 export const VERBS = {
     app_set_meta: { key: 'app_studio.builder.act.set_meta', en: 'Named the app' },
     app_set_theme: { key: 'app_studio.builder.act.set_theme', en: 'Picked the look' },
@@ -48,8 +48,8 @@ export const VERBS = {
     app_screenshot: { key: 'app_studio.builder.act.screenshot', en: 'Took a screenshot' },
     app_get_draft: { key: 'app_studio.builder.act.get_draft', en: 'Re-read the app' },
     app_find_nodes: { key: 'app_studio.builder.act.find_nodes', en: 'Searched the app' },
-    app_list_automations: { key: 'app_studio.builder.act.list_automations', en: 'Looked up the routines' },
-    app_inspect_automation: { key: 'app_studio.builder.act.inspect_automation', en: 'Inspected a routine' },
+    app_list_automations: { key: 'app_studio.builder.act.list_automations', en: 'Looked up the automations' },
+    app_inspect_automation: { key: 'app_studio.builder.act.inspect_automation', en: 'Inspected an automation' },
     app_propose_plan: { key: 'app_studio.builder.act.propose_plan', en: 'Proposed a plan' },
     app_set_plan: { key: 'app_studio.builder.act.set_plan', en: 'Updated the plan' },
     app_mark_phase: { key: 'app_studio.builder.act.mark_phase', en: 'Started a phase' },

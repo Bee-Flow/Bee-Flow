@@ -1,4 +1,4 @@
-import { Check, Wrench } from 'lucide-react';
+import { Check, ChevronDown, Wrench } from 'lucide-react';
 import { useRef, useState, type ComponentType } from 'react';
 import { useTranslation } from '../../../../../../hooks/useTranslation';
 import AnchoredMenuJs from '../../../../../shared/AnchoredMenu';
@@ -7,11 +7,11 @@ import { ProblemNote } from '../../../mapping/toolInput/ParamExtras';
 import IntegrationLogoJs from '../../nodes/IntegrationLogo';
 
 /**
- * The action as a readable card (round 4, artboard 4a): "Nextcloud · Read
- * file", "Choose another Nextcloud action", Switch. It replaced the Operation
- * <select>: the operation is the one thing about the step a person reads
- * first, and a dropdown hid it behind form chrome. Switch lists the app's
- * other actions; the inputs both share are kept (onSwitch decides that).
+ * The action as one quiet line: the app's logo, "Nextcloud · Read file" and a
+ * small "Switch" that lists the app's other actions (the inputs both share are
+ * kept; onSwitch decides that). It replaced the Operation <select> — the
+ * operation is what a person reads first — and was a full card with a second
+ * line of help until it took more room than the inputs below it.
  */
 export interface ActionOption { name: string; label?: string; description?: string }
 
@@ -46,20 +46,11 @@ export default function ActionCard({ tool, appLabel, action, siblings, onSwitch,
                 ? 'space-y-1.5 rounded-xl p-1.5 -m-1.5 border-[1.5px] border-[var(--error)] bg-[color-mix(in_srgb,var(--error)_5%,transparent)] shadow-[0_0_0_3px_color-mix(in_srgb,var(--error)_14%,transparent)]'
                 : undefined}
         >
-        <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-[10px] border border-[var(--border-default)] bg-[var(--bg-secondary)]" data-testid="action-card">
-            <span className="shrink-0 w-[30px] h-[30px] rounded-lg grid place-items-center border border-[var(--border-default)] bg-[var(--bg-card)] text-[var(--text-secondary)]">
-                {tool ? <IntegrationLogo tool={tool} size={15} fallback={<Wrench size={15} />} /> : <Wrench size={15} />}
+        <div className="flex items-center gap-2 min-w-0" data-testid="action-card">
+            <span className="shrink-0 text-[var(--text-secondary)]" aria-hidden="true">
+                {tool ? <IntegrationLogo tool={tool} size={14} fallback={<Wrench size={14} />} /> : <Wrench size={14} />}
             </span>
-            <div className="min-w-0">
-                <div className="text-[12px] font-semibold text-[var(--text-primary)] truncate" title={tool || undefined}>{title}</div>
-                {canSwitch && (
-                    <div className="text-[11px] text-[var(--text-tertiary)] truncate">
-                        {appLabel
-                            ? t('routines.ndv.action_other', 'Choose another {app} action', { app: appLabel })
-                            : t('routines.ndv.action_other_generic', 'Choose another action of this app')}
-                    </div>
-                )}
-            </div>
+            <div className="min-w-0 text-[12px] font-medium text-[var(--text-primary)] truncate" title={tool || undefined}>{title}</div>
             {canSwitch && (
                 <>
                     <button
@@ -68,9 +59,13 @@ export default function ActionCard({ tool, appLabel, action, siblings, onSwitch,
                         onClick={() => setOpen(o => !o)}
                         aria-haspopup="menu"
                         aria-expanded={open}
-                        className="ml-auto shrink-0 px-2.5 py-1 rounded-lg border border-[var(--border-default)] bg-[var(--bg-card)] text-[12px] font-medium text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
+                        title={appLabel
+                            ? t('automations.ndv.action_other', 'Choose another {app} action', { app: appLabel })
+                            : t('automations.ndv.action_other_generic', 'Choose another action of this app')}
+                        className="shrink-0 inline-flex items-center gap-0.5 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
                     >
-                        {t('routines.ndv.action_switch', 'Switch')}
+                        {t('automations.ndv.action_switch', 'Switch')}
+                        <ChevronDown size={11} />
                     </button>
                     <AnchoredMenu
                         open={open}
@@ -80,7 +75,7 @@ export default function ActionCard({ tool, appLabel, action, siblings, onSwitch,
                         minWidth={240}
                         maxHeight={320}
                         role="menu"
-                        aria-label={t('routines.ndv.action_switch_menu', 'Actions of this app')}
+                        aria-label={t('automations.ndv.action_switch_menu', 'Actions of this app')}
                         className="p-1 rounded-lg border border-[var(--border-default)] bg-[var(--bg-card)] shadow-lg overflow-y-auto"
                     >
                         {siblings.map(a => (

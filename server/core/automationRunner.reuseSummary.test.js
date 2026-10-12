@@ -85,7 +85,7 @@ stub('./automationRunner/toolMemo', {
     }),
 });
 
-process.env.ROUTINE_AUTH_LEGACY = '0';
+process.env.AUTOMATION_AUTH_LEGACY = '0';
 process.env.NODE_ENV = 'test';
 
 const runner = require('./automationRunner');

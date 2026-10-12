@@ -1,7 +1,7 @@
 /**
  * The guard STEP — "does this contain personal data, and what happens if it does".
  *
- * The Privacy Shield already scans what a routine sends; this is the same
+ * The Privacy Shield already scans what an automation sends; this is the same
  * detector placed where an author can see it and react (a document lands in
  * Drive, it turns out to hold personal data, an alert goes out).
  *
@@ -171,7 +171,7 @@ test('a step category list NARROWS the org list', async () => {
 test('a step cannot look for a category the org excluded', async () => {
     reset();
     // The org only looks for names; the step asking for emails too must not
-    // widen that — a routine may hold itself to a HIGHER standard, never a lower.
+    // widen that — an automation may hold itself to a HIGHER standard, never a lower.
     const { output } = await execGuard(
         guard({ categories: ['Email'] }), ctxWith({ categories: ['Person'] }), stateWith(DIRTY), 'live',
     );
@@ -217,7 +217,7 @@ test('fail_open takes the clean branch but still flags that it could not scan', 
 
 test('having no policy to scan under is reported, and the three reasons are told apart', async () => {
     reset();
-    // Only one of these is a setting somebody chose. A routine with no
+    // Only one of these is a setting somebody chose. An automation with no
     // organisation has no org shield to resolve AT ALL, and calling that
     // "disabled" sends the author hunting through a Privacy Shield page that
     // is switched on and looks correct.

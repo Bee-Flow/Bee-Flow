@@ -726,7 +726,7 @@ test('nothing in the app requires Nextcloud or any external system to be connect
  * that fires it says so. A second one — or a silent one — would leave a customer
  * pressing a button that does nothing without ever being told why.
  */
-test('the only routine is the personal-data scan, shipped unset and explained on screen', () => {
+test('the only automation is the personal-data scan, shipped unset and explained on screen', () => {
     const automations = [];
     for (const [actionId, action] of Object.entries(definition.actions)) {
         for (const step of flatSteps(action)) {
@@ -739,9 +739,9 @@ test('the only routine is the personal-data scan, shipped unset and explained on
     assert.equal(step.automationId, null);
 
     const note = nodeById('cmp_pinote');
-    assert.match(note.props.text, /Automations/, 'the screen must tell the user where to wire the routine up');
+    assert.match(note.props.text, /Automations/, 'the screen must tell the user where to wire the automation up');
     const toast = flatSteps(definition.actions.act_runscan).find((s) => s.kind === 'toast');
-    assert.match(toast.message, /connect the routine/i);
+    assert.match(toast.message, /connect the automation/i);
 });
 
 test('identity is recorded from currentUser, which resolves the same embedded and standalone', () => {

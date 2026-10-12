@@ -4,7 +4,7 @@
  * ── THE TWO PROPERTIES THAT CARRY IT ────────────────────────────────
  * A datatable has row-level access rules of its own, and they are not
  * decoration: a table can be readable by everyone while individual rows are
- * not. So the enumerate compiles the SAME access predicate the routine runner
+ * not. So the enumerate compiles the SAME access predicate the automation runner
  * and the routes compile — as the KNOWLEDGE BASE'S OWNER, because a scheduled
  * pass has nobody pressing anything.
  *

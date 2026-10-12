@@ -120,7 +120,7 @@ const ChatModelTiersConfig = ({ allModels = [] }) => {
                 toggleHiddenModel={toggleHiddenModel}
             />
 
-            {/* Data Extraction Model — the routine Extract data step's own model */}
+            {/* Data Extraction Model — the automation Extract data step's own model */}
             <DataExtractionModelSection
                 dataExtractionModel={dataExtractionModel}
                 setDataExtractionModel={setDataExtractionModel}

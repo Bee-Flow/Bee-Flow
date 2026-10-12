@@ -37,6 +37,9 @@ const timeOf = (iso: string) => {
 
 function continues(group: MessageGroup, lastAt: string, author: Author): boolean {
     if (group.authorKind !== author.authorKind || author.authorKind === 'system') return false;
+    // A run that crosses midnight is cut there: the day separator and the new
+    // group's time would otherwise never show inside it.
+    if (isNewDay(lastAt, author.createdAt)) return false;
     const sameWho = author.authorKind === 'assistant'
         ? group.agentId === author.agentId
         : group.authorUserId === author.authorUserId;
@@ -86,6 +89,23 @@ export function groupMessages(messages: TeamChatMessage[], pending: PendingTeamC
     return groups;
 }
 
+/**
+ * The messages whose quote-reply points at the message shown right above them:
+ * that quote only repeats what the reader just saw, so it is left out.
+ */
+export function repliesToPrevious(groups: MessageGroup[]): Set<string> {
+    const out = new Set<string>();
+    let previous: string | null = null;
+    for (const group of groups) {
+        for (const item of group.items) {
+            if (item.type !== 'message') { previous = null; continue; }
+            if (item.message.replyTo && item.message.replyTo === previous) out.add(item.message.id);
+            previous = item.message.id;
+        }
+    }
+    return out;
+}
+
 /** "14:05" for today, a short date and time before that. */
 export function formatMessageTime(iso: string, locale: string): string {
     const d = new Date(iso);
@@ -93,6 +113,28 @@ export function formatMessageTime(iso: string, locale: string): string {
     const time = d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
     if (d.toDateString() === new Date().toDateString()) return time;
     return `${d.toLocaleDateString(locale, { day: 'numeric', month: 'short' })} ${time}`;
+}
+
+/**
+ * The id of the first message the reader had not read when the chat opened.
+ * The wire carries only the unread COUNT (others' messages after the caller's
+ * read marker), never the marker itself, so count that many eligible messages
+ * back from the newest one. Deleted ones and the reader's own never count as
+ * unread. When more is unread than is loaded, everything loaded is new.
+ */
+export function firstUnreadMessageId(messages: TeamChatMessage[], unread: number, currentUserId: string | null): string | null {
+    if (unread <= 0) return null;
+    let left = unread;
+    let oldestEligible: string | null = null;
+    for (let i = messages.length - 1; i >= 0; i -= 1) {
+        const m = messages[i];
+        if (m.deleted || (m.authorKind === 'user' && m.authorUserId === currentUserId)) continue;
+        oldestEligible = m.id;
+        left -= 1;
+        if (left <= 0) return m.id;
+    }
+    // More is unread than is loaded: everything eligible that IS loaded is new.
+    return oldestEligible;
 }
 
 /** One line of a message, for a reply preview. */

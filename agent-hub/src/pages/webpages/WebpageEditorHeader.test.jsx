@@ -200,3 +200,43 @@ describe('WebpageEditorHeader — the hoisted IDE buttons', () => {
         expect(onRename).toHaveBeenCalledWith('Nieuwe naam');
     });
 });
+
+describe('WebpageEditorHeader — a page a Solution stage manages', () => {
+    const MANAGED = { solutionId: 's1', solutionName: 'Intake', stage: 'uat', releaseSeq: 2, devRef: { kind: 'webpage', id: 'dev-wp' } };
+    const names = () => within(screen.getByRole('radiogroup')).getAllByRole('radio').map(b => b.textContent.trim());
+
+    it('says who manages it and links to the Dev page', () => {
+        renderHeader({ managed: MANAGED });
+        expect(screen.getByTestId('managed-part-banner')).toHaveTextContent('Managed by Intake · UAT · Release 2.');
+        expect(screen.getByRole('link', { name: 'Open in Dev' })).toHaveAttribute('href', '/app/studio/webpages/dev-wp');
+    });
+
+    it('reads `managed` off the page row when no prop is given', () => {
+        renderHeader({ page: { ...PAGE, managed: MANAGED } });
+        expect(screen.getByTestId('managed-part-banner')).toBeInTheDocument();
+    });
+
+    it('takes the ways to write the page away: rename, Code, History, Add image', () => {
+        renderHeader({ managed: MANAGED, onAddImage: () => {}, onRename: () => {}, counts: { history: 3 } });
+        expect(names().join(' ')).not.toMatch(/Code|History/);
+        expect(names().join(' ')).toMatch(/Preview/);
+        expect(screen.queryByLabelText('Add image')).toBeNull();
+        fireEvent.click(screen.getByTestId('studio-section-title'));
+        expect(screen.queryByRole('textbox')).toBeNull();
+    });
+
+    it('keeps the audience: a draft still gets its Publish, a live page no Republish', () => {
+        const { unmount } = renderHeader({ managed: MANAGED });
+        expect(screen.getByRole('button', { name: 'Publish' })).toBeInTheDocument();
+        unmount();
+        renderHeader({ managed: MANAGED, page: { ...PAGE, isPublished: true } });
+        expect(screen.queryByRole('button', { name: 'Republish' })).toBeNull();
+    });
+
+    it('an unmanaged page keeps all of it', () => {
+        renderHeader({ onAddImage: () => {} });
+        expect(screen.queryByTestId('managed-part-banner')).toBeNull();
+        expect(names().join(' ')).toMatch(/Code/);
+        expect(screen.getByLabelText('Add image')).toBeInTheDocument();
+    });
+});

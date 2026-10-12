@@ -24,7 +24,7 @@ export type BuildTab = 'steps' | 'canvas';
 /** The AI builder, when this screen has one (a flowlet's does not). */
 export interface ToolbarAssistant {
     open: () => void;
-    /** It is building into this routine. */
+    /** It is building into this automation. */
     busy: boolean;
 }
 
@@ -71,7 +71,7 @@ function RunButtons({ runs, onMore, styles }: { runs: TestRuns; onMore: () => vo
             <IconButton
                 style={styles.chevron}
                 icon={<Icon name="ChevronDown" size={18} color={styles.glyph.color} />}
-                accessibilityLabel={t('routines.header.more_ways_to_run', 'More ways to run')}
+                accessibilityLabel={t('automations.header.more_ways_to_run', 'More ways to run')}
                 onPress={onMore}
                 testID="run-more"
             />
@@ -90,7 +90,7 @@ export function BuildToolbar({
     store: DraftStore;
     tab: BuildTab;
     onTab: (tab: BuildTab) => void;
-    /** The routine's runs; null in a flowlet, which is run by the routine that calls it. */
+    /** The automation's runs; null in a flowlet, which is run by the automation that calls it. */
     runs: TestRuns | null;
     /** Where Run live sends a form trigger that has nothing to run on. */
     onOpenStep: (stepId: string) => void;
@@ -140,7 +140,7 @@ export function BuildToolbar({
                         style={styles.tool}
                         icon={<Icon name="Sparkles" size={20} color={styles.glyph.color} />}
                         accessibilityLabel={t('mobile.flow.ai.title', 'Ask AI')}
-                        accessibilityHint={assistant.busy ? t('routines.builder.act.building', 'Building') : undefined}
+                        accessibilityHint={assistant.busy ? t('automations.builder.act.building', 'Building') : undefined}
                         selected={assistant.busy}
                         onPress={assistant.open}
                         testID="build-ask-ai"

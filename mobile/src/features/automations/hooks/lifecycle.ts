@@ -10,7 +10,7 @@ import { automationKeys } from '../api/keys';
 import { createAutomation, deleteAutomation, getAutomationUsage } from '../api/lifecycle';
 import type { CreateAutomationBody, CreateAutomationResult } from '../model/types';
 
-/** Create a routine (a draft) and put it in the list. */
+/** Create an automation (a draft) and put it in the list. */
 export function useCreateAutomation(handlers: MutationHandlers<CreateAutomationResult, CreateAutomationBody> = {}) {
     const queryClient = useQueryClient();
     return useMutation({
@@ -24,8 +24,8 @@ export function useCreateAutomation(handlers: MutationHandlers<CreateAutomationR
 }
 
 /**
- * Delete a routine. Its cached row and runs go with it — a detail screen still
- * mounted underneath must not go on rendering a routine that no longer exists.
+ * Delete an automation. Its cached row and runs go with it — a detail screen still
+ * mounted underneath must not go on rendering an automation that no longer exists.
  */
 export function useDeleteAutomation(handlers: MutationHandlers<boolean, string> = {}) {
     const queryClient = useQueryClient();
@@ -44,7 +44,7 @@ export function useDeleteAutomation(handlers: MutationHandlers<boolean, string> 
 }
 
 /**
- * The app buttons that start this routine. Asked fresh every time a delete is
+ * The app buttons that start this automation. Asked fresh every time a delete is
  * about to be confirmed (`staleTime: 0`), and never retried into a false
  * "used nowhere": an error stays an error.
  */

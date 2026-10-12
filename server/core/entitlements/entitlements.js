@@ -21,7 +21,8 @@
  *                         (MCP = integrations; restricted plans opt-in per allow-list, unrestricted/null = all)
  *   GLOBAL kill-switch  : ceiling.core −= notebooks/projects when feature_*_enabled === false
  *   orgGrant            : integration ← org_enabled_integrations (NC + exempt bypass; mcp:<id> too);
- *                         beta ← cloud:ceiling | self:org_enabled_beta_features + GA-auto-on;
+ *                         beta ← the org-access menu (both modes), except group-scoped
+ *                                betas outside org_beta_everyone (NULL ⇒ everyone);
  *                         core ← org_granted_capabilities + non-togglable core implicitly
  *   groupGrant(user)    : ⋃ granted_capabilities of the user's groups IN THIS ORG (scoped per org)
  *   EFFECTIVE           = (orgGrant ∪ groupGrant) ∩ ceiling ; super-admin ⇒ ceiling (skip grants)
@@ -268,10 +269,26 @@ async function buildCeiling({ mode, tier, orgTier: _orgTier, orgId, orgIds, user
     // resolves get none (the if(orgId) wrapper covers cloud and self-hosted
     // alike). computeReasons needs NO change: customs never appear in
     // listCapabilities(), so they produce no reason rows.
+    //
+    // MCP-library rows (remote MCP servers an org admin installed from the
+    // MCP library, _customSource 'mcp_library') ride the same table but not
+    // the builder beta: they enter iff the org may use the MCP marketplace
+    // (mcp_marketplace by tier or plan grant — the rule requireFeature
+    // applies to the library's own routes). Asked at most once per resolve.
     if (orgId) {
         const customs = await registry.listCustomIntegrationCapabilities(orgId);
-        if (customs.length && ceil.beta.has('ai_integration_builder')) {
-            for (const c of customs) ceil.integration.add(c.id);
+        const builderBeta = ceil.beta.has('ai_integration_builder');
+        let mcpLicensed = null;
+        for (const c of customs) {
+            if (c._customSource === 'mcp_library') {
+                if (mcpLicensed === null) {
+                    mcpLicensed = tiers.tierHasFeature(tier, 'mcp_marketplace')
+                        || ((orgIds || []).length > 0 && await license.orgGrantsFeature(orgIds, 'mcp_marketplace').catch(() => false));
+                }
+                if (mcpLicensed) ceil.integration.add(c.id);
+            } else if (builderBeta) {
+                ceil.integration.add(c.id);
+            }
         }
     }
 
@@ -369,24 +386,61 @@ async function buildOrgGrant({ mode, orgId, ceiling }) {
     }
 
     // beta — the org-access menu (= `ceiling` here, already narrowed to orgAvailable)
-    // is the org-wide switch in BOTH modes: every beta the org may use is granted to
-    // all members. Cloud: the subscription's included betas lead. Self-hosted: Tom's
-    // single-switch model — a menu-enabled beta (GA or not) is on for everyone, and
-    // OFF in the menu ⇒ off for everyone. This replaces the old self-hosted
-    // org_enabled_beta_features + GA-only gate (that column is now vestigial here).
-    for (const id of ceiling.beta) g.beta.add(id);
+    // bounds what the org may use in BOTH modes. Cloud: the subscription's included
+    // betas lead and every one is granted to all members. Self-hosted: a menu-enabled
+    // beta (GA or not) is on for everyone UNLESS the org admin switched it off for
+    // "All members" (org_everyone_revoked, below); OFF in the menu => off for everyone.
+    // This replaces the old self-hosted org_enabled_beta_features + GA-only gate
+    // (that column is now vestigial here).
+    //
+    // Exception: a GROUP-SCOPED beta (betaFeatures.js `groupScoped`, e.g.
+    // meeting_notes) reaches all members only while it is in the org's
+    // everyone-list (org_beta_everyone). Outside it, buildGroupGrant hands it to
+    // the granted groups alone. NULL = never chosen = everyone, so an org that
+    // never touched the toggle keeps the pre-list behaviour. A read failure
+    // fails CLOSED (groups only), like the other grant reads here.
+    let betaEveryone = null;
+    try { betaEveryone = await userStore().getOrgBetaEveryone(orgId); } catch (_) { betaEveryone = []; }
+    const everyoneSet = Array.isArray(betaEveryone) ? new Set(betaEveryone) : null;
+    //
+    // Self-hosted "All members" switch-off (org_everyone_revoked, a deny-list):
+    // a non-group-scoped beta the admin switched OFF stays out of the everyone
+    // grant; a group can still hand it out (buildGroupGrant). A deny-list so a
+    // beta added to the menu later is ON for everyone, as before. Cloud ignores it.
+    let revoked = new Set();
+    if (mode !== 'cloud') {
+        // Fails OPEN: an unreadable list means "nothing revoked", the behaviour
+        // before the column existed. Failing closed would switch every togglable
+        // feature off for the whole org on one transient DB error, while the
+        // worst case of failing open is a feature the admin turned off being on
+        // for a moment longer. (The reads above fail closed because they are
+        // grant lists, where an empty result narrows by one feature at most.)
+        try {
+            const r = await userStore().getOrgEveryoneRevoked(orgId);
+            if (Array.isArray(r)) revoked = new Set(r);
+        } catch (_) { /* fail open */ }
+    }
+    for (const id of ceiling.beta) {
+        const cap = registry.getCapability(id);
+        if (cap && cap.groupScoped) {
+            if (everyoneSet && !everyoneSet.has(id)) continue;
+        } else if (revoked.has(id)) continue;
+        g.beta.add(id);
+    }
 
     // core — cloud: org_granted_capabilities (the matrix "All members" column).
-    // self-hosted: the org-access menu is the org-wide switch, so every togglable
-    // core feature the org may use (= ceiling/orgAvailable here) is granted to all
-    // members (single-switch model). Non-togglable core (infra: sso/compliance/
-    // audit/…) is granted to everyone implicitly in BOTH modes — no per-group
-    // surface, never org-narrowed.
+    // self-hosted: every togglable core feature the org may use (= ceiling/
+    // orgAvailable here) is granted to all members unless the org admin switched
+    // it off for "All members" (org_everyone_revoked, read above); a group can
+    // still grant it. Non-togglable core (infra: sso/compliance/audit/...) is
+    // granted to everyone implicitly in BOTH modes: no per-group surface, never
+    // org-narrowed, never revocable.
     let orgGranted = new Set();
     try { orgGranted = new Set(await userStore().getOrgGrantedCapabilities(orgId)); } catch (_) {}
     for (const id of ceiling.core) {
         const cap = registry.getCapability(id);
-        if (mode !== 'cloud' || orgGranted.has(id) || (cap && !cap.groupTogglable)) g.core.add(id);
+        if (cap && !cap.groupTogglable) { g.core.add(id); continue; }
+        if (mode !== 'cloud' ? !revoked.has(id) : orgGranted.has(id)) g.core.add(id);
     }
 
     return g;

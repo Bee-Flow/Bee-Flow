@@ -13,7 +13,7 @@
 
 const { getAll } = require('../../../db');
 const complianceStore = require('../../../stores/complianceStore');
-const { SUPPLIER_ROW } = require('../../../stores/integrationLocationSql');
+const { SUPPLIER_ROW, LEDGER_ORG_SQL } = require('../../../stores/integrationLocationSql');
 
 module.exports = {
     id: 'ISO27001-A.5.20-suppliers',
@@ -23,7 +23,8 @@ module.exports = {
     frameworks: [{ regulation: 'NIS2', ref: 'Art. 21(2)(d)' }, { regulation: 'DORA', ref: 'Art. 28(3)' }],
     severity: 'high',
     scope: 'global',
-    verification: 'automated',
+    // The pass rests on the admin's DPA/SCC attestations (registry: 'hybrid').
+    verification: 'hybrid',
     titleKey: 'compliance.checks.iso_suppliers.title',
     descriptionKey: 'compliance.checks.iso_suppliers.desc',
     remediationKey: 'compliance.checks.iso_suppliers.fix',
@@ -36,7 +37,8 @@ module.exports = {
                        BOOL_OR(COALESCE(is_eu, false)) AS is_eu,
                        COUNT(*)::int AS calls
                 FROM integration_activity_log
-                WHERE organization_id = $1
+                -- The 'default' bucket also owns the org-less rows (LEDGER_ORG_SQL).
+                WHERE ${LEDGER_ORG_SQL}
                   AND timestamp >= NOW() - INTERVAL '30 days'
                   -- Not local, and not a row without operator or location:
                   -- a global network (Cloudflare, …) is a supplier and stays.
@@ -44,11 +46,23 @@ module.exports = {
                   AND COALESCE(is_dry_run, false) = false
                 GROUP BY COALESCE(operator, 'unknown')
             `, [orgId]);
-        } catch {
+        } catch (e) {
+            // Not provisioned on this install (undefined table or column):
+            // there is nothing to reconcile yet.
+            if (e?.code === '42P01' || e?.code === '42703') {
+                return {
+                    status: 'not_applicable',
+                    evidence: { reason: 'activity ledger not available' },
+                    details: 'No outbound activity ledger yet — no suppliers observed to reconcile against agreements.',
+                };
+            }
+            // Any other error (a statement timeout on this high-volume table,
+            // a dropped connection) is a failed read, not an empty ledger.
+            // Only the SQLSTATE travels into the evidence.
             return {
-                status: 'not_applicable',
-                evidence: { reason: 'activity ledger not available' },
-                details: 'No outbound activity ledger yet — no suppliers observed to reconcile against agreements.',
+                status: 'warn',
+                evidence: { ledger_readable: false, error_code: e?.code || null },
+                details: `The outbound activity ledger could not be read${e?.code ? ` (SQL state ${e.code})` : ''}, so suppliers were not reconciled this run.`,
             };
         }
         if (!operators.length) {

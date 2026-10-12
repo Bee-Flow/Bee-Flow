@@ -130,10 +130,10 @@ describe('useExecutions — runScope (whose runs)', () => {
         expect(result.current.rows.map(r => r.id)).toEqual(['o1']);
     });
 
-    it('a per-routine or per-Step surface stays personal even when handed "org"', async () => {
+    it('a per-automation or per-Step surface stays personal even when handed "org"', async () => {
         // A stray 'org' — from a stale prop, or a screen that forgot which
         // surface it was mounting — must not turn the builder's own history
-        // tab into "this routine's runs by anyone".
+        // tab into "this automation's runs by anyone".
         for (const scope of ['automation', 'step']) {
             apiMock.listOrgRuns.mockClear();
             const { result } = renderHook(() => useExecutions({ scope, automationId: 'a1', stepId: 's1', runScope: 'org' }));

@@ -5,7 +5,7 @@
  * it. The shape only earns its name if (a) a malformed Finding is refused
  * loudly rather than rendered grey, and (b) each producer's records convert
  * without a per-producer adapter. Half of this file is the shape; the other
- * half runs the real validators — App Studio's control_inert, the routine
+ * half runs the real validators — App Studio's control_inert, the automation
  * validator's draft/activate ladder, the Solution dependency graph — and
  * converts what they emit.
  *
@@ -162,7 +162,7 @@ test('App Studio: component.control_inert carries kind + targetRef, and converts
     assert.equal(f.remediation, rec.hint);
 });
 
-test('Routine validator: every record names the automation and, where the path has one, the step', () => {
+test('Automation validator: every record names the automation and, where the path has one, the step', () => {
     const { validateDefinitionStrict, validateDefinition } = require('../../automation/validate/definition');
 
     // A record about the graph itself: no step.
@@ -223,7 +223,7 @@ test('Routine validator: every record names the automation and, where the path h
     }
 });
 
-test('Routine validator: a nested step is addressed by its own id, and edge paths name no step', () => {
+test('Automation validator: a nested step is addressed by its own id, and edge paths name no step', () => {
     const { validateDefinitionStrict } = require('../../automation/validate/definition');
     const loop = (edges) => ({
         trigger: { id: 'trg', kind: 'manual' },
@@ -272,7 +272,7 @@ test('Solution graph: a problem is a Finding about the object that HOLDS the bro
     const missing = byCode[PROBLEM.MISSING];
     assert.equal(missing.kind, 'automation');
     assert.deepEqual(missing.targetRef, { kind: 'automation', id: 'a1', title: 'Kredietcheck', stepId: 'call_1' });
-    assert.equal(missing.targetId, 'gone', 'targetId is still the routine pointed AT, not the Finding target');
+    assert.equal(missing.targetId, 'gone', 'targetId is still the automation pointed AT, not the Finding target');
     assert.equal(missing.severity, 'error');
 
     const external = byCode[PROBLEM.EXTERNAL];

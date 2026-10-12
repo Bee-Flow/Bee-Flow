@@ -1,6 +1,6 @@
 // @typecheck
 /**
- * "This routine names a knowledge base — is that link still good?"
+ * "This automation names a knowledge base — is that link still good?"
  *
  * ── WHY THIS IS NOT IN automation/validate.js ───────────────────────
  * `validate.js` is deliberately DB-free: it is the pure pass, run in the
@@ -10,23 +10,23 @@
  * (`validateApprovalAssignees`, called from the route for exactly this reason).
  *
  * ── WARNING WHILE BUILDING, ERROR WHEN GOING LIVE ───────────────────
- * A half-built routine is the normal state of a draft: the builder saves the
+ * A half-built automation is the normal state of a draft: the builder saves the
  * whole definition on every node edit, long before the flow is finished, and a
  * save blocked by an unfinished step is how you lose an afternoon's work. So a
  * draft gets a warning it can keep working past.
  *
- * Activation is different. That is the moment the routine starts running
+ * Activation is different. That is the moment the automation starts running
  * unattended, on a schedule, with nobody watching the output — so a base it
  * cannot legitimately read is a hard refusal there. The runtime drops such an
  * id anyway (`execAi.resolveAllowedKnowledgeBaseIds`), which means without this
- * the routine would go live and quietly answer from less knowledge than its
+ * the automation would go live and quietly answer from less knowledge than its
  * author configured. Silently degraded is worse than refused.
  *
  * ── WHAT IT DOES NOT DO ─────────────────────────────────────────────
  * It does not decide who may READ the content — `core/kb/kbVisibility` does
- * that at retrieval, per run, against the person the routine runs as. This is
+ * that at retrieval, per run, against the person the automation runs as. This is
  * about the LINK: does the base exist, is it in this organisation, and did its
- * owner make it available to routines at all.
+ * owner make it available to automations at all.
  *
  * ── READING AND WRITING ARE DIFFERENT QUESTIONS ─────────────────────
  * An `ai_step` READS from a base; a `knowledge_write` step PUTS something in
@@ -100,12 +100,12 @@ function collectKbSteps(definition) {
 }
 
 /**
- * Findings for the knowledge bases a routine's steps name.
+ * Findings for the knowledge bases an automation's steps name.
  *
  * @param {object} definition
  * @param {object} p
- * @param {string} p.orgId        the routine's organisation (null for a personal routine)
- * @param {string} p.userId       the routine's owner
+ * @param {string} p.orgId        the automation's organisation (null for a personal automation)
+ * @param {string} p.userId       the automation's owner
  * @param {'draft'|'activate'} p.stage
  * @param {object} [p.deps]
  * @returns {Promise<Array<{code,severity,path,message,hint}>>}
@@ -185,8 +185,8 @@ async function kbStepFindings(definition, { orgId, userId, stage = 'draft', deps
                 findings.push({
                     ...base,
                     code: 'kb.context_missing',
-                    message: `"${kb.name || kbId}" is not available to routines.`,
-                    hint: 'In Knowledge → this base → Settings, tick "Routines" under where it can be used.',
+                    message: `"${kb.name || kbId}" is not available to automations.`,
+                    hint: 'In Knowledge → this base → Settings, tick "Automations" under where it can be used.',
                 });
             }
         }

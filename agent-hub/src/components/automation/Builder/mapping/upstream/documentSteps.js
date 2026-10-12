@@ -43,7 +43,7 @@ export function describeGenerateDocument(node) {
  * file shapes would have meant teaching each of them a second one.
  *
  * `missing` is the half that is this step's own: the names of the placeholders
- * nothing filled. It is offered downstream so a routine can branch on an
+ * nothing filled. It is offered downstream so an automation can branch on an
  * incomplete invoice — the alternative is discovering it on the paper.
  */
 export function describeFillDocument(node) {

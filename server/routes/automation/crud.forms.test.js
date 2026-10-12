@@ -174,8 +174,8 @@ const formRow = (over = {}) => ({
     submissions: 3,
     lastSeenAt: null,
     createdAt: '2026-08-01T00:00:00Z',
-    title: 'Routine title',
-    description: 'Routine description',
+    title: 'Automation title',
+    description: 'Automation description',
     isActive: true,
     isDraft: false,
     userId: 'user1',
@@ -194,7 +194,7 @@ test('lists a published form with the address a visitor would use', async () => 
     assert.strictEqual(res.body.forms.length, 1);
     const f = res.body.forms[0];
     assert.strictEqual(f.url, `/f/${'a'.repeat(48)}`);
-    // The FORM's own heading wins over the routine's title: that is what the
+    // The FORM's own heading wins over the automation's title: that is what the
     // person filling it in sees.
     assert.strictEqual(f.title, 'Intake');
     assert.strictEqual(f.description, 'Fill this in');
@@ -202,17 +202,17 @@ test('lists a published form with the address a visitor would use', async () => 
     assert.strictEqual(f.submissions, 3);
 });
 
-test('falls back to the routine title when the form has no heading of its own', async () => {
+test('falls back to the automation title when the form has no heading of its own', async () => {
     ORG_FORMS = [formRow({ definition: { trigger: { id: 'trg', kind: 'form' } } })];
     const res = makeRes();
     await listFormsHandler(reqFor(), res);
-    assert.strictEqual(res.body.forms[0].title, 'Routine title');
+    assert.strictEqual(res.body.forms[0].title, 'Automation title');
 });
 
-test('a paused or draft routine is listed, but not as live', async () => {
+test('a paused or draft automation is listed, but not as live', async () => {
     // Its link answers 404 (formPublic.js's loadForm), so handing it out
     // silently would be worse than saying so.
-    // Two different routines — same automationId would be a duplicate page,
+    // Two different automations — same automationId would be a duplicate page,
     // which the dedupe above collapses to one.
     ORG_FORMS = [
         formRow({ isActive: false }),
@@ -246,7 +246,7 @@ test('resolves a page bound to an additional trigger, not just the primary one',
     assert.strictEqual(res.body.forms[0].title, 'Second door');
 });
 
-test('says whether the caller owns the routine — the builder link is per-user', async () => {
+test('says whether the caller owns the automation — the builder link is per-user', async () => {
     ORG_FORMS = [formRow({ userId: 'someone-else' })];
     const res = makeRes();
     await listFormsHandler(reqFor(), res);
@@ -322,7 +322,7 @@ test('PUT /forms/:id/audience: owner only, validated against the organisation, w
     assert.deepStrictEqual(res.body.audience, { mode: 'org', groups: [], users: [] });
 });
 
-test('shows one entry per form when a routine has duplicate page rows', async () => {
+test('shows one entry per form when an automation has duplicate page rows', async () => {
     // The old builder panel could mint a second page for the same trigger, and
     // installs have such pairs. Both links work; the busiest is the one people
     // are holding, so that is the one to show.
@@ -337,7 +337,7 @@ test('shows one entry per form when a routine has duplicate page rows', async ()
     assert.strictEqual(res.body.forms[0].submissions, 14);
 });
 
-test('keeps two DIFFERENT forms on the same routine apart', async () => {
+test('keeps two DIFFERENT forms on the same automation apart', async () => {
     // Same automation, different triggers — two real forms, not a duplicate.
     ORG_FORMS = [
         formRow({ id: 'p'.repeat(48), triggerStepId: null }),
@@ -405,7 +405,7 @@ test('provisions one page per form trigger, primary and additional alike', async
     ]);
 });
 
-test('a routine without a form trigger provisions nothing', async () => {
+test('an automation without a form trigger provisions nothing', async () => {
     ensured = [];
     AUTOMATIONS.auto1 = { id: 'auto1', userId: 'user1', isActive: false, isDraft: true, definition: {} };
     const req = {
@@ -417,7 +417,7 @@ test('a routine without a form trigger provisions nothing', async () => {
     assert.deepStrictEqual(ensured, []);
 });
 
-test('creating a routine with a form trigger provisions it too', async () => {
+test('creating an automation with a form trigger provisions it too', async () => {
     ensured = [];
     const req = {
         params: {},

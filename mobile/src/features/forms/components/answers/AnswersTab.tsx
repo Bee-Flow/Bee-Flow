@@ -1,7 +1,7 @@
 /**
  * Answers — the dashboard of the form's answers table, for the owner and for
  * any colleague the table is shared with. A form that does not collect into
- * a table says so; its owner can still read what came in as the routine's
+ * a table says so; its owner can still read what came in as the automation's
  * run history.
  */
 
@@ -28,10 +28,10 @@ function NoTable({ form }: { form: FormDetail }) {
                     {t('forms.answers.no_table_title', 'No answers table')}
                 </Text>
                 <Text variant="caption" tone="secondary" center>
-                    {t('forms.answers.no_table_body', 'This form starts a routine and does not collect answers in a table.')}
+                    {t('forms.answers.no_table_body', 'This form starts an automation and does not collect answers in a table.')}
                 </Text>
                 {form.mine ? (
-                    <Button size="sm" variant="secondary" iconName="History" label={t('routine_editor.run_history', 'Run history')} onPress={() => router.push(`/automations/${form.automationId}/runs`)} />
+                    <Button size="sm" variant="secondary" iconName="History" label={t('automation_editor.run_history', 'Run history')} onPress={() => router.push(`/automations/${form.automationId}/runs`)} />
                 ) : null}
             </View>
         </Card>

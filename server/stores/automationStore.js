@@ -30,7 +30,7 @@ module.exports = {
     ...require('./automationStore/subscriptions'),
     // Additional schedule triggers (automation_schedules, 2026-09).
     ...require('./automationStore/schedules'),
-    // Handoff 5: publish (working copy → live), the trash, per-routine run
+    // Handoff 5: publish (working copy → live), the trash, per-automation run
     // retention. Only the instance functions; the SQL constants stay module-level.
     publishWorkingCopy: require('./automationStore/lifecycle').publishWorkingCopy,
     countPendingChanges: require('./automationStore/lifecycle').countPendingChanges,
@@ -46,6 +46,12 @@ module.exports = {
     listAutomationsSharedWithUser: require('./automationStore/shares').listAutomationsSharedWithUser,
     countGroupMembers: require('./automationStore/shares').countGroupMembers,
     transferAutomationOwner: require('./automationStore/shares').transferAutomationOwner,
+    // Which agents may call an agent_call automation (automation/agentBinding.js decides who may write).
+    listBindingsForAutomation: require('./automationStore/agentBindings').listBindingsForAutomation,
+    listAutomationsBoundToAgent: require('./automationStore/agentBindings').listAutomationsBoundToAgent,
+    hasAgentBinding: require('./automationStore/agentBindings').hasAgentBinding,
+    applyAgentBindings: require('./automationStore/agentBindings').applyAgentBindings,
+    deleteBindingsForAgent: require('./automationStore/agentBindings').deleteBindingsForAgent,
     // Handoff 5, the Runs tab: what decorates a page of runs (automation/runListRows.js).
     getJourneyStepStatuses: require('./automationStore/runListing').getJourneyStepStatuses,
     getVersionDefinitions: require('./automationStore/runListing').getVersionDefinitions,

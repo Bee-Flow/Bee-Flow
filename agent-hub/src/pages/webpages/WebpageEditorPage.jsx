@@ -4,6 +4,7 @@ import useWebpageSave, { useWebpageChatPersistence } from './hooks/useWebpageSav
 import SaveStatus from './SaveStatus';
 import WebpageDataTab from './WebpageDataTab';
 import WebpageEditorHeader from './WebpageEditorHeader';
+import { managedOf } from '../../components/shared/managedPart';
 import WebpageHistoryTab from './WebpageHistoryTab';
 import WebpageIDE from './WebpageIDE';
 import WebpagePreview from './WebpagePreview';
@@ -12,6 +13,7 @@ import WebpageUsedByTab from './WebpageUsedByTab';
 import ExternalShareSection from '../../components/agents/AgentWizard/pickers/ExternalShareSection';
 import ShareLinksMenu from '../../components/agents/AgentWizard/pickers/ShareLinksMenu';
 import useChatEngine from '../../hooks/useChatEngine';
+import { useTranslation } from '../../hooks/useTranslation';
 import computeWebpageDiff from '../../utils/computeWebpageDiff';
 import downloadWebpageZip from '../../utils/downloadWebpageZip';
 import { API_BASE, authFetch } from '../../utils/helpers';
@@ -76,9 +78,13 @@ export default function WebpageEditorPage({
     onMetaChange,
     flushRef,
 }) {
+    const { t } = useTranslation();
     const pageId = loaded.webpage.id;
     const [page, setPage] = useState(loaded.webpage);
     const isOwner = page.userId === user?.id;
+    // A page a Solution stage manages is read-only for everyone: no AI builder, no
+    // code editor, no history (the header does not offer those tabs either).
+    const managed = managedOf(page);
     /* ── The five sections (plan W2) ──────────────────────────────
      * One `activeTab` replaced three booleans that used to disagree with each
      * other (`viewMode`, the IDE's own `devMode`, and the overlay flag the
@@ -95,7 +101,9 @@ export default function WebpageEditorPage({
     // A viewer never opens in the code editor: Code and History are owner-only
     // (both server surfaces behind them answer 404 to anyone else), and the
     // header does not offer them either.
-    const [activeTab, setActiveTab] = useState(initialEditMode && isOwner ? 'code' : 'preview');
+    const [tabState, setActiveTab] = useState(initialEditMode && isOwner && !managedOf(loaded.webpage) ? 'code' : 'preview');
+    // Code and History are not on offer for a managed page; fall back to Preview.
+    const activeTab = managed && (tabState === 'code' || tabState === 'history') ? 'preview' : tabState;
     const viewMode = activeTab === 'preview';
     const [publishMenuOpen, setPublishMenuOpen] = useState(false);
     const [publishBusy, setPublishBusy] = useState(false);
@@ -790,6 +798,7 @@ export default function WebpageEditorPage({
             <WebpageEditorHeader
                 page={page}
                 isOwner={isOwner}
+                managed={managed}
                 activeTab={activeTab}
                 onTab={handleTab}
                 counts={headerCounts}
@@ -830,7 +839,7 @@ export default function WebpageEditorPage({
             {error && (
                 <div className="shrink-0 px-4 py-2 text-xs flex items-center gap-2" style={{ background: 'rgba(239,68,68,0.1)', color: '#991b1b' }} role="alert">
                     <AlertCircle className="w-3.5 h-3.5" /> {error}
-                    <button onClick={() => setError(null)} className="ml-auto" aria-label="Dismiss error"><X className="w-3 h-3" /></button>
+                    <button onClick={() => setError(null)} className="ml-auto" aria-label={t('webpages.dismiss_error', 'Dismiss error')}><X className="w-3 h-3" /></button>
                 </div>
             )}
 
@@ -931,6 +940,7 @@ export default function WebpageEditorPage({
                     onUndoTurn={handleUndoTurn}
                     onShowInCode={handleShowInCode}
                     focusFile={focusFile}
+                    managed={managed}
                 />
                 </div>
                 )}

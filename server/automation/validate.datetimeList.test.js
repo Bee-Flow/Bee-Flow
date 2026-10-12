@@ -6,7 +6,7 @@
  *
  *   1. A blank source is COMPLETENESS, not a hard error — the inspector
  *      autosaves while the author is still picking one, and blocking there
- *      400s every save of the whole routine.
+ *      400s every save of the whole automation.
  *   2. `item.<column>` is a legal ref root in list mode. Without that, every
  *      binding the editor writes warns `ref.invalid` on save.
  *

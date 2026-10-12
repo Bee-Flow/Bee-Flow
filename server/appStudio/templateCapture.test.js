@@ -2,7 +2,7 @@
  * App Studio — templateCapture (turning a live app into a reusable template).
  *
  * The rules worth pinning are the ones that decide whether a template installs
- * CLEAN somewhere else: what gets scrubbed (routine ids, system columns, file
+ * CLEAN somewhere else: what gets scrubbed (automation ids, system columns, file
  * values, dangling relations), what deliberately does not (connector names),
  * and that a definition with validation errors is refused rather than saved as
  * a template that breaks on install.
@@ -69,12 +69,12 @@ const LIVE_ROWS = {
 
 // ── The scrub ──────────────────────────────────────────────────────────────
 
-test('a live routine id never reaches the template', () => {
+test('a live automation id never reaches the template', () => {
     const def = baseDefinition();
     const cut = _scrubAutomationIds(def);
     assert.deepEqual(cut, ['auto-live-123']);
     assert.equal(def.actions.act_run.automationId, null,
-        'templates ship automationId:null so the installer wires their own routine');
+        'templates ship automationId:null so the installer wires their own automation');
 });
 
 test('connector names are kept, not scrubbed, and reported as a requirement', () => {
@@ -169,7 +169,7 @@ test('a clean capture reports what the installer must supply', () => {
     });
     assert.equal(out.ok, true);
     const kinds = out.report.requires.map((r) => r.kind);
-    assert.ok(kinds.includes('automation'), 'cleared routines are reported, not hidden');
+    assert.ok(kinds.includes('automation'), 'cleared automations are reported, not hidden');
     assert.ok(kinds.includes('connector'), 'the mailbox the installer has to create is named');
     assert.equal(out.report.tables, 2);
     assert.equal(out.report.seededRows, 3);
@@ -197,4 +197,23 @@ test('capture never mutates the caller\'s live definition', () => {
     assert.equal(def.actions.act_run.automationId, 'auto-live-123',
         'the draft the rest of the request is using must be untouched');
     assert.equal(def.meta.name, 'Source app');
+});
+
+test('BFSF-384: a staged approval loses its stages on capture, and the capture says so', () => {
+    const def = emptyDefinition('Source app');
+    def.actions = {
+        ask: {
+            kind: 'sequence', steps: [{
+                kind: 'request_approval', prompt: { kind: 'static', value: 'Approve the order?' },
+                stages: [
+                    { key: 'lead', name: 'Team lead', approvers: [{ userId: 'u1' }], rule: 'all' },
+                    { key: 'fin', name: 'Finance', approvers: [{ groupId: 'g_fin' }], rule: 'first' },
+                ],
+            }],
+        },
+    };
+    const out = captureTemplate({ definition: def, meta: { title: 'Orders' } });
+    assert.ok(out.ok, JSON.stringify(out.errors));
+    assert.ok(!JSON.stringify(out.template).includes('u1') && !JSON.stringify(out.template).includes('g_fin'));
+    assert.ok(out.report.warnings.some(w => /2 approval stage\(s\) removed/.test(w)), JSON.stringify(out.report.warnings));
 });

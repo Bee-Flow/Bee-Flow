@@ -85,7 +85,7 @@ const KIND_ICON = Object.freeze({
  * the twelve keys, so a caller can hand over whatever it has.
  */
 const KIND_ALIASES = Object.freeze({
-    automations: 'automation', routine: 'automation', routines: 'automation', flow: 'automation',
+    automations: 'automation', automation: 'automation', flow: 'automation',
     datatables: 'datatable', table: 'datatable', tables: 'datatable', data_table: 'datatable',
     apps: 'app', application: 'app',
     webpages: 'webpage', web: 'webpage', page: 'webpage', pages: 'webpage', website: 'webpage',

@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import DeleteConfirmButtons from './shared/DeleteConfirmButtons';
 import useProviderConfig from '../../../../hooks/useProviderConfig';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 const GoogleVertexConfigCard = ({ onMessage }) => {
+    const { t } = useTranslation();
     const [project, setProject] = useState('');
     const [location, setLocation] = useState('europe-west4');
     const [serviceAccountKey, setServiceAccountKey] = useState('');
@@ -27,13 +29,13 @@ const GoogleVertexConfigCard = ({ onMessage }) => {
             try {
                 JSON.parse(serviceAccountKey);
             } catch {
-                onMessage?.({ type: 'error', text: 'Invalid JSON — please paste a valid service account key' });
+                onMessage?.({ type: 'error', text: t('admin_ai_config.vertex_invalid_json', 'Invalid JSON: please paste a valid service account key') });
                 return;
             }
             body.googleVertexServiceAccountKey = serviceAccountKey;
         }
 
-        const ok = await save(body, { success: 'Google Vertex AI config saved!', error: 'Failed to save config' });
+        const ok = await save(body, { success: t('admin_ai_config.vertex_saved', 'Google Vertex AI config saved!'), error: t('admin_ai_config.provider_save_failed', 'Failed to save config') });
         if (ok) {
             patchConfig({
                 ...(project.trim() ? { hasGoogleVertexProject: true } : {}),
@@ -46,7 +48,7 @@ const GoogleVertexConfigCard = ({ onMessage }) => {
     };
 
     const handleDeleteProject = async () => {
-        const ok = await deleteSetting('google_vertex_project', { success: 'Vertex AI project removed', error: 'Failed to delete project' });
+        const ok = await deleteSetting('google_vertex_project', { success: t('admin_ai_config.vertex_project_removed', 'Vertex AI project removed'), error: t('admin_ai_config.vertex_project_delete_failed', 'Failed to delete project') });
         if (ok) {
             patchConfig({ hasGoogleVertexProject: false });
             setProject('');
@@ -54,7 +56,7 @@ const GoogleVertexConfigCard = ({ onMessage }) => {
     };
 
     const handleDeleteServiceKey = async () => {
-        const ok = await deleteKey('google_vertex_service_account_key', { success: 'Vertex AI service account key removed', error: 'Failed to delete service account key' });
+        const ok = await deleteKey('google_vertex_service_account_key', { success: t('admin_ai_config.vertex_key_removed', 'Vertex AI service account key removed'), error: t('admin_ai_config.vertex_key_delete_failed', 'Failed to delete service account key') });
         if (ok) {
             patchConfig({ hasGoogleVertexServiceAccountKey: false });
             setServiceAccountKey('');
@@ -70,14 +72,14 @@ const GoogleVertexConfigCard = ({ onMessage }) => {
                     ☁️
                 </div>
                 <div className="flex-1">
-                    <h4 className="font-medium" style={{ color: 'var(--text-primary)' }}>Google Vertex AI</h4>
+                    <h4 className="font-medium" style={{ color: 'var(--text-primary)' }}>{t('admin_ai_config.vertex_title', 'Google Vertex AI')}</h4>
                     <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                        {isConfigured ? '✅ Fully configured' : 'EU-hosted Gemini via Vertex AI'}
+                        {isConfigured ? t('admin_ai_config.fully_configured', '✅ Fully configured') : t('admin_ai_config.vertex_subtitle', 'EU-hosted Gemini via Vertex AI')}
                     </p>
                 </div>
                 <div className="flex gap-1.5">
-                    {hasProject && <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-500/20 text-green-400">Project</span>}
-                    {hasKey && <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-500/20 text-green-400">Key</span>}
+                    {hasProject && <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-500/20 text-green-400">{t('admin_ai_config.vertex_project_pill', 'Project')}</span>}
+                    {hasKey && <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-500/20 text-green-400">{t('admin_ai_config.key_pill', 'Key')}</span>}
                 </div>
             </div>
             <div className="space-y-3">
@@ -87,7 +89,7 @@ const GoogleVertexConfigCard = ({ onMessage }) => {
                         type="text"
                         value={project}
                         onChange={e => setProject(e.target.value)}
-                        placeholder={hasProject ? '••••••••••••••••' : 'GCP Project ID'}
+                        placeholder={hasProject ? '••••••••••••••••' : t('admin_ai_config.vertex_project_placeholder', 'GCP Project ID')}
                         className="flex-1 px-4 py-2.5 rounded-lg border outline-none focus:border-[var(--accent-primary)] text-sm"
                         style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                     />
@@ -95,10 +97,10 @@ const GoogleVertexConfigCard = ({ onMessage }) => {
                         type="text"
                         value={location}
                         onChange={e => setLocation(e.target.value)}
-                        placeholder="europe-west4"
+                        placeholder={t('admin_ai_config.vertex_location_placeholder', 'europe-west4')}
                         className="w-40 px-4 py-2.5 rounded-lg border outline-none focus:border-[var(--accent-primary)] text-sm"
                         style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
-                        title="GCP Location (e.g. europe-west4, us-central1)"
+                        title={t('admin_ai_config.vertex_location_title', 'GCP Location (e.g. europe-west4, us-central1)')}
                     />
                 </div>
 
@@ -109,23 +111,23 @@ const GoogleVertexConfigCard = ({ onMessage }) => {
                         className="text-xs px-3 py-1.5 rounded-lg transition-all hover:bg-white/10"
                         style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)', border: '1px solid var(--border-default)' }}
                     >
-                        {hasKey ? '🔑 Update Service Account Key' : '🔑 Add Service Account Key'}
+                        {hasKey ? t('admin_ai_config.vertex_update_key', '🔑 Update Service Account Key') : t('admin_ai_config.vertex_add_key', '🔑 Add Service Account Key')}
                     </button>
                 ) : (
                     <div>
                         <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-muted)' }}>
-                            Service Account JSON Key
+                            {t('admin_ai_config.vertex_key_label', 'Service Account JSON Key')}
                         </label>
                         <textarea
                             value={serviceAccountKey}
                             onChange={e => setServiceAccountKey(e.target.value)}
-                            placeholder='Paste your service account JSON key here...'
+                            placeholder={t('admin_ai_config.vertex_key_placeholder', 'Paste your service account JSON key here...')}
                             rows={4}
                             className="w-full px-4 py-2.5 rounded-lg border outline-none focus:border-[var(--accent-primary)] text-xs font-mono resize-y"
                             style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                         />
                         <p className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>
-                            GCP Console → IAM → Service Accounts → Keys → Add Key → JSON
+                            {t('admin_ai_config.vertex_key_hint', 'GCP Console → IAM → Service Accounts → Keys → Add Key → JSON')}
                         </p>
                     </div>
                 )}
@@ -134,10 +136,10 @@ const GoogleVertexConfigCard = ({ onMessage }) => {
                 <div className="flex justify-between items-center">
                     <div className="flex gap-2">
                         {hasProject && (
-                            <DeleteConfirmButtons onConfirm={handleDeleteProject} label="🗑️ Project" title="Remove Vertex project" size="xs" />
+                            <DeleteConfirmButtons onConfirm={handleDeleteProject} label={t('admin_ai_config.vertex_delete_project', '🗑️ Project')} title={t('admin_ai_config.vertex_remove_project', 'Remove Vertex project')} size="xs" />
                         )}
                         {hasKey && (
-                            <DeleteConfirmButtons onConfirm={handleDeleteServiceKey} label="🗑️ Key" title="Remove service account key" size="xs" />
+                            <DeleteConfirmButtons onConfirm={handleDeleteServiceKey} label={t('admin_ai_config.delete_key', '🗑️ Key')} title={t('admin_ai_config.vertex_remove_key', 'Remove service account key')} size="xs" />
                         )}
                     </div>
                     <button
@@ -146,7 +148,7 @@ const GoogleVertexConfigCard = ({ onMessage }) => {
                         className="px-5 py-2.5 rounded-lg font-medium text-white text-sm transition-all disabled:opacity-50"
                         style={{ background: 'var(--accent-primary)' }}
                     >
-                        {saving ? '...' : 'Save'}
+                        {saving ? '...' : t('admin_ai_config.save', 'Save')}
                     </button>
                 </div>
             </div>

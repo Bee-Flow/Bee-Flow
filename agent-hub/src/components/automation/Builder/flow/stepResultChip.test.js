@@ -5,7 +5,7 @@ import { describeStepResult } from './stepResultChip';
 /**
  * The result chip's phrase for every shape a run row's output can take. The
  * translator is stubbed with the English fallbacks so the strings asserted
- * here are what the dictionary carries under routines.canvas.result.*.
+ * here are what the dictionary carries under automations.canvas.result.*.
  */
 const t = (key, fallback, params) => {
     let out = fallback;
@@ -80,6 +80,14 @@ describe('describeStepResult', () => {
         expect(describeStepResult({ status: 'success', output: { text: 'summary', score: 3 } }, t)).toBe('ok|done');
         expect(describeStepResult({ status: 'success', output: 42 }, t)).toBe('ok|done');
         expect(describeStepResult({ status: 'success', output: true }, t)).toBe('ok|done');
+    });
+
+    it('a Condition that kept part of a list reads "3 of 4 kept" (C5)', () => {
+        const out = { items: [{ id: 1 }, { id: 2 }, { id: 3 }], inputCount: 4, rejectedCount: 1, count: 3 };
+        expect(describeStepResult({ status: 'success', output: out }, t)).toBe('kept|3 of 4 kept');
+        expect(describeStepResult({ status: 'success', output: { items: [], inputCount: 4, rejectedCount: 4 } }, t)).toBe('kept|0 of 4 kept');
+        // Without the filter's counts, items is just a list.
+        expect(describeStepResult({ status: 'success', output: { items: [1, 2] } }, t)).toBe('items|2 items');
     });
 
     it('a server-truncated output is a placeholder, not a shape to count', () => {

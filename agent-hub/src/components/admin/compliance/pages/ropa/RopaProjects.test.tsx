@@ -29,7 +29,15 @@ describe('RopaProjects', () => {
         expect(screen.getByTestId('ropa-project-p1')).toHaveTextContent('Health data, Names');
         expect(screen.getByTestId('ropa-project-special-p1')).toHaveTextContent('Special category');
         expect(screen.getByTestId('ropa-project-record-p1')).toHaveTextContent('None yet');
-        expect(screen.getByTestId('ropa-project-record-p2')).toHaveTextContent('Contract · confirmed 2026-09-01');
+        expect(screen.getByTestId('ropa-project-record-p2')).toHaveTextContent('Contract · confirmed 1 Sep');
+    });
+
+    it('writes the confirmed date the one way the Compliance Center writes a date, not as an ISO slice', () => {
+        render(<RopaProjects body={BODY} />);
+        const record = screen.getByTestId('ropa-project-record-p2').textContent || '';
+        // formatDay: the year only when it is not the current one.
+        expect(record).toMatch(/^Contract · confirmed 1 Sep( 2026)?$/);
+        expect(record).not.toContain('2026-09-01');
     });
 
     it('records a purpose, basis and retention for a project', async () => {

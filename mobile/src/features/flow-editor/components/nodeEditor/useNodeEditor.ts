@@ -1,11 +1,11 @@
 /**
- * Everything the node editor shows about one step, from the open routine's
+ * Everything the node editor shows about one step, from the open automation's
  * draft: the step's form (useStepForm), what flows into it (the upstream
  * groups, with real output from this screen's last test and every pin laid
  * over the samples), its findings, where it sits in the run order, and the
  * "Test step" run. The web's useNodeDetailData + NodeDetailView plumbing.
  *
- * The routine's last test run is shared with the build screen
+ * The automation's last test run is shared with the build screen
  * (components/run/testRunStore): a dry run started there gives this step
  * real upstream output and its own row, and a Test here colours the card.
  */
@@ -21,6 +21,7 @@ import { useCatalog, useDraftState, useStepRun, type FlowDraft } from '@/feature
 import { sectionsWithErrors, type FlowDefinition, type FlowPosition, type StepIssues } from '@/features/flow-editor/model';
 
 import { isNestedAddress, positionAt, upstreamGroupsAt } from './address';
+import { followAcross } from './followAcross';
 import { useFormMode } from './formMode';
 import { renameAcross } from './renameAcross';
 import { stepLabelsInScope } from './stepLabels';
@@ -107,6 +108,7 @@ export function useNodeEditor(flow: FlowDraft, stepId: string, focusSection: str
         mode,
         disabled: locked,
         renameField: (base, from, to) => renameAcross(flow.store, base, from, to),
+        followRoute: (routeId, stepIds) => followAcross(flow.store, routeId, stepIds),
     };
     return {
         form,

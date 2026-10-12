@@ -1,5 +1,5 @@
 /**
- * Een geplande run (routine of cowork) rekent zijn verbruik af via HETZELFDE
+ * Een geplande cowork-run rekent zijn verbruik af via HETZELFDE
  * pad als interactieve chats: usageStore.logUsage, met de eigenaar en de al
  * opgeloste effectieve org als attributie. Vóór dit bestond bereikte het
  * niet-agent-pad van executeTask ai_usage_log nooit — nul kosten, geen
@@ -44,7 +44,7 @@ function resetScenario() {
 }
 
 const restore = installResolveStub({
-    '../stores/aiTaskStore': {
+    '../stores/coworkStore': {
         markRunning: async () => {}, markCompleted: async () => {},
         markError: async () => {}, getDueTasks: async () => [],
         updateTask: async () => {}, advanceSchedule: async () => {},
@@ -99,7 +99,7 @@ test('een cowork-run logt verbruik onder eigenaar en effectieve org, precies é�
 
     await executeTask(
         { id: 'cw1', userId: 'u1', modelTier: 'fast', title: 'Ochtendbriefing', prompt: 'Doe iets.' },
-        { store: fakeStore, surface: 'cowork' },
+        { store: fakeStore },
     );
     await flush();
 
@@ -119,7 +119,7 @@ test('een cowork-run logt verbruik onder eigenaar en effectieve org, precies é�
     assert.ok(!storeCalls.includes('markError'));
 });
 
-test('de routine-surface logt onder source routine', async () => {
+test('elke run logt onder source cowork: de runner kent geen tweede soort meer', async () => {
     resetScenario();
     script = [{ content: 'Klaar.', usage: { prompt_tokens: 2, completion_tokens: 1 } }];
 
@@ -130,8 +130,8 @@ test('de routine-surface logt onder source routine', async () => {
     await flush();
 
     assert.strictEqual(logged.length, 1);
-    assert.strictEqual(logged[0].source, 'routine');
-    assert.strictEqual(logged[0].agent_type, 'routine');
+    assert.strictEqual(logged[0].source, 'cowork');
+    assert.strictEqual(logged[0].agent_type, 'cowork');
 });
 
 test('een falende usage-log laat de run gewoon slagen', async () => {
@@ -141,7 +141,7 @@ test('een falende usage-log laat de run gewoon slagen', async () => {
 
     await executeTask(
         { id: 'cw2', userId: 'u1', modelTier: 'fast', title: 'T', prompt: 'Doe iets.' },
-        { store: fakeStore, surface: 'cowork' },
+        { store: fakeStore },
     );
     await flush();
 
@@ -163,7 +163,7 @@ test('een run die halverwege faalt rekent de al verbrande tokens alsnog af', asy
 
     await executeTask(
         { id: 'cw3', userId: 'u1', modelTier: 'fast', title: 'T', prompt: 'Doe iets.' },
-        { store: fakeStore, surface: 'cowork' },
+        { store: fakeStore },
     );
     await flush();
 
@@ -180,7 +180,7 @@ test('een run die vóór de eerste model-call strandt logt géén lege regel', a
 
     await executeTask(
         { id: 'cw4', userId: 'u1', modelTier: 'fast', title: 'T', prompt: 'Doe iets.' },
-        { store: fakeStore, surface: 'cowork' },
+        { store: fakeStore },
     );
     await flush();
 

@@ -72,7 +72,7 @@ describe('naming a Blueprint', () => {
 
         // The wizard opens on step 1, describing what it read…
         expect(await screen.findByTestId('install-contents')).toBeTruthy();
-        expect(screen.getByTestId('install-contents').textContent).toContain('1 routine');
+        expect(screen.getByTestId('install-contents').textContent).toContain('1 automation');
         // …and nothing has been created.
         expect(posted()).toHaveLength(0);
     });

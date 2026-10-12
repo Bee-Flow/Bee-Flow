@@ -16,7 +16,7 @@ import ProjectBlueprintTab from './ProjectBlueprintTab';
  * more use than a control that silently is not there.
  *
  * And the warnings are the point of the screen. A Blueprint that quietly left
- * something behind — a routine it could not carry, a database it must not —
+ * something behind — an automation it could not carry, a database it must not —
  * reads as a complete copy right up until someone installs it.
  */
 
@@ -74,7 +74,7 @@ describe('the result', () => {
     it('counts what it packaged and offers the download', async () => {
         const { getByRole, findByText } = renderTab();
         getByRole('button').click();
-        expect(await findByText('3 routines · 2 apps · 1 webpages')).toBeTruthy();
+        expect(await findByText('3 automations · 2 apps · 1 webpages')).toBeTruthy();
         expect(await findByText('Download')).toBeTruthy();
     });
 
@@ -95,7 +95,7 @@ describe('the result', () => {
 
     it('shows nothing about contents before an export has run', () => {
         const { queryByText } = renderTab();
-        expect(queryByText(/routines ·/)).toBeNull();
+        expect(queryByText(/automations ·/)).toBeNull();
         expect(queryByText('Download')).toBeNull();
     });
 

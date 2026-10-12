@@ -30,6 +30,27 @@ test('the fingerprint ignores what moves on every run and keeps what was found',
     assert.notStrictEqual(fs.fingerprintOf(a), fs.fingerprintOf(failing), 'warn → fail always re-opens');
 });
 
+test('day counters and traffic counters do not re-open a decision; a configured value does', () => {
+    const a = { status: 'warn', evidence: { marked: 2, days_until_required: 57, review_age_days: 400, total_events: 10, ai_requests: 80, days_remaining: 30, oldest_high_critical_days: 12 } };
+    const b = { status: 'warn', evidence: { marked: 2, days_until_required: 56, review_age_days: 401, total_events: 14, ai_requests: 95, days_remaining: 29, oldest_high_critical_days: 13 } };
+    assert.strictEqual(fs.fingerprintOf(a), fs.fingerprintOf(b));
+    assert.notStrictEqual(fs.fingerprintOf(a), fs.fingerprintOf({ status: 'warn', evidence: { ...a.evidence, marked: 3 } }));
+    assert.notStrictEqual(
+        fs.fingerprintOf({ status: 'warn', evidence: { retention_days: 30 } }),
+        fs.fingerprintOf({ status: 'warn', evidence: { retention_days: 365 } }),
+        'a configured retention period is part of the finding',
+    );
+});
+
+test('the subject label the runner stamps on a row is a name, not part of the finding', () => {
+    const a = { status: 'fail', evidence: { agent_id: 'ag_1', subject_label: 'Claims bot' } };
+    const renamed = { status: 'fail', evidence: { agent_id: 'ag_1', subject_label: 'Claims assessor' } };
+    const unlabelled = { status: 'fail', evidence: { agent_id: 'ag_1' } };
+    assert.strictEqual(fs.fingerprintOf(a), fs.fingerprintOf(renamed), 'renaming the agent keeps the decision');
+    assert.strictEqual(fs.fingerprintOf(a), fs.fingerprintOf(unlabelled), 'adding the label does not lapse an earlier decision');
+    assert.notStrictEqual(fs.fingerprintOf(a), fs.fingerprintOf({ status: 'fail', evidence: { agent_id: 'ag_2', subject_label: 'Claims bot' } }));
+});
+
 test('a check can name its own stable subset', () => {
     const def = { fingerprintOf: (ev) => (ev.offenders || []).map(o => o.project_id).sort() };
     const a = { status: 'warn', evidence: { offenders: [{ project_id: 'p1', count: 2 }], total: 2 } };

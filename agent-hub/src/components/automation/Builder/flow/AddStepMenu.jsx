@@ -1,10 +1,11 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useId, useMemo, useRef, useState } from 'react';
 import { Search, ChevronDown, ChevronRight, Plus, Layers } from 'lucide-react';
 import IntegrationLogo from './nodes/IntegrationLogo';
 import { buildStepGroups, buildSearchResults, gated } from './stepPalette';
 import { actionLabelMap, uiDescription } from './appLabels';
 import { stepDragProps } from './stepDrag';
 import { denseInputClass } from './settings/formStyles';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 /**
  * Shared "add step" list content — rows, the apps category→app→action tree,
@@ -21,6 +22,7 @@ import { denseInputClass } from './settings/formStyles';
  *   autoFocus  — focus the search box on mount
  */
 export default function AddStepMenu({ scope = {}, group = null, showSearch, onAdd, onAfterAdd, autoFocus = false }) {
+    const { t } = useTranslation();
     const [query, setQuery] = useState('');
     const searchRef = useRef(null);
     const searchable = showSearch ?? !group;
@@ -87,7 +89,7 @@ export default function AddStepMenu({ scope = {}, group = null, showSearch, onAd
                             autoFocus={autoFocus}
                             value={query}
                             onChange={(e) => setQuery(e.target.value)}
-                            placeholder="Search steps…"
+                            placeholder={t('automations.add_step_menu.search_steps', 'Search steps…')}
                             className={denseInputClass('w-full pl-7 pr-2')}
                         />
                     </div>
@@ -139,6 +141,7 @@ function RecoBlock({ title, accent, items, onAdd }) {
 }
 
 function GroupBlock({ group, singleGroup, onAdd }) {
+    const { t } = useTranslation();
     // A consolidated group (Flow) renders its category sub-headings directly —
     // they're descriptive enough, so the group title is omitted to avoid a
     // redundant "Flow › Flow control" double heading.
@@ -175,7 +178,7 @@ function GroupBlock({ group, singleGroup, onAdd }) {
             )}
             <div className="pb-1.5">
                 {empty
-                    ? <div className="px-3 py-2 text-[11px] text-[var(--text-tertiary)] italic">Nothing here yet.</div>
+                    ? <div className="px-3 py-2 text-[11px] text-[var(--text-tertiary)] italic">{t('automations.add_step_menu.nothing_here_yet', 'Nothing here yet.')}</div>
                     : body}
             </div>
         </div>
@@ -204,6 +207,7 @@ function ItemIcon({ item, size = 18 }) {
  * of the description.
  */
 function SimpleRow({ item, onAdd }) {
+    const descId = useId();
     const disabled = !!item.disabled;
     const add = () => { if (!disabled) onAdd(item.payload); };
     return (
@@ -211,6 +215,10 @@ function SimpleRow({ item, onAdd }) {
             {...(disabled ? null : stepDragProps(item.payload))}
             onClick={add}
             role="button"
+            // The name is the step's name; the description (or the reason it
+            // is disabled) is the description, not part of what the row is called.
+            aria-label={item.label}
+            aria-describedby={disabled || item.desc ? descId : undefined}
             aria-disabled={disabled || undefined}
             tabIndex={0}
             title={disabled ? item.disabledReason : undefined}
@@ -233,18 +241,19 @@ function SimpleRow({ item, onAdd }) {
             <div className="min-w-0 flex-1">
                 <div className="text-sm font-medium text-[var(--text-primary)] truncate">{item.label}</div>
                 {disabled
-                    ? <div className="text-xs text-[var(--text-tertiary)] italic line-clamp-2">{item.disabledReason}</div>
-                    : item.desc && <div className="text-xs text-[var(--text-tertiary)] line-clamp-2">{item.desc}</div>}
+                    ? <div id={descId} className="text-xs text-[var(--text-tertiary)] italic line-clamp-2">{item.disabledReason}</div>
+                    : item.desc && <div id={descId} className="text-xs text-[var(--text-tertiary)] line-clamp-2">{item.desc}</div>}
             </div>
         </div>
     );
 }
 
 function AppsTree({ categories, onAdd }) {
+    const { t } = useTranslation();
     const [openCat, setOpenCat] = useState(categories.length === 1 ? categories[0].category : null);
     const [openApp, setOpenApp] = useState(null);
     if (categories.length === 0) {
-        return <div className="px-3 py-2 text-[11px] text-[var(--text-tertiary)] italic">No apps available.</div>;
+        return <div className="px-3 py-2 text-[11px] text-[var(--text-tertiary)] italic">{t('automations.add_step_menu.no_apps_available', 'No apps available.')}</div>;
     }
     return (
         <div>
@@ -273,6 +282,7 @@ function AppsTree({ categories, onAdd }) {
 }
 
 function AppRow({ app, isOpen, onToggle, onAdd }) {
+    const { t } = useTranslation();
     const notConnected = app.connected === false;
     const primary = app.actions[0];
     // The category row directly above already names the vendor, so the app is
@@ -302,7 +312,7 @@ function AppRow({ app, isOpen, onToggle, onAdd }) {
                     <IntegrationLogo integrationId={app.integrationId} size={18} />
                     <span className={`truncate font-medium ${notConnected ? 'text-[var(--text-secondary)]' : 'text-[var(--text-primary)]'}`}>{shownName}</span>
                     {notConnected && (
-                        <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] uppercase tracking-wide bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">Connect</span>
+                        <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] uppercase tracking-wide bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">{t('automations.add_step_menu.connect', 'Connect')}</span>
                     )}
                     <span className="ml-auto shrink-0 text-xs text-[var(--text-tertiary)] tabular-nums">{app.actions.length}</span>
                 </button>
@@ -340,6 +350,7 @@ function AppRow({ app, isOpen, onToggle, onAdd }) {
  * carries instructions written at the model rather than at the author.
  */
 function ActionRow({ action, labels, onAdd }) {
+    const descId = useId();
     // The payload keeps the catalog's full label — the node it creates sits on
     // a canvas with no app row above it to say which app this came from.
     const payload = { kind: 'integration_action', tool: action.tool, label: action.label, appId: action.integrationId, sideEffect: action.sideEffect };
@@ -352,6 +363,8 @@ function ActionRow({ action, labels, onAdd }) {
             {...stepDragProps(payload)}
             onClick={() => onAdd(payload)}
             role="button"
+            aria-label={shown}
+            aria-describedby={hasDistinctDesc ? descId : undefined}
             tabIndex={0}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onAdd(payload); } }}
             title={description || shown}
@@ -366,15 +379,16 @@ function ActionRow({ action, labels, onAdd }) {
                     thing on the row that says what the action does, and one
                     clipped line of "List the Nextcloud Tables the user can…"
                     is barely more use than none. */}
-                {hasDistinctDesc && <div className="text-xs leading-snug text-[var(--text-tertiary)] line-clamp-2">{description}</div>}
+                {hasDistinctDesc && <div id={descId} className="text-xs leading-snug text-[var(--text-tertiary)] line-clamp-2">{description}</div>}
             </div>
         </div>
     );
 }
 
 function SearchResults({ results, q, onAdd }) {
+    const { t } = useTranslation();
     if (results.length === 0) {
-        return <div className="px-3 py-6 text-xs text-[var(--text-tertiary)] italic text-center">No matches for &ldquo;{q}&rdquo;</div>;
+        return <div className="px-3 py-6 text-xs text-[var(--text-tertiary)] italic text-center">{t('automations.add_step_menu.no_matches_for', 'No matches for “{query}”', { query: q })}</div>;
     }
     return (
         <div className="py-1">
@@ -384,6 +398,7 @@ function SearchResults({ results, q, onAdd }) {
 }
 
 function SearchResultRow({ result, q, onAdd }) {
+    const descId = useId();
     const Icon = result.Icon;
     // Same rule as SimpleRow: a result the graph can't accept is findable and
     // explains itself rather than not being a result at all.
@@ -394,6 +409,8 @@ function SearchResultRow({ result, q, onAdd }) {
             {...(disabled ? null : stepDragProps(result.payload))}
             onClick={add}
             role="button"
+            aria-label={result.label}
+            aria-describedby={disabled || result.secondary ? descId : undefined}
             aria-disabled={disabled || undefined}
             tabIndex={0}
             title={disabled ? result.disabledReason : undefined}
@@ -410,8 +427,8 @@ function SearchResultRow({ result, q, onAdd }) {
             <div className="min-w-0 flex-1">
                 <div className="text-sm text-[var(--text-primary)] truncate">{highlightMatch(result.label, q)}</div>
                 {disabled
-                    ? <div className="text-xs text-[var(--text-tertiary)] italic line-clamp-2">{result.disabledReason}</div>
-                    : result.secondary && <div className="text-xs text-[var(--text-tertiary)] truncate">{result.secondary}</div>}
+                    ? <div id={descId} className="text-xs text-[var(--text-tertiary)] italic line-clamp-2">{result.disabledReason}</div>
+                    : result.secondary && <div id={descId} className="text-xs text-[var(--text-tertiary)] truncate">{result.secondary}</div>}
             </div>
             {result.context && <span className="shrink-0 text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">{result.context}</span>}
         </div>

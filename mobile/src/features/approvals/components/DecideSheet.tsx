@@ -42,8 +42,8 @@ export function DecideSheet({
             title={rejecting ? 'Reject this?' : 'Approve this?'}
             subtitle={
                 rejecting
-                    ? 'The routine stops here. Say why, so the next person reading this knows.'
-                    : 'The routine carries on from where it paused.'
+                    ? 'The automation stops here. Say why, so the next person reading this knows.'
+                    : 'The automation carries on from where it paused.'
             }
             footer={
                 <View style={styles.footer}>

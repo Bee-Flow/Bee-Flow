@@ -4,20 +4,20 @@
  *
  * The bridges run "acts-as-author": when a visitor triggers an action from
  * a published page, the call executes with the WEBPAGE OWNER's credentials,
- * quota, and routines. This module produces the author session object that
+ * quota, and automations. This module produces the author session object that
  * downstream tool dispatchers (toolDispatcher.executeTool, automationRunner.
  * executeAutomation, llmClient.chat) expect — same shape as `req.session`.
  *
  * Mirrors `resolveUserSession` in automationRunner.js (vault-backed via
- * routineAuth.buildUserAuth, falling back to the legacy user_sessions row —
- * that fallback is ON BY DEFAULT and disabled with ROUTINE_AUTH_LEGACY=0,
+ * automationAuth.buildUserAuth, falling back to the legacy user_sessions row —
+ * that fallback is ON BY DEFAULT and disabled with AUTOMATION_AUTH_LEGACY=0,
  * matching the `!== '0'` gate below). We duplicate rather than depend on the
  * runner so the bridge keeps working even if the runner module changes shape.
  */
 
 const pool = require('../../db').pool;
 const userStore = require('../../stores/userStore');
-const routineAuth = require('../../auth/routineAuth');
+const automationAuth = require('../../auth/automationAuth');
 const webpageStore = require('../../stores/webpageStore');
 
 // Which provider tokens to load. This used to read only the LEGACY
@@ -31,7 +31,7 @@ const log = require('../../telemetry/log');
 async function buildAuthorSession(authorUserId, authorUser) {
     const allEnabled = await resolveEnabledIntegrations(authorUserId, authorUser?.organizationId || null);
     try {
-        const built = await routineAuth.buildUserAuth(authorUserId, { enabledIntegrations: allEnabled });
+        const built = await automationAuth.buildUserAuth(authorUserId, { enabledIntegrations: allEnabled });
         if (built) {
             return {
                 user: {
@@ -45,7 +45,7 @@ async function buildAuthorSession(authorUserId, authorUser) {
                 refreshToken: built.refreshToken,
                 expiresAt: built.expiresAt,
                 oauthProvider: built.oauthProvider,
-                routineProviders: built.routineProviders || {},
+                automationProviders: built.automationProviders || {},
             };
         }
     } catch (err) {
@@ -53,7 +53,7 @@ async function buildAuthorSession(authorUserId, authorUser) {
     }
 
     // Legacy fallback (matches automationRunner.resolveUserSession).
-    if (process.env.ROUTINE_AUTH_LEGACY !== '0') {
+    if (require('../../utils/automationAuthLegacy').automationAuthLegacy() !== '0') {
         try {
             const { rows } = await pool.query(
                 `SELECT sess FROM user_sessions
@@ -82,7 +82,7 @@ async function buildAuthorSession(authorUserId, authorUser) {
             role: authorUser?.role || null,
         },
         isAdmin: !!authorUser?.isAdmin,
-        routineProviders: {},
+        automationProviders: {},
     };
 }
 

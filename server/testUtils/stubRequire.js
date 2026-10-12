@@ -71,4 +71,26 @@ function evictModule(absolutePath) {
     } catch (_) { /* not cached / not resolvable — nothing to evict */ }
 }
 
-module.exports = { installResolveStub, evictModule };
+/**
+ * Preload stub exports into require.cache under the REAL resolved path of each
+ * module, so every importer, whatever relative string it uses, gets the stub.
+ * `localRequire` is the test file's own `require`, which resolves the keys
+ * relative to the test. Install before the first require of the module under
+ * test.
+ *
+ *   preloadStubs(require, { '../stores/usageStore': { logUsage: async () => {} } });
+ *
+ * @param {NodeRequire} localRequire the caller's require
+ * @param {Record<string, any>} map require-string (relative to the caller) → stub exports
+ */
+function preloadStubs(localRequire, map) {
+    for (const [request, exportsObj] of Object.entries(map)) {
+        const p = localRequire.resolve(request);
+        const m = new Module(p);
+        m.exports = exportsObj;
+        m.loaded = true;
+        require.cache[p] = m;
+    }
+}
+
+module.exports = { installResolveStub, evictModule, preloadStubs };

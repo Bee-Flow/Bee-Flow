@@ -68,7 +68,7 @@ function KindPicker({ row, onPatch, testID }: Omit<OutputFieldRowProps, 'onRemov
 function FieldValue({ row, onPatch, testID }: Omit<OutputFieldRowProps, 'onRemove'>) {
     const t = useTranslation();
     const styles = useThemedStyles(makeStyles);
-    const label = row.key ? t('routines.builder.value_of', '{field} value', { field: row.key }) : t('routines.builder.value_word', 'Value');
+    const label = row.key ? t('automations.builder.value_of', '{field} value', { field: row.key }) : t('automations.builder.value_word', 'Value');
     if (row.kind === 'nested') {
         return (
             <Text variant="code" tone="tertiary" numberOfLines={3} accessibilityLabel={label} testID={testID}>
@@ -95,7 +95,7 @@ function FieldValue({ row, onPatch, testID }: Omit<OutputFieldRowProps, 'onRemov
         <TextField
             value={row.text}
             onChangeText={(text) => onPatch(textPatch(row, text))}
-            placeholder={t('routines.builder.type_a_value', 'Type a value…')}
+            placeholder={t('automations.builder.type_a_value', 'Type a value…')}
             accessibilityLabel={label}
             keyboardType={row.kind === 'number' ? 'numeric' : 'default'}
             multiline={multiline}

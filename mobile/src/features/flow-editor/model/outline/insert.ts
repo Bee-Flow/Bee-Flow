@@ -89,7 +89,7 @@ function spliceInto(next: FlowDefinition, target: Extract<AddTarget, { kind: 'sp
 export function insertStep(def: FlowDefinition, target: AddTarget, payload: StepPayload): InsertResult {
     const unwired = payload.kind === 'trigger' || payload.kind === 'note' || target.kind === 'root';
     if (!unwired && target.kind === 'inline') return insertInline(def, target, payload);
-    // A routine nobody has placed yet is drawn by the fallback layout: keep
+    // An automation nobody has placed yet is drawn by the fallback layout: keep
     // that layout (write it down) before adding, so the new step goes next to
     // its source as drawn — not to (0,0), on top of the trigger, with the
     // rest of the flow re-laid out around it.

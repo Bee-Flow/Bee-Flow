@@ -28,10 +28,12 @@ const { isGammaTool, executeGammaTool } = require('../../integrations/gammaTools
 const { isAfasTool, executeAfasTool } = require('../../integrations/afasTools');
 const { isNmbrsTool, executeNmbrsTool } = require('../../integrations/nmbrsTools');
 const { isVplanTool, executeVplanTool } = require('../../integrations/vplanTools');
+const { isScalewayBillingTool, executeScalewayBillingTool } = require('../../integrations/scalewayBillingTools');
 const { isN8nTool, executeN8nTool } = require('../../integrations/n8nTools');
 const { isN8nWorkflowTool, executeN8nWorkflowTool, getN8nToolPermission } = require('../../integrations/n8nWorkflowTools');
 const { hasPermission } = require('../../auth/permissions');
 const { isAgentSearchTool, executeWebSearch } = require('../../integrations/agentSearchTools');
+const { isReadUrlTool, executeReadUrlTool } = require('../../integrations/readUrlTools');
 const { isBrowseWebTool, executeBrowseWebTool } = require('../../integrations/browserFetchTools');
 const { isRegexGeneratorTool, executeRegexGeneratorTool } = require('../../integrations/regexGeneratorTools');
 const { executeWorkspaceTool } = require('../../integrations/workspaceTools');
@@ -124,7 +126,7 @@ async function dispatchTool(toolName, toolArgs, context = {}) {
         req,
         attachments,
         onImageGenerated,
-        // { runId, rootRunId } inside a routine run; null in a chat. Lets the
+        // { runId, rootRunId } inside an automation run; null in a chat. Lets the
         // upload tools resolve a `generated_file` handle against that journey.
         runScope,
     } = context;
@@ -142,7 +144,7 @@ async function dispatchTool(toolName, toolArgs, context = {}) {
     // method gate and secret scrub all live there. Dispatched BEFORE the
     // per-integration chain so no prefix collision can shadow it.
     // `unattended`: context.autoSend is the dispatch-side headless marker —
-    // the automation runner sets it on LIVE routine runs and webpageApiRuntime
+    // the automation runner sets it on LIVE automation runs and webpageApiRuntime
     // sets it on backend handler calls. The custom-integration runner refuses
     // unattended===true outright for now, and the capability backstop still
     // gates every call regardless of path.
@@ -150,7 +152,7 @@ async function dispatchTool(toolName, toolArgs, context = {}) {
     // The task/cowork runner needs the two halves apart. It must auto-send
     // email (nobody is there to approve a draft — see the aiTaskRunner call
     // site), but flipping its custom-integration calls to unattended would
-    // turn working routines into refusals, which is a policy change and not
+    // turn working automations into refusals, which is a policy change and not
     // this fix's business. So `unattended` can be set explicitly and only
     // falls back to autoSend when it wasn't.
     const customRunner = require('../../integrations/customIntegrationRunner');
@@ -174,7 +176,7 @@ async function dispatchTool(toolName, toolArgs, context = {}) {
             onSkillsActivated: context.onSkillsActivated,
             agentId: context.agentId || null,
             conversationId: context.conversationId || null,
-            // Who starts a routine-linked skill (handoff 5 caller trace).
+            // Who starts an automation-linked skill (handoff 5 caller trace).
             callerAgentId: context.callerAgentId || context.agentId || null,
             runScope: runScope || null,
         });
@@ -262,6 +264,25 @@ async function dispatchTool(toolName, toolArgs, context = {}) {
         });
     }
 
+    // ─── Word documents (.docx) ─────────────────────────────────
+    if (toolName === 'create_word_document') {
+        const { executeWordDocumentTool, nextcloudDocxPath } = require('../../integrations/wordDocumentTools');
+        const wordCtx = { userId, session, orgId: orgId || session?.connectorOrgId || session?.user?.organizationId || null };
+        // "Save it in Nextcloud": the destination passes the same scope guard
+        // a direct nextcloud_create_document call would. Denied or not
+        // connected, the document is still built and kept in Bee Flow storage
+        // with the reason alongside (as create_presentation does) — never lost,
+        // and nothing reaches Nextcloud.
+        const ncPath = nextcloudDocxPath(toolArgs?.nextcloudPath, toolArgs || {});
+        if (ncPath) {
+            const ncScopeGuard = require('../integrations/ncScopeGuard');
+            const denied = await ncScopeGuard.checkToolCall({ toolName: 'nextcloud_create_document', toolArgs: { path: ncPath }, userId, orgId });
+            if (denied) wordCtx.nextcloudError = denied.error || 'Nextcloud access was denied';
+            else wordCtx.nextcloudPath = ncPath;
+        }
+        return await executeWordDocumentTool(toolArgs, wordCtx);
+    }
+
     // ─── Video Generation ───────────────────────────────────────
     if (toolName === 'generate_video') {
         const { executeVideoGenTool } = require('./videoGenTool');
@@ -305,8 +326,16 @@ async function dispatchTool(toolName, toolArgs, context = {}) {
     if (isVplanTool(toolName)) {
         return await executeVplanTool(toolName, toolArgs, userId);
     }
+    if (isScalewayBillingTool(toolName)) {
+        // The run scope lets scaleway_download_invoice keep the PDF for this
+        // automation run and hand on a generated_file handle.
+        return await executeScalewayBillingTool(toolName, toolArgs, userId, {
+            automationId: context.automationId || null,
+            runScope: runScope || null,
+        });
+    }
     {
-        // Lazily required: withingsTools pulls in routineAuth (and through it the
+        // Lazily required: withingsTools pulls in automationAuth (and through it the
         // credential vault), which nothing else on this hot path needs.
         const { isWithingsTool, executeWithingsTool } = require('../../integrations/withingsTools');
         if (isWithingsTool(toolName)) {
@@ -374,6 +403,10 @@ async function dispatchTool(toolName, toolArgs, context = {}) {
         // agent-search service, with node-search fallback for CPU-only deploys).
         // Single source of truth lives in agentSearchTools.executeWebSearch.
         return await executeWebSearch(toolName, toolArgs);
+    }
+    if (isReadUrlTool(toolName)) {
+        // Plain GET through the SSRF-guarded fetch; the egress probe records the host.
+        return await executeReadUrlTool(toolName, toolArgs);
     }
     if (isBrowseWebTool(toolName)) {
         // `send` streams browser_session_queued/start/frame/action/end events so
@@ -487,11 +520,18 @@ async function dispatchTool(toolName, toolArgs, context = {}) {
 
     // ─── KB Search Tool ─────────────────────────────────────────
     if (require('../../integrations/memoryTools').isMemoryTool(toolName)) {
-        return await require('../../integrations/memoryTools').executeMemoryTool(toolName, toolArgs, { userId, orgId, agentId, session });
+        return await require('../../integrations/memoryTools').executeMemoryTool(toolName, toolArgs, {
+            userId, orgId, agentId, session,
+            // Provenance: the memory_remember tool stores source_conversation_id from this.
+            conversationId: context.conversationId || null,
+            // Agent chat puts the per-chat flags on the context; direct chat only has the request.
+            memoryReadEnabled: context.memoryReadEnabled ?? context.req?.body?.memoryReadEnabled,
+            memoryWriteEnabled: context.memoryWriteEnabled ?? context.req?.body?.memoryWriteEnabled,
+        });
     }
-    if (require('../../integrations/routineEvolutionTools').isRoutineEvolutionTool(toolName)) {
+    if (require('../../integrations/automationEvolutionTools').isAutomationEvolutionTool(toolName)) {
         // Self-scoped: context.automationId is set by the automation runner only.
-        return await require('../../integrations/routineEvolutionTools').executeRoutineEvolutionTool(toolName, toolArgs, { userId, orgId, automationId: context.automationId || null, autoSend: context.autoSend === true });
+        return await require('../../integrations/automationEvolutionTools').executeAutomationEvolutionTool(toolName, toolArgs, { userId, orgId, automationId: context.automationId || null, autoSend: context.autoSend === true });
     }
     if (isKbSearchTool(toolName)) {
         // `testAs` HAS to be forwarded, and this line is the whole reason the
@@ -530,7 +570,7 @@ async function dispatchTool(toolName, toolArgs, context = {}) {
         });
     }
 
-    // ─── KB Ingest Tool (routine-only WRITE; Support Studio template) ───
+    // ─── KB Ingest Tool (automation-only WRITE; Support Studio template) ───
     if (isKbIngestTool(toolName)) {
         return await executeKbIngestTool(toolName, toolArgs, { orgId, userId });
     }
@@ -580,7 +620,14 @@ async function dispatchTool(toolName, toolArgs, context = {}) {
         });
     }
     if (isOutlookTool(toolName)) {
-        return await executeOutlookTool(toolName, toolArgs, session);
+        // A Google (or Nextcloud) session may carry Outlook tools when the user
+        // connected Microsoft 365 separately (getIntegrationTools adds them off
+        // the vault credential). Graph must then get a Microsoft-only shim,
+        // never this session's foreign token; a Microsoft session passes
+        // through unchanged. `autoSend` follows gmail_compose exactly.
+        const { resolveMicrosoftSession } = require('../../auth/microsoftSessionHydration');
+        const msSession = (await resolveMicrosoftSession(session, userId)) || session;
+        return await executeOutlookTool(toolName, toolArgs, msSession, { autoSend: !!context.autoSend });
     }
     if (isMsCalendarTool(toolName)) {
         return await executeMsCalendarTool(toolName, toolArgs, session);
@@ -595,47 +642,36 @@ async function dispatchTool(toolName, toolArgs, context = {}) {
         return await executeTranscriptionTool(toolName, toolArgs, { userId, session, attachments, req });
     }
 
-    // ─── Agent-Callable Routines (trigger.kind === 'agent_call') ─
-    // These tools are per-user and named dynamically (toolName or
-    // automation_<id>), so they can't be matched by a static isXxxTool guard.
-    // Look the caller's active routines up by name and dispatch to the runner.
-    //
-    // Handoff 5: the call carries who is calling (the agent, the
-    // conversation, and the run when an AI step inside a routine calls it),
-    // and a routine that is already three agent starts deep is refused
-    // (automation/automationCallDepth.js). A failure of the START comes back
-    // as `{ error, code }` for the model to read; only a failed LOOKUP falls
-    // through to the next matcher, as before.
+    // ─── Agent-Callable Automations (trigger.kind === 'agent_call') ─
+    // Named dynamically (toolName or automation_<id>), so no static isXxxTool
+    // guard can match them. Reachable ONLY through the agent they are bound to
+    // (the server-built callerAgentId / agentId, never anything the model sent):
+    // without an agent nothing matches. The call carries who is calling (agent,
+    // asker, conversation, and the run when an AI step calls it) and
+    // dispatchAgentCallableTool re-checks the binding itself. A failure of the
+    // START comes back as `{ error, code }` for the model; only a failed LOOKUP
+    // falls through to the next matcher.
     const automationCallCtx = {
         userId,
+        // The person who asked, not an acting or borrowed integration identity.
+        askerUserId: context.askerUserId || null,
         agentId: context.agentId || null,
         callerAgentId: context.callerAgentId || null,
         conversationId: context.conversationId || null,
+        // Set by the streaming tool round only: its confirm layer already stood
+        // between the model and this call, so a grant on 'ask' may run.
+        confirmLayer: context.confirmLayer === true,
         runScope: runScope || null,
     };
     if (userId) {
-        let match = null;
-        let tools = null;
-        try {
-            tools = require('../../automation/agentCallableTools');
-            const agentTools = await tools.getAgentCallableToolsForUser(userId);
-            match = agentTools.find(t => t?.function?.name === toolName) || null;
-        } catch (e) {
-            log.warn('[ToolDispatcher] agent-callable routine lookup failed:', e.message);
-        }
-        if (match) {
-            try {
-                return await tools.dispatchAgentCallableTool(match.__automation, toolArgs, automationCallCtx);
-            } catch (e) {
-                log.warn(`[ToolDispatcher] agent-callable routine ${match.__automation?.id} not started: ${e.message}`);
-                return require('../../automation/automationCallDepth').toolErrorFor(e);
-            }
-        }
+        const called = await require('../../automation/agentCallableTools')
+            .dispatchAgentCallableByName(toolName, toolArgs, automationCallCtx);
+        if (called.handled) return called.result;
     }
 
     // ─── Reusable Steps (kind='block') exposed as chat tools ────
     // Named step_<title>; matched the same dynamic way as agent-callable
-    // routines and dispatched to runStepAsTool (owner-only, runs as caller).
+    // automations and dispatched to runStepAsTool (owner-only, runs as caller).
     if (userId) {
         let match = null;
         let tools = null;

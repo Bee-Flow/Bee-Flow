@@ -1,3 +1,4 @@
+import { useNotebookDetail } from '../../../../pages/documents/notebook/notebookQueries';
 // Notebooks tab of the project workspace: the notebooks filed in the project
 // as a card grid, "New notebook" straight into it, and "Add existing" from
 // the caller's own. A notebook opens in the notebook editor itself.
@@ -7,7 +8,7 @@
 // is offered no way to make, add or open one — the editor would refuse it —
 // and is told why once, above the grid.
 
-import { BookOpen, BookPlus, Lock, Plus } from 'lucide-react';
+import { AlertTriangle, BookOpen, BookPlus, Lock, NotebookPen, Plus } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import React, { lazy, Suspense, useMemo, useState } from 'react';
 import {
@@ -16,17 +17,17 @@ import {
 import { projectKeys } from '../../../../api/queries/projects';
 import useTranslation from '../../../../hooks/useTranslation';
 import { projectErrorText } from '../projectErrorText';
-import { Notice } from '../workspaceUi';
+import SectionToolbar from '../SectionToolbar';
 import EmptyState from '../../../shared/EmptyState';
-import { ContentColumn, ContentToolbar, PrimaryButton, ReadOnlyNote, SecondaryButton, SectionError } from './contentUi';
+import { GhostButton, Notice, PrimaryButton, ViewerNote, SecondaryButton, Skeleton, WorkspaceColumn } from '../workspaceUi';
 import NewItemDialog, { type NewItemValues } from './NewItemDialog';
 import { NotebookPicker } from './pickers';
 import ProjectNotebookCard from './ProjectNotebookCard';
-import { useProjectUnread } from '../useProjectUnread';
+import { useMarkSeenWhenOpen, useProjectUnread } from '../useProjectUnread';
 import { canEditContent, canRemoveItem, type ContentTabProps } from './types';
 import { useMemberNames, useRemoveFromProject } from './useContentActions';
 
-const NotebookDetail = lazy(() => import('../../../../pages/notebooks/detail/NotebookDetail'));
+const NotebookDetail = lazy(() => import('../../../../pages/documents/notebook/detail/NotebookDetail'));
 
 /** One notebook, full width inside the project, with its own Back to the grid. */
 function NotebookPane({ projectId, notebookId, currentUser, onOpenSub }: {
@@ -34,6 +35,9 @@ function NotebookPane({ projectId, notebookId, currentUser, onOpenSub }: {
 }) {
     const { t } = useTranslation();
     const qc = useQueryClient();
+    const unread = useProjectUnread(projectId);
+    const detail = useNotebookDetail(notebookId);
+    useMarkSeenWhenOpen(unread, detail.isSuccess && detail.data?.notebook?.id ? { type: 'notebook', id: notebookId } : null);
     const refresh = () => { qc.invalidateQueries({ queryKey: projectKeys.resources(projectId) }); };
     return (
         <div className="h-full min-h-0" data-testid="project-notebook-pane">
@@ -55,17 +59,8 @@ function NotebookPane({ projectId, notebookId, currentUser, onOpenSub }: {
 const GRID = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3';
 
 function NotebookSkeletons() {
-    return (
-        <div className={GRID} aria-hidden="true" data-testid="project-notebooks-loading">
-            {[0, 1, 2].map(i => (
-                <div key={i} className="h-[132px] rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] p-3.5 animate-pulse">
-                    <div className="h-9 w-9 rounded-lg bg-[var(--bg-tertiary)] mb-3" />
-                    <div className="h-2.5 w-3/4 rounded bg-[var(--bg-tertiary)] mb-2" />
-                    <div className="h-2.5 w-1/2 rounded bg-[var(--bg-tertiary)]" />
-                </div>
-            ))}
-        </div>
-    );
+    const { t } = useTranslation();
+    return <Skeleton rows={3} variant="cards" label={t('project_home.loading', 'Loading…')} testId="project-notebooks-loading" className={GRID} barClassName="!h-[132px]" />;
 }
 
 interface GridProps {
@@ -105,7 +100,7 @@ function NotebooksBody({ status, onRetry, onCreate, grid }: {
 }) {
     const { t } = useTranslation();
     if (status === 'loading') return <NotebookSkeletons />;
-    if (status === 'error') return <SectionError message={t('project_content.notebooks_error', 'The notebooks of this project could not be loaded.')} onRetry={onRetry} />;
+    if (status === 'error') return <Notice tone="error" role="alert" icon={AlertTriangle} action={onRetry && <GhostButton onClick={onRetry}>{t('project_content.retry', 'Try again')}</GhostButton>}>{t('project_content.notebooks_error', 'The notebooks of this project could not be loaded.')}</Notice>;
     if (grid.notebooks.length === 0) {
         return (
             <EmptyState
@@ -137,52 +132,55 @@ function NotebooksUnavailable() {
     );
 }
 
-function NotebooksList({ projectId, role, currentUser, onOpenSub, intent, notebooksEnabled = true }: ContentTabProps) {
+function NotebooksList({ projectId, project, role, currentUser, onOpenSub, intent, notebooksEnabled = true }: ContentTabProps) {
     const { t } = useTranslation();
     const canEdit = canEditContent(role) && notebooksEnabled;
     const me = currentUser?.id || null;
     const [createOpen, setCreateOpen] = useState(() => canEdit && intent === 'create');
+    const [search, setSearch] = useState('');
     const [pickerOpen, setPickerOpen] = useState(() => canEdit && intent === 'add');
     const section = useProjectSection<ProjectNotebook>(projectId, 'notebooks');
     const ownerName = useMemberNames(projectId, me);
     const unread = useProjectUnread(projectId);
     const removal = useRemoveFromProject(projectId, 'notebook');
+    const items = removal.without(section.items);
     const open = (nb: ProjectNotebook) => onOpenSub(nb.id);
     const create = useNotebookCreate(projectId, (nb) => { setCreateOpen(false); open(nb); });
-    const inProject = useMemo(() => new Set(section.items.map(n => n.id)), [section.items]);
+    const inProject = useMemo(() => new Set(items.map(n => n.id)), [items]);
     const openCreate = () => { create.reset(); setCreateOpen(true); };
 
     const onRemove = (nb: ProjectNotebook) => removal.remove(nb.id, {
-        title: t('project_content.notebook_remove_title', 'Remove this notebook from the project?'),
-        description: t('project_content.notebook_remove_desc', '"{name}" stays with its owner. Members of this project will no longer see it.', { name: nb.name }),
-        confirmLabel: t('project_content.remove', 'Remove'),
+        message: t('project_home.removed_from_project', '"{name}" removed from the project', { name: nb.name }),
     });
 
-    const actions = canEdit ? (
-        <>
-            <SecondaryButton icon={Plus} onClick={() => setPickerOpen(true)} testId="notebooks-add-existing">{t('project_content.add_existing', 'Add existing')}</SecondaryButton>
-            <PrimaryButton icon={BookPlus} onClick={openCreate} testId="notebooks-new">{t('project_content.notebooks_new', 'New notebook')}</PrimaryButton>
-        </>
+    const extras = canEdit ? (
+        <SecondaryButton icon={Plus} onClick={() => setPickerOpen(true)} testId="notebooks-add-existing">{t('project_content.add_existing', 'Add existing')}</SecondaryButton>
+    ) : null;
+    const primary = canEdit ? (
+        <PrimaryButton icon={BookPlus} onClick={openCreate} testId="notebooks-new">{t('project_content.notebooks_new', 'New notebook')}</PrimaryButton>
     ) : null;
 
     return (
-        <ContentColumn testId="project-notebooks-tab">
-            <ContentToolbar
+        <WorkspaceColumn testId="project-notebooks-tab">
+            <SectionToolbar
+                icon={NotebookPen}
                 title={t('project_content.notebooks_title', 'Notebooks')}
-                count={section.status === 'ok' ? section.items.length : null}
-                actions={actions}
+                search={search} onSearch={setSearch} searchLabel={t('project_content.notebooks_search', 'Search notebooks')}
+                count={section.status === 'ok' ? items.length : null}
+                primary={primary} extras={extras}
             />
             {!notebooksEnabled && <NotebooksUnavailable />}
-            {notebooksEnabled && !canEdit && <ReadOnlyNote>{t('project_content.notebooks_viewer_note', 'You can read the notebooks in this project. Ask the owner for editor access to add or change them.')}</ReadOnlyNote>}
-            <NotebooksBody
+            {notebooksEnabled && !canEdit && <ViewerNote archived={!!project?.archivedAt}>{t('project_content.notebooks_viewer_note', 'You can read the notebooks in this project. Ask the owner for editor access to add or change them.')}</ViewerNote>}
+            {search.trim() && section.status === 'ok' && !items.some(n => `${n.name} ${n.description || ''}`.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase())) ? <p className="text-sm text-[var(--text-secondary)]">{t('project_content.no_matches', 'Nothing matches your search.')}</p> : <NotebooksBody
                 status={section.status} onRetry={section.refetch} onCreate={canEdit ? openCreate : null}
                 grid={{
-                    notebooks: section.items, ownerName, removingId: removal.pendingId, onOpen: open, onRemove,
+                    notebooks: items.filter(n => `${n.name} ${n.description || ''}`.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase())), ownerName, removingId: removal.pendingId, onOpen: open, onRemove,
                     isUnread: (id) => unread.isUnread('notebook', id),
                     mayRemove: (nb) => canRemoveItem(role, nb.userId, me),
                     openable: notebooksEnabled,
                 }}
             />
+            }
             {createOpen && (
                 <NewItemDialog
                     open onClose={() => setCreateOpen(false)}
@@ -195,8 +193,7 @@ function NotebooksList({ projectId, role, currentUser, onOpenSub, intent, notebo
                 />
             )}
             {pickerOpen && <NotebookPicker projectId={projectId} open onClose={() => setPickerOpen(false)} inProject={inProject} />}
-            {removal.confirmDialog}
-        </ContentColumn>
+        </WorkspaceColumn>
     );
 }
 

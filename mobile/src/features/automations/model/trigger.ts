@@ -1,5 +1,5 @@
 /**
- * What starts a routine, in words and as a glyph.
+ * What starts an automation, in words and as a glyph.
  */
 
 import type { IconName } from '@/shared/ui';
@@ -23,7 +23,7 @@ function describeAppEvent(appEvent: AutomationTrigger['appEvent']): string {
 }
 
 /**
- * One line saying what starts this routine. A port of
+ * One line saying what starts this automation. A port of
  * server/automation/summarise.js describeTrigger(), minus its markdown —
  * the phone reads it aloud to a screen reader, and backticks do not read.
  */

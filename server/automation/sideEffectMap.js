@@ -25,11 +25,11 @@
 
 const READ_ONLY = new Set([
     // Gmail
-    'gmail_search', 'gmail_read', 'gmail_read_attachment', 'gmail_list_labels',
+    'gmail_search', 'gmail_read', 'gmail_read_attachment', 'gmail_list_labels', 'gmail_read_many',
     // Calendar
     'calendar_list_events', 'calendar_search_events', 'calendar_get_event',
     // Drive / Docs / Sheets / Slides
-    'drive_search', 'drive_list_files', 'drive_get_file', 'drive_get_content', 'drive_read_file',
+    'drive_search', 'drive_list_files', 'drive_list_recent', 'drive_get_file', 'drive_get_content', 'drive_read_file',
     'docs_read', 'docs_list',
     'sheets_list', 'sheets_get_values', 'sheets_list_tabs',
     'slides_list', 'slides_get', 'slides_export_pdf',
@@ -47,9 +47,9 @@ const READ_ONLY = new Set([
     'notebook_read',
     'regex_list_rules', 'regex_test_pattern',
     // Outlook / MS
-    'outlook_search', 'outlook_read', 'outlook_list_recent', 'outlook_list_folders',
+    'outlook_search', 'outlook_read', 'outlook_list_recent', 'outlook_read_many',
     'ms_calendar_list_events', 'ms_calendar_search_events', 'ms_calendar_get_event',
-    'onedrive_search', 'onedrive_list', 'onedrive_list_files', 'onedrive_get_file',
+    'onedrive_search', 'onedrive_list', 'onedrive_list_files', 'onedrive_list_recent', 'onedrive_get_file',
     'ms_contacts_search', 'ms_contacts_list',
     // YouTrack / GitHub / LinkedIn read-only
     'youtrack_search_issues', 'youtrack_get_issue', 'youtrack_get_issue_comments', 'youtrack_list_projects',
@@ -73,9 +73,12 @@ const READ_ONLY = new Set([
     'vplan_list_activities', 'vplan_list_collections', 'vplan_get_collection', 'vplan_list_cards',
     'vplan_get_card', 'vplan_list_orders', 'vplan_get_order', 'vplan_list_time_tracking',
     'vplan_time_tracking_summary', 'vplan_get_capacity', 'vplan_list_master_data',
+    // Scaleway Billing (read-only by design; the download keeps the PDF for the
+    // run and writes nowhere outside Bee Flow)
+    'scaleway_list_invoices', 'scaleway_download_invoice',
     // Maps / Search / KB
     'maps_search_places', 'maps_geocode', 'maps_directions',
-    'agent_search', 'kb_search',
+    'agent_search', 'read_url', 'kb_search',
     // A datatable read an agent's owner granted (core/tools/datatableTools.js).
     // Chat-only — it is not in the automation registry, which the docblock
     // above allows for exactly this. Classified rather than left to the
@@ -83,11 +86,11 @@ const READ_ONLY = new Set([
     // policy layer calls a write is a confirmation card in front of "what does
     // the XL cost?" — and, in an unattended run, the tool gone from the stack.
     'datatable_query',
-    // Personal memory (read half) and a routine's own run history — both are
+    // Personal memory (read half) and an automation's own run history — both are
     // first-party reads of the caller's own data, so a dry-run does them for
     // real: a simulated run summary is the one thing an evolution proposal
     // must never be planned against.
-    'memory_search', 'routine_runs_summary',
+    'memory_search', 'automation_runs_summary',
     // Fireflies
     'fireflies_list_transcripts', 'fireflies_get_summary', 'fireflies_get_transcript',
     // Transcription — a pure transform (audio in → text out) on our own
@@ -158,7 +161,7 @@ const READ_ONLY = new Set([
 const SIDE_EFFECTS = new Set([
     // Gmail
     'gmail_compose', 'gmail_modify_labels', 'gmail_mark_read', 'gmail_mark_unread',
-    'gmail_archive', 'gmail_trash', 'gmail_create_draft',
+    'gmail_archive', 'gmail_trash', 'gmail_create_draft', 'gmail_bulk_modify',
     // Google Calendar / Drive / Docs / Sheets / Slides
     'calendar_create_event', 'calendar_update_event', 'calendar_delete_event',
     'drive_move_file', 'drive_create_folder', 'drive_upload_file',
@@ -191,13 +194,15 @@ const SIDE_EFFECTS = new Set([
     'regex_add_rules', 'regex_add_collection',
     // KB
     'knowledge_base_ingest',
-    // Personal memory (write half) and routine self-evolution. Proposing is a
+    // Personal memory (write half) and automation self-evolution. Proposing is a
     // write too: it stores a proposal a human is then asked to approve, and a
     // dry-run that minted those would fill the approval queue with drafts.
     'memory_remember',
-    'routine_propose_evolution', 'routine_apply_evolution',
+    'automation_propose_evolution', 'automation_apply_evolution',
     // Presentations — a .pptx is written into storage (chat) or Nextcloud.
     'create_presentation', 'nextcloud_create_presentation',
+    // Word documents — a .docx is written into storage or Nextcloud.
+    'create_word_document',
     // Nextcloud Files
     'nextcloud_upload_file', 'nextcloud_create_spreadsheet', 'nextcloud_create_document',
     'nextcloud_create_folder', 'nextcloud_delete', 'nextcloud_move', 'nextcloud_copy',
@@ -363,6 +368,10 @@ const NEVER_MEMO = new Set([
     'n8n_execution_list',
     'n8n_execution_get',
     'n8n_execution_get_detail',
+    // Its answer is a generated_file handle scoped to the run that kept the
+    // PDF; a durable (acrossRuns) hit would hand a later run a fileId its
+    // upload step cannot resolve.
+    'scaleway_download_invoice',
 ]);
 
 /**

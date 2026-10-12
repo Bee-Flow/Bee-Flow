@@ -19,8 +19,8 @@
  *
  * Dus: de map mag NOOIT gebouwd worden uit alleen de aangevinkte apps. Wie
  * `Object.fromEntries(selected.map(...))` schrijft, geeft elke uitgevinkte app
- * in stilte alles terug. Dezelfde val sloeg al toe op de routines-sectie: "alle
- * routines uitvinken" leverde ÁLLE routines op, omdat de lege sectie werd
+ * in stilte alles terug. Dezelfde val sloeg al toe op de automations-sectie: "alle
+ * automations uitvinken" leverde ÁLLE automatiseringen op, omdat de lege sectie werd
  * weggegooid en daarna las als "nooit gekozen". Zie
  * `.claude/handoff/A1B-RECHTENLAAG-REVIEW.md`, bevinding 1.
  *
@@ -726,7 +726,7 @@ export function toolRows({
 
 // ── Automations als tool ────────────────────────────────────────────
 
-/** De gegunde routines uit `config.tools.automations`, in configvolgorde. */
+/** De gegunde automatiseringen uit `config.tools.automations`, in configvolgorde. */
 export function automationGrantsOf(toolsConfig) {
     if (!isPlainObject(toolsConfig) || !isPlainObject(toolsConfig.automations)) return [];
     return Object.keys(toolsConfig.automations)
@@ -743,7 +743,7 @@ export function automationGrantsOf(toolsConfig) {
 }
 
 /**
- * De parameterpillen van een routine: de velden die de agent moet meegeven.
+ * De parameterpillen van een automatisering: de velden die de agent moet meegeven.
  *
  * Uit `trigger.parametersSchema` — hetzelfde schema waaruit
  * `automationToTool` de tool-signatuur rendert, dus wat hier op het scherm
@@ -766,14 +766,21 @@ export function paramPillsOf(automation) {
  *
  * De GRANT komt uit de config (altijd leesbaar), de rest uit de
  * routinelijst — die achter de automations-module hangt en dus vaak ontbreekt.
- * Een grant zonder routine blijft staan met `readable: false`: hij doet iets,
+ * Een grant zonder automatisering blijft staan met `readable: false`: hij doet iets,
  * ook als we niet kunnen zeggen wát.
  *
- * Een routine die GEEN `agent_call`-trigger (meer) heeft wordt niet stil
+ * Een automatisering die GEEN `agent_call`-trigger (meer) heeft wordt niet stil
  * verzwegen maar gemarkeerd (`callable: false`): de runtime biedt hem niet
  * aan, en dat is nieuws voor wie hem gekozen heeft.
+ *
+ * Aanbieden vereist OOK dat de automatisering aan deze agent is gekoppeld
+ * (automation_agent_bindings; de server biedt alleen gekoppelde aan). `linkedIds`
+ * is die lijst (Set of array), of null wanneer zij niet te lezen was: dan zeggen
+ * we er niets over (`linked: null`) in plaats van "niet gekoppeld". Een grant
+ * zonder koppeling is `linked: false`, even stil als `callable: false`.
  */
-export function automationRows({ toolsConfig, automations, state = READ.OK }) {
+export function automationRows({ toolsConfig, automations, state = READ.OK, linkedIds = null }) {
+    const linked = linkedIds ? new Set(linkedIds) : null;
     const grants = automationGrantsOf(toolsConfig);
     const index = state === READ.OK && Array.isArray(automations) ? new Map(
         automations.filter(a => a && typeof a.id === 'string').map(a => [a.id, a]),
@@ -781,7 +788,7 @@ export function automationRows({ toolsConfig, automations, state = READ.OK }) {
     return grants.map(({ id, confirm }) => {
         const automation = index ? index.get(id) : null;
         if (!automation) {
-            return { id, name: null, confirm, params: [], callable: null, readable: false };
+            return { id, name: null, confirm, params: [], callable: null, linked: linked ? linked.has(id) : null, readable: false };
         }
         return {
             id,
@@ -791,6 +798,7 @@ export function automationRows({ toolsConfig, automations, state = READ.OK }) {
             confirm,
             params: paramPillsOf(automation),
             callable: isAgentCallable(automation),
+            linked: linked ? linked.has(id) : null,
             readable: true,
         };
     });

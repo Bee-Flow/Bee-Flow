@@ -8,7 +8,7 @@
  * author's resolved tool set (getIntegrationTools — the same authority the
  * runtime uses: org grant ∩ group grant ∩ personal toggle ∩ credentials). A
  * tool the author hasn't connected is rejected with `connection_required` +
- * `provider` so the caller (chat or UI) can point at Settings → Integrations.
+ * `provider` so the caller (chat or UI) can point at Settings → Connections.
  *
  * Every store/registry touch goes through an injectable deps bag resolved
  * LAZILY, so a fully-injected unit test never loads a store (DB handle) or a
@@ -90,7 +90,7 @@ async function grantIntegration({ webpageId, userId, session, tool, fixedArgs, l
     if (!available.has(tool)) {
         throw grantError(
             409,
-            `Connect ${owner.label || owner.app} to your account first (Settings → Integrations), then add it to the page.`,
+            `Connect ${owner.label || owner.app} to your account first (Settings → Connections), then add it to the page.`,
             'connection_required',
             owner.app,
         );
@@ -113,7 +113,7 @@ async function revokeIntegration({ webpageId, userId, tool }, _deps = {}) {
 
 /**
  * Grant one of the author's OWN automations to a webpage (the bridge runs
- * acts-as-author, so lending someone else's routine would be a privilege
+ * acts-as-author, so lending someone else's automation would be a privilege
  * escalation — same check the chat tool has always done).
  */
 async function grantAutomation({ webpageId, userId, automationId, label }, _deps = {}) {

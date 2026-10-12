@@ -1,5 +1,5 @@
 /**
- * Webpage tools surfaced to studio routines / automations.
+ * Webpage tools surfaced to studio automations.
  *
  * Wraps the existing webpageDbTools + webpageBuilderTools modules and re-exposes
  * them with `webpageId` promoted to an input parameter (instead of a ctx field).

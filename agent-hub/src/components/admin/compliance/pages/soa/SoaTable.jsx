@@ -11,6 +11,11 @@ import { decisionOf, liveCheckOf } from './soaThemes';
  * SoaTable — the 93-row register (artboard 1d): Control · Title / how met ·
  * Live check · Decision · Owner. Purely presentational: the page filters,
  * pages and selects; the table draws the rows it is handed.
+ *
+ * Most controls have no live check, so that cell is a muted "—" (the words
+ * are its tooltip, as the Owner dash): a column of "no live check" drowned
+ * the few that do. The check cell truncates inside its own track, so its
+ * text never runs into the Decision pill.
  */
 export const SOA_COLUMNS = Object.freeze([
     Object.freeze({ id: 'control', width: '58px', labelKey: 'compliance.soa_col_control', fallback: 'Control' }),
@@ -49,13 +54,18 @@ export function DecisionPill({ decision, testId }) {
 export function LiveCheckCell({ live }) {
     const { t } = useTranslation();
     if (!live || live.kind === 'none') {
-        return <span className="text-[11px] text-[var(--text-tertiary)]">{t('compliance.soa_no_live_check', 'no live check')}</span>;
+        const words = t('compliance.soa_no_live_check_title', 'No live check covers this control');
+        return (
+            <span className="text-[11px] text-[var(--text-tertiary)]" title={words} data-live="none">
+                <span aria-hidden="true">—</span><span className="sr-only">{words}</span>
+            </span>
+        );
     }
     if (live.kind === 'pending') {
         return (
-            <span className="inline-flex items-center gap-1.5 text-[11px] text-[var(--text-tertiary)]">
+            <span className="flex w-full min-w-0 items-center gap-1.5 text-[11px] text-[var(--text-tertiary)]">
                 <CircleDashed size={13} aria-hidden="true" className="shrink-0" />
-                {t('compliance.soa_not_checked', 'not yet checked')}
+                <span className="truncate">{t('compliance.soa_not_checked', 'not yet checked')}</span>
             </span>
         );
     }
@@ -65,9 +75,9 @@ export function LiveCheckCell({ live }) {
     const Glyph = status === 'pass' ? CircleCheck : status === 'warn' ? TriangleAlert : status === 'fail' ? CircleX : CircleDashed;
     const title = check.titleKey ? t(check.titleKey, check.check_id) : (check.title || check.check_id);
     return (
-        <span className="inline-flex items-center gap-1.5 min-w-0 text-[11px]" style={{ color: TONES[tone].ink }} data-status={status}>
+        <span className="flex w-full min-w-0 items-center gap-1.5 text-[11px]" style={{ color: TONES[tone].ink }} data-status={status} title={title}>
             <Glyph size={13} aria-hidden="true" className="shrink-0" />
-            <span className="truncate">{title}</span>
+            <span className="truncate min-w-0">{title}</span>
             {open && <span className="shrink-0">{t('compliance.soa_check_attention', '· needs attention')}</span>}
         </span>
     );
@@ -85,8 +95,11 @@ export default function SoaTable({
         const live = liveCheckOf(c, checksById);
         const selected = selectedRef === c.ref;
         // "how met" is the sentence an auditor reads; a row that has none
-        // falls back to its justification (the only line an excluded row has).
-        const secondLine = c.entry?.how_met || c.entry?.justification || null;
+        // falls back to its justification (the only line an excluded row has),
+        // labelled as such so the two never read as the same thing.
+        const howMet = c.entry?.how_met || null;
+        const justification = c.entry?.justification || null;
+        const secondLine = howMet || (justification ? t('compliance.soa_justification_prefix', 'Justification: {text}', { text: justification }) : null);
         const owner = ownerName(orgUsers, c.entry?.owner_user_id);
         return (
             <TableRow
@@ -120,7 +133,7 @@ export default function SoaTable({
             <button
                 type="button"
                 onClick={() => onSelect?.(c)}
-                className="w-full text-left px-3.5 py-2.5 flex flex-col gap-1 border-b border-[var(--border-default)]"
+                className="w-full min-w-0 text-left flex flex-col gap-1"
                 data-testid={`${testId}-card-${c.ref}`}
             >
                 <div className="flex items-center justify-between gap-2">
@@ -128,7 +141,7 @@ export default function SoaTable({
                     <DecisionPill decision={decision} />
                 </div>
                 <div className="text-xs font-medium text-[var(--text-primary)] truncate">{c.titleKey ? t(c.titleKey, c.ref) : c.ref}</div>
-                <LiveCheckCell live={live} />
+                {live && live.kind !== 'none' && <LiveCheckCell live={live} />}
             </button>
         );
     };

@@ -23,9 +23,9 @@
  * template that looks fine and is quietly broken:
  *
  *   • run_automation.automationId → null. Every shipped template does this
- *     (templates.js says so): the installer wires their own routine, and
+ *     (templates.js says so): the installer wires their own automation, and
  *     validate.js reports the friendly `action.automation_unset` warning that
- *     the editor renders as a "connect a routine" checklist. A real routine id
+ *     the editor renders as a "connect an automation" checklist. A real automation id
  *     from another user's instance is worse than useless — it is a dangling
  *     pointer with a plausible shape.
  *   • Seed rows lose the SYSTEM columns (id / created_at / created_by / org_id):
@@ -114,7 +114,7 @@ function walkObjects(node, fn) {
 
 /**
  * Null out every automation reference, and report how many were cut so the
- * result can say "3 routines need connecting" instead of staying silent about
+ * result can say "3 automations need connecting" instead of staying silent about
  * an app that will not run until someone notices.
  */
 function scrubAutomationIds(definition) {
@@ -138,7 +138,7 @@ function collectConnectorIds(definition) {
 }
 
 /**
- * Knowledge bases the definition points at — instance-specific, like routines.
+ * Knowledge bases the definition points at — instance-specific, like automations.
  *
  * Both spellings: `knowledgeBaseIds` (an AI step grounding itself, an App
  * Studio action) and the singular `knowledgeBaseId` a `knowledge_write` step
@@ -471,7 +471,7 @@ function captureTemplate({
     const knowledgeBaseIds = collectKnowledgeBaseIds(def);
 
     // One sweep, shared with automation export and with Blueprint packaging.
-    // It nulls routine references as this module always did, and additionally
+    // It nulls automation references as this module always did, and additionally
     // removes the approver seats and knowledge-base references that NEITHER
     // export path used to remove — one organisation's user, group and KB ids
     // were travelling to another's install.
@@ -572,6 +572,15 @@ function captureTemplate({
     if (approverSeatsRemoved) requires.push({ kind: 'approver', count: approverSeatsRemoved });
 
     const warnings = [];
+    // The canonicaliser drops a stage with no approvers, so a staged approval
+    // does not survive the seat scrub on this path (unlike a Blueprint or an
+    // automation export, which keep the emptied stage). Say so rather than let
+    // the chain vanish behind the generic "seats removed" count.
+    const stagesEmptied = scrubbed.filter(r => r.rule === RULES.APP_APPROVER_IDENTITY
+        && typeof r.field === 'string' && r.field.startsWith('stages.')).length;
+    if (stagesEmptied) {
+        warnings.push(`${stagesEmptied} approval stage(s) removed together with their approvers: a stage cannot exist without somebody to decide it. Rebuild the approval chain after installing.`);
+    }
     // Only the file path can drop anything here (buildSeed reads rows this
     // installation just handed it). Silence would read as "the template had no
     // rows", which is a different and much more confusing thing than "nine rows
@@ -603,7 +612,7 @@ function captureTemplate({
     // Every OTHER validation warning is worth repeating to the author: the
     // template installs, but something in it is worth a second look.
     // `action.automation_unset` is excluded — it is the DESIRED state of a
-    // captured template (routines are wired by the installer) and is already
+    // captured template (automations are wired by the installer) and is already
     // reported once, as a count, under `requires`.
     for (const w of result.warnings) {
         if (w.code === 'action.automation_unset') continue;

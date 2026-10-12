@@ -206,3 +206,22 @@ describe('the privacy steps are pickable at all', () => {
         expect(paths).toContain('steps.p1.output.count');
     });
 });
+
+describe('describeCode', () => {
+    const def = defWith(
+        [{ id: 'c1', type: 'code', code: 'return 1' }, { id: 'n1', type: 'notification', title: 't' }],
+        [{ from: 'trg', to: 'c1' }, { from: 'c1', to: 'n1' }],
+    );
+
+    it('does not promise a text result before the code has run', () => {
+        const g = groupById(computeUpstreamGroups(def, 'n1', catalog), 'c1');
+        expect(g.fields).toEqual([{ key: 'result', path: 'steps.c1.output.result', sample: null }]);
+        expect(JSON.stringify(g)).not.toContain('code result');
+    });
+
+    it('does not offer the diagnostics as fields', () => {
+        const g = groupById(computeUpstreamGroups(def, 'n1', catalog), 'c1');
+        expect(g.fields.map(f => f.key)).not.toContain('logs');
+        expect(g.fields.map(f => f.key)).not.toContain('httpCalls');
+    });
+});

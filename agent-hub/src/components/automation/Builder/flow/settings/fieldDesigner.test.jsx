@@ -74,7 +74,7 @@ function freshPanel() {
 describe('the shared field designer — the rename path reaches all three editors', () => {
     beforeEach(freshPanel);
 
-    it.each(PARAM_KINDS)('a %s parameter rename carries the whole routine with it', (kind) => {
+    it.each(PARAM_KINDS)('a %s parameter rename carries the whole automation with it', (kind) => {
         const onRenameField = vi.fn(() => 3);
         renderForm(trigger(kind, [{ name: 'email', type: 'string' }]), { onRenameField });
 
@@ -84,7 +84,7 @@ describe('the shared field designer — the rename path reaches all three editor
         // the old name, and says how many moved — "12 steps were repointed"
         // and "nothing pointed here yet" must not read the same.
         expect(onRenameField).toHaveBeenCalledWith('email', 'contact');
-        expect(screen.getByText(/Renamed — 3 bindings in this routine now point at it\./)).toBeTruthy();
+        expect(screen.getByText(/Renamed — 3 bindings in this automation now point at it\./)).toBeTruthy();
     });
 
     it.each(PARAM_KINDS)('a %s parameter is renamed once, on purpose, not per keystroke', (kind) => {
@@ -96,7 +96,7 @@ describe('the shared field designer — the rename path reaches all three editor
         fireEvent.change(box, { target: { value: 'em' } });
         fireEvent.change(box, { target: { value: 'email_address' } });
         // Nothing has been renamed yet — `e` and `em` are not names the author
-        // meant, and rewriting the routine to each of them in turn is exactly
+        // meant, and rewriting the automation to each of them in turn is exactly
         // how a binding walks away from the step that reads it.
         expect(onRenameField).not.toHaveBeenCalled();
 
@@ -114,7 +114,7 @@ describe('the shared field designer — the rename path reaches all three editor
         fireEvent.blur(box);
 
         expect(onRenameField).toHaveBeenCalledWith('email', 'contact');
-        expect(screen.getByText(/Renamed — 1 binding in this routine now points at it\./)).toBeTruthy();
+        expect(screen.getByText(/Renamed — 1 binding in this automation now points at it\./)).toBeTruthy();
     });
 
     it('does not nag about bindings a row it minted a moment ago cannot have', () => {
@@ -145,7 +145,7 @@ describe('the shared field designer — the rename path reaches all three editor
 describe('the shared field designer — the names it refuses', () => {
     beforeEach(freshPanel);
 
-    it.each(PARAM_KINDS)('a %s name the server would refuse never reaches the routine', (kind) => {
+    it.each(PARAM_KINDS)('a %s name the server would refuse never reaches the automation', (kind) => {
         const onRenameField = vi.fn(() => 0);
         const { onPatch, unmount } = renderForm(trigger(kind, [{ name: 'email', type: 'string' }]), { onRenameField });
 
@@ -198,7 +198,7 @@ describe('the shared field designer — the names it refuses', () => {
 
     it.each(PARAM_KINDS)('flags a %s name already stored that the server will refuse', (kind) => {
         renderForm(trigger(kind, [{ name: '_x', type: 'string' }]));
-        // An imported routine, an AI-authored declaration, or a row from
+        // An imported automation, an AI-authored declaration, or a row from
         // before this box existed. The author has to be able to SEE that
         // without touching it first.
         expect(screen.getByText(/must start with a letter/i)).toBeTruthy();
@@ -280,9 +280,9 @@ describe('applyBindingRename — the shared decision', () => {
 
     it('counts in the singular when exactly one binding moved', () => {
         expect(applyBindingRename({ from: 'a', to: 'b', onRenameField: () => 1 }).note)
-            .toBe('Renamed — 1 binding in this routine now points at it.');
+            .toBe('Renamed — 1 binding in this automation now points at it.');
         expect(applyBindingRename({ from: 'a', to: 'b', onRenameField: () => 2 }).note)
-            .toBe('Renamed — 2 bindings in this routine now point at it.');
+            .toBe('Renamed — 2 bindings in this automation now point at it.');
         expect(applyBindingRename({ from: 'a', to: 'b', onRenameField: () => 0 }).note)
             .toBe('Renamed. Nothing was pointing at it yet.');
     });

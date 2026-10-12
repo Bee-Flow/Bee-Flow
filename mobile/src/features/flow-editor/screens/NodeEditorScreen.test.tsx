@@ -1,6 +1,6 @@
 /**
  * The step editor over a real draft store and a mocked HTTP client: a step
- * opens in its declarative editor, an edit lands in the routine's draft, the
+ * opens in its declarative editor, an edit lands in the automation's draft, the
  * header pages in run order, "Test step" shows the output and it can be
  * pinned, a type with no form gets the JSON view, and a step that is gone
  * says so.
@@ -86,7 +86,7 @@ describe('NodeEditorScreen', () => {
         expect(getByShownText('Hello')).toBeTruthy();
     });
 
-    it('writes an edit into the routine’s draft', async () => {
+    it('writes an edit into the automation’s draft', async () => {
         await render('n1');
         await fireEvent.changeText(await waitFor(() => getByShownText('Hello')), 'Hello {{trigger.output.name}}');
         expect(stepIn('n1')?.body).toBe('Hello {{trigger.output.name}}');
@@ -199,9 +199,9 @@ describe('NodeEditorScreen', () => {
         expect(screen.queryByTestId('output-test')).toBeNull();
     });
 
-    it('says so when the step is not in the routine', async () => {
+    it('says so when the step is not in the automation', async () => {
         await render('gone');
-        expect(await screen.findByText('This step is not in the routine any more')).toBeTruthy();
+        expect(await screen.findByText('This step is not in the automation any more')).toBeTruthy();
         await fireEvent.press(screen.getByRole('button', { name: 'Back' }));
         expect(mockRouter.back).toHaveBeenCalled();
     });

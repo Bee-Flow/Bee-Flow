@@ -437,7 +437,7 @@ What *is* gated, and by what:
 | Skills pill & picker | beta feature `skills` on the user (`user.betaFeatures.includes('skills')`) | `InputArea.jsx` `canPickSkills`, `requireCapability('skills')` on `/api/skills` |
 | Flow tier (`standard`) | beta `flow` **and** beta `skills`, both | `config/modelTiers.js`, `entitlements/userTiers.js` |
 | Swarm tier | beta `swarm` + licence feature `swarm` | idem, `requireCapability('swarm')` |
-| Knowledge-base **picker** in chat | admin, `permissions: ['all']`, or beta `knowledge_bases_beta` | `knowledgeBaseClaim.chatKnowledgeBasesAllowed()` |
+| Knowledge-base **picker** in chat | every signed-in account, in direct chat only (not Simple Mode, not agent chat) and once the KB list has loaded | `InputArea/index.jsx` `canPickKBs` |
 | Which tiers a user sees at all | per-group `allowedTiers`; empty/no groups = unrestricted | `GET /ai/config/tiers-for-user` |
 | Notebooks panel beside chat | module `notebooks` + `requireCapability('notebooks')` | `server/index.js` |
 | Webpage panel beside chat | module `webpages` + `requireCapability('webpages')` | `server/index.js` |
@@ -446,10 +446,9 @@ What *is* gated, and by what:
 | ElevenLabs generation (the fourth row) | org integration `elevenlabs` **and** a stored ElevenLabs key (+ `externalToolsOk`) | `InputArea.jsx` `showElevenLabs` |
 | Web search | org integration `agent-search` enabled, search provider not `disabled`, and the agent not configured with `disableExternalTools` | `InputArea.jsx` `canWebSearch` |
 
-**Inconsistency worth flagging:** `betaFeatures.js` documents `knowledge_bases_beta` as
-*"Cosmetic — does not gate access"*, yet the chat composer uses exactly that flag to decide who gets
-the KB picker. Users without it still see a *statement* pill if the conversation already carries
-bases (deliberate — grounding must never be invisible), but they cannot change it.
+**No beta gate on the KB picker:** the former `knowledge_bases_beta` flag is gone. When the
+conversation carries bases but the picker is unavailable (Simple Mode, agent chat), users still see
+a *statement* pill (deliberate — grounding must never be invisible), but they cannot change it.
 
 ---
 
@@ -467,7 +466,7 @@ bases (deliberate — grounding must never be invisible), but they cannot change
   GitHub, Gamma, MCP servers; the "Apps" row says what this chat may reach. Attachments can come
   straight from a Google Drive or Gmail picker.
 - **Agents** — the Agents store; agent chat is the same composer with the tier fixed.
-- **Cowork / Routines** — the Chat⇄Cowork switch turns the same box into a scheduler.
+- **Cowork / Automations** — the Chat⇄Cowork switch turns the same box into a scheduler.
 - **Privacy Shield / Compliance** — the shield config lives in org settings (**Privacy Shield**);
   every block, redaction and unicode-smuggling strip is recorded as a guardrail event feeding
   Monitoring and the Compliance Hub.

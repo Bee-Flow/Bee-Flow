@@ -3,19 +3,19 @@
  "icon": "🧱",
  "estMinutes": 12,
  "title": "Changing a table things depend on",
- "desc": "Adding, retyping and dropping columns when routines and apps already read them.",
+ "desc": "Adding, retyping and dropping columns when automations and apps already read them.",
  "gate": {
   "permission": "manage_datatables",
   "feature": "automations"
  },
- "learningGoal": "After this lesson you can change a live table's shape — add, rename, retype or drop a column — without breaking somebody else's routine.",
+ "learningGoal": "After this lesson you can change a live table's shape — add, rename, retype or drop a column — without breaking somebody else's automation.",
  "steps": [
   {
    "type": "slide",
    "id": "used-by",
    "icon": "🧭",
    "title": "Read \"Used by\" before you touch a column",
-   "bodyMd": "Van Dijk Groep's `leveranciersfacturen` table has collected supplier invoices for months. A nightly mailbox reader adds a row per invoice; a Monday reminder chases every row where `status` is still *nieuw* (new). Drop the wrong column this afternoon and the failure arrives at three in the morning, inside a routine you do not own.\n\nSo read **Used by** before you open **Columns**. The tabs are **Columns**, **Rows**, **Retention**, **Sharing** and **Used by**, and that last one carries a count: every routine, app, web page and knowledge base that touches this table, under **Where**, **Does** and **Last time**. **Does** says *reads*, *writes* or *reads and writes*. A row marked *someone else's* belongs to a colleague and is not a link you can follow.\n\nThe Columns tab repeats it per column, as a small pill on the row: *1 automation*, *3 automations*."
+   "bodyMd": "Van Dijk Groep's `leveranciersfacturen` table has collected supplier invoices for months. A nightly mailbox reader adds a row per invoice; a Monday reminder chases every row where `status` is still *nieuw* (new). Drop the wrong column this afternoon and the failure arrives at three in the morning, inside an automation you do not own.\n\nSo read **Used by** before you open **Columns**. The tabs are **Columns**, **Rows**, **Retention**, **Sharing** and **Used by**, and that last one carries a count: every automation, app, web page and knowledge base that touches this table, under **Where**, **Does** and **Last time**. **Does** says *reads*, *writes* or *reads and writes*. A row marked *someone else's* belongs to a colleague and is not a link you can follow.\n\nThe Columns tab repeats it per column, as a small pill on the row: *1 automation*, *3 automations*."
   },
   {
    "type": "slide",
@@ -61,7 +61,7 @@
    "id": "add-safe",
    "icon": "🧱",
    "title": "Adding is safe. Dropping and retyping are not.",
-   "bodyMd": "Five edits. Only two of them cost you anything.\n\n- **Add** a column and nothing notices: existing rows get an empty cell, and no routine reads a column it has never heard of.\n- **Rename** one and only the label changes. A column that has already been saved keeps the technical key your routines name, so they keep working.\n- **Reorder** with the drag handle: free.\n- **Remove** a column and its values disappear from every row.\n- **Retype** one and every value is rewritten — anything that does not fit the new type is lost.\n\nOnly those last two open the dialog **This throws away data**, with the buttons **Save anyway** and **Keep them**."
+   "bodyMd": "Five edits. Only two of them cost you anything.\n\n- **Add** a column and nothing notices: existing rows get an empty cell, and no automation reads a column it has never heard of.\n- **Rename** one and only the label changes. A column that has already been saved keeps the technical key your automations name, so they keep working.\n- **Reorder** with the drag handle: free.\n- **Remove** a column and its values disappear from every row.\n- **Retype** one and every value is rewritten — anything that does not fit the new type is lost.\n\nOnly those last two open the dialog **This throws away data**, with the buttons **Save anyway** and **Keep them**."
   },
   {
    "type": "quiz",
@@ -72,20 +72,20 @@
    "choices": [
     {
      "id": "a",
-     "label": "Which routines still name that column — and the save goes through only once you confirm it.",
+     "label": "Which automations still name that column — and the save goes through only once you confirm it.",
      "correct": true
     },
     {
      "id": "b",
      "label": "Whether any row still holds a value in `status`.",
      "correct": false,
-     "feedback": "Rows are the other line in the dialog — how many values go — not what makes the drop dangerous. A column that is empty in all 412 rows is still stopped while a routine names it."
+     "feedback": "Rows are the other line in the dialog — how many values go — not what makes the drop dangerous. A column that is empty in all 412 rows is still stopped while an automation names it."
     },
     {
      "id": "c",
-     "label": "Whether the routine's next run succeeds, rolling the change back if it does not.",
+     "label": "Whether the automation's next run succeeds, rolling the change back if it does not.",
      "correct": false,
-     "feedback": "Nothing waits for the next run, and nothing is rolled back later — that is precisely the failure this guard exists to prevent. It would surface at three in the morning, inside somebody else's routine."
+     "feedback": "Nothing waits for the next run, and nothing is rolled back later — that is precisely the failure this guard exists to prevent. It would surface at three in the morning, inside somebody else's automation."
     },
     {
      "id": "d",
@@ -94,7 +94,7 @@
      "feedback": "Ownership was settled before the editor opened; only an owner sees Save columns at all. This refusal is about dependants, not about you."
     }
    ],
-   "explanation": "Bee Flow already knows who reads this table, so the question can be answered before anything is written: the dialog names the routines that will stop working, and the server refuses the drop again unless your confirmation comes with it. Confirm with **Save anyway** and the column goes — and the routine that named it now has to be fixed where it lives."
+   "explanation": "Bee Flow already knows who reads this table, so the question can be answered before anything is written: the dialog names the automations that will stop working, and the server refuses the drop again unless your confirmation comes with it. Confirm with **Save anyway** and the column goes — and the automation that named it now has to be fixed where it lives."
   },
   {
    "type": "slide",
@@ -114,7 +114,7 @@
     "items": [
      {
       "id": "a",
-      "label": "Open \"Used by\" and note every routine on the table, and which of them are someone else's"
+      "label": "Open \"Used by\" and note every automation on the table, and which of them are someone else's"
      },
      {
       "id": "b",
@@ -126,7 +126,7 @@
      },
      {
       "id": "d",
-      "label": "Open the routine that should fill the column and point its Datatable step at it"
+      "label": "Open the automation that should fill the column and point its Datatable step at it"
      }
     ],
     "solution": [
@@ -135,7 +135,7 @@
      "c",
      "d"
     ],
-    "feedback": "Reading \"Used by\" first is what makes the rest safe: you know who to warn and what to check afterwards. And the column does not exist until the save lands, so the routine cannot be pointed at it any earlier."
+    "feedback": "Reading \"Used by\" first is what makes the rest safe: you know who to warn and what to check afterwards. And the column does not exist until the save lands, so the automation cannot be pointed at it any earlier."
    }
   },
   {
@@ -151,8 +151,8 @@
    "icon": "🎯",
    "exerciseId": "ex-datatables-columns-safely-plan",
    "title": "Your turn: plan a risky change",
-   "instruction": "Van Dijk Groep wants two changes to `leveranciersfacturen`: drop `opmerking` (a long-text note nobody fills in) and change `btw_pct` (the VAT rate) from Text to Number so a routine can compare it. \"Used by\" lists two routines — the nightly mailbox reader (*reads and writes*, marked *someone else's*) and the Monday reminder (*reads*, yours). Write the plan: what you check before saving, which change is the more dangerous one and why, what the dialog will tell you, and what happens to the colleague's routine.",
-   "placeholder": "e.g. First I open Used by and write down which routine reads which column, then…",
+   "instruction": "Van Dijk Groep wants two changes to `leveranciersfacturen`: drop `opmerking` (a long-text note nobody fills in) and change `btw_pct` (the VAT rate) from Text to Number so an automation can compare it. \"Used by\" lists two automations — the nightly mailbox reader (*reads and writes*, marked *someone else's*) and the Monday reminder (*reads*, yours). Write the plan: what you check before saving, which change is the more dangerous one and why, what the dialog will tell you, and what happens to the colleague's automation.",
+   "placeholder": "e.g. First I open Used by and write down which automation reads which column, then…",
    "passScore": 70,
    "maxAttempts": 4
   },
@@ -207,9 +207,9 @@
     "pairs": [
      {
       "id": "r1",
-      "left": "You remove a column that two routines read",
+      "left": "You remove a column that two automations read",
       "right": "Refused until you confirm it",
-      "note": "The dialog names the rows it costs and the routines that stop working; Save anyway lets it through."
+      "note": "The dialog names the rows it costs and the automations that stop working; Save anyway lets it through."
      },
      {
       "id": "r2",
@@ -231,9 +231,9 @@
      },
      {
       "id": "r5",
-      "left": "You rename a column that the Monday routine reads",
+      "left": "You rename a column that the Monday automation reads",
       "right": "Only the label changes",
-      "note": "A saved column keeps its technical key, which is what the routine actually names."
+      "note": "A saved column keeps its technical key, which is what the automation actually names."
      }
     ]
    }
@@ -244,7 +244,7 @@
    "icon": "🏗️",
    "checkId": "datatable-column",
    "title": "Add a column — we'll verify it",
-   "instruction": "Open a table you own that the \"Used by\" tab already lists, and read that tab first. A personal table counts — a routine can read one. Then add one column on the Columns tab, give it a Kind, and press \"Save columns\" — you should see the note \"Columns saved.\" and no warning dialog, because adding costs nothing. Go back to \"Used by\": the routine should still be sitting there.",
+   "instruction": "Open a table you own that the \"Used by\" tab already lists, and read that tab first. A personal table counts — an automation can read one. Then add one column on the Columns tab, give it a Kind, and press \"Save columns\" — you should see the note \"Columns saved.\" and no warning dialog, because adding costs nothing. Go back to \"Used by\": the automation should still be sitting there.",
    "launch": {
     "navigateTo": "studio/datatables",
     "label": "Open Datatables"
@@ -255,30 +255,30 @@
    "id": "recap",
    "icon": "✅",
    "title": "What you can do now",
-   "bodyMd": "- **Read \"Used by\" first.** It names every routine, app, web page and knowledge base on the table, whether each one *reads*, *writes* or *reads and writes*, and which are someone else's. The Columns tab marks the columns that are spoken for.\n- **Know which edits are cheap.** Adding, renaming and reordering cost nothing. Removing and retyping open **This throws away data**, and a drop that breaks a routine is refused until you confirm it.\n- **Expect to be interrupted.** A colleague's save can beat yours, a mirrored table refuses column edits altogether, and row visibility narrows but never widens. Each refusal tells you what to do instead.\n- **Know whether the tab is yours.** A personal table's columns are always yours; an organisation table's need the datatables-management permission the Organisation Admin and Agent Admin roles carry — and ownership either way."
+   "bodyMd": "- **Read \"Used by\" first.** It names every automation, app, web page and knowledge base on the table, whether each one *reads*, *writes* or *reads and writes*, and which are someone else's. The Columns tab marks the columns that are spoken for.\n- **Know which edits are cheap.** Adding, renaming and reordering cost nothing. Removing and retyping open **This throws away data**, and a drop that breaks an automation is refused until you confirm it.\n- **Expect to be interrupted.** A colleague's save can beat yours, a mirrored table refuses column edits altogether, and row visibility narrows but never widens. Each refusal tells you what to do instead.\n- **Know whether the tab is yours.** A personal table's columns are always yours; an organisation table's need the datatables-management permission the Organisation Admin and Agent Admin roles carry — and ownership either way."
   }
  ],
  "rubrics": {
   "ex-datatables-columns-safely-plan": {
    "title": "Plan a destructive column change",
-   "task": "Plan dropping `opmerking` and retyping `btw_pct` from Text to Number on a table two routines already use — what to check first, which change is more dangerous, what the dialog says, and what happens to the colleague's routine.",
+   "task": "Plan dropping `opmerking` and retyping `btw_pct` from Text to Number on a table two automations already use — what to check first, which change is more dangerous, what the dialog says, and what happens to the colleague's automation.",
    "criteria": [
-    "Starts at the \"Used by\" tab (or the per-column markers) and works out which routine depends on which column before saving anything",
+    "Starts at the \"Used by\" tab (or the per-column markers) and works out which automation depends on which column before saving anything",
     "Treats both changes as destructive and explains that the retype is the quieter danger: every value is rewritten and anything that does not fit Number is lost",
-    "Expects the \"This throws away data\" dialog, and understands that confirming is required before a drop that a routine depends on is accepted",
-    "Says the colleague's routine must be fixed where it lives, and that the colleague is told before the save rather than after"
+    "Expects the \"This throws away data\" dialog, and understands that confirming is required before a drop that an automation depends on is accepted",
+    "Says the colleague's automation must be fixed where it lives, and that the colleague is told before the save rather than after"
    ],
    "passScore": 70,
-   "guidance": "Pass an answer that makes \"Used by\" the first move and treats the dialog as a confirmation rather than a block. Do not pass an answer that only says \"take a backup\", that assumes the routine repairs itself or is updated automatically, that proposes renaming the column as a safe substitute for dropping it (a rename keeps the key and changes nothing for the routine), or that treats a retype as harmless because no column disappears."
+   "guidance": "Pass an answer that makes \"Used by\" the first move and treats the dialog as a confirmation rather than a block. Do not pass an answer that only says \"take a backup\", that assumes the automation repairs itself or is updated automatically, that proposes renaming the column as a safe substitute for dropping it (a rename keeps the key and changes nothing for the automation), or that treats a retype as harmless because no column disappears."
   }
  },
  "practiceTopic": {
   "title": "Changing a live table's columns",
-  "summary": "How Bee Flow guards a datatable's shape when routines, apps and pages already read it.",
+  "summary": "How Bee Flow guards a datatable's shape when automations, apps and pages already read it.",
   "facts": [
-   "The table detail carries the tabs Columns, Rows, Retention, Sharing and Used by; Used by shows a count and lists every routine, app, web page or knowledge base that touches the table, under the headings Where, Does and Last time; Does says \"reads\", \"writes\" or \"reads and writes\".",
+   "The table detail carries the tabs Columns, Rows, Retention, Sharing and Used by; Used by shows a count and lists every automation, app, web page or knowledge base that touches the table, under the headings Where, Does and Last time; Does says \"reads\", \"writes\" or \"reads and writes\".",
    "Removing or retyping a column opens the dialog \"This throws away data\" with the buttons \"Save anyway\" and \"Keep them\"; adding, renaming or reordering a column opens nothing.",
-   "A save that drops a column a routine still names is refused until it is confirmed, because the usage index is consulted before the change is carried out.",
+   "A save that drops a column an automation still names is refused until it is confirmed, because the usage index is consulted before the change is carried out.",
    "A concurrent column edit is refused with \"Someone else changed these columns while you were editing. Their version is now shown — please make your change again.\"",
    "Row visibility can be narrowed to \"only the person who added it\" but never widened back, because that would disclose every existing row retroactively; the answer tells you to make a new table.",
    "Every table already carries id, created_at, updated_at, created_by and org_id and a new column may not take one of those names; the Technical name can never be changed after creation, while a saved column's display name can, because its underlying key stays the same.",
@@ -303,7 +303,7 @@
     {
      "id": "owned-in-use",
      "label": "A table you own is used by something",
-     "hint": "Its Used by tab lists at least one routine, app, web page or knowledge base.",
+     "hint": "Its Used by tab lists at least one automation, app, web page or knowledge base.",
      "rule": "some row in GET /api/datatables has grade === 'owner' and usageCount > 0"
     }
    ]

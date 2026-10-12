@@ -2,7 +2,7 @@
 
 const { test } = require('node:test');
 const assert = require('node:assert');
-const { matchAssignee, suggestionsFromNote, clock } = require('./taskFromMeeting');
+const { matchAssignee, suggestionsFromNote, clock, itemKey, itemTextHash, createdTaskFor } = require('./taskFromMeeting');
 
 const PEOPLE = [
     { id: 'u1', name: 'Anna de Vries' },
@@ -43,4 +43,24 @@ test('timestamps read as minutes and seconds, with hours when needed', () => {
     assert.strictEqual(clock(0), '0:00');
     assert.strictEqual(clock(3725), '1:02:05');
     assert.strictEqual(clock(-1), '');
+});
+
+test('a first name is matched only when the note holds just a first name', () => {
+    assert.strictEqual(matchAssignee('Bram', PEOPLE), 'u2');
+    assert.strictEqual(matchAssignee('Bram Visser', PEOPLE), null, 'another Bram is not this Bram');
+    assert.strictEqual(matchAssignee('Bram de Boer', [{ id: 'u2', name: 'Bram Jansen' }]), null);
+});
+
+test('a made task is found by the item\'s words, so a shifted position is not "already a task"', () => {
+    const made = new Map([[itemKey('ai-2', 'Send the offer'), 't-1']]);
+    assert.strictEqual(createdTaskFor(made, 'ai-2', '  send the  OFFER '), 't-1', 'same words, same item');
+    assert.strictEqual(createdTaskFor(made, 'ai-2', 'Book a room'), null, 'the position now holds another item');
+    assert.strictEqual(createdTaskFor(made, 'ai-3', 'Send the offer'), null, 'the same words at another position are not matched');
+    const legacy = new Map([['ai-2', 't-0']]);
+    assert.strictEqual(createdTaskFor(legacy, 'ai-2', 'anything'), 't-0', 'a task made before the hash existed is found by its id');
+    assert.strictEqual(itemTextHash(''), '');
+    assert.strictEqual(itemKey('ai-1', ''), 'ai-1');
+    const note = { id: 'm1', actionItems: [{ id: 'ai-1', text: 'Book a room' }] };
+    assert.strictEqual(suggestionsFromNote(note, PEOPLE, made)[0].createdTaskId, null);
+    assert.strictEqual(suggestionsFromNote({ ...note, actionItems: [{ id: 'ai-2', text: 'Send the offer' }] }, PEOPLE, made)[0].createdTaskId, 't-1');
 });

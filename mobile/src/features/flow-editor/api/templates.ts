@@ -1,10 +1,10 @@
 /**
- * Starting a routine from something that is not a blank canvas: a curated
+ * Starting an automation from something that is not a blank canvas: a curated
  * template (automation/templates.js), or a file exported from another
  * installation (automation/portability.js).
  *
  * Installing a template is what the web gallery does: fetch the whole
- * template, then create a routine from its definition — a draft, so the
+ * template, then create an automation from its definition — a draft, so the
  * gaps a template leaves (which inbox, which folder) come back as warnings,
  * not refusals.
  */
@@ -24,7 +24,7 @@ export async function getTemplate(templateId: string, signal?: AbortSignal): Pro
     return readTemplateResponse(await api.get<unknown>(`/api/automation/templates/${encodeURIComponent(templateId)}`, { signal }));
 }
 
-/** Install a template as a new draft routine; null when the template is gone. */
+/** Install a template as a new draft automation; null when the template is gone. */
 export async function createFromTemplate(templateId: string): Promise<SaveResult | null> {
     const template = await getTemplate(templateId);
     if (!template) return null;
@@ -36,7 +36,7 @@ export async function createFromTemplate(templateId: string): Promise<SaveResult
 }
 
 /**
- * The portable envelope of a routine: its definition with pinned samples,
+ * The portable envelope of an automation: its definition with pinned samples,
  * environment references and app back-pointers removed (each removal named
  * in `warnings`). Owner only.
  */

@@ -1,11 +1,11 @@
 /**
  * The presenter flag — Shift+P on a builder canvas. One storage key for both
- * builders (routines and App Studio): a presenter who switched it on for the
- * routine film expects the app film to be in the same mode.
+ * builders (automations and App Studio): a presenter who switched it on for the
+ * automation film expects the app film to be in the same mode.
  */
 import scopedStorage from '../../../utils/scopedStorage';
 
-export const PRESENTER_KEY = 'routines.canvas.presenter';
+export const PRESENTER_KEY = 'automations.canvas.presenter';
 
 export function readPresenter() {
     try {

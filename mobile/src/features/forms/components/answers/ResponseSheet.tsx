@@ -60,7 +60,7 @@ export function ResponseSheet({
     datatableId: string;
     response: OpenResponse | null;
     questions: readonly AnswerQuestion[];
-    /** The routine whose runs the owner may open; null for a colleague. */
+    /** The automation whose runs the owner may open; null for a colleague. */
     runsOf: string | null;
     onClose: () => void;
 }) {

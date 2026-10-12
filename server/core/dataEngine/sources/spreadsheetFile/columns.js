@@ -30,7 +30,7 @@
  * NULL and is counted (rows.js). Only `select` is an opt-in: its options are
  * the values the wizard saw, grown on sync, never shrunk.
  *
- * The KEY is derived once, from the header, and then KEPT (routines and apps
+ * The KEY is derived once, from the header, and then KEPT (automations and apps
  * name a column by key). A formula column is `derived: true` — read-only,
  * its value is the file's cached result. Declared `match` relations are the
  * same shape as Nextcloud's, under the `fld_ssrel` prefix.
@@ -160,7 +160,7 @@ function fieldsFromSheet(columns, {
         .filter(f => f && typeof f.id === 'string').map(f => [f.id, f]));
     const priorEntries = existingColumnMap && typeof existingColumnMap === 'object' ? existingColumnMap : {};
     // The same header under its PREVIOUS type code: a retype drops the old
-    // field and adds a new one, but the key — what routines name — carries
+    // field and adds a new one, but the key — what automations name — carries
     // over, because to a person it is still the same column.
     const priorByHash = new Map();
     for (const [id, entry] of Object.entries(priorEntries)) {

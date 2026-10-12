@@ -28,12 +28,12 @@ export default function MoreOptions({ labels, open, onToggle, autoCount = 0, chi
                 className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-left hover:bg-[var(--bg-secondary)] rounded-lg"
             >
                 {open ? <ChevronDown size={13} className="shrink-0 text-[var(--text-tertiary)]" /> : <ChevronRight size={13} className="shrink-0 text-[var(--text-tertiary)]" />}
-                <span className="font-semibold text-[var(--text-primary)] shrink-0">{t('routines.ndv.more_options', 'More options')}</span>
+                <span className="font-semibold text-[var(--text-primary)] shrink-0">{t('automations.ndv.more_options', 'More options')}</span>
                 <span className="min-w-0 truncate text-[var(--text-tertiary)]">{foldedNames(labels)}</span>
                 <span className="ml-auto shrink-0 text-[11px] text-[var(--text-tertiary)]">
                     {autoCount > 0
-                        ? t('routines.ndv.n_auto_filled', '{n} filled in for you', { n: autoCount })
-                        : t('routines.ndv.all_default', 'all default')}
+                        ? t('automations.ndv.n_auto_filled', '{n} filled in for you', { n: autoCount })
+                        : t('automations.ndv.all_default', 'all default')}
                 </span>
             </button>
             {open && <div className="px-3 pb-3 pt-1 space-y-3">{children}</div>}

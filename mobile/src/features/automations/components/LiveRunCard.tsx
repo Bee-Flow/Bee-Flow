@@ -2,7 +2,7 @@
  * The run in progress. Present only while something is actually going, so
  * the screen is quiet when there is nothing to watch.
  *
- * The step it is at is named from the routine's definition ("Send the
+ * The step it is at is named from the automation's definition ("Send the
  * invoice"), never by the id the live feed carries (`act_4d4307a`).
  */
 
@@ -39,7 +39,7 @@ export function LiveRunCard({
 }: {
     run: ActiveRun;
     stream: RunStreamState;
-    /** The routine's definition, which names the step the run is at. */
+    /** The automation's definition, which names the step the run is at. */
     definition: NamedDefinitionInput;
     onStop: () => void;
 }) {

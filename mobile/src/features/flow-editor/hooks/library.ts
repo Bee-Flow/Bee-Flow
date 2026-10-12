@@ -1,5 +1,5 @@
 /**
- * The writes that make or move routines rather than edit one: install a
+ * The writes that make or move automations rather than edit one: install a
  * template, import a file, export one, and the sidebar folders.
  */
 
@@ -22,7 +22,7 @@ function useListRefresh() {
     };
 }
 
-/** Install a template as a new draft routine. `null` data: the template is gone. */
+/** Install a template as a new draft automation. `null` data: the template is gone. */
 export function useCreateFromTemplate(handlers: MutationHandlers<SaveResult | null, string> = {}) {
     const refresh = useListRefresh();
     return useMutation({
@@ -48,7 +48,7 @@ export function useImportFlow(handlers: MutationHandlers<SaveResult, Record<stri
     });
 }
 
-/** The portable envelope of this routine, saved first so the file has what is on screen. */
+/** The portable envelope of this automation, saved first so the file has what is on screen. */
 export function useExportFlow(flowKey: string, handlers: MutationHandlers<FlowExport> = {}) {
     return useMutation({
         mutationFn: async () => exportFlow(await ensureDraftSaved(flowKey)),
@@ -91,7 +91,7 @@ export function useUpdateFolder(handlers: MutationHandlers<FlowFolder | null, { 
     });
 }
 
-/** Delete a folder; its routines move back to the top level (the count is the data). */
+/** Delete a folder; its automations move back to the top level (the count is the data). */
 export function useDeleteFolder(handlers: MutationHandlers<number, string> = {}) {
     const refresh = useFolderRefresh();
     return useMutation({

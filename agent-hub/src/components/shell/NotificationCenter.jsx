@@ -1,16 +1,18 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Bell, Check, CheckCheck, Info, AlertTriangle, AlertCircle, X, BellOff, Bot, Handshake, MessageSquare, GraduationCap } from 'lucide-react';
+import { settingsPathForTab } from '../../authedApp/settingsRoutes';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { useViewport } from '../../hooks/useViewport';
+import useTranslation from '../../hooks/useTranslation';
 import MarkdownRenderer from '../renderers/MarkdownRenderer';
 
 const CATEGORY_CONFIG = {
     info: { icon: Info, color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.08)', label: 'Info' },
     heads_up: { icon: AlertTriangle, color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.08)', label: 'Heads Up' },
     urgent: { icon: AlertCircle, color: '#ef4444', bg: 'rgba(239, 68, 68, 0.08)', label: 'Urgent' },
-    ai_task: { icon: Bot, color: '#0f172a', bg: 'rgba(15, 23, 42, 0.06)', label: 'Routine' },
+    ai_task: { icon: Bot, color: '#0f172a', bg: 'rgba(15, 23, 42, 0.06)', label: 'Automation' },
     // Cowork results used to arrive under the 'ai_task' category and were
-    // therefore labelled "Routine" — the name of a different feature, in a
+    // therefore labelled "Automation" — the name of a different feature, in a
     // different part of the app, that the user had never opened.
     cowork: { icon: Handshake, color: '#0f172a', bg: 'rgba(15, 23, 42, 0.06)', label: 'Cowork' },
     // Learning Center nudges (v2) — the review reminder navigates via `link`,
@@ -66,6 +68,7 @@ const TIME_GROUP_LABELS = {
  *                       trigger sits in a top bar.
  */
 export default function NotificationCenter({ variant = 'row' } = {}) {
+    const { t } = useTranslation();
     const { isMobile } = useViewport();
     const [open, setOpen] = useState(false);
     const [notifications, setNotifications] = useState([]);
@@ -96,9 +99,10 @@ export default function NotificationCenter({ variant = 'row' } = {}) {
     const resolveChatTarget = useCallback(async (n) => {
         const taskId = n?.task_id || n?.taskId || null;
         if (!taskId) return { agentId: null, conversationId: null };
-        const base = n?.category === 'cowork' ? '/api/cowork' : '/api/ai-tasks';
+        // Every scheduled item is a Cowork schedule now (the old ai_tasks rows
+        // moved there with their ids), whatever category an older notification carries.
         try {
-            const res = await authFetch(`${API_BASE}${base}/${taskId}`);
+            const res = await authFetch(`${API_BASE}/api/cowork/${taskId}`);
             if (!res.ok) return { agentId: null, conversationId: null };
             const item = await res.json();
             return {
@@ -115,7 +119,7 @@ export default function NotificationCenter({ variant = 'row' } = {}) {
         const n = notifId ? notifications.find(x => x.id === notifId) : null;
         const { agentId, conversationId } = await resolveChatTarget(n);
         window.dispatchEvent(new CustomEvent('openDirectChatWithContext', {
-            detail: { title, content, agentId, conversationId, surface: n?.category === 'cowork' ? 'cowork' : 'routine' },
+            detail: { title, content, agentId, conversationId, surface: n?.category === 'cowork' ? 'cowork' : 'automation' },
         }));
     }, [notifications, resolveChatTarget]);
 
@@ -125,17 +129,17 @@ export default function NotificationCenter({ variant = 'row' } = {}) {
         setOpen(false);
         const { agentId, conversationId } = await resolveChatTarget(n);
         window.dispatchEvent(new CustomEvent('openDirectChatWithContext', {
-            detail: { title: n.title, content: body, agentId, conversationId, surface: n.category === 'cowork' ? 'cowork' : 'routine' },
+            detail: { title: n.title, content: body, agentId, conversationId, surface: n.category === 'cowork' ? 'cowork' : 'automation' },
         }));
     }, [resolveChatTarget]);
 
-    // Routine credentials expired/revoked notifications carry a deep-link
-    // token at the start of the body: `routine_reauth:<provider>\n\n…`. Parse
+    // Automation credentials expired/revoked notifications carry a deep-link
+    // token at the start of the body: `automation_reauth:<provider>\n\n…`. Parse
     // it once so we can hide the token from the rendered message and surface
     // a one-click Reconnect button instead.
     const parseReauthToken = (msg) => {
         if (!msg || typeof msg !== 'string') return { provider: null, body: msg || '' };
-        const m = msg.match(/^routine_reauth:([a-z0-9_-]+)\n\n?([\s\S]*)$/i);
+        const m = msg.match(/^automation_reauth:([a-z0-9_-]+)\n\n?([\s\S]*)$/i);
         if (!m) return { provider: null, body: msg };
         return { provider: m[1].toLowerCase(), body: m[2] };
     };
@@ -155,7 +159,9 @@ export default function NotificationCenter({ variant = 'row' } = {}) {
                     return;
                 }
             } catch (_) { /* fall through to the settings page below */ }
-            window.open('/app/settings?tab=integrations', '_blank', 'noopener');
+            // A path, not ?tab=: the settings router reads the pathname only,
+            // so the query form opened Preferences.
+            window.open(settingsPathForTab('integrations'), '_blank', 'noopener');
             return;
         }
         // Pop a fresh tab so the user keeps the notifications panel open.
@@ -289,8 +295,8 @@ export default function NotificationCenter({ variant = 'row' } = {}) {
                 /* Compact icon-only trigger (sits in top bar) */
                 <button
                     onClick={() => setOpen(o => !o)}
-                    aria-label="Notifications"
-                    title="Notifications"
+                    aria-label={t('notifications.title', 'Notifications')}
+                    title={t('notifications.title', 'Notifications')}
                     className={`relative p-1.5 rounded-lg transition-colors ${open ? 'bg-[var(--bg-tertiary)] text-[var(--accent-primary)]' : 'hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]'}`}
                     data-testid="sidebar-notifications"
                 >
@@ -316,14 +322,14 @@ export default function NotificationCenter({ variant = 'row' } = {}) {
                 /* Sidebar-style trigger row */
                 <button
                     onClick={() => setOpen(o => !o)}
-                    aria-label="Notifications"
-                    title="Notifications"
+                    aria-label={t('notifications.title', 'Notifications')}
+                    title={t('notifications.title', 'Notifications')}
                     className={`w-full flex items-center gap-2.5 px-3 h-9 rounded-lg transition-colors text-left ${open ? 'bg-[var(--item-active-bg)]' : 'hover:bg-[var(--item-hover-bg)]'}`}
                     data-testid="sidebar-notifications"
                 >
                     <Bell className={`w-4 h-4 ${open ? 'text-[var(--accent-primary)]' : 'text-[var(--text-tertiary)]'}`} strokeWidth={1.75} />
                     <span className={`text-[13px] ${open ? 'font-bold text-black' : 'text-black'}`}>
-                        Notifications
+                        {t('notifications.title', 'Notifications')}
                     </span>
                     {unreadCount > 0 && (
                         <span style={{
@@ -386,7 +392,7 @@ export default function NotificationCenter({ variant = 'row' } = {}) {
                             <Bell style={{ width: 15, height: 15, color: '#3b82f6' }} />
                         </div>
                         <div style={{ flex: 1, fontSize: 14, fontWeight: 700, color: 'var(--text-primary, #0f172a)' }}>
-                            Notifications
+                            {t('notifications.title', 'Notifications')}
                             {unreadCount > 0 && (
                                 <span style={{
                                     marginLeft: 8,
@@ -427,7 +433,7 @@ export default function NotificationCenter({ variant = 'row' } = {}) {
                                     display: 'flex', alignItems: 'center', gap: 4,
                                     padding: '4px 8px', borderRadius: 6,
                                 }}
-                                title="Mark all as read"
+                                title={t('notifications.mark_all_read_title', 'Mark all as read')}
                             >
                                 <CheckCheck style={{ width: 13, height: 13 }} />
                             </button>
@@ -448,7 +454,7 @@ export default function NotificationCenter({ variant = 'row' } = {}) {
                                     borderRadius: '50%',
                                     animation: 'notifSpin 0.8s linear infinite',
                                 }} />
-                                Loading notifications...
+                                {t('notifications.loading', 'Loading notifications...')}
                             </div>
                         ) : filteredNotifications.length === 0 ? (
                             <div style={{
@@ -581,7 +587,7 @@ export default function NotificationCenter({ variant = 'row' } = {}) {
                                                 }}
                                                 onMouseEnter={(e) => { e.currentTarget.style.opacity = 1; e.currentTarget.style.color = '#ef4444'; }}
                                                 onMouseLeave={(e) => { e.currentTarget.style.opacity = 0; e.currentTarget.style.color = 'var(--text-muted, #94a3b8)'; }}
-                                                title="Delete"
+                                                title={t('common.delete', 'Delete')}
                                                 className="notif-delete-btn"
                                             >
                                                 <X style={{ width: 14, height: 14 }} />
@@ -611,7 +617,7 @@ export default function NotificationCenter({ variant = 'row' } = {}) {
                                                                             background: 'var(--text-primary, #0f172a)', color: 'var(--bg-primary, #fff)',
                                                                         }}
                                                                     >
-                                                                        Open
+                                                                        {t('notifications.open', 'Open')}
                                                                     </button>
                                                                 </div>
                                                             )}
@@ -626,7 +632,7 @@ export default function NotificationCenter({ variant = 'row' } = {}) {
                                                                             background: 'var(--text-primary, #0f172a)', color: 'var(--bg-primary, #fff)',
                                                                         }}
                                                                     >
-                                                                        Reconnect {reauthProvider.charAt(0).toUpperCase() + reauthProvider.slice(1)}
+                                                                        {t('notifications.reconnect_provider', 'Reconnect {provider}', { provider: reauthProvider.charAt(0).toUpperCase() + reauthProvider.slice(1) })}
                                                                     </button>
                                                                 </div>
                                                             )}
@@ -647,7 +653,7 @@ export default function NotificationCenter({ variant = 'row' } = {}) {
                                                                         }}
                                                                     >
                                                                         <MessageSquare style={{ width: 14, height: 14 }} />
-                                                                        Open result in chat
+                                                                        {t('notifications.open_result_in_chat', 'Open result in chat')}
                                                                     </button>
                                                                     <span style={{
                                                                         fontSize: 13, fontWeight: 600, minWidth: 0,
@@ -666,7 +672,7 @@ export default function NotificationCenter({ variant = 'row' } = {}) {
                                                                     }}>
                                                                         {n.category === 'cowork'
                                                                             ? 'This ran, but produced no text to show. Open it to see the run.'
-                                                                            : 'This routine ran, but no text result was saved. Open the chat to see the run.'}
+                                                                            : 'This automation ran, but no text result was saved. Open the chat to see the run.'}
                                                                     </p>
                                                                     <button
                                                                         onClick={(e) => {
@@ -786,7 +792,7 @@ export default function NotificationCenter({ variant = 'row' } = {}) {
                                     {resultModal.title}
                                 </div>
                                 <div style={{ fontSize: 11, color: 'var(--text-muted, #94a3b8)', fontWeight: 500, marginTop: 2 }}>
-                                    {resultModal.category === 'cowork' ? 'Cowork result' : 'Routine result'}
+                                    {resultModal.category === 'cowork' ? 'Cowork result' : 'Automation result'}
                                 </div>
                             </div>
                             <button
@@ -801,7 +807,7 @@ export default function NotificationCenter({ variant = 'row' } = {}) {
                                     flexShrink: 0,
                                 }}
                             >
-                                💬 Discuss in Chat
+                                {t('notifications.discuss_in_chat', '💬 Discuss in Chat')}
                             </button>
                             <button
                                 onClick={() => setResultModal(null)}

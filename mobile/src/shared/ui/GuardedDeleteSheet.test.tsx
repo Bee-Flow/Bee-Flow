@@ -98,7 +98,7 @@ describe('GuardedDeleteSheet', () => {
     it('names what could not be checked and never says "nothing uses this"', async () => {
         await draw({ guard: guard({ unchecked: ['notebook', 'automation'] }), requireName: true });
         expect(screen.getByText(/not everything could be checked/)).toBeTruthy();
-        expect(screen.getByText('Could not be checked: notebooks, routines.')).toBeTruthy();
+        expect(screen.getByText('Could not be checked: notebooks, automations.')).toBeTruthy();
         expect(screen.queryByText(/Nothing uses this\./)).toBeNull();
     });
 
@@ -116,16 +116,16 @@ describe('GuardedDeleteSheet', () => {
         expect(screen.getByText('2 things use this and will start failing:')).toBeTruthy();
         expect(screen.getByText('Helpdesk')).toBeTruthy();
         // A row owned by someone else arrives untitled; its kind stands in.
-        expect(screen.getByText('routine')).toBeTruthy();
+        expect(screen.getByText('automation')).toBeTruthy();
         expect(screen.getByText(/not the whole story/)).toBeTruthy();
         expect(screen.getByText('Could not be checked: templates.')).toBeTruthy();
         // Something was found, so the name is asked for even without requireName.
         expect(screen.getByTestId('guarded-delete-name')).toBeTruthy();
     });
 
-    it('tells two rows for the same routine apart by their site', async () => {
+    it('tells two rows for the same automation apart by their site', async () => {
         // skillStore.listSkillUsage sends one row per AI step, under the
-        // routine's id: two steps, two rows, one id.
+        // automation's id: two steps, two rows, one id.
         await draw({
             guard: guard({
                 usage: [
@@ -137,8 +137,8 @@ describe('GuardedDeleteSheet', () => {
             name: 'Summarise',
         });
         expect(screen.getAllByText('Weekly digest')).toHaveLength(2);
-        expect(screen.getByText('routine · step 2')).toBeTruthy();
-        expect(screen.getByText('routine · step 5')).toBeTruthy();
+        expect(screen.getByText('automation · step 2')).toBeTruthy();
+        expect(screen.getByText('automation · step 5')).toBeTruthy();
         expect(screen.getByText('table')).toBeTruthy();
     });
 

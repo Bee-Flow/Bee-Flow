@@ -6,7 +6,7 @@
  *
  *   mine (default, every member)  owner ∨ assignee ∨ member of the assigned
  *                                 group. This is "waiting on me" plus "my
- *                                 routines' approvals".
+ *                                 automations' approvals".
  *   org (org admins only)         every approval stamped with the caller's
  *                                 own organisation. Requesting it without the
  *                                 role is a 403, not a silent narrowing —
@@ -76,7 +76,7 @@ const ApprovalsQuery = z.object({
     limit: z.coerce.number({ invalid_type_error: 'limit must be a number.' })
         .int('limit must be a whole number.').optional(),
     appId: one('appId', 'the id of an app'),
-    automationId: one('automationId', 'the id of a routine'),
+    automationId: one('automationId', 'the id of an automation'),
     q: one('q', 'a search term'),
 }).strict();
 
@@ -339,7 +339,7 @@ router.post('/approvals/:id/decide', validate({ body: DecideBody }), async (req,
 
 /**
  * Withdraw — the requester's "never mind". Deliberately NARROWER than decide:
- * the owner (whose routine/app asked) or an org admin. An assignee who wants
+ * the owner (whose automation/app asked) or an org admin. An assignee who wants
  * out declines with a reason; letting them silently retract someone else's
  * question would erase the ask from under the owner.
  */

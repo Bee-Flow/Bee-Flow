@@ -4,7 +4,7 @@
  * Every Nextcloud call a mirror makes — the refresh, the event patch, the
  * write-through — runs as the account that LINKED it, off any request path,
  * so the session is rebuilt the way the runner rebuilds one for a scheduled
- * routine (sessionResolution.resolveUserSession → nextcloudClient.resolveAuth).
+ * automation (sessionResolution.resolveUserSession → nextcloudClient.resolveAuth).
  * For a connector-bound organisation that needs no stored credential at all.
  *
  * Three gates run before the answer is handed out, and they are the SAME three

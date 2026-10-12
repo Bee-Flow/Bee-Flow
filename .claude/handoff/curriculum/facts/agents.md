@@ -24,9 +24,9 @@ its own tools and its own audience. The overview screen states the purpose in on
 > change what it knows and what it may do." (`agent_studio.intro`)
 
 A builder creates an agent so that colleagues (or an anonymous visitor via an embed, or a
-routine, or an app screen) can ask it questions and get answers grounded in company material
+automation, or an app screen) can ask it questions and get answers grounded in company material
 instead of the model's memory. Agents are the *thing other Studio features point at*: a
-scheduled routine runs "through" an agent, a support inbox drafts with an agent, an app
+scheduled automation runs "through" an agent, a support inbox drafts with an agent, an app
 block calls an agent, a Cowork schedule has an agent on the other end.
 
 ---
@@ -77,7 +77,7 @@ Loads `GET /agents/all?usage=1` (`GET /agents/system` in system mode).
     server-computed `grounding` from `core/agentRuntime/agentGrounding.js`, the *same*
     function Studio Start's "Needs attention" uses, so the two screens can't disagree;
   - counts: "{n} conversations", "{n} knowledge bases", "{n} skills", "{n} tools",
-    "at least {n} tools", "also in {items}" with "{n} routines / {n} apps / {n} webpages /
+    "at least {n} tools", "also in {items}" with "{n} automations / {n} apps / {n} webpages /
     {n} scheduled tasks / {n} Cowork schedules / {n} support inboxes";
   - **"Only you"** (`agent_studio.card.only_you`) — only claimed when
     `othersConversationCount === 0`, i.e. proven, never guessed;
@@ -192,8 +192,8 @@ A count that could not be read renders **nothing**, never a `0` (`countOrNothing
    - *when this app is used*: **"Direct"** vs **"Confirm first"**, with the lock
      **"This app can send, so a person always confirms first."**
    Empty: **"No apps switched on yet — this agent answers, it does not act."**
-   Band **"Automations as a tool"** lists granted routines ("asks for", "required",
-   "This routine has no agent trigger, so the agent is never offered it.").
+   Band **"Automations as a tool"** lists granted automations ("asks for", "required",
+   "This automation has no agent trigger, so the agent is never offered it.").
 
    The **tool chooser** behind "Choose actions": title **"Choose apps & actions"**, search
    **"Search apps and actions"**, filters **"All" / "Reads" / "Writes" / "Sends"**,
@@ -299,20 +299,20 @@ row subtitle.
 | **`unpublishedChanges`** | `rev − published_rev`: how many saves your draft is ahead of what people are getting. Shown as "{n} unpublished changes since". Zero until the first publish-version. |
 | **Persona** | The structured role stored in `agents.persona`: `who`, `tone.chips` + `tone.text`, `does[]`, `doesNot[]`, `unknown.mode`, `language`, plus `mode: 'fields' | 'free'`. The server renders it into the system prompt (`core/agentRuntime/personaPrompt.js`). |
 | **Fields mode vs free mode** | In *fields* mode the structured fields are the source and the prompt is generated from them. In *free* mode one block of text **is** the prompt and the fields only describe it; getting back to fields is an explicit AI parse (`POST /agents/:id/persona/parse`), never a silent back-translation. |
-| **`unknown.mode`** | What the agent does outside its knowledge: `honest` ("Say honestly that it does not know"), `web` ("Search the web" — needs the web-search app switched on), `handoff` ("Hand it to a person" — starts a routine you pick). |
+| **`unknown.mode`** | What the agent does outside its knowledge: `honest` ("Say honestly that it does not know"), `web` ("Search the web" — needs the web-search app switched on), `handoff` ("Hand it to a person" — starts an automation you pick). |
 | **Grounding** | Whether the agent has anything to look in (a knowledge base or a datatable grant). No → "Answers from memory — connect a knowledge base". Unreadable → say nothing. One function, three readers. |
 | **Knowledge base (KB)** | A document collection the agent searches before answering. Linked by id in `config.knowledge_base_ids`. |
 | **Strict knowledge** | "Only answer from the knowledge base" — refuses questions the linked documents don't cover. A datatable grant alone does **not** count as knowledge for this. |
-| **Skill** | A reusable working method (steps/rules, optionally linked to a routine) attached to the agent via `config.attachedSkillIds`. |
+| **Skill** | A reusable working method (steps/rules, optionally linked to an automation) attached to the agent via `config.attachedSkillIds`. |
 | **Tool / action** | One callable operation inside an app (e.g. "send a Gmail message"). `config.tools[appId].actions` is the allow-list. |
 | **Curation rule (critical)** | An app that is **not mentioned** in `config.tools` keeps its **whole** toolbelt. Switching an app off means writing `{ actions: [] }`, not deleting the key. Building the map from only the ticked apps silently re-grants everything you unticked. |
 | **`confirm`** | `direct` = the agent just does it; `ask` = a person confirms first. Anything that *sends* is locked to `ask`. |
 | **`actAs`** | Whose connection the app uses: `viewer` (everyone their own) or `owner` (everyone borrows yours — never for sending actions). Unknown is not "platform". |
 | **Datatable grant** | `config.tools.datatables[tableId] = { scope: 'own'|'all', columns }`. Read-only, enforced at both ends of `datatable_query`. |
 | **Test set** | Questions plus expectations (`must mention` / `must never say` / expected tools / notes) stored on the agent, replayed through the real runtime in a sandbox and graded by the fast tier. |
-| **Test sandbox** | A run only ever *removes* capability: nothing is written to a conversation (`ephemeral`), everything that sends is dropped, routines are dropped, and confirm-tools are dropped (`testSandbox: true`, `unattended: true`, `autoSend: false`). |
+| **Test sandbox** | A run only ever *removes* capability: nothing is written to a conversation (`ephemeral`), everything that sends is dropped, automations are dropped, and confirm-tools are dropped (`testSandbox: true`, `unattended: true`, `autoSend: false`). |
 | **"Test as · group X"** | Replays the set with the knowledge a member of one group would have. Refused rather than downgraded if the group can't be resolved; the score is **not stored**. |
-| **Used by** | Everything that would break if the agent disappeared: scheduled tasks, Cowork schedules, support inboxes, routines, apps, webpages — plus other people's conversations. |
+| **Used by** | Everything that would break if the agent disappeared: scheduled tasks, Cowork schedules, support inboxes, automations, apps, webpages — plus other people's conversations. |
 | **`can_edit`** | The server's own per-agent verdict, attached to every row, so the client renders read-only editors from the same rule the API enforces. |
 | **Embed** | A public standalone chat page for one agent. Needs `is_published` **and** `embed_enabled`. Anyone with the URL chats without an account. |
 
@@ -403,9 +403,9 @@ row subtitle.
 1. Studio → Agents → hover the card → trash icon (only if you may edit it).
 2. Confirm **Delete agent**.
 3. If anything still uses it, you get **"This agent is still in use"** with the list
-   (routines, apps, webpages, scheduled tasks, Cowork schedules, support inboxes) — other
+   (automations, apps, webpages, scheduled tasks, Cowork schedules, support inboxes) — other
    people's items are counted but not named.
-4. Fix those first (repoint the routine, remove the app block). Re-try the delete.
+4. Fix those first (repoint the automation, remove the app block). Re-try the delete.
 5. If you truly must, press **"Delete anyway"**. Nothing is scrubbed afterwards: a scheduled
    task loses its agent and starts running as a bare prompt task, and **colleagues'
    conversations with this agent are deleted with it**.
@@ -528,7 +528,7 @@ not" and "it does not exist" must not be distinguishable.
 - `useCan('agent_routines')` gates the **Routines** action pill inside the editor.
   `agent_routines` is a **Community** licence feature (`server/license/tiers.js`) and a **GA**
   beta feature (`core/entitlements/betaFeatures.js`); `aiTaskRunner` re-checks the org beta
-  before it runs a routine.
+  before it runs an automation.
 - `GET /agents/tool-catalog` deliberately carries its own `requireAuth` (it is a *per-user*
   answer — which apps *you* may use — so it is not in the "metadata, no user data" exemption).
 - Quantitative gate: plan `max_agents` via `checkResourceLimits(orgId, 'agents', count)`.
@@ -550,11 +550,11 @@ not" and "it does not exist" must not be distinguishable.
   agent gains knowledge with no upload.
 - **Datatables** — read-only table grants with row scope and column list, enforced by
   `core/tools/datatableTools.js`.
-- **Skills Studio** — `config.attachedSkillIds`; a skill can itself be linked to a routine.
-- **Routines (automations)** — three separate relationships: (a) a routine *uses* the agent
-  (shows up in "Used by"); (b) the agent *calls* a routine as a tool (only routines whose
+- **Skills Studio** — `config.attachedSkillIds`; a skill can itself be linked to an automation.
+- **Automations (automations)** — three separate relationships: (a) an automation *uses* the agent
+  (shows up in "Used by"); (b) the agent *calls* an automation as a tool (only automations whose
   trigger is an agent call qualify); (c) the persona's `unknown.mode = 'handoff'` hands the
-  question to a routine — checked against the agent's **owner**, not you.
+  question to an automation — checked against the agent's **owner**, not you.
 - **Scheduled tasks / Cowork / Support inbox / App Studio / Webpages** — all can bind an agent;
   all six are the `KINDS` the usage scanner checks (`task, cowork, support, automation, app,
   webpage`).
@@ -580,8 +580,8 @@ not" and "it does not exist" must not be distinguishable.
    exercises the **published** agent. The tab says so ("This answer came from the published
    agent, not from your draft.") — read it.
 3. **Unticking apps by deleting the key.** An app absent from `config.tools` keeps its whole
-   toolbelt. Off means `{ actions: [] }`. (This bit the routines section once already: unticking
-   every routine handed back *all* of them.)
+   toolbelt. Off means `{ actions: [] }`. (This bit the automations section once already: unticking
+   every automation handed back *all* of them.)
 4. **Opening an old agent's tool chooser and pressing Apply.** A pre-chooser agent opens with
    the chooser expanded to "everything"; if the expansion were skipped the first save would
    silently strip all its tools. Check the delta line before applying.
@@ -645,13 +645,13 @@ HR-adviseur Pieter wants an agent that answers personnel-handbook questions but 
 about individual cases.
 
 1. New agent from the HR handbook KB, tone chips **Friendly** + **Dutch unless asked otherwise**.
-2. Role → "If it doesn't know" → **"Hand it to a person"**, picks the routine
-   *HR-vraag doorzetten* (which mails the HR mailbox). The card warns that the routine is
+2. Role → "If it doesn't know" → **"Hand it to a person"**, picks the automation
+   *HR-vraag doorzetten* (which mails the HR mailbox). The card warns that the automation is
    checked against the agent's **owner**, so Pieter must own both.
 3. Tools: **none that send.** He switches Gmail off entirely. (Had he granted a send action, the
    card would lock it to **"Confirm first"** — "This app can send, so a person always confirms
    first.")
-4. Privacy check, and it is the load-bearing lesson: the hand-off routine may carry only a
+4. Privacy check, and it is the load-bearing lesson: the hand-off automation may carry only a
    **ticket reference**, never the employee's name, e-mail, or the literal question. The project
    rule is: personal data leaves Bee Flow only by e-mail to the person themselves.
 5. Test set includes a deliberately personal question — *"Hoeveel vakantiedagen heb ík nog?"* —
@@ -680,10 +680,10 @@ Accountmanager Sanne wants an agent that drafts quotation e-mails and logs them.
    everything that sends. She learns that tools of this kind are verified in a real chat, not in
    the test set.
 7. Capsule → group **Sales** → **Publish**. On the overview her card now reads
-   *"12 conversations · 1 knowledge base · 2 tools · also in 1 routine"*.
+   *"12 conversations · 1 knowledge base · 2 tools · also in 1 automation"*.
 8. A month later a colleague tries to delete the agent during a clean-up and gets
-   **"This agent is still in use"** listing the routine plus a counted-but-unnamed app someone
-   else built. He repoints the routine first.
+   **"This agent is still in use"** listing the automation plus a counted-but-unnamed app someone
+   else built. He repoints the automation first.
 
 *Teaching value*: per-action curation, `actAs`, datatable row scope, why sending tools are
 invisible in a test run, and the delete guard.

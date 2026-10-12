@@ -29,6 +29,16 @@ const configStore = require('../../../stores/configStore');
 const complianceStore = require('../../../stores/complianceStore');
 const { LOC_STATE } = require('../../../stores/integrationLocationSql');
 const { assessTransfers } = require('../../lib/transferAssessment');
+const { LEDGER_ORG_SQL } = require('../../lib/observedOperators');
+const pd = require('../../projects/projectData');
+
+/**
+ * Ledger groups read per run. The query orders transfers ('outside') first and
+ * global networks second, so a cut can only ever drop located or unlocated
+ * rows — never an unattested transfer — and it asks for one more than this to
+ * know that it cut (evidence.groups_truncated).
+ */
+const TRANSFER_GROUP_LIMIT = 1000;
 
 const EXTERNAL_PROVIDER_PREFIXES = new Set([
     'openai', 'claude', 'anthropic', 'google', 'google-vertex',
@@ -49,27 +59,40 @@ async function _queryTransfers(orgId) {
                    MIN(timestamp) AS first_seen,
                    MAX(timestamp) AS last_seen
             FROM integration_activity_log
-            WHERE organization_id = $1
+            WHERE ${LEDGER_ORG_SQL}
               AND timestamp >= NOW() - INTERVAL '30 days'
               -- A durable cache hit writes a flagged row so the processor stays
               -- visible in the RoPA, but nothing crossed a border on that call.
               -- Counting it here would report transfers that did not happen.
               AND served_from_cache = false
             GROUP BY 1, 2, 3, 4, 5, 6
-            ORDER BY calls DESC
-            LIMIT 200
+            -- Transfers first: a low-volume unattested operator must never be
+            -- the row the LIMIT drops. Same expression as GROUP BY item 6.
+            ORDER BY CASE ${LOC_STATE} WHEN 'outside' THEN 0 WHEN 'via_network' THEN 1 ELSE 2 END,
+                     calls DESC
+            LIMIT ${TRANSFER_GROUP_LIMIT + 1}
         `, [orgId]);
     } catch {
         return null; // table absent on fresh installs
     }
 }
 
+// Org scoping (the convention of AIA Art. 13, 50 and 53, projectData.orgMatch):
+// an agent without organization_id is visible only to org-less users, whom the
+// scheduler sweeps as the 'default' bucket, so it counts there and never for
+// another tenant. Counting it for every organisation put tenant A's legacy
+// agent by name into tenant B's external_agents. The JS filter mirrors the SQL
+// predicate. Same rule as art35-dpia-high-risk._highRiskAgents.
 async function _scanAgents(orgId) {
+    const scope = orgId || pd.NO_ORG_ORG_ID;
     try {
-        const rows = await getAll(`SELECT id, name, model, organization_id FROM agents WHERE is_published = TRUE`);
+        const rows = await getAll(
+            `SELECT id, name, model, organization_id FROM agents WHERE is_published = TRUE AND ${pd.orgMatch('organization_id')}`,
+            [scope],
+        );
         const external = [];
-        for (const a of rows) {
-            if (orgId && a.organization_id && a.organization_id !== orgId) continue;
+        for (const a of rows || []) {
+            if ((a.organization_id || pd.NO_ORG_ORG_ID) !== scope) continue;
             const model = String(a.model || '').trim();
             if (!model) continue;
             const prefix = model.split(/[\/:]/)[0].toLowerCase();
@@ -91,7 +114,8 @@ module.exports = {
     titleKey: 'compliance.checks.gdpr_art44.title',
     descriptionKey: 'compliance.checks.gdpr_art44.desc',
     remediationKey: 'compliance.checks.gdpr_art44.fix',
-    remediationLink: 'admin/compliance/settings',
+    // The SCC toggle lives on the processing register (RoPA), not on Settings.
+    remediationLink: 'admin/compliance/ropa',
     async evaluate(orgId) {
         const transfers = await _queryTransfers(orgId);
         const settings = await complianceStore.getSettings(orgId);
@@ -103,7 +127,9 @@ module.exports = {
 
         // ── Primary signal: real outbound calls ────────────────────
         if (Array.isArray(transfers) && transfers.length > 0) {
-            return assessTransfers(transfers, sccConfirmed);
+            const truncated = transfers.length > TRANSFER_GROUP_LIMIT;
+            const result = assessTransfers(transfers.slice(0, TRANSFER_GROUP_LIMIT), sccConfirmed);
+            return { ...result, evidence: { ...result.evidence, groups_truncated: truncated } };
         }
 
         // ── Fallback: provider list + agent model scan ─────────────
@@ -134,4 +160,7 @@ module.exports = {
                 : `All ${providers.length} configured provider(s) appear to be EU/self-hosted, and no outbound traffic was observed in the last 30 days.`,
         };
     },
+
+    // Exported for the tests.
+    TRANSFER_GROUP_LIMIT,
 };

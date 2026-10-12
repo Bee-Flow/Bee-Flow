@@ -36,6 +36,8 @@ export interface BuilderToolCall {
     added?: BuilderAddedStep[];
     /** The call reported its steps as a LIST (builder_add_steps), even a list of one. */
     batch?: boolean;
+    /** builder_add_array_op's `op` (`flatten`, …): its row's word while no step names it. */
+    op?: string;
 }
 
 export interface BuilderMessage {
@@ -87,10 +89,12 @@ export function readToolCall(raw: unknown): BuilderToolCall {
     const added = pick(result, 'added');
     const steps = (Array.isArray(added) ? added : isRecord(added) ? [added] : []).filter(isRecord).map(readAddedStep);
     const hint = field.strOrNull(pick(result, '_fixHint'));
+    const op = field.strOrNull(pick(pick(raw, 'arguments'), 'op'));
     return {
         name: field.str('')(pick(raw, 'name')),
         error: field.strOrNull(pick(result, 'error')),
         ...(hint ? { hint } : {}),
+        ...(op ? { op } : {}),
         ...(steps.length ? { added: steps, batch: Array.isArray(added) } : {}),
     };
 }
@@ -133,7 +137,7 @@ export function readBuilderSnapshot(raw: unknown): BuilderSnapshot {
 }
 
 /**
- * The persisted conversation for a routine, or null when it has none (the
+ * The persisted conversation for an automation, or null when it has none (the
  * route answers 404 for "no session yet", which is not a failure here).
  */
 export async function getBuilderSession(automationId: string, signal?: AbortSignal): Promise<BuilderSnapshot | null> {
@@ -149,7 +153,7 @@ export async function getBuilderSession(automationId: string, signal?: AbortSign
 
 export interface BuilderTurnInput {
     message: string;
-    /** Null on a routine that does not exist yet: the server creates the draft and says so in `builder_session`. */
+    /** Null on an automation that does not exist yet: the server creates the draft and says so in `builder_session`. */
     automationId: string | null;
     builderSessionId: string | null;
     /** The whole transcript, deliberately unwindowed — the server decides how much reaches the model. */

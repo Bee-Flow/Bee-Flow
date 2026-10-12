@@ -172,7 +172,7 @@ router.post('/post', requireSessionUser, validate({ body: PostBody }), async (re
     const personId = await configStore.getConfig(`linkedin_person_id_user_${userId}`);
 
     if (!accessToken || !personId) {
-        return res.status(401).json({ error: 'Not connected to LinkedIn. Connect via Settings → Integrations.' });
+        return res.status(401).json({ error: 'Not connected to LinkedIn. Connect via Settings → Connections.' });
     }
 
     const { text } = req.body;

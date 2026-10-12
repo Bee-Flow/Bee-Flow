@@ -1,5 +1,5 @@
 /**
- * The routine's flowlets — the web's FlowletsPanel as a sheet: each flowlet
+ * The automation's flowlets — the web's FlowletsPanel as a sheet: each flowlet
  * with what it holds, opened on its own screen with a tap; a new one made and
  * opened in one go; rename and delete from its ⋯. Deleting follows the web's
  * rule (flowletsModel.ts): one nothing calls goes, an empty one goes with its
@@ -97,17 +97,17 @@ export function FlowletsSheet({ visible, store, onClose, onOpen }: { visible: bo
             <Sheet
                 visible={visible}
                 onClose={onClose}
-                title={t('routines.canvas.flowlets', 'Flowlets')}
+                title={t('automations.canvas.flowlets', 'Flowlets')}
                 scroll={false}
                 tall
-                footer={<Button label={t('mobile.flow.flowlets.create', 'Create a new flowlet')} iconName="Plus" onPress={edits.create} disabled={locked} fullWidth testID="flowlet-create" />}
+                footer={<Button label={t('automations.flowlets_panel.create_a_new_flowlet', 'Create a new flowlet')} iconName="Plus" onPress={edits.create} disabled={locked} fullWidth testID="flowlet-create" />}
             >
                 <Actions.Provider value={{ onOpen: open, onMore: setMenu }}>
                     <FlatList
                         data={layers}
                         renderItem={renderRow}
                         keyExtractor={keyOf}
-                        ListEmptyComponent={<EmptyState icon="Layers" title={t('mobile.flow.flowlets.none', 'No flowlets yet')} message={t('mobile.flow.flowlets.none_hint', 'A flowlet groups steps into a reusable sub-flow the routine calls.')} />}
+                        ListEmptyComponent={<EmptyState icon="Layers" title={t('mobile.flow.flowlets.none', 'No flowlets yet')} message={t('mobile.flow.flowlets.none_hint', 'A flowlet groups steps into a reusable sub-flow the automation calls.')} />}
                         testID="flowlet-list"
                     />
                 </Actions.Provider>
@@ -117,10 +117,10 @@ export function FlowletsSheet({ visible, store, onClose, onOpen }: { visible: bo
                 onClose={() => setMenu(null)}
                 title={menu?.title}
                 items={[
-                    { id: 'rename', label: t('mobile.flow.flowlets.rename', 'Rename flowlet'), icon: 'Pencil', disabled: locked, onPress: () => setRenaming(menu) },
+                    { id: 'rename', label: t('automations.flowlets_panel.rename_flowlet', 'Rename flowlet'), icon: 'Pencil', disabled: locked, onPress: () => setRenaming(menu) },
                     {
                         id: 'delete',
-                        label: t('routines.header.delete_flowlet_label', 'Delete flowlet'),
+                        label: t('automations.header.delete_flowlet_label', 'Delete flowlet'),
                         icon: 'Trash2',
                         destructive: true,
                         disabled: locked || blocked,

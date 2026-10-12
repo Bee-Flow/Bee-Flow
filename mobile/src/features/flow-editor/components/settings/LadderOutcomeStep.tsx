@@ -1,7 +1,7 @@
 /**
  * The last page: what the three steps add up to, before anything is
  * recorded — the web's OutcomeBox, with what Art. 50 still misses, when the
- * routine was last declared, and why a save did not go through.
+ * automation was last declared, and why a save did not go through.
  */
 
 import React from 'react';
@@ -34,7 +34,7 @@ export function LadderOutcomeStep({ ladder }: { ladder: AiActLadder }) {
                     </Text>
                 ) : null}
                 <Text variant="caption" tone="secondary">
-                    {t('compliance.ladder_outcome_note', 'Recorded in the model inventory (Art. 53) and as a processing activity in the processing register; the "AI notice" and "marking" checks keep running automatically.')}
+                    {t('compliance.ladder_outcome_note', 'Recorded with the model inventory and as a processing activity in the processing register; the "AI notice" and "marking" checks keep running automatically.')}
                 </Text>
             </View>
             {stamp ? (

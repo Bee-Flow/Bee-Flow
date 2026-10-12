@@ -2,14 +2,14 @@
 // filed in the project, its team chats, and threads inside those chats. One
 // hook answers "what is this link called" and "what can be linked".
 
-import { BookOpen, FileText, MessageSquare, MessageSquareReply, Mic } from 'lucide-react';
+import { BookOpen, FileText, Layers3, MessageSquare, MessageSquareReply, Mic } from 'lucide-react';
 import { useMemo } from 'react';
 import { useProjectChatsQuery } from '../../../../api/queries/projectChats';
 import { linkKey, type TaskLink } from '../../../../api/queries/projectTasks';
 import { useProjectResourcesQuery } from '../../../../api/queries/projects';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
-export const LINK_ICON = { document: FileText, notebook: BookOpen, meeting: Mic, chat: MessageSquare, thread: MessageSquareReply } as const;
+export const LINK_ICON = { document: FileText, notebook: BookOpen, meeting: Mic, chat: MessageSquare, thread: MessageSquareReply, task: Layers3 } as const;
 
 export interface LinkOption { link: TaskLink; label: string }
 
@@ -17,7 +17,8 @@ export interface LinkOption { link: TaskLink; label: string }
 export const THREAD_SEP = '_';
 
 /** Where a link opens inside the project: the tab, and the item in it. */
-export function routeOfLink(link: TaskLink): { tab: 'documents' | 'chats' | 'notebooks' | 'meetings'; sub: string } {
+export function routeOfLink(link: TaskLink): { tab: 'documents' | 'chats' | 'notebooks' | 'meetings' | 'tasks'; sub: string } {
+    if (link.kind === 'task') return { tab: 'tasks', sub: link.id };
     if (link.kind === 'document') return { tab: 'documents', sub: link.id };
     if (link.kind === 'notebook') return { tab: 'notebooks', sub: link.id };
     if (link.kind === 'meeting') return { tab: 'meetings', sub: link.id };

@@ -50,7 +50,7 @@ async function executeNextcloudTool(toolName, args, userId, session, extra = {})
     const root = ncClient.webdavRoot(baseUrl, uid);
     const handlerCtx = {
         baseUrl, ncFetch, authError, uid, root, session,
-        // Who is asking, in which auth mode, and — inside a routine run —
+        // Who is asking, in which auth mode, and — inside an automation run —
         // which run: the office tools read the org's house style, build
         // `/f/<id>` links from the PUBLIC base URL (never the connector proxy)
         // and resolve `generated_file` handles against the run's journey.

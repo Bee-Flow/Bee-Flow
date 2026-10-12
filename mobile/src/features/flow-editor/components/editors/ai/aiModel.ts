@@ -30,13 +30,13 @@ export function agentRowsOf(catalog: Pick<FlowCatalog, 'agents' | 'agentsError'>
 export function agentReason(reason: string | null | undefined): Msg {
     switch (reason) {
         case 'not_published':
-            return msg('routine_editor.agent_reason_not_published', 'Not published yet — publish it to use it in a routine.');
+            return msg('automation_editor.agent_reason_not_published', 'Not published yet — publish it to use it in an automation.');
         case 'other_org':
-            return msg('routine_editor.agent_reason_other_org', 'Belongs to another workspace.');
+            return msg('automation_editor.agent_reason_other_org', 'Belongs to another workspace.');
         case 'not_shared':
-            return msg('routine_editor.agent_reason_not_shared', 'Not shared with you.');
+            return msg('automation_editor.agent_reason_not_shared', 'Not shared with you.');
         default:
-            return msg('routine_editor.agent_reason_unavailable', 'Not available to this routine.');
+            return msg('automation_editor.agent_reason_unavailable', 'Not available to this automation.');
     }
 }
 
@@ -44,23 +44,23 @@ export function agentReason(reason: string | null | undefined): Msg {
 export function permissionWords(key: string): { label: Msg; hint: Msg } {
     if (key === 'startAutomations') {
         return {
-            label: msg('routine_editor.agent_perm_start_automations', 'Start other routines'),
-            hint: msg('routine_editor.agent_perm_start_automations_hint', 'The agent may run the routines its owner granted it — and only the ones you could run yourself.'),
+            label: msg('automation_editor.agent_perm_start_automations', 'Start other automations'),
+            hint: msg('automation_editor.agent_perm_start_automations_hint', 'The agent may run the automations its owner granted it — and only the ones you could run yourself.'),
         };
     }
     if (key === 'useKnowledge') {
         return {
-            label: msg('routine_editor.agent_perm_use_knowledge', 'Use its knowledge bases'),
+            label: msg('automation_editor.agent_perm_use_knowledge', 'Use its knowledge bases'),
             hint: msg(
-                'routine_editor.agent_perm_use_knowledge_hint',
+                'automation_editor.agent_perm_use_knowledge_hint',
                 "Adds the agent's own knowledge bases to this step, on top of the ones picked below. Only bases you may read are searched.",
             ),
         };
     }
     return {
-        label: msg('routine_editor.agent_perm_use_tools', 'Use its tools'),
+        label: msg('automation_editor.agent_perm_use_tools', 'Use its tools'),
         hint: msg(
-            'routine_editor.agent_perm_use_tools_hint',
+            'automation_editor.agent_perm_use_tools_hint',
             'Lets the agent call the apps its owner granted it. Anything that needs a person to approve it is left out — see below.',
         ),
     };

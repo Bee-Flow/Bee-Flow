@@ -50,7 +50,7 @@ const row = (over = {}) => ({
 const detail = (over = {}) => ({
     ...row(), isActive: true, isDraft: false,
     questions: { title: 'Customer feedback', description: '', submitLabel: '', successMessage: '', collect: true, fields: [{ name: 'q1', type: 'text', label: 'Q1' }], theme: null },
-    pages: [], definition: DEFINITION, routineTitle: 'Feedback',
+    pages: [], definition: DEFINITION, automationTitle: 'Feedback',
     ...over,
 });
 
@@ -71,7 +71,7 @@ describe('<FormPage>', () => {
         const tabs = screen.getAllByRole('tab').map(el => el.textContent);
         expect(tabs.join('|')).toMatch(/Questions.*Share.*Answers.*Settings/);
         expect(api.getForm).toHaveBeenCalledWith('au1');
-        fireEvent.click(screen.getByTestId('form-page-open-routine'));
+        fireEvent.click(screen.getByTestId('form-page-open-automation'));
         expect(onNavigate).toHaveBeenCalledWith('studio/automations/au1');
         for (const [target] of onNavigate.mock.calls) expect(target).not.toContain(TOKEN);
     });
@@ -99,14 +99,14 @@ describe('<FormPage>', () => {
         expect(screen.getByTestId('builder-stub')).toBeTruthy();
     });
 
-    it('a colleague with a viewer grade gets only Answers, no rename, no routine button', async () => {
+    it('a colleague with a viewer grade gets only Answers, no rename, no automation button', async () => {
         api.getForm.mockResolvedValue({ form: detail({ mine: false, definition: undefined, answers: { collecting: true, datatableId: 'tbl_a', grade: 'viewer', rowCount: 5 } }) });
         renderPage({ form: row({ mine: false, answers: { collecting: true, datatableId: 'tbl_a', grade: 'viewer', rowCount: 5 } }) });
         const dash = await screen.findByTestId('dash-stub');
         expect(dash.getAttribute('data-grade')).toBe('viewer');
         expect(dash.getAttribute('data-mine')).toBe('false');
         expect(screen.getAllByRole('tab').length).toBe(1);
-        expect(screen.queryByTestId('form-page-open-routine')).toBeNull();
+        expect(screen.queryByTestId('form-page-open-automation')).toBeNull();
         expect(screen.queryByTestId('builder-stub')).toBeNull();
     });
 

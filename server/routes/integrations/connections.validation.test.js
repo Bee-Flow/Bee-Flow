@@ -55,7 +55,7 @@ const MOCKS = {
         deleteConnection: async (id) => { touched.push({ what: 'deleteConnection', args: [id] }); return true; },
         shareConnection: async (a) => { touched.push({ what: 'shareConnection', args: [a] }); return { id: 'g-1', ...a }; },
         resolveConnectionForRun: async (a) => { touched.push({ what: 'resolveForRun', args: [a] }); return { mode: 'byo_required', available: false }; },
-        _internals: { OAUTH_ROUTINE_PROVIDERS: new Set(['google']) },
+        _internals: { OAUTH_AUTOMATION_PROVIDERS: new Set(['google']) },
     },
     '../../stores/userStore': {
         getUser: async (id) => ({ id, organizationId: 'orgA', email: `${id}@acme.test`, groups: [] }),

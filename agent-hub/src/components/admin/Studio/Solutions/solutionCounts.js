@@ -1,7 +1,7 @@
 import { nOf } from '../KnowledgeStudio/plural';
 
 /**
- * "3 routines", and "1 routine" when there is one — for every kind a Solution
+ * "3 automations", and "1 automation" when there is one — for every kind a Solution
  * can hold.
  *
  * Two screens count the same seven things: the install wizard's first step
@@ -26,7 +26,7 @@ import { nOf } from '../KnowledgeStudio/plural';
  * ── Why the family is still called `install_count_*` ────────────────────────
  *
  * Because it already was, and the phrase is not install-specific: "{count}
- * routines" is the same sentence wherever a Solution is counted. A second key
+ * automations" is the same sentence wherever a Solution is counted. A second key
  * carrying identical text for the overview would be two rows for a translator
  * to keep in step, and they would drift.
  */
@@ -48,16 +48,20 @@ export const COUNTED_SECTIONS = Object.freeze([
     { section: 'agents', kind: 'agent' },
     { section: 'knowledgeBases', kind: 'kb' },
     { section: 'notebooks', kind: 'meeting' },
+    { section: 'skills', kind: 'skill' },
+    { section: 'documentTemplates', kind: 'document' },
 ]);
 
 const COUNT_PHRASE = {
-    automations: (t, n) => nOf(t, 'solutions.install_count_automations', n, '{count} routine', '{count} routines'),
+    automations: (t, n) => nOf(t, 'solutions.install_count_automations', n, '{count} automation', '{count} automations'),
     apps: (t, n) => nOf(t, 'solutions.install_count_apps', n, '{count} app', '{count} apps'),
     webpages: (t, n) => nOf(t, 'solutions.install_count_webpages', n, '{count} page', '{count} pages'),
     datatables: (t, n) => nOf(t, 'solutions.install_count_datatables', n, '{count} table', '{count} tables'),
     agents: (t, n) => nOf(t, 'solutions.install_count_agents', n, '{count} agent', '{count} agents'),
     knowledgeBases: (t, n) => nOf(t, 'solutions.install_count_knowledge_bases', n, '{count} knowledge base', '{count} knowledge bases'),
     notebooks: (t, n) => nOf(t, 'solutions.install_count_notebooks', n, '{count} notebook', '{count} notebooks'),
+    skills: (t, n) => nOf(t, 'solutions.install_count_skills', n, '{count} skill', '{count} skills'),
+    documentTemplates: (t, n) => nOf(t, 'solutions.install_count_document_templates', n, '{count} template', '{count} templates'),
 };
 
 /** The counted phrase for one section, or null for a section with no phrase. */

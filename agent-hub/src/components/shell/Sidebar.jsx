@@ -1,5 +1,5 @@
 import { AppWindow, ClipboardList, FileText, Handshake, LayoutGrid, PenLine, Pin, Plus, Search, ShieldCheck, Store } from 'lucide-react';
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { Suspense, useState, useRef, useEffect, useCallback } from 'react';
 import NotificationCenter from './NotificationCenter';
 import ConvRow from './sidebar/ConvRow';
 import FlyoutRow from './sidebar/FlyoutRow';
@@ -13,26 +13,33 @@ import { useSidebarFlyouts } from './sidebar/useSidebarFlyouts';
 import { useStudioSectionData } from './sidebar/useStudioSectionData';
 import beeFlowLogo from '../../assets/bee-flow-logo.svg';
 import beeFlowIcon from '../../assets/BeeFlow-logo-Icon-2026.svg';
+import { usesProjectRail, usesStudioRail } from '../../authedApp/appRoutes';
+import { useStudioMenuHidden } from '../../hooks/useStudioChrome';
 import { countFor } from '../../hooks/useStudioCounts';
 import { useTranslation } from '../../hooks/useTranslation';
-import { usesStudioRail } from '../../authedApp/appRoutes';
+import useViewport from '../../hooks/useViewport';
 import { isImageAvatar, resolveAvatarSrc, DEFAULT_AGENT_EMOJI } from '../../utils/agentAvatar';
 import { recentForms, rememberFormOpened } from '../../utils/formRecents';
 import { API_BASE, authFetch } from '../../utils/helpers';
+import { lazy } from '../../utils/lazyWithReload';
+import { isOrgAdminLike as isOrgAdminUser } from '../../utils/orgAdmin';
 import { STUDIO_RECENT_SOURCES } from '../../utils/studioRecentSources';
 // The Studio app registry doubles as the sidebar's Studio-group source: the
 // Studio screen no longer has its own tab bar, so the sections (and their
 // gates) render here instead. Main-chunk-safe by design — see the import
 // discipline note in studioApps.jsx.
 import StudioRail from '../admin/Studio/StudioRail';
-import { useStudioMenuHidden } from '../../hooks/useStudioChrome';
-import { studioGateContext, studioNavSections, studioSectionLabel } from '../admin/Studio/studioNav';
-import { STUDIO_APPS, firstOpenStudioSection, groupStudioApps, studioLockHint } from '../admin/Studio/studioApps';
+import { STUDIO_APPS, groupStudioApps, studioLockHint } from '../admin/Studio/studioApps';
+import { canSeeStudio as canSeeStudioFor, isStudioBuilder, studioGateContext, studioLanding, studioNavSections, studioSectionLabel } from '../admin/Studio/studioNav';
 import { useTheme } from '../appearance/ThemeContext';
 import AppIcon from '../icons/AppIcon';
 import { useEntitlements } from '../licensing/EntitlementsContext';
 import { useLicenseContext } from '../licensing/LicenseContext';
 import { kindColorVar } from '../shared/kindColors';
+
+// Lazy, so the project rail's chunk stays out of the sidebar's bundle: it is
+// only fetched when a project page opens.
+const ProjectRail = lazy(() => import('../projects/workspace/ProjectRail'));
 
 const Sidebar = ({
     isOpen, isMobile = false, onClose,
@@ -42,6 +49,9 @@ const Sidebar = ({
     onSelectConversation, onDeleteConversation,
     onSelectAgent, onOpenMarketplace, onOpenSearch,
     user, onLogout, onNavigate, currentPage, studioRoute = null,
+    // { projectId, tab, onSelectTab, onBack, onOpenProject, onOpenSearch,
+    // notebooksEnabled } on one project's pages, otherwise null.
+    projectRail = null,
     hasPermission: hasPermissionProp = null,
     onDirectChat, directChatMode,
     directConversations = [],
@@ -70,11 +80,12 @@ const Sidebar = ({
     onSelectAllChatsConversation,
     showSettings = false,
     showAgentDesigner = false,
-    showAITasks = false,
     showSkillsPanel = false,
     showMarketplace = false,
 }) => {
     const { t, locale } = useTranslation();
+    // The project rail folds to 64 px below 1280 px; its footer must fold with it.
+    const { isDesktop } = useViewport();
     // We'll use the 'isOpen' prop as 'sidebarOpen' (expanded state)
     // and if !isOpen, we'll show the narrow 'Power Bar'
     const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -139,16 +150,27 @@ const Sidebar = ({
         closeFlyout,
     } = useSidebarFlyouts(scrollRef);
 
-    // Who gets a Studio row at all — the same condition the secondaryNav
-    // literal below uses, hoisted here (before the early return) so the
-    // counts poll can be switched off for everyone else. Simple Mode and
-    // phones run the simplified surface (see AgentHub's `simpleMode`).
-    const _userPermissions = user?.permissions || [];
-    const canSeeStudio = !user?.simpleMode && !isMobile && (
-        !!user?.isAdmin || _userPermissions.includes('all')
-        || _userPermissions.includes('manage_agents') || _userPermissions.includes('manage_skills')
-        || user?.orgRole === 'admin' || user?.orgRole === 'org_admin'
-    );
+    // Studio sections for the sidebar group — the same registry + gates the
+    // Studio shell renders from (built-ins first, then runtime modules).
+    // resolveStudioNav lists the gate-passing sections AND the ones locked
+    // on a licence/capability (spread with `locked`); a section whose gate
+    // fails for a permission reason is hidden.
+    // Gate context + the resolved rows come from studioNav.js, shared with the
+    // Studio rail, the Start screen and the shell's direct-URL guard so they
+    // cannot answer the gate question differently. `lockReason` is already
+    // guarded above; passing the guarded one keeps that decision in one place.
+    const _studioGateCtx = studioGateContext({ user, hasLicenseFeature, hasPermission, can: canUseCapability, lockReason });
+
+    // Who gets Studio at all: a builder (as before), or anyone for whom at
+    // least one section passes its own gate — a member whose role opens
+    // Meeting Notes gets Studio holding Meeting Notes (studioNav.canSeeStudio).
+    // Simple Mode and phones run the simplified surface (see AgentHub's
+    // `simpleMode`). Decided here on the built-in sections, before the hook
+    // below, so the counts poll stays off for everyone without Studio; the
+    // final answer further down adds the runtime modules.
+    const _studioSurface = !user?.simpleMode && !isMobile;
+    const studioCountsEnabled = _studioSurface
+        && canSeeStudioFor({ user, sections: studioNavSections(STUDIO_APPS, _studioGateCtx) });
 
     /* ─── Published apps/forms + per-Studio-section recent items + counts for
        the flyouts above — see useStudioSectionData. */
@@ -157,7 +179,10 @@ const Sidebar = ({
         canSeeForms, publishedForms, hasForms,
         loadSectionItems, recentItemsFor,
         studioCounts,
-    } = useStudioSectionData({ currentPage, canUseCapability, hasLicenseFeature, user, countsEnabled: canSeeStudio });
+    } = useStudioSectionData({ currentPage, canUseCapability, hasLicenseFeature, user, countsEnabled: studioCountsEnabled });
+
+    const studioSections = studioNavSections([...STUDIO_APPS, ...runtimeStudioApps], _studioGateCtx);
+    const canSeeStudio = _studioSurface && canSeeStudioFor({ user, sections: studioSections });
 
     // Close profile menu on outside click
     useEffect(() => {
@@ -244,8 +269,7 @@ const Sidebar = ({
     // a single approval keep working either way (the server's drain exemption),
     // so a lapsed org can still finish pending decisions from its bell.
     const canBrowseApprovals = hasLicenseFeature('approvals') && hasPermission('use_approvals');
-    const isOrgAdminLike = !!(user?.isAdmin || user?.orgRole === 'admin' || user?.orgRole === 'org_admin'
-        || (user?.permissions || []).includes('all'));
+    const isOrgAdminLike = isOrgAdminUser(user);
     const { pendingCount: pendingApprovalCount, hasApprovals } = useApprovalsNav({
         canBrowseApprovals,
         isOrgAdmin: isOrgAdminLike,
@@ -336,15 +360,14 @@ const Sidebar = ({
         }
         return directChatMode ? onSelectDirectConversation(c) : onSelectConversation(c);
     };
+    // Resolves with what the handler answered: true when the conversation is gone.
     const deleteConv = (conv) => {
         if (isAllChats) {
             // In all-chats mode, route to the correct handler based on source
             if (conv._source === 'direct') {
-                onDeleteDirectConversation?.(conv.id);
-            } else {
-                onDeleteConversation(conv.id, conv.agent_id);
+                return onDeleteDirectConversation?.(conv.id);
             }
-            return;
+            return onDeleteConversation(conv.id, conv.agent_id);
         }
         return directChatMode ? onDeleteDirectConversation?.(conv.id) : onDeleteConversation(conv.id, conv.agent_id);
     };
@@ -365,21 +388,9 @@ const Sidebar = ({
     // main content. Previously it stayed bold (directChatMode/selectedAgent are
     // not reset when an overlay/page opens), so two items looked active at once
     // (BFSF-172). Gate it on the same view flags the other nav items use.
-    const _otherViewActive = showMarketplace || showSettings || showAITasks
+    const _otherViewActive = showMarketplace || showSettings
         || showSkillsPanel
-        || ['studio', 'notebooks', 'admin', 'cowork', 'apps', 'appRun', 'forms', 'formView'].includes(currentPage);
-
-    // Studio sections for the sidebar group — the same registry + gates the
-    // Studio shell renders from (built-ins first, then runtime modules).
-    // resolveStudioNav lists the gate-passing sections AND the ones locked
-    // on a licence/capability (spread with `locked`); a section whose gate
-    // fails for a permission reason is hidden, as before.
-    // Gate context + the resolved rows come from studioNav.js, shared with the
-    // Studio rail and the Start screen so the three cannot answer the gate
-    // question three ways. `lockReason` is already guarded above; passing the
-    // guarded one keeps that decision in one place.
-    const _studioGateCtx = studioGateContext({ user, hasLicenseFeature, hasPermission, can: canUseCapability, lockReason });
-    const studioSections = studioNavSections([...STUDIO_APPS, ...runtimeStudioApps], _studioGateCtx);
+        || ['studio', 'admin', 'cowork', 'documents', 'apps', 'appRun', 'forms', 'formView'].includes(currentPage);
 
     /* ─── The Studio rail (H1) ───
        On /app/studio* the workspace swaps THIS sidebar for Studio's own 240px
@@ -395,8 +406,10 @@ const Sidebar = ({
            replace there anyway: canSeeStudio is already false on mobile, so a
            phone has no Studio row to begin with.
          canSeeStudio — someone who never had a Studio row does not get a
-           Studio rail either; a deep link still renders the section itself,
-           with the sidebar they know beside it.
+           Studio rail either; a deep link to a section they may open (say
+           Documents) still renders it, with the sidebar they know beside it,
+           and one they may not is refused by the shell
+           (studioNav.studioSectionAccess).
 
        Placed after every hook and after studioSections, so the early return
        cannot change hook order and the rail gets exactly the rows the flyout
@@ -425,7 +438,50 @@ const Sidebar = ({
                 // state this file already polls for the badge.
                 canBrowseApprovals={canBrowseApprovals}
                 pendingApprovalCount={pendingApprovalCount}
+                // Start is a builder's dashboard; someone who has Studio for
+                // a section or two gets just those (studioNav.studioSectionAccess
+                // sends a direct /app/studio to their first section).
+                showStart={isStudioBuilder(user)}
             />
+        );
+    }
+
+    /* ─── The project rail ───
+       On /app/projects/:id* the workspace swaps THIS sidebar for the project's
+       own rail, as Studio does above. Same three conditions: the page is one
+       project (usesProjectRail), not a phone, and the hub handed over the rail's
+       route callbacks. The account footer is this sidebar's, as for Studio. */
+    if (usesProjectRail(currentPage, projectRail?.projectId) && !isMobile && projectRail) {
+        return (
+            <Suspense fallback={<div className="w-60 flex-shrink-0 bg-[var(--bg-secondary)] border-r border-[var(--border-subtle)]" />}>
+                <ProjectRail
+                    projectId={projectRail.projectId}
+                    activeTab={projectRail.tab}
+                    onSelectTab={projectRail.onSelectTab}
+                    onBack={projectRail.onBack}
+                    onOpenProject={projectRail.onOpenProject}
+                    onOpenSearch={projectRail.onOpenSearch}
+                    projects={projects}
+                    currentUserId={user?.id}
+                    notebooksEnabled={projectRail.notebooksEnabled}
+                    footer={(
+                        <SidebarFooter
+                            isOpen={isDesktop}
+                            isMobile={isMobile}
+                            user={user}
+                            t={t}
+                            profileRef={profileRef}
+                            showProfileMenu={showProfileMenu}
+                            setShowProfileMenu={setShowProfileMenu}
+                            _simpleMode={_simpleMode}
+                            currentPage={currentPage}
+                            showSettings={showSettings}
+                            onNavigate={onNavigate}
+                            onLogout={onLogout}
+                        />
+                    )}
+                />
+            </Suspense>
         );
     }
 
@@ -470,7 +526,7 @@ const Sidebar = ({
         { key: 'new-chat', label: t('sidebar.new_chat', 'New Chat'), icon: PenLine, onClick: onDirectChat, active: directChatMode && !selectedAgent && !_otherViewActive },
         // Cowork sits right under New Chat on purpose: "ask" and "delegate" are
         // the two things people come here to do, and prompt automation used to
-        // be buried three levels inside Studio → Routines. Phone-friendly, so
+        // be buried three levels inside Studio → Automations. Phone-friendly, so
         // no isMobile guard.
         // Handshake, not Sparkles: Cowork is a colleague taking something off
         // your plate, not a magic-AI feature. Sparkles also already means
@@ -493,6 +549,9 @@ const Sidebar = ({
             ? [{ key: 'approvals', label: t('sidebar.approvals', 'Approvals'), icon: ShieldCheck, onClick: () => onNavigate && onNavigate('studio/approvals'), active: currentPage === 'studio' && studioRoute?.section === 'approvals', badge: pendingApprovalCount }]
             : []),
         { key: 'search', label: t('sidebar.search'), icon: Search, onClick: onOpenSearch, active: false },
+        // Personal and shared documents need no Studio builder permissions.
+        // The desktop editors keep the existing restriction on phone access.
+        ...(!isMobile ? [{ key: 'documents', label: t('documents.title', 'Documents'), icon: FileText, onClick: () => onNavigate && onNavigate('documents'), active: currentPage === 'documents' }] : []),
     ];
 
     const secondaryNav = [
@@ -502,20 +561,26 @@ const Sidebar = ({
         // The row's onClick (compact strip / mobile fallback) lands on the
         // first visible UNLOCKED section — a locked row is a signpost, not a
         // door, so it must not be the place the row itself opens.
-        // `studioSections.length` is part of the gate, not an afterthought: the
-        // permission says this person may BUILD, the sections say there is
-        // something for them to build with. An org whose licence gates every
-        // section away got a row that opened an empty panel — or, through the
-        // compact strip, navigated into a section it had just refused to list.
+        // `studioSections.length` is part of the gate, not an afterthought: a
+        // builder permission says this person may BUILD, the sections say
+        // there is something for them to build with. An org whose licence
+        // gates every section away got a row that opened an empty panel — or,
+        // through the compact strip, navigated into a section it had just
+        // refused to list. Everyone else only gets the row through a section
+        // of their own (canSeeStudio), and sees only what their gates pass.
         ...(canSeeStudio && studioSections.length > 0
             ? [{
                 key: 'studio',
                 label: t('studio.sidebar_link', 'Studio'),
                 icon: LayoutGrid,
-                // Safe even though the gate above proved the list is non-empty:
-                // the first visible section may be locked, so the helper picks
-                // the first OPEN one (falling back to the first built-in).
-                onClick: () => onNavigate && onNavigate(`studio/${firstOpenStudioSection(studioSections, STUDIO_APPS[0]).urlSegment}`),
+                // The first visible section may be locked, so studioLanding picks
+                // the first OPEN one — for a builder falling back to the first
+                // built-in, for anyone else the first section that earned them
+                // the row (never Documents, which has its own row).
+                onClick: () => {
+                    const landing = studioLanding({ user, sections: studioSections });
+                    if (landing && onNavigate) onNavigate(`studio/${landing.urlSegment}`);
+                },
                 active: currentPage === 'studio',
                 // Grouped, not flat: ten sections in one column is a wall, and
                 // "which of these builds a thing and which of these teaches the
@@ -609,12 +674,12 @@ const Sidebar = ({
                         ...recentForms(publishedForms, 5).map(form => ({
                             key: `form-${form.id}`,
                             label: form.title || 'Untitled form',
-                            // A paused or draft routine answers 404 to its
+                            // A paused or draft automation answers 404 to its
                             // visitors, so say so here rather than letting
                             // someone hand out a link that does nothing.
                             desc: form.live
                                 ? (form.description || null)
-                                : t('sidebar.form_not_live', 'Not live — the routine is paused or still a draft'),
+                                : t('sidebar.form_not_live', 'Not live — the automation is paused or still a draft'),
                             icon: ClipboardList,
                             // In-app, in this tab: forms are signed-in only
                             // now, so /f/<token> is just a redirect here and
@@ -636,9 +701,8 @@ const Sidebar = ({
         // opt-in and permissions remain as additional org-level controls.
         // Meeting Notes lives inside Studio (Mic tab) and is reached there;
         // no top-level sidebar entry.
-        ...(!_simpleMode && !isMobile && hasLicenseFeature('notebooks') && _featureFlags.notebooks !== false && _featureFlags.notebooksMenu !== false && (_permissions.includes('all') || _permissions.includes('use_notebooks'))
-            ? [{ key: 'notebooks', label: t('sidebar.notebooks', 'Notebooks'), icon: FileText, onClick: () => onNavigate && onNavigate('notebooks'), active: currentPage === 'notebooks' }]
-            : []),
+        // Notebooks have no row of their own: a notebook is a document type, in
+        // Studio → Documents.
     ];
 
     /* ── Flyout-panel and nav rows render in sidebar/FlyoutRow and
@@ -709,7 +773,7 @@ const Sidebar = ({
                             <button
                                 onClick={toggleSidebar}
                                 className="p-1.5 hover:bg-[var(--bg-tertiary)] rounded-lg text-[var(--text-tertiary)] transition-colors"
-                                aria-label="Toggle sidebar"
+                                aria-label={t('sidebar.toggle_sidebar', 'Toggle sidebar')}
                                 data-testid="toggle-sidebar"
                             >
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" /><path d="M9 3v18" /></svg>
@@ -744,7 +808,7 @@ const Sidebar = ({
             )}
 
             {/* ── Nav rows ── (pinned: New Chat + Search) */}
-            <nav aria-label="Main navigation" data-testid="main-navigation" className={`px-2 pt-3 flex-shrink-0 flex flex-col gap-1 ${isOpen ? '' : 'items-center'}`}>
+            <nav aria-label={t('sidebar.main_navigation', 'Main navigation')} data-testid="main-navigation" className={`px-2 pt-3 flex-shrink-0 flex flex-col gap-1 ${isOpen ? '' : 'items-center'}`}>
                 {coreNav.map(renderNavRow)}
             </nav>
 
@@ -790,7 +854,7 @@ const Sidebar = ({
             {/* ── Secondary nav (Agents, AI Tasks, KB, Meeting Notes, Skills, Tickets, Notebooks)
                  — sits inside the scroll region so it scrolls away like ChatGPT ── */}
             {isOpen && secondaryNav.length > 0 && (
-                <nav aria-label="Secondary navigation" className="px-2 pt-1 flex-shrink-0 flex flex-col gap-1">
+                <nav aria-label={t('sidebar.secondary_navigation', 'Secondary navigation')} className="px-2 pt-1 flex-shrink-0 flex flex-col gap-1">
                     {secondaryNav.map(item => (
                         <div key={item.key} ref={setSecondaryRef(item.key)} data-nav-key={item.key}>
                             {renderNavRow(item)}

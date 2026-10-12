@@ -1074,7 +1074,8 @@ router.post('/connector/diagnose', bootstrapLimiter, async (req, res) => {
     try {
         org = await userStore.getOrganizationByNcInstanceId(h.ncInstanceId);
     } catch (e) {
-        return res.status(500).json({ ...out, error: 'org lookup failed: ' + e.message });
+        log.error('[ConnectorBootstrap] org lookup failed:', e);
+        return res.status(500).json({ ...out, error: 'org lookup failed' });
     }
     if (!org) {
         return res.json({

@@ -78,7 +78,7 @@ export async function updateDatatable(id: string, patch: TablePatch): Promise<Da
 }
 
 /**
- * DELETE /:id. Refused 409 `in_use` (with the usage list) while routines
+ * DELETE /:id. Refused 409 `in_use` (with the usage list) while automations
  * still name the table; `confirmBreaking` only after that list was shown.
  * On the query string: a DELETE body is dropped by enough proxies.
  */
@@ -93,7 +93,7 @@ export async function getSchema(id: string, signal?: AbortSignal): Promise<Schem
 /**
  * PUT /:id/schema — the WHOLE column list against the version it was read at.
  * Two different 409s come back: `version_conflict` (reload) and
- * `breaking_change` (a routine reads a column this drops — ask, then send
+ * `breaking_change` (an automation reads a column this drops — ask, then send
  * `confirmBreaking`).
  */
 export async function saveSchema(

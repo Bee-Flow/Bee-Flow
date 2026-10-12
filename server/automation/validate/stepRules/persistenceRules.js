@@ -8,7 +8,7 @@
  * must never become a supported field — the whole design rests on the query
  * compiler being the only producer of SQL.
  *
- * Everything about authorisation — may this routine write to that knowledge
+ * Everything about authorisation — may this automation write to that knowledge
  * base, may it see that table — is checked where the database is in hand, at
  * save time and again at run time. This file stays DB-free.
  */
@@ -27,7 +27,7 @@ const { FILTER_OPS, KEY_RE } = require('../../../core/dataEngine/dataModel/vocab
 const {
     KNOWLEDGE_WRITE_DUPLICATE_STRATEGIES,
     DATATABLE_OPS, DATATABLE_WRITE_OPS, DATATABLE_FILTERED_OPS,
-    DATATABLE_MAX_FILTERS, DATATABLE_MAX_LIMIT, DATATABLE_MATCH_MODES,
+    DATATABLE_MAX_FILTERS, DATATABLE_MAX_LIMIT, DATATABLE_MATCH_MODES, PENDING_DATATABLE_RE,
 } = require('../constants');
 
 function checkKnowledgeWrite(ctx, step, at) {
@@ -61,7 +61,7 @@ function checkKnowledgeWrite(ctx, step, at) {
         /**
          * A `sourceUri` is what makes this step idempotent: the same one
          * REPLACES its document instead of adding a second copy. Without
-         * it a routine that runs nightly writes a new document every
+         * it an automation that runs nightly writes a new document every
          * night, and nothing about the knowledge base says why it grew.
          *
          * A warning, not an error: a one-off run that appends is a real
@@ -110,8 +110,16 @@ function checkDatatable(ctx, step, at) {
             pushE({ code: 'datatable.table_missing', severity: 'error', path: at + '.datatableId', message: wanted
                 ? `Step ${step.id}: this step wants the datatable "${wanted}", which is not linked here.`
                 : `Step ${step.id}: pick which datatable to use.`, hint: wanted
-                ? `Pick the table called "${wanted}" from the list, or create it — an imported routine never carries another workspace's table.`
+                ? `Pick the table called "${wanted}" from the list, or create it — an imported automation never carries another workspace's table.`
                 : 'Choose a table from the list.' });
+        }
+        // A table the builder only PROPOSED. Always an error here; the builder's
+        // own preview filters this out for the refs it staged (chatStream), and
+        // anywhere else (a PUT, a live run) it is the backstop that keeps a
+        // never-created table out of a saved automation. Deliberately not a
+        // completeness code: it must block at stage 'draft' too.
+        if (typeof step.datatableId === 'string' && PENDING_DATATABLE_RE.test(step.datatableId)) {
+            pushE({ code: 'datatable.table_pending', severity: 'error', ref: step.datatableId, path: at + '.datatableId', message: `Step ${step.id}: its table "${step.datatableKey || step.datatableId}" has not been created yet.`, hint: 'Apply the assistant\'s proposal that creates it, or pick an existing table.' });
         }
         if (!step.op) {
             pushE({ code: 'datatable.op_missing', severity: 'error', path: at + '.op', message: `Step ${step.id}: choose what to do with the table.`, hint: 'Find rows, add a row, add or update a row, update rows, or delete rows.' });

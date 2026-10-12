@@ -94,7 +94,7 @@ test('summary: pii_messages counts only events whose categories name a find', as
     const sql = flatSql(dbCalls.getOne.at(-1).sql);
     const clause = /COUNT\(\*\) FILTER \(WHERE EXISTS[\s\S]*?as pii_messages/.exec(sql);
     assert.ok(clause, 'pii_messages is in the summary');
-    // A row whose only categories are markers (a routine hitting the placeholder cap) names no find.
+    // A row whose only categories are markers (an automation hitting the placeholder cap) names no find.
     assert.match(clause[0], /trim\(c\) NOT IN \([^)]*'token_evicted'[^)]*'privacy_protection_unavailable'|trim\(c\) NOT IN \([^)]*'privacy_protection_unavailable'[^)]*'token_evicted'/);
     // Not the audit, not a note, not a check that could not run.
     for (const type of ['admin_action', 'user_action', 'unicode_smuggling', 'pii_tokenmap', 'scan_failed', 'pii_unavailable']) {

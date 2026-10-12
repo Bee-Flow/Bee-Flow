@@ -1,4 +1,4 @@
-/** What starts a routine: one sentence and one glyph per trigger kind. */
+/** What starts an automation: one sentence and one glyph per trigger kind. */
 
 import { describeTrigger, triggerIcon } from './trigger';
 

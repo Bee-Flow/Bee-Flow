@@ -33,7 +33,7 @@ Two rules follow from how releases are cut:
   contract between them is not guaranteed across versions. The compose file uses a single `TAG`
   variable for both on purpose — a partial upgrade (only the server, or only the frontend) is not
   supported.
-- **Pin your version.** With `TAG=latest`, a routine `docker compose pull` can move you to a new
+- **Pin your version.** With `TAG=latest`, an automation `docker compose pull` can move you to a new
   release at a moment you did not choose — and afterwards "the previous version" is not something
   you can name. Set `TAG` to an immutable tag and upgrade deliberately.
 

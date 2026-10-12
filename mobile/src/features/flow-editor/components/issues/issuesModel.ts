@@ -29,7 +29,7 @@ export interface IssueRow {
     hint: string | null;
     /** The step it is about, when the path names one: its address (`loop/child` for a held step). */
     stepId: string | null;
-    /** The flowlet that step is in; null in the routine itself. */
+    /** The flowlet that step is in; null in the automation itself. */
     flowlet: string | null;
     stepLabel: string | null;
     /** The node editor section that fixes it; null for a field that is always shown. */
@@ -97,7 +97,7 @@ export interface PillSummary {
 /**
  * What the collapsed pill says: the one record's own words when there is
  * exactly one ("1 binding missing · Send reply"), else the count. Null when
- * there is nothing to show — a healthy routine has no pill at all.
+ * there is nothing to show — a healthy automation has no pill at all.
  */
 export function pillSummary(rows: readonly IssueRow[], t: Translate): PillSummary | null {
     const total = rows.length;

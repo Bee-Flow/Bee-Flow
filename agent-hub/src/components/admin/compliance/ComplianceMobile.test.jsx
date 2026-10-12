@@ -1,7 +1,8 @@
 import { render, screen, fireEvent, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import ComplianceMobile, { mobileSubtitle } from './ComplianceMobile';
-import { attentionTarget, openChecksFor } from './mobile/MobileHomeOverview';
+import { attentionTarget } from './mobile/MobileHomeOverview';
 
 /**
  * The phone frame (artboard 1h). Everything below is about the three things
@@ -141,6 +142,20 @@ describe('ComplianceMobile — the segmented control is a view, not a route', ()
         // fold fires at phone width instead of a desktop toolbar overflowing.
         expect(screen.getByTestId('mobile-section').className).toContain('@container');
     });
+
+    it('puts the section\'s actions on a second header row, so the primary is on screen', async () => {
+        const onRecordIncident = vi.fn();
+        mount({ active: 'incidents', headerCtx: { counts: { incidents: { open: 1, hours_left: 30, next_stage: 'authority' } }, onRecordIncident } });
+        const header = screen.getByTestId('compliance-header');
+        expect(header).toHaveAttribute('data-layout', 'phone');
+        const row = within(header).getByTestId('compliance-header-actions');
+        expect(within(row).getByTestId('header-pill')).toHaveTextContent('1 open · authority notice in 30 h');
+        expect(within(row).getByTestId('header-info')).toBeInTheDocument();
+        await userEvent.click(within(row).getByRole('button', { name: 'Record incident' }));
+        expect(onRecordIncident).toHaveBeenCalled();
+        // The title bar keeps the section's name.
+        expect(within(screen.getByTestId('compliance-header-bar')).getByTestId('studio-section-title')).toHaveTextContent('Incidents & breaches');
+    });
 });
 
 /* ══ The back chevron ════════════════════════════════════════════════════ */
@@ -194,13 +209,29 @@ describe('ComplianceMobile — the top bar', () => {
             for (const [k, v] of Object.entries(vars || {})) s = s.replace(`{${k}}`, String(v));
             return s;
         };
+        const sameDay = { now: new Date('2026-09-14T07:42:00Z').getTime() };
         expect(mobileSubtitle(null, t)).toBeNull();
         expect(mobileSubtitle({}, t)).toBeNull();
         expect(mobileSubtitle({ attention_open: 3 }, t)).toBe('3 open');
         // A real 0 is a statement and prints; a missing key is not.
         expect(mobileSubtitle({ attention_open: 0 }, t)).toBe('0 open');
-        expect(mobileSubtitle({ last_run: { at: '2026-09-14T07:12:00Z' } }, t)).toMatch(/^run today \d{2}:\d{2}$/);
-        expect(mobileSubtitle(COUNTS, t)).toMatch(/^run today \d{2}:\d{2} · 3 open$/);
+        expect(mobileSubtitle({ last_run: { at: '2026-09-14T07:12:00Z' } }, t, sameDay)).toMatch(/^run \d{2}:\d{2}$/);
+        expect(mobileSubtitle(COUNTS, t, sameDay)).toMatch(/^run \d{2}:\d{2} · 3 open$/);
+    });
+
+    it('names the day of a run that was not today, never "today"', () => {
+        const t = (key, fallback, vars) => {
+            let s = fallback;
+            for (const [k, v] of Object.entries(vars || {})) s = s.replace(`{${k}}`, String(v));
+            return s;
+        };
+        // Local noon, so the calendar day is the same in every zone the suite runs in.
+        const counts = { ...COUNTS, last_run: { at: new Date(2026, 8, 14, 12).toISOString() } };
+        const later = { now: new Date(2026, 8, 16, 12).getTime() };
+        expect(mobileSubtitle(counts, t, later)).toMatch(/^run 14 Sep \d{2}:\d{2} · 3 open$/);
+        expect(mobileSubtitle(counts, t, later)).not.toMatch(/today/);
+        // A run in an earlier year carries the year.
+        expect(mobileSubtitle(counts, t, { now: new Date(2027, 0, 10, 12).getTime() })).toMatch(/^run 14 Sep 2026 \d{2}:\d{2}/);
     });
 
     it('drops the subtitle line entirely when there is nothing to say', () => {
@@ -223,7 +254,7 @@ describe('ComplianceMobile — the overview segment', () => {
     it('sends an attention row to the target the server computed, id decoded', () => {
         const { navigate } = mount();
         fireEvent.click(screen.getByTestId('mobile-attention-a2'));
-        expect(navigate).toHaveBeenCalledWith('dpia', 'ag/9');
+        expect(navigate).toHaveBeenCalledWith('dpia', 'ag/9', undefined); // (section, id, tab)
     });
 
     it('falls back to the section scoring a check\'s first framework', () => {
@@ -231,13 +262,7 @@ describe('ComplianceMobile — the overview segment', () => {
         expect(attentionTarget({ action: { target: '/admin/compliance/dsr' } })).toEqual({ section: 'dsr', id: null });
     });
 
-    it('counts only the failing and warning checks of a regulation', () => {
-        expect(openChecksFor(CHECKS, 'GDPR')).toBe(2);
-        expect(openChecksFor(CHECKS, 'AI Act')).toBe(1);
-        // Not 0 — "the checks have not loaded" is a different fact.
-        expect(openChecksFor(null, 'GDPR')).toBeUndefined();
-        expect(openChecksFor(undefined, 'GDPR')).toBeUndefined();
-    });
+    // openChecksFor moved to data/openChecks.ts; its cases live in openChecks.test.ts.
 
     it('shows only the RUNNING deadlines, with a clock each', () => {
         mount();
@@ -279,6 +304,75 @@ describe('ComplianceMobile — the overview segment', () => {
             tab="overview" onTab={vi.fn()} page={page} />);
         expect(screen.getByTestId('mobile-attention-empty')).toBeInTheDocument();
         expect(screen.getByTestId('mobile-deadlines-empty')).toBeInTheDocument();
+    });
+});
+
+/* ══ The Overview's other tabs ═══════════════════════════════════════════ */
+describe('ComplianceMobile — the calendar and the reports are reachable from home', () => {
+    it.each([
+        ['calendar', 'mobile-entry-calendar', 'Regulatory calendar'],
+        ['reports', 'mobile-entry-reports', 'Reports and downloads'],
+    ])('the %s entry opens that tab, which renders the page under a back row', async (tab, entry, title) => {
+        const user = userEvent.setup();
+        const onTab = vi.fn();
+        const { rerender, navigate, onBack, data } = mount({ onTab });
+        await user.click(screen.getByTestId(entry));
+        expect(onTab).toHaveBeenLastCalledWith(tab);
+        expect(navigate).not.toHaveBeenCalled();
+
+        const props = { navigate, onBack, data, onTab, page: <div data-testid="page-node">page</div> };
+        rerender(<ComplianceMobile active="overview" tab={tab} {...props} />);
+        expect(screen.getByTestId('compliance-mobile').dataset.view).toBe('tab');
+        const frame = screen.getByTestId('mobile-home-tab');
+        expect(within(frame).getByRole('heading', { name: title })).toBeInTheDocument();
+        expect(within(frame).getByTestId('page-node')).toBeInTheDocument();
+        expect(screen.queryByTestId('mobile-home-overview')).toBeNull();
+
+        // Both ways back land on the Overview's status tab, never out of Settings.
+        const back = screen.getByTestId('mobile-home-tab-back');
+        expect(back).toHaveAccessibleName('Back to overview');
+        expect(back.className).toContain('min-h-[44px]');
+        await user.click(back);
+        expect(onTab).toHaveBeenLastCalledWith('status');
+        expect(screen.getByTestId('mobile-back')).toHaveAccessibleName('Back to overview');
+        await user.click(screen.getByTestId('mobile-back'));
+        expect(onTab).toHaveBeenCalledTimes(3);
+        expect(onTab).toHaveBeenLastCalledWith('status');
+        expect(onBack).not.toHaveBeenCalled();
+    });
+
+    it('the attention card folds after five rows behind one "Show all {n}" row, like the desktop list', async () => {
+        const user = userEvent.setup();
+        const items = Array.from({ length: 7 }, (_, i) => ({
+            id: `r${i}`, title: `Open item ${i + 1}`, status: 'warn', source: 'register',
+            meta: { severity: 'high', verification: 'register', frameworks: [{ regulation: 'ISO27001', ref: 'cl. 9' }] },
+            action: { target: '/app/admin/compliance/training' },
+        }));
+        mount({ data: makeData({ attention: { items } }) });
+        const card = screen.getByTestId('mobile-attention-card');
+        const rows = () => within(card).getAllByRole('button').filter(b => b.dataset.testid?.startsWith('mobile-attention-r'));
+        expect(rows()).toHaveLength(5);
+        const toggle = screen.getByTestId('mobile-attention-toggle');
+        expect(toggle).toHaveTextContent('Show all 7');
+        expect(toggle).toHaveAttribute('aria-expanded', 'false');
+        expect(toggle.className).toContain('min-h-[44px]');
+        await user.click(toggle);
+        expect(rows()).toHaveLength(7);
+        expect(toggle).toHaveTextContent('Show fewer');
+        // The meta reads like the desktop one: the reference once, no 'register', no dangling dot.
+        const meta = rows()[0].textContent.replace('Open item 1', '');
+        expect(meta).toBe('ISO cl. 9 · high');
+    });
+
+    it('a framework row says what the number is: "· 2 open"', () => {
+        mount();
+        expect(screen.getByTestId('mobile-fw-gdpr')).toHaveTextContent(/ · 2 open$/);
+    });
+
+    it('the status tab is the home screen', () => {
+        mount({ tab: 'status' });
+        expect(screen.getByTestId('mobile-home-overview')).toBeInTheDocument();
+        expect(screen.queryByTestId('mobile-home-tab')).toBeNull();
     });
 });
 

@@ -50,7 +50,7 @@ describe('BindingField — six binding kinds', () => {
         ['A table in this app', { kind: 'records', tableId: '' }],
         ['A saved view', { kind: 'dataset', datasetId: null }],
         ['Another system', { kind: 'connector', connectorId: null, params: {} }],
-        ['The result of a routine', { kind: 'actionResult', actionId: 'act_run1', path: '' }],
+        ['The result of an automation', { kind: 'actionResult', actionId: 'act_run1', path: '' }],
     ])('choosing "%s" emits the exact skeleton', (card, expected) => {
         const utils = renderField({ kind: 'static', value: 'x' });
         fireEvent.click(utils.getByRole('button', { name: 'Change' }));

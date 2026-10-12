@@ -95,3 +95,29 @@ test('a connector-gated event without an explanation warns but still loads', () 
     assert.ok(issues.some(i => i.code === 'event.deliverability_note_missing' && i.severity === 'warning'));
     assert.ok(!issues.some(i => i.severity === 'error'));
 });
+
+test('a contentWatch variant is validated as the merged source spec', () => {
+    const contentWatch = {
+        when: 'widgetId',
+        tool: 'acme_get_widget_rows',
+        buildArgs: (filter) => ({ widgetId: filter.widgetId }),
+        itemsPath: 'values',
+        idPath: '$index',
+        changePaths: ['$'],
+        emit: { mode: 'item', map: { row: '$', rowIndex: '$index' }, includeChanges: true },
+        emitFromFilter: { widgetId: 'widgetId' },
+    };
+    const src = (over) => ok({ events: [event({ source: { ...event().source, contentWatch: { ...contentWatch, ...over } } })] });
+    assert.deepStrictEqual(codes(src({})), [], 'a well-formed contentWatch passes');
+
+    assert.ok(codes(src({ when: undefined })).includes('poll.content_watch_when_missing'));
+    assert.ok(codes(src({ buildArgs: 'spreadsheetId' })).includes('poll.content_watch_buildargs_invalid'));
+    assert.ok(codes(src({ argsFromFilter: ['widgetId'] })).includes('poll.content_watch_argsfromfilter_invalid'));
+    assert.ok(codes(src({ emitFromFilter: ['widgetId'] })).includes('poll.content_watch_emitfromfilter_invalid'));
+    // The merged spec is checked too: an override that breaks the shape fails.
+    assert.ok(codes(src({ idPath: undefined })).includes('poll.id_path_missing'));
+    assert.ok(codes(src({ emit: undefined })).includes('poll.emit_missing'));
+    // And the base spec's own contentWatch key must be a plain object.
+    const bad = ok({ events: [event({ source: { ...event().source, contentWatch: 'yes' } })] });
+    assert.ok(codes(bad).includes('poll.content_watch_invalid'));
+});

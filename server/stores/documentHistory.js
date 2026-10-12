@@ -13,12 +13,17 @@
  *   write   its owner, an org admin for a team template or section, and the
  *           editors and owner of the project it is filed in
  *   delete  a version: the document's OWNER only
+ *
+ * A template filed into a Solution stage (solution_project_id) is managed:
+ * restore and naming go through documentStore.lockForWrite, which refuses
+ * them (409 managed_part), and deleteVersion asks the same guard.
  */
 
 'use strict';
 
 const crypto = require('crypto');
 const versions = require('./documentVersions');
+const solutionTemplates = require('./document/solutionTemplates');
 
 /**
  * @param {object} deps
@@ -149,8 +154,8 @@ function makeDocumentHistory(deps) {
 
     /**
      * Delete one version. The document's owner only, and never the current
-     * revision, the baseline a routine falls back to, or a revision something
-     * else pins: `referencedIds` (the ids a routine or an app step prints, which
+     * revision, the baseline an automation falls back to, or a revision something
+     * else pins: `referencedIds` (the ids an automation or an app step prints, which
      * only the caller can collect; an iterable, or a function answering one, so
      * the lookup runs only for the owner) would otherwise fail on its next run.
      *
@@ -161,12 +166,14 @@ function makeDocumentHistory(deps) {
         const doc = await getDocument(documentId, userId);
         if (!doc) return null;
         if (doc.userId !== userId) throw failure('Only the owner of this document can delete versions of it.', 403, 'document_owner_only');
+        // A template a Solution stage manages keeps the revisions its automations are pinned to.
+        await solutionTemplates.assertTemplateWrite(documentId, ['versions']);
         if (ref === doc.versionId || ref === doc.baselineVersionId) {
             throw failure('This version is the document\'s current or first revision and stays.', 409, 'version_in_use');
         }
         const pinned = new Set(typeof referencedIds === 'function' ? await referencedIds() : referencedIds);
         if (pinned.has(ref)) {
-            throw failure('A routine or an app uses this version of the document, so it stays.', 409, 'version_in_use');
+            throw failure('An automation or an app uses this version of the document, so it stays.', 409, 'version_in_use');
         }
         const result = await run('DELETE FROM studio_document_versions WHERE id = $1 AND document_id = $2', [ref, documentId]);
         return (result?.rowCount || 0) > 0;
@@ -188,9 +195,14 @@ function makeDocumentHistory(deps) {
         await initDB();
         const body = sanitizePageBody(html);
         assertWithinCaps({ bodyHtml: body });
-        const row = await getOne(`UPDATE studio_documents SET body_html = $2, updated_at = NOW()
-            WHERE id = $1 AND doc_type = $3 RETURNING version_id`, [documentId, body, PAGE_DOC_TYPE]);
-        return row ? { versionId: row.version_id } : null;
+        return withTransaction(async (client) => {
+            const { rows } = await client.query('SELECT * FROM studio_documents WHERE id = $1 AND doc_type = $2 FOR UPDATE', [documentId, PAGE_DOC_TYPE]);
+            if (!rows[0]) return null;
+            const contentCrypto = require('./lib/documentCrypto');
+            const storedBody = await contentCrypto.seal(body, contentCrypto.resourceOf(rows[0]), 'body_html');
+            const { rows: saved } = await client.query('UPDATE studio_documents SET body_html = $2, updated_at = NOW() WHERE id = $1 RETURNING version_id', [documentId, storedBody]);
+            return saved[0] ? { versionId: saved[0].version_id } : null;
+        });
     }
 
     /**
@@ -325,6 +337,12 @@ function makeDocumentHistory(deps) {
         await initDB();
         const list = [...new Set((Array.isArray(needles) ? needles : []).filter((n) => typeof n === 'string' && n))];
         if (!documentId || !list.length) return null;
+        const encrypted = await getOne('SELECT id, settings FROM studio_documents WHERE id = $1', [documentId]);
+        if (encrypted?._contentCryptoContext) {
+            const revisions = await getAll('SELECT id, body_html, snapshot, created_by, seq FROM studio_document_versions WHERE document_id = $1 ORDER BY seq ASC NULLS FIRST, created_at ASC', [documentId]);
+            const match = revisions.find((row) => (afterSeq == null || (row.seq != null && Number(row.seq) > Number(afterSeq))) && list.some((needle) => (row.body_html || '').includes(needle) || JSON.stringify(row.snapshot || {}).includes(needle)));
+            return match ? { createdBy: match.created_by || null, seq: match.seq == null ? null : Number(match.seq) } : null;
+        }
         const holds = `EXISTS (SELECT 1 FROM unnest($2::text[]) AS n(needle)
             WHERE position(n.needle IN v.body_html) > 0 OR position(n.needle IN COALESCE(v.snapshot::text, '')) > 0)`;
         if (afterSeq == null) {

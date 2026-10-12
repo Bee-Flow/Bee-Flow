@@ -55,7 +55,7 @@ function stepTokens(step) {
 const RX = {
     trigger: /\btrigger\b/i,
     dryRun: /dry.?run|\btest(ing|ed)?\b/i,
-    finalize: /finali[sz]e|activate|save (the )?routine/i,
+    finalize: /finali[sz]e|activate|save (the )?automation/i,
     review: /\b(review|summar)/i,
     error: /\b(error|fail|fallback|on.?error)/i,
 };
@@ -102,7 +102,7 @@ function inferPlanProgress(todos, { name, args, result } = {}) {
             // data_extraction / datatable / ai_step step has only its type
             // word to match on, and 'data extraction' never meets 'Extract
             // invoice details'. Measured: the default batch build of the
-            // invoice routine left 2 of 4 step items open. The entry's own
+            // invoice automation left 2 of 4 step items open. The entry's own
             // spec (args.steps[i].spec, index-aligned with added[i]: every
             // entry either lands in `added` or ends the call, and chatStream
             // slices args.steps to failedIndex for a partial batch) has the

@@ -72,10 +72,10 @@ describe('the datatable step writes values through the visual editor', () => {
         expect(screen.getByLabelText('Tags')).toBeTruthy();
     });
 
-    it('asks what a list means when it lands in a TEXT column', () => {
+    it('answers a list in a TEXT column without asking, and shows the other answers under the field', () => {
         const { insertInto } = renderFields(writeDraft());
         insertInto('Name', 'steps.s1.output.addresses');
-        // Answered inline under the field since round 4 (artboard 2a), not in a popover.
+        // Answered at once; the other answers show under the field (Advanced).
         expect(screen.getByTestId('mismatch-resolver')).toBeTruthy();
     });
 
@@ -98,9 +98,10 @@ describe('the datatable step writes values through the visual editor', () => {
 describe('the datatable filter asks per OPERATOR, not per slot', () => {
     beforeEach(cleanup);
 
-    it('asks about a list on "is" — that comparison takes one value', () => {
+    it('treats a list on "is" as a mismatch — that comparison takes one value — and answers it quietly', () => {
         const { insertInto } = renderFields(whereDraft('eq'));
         insertInto('Value', 'steps.s1.output.addresses');
+        // Answered at once; the other answers show under the field (Advanced).
         expect(screen.getByTestId('mismatch-resolver')).toBeTruthy();
     });
 

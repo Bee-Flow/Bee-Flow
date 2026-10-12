@@ -111,6 +111,12 @@ function PatternAdvanced({ state, dispatch, t }: StepProps) {
     return (
         <Disclosure title={t('shield_data.pattern_advanced', 'Write the pattern yourself (advanced)')} defaultOpen={!!pattern.source}>
             <label htmlFor={id} className={labelClass}>{t('shield_data.pattern_label', 'Pattern')}</label>
+            <p className={helpClass}>
+                {t(
+                    'shield_data.pattern_syntax',
+                    'Letters and digits stand for themselves, \\d means “any digit”, [A-Z] “any capital letter”, and {n} repeats the part before it. So KL-\\d{5} finds KL-12345 but not KL-1234.',
+                )}
+            </p>
             <input
                 id={id}
                 type="text"

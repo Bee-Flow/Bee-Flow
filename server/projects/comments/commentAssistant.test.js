@@ -26,6 +26,7 @@ const { test, before, after, beforeEach } = require('node:test');
 const assert = require('node:assert');
 const crypto = require('node:crypto');
 const { pgliteDb } = require('../../testUtils/pgliteDb');
+const { realClaudeAdapter, realGeminiAdapter, assertClaudeEntry, assertGeminiEntry } = require('../../core/providers/usageHarness');
 const { makeProjectCommentStore, DDL } = require('../../stores/projectCommentStore');
 const participationStoreModule = require('../../stores/projectAiParticipationStore');
 const { makeCommentCrypto } = require('./commentCrypto');
@@ -42,6 +43,7 @@ const NOTEBOOK_MD = '# Plan\n\n## Budget\nWe agreed **the budget** is 40k for Q3
 let log;
 let lockHeld;
 let modelAnswer;
+let modelUsage;
 let shieldMode;
 let limitText;
 let model;
@@ -71,10 +73,11 @@ function assistant(overrides = {}) {
         llmChat: async (modelId, messages, options) => {
             log.push(['llm', { modelId, messages, options }]);
             if (modelAnswer instanceof Error) throw modelAnswer;
-            return { content: modelAnswer, usage: { prompt_tokens: 120, completion_tokens: 30, total_tokens: 150 } };
+            return { content: modelAnswer, usage: modelUsage ?? { prompt_tokens: 120, completion_tokens: 30, total_tokens: 150 } };
         },
         resolveModel: async (args) => { log.push(['model', args]); return model; },
         searchKnowledge: async (args) => { log.push(['kb', args]); return 'Budget policy: travel is separate.'; },
+        listAudience: async (project) => { log.push(['audience', project.id]); return ['olga', 'bob', 'cy']; },
         itemReader: { read: async (args) => { log.push(['read', args]); return item; } },
         getUser: async (id) => USERS[id] || null,
         displayName: (u) => u?.displayName || (u?.username && !u.username.includes('@') ? u.username : 'A project member'),
@@ -101,6 +104,7 @@ beforeEach(() => {
     log = [];
     lockHeld = false;
     modelAnswer = 'Travel is booked separately, [PERSON_1] can confirm.';
+    modelUsage = undefined;
     shieldMode = 'pass';
     limitText = null;
     model = { modelId: 'fast-model', options: { maxTokens: 800 }, providerConfig: { providerType: 'test' } };
@@ -175,7 +179,9 @@ test('an answer: the passage, its section and the thread through the shield, sea
     assert.match(system, /Answer in plain words\./);
     assert.match(system, /travel is separate/);
     assert.match(system, /\[KEEP TOKENS\]/);
-    assert.strictEqual(of('kb')[0].userId, 'bob', 'knowledge as the asking member may read it');
+    assert.strictEqual(of('kb')[0].userId, 'bob', 'the asking member runs the search');
+    assert.deepStrictEqual(of('kb')[0].audienceIds, ['olga', 'bob', 'cy'],
+        'a thread is read by the whole project: knowledge is cut to what every member may read');
 
     const comments = await store.listComments(t.thread.id);
     const answer = comments.at(-1);
@@ -310,4 +316,16 @@ test('an answer somebody asked for starts the quiet time before the AI may join 
 test('describePassage names the item kind', () => {
     assert.match(describePassage({ kind: 'document', name: '', passage: null }), /untitled document/);
     assert.match(describePassage({ kind: 'notebook', name: 'N', passage: { found: true, whole: false, quote: 'q', heading: '', section: 's' } }), /The text around it:/);
+});
+
+test('the usage row carries the cache read/write of a Claude or Gemini call, not zeros', async () => {
+    const claude = (await realClaudeAdapter().chat('k', null, 'claude-sonnet-4-6', [{ role: 'user', content: 'x' }])).usage;
+    const gemini = (await realGeminiAdapter().chat('k', null, 'gemini-3-flash-preview', [{ role: 'user', content: 'x' }])).usage;
+    for (const [usage, assertEntry] of [[claude, assertClaudeEntry], [gemini, assertGeminiEntry]]) {
+        log = [];
+        modelUsage = usage;
+        await ask(await thread());
+        assert.strictEqual(of('usage').length, 1);
+        assertEntry(of('usage')[0]);
+    }
 });

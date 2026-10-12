@@ -18,7 +18,7 @@
 const { resolveIntegration } = require('./integrationToolMap');
 const log = require('../../telemetry/log');
 
-// Tool-family integration names that map onto a single OAuth routine provider.
+// Tool-family integration names that map onto a single OAuth automation provider.
 // (resolveIntegration returns 'gmail'/'google_calendar'/… but the connection
 // provider for those is 'google'.)
 const INTEGRATION_TO_PROVIDER = {

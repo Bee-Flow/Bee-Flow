@@ -1,7 +1,7 @@
 /**
  * The knowledge bases an AI step is grounded in (BFSF-410) — the web's
  * AiStepKbSelect: searched once before the step runs and added as reference
- * material. Only the bases made available to routines are offered (K5); the
+ * material. Only the bases made available to automations are offered (K5); the
  * runner re-checks every id against the running user anyway, so this list is
  * advice, not authority.
  */
@@ -25,7 +25,7 @@ export function KnowledgeChooser({ draft, setMany, ctx }: StepEditorProps) {
     let body: React.ReactNode;
     if (kbs.isPending) body = <Note>{t('common.loading', 'Loading...')}</Note>;
     else if (kbs.isError) body = <Warn>{t('mobile.flow.ai.kb_unreadable', 'The knowledge bases could not be read. The ones this step already uses are kept.')}</Warn>;
-    else if (!kbs.data.length) body = <Note>{t('mobile.flow.ai.kb_empty', 'No knowledge bases yet — add one under Knowledge Bases first.')}</Note>;
+    else if (!kbs.data.length) body = <Note>{t('automations.ai_step_editors.no_knowledge_bases_yet_add_one', 'No knowledge bases yet — add one under Knowledge Bases first.')}</Note>;
     else {
         body = kbs.data.map((kb) => (
             <OptionRow
@@ -39,9 +39,9 @@ export function KnowledgeChooser({ draft, setMany, ctx }: StepEditorProps) {
     }
     return (
         <FieldRow
-            label={t('routines.versions.setting.knowledgeBaseIds', 'Knowledge bases')}
+            label={t('automations.versions.setting.knowledgeBaseIds', 'Knowledge bases')}
             hint={t(
-                'mobile.flow.ai.knowledge_bases_hint',
+                'automations.ai_step_editors.ground_this_step_in_these_knowledge',
                 'Ground this step in these knowledge bases — searched once before the step runs and added to the prompt as reference material. Good for steerable content like a brand style guide or a positioning doc.',
             )}
         >

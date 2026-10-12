@@ -1,5 +1,5 @@
 /**
- * Which tiers a routine-builder turn may run on
+ * Which tiers an automation-builder turn may run on
  * (routes/ai/automationBuilder/chatStream.js), measured against the list the
  * builder's own dropdown offers.
  *

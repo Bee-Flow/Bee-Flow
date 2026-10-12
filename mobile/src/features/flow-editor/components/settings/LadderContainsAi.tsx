@@ -1,5 +1,5 @@
 /**
- * Above the first question: whether the routine contains AI at all, and
+ * Above the first question: whether the automation contains AI at all, and
  * which steps make it so — the web's ContainsAiBanner. Without AI the AI Act
  * does not apply and the note says what does.
  */

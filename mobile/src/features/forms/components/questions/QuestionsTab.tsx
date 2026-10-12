@@ -1,9 +1,9 @@
 /**
- * Questions — the trigger's form, editable without the routine builder (the
+ * Questions — the trigger's form, editable without the automation builder (the
  * web's QuestionsTab): "Build it with AI" above the builder's own page editor
  * (title, intro, questions, button text, thank-you, styling), a preview of the
  * page as it will be filled in, and Save / Discard under it. Pages after page
- * one stay in the routine; a note says how many and opens it.
+ * one stay in the automation; a note says how many and opens it.
  */
 
 import { useRouter } from 'expo-router';
@@ -32,11 +32,11 @@ function PagesNote({ detail }: { detail: FormDetail }) {
         <Banner
             tone="info"
             icon="Info"
-            action={<Button size="sm" variant="ghost" label={t('forms.studio.open_routine', 'Open the routine')} onPress={() => router.push(`/automations/${detail.automationId}/build`)} />}
+            action={<Button size="sm" variant="ghost" label={t('forms.studio.open_automation', 'Open the automation')} onPress={() => router.push(`/automations/${detail.automationId}/build`)} />}
         >
             {count === 1
-                ? t('forms.page.pages_note', '{count} more page — edit it in the routine', { count })
-                : t('forms.page.pages_note_plural', '{count} more pages — edit them in the routine', { count })}
+                ? t('forms.page.pages_note', '{count} more page — edit it in the automation', { count })
+                : t('forms.page.pages_note_plural', '{count} more pages — edit them in the automation', { count })}
         </Banner>
     );
 }
@@ -63,7 +63,7 @@ export function QuestionsTab({ detail, questions }: { detail: FormDetail; questi
                     rename={null}
                     disabled={questions.locked || questions.saving}
                 />
-                <Button variant="secondary" iconName="Eye" label={t('routine_editor.preview', 'Preview')} onPress={() => setPreviewing(true)} />
+                <Button variant="secondary" iconName="Eye" label={t('automation_editor.preview', 'Preview')} onPress={() => setPreviewing(true)} />
                 {detail.answers?.collecting ? (
                     <Banner tone="info" icon="Info">
                         {t(
@@ -81,7 +81,7 @@ export function QuestionsTab({ detail, questions }: { detail: FormDetail; questi
                 onSave={() => void questions.save()}
                 onDiscard={questions.discard}
             />
-            <Sheet visible={previewing} onClose={() => setPreviewing(false)} title={t('routine_editor.preview', 'Preview')} tall>
+            <Sheet visible={previewing} onClose={() => setPreviewing(false)} title={t('automation_editor.preview', 'Preview')} tall>
                 <FormRenderer form={previewForm(draft)} />
             </Sheet>
         </View>

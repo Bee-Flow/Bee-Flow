@@ -152,7 +152,7 @@ describe('KnowledgeDetail', () => {
     });
 
     it('the automation card explains where the step lives instead of asking for one', async () => {
-        // The relationship is backwards from every other card: a routine adds
+        // The relationship is backwards from every other card: an automation adds
         // itself. Somebody told "you cannot add this one" needs to know what
         // to do instead, in the same breath.
         render(<KnowledgeDetail kbId="kb1" canManage />);

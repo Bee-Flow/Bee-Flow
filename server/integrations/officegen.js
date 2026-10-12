@@ -1,6 +1,6 @@
 /**
  * officegen — generate REAL binary office files (spreadsheets, word docs and
- * presentations) so routines/automations can save proper `.xlsx`/`.ods`/
+ * presentations) so automations can save proper `.xlsx`/`.ods`/
  * `.docx`/`.odt`/`.pptx` to Nextcloud (and elsewhere), not just CSV/plain text.
  *
  * Spreadsheets and ODF documents are built directly as their ZIP packages with

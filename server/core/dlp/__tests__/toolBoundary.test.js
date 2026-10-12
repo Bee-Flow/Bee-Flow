@@ -104,17 +104,17 @@ console.log('ordering: block check sees REAL values (args detokenized first):');
     // be detected and nothing would block — the ordering is what makes it work.
 }
 
-console.log('agent-callable routine (automation_<id>) receives the REAL value:');
+console.log('agent-callable automation (automation_<id>) receives the REAL value:');
 {
-    // The reported case: the agent triggers a Bee Flow routine whose email step
+    // The reported case: the agent triggers a Bee Flow automation whose email step
     // must reach the real mailbox. The model only ever sees [email_1], so the
-    // routine gets the placeholder as its trigger payload unless the args are
+    // automation gets the placeholder as its trigger payload unless the args are
     // detokenized at the tool boundary — an email to "[email_1]" goes nowhere.
     const convId = 'conv-automation-1';
     dlpRunner.mergeTokenMap(convId, { '[email_1]': 'support@example.nl' });
     const convMap = dlpRunner.getConversationTokenMap(convId);
 
-    // What the model emitted, arguments nested the way a routine schema shapes them.
+    // What the model emitted, arguments nested the way an automation schema shapes them.
     const modelArgs = {
         to: '[email_1]',
         subject: 'Storing gemeld',
@@ -127,11 +127,11 @@ console.log('agent-callable routine (automation_<id>) receives the REAL value:')
     check('nested object restored', realArgs.body.text === 'Graag een reactie naar support@example.nl.');
     check('the model\'s own args object is not mutated', modelArgs.to === '[email_1]');
 
-    // A routine tool is not a resolved external integration, so it classifies as
+    // An automation tool is not a resolved external integration, so it classifies as
     // internal — the external block list must not silently refuse it.
     const policy = { external: { blockCategories: ['Email'] }, internal: { blockCategories: [] } };
     const verdict = isBlockedForTool('automation_a1b2c3', ['Email'], policy);
-    check('a routine tool is internal and not blocked by the external list', verdict.toolClass === 'internal' && verdict.blocked === false);
+    check('an automation tool is internal and not blocked by the external list', verdict.toolClass === 'internal' && verdict.blocked === false);
 }
 
 console.log('MF-6: turn-1 user token survives a flood of result tokens:');

@@ -12,7 +12,7 @@
  * The rule now, at the one place every call passes:
  *
  *   - a probe is already active   → just run. The caller owns the probe and
- *                                   writes the row (chat, routines, bridges).
+ *                                   writes the row (chat, automations, bridges).
  *   - `context.egress === false`  → just run. For UI-only reads (a column
  *                                   picker) that are not a transfer anyone
  *                                   asked for; the call site says why.

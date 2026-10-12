@@ -2,8 +2,8 @@
  * generate_document — what the run log says about the EU AI Act Art. 50(2)
  * marking.
  *
- * The run history of a routine is the evidence an Art. 50(2) audit reads: the
- * AIA-Art50-content-marking check asserts that every routine whose document
+ * The run history of an automation is the evidence an Art. 50(2) audit reads: the
+ * AIA-Art50-content-marking check asserts that every automation whose document
  * draws on a model ships a marked file, and a human auditor opens the run to
  * see it. So the one thing this step must never do is record a document as
  * AI-marked when the bytes carry no marking.

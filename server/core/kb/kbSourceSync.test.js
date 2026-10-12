@@ -1,11 +1,11 @@
 /**
- * The `automation` sources of a knowledge base, kept in step with the routines
+ * The `automation` sources of a knowledge base, kept in step with the automations
  * that write to it.
  *
  * The properties that carry the design:
- *   - a source appears when the routine is SAVED, not when it first runs;
+ *   - a source appears when the automation is SAVED, not when it first runs;
  *   - it never appears for a base the owner may not write to;
- *   - a base the routine stopped writing to is MARKED, never deleted — the
+ *   - a base the automation stopped writing to is MARKED, never deleted — the
  *     documents hanging off that source are somebody's knowledge, and removing
  *     a step is not a request to throw them away.
  *
@@ -48,7 +48,7 @@ const def = (kbIds) => ({
     steps: kbIds.map((kbId, i) => ({ id: `w${i}`, type: 'knowledge_write', knowledgeBaseId: kbId, content: 'x' })),
 });
 
-test('a saved routine attaches a source to each base it writes to', async () => {
+test('a saved automation attaches a source to each base it writes to', async () => {
     const store = fakeStore();
     const out = await syncKbSources('a1', def(['kb1', 'kb2']), {
         userId: 'u1', title: 'Tickets → KB',
@@ -57,7 +57,7 @@ test('a saved routine attaches a source to each base it writes to', async () => 
     assert.deepStrictEqual(out.added.sort(), ['kb1', 'kb2']);
     assert.strictEqual(store.rows.length, 2);
     assert.strictEqual(store.rows[0].kind, 'automation');
-    assert.strictEqual(store.rows[0].name, 'Tickets → KB', 'the routine names its own source');
+    assert.strictEqual(store.rows[0].name, 'Tickets → KB', 'the automation names its own source');
     assert.strictEqual(store.rows[0].config.automationId, 'a1');
 });
 
@@ -81,7 +81,7 @@ test('saving twice does not attach a second source', async () => {
     assert.strictEqual(store.rows.length, 1);
 });
 
-test('renaming the routine renames its source', async () => {
+test('renaming the automation renames its source', async () => {
     // It is the only thing a person has to recognise it by in the Sources list.
     const store = fakeStore();
     const deps = { kbSourcesStore: store, writeAccess: writeAccess(['kb1']) };
@@ -90,7 +90,7 @@ test('renaming the routine renames its source', async () => {
     assert.strictEqual(store.rows[0].name, 'New name');
 });
 
-test('a base the routine stopped writing to is MARKED, never deleted', async () => {
+test('a base the automation stopped writing to is MARKED, never deleted', async () => {
     // The source owns the documents hanging off it, and kb_sources cascades.
     // Removing a step is not a request to delete last year's articles.
     const store = fakeStore();
@@ -133,7 +133,7 @@ test('two steps writing to one base attach ONE source', async () => {
 });
 
 test('a store that is down never fails the save', async () => {
-    // The source is bookkeeping; the routine is the product.
+    // The source is bookkeeping; the automation is the product.
     const broken = {
         findOne: async () => { throw new Error('db down'); },
         create: async () => { throw new Error('db down'); },
@@ -164,7 +164,7 @@ test('no automation id is a no-op, not a throw', async () => {
         { added: [], kept: [], removed: [] });
 });
 
-test('an untitled routine still gets a recognisable source name', async () => {
+test('an untitled automation still gets a recognisable source name', async () => {
     const store = fakeStore();
     await syncKbSources('a1', def(['kb1']), {
         userId: 'u1', title: '   ',
@@ -176,7 +176,7 @@ test('an untitled routine still gets a recognisable source name', async () => {
 // ── an outage is not a refusal, and a refusal is not a dead feed ────────
 //
 // The stale pass marks everything outside `allowed`. Folding either of those
-// into "no longer writes here" relabels a live source dead on a routine that
+// into "no longer writes here" relabels a live source dead on an automation that
 // changed nothing — and the label is what a person reads to decide whether the
 // base is current.
 

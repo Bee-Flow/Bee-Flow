@@ -5,6 +5,7 @@ const { getAIConfig, getProviderForModel } = require('../aiAgent');
 const { getAdapter } = require('../providers');
 const agentStore = require('../../stores/agentStore');
 const usageStore = require('../../stores/usageStore');
+const { usageLogFields } = require('../providers/usageNormalizer');
 const { sanitizeToolResult } = require('../../utils/sanitize');
 const { sanitizeMessages } = require('../../utils/messageUtils');
 require('../tools/toolExecution');
@@ -54,7 +55,6 @@ async function chatWithAgent(agentId, userId, userMessage, userAuth = {}) {
     const generationSettings = await resolveGenerationSettings(modelToUse, {
         userOrgId: userAuth?.userOrgId || agent.organization_id || null,
         userId,
-        apiVersion: config.apiVersion,
         tierKey: resolvedTierKey,
     });
 
@@ -216,12 +216,9 @@ async function chatWithAgent(agentId, userId, userMessage, userAuth = {}) {
                     agent_name: agent.name,
                     agent_type: 'chat',
                     model: modelToUse,
-                    prompt_tokens: usage.prompt_tokens || 0,
-                    completion_tokens: usage.completion_tokens || 0,
-                    total_tokens: usage.total_tokens || 0,
-                    cached_tokens: usage.prompt_tokens_details?.cached_tokens || usage.cached_tokens || 0,
-                    cache_creation_tokens: usage.cache_creation_input_tokens || 0,
-                    reasoning_tokens: usage.completion_tokens_details?.reasoning_tokens || usage.reasoning_tokens || 0,
+                    // Adapters hand back the normalised shape (providers/usageNormalizer.js);
+                    // usageLogFields also accepts a raw provider block.
+                    ...usageLogFields(usage),
                     stop_reason: finishReason,
                     source: 'agent_chat',
                     duration_ms: Date.now() - _callStart,
@@ -416,7 +413,7 @@ async function chatWithAgent(agentId, userId, userMessage, userAuth = {}) {
  * adaptive-only models. Falls back to tier defaults when the model isn't
  * attached to any tier.
  */
-async function resolveGenerationSettings(modelId, { userOrgId = null, userId = null, apiVersion = null, tierKey: explicitTierKey = null } = {}) {
+async function resolveGenerationSettings(modelId, { userOrgId = null, userId = null, tierKey: explicitTierKey = null } = {}) {
     let tiers = {};
     try {
         tiers = await getEUAwareTiers({ userOrgId, userId }) || {};
@@ -438,7 +435,6 @@ async function resolveGenerationSettings(modelId, { userOrgId = null, userId = n
             ? tierSettings.reasoningSummary
             : (tierDefaults.reasoningSummary || false),
         budgetTokens: tierSettings.budgetTokens || undefined,
-        apiVersion: apiVersion || undefined,
     };
 }
 

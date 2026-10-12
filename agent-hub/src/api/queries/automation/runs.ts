@@ -59,6 +59,8 @@ export interface RunStepRecord {
     output?: unknown;
     error?: string | null;
     errorClass?: string | null;
+    /** Inputs whose mapping found nothing in this step (runs/bindingMisses.ts reads them). */
+    bindingWarnings?: unknown;
 }
 
 export interface RunStepsPayload {
@@ -167,7 +169,7 @@ export function useRunList(automationId: string | null, filters: RunListFilters,
 
 /**
  * The segment counts. GET /:id/runs sends them on its first page, counted
- * with every filter but the status (routine-scoped, so shared viewers and
+ * with every filter but the status (automation-scoped, so shared viewers and
  * run-only members get their own numbers). Asked for once per period,
  * search and test switch, with a one-row page, so picking a segment does not
  * blank them.

@@ -39,13 +39,6 @@ const content = worded(CONTENT_TEXT)
 const FIRST_MESSAGE_TEXT = `message is the first message of the chat, at most ${CONTENT_MAX} characters.`;
 const firstMessage = worded(FIRST_MESSAGE_TEXT).max(CONTENT_MAX, FIRST_MESSAGE_TEXT);
 
-const CreateChatBody = bodyOf({
-    title: optionalTitle.optional(),
-    aiMode: aiMode.optional(),
-    agentId: agentId.optional(),
-    message: firstMessage.optional(),
-}, 'Starting a team chat');
-
 const UpdateChatBody = bodyOf({
     title: renameTitle.optional(),
     aiMode: aiMode.optional(),
@@ -68,11 +61,19 @@ const REPLY_TEXT = 'replyTo is the id of a message in this chat.';
 const MENTIONS_TEXT = `mentions is a list of at most ${MAX_MENTIONS} member ids.`;
 
 const THREAD_TEXT = 'threadId is the id of a message in this chat that starts the thread.';
-const REFS_TEXT = `refs is a list of at most ${MAX_REFS} objects like {"kind":"document","id":"..."} (kind is document, notebook or meeting).`;
+const REFS_TEXT = `refs is a list of at most ${MAX_REFS} objects like {"kind":"document","id":"..."} (kind is document, notebook, meeting or task).`;
 const ref = z.object({
-    kind: choice(['document', 'notebook', 'meeting'], REFS_TEXT),
+    kind: choice(['document', 'notebook', 'meeting', 'task'], REFS_TEXT),
     id: worded(REFS_TEXT).trim().min(1, REFS_TEXT).max(ID_MAX, REFS_TEXT),
 }, { invalid_type_error: REFS_TEXT }).strict();
+
+const CreateChatBody = bodyOf({
+    title: optionalTitle.optional(),
+    aiMode: aiMode.optional(),
+    agentId: agentId.optional(),
+    message: firstMessage.optional(),
+    refs: z.array(ref, { invalid_type_error: REFS_TEXT }).max(MAX_REFS, REFS_TEXT).optional(),
+}, 'Starting a team chat');
 
 const TIER_TEXT = 'modelTier is the name of a model tier, such as auto, fast or thinking.';
 

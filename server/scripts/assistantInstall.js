@@ -5,7 +5,7 @@
  * The assistant learns, and everything it learns lives in datatables. Those
  * tables are what make it PERSONAL: one set per owner, never shared, so what
  * one person teaches their assistant can never shape somebody else's. A
- * routine can be copied (export → import rebinds every datatable step by its
+ * automation can be copied (export → import rebinds every datatable step by its
  * `datatableKey`), but the tables themselves have to exist first — nothing in
  * the blueprint installer creates them. This script is that step.
  *
@@ -20,9 +20,9 @@
  *   --owner <userId>    owner recorded on the tables and rows (required)
  *   --starter-rules     also seed the org's sender rules with the domains of
  *                       existing rules from another org (off by default)
- *   --base-url <url>    rewrite the /f/<token> links inside the routines'
+ *   --base-url <url>    rewrite the /f/<token> links inside the automations'
  *                       notification bodies to this host (e.g. https://app.example.com)
- *   --automation <id>   routine to rewrite links in (repeatable; needs --base-url)
+ *   --automation <id>   automation to rewrite links in (repeatable; needs --base-url)
  *   --dry-run           report what would happen, change nothing
  */
 
@@ -41,7 +41,7 @@ const t = (key, name, type = 'text') => ({ key, name, type });
 
 /**
  * The eight tables the assistant reads and writes. `key` is the contract: an
- * imported routine's datatable steps carry the same keys and are rebound to
+ * imported automation's datatable steps carry the same keys and are rebound to
  * whatever ids these get (automation/portability.js rebindDatatables).
  * NOTE: every table already has a built-in `created_at` — declaring one is
  * rejected by normalizeFields.
@@ -232,9 +232,9 @@ async function rowCount(scope, tableId) {
 }
 
 /**
- * Rewrite the public form links inside a routine's notification bodies. The
+ * Rewrite the public form links inside an automation's notification bodies. The
  * links are minted per install (POST /:id/form → /f/<token>), so a copied
- * routine still points at the source instance until this runs.
+ * automation still points at the source instance until this runs.
  */
 async function rewriteFormLinks(automationId, baseUrl, { dryRun }) {
     const automationStore = require('../stores/automationStore');
@@ -250,7 +250,7 @@ async function rewriteFormLinks(automationId, baseUrl, { dryRun }) {
         if (next !== step.body) { step.body = next; changed++; }
     }
     if (!changed || dryRun) return { automationId, title: a.title, notificationsChanged: changed, applied: false };
-    // goLive: a repair of the running routine, not a pending edit (handoff 5).
+    // goLive: a repair of the running automation, not a pending edit (handoff 5).
     await automationStore.updateAutomation(automationId, { definition: def }, a.userId, { goLive: true });
     return { automationId, title: a.title, notificationsChanged: changed, applied: true };
 }

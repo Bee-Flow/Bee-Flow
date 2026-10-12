@@ -50,12 +50,12 @@ The primary action is **Publish** (**Republish** once the page has been publishe
 
 ### Data & links
 
-- **Overview** — which datatables this page is bound to, which routines feed those
-  tables, the page's own knowledge sources, and a warning per routine that writes
+- **Overview** — which datatables this page is bound to, which automations feed those
+  tables, the page's own knowledge sources, and a warning per automation that writes
   straight into a bound table.
 - **Actions** — what the page sets off: a static scan of its own code for calls that go
   around Studio, the forms and agent blocks that arrive with `bf-*`, and the bridge
-  grants (which routines and integrations the page's script may call).
+  grants (which automations and integrations the page's script may call).
 - **Who can see it** — the three shared audience rows (personal / organisation /
   groups) plus a fourth, **Public**. The address card underneath holds `/w/<slug>`, with
   *All options* (password, e-mail addresses, expiry) collapsed below it.
@@ -89,7 +89,21 @@ A page whose audience is *Personal* but which has a live public share reads as
 Unknown is not zero and not you: a version whose author the server does not know is
 labelled **Unknown**, never "You" and never a blank.
 
+## Managed by a Solution stage
+
+A page in a **UAT or Production stage** of a [Solution](solutions.md#stages-and-deployments)
+is **managed**: its files arrive by deployment, the editor is read-only with a *Managed by a
+Solution stage* banner, and the AI builder chat is hidden. Readers always see the version
+that was deployed, never a half-finished one. **Publish** only changes the audience and
+never freezes the page. A page that was never deployed has nothing to publish
+(`managed_part_not_deployed`).
+
+The page's **address** is a setting of the stage, not part of the release. UAT defaults to
+`<slug>-uat`, Production is chosen explicitly, and addresses are unique across the instance,
+so a clash is reported before the deployment. Public sharing, the public page of an app and
+integration grants are the stage's own, empty on arrival.
+
 ## Where to next
 
 - [Studio → Datatables](datatables.md) — the rows a page reads.
-- [Studio → Forms](forms.md) — when the page you want is really a form on a routine.
+- [Studio → Forms](forms.md) — when the page you want is really a form on an automation.

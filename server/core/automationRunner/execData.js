@@ -8,6 +8,7 @@ const { resolveValue, resolveInputs } = require('../../automation/bind');
 const { evaluate, parseExpr } = require('../../automation/expr');
 const safety = require('./safety');
 const usageStore = require('../../stores/usageStore');
+const { usageLogFields } = require('../providers/usageNormalizer');
 const { COLLECTION_OP_MAX_ITEMS } = require('./shared');
 const { resolveArrayRef, skippedArrayRef } = require('./execCollections');
 
@@ -26,7 +27,7 @@ const { resolveArrayRef, skippedArrayRef } = require('./execCollections');
  *
  *   Single (no `arrayRef` key): resolve the `fields` binding map into one
  *   flat object. Byte-identical to the original execSet — every saved
- *   routine keeps its exact behaviour.
+ *   automation keeps its exact behaviour.
  *
  *   List (`arrayRef` present; '' = source not picked yet → skip-passthrough):
  *   work through an upstream array. Every row gets `{...row, ...fields}`
@@ -232,7 +233,7 @@ function sortableNumber(v) {
  * Stable sort on one column. Missing/null values sort LAST in both
  * directions; when both sides coerce to finite numbers they compare
  * numerically, otherwise as lowercased strings by code point — NEVER
- * localeCompare, whose ICU/locale variance would make the same routine sort
+ * localeCompare, whose ICU/locale variance would make the same automation sort
  * differently across machines.
  */
 function opSort(cfg, rows) {
@@ -301,7 +302,20 @@ function resolveParseJsonSource(step, ctx, runState) {
     throw new Error('parse_json: no source — set the Source field or wire an upstream step.');
 }
 
-/** Auto-parse a string source (trim + strip BOM); objects/arrays pass through. */
+/**
+ * Auto-parse a string source; objects/arrays pass through.
+ *
+ * Text is read the way a language model writes JSON, with the reader the
+ * rest of the runtime uses (shared/expr/path.mjs extractJsonText): plain JSON
+ * first (BOM and whitespace tolerated), else a ```json fence or one record
+ * (or list of records) inside prose ("Sure! Here is the JSON: {…}"). A JSON
+ * string that itself holds JSON (encoded twice) is unwrapped once. The plain
+ * JSON.parse this replaced failed the run whenever a model fenced its answer,
+ * and gave all-null fields for a payload encoded twice. What is NOT an answer
+ * still fails the step, so its on_error branch runs: an HTML error page, a
+ * rate-limit text holding `[429]` or `{}`, a cut-off answer (an HTTP step
+ * returns a 4xx/5xx body instead of throwing, so these do arrive here).
+ */
 function parseParseJsonSource(raw, { requireStructured }) {
     if (raw === undefined) {
         // Both modes: an unresolvable Source path must fail loudly. In ai mode
@@ -310,12 +324,22 @@ function parseParseJsonSource(raw, { requireStructured }) {
         throw new Error('parse_json: source is undefined — the Source path matched nothing. Check the Source field (e.g. steps.<id>.output.body).');
     }
     if (typeof raw === 'string') {
+        const { extractJsonText, parseJsonText } = require('../../automation/expr');
         const text = raw.replace(/^﻿/, '').trim();
-        try { return JSON.parse(text); }
+        let v;
+        try { v = JSON.parse(text); }
         catch {
-            const snippet = text.slice(0, 120);
-            throw new Error(`parse_json: source is not valid JSON — ${snippet}`);
+            v = extractJsonText(text);
+            if (v === undefined) {
+                const snippet = text.slice(0, 120);
+                throw new Error(`parse_json: source is not valid JSON — ${snippet}`);
+            }
         }
+        if (typeof v === 'string') {
+            const inner = parseJsonText(v);
+            if (inner !== undefined) v = inner;
+        }
+        return v;
     }
     if (raw !== null && typeof raw === 'object') return raw;
     if (requireStructured) {
@@ -513,18 +537,15 @@ async function execParseJson(step, ctx, runState, mode) {
     const aiOut = await safety.guardAiOutput(output, policy, auditBase, mode, ctx);
     output = safety.restoreForRunState(aiOut.content, ctx);
 
-    // Cost attribution (source='routine') — same shape as execAiStep.
+    // Cost attribution (source='automation') — same shape as execAiStep.
     try {
-        const u = result.usage || {};
-        const promptTokens = u.promptTokens || u.prompt_tokens || u.input_tokens || 0;
-        const completionTokens = u.completionTokens || u.completion_tokens || u.output_tokens || 0;
         usageStore.logUsage({
             user_id: ctx.userId, organization_id: ctx.orgId || null,
             agent_id: ctx.automationId, agent_name: ctx.automationTitle || null,
-            agent_type: 'routine', model: modelId, source: 'routine',
-            conversation_id: ctx.automationId, prompt_tokens: promptTokens,
-            completion_tokens: completionTokens,
-            total_tokens: u.totalTokens || u.total_tokens || (promptTokens + completionTokens),
+            agent_type: 'automation', model: modelId, source: 'automation',
+            conversation_id: ctx.automationId,
+            // Normalised by the adapter (cache read/write included).
+            ...usageLogFields(result.usage),
         }).catch(() => {});
     } catch (_) {}
 

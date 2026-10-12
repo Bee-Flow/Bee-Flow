@@ -39,7 +39,7 @@
  *               distinguishable and only the first is asked about.
  *   approver    an `approval` step with none of the four seat fields set.
  *               Advisory rather than blocking — an unseated approval means the
- *               routine's owner decides — so the row says so rather than
+ *               automation's owner decides — so the row says so rather than
  *               demanding a pick.
  *
  * No English sentences leave this module: every row is data, and the modal
@@ -133,7 +133,7 @@ function walkDefinition(definition, visit) {
 }
 
 /**
- * A step's address inside one bundled routine, for keying the wizard's state.
+ * A step's address inside one bundled automation, for keying the wizard's state.
  *
  * Only ever used as a lookup key — never parsed back apart. A ref, a flowlet
  * key or a step id from a hand-made file can contain anything at all, and a

@@ -28,7 +28,7 @@ export function useRunLog(scope: RunScope, filters: RunFilters) {
     });
 }
 
-/** One facets read over the list's window, narrowed to one routine or not. */
+/** One facets read over the list's window, narrowed to one automation or not. */
 function facetsQuery(scope: RunScope, filters: RunFilters, automationId: string | null) {
     const range = RANGE_HOURS[filters.range] || 720;
     const mode = filters.mode === 'both' ? '' : filters.mode;
@@ -44,7 +44,7 @@ function facetsQuery(scope: RunScope, filters: RunFilters, automationId: string 
 }
 
 /**
- * The chips' counts over the list's own window and its routine, as the
+ * The chips' counts over the list's own window and its automation, as the
  * server scopes them (the web's useExecutions sends the same automationId).
  * "All" asks for 720 hours — the server's cap — and the bar says so.
  */
@@ -53,11 +53,11 @@ export function useRunFacets(scope: RunScope, filters: RunFilters) {
 }
 
 /**
- * The routine picker's choices: the same window NOT narrowed by routine, so
- * picking one still lists the others. With no routine picked it is the very
+ * The automation picker's choices: the same window NOT narrowed by automation, so
+ * picking one still lists the others. With no automation picked it is the very
  * same query as useRunFacets, and one request serves both.
  */
-export function useRunRoutines(scope: RunScope, filters: RunFilters) {
+export function useRunAutomations(scope: RunScope, filters: RunFilters) {
     return useQuery(facetsQuery(scope, filters, null));
 }
 

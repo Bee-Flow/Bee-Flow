@@ -1,5 +1,5 @@
 /**
- * The on/off switch of a routine, and — when activation is refused — the
+ * The on/off switch of an automation, and — when activation is refused — the
  * reasons. Activation re-validates the whole flow strictly, so a refusal is a
  * real list of problems, not a hiccup.
  */

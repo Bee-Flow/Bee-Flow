@@ -10,7 +10,7 @@ import { nodeLabel } from './nodeLabel';
 import { findNode, collectIds } from '../state/definitionOps';
 import { KITCHEN_SINK } from '../state/sampleDefinitions';
 
-// ActionsSection / RoutinePicker resolve routine titles through the house
+// ActionsSection / AutomationPicker resolve automation titles through the house
 // automations API — stub the network away.
 vi.mock('../../../../../hooks/useAutomationApi', () => ({
     default: () => ({ listAutomations: vi.fn(async () => ({ automations: [] })) }),

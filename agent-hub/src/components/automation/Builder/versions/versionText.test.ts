@@ -31,7 +31,7 @@ describe('describeVersion', () => {
         expect(describeVersion(row({}), t)).toBe('Saved changes');
     });
 
-    it('knows the server codes for copies and routine settings', () => {
+    it('knows the server codes for copies and automation settings', () => {
         expect(describeVersion(row({ descriptionJson: [{ code: 'duplicated_from', params: { title: 'Invoices' } }] }), t))
             .toBe('Copied from "Invoices"');
         expect(describeVersion(row({ descriptionJson: [{ code: 'settings_changed', params: { setting: 'Retries', settingKey: 'max' } }] }), t))
@@ -39,7 +39,7 @@ describe('describeVersion', () => {
     });
 
     it('translates a setting by its code and falls back to the English label', () => {
-        const nl: TranslateFn = (key, fallback) => (key === 'routines.versions.setting.folder' ? 'Map' : String(fallback));
+        const nl: TranslateFn = (key, fallback) => (key === 'automations.versions.setting.folder' ? 'Map' : String(fallback));
         expect(settingName(nl, 'folder', 'Folder')).toBe('Map');
         expect(settingName(nl, 'other', 'Other')).toBe('Other');
         expect(settingName(nl, null, 'Label')).toBe('Label');

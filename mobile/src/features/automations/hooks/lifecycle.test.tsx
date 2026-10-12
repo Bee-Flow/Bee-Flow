@@ -1,7 +1,7 @@
 /**
  * The list screen's create and delete, and the usage check before a delete:
- * each write refreshes the list, and a delete drops the routine's cached row
- * so a screen still mounted underneath cannot render a routine that is gone.
+ * each write refreshes the list, and a delete drops the automation's cached row
+ * so a screen still mounted underneath cannot render an automation that is gone.
  */
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -45,7 +45,7 @@ it('create refreshes the list and hands the result on', async () => {
     expect(onSuccess).toHaveBeenCalledWith({ automation: null, warnings: [] }, { title: 'T', definition: {} });
 });
 
-it('delete drops the routine’s cached row and runs, and refreshes the lists', async () => {
+it('delete drops the automation’s cached row and runs, and refreshes the lists', async () => {
     const { queryClient, wrapper } = setup();
     queryClient.setQueryData(automationKeys.automation('a1'), { automation: { id: 'a1' }, summary: '' });
     queryClient.setQueryData(automationKeys.runs('a1'), []);

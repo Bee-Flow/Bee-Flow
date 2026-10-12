@@ -41,26 +41,26 @@ const phase = (key: string, status: PhaseStatus, over: Partial<Phase> = {}): Pha
 
 const LISTS: Phase[][] = [
     [],
-    [phase('table', 'ready'), phase('routine', 'pending'), phase('fill', 'pending')],
-    [phase('table', 'done'), phase('routine', 'awaiting', { artifacts: { automationId: 'a1' } }), phase('fill', 'ready'), phase('app', 'pending')],
+    [phase('table', 'ready'), phase('automation', 'pending'), phase('fill', 'pending')],
+    [phase('table', 'done'), phase('automation', 'awaiting', { artifacts: { automationId: 'a1' } }), phase('fill', 'ready'), phase('app', 'pending')],
     [phase('t1', 'done', { kind: 'table' }), phase('d', 'running', { kind: 'design' }), phase('x', 'pending', { kind: 'app' })],
     [phase('table', 'done'), phase('approvals', 'locked'), phase('access', 'failed', { kind: 'access' })],
-    [phase('table', 'done'), phase('routine', 'skipped'), phase('compliance', 'done', { kind: 'compliance' })],
+    [phase('table', 'done'), phase('automation', 'skipped'), phase('compliance', 'done', { kind: 'compliance' })],
     [phase('table', 'done'), phase('design', 'awaiting', { kind: 'design' }), phase('app', 'running', { kind: 'app' })],
 ];
 
 const EVENTS: port.PlaybookEvent[] = [
     { type: 'start', key: 'table' },
-    { type: 'start', key: 'routine', artifacts: { automationId: 'a1' } },
+    { type: 'start', key: 'automation', artifacts: { automationId: 'a1' } },
     { type: 'start', key: 'd' },
-    { type: 'artifact', key: 'routine', artifacts: { automationId: 'a2' } },
-    { type: 'finished', key: 'routine', summary: 'Built', artifacts: { automationId: 'a1' } },
+    { type: 'artifact', key: 'automation', artifacts: { automationId: 'a2' } },
+    { type: 'finished', key: 'automation', summary: 'Built', artifacts: { automationId: 'a1' } },
     { type: 'markDone', key: 'app', artifacts: { appId: 'p1' } },
     { type: 'failed', key: 'app' },
     { type: 'failed', key: 'app', error: 'boom' },
-    { type: 'continue', key: 'routine', nextKey: 'fill' },
-    { type: 'continue', key: 'routine', nextKey: 'fill', brief: 'Edited brief' },
-    { type: 'continue', key: 'routine', nextKey: null, brief: 'ignored' },
+    { type: 'continue', key: 'automation', nextKey: 'fill' },
+    { type: 'continue', key: 'automation', nextKey: 'fill', brief: 'Edited brief' },
+    { type: 'continue', key: 'automation', nextKey: null, brief: 'ignored' },
     { type: 'revise', key: 'design', feedback: 'Totals on top' },
     { type: 'skip', key: 'fill' },
     { type: 'retry', key: 'fill' },
@@ -110,7 +110,7 @@ describeIfWeb('phaseMachine matches the web', () => {
         const list = LISTS[2] as Phase[];
         for (const kind of ['started', 'artifacts', 'finished', 'failed', 'needs_input', 'dismiss_input', 'skipped', 'done'] as const) {
             const result = { kind, artifacts: { x: 1 }, summary: 'S', error: 'E' };
-            expect({ kind, out: clean(port.applyPhaseResult(list, 'routine', result)) }).toEqual({ kind, out: clean((w.applyPhaseResult as Fn)(list, 'routine', result)) });
+            expect({ kind, out: clean(port.applyPhaseResult(list, 'automation', result)) }).toEqual({ kind, out: clean((w.applyPhaseResult as Fn)(list, 'automation', result)) });
         }
     });
 });
@@ -120,7 +120,7 @@ describe('isPolling', () => {
         const running = [phase('t', 'done', { kind: 'table' }), phase('f', 'running', { kind: 'fill' })];
         expect(port.isPolling({ status: 'active', phases: running })).toBe(true);
         expect(port.isPolling({ status: 'stopped', phases: running })).toBe(false);
-        expect(port.isPolling({ status: 'active', phases: [phase('r', 'running', { kind: 'routine' })] })).toBe(false);
+        expect(port.isPolling({ status: 'active', phases: [phase('r', 'running', { kind: 'automation' })] })).toBe(false);
         expect(port.isPolling(null)).toBe(false);
     });
 });

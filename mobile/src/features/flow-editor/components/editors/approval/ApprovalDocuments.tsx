@@ -24,21 +24,21 @@ export function ApprovalDocuments({ rows, onChange, disabled }: { rows: Attachme
     const t = useTranslation();
     return (
         <FieldRow
-            label={t('mobile.flow.approval.documents', 'Documents to show')}
-            hint={t('mobile.flow.approval.documents_hint', 'Files earlier steps produced (a generated PDF or Word document) that the approver can download before deciding. Up to 5.')}
+            label={t('automations.approval_editors.documents_to_show', 'Documents to show')}
+            hint={t('automations.approval_editors.files_earlier_steps_produced_a_generated', 'Files earlier steps produced (a generated PDF or Word document) that the approver can download before deciding. Up to 5.')}
         >
             {rows.map((att, i) => (
-                <RowCard key={i} onRemove={() => onChange(removeAt(rows, i))} removeLabel={t('mobile.flow.approval.remove_document', 'Remove document')} disabled={disabled}>
+                <RowCard key={i} onRemove={() => onChange(removeAt(rows, i))} removeLabel={t('automations.approval_editors.remove_document', 'Remove document')} disabled={disabled}>
                     <BindingInput mode="template" value={att.binding || ''} onChange={(v) => onChange(patchAt(rows, i, { binding: String(v) }))} prompt={readableExample(FILE_EXAMPLE)} disabled={disabled} />
                     <TextField
                         value={att.label || ''}
                         onChangeText={(label) => onChange(patchAt(rows, i, { label }))}
-                        placeholder={t('mobile.flow.approval.shown_name', 'Shown name (optional)')}
+                        placeholder={t('automations.approval_editors.shown_name_optional', 'Shown name (optional)')}
                         editable={!disabled}
                     />
                 </RowCard>
             ))}
-            {rows.length < MAX_ATTACHMENTS ? <AddButton label={t('mobile.flow.approval.add_document', 'Add a document')} onPress={() => onChange([...rows, { binding: '', label: '' }])} disabled={disabled} /> : null}
+            {rows.length < MAX_ATTACHMENTS ? <AddButton label={t('automations.approval_editors.add_a_document', 'Add a document')} onPress={() => onChange([...rows, { binding: '', label: '' }])} disabled={disabled} /> : null}
         </FieldRow>
     );
 }

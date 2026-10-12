@@ -45,7 +45,7 @@
  */
 
 const { isPrivateHostname, safeFetch, isPrivateAddressError } = require('../utils/ssrfGuard');
-const { HTTP_RESPONSE_CAP } = require('./httpResponseLimits');
+const { HTTP_RESPONSE_CAP, readBodyBounded } = require('./httpResponseLimits');
 const { acquireSlot } = require('./codeSandboxSlots');
 const log = require('../telemetry/log');
 
@@ -511,7 +511,7 @@ async function runCode({ code, inputs = {}, limits = {}, bridges = {}, mode = 'l
  * address is refused too. All refusals surface as the same structured
  * { error } shape user code already gets.
  */
-async function defaultFetchHttp(url, opts = {}, { responseCap = HTTP_RESPONSE_CAP, timeoutMs = 10_000 } = {}) {
+async function defaultFetchHttp(url, opts = {}, { responseCap = HTTP_RESPONSE_CAP, timeoutMs = 10_000, fetchImpl = safeFetch } = {}) {
     if (typeof url !== 'string' || !url.startsWith('https://')) {
         return { error: 'Only https:// URLs are allowed.' };
     }
@@ -523,19 +523,19 @@ async function defaultFetchHttp(url, opts = {}, { responseCap = HTTP_RESPONSE_CA
     const ac = new AbortController();
     const timer = setTimeout(() => ac.abort(), timeoutMs);
     try {
-        const resp = await safeFetch(url, {
+        const resp = await fetchImpl(url, {
             method: opts.method || 'GET',
             headers: opts.headers || {},
             body: opts.body !== undefined ? (typeof opts.body === 'string' ? opts.body : JSON.stringify(opts.body)) : undefined,
             signal: ac.signal,
         });
-        const text = await resp.text();
-        const truncated = text.length > responseCap ? text.slice(0, responseCap) : text;
+        // Bounded read (BFSF-460): never buffers more than the cap's byte budget.
+        const { text: body, truncated } = await readBodyBounded(resp, { charCap: responseCap });
         return {
             status: resp.status,
             headers: Object.fromEntries(resp.headers.entries()),
-            body: truncated,
-            truncated: text.length > responseCap,
+            body,
+            truncated,
         };
     } catch (e) {
         if (isPrivateAddressError(e)) {

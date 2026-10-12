@@ -1,5 +1,5 @@
 /**
- * Every way out of a routine is guarded and logged.
+ * Every way out of an automation is guarded and logged.
  *
  * Four outbound paths used to bypass the Privacy Shield completely — no PII
  * scan, no `integration_activity_log` row, nothing in "What happened":
@@ -30,7 +30,7 @@
  *   parse_json (ai mode)      —    ✓      —         ✓          ✓
  *   data_extraction           —    ✓      —         ✓         (never calls)
  *
- * A ROUTINE IS NOT THE ONLY THING THAT LEAVES. The webpages light tier runs
+ * A AUTOMATION IS NOT THE ONLY THING THAT LEAVES. The webpages light tier runs
  * author-written JavaScript in the SAME sandbox as the code step, so its ways
  * out belong in this table too. Their behaviour is pinned next to the module
  * (core/webpages/webpageEgress.test.js); the rows are here because this file
@@ -65,9 +65,9 @@
  *   caller                                   source            how
  *   chat (stream), direct chat, execAi       (their own)       own probe + row
  *   code step / webpage tool bridges         (their own)       own probe + row
- *   builder suggestion scan                  (routine policy)  own probe + row
+ *   builder suggestion scan                  (automation policy)  own probe + row
  *   core/agentRuntime/chatWithAgent          agent_chat        chokepoint
- *   core/aiTaskRunner (routines, cowork)     routine|cowork    chokepoint
+ *   core/aiTaskRunner (automations, cowork)     automation|cowork    chokepoint
  *   core/swarms/swarmRuntime                 swarm             chokepoint
  *   routes/ai/voice                          voice             chokepoint
  *   routes/mcpServer (/mcp)                  mcp_server        chokepoint
@@ -773,12 +773,12 @@ test('webpages: the api runtime does not hand the sandbox an unguarded fetch', a
     }
 });
 
-test('webpages: its egress is filed under its own source, not as a routine', () => {
-    // A webpage handler logged as `source: 'routine'` corrupts the audit trail,
+test('webpages: its egress is filed under its own source, not as an automation', () => {
+    // A webpage handler logged as `source: 'automation'` corrupts the audit trail,
     // which is a compliance surface rather than a label.
     const { WEBPAGE_SOURCE } = require('../webpages/webpageEgress');
     assert.strictEqual(WEBPAGE_SOURCE, 'webpage_api');
-    // buildAuditBase must still DEFAULT to 'routine', or every existing caller
+    // buildAuditBase must still DEFAULT to 'automation', or every existing caller
     // silently changes what it writes. The REAL one, briefly: this file mocks
     // ./safety to record what the engine hands it, and the default is the one
     // thing a recorder cannot answer.
@@ -788,7 +788,7 @@ test('webpages: its egress is filed under its own source, not as a routine', () 
     try {
         const { buildAuditBase } = require('./safety');
         const ctx = { orgId: 'org1', userId: 'u1', automationId: 'a1', runId: 'r1' };
-        assert.strictEqual(buildAuditBase(ctx, { id: 's1' }).source, 'routine');
+        assert.strictEqual(buildAuditBase(ctx, { id: 's1' }).source, 'automation');
         assert.strictEqual(buildAuditBase(ctx, { id: 's1' }, { source: WEBPAGE_SOURCE }).source, 'webpage_api');
     } finally {
         require.cache[safetyPath] = recorder;

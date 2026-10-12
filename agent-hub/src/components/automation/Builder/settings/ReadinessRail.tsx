@@ -31,11 +31,11 @@ function openPreferences(e: React.MouseEvent<HTMLAnchorElement>) {
 export function agoText(iso: string | null, t: T, now = Date.now()): string {
     if (!iso) return '';
     const minutes = Math.max(0, Math.floor((now - Date.parse(iso)) / 60_000));
-    if (minutes < 1) return t('routines.ready.ago_now', 'just now');
-    if (minutes < 60) return t('routines.ready.ago_min', '{n} min ago', { n: minutes });
+    if (minutes < 1) return t('automations.ready.ago_now', 'just now');
+    if (minutes < 60) return t('automations.ready.ago_min', '{n} min ago', { n: minutes });
     const hours = Math.floor(minutes / 60);
-    if (hours < 24) return t('routines.ready.ago_hours', '{n} h ago', { n: hours });
-    return t('routines.ready.ago_days', '{n} days ago', { n: Math.floor(hours / 24) });
+    if (hours < 24) return t('automations.ready.ago_hours', '{n} h ago', { n: hours });
+    return t('automations.ready.ago_days', '{n} days ago', { n: Math.floor(hours / 24) });
 }
 
 interface Item { key: string; state: State; label: string; section?: string }
@@ -56,14 +56,14 @@ function aiActState(r: Readiness, check: AiActCheckResult | undefined): State {
 function items(r: Readiness, t: T, check?: AiActCheckResult): Item[] {
     const out: Item[] = [];
     out.push(r.stepsComplete.ok
-        ? { key: 'steps', state: 'ok', label: t('routines.ready.steps_ok', 'All steps filled in') }
+        ? { key: 'steps', state: 'ok', label: t('automations.ready.steps_ok', 'All steps filled in') }
         : { key: 'steps', state: 'todo', label: r.stepsComplete.issues > 0
-            ? t('routines.ready.steps_todo_n', '{n} steps still need something', { n: r.stepsComplete.issues })
-            : t('routines.ready.steps_todo', 'Some steps still need something') });
-    if (!r.lastTest) out.push({ key: 'test', state: 'todo', label: t('routines.ready.test_none', 'Not tested yet') });
+            ? t('automations.ready.steps_todo_n', '{n} steps still need something', { n: r.stepsComplete.issues })
+            : t('automations.ready.steps_todo', 'Some steps still need something') });
+    if (!r.lastTest) out.push({ key: 'test', state: 'todo', label: t('automations.ready.test_none', 'Not tested yet') });
     else {
         const ago = agoText(r.lastTest.at, t);
-        const base = r.lastTest.ok ? t('routines.ready.test_ok', 'Last test passed') : t('routines.ready.test_failed', 'Last test failed');
+        const base = r.lastTest.ok ? t('automations.ready.test_ok', 'Last test passed') : t('automations.ready.test_failed', 'Last test failed');
         out.push({ key: 'test', state: r.lastTest.ok ? 'ok' : 'failed', label: ago ? `${base} · ${ago}` : base });
     }
     if (aiActVisible(r)) {
@@ -71,22 +71,22 @@ function items(r: Readiness, t: T, check?: AiActCheckResult): Item[] {
         out.push({
             key: 'aiAct',
             state,
-            label: t('routines.ready.aiact', 'AI Act check'),
+            label: t('automations.ready.aiact', 'AI Act check'),
             section: state === 'ok' ? undefined : 'ai-act',
         });
     }
     out.push(r.description.ok
-        ? { key: 'description', state: 'ok', label: t('routines.ready.description_ok', 'Description') }
-        : { key: 'description', state: 'optional', label: t('routines.ready.description', 'Description (recommended)'), section: 'general' });
+        ? { key: 'description', state: 'ok', label: t('automations.ready.description_ok', 'Description') }
+        : { key: 'description', state: 'optional', label: t('automations.ready.description', 'Description (recommended)'), section: 'general' });
     return out;
 }
 
 function RailStatus({ saved, loading, failed }: { saved: boolean; loading: boolean; failed: boolean }) {
     const { t } = useTranslation();
     let text: string | null = null;
-    if (!saved) text = t('routines.ready.unsaved', 'Save the automation first.');
-    else if (loading) text = t('routines.ready.loading', 'Checking…');
-    else if (failed) text = t('routines.ready.error', 'Could not check right now.');
+    if (!saved) text = t('automations.ready.unsaved', 'Save the automation first.');
+    else if (loading) text = t('automations.ready.loading', 'Checking…');
+    else if (failed) text = t('automations.ready.error', 'Could not check right now.');
     return text ? <p className="text-[var(--text-tertiary)]">{text}</p> : null;
 }
 
@@ -136,7 +136,7 @@ export default function ReadinessRail({ automation, onOpenSection, extrasClassNa
 }) {
     const { t } = useTranslation();
     const id = automation?.id || null;
-    // The routine's version, updatedAt and description are part of the key: a
+    // The automation's version, updatedAt and description are part of the key: a
     // save refetches the checklist (readinessStamp).
     const stamp = readinessStamp(automation);
     const readiness = useReadiness(id, stamp);
@@ -153,7 +153,7 @@ export default function ReadinessRail({ automation, onOpenSection, extrasClassNa
             )}
 
             <div className="p-3.5 rounded-xl bg-[var(--bg-secondary)] flex flex-col gap-2">
-                <h3 className="font-semibold">{t('routines.ready.title', 'Ready to activate?')}</h3>
+                <h3 className="font-semibold">{t('automations.ready.title', 'Ready to activate?')}</h3>
                 <RailStatus saved={!!id} loading={readiness.isLoading} failed={readiness.isError} />
                 {r && <Checklist items={items(r, t, check.data)} onOpenSection={onOpenSection} />}
             </div>
@@ -162,8 +162,8 @@ export default function ReadinessRail({ automation, onOpenSection, extrasClassNa
                 <p className="flex gap-1.5 text-[var(--text-tertiary)] leading-4">
                     <UserCog className="w-[13px] h-[13px] shrink-0 mt-px" aria-hidden />
                     <span>
-                        {t('routines.ready.automap_note', '"Map fields automatically" is a personal preference and now lives in your profile under')}{' '}
-                        <a href={PREFERENCES_PATH} onClick={openPreferences} className="underline">{t('routines.ready.automap_link', 'Editor preferences')}</a>.
+                        {t('automations.ready.automap_note', '"Map fields automatically" is a personal preference and now lives in your profile under')}{' '}
+                        <a href={PREFERENCES_PATH} onClick={openPreferences} className="underline">{t('automations.ready.automap_link', 'Editor preferences')}</a>.
                     </span>
                 </p>
             </div>

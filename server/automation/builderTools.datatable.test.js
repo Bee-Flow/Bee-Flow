@@ -512,3 +512,92 @@ test('(39) the full echo shows a datatable step\'s op, table and value keys, and
     const { summariseDraftSteps } = require('./builderTools/modelPayload');
     assert.strictEqual(summariseDraftSteps({ steps: [unlinked] })[0].table, 'facturen (unlinked)');
 });
+
+
+// ─── Consent to bind an EXISTING table (datatableApproval) ───────────────────
+//
+// In a chat work mode `_approvedDatatableIds` is a Set; a step may only be
+// bound to an existing table the user named, picked, or the flow already uses.
+// Over MCP the Set is absent and nothing is gated.
+
+const approvedWrap = (ids = [], datatables = [FACTUREN, KLANTEN]) => ({
+    userId: 'u_test', def: emptyDefinition(), _datatables: datatables, _approvedDatatableIds: new Set(ids),
+});
+const PENDING_ROW = {
+    id: 'pending:1', key: 'nieuw', name: 'Nieuw', canWrite: true, managedKind: null, pending: true, scope: 'org',
+    columns: [{ key: 'a', name: 'A', type: 'text', unique: false }],
+};
+
+test('(36) an existing table the user did not choose is refused with a ready question — through every route to a datatable step', async () => {
+    const entry = { type: 'datatable', spec: { op: 'find_rows', datatableId: 'tbl_1a2b3c' } };
+
+    const add = approvedWrap();
+    const viaAdd = await applyToolCall('builder_add_datatable', { op: 'find_rows', datatableId: 'tbl_1a2b3c' }, add);
+    assert.strictEqual(viaAdd.code, 'datatable_choice_required');
+    assert.deepStrictEqual(viaAdd._askArgs.questions[0].datatableIds[0], 'tbl_1a2b3c');
+    assert.strictEqual(add.def.steps.length, 0, 'nothing was added');
+
+    const batch = approvedWrap();
+    const viaBatch = await applyToolCall('builder_add_steps', { steps: [entry] }, batch);
+    assert.ok(viaBatch.error, JSON.stringify(viaBatch));
+    assert.match(JSON.stringify(viaBatch), /datatable_choice_required|has not chosen the table/);
+    assert.strictEqual(batch.def.steps.length, 0);
+
+    const rep = approvedWrap();
+    const note = await applyToolCall('builder_add_set', { fields: { x: lit('1') } }, rep);
+    const viaReplace = await applyToolCall('builder_replace_step', { stepId: note.added.id, newType: 'datatable', spec: { op: 'find_rows', datatableId: 'tbl_1a2b3c' } }, rep);
+    assert.strictEqual(viaReplace.code, 'datatable_choice_required');
+    assert.strictEqual(rep.def.steps[0].type, 'set', 'the step was not replaced');
+});
+
+test('(36b) update_step filling a blank datatable step is gated too', async () => {
+    const dw = { userId: 'u_test', def: emptyDefinition() };
+    const blank = await applyToolCall('builder_add_datatable', { op: 'find_rows' }, dw);
+    assert.ok(!blank.error, blank.error);
+    dw._datatables = [FACTUREN, KLANTEN];
+    dw._approvedDatatableIds = new Set();
+    const refused = await applyToolCall('builder_update_step', { stepId: blank.added.id, patch: { datatableId: 'tbl_1a2b3c' } }, dw);
+    assert.strictEqual(refused.code, 'datatable_choice_required');
+    assert.strictEqual(dw.def.steps[0].datatableId, '');
+    dw._approvedDatatableIds.add('tbl_1a2b3c');
+    const filled = await applyToolCall('builder_update_step', { stepId: blank.added.id, patch: { datatableId: 'tbl_1a2b3c' } }, dw);
+    assert.ok(!filled.error, filled.error);
+    assert.strictEqual(dw.def.steps[0].datatableId, 'tbl_1a2b3c');
+});
+
+test('(37) a named, bound, carried or pending table passes the gate; without the Set nothing is gated', async () => {
+    const named = await applyToolCall('builder_add_datatable', { op: 'find_rows', datatableId: 'tbl_1a2b3c' }, approvedWrap(['tbl_1a2b3c']));
+    assert.ok(!named.error, named.error);
+    const pending = await applyToolCall('builder_add_datatable', { op: 'add_row', datatableId: 'pending:1', datatableKey: 'nieuw', values: { a: lit('x') } }, approvedWrap([], [FACTUREN, PENDING_ROW]));
+    assert.ok(!pending.error, pending.error);
+    assert.strictEqual(pending.added.datatableId, 'pending:1');
+    assert.strictEqual(pending.added.datatableKey, 'nieuw');
+    const mcp = await applyToolCall('builder_add_datatable', { op: 'find_rows', datatableId: 'tbl_1a2b3c' }, catalogWrap());
+    assert.ok(!mcp.error, 'MCP sets no approval Set');
+});
+
+test('(38) the columns of a pending table are checked like a real one; a forged pending id is refused', async () => {
+    const dw = approvedWrap([], [FACTUREN, PENDING_ROW]);
+    const bad = await applyToolCall('builder_add_datatable', { op: 'add_row', datatableId: 'pending:1', values: { zzz: lit('x') } }, dw);
+    assertRejected(bad, 'unknown column on a pending table');
+    assert.match(bad.error, /does not have/);
+    const forged = await applyToolCall('builder_add_datatable', { op: 'find_rows', datatableId: 'pending:7' }, dw);
+    assert.match(forged.error, /pending ids exist only inside the proposal/);
+    const noCatalog = await applyToolCall('builder_add_datatable', { op: 'find_rows', datatableId: 'pending:1' }, freshWrap());
+    assert.match(noCatalog.error, /pending ids exist only inside the proposal/, 'refused even when there is no catalog to check against');
+});
+
+test('(39) an approved table that is read-only is still refused for a write', async () => {
+    const r = await applyToolCall('builder_add_datatable', { op: 'add_row', datatableId: 'tbl_k1', values: { naam: lit('x') } }, approvedWrap(['tbl_k1']));
+    assert.match(r.error, /read-only for this user/);
+});
+
+test('(40) a batch refusal for an unchosen table carries the question to ask and tells the model not to pick one', async () => {
+    const dw = approvedWrap();
+    const r = await applyToolCall('builder_add_steps', { steps: [{ tempId: 't', type: 'datatable', spec: { op: 'find_rows', datatableId: 'tbl_1a2b3c' } }] }, dw);
+    assert.strictEqual(r.code, 'datatable_choice_required');
+    assert.deepStrictEqual(r._askArgs.questions[0].datatableIds[0], 'tbl_1a2b3c');
+    assert.ok(!('datatableId' in r.resendAs.args.steps[0].spec), 'the refused value is not suggested back');
+    assert.match(r._fixHint, /Ask the user \(builder_ask_questions with _askArgs\)/);
+    assert.doesNotMatch(r._fixHint, /Fill it with one of the options/);
+});

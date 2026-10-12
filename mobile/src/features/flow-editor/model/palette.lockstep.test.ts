@@ -68,16 +68,20 @@ const CATALOG: PaletteCatalog = {
 };
 const LAYERS = [{ key: 'enrich', title: 'Enrich lead', params: [1, 2] }, { key: 'solo', params: [1] }];
 /**
- * The web translates only what nodeDefs words (`routines.node.*`); what the
+ * The web translates only what nodeDefs words (`automations.node.*`); what the
  * phone adds keys for (`mobile.flow.*`, the ribbon's own keys) the web shows
  * in English. This `t` models exactly that, so the translated scope still
  * compares like for like; keyed.test below checks the phone's extra keys.
  */
-const t = (key: string, fallback: string) => (key.startsWith('routines.node.') ? `«${fallback}»` : fallback);
+const t = (key: string, fallback: string) => (key.startsWith('automations.node.') ? `«${fallback}»` : fallback);
 
-/** The port's output without the i18n keys it adds; the web has none. */
+/**
+ * The output without the i18n keys: the port's own (labelKey, descKey) and the
+ * web's `i18n` of an entry with words of its own ("Filter a list"), compared
+ * key for key in 'the keys the phone adds'.
+ */
 const plain = <T,>(v: T): T =>
-    JSON.parse(JSON.stringify(v, (k, x) => (k === 'labelKey' || k === 'descKey' || k === 'disabledReasonKey' ? undefined : x)));
+    JSON.parse(JSON.stringify(v, (k, x) => (['labelKey', 'descKey', 'disabledReasonKey', 'i18n'].includes(k) ? undefined : x)));
 
 const SCOPES: Record<string, Record<string, unknown>> = {
     empty: {},
@@ -100,7 +104,7 @@ describe('static items', () => {
         'CODE_ITEM', 'CREATE_LAYER_ITEM', 'LAYER_OUTPUT_ITEM', 'CATEGORY_ORDER', 'NEEDS_FORM_TRIGGER_REASON', 'CODE_OFF_REASONS',
     ] as const;
     it.each(CONSTANTS)('%s is the web\'s, icons by name', (name) => {
-        expect(plain((palette as Record<string, unknown>)[name])).toEqual(web[name]);
+        expect(plain((palette as Record<string, unknown>)[name])).toEqual(plain(web[name]));
     });
 
     it('the sets and the additional-trigger list are the web\'s', () => {
@@ -125,7 +129,7 @@ describe('gating', () => {
 
 describe('groups', () => {
     it.each(Object.entries(SCOPES))('buildStepGroups(%s)', (_name, scope) => {
-        expect(plain(palette.buildStepGroups(scope))).toEqual(web.buildStepGroups(scope));
+        expect(plain(palette.buildStepGroups(scope))).toEqual(plain(web.buildStepGroups(scope)));
     });
 
     it('the builders and app grouping agree', () => {
@@ -183,7 +187,9 @@ describe('app naming and the integration catalogue', () => {
 
     it('resolveIntegrationFromTool agrees for every prefix and static tool', () => {
         const tools = [null, '', 'gmail_send', 'nextcloud_talk_x', 'nextcloud_x', 'ms_calendar_list', 'ms_other', 'n8n_workflow_run',
-            'n8n_execute', 'send_email', 'generate_image', 'generate_other', 'afas_query', 'mcp__server__tool', 'mcp_x', 'regex_x', 'transcribe_file'];
+            'n8n_execute', 'send_email', 'generate_image', 'generate_other', 'afas_query', 'mcp__server__tool', 'mcp_x', 'regex_x', 'transcribe_file',
+            'memory_save', 'webpage_publish', 'webpages_list', 'kb_fetch', 'knowledge_base_ingest', 'automation_runs_summary',
+            'automation_propose_evolution', 'automation_apply_evolution', 'create_presentation'];
         for (const tool of tools) expect(palette.resolveIntegrationFromTool(tool)).toBe(webIcons.resolveIntegrationFromTool(tool));
     });
 
@@ -221,13 +227,21 @@ describe('app naming and the integration catalogue', () => {
 
 describe('the keys the phone adds', () => {
     const shout = (key: string, fallback: string) => `${key}=${fallback}`;
+    it('"Filter a list" names the web\'s own keys and comes back for recorded filter usage', () => {
+        expect(palette.FILTER_LIST_ITEM.labelKey).toBe(web.FILTER_LIST_ITEM.i18n.label);
+        expect(palette.FILTER_LIST_ITEM.descKey).toBe(web.FILTER_LIST_ITEM.i18n.desc);
+        expect(palette.localised(palette.FILTER_LIST_ITEM, shout).label).toBe('condition_node.palette.filter_label=Filter a list');
+        expect(palette.itemForKey('step:filter')?.label).toBe('Filter a list');
+        expect(palette.itemForKey('step:filter')?.payload).toEqual({ kind: 'filter', label: web.FILTER_LIST_ITEM.payload.label });
+        expect(palette.itemForKey('step:switch')?.label).toBe(web.itemForKey('step:switch')?.label);
+    });
     it('translates the picker\'s own words, the group headings and the reasons', () => {
         const groups = palette.buildStepGroups({ catalog: { ...CATALOG, flags: { codeReason: 'runtime' } }, t: shout, hasFormTrigger: false });
         const triggers = groups[0] as { title: string; items: palette.PaletteItem[] };
-        expect(triggers.title).toBe('routines.ribbon.trigger=Trigger');
+        expect(triggers.title).toBe('automations.ribbon.trigger=Trigger');
         expect(triggers.items[0]?.label).toBe('mobile.flow.palette.manual=Trigger manually');
         expect(triggers.items[0]?.desc).toBe('mobile.flow.palette.trigger_replaces_desc=Replaces the current trigger');
-        expect(triggers.items[2]?.desc).toBe('mobile.flow.palette.trigger_adds_desc=Adds another way to start this routine');
+        expect(triggers.items[2]?.desc).toBe('mobile.flow.palette.trigger_adds_desc=Adds another way to start this automation');
         const flow = groups.find((g) => g.key === 'flow') as { sections: { items: palette.PaletteItem[] }[] };
         const items = flow.sections.flatMap((sec) => sec.items);
         expect(items.find((i) => i.id === 'form_page')?.disabledReason).toMatch(/^mobile\.flow\.palette\.needs_form_trigger=/);
@@ -242,7 +256,7 @@ describe('the keys the phone adds', () => {
         const hits = palette.buildSearchResults('schedule', { mode: 'trigger', t: shout });
         expect(hits[0]?.label).toBe('mobile.flow.palette.schedule=On a schedule');
         expect(palette.itemForKey('trigger:webhook', { t: shout })?.label).toBe('mobile.flow.palette.webhook=On webhook call');
-        expect(palette.itemForKey('step:loop', { t: shout })?.label).toBe('routines.node.loop.label=Repeat for each');
+        expect(palette.itemForKey('step:loop', { t: shout })?.label).toBe('automations.node.loop.label=Repeat for each');
         expect(palette.codeItemFor({ flags: { codeReason: 'weird' } })?.disabledReasonKey).toBe('mobile.flow.palette.code_off_unknown');
     });
 });

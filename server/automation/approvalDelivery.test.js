@@ -16,7 +16,7 @@
  *     into a room the owner excluded is a write they asked us not to make.
  *
  *   • nothing personal leaves for Nextcloud (BFSF-441): the card and the bell
- *     carry the routine name, the event, the role and the link, never the
+ *     carry the automation name, the event, the role and the link, never the
  *     prompt, details, questions, answers, attachments or context.
  *
  * Run: cd server && node --test automation/approvalDelivery.test.js
@@ -184,7 +184,7 @@ test('an oversized prompt changes nothing: the card never carries it', () => {
     assert.ok(card.endsWith('👉 https://app.example/x'));
 });
 
-test('an oversized routine or stage name is capped to one line', () => {
+test('an oversized automation or stage name is capped to one line', () => {
     const a = approval({ stages: [{ key: 's1', name: 'n\n'.repeat(500), approvers: [{ userId: 'x' }], rule: 'first' }], stage: 's1' });
     const approvalService = require('./approvalService');
     const card = delivery.buildApprovalCard({
@@ -443,7 +443,7 @@ test('the announcement is an allow-list: exactly these keys, whatever the row ca
     const flat = JSON.stringify(a);
     for (const secret of [...SECRETS, 'NEW-COLUMN-SECRET']) assert.ok(!flat.includes(secret), secret);
     assert.equal(a.event, 'approval_needed');
-    assert.equal(a.routineName, 'Invoices');
+    assert.equal(a.automationName, 'Invoices');
     assert.equal(a.role, 'Asked of the assigned approver');
     assert.equal(a.answerInApp, true);
     assert.equal(a.link, 'https://app.example/x');
@@ -455,7 +455,7 @@ test('the role wording names the kind of assignee, never a person', () => {
     assert.equal(role({ approvers: [{ userId: 'u1' }] }), 'Asked of the approval panel');
     assert.equal(role({ assigneeGroupId: 'g1' }), 'Asked of the assigned group');
     assert.equal(role({ assigneeUserId: 'u1' }), 'Asked of the assigned approver');
-    assert.equal(role({}), 'Asked of the routine owner');
+    assert.equal(role({}), 'Asked of the automation owner');
 });
 
 for (const [label, over] of [['plain request', {}], ['request with questions', WITH_QUESTIONS]]) {
@@ -472,7 +472,7 @@ for (const [label, over] of [['plain request', {}], ['request with questions', W
             assert.equal(report.talk.ok, true);
             assert.equal(rec.notifications.length, 1);
             assertNothingPersonal(label);
-            // What it DOES carry: the routine, the event, the role and the link.
+            // What it DOES carry: the automation, the event, the role and the link.
             const card = bot ? rec.botPosts[0].message : JSON.parse(rec.chatPosts[0].opts.body).message;
             assert.match(card, /Invoices needs an approval/);
             assert.match(card, /Step 1 of 1: Finance sign-off/);

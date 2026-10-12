@@ -51,7 +51,7 @@ const entry = (over = {}) => ({
     id: 'r1',
     sectionId: 'aiTasks',
     kind: 'automation',
-    name: 'Offerte-routine',
+    name: 'Offerte-automation',
     description: 'Maakt offertes',
     updatedAt: HOUR_AGO,
     at: Date.parse(HOUR_AGO),
@@ -93,7 +93,7 @@ describe('RecentWorkList', () => {
 
         const row = await screen.findByTestId('studio-recent-item-aiTasks:r1');
         expect(row.getAttribute('data-kind')).toBe('automation');
-        expect(row.textContent).toContain('Offerte-routine');
+        expect(row.textContent).toContain('Offerte-automation');
         expect(row.textContent).toContain('Maakt offertes');
         expect(screen.getByTestId('studio-recent-status-aiTasks:r1').textContent).toBe('On');
         expect(screen.getByTestId('studio-recent-when-aiTasks:r1').textContent).toBe('1h ago');

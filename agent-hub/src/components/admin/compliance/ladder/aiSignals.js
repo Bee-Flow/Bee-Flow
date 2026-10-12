@@ -19,7 +19,7 @@
 export const AI_STEP_TYPES = Object.freeze(['ai_step', 'data_extraction', 'ai_tool']);
 const _AI = new Set(AI_STEP_TYPES);
 
-/** Steps that stand between a routine and a person outside the org. */
+/** Steps that stand between an automation and a person outside the org. */
 export const CUSTOMER_FACING_STEP_TYPES = Object.freeze(['form_page']);
 
 /** Steps that write model output into a file (Art. 50(2) marking subjects). */
@@ -89,7 +89,7 @@ export function definitionOf(automation) {
 }
 
 /**
- * Signals for an automation (routine) from its record — `signalsForAutomation`
+ * Signals for an automation (automation) from its record — `signalsForAutomation`
  * on the server, minus what needs the database.
  * @returns {{ contains_ai, customer_facing, generates_content, disclosure_present: null,
  *             marking_enabled: null, annex_iii_hint: null, steps: { ai: [{id,label}], generating: [{id,label}] },

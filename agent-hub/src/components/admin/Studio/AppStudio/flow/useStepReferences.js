@@ -5,6 +5,7 @@ import {
     screenOptions, tableOptions,
 } from './stepReferences';
 import useAutomationApi from '../../../../../hooks/useAutomationApi';
+import useTranslation from '../../../../../hooks/useTranslation';
 import { listTemplates } from '../../../../../pages/documents/documentsApi';
 import { API_BASE, authFetch } from '../../../../../utils/helpers';
 import useAppTables, { fieldsForTable } from '../bi/useAppTables';
@@ -20,9 +21,9 @@ import { useEditorChrome } from '../editor/EditorChromeContext';
  * there is no appId: every network-backed list stays empty and the pickers
  * degrade to a plain text field, which is exactly what they were before.
  *
- * Nothing here throws. A missing data model, a plan without routines, a 403 on
+ * Nothing here throws. A missing data model, a plan without automations, a 403 on
  * connectors — each resolves to an empty list, because a builder editing a
- * `toast` step should never see an error about routines.
+ * `toast` step should never see an error about automations.
  */
 
 /** Saved datasets, read-only. useDatasets also brings CRUD this has no use for. */
@@ -35,6 +36,7 @@ async function fetchDatasets(appId) {
 }
 
 export default function useStepReferences(definition) {
+    const { t } = useTranslation();
     const chrome = useEditorChrome();
     const appId = chrome?.appId || null;
 
@@ -62,7 +64,7 @@ export default function useStepReferences(definition) {
         retry: false,
     });
 
-    // Routines are a separately licensed feature: a 403 is a legitimate answer,
+    // Automations are a separately licensed feature: a 403 is a legitimate answer,
     // not a failure to report here.
     const automationApi = useAutomationApi();
     const automationQuery = useQuery({
@@ -89,7 +91,7 @@ export default function useStepReferences(definition) {
             dataset: datasetOptions(datasetQuery.data),
             automation: automationOptions(automationQuery.data),
             connector: connectorOptions(connectors),
-            document: documentOptions(documentQuery.data),
+            document: documentOptions(documentQuery.data, t),
         };
         return {
             options,
@@ -101,5 +103,5 @@ export default function useStepReferences(definition) {
             ),
             appId,
         };
-    }, [definition, rawTables, datasetQuery.data, automationQuery.data, connectors, documentQuery.data, appId]);
+    }, [definition, rawTables, datasetQuery.data, automationQuery.data, connectors, documentQuery.data, appId, t]);
 }

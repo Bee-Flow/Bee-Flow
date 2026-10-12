@@ -94,7 +94,7 @@ const {
 const { execDatatable } = require('./execDatatable');
 const { execKnowledgeWrite } = require('./execKnowledgeWrite');
 // Named, typed fields out of a piece of text — on the admin's extraction
-// model, never the routine's tier.
+// model, never the automation's tier.
 const { execDataExtraction } = require('./execDataExtraction');
 const { runDag } = require('./runDag');
 

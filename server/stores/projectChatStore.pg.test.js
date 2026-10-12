@@ -375,6 +375,20 @@ test('an answer carries how it was made: tier and a count of replaced values, al
     assert.strictEqual(human.aiMeta, null);
 });
 
+test('editing a message drops the trace of the answers to it: it holds the old words', async () => {
+    const chat = await newChat('p1');
+    const ask = (await post('p1', chat.id, 'ann')).message;
+    const answer = (await store.appendMessage({
+        id: nextId('msg'), projectId: 'p1', chatId: chat.id, authorKind: 'assistant', content: 'sealed', replyTo: ask.id,
+        aiMeta: { tier: 'fast', redacted: 1 }, aiTrace: 'sealed-trace',
+    })).message;
+    assert.strictEqual(answer.aiTrace, 'sealed-trace');
+    await store.editMessage(chat.id, ask.id, 'bob', 'sealed-not-the-author');
+    assert.strictEqual((await store.getMessage(chat.id, answer.id)).aiTrace, 'sealed-trace', 'a refused edit changes nothing');
+    await store.editMessage(chat.id, ask.id, 'ann', 'sealed-edit');
+    assert.strictEqual((await store.getMessage(chat.id, answer.id)).aiTrace, null);
+});
+
 test('the trace of an answer goes with the message it answered, or with the answer', async () => {
     const chat = await newChat('p1');
     const ask = (await post('p1', chat.id, 'ann')).message;
@@ -395,4 +409,46 @@ test('the trace of an answer goes with the message it answered, or with the answ
     const a3 = (await store.appendMessage({ id: nextId('msg'), projectId: 'p1', chatId: chat.id, authorKind: 'assistant', content: 'sealed', aiTrace: 'sealed-3' })).message;
     await store.softDeleteMessage(chat.id, a3.id);
     assert.strictEqual((await store.getMessage(chat.id, a3.id)).aiTrace, null, 'the answer itself is deleted');
+});
+
+test('a system notice written for a member does not move that member\'s read marker', async () => {
+    const chat = await newChat('p1');
+    await post('p1', chat.id, 'bob');
+    await post('p1', chat.id, 'bob');
+    await store.appendMessage({ id: nextId('msg'), projectId: 'p1', chatId: chat.id, authorKind: 'system', authorUserId: 'carol', content: '', notice: 'ai_auto_on' });
+    const forCarol = (await store.listChats('p1', { userId: 'carol' })).find((c) => c.id === chat.id);
+    assert.strictEqual(forCarol.unread, 2, 'her two unread messages stay unread');
+    assert.strictEqual(await store.markRead(chat.id, 'carol', 1), 1, 'and no marker was written past them');
+});
+
+test('listMessages can narrow to the main conversation or to one thread by its root', async () => {
+    const chat = await newChat('p1');
+    const rootA = (await post('p1', chat.id, 'ann')).message;
+    const rootB = (await post('p1', chat.id, 'ann')).message;
+    const replyA = (await post('p1', chat.id, 'ben', { threadId: rootA.id })).message;
+    const main = (await post('p1', chat.id, 'ann')).message;
+    const replyB = (await post('p1', chat.id, 'ben', { threadId: rootB.id })).message;
+    const ids = async (opts) => (await store.listMessages(chat.id, opts)).messages.map((m) => m.id);
+
+    assert.deepStrictEqual(await ids({}), [rootA.id, rootB.id, replyA.id, main.id, replyB.id], 'left out: everything, in seq order');
+    assert.deepStrictEqual(await ids({ threadId: null }), [rootA.id, rootB.id, main.id]);
+    assert.deepStrictEqual(await ids({ threadId: rootA.id }), [rootA.id, replyA.id]);
+    assert.deepStrictEqual(await ids({ threadId: rootB.id, limit: 1 }), [replyB.id], 'the limit applies inside the thread');
+    assert.deepStrictEqual(await ids({ threadId: null, after: rootA.seq }), [rootB.id, main.id]);
+    assert.deepStrictEqual(await ids({ threadId: rootA.id, before: replyA.seq }), [rootA.id]);
+});
+
+test('a thread reply does not make an automatic answer stale; a main post does', async () => {
+    const chat = await newChat('p1', { aiMode: 'auto' });
+    const question = (await post('p1', chat.id, 'ann')).message;
+    const root = (await post('p1', chat.id, 'ann')).message;
+    await post('p1', chat.id, 'ben', { threadId: root.id });
+    const answer = () => store.appendMessage({
+        id: nextId('msg'), projectId: 'p1', chatId: chat.id, authorKind: 'assistant', content: 'sealed-ai',
+        replyTo: question.id, aiTrigger: 'auto_quiet', unlessHumanAfterSeq: root.seq,
+    });
+    const first = await answer();
+    assert.strictEqual(first.stale, false, 'only a thread reply came after what the gate read');
+    await post('p1', chat.id, 'ben');
+    assert.deepStrictEqual(await answer(), { stale: true });
 });

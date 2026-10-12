@@ -59,7 +59,7 @@ would undo a large part of that:
 
 So: **a chat reply is not a real-time push and must never be presented as
 one.** What polling is genuinely good for is what this server actually sends
-notifications about — a routine that finished at 03:00, an approval waiting, a
+notifications about — an automation that finished at 03:00, an approval waiting, a
 support reply, an expired connector credential. None of those is worse for
 arriving twenty minutes late.
 

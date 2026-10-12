@@ -674,7 +674,7 @@ test('`filters` is used but never declared — it belongs to the filter bar', ()
  * BENEFIT from Nextcloud — an embedded viewer's currentUser is their NC identity,
  * so the register records the real name — but it must not REQUIRE it.
  */
-test('nothing in the app requires Nextcloud, a connector or a routine', () => {
+test('nothing in the app requires Nextcloud, a connector or an automation', () => {
     const kinds = new Set();
     const walk = (obj) => {
         if (!obj || typeof obj !== 'object') return;
@@ -684,7 +684,7 @@ test('nothing in the app requires Nextcloud, a connector or a routine', () => {
     };
     walk(definition);
     assert.equal(kinds.has('connector'), false, 'a connector binding needs an external system configured');
-    assert.equal(kinds.has('run_automation'), false, 'a routine would install unwired and could not succeed');
+    assert.equal(kinds.has('run_automation'), false, 'an automation would install unwired and could not succeed');
     assert.equal(dataModel.connectors, undefined);
     assert.equal(kinds.has('send_email'), false, 'sending a notification needs a mailbox connector');
 });

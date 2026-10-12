@@ -11,7 +11,7 @@ const { composeRecipe, RECIPE_TOOL, systemPrompt } = require('./composeRecipe');
 const C = require('./composeRecipe');
 
 // The contract: a top-level `columns` array, required, alphabetically first.
-const GOOD = { columns: [{ key: 'naam', name: 'Naam', type: 'text' }], title: 'Leveranciers', phases: [{ kind: 'routine', label: 'R', brief: 'Build a routine into "{{table.name}}" with {{field.naam}}' }, { kind: 'app', label: 'A', brief: 'Build an app on {{table.name}}' }] };
+const GOOD = { columns: [{ key: 'naam', name: 'Naam', type: 'text' }], title: 'Leveranciers', phases: [{ kind: 'automation', label: 'R', brief: 'Build an automation into "{{table.name}}" with {{field.naam}}' }, { kind: 'app', label: 'A', brief: 'Build an app on {{table.name}}' }] };
 
 // What chatForcedTool returns: the parsed document plus the stop reason and
 // the raw argument string it was parsed from. An answer given as a bare
@@ -44,7 +44,7 @@ test('a runnable first draft: one call, the document normalised (fill added), wa
     const deps = fakeDeps([GOOD]);
     const out = await composeRecipe({ description: 'Lees leverancierslijsten in', locale: 'nl' }, deps);
     assert.equal(out.ok, true, JSON.stringify(out));
-    assert.deepEqual(out.recipe.phases.map((p) => p.kind), ['table', 'routine', 'fill', 'design', 'app']);
+    assert.deepEqual(out.recipe.phases.map((p) => p.kind), ['table', 'automation', 'fill', 'design', 'app']);
     assert.deepEqual(out.warnings, []);
     assert.equal(deps.calls.length, 1);
     assert.equal(deps.calls[0].toolDef, RECIPE_TOOL);
@@ -59,7 +59,7 @@ test('a runnable first draft: one call, the document normalised (fill added), wa
 });
 
 test('an unrunnable draft gets ONE repair round with the findings; a still-broken answer is refused with the errors', async () => {
-    const bad = { title: 'x', phases: [{ kind: 'routine', label: 'R' }] }; // no brief
+    const bad = { title: 'x', phases: [{ kind: 'automation', label: 'R' }] }; // no brief
     const deps = fakeDeps([bad, GOOD]);
     const out = await composeRecipe({ description: 'd' }, deps);
     assert.equal(out.ok, true);
@@ -122,14 +122,14 @@ test('the model is never offered a kind the prompt does not explain', () => {
     // phase second, nothing was appended, and the stage mounted with no app.
     assert.ok(!C.PROPOSABLE_KINDS.includes('access'));
     assert.ok(!C.PROPOSABLE_KINDS.includes('compliance'));
-    assert.deepEqual([...C.PROPOSABLE_KINDS], ['table', 'routine', 'fill', 'design', 'app', 'app_turn']);
+    assert.deepEqual([...C.PROPOSABLE_KINDS], ['table', 'automation', 'fill', 'design', 'app', 'app_turn']);
     assert.deepEqual(C.RECIPE_TOOL.function.parameters.properties.phases.items.properties.kind.enum, [...C.PROPOSABLE_KINDS]);
 });
 
 test('a workspace without the approvals capability is not asked to write one', () => {
     const on = C.systemPrompt('en', { approvalsAllowed: true });
     const off = C.systemPrompt('en', { approvalsAllowed: false });
-    assert.match(on, /An APPROVAL FLOW is a second `routine` phase/);
+    assert.match(on, /An APPROVAL FLOW is a second `automation` phase/);
     assert.match(off, /never propose an approval flow/);
     assert.doesNotMatch(off, /builder_add_approval/);
     // The approval paragraph is the longest single rule in the prompt; not
@@ -178,7 +178,7 @@ test('the schema puts `columns` first, requires it, and neither it nor the promp
 });
 
 test('the repair round is a native tool_call/tool pair echoing the model\'s own arguments', async () => {
-    const bad = { columns: [], title: 'x', phases: [{ kind: 'routine', label: 'R' }] }; // no brief
+    const bad = { columns: [], title: 'x', phases: [{ kind: 'automation', label: 'R' }] }; // no brief
     const deps = fakeDeps([bad, GOOD]);
     const out = await composeRecipe({ description: 'd', locale: 'en' }, deps);
     assert.equal(out.ok, true);
@@ -227,7 +227,7 @@ test('an answer cut off at max_tokens is compose_truncated — its own sentence,
     assert.equal(empty.code, 'compose_empty');
     // The repair round cut off: the fix is a shorter description, not the
     // first draft's findings.
-    const bad = { columns: [], title: 'x', phases: [{ kind: 'routine', label: 'R' }] };
+    const bad = { columns: [], title: 'x', phases: [{ kind: 'automation', label: 'R' }] };
     const cut = await composeRecipe({ description: 'd' }, fakeDeps([bad, { structured: null, stopReason: 'length' }]));
     assert.equal(cut.code, 'compose_truncated');
     // The repair round empty but not cut off: the first draft's findings, as today.
@@ -267,7 +267,7 @@ test('a cut-off answer the loose parser could still close is a PARTIAL document:
     assert.equal(whole.ok, true, JSON.stringify(whole));
     // …and when whole but invalid, it earns the repair round like any other
     // draft — the findings are real, not an artifact of the cut.
-    const bad = { columns: [], title: 'x', phases: [{ kind: 'routine', label: 'R' }] };
+    const bad = { columns: [], title: 'x', phases: [{ kind: 'automation', label: 'R' }] };
     const wholeBad = fakeDeps([{ structured: bad, stopReason: 'length', rawArguments: JSON.stringify(bad) }, GOOD]);
     const fixed = await composeRecipe({ description: 'd' }, wholeBad);
     assert.equal(fixed.ok, true);
@@ -292,7 +292,7 @@ test('a repair round the runtime refuses is logged and told apart from a model t
     // 400; BaseProvider throws without logging. The first draft's findings
     // stand, and the log says the second round never answered — otherwise
     // the live gate reads a dead repair path as model quality.
-    const bad = { columns: [], title: 'x', phases: [{ kind: 'routine', label: 'R' }] };
+    const bad = { columns: [], title: 'x', phases: [{ kind: 'automation', label: 'R' }] };
     let n = 0;
     const deps = {
         resolveModel: async () => 'gemma-4-26b-a4b',
@@ -308,7 +308,7 @@ test('a repair round the runtime refuses is logged and told apart from a model t
 
     // The other outcomes are named too: a repair no better than the draft,
     // and one that came back empty.
-    const worse = { columns: [], title: 'x', phases: [{ kind: 'routine', label: 'R' }, { kind: 'app', label: 'A' }] };
+    const worse = { columns: [], title: 'x', phases: [{ kind: 'automation', label: 'R' }, { kind: 'app', label: 'A' }] };
     const discarded = await withWarnings(async () => { await composeRecipe({ description: 'd' }, fakeDeps([bad, worse])); });
     assert.match(discarded.find((l) => /compose invalid/.test(l)), /round=1, stop=tool_calls, repair=discarded/);
     const empty = await withWarnings(async () => { await composeRecipe({ description: 'd' }, fakeDeps([bad, { structured: null, stopReason: 'stop' }])); });
@@ -318,7 +318,7 @@ test('a repair round the runtime refuses is logged and told apart from a model t
 });
 
 test('the findings locate a phase by the label the model wrote, not by its index in the normalised document', async () => {
-    // Raw: [table, routine, app-without-brief]. Normalised: [table, routine,
+    // Raw: [table, automation, app-without-brief]. Normalised: [table, automation,
     // fill, design, app] — the app is phases[4] there, phases[2] in the call
     // the repair round echoes. A small model told about phases[4] in a
     // three-phase call adds phases rather than fixes one.
@@ -327,7 +327,7 @@ test('the findings locate a phase by the label the model wrote, not by its index
         title: 'Invoices',
         phases: [
             { key: 'table', kind: 'table', label: 'Table' },
-            { key: 'read', kind: 'routine', label: 'Read invoices', brief: '## Build an automation\n1. `data_extraction` {{field.supplier}} and {{field.amount}}\n2. `datatable add_row` into **{{table.name}}**', requiresRole: 'status' },
+            { key: 'read', kind: 'automation', label: 'Read invoices', brief: '## Build an automation\n1. `data_extraction` {{field.supplier}} and {{field.amount}}\n2. `datatable add_row` into **{{table.name}}**', requiresRole: 'status' },
             { key: 'app', kind: 'app', label: 'App' },
         ],
     };
@@ -347,7 +347,7 @@ test('the findings locate a phase by the label the model wrote, not by its index
     await composeRecipe({ description: 'd', locale: 'en' }, bare);
     const lines = bare.calls[1].messages.at(-1).content.split('\n').slice(1);
     assert.ok(lines.includes('- title: A title is required.'), lines.join('\n'));
-    assert.ok(lines.includes('- phases: A playbook needs a routine or an app phase — a table alone builds nothing.'), lines.join('\n'));
+    assert.ok(lines.includes('- phases: A playbook needs an automation or an app phase — a table alone builds nothing.'), lines.join('\n'));
     assert.ok(lines.includes('- Phase "T" is a table phase but the document has no columns. Add a top-level `columns` array with one entry {key, name, type} per column.'), lines.join('\n'));
 });
 
@@ -359,7 +359,7 @@ test('a table is synthesized from the briefs\' placeholders ONLY after the repai
         title: 'Invoices',
         phases: [
             { kind: 'table', label: 'Table' },
-            { kind: 'routine', label: 'Read', brief: '## Build an automation\n1. `data_extraction` with {{field.invoice_date}} (date), {{field.supplier}} (string), {{field.total_amount}} (number), {{field.status}}\n2. `datatable add_row` into **{{table.name}}** (id `{{table.id}}`)' },
+            { kind: 'automation', label: 'Read', brief: '## Build an automation\n1. `data_extraction` with {{field.invoice_date}} (date), {{field.supplier}} (string), {{field.total_amount}} (number), {{field.status}}\n2. `datatable add_row` into **{{table.name}}** (id `{{table.id}}`)' },
             { kind: 'fill', label: 'First rows' },
             { kind: 'app', label: 'App', brief: '## Build an app on {{table.name}} with {{field.file_path}}' },
         ],
@@ -381,7 +381,7 @@ test('a table is synthesized from the briefs\' placeholders ONLY after the repai
         ['status', 'Status', 'text', false],
         ['file_path', 'File path', 'text', false],
     ]);
-    assert.deepEqual(out.recipe.phases.map((p) => p.kind), ['table', 'routine', 'fill', 'design', 'app']);
+    assert.deepEqual(out.recipe.phases.map((p) => p.kind), ['table', 'automation', 'fill', 'design', 'app']);
     assert.ok(!lines.some((l) => /compose invalid/.test(l)), 'a synthesized table is not a failure');
 
     // A first draft without columns whose repair declares them: no synthesis,
@@ -400,14 +400,14 @@ test('a table is synthesized from the briefs\' placeholders ONLY after the repai
 
     // And a document broken for OTHER reasons is not patched with a table —
     // a missing brief is not a table problem.
-    const briefless = { columns: [], title: 'x', phases: [{ kind: 'table', label: 'T' }, { kind: 'routine', label: 'R' }] };
+    const briefless = { columns: [], title: 'x', phases: [{ kind: 'table', label: 'T' }, { kind: 'automation', label: 'R' }] };
     const refused = await composeRecipe({ description: 'd' }, fakeDeps([briefless, briefless]));
     assert.equal(refused.code, 'recipe_invalid');
     assert.equal(refused.recipe.table, null);
 });
 
 test('the compose-invalid line says whether the answer was cut off, garbled, and what the table phase carried', async () => {
-    const inPhase = { title: 'x', phases: [{ kind: 'routine', label: 'R' }, { kind: 'table', label: 'T', columns: 'not a list', extra: 1 }] };
+    const inPhase = { title: 'x', phases: [{ kind: 'automation', label: 'R' }, { kind: 'table', label: 'T', columns: 'not a list', extra: 1 }] };
     let lines;
     // Stopped at the cap with the JSON complete: whole, so judged as a
     // document (a cut-off one is compose_truncated, its own line).
@@ -421,7 +421,7 @@ test('the compose-invalid line says whether the answer was cut off, garbled, and
     assert.match(line, /garbled=false/);
     // The chopped-string signature is named, and the brief warning is a
     // warning: the document still runs.
-    const garbled = { ...GOOD, phases: [{ kind: 'routine', label: 'R', brief: 'Build into {{table.name}} with type "text}}},systemPrompt:" and {{field.naam}}' }, GOOD.phases[1]] };
+    const garbled = { ...GOOD, phases: [{ kind: 'automation', label: 'R', brief: 'Build into {{table.name}} with type "text}}},systemPrompt:" and {{field.naam}}' }, GOOD.phases[1]] };
     let out;
     lines = await withWarnings(async () => { out = await composeRecipe({ description: 'd' }, fakeDeps([garbled])); });
     assert.equal(out.ok, true);

@@ -25,8 +25,8 @@ import InstallBlueprintModal from './InstallBlueprintModal';
  * read never renders as an empty one.
  */
 
-const routine = (ref, steps) => ({
-    ref, kind: 'automation', title: `Routine ${ref}`,
+const automation = (ref, steps) => ({
+    ref, kind: 'automation', title: `Automation ${ref}`,
     definition: { schemaVersion: 2, trigger: { id: 't', type: 'trigger' }, steps },
 });
 
@@ -88,26 +88,26 @@ afterEach(() => { delete globalThis.__authFetch; delete globalThis.__calls; });
 describe('step 1 — what is in it', () => {
     it('counts what will install and forwards what the Blueprint does not carry', async () => {
         open({ manifest: manifest(
-            { automations: [routine('aut_1', [])], webpages: [{ ref: 'web_1', name: 'Status' }] },
+            { automations: [automation('aut_1', [])], webpages: [{ ref: 'web_1', name: 'Status' }] },
             { report: { warnings: ['A page\'s stored data stays behind.'] } },
         ) });
         const chips = screen.getByTestId('install-contents').textContent;
-        expect(chips).toContain('1 routine');
-        expect(chips).not.toContain('1 routines');
+        expect(chips).toContain('1 automation');
+        expect(chips).not.toContain('1 automations');
         expect(screen.getByTestId('install-not-carried').textContent).toMatch(/stored data stays behind/);
     });
 
     it('counts in the singular when there is one of something', async () => {
-        // "1 routines" on the first screen somebody sees of a Solution is the
+        // "1 automations" on the first screen somebody sees of a Solution is the
         // kind of wrong that makes a careful product look careless, and the
         // choice belongs to the KEY, not to a ternary around a letter.
         open({ manifest: manifest({
-            automations: [routine('aut_1', [])],
+            automations: [automation('aut_1', [])],
             apps: [{ ref: 'app_1', name: 'A' }, { ref: 'app_2', name: 'B' }],
         }) });
         const chips = screen.getByTestId('install-contents').textContent;
-        expect(chips).toContain('1 routine');
-        expect(chips).not.toContain('1 routines');
+        expect(chips).toContain('1 automation');
+        expect(chips).not.toContain('1 automations');
         expect(chips).toContain('2 apps');
     });
 
@@ -147,7 +147,7 @@ describe('step 1 — what is in it', () => {
 
 describe('step 2 — what the installer supplies', () => {
     const withHoles = manifest({
-        automations: [routine('aut_1', [
+        automations: [automation('aut_1', [
             { id: 's1', type: 'datatable', datatableId: '', datatableKey: 'contacts' },
             { id: 's2', type: 'http_request', auth: null },
             { id: 's3', type: 'approval', approval: {} },
@@ -182,7 +182,7 @@ describe('step 2 — what the installer supplies', () => {
     });
 
     it('offers an empty table when the recipient has none to point at', async () => {
-        open({ manifest: manifest({ automations: [routine('aut_1', [
+        open({ manifest: manifest({ automations: [automation('aut_1', [
             { id: 's1', type: 'datatable', datatableId: '', datatableKey: 'invoices' },
         ])] }) });
         await toStep(2);

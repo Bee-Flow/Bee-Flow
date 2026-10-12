@@ -45,7 +45,7 @@ function initialState(app) {
         definition,
         // The row's own id. Never edited — it seeds once and stays. Anything
         // that has to NAME this app from inside the editor (the back-pointer
-        // a routine made from a button carries, the deep link into the
+        // an automation made from a button carries, the deep link into the
         // builder) needs it, and reaching for it through half a dozen
         // component props is how it ends up undefined in one of them.
         appId: app?.id ?? null,

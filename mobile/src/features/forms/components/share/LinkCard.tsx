@@ -3,7 +3,7 @@
  * new one — the old link stops working at once, because the token IS the
  * credential. A rotated link keeps its audience. Taking the link down is
  * here too, behind a warning: the form then has no address (and leaves the
- * forms list) until its routine is saved again, and that new link starts
+ * forms list) until its automation is saved again, and that new link starts
  * shared with nobody.
  *
  * Forms are signed-in only, and the blurb says so: telling someone to send
@@ -90,7 +90,7 @@ export function LinkCard({ form }: { form: FormDetail }) {
                 title={t('mobile.forms.link_remove_title', 'Take the link down?')}
                 message={t(
                     'mobile.forms.link_remove_body',
-                    'The address stops working at once and the form leaves the forms list. Its routine stays: saving it makes a new link, shared with nobody until you add people again.',
+                    'The address stops working at once and the form leaves the forms list. Its automation stays: saving it makes a new link, shared with nobody until you add people again.',
                 )}
                 confirmLabel={t('mobile.forms.link_remove', 'Take the link down')}
                 onConfirm={() => void act('remove')}

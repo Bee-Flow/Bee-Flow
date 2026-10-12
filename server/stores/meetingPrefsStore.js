@@ -15,7 +15,7 @@
  * ── VORM ──────────────────────────────────────────────────────────────
  *   meeting_prefs(provider, id_kind, external_id, user_id, org_id, tags, record)
  *
- *   provider     'talk' | 'gmeet' — hetzelfde label dat de Gepland-lijst toont.
+ *   provider     'talk' | 'gmeet' | 'teams' — hetzelfde label dat de Gepland-lijst toont.
  *   id_kind      'room' | 'event' | 'code'. Eén provider heeft TWEE id-ruimtes:
  *                Talk een roomToken (de ruimte, elke call daarin) en een
  *                eventUid (één agenda-occurrence); Meet een meetingCode (de
@@ -69,7 +69,7 @@ const { makeStoreInit } = require('./lib/storeInit');
 const { runDdl } = require('./lib/_ddl');
 const log = require('../telemetry/log');
 
-const PROVIDERS = Object.freeze(['talk', 'gmeet']);
+const PROVIDERS = Object.freeze(['talk', 'gmeet', 'teams']);
 const ID_KINDS = Object.freeze(['room', 'event', 'code']);
 
 /** Tot en met dit aantal deelnemers is opnemen standaard UIT. */
@@ -149,6 +149,14 @@ function talkIds({ eventUid = null, roomToken = null } = {}) {
 /** Google Meet-identiteiten van een vergadering, meest specifiek eerst. */
 function gmeetIds({ eventId = null, meetingCode = null } = {}) {
     return normalizeIds([{ kind: 'event', id: eventId }, { kind: 'code', id: meetingCode }]);
+}
+
+/**
+ * Teams-identiteiten van een vergadering, meest specifiek eerst: de
+ * agenda-afspraak (deze keer) en de seriemaster in Outlook (de hele serie).
+ */
+function teamsIds({ eventId = null, seriesMasterId = null } = {}) {
+    return normalizeIds([{ kind: 'event', id: eventId }, { kind: 'code', id: seriesMasterId }]);
 }
 
 // ── schema + eenmalige backfill ──────────────────────────────────────
@@ -505,6 +513,7 @@ module.exports = {
     participantCountOf,
     talkIds,
     gmeetIds,
+    teamsIds,
     // schrijven
     setRecord,
     setTags,

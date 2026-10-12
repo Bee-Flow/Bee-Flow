@@ -4,6 +4,7 @@ import { useCapture } from '../../pages/meeting-notes/capture/CaptureContext';
 import * as api from '../../pages/meeting-notes/lib/transcriptionsApi';
 import { formatRelativeDate } from '../../pages/meeting-notes/lib/format';
 import Modal from '../shared/Modal';
+import useTranslation from '../../hooks/useTranslation';
 
 /**
  * Scoped command palette opened with Ctrl/Cmd + Shift + M. Lists three quick
@@ -11,6 +12,7 @@ import Modal from '../shared/Modal';
  * to a meeting from anywhere without leaving the keyboard.
  */
 export default function MeetingCommandPalette({ user, onNavigate }) {
+    const { t } = useTranslation();
     const { openCapture } = useCapture();
     const flagsOn = user?.featureFlags?.meeting_notes !== false;
     const beta = Array.isArray(user?.betaFeatures) && user.betaFeatures.includes('meeting_notes');
@@ -41,14 +43,16 @@ export default function MeetingCommandPalette({ user, onNavigate }) {
         setQuery('');
         setActiveIdx(0);
         api.listTranscriptions().then((list) => setRecent(list.slice(0, 8))).catch(() => {});
-        const t = setTimeout(() => inputRef.current?.focus(), 30);
-        return () => clearTimeout(t);
+        const timer = setTimeout(() => inputRef.current?.focus(), 30);
+        return () => clearTimeout(timer);
     }, [open]);
 
     const actions = useMemo(() => ([
         { id: 'record', label: 'Start recording', icon: Mic, accent: '#ffd400', run: () => { openCapture('record'); setOpen(false); } },
         { id: 'upload', label: 'Upload audio file', icon: Upload, accent: 'var(--accent-primary)', run: () => { openCapture('upload'); setOpen(false); } },
-        { id: 'bot', label: 'Send meeting bot', icon: Video, accent: '#10b981', run: () => { openCapture('bot'); setOpen(false); } },
+        // Bee Flow has no meeting bot (removed): this opens the source picker,
+        // where Talk, Google Meet and Teams recordings are imported.
+        { id: 'import', label: 'Import a meeting recording', icon: Video, accent: '#10b981', run: () => { openCapture(null); setOpen(false); } },
     ]), [openCapture]);
 
     const filteredActions = useMemo(() => (
@@ -110,7 +114,7 @@ export default function MeetingCommandPalette({ user, onNavigate }) {
                         value={query}
                         onChange={(e) => { setQuery(e.target.value); setActiveIdx(0); }}
                         onKeyDown={onKey}
-                        placeholder="Search meeting actions or recent meetings…"
+                        placeholder={t('meetings.palette_placeholder', 'Search meeting actions or recent meetings…')}
                         className="flex-1 bg-transparent outline-none text-sm"
                         style={{ color: 'var(--text-primary)' }}
                     />
@@ -151,12 +155,12 @@ export default function MeetingCommandPalette({ user, onNavigate }) {
                     )}
                     {flat.length === 0 && (
                         <div className="px-4 py-8 text-sm text-center" style={{ color: 'var(--text-muted)' }}>
-                            No matches.
+                            {t('meetings.palette_no_matches', 'No matches.')}
                         </div>
                     )}
                 </div>
                 <div className="px-4 py-2 border-t text-[11px] flex items-center justify-between" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}>
-                    <span>↑↓ navigate · ↵ open</span>
+                    <span>{t('meetings.palette_hint', '↑↓ navigate · ↵ open')}</span>
                     <span>Ctrl/Cmd + Shift + M</span>
                 </div>
             </div>

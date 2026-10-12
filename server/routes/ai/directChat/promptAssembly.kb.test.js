@@ -46,6 +46,13 @@ const fx = {
     project: null,
     /** The resolved shield the turn's KB strip reads (BFSF-354). */
     shield: null,
+    /** Every side-panel document lookup the turn made. */
+    documentCalls: [],
+    /** What the memory gate answers, and what it was asked / what the store was asked. */
+    memoryPolicy: { read: true, write: true, reason: 'enabled' },
+    memoryPolicyCalls: [],
+    memoryStoreCalls: 0,
+    memoryStoreArgs: null,
 };
 
 const noop = () => {};
@@ -64,7 +71,7 @@ const MOCKS = {
     '../../../core/agentRuntime/phaseEvents': { emitPhase: noop, emitPhaseEnd: noop, withPhase: async (s, p, fn) => fn() },
     './systemPrompt': { DEFAULT_SYSTEM_PROMPT: 'You are a helpful assistant.' },
     './shared': { encryptionOpts: () => ({}) },
-    '../../../core/llm/promptStyle': { buildWritingStyleAddendum: () => '' },
+    '../../../core/llm/promptStyle': { buildWritingStyleAddendum: () => '', buildResponseLanguageRule: () => '' },
     '../../../auth/projectAccess': {
         resolveRequestedProject: async (userId, projectId) => (fx.project && fx.project.projectId === projectId ? fx.project : null),
     },
@@ -84,10 +91,22 @@ const MOCKS = {
             return (ids || []).filter(id => fx.allowed.includes(id));
         },
     },
-    '../../../stores/memoryStore': { findRelevantMemories: async () => [], formatMemoriesForPrompt: () => '' },
+    '../../../stores/memoryStore': {
+        findRelevantMemories: async (...a) => { fx.memoryStoreCalls++; fx.memoryStoreArgs = a; return [{ id: 'm1', type: 'fact', content: 'likes tea' }]; },
+        formatMemoriesForPrompt: () => '## Active Memory\n- likes tea',
+    },
+    '../../../core/memory/memoryPolicy': {
+        resolveMemoryPolicy: async (opts) => { fx.memoryPolicyCalls.push(opts); return fx.memoryPolicy; },
+    },
     '../../../core/memory/scrubMemoryContext': { scrubMemoryContext: async (t) => ({ scrubbed: t, replacedCategories: [] }) },
     '../../../stores/houseStyleStore': { getDefaultForOrg: async () => null },
     '../../../core/webpages/sidePanelWebpageContext': { buildSidePanelWebpageContext: async () => '' },
+    '../../../core/documents/sidePanelDocumentContext': {
+        buildDirectNote: async (panel, userId) => {
+            fx.documentCalls.push({ panel, userId });
+            return panel && panel.id === 'doc1' ? '\n\n[DOCUMENT OPEN] The user has "Offerte" (documentId: doc1, type: quote) open next to the chat.' : '';
+        },
+    },
     '../../../core/tools/skillInjection': {
         buildSkillInjection: async () => ({ systemPromptAddendum: '', tools: [], staticCount: 0, dynamicSkillIds: [] }),
     },
@@ -123,6 +142,10 @@ function reset() {
     fx.conversation = null;
     fx.project = null;
     fx.shield = null;
+    fx.documentCalls.length = 0;
+    fx.memoryPolicy = { read: true, write: true, reason: 'enabled' };
+    fx.memoryPolicyCalls.length = 0;
+    fx.memoryStoreCalls = 0;
 }
 
 function runTurn(overrides = {}) {
@@ -372,4 +395,72 @@ test('BFSF-354 a title that carries a blocked value is stripped from the Source 
     assert.ok(!text.includes(SYNTH_EMAIL), 'the blocked value reached the prompt through the source label');
     assert.ok(text.includes('### Source 1: [blocked:email] — invoice'));
     assert.ok(text.includes('PROJECT KNOWLEDGE BASE') && text.includes('ATTACHED KNOWLEDGE BASES'), 'both sites ran');
+});
+
+// ═══ Side-panel document ═════════════════════════════════════════
+
+test('an open side-panel document is announced in the prompt, resolved for the asker', async () => {
+    reset();
+    const state = await runTurn({ sidePanelDocument: { id: 'doc1', name: 'x' } });
+    assert.match(promptText(state), /\[DOCUMENT OPEN\] The user has \\"Offerte\\" \(documentId: doc1/);
+    assert.deepStrictEqual(fx.documentCalls.map(c => c.userId), ['alice']);
+});
+
+test('no sidePanelDocument, no document block and no lookup; an unreadable one adds nothing', async () => {
+    reset();
+    const none = await runTurn({});
+    assert.ok(!promptText(none).includes('DOCUMENT OPEN'));
+    assert.strictEqual(fx.documentCalls.length, 0);
+    const unreadable = await runTurn({ sidePanelDocument: { id: 'other' } });
+    assert.ok(!promptText(unreadable).includes('DOCUMENT OPEN'));
+});
+
+// ═══ Memory gate ═════════════════════════════════════════════════
+
+test('memory read off: the store is never asked and no memory reaches the prompt', async () => {
+    reset();
+    fx.memoryPolicy = { read: false, write: false, reason: 'org_disabled' };
+    const state = await runTurn({ req: { session: { user: { id: 'alice' } }, body: { memoryReadEnabled: false } } });
+    assert.strictEqual(fx.memoryStoreCalls, 0);
+    assert.ok(!promptText(state).includes('likes tea'));
+    assert.deepStrictEqual(state.memoryPolicy, fx.memoryPolicy, 'handed on for finalizeTurn');
+    assert.deepStrictEqual(fx.memoryPolicyCalls[0], { userId: 'alice', orgId: 'org-1', perChatReadEnabled: false, perChatWriteEnabled: undefined });
+});
+
+test('memory read on: the memories are injected', async () => {
+    reset();
+    const state = await runTurn({});
+    assert.strictEqual(fx.memoryStoreCalls, 1);
+    assert.ok(promptText(state).includes('likes tea'));
+});
+
+test('memory read: art. 9 rows are asked for only when the policy says opted in', async () => {
+    reset();
+    await runTurn({});
+    assert.deepStrictEqual(fx.memoryStoreArgs[5], { includeSensitive: false });
+    reset();
+    fx.memoryPolicy = { read: true, write: true, reason: 'enabled', sensitive: true };
+    await runTurn({});
+    assert.deepStrictEqual(fx.memoryStoreArgs[5], { includeSensitive: true });
+});
+
+// ═══ memory_used ═════════════════════════════════════════════════
+
+test('memory_used is sent once, before the answer, and the list is handed to the turn state', async () => {
+    reset();
+    const events = [];
+    const state = await runTurn({ send: (type, data) => events.push([type, data]) });
+    const used = events.filter(([t]) => t === 'memory_used');
+    assert.strictEqual(used.length, 1);
+    assert.deepStrictEqual(used[0][1], { items: [{ id: 'm1', type: 'fact', preview: 'likes tea', why: 'relevant' }] });
+    assert.deepStrictEqual(state.memoryUsed, used[0][1].items);
+});
+
+test('memory read off: no memory_used event and an empty list', async () => {
+    reset();
+    fx.memoryPolicy = { read: false, write: false, reason: 'chat_off' };
+    const events = [];
+    const state = await runTurn({ send: (type, data) => events.push([type, data]) });
+    assert.ok(!events.some(([t]) => t === 'memory_used'));
+    assert.deepStrictEqual(state.memoryUsed, []);
 });

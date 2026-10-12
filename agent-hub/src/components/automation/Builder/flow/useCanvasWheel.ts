@@ -6,7 +6,7 @@ import {
 import type { Viewport, WheelIntent, WheelMemory, WheelSample, ZoomLimits } from './wheelInput';
 
 /**
- * Wheel, touchpad and pinch input for the routine canvas.
+ * Wheel, touchpad and pinch input for the automation canvas.
  *
  * React Flow can do "wheel zooms" or "wheel pans", not both, and its pinch
  * path zooms ten times slower off macOS. So this hook owns every wheel event

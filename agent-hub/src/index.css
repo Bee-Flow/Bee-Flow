@@ -200,7 +200,7 @@
     --kind-kb: #d3b14f;
     --kind-meet: #c29276;
     /* Playbooks (2026-09-13): emerald, one step from --success and from the
-       teal --type-trigger (routines) — every blue slot is taken and purple
+       teal --type-trigger (automations) — every blue slot is taken and purple
        is out; ≥ 6:1 on the dark --bg-card. Design-owner sign-off pending. */
     --kind-playbook: #6ccf8e;
     /* Documents (2026-09-15): printable artefacts — invoices, quotes,
@@ -301,6 +301,10 @@
     --bg-card-hover: #22222e;
 
     --accent-primary: #9ca3af;
+    /* Keyboard focus ring (rows, pills, inputs, drawer controls). The grey
+       accent measures about 2.4:1 on a light card, too faint for a ring;
+       the text colour at 55 % clears 3:1 on every card colour. */
+    --focus-ring: color-mix(in srgb, var(--text-primary) 55%, transparent);
     --accent-secondary: #d1d5db;
     --accent-primary-hover: #6b7280;
     /* Foreground for text ON the accent. ~20 call sites read it with a #fff
@@ -313,6 +317,8 @@
 
     --success: #10b981;
     --warning: #f59e0b;
+    --stage-uat: #f59e0b;
+    --stage-prd: #10b981;
     --error: #ef4444;
     --pinned: #06b6d4;
 
@@ -411,6 +417,7 @@
     --bg-card-hover: #fafafa;
 
     --accent-primary: #9ca3af;
+    --focus-ring: color-mix(in srgb, var(--text-primary) 55%, transparent);
     --accent-secondary: #d1d5db;
     --accent-primary-hover: #6b7280;
     --accent-primary-fg: #111827;
@@ -423,6 +430,8 @@
 
     --success: #059669;
     --warning: #d97706;
+    --stage-uat: #d97706;
+    --stage-prd: #059669;
     --error: #dc2626;
     --pinned: #0891b2;
 
@@ -484,6 +493,7 @@
     --bg-card-hover: rgba(255, 255, 255, 0.68);
 
     --accent-primary: #6b7280;
+    --focus-ring: color-mix(in srgb, var(--text-primary) 55%, transparent);
     --accent-secondary: #9ca3af;
     --accent-primary-hover: #4b5563;
     --accent-primary-fg: #ffffff;
@@ -496,6 +506,8 @@
 
     --success: #059669;
     --warning: #d97706;
+    --stage-uat: #d97706;
+    --stage-prd: #059669;
     --error: #dc2626;
     --pinned: #0891b2;
 
@@ -551,6 +563,7 @@
     --bg-card-hover: rgba(15, 23, 42, 0.68);
 
     --accent-primary: #9ca3af;
+    --focus-ring: color-mix(in srgb, var(--text-primary) 55%, transparent);
     --accent-secondary: #cbd5e1;
     --accent-primary-hover: #d1d5db;
     --accent-primary-fg: #111827;
@@ -563,6 +576,8 @@
 
     --success: #34d399;
     --warning: #fbbf24;
+    --stage-uat: #fbbf24;
+    --stage-prd: #34d399;
     --error: #f87171;
     --pinned: #22d3ee;
 
@@ -597,6 +612,8 @@
     --bg-card-hover: #1a1a1a;
 
     --accent-primary: #ffd400;
+    /* Keyboard focus ring: high contrast draws it in full text colour. */
+    --focus-ring: var(--text-primary);
     --accent-secondary: #ffeb70;
     --accent-primary-hover: #fff080;
     --accent-primary-fg: #000000;
@@ -609,6 +626,8 @@
 
     --success: #00ff66;
     --warning: #ffaa00;
+    --stage-uat: #ffaa00;
+    --stage-prd: #00ff66;
     --error: #ff5252;
     --pinned: #00e5ff;
 
@@ -675,6 +694,7 @@
     --bg-card-hover: #fff9ed;
 
     --accent-primary: #b45309;             /* amber-700, muted clay */
+    --focus-ring: color-mix(in srgb, var(--text-primary) 55%, transparent);
     --accent-secondary: #d97706;
     --accent-primary-hover: #92400e;
     --accent-primary-fg: #ffffff;
@@ -687,6 +707,8 @@
 
     --success: #15803d;
     --warning: #b45309;
+    --stage-uat: #b45309;
+    --stage-prd: #15803d;
     --error: #b91c1c;
     --pinned: #0e7490;
 
@@ -723,6 +745,7 @@
     --bg-card-hover: #1c1c20;
 
     --accent-primary: #e7e5e4;             /* stone-200, warm pearl */
+    --focus-ring: color-mix(in srgb, var(--text-primary) 55%, transparent);
     --accent-secondary: #f5f5f4;
     --accent-primary-hover: #d6d3d1;
     --accent-primary-fg: #000000;
@@ -735,6 +758,8 @@
 
     --success: #4ade80;
     --warning: #fbbf24;
+    --stage-uat: #fbbf24;
+    --stage-prd: #4ade80;
     --error: #f87171;
     --pinned: #22d3ee;
 
@@ -773,6 +798,7 @@
     --bg-card-hover: #f4ede0;
 
     --accent-primary: #c2410c;             /* orange-700, terracotta */
+    --focus-ring: color-mix(in srgb, var(--text-primary) 55%, transparent);
     --accent-secondary: #ea580c;
     --accent-primary-hover: #9a3412;
     --accent-primary-fg: #ffffff;
@@ -785,6 +811,8 @@
 
     --success: #166534;
     --warning: #a16207;
+    --stage-uat: #a16207;
+    --stage-prd: #166534;
     --error: #991b1b;
     --pinned: #155e75;
 
@@ -1671,8 +1699,8 @@ body,
     .bf-step-in { animation: none; }
 }
 
-/* ── The build as a film: a card materialising on the routines canvas ────
-   While the AI builds a routine, the canvas keeps rendering the LIVE draft
+/* ── The build as a film: a card materialising on the automations canvas ────
+   While the AI builds an automation, the canvas keeps rendering the LIVE draft
    (summary chip, validation, minimap and layout never lag the truth); what
    lags is visibility. The choreography hook (Builder/flow/
    useBuildChoreography.js) diffs consecutive drafts into presentation flags
@@ -1915,45 +1943,6 @@ body,
     animation: bfCaret 1s steps(2, start) infinite;
 }
 
-/* ── The silence before the first token (chat/BuilderWaitingCard.jsx) ───
-   Two rules for the waiting card in the chat column. The dot beside "Model
-   is reading your request" is REMOUNTED on every server heartbeat, so a
-   one-shot swell per mount reads as a pulse that only beats while the
-   connection does — a dot that stopped is the truth, a looping pulse would
-   not be. The bar with no history to draw on is a shimmer, a promise-free
-   "still going"; a bar with an estimate is a plain inline width and never
-   carries the class, so the shimmer cannot ride over a real fill. */
-@keyframes bfPingTick {
-    from { scale: 1; opacity: 1; }
-    40%  { scale: 1.8; opacity: .4; }
-    to   { scale: 1; opacity: 1; }
-}
-
-.bf-ping-tick {
-    animation: bfPingTick 600ms ease-out both;
-}
-
-@keyframes bfWaitBar {
-    from { translate: -100% 0; }
-    to   { translate: 300% 0; }
-}
-
-.bf-wait-bar {
-    position: relative;
-    overflow: hidden;
-}
-
-.bf-wait-bar::after {
-    content: '';
-    position: absolute;
-    inset: 0 auto 0 0;
-    width: 33%;
-    border-radius: inherit;
-    background: var(--bf-accent, var(--accent));
-    opacity: .7;
-    animation: bfWaitBar 1.6s ease-in-out infinite;
-}
-
 /* Reduced motion: every rule above, zeroed in one place. Not just
    `animation: none` — the fill is what hides a card before its turn, so the
    animation going away is what makes it visible; the pseudo-elements go too
@@ -2000,16 +1989,6 @@ body,
     .bf-ribbon-spot::after,
     .bf-caret {
         animation: none;
-    }
-
-    .bf-ping-tick {
-        animation: none;
-    }
-
-    /* No shimmer; the tinted track alone says "still waiting". */
-    .bf-wait-bar::after {
-        animation: none;
-        content: none;
     }
 }
 

@@ -81,13 +81,13 @@ describe('the words match the web', () => {
 });
 
 describe('the list reads as the web tab does', () => {
-    const pairs = (src: string) => [...src.matchAll(/\bt\(\s*'(routines\.versions\.[a-zA-Z_.]+)',\s*'([^']*)'/g)].map((m) => `${m[1]}|${m[2]}`);
+    const pairs = (src: string) => [...src.matchAll(/\bt\(\s*'(automations\.versions\.[a-zA-Z_.]+)',\s*'([^']*)'/g)].map((m) => `${m[1]}|${m[2]}`);
 
     it('names the groups with the tab\'s words', () => {
         for (const key of ['pending', 'live', 'earlier'] as const) {
             const en = groupLabel(key, english);
-            expect(LIST).toContain(`${key}: t('routines.versions.group.${key}', '${en}')`);
-            expect(groupLabel(key, keyed)).toBe(`routines.versions.group.${key}|${en}`);
+            expect(LIST).toContain(`${key}: t('automations.versions.group.${key}', '${en}')`);
+            expect(groupLabel(key, keyed)).toBe(`automations.versions.group.${key}|${en}`);
         }
     });
 

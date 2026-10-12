@@ -147,6 +147,31 @@ async function up({ exec } = require('../db')) {
     `);
 
     // ── Organisation templates ("Save as template") ───────────────────────
+    // automation-extras-2026-06 used to create an automation_templates of its
+    // own (§26 gallery: slug, definition, org_id) that nothing ever read or
+    // wrote. On installs that carry it, the CREATE below was a no-op and the
+    // index on organization_id failed. Clear it out of the way first: dropped
+    // when empty (it always is: it never had a writer), renamed with its
+    // indexes otherwise, so no row is lost.
+    await exec(`
+        DO $$
+        BEGIN
+            IF EXISTS (
+                SELECT 1 FROM information_schema.columns
+                 WHERE table_schema = current_schema()
+                   AND table_name = 'automation_templates' AND column_name = 'slug'
+            ) THEN
+                IF NOT EXISTS (SELECT 1 FROM automation_templates) THEN
+                    DROP TABLE automation_templates;
+                ELSE
+                    ALTER TABLE automation_templates RENAME TO automation_templates_legacy_2026_06;
+                    ALTER INDEX IF EXISTS idx_automation_templates_org RENAME TO idx_automation_templates_legacy_org;
+                    ALTER INDEX IF EXISTS idx_automation_templates_category RENAME TO idx_automation_templates_legacy_category;
+                    ALTER INDEX IF EXISTS idx_automation_templates_source RENAME TO idx_automation_templates_legacy_source;
+                END IF;
+            END IF;
+        END $$;
+    `);
     await exec(`
         CREATE TABLE IF NOT EXISTS automation_templates (
             id               TEXT PRIMARY KEY,

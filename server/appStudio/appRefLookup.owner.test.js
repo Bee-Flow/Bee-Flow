@@ -1,16 +1,16 @@
 'use strict';
 
 /**
- * appRefOwnerVerdict — onder WIENS naam een routine ontstaat die vanuit een
+ * appRefOwnerVerdict — onder WIENS naam een automatisering ontstaat die vanuit een
  * app-knop wordt gemaakt.
  *
- * De regel is niet cosmetisch. Een `run_automation`-actie draait de routine
+ * De regel is niet cosmetisch. Een `run_automation`-actie draait de automatisering
  * ALS DE EIGENAAR van de app (appStudio/actionExecutor/automationBridge.js
- * weigert bij ongelijke eigenaars), dus wie de nieuwe routine bezit bepaalt
+ * weigert bij ongelijke eigenaars), dus wie de nieuwe automatisering bezit bepaalt
  * met wiens rechten hij straks draait. Twee manieren om dat fout te doen:
  * onder de klikker (de knop is stuk vanaf het moment dat hij bedraad wordt) of
  * onder de app-eigenaar terwijl iemand ánders klikt (dan heeft die iemand
- * zojuist een routine geschreven die met andermans rechten draait). Allebei
+ * zojuist een automatisering geschreven die met andermans rechten draait). Allebei
  * weigeren; alleen "dezelfde persoon" gaat door.
  *
  * Draaien: cd server && node --test --test-reporter=tap appStudio/appRefLookup.owner.test.js
@@ -27,7 +27,7 @@ const OTHER = 'user-other';
 const APP = Object.freeze({ id: 'app-1', userId: OWNER, name: 'Expense claims' });
 
 describe('de klikker IS de app-eigenaar', () => {
-    test('gaat door, en noemt de eigenaar waaronder de routine hoort te landen', () => {
+    test('gaat door, en noemt de eigenaar waaronder de automatisering hoort te landen', () => {
         const got = appRefOwnerVerdict({ app: APP, actorUserId: OWNER });
         assert.deepEqual(got, { ok: true, ownerId: OWNER });
     });

@@ -14,20 +14,21 @@ import { automationHref } from './AutomationTile';
 import { alwaysSkipped, buildTestPayload } from './testPayload';
 import { API_BASE, authFetch } from '../../../../../utils/helpers';
 import toast from '../../../../shared/Toast';
+import useTranslation from '../../../../../hooks/useTranslation';
 import { useAutomationRows } from '../editor/automationTitles';
 import { useScreenValues } from '../editor/ScreenValuesContext';
 import { removeAction, setAction, setNodeEvent } from '../state/definitionOps';
 
-/** One routine the picker has resolved, as far as this hook reads it. */
+/** One automation the picker has resolved, as far as this hook reads it. */
 export interface WiredAutomation {
     id: string;
     title?: string;
-    definition?: { trigger?: RoutineTrigger | null;[key: string]: unknown } | null;
+    definition?: { trigger?: AutomationTrigger | null;[key: string]: unknown } | null;
     [key: string]: unknown;
 }
 
-/** The target routine's trigger — where its declared input contract lives. */
-export interface RoutineTrigger {
+/** The target automation's trigger — where its declared input contract lives. */
+export interface AutomationTrigger {
     kind?: string;
     /** app_trigger's typed params. */
     params?: Array<{ name?: string; type?: string; required?: boolean; description?: string } | null>;
@@ -69,6 +70,7 @@ const labelFor = describeAction as (
     action: AppAction,
     definition: AppDefinition | null | undefined,
     titleFor?: ((automationId?: string) => string | null) | null,
+    t?: (key: string, fallback: string, params?: Record<string, string | number>) => string,
 ) => string;
 const builderHref = automationHref as (
     automationId: string,
@@ -107,7 +109,7 @@ const screenValuesStore = useScreenValues as () => {
 export interface EventWiring {
     action: AppAction | null;
     actionId: string | null;
-    /** The routine rows behind the tile; null until the shared cache answers. */
+    /** The automation rows behind the tile; null until the shared cache answers. */
     automationRows: ReturnType<typeof useAutomationRows>;
     pickerOpen: boolean;
     setPickerOpen: Dispatch<SetStateAction<boolean>>;
@@ -127,7 +129,7 @@ export interface EventWiring {
     appRef: AppRef | null;
     formFields: FormFieldRef[];
     formName: string | null;
-    targetTrigger: RoutineTrigger | null;
+    targetTrigger: AutomationTrigger | null;
     paramMetaByName: ParamMetaByName | null;
     /** Other components that run this action, by name. */
     sharedWith: string[];
@@ -143,7 +145,7 @@ export interface EventWiring {
     onForkAction: () => void;
     onDeleteAction: () => void;
     requestDelete: () => void;
-    onPickRoutine: (automation: WiredAutomation) => void;
+    onPickAutomation: (automation: WiredAutomation) => void;
     setMapping: (param: string, value: InputMapping) => void;
     renameMapping: (oldName: string, newName: string) => void;
     removeMapping: (param: string) => void;
@@ -161,7 +163,7 @@ export interface UseEventWiringOptions {
     onTestActionResult?: ((actionId: string | null, body: unknown) => void) | null;
     automations: WiredAutomation[] | null;
     setAutomations: (automations: WiredAutomation[]) => void;
-    /** Routine id → its title, for the action labels. */
+    /** Automation id → its title, for the action labels. */
     titleFor?: ((automationId?: string) => string | null) | null;
     /** Without it there is no whole appRef to point at — see below. */
     appId?: string | null;
@@ -199,11 +201,12 @@ export const NEW_ACTION = '__new';
 export default function useEventWiring({
     event, node, definition, onCommit, onTestActionResult, automations, setAutomations, titleFor, appId = null,
 }: UseEventWiringOptions): EventWiring {
+    const { t } = useTranslation();
     const actions = definition?.actions || {};
     const actionId = typeof node?.[event] === 'string' ? node[event] as string : null;
     const action = actionId ? actions[actionId] : null;
 
-    // The routine tile needs the step count and the solution, which live on the
+    // The automation tile needs the step count and the solution, which live on the
     // SAME rows the canvas pill already fetched for its one word. Shared 60s
     // cache, one request — see editor/automationTitles.js.
     const automationRows = useAutomationRows(action?.kind === 'run_automation');
@@ -216,7 +219,7 @@ export default function useEventWiring({
 
     const screens = definition?.screens || [];
     // "Which button, in which screen, of which app" — the back-pointer a
-    // routine made from here carries, and the trail a link into the builder
+    // automation made from here carries, and the trail a link into the builder
     // draws. Only ever a WHOLE reference: without the app's own id (the
     // editor is mounted without one in a few tests and in the headless
     // runtime) there is nothing to point at, and two thirds of a pointer is
@@ -229,9 +232,9 @@ export default function useEventWiring({
     const formFields = useMemo(() => getFormFields(definition, node), [definition, node]);
     const fieldNames = useMemo(() => formFields.map((f) => f.name), [formFields]);
 
-    // The target routine's DECLARED input contract, when it has one:
+    // The target automation's DECLARED input contract, when it has one:
     // app_trigger → typed trigger.params; agent_call → schema properties.
-    const targetTrigger = useMemo<RoutineTrigger | null>(() => {
+    const targetTrigger = useMemo<AutomationTrigger | null>(() => {
         if (action?.kind !== 'run_automation' || !action.automationId) return null;
         return (automations || []).find((a) => a.id === action.automationId)?.definition?.trigger || null;
     }, [action, automations]);
@@ -264,9 +267,11 @@ export default function useEventWiring({
     // already run it — picking one here adopts that same object.
     const choices = useMemo(() => Object.entries(actions).map(([id, a]) => {
         const others = otherComponentsRunning(definition, id, node?.id).length;
-        const suffix = others ? ` (also used by ${others} other component${others === 1 ? '' : 's'})` : '';
-        return { id, label: `${labelFor(id, a, definition, titleFor)}${suffix}` };
-    }), [actions, definition, node?.id, titleFor]);
+        let suffix = '';
+        if (others === 1) suffix = ` ${t('studio_apps_insp.wiring.also_used_one', '(also used by {count} other component)', { count: others })}`;
+        else if (others) suffix = ` ${t('studio_apps_insp.wiring.also_used_many', '(also used by {count} other components)', { count: others })}`;
+        return { id, label: `${labelFor(id, a, definition, titleFor, t)}${suffix}` };
+    }), [actions, definition, node?.id, titleFor, t]);
 
     const commitAction = (nextAction: AppAction) => {
         const { def } = applyAction(definition, actionId, nextAction);
@@ -291,7 +296,7 @@ export default function useEventWiring({
             const steps = [first, ...effectSteps(action?.onSuccess)].filter(Boolean);
             commitAction({ kind: 'sequence', steps });
             if (action?.onError && Object.keys(action.onError).length) {
-                toast.info('The "on error" part could not come across — a flow stops at the step that fails.');
+                toast.info(t('studio_apps_insp.wiring.on_error_lost', 'The "on error" part could not come across — a flow stops at the step that fails.'));
             }
             setFlowFor(actionId);
             return;
@@ -339,11 +344,11 @@ export default function useEventWiring({
     };
 
     /**
-     * Apply a picked routine: id + param prefill from its declared contract —
+     * Apply a picked automation: id + param prefill from its declared contract —
      * agent_call's schema properties, or app_trigger's typed trigger.params
      * (file params snap to the first file-upload input of the enclosing form).
      */
-    const onPickRoutine = (automation: WiredAutomation) => {
+    const onPickAutomation = (automation: WiredAutomation) => {
         setPickerOpen(false);
         if (!action) return;
         if (automations && !automations.some((a) => a.id === automation.id)) {
@@ -359,9 +364,9 @@ export default function useEventWiring({
         }
         if (declared) {
             const firstFileField = formFields.find((f) => f.type === 'input_file')?.name || '';
-            // Only the params the NEW routine declares survive. This used to
-            // carry the previous routine's mapping across untouched, so
-            // switching from a routine taking invoiceFile + amount to one taking
+            // Only the params the NEW automation declares survive. This used to
+            // carry the previous automation's mapping across untouched, so
+            // switching from an automation taking invoiceFile + amount to one taking
             // ticketId left three rows: two of them belonged to nothing, were
             // POSTed on every run, and looked identical to the real one.
             const previous = action.inputMapping || {};
@@ -370,7 +375,7 @@ export default function useEventWiring({
                 if (previous[name]) { mapping[name] = previous[name]; continue; }
                 // A file param with no file input to point at used to commit
                 // {kind:'field', name:''} — a hard validation error, so picking
-                // the routine broke every later save with a message about a
+                // the automation broke every later save with a message about a
                 // field nobody had named. An empty static is a shape the schema
                 // accepts and the author can fill in.
                 if (type === 'file') {
@@ -433,10 +438,10 @@ export default function useEventWiring({
     /*
      * "Test" is not a rehearsal.
      *
-     * It POSTs to the same production run endpoint the Routines page uses, with
-     * no dry-run flag — so a routine that e-mails customers e-mails them, and
+     * It POSTs to the same production run endpoint the Automations page uses, with
+     * no dry-run flag — so an automation that e-mails customers e-mails them, and
      * one that writes rows writes them. The button said none of that; the only
-     * caveat on screen ("static values only") rendered for app_trigger routines
+     * caveat on screen ("static values only") rendered for app_trigger automations
      * alone and is about the payload, not the consequences. There is no dry-run
      * mode in the runner to fall back on, so the honest fix is to ask first.
      *
@@ -444,7 +449,7 @@ export default function useEventWiring({
      *
      * It used to send only the mapping's STATIC values, so every parameter fed
      * by a form field arrived as `undefined`, dropped out of the JSON, and the
-     * routine started with an empty `trigger.output`. The run then looked
+     * automation started with an empty `trigger.output`. The run then looked
      * exactly like a broken step. The live values come from the canvas through
      * editor/ScreenValuesContext; which of them may travel — and which cannot,
      * file fields above all — is decided in testPayload.js, and whatever is
@@ -484,9 +489,9 @@ export default function useEventWiring({
             });
             let body: { error?: string; run?: { id?: unknown } } | null = null;
             try { body = await r.json(); } catch { /* empty body */ }
-            if (!r.ok) throw new Error(body?.error || `Run failed (${r.status})`);
+            if (!r.ok) throw new Error(body?.error || t('studio_apps_insp.wiring.run_failed', 'Run failed ({status})', { status: r.status }));
             // A 200 carries the finished run; a 202 says "still going" and has
-            // no id yet, so the link then opens the routine's Runs tab instead
+            // no id yet, so the link then opens the automation's Runs tab instead
             // of claiming a run that cannot be addressed.
             const runId = typeof body?.run?.id === 'string' ? body.run.id : null;
             setTest({ status: 'done', body, skipped, runId });
@@ -523,7 +528,7 @@ export default function useEventWiring({
         onForkAction,
         onDeleteAction,
         requestDelete,
-        onPickRoutine,
+        onPickAutomation,
         setMapping,
         renameMapping,
         removeMapping,

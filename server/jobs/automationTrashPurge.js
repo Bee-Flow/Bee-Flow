@@ -1,26 +1,26 @@
 /**
  * Automation trash purge (Studio → Automations handoff 5).
  *
- * DELETE /api/automation/:id moves a routine into the trash
- * (routes/automation/trash.js). This pass removes routines that have been in
+ * DELETE /api/automation/:id moves an automation into the trash
+ * (routes/automation/trash.js). This pass removes automations that have been in
  * the trash for TRASH_RETENTION_DAYS (30), and does the cleanup the old
  * hard delete did inline:
  *
- *   - a form routine's answers tables are RELEASED, never deleted — what
+ *   - a form automation's answers tables are RELEASED, never deleted — what
  *     people answered outlives the form (automation/formAnswers);
  *   - the datatable "used by" index and the app-button usage index are
  *     purged — neither has an FK to automations, so nothing else reaps them.
  *
- * Runs go with the routine: automation_runs (and its step rows, full outputs,
+ * Runs go with the automation: automation_runs (and its step rows, full outputs,
  * token vault) cascade from automations. They are kept for as long as the
- * routine sits in the trash, which is what "runs are kept" promises; keeping
+ * automation sits in the trash, which is what "runs are kept" promises; keeping
  * them past the purge would need the runs' FK to stop cascading.
  *
- * Remote event subscriptions were revoked when the routine was trashed.
+ * Remote event subscriptions were revoked when the automation was trashed.
  *
  * Rides the hourly run-retention tick (core/automationRunner/scheduler/
- * ticks.js), under its advisory lock. Every step is best-effort per routine:
- * one routine that cannot be cleaned must not stop the others.
+ * ticks.js), under its advisory lock. Every step is best-effort per automation:
+ * one automation that cannot be cleaned must not stop the others.
  */
 
 'use strict';
@@ -59,7 +59,7 @@ async function purgeTrashPass(deps = defaultDeps()) {
             log.warn(`[trashPurge] ${row.id}: ${e.message}`);
         }
     }
-    if (purged) log.info(`[trashPurge] permanently deleted ${purged} routine(s) from the trash`);
+    if (purged) log.info(`[trashPurge] permanently deleted ${purged} automation(s) from the trash`);
     return { purged, considered: due.length };
 }
 

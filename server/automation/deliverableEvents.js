@@ -4,7 +4,7 @@
  * This drives a NON-BLOCKING validation WARNING and UI badges only. It does
  * NOT change how Nextcloud connects, how subscriptions are delivered, or how
  * the connector behaves — it is purely an honesty signal for the builder and
- * the routines gallery.
+ * the automations gallery.
  *
  * Three sets for Nextcloud, reflecting the two producers we actually have:
  *
@@ -38,7 +38,7 @@
  *
  *   PUSH_PENDING    — events with NO producer at all. Nextcloud exposes no
  *                     webhook-compatible event class for Share, and we have no
- *                     poller for it either, so a routine that subscribes to one
+ *                     poller for it either, so an automation that subscribes to one
  *                     of these will not fire. These stay flagged in the builder
  *                     until upstream makes the event classes
  *                     webhook-compatible, or we add a poller.

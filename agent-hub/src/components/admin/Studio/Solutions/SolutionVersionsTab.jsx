@@ -1,5 +1,6 @@
 import { AlertTriangle, HelpCircle, Loader2 } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
+import { kindBarClass, kindInkClass } from './kindBar';
 import { groupNoteRows, noteRowsOf, readReleases } from './releaseModel';
 import { Strip } from './solutionNotices';
 import { useTranslation } from '../../../../hooks/useTranslation';
@@ -49,31 +50,49 @@ const VIEWS = [
 function glyphFor(kind) {
     const Icon = kindIcon(kindOf(kind));
     if (!Icon) return null;
-    return <Icon className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />;
+    return <Icon className={`w-4 h-4 mt-0.5 flex-shrink-0 ${kindInkClass(kind)}`} aria-hidden="true" />;
+}
+
+/** The change chip: the word and the colour both say what happened. */
+const CHIP = {
+    added: ['solutions.release_chip_added', 'Added', 'text-[var(--success)] border-[var(--success)]'],
+    changed: ['solutions.release_chip_changed', 'Changed', 'text-[var(--warning)] border-[var(--warning)]'],
+    unchanged: ['solutions.release_chip_unchanged', 'Unchanged', 'text-[var(--text-tertiary)] border-[var(--border-subtle)]'],
+};
+function ChangeChip({ change }) {
+    const { t } = useTranslation();
+    const c = CHIP[change];
+    if (!c) return null;
+    return (
+        <span data-testid="version-change-chip"
+              className={`flex-shrink-0 px-2 py-0.5 rounded-full border text-[11px] font-medium ${c[2]}`}>
+            {t(c[0], c[1])}
+        </span>
+    );
 }
 
 /** Eén entiteitsregel van de diff: pictogram, naam, en de zin als die er is. */
 function NoteRow({ row }) {
     const { t } = useTranslation();
     return (
-        <li className="flex items-start gap-2.5 px-3 py-2 rounded-lg" data-testid="version-note-row"
-            style={{ background: 'var(--bg-secondary)' }}>
+        <li className={`flex items-start gap-2.5 px-3 py-2.5 rounded-[var(--radius-md)] border border-[var(--border-subtle)] border-l-[3px] bg-[var(--bg-secondary)] ${kindBarClass(row.kind)}`}
+            data-testid="version-note-row">
             {glyphFor(row.kind)}
             <span className="flex-1 min-w-0">
-                <span className="block text-sm" style={{ color: 'var(--text-primary)' }}>{row.name}</span>
+                <span className="block text-sm text-[var(--text-primary)] break-words">{row.name}</span>
                 {row.text && (
-                    <span className="block text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>{row.text}</span>
+                    <span className="block text-xs mt-0.5 text-[var(--text-secondary)]">{row.text}</span>
                 )}
                 {/* De gewijzigde rij zónder zin. De rij blijft staan — hij is het
                     exacte antwoord — en dit is de enige plek die zegt waarom er
                     geen woorden bij staan. */}
                 {row.summaryMissing && (
-                    <span className="block text-xs mt-0.5" data-testid="version-note-nosummary"
-                          style={{ color: 'var(--text-tertiary)' }}>
+                    <span className="block text-xs mt-0.5 text-[var(--text-tertiary)]" data-testid="version-note-nosummary">
                         {t('solutions.release_no_summary', 'Changed — a one-line summary could not be written for this one.')}
                     </span>
                 )}
             </span>
+            <ChangeChip change={row.change} />
         </li>
     );
 }
@@ -82,7 +101,7 @@ function NoteGroup({ rows, title, testId }) {
     if (rows.length === 0) return null;
     return (
         <div data-testid={testId}>
-            <h3 className="text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>{title}</h3>
+            <h3 className="text-sm font-medium mb-2 text-[var(--text-primary)]">{title}</h3>
             <ul className="space-y-1.5">
                 {rows.map((row, i) => <NoteRow key={`${row.ref}-${i}`} row={row} />)}
             </ul>
@@ -132,14 +151,14 @@ function ChangesView({ release }) {
                            '{count} thing is unchanged', '{count} things are unchanged')} />
 
             {note.omitted > 0 && (
-                <p className="text-xs" data-testid="version-omitted" style={{ color: 'var(--text-tertiary)' }}>
+                <p className="text-xs text-[var(--text-tertiary)]" data-testid="version-omitted">
                     {nOf(t, 'solutions.release_omitted', note.omitted,
                         '{count} more entry was left out of the note to keep it within its size limit.',
                         '{count} more entries were left out of the note to keep it within its size limit.')}
                 </p>
             )}
             {groups.unreadable > 0 && (
-                <p className="text-xs" data-testid="version-unreadable-rows" style={{ color: 'var(--text-tertiary)' }}>
+                <p className="text-xs text-[var(--text-tertiary)]" data-testid="version-unreadable-rows">
                     {nOf(t, 'solutions.release_unplaceable', groups.unreadable,
                         '{count} entry could not be placed and is not counted above.',
                         '{count} entries could not be placed and are not counted above.')}
@@ -149,47 +168,61 @@ function ChangesView({ release }) {
     );
 }
 
-/** De lijst. Één rij per publicatie, met de telling van die publicatie erbij. */
+/** De lijst. Een tijdlijn: één rij per publicatie, met de telling van die publicatie erbij. */
 function AllVersionsView({ releases, selectedId, onSelect }) {
     const { t } = useTranslation();
     return (
-        <ul className="space-y-1.5">
+        <ol className="relative ml-2 border-l border-[var(--border-subtle)] space-y-2">
             {releases.map((release) => {
                 const note = noteRowsOf(release);
                 const groups = groupNoteRows(note.rows);
-                const changes = groups.changed.length + groups.added.length;
+                const selected = release.id === selectedId;
                 return (
-                    <li key={release.id}>
+                    <li key={release.id} className="relative pl-5">
+                        <span aria-hidden="true"
+                              className={`absolute -left-[5px] top-4 w-2.5 h-2.5 rounded-full border-2 border-[var(--bg-primary)] ${selected ? 'bg-[var(--accent-primary)]' : 'bg-[var(--text-tertiary)]'}`} />
                         <button
                             onClick={() => onSelect(release.id)}
                             data-testid="version-row"
-                            aria-current={release.id === selectedId ? 'true' : undefined}
-                            className="w-full text-left flex items-baseline gap-3 px-3 py-2 rounded-lg"
-                            style={{
-                                background: 'var(--bg-secondary)',
-                                outline: release.id === selectedId ? '1px solid var(--border-default)' : 'none',
-                            }}
+                            aria-current={selected ? 'true' : undefined}
+                            className={`w-full min-h-[44px] text-left flex flex-wrap items-center gap-x-3 gap-y-1.5 px-3 py-2 rounded-[var(--radius-md)] border bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] ${selected ? 'border-[var(--accent-primary)]' : 'border-[var(--border-subtle)]'}`}
                         >
-                            <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                            <span className="text-sm font-medium text-[var(--text-primary)]">
                                 {release.version === null
                                     ? t('solutions.release_version_unknown', 'Version unknown')
                                     : t('solutions.release_version', 'v{version}', { version: release.version })}
                             </span>
-                            <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                            <span className="text-xs text-[var(--text-tertiary)]">
                                 {formatRelative(release.publishedAt)}
                             </span>
                             <span className="flex-1" />
-                            <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                                {note.state === 'unrecorded'
-                                    ? t('solutions.release_row_unrecorded', 'not recorded')
-                                    : nOf(t, 'solutions.release_row_changes', changes,
-                                        '{count} change', '{count} changes')}
-                            </span>
+                            {note.state === 'unrecorded' ? (
+                                <span className="text-xs text-[var(--text-tertiary)]">
+                                    {t('solutions.release_row_unrecorded', 'not recorded')}
+                                </span>
+                            ) : (
+                                <span className="flex flex-wrap items-center gap-1.5 text-[11px]" data-testid="version-row-counts">
+                                    {groups.added.length > 0 && (
+                                        <span className="px-2 py-0.5 rounded-full border border-[var(--success)] text-[var(--success)]">
+                                            {t('solutions.release_row_added', '+{count} added', { count: groups.added.length })}
+                                        </span>
+                                    )}
+                                    {groups.changed.length > 0 && (
+                                        <span className="px-2 py-0.5 rounded-full border border-[var(--warning)] text-[var(--warning)]">
+                                            {t('solutions.release_row_changed', '{count} changed', { count: groups.changed.length })}
+                                        </span>
+                                    )}
+                                    <span className="text-xs text-[var(--text-tertiary)]">
+                                        {nOf(t, 'solutions.release_row_changes', groups.changed.length + groups.added.length,
+                                            '{count} change', '{count} changes')}
+                                    </span>
+                                </span>
+                            )}
                         </button>
                     </li>
                 );
             })}
-        </ul>
+        </ol>
     );
 }
 
@@ -205,7 +238,7 @@ export default function SolutionVersionsTab({ remote }) {
 
     if (state === 'loading') {
         return (
-            <div className="flex items-center justify-center py-16" style={{ color: 'var(--text-tertiary)' }}>
+            <div className="flex items-center justify-center py-16 text-[var(--text-tertiary)]">
                 <Loader2 className="w-5 h-5 animate-spin" />
             </div>
         );
@@ -232,7 +265,7 @@ export default function SolutionVersionsTab({ remote }) {
 
     return (
         <div className="space-y-4">
-            <div className="flex items-center gap-1" role="tablist">
+            <div className="inline-flex items-center gap-1 p-1 rounded-[var(--radius-md)] bg-[var(--bg-tertiary)]" role="tablist">
                 {VIEWS.map(v => (
                     <button
                         key={v.id}
@@ -240,10 +273,9 @@ export default function SolutionVersionsTab({ remote }) {
                         aria-selected={view === v.id}
                         onClick={() => setView(v.id)}
                         data-testid={`versions-view-${v.id}`}
-                        className="px-2.5 h-7 rounded-lg text-[13px]"
-                        style={view === v.id
-                            ? { background: 'var(--bg-secondary)', color: 'var(--text-primary)' }
-                            : { color: 'var(--text-tertiary)' }}
+                        className={`px-3 min-h-[44px] sm:min-h-8 rounded-[var(--radius-sm)] text-[13px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] ${view === v.id
+                            ? 'bg-[var(--bg-secondary)] text-[var(--text-primary)] shadow-sm'
+                            : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'}`}
                     >
                         {t(v.labelKey, v.fallback)}
                     </button>

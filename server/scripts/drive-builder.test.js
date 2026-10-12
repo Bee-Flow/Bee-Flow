@@ -270,7 +270,7 @@ test('playbook judge key: triggerKind reads the definition\'s trigger', () => {
 
 const { finalTitle, firstRoundPromptTokens } = require('./drive-builder');
 
-test('titled: the last metadata event names the routine; the finalize echo and set_metadata echo are the fallbacks', () => {
+test('titled: the last metadata event names the automation; the finalize echo and set_metadata echo are the fallbacks', () => {
     const base = passingEvents().filter((e) => e.event !== 'metadata');
     assert.strictEqual(finalTitle(base), null);
     const viaFinalize = [...base, { event: 'tool_call', data: { name: 'builder_finalize', arguments: {}, result: { automation: { id: 'a', title: 'From finalize' }, ok: true } } }];
@@ -284,7 +284,7 @@ test('titled: the last metadata event names the routine; the finalize echo and s
 test('titled fails on no name, the default name and a name over 60 chars', () => {
     const expect = { titled: true };
     const unnamed = passingEvents().filter((e) => e.event !== 'metadata');
-    assert.match(matchExpectation(passingDef(), unnamed, expect).failures.join('\n'), /titled: nothing named the routine/);
+    assert.match(matchExpectation(passingDef(), unnamed, expect).failures.join('\n'), /titled: nothing named the automation/);
     const dflt = [...passingEvents(), { event: 'metadata', data: { title: 'Untitled automation' } }];
     assert.match(matchExpectation(passingDef(), dflt, expect).failures.join('\n'), /still "Untitled automation"/);
     const long = [...passingEvents(), { event: 'metadata', data: { title: 'x'.repeat(61) } }];

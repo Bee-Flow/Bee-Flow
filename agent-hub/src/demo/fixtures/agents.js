@@ -279,16 +279,17 @@ export const ROUTES = {
         { id: 'kbc_commercial', name: 'Commercial', icon: 'Handshake' },
     ]),
 
-    // The editor offers routines to attach; an empty list renders its real
+    // The editor offers automations to attach; an empty list renders its real
     // empty state rather than a 404-shaped hole.
     'GET /api/automation': () => ({ automations: [] }),
-    'GET /api/ai-tasks': () => ({
-        tasks: [
-            { id: 'auto_demo_spend_report', name: 'Weekly AI/SaaS spend report', enabled: true, schedule: 'Mon 07:30' },
-            { id: 'auto_demo_competitors', name: 'Competitor changes digest', enabled: true, schedule: 'Mon 08:00' },
-            { id: 'auto_demo_tender_watch', name: 'Tender watch — new publications', enabled: false, schedule: 'Daily 06:00' },
+    // The agent's schedules panel reads the Cowork list (items that run as an agent).
+    'GET /api/cowork': () => ({
+        schedules: [
+            { id: 'auto_demo_spend_report', title: 'Weekly AI/SaaS spend report', agentId: 'agent_demo_contracts', isActive: true, repeatInterval: 'weekly' },
+            { id: 'auto_demo_competitors', title: 'Competitor changes digest', agentId: 'agent_demo_contracts', isActive: true, repeatInterval: 'weekly' },
+            { id: 'auto_demo_tender_watch', title: 'Tender watch — new publications', agentId: 'agent_demo_contracts', isActive: false, repeatInterval: 'daily' },
         ],
-        maxTasks: 25,
+        maxSchedules: 25,
     }),
 
     // ── Refine ──

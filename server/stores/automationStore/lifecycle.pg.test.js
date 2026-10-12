@@ -9,13 +9,13 @@
  *   - publish copies EXACTLY the checked version (a save in between → null),
  *     moves the trigger columns with it, and clears the pending count;
  *   - a working-copy save leaves the live copy alone (LIVE_INVARIANT_SQL with
- *     goLive false), a never-live routine switched on publishes, and a
+ *     goLive false), a never-live automation switched on publishes, and a
  *     goLive write moves live along;
- *   - on a live routine a plain save may not move the trigger columns
+ *   - on a live automation a plain save may not move the trigger columns
  *     (stripLiveFollowingFields);
  *   - trash: soft delete switches off and hides the row, keeps its runs;
  *     restore brings it back paused; purge removes only trashed rows;
- *   - per-routine run retention deletes only runs past the routine's window.
+ *   - per-automation run retention deletes only runs past the automation's window.
  *
  * Run: cd server && node --test stores/automationStore/lifecycle.pg.test.js
  */
@@ -58,6 +58,7 @@ before(async () => {
             id TEXT PRIMARY KEY,
             user_id TEXT NOT NULL,
             organization_id TEXT,
+            project_id TEXT,
             kind TEXT NOT NULL DEFAULT 'automation',
             title TEXT NOT NULL,
             description TEXT,
@@ -150,7 +151,7 @@ test('publish copies exactly the checked version, with its trigger columns', asy
     assert.ok(a.liveAt);
 });
 
-test('a working-copy save on a live routine leaves the live copy alone', async () => {
+test('a working-copy save on a live automation leaves the live copy alone', async () => {
     await seed('w1', { version: 2, live: 2, active: true, draft: false, steps: 1 });
     // What updateAutomation does for a definition write: new working copy,
     // version + 1, then the invariant statement with goLive = false.
@@ -178,7 +179,7 @@ test('a goLive write on a never-live draft publishes nothing; switching it on do
     await pg.query(`UPDATE automations SET is_active = TRUE, is_draft = FALSE WHERE id = $1`, ['d1']);
     await pg.query(LIVE_INVARIANT_SQL, ['d1', false]);
     [row] = (await db.query('SELECT live_version FROM automations WHERE id = $1', ['d1'])).rows;
-    assert.strictEqual(row.live_version, 1, 'an active routine always has a live version');
+    assert.strictEqual(row.live_version, 1, 'an active automation always has a live version');
 });
 
 test('the invariant never touches a Reusable Step', async () => {
@@ -188,7 +189,7 @@ test('the invariant never touches a Reusable Step', async () => {
     assert.strictEqual(row.live_version, null);
 });
 
-test('on a live routine a plain save may not move the trigger columns', () => {
+test('on a live automation a plain save may not move the trigger columns', () => {
     const updates = { definition: '{}', triggerType: 'schedule', scheduleCron: '* * * * *', scheduleTz: 'UTC', nextRunAt: 'x', title: 'T' };
     assert.deepStrictEqual(stripLiveFollowingFields(updates, { hasLive: true }), { definition: '{}', nextRunAt: 'x', title: 'T' });
     assert.deepStrictEqual(stripLiveFollowingFields(updates, { hasLive: true, goLive: true }), updates);
@@ -235,7 +236,7 @@ test('purge: only trashed rows past the window, and only while still trashed', a
     assert.strictEqual(left.n, 0);
 });
 
-test('per-routine run retention: only terminal runs past the routine window', async () => {
+test('per-automation run retention: only terminal runs past the automation window', async () => {
     await pg.query(`INSERT INTO automations (id, user_id, title, definition_json, version, live_version, live_definition_json)
                     VALUES ('ret', 'u1', 'ret', '{"runPolicy":{"retentionDays":7}}', 2, 1, '{"runPolicy":{"retentionDays":30}}')`);
     await pg.query(`INSERT INTO automations (id, user_id, title, definition_json) VALUES ('noret', 'u1', 'noret', '{}')`);
@@ -250,7 +251,7 @@ test('per-routine run retention: only terminal runs past the routine window', as
     assert.strictEqual(n, 1);
     const ids = (await db.query(`SELECT id FROM automation_runs WHERE automation_id IN ('ret', 'noret') ORDER BY id`)).rows.map(r => r.id);
     assert.deepStrictEqual(ids, ['new-ok', 'old-wait', 'other']);
-    // A routine window at or above the platform one is the platform's business.
+    // An automation window at or above the platform one is the platform's business.
     await pg.query(`INSERT INTO automation_runs (id, automation_id, version, user_id, trigger_kind, status, finished_at) VALUES
         ('old-ok2', 'ret', 1, 'u1', 'manual', 'success', NOW() - INTERVAL '10 days')`);
     assert.strictEqual(await store.deleteRunsPastAutomationRetention({ platformDays: 5 }), 0);

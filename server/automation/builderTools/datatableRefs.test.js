@@ -169,17 +169,17 @@ test('a table alias is not consumed when datatableId is already set, nor when it
 test('a literal binding on datatableId is unwrapped to its string, with the build-time note', () => {
     const r = translateDatatableVocabulary({ datatableId: { kind: 'literal', value: 'Facturen' } });
     assert.strictEqual(r.args.datatableId, 'Facturen');
-    assert.deepStrictEqual(r.notes, ['datatableId was sent as a binding object — the table is chosen when the routine is built, not at run time; read as "Facturen".']);
+    assert.deepStrictEqual(r.notes, ['datatableId was sent as a binding object — the table is chosen when the automation is built, not at run time; read as "Facturen".']);
     const viaAlias = translateDatatableVocabulary({ table: { kind: 'literal', value: 'tbl_1a2b3c' } });
     assert.strictEqual(viaAlias.args.datatableId, 'tbl_1a2b3c');
     assert.strictEqual(viaAlias.notes.length, 2, 'alias read + binding unwrap are both said');
 });
 
-test('a ref/template/expr binding on the table is refused — a routine cannot pick its table at run time', () => {
+test('a ref/template/expr binding on the table is refused — an automation cannot pick its table at run time', () => {
     for (const b of [{ kind: 'ref', path: 'vars.table' }, { kind: 'template', template: '{{vars.t}}' }, { kind: 'expr', expr: 'vars.t' }]) {
         const r = translateDatatableVocabulary({ datatableId: b });
         assertRejected(r, `datatableId ${b.kind}`);
-        assert.match(r.error, /cannot be a ref or template — a routine cannot pick its table at run time/);
+        assert.match(r.error, /cannot be a ref or template — an automation cannot pick its table at run time/);
         assert.match(r._fixHint, /datatableId is a binding/);
     }
     const key = translateDatatableVocabulary({ datatableId: 'tbl_1', datatableKey: { kind: 'ref', path: 'vars.k' } });
@@ -392,4 +392,40 @@ test('mapColumnName: ambiguous is refused; a non-string or blank name is left to
     const ref = { kind: 'ref', path: 'vars.col' };
     assert.deepStrictEqual(mapColumnName(ref, columns), { key: ref });
     assert.deepStrictEqual(mapColumnName('x', undefined), { key: 'x' });
+});
+
+// ── tables that are only proposed ("pending:<n>") ───────────────────────────
+
+const PENDING = {
+    id: 'pending:1', key: 'nieuw', name: 'Nieuw', canWrite: true, pending: true,
+    columns: [{ key: 'a', name: 'A', type: 'text' }],
+};
+
+test('a forged pending id is refused with no catalog and with a real one', () => {
+    for (const datatables of [null, undefined, [FACTUREN], [FACTUREN, PENDING]]) {
+        const r = resolveDatatableRef({ id: 'pending:9', datatables });
+        assertRejected(r, 'forged pending id');
+        assert.match(r.error, /"pending:9" is not a table: pending ids exist only inside the proposal that staged them/);
+    }
+});
+
+test('a staged pending table resolves like a real one, by id, key and name', () => {
+    const catalog = [FACTUREN, PENDING];
+    for (const input of [{ id: 'pending:1' }, { key: 'nieuw' }, { id: 'Nieuw' }]) {
+        const r = resolveDatatableRef({ ...input, datatables: catalog });
+        assert.ok(!r.error, JSON.stringify(r));
+        assert.strictEqual(r.table.id, 'pending:1');
+    }
+});
+
+test('a list of tables marks a pending one as NEW', () => {
+    const r = resolveDatatableRef({ id: 'tbl_nope', datatables: [FACTUREN, PENDING] });
+    assert.match(r.error, /pending:1 \(nieuw, "Nieuw"\) — NEW, created on Apply/);
+});
+
+test('the empty-catalog message points at builder_create_datatable and staging', () => {
+    const r = resolveDatatableRef({ id: 'tbl_1a2b3c', datatables: [] });
+    assert.match(r.error, /builder_create_datatable/);
+    assert.match(r.error, /staged and created when the user applies/);
+    assert.match(r._fixHint, /builder_create_datatable/);
 });

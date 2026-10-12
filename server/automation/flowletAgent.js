@@ -31,7 +31,7 @@ const {
     TOOL_SCHEMAS, MUTATING_TOOLS, SCOPED_GRAPH_TOOLS, applyToolCall,
     generateLayerKey, makeLayerSkeleton, truncateToolResultJson,
 } = require('./builderTools');
-const { renderCatalog, renderDatatablesBlock, renderDocumentsBlock } = require('./builderPrompt');
+const { renderCatalog, renderDatatablesBlock, renderDocumentsBlock, renderAgentsBlock, renderKnowledgeBasesBlock } = require('./builderPrompt');
 const log = require('../telemetry/log');
 
 const MAX_LAYER_AGENT_ROUNDS = 12;
@@ -40,10 +40,19 @@ const DEFAULT_PARALLEL_CAP = 3;
 // Tools a flowlet sub-agent may use: every scoped step builder + the flowlet
 // contract tool + read-only tool inspection. NO trigger/finalize/dry-run/
 // create_layer/metadata.
+//
+// The two document tools are read-only and belong here because the gate that
+// needs them travels with every flowlet draft: documentDiscovery.inspectBindings
+// refuses a fill_document step until builder_read_document ran for its
+// document (layerAgent.js and runLayersInParallel both hand the sub-agent the
+// document list). Without them a flowlet could never build that step: the
+// refusal named a tool the sub-agent did not have. Writes stay out of reach.
 const LAYER_AGENT_TOOL_NAMES = new Set([
     ...SCOPED_GRAPH_TOOLS,
     'builder_set_layer_contract',
     'builder_inspect_tool',
+    'builder_search_documents',
+    'builder_read_document',
 ]);
 
 function layerAgentTools() {
@@ -109,6 +118,9 @@ function buildLayerAgentPrompt({ catalog, mode, layerKey, instruction, contract 
     const datatables = renderDatatablesBlock(catalog?.datatables);
     // …and the designed documents, for a flowlet that renders an invoice.
     const documents = renderDocumentsBlock(catalog?.documents);
+    // …and the agents and knowledge bases it may name (same blocks, same
+    // "could not read" versus "none" rule as the main builder's).
+    const pickers = [renderAgentsBlock(catalog), renderKnowledgeBasesBlock(catalog)].filter(Boolean).join('\n\n');
     const contractLines = [];
     if (contract?.params?.length) {
         contractLines.push(`Inputs (already declared; bind inside the flowlet as trigger.output.<name>): ${contract.params.map(p => (typeof p === 'string' ? p : p.name)).join(', ')}`);
@@ -123,7 +135,7 @@ RULES — follow exactly:
 - BATCH your calls: you may emit SEVERAL tool calls in one reply (they execute in order). Inspect every tool you need in ONE builder_inspect_tool({tools:[…]}) call, then add ALL steps with ONE builder_add_steps call (tempIds cross-reference within the batch: steps.$a.output.<field>) together with builder_set_layer_contract in the same reply. Use as few replies as possible.
 - This flowlet ALREADY exists with two FIXED endpoints: a layer_input trigger (its inputs) and ONE layer_output "Return" step. NEVER add another trigger, a return/stop step, or a "set" step to hold the result — those endpoints are managed for you.
 - Every step you add is automatically wired in order BEFORE the Return step, so for a straight line you do NOT need afterStepId. You may ONLY edit THIS flowlet — the scope is fixed, so do NOT pass a "scope" argument and never touch the main flow or other flowlets.
-- Inputs bind as trigger.output.<paramName>; a step's output binds as steps.<stepId>.output.<field>. Refs MUST start with: trigger, steps, vars, secrets, loop.
+- Inputs bind as trigger.output.<paramName>; a step's output binds as steps.<stepId>.output.<field>. Refs MUST start with: trigger, steps, vars, secrets, loop. Paths: [0] = an index (never .0), [*] = every element, ["Story Points"] = an awkward key, [name="Subject"] = the entry of a name/value list; JSON text is read straight through.
 - ITERATION: to run ONE step once per item of an upstream array, set \`forEach:{overRef:"steps.<id>.output.<array>", itemVar:"item"}\` ON that step (integration_action / ai_step / code / notification / set) and reference the item as \`loop.<itemVar>\` — do NOT add a loop step for a single repeating step. Use a loop step ONLY when several steps must repeat together per item.
 - Return data by WRITING the Return step directly: builder_set_layer_contract({ layerKey: "${layerKey}", outputs: { <field>: { kind:"ref", path:"steps.<id>.output.<field>" } } }). The flowlet's value to its caller IS these outputs — every one MUST be bound to a real step output, never left empty.
 - Declare inputs the same way: builder_set_layer_contract({ layerKey: "${layerKey}", params: [{ name, type, required }] }). Build the SMALLEST correct flow. Never invent tool names — use only the catalog below.
@@ -132,7 +144,7 @@ ${contractLines.length ? `\nCONTRACT:\n${contractLines.join('\n')}\n` : ''}
 INSTRUCTION:
 ${instruction}
 
-${datatables ? `${datatables}\n\n` : ''}${documents ? `${documents}\n\n` : ''}CATALOG (apps & actions you may use):
+${datatables ? `${datatables}\n\n` : ''}${documents ? `${documents}\n\n` : ''}${pickers ? `${pickers}\n\n` : ''}CATALOG (apps & actions you may use):
 ${apps}`;
 }
 
@@ -272,7 +284,7 @@ async function runLayerAgent({
 async function runLayersInParallel({
     rootDef, specs, modelId, userId, userOrgId = null, session = null,
     catalog = null, send = () => {}, cap = DEFAULT_PARALLEL_CAP, inputSchemasByTool = null,
-    allowedModelTiers = null, datatables = null, documents = null, availableToolNames = null,
+    allowedModelTiers = null, datatables = null, approvedDatatableIds = null, documents = null, availableToolNames = null,
 }) {
     const preexisting = (rootDef.layers && typeof rootDef.layers === 'object' && !Array.isArray(rootDef.layers)) ? rootDef.layers : {};
     const reserved = { ...preexisting };
@@ -308,7 +320,12 @@ async function runLayersInParallel({
             // draft: a parallel agent must not bind a table or a tool the
             // user does not have. null keeps the permissive "could not tell".
             _datatables: datatables,
+            _approvedDatatableIds: approvedDatatableIds instanceof Set ? approvedDatatableIds : null,
             _documents: documents,
+            // As on the main draft (chatStream.js): a document must be read
+            // (builder_read_document, which this sub-agent has) before its
+            // fill_document step is built.
+            _documentDiscoveryRequired: true,
             ...(availableToolNames instanceof Set ? { _availableToolNames: availableToolNames } : {}),
         };
         send('layer_agent_start', { layerKey, title });

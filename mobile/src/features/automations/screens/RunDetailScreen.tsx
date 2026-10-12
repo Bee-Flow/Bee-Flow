@@ -1,7 +1,7 @@
 /**
  * One run in full: how it ended, its facts, what you can do about it, and its
  * steps. Polls only while the run is unsettled; `getRunSteps` returns the whole
- * JOURNEY, so a routine that paused for an approval and continued in a child
+ * JOURNEY, so an automation that paused for an approval and continued in a child
  * run reads as one timeline — the only way the timings make sense.
  */
 
@@ -68,7 +68,7 @@ function useRunDetailActions(automationId: string, runId: string) {
  * Replacing the screen with the list stacked a second list over the one the
  * run was opened from, and sent anyone who came from elsewhere to a list they
  * never visited. Only a run opened cold (a deep link, a notification) has
- * nothing behind it, and lands on its routine's list.
+ * nothing behind it, and lands on its automation's list.
  */
 export function leaveRun(router: Pick<ReturnType<typeof useRouter>, 'back' | 'canGoBack' | 'replace'>, automationId: string): void {
     if (router.canGoBack()) router.back();

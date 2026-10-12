@@ -23,7 +23,7 @@ const state = {
     // and a scan that fails for any OTHER reason.
     noPublishedConfig: false, agentScanError: null,
     // …and a step scan that fails: `42P01` (no automations table on an
-    // install without routines) must be NAMED, anything else rethrown.
+    // install without automations) must be NAMED, anything else rethrown.
     stepScanError: null,
 };
 
@@ -287,7 +287,7 @@ test('an unused skill yields no rows and no gaps — the shape the 409 guard and
 
 /**
  * ── AND THE ONE CASE WHERE [] IS NOT AN ANSWER ──────────────────────
- * An install with no routines has no `automations` table. That is supported,
+ * An install with no automations has no `automations` table. That is supported,
  * not an error — but it is also not a count, and this function feeds the two
  * loudest claims in the product: "No agent or automation uses this skill yet"
  * on the tab, and "can be deleted without breaking anything else" on the

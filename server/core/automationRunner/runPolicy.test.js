@@ -67,7 +67,7 @@ test('resolveRunPolicy always hands the runner a complete, in-range policy', () 
     assert.deepStrictEqual(odd, { retry: { max: 5, then: 'stop_notify' }, maxDurationMin: 60, concurrency: 'serial', retentionDays: 7 });
 });
 
-test('a step\'s own retry wins over the routine default', () => {
+test('a step\'s own retry wins over the automation default', () => {
     const policy = resolveRunPolicy({ runPolicy: { retry: { max: 2 } } });
     assert.deepStrictEqual(stepRetryFor({ id: 's' }, policy), { max: 2 });
     assert.deepStrictEqual(stepRetryFor({ id: 's', retry: { max: 1, backoffMs: 10 } }, policy), { max: 1, backoffMs: 10 });

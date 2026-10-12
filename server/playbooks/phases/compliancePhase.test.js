@@ -17,7 +17,7 @@ const TABLE = {
 // THE SHAPE THE ROUTE ACTUALLY SENDS: {type, tool}, where `type` is a runtime
 // step type and `tool` is set only on an integration_action. This fixture used
 // to put TOOL names in `type` ('nextcloud_list_files'), which is a shape no
-// routine can produce — and that is exactly why three bugs in gatherFacts
+// automation can produce — and that is exactly why three bugs in gatherFacts
 // survived: the tests agreed with the misunderstanding instead of with
 // routes/playbooks/complianceReview.js.
 const AUTO = {
@@ -128,7 +128,7 @@ test('a code step counts as outbound — its sandbox is handed an HTTPS fetch', 
 
 test('reading files is detected from the TOOL, which is where those words live', () => {
     // This was matching /nextcloud|file|drive/ against step TYPES, and no real
-    // step type contains any of them — so it was false for every routine ever
+    // step type contains any of them — so it was false for every automation ever
     // reviewed.
     assert.strictEqual(C.gatherFacts({ automations: [AUTO] }).automations[0].readsFiles, true);
     const noFiles = { ...AUTO, steps: [{ type: 'ai_step', tool: null }] };
@@ -546,9 +546,9 @@ test('every rule finding that can be fixed carries the fix it maps to', () => {
  * gatherFacts carried three bugs at once — an OUTBOUND set naming a step type
  * that does not exist and missing the two biggest real ones, and a readsFiles
  * flag matching tool-shaped words against step types so it was false for every
- * routine ever reviewed. None of them was visible, because the fixtures in
+ * automation ever reviewed. None of them was visible, because the fixtures in
  * this file were shaped like the misunderstanding rather than like the caller:
- * they put TOOL names in `type`, which no routine can produce.
+ * they put TOOL names in `type`, which no automation can produce.
  *
  * A fixture that disagrees with production is not a test, it is a second
  * implementation nobody runs. This reads the ONE caller and pins the shape it
@@ -589,7 +589,7 @@ test('the fixtures here are the shape routes/playbooks/complianceReview.js reall
  * running, so they moved to core rather than being copied — the same move, for
  * the same reason, as personalColumns.js.
  */
-test('a routine\'s facts say where the data goes, not only that it goes', () => {
+test('an automation\'s facts say where the data goes, not only that it goes', () => {
     // `integration_action` is Gmail, Nextcloud Talk and LinkedIn at once, and
     // the review's copy has always called its argument `dests` while being
     // handed step types. Art. 30(1)(d) asks for the categories of RECIPIENTS.
@@ -602,9 +602,9 @@ test('a routine\'s facts say where the data goes, not only that it goes', () => 
     assert.match(why, /integration_action/);
 });
 
-test('the flow knows a Privacy Shield is a POSITION, not a property of the routine', () => {
-    // A shield dropped at the END of a routine protects nothing that already
-    // ran, and `hasPrivacyStep` — a boolean about the whole routine — cannot
+test('the flow knows a Privacy Shield is a POSITION, not a property of the automation', () => {
+    // A shield dropped at the END of an automation protects nothing that already
+    // ran, and `hasPrivacyStep` — a boolean about the whole automation — cannot
     // tell that from a shield in the right place. Both facts now travel: the
     // boolean the finding's fixed copy is written against, and the count the
     // after-the-fact check states in its own words.
@@ -621,7 +621,7 @@ test('the flow knows a Privacy Shield is a POSITION, not a property of the routi
 
 test('the flow record is an allow-list, so a step\'s own configuration never rides into the artifacts', () => {
     // BFSF-441. The facts are stored on the playbook and handed to a model; a
-    // step object is the routine's own configuration and sooner or later one
+    // step object is the automation's own configuration and sooner or later one
     // of them holds a recipient address or a bound value. The record names its
     // fields rather than deleting the ones it does not want.
     const dataFlow = require('../../core/privacy/dataFlow');
@@ -630,19 +630,19 @@ test('the flow record is an allow-list, so a step\'s own configuration never rid
     assert.ok(!JSON.stringify(f.automations[0].flow).includes('jan.jansen@example.com'));
 });
 
-test('a routine that sends nothing personal says so, and says which columns it read that from', () => {
+test('an automation that sends nothing personal says so, and says which columns it read that from', () => {
     const sends = [{ type: 'integration_action', tool: 'gmail_compose' }];
     const clean = C.gatherFacts({ table: { name: 'T', fields: [{ key: 'total', name: 'Total', type: 'number' }] }, automations: [{ id: 'a', title: 'A', steps: sends }], frameworks: ['GDPR'] });
     assert.deepEqual(clean.automations[0].flow.carries, []);
     assert.equal(clean.automations[0].flow.verdict, 'no_personal_data');
     // `[]` here is an answer, and it is an answer this phase is entitled to:
     // the columns were in hand and none of them is personal data. The OTHER
-    // case — nobody established what the routine handles — is `null`, and it
+    // case — nobody established what the automation handles — is `null`, and it
     // is the after-the-fact check that meets it, because a sweep regularly
-    // cannot read a routine's tables. gatherFacts always resolves the columns
+    // cannot read an automation's tables. gatherFacts always resolves the columns
     // to an array (mergeDetections), so the analyser is what keeps the two
     // apart, and it does: null in, null out, and a verdict of "unknown"
-    // rather than a routine declared clean.
+    // rather than an automation declared clean.
     const dataFlow = require('../../core/privacy/dataFlow');
     const unlooked = dataFlow.analyseFlow({ steps: sends, personal: null });
     assert.equal(unlooked.carries, null);

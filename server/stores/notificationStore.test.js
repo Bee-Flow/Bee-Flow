@@ -51,7 +51,7 @@ const store = createNotificationStore(pool);
 beforeEach(() => {
     issued.length = 0;
     table = [
-        { id: 'n-victim', user_id: 'victim', title: 'Routine failed', read: false },
+        { id: 'n-victim', user_id: 'victim', title: 'Automation failed', read: false },
         { id: 'n-mine', user_id: 'attacker', title: 'Mine', read: false },
     ];
 });

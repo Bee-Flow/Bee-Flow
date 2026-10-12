@@ -125,11 +125,11 @@ const NL_TRANSLATIONS = {
     'playbooks.table.no_columns': 'De tabel staat er, maar heeft nog geen kolommen.',
     'playbooks.design.look_words': 'Stijl {preset}{mood}',
     // ── Fase: routine ────────────────────────────────────────────────────────
-    'playbooks.routine.starting': 'De opdracht gaat naar de automatiseringsbouwer…',
-    'playbooks.routine.unwired': 'De stap "{step}" hangt niet aan de flow, dus hij zou nooit draaien. Sluit hem aan en rond opnieuw af.',
-    'playbooks.routine.back': 'Terug naar het playbook',
-    'playbooks.routine.summary': 'Automatisering "{title}" klaar{steps}',
-    'playbooks.routine.steps': '{n} stappen',
+    'playbooks.automation.starting': 'De opdracht gaat naar de automatiseringsbouwer…',
+    'playbooks.automation.unwired': 'De stap "{step}" hangt niet aan de flow, dus hij zou nooit draaien. Sluit hem aan en rond opnieuw af.',
+    'playbooks.automation.back': 'Terug naar het playbook',
+    'playbooks.automation.summary': 'Automatisering "{title}" klaar{steps}',
+    'playbooks.automation.steps': '{n} stappen',
 
     // ── Fase: eerste rijen ───────────────────────────────────────────────────
     'playbooks.fill.steps': 'De run, stap voor stap',
@@ -158,7 +158,7 @@ const NL_TRANSLATIONS = {
     'playbooks.done.stopped_title': 'Gestopt — dit is geland',
     'playbooks.done.phases': '{n} van {total} fases gebouwd',
     'playbooks.done.rows': '{n} rijen',
-    'playbooks.done.routine_unnamed': 'De automatisering',
+    'playbooks.done.automation_unnamed': 'De automatisering',
     'playbooks.done.table': 'Tabel',
     'playbooks.done.compliance_done': 'Gecontroleerd',
     'playbooks.done.table_unnamed': 'De tabel',
@@ -175,7 +175,7 @@ const NL_TRANSLATIONS = {
     'playbooks.handoff.next_plain': 'Volgende: {phase} — de opdracht wordt samengesteld zodra je doorgaat.',
     'playbooks.handoff.next_access': 'Hierna: {phase} — jij bepaalt wie de app mag openen. Er wordt niets toegepast totdat je akkoord geeft.',
     'playbooks.handoff.next_compliance': 'Hierna: {phase} — wat er is gebouwd wordt gelezen langs de kaders die jouw organisatie aan heeft staan.',
-    'playbooks.handoff.next_routine': 'Hierna: {phase} — de automatiseringsbouwer krijgt een opdracht en bouwt hem terwijl je meekijkt.',
+    'playbooks.handoff.next_automation': 'Hierna: {phase} — de automatiseringsbouwer krijgt een opdracht en bouwt hem terwijl je meekijkt.',
     'playbooks.handoff.next_app': 'Hierna: {phase} — de app-bouwer krijgt een opdracht en bouwt hem terwijl je meekijkt.',
     'playbooks.fill.running': 'loopt',
     'playbooks.fill.loading_flow': 'De flow wordt geladen…',
@@ -213,9 +213,9 @@ const NL_TRANSLATIONS = {
     'playbooks.handoff.dismiss': 'Verbergen',
 
     // ── Automatisering, niet "routine": het woord dat Studio zelf gebruikt ────
-    'playbooks.done.routine': 'Automatisering',
-    'playbooks.fact.routine': 'Automatisering "{name}"',
-    'playbooks.phase.routine': 'Automatisering',
+    'playbooks.done.automation': 'Automatisering',
+    'playbooks.fact.automation': 'Automatisering "{name}"',
+    'playbooks.phase.automation': 'Automatisering',
 
     // ── Fase: compliance-check (getoetst aan de kaders van de organisatie) ──
     'playbooks.phase.compliance': 'Compliance-check',

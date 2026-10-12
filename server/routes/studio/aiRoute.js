@@ -88,6 +88,7 @@
 'use strict';
 
 const express = require('express');
+const { usageLogFields } = require('../../core/providers/usageNormalizer');
 const { z } = require('zod');
 
 const { validate } = require('../../core/http/validate');
@@ -164,12 +165,12 @@ const requireSession = (req, res, next) => (req.session?.isAuthenticated && user
 const ROUTE_KINDS = Object.freeze([
     {
         key: 'automation',
-        blurb: 'A routine that runs by itself: triggered by a schedule, a webhook, an incoming e-mail or a form, then does steps in order (conditions, loops, AI steps, sending mail, writing to tables).',
+        blurb: 'An automation that runs by itself: triggered by a schedule, a webhook, an incoming e-mail or a form, then does steps in order (conditions, loops, AI steps, sending mail, writing to tables).',
         gate: async (req, d) => (await moduleActive(d, 'automation')) && (await licenceAllows(d, req, 'automations')),
     },
     {
         key: 'form',
-        blurb: 'A form other people fill in; submitting it starts a routine that handles the answers.',
+        blurb: 'A form other people fill in; submitting it starts an automation that handles the answers.',
         gate: async (req, d) => (await moduleActive(d, 'automation')) && (await licenceAllows(d, req, 'automations')),
     },
     {
@@ -189,7 +190,7 @@ const ROUTE_KINDS = Object.freeze([
     },
     {
         key: 'agent',
-        blurb: 'A chat agent with a role, its own knowledge and tools, that people (or routines) talk to.',
+        blurb: 'A chat agent with a role, its own knowledge and tools, that people (or automations) talk to.',
         gate: (req, d) => permission(d, req, 'manage_agents'),
     },
     {
@@ -212,7 +213,7 @@ const ROUTE_KINDS = Object.freeze([
     },
     {
         key: 'solution',
-        blurb: 'A solution: a package that groups the routines, tables, agents and pages that serve one goal, and can be exported and installed elsewhere.',
+        blurb: 'A solution: a package that groups the automations, tables, agents and pages that serve one goal, and can be exported and installed elsewhere.',
         gate: solutionsGate,
     },
 ]);
@@ -394,11 +395,9 @@ async function logRouteUsage(d, { userId, userOrgId, modelId, usage, startMs }) 
             agent_name: 'studio-router',
             agent_type: 'system',
             model: modelId,
-            prompt_tokens: usage?.prompt_tokens || 0,
-            completion_tokens: usage?.completion_tokens || 0,
-            total_tokens: usage?.total_tokens || ((usage?.prompt_tokens || 0) + (usage?.completion_tokens || 0)),
-            cached_tokens: usage?.cached_tokens || 0,
-            cache_creation_tokens: usage?.cache_creation_tokens || 0,
+            // Normalised by the adapter (providers/usageNormalizer.js): cache read/write,
+            // the 5m/1h split and reasoning tokens ride along.
+            ...usageLogFields(usage),
             source: 'studio_ai_route',
             duration_ms: Date.now() - startMs,
             organization_id: userOrgId || null,

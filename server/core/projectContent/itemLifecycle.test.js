@@ -30,6 +30,7 @@ function world({ where = null, failing = [] } = {}) {
             deleteForTargetInProject: async (pid, type, id) => { calls.push(['threadsIn', pid, type, id]); return 1; },
         },
         signals: { deleteSignal: async (subject, id) => { calls.push(['signal', subject, id]); } },
+        tasks: { dropLinksTo: async (pid, kind, id) => { calls.push(['taskLinks', pid, kind, id]); maybeFail('taskLinks'); return 1; } },
         placement: async () => where,
         log: { warn() {} },
     });
@@ -40,6 +41,7 @@ test('deleted: co-editing state, every thread on the item and its signal go', as
     const { lc, calls } = world();
     assert.deepStrictEqual(await lc.deleted('notebook', 'nb1'), { threads: 3 });
     assert.deepStrictEqual(calls, [
+        ['taskLinks', null, 'notebook', 'nb1'],
         ['detach', 'notebook', 'nb1', 'deleted'],
         ['threads', 'notebook', 'nb1'],
         ['signal', 'notebook_document', 'nb1'],
@@ -47,9 +49,9 @@ test('deleted: co-editing state, every thread on the item and its signal go', as
 });
 
 test('a failing step is logged and the rest still run', async () => {
-    const { lc, calls } = world({ failing: ['detach', 'threads'] });
+    const { lc, calls } = world({ failing: ['taskLinks', 'detach', 'threads'] });
     assert.deepStrictEqual(await lc.deleted('document', 'd1'), { threads: 0 });
-    assert.deepStrictEqual(calls.map((c) => c[0]), ['detach', 'threads', 'signal']);
+    assert.deepStrictEqual(calls.map((c) => c[0]), ['taskLinks', 'detach', 'threads', 'signal']);
     assert.deepStrictEqual(calls.at(-1), ['signal', 'studio_document', 'd1']);
 });
 

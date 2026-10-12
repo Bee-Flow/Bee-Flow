@@ -117,7 +117,7 @@ describe('ComplianceBlock', () => {
         expect(line.textContent).toContain('An agent is an AI system · customer-facing · generates content');
     });
 
-    it('renders nothing without a target id (a routine that is not saved yet)', () => {
+    it('renders nothing without a target id (an automation that is not saved yet)', () => {
         const { container } = render(<ComplianceBlock kind="automation" target={{ name: 'draft' }} />);
         expect(container.innerHTML).toBe('');
         expect(authFetch).not.toHaveBeenCalled();
@@ -125,7 +125,7 @@ describe('ComplianceBlock', () => {
 });
 
 describe('hook points (light smoke)', () => {
-    // The routine Settings page no longer hosts this block: its AI Act check
+    // The automation Settings page no longer hosts this block: its AI Act check
     // is the Settings › AI Act section (Builder/settings/AiActSection.tsx).
 
     it('AdvancedDrawer gains a collapsed "Compliance" section that hosts the agent block', async () => {

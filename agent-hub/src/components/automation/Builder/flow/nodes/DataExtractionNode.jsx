@@ -21,8 +21,8 @@ export default function DataExtractionNode({ id, data }) {
         <>
             <ForEachBadge step={step} />
             {fieldCount > 0 && (
-                <NodeChip tone="accent" title={t('routines.ndv.extraction.fields', 'Fields to extract')}>
-                    {t('routines.ndv.extraction.count', '{n} fields', { n: fieldCount })}
+                <NodeChip tone="accent" title={t('automations.ndv.extraction.fields', 'Fields to extract')}>
+                    {t('automations.ndv.extraction.count', '{n} fields', { n: fieldCount })}
                 </NodeChip>
             )}
         </>

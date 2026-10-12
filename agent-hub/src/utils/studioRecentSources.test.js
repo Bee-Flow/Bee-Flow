@@ -57,9 +57,9 @@ describe('per-section adapters', () => {
 
     it('aiTasks — the { automations } envelope, and `title` is the name', () => {
         expect(normaliseRecentItems('aiTasks', {
-            automations: [{ id: 'r1', title: 'Offerte-routine', description: 'Builds quotes', updatedAt: '2026-08-04T10:00:00Z' }],
+            automations: [{ id: 'r1', title: 'Offerte-automation', description: 'Builds quotes', updatedAt: '2026-08-04T10:00:00Z' }],
         })).toEqual([
-            { id: 'r1', name: 'Offerte-routine', description: 'Builds quotes', updatedAt: '2026-08-04T10:00:00Z' },
+            { id: 'r1', name: 'Offerte-automation', description: 'Builds quotes', updatedAt: '2026-08-04T10:00:00Z' },
         ]);
     });
 
@@ -290,7 +290,7 @@ describe('recentStatusOf', () => {
             .toBe(RECENT_STATUS.PUBLISHED);
     });
 
-    it('routines — draft, then a failed last run, then paused/active', () => {
+    it('automations — draft, then a failed last run, then paused/active', () => {
         expect(recentStatusOf('aiTasks', { isDraft: true, isActive: true, lastStatus: 'error' }))
             .toBe(RECENT_STATUS.DRAFT);
         expect(recentStatusOf('aiTasks', { isDraft: false, isActive: true, lastStatus: 'error' }))

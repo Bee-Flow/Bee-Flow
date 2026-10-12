@@ -184,8 +184,8 @@ test('parseGemmaArgs: the invalid-JSON drops from the container log — a batch 
     // "Dropping tool_use builder_set_plan: invalid JSON args (… position 125)":
     // a plan whose last item closed before the cut is a plan.
     assert.deepEqual(
-        parseGemmaArgs('{"items":[{"id":"p1","label":"Tabel aanmaken"},{"id":"p2","label":"Routine bouwen"}'),
-        { items: [{ id: 'p1', label: 'Tabel aanmaken' }, { id: 'p2', label: 'Routine bouwen' }] },
+        parseGemmaArgs('{"items":[{"id":"p1","label":"Tabel aanmaken"},{"id":"p2","label":"Automation bouwen"}'),
+        { items: [{ id: 'p1', label: 'Tabel aanmaken' }, { id: 'p2', label: 'Automation bouwen' }] },
     );
 });
 

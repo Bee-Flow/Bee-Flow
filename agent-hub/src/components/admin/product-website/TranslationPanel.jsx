@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
+import { buildPageGroups, buildSiteGroups } from './translatable';
+import { useTranslation } from '../../../hooks/useTranslation';
 import AppIcon from '../../icons/AppIcon';
 import AiTranslateControl from '../languages/AiTranslateControl';
-import { buildPageGroups, buildSiteGroups } from './translatable';
 
 /**
  * TranslationPanel — the translate-mode inspector, shown when the editor is
@@ -59,6 +60,7 @@ export default function TranslationPanel({
     onClearAndRetranslateBlock,     // (blockId) — D3 recovery, optional
     onResetTranslations,            // () — remove every override for this scope, optional
 }) {
+    const { t } = useTranslation();
     const [search, setSearch] = useState('');
     const [onlyUntranslated, setOnlyUntranslated] = useState(false);
     // Group collapse — keyed by group key; default: groups with every field
@@ -111,29 +113,30 @@ export default function TranslationPanel({
             <div className="px-4 py-2 bg-[var(--accent-primary)]/10 border-b border-[var(--accent-primary)]/30 shrink-0">
                 <div className="flex items-center gap-2 text-xs font-semibold text-[var(--text-primary)]">
                     <AppIcon name="Languages" className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
-                    Translating {localeName}
+                    {t('cms_site.site.translation.translating', 'Translating {locale}', { locale: localeName })}
                     {onResetTranslations && (
                         <button
                             type="button"
                             onClick={onResetTranslations}
                             disabled={running || done === 0}
                             className="ml-auto text-[10px] font-normal text-[var(--text-muted)] hover:text-red-400 disabled:opacity-40 disabled:cursor-not-allowed"
-                            title={`Remove every ${localeName} translation for this ${scope === 'site' ? 'site chrome' : 'page'} — fields fall back to ${defaultLocaleName}`}
+                            title={scope === 'site'
+                                ? t('cms_site.site.translation.reset_title_site', 'Remove every {locale} translation for this site chrome — fields fall back to {fallback}', { locale: localeName, fallback: defaultLocaleName })
+                                : t('cms_site.site.translation.reset_title_page', 'Remove every {locale} translation for this page — fields fall back to {fallback}', { locale: localeName, fallback: defaultLocaleName })}
                         >
-                            Reset…
+                            {t('cms_site.site.translation.reset', 'Reset…')}
                         </button>
                     )}
                 </div>
                 <p className="text-[10px] text-[var(--text-secondary)] mt-0.5 leading-snug">
-                    Text only — structure, layout, links and design are shared from {defaultLocaleName}.
-                    Empty fields fall back to the source text.
+                    {t('cms_site.site.translation.banner', 'Text only — structure, layout, links and design are shared from {source}. Empty fields fall back to the source text.', { source: defaultLocaleName })}
                 </p>
             </div>
 
             {/* coverage + AI */}
             <div className="px-4 py-2 border-b border-[var(--border-subtle)] shrink-0">
                 <div className="flex items-center justify-between text-[11px] text-[var(--text-secondary)] mb-1">
-                    <span>{done} of {total} fields have a translation</span>
+                    <span>{t('cms_site.site.translation.coverage', '{done} of {total} fields have a translation', { done, total })}</span>
                     <span>{pct}%</span>
                 </div>
                 <div className="h-1.5 rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
@@ -142,9 +145,9 @@ export default function TranslationPanel({
                 {pct === 100 && total > 0 && (
                     <p
                         className="text-[10px] text-[var(--text-muted)] mt-1"
-                        title="Translations don't update automatically when you change the source text — use a block's Clear & retranslate after editing the source."
+                        title={t('cms_site.site.translation.stale_hint', "Translations don't update automatically when you change the source text — use a block's Clear & retranslate after editing the source.")}
                     >
-                        All fields filled — review after source edits.
+                        {t('cms_site.site.translation.all_filled', 'All fields filled — review after source edits.')}
                     </p>
                 )}
                 <div className="mt-2">
@@ -160,7 +163,7 @@ export default function TranslationPanel({
                 </div>
                 {aiStatus?.state === 'done' && (
                     <p className="text-[10px] text-emerald-500 mt-1 text-center">
-                        AI filled {aiStatus.translated} field(s) — review &amp; refine below.
+                        {t('cms_site.site.translation.ai_filled', 'AI filled {count} field(s) — review & refine below.', { count: aiStatus.translated })}
                     </p>
                 )}
             </div>
@@ -174,7 +177,7 @@ export default function TranslationPanel({
                             type="text"
                             value={search}
                             onChange={e => setSearch(e.target.value)}
-                            placeholder="Search fields…"
+                            placeholder={t('cms_site.site.translation.search', 'Search fields…')}
                             className="w-full pl-6 pr-2 py-1 rounded-md text-xs border bg-[var(--bg-tertiary)] border-[var(--border-default)] text-[var(--text-primary)] focus:border-[var(--accent-primary)] outline-none"
                         />
                     </div>
@@ -185,7 +188,7 @@ export default function TranslationPanel({
                             onChange={e => setOnlyUntranslated(e.target.checked)}
                             className="accent-[var(--accent-primary)]"
                         />
-                        Only untranslated
+                        {t('cms_site.site.translation.only_untranslated', 'Only untranslated')}
                     </label>
                 </div>
             )}
@@ -194,11 +197,11 @@ export default function TranslationPanel({
             <div className="flex-1 overflow-y-auto">
                 {total === 0 ? (
                     <p className="text-xs text-[var(--text-muted)] text-center py-8 px-4">
-                        Nothing to translate here yet.
+                        {t('cms_site.site.translation.nothing', 'Nothing to translate here yet.')}
                     </p>
                 ) : visibleGroups.length === 0 ? (
                     <p className="text-xs text-[var(--text-muted)] text-center py-8 px-4">
-                        No fields match.
+                        {t('cms_site.site.translation.no_match', 'No fields match.')}
                     </p>
                 ) : visibleGroups.map(g => {
                     const groupDone = g.rows.filter(r => (r.value || '').trim()).length;
@@ -210,7 +213,7 @@ export default function TranslationPanel({
                                     type="button"
                                     onClick={() => setCollapsed(c => ({ ...c, [g.key]: !closed }))}
                                     className="flex items-center gap-2 flex-1 min-w-0 text-left"
-                                    title={closed ? 'Expand' : 'Collapse'}
+                                    title={closed ? t('cms_site.site.translation.expand', 'Expand') : t('cms_site.site.translation.collapse', 'Collapse')}
                                 >
                                     <AppIcon name={closed ? 'ChevronRight' : 'ChevronDown'} className="w-3 h-3 text-[var(--text-muted)] shrink-0" />
                                     <AppIcon name={g.icon || 'Type'} className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0" />
@@ -221,7 +224,7 @@ export default function TranslationPanel({
                                         type="button"
                                         onClick={() => onSelectBlock?.(g.blockId)}
                                         className="shrink-0 text-[var(--text-muted)] hover:text-[var(--accent-primary)]"
-                                        title="Show this block in the preview"
+                                        title={t('cms_site.site.translation.show_block', 'Show this block in the preview')}
                                     >
                                         <AppIcon name="Crosshair" className="w-3 h-3" />
                                     </button>
@@ -232,7 +235,7 @@ export default function TranslationPanel({
                                         onClick={() => onClearAndRetranslateBlock(g.blockId)}
                                         disabled={running}
                                         className="shrink-0 text-[var(--text-muted)] hover:text-[var(--accent-primary)] disabled:opacity-40"
-                                        title="Clear this block's translations and let AI retranslate them (use after changing the source text)"
+                                        title={t('cms_site.site.translation.clear_block', "Clear this block's translations and let AI retranslate them (use after changing the source text)")}
                                     >
                                         <AppIcon name="RefreshCw" className="w-3 h-3" />
                                     </button>

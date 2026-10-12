@@ -35,7 +35,7 @@ describe('ActionChoiceCards — the four', () => {
 
     it('each card explains its consequence, not just its name', () => {
         renderCards('toast');
-        expect(screen.getByText(/one of your routines/i)).toBeInTheDocument();
+        expect(screen.getByText(/one of your automations/i)).toBeInTheDocument();
         expect(screen.getByText(/new row into one of this app/i)).toBeInTheDocument();
     });
 
@@ -67,11 +67,11 @@ describe('ActionChoiceCards — when the action is none of the four', () => {
 
     /**
      * A kind from a NEWER build than this one. The select used to silently
-     * display "Run routine" for it, and the first change replaced the whole
+     * display "Run automation" for it, and the first change replaced the whole
      * action — which is the destructive version of lying about what something
      * is.
      */
-    it('names an unknown kind instead of claiming it is a routine', () => {
+    it('names an unknown kind instead of claiming it is an automation', () => {
         renderCards('teleport_user');
         expect(screen.getByText(/does not know/i)).toBeInTheDocument();
         expect(screen.getByRole('combobox', { name: 'Action kind' })).toHaveValue('teleport_user');

@@ -57,7 +57,7 @@ vi.mock('../../components/admin/org/OrgInfoPanel', async () => {
         },
     };
 });
-vi.mock('../../components/admin/org/OrgUsersPanel', H.stub('org-users-panel'));
+vi.mock('../../components/admin/org/OrgUsersPanel', H.stub('org-users-panel', ['basePath']));
 vi.mock('./OrgAcademyPanel', H.stub('org-academy-panel'));
 vi.mock('./N8nSection', H.stub('n8n-section'));
 vi.mock('./UsageSection', H.stub('usage-section', ['initialReport']));
@@ -65,6 +65,7 @@ vi.mock('../../components/integrations/github/GitHubSyncPanel', H.stub('github-s
 vi.mock('../../components/integrations/nextcloud/NextcloudSyncPanel', H.stub('nextcloud-sync-panel'));
 vi.mock('../../components/meetings/MeetingNotesAdminPanel', H.stub('meeting-notes-admin-panel'));
 vi.mock('../../components/meetings/GoogleMeetAdminPanel', H.stub('google-meet-admin-panel'));
+vi.mock('../../components/meetings/TeamsAdminPanel', H.stub('teams-admin-panel'));
 vi.mock('../../components/meetings/SummaryTemplatesAdminPanel', H.stub('summary-templates-admin-panel'));
 vi.mock('../../components/integrations/nextcloud/OrgNcIntegrationsPanel', H.stub('org-nc-integrations-panel'));
 vi.mock('../../components/integrations/nextcloud/OrgNcPairingPanel', H.stub('org-nc-pairing-panel'));
@@ -185,6 +186,11 @@ describe('OrganisationSection — permission gating', () => {
         expect(screen.getByTestId('org-users-panel')).toBeInTheDocument();
     });
 
+    it('roots the Users & Groups sub-tabs at the organisation settings address', () => {
+        mount({ user: NOBODY, activeSection: 'users' });
+        expect(screen.getByTestId('org-users-panel')).toHaveAttribute('data-basePath', '/app/settings/organisation/users');
+    });
+
     it('shows Usage & Monitoring to a member with NO permissions — this branch has no gate either (securityFinding)', () => {
         mount({ user: NOBODY, activeSection: 'usage' });
         expect(screen.getByTestId('usage-section')).toBeInTheDocument();
@@ -213,10 +219,10 @@ describe('OrganisationSection — the org save bar', () => {
         expect(screen.queryByText('Unsaved changes')).toBeNull();
     });
 
-    it('appears with an amber "Unsaved changes" marker and an enabled Save button', () => {
+    it('appears with a warning-coloured "Unsaved changes" marker and an enabled Save button', () => {
         mountInfo();
         emit({ hasChanges: true, saving: false, message: null, handleSave: vi.fn() });
-        expect(screen.getByText('Unsaved changes')).toHaveStyle({ color: 'rgb(217, 119, 6)' });
+        expect(screen.getByText('Unsaved changes')).toHaveClass('text-[var(--warning-ink)]');
         expect(saveButton()).toBeEnabled();
         expect(saveButton()).toHaveTextContent('Save changes');
     });
@@ -292,23 +298,52 @@ describe('OrganisationSection — the org save bar', () => {
     });
 });
 
+describe('OrganisationSection — where the org save bar shows', () => {
+    const mountInfo = (activeSection = 'license') => mount({ user: ORG_ADMIN, activeSection });
+
+    it('sticks to the top of the scrolling page, so Save stays in reach on the long License and Info pages', () => {
+        mountInfo();
+        emit({ hasChanges: true, saving: false, message: null, handleSave: vi.fn() });
+        expect(saveButton().parentElement).toHaveClass('sticky', 'top-0');
+    });
+
+    it.each(['license', 'auth', 'info'])('serves the org form on %s', (activeSection) => {
+        mountInfo(activeSection);
+        emit({ hasChanges: true, saving: false, message: null, handleSave: vi.fn() });
+        expect(saveButton()).toBeEnabled();
+    });
+
+    // These editors save themselves. OrgInfoPanel stays mounted between info
+    // sections, so an unsaved Org Info edit must not put its Save above them.
+    it.each(['encryption', 'ai_context', 'integration_cache'])('NEVER renders the generic bar on %s — that editor has its own Save', (activeSection) => {
+        mountInfo(activeSection);
+        emit({ hasChanges: true, saving: false, message: { type: 'success', text: 'Saved' }, handleSave: vi.fn() });
+        expect(saveButton()).toBeNull();
+        expect(screen.queryByText('Unsaved changes')).toBeNull();
+        expect(screen.queryByText(/Saved/)).toBeNull();
+        expect(screen.getByTestId('org-info-panel')).toHaveAttribute('data-active-section', activeSection);
+    });
+});
+
 describe('OrganisationSection — the Integrations section', () => {
     const mountInt = (over = {}) => mount({ user: USER({ permissions: ['org_admin'], ...over }), activeSection: 'integrations' });
 
-    it('leads with the heading, subtitle and two sub-tabs, "Integration access" selected', () => {
+    it('leads with the page heading, subtitle and two sub-tabs, "Integration access" selected', () => {
         mountInt();
-        expect(screen.getByText('Organisation Integrations')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { level: 2, name: 'Organisation Integrations' })).toBeInTheDocument();
         expect(screen.getByText('Shared across all members of your organisation.')).toBeInTheDocument();
         expect(screen.getByRole('tab', { name: 'Integration access' })).toHaveAttribute('aria-selected', 'true');
         expect(screen.getByRole('tab', { name: 'Integration settings' })).toHaveAttribute('aria-selected', 'false');
     });
 
-    it('renders GroupAccessMatrix scoped to integrations, with locked entries hidden and hard-coded English copy (wart: not translated)', () => {
+    it('renders GroupAccessMatrix scoped to integrations, with locked entries hidden, no second heading and a translated intro', () => {
         mountInt();
         expect(screen.getByTestId('group-access-matrix')).toBeInTheDocument();
         expect(H.matrixProps.kinds).toEqual(['integration']);
         expect(H.matrixProps.hideLocked).toBe(true);
-        expect(H.matrixProps.heading).toBe('Integration access');
+        // The page h2 and the selected tab already name it.
+        expect(H.matrixProps.hideHeading).toBe(true);
+        expect(H.matrixProps.heading).toBeUndefined();
         expect(H.matrixProps.subtitle).toContain('Give an integration to your whole organisation or to a specific group.');
     });
 
@@ -355,22 +390,31 @@ describe('OrganisationSection — the Integrations section', () => {
         expect(screen.queryByTestId('org-nc-integrations-panel')).toBeNull();
     });
 
-    it('swallows the "no integrations" notice for an NC org with an empty list, leaving an empty bordered box (wart)', async () => {
+    it('shows only the Nextcloud panel for an NC org with an empty list — no notice and no empty bordered box', async () => {
         await settingsTab({ enabledIntegrations: [], ncOrg: { instanceId: 'nc-1' } });
         expect(screen.queryByText('No integrations are enabled for this organisation. Contact your platform administrator.')).toBeNull();
         expect(screen.queryByTestId('n8n-section')).toBeNull();
         expect(screen.queryByText('Google Maps')).toBeNull();
-        expect(screen.getByTestId('org-nc-integrations-panel')).toBeInTheDocument();
+        const nc = screen.getByTestId('org-nc-integrations-panel');
+        expect(nc.parentElement.children).toHaveLength(1);
     });
 });
 
 describe('OrganisationSection — the Nextcloud Sync section', () => {
     const mountNc = (over = {}) => mount({ user: USER({ permissions: ['org_admin'], ...over }), activeSection: 'nextcloud_sync' });
 
-    it('always stacks sync, meeting notes and Google Meet for an org_admin', () => {
+    it('stacks sync and Talk meeting notes for an org_admin, and no Google Meet or Teams panel', () => {
         mountNc();
-        ['nextcloud-sync-panel', 'meeting-notes-admin-panel', 'google-meet-admin-panel']
+        ['nextcloud-sync-panel', 'meeting-notes-admin-panel']
             .forEach(id => expect(screen.getByTestId(id)).toBeInTheDocument());
+        ['google-meet-admin-panel', 'teams-admin-panel']
+            .forEach(id => expect(screen.queryByTestId(id)).toBeNull());
+    });
+
+    it('leads with the sync panel (it carries the page title), then the rarely needed pairing panel, then Talk', () => {
+        const { container } = mountNc({ ncOrg: { instanceId: 'nc-1' } });
+        const ids = [...container.querySelectorAll('[data-testid]')].map(el => el.getAttribute('data-testid'));
+        expect(ids).toEqual(['nextcloud-sync-panel', 'org-nc-pairing-panel', 'meeting-notes-admin-panel']);
     });
 
     it('withholds the pairing panel from an org_admin of a standalone org', () => {
@@ -386,6 +430,14 @@ describe('OrganisationSection — the Nextcloud Sync section', () => {
     it('shows the pairing panel to a full admin even on a standalone org', () => {
         mount({ user: USER({ permissions: ['all'] }), activeSection: 'nextcloud_sync' });
         expect(screen.getByTestId('org-nc-pairing-panel')).toBeInTheDocument();
+    });
+});
+
+describe('OrganisationSection — the Meeting templates section', () => {
+    it('stacks summary templates, then Google Meet and Teams, for an org_admin of a standalone org', () => {
+        const { container } = mount({ user: ORG_ADMIN, activeSection: 'meeting_templates' });
+        const ids = [...container.querySelectorAll('[data-testid]')].map(el => el.getAttribute('data-testid'));
+        expect(ids).toEqual(['summary-templates-admin-panel', 'google-meet-admin-panel', 'teams-admin-panel']);
     });
 });
 

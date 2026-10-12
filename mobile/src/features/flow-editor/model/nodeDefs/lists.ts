@@ -4,7 +4,7 @@
  * Data copied from the web builder's flow/nodeDefs.js; nodeDefs.lockstep.test.ts
  * requires the web module and compares every record, so a changed word fails.
  * The palette wording is `labelFallback` here (the English under the
- * `routines.node.<type>.label` key; ./index.ts serves it as `label`), and a
+ * `automations.node.<type>.label` key; ./index.ts serves it as `label`), and a
  * quoted issue-map key is a validation path segment, not copy.
  */
 
@@ -38,6 +38,20 @@ export const LIST_DEFS: Record<string, NodeDefSource> = {
             map: { label: FLAT, arrayRef: 'config', field: 'config', keyField: 'config', maxItems: 'config' },
         },
         labelFallback: 'Remove duplicates',
+    },
+    flatten: {
+        family: 'data',
+        typeLabel: 'Flatten a list',
+        defaultLabel: 'Flatten a list',
+        desc: "One row for every item of a list inside a list, such as one row per attachment with its email's details.",
+        help: 'Turns a list inside a list into one table. Each row is one inner item, such as an attachment, with the details of the item it came from, such as the email.',
+        sectionKeys: ['config', 'more'],
+        simpleSections: ['config'],
+        issueSections: {
+            fallback: 'config',
+            map: { label: FLAT, arrayRef: 'config', parents: 'config', keepEmpty: 'more', maxItems: 'more' },
+        },
+        labelFallback: 'Flatten a list',
     },
     aggregate: {
         family: 'data',

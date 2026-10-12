@@ -88,7 +88,7 @@ function cleanStage(raw, index, { interpolate = null } = {}) {
     const rule = STAGE_RULES.includes(raw.rule) ? raw.rule : 'all';
     const stage = {
         // A key the author supplied is honoured (it is what votes are filed
-        // under, so re-saving a routine must not orphan votes already cast);
+        // under, so re-saving an automation must not orphan votes already cast);
         // otherwise positional.
         key: (typeof raw.key === 'string' && raw.key.trim()) ? raw.key.trim().slice(0, 40) : `s${index + 1}`,
         name: (render(raw.name) || `Stage ${index + 1}`).slice(0, MAX_STAGE_NAME_LEN),

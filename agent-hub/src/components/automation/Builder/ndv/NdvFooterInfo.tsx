@@ -13,6 +13,13 @@ import InOutParts from './InOutParts';
  * view. Full density: the same line as a plain statement, because the
  * columns it would open are already on screen.
  */
+/**
+ * The line may shrink but never paint over its neighbours (it did, under
+ * "Show advanced options" and "Undo changes"), and on a settings column
+ * under 480px it folds away: the header and the output column say the same.
+ */
+const NARROW_FOLD = 'min-w-0 overflow-hidden @max-[480px]/ndvset:hidden';
+
 export default function NdvFooterInfo({ quick, inSummary, outSummary, isTrigger, onGoFull, modeLink, hiddenCount }: {
     quick: boolean;
     inSummary: DataSummary | null;
@@ -25,7 +32,7 @@ export default function NdvFooterInfo({ quick, inSummary, outSummary, isTrigger,
     const { t } = useTranslation();
     if (!quick) {
         return (
-            <span className="inline-flex items-center gap-1.5 text-[var(--text-secondary)] min-w-0" data-testid="ndv-footer-inout">
+            <span className={`inline-flex items-center gap-1.5 text-[var(--text-secondary)] ${NARROW_FOLD}`} data-testid="ndv-footer-inout">
                 <InOutParts t={t} inSummary={inSummary} outSummary={outSummary} isTrigger={isTrigger} valueClass="truncate font-medium text-[var(--text-primary)]" />
             </span>
         );
@@ -35,17 +42,17 @@ export default function NdvFooterInfo({ quick, inSummary, outSummary, isTrigger,
             <button
                 type="button"
                 onClick={onGoFull}
-                title={t('routines.builder.see_data_in_out', 'See the data going in and coming out')}
+                title={t('automations.builder.see_data_in_out', 'See the data going in and coming out')}
                 data-testid="ndv-footer-inout"
-                className="inline-flex items-center gap-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] min-w-0"
+                className={`inline-flex items-center gap-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] ${NARROW_FOLD}`}
             >
                 <InOutParts t={t} inSummary={inSummary} outSummary={outSummary} isTrigger={isTrigger} valueClass="truncate" />
             </button>
             {modeLink || (
                 <button type="button" onClick={onGoFull} className="inline-flex items-center gap-1 shrink-0 text-[var(--text-secondary)] hover:text-[var(--text-primary)] font-medium">
                     {hiddenCount > 0
-                        ? t('routines.ndv.more_options_n', 'More options ({n})', { n: hiddenCount })
-                        : t('routines.ndv.more_options', 'More options')} <ChevronRight size={12} />
+                        ? t('automations.ndv.more_options_n', 'More options ({n})', { n: hiddenCount })
+                        : t('automations.ndv.more_options', 'More options')} <ChevronRight size={12} />
                 </button>
             )}
         </>

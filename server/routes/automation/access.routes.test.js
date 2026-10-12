@@ -157,7 +157,7 @@ test('GET /:id: every role that may see it, with myRole; run-only gets the trigg
     assert.strictEqual(runner.body.summary, null);
 });
 
-test('PUT /:id: an editor may not move the routine into a folder', async () => {
+test('PUT /:id: an editor may not move the automation into a folder', async () => {
     const res = await call('PUT', '/a1', { as: 'ed', body: { folderId: 'f1' } });
     assert.strictEqual(res.status, 403);
     assert.strictEqual(res.body.need, 'owner');
@@ -232,7 +232,7 @@ test('retry: a run-only share runs their own live run again, not a test run', as
     assert.strictEqual(seen.executed[1].opts.isTest, true);
 });
 
-test('GET /: the caller\'s own routines and the ones shared with them, each with myRole', async () => {
+test('GET /: the caller\'s own automations and the ones shared with them, each with myRole', async () => {
     const own = await call('GET', '/', { as: 'owner' });
     assert.deepStrictEqual(own.body.automations.map(a => [a.id, a.myRole]), [['a1', 'owner']]);
     const vic = await call('GET', '/', { as: 'vic' });

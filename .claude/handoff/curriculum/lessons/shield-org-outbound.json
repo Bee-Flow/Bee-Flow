@@ -2,7 +2,7 @@
   "id": "shield-org-outbound",
   "icon": "🚦",
   "estMinutes": 11,
-  "title": "What happens, and what may leave",
+  "title": "When we find something, and what may leave",
   "desc": "Placeholders versus blocking, the interactive pre-flight, tool blocking and EU-only models.",
   "gate": {
     "permission": "org_admin"
@@ -14,12 +14,12 @@
       "id": "two-answers",
       "icon": "🔁",
       "title": "We found something. Now what?",
-      "bodyMd": "The detector has just found a customer's e-mail address in a message on its way to the AI. What should Bee Flow do with it? You answer that once, on the **What happens** tab, and your answer holds for everyone in the organisation.\n\nThere are exactly two answers:\n\n- **Replace with placeholders** — details are swapped for labels such as `[email_1]` before the message goes to the AI. The model never sees the real values, and Bee Flow puts them back in the answer.\n- **Do not send the message** — the message is stopped before it reaches the AI, and the person is asked to rewrite it without the personal data.\n\nAt Van Dijk Groep, procurement pastes supplier quotations to compare them, and placeholders keep that comparison readable. HR's re-integration dossiers are a different matter: there, stopping the message is the honest choice."
+      "bodyMd": "The detector has just found a customer's e-mail address in a message on its way to the AI. What should Bee Flow do with it? You answer that once, on step 3, **When we find something**, and your answer holds for everyone in the organisation.\n\nThat step opens one screen with two cards side by side, in the order they run. The first, **On every message**, asks *When we find personal data*, and there are exactly two answers:\n\n- **Replace with placeholders** — details are swapped for labels such as `[email_1]` before the message goes to the AI. The model never sees the real values, and Bee Flow puts them back in the answer.\n- **Do not send the message** — the message is stopped before it reaches the AI, and the person is asked to rewrite it without the personal data.\n\nAt Van Dijk Groep, procurement pastes supplier quotations to compare them, and placeholders keep that comparison readable. HR's re-integration dossiers are a different matter: there, stopping the message is the honest choice."
     },
     {
       "type": "quiz",
       "id": "q-placeholders",
-      "question": "Van Dijk Groep is on a plan that does not include placeholders. The admin opens the What happens tab to select Replace with placeholders. What do they find?",
+      "question": "Van Dijk Groep is on a plan that does not include placeholders. The admin opens When we find something to select Replace with placeholders. What do they find?",
       "multi": false,
       "choices": [
         {
@@ -31,22 +31,22 @@
           "id": "b",
           "label": "The card is hidden entirely on a plan without the feature, so the tab offers only one option to choose from.",
           "correct": false,
-          "feedback": "Both cards are always rendered on purpose. Hiding it once left organisations whose stored action was placeholders looking at a tab with nothing selected and no explanation of why."
+          "feedback": "Both options are always shown on purpose. Hiding one once left organisations whose stored action was placeholders looking at a card with nothing selected and no explanation of why."
         },
         {
           "id": "c",
           "label": "The card can be selected and saved, and placeholders then work exactly as they do on any other plan.",
           "correct": false,
-          "feedback": "The card is disabled on a plan without the feature, so it cannot be picked there. And even where placeholders are already stored from an earlier plan, the runtime stops the message instead of replacing anything — the tab shows an amber note saying exactly that."
+          "feedback": "The option is disabled on a plan without the feature, so it cannot be picked there. And even where placeholders are already stored from an earlier plan, the runtime stops the message instead of replacing anything — the card shows an amber note saying exactly that."
         },
         {
           "id": "d",
-          "label": "The whole What happens tab is locked until the plan is upgraded, so nothing on it can be saved.",
+          "label": "The whole When we find something step is locked until the plan is upgraded, so nothing on it can be saved.",
           "correct": false,
-          "feedback": "Only the placeholders card is gated. Blocking, the knowledge-base check and \"Also protect routines\" are available on every plan."
+          "feedback": "Only the placeholders card is gated. Blocking, the knowledge-base check and \"Also protect automations\" are available on every plan."
         }
       ],
-      "explanation": "Placeholders are a licensed feature and the gate sits on the card itself: disabled, badged Enterprise, with the reason spelled out. If an organisation already had placeholders stored, the card stays visible with an amber note instead of silently deselecting itself — and the Overview row warns \"Your plan does not include placeholders, so these messages are stopped instead.\"",
+      "explanation": "Placeholders are a licensed feature and the gate sits on the option itself: disabled, badged Enterprise, with \"Replacing with placeholders is an Enterprise feature.\" beneath it. If an organisation already had placeholders stored, the option stays visible with an amber note instead of silently deselecting itself — and Overview lists \"Placeholders are not in your plan\": \"Your plan does not include placeholders, so these messages are stopped instead.\"",
       "icon": "❓"
     },
     {
@@ -54,7 +54,7 @@
       "id": "preflight-what",
       "icon": "🛂",
       "title": "A second check, right at the border",
-      "bodyMd": "The action you just chose is the always-on gate: it runs on every message, silently.\n\nThe **Leaving your org** tab adds something different — **\"One last check before an outside AI\"**. It is a *second*, interactive check that fires just before a message goes to a model running outside your organisation, and it can put a human in the loop.\n\nKeep the two apart. Setting the first one to \"Do not send the message\" and then waiting for a dialog to appear will never work: only the pre-flight talks to people. This is the control Van Dijk Groep's sales team will actually meet, because they draft proposals on an outside model."
+      "bodyMd": "The action you just chose is the always-on gate: it runs on every message, silently.\n\nThe second card on the same screen, **Before it leaves your organisation** — step 4, **Leaving your org** — adds something different: **\"One last check before an outside AI\"**. It is a *second*, interactive check that fires just before a message goes to a model running outside your organisation, and it is the only step where people decide.\n\nKeep the two apart. Setting the first one to \"Do not send the message\" and then waiting for a dialog to appear will never work: only the last check talks to people. This is the control Van Dijk Groep's sales team will actually meet, because they draft proposals on an outside model."
     },
     {
       "type": "slide",
@@ -68,7 +68,7 @@
       "id": "preflight-dialog",
       "icon": "💬",
       "title": "What your colleague actually sees",
-      "bodyMd": "In Ask mode the person does not get a refusal. They get a dialog headed **\"Check this before it goes to the AI\"**, with the buttons `Block`, `Send anyway` and `Redact and send` — that last one reads `Send` when there is nothing marked to hide.\n\nSilence is not consent: if nobody answers within a minute, the message is treated as blocked.\n\nTell your people about this before you switch it on. A dialog nobody was expecting gets clicked away, and `Send anyway` is right there."
+      "bodyMd": "In Ask mode the person does not get a refusal. They get a dialog headed **\"Check this before it goes to the AI\"**, with the buttons `Block`, `Send anyway` and `Redact and send` — that last one reads `Send` when there is nothing marked to hide.\n\nSilence is not consent. While the dialog is open it waits for an answer; if the question goes unanswered for ten minutes with no dialog keeping it open — the tab was closed, say — the message is treated as blocked.\n\nTell your people about this before you switch it on. A dialog nobody was expecting gets clicked away, and `Send anyway` is right there."
     },
     {
       "type": "quiz",
@@ -100,7 +100,7 @@
           "feedback": "The opposite is true: an unrecognised provider or address is treated as external, so the check runs. Only explicit self-hosted types and private, loopback or .local addresses count as internal."
         }
       ],
-      "explanation": "The pre-flight's scope is \"external\" — it exists to catch data crossing your boundary. Self-hosted runtimes and addresses on a private network stay inside, so nothing is checked and nobody is interrupted. Anything unknown is treated as external on purpose, so a misconfigured endpoint fails towards checking rather than away from it. The always-on gate on the What happens tab still applies either way.",
+      "explanation": "The last check's scope is \"external\" — it exists to catch data crossing your boundary. Self-hosted runtimes and addresses on a private network stay inside, so nothing is checked and nobody is interrupted. Anything unknown is treated as external on purpose, so a misconfigured endpoint fails towards checking rather than away from it. The always-on gate under When we find something still applies either way.",
       "icon": "❓"
     },
     {
@@ -108,21 +108,21 @@
       "id": "tool-block",
       "icon": "🧰",
       "title": "Holding data back from tools",
-      "bodyMd": "A chat is not the only way out. Tools are the things the AI can use for you — search the web, open a file, send an e-mail — and **\"Hold personal data back from tools\"** lets you name the categories that may never be involved.\n\nThere are two grids, because there are two kinds of tool:\n\n- **Tools that send data outside your organisation** — a connected app, a search engine. Enterprise.\n- **Tools that stay on your own server** — available on every plan.\n\nIf a listed category turns up in the arguments, the call is refused before it is made, and the AI is told to continue without that information or to ask the person how to proceed. Anything that does come back has that data stripped out, and the refusal is recorded."
+      "bodyMd": "A chat is not the only way out. Tools are the things the AI can use for you — search the web, open a file, send an e-mail — and the shield lets you name the kinds of personal data a tool may never carry.\n\nThat is not on this screen but in the table on **What we look for**, as two columns beside *Hide from AI*:\n\n- **Hold back · outside tools** — tools that send data outside your organisation, such as a connected app or a search engine. Enterprise.\n- **Hold back · own server** — tools that stay on your own server, on every plan.\n\nThe checks screen points there itself: *Tool calls skip ① and ②. They follow the tool columns in the matrix.* If a held-back kind turns up in the arguments, the call is refused before it is made, and the AI is told to continue without that information or to ask the person how to proceed. Anything that does come back has that data stripped out, and the refusal is recorded."
     },
     {
       "type": "slide",
       "id": "search-and-eu",
       "icon": "🌍",
       "title": "Search boxes and where the model lives",
-      "bodyMd": "Three more switches on the same tab, each aimed at a specific leak:\n\n- **Protect web searches** — stop search terms that contain personal data from reaching an outside search engine. Enterprise, and the card only appears once a search provider is configured.\n- **No web search while a file is attached** — once a document is attached in a conversation, the AI can no longer search the web there, so nothing from that file can end up in a search box.\n- **Use only AI hosted in the EU** — chats are sent only to the AI models hosted in the EU. You set those up under AI Config → Chat Models, and the card only appears once they exist.\n\nFor Van Dijk Groep, a supplier's company name in a search box is fine. A named contact person is not."
+      "bodyMd": "Three more switches sit on the **Before it leaves your organisation** card, each aimed at a specific leak:\n\n- **Protect web searches** — stop search terms that contain personal data from reaching an outside search engine. Enterprise.\n- **No web search while a file is attached** — so nothing from an attached document ends up in a search box.\n- **Use only AI hosted in the EU** — chats only go to AI models hosted in the EU, set up under AI Config → Chat Models. It covers models only; connected apps such as Gmail follow the tool columns.\n\nThe two search switches only appear once a search provider is configured, and the EU switch only once EU-hosted models exist.\n\nFor Van Dijk Groep, a supplier's company name in a search box is fine. A named contact person is not."
     },
     {
       "type": "sim",
       "id": "sim-controls",
       "icon": "🧩",
       "title": "Which control does this?",
-      "instruction": "Van Dijk Groep's management wrote down five rules. Match each rule to the control on the Leaving your org tab that actually implements it.",
+      "instruction": "Van Dijk Groep's management wrote down five rules. Match each rule to the Privacy Shield control that actually implements it.",
       "sim": {
         "kind": "match",
         "pairs": [
@@ -141,7 +141,7 @@
           {
             "id": "tools",
             "left": "A connected app must never be able to carry a citizen service number out of the building.",
-            "right": "Hold back from tools that send data outside your organisation",
+            "right": "The Hold back · outside tools column on What we look for",
             "note": "The call is refused before dispatch when a listed category appears in its arguments."
           },
           {
@@ -165,17 +165,17 @@
       "icon": "🎯",
       "exerciseId": "ex-shield-org-outbound-policy",
       "title": "Your turn: write the outbound policy",
-      "instruction": "Van Dijk Groep's sales team wants to draft proposals on a strong model that runs outside the organisation, working from a customer export full of names, e-mail addresses and phone numbers. For the first month the admin wants a human eye on every outbound message; after that, no interruptions. Write the settings you would save on the Leaving your org tab, in plain sentences: which pre-flight mode for month one and which afterwards, whether you tick \"Always show this check, even when nothing is found\", and one tool or search control you would switch on as well. Say why for each.",
+      "instruction": "Van Dijk Groep's sales team wants to draft proposals on a strong model that runs outside the organisation, working from a customer export full of names, e-mail addresses and phone numbers. For the first month the admin wants a human eye on every outbound message; after that, no interruptions. Write the settings you would save, in plain sentences: which mode for \"One last check before an outside AI\" in month one and which afterwards, whether you tick \"Always show this check, even when nothing is found\", and one tool or search control you would switch on as well. Say why for each.",
       "placeholder": "e.g. Month one: pre-flight on, mode Ask, and tick \"Always show this check, even when nothing is found\" so the team also sees clean messages and can mark what the detector missed. From month two I switch to ... because ...",
       "passScore": 70,
       "maxAttempts": 4
     },
     {
       "type": "slide",
-      "id": "routines-kb",
+      "id": "automations-kb",
       "icon": "🌙",
       "title": "The unattended paths",
-      "bodyMd": "Two settings on the **What happens** tab cover the places where nobody is watching, and both are on unless you switch them off.\n\n**Also protect routines** checks the data and the AI steps of routines the same way as chat. Van Dijk Groep's Monday-morning report builds itself at five in the morning, with nobody at the keyboard — exactly where an interactive Ask would help nobody — so the always-on action carries the weight there.\n\n**Also check knowledge bases when documents are added** replaces personal data at the moment a document is stored, not when it is read. That matters twice over: a knowledge base quotes its documents to people who never saw the original file, and the check cannot be undone afterwards. The stored text is the checked text."
+      "bodyMd": "Two settings on the **On every message** card cover the places where nobody is watching, and both are on unless you switch them off.\n\n**Also protect automations** checks the data and the AI steps of automations the same way as chat. Van Dijk Groep's Monday-morning report builds itself at five in the morning, with nobody at the keyboard — exactly where an interactive Ask would help nobody — so the always-on action carries the weight there.\n\n**Also check knowledge bases when documents are added** replaces personal data before a document is stored, not when it is read. That matters twice over: a knowledge base quotes its documents to people who never saw the original file, and the check cannot be undone afterwards. The stored text is the checked text."
     },
     {
       "type": "action",
@@ -183,7 +183,7 @@
       "icon": "🏗️",
       "checkId": "shield-dlp",
       "title": "Switch the pre-flight on — we will verify it",
-      "instruction": "Open the Privacy Shield. If \"Protect personal data\" is off under Overview, switch it on first — the Leaving your org tab stays inactive until it is. Then, on Leaving your org, switch on \"One last check before an outside AI\", pick a mode card (start with Ask), press Save All Changes and wait for \"Saved successfully!\". Now prove it: send a chat message containing a name and an e-mail address on a model that runs outside your organisation, and watch for the dialog \"Check this before it goes to the AI\".",
+      "instruction": "Open the Privacy Shield. If \"Protect personal data\" is off under Overview, switch it on first — the numbered steps stay inactive until it is. Then, on Leaving your org, switch on \"One last check before an outside AI\", pick a mode (start with Ask), press Save changes and wait for \"Saved successfully!\". Now prove it: send a chat message containing a name and an e-mail address on a model that runs outside your organisation, and watch for the dialog \"Check this before it goes to the AI\".",
       "launch": {
         "navigateTo": "settings/organisation/privacy",
         "label": "Open Privacy Shield"
@@ -194,35 +194,35 @@
       "id": "recap",
       "icon": "✅",
       "title": "What you can do now",
-      "bodyMd": "- **Choose the action** on the What happens tab. Placeholders keep a message usable; \"Do not send the message\" keeps it inside. Placeholders are a licensed feature — without it, those messages are stopped instead.\n- **Set the pre-flight** on the Leaving your org tab to Ask, Hide it or Do not send, and add \"Always show this check, even when nothing is found\" when you want a human eye on everything. It skips models running on your own network.\n- **Name what may not cross the boundary**: categories held back from outside and internal tools, protected web searches, no search while a file is attached, and EU-hosted models only.\n\nAll of it can be changed back on the same two tabs — but text already stored in a knowledge base stays as it was checked.\n\nNext chapter: the evidence that these settings fired."
+      "bodyMd": "- **Choose the action** under When we find something. Placeholders keep a message usable; \"Do not send the message\" keeps it inside. Placeholders are a licensed feature — without it, those messages are stopped instead.\n- **Set the last check** under Leaving your org to Ask, Hide it or Do not send, and add \"Always show this check, even when nothing is found\" when you want a human eye on everything. It skips models running on your own network.\n- **Name what may not cross the boundary**: kinds held back in the tool columns on What we look for, protected web searches, no search while a file is attached, and EU-hosted models only.\n\nAll of it can be changed back — but text already stored in a knowledge base stays as it was checked.\n\nNext chapter: the evidence that these settings fired."
     }
   ],
   "rubrics": {
     "ex-shield-org-outbound-policy": {
       "title": "An outbound policy for the sales team",
-      "task": "Write the Leaving your org settings for Van Dijk Groep's sales team: which pre-flight mode for the first month and which afterwards, whether to tick \"Always show this check, even when nothing is found\", and at least one tool or search control to switch on — with a reason for each choice.",
+      "task": "Write the outbound settings for Van Dijk Groep's sales team: which mode for \"One last check before an outside AI\" for the first month and which afterwards, whether to tick \"Always show this check, even when nothing is found\", and at least one tool or search control to switch on — with a reason for each choice.",
       "criteria": [
         "Names Ask (with a human in the loop) for the first month and a less interruptive mode — Hide it, or a reasoned case for staying on Ask — afterwards, with a stated reason for the change.",
         "Decides explicitly on \"Always show this check, even when nothing is found\" and explains what it buys: clean messages are also shown, so a value the detector missed can still be marked.",
-        "Adds at least one real control from the same tab — holding categories back from tools that send data outside the organisation, Protect web searches, No web search while a file is attached, or Use only AI hosted in the EU — correctly described.",
-        "Shows awareness that the pre-flight only fires for models outside the organisation, or that the always-on action on the What happens tab still applies underneath."
+        "Adds at least one real control — the Hold back · outside tools column on What we look for, Protect web searches, No web search while a file is attached, or Use only AI hosted in the EU — correctly described.",
+        "Shows awareness that the last check only fires for models outside the organisation, or that the always-on action under When we find something still applies underneath."
       ],
       "passScore": 70,
-      "guidance": "Do not pass an answer that only repeats the three mode names without choosing, that invents settings which do not exist (per-team or per-user pre-flight modes, a per-message approval queue), that claims the pre-flight also covers a self-hosted model, or that confuses the pre-flight with the What happens action. A short answer is fine if it makes the three decisions concretely and gives a reason for each."
+      "guidance": "Do not pass an answer that only repeats the three mode names without choosing, that invents settings which do not exist (per-team or per-user modes, a per-message approval queue), that claims the last check also covers a self-hosted model, or that confuses the last check with the action under When we find something. A short answer is fine if it makes the three decisions concretely and gives a reason for each."
     }
   },
   "practiceTopic": {
     "title": "Shield: the action and the outbound rules",
     "summary": "How an organisation decides what happens to personal data it finds, and what may cross its boundary.",
     "facts": [
-      "The What happens tab offers two actions: \"Replace with placeholders\" (labels such as [email_1], restored in the answer, an Enterprise feature) and \"Do not send the message\".",
-      "\"One last check before an outside AI\" on the Leaving your org tab is a second, interactive check with three modes: Ask, Hide it, and Do not send.",
-      "The pre-flight only fires for providers outside the organisation; a self-hosted model on a private network is treated as internal and skipped, while an unrecognised provider is treated as external.",
+      "Step 3, When we find something, offers two actions on the card On every message: \"Replace with placeholders\" (labels such as [email_1], restored in the answer, an Enterprise feature) and \"Do not send the message\".",
+      "\"One last check before an outside AI\", on the card Before it leaves your organisation (step 4, Leaving your org), is a second, interactive check with three modes: Ask, Hide it, and Do not send.",
+      "The last check only fires for providers outside the organisation; a self-hosted model on a private network is treated as internal and skipped, while an unrecognised provider is treated as external.",
       "\"Always show this check, even when nothing is found\" also pauses on clean messages, so a person can mark something the detector missed.",
-      "In Ask mode the person sees the dialog \"Check this before it goes to the AI\" with the buttons Block, Send anyway and Redact and send; an unanswered decision is treated as blocked after a minute.",
-      "\"Hold personal data back from tools\" has two grids — tools that send data outside your organisation (Enterprise) and tools that stay on your own server — and refuses the tool call before it is made.",
-      "\"No web search while a file is attached\" and \"Use only AI hosted in the EU\" are separate switches on the same tab; the EU card only appears once EU chat models are configured.",
-      "\"Also protect routines\" and \"Also check knowledge bases when documents are added\" are both on by default, and the knowledge-base check applies at the moment a document is stored and cannot be undone."
+      "In Ask mode the person sees the dialog \"Check this before it goes to the AI\" with Block, Send anyway and Redact and send; an open dialog waits, and a decision left unanswered for ten minutes is treated as blocked.",
+      "Tools are governed by the Hold back · outside tools (Enterprise) and Hold back · own server columns on What we look for; a tool call carrying a held-back kind is refused before it is made.",
+      "\"No web search while a file is attached\" and \"Use only AI hosted in the EU\" are separate switches on the same card; the EU switch only appears once EU chat models are configured.",
+      "\"Also protect automations\" and \"Also check knowledge bases when documents are added\" are both on by default, and the knowledge-base check applies before a document is stored and cannot be undone."
     ]
   },
   "actionChecks": [
@@ -230,7 +230,7 @@
       "checkId": "shield-dlp",
       "existing": false,
       "label": "Turn on the check before an outside AI",
-      "hint": "In Settings → Organisation → Privacy Shield → Leaving your org, switch on \"One last check before an outside AI\", pick a mode, and press Save All Changes.",
+      "hint": "In Settings → Organisation → Privacy Shield → Leaving your org, switch on \"One last check before an outside AI\", pick a mode, and press Save changes.",
       "endpoints": [
         {
           "method": "GET",
@@ -242,7 +242,7 @@
         {
           "id": "shield-on",
           "label": "The shield itself is switched on",
-          "hint": "On the Overview tab, \"Protect personal data\" must be on — the other tabs stay inactive until it is.",
+          "hint": "On the Overview tab, \"Protect personal data\" must be on — the numbered steps stay inactive until it is.",
           "endpoint": "/api/org-privacy-shield/:org/effective",
           "expect": {
             "kind": "truthy",
@@ -253,7 +253,7 @@
         {
           "id": "dlp-on",
           "label": "The outbound check is switched on and saved",
-          "hint": "Leaving your org → \"One last check before an outside AI\", pick a mode card, then Save All Changes and wait for \"Saved successfully!\".",
+          "hint": "Leaving your org → \"One last check before an outside AI\", pick a mode, then Save changes and wait for \"Saved successfully!\".",
           "endpoint": "/api/org-privacy-shield/:org/effective",
           "expect": {
             "kind": "equals",

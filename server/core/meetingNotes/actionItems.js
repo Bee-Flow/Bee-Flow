@@ -58,11 +58,11 @@
  *
  * ── PRIVACY (BFSF-441) ──────────────────────────────────────────────
  * An action's text can name a person. All three destinations are INSIDE Bee
- * Flow — a routine run, a row in the user's own table, a source in the user's
+ * Flow — an automation run, a row in the user's own table, a source in the user's
  * own knowledge base — so carrying the text there is not an outgoing transfer.
  * What `destination` stores is a reference (kind + id + the label shown), never
- * a copy of anything from the other system. If a routine writes onward to a
- * third party, that chain is the routine's step to gate, not this record's.
+ * a copy of anything from the other system. If an automation writes onward to a
+ * third party, that chain is the automation's step to gate, not this record's.
  *
  * Two entry points, deliberately different:
  *   validate*   STRICT — for the PATCH route. Bad input is a 400 with a reason,
@@ -381,7 +381,7 @@ function normalizeNotes(raw, field) {
  * note was the act it dropped.
  *
  * So a DESTINATION also makes an item a person's. It is not a preference: it
- * is the receipt for something that already happened — a routine that ran, a
+ * is the receipt for something that already happened — an automation that ran, a
  * row that was written, a source that was filed. Re-running the extractor
  * cannot undo any of those, so throwing the reference away does not remove the
  * effect, it only removes the record of it.

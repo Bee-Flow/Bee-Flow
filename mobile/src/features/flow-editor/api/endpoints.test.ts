@@ -34,7 +34,7 @@ beforeEach(() => {
     for (const fn of [get, post, put, del]) fn.mockReset();
 });
 
-describe('the routine', () => {
+describe('the automation', () => {
     it('loads, saves (PUT, only the patch) and creates (POST, never retried)', async () => {
         get.mockResolvedValue({ automation: { id: 'a 1', definition: DEF }, summary: '' });
         await getFlowAutomation('a 1');
@@ -73,7 +73,7 @@ describe('making the working copy live (handoff 5)', () => {
         expect(post).toHaveBeenLastCalledWith('/api/automation/a1/publish', {}, { retry: false });
     });
 
-    it('tells a routine that moved on from every other refusal', () => {
+    it('tells an automation that moved on from every other refusal', () => {
         const moved = new ApiError('Version 5 is no longer the latest', { status: 409, body: { error: 'Version 5 is no longer the latest', code: 'version_changed', version: 6 } });
         const aiAct = new ApiError('Answer, then try again.', { status: 409, body: { error: 'Answer, then try again.', code: 'ai_act_check_required' } });
         expect(isVersionChanged(moved)).toBe(true);
@@ -83,7 +83,7 @@ describe('making the working copy live (handoff 5)', () => {
     });
 });
 
-describe('the routine row', () => {
+describe('the automation row', () => {
     it('normalises the definition, so a stored {} is an empty graph', async () => {
         get.mockResolvedValueOnce({ automation: { id: 'a1', definition: {}, version: '3' }, summary: 'Does a thing' });
         const out = await getFlowAutomation('a1');
@@ -242,7 +242,7 @@ describe('folders', () => {
 });
 
 describe('the AI builder', () => {
-    it('answers null for a routine with no session yet, and throws anything else', async () => {
+    it('answers null for an automation with no session yet, and throws anything else', async () => {
         get.mockRejectedValueOnce(new ApiError('No builder session', { status: 404 }));
         await expect(getBuilderSession('a1')).resolves.toBeNull();
         get.mockRejectedValueOnce(new ApiError('Boom', { status: 500 }));

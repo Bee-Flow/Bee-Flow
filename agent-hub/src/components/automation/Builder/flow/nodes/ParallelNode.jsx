@@ -2,6 +2,7 @@ import React from 'react';
 import { GitFork } from 'lucide-react';
 import StepNodeBase, { NodeChip } from './StepNodeBase';
 import { nodeDefaultLabel, nodeHelp, nodeTypeLabel } from '../nodeDefs';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 
 /**
  * The parallel step on the canvas — "do these together instead of one after
@@ -14,7 +15,7 @@ import { nodeDefaultLabel, nodeHelp, nodeTypeLabel } from '../nodeDefs';
  * branches — and the CANVAS had no component for it. React Flow falls back to
  * its own default node for an unregistered type, so a definition carrying a
  * parallel step drew an unstyled grey box with no name, no step number, no run
- * status and no family colour, sitting in the middle of someone's routine.
+ * status and no family colour, sitting in the middle of someone's automation.
  * That was not hypothetical: the shipped "New employee onboarding" template
  * (automation/templates.js, id `nc-onboarding`) is a single parallel step with
  * three branches, so every user who started from it opened the builder on a
@@ -50,7 +51,7 @@ import { nodeDefaultLabel, nodeHelp, nodeTypeLabel } from '../nodeDefs';
  * NO i18n HERE, ON PURPOSE. Like its branch-family siblings (ConditionNode,
  * SwitchNode, FilterNode, GuardNode) this card takes its type label and help
  * through the nodeDefs accessors — which ARE translated, via
- * `routines.node.parallel.*` — and keeps its own summary line in English.
+ * `automations.node.parallel.*` — and keeps its own summary line in English.
  * LoopNode is the counter-example that translates its summary; when this one
  * follows, the counts below have to move to a key pair per number the way
  * `loop_body_step` / `loop_body_step_plural` did, because `branch${n === 1 ?
@@ -116,6 +117,7 @@ export function parallelSummary(step) {
 }
 
 export default function ParallelNode({ id, data }) {
+    const { t } = useTranslation();
     const { step, runStep, issues, onAddAfter } = data;
     const branches = parallelBranches(step);
     const stepCount = parallelStepCount(step);
@@ -134,7 +136,7 @@ export default function ParallelNode({ id, data }) {
 
     const badges = (
         <NodeChip tone={step?.failOnAnyBranchError ? 'warn' : 'neutral'} title={title}>
-            ⇉ {branches.length} branch{branches.length === 1 ? '' : 'es'}
+            ⇉ {branches.length} {t('automations.parallel_node.branch', 'branch')}{branches.length === 1 ? '' : 'es'}
         </NodeChip>
     );
 

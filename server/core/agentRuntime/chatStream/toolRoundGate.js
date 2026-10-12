@@ -86,7 +86,7 @@ async function dispatchToolRound({
     let _roundPolicy;
     let _automationConfirms = null;
     try {
-        // The per-routine confirm a granted automation carries. It
+        // The per-automation confirm a granted automation carries. It
         // can only be resolved against the assembled stack (the
         // grant is keyed on the automation id, the tool on its
         // name), so it is rebuilt per round like the policy itself.

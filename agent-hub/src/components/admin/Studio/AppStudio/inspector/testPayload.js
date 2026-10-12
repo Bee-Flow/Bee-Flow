@@ -1,16 +1,16 @@
 /**
  * Wat een testrun MEEKRIJGT, en wat er aantoonbaar niet in zit.
  *
- * De testknop naast een `run_automation`-actie draaide de routine met alleen de
+ * De testknop naast een `run_automation`-actie draaide de automatisering met alleen de
  * STATISCHE waarden uit de input-mapping. Alles wat aan een formulierveld hing
  * — meestal de echte invoer — kwam als `undefined` aan, viel uit de JSON, en de
- * routine begon met een lege `trigger.output`. De run zag er daarna precies uit
+ * automatisering begon met een lege `trigger.output`. De run zag er daarna precies uit
  * als een kapotte stap.
  *
  * Deze functie bouwt dezelfde payload uit de ACTUELE schermwaarden, en geeft
  * los daarvan terug wat er NIET in zit en waarom. Dat tweede is geen extraatje:
  * wie test met de helft van de invoer en dat niet weet, trekt de verkeerde
- * conclusie over de routine.
+ * conclusie over de automation.
  *
  * ── Bestandsvelden gaan nooit mee ──────────────────────────────────────────
  *
@@ -22,7 +22,7 @@
  *   2. Alleen de app-brug kan die descriptor uitpakken (`expandFileInput` in
  *      server/appStudio/actionExecutor/automationBridge.js), en die zit achter
  *      `POST /api/studio-apps/:id/actions/:actionId/run` — niet achter de
- *      routine-route waar deze knop op uitkomt.
+ *      automation-route waar deze knop op uitkomt.
  *   3. Die opzoeking is app- én eigenaar-scoped en weigert een niet-gescand of
  *      in quarantaine gezet bestand.
  *   4. De download-URL wordt per run gemunt en verloopt; een uit een scherm
@@ -48,7 +48,7 @@ export const SKIP_REASONS = Object.freeze({
     NO_SCREEN: 'no_screen', // het formulier staat niet (meer) op het scherm
     NO_VALUE: 'no_value',   // het formulier staat er, dit veld heeft geen waarde
     UNMAPPED: 'unmapped',   // de mapping is leeg of van een onbekende soort
-    NO_MAPPING: 'no_mapping', // de routine vraagt de parameter, er is geen regel voor
+    NO_MAPPING: 'no_mapping', // de automatisering vraagt de parameter, er is geen regel voor
 });
 
 /** Componenttypes die een bestand opleveren in plaats van een waarde. */
@@ -61,7 +61,7 @@ const FILE_FIELD_TYPES = ['input_file'];
  * @param {object|null} args.formValues    de LIVE waarden van dat formulier, of
  *                                         null als het niet op het scherm staat
  * @param {object|null} args.paramMeta     `{ [param]: { type, required } }` uit het
- *                                         contract van de routine, als dat er is
+ *                                         contract van de automatisering, als dat er is
  * @returns {{payload: object, skipped: Array<{param: string, field: string|null, reason: string}>}}
  */
 export function buildTestPayload({
@@ -74,14 +74,14 @@ export function buildTestPayload({
 
     // DE UNIE, NIET DE MAPPING ALLEEN.
     //
-    // Een parameter die de routine WEL declareert maar die geen mapping-regel
-    // heeft (de routine kreeg er later een bij, of iemand haalde de regel weg)
+    // Een parameter die de automatisering WEL declareert maar die geen mapping-regel
+    // heeft (de automatisering kreeg er later een bij, of iemand haalde de regel weg)
     // kwam in geen van beide lijsten voor: hij reisde niet mee én werd niet
-    // gemeld. De UI toont hem wél — ContractDrift zegt "The routine also
+    // gemeld. De UI toont hem wél — ContractDrift zegt "The automation also
     // expects: + invoiceFile *" — maar de testrun deed alsof hij niet bestond,
     // en dat is precies de half-ingevulde run waar deze module tegen is
     // geschreven. Gedeclareerde volgorde eerst, daarna wat de mapping extra
-    // noemt (een regel voor een parameter die de routine niet meer kent).
+    // noemt (een regel voor een parameter die de automatisering niet meer kent).
     const mapping0 = inputMapping || {};
     const declared = paramMeta && typeof paramMeta === 'object' ? Object.keys(paramMeta) : [];
     const names = [...new Set([...declared, ...Object.keys(mapping0)])];
@@ -96,7 +96,7 @@ export function buildTestPayload({
             skip(param, null, SKIP_REASONS.NO_MAPPING);
             continue;
         }
-        // Het CONTRACT wint van de mapping: een parameter die de routine als
+        // Het CONTRACT wint van de mapping: een parameter die de automatisering als
         // `file` declareert gaat niet mee, ook niet als er per ongeluk een
         // statische lege string aan hangt (de plaatsvervanger die de picker
         // schrijft als er geen bestandsveld is om naar te wijzen).

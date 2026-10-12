@@ -300,10 +300,10 @@ async function probe({ endpoint, request = _request, fresh = false } = {}) {
 }
 
 /**
- * The validator's `topicClassifier` fact for one routine definition
+ * The validator's `topicClassifier` fact for one automation definition
  * (validate/stepRules/topicRules.js):
  *
- *   null  — the routine asks no "is about" question (no probe is made), or
+ *   null  — the automation asks no "is about" question (no probe is made), or
  *           the classifier's state is unknown (unreachable, still loading):
  *           never a finding, so an outage cannot block anyone;
  *   false — it does, and no classifier is configured;

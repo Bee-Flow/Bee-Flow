@@ -1,6 +1,6 @@
-import { Play, PanelRight, RotateCcw, Check, Lock, Loader2, Crown } from 'lucide-react';
+import { Play, PanelRight, RotateCcw, Check, Lock, Loader2, Crown, ChevronDown, ChevronRight } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
-import { Card, IconTile, PrimaryButton, SecondaryButton } from './bits';
+import { Card, EmojiTile, IconTile, PrimaryButton, SecondaryButton } from './bits';
 import CourseIcon from './courseIcons';
 import { buildCurriculumColumns, splitCapstone, courseState, lessonsMinutes, CAPSTONE_CHECK_ID } from './curriculum';
 import { getActionCheck, runActionCheck, applicableCriteria } from '../../../components/onboarding/actionChecks';
@@ -26,7 +26,15 @@ import { getLearningPath } from '../../../components/onboarding/learningPaths';
  *     than it saves, and a legend is the tell that the encoding needed one.
  *
  * What is left is the hero (what you were doing, and three ways to act on it),
- * one list per learning path, and the capstone as a single closing line.
+ * one large TILE per learning path, and the capstone as a single closing line.
+ *
+ * Round 4 (BFSF-473) collapsed the per-path course lists behind those tiles.
+ * Three columns times six-plus course rows opened the screen as a wall of
+ * twenty stations to read before choosing one; the paths themselves — the
+ * three main categories — were drowned by their own content. Each path is now
+ * one big button (icon, name, what it is for, how far along you are); the
+ * course list of ONE path is expanded at a time, the learner's own path by
+ * default. The map below the hero went from ~20 rows to 3 tiles.
  */
 export default function OverviewView({
     t, user, hasFeature, courses, lessonsOf, completedMap, isLocked, isComplete, lockedReasonFor,
@@ -35,6 +43,15 @@ export default function OverviewView({
 }) {
     const { capstone, rest } = useMemo(() => splitCapstone(courses), [courses]);
     const columns = useMemo(() => buildCurriculumColumns(rest, path), [rest, path]);
+    const colKey = (col) => col.pathId || 'other';
+    // Accordion: one category open at a time (clicking the open tile closes
+    // them all). The learner's own path is already the first column
+    // (buildCurriculumColumns moves it there), so the default open tile is
+    // simply the first one.
+    const [pickedCol, setPickedCol] = useState(null);
+    const openCol = pickedCol === null
+        ? (columns.length ? colKey(columns[0]) : null)
+        : (columns.some((c) => colKey(c) === pickedCol) ? pickedCol : null);
 
     return (
         <div className="flex flex-col gap-6" style={{ padding: 28, fontSize: 13, color: 'var(--text-primary)' }}>
@@ -45,22 +62,37 @@ export default function OverviewView({
                 {columns.map((col) => {
                     const pathDef = getLearningPath(col.pathId);
                     const done = col.courses.filter(isComplete).length;
+                    const expanded = colKey(col) === openCol;
                     return (
-                        <Card key={col.pathId || 'other'} className="overflow-hidden" data-testid="curriculum-column">
-                            <div className="flex items-center gap-2" style={{ padding: '12px 14px' }}>
-                                <span className="font-semibold truncate">
-                                    {pathDef ? t(pathDef.titleKey, pathDef.titleFallback) : t('learn.rail.other_courses', 'Your organisation')}
+                        <Card key={colKey(col)} className="overflow-hidden" data-testid="curriculum-column">
+                            <button type="button" onClick={() => setPickedCol(expanded ? '_none_' : colKey(col))}
+                                aria-expanded={expanded} data-testid="curriculum-tile"
+                                className="w-full flex items-center gap-3 text-left transition hover:bg-[var(--bg-secondary)]"
+                                style={{ padding: '14px' }}>
+                                <EmojiTile icon={pathDef?.icon || '📚'} size={44} />
+                                <span className="flex-1 min-w-0 flex flex-col gap-[2px]">
+                                    <span className="font-semibold truncate">
+                                        {pathDef ? t(pathDef.titleKey, pathDef.titleFallback) : t('learn.rail.other_courses', 'Your organisation')}
+                                    </span>
+                                    <span className="text-[11px] leading-[15px] line-clamp-2" style={{ color: 'var(--text-tertiary)' }}>
+                                        {pathDef ? t(pathDef.descKey, pathDef.descFallback) : t('learn.curriculum.n_of_m_done', '{a} of {b} complete').replace('{a}', String(done)).replace('{b}', String(col.courses.length))}
+                                    </span>
+                                    {pathDef && (
+                                        <span className="text-[11px] whitespace-nowrap" style={{ color: 'var(--text-tertiary)' }}>
+                                            {t('learn.curriculum.n_of_m_done', '{a} of {b} complete').replace('{a}', String(done)).replace('{b}', String(col.courses.length))}
+                                        </span>
+                                    )}
                                 </span>
-                                <span className="ml-auto text-[11px] whitespace-nowrap flex-shrink-0" style={{ color: 'var(--text-tertiary)' }}>
-                                    {t('learn.curriculum.n_of_m_done', '{a} of {b} complete').replace('{a}', String(done)).replace('{b}', String(col.courses.length))}
-                                </span>
-                            </div>
-                            {col.courses.map((course) => (
+                                {expanded
+                                    ? <ChevronDown style={{ width: 15, height: 15, flexShrink: 0, color: 'var(--text-tertiary)' }} aria-hidden="true" />
+                                    : <ChevronRight style={{ width: 15, height: 15, flexShrink: 0, color: 'var(--text-tertiary)' }} aria-hidden="true" />}
+                            </button>
+                            {expanded && col.courses.map((course) => (
                                 <CourseRow key={course.id} t={t} course={course} lessons={lessonsOf(course)}
                                     completedMap={completedMap} locked={isLocked(course)} complete={isComplete(course)}
                                     lockedReason={lockedReasonFor(course)} onOpen={() => onOpenCourse(course.id)} />
                             ))}
-                            {!col.courses.length && (
+                            {expanded && !col.courses.length && (
                                 <div className="text-[11px]" style={{ padding: '12px 14px', borderTop: '1px solid var(--border-default)', color: 'var(--text-tertiary)' }}>
                                     {t('learn.curriculum.no_courses', 'No courses on this path yet.')}
                                 </div>

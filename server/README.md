@@ -55,7 +55,7 @@ inherits everything below it. `license/tiers.js` is the single source of truth.
 
 | Tier         | Who | Adds |
 |--------------|-----|------|
-| `community`  | Every install, no key required | Chat + agents, knowledge bases (vector/hybrid/reranked), multi-user with groups, all built-in integrations, Nextcloud connector incl. OAuth login, skills, automation builder + agent routines, learning center |
+| `community`  | Every install, no key required | Chat + agents, knowledge bases (vector/hybrid/reranked), multi-user with groups, all built-in integrations, Nextcloud connector incl. OAuth login, skills, automation builder + scheduled agent runs, learning center |
 | `enterprise` | Paid self-hosted tier | Automation sharing + approvals, voice chat, webpages, meeting notes, notebooks, projects, App Studio, MCP server marketplace, advanced Privacy Shield modes (PII tokenize, web-search guard), compliance hub, SAML/Google/Microsoft SSO, audit log export, custom themes, swarm agents, advanced analytics, content encryption at rest |
 | `full`       | Internal/operator tier | White-label branding, license issuance |
 

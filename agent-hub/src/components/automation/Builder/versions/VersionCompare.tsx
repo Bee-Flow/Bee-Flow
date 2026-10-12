@@ -47,7 +47,7 @@ function CompareSelect({ id, others, value, onChange }: {
     return (
         <>
             <label htmlFor={id} className="text-[var(--text-tertiary)]">
-                {t('routines.versions.comparedWith', 'Compared with')}
+                {t('automations.versions.comparedWith', 'Compared with')}
             </label>
             <select
                 id={id}
@@ -57,7 +57,7 @@ function CompareSelect({ id, others, value, onChange }: {
             >
                 {others.map((r) => (
                     <option key={r.id} value={r.id}>
-                        {r.isLive ? t('routines.versions.compareLive', 'v{version} · live', { version: r.version }) : `v${r.version}`}
+                        {r.isLive ? t('automations.versions.compareLive', 'v{version} · live', { version: r.version }) : `v${r.version}`}
                     </option>
                 ))}
             </select>
@@ -76,7 +76,7 @@ export default function VersionCompare({ automationId, rows, selected, restoring
     const def = useVersionDefinitionQuery(automationId, selected.id);
     const diff = useFieldDiffQuery(automationId, selected.version, compare?.version ?? null);
     const target = restoreTarget(selected, compare);
-    const heading = t('routines.versions.heading', 'v{version} · {title}', {
+    const heading = t('automations.versions.heading', 'v{version} · {title}', {
         version: selected.version, title: selected.name ?? describeVersion(selected, t),
     });
 
@@ -95,16 +95,16 @@ export default function VersionCompare({ automationId, rows, selected, restoring
                         <div className="ml-auto flex flex-wrap gap-1.5">
                             <button type="button" className={OUTLINE_BTN} onClick={() => setNaming((n) => !n)} aria-expanded={naming}>
                                 <Flag size={12} />
-                                {selected.name ? t('routines.versions.rename', 'Rename') : t('routines.versions.nameIt', 'Name it')}
+                                {selected.name ? t('automations.versions.rename', 'Rename') : t('automations.versions.nameIt', 'Name it')}
                             </button>
                             <button type="button" className={OUTLINE_BTN} onClick={() => onOpen(selected)}>
                                 <Eye size={12} />
-                                {t('routines.versions.openReadOnly', 'Open (read-only)')}
+                                {t('automations.versions.openReadOnly', 'Open (read-only)')}
                             </button>
                             {target && !target.isEditing && (
                                 <button type="button" className={OUTLINE_BTN} disabled={restoring} onClick={() => onRestore(target)}>
                                     <History size={12} />
-                                    {t('routines.versions.restoreTo', 'Restore to v{version}', { version: target.version })}
+                                    {t('automations.versions.restoreTo', 'Restore to v{version}', { version: target.version })}
                                 </button>
                             )}
                         </div>
@@ -115,7 +115,7 @@ export default function VersionCompare({ automationId, rows, selected, restoring
                     <VersionNameForm
                         initial={selected.name ?? ''}
                         busy={nameMut.isPending}
-                        error={nameMut.isError ? t('routines.versions.nameFailed', 'The name could not be saved.') : null}
+                        error={nameMut.isError ? t('automations.versions.nameFailed', 'The name could not be saved.') : null}
                         onCancel={() => setNaming(false)}
                         onSave={(name) => nameMut.mutate({ version: selected.version, name }, { onSuccess: () => setNaming(false) })}
                     />

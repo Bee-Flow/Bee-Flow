@@ -6,7 +6,7 @@ import { VariablePickerProvider } from '../../mapping/VariablePickerContext';
 
 /**
  * "Questions for the approver" — the declared fields an approval collects
- * alongside the yes/no, so a routine can pause and ask a colleague for the
+ * alongside the yes/no, so an automation can pause and ask a colleague for the
  * missing invoice number and then carry on with what they typed.
  *
  * Everything these tests circle is the BINDING NAME. A question has two names:
@@ -145,7 +145,7 @@ describe('the approval question list, in the builder', () => {
         // keystroke and that blur the stored name is still the placeholder —
         // and the debounce saves in that window. Printing the slug the author
         // is ABOUT to get would tell them to bind output.answers.invoice_number
-        // while the definition still says q1, and a routine that closes on
+        // while the definition still says q1, and an automation that closes on
         // Escape never fires the blur that would have made it true. A later
         // step wired from that line receives nothing, with no error anywhere:
         // the same silent drop the mint rules exist to prevent, reached

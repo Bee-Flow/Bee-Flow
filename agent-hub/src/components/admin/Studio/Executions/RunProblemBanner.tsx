@@ -48,7 +48,7 @@ export default function RunProblemBanner({ run, steps }: { run: RunLogRow | null
                         onClick={() => setShowTech(v => !v)}
                         className="shrink-0 text-[var(--text-tertiary)] underline hover:text-[var(--text-primary)]"
                     >
-                        {t('routines.output.technical_message', 'technical message')}
+                        {t('automations.output.technical_message', 'technical message')}
                     </button>
                 )}
             </div>

@@ -109,7 +109,7 @@ const LOGIC_MARK_ICONS = {
  * and the icon strip in the corner still counts the rest.
  *
  * An automation wears --type-trigger (kindColors: automation) so the pill
- * reads as the same thing as the trigger card in the routine builder; any
+ * reads as the same thing as the trigger card in the automation builder; any
  * other action wears the app kind's colour. Positioned OUTSIDE the cell on
  * its right (`left: calc(100% + 14px)`), which the relaxed `contain: layout`
  * of a selected cell allows.

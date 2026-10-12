@@ -14,7 +14,7 @@
  *   4. the step evaluates with makeTopicHost(scores).
  *
  * A step with no isAbout call returns `{ host: null }` without touching the
- * classifier, so every existing routine runs exactly as it did.
+ * classifier, so every existing automation runs exactly as it did.
  *
  * Failures THROW (errorClass on the error) before any row is evaluated: the
  * step fails visibly instead of routing everything to "otherwise".

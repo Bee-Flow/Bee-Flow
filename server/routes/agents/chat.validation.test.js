@@ -188,3 +188,58 @@ test('a title request without content is refused in words', async () => {
 test('a describe request with a misspelled key is refused', async () => {
     await refuses({ url: '/describe-building', body: { cod: 'x' } }, 'body');
 });
+
+// ═══ history ════════════════════════════════════════════════════════
+
+test('a history turn whose content is an object is refused by name', async () => {
+    // Replayed verbatim, it is the provider's 400 "messages[N].content ... got
+    // an object" on every later turn of the conversation.
+    await refuses({
+        url: '/a1/chat/stream',
+        body: { message: 'hi', history: [{ role: 'user', content: 'a' }, { role: 'tool', content: { sent: true } }] },
+    }, 'body.history.1.content');
+});
+
+test('a history turn that is not an object is refused by name', async () => {
+    await refuses({ url: '/a1/chat/stream', body: { message: 'hi', history: ['hello'] } }, 'body.history.0');
+});
+
+test('history with text, content blocks, null content and extra fields is accepted', async () => {
+    const res = await dispatch({
+        url: '/a1/chat/stream',
+        body: {
+            message: 'hi',
+            history: [
+                { role: 'user', content: 'a', attachments: [{ name: 'x.pdf' }] },
+                { role: 'user', content: [{ type: 'text', text: 'b' }] },
+                { role: 'assistant', content: null },
+                { role: 'assistant' },
+            ],
+        },
+    });
+    assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
+});
+
+// ═══ Chat signals: the notice marker and the opt-out ════════════════
+
+test('chat signals: the strict turn body takes the marker and the opt-out, and hands them to the turn', async () => {
+    const res = await dispatch({
+        url: '/a1/chat/stream',
+        body: { message: 'hi', chatSignalsNotice: 'agent@2026-10-14T09:00:00.000Z', chatSignalsOptOut: true },
+    });
+    assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
+    assert.deepStrictEqual(seen.find((s) => s.what === 'stream').metadata.chatSignals,
+        { notice: 'agent@2026-10-14T09:00:00.000Z', optOut: true });
+});
+
+test('chat signals: a turn without them carries an empty marker and no opt-out', async () => {
+    const res = await dispatch({ url: '/a1/chat/stream', body: { message: 'hi' } });
+    assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
+    assert.deepStrictEqual(seen.find((s) => s.what === 'stream').metadata.chatSignals, { notice: null, optOut: false });
+});
+
+test('chat signals: a marker that is not text, or too long, and an opt-out that is not a boolean are refused', async () => {
+    await refuses({ url: '/a1/chat/stream', body: { message: 'hi', chatSignalsNotice: 42 } }, 'body.chatSignalsNotice');
+    await refuses({ url: '/a1/chat/stream', body: { message: 'hi', chatSignalsNotice: 'x'.repeat(121) } }, 'body.chatSignalsNotice');
+    await refuses({ url: '/a1/chat/stream', body: { message: 'hi', chatSignalsOptOut: 'true' } }, 'body.chatSignalsOptOut');
+});

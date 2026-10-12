@@ -15,7 +15,7 @@
    "id": "why",
    "icon": "🧭",
    "title": "A method you write once",
-   "bodyMd": "At Van Dijk Groep the same 300-word instruction for assessing a supplier quote sits inside three different agents. Someone improves one of them. Now the three disagree, and nobody can say which is right.\n\nA **skill** is that method, written down once and kept in one place: what it is for, the steps in order, and the rules that hold every time.\n\nA skill never runs on its own. It reaches an answer in exactly three ways — attached to an agent, applied by a routine's AI step, or switched on for one chat from the composer. Improve the skill and all three change at the same moment. That is the whole point: one method, many places, no copies drifting apart."
+   "bodyMd": "At Van Dijk Groep the same 300-word instruction for assessing a supplier quote sits inside three different agents. Someone improves one of them. Now the three disagree, and nobody can say which is right.\n\nA **skill** is that method, written down once and kept in one place: what it is for, the steps in order, and the rules that hold every time.\n\nA skill never runs on its own. It reaches an answer in exactly three ways — attached to an agent, applied by an automation's AI step, or switched on for one chat from the composer. Improve the skill and all three change at the same moment. That is the whole point: one method, many places, no copies drifting apart."
   },
   {
    "type": "tour",
@@ -34,7 +34,7 @@
    "id": "method",
    "icon": "📋",
    "title": "The Method tab, card by card",
-   "bodyMd": "Van Dijk Groep's first skill is **Offerte beoordelen** — assessing an incoming supplier quote.\n\n- **What this skill does** — one line, so anyone scanning the list knows what it is for.\n- **When to use it** — the trigger in plain words: “someone shares a quote, price list or rate card from a supplier”. Up to 4,000 characters; past 90 per cent of that the card counts down what is left.\n- **Steps** — one sentence per step, in this order, drag to rearrange. Empty, the card says so out loud: “No steps yet. Write down what the agent should do, one step at a time.”\n\nA step may carry a **reference** pill pointing at a routine, a knowledge base or a table, so the reader can see what that step works from."
+   "bodyMd": "Van Dijk Groep's first skill is **Offerte beoordelen** — assessing an incoming supplier quote.\n\n- **What this skill does** — one line, so anyone scanning the list knows what it is for.\n- **When to use it** — the trigger in plain words: “someone shares a quote, price list or rate card from a supplier”. Up to 4,000 characters; past 90 per cent of that the card counts down what is left.\n- **Steps** — one sentence per step, in this order, drag to rearrange. Empty, the card says so out loud: “No steps yet. Write down what the agent should do, one step at a time.”\n\nA step may carry a **reference** pill pointing at an automation, a knowledge base or a table, so the reader can see what that step works from."
   },
   {
    "type": "slide",
@@ -90,17 +90,17 @@
    "id": "delivers",
    "icon": "📦",
    "title": "Delivers: the fields something else can use",
-   "bodyMd": "Left alone, the **Delivers** card says “No fields — this skill answers in its own words.” That is fine for a skill a person reads.\n\nIt stops being fine the moment a routine has to do something with the answer. Van Dijk Groep's quote routine writes the outcome into a table, so the skill delivers named fields: `leverancier` (text), `offertenummer` (text), `totaal_excl_btw` (number), `advies` (one of a list). A read-back line, **“How an automation will see these”**, names each field in plain words — text, number, yes-no, date, one of a list, table.\n\nOn a routine's AI step, the **leading** skill's delivered fields become the step's own outgoing fields. That is the join: this card is where a written method turns into data a later step can map."
+   "bodyMd": "Left alone, the **Delivers** card says “No fields — this skill answers in its own words.” That is fine for a skill a person reads.\n\nIt stops being fine the moment an automation has to do something with the answer. Van Dijk Groep's quote automation writes the outcome into a table, so the skill delivers named fields: `leverancier` (text), `offertenummer` (text), `totaal_excl_btw` (number), `advies` (one of a list). A read-back line, **“How an automation will see these”**, names each field in plain words — text, number, yes-no, date, one of a list, table.\n\nOn an automation's AI step, the **leading** skill's delivered fields become the step's own outgoing fields. That is the join: this card is where a written method turns into data a later step can map."
   },
   {
    "type": "quiz",
    "id": "q-scope",
-   "question": "Van Dijk Groep wants every agent that handles supplier quotes to assess them the same way — and wants the routine that empties the purchasing mailbox to do it too. Where does the method belong?",
+   "question": "Van Dijk Groep wants every agent that handles supplier quotes to assess them the same way — and wants the automation that empties the purchasing mailbox to do it too. Where does the method belong?",
    "multi": false,
    "choices": [
     {
      "id": "a",
-     "label": "In one skill, attached to those agents and picked on the routine's AI step.",
+     "label": "In one skill, attached to those agents and picked on the automation's AI step.",
      "correct": true
     },
     {
@@ -113,7 +113,7 @@
      "id": "c",
      "label": "In a prompt the team pastes into the chat each time.",
      "correct": false,
-     "feedback": "A prompt lives for one message. Nothing in the workspace keeps it, no routine can reach it, and nobody else can read what the method actually says."
+     "feedback": "A prompt lives for one message. Nothing in the workspace keeps it, no automation can reach it, and nobody else can read what the method actually says."
     },
     {
      "id": "d",
@@ -122,7 +122,7 @@
      "feedback": "A knowledge base is something an agent can search for facts. It is not instruction the agent must follow, so the method would only apply if the agent happened to look it up."
     }
    ],
-   "explanation": "An agent's instructions describe who it is; a skill describes how one job is done. The same skill can be attached to several agents and picked on a routine's AI step, and a change to it applies everywhere at once."
+   "explanation": "An agent's instructions describe who it is; a skill describes how one job is done. The same skill can be attached to several agents and picked on an automation's AI step, and a change to it applies everywhere at once."
   },
   {
    "type": "slide",
@@ -187,19 +187,19 @@
    "id": "mayuse",
    "icon": "🔑",
    "title": "May use: what the skill may reach",
-   "bodyMd": "The right rail holds **May use**: the apps, routines and knowledge bases this skill may reach while it is working — three lists, no more. Van Dijk Groep's quote skill gets one knowledge base and no apps at all, so it can read, and it cannot send anything anywhere.\n\nA routine only appears in the picker once its trigger is **“an agent calls it”**. A scheduled or form-triggered routine cannot be called in the middle of an answer, so it is never offered.\n\nKeep the list short. It is a request, not a guarantee: what the skill may actually touch is checked again at the moment it tries."
+   "bodyMd": "The right rail holds **May use**: the apps, automations and knowledge bases this skill may reach while it is working — three lists, no more. Van Dijk Groep's quote skill gets one knowledge base and no apps at all, so it can read, and it cannot send anything anywhere.\n\nA automation only appears in the picker once its trigger is **“an agent calls it”**. A scheduled or form-triggered automation cannot be called in the middle of an answer, so it is never offered.\n\nKeep the list short. It is a request, not a guarantee: what the skill may actually touch is checked again at the moment it tries."
   },
   {
    "type": "slide",
    "id": "grants",
    "icon": "🔗",
    "title": "A reference is not a grant",
-   "bodyMd": "A step can carry a **reference** pill pointing at a routine — and that is presentation. It shows the reader where that step gets its answer; it does not make the routine callable. Only **May use** does that.\n\nTwo exceptions. A reference to a **knowledge base** does grant access. So does a reference to a **table** — and a table can only ever be granted that way, because May use has no table list.\n\nSo: routines are granted in May use, tables on the step, knowledge bases either way. When a skill quietly ignores a routine you were sure it had, this is almost always why."
+   "bodyMd": "A step can carry a **reference** pill pointing at an automation — and that is presentation. It shows the reader where that step gets its answer; it does not make the automation callable. Only **May use** does that.\n\nTwo exceptions. A reference to a **knowledge base** does grant access. So does a reference to a **table** — and a table can only ever be granted that way, because May use has no table list.\n\nSo: automations are granted in May use, tables on the step, knowledge bases either way. When a skill quietly ignores an automation you were sure it had, this is almost always why."
   },
   {
    "type": "quiz",
    "id": "q-mayuse",
-   "question": "Van Dijk Groep has three routines. Which one can be offered to the Offerte beoordelen skill under May use?",
+   "question": "Van Dijk Groep has three automations. Which one can be offered to the Offerte beoordelen skill under May use?",
    "multi": false,
    "choices": [
     {
@@ -211,22 +211,22 @@
      "id": "b",
      "label": "Offertes uit de inkoopmailbox — trigger: on a schedule, every hour.",
      "correct": false,
-     "feedback": "A scheduled routine runs on its own clock; nothing can call it in the middle of an answer. Skill and routine meet the other way round there: that routine's AI step picks the skill."
+     "feedback": "A scheduled automation runs on its own clock; nothing can call it in the middle of an answer. Skill and automation meet the other way round there: that automation's AI step picks the skill."
     },
     {
      "id": "c",
      "label": "Nieuwe leverancier aanmelden — trigger: on form submission.",
      "correct": false,
-     "feedback": "A form routine waits for a submitted form, so it cannot be dispatched as a tool. The empty line in the card says it plainly: a routine appears here once its trigger is “an agent calls it”."
+     "feedback": "A form automation waits for a submitted form, so it cannot be dispatched as a tool. The empty line in the card says it plainly: an automation appears here once its trigger is “an agent calls it”."
     },
     {
      "id": "d",
      "label": "Any of the three, as long as you own it.",
      "correct": false,
-     "feedback": "Ownership is not the filter — the trigger is. Only a routine that is triggered by an agent calling it can be reached during an answer."
+     "feedback": "Ownership is not the filter — the trigger is. Only an automation that is triggered by an agent calling it can be reached during an answer."
     }
    ],
-   "explanation": "Only a routine whose trigger is “an agent calls it” can be dispatched while a skill is working, so only that one is offered in the picker. And remember: putting it in May use is what grants it — a reference pill on a step does not."
+   "explanation": "Only an automation whose trigger is “an agent calls it” can be dispatched while a skill is working, so only that one is offered in the picker. And remember: putting it in May use is what grants it — a reference pill on a step does not."
   },
   {
    "type": "action",
@@ -268,10 +268,10 @@
   "facts": [
    "The Method tab holds What this skill does and When to use it on top, the Steps card on the left, and Rules, Delivers and May use in the right rail beside it.",
    "A rule is one sentence with a polarity button beside it reading Always or Never, and it holds for every answer the skill gives.",
-   "A skill never runs on its own: it is attached to an agent, applied by a routine's AI step, or switched on for one chat from the composer.",
-   "May use holds three lists only — apps, routines and knowledge bases; a routine qualifies only when its trigger is “an agent calls it”, a step that merely references a routine grants nothing, and a table is granted by a reference pill on a step.",
+   "A skill never runs on its own: it is attached to an agent, applied by an automation's AI step, or switched on for one chat from the composer.",
+   "May use holds three lists only — apps, automations and knowledge bases; an automation qualifies only when its trigger is “an agent calls it”, a step that merely references an automation grants nothing, and a table is granted by a reference pill on a step.",
    "On an empty skill the card “Start from one sentence” offers “Let AI fill it in”, and the toast afterwards reads “Filled in with AI. Read it through before you rely on it.”",
-   "The Delivers card lists typed fields — text, number, yes-no, date, one of a list, table — and a routine's AI step inherits the leading skill's fields.",
+   "The Delivers card lists typed fields — text, number, yes-no, date, one of a list, table — and an automation's AI step inherits the leading skill's fields.",
    "When to use it accepts up to 4,000 characters, and edits save by themselves 350 milliseconds after the last keystroke."
   ]
  },

@@ -1,14 +1,15 @@
 import { ChevronDown, ChevronRight, Search, X } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { previewValue, walkPath } from '../../../../utils/bindingHelpers';
+import { canonicalRefPath, previewValue, walkPath } from '../../../../utils/bindingHelpers';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { listBadgeClass } from '../flow/settings/formStyles';
 import { filterFields } from './filterFields';
 import { startPathDrag } from './bindingDnd';
 import { fieldListShape } from './listShape';
 import { humanizeFieldKey } from '../flow/displayHelpers';
-import { friendlyBasePath } from './VariableTree';
+import { fieldValueLabel, friendlyBasePath } from './VariableTree';
+import { fieldLabelText } from './upstream/routeFieldLabel';
 
 /**
  * Portal-rendered popover that lists upstream variables, filterable by
@@ -128,23 +129,23 @@ export default function VariablePicker({
                     autoFocus
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder={scoped && focusGroup ? t('routines.picker.search_in', 'Search in {step}…', { step: focusGroup.label }) : 'Search variables…'}
+                    placeholder={scoped && focusGroup ? t('automations.picker.search_in', 'Search in {step}…', { step: focusGroup.label }) : 'Search variables…'}
                     className="flex-1 bg-transparent text-xs text-[var(--text-primary)] focus:outline-none"
                 />
                 <button
                     type="button"
                     onClick={onClose}
                     className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
-                    aria-label="Close"
+                    aria-label={t('automations.variable_picker.close', 'Close')}
                 >
                     <X size={12} />
                 </button>
             </div>
             {scoped && focusGroup && (
                 <div className="flex items-center gap-2 px-3 py-1.5 border-b border-[var(--border-default)] text-[11px] bg-[var(--bg-secondary)]" data-testid="picker-scope">
-                    <span className="text-[var(--text-secondary)] truncate">{t('routines.picker.fields_of', 'Fields of {step}', { step: focusGroup.label })}</span>
+                    <span className="text-[var(--text-secondary)] truncate">{t('automations.picker.fields_of', 'Fields of {step}', { step: focusGroup.label })}</span>
                     <button type="button" onClick={() => setScoped(false)} className="ml-auto shrink-0 underline text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
-                        {t('routines.picker.all_steps', 'All steps')}
+                        {t('automations.picker.all_steps', 'All steps')}
                     </button>
                 </div>
             )}
@@ -163,13 +164,14 @@ export default function VariablePicker({
                         onHoverField={setHoverField}
                         previewSample={previewSample}
                         currentPath={focusPath}
+                        searching={!!query}
                     />
                 ))}
             </div>
             <div className="px-3 py-2 border-t border-[var(--border-default)] text-[10px] text-[var(--text-tertiary)] min-h-[28px] flex items-center gap-1.5">
                 {previewLine != null ? (
                     <>
-                        <span className="uppercase tracking-wide">preview</span>
+                        <span className="uppercase tracking-wide">{t('automations.variable_picker.preview', 'preview')}</span>
                         <span
                             className="font-mono text-[var(--text-secondary)] truncate"
                             title={previewLine}
@@ -178,7 +180,7 @@ export default function VariablePicker({
                         </span>
                     </>
                 ) : (
-                    <span>Hover a field to preview its sample value.</span>
+                    <span>{t('automations.variable_picker.hover_a_field_to_preview_its', 'Hover a field to preview its sample value.')}</span>
                 )}
             </div>
         </div>,
@@ -186,7 +188,8 @@ export default function VariablePicker({
     );
 }
 
-function PickerGroup({ group, onPick, onHoverField, previewSample = null, currentPath = '' }) {
+function PickerGroup({ group, onPick, onHoverField, previewSample = null, currentPath = '', searching = false }) {
+    const { t } = useTranslation();
     const [open, setOpen] = useState(true);
     const caption = friendlyBasePath(group.basePath, group.label);
     return (
@@ -221,7 +224,7 @@ function PickerGroup({ group, onPick, onHoverField, previewSample = null, curren
                 )}
             </button>
             {open && (group.fields || []).length === 0 && (
-                <div className="px-6 py-1 text-[11px] text-[var(--text-tertiary)] italic">No fields</div>
+                <div className="px-6 py-1 text-[11px] text-[var(--text-tertiary)] italic">{t('automations.variable_picker.no_fields', 'No fields')}</div>
             )}
             {open && (group.fields || []).map(f => (
                 <PickerLeaf
@@ -232,17 +235,23 @@ function PickerGroup({ group, onPick, onHoverField, previewSample = null, curren
                     onHoverField={onHoverField}
                     previewSample={previewSample}
                     currentPath={currentPath}
+                    searching={searching}
                 />
             ))}
         </div>
     );
 }
 
-function PickerLeaf({ field, depth, onPick, onHoverField, previewSample = null, currentPath = '' }) {
-    const [expanded, setExpanded] = useState(false);
-    const isCurrent = !!currentPath && field.path === currentPath;
-    const { t } = useTranslation();
+function PickerLeaf({ field, depth, onPick, onHoverField, previewSample = null, currentPath = '', searching = false }) {
+    // null = the author has not toggled this row: closed normally, OPEN while
+    // searching, so a match deep in a list ("address" under Value ▸ From ▸
+    // Email address) is on screen rather than behind a collapsed parent.
+    const [toggled, setToggled] = useState(null);
+    // By meaning, not spelling: the pill may say `['k']`, the tree `["k"]`.
+    const isCurrent = !!currentPath && canonicalRefPath(field.path) === canonicalRefPath(currentPath);
     const hasChildren = Array.isArray(field.children) && field.children.length > 0;
+    const expanded = toggled ?? (searching && hasChildren);
+    const setExpanded = (fn) => setToggled(fn(expanded));
     const indent = 12 + depth * 14;
     // Announce a list before it is picked, with the TRUE flattened count —
     // `field.sample` for a `[*]` path is the first ELEMENT, so counts read
@@ -304,19 +313,7 @@ function PickerLeaf({ field, depth, onPick, onHoverField, previewSample = null, 
                     keeps its own `title` here and the whole row still carries
                     the full dotted path, so the one string an expression needs
                     is one hover away. */}
-                <span className="text-[var(--text-primary)] truncate min-w-0" title={field.key}>
-                    {humanizeFieldKey(field.key) || field.key}
-                </span>
-                {shape && (
-                    <span className={listBadgeClass()} title={t(shape.explainKey, shape.explainEn, shape.explainParams)}>
-                        {shape.count != null ? `${t('routines.builder.list_word', 'list')} · ${shape.count}` : t('routines.builder.list_word', 'list')}
-                    </span>
-                )}
-                <span className="ml-auto text-[10px] text-[var(--text-tertiary)] truncate max-w-[120px] font-mono">
-                    {/* A [*] path resolves through walkPath — field.sample is
-                        the first element, not the column. */}
-                    {previewValue(resolveLeafSample(field, previewSample), 24)}
-                </span>
+                <LeafText field={field} shape={shape} previewSample={previewSample} hasChildren={hasChildren} />
             </div>
             {hasChildren && expanded && field.children.map(c => (
                 <PickerLeaf
@@ -327,6 +324,7 @@ function PickerLeaf({ field, depth, onPick, onHoverField, previewSample = null, 
                     onHoverField={onHoverField}
                     previewSample={previewSample}
                     currentPath={currentPath}
+                    searching={searching}
                 />
             ))}
         </>
@@ -335,11 +333,11 @@ function PickerLeaf({ field, depth, onPick, onHoverField, previewSample = null, 
 
 /** The group whose basePath owns `path` — the longest one that is a prefix. */
 function groupForPath(groups, path) {
-    const p = String(path || '').trim();
+    const p = canonicalRefPath(String(path || '').trim());
     if (!p) return null;
     let best = null;
     for (const g of groups || []) {
-        const base = String(g.basePath || '');
+        const base = g.basePath ? canonicalRefPath(String(g.basePath)) : '';
         if (!base) continue;
         if (p === base || p.startsWith(`${base}.`) || p.startsWith(`${base}[`)) {
             if (!best || base.length > String(best.basePath).length) best = g;
@@ -356,6 +354,46 @@ function resolveLeafPreview(field, sampleRoot) {
     }
     if (field.sample !== undefined) return previewValue(field.sample, 60);
     return null;
+}
+
+/**
+ * A row's name, its list badge and its example. The name has priority over
+ * the other two: "Tags" must never shrink to "T…" to make room for sample text.
+ */
+function LeafText({ field, shape, previewSample, hasChildren }) {
+    const { t } = useTranslation();
+    return (
+        <>
+            <span className="text-[var(--text-primary)] truncate shrink-0 max-w-[60%]" title={field.key} data-picker-name="">
+                {fieldLabelText(field, t) ?? (humanizeFieldKey(field.key) || field.key)}
+            </span>
+            {shape && (
+                <span className={listBadgeClass()} title={t(shape.explainKey, shape.explainEn, shape.explainParams)}>
+                    {shape.count != null ? `${t('automations.builder.list_word', 'list')} · ${shape.count}` : t('automations.builder.list_word', 'list')}
+                </span>
+            )}
+            <span className="ml-auto min-w-0 text-right text-[10px] text-[var(--text-tertiary)] truncate">
+                {leafValueText(field, previewSample, t, hasChildren)}
+            </span>
+        </>
+    );
+}
+
+/**
+ * What a row shows after its name: the Comes-in panel's own wording
+ * (VariableTree.fieldValueLabel) — a column's first values "a · b · c", a
+ * text “quoted” — so the {} picker and the panel never describe one field two
+ * ways. Only a list of records that does not open into its columns keeps its
+ * count ("[3 items]"), where the panel's wording is empty.
+ */
+function leafValueText(field, previewSample, t, hasChildren = false) {
+    const label = fieldValueLabel(field, previewSample, t);
+    if (label) return label;
+    // A row that opens into its own fields shows them there; its count would
+    // only repeat the "list · n" badge beside it.
+    if (hasChildren) return '';
+    const v = resolveLeafSample(field, previewSample);
+    return Array.isArray(v) ? previewValue(v, 24) : '';
 }
 
 /**

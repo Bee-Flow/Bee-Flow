@@ -112,11 +112,13 @@ test('an SVG is refused too — it is an image a browser also runs script in', a
     assert.strictEqual(res.status, 400);
 });
 
-test('a file over the cap is a 413, the terminal handler\'s answer to a body too large', async () => {
+test('a file over the cap is a 413 that says what the cap is', async () => {
     const before = stored.length;
     const res = await upload(Buffer.alloc(5 * 1024 * 1024 + 1, 1), 'image/png', 'big.png');
     assert.strictEqual(res.status, 413);
-    assert.strictEqual(res.body.error, 'Request body too large');
+    // The route's own HttpError: its message reaches the person (the terminal
+    // handler keeps the generic sentence for the body parser's refusal only).
+    assert.strictEqual(res.body.error, 'A wallpaper is at most 5 MB.');
     assert.strictEqual(stored.length, before);
 });
 

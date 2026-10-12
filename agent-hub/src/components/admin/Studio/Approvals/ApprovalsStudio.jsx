@@ -2,7 +2,7 @@ import { Building2, RefreshCw, Search, UserRound } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
 import useTranslation from '../../../../hooks/useTranslation';
 import ApprovalDetail from './ApprovalDetail';
-import { approvalStatusChip, formatWhen, STATUS_TABS } from './approvalDisplay';
+import { approvalOriginText, approvalStatusChip, formatWhen, STATUS_TABS } from './approvalDisplay';
 import useApprovals from './useApprovals';
 import { RequireTier } from '../../../licensing/LicenseContext';
 
@@ -10,7 +10,7 @@ import { RequireTier } from '../../../licensing/LicenseContext';
  * The Approvals section: every request waiting on a person, and the durable
  * record of every one that was decided — deliberately OUTSIDE the flow
  * builder, because the person deciding is often not the person who built the
- * routine and must never need the canvas to say yes.
+ * automation and must never need the canvas to say yes.
  *
  * Scopes: 'mine' (owner ∨ assignee ∨ my groups' — every member) and 'org'
  * (org admins; the server 403s anyone else, so the toggle only renders for
@@ -116,8 +116,8 @@ function ApprovalsStudioInner({ user = null, initialApprovalId = null }) {
                     type="search"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    placeholder={t('approvals.search', 'Search by question or routine…')}
-                    aria-label={t('approvals.search', 'Search by question or routine…')}
+                    placeholder={t('approvals.search', 'Search by question or automation…')}
+                    aria-label={t('approvals.search', 'Search by question or automation…')}
                     data-testid="approvals-search"
                     className="w-full pl-10 pr-4 py-2.5 text-[13px] rounded-full border border-transparent bg-[var(--bg-secondary)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus-visible:border-[var(--border-default)] transition"
                 />
@@ -247,7 +247,7 @@ function ApprovalRow({ approval, onOpen, viewerId }) {
     // Every fact the bordered table row carried, in the order someone scans
     // them: what is being asked, then who asked and when, then where it stands.
     const meta = [
-        approval.automationTitle || t('approvals.automation', 'Automation'),
+        approvalOriginText(approval, t),
         formatWhen(approval.createdAt),
         approval.status === 'pending' && approval.expiresAt
             ? `${t('approvals.decide_before', 'decide before')} ${formatWhen(approval.expiresAt)}`

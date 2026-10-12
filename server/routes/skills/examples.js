@@ -382,6 +382,8 @@ async function fromMessage(req, res) {
         // example" and nothing to do about it.
         const { answerStructureError } = require('../skills');
         if (typeof answerStructureError === 'function' && answerStructureError(res, err)) return;
+        // A refusal with a client status (a managed skill: 409) goes to the error handler.
+        if (Number.isInteger(err?.status) && err.status < 500) throw err;
         log.error('[Skills] POST /:id/examples/from-message error:', err);
         return res.status(500).json({ error: 'Failed to create the example' });
     }

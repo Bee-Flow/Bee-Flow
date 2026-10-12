@@ -1,5 +1,5 @@
 /**
- * The `download` field — the routine handing a document back.
+ * The `download` field — the automation handing a document back.
  *
  * It is the first field type that GIVES instead of asking, and that is exactly
  * where it can go wrong: every input-shaped code path in the renderer (initial

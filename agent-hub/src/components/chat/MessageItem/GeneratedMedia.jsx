@@ -150,13 +150,21 @@ function openLibraryDocument(id) {
     window.dispatchEvent(new PopStateEvent('popstate', { state: { page: 'studio' } }));
 }
 
+/** A deck, a Word document (create_word_document) or any other file. */
+function fileKind(f) {
+    if (f.kind === 'presentation' || /\.pptx$/i.test(f.name || '')) return 'presentation';
+    if (f.kind === 'word' || /\.docx$/i.test(f.name || '')) return 'word';
+    return 'file';
+}
+const FILE_KIND_ICON = { presentation: '📊', word: '📝', file: '📄' };
+
 export const GeneratedFiles = ({ msg }) => {
     const { t } = useTranslation();
     return (
         <div className="mt-3 flex flex-col gap-2" data-testid="generated-files">
             {msg.files.map((f, i) => {
                 const url = resolveUrl(f.url);
-                const isDeck = f.kind === 'presentation' || /\.pptx$/i.test(f.name || '');
+                const kind = fileKind(f);
                 const meta = [
                     f.slideCount ? t('chat.files.slides', '{count} slides', { count: f.slideCount }) : null,
                     fileSize(f.size) || null,
@@ -164,8 +172,8 @@ export const GeneratedFiles = ({ msg }) => {
                 ].filter(Boolean).join(' · ');
                 return (
                     <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-[var(--border-subtle)] max-w-md" style={{ background: 'var(--bg-tertiary)' }}>
-                        <div className="w-9 h-9 rounded-lg flex items-center justify-center text-base shrink-0" style={{ background: 'var(--bg-secondary)' }} aria-hidden="true">
-                            {isDeck ? '📊' : '📄'}
+                        <div className="w-9 h-9 rounded-lg flex items-center justify-center text-base shrink-0" style={{ background: 'var(--bg-secondary)' }} aria-hidden="true" data-file-kind={kind}>
+                            {FILE_KIND_ICON[kind]}
                         </div>
                         <div className="min-w-0 flex-1">
                             <div className="text-sm font-medium truncate" title={f.name}>{f.name || t('chat.files.file', 'File')}</div>

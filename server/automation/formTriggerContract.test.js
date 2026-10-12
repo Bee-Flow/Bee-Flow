@@ -358,7 +358,7 @@ test('an app_pick field carries its app on the rendered config, so the picker ca
 
 test('a field naming an app this install does not have is NAMED, never silently reset', () => {
     // Silently defaulting it would change what the form asks for, which the
-    // author would find out from a routine that received the wrong thing.
+    // author would find out from an automation that received the wrong thing.
     const issues = validateFormDeclaration({ fields: [{ name: 'x', type: 'app_pick', label: 'X', source: 'telepathy' }] });
     assert.ok(codes(issues).includes('field_pick_source'));
     assert.ok(codes(validateFormDeclaration({ fields: [{ name: 'x', type: 'app_pick', label: 'X' }] })).includes('field_pick_no_source'));

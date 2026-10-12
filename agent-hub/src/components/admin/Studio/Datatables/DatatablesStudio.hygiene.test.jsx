@@ -20,7 +20,7 @@ import DatatablesStudio from './DatatablesStudio';
  *    available to them, with the real error contradicting it underneath;
  *  - both dialogs were hand-rolled `fixed inset-0` divs, so focus stayed on the
  *    page behind them and ESC did nothing;
- *  - the Used-by tab linked a colleague's routine with a raw <a href> that
+ *  - the Used-by tab linked a colleague's automation with a raw <a href> that
  *    full-reloads the SPA and lands on nothing;
  *  - a GripVertical handle promised a reorder that did not exist;
  *  - and three separate components each fetched the same usage list.
@@ -163,19 +163,19 @@ describe('the Used-by tab', () => {
         fireEvent.click(await screen.findByRole('radio', { name: /Used by/ }));
     };
 
-    it('navigates in-app for a routine this account owns', async () => {
+    it('navigates in-app for an automation this account owns', async () => {
         const onNavigate = vi.fn();
         await openUsage(
             [{ automationId: 'a1', automationTitle: 'Nightly sync', automationOwner: 'u1', mode: 'read', columns: [] }],
             { user: { id: 'u1' }, onNavigate },
         );
         fireEvent.click(await screen.findByRole('button', { name: 'Nightly sync' }));
-        expect(onNavigate).toHaveBeenCalledWith('studio/routines/a1');
+        expect(onNavigate).toHaveBeenCalledWith('studio/automations/a1');
     });
 
-    it("renders a colleague's routine as plain text — usage is org-wide, routines are not", async () => {
-        // The old <a href="/app/routines/..."> full-reloads the SPA and then
-        // lands on nothing, because a routine you do not own has no page here.
+    it("renders a colleague's automation as plain text — usage is org-wide, automations are not", async () => {
+        // The old <a href="/app/automations/..."> full-reloads the SPA and then
+        // lands on nothing, because an automation you do not own has no page here.
         const onNavigate = vi.fn();
         await openUsage(
             [{ automationId: 'a1', automationTitle: 'Nightly sync', automationOwner: 'u9', mode: 'read', columns: [] }],
@@ -193,7 +193,7 @@ describe('the Used-by tab', () => {
         // while somebody decides whether to drop a column.
         await openUsage([]);
         // Asserted on the SHAPE, not on a sentence: the empty copy is one of
-        // the strings the routine→automation vocabulary sweep rewrites, and a
+        // the strings the automation→automation vocabulary sweep rewrites, and a
         // test that pins the wording of a translated value fails on the day
         // somebody improves it rather than on the day the behaviour breaks.
         await screen.findByTestId('used-by');

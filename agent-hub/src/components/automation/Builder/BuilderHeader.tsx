@@ -15,6 +15,7 @@ import { CategoryField, StepActionCluster, type StepRow, type StepSharing } from
 import TestRunMenu, { type RunTriggerOption } from './header/TestRunMenu';
 import TitleField, { type HeaderScope } from './header/TitleField';
 import ViewSwitcher, { ViewMenu } from './header/ViewSwitcher';
+import WorkflowMenu from './header/WorkflowMenu';
 
 type Fn = (() => void) | null | undefined;
 
@@ -35,8 +36,10 @@ export interface BuilderHeaderProps {
     onBack?: Fn;
     /** Where back goes when the builder is hosted elsewhere ("Back to playbook"). */
     backLabel?: string | null;
-    /** Opens the routines / Steps list as a slide-over (BFSF-404). */
+    /** Opens the automations / Steps list as a slide-over (BFSF-404). */
     onOpenList?: Fn;
+    /** Export the open workflow as JSON (BFSF-405); the menu is hidden without it. */
+    onExportJson?: Fn;
     onActivate?: Fn;
     onDeactivate?: Fn;
     /** "Make vN live": POST /:id/publish. */
@@ -56,6 +59,8 @@ export interface BuilderHeaderProps {
     onTabChange?: ((tab: BuilderTab) => void) | null;
     onUndo?: Fn;
     onRedo?: Fn;
+    onAssistant?: Fn;
+    assistantOpen?: boolean;
     canUndo?: boolean;
     canRedo?: boolean;
     /** 'step' = a reusable Step (kind='block'): Publish replaces Activate / Test. */
@@ -100,17 +105,22 @@ const ICON_BTN = 'w-[30px] h-[30px] rounded-lg grid place-items-center text-[var
  *
  * Step mode (kind='block') keeps its icon picker, category and Publish
  * cluster. A flowlet scope turns the name into a breadcrumb; the status and
- * the actions stay whole-routine.
+ * the actions stay whole-automation.
+ *
+ * A phone-width bar (under 640px) folds further instead of squeezing: the
+ * menu toggle, trigger tile and canvas undo/redo go, the status keeps only
+ * its dot and the primary only its icon, and the right column takes the
+ * room it needs (no centring) while the name truncates.
  */
 export default function BuilderHeader(props: BuilderHeaderProps) {
     const {
         title = '', triggerKind, automation = null, isActive = false, isDraft = false, canActivate = true,
-        canDiagnose = false, busy = false, onBack, backLabel = null, onOpenList, onActivate, onDeactivate, onPublish,
+        canDiagnose = false, busy = false, onBack, backLabel = null, onOpenList, onExportJson, onActivate, onDeactivate, onPublish,
         onDryRun, onRunLive, triggers = [], primaryTriggerLabel = 'Primary trigger', onDiagnose, onRename,
         scope = null, onExitScope, onDeleteLayer, diagnoseAnchorRef, savingState = 'idle', tab = 'build', onTabChange,
         onUndo, onRedo, canUndo = false, canRedo = false, mode = 'automation', step = null, orgGroups = [],
         onPublishStep, onSetStepSharing, onSetStepExpose, onSetStepIcon, onSetStepCategory,
-        tabsSlot = null, infoSlot = null, breadcrumbSlot = null,
+        tabsSlot = null, infoSlot = null, breadcrumbSlot = null, onAssistant, assistantOpen = false,
     } = props;
     const { t } = useTranslation();
     const isStepMode = mode === 'step';
@@ -122,16 +132,17 @@ export default function BuilderHeader(props: BuilderHeaderProps) {
     const live = liveStateOf(row, counts?.pendingChanges ?? null);
 
     const TriggerIcon = scope ? Layers : pickTriggerIcon(triggerKind);
-    const back = backLabel || t('routines.header.back', 'Back to Routines');
+    const back = backLabel || t('automations.header.back', 'Back to Automations');
     const menuHidden = useStudioMenuHidden();
-    const hideMenu = t('routines.header.hide_menu', 'Hide the Studio menu');
-    const showMenu = t('routines.header.show_menu', 'Show the Studio menu');
-    const browse = isStepMode ? t('routines.header.browse_steps', 'Browse Steps') : t('routines.header.browse', 'Browse automations');
+    const hideMenu = t('automations.header.hide_menu', 'Hide the Studio menu');
+    const showMenu = t('automations.header.show_menu', 'Show the Studio menu');
+    const browse = isStepMode ? t('automations.header.browse_steps', 'Browse Steps') : t('automations.header.browse', 'Browse automations');
 
     return (
-        <div>
-            <div className="@container/bar grid grid-cols-[1fr_auto_1fr] items-center gap-x-6 h-[52px] px-3.5 bg-[var(--bg-card)] border-b border-[var(--border-default)] text-[12px] text-[var(--text-primary)] min-w-0">
-                <div className="flex items-center gap-2.5 min-w-0">
+        // The container sits on the wrapper so the bar's own grid can answer it too.
+        <div className="@container/bar">
+            <div className="grid grid-cols-[1fr_auto_1fr] @max-[640px]/bar:grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-6 @max-[640px]/bar:gap-x-2 h-[52px] px-3.5 @max-[640px]/bar:px-2 bg-[var(--bg-card)] border-b border-[var(--border-default)] text-[12px] text-[var(--text-primary)] min-w-0">
+                <div className="flex items-center gap-2.5 @max-[640px]/bar:gap-1 min-w-0 overflow-hidden">
                     {/* A host with its own back button (the playbook run page)
                         passes no onBack, so the room never shows two arrows. */}
                     {onBack && (
@@ -147,7 +158,7 @@ export default function BuilderHeader(props: BuilderHeaderProps) {
                     {onOpenList && (
                         <button type="button" onClick={() => setStudioMenuHidden(!menuHidden)} aria-pressed={menuHidden}
                             title={menuHidden ? showMenu : hideMenu} aria-label={menuHidden ? showMenu : hideMenu}
-                            data-testid="studio-menu-toggle" className={`${ICON_BTN} flex-shrink-0`}>
+                            data-testid="studio-menu-toggle" className={`${ICON_BTN} flex-shrink-0 @max-[640px]/bar:hidden`}>
                             {menuHidden ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
                         </button>
                     )}
@@ -156,12 +167,12 @@ export default function BuilderHeader(props: BuilderHeaderProps) {
                         <IconPicker
                             value={step?.icon || ''}
                             onChange={(name: string) => onSetStepIcon?.(name)}
-                            title={t('routines.header.step_icon_title', 'Choose a symbol for this Step')}
+                            title={t('automations.header.step_icon_title', 'Choose a symbol for this Step')}
                             buttonClassName="w-7 h-7 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] grid place-items-center flex-shrink-0 text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition"
                             placeholder={<Box size={14} className="text-[var(--text-primary)]" />}
                         />
                     ) : (
-                        <div data-testid="trigger-tile" className="w-7 h-7 rounded-lg grid place-items-center flex-shrink-0 bg-[color-mix(in_srgb,var(--type-trigger)_16%,transparent)] text-[var(--type-trigger)]">
+                        <div data-testid="trigger-tile" className="@max-[640px]/bar:hidden w-7 h-7 rounded-lg grid place-items-center flex-shrink-0 bg-[color-mix(in_srgb,var(--type-trigger)_16%,transparent)] text-[var(--type-trigger)]">
                             <TriggerIcon size={14} />
                         </div>
                     )}
@@ -170,7 +181,7 @@ export default function BuilderHeader(props: BuilderHeaderProps) {
                         <>
                             <CategoryField value={step?.category || ''} onCommit={onSetStepCategory} />
                             <span className="text-[11px] uppercase tracking-wide font-medium px-2 py-0.5 rounded-full flex-shrink-0 bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
-                                {step?.publishedVersion != null ? t('routines.header.step_published', 'Published') : t('routines.header.step_draft', 'Draft')}
+                                {step?.publishedVersion != null ? t('automations.header.step_published', 'Published') : t('automations.header.step_draft', 'Draft')}
                             </span>
                         </>
                     ) : (
@@ -185,23 +196,28 @@ export default function BuilderHeader(props: BuilderHeaderProps) {
                         : <ViewSwitcher tab={tab} onTabChange={onTabChange} counts={{ runs: counts?.runs7d ?? null, versions: counts?.versions ?? null }} />)}
                 </div>
 
-                <div className="flex items-center gap-2 justify-end min-w-0">
+                <div className="flex items-center gap-2 @max-[640px]/bar:gap-1 justify-end min-w-0">
                     {tab === 'build' && onUndo && (
-                        <div className="flex items-center gap-0.5">
+                        <div className="flex items-center gap-0.5 @max-[640px]/bar:hidden">
                             <button type="button" onClick={() => onUndo()} disabled={!canUndo} className={ICON_BTN}
-                                aria-label={t('routines.header.undo', 'Undo')}
+                                aria-label={t('automations.header.undo', 'Undo')}
                                 // The canvas undo, not a saved version.
-                                title={t('routines.header.undo_title', 'Undo your last canvas change (⌘Z). This is not a saved version.')}>
+                                title={t('automations.header.undo_title', 'Undo your last canvas change (⌘Z). This is not a saved version.')}>
                                 <Undo2 size={15} />
                             </button>
                             <button type="button" onClick={() => onRedo?.()} disabled={!canRedo} className={ICON_BTN}
-                                aria-label={t('routines.header.redo', 'Redo')}
-                                title={t('routines.header.redo_title', 'Redo your last undone canvas change (⌘⇧Z)')}>
+                                aria-label={t('automations.header.redo', 'Redo')}
+                                title={t('automations.header.redo_title', 'Redo your last undone canvas change (⌘⇧Z)')}>
                                 <Redo2 size={15} />
                             </button>
                         </div>
                     )}
-                    <SavingPill state={savingState} settled={tab === 'settings'} />
+                    {!isStepMode && onAssistant && <button type="button" onClick={() => onAssistant()} aria-pressed={assistantOpen}
+                        title={t('automations.assistant.open', 'Ask the assistant (⌘J)')} aria-label={t('automations.assistant.open', 'Ask the assistant (⌘J)')}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border-default)] px-2.5 py-1.5 text-[var(--type-ai)] hover:bg-[var(--bg-secondary)]">
+                        <Sparkles size={13} /><span className="@max-[1400px]/bar:hidden">{t('automations.assistant.title', 'Assistant')}</span><kbd className="@max-[1600px]/bar:hidden text-[10px]">⌘ J</kbd>
+                    </button>}
+                    <SavingPill state={savingState} settled={tab === 'settings'} readOnly={live.managed} />
                     {isStepMode ? (
                         <StepActionCluster
                             busy={busy}
@@ -219,8 +235,8 @@ export default function BuilderHeader(props: BuilderHeaderProps) {
                                     type="button"
                                     onClick={() => onDiagnose?.()}
                                     disabled={busy}
-                                    aria-label={t('routines.header.diagnose', 'Diagnose')}
-                                    title={t('routines.header.diagnose_title', 'Probe the trigger pipeline (subscription, credentials, Gmail, filter)')}
+                                    aria-label={t('automations.header.diagnose', 'Diagnose')}
+                                    title={t('automations.header.diagnose_title', 'Probe the trigger pipeline (subscription, credentials, Gmail, filter)')}
                                     className={ICON_BTN}
                                 >
                                     <Stethoscope size={15} />
@@ -237,6 +253,7 @@ export default function BuilderHeader(props: BuilderHeaderProps) {
                                 onPublish={onPublish}
                                 onDeactivate={onDeactivate}
                             />
+                            <WorkflowMenu onExportJson={onExportJson} />
                         </>
                     )}
                 </div>

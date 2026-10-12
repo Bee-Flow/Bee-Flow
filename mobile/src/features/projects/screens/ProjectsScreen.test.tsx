@@ -72,7 +72,7 @@ describe('ProjectsScreen', () => {
         expect(await screen.findByText('Intake')).toBeTruthy();
         expect(screen.queryByText('Onboarding')).toBeNull();
         expect(screen.getByText('2 things to fix')).toBeTruthy();
-        expect(screen.getByText('Not everything could be counted: pages, tables, agents, knowledge bases, notebooks')).toBeTruthy();
+        expect(screen.getByText('Not everything could be counted: pages, tables, agents, knowledge bases, notebooks, skills, templates')).toBeTruthy();
         expect(screen.getByText('owner')).toBeTruthy();
         await fireEvent.press(screen.getByTestId('solution-card-p1'));
         expect(mockPush).toHaveBeenCalledWith('/projects/p1');

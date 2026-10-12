@@ -39,7 +39,7 @@ function useFinishers(id: string, name: string) {
         remove: async () => {
             const ok = await confirm({
                 title: t('mobile.projects.delete_title', 'Delete this Solution?'),
-                message: t('mobile.projects.delete_message', 'Its chats, routines, apps and pages are not deleted — they go back to whoever made them.'),
+                message: t('mobile.projects.delete_message', 'Its chats, automations, apps and pages are not deleted — they go back to whoever made them.'),
                 confirmLabel: t('common.delete', 'Delete'),
             });
             if (ok) del.mutate(id, { onError });

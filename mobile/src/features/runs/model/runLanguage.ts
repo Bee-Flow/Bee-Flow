@@ -5,7 +5,7 @@
  * runs beside this one on the same runs).
  *
  * The English is the web's, word for word. What differs is the KEY: the web
- * phrases `whatHappened` under `routines.runs.*`, keys that exist in neither
+ * phrases `whatHappened` under `automations.runs.*`, keys that exist in neither
  * English dictionary, so the phone could never have them translated. Every
  * sentence here carries a `mobile.runs.*` key instead, and HAPPENED_KEYS says
  * which web key each one stands for, so the lockstep test can hold the two
@@ -30,17 +30,17 @@ export interface Happened extends Words {
 
 /** The web's `whatHappened` key → the phone's own key for the same sentence. */
 export const HAPPENED_KEYS: Readonly<Record<string, string>> = Object.freeze({
-    'routines.runs.rejected_because': 'mobile.runs.happened.rejected_because',
-    'routines.runs.rejected': 'mobile.runs.happened.rejected',
-    'routines.runs.failed_because': 'mobile.runs.happened.failed_because',
-    'routines.runs.finished_handled_one': 'mobile.runs.happened.finished_handled_one',
-    'routines.runs.finished_handled': 'mobile.runs.happened.finished_handled',
-    'routines.runs.finished_summary': 'mobile.runs.happened.finished_summary',
-    'routines.runs.finished': 'mobile.runs.happened.finished',
-    'routines.runs.still_running': 'mobile.runs.happened.still_running',
-    'routines.runs.waiting_approval': 'mobile.runs.happened.waiting_approval',
-    'routines.runs.waiting_form': 'mobile.runs.happened.waiting_form',
-    'routines.runs.stopped_by_user': 'mobile.runs.happened.stopped_by_user',
+    'automations.runs.rejected_because': 'mobile.runs.happened.rejected_because',
+    'automations.runs.rejected': 'mobile.runs.happened.rejected',
+    'automations.runs.failed_because': 'mobile.runs.happened.failed_because',
+    'automations.runs.finished_handled_one': 'mobile.runs.happened.finished_handled_one',
+    'automations.runs.finished_handled': 'mobile.runs.happened.finished_handled',
+    'automations.runs.finished_summary': 'mobile.runs.happened.finished_summary',
+    'automations.runs.finished': 'mobile.runs.happened.finished',
+    'automations.runs.still_running': 'mobile.runs.happened.still_running',
+    'automations.runs.waiting_approval': 'mobile.runs.happened.waiting_approval',
+    'automations.runs.waiting_form': 'mobile.runs.happened.waiting_form',
+    'automations.runs.stopped_by_user': 'mobile.runs.happened.stopped_by_user',
 });
 
 const happened = (webKey: string, en: string, tone: HappenedTone, params: Happened['params'] = {}): Happened => ({
@@ -88,23 +88,23 @@ function failed(run: RunLike): Happened {
     if (run.errorClass === 'ApprovalRejected') {
         const why = firstSentence(String(run.error ?? '').replace(/^Approval rejected:?\s*/i, ''), 100);
         return why
-            ? happened('routines.runs.rejected_because', `Rejected — ${why}`, 'warn', { reason: why })
-            : happened('routines.runs.rejected', 'Rejected — someone turned this down', 'warn');
+            ? happened('automations.runs.rejected_because', `Rejected — ${why}`, 'warn', { reason: why })
+            : happened('automations.runs.rejected', 'Rejected — someone turned this down', 'warn');
     }
     const detail = firstSentence(run.error) || errorClassLabel(run.errorClass) || 'Something went wrong';
-    return happened('routines.runs.failed_because', `Failed — ${detail}`, 'error', { reason: detail });
+    return happened('automations.runs.failed_because', `Failed — ${detail}`, 'error', { reason: detail });
 }
 
 function succeeded(run: RunLike): Happened {
     const handled = Number(run.handledErrorCount || 0);
     if (handled > 0) {
         return handled === 1
-            ? happened('routines.runs.finished_handled_one', `Finished — ${handled} problem handled automatically`, 'warn', { n: handled })
-            : happened('routines.runs.finished_handled', `Finished — ${handled} problems handled automatically`, 'warn', { n: handled });
+            ? happened('automations.runs.finished_handled_one', `Finished — ${handled} problem handled automatically`, 'warn', { n: handled })
+            : happened('automations.runs.finished_handled', `Finished — ${handled} problems handled automatically`, 'warn', { n: handled });
     }
     const summary = firstSentence(run.summary, 100);
-    if (summary) return happened('routines.runs.finished_summary', `Finished — ${summary}`, 'neutral', { summary });
-    return happened('routines.runs.finished', 'Finished', 'neutral');
+    if (summary) return happened('automations.runs.finished_summary', `Finished — ${summary}`, 'neutral', { summary });
+    return happened('automations.runs.finished', 'Finished', 'neutral');
 }
 
 /** The "What happened" line. Failures lead with the reason; successes stay quiet. */
@@ -113,19 +113,19 @@ export function whatHappened(run: RunLike | null | undefined): Happened {
     const status = String(r.status ?? '').toLowerCase();
     if (status === 'error' || status === 'failed') return failed(r);
     if (status === 'success') return succeeded(r);
-    if (status === 'running' || status === 'queued') return happened('routines.runs.still_running', 'Still running…', 'neutral');
+    if (status === 'running' || status === 'queued') return happened('automations.runs.still_running', 'Still running…', 'neutral');
     if (status === 'awaiting_approval' || status === 'awaiting_confirm') {
-        return happened('routines.runs.waiting_approval', 'Waiting for someone to approve it', 'warn');
+        return happened('automations.runs.waiting_approval', 'Waiting for someone to approve it', 'warn');
     }
-    if (status === 'awaiting_form') return happened('routines.runs.waiting_form', 'Waiting for a form to be filled in', 'warn');
-    if (status === 'cancelled') return happened('routines.runs.stopped_by_user', 'Stopped before it finished', 'neutral');
+    if (status === 'awaiting_form') return happened('automations.runs.waiting_form', 'Waiting for a form to be filled in', 'warn');
+    if (status === 'cancelled') return happened('automations.runs.stopped_by_user', 'Stopped before it finished', 'neutral');
     // Everything else: the status word is the sentence, under its own key.
     const outcome = outcomeLabel(r);
     return { key: outcome.key, en: outcome.en, params: {}, tone: 'neutral' };
 }
 
 /**
- * The entry point a run came in through, for a routine with several triggers:
+ * The entry point a run came in through, for an automation with several triggers:
  * the label the server resolved for the list row, else null.
  */
 export function enteredTriggerLabel(run: { rootStepId?: string | null; rootTriggerLabel?: string | null }): string | null {

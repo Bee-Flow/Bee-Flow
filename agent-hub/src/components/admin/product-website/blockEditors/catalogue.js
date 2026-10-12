@@ -6,6 +6,7 @@ import { CustomerSupportEditor } from './CustomerSupportEditor';
 import { FeaturesEditor } from './FeaturesEditor';
 import { HeroEditor } from './HeroEditor';
 import { IntegrationsEditor } from './IntegrationsEditor';
+import { LatestPostsEditor } from './LatestPostsEditor';
 import { LiveComponentEditor } from './LiveComponentEditor';
 import { MediaTextEditor } from './MediaTextEditor';
 import { PricingEditor } from './PricingEditor';
@@ -57,6 +58,7 @@ export const BLOCK_CATALOGUE = {
     'compare-table': { type: 'compare-table', label: 'Comparison table', icon: 'Table',            category: 'Trust' },
     'github-stats':  { type: 'github-stats',  label: 'GitHub stats',     icon: 'Github',           category: 'Trust' },
     'release-notes': { type: 'release-notes', label: 'Release notes',    icon: 'ScrollText',       category: 'Trust' },
+    'blog-latest':   { type: 'blog-latest',   label: 'Latest posts',     icon: 'Newspaper',        category: 'Content' },
 };
 
 // Per-type layout variants — client copy of BLOCK_VARIANTS in
@@ -103,6 +105,7 @@ export const BLOCK_EDITORS = {
     'compare-table': { component: CompareTableEditor, label: 'Comparison table', icon: 'Table' },
     'github-stats':  { component: GitHubStatsEditor,  label: 'GitHub stats',     icon: 'Github' },
     'release-notes': { component: ReleaseNotesEditor, label: 'Release notes',    icon: 'ScrollText' },
+    'blog-latest':   { component: LatestPostsEditor,  label: 'Latest posts',     icon: 'Newspaper' },
 };
 
 // Brand-neutral placeholder content used when the user clicks "+ Add block"
@@ -391,7 +394,7 @@ export const BLOCK_DEFAULTS = {
         eyebrow: 'Live demo',
         title: 'Try it right here',
         lead: '',
-        feature: 'routines',
+        feature: 'automations',
         height: 720,
         theme: 'light',
         note: 'This is the real interface running on sample data. Nothing you do here is saved, and nothing leaves your browser.',
@@ -453,5 +456,16 @@ export const BLOCK_DEFAULTS = {
         emptyText: '',
         linkLabel: '',
         linkUrl: '',
+    },
+    // Posts are NOT stored here — they come from /api/cms/blog/posts.
+    // Byte-identical to the server copy (editors.test.js asserts it).
+    'blog-latest': {
+        eyebrow: '',
+        title: 'Latest posts',
+        lead: '',
+        limit: 3,
+        tagId: '',
+        linkLabel: 'All posts',
+        emptyText: '',
     },
 };

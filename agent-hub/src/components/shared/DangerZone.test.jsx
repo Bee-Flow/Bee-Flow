@@ -42,7 +42,7 @@ describe('DangerZone — with dependents', () => {
         const onNavigate = vi.fn();
         arm({ usage: [DEP], currentUserId: 'u1', onNavigate });
         fireEvent.click(screen.getByRole('button', { name: 'Nightly sync' }));
-        expect(onNavigate).toHaveBeenCalledWith('studio/routines/a1');
+        expect(onNavigate).toHaveBeenCalledWith('studio/automations/a1');
     });
 
     it('counts many', () => {
@@ -109,7 +109,7 @@ describe('DangerZone — the 409 in_use round trip', () => {
     const SERVER_USAGE = [{ automationId: 'a7', automationTitle: 'Late arrival', automationOwner: 'u1', mode: 'write', columns: ['email'] }];
 
     it('a thrown 409 re-shows the server’s list and asks for the name again', async () => {
-        const err = Object.assign(new Error('Routines still use this datatable'), { status: 409, code: 'in_use', body: { code: 'in_use', usage: SERVER_USAGE } });
+        const err = Object.assign(new Error('Automations still use this datatable'), { status: 409, code: 'in_use', body: { code: 'in_use', usage: SERVER_USAGE } });
         const onDelete = vi.fn()
             .mockRejectedValueOnce(err)
             .mockResolvedValueOnce({ ok: true });

@@ -14,10 +14,10 @@ const makeStyles = (theme: Theme) =>
     StyleSheet.create({ trailing: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs } });
 
 function subtitleOf(task: AiTask, t: TranslateFn): string {
-    if (!task.isActive) return t('routines.paused', 'Paused');
+    if (!task.isActive) return t('automations.paused', 'Paused');
     return task.nextRunAt
         ? t('mobile.tasks.next_run', 'Next {when}', { when: absoluteTime(task.nextRunAt).toLowerCase() })
-        : t('routines.active', 'Active');
+        : t('automations.active', 'Active');
 }
 
 export function TaskRow({

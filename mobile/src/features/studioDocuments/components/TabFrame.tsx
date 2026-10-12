@@ -39,7 +39,7 @@ export function TabFrame({ children, save, editable }: TabFrameProps) {
             {save && editable ? (
                 <View style={styles.footer}>
                     <Button
-                        label={save.dirty ? t('routines.save_changes', 'Save changes') : t('documents.saved', 'Saved')}
+                        label={save.dirty ? t('automations.save_changes', 'Save changes') : t('documents.saved', 'Saved')}
                         onPress={save.onSave}
                         disabled={!save.dirty || Boolean(save.problem)}
                         loading={save.saving}

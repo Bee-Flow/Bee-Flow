@@ -1,5 +1,5 @@
 /**
- * Closing the last screen of a routine whose save is failing asks first.
+ * Closing the last screen of an automation whose save is failing asks first.
  *
  * Nothing is thrown away when that screen closes: the registry keeps an
  * unsaved draft and keeps trying while the app is open. But the edits live

@@ -110,6 +110,7 @@ const DiagramPane = forwardRef(function DiagramPane({
     definition,
     runSteps = [],
     onNodeClick,
+    onAskAssistant = null,
     onNodeExpand,      // (nodeId) — double-click: open the FULL editor
     onDefinitionChange,
     validation = null,
@@ -154,9 +155,10 @@ const DiagramPane = forwardRef(function DiagramPane({
     onAddTrigger = null,      // (payload) — the empty canvas's trigger cards
     onOpenAssistant = null,   // () — the empty canvas's Assistant button
     editingStepId = null,     // the step open in the drawer (design 1h)
-    // The routine's public form page. Only ever used by the run banner, and
+    // The automation's public form page. Only ever used by the run banner, and
     // only while a run is parked on a form (design 1d, "Formulier openen").
     formUrl = null,
+    onOpenFormOverlay = null, // () — open the waiting form page over the canvas
     // What the AI build is doing right now — { running, phase, startedAt,
     // lastCall, narration, todos, finalizedId, aborted, stepCount } from
     // BuildTab. Drives the choreography's phase, the ghost slot's caption, the
@@ -188,6 +190,7 @@ const DiagramPane = forwardRef(function DiagramPane({
                 definition={definition}
                 runSteps={runSteps}
                 onNodeClick={onNodeClick}
+                onAskAssistant={onAskAssistant}
                 onNodeExpand={onNodeExpand}
                 onDefinitionChange={onDefinitionChange}
                 validation={validation}
@@ -225,6 +228,7 @@ const DiagramPane = forwardRef(function DiagramPane({
                 onOpenAssistant={onOpenAssistant}
                 editingStepId={editingStepId}
                 formUrl={formUrl}
+                onOpenFormOverlay={onOpenFormOverlay}
                 buildCue={buildCue}
                 ribbonRootRef={ribbonRootRef}
                 replayStepId={replayStepId}
@@ -238,7 +242,7 @@ const DiagramPane = forwardRef(function DiagramPane({
 export default DiagramPane;
 
 const DiagramPaneInner = forwardRef(function DiagramPaneInner({
-    definition, runSteps, onNodeClick, onNodeExpand, onDefinitionChange,
+    definition, runSteps, onNodeClick, onNodeExpand, onDefinitionChange, onAskAssistant = null,
     validation, readOnly, editable, structuralEditsBlocked,
     onRequestAddNode, onRequestOpenPalette, onRequestAddAfter, onRequestInsertOnEdge,
     onDropStep = null,
@@ -259,6 +263,7 @@ const DiagramPaneInner = forwardRef(function DiagramPaneInner({
     onAddTrigger = null, onOpenAssistant = null,
     editingStepId = null,
     formUrl = null,
+    onOpenFormOverlay = null,
     buildCue = null,
     ribbonRootRef = null,
     replayStepId = null,
@@ -405,7 +410,7 @@ const DiagramPaneInner = forwardRef(function DiagramPaneInner({
     }, []);
     // The PII option only means something once a loaded run step carries a
     // pii summary (builder test-runs with the Privacy Shield applied to
-    // routines) — offered disabled with an explanatory tooltip until then.
+    // automations) — offered disabled with an explanatory tooltip until then.
     const hasPiiData = useMemo(() => {
         for (const r of runByStep.values()) if (r?.piiSummary) return true;
         return false;
@@ -897,6 +902,18 @@ const DiagramPaneInner = forwardRef(function DiagramPaneInner({
     // definition update (so a group move is one undo step). What was missing
     // was the gesture and any sign that a selection existed at all.
     const [selectedIds, setSelectedIds] = useState([]);
+    useEffect(() => {
+        if (!onAskAssistant || selectedIds.length !== 1) return undefined;
+        const onKey = event => {
+            if ((event.ctrlKey || event.metaKey) && !event.altKey && event.key.toLowerCase() === 'j') {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                onAskAssistant(selectedIds[0]);
+            }
+        };
+        document.addEventListener('keydown', onKey, true);
+        return () => document.removeEventListener('keydown', onKey, true);
+    }, [onAskAssistant, selectedIds]);
     const onSelectionChange = useCallback(({ nodes: sel }) => {
         setSelectedIds((prev) => {
             const next = (sel || []).map(n => n.id);
@@ -1059,7 +1076,7 @@ const DiagramPaneInner = forwardRef(function DiagramPaneInner({
     });
 
     if (!definition || !definition.trigger) {
-        // The first screen of a new routine (BFSF-327) — see
+        // The first screen of a new automation (BFSF-327) — see
         // flow/DiagramEmptyState.jsx. React Flow is not mounted yet, so the
         // build cue lives here through the prompt processing before the first
         // token — the worst dead air of a build.
@@ -1162,6 +1179,12 @@ const DiagramPaneInner = forwardRef(function DiagramPaneInner({
                 // take arrays.
                 panOnDrag={interactive ? [1] : false}
                 selectionOnDrag={interactive}
+                // Selection must NOT lift a note out of its background layer
+                // (BFSF-479): with the default elevation a selected note would
+                // pop +1000 over the nodes and connectors it is supposed to sit
+                // beneath. useRenderedGraph re-applies the same lift to every
+                // selected non-note node, so cards keep their pop-to-front.
+                elevateNodesOnSelect={false}
                 selectionKeyCode="Shift"
                 multiSelectionKeyCode={['Meta', 'Control']}
                 selectNodesOnDrag={false}
@@ -1207,12 +1230,12 @@ const DiagramPaneInner = forwardRef(function DiagramPaneInner({
                                 data-layers-toggle
                                 onClick={onToggleFlowlets}
                                 aria-pressed={!!flowletsOpen}
-                                title="Flowlets — manage reusable sub-flows"
+                                title={t('automations.diagram_pane.flowlets_manage_reusable_sub_flows', 'Flowlets — manage reusable sub-flows')}
                                 className={`inline-flex items-center gap-1.5 px-2.5 py-[6px] rounded-lg border border-[var(--border-default)] shadow-sm text-[12px] font-medium text-[var(--text-primary)] transition ${
                                     flowletsOpen ? 'bg-[var(--bg-tertiary)]' : 'bg-[var(--bg-card)] hover:bg-[var(--bg-tertiary)]'
                                 }`}
                             >
-                                <Layers size={14} /> {t('routines.canvas.flowlets', 'Flowlets')}
+                                <Layers size={14} /> {t('automations.canvas.flowlets', 'Flowlets')}
                                 {flowletCount > 0 && <span className="text-[var(--text-tertiary)]">{flowletCount}</span>}
                             </button>
                         )}
@@ -1229,6 +1252,7 @@ const DiagramPaneInner = forwardRef(function DiagramPaneInner({
                         runFocus={runFocus}
                         onShowRun={focusRunStep}
                         formUrl={formUrl}
+                        onOpenFormOverlay={onOpenFormOverlay}
                         selectedCount={selectedIds.length}
                         selectionInDrawer={selectionInDrawer}
                         onDeleteSelection={deleteSelection}
@@ -1250,7 +1274,7 @@ const DiagramPaneInner = forwardRef(function DiagramPaneInner({
                     <div className="flex items-center gap-1.5">
                         {editingStepId ? (!shortCanvas && (
                             <div className="px-2.5 py-[5px] rounded-lg bg-[var(--bg-card)] border border-[var(--border-default)] text-[12px] text-[var(--text-secondary)] shadow-sm whitespace-nowrap" data-testid="editing-chip">
-                                {t('routines.canvas.editing_chip', 'Step {n} of {total} · Esc closes · Alt+←/→ previous/next', {
+                                {t('automations.canvas.editing_chip', 'Step {n} of {total} · Esc closes · Alt+←/→ previous/next', {
                                     n: runtimeContextValue.stepNumberById.get(editingStepId) ?? '?',
                                     total: [...runtimeContextValue.stepNumberById.values()].filter(v => typeof v === 'number').length,
                                 })}
@@ -1324,6 +1348,7 @@ const DiagramPaneInner = forwardRef(function DiagramPaneInner({
                     onExecute={onExecuteStep && !runInFlight ? () => onExecuteStep(ctxMenu.stepId) : null}
                     onToggleInline={ctxMenuLayerKey && onToggleInline ? () => onToggleInline(ctxMenu.stepId, ctxMenuLayerKey) : null}
                     inlineExpanded={inlineExpandedIds.has(ctxMenu.stepId)}
+                    onAskAssistant={onAskAssistant ? () => onAskAssistant(ctxMenu.stepId) : null}
                     onClose={closeCtxMenu}
                 />
             )}

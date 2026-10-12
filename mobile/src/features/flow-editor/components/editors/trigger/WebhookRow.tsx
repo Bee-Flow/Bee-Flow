@@ -35,7 +35,7 @@ function SecretLine({ secret, onCopied }: { secret: string; onCopied: (what: str
         <View style={styles.secret}>
             <Text variant="caption" tone="tertiary">
                 {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- an i18n key and its English copy, not a secret */}
-                {t('routines.settings.webhook_secret_once', 'You only see the secret now. Requests without a valid signature are refused.')}
+                {t('automations.settings.webhook_secret_once', 'You only see the secret now. Requests without a valid signature are refused.')}
             </Text>
             <View style={styles.line}>
                 <Text variant="code" style={styles.value} numberOfLines={1} selectable>
@@ -45,7 +45,7 @@ function SecretLine({ secret, onCopied }: { secret: string; onCopied: (what: str
                     icon={<Icon name={shown ? 'EyeOff' : 'Eye'} size={16} color={styles.glyph.color} />}
                     onPress={() => setShown((v) => !v)}
                     // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- two i18n keys and their English labels, not a secret
-                    accessibilityLabel={shown ? t('routines.settings.webhook_hide_secret', 'Hide secret') : t('routines.settings.webhook_show_secret', 'Show secret')}
+                    accessibilityLabel={shown ? t('automations.settings.webhook_hide_secret', 'Hide secret') : t('automations.settings.webhook_show_secret', 'Show secret')}
                 />
                 <IconButton
                     icon={<Icon name="Copy" size={16} color={styles.glyph.color} />}
@@ -55,7 +55,7 @@ function SecretLine({ secret, onCopied }: { secret: string; onCopied: (what: str
                         onCopied(t('mobile.flow.webhook.secret_copied', 'Secret copied'));
                     }}
                     // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- an i18n key and its English label, not a secret
-                    accessibilityLabel={t('routines.settings.webhook_copy_secret', 'Copy secret')}
+                    accessibilityLabel={t('automations.settings.webhook_copy_secret', 'Copy secret')}
                 />
             </View>
         </View>
@@ -78,35 +78,35 @@ export function WebhookRow({ row, secret, onRotate, onDelete, onCopied, disabled
                 <IconButton
                     icon={<Icon name="Copy" size={16} color={styles.glyph.color} />}
                     onPress={() => copy(row.url, t('mobile.flow.webhook.url_copied', 'Webhook URL copied'))}
-                    accessibilityLabel={t('routines.settings.webhook_copy_url', 'Copy webhook URL')}
+                    accessibilityLabel={t('automations.settings.webhook_copy_url', 'Copy webhook URL')}
                 />
                 <IconButton
                     icon={<Icon name="Terminal" size={16} color={styles.glyph.color} />}
                     onPress={() => secret && copy(buildCurlSnippet(row.url, secret), t('mobile.flow.webhook.curl_copied', 'cURL command copied'))}
                     disabled={!secret}
-                    accessibilityLabel={t('routines.settings.webhook_copy_curl', 'Copy as cURL')}
+                    accessibilityLabel={t('automations.settings.webhook_copy_curl', 'Copy as cURL')}
                     // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- an i18n key and its English hint, not a secret
-                    accessibilityHint={secret ? undefined : t('routines.settings.webhook_curl_needs_secret', 'Renew the secret first: it is only shown once')}
+                    accessibilityHint={secret ? undefined : t('automations.settings.webhook_curl_needs_secret', 'Renew the secret first: it is only shown once')}
                 />
                 <IconButton
                     icon={<Icon name="RefreshCw" size={16} color={styles.glyph.color} />}
                     onPress={onRotate}
                     disabled={disabled}
-                    accessibilityLabel={t('routines.settings.webhook_renew', 'Renew secret')}
+                    accessibilityLabel={t('automations.settings.webhook_renew', 'Renew secret')}
                 />
                 <IconButton
                     tone="danger"
                     icon={<Icon name="Trash2" size={16} color={styles.glyph.color} />}
                     onPress={onDelete}
                     disabled={disabled}
-                    accessibilityLabel={t('routines.settings.webhook_revoke', 'Revoke')}
+                    accessibilityLabel={t('automations.settings.webhook_revoke', 'Revoke')}
                 />
             </View>
             {secret ? <SecretLine secret={secret} onCopied={onCopied} /> : null}
             <Text variant="caption" tone="tertiary">
                 {row.lastSeenAt
-                    ? t('routines.settings.webhook_last_used', 'last used {when}', { when: absoluteTime(row.lastSeenAt) })
-                    : t('routines.settings.webhook_never_used', 'never used')}
+                    ? t('automations.settings.webhook_last_used', 'last used {when}', { when: absoluteTime(row.lastSeenAt) })
+                    : t('automations.settings.webhook_never_used', 'never used')}
             </Text>
         </View>
     );

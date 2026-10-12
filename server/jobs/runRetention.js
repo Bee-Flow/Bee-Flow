@@ -13,13 +13,13 @@
  * Per-org retention windows are a future enhancement; today it's a single
  * platform-wide window (delete-by-age, deliberately simple — like the nonce GC).
  *
- * Per ROUTINE (handoff 5): `definition.runPolicy.retentionDays` (7..365), read
+ * Per AUTOMATION (handoff 5): `definition.runPolicy.retentionDays` (7..365), read
  * from the WORKING copy because runPolicy is a setting that applies without a
  * publish (core/automationRunner/definitionForRun.js SETTINGS_KEYS), keeps
- * that routine's runs for min(platform window, retentionDays). A second
- * bounded pass after the platform one; a routine can shorten its history,
+ * that automation's runs for min(platform window, retentionDays). A second
+ * bounded pass after the platform one; an automation can shorten its history,
  * never lengthen it past the platform window. It runs even when the platform
- * window is disabled, because a routine's own promise ("runs kept 30 days")
+ * window is disabled, because an automation's own promise ("runs kept 30 days")
  * does not depend on the platform's.
  */
 
@@ -36,8 +36,8 @@ const BATCH_SIZE = 5000;
 // than holding a long transaction. At 5k/batch this clears up to 100k per pass.
 const MAX_BATCHES = 20;
 
-/** The per-routine pass (runPolicy.retentionDays). Returns how many runs it deleted. */
-async function routineRetentionPass(store = automationStore) {
+/** The per-automation pass (runPolicy.retentionDays). Returns how many runs it deleted. */
+async function automationRetentionPass(store = automationStore) {
     if (typeof store.deleteRunsPastAutomationRetention !== 'function') return 0;
     let deleted = 0;
     for (let i = 0; i < MAX_BATCHES; i++) {
@@ -50,18 +50,18 @@ async function routineRetentionPass(store = automationStore) {
 
 async function runRetentionPass(store = automationStore) {
     const t0 = Date.now();
-    let byRoutine = 0;
+    let byAutomation = 0;
     let ok = true;
     try {
-        byRoutine = await routineRetentionPass(store);
+        byAutomation = await automationRetentionPass(store);
     } catch (e) {
         ok = false;
-        log.error('[runRetention] per-routine pass error:', e.message);
+        log.error('[runRetention] per-automation pass error:', e.message);
     }
-    if (byRoutine) log.info(`[runRetention] deleted ${byRoutine} run(s) past their routine's own retention`);
+    if (byAutomation) log.info(`[runRetention] deleted ${byAutomation} run(s) past their automation's own retention`);
     if (!RETENTION_DAYS || RETENTION_DAYS <= 0) {
         recordJobRun({ job: 'run_retention', status: ok ? 'ok' : 'error', durationMs: Date.now() - t0 });
-        return { deleted: byRoutine, byRoutine, disabled: true, ts: new Date().toISOString() };
+        return { deleted: byAutomation, byAutomation, disabled: true, ts: new Date().toISOString() };
     }
     const cutoff = new Date(Date.now() - RETENTION_DAYS * 24 * 60 * 60_000).toISOString();
     let deleted = 0;
@@ -77,7 +77,7 @@ async function runRetentionPass(store = automationStore) {
     }
     recordJobRun({ job: 'run_retention', status: ok ? 'ok' : 'error', durationMs: Date.now() - t0 });
     if (deleted) log.info(`[runRetention] deleted ${deleted} run(s) older than ${RETENTION_DAYS}d (cutoff ${cutoff})`);
-    return { deleted: deleted + byRoutine, byRoutine, cutoff, ts: new Date().toISOString() };
+    return { deleted: deleted + byAutomation, byAutomation, cutoff, ts: new Date().toISOString() };
 }
 
 module.exports = { runRetentionPass, RETENTION_DAYS };

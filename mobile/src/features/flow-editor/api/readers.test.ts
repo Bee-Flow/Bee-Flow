@@ -181,7 +181,7 @@ describe('webhooks, form links and folders', () => {
         expect(readFormLinkResponse({ form: { id: 'tok' }, url: 'https://x/f/tok' })?.url).toBe('https://x/f/tok');
     });
 
-    it('folders, and how many routines a delete detached', () => {
+    it('folders, and how many automations a delete detached', () => {
         expect(readFolderList({ folders: [{ id: 'f1', name: 'Sales', automationCount: '2' }, { name: 'no id' }] })).toEqual([
             { id: 'f1', organizationId: null, name: 'Sales', icon: '📁', color: null, createdAt: null, updatedAt: null, automationCount: 2 },
         ]);

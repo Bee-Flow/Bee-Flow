@@ -3,11 +3,11 @@
   "icon": "✅",
   "estMinutes": 10,
   "title": "Make the actions actually happen",
-  "desc": "Send an action into a table or a routine, tag the note, and share it without losing control.",
+  "desc": "Send an action into a table or an automation, tag the note, and share it without losing control.",
   "gate": {
     "feature": "meeting_notes"
   },
-  "learningGoal": "After this lesson you can route one action item out of a meeting note into a table, a routine or a knowledge base, tag the note so other things pick it up, and share it with the right people.",
+  "learningGoal": "After this lesson you can route one action item out of a meeting note into a table, an automation or a knowledge base, tag the note so other things pick it up, and share it with the right people.",
   "steps": [
     {
       "type": "slide",
@@ -21,7 +21,7 @@
       "id": "destinations",
       "icon": "🚪",
       "title": "Three doors out of the note",
-      "bodyMd": "The menu offers three answers, and one action goes through one door:\n\n- **Start an automation** — kick off a routine. Only routines whose trigger can be started by hand are offered.\n- **Row in a table** — add the action as a row in one of your own tables.\n- **To a knowledge base** — file it so it can be answered from later.\n\nAfterwards the action carries a chip saying where it went: **\"Row in table {label}\"**, **\"Start: {label}\"**. When something goes wrong you get **\"Could not send this action: {message}\"** and no chip — so a chip you can see is a chip something real is behind."
+      "bodyMd": "The menu offers three answers, and one action goes through one door:\n\n- **Start an automation** — kick off an automation. Only automations whose trigger can be started by hand are offered.\n- **Row in a table** — add the action as a row in one of your own tables.\n- **To a knowledge base** — file it so it can be answered from later.\n\nAfterwards the action carries a chip saying where it went: **\"Row in table {label}\"**, **\"Start: {label}\"**. When something goes wrong you get **\"Could not send this action: {message}\"** and no chip — so a chip you can see is a chip something real is behind."
     },
     {
       "type": "slide",
@@ -75,7 +75,7 @@
       "id": "pickup",
       "icon": "📡",
       "title": "Two things watch for that tag",
-      "bodyMd": "A tag is not only a filter. Two other things match on it — for this meeting and every one after it.\n\n- A **knowledge base** source can collect every meeting carrying one tag. It files the summary and the decisions (and the open questions or the actions if the source asks for them), but never the transcript.\n- A **routine** with the trigger **\"Meeting note ready\"** can be filtered on tags. That trigger fires across the **whole organisation**, so a colleague's routine watching `sales` picks Sandra's note up too.\n\nUnder the tag row, **\"What happens to this meeting\"** names what runs on it. Before anything is wired up it reads *\"Nothing picks this meeting up yet.\"*"
+      "bodyMd": "A tag is not only a filter. Two other things match on it — for this meeting and every one after it.\n\n- A **knowledge base** source can collect every meeting carrying one tag. It files the summary and the decisions (and the open questions or the actions if the source asks for them), but never the transcript.\n- A **automation** with the trigger **\"Meeting note ready\"** can be filtered on tags. That trigger fires across the **whole organisation**, so a colleague's automation watching `sales` picks Sandra's note up too.\n\nUnder the tag row, **\"What happens to this meeting\"** names what runs on it. Before anything is wired up it reads *\"Nothing picks this meeting up yet.\"*"
     },
     {
       "type": "sim",
@@ -90,13 +90,13 @@
             "id": "p1",
             "left": "\"Het aangepaste voorstel deze week naar de klant sturen\" — somebody has to do it, and it should sit beside the team's other open work.",
             "right": "Row in a table",
-            "note": "A datatable keeps its rows after the run that wrote them, so the action lands next to every other open action and a later routine can read it back."
+            "note": "A datatable keeps its rows after the run that wrote them, so the action lands next to every other open action and a later automation can read it back."
           },
           {
             "id": "p2",
-            "left": "\"Stuur de standaard offerte-opvolging\" — Van Dijk Groep already has a routine that does exactly that, and it can be started by hand.",
+            "left": "\"Stuur de standaard offerte-opvolging\" — Van Dijk Groep already has an automation that does exactly that, and it can be started by hand.",
             "right": "Start an automation",
-            "note": "Only routines whose trigger can be started by hand appear in this menu — a routine that waits for a schedule or a form is not something one action item can kick off."
+            "note": "Only automations whose trigger can be started by hand appear in this menu — an automation that waits for a schedule or a form is not something one action item can kick off."
           },
           {
             "id": "p3",
@@ -108,7 +108,7 @@
             "id": "p4",
             "left": "Every sales meeting from now on should feed the Sales knowledge base and alert the account managers — not just this one.",
             "right": "A tag on the note",
-            "note": "A destination files one action. A tag is what a knowledge base source and a \"Meeting note ready\" routine match on, for this meeting and every one after it."
+            "note": "A destination files one action. A tag is what a knowledge base source and a \"Meeting note ready\" automation match on, for this meeting and every one after it."
           }
         ]
       }
@@ -126,8 +126,8 @@
       "icon": "✍️",
       "exerciseId": "ex-meetings-actions-and-sharing-ticket",
       "title": "Your turn: tag it and decide who reads it",
-      "instruction": "Sandra's pipeline note is finished: the actions are routed, the summary quotes what two customers said about price, and one deal in it is not signed yet. She now has to do the two things you just learned — put tags on the note and set its visibility (Personal, Entire organisation, or named groups).\n\nWrite a few lines: which tag or tags you would add, which visibility you would choose, and one sentence on what you checked before widening it. A strong answer ties each choice to what happens next — which filter chip, which knowledge base source, whose routine — and shows you know the tag reaches further than the note does.",
-      "placeholder": "e.g. Tag: sales — that is the tag the Sales knowledge base collects and the account managers' routine watches, so tagging it is what makes the note useful to anyone but me. Visibility: the Sales group rather than the whole organisation, because the summary quotes two customers on price. I checked the summary first, since sharing it means colleagues can read all of it.",
+      "instruction": "Sandra's pipeline note is finished: the actions are routed, the summary quotes what two customers said about price, and one deal in it is not signed yet. She now has to do the two things you just learned — put tags on the note and set its visibility (Personal, Entire organisation, or named groups).\n\nWrite a few lines: which tag or tags you would add, which visibility you would choose, and one sentence on what you checked before widening it. A strong answer ties each choice to what happens next — which filter chip, which knowledge base source, whose automation — and shows you know the tag reaches further than the note does.",
+      "placeholder": "e.g. Tag: sales — that is the tag the Sales knowledge base collects and the account managers' automation watches, so tagging it is what makes the note useful to anyone but me. Visibility: the Sales group rather than the whole organisation, because the summary quotes two customers on price. I checked the summary first, since sharing it means colleagues can read all of it.",
       "passScore": 70,
       "maxAttempts": 4
     },
@@ -135,7 +135,7 @@
       "type": "quiz",
       "id": "q-outgoing",
       "icon": "📤",
-      "question": "A routine watching the `sales` tag opens a ticket about one of Sandra's actions in an issue tracker outside Bee Flow. What may travel with that ticket?",
+      "question": "An automation watching the `sales` tag opens a ticket about one of Sandra's actions in an issue tracker outside Bee Flow. What may travel with that ticket?",
       "multi": false,
       "choices": [
         {
@@ -145,9 +145,9 @@
         },
         {
           "id": "b",
-          "label": "The full action text, since it already travelled when the action was sent to a routine.",
+          "label": "The full action text, since it already travelled when the action was sent to an automation.",
           "correct": false,
-          "feedback": "A routine, a table and a knowledge base are all inside Bee Flow, so the text may go there. The rule changes at the step that posts outward — that is somebody else's system, and only a reference goes."
+          "feedback": "An automation, a table and a knowledge base are all inside Bee Flow, so the text may go there. The rule changes at the step that posts outward — that is somebody else's system, and only a reference goes."
         },
         {
           "id": "c",
@@ -162,7 +162,7 @@
           "feedback": "E-mail to the person the data is about is the one exception, because the data goes back to them. A ticket in a third party's system is not that, so the exception does not carry over."
         }
       ],
-      "explanation": "Inside Bee Flow, an action's sentence may travel to your own routine, table or knowledge base. Outward — to an issue tracker, a chat service, a webhook — only a reference goes, plus at most the subject line if your organisation switched that on, which it is not by default. You do not build those payloads yourself; knowing what may leave tells you whether a routine somebody offers you is safe to point at your notes."
+      "explanation": "Inside Bee Flow, an action's sentence may travel to your own automation, table or knowledge base. Outward — to an issue tracker, a chat service, a webhook — only a reference goes, plus at most the subject line if your organisation switched that on, which it is not by default. You do not build those payloads yourself; knowing what may leave tells you whether an automation somebody offers you is safe to point at your notes."
     },
     {
       "type": "action",
@@ -170,7 +170,7 @@
       "icon": "🏗️",
       "checkId": "meeting-tagged",
       "title": "Route one action and tag the note",
-      "instruction": "Open one of your own finished meeting notes. On the Summary tab, pick an action item, click its destination control and send it somewhere real — a table you may add rows to, a routine you can start by hand, or a knowledge base. Then add a tag to the note with \"Add tag\", using a word you would genuinely filter on later, and glance at \"What happens to this meeting\" underneath.",
+      "instruction": "Open one of your own finished meeting notes. On the Summary tab, pick an action item, click its destination control and send it somewhere real — a table you may add rows to, an automation you can start by hand, or a knowledge base. Then add a tag to the note with \"Add tag\", using a word you would genuinely filter on later, and glance at \"What happens to this meeting\" underneath.",
       "launch": {
         "navigateTo": "studio/meetingNotes",
         "label": "Open Meeting Notes"
@@ -204,17 +204,17 @@
           "id": "d",
           "label": "Set the note back to Personal, which cuts it off from everything else.",
           "correct": false,
-          "feedback": "Visibility decides who may open the note. It is the tag that a knowledge base source and a \"Meeting note ready\" routine match on — those are two different controls."
+          "feedback": "Visibility decides who may open the note. It is the tag that a knowledge base source and a \"Meeting note ready\" automation match on — those are two different controls."
         }
       ],
-      "explanation": "Tagging is reversible, deleting is not: the tag chip has a **\"Remove tag {tag}\"** control, and nine times out of ten removing the tag is what you actually meant. When you really do want a note gone, the header's **\"Used by {n}\"** tab tells you first what depends on it — knowledge bases, routines and notebooks — and the delete dialog repeats that list before it will proceed."
+      "explanation": "Tagging is reversible, deleting is not: the tag chip has a **\"Remove tag {tag}\"** control, and nine times out of ten removing the tag is what you actually meant. When you really do want a note gone, the header's **\"Used by {n}\"** tab tells you first what depends on it — knowledge bases, automations and notebooks — and the delete dialog repeats that list before it will proceed."
     },
     {
       "type": "slide",
       "id": "recap",
       "icon": "🎓",
       "title": "What you can do now",
-      "bodyMd": "- **Route an action.** Use the destination control on an action item to send it to a routine, a table row or a knowledge base, mapping the action's fields onto columns you chose yourself. The note keeps a reference to where it went, never a copy.\n- **Tag with intent.** A tag is a filter chip, a knowledge base source and a routine trigger filter all at once — and it reaches across the organisation, so tag what you want picked up again, and remove the tag when you want that to stop.\n- **Share deliberately.** Personal, the whole organisation, or named groups — sharing means reading, and everything that changes the note stays with you.\n\nOne rule to carry out of here: inside Bee Flow the words may travel; outward, only a reference does."
+      "bodyMd": "- **Route an action.** Use the destination control on an action item to send it to an automation, a table row or a knowledge base, mapping the action's fields onto columns you chose yourself. The note keeps a reference to where it went, never a copy.\n- **Tag with intent.** A tag is a filter chip, a knowledge base source and an automation trigger filter all at once — and it reaches across the organisation, so tag what you want picked up again, and remove the tag when you want that to stop.\n- **Share deliberately.** Personal, the whole organisation, or named groups — sharing means reading, and everything that changes the note stays with you.\n\nOne rule to carry out of here: inside Bee Flow the words may travel; outward, only a reference does."
     }
   ],
   "rubrics": {
@@ -222,7 +222,7 @@
       "title": "Tag and audience for one note",
       "task": "Choose the tag or tags for a finished sales meeting note and the visibility to give it, with one sentence on what was checked before widening it.",
       "criteria": [
-        "Names a tag and says what should pick the note up because of it — a library filter chip, a knowledge base source, or a routine on \"Meeting note ready\" — rather than a label invented for this one note.",
+        "Names a tag and says what should pick the note up because of it — a library filter chip, a knowledge base source, or an automation on \"Meeting note ready\" — rather than a label invented for this one note.",
         "Chooses one of the three real visibility settings (Personal, Entire organisation, or named groups) and justifies it by who needs to read this note.",
         "Shows that the tag reaches further than the note: the trigger is organisation-wide, or a knowledge base has its own audience.",
         "Says what was looked at before widening — for example that the summary itself is readable by everyone the note is shared with."
@@ -241,8 +241,8 @@
       "The note records only a reference to where an action went — the kind, the container, the label that was on screen, the moment, and (when the write returned one) the id of the row, run or source it created — never a copy of what that thing holds.",
       "A note carries at most 50 tags of 80 characters each, and the library shows at most five tag chips before folding the rest behind \"+{n} tags\".",
       "The visibility capsule offers Personal, Entire organisation or specific groups; sharing grants reading only, while rename, edit speakers, regenerate, re-transcribe and delete stay with the owner.",
-      "A routine can start by itself on the trigger \"Meeting note ready\" filtered on tags, and that trigger passes only the note id, the tags, the organisation and a reprocessed flag — never the summary or the attendees.",
-      "Deleting a note that a knowledge base, routine or notebook still uses is refused the first time and shows that list; only a confirmed second press goes through."
+      "An automation can start by itself on the trigger \"Meeting note ready\" filtered on tags, and that trigger passes only the note id, the tags, the organisation and a reprocessed flag — never the summary or the attendees.",
+      "Deleting a note that a knowledge base, automation or notebook still uses is refused the first time and shows that list; only a confirmed second press goes through."
     ]
   },
   "actionChecks": [

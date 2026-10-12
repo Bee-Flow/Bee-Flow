@@ -24,9 +24,9 @@ import { computeHalfPeriodDelta } from '../../../utils/usageHelpers';
 
 // ── Overview-local primitives (used only here) ───────────────────────────────
 const InOutBar = ({ input, output, height = 5, style }) => {
-    const total = (input || 0) + (output || 0);
+    const total = (Number(input) || 0) + (Number(output) || 0);
     if (total === 0) return <div style={{ width: '100%', height, borderRadius: 99, background: 'var(--bg-tertiary)', ...style }} />;
-    const inputPct = ((input || 0) / total) * 100;
+    const inputPct = ((Number(input) || 0) / total) * 100;
     return (
         <div style={{ width: '100%', height, borderRadius: 99, background: 'var(--bg-tertiary)', overflow: 'hidden', display: 'flex', ...style }}>
             <div style={{ height: '100%', width: `${inputPct}%`, background: '#3b82f6', borderRadius: '99px 0 0 99px', transition: 'width 0.4s ease' }} />
@@ -114,8 +114,10 @@ export default function OverviewTab({
             if (!map.has(key)) map.set(key, { agent_name: key, agent_id: row.agent_id, models: [], total_tokens: 0, estimated_cost: 0 });
             const group = map.get(key);
             group.models.push(row);
-            group.total_tokens += row.total_tokens || 0;
-            group.estimated_cost += row.estimated_cost || 0;
+            // Number(): a pg SUM arrives as a string from older servers, and
+            // `+=` on one concatenated "98282" + "7000" into 98282.7M tokens.
+            group.total_tokens += Number(row.total_tokens) || 0;
+            group.estimated_cost += Number(row.estimated_cost) || 0;
         }
         return Array.from(map.values()).sort((a, b) => b.total_tokens - a.total_tokens);
     }, [data.modelsByAgent]);
@@ -133,7 +135,8 @@ export default function OverviewTab({
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: TOKENS.pagePad }}>
-            <TabHeader icon={BarChart3} iconColor="#0ea5e9" title={t('usage.tab_overview')} description={t('usage.subtitle')} />
+            {/* No description: it repeated the page subtitle (usage.subtitle) word for word. */}
+            <TabHeader icon={BarChart3} iconColor="#0ea5e9" title={t('usage.tab_overview')} />
 
             {isCustomerView ? renderCustomerView() : renderFullView()}
         </div>
@@ -298,9 +301,9 @@ export default function OverviewTab({
                 {overBudget && (
                     <AlertBanner
                         severity={critical ? 'red' : 'amber'}
-                        title="Spend over budget"
-                        message={`${fCur(cost)} spent this period — threshold ${fCur(OVERVIEW_COST_ALERT)}.`}
-                        ctaLabel="Review by model"
+                        title={t('usage.overview.spend_over_budget', 'Spend over budget')}
+                        message={t('usage.overview.spend_over_budget_msg', '{cost} spent this period — threshold {threshold}.', { cost: fCur(cost), threshold: fCur(OVERVIEW_COST_ALERT) })}
+                        ctaLabel={t('usage.overview.review_by_model', 'Review by model')}
                         onCta={() => modelByUserRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
                     />
                 )}
@@ -426,7 +429,7 @@ export default function OverviewTab({
                                                 <IconBadge icon={Bot} color={getColor(gi)} />
                                                 <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
                                                     <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{group.agent_name}</span>
-                                                    <span style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 1 }}>{group.models.length} model{group.models.length !== 1 ? 's' : ''}</span>
+                                                    <span style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 1 }}>{group.models.length === 1 ? t('usage.overview.model_count', '{count} model', { count: group.models.length }) : t('usage.overview.model_count_plural', '{count} models', { count: group.models.length })}</span>
                                                 </div>
                                             </div>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>

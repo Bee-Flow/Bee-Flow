@@ -2,7 +2,7 @@
  * runScope — WHOSE runs the executions surface is showing (Track H2).
  *
  * Not to be confused with `scope` ('global' | 'automation' | 'step'), which
- * says WHICH runs: all of them, one routine's, one Step's. This module answers
+ * says WHICH runs: all of them, one automation's, one Step's. This module answers
  * the other question, and it only ever has two answers:
  *
  *   'mine'  the default, everywhere, always. GET /_runs/recent — the routes
@@ -24,12 +24,12 @@
  *    outlives a permission, and the widening direction must never be the one
  *    a bad value falls in.
  *
- * 2. ONLY THE GLOBAL SURFACE HAS TWO SCOPES. A per-routine or per-Step
+ * 2. ONLY THE GLOBAL SURFACE HAS TWO SCOPES. A per-automation or per-Step
  *    executions tab is already scoped to one object the caller owns, and
  *    `effectiveRunScope` forces 'mine' there. Without that, an 'org' left in
  *    storage by the Studio section would follow the user into the builder and
  *    fetch a list the builder's own automationId filter would then narrow —
- *    quietly turning "this routine's runs" into "this routine's runs by
+ *    quietly turning "this automation's runs" into "this automation's runs by
  *    anyone".
  *
  * 3. A ROW IS OPENABLE ONLY WHEN IT SAYS IT IS MINE. Every per-run route

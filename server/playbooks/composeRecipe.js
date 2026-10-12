@@ -7,7 +7,7 @@
  *
  * The prompt is the whole contract: the five phase kinds, the placeholders,
  * and how the two builders like their briefs — English tool vocabulary,
- * labels in the person's language, manual trigger for a routine that feeds
+ * labels in the person's language, manual trigger for an automation that feeds
  * a fill phase, link-don't-create for an app on a playbook table.
  */
 
@@ -92,8 +92,8 @@ const RECIPE_TOOL = {
                             // no app to govern.
                             kind: { type: 'string', enum: PROPOSABLE_KINDS },
                             label: { type: 'string', description: 'Short label, in the language the system prompt asks for' },
-                            brief: { type: 'string', description: 'routine/app/app_turn only: the instruction the builder gets, written as MARKDOWN (a ## heading, one numbered step per line, `backticks` round tool names and ids), ≤ 1100 characters, with {{placeholders}}.' },
-                            requires: { type: 'string', enum: ['approvals'], description: 'Set on the ROUTINE that asks for approval in Studio → Approvals (needs the Enterprise capability).' },
+                            brief: { type: 'string', description: 'automation/app/app_turn only: the instruction the builder gets, written as MARKDOWN (a ## heading, one numbered step per line, `backticks` round tool names and ids), ≤ 1100 characters, with {{placeholders}}.' },
+                            requires: { type: 'string', enum: ['approvals'], description: 'Set on the AUTOMATION that asks for approval in Studio → Approvals (needs the Enterprise capability).' },
                             requiresRole: { type: 'string', description: 'A table column key this phase writes (e.g. status) — the phase is skipped when an existing table lacks it.' },
                             goal: { type: 'string', description: 'design only: what the app is for, in plain words (screens a person needs, what they look up, what they decide).' },
                         },
@@ -115,13 +115,13 @@ function systemPrompt(locale, { approvalsAllowed = true } = {}) {
         '',
         'Phase kinds, in the only order that works:',
         '- table: the server creates a Studio datatable from the top-level `columns` list (at most one table phase, always first when `columns` is not empty). The phase itself carries only key, kind and label — never put columns inside a phase.',
-        '- routine: the automation builder gets `brief` and builds an automation (steps such as nextcloud_list_files, nextcloud_read_file, data_extraction, datatable add_row, http_request, send_email, ai_step).',
+        '- automation: the automation builder gets `brief` and builds an automation (steps such as nextcloud_list_files, nextcloud_read_file, data_extraction, datatable add_row, http_request, send_email, ai_step).',
         '- fill: the server runs the automation ONCE so the table has real rows before the app is built (needs an automation before it and a table).',
         '- design: before the app, the AI designs the app as a DESIGNER without tools (screens, sections, look); `goal` = what the app is for, in plain words. Always put one right before the app.',
         '- app: the app builder gets `brief` and builds a Studio app on the table (at most one).',
         '- app_turn: a further turn of the app builder on the same app (a second screen, a chart). NEVER for approvals.',
         ...(approvalsAllowed
-            ? ['- An APPROVAL FLOW is a second `routine` phase with requires "approvals" and requiresRole "status": the person decides in Studio → Approvals, the automation parks the row and writes the outcome back. Never build approvals into the app.']
+            ? ['- An APPROVAL FLOW is a second `automation` phase with requires "approvals" and requiresRole "status": the person decides in Studio → Approvals, the automation parks the row and writes the outcome back. Never build approvals into the app.']
             // Without the capability, `phaseObjectsFor` marks such a phase
             // `locked` — a dead row in the rail the presenter has to explain.
             : ['- This workspace has no approval capability: never propose an approval flow, and never set `requires`.']),

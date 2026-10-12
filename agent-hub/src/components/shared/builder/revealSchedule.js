@@ -1,6 +1,6 @@
 /**
  * The canvas-agnostic half of the build choreography: WHEN each card of a
- * burst is dealt, and in what ORDER — ids in, delays out. The routine canvas
+ * burst is dealt, and in what ORDER — ids in, delays out. The automation canvas
  * (React Flow) and the App Studio editor (a DOM grid) both read it; what a
  * "card" is and how the camera moves is each canvas's own.
  */

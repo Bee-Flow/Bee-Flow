@@ -93,7 +93,7 @@ const SEED_SUPPORT = Object.freeze({
  * Per soort: komt de NAAM van de kaart aan bij het ding dat ontstaat?
  *
  * automation — JA: createAutomationDraft(ctx, { title }) POST de titel mee,
- *              dus de nieuwe routine draagt de naam van de schema-kaart.
+ *              dus de nieuwe automatisering draagt de naam van de schema-kaart.
  * form       — NEE, en dit is de scherpste: createFormAutomation neemt
  *              vandaag alleen `ctx` en zet de titel zelf op "Untitled form".
  *              We geven `{ title }` al mee (klaar voor de dag dat studioApps
@@ -213,7 +213,7 @@ export function destinationForKind(kind, { sections = null, t = plainT } = {}) {
  * Een formulier uit de AI-router: aangemaakt als formulier dat zijn
  * antwoorden in een tabel verzamelt (de aanbevolen keuze van de "New
  * form"-dialoog), en geopend op de Vragen-tab van de Form-pagina — niet in
- * de routine-bouwer. De brief wordt NA het aanmaken geparkeerd, onder het id
+ * de automation-bouwer. De brief wordt NA het aanmaken geparkeerd, onder het id
  * van dit formulier: een brief die onder het kale 'form' zou staan, zou door
  * de eerstvolgende Vragen-tab van WELK formulier dan ook worden opgepakt.
  */

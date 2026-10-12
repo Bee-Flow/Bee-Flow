@@ -294,7 +294,7 @@ export default function RowBrowser({ table, onChanged, mirror = null, reloadKey 
             // A Blob and a revoked object URL, NEVER an <a href download>
             // pointing at the API: that link carries no auth header, and on
             // this stack a same-origin download navigates the SPA away from
-            // itself (the routines library learned it the hard way).
+            // itself (the automations library learned it the hard way).
             const url = URL.createObjectURL(new Blob([text], { type: 'text/csv;charset=utf-8' }));
             const a = document.createElement('a');
             a.href = url;

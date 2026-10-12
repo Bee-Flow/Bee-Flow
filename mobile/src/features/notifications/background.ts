@@ -170,7 +170,7 @@ async function ensureChannel(withSound: boolean): Promise<string> {
             importance: withSound
                 ? Notifications.AndroidImportance.DEFAULT
                 : Notifications.AndroidImportance.LOW,
-            // No CUSTOM sound either way: this is a work app, and a routine
+            // No CUSTOM sound either way: this is a work app, and an automation
             // finishing at 02:00 should not have its own ringtone. `null` means
             // the device's default; LOW importance is what makes the quiet
             // channel quiet.

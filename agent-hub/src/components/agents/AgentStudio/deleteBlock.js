@@ -4,7 +4,7 @@
  * The server refuses to delete an agent that something still uses, and it
  * refuses just as firmly when it could not FIND OUT whether something uses it.
  * Both come back as one 409, and the difference between them is the whole
- * point: "three routines use this" and "I could not check the routines" lead
+ * point: "three automations use this" and "I could not check the automations" lead
  * to the same button but not to the same sentence, and a dialog that merges
  * them tells the person a scan succeeded when it did not.
  *

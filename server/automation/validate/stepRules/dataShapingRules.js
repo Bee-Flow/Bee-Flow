@@ -11,10 +11,11 @@
 
 const { parseExpr } = require('../../expr');
 const { isObject } = require('../helpers');
+const { relativePathTokens } = require('../refPaths');
 const { MAX_SET_OPERATIONS, validateSetOperation } = require('../setOperations');
 const { checkMaxItems, checkReservedFieldNames } = require('../fieldChecks');
 const {
-    PARSE_JSON_FIELD_NAME_RE, PARSE_JSON_PATH_RE, MAX_PARSE_JSON_FIELDS,
+    PARSE_JSON_FIELD_NAME_RE, MAX_PARSE_JSON_FIELDS,
     DATETIME_OPS, DATETIME_PARTS, DATETIME_DIFF_UNITS,
 } = require('../constants');
 const { impliedListMode } = require('../../datetimeListMode');
@@ -125,7 +126,7 @@ function checkCode(ctx, step, at) {
                     const b = isCodeLimitKey(key) ? CODE_LIMIT_BOUNDS[key] : null;
                     if (!b) {
                         // A warning, not an error: the sandbox simply ignores
-                        // the key, so nothing breaks and an imported routine
+                        // the key, so nothing breaks and an imported automation
                         // must not be barred from activating over it. Worth
                         // saying all the same — a model reaching for this
                         // invents `timeoutMs`, `maxRows`, `retries`, and a
@@ -139,7 +140,7 @@ function checkCode(ctx, step, at) {
                         continue;
                     }
                     if (value < b.min || value > b.max) {
-                        pushE({ code: 'code.limits_out_of_range', severity: 'error', path: `${at}.limits.${key}`, message: `Step ${step.id}: limits.${key} is ${value} — the sandbox allows ${describeCodeLimit(key)} and clamps anything outside that.`, hint: `Ask for ${value > b.max ? `${b.max} or less` : `${b.min} or more`}. Code steps run in-process, so this ceiling is what keeps one routine from starving every other run on the same host.` });
+                        pushE({ code: 'code.limits_out_of_range', severity: 'error', path: `${at}.limits.${key}`, message: `Step ${step.id}: limits.${key} is ${value} — the sandbox allows ${describeCodeLimit(key)} and clamps anything outside that.`, hint: `Ask for ${value > b.max ? `${b.max} or less` : `${b.min} or more`}. Code steps run in-process, so this ceiling is what keeps one automation from starving every other run on the same host.` });
                     }
                 }
             }
@@ -151,7 +152,7 @@ function checkCode(ctx, step, at) {
         // because no secret store is wired to code steps in this build — the
         // codeSandbox.js header has the whole shape. Refusing it here is the
         // difference between finding out while you are authoring and finding
-        // out when a scheduled routine fires at 03:00 and stops on its first
+        // out when a scheduled automation fires at 03:00 and stops on its first
         // step.
         // Read EXACTLY the two shapes execCode reads — the binding form the
         // builder writes ({kind:'literal', value:[…]}) and the bare array a
@@ -187,7 +188,7 @@ function checkCode(ctx, step, at) {
                 // intersects it with the runner's CURRENT permission set, so
                 // an unreachable name can only ever narrow what the step may
                 // do; and the catalog seen while authoring is not necessarily
-                // the catalog of whoever the routine ends up running as.
+                // the catalog of whoever the automation ends up running as.
                 for (const name of step.allowedTools) {
                     if (!availableTools.has(name)) pushW({ code: 'code.allowed_tool_unknown', severity: 'warning', path: at + '.allowedTools', message: `Step ${step.id}: allowedTools names "${name}", which is not in the catalog — ctx.integrations.${name}() will answer { error: 'tool "${name}" not allowed for this step' }.`, hint: 'Drop it, or ask for the integration that provides it to be connected.' });
                 }
@@ -284,7 +285,7 @@ function checkParseJson(ctx, step, at) {
             pushW({ code: 'parse_json.source_defaulted', severity: 'warning', path: at + '.sourceRef', message: `Step ${step.id}: no sourceRef — uses the previous step's output.`, hint: 'Set sourceRef (e.g. "steps.<id>.output.body") to make the source explicit.' });
         }
         if (step.itemsRef !== undefined && step.itemsRef !== null && step.itemsRef !== '') {
-            if (typeof step.itemsRef !== 'string' || !PARSE_JSON_PATH_RE.test(step.itemsRef)) {
+            if (typeof step.itemsRef !== 'string' || !relativePathTokens(step.itemsRef)) {
                 pushE({ code: 'parse_json.items_ref_invalid', severity: 'error', path: at + '.itemsRef', message: `Step ${step.id}: parse_json.itemsRef must be a path (relative to the source) pointing at a list.`, hint: 'e.g. "results" or "data.orders". Field paths are then relative to each item.' });
             }
         }
@@ -311,7 +312,8 @@ function checkParseJson(ctx, step, at) {
                 seenNames.add(f.name);
                 if (!aiMode) {
                     const p = f.path;
-                    const pathOk = p === '' || p === '$' || (typeof p === 'string' && PARSE_JSON_PATH_RE.test(p));
+                    // Exactly what the runner's relative walker resolves.
+                    const pathOk = typeof p === 'string' && relativePathTokens(p) !== null;
                     if (!pathOk) {
                         pushE({ code: 'parse_json.field_path_invalid', severity: 'error', path: fat + '.path', message: `Step ${step.id}: field "${f.name}" has an invalid path "${p}".`, hint: 'Paths are relative to the source: a.b, items[0].sku, items[*].sku (flatten), obj["key with spaces"]; "" or "$" = the whole source.' });
                     }

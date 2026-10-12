@@ -7,16 +7,18 @@
 
 import { useQueryClient } from '@tanstack/react-query';
 import { AlertTriangle, Check, Save, Settings } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-    ProjectConflictError, projectKeys, useUpdateProject, type Project,
+    ProjectConflictError, projectKeys, useUpdateProject, type Project, type ProjectRole,
 } from '../../../api/queries/projects';
 import useTranslation from '../../../hooks/useTranslation';
 import Toggle from '../../shared/Toggle';
 import {
     ColorSwatches, DescriptionField, IconPicker, InstructionsField, NameField,
 } from './ProjectIdentityFields';
+import { projectErrorText } from './projectErrorText';
 import { DEFAULT_PROJECT_COLOR, DEFAULT_PROJECT_ICON } from './projectVisuals';
+import { ArchiveCard, EditorsInviteToggle, MuteCard, OwnershipCard } from './SettingsCollab';
 import SettingsDanger from './SettingsDanger';
 import { StudioSectionHeader } from './studioParts';
 import { canEditProject, type WorkspaceTabProps } from './types';
@@ -29,6 +31,7 @@ interface SettingsDraft {
     color: string;
     customInstructions: string;
     extractMemories: boolean;
+    editorsCanInvite: boolean;
 }
 
 const draftOf = (p: Project): SettingsDraft => ({
@@ -38,6 +41,8 @@ const draftOf = (p: Project): SettingsDraft => ({
     color: p.color || DEFAULT_PROJECT_COLOR,
     customInstructions: p.customInstructions || '',
     extractMemories: !!p.extractMemories,
+    // The server's default is true; an older server sends nothing and then the field is never written back.
+    editorsCanInvite: p.editorsCanInvite !== false,
 });
 
 const sameDraft = (a: SettingsDraft, b: SettingsDraft) => (Object.keys(a) as Array<keyof SettingsDraft>).every((k) => a[k] === b[k]);
@@ -60,7 +65,8 @@ const baseOf = (p: Project): Base => ({ draft: draftOf(p), version: versionOf(p)
  * them AND keeps the version they were based on, so saving it still meets the
  * server's conflict check instead of silently overwriting the colleague.
  */
-function useSettingsForm(projectId: string, project: Project) {
+function useSettingsForm(projectId: string, project: Project, role: ProjectRole) {
+    const { t } = useTranslation();
     const qc = useQueryClient();
     const update = useUpdateProject(projectId);
     const [draft, setDraft] = useState<SettingsDraft>(() => draftOf(project));
@@ -109,8 +115,10 @@ function useSettingsForm(projectId: string, project: Project) {
         setConflictDraft(null);
         const mine = draft;
         try {
+            const { editorsCanInvite, ...rest } = draft;
             const result = await update.mutateAsync({
-                ...draft,
+                ...rest,
+                ...(role === 'owner' && project.editorsCanInvite !== undefined ? { editorsCanInvite } : {}),
                 name: draft.name.trim(),
                 description: draft.description.trim(),
                 ...(base.version === null ? {} : { version: base.version }),
@@ -119,7 +127,7 @@ function useSettingsForm(projectId: string, project: Project) {
             setSaved(true);
         } catch (e) {
             if (e instanceof ProjectConflictError) await reloadAfterConflict(e, mine);
-            else setError(e instanceof Error ? e.message : String(e));
+            else setError(projectErrorText(t, e, t('project_home.settings.save_failed', 'Could not save the settings.')));
         }
     };
 
@@ -167,13 +175,37 @@ function statusChipFor(form: ReturnType<typeof useSettingsForm>, t: ReturnType<t
     return null;
 }
 
-export default function SettingsTab({ projectId, project, role, currentUser, onDeleted, onLeft }: WorkspaceTabProps & {
-    onDeleted?: (id: string) => void;
-    onLeft?: () => void;
+/** The owner's cards: who may invite, who owns the project, archiving. */
+function OwnerCards({ project, editorsCanInvite, onEditorsCanInvite, locked, readOnly, currentUserId }: {
+    project: Project; editorsCanInvite: boolean; onEditorsCanInvite: (v: boolean) => void;
+    locked: boolean; readOnly: boolean; currentUserId: string | null | undefined;
 }) {
     const { t } = useTranslation();
-    const form = useSettingsForm(projectId, project);
-    const canEdit = canEditProject(role);
+    return (
+        <>
+            <Card title={t('project_home.settings.collab', 'Collaboration')}>
+                <EditorsInviteToggle checked={editorsCanInvite} onChange={onEditorsCanInvite} disabled={locked || project.editorsCanInvite === undefined} />
+            </Card>
+            {!readOnly && <OwnershipCard project={project} currentUserId={currentUserId} />}
+            <ArchiveCard project={project} />
+        </>
+    );
+}
+
+export default function SettingsTab({ projectId, project, role, currentUser, readOnly, onDeleted, onLeft, onDirtyChange }: WorkspaceTabProps & {
+    onDeleted?: (id: string) => void;
+    onLeft?: () => void;
+    /** Tells the shell whether there are unsaved edits, so it can ask before leaving the tab. */
+    onDirtyChange?: (dirty: boolean) => void;
+}) {
+    const { t } = useTranslation();
+    const form = useSettingsForm(projectId, project, role);
+    const { dirty } = form;
+    useEffect(() => {
+        onDirtyChange?.(dirty);
+        return () => onDirtyChange?.(false);
+    }, [dirty, onDirtyChange]);
+    const canEdit = canEditProject(role) && !readOnly;
     const locked = !canEdit || form.saving;
     const { draft, edit } = form;
 
@@ -199,7 +231,9 @@ export default function SettingsTab({ projectId, project, role, currentUser, onD
                 <div className="max-w-3xl mx-auto px-6 py-6 space-y-5">
                     {!canEdit && (
                         <Notice testId="settings-readonly">
-                            {t('project_home.settings.readonly', 'Only editors and the owner can change these settings.')}
+                            {readOnly
+                                ? t('project_home.archived.read_only', 'This project is archived and read-only. Restore it to change anything.')
+                                : t('project_home.settings.readonly', 'Only editors and the owner can change these settings.')}
                         </Notice>
                     )}
                     {form.conflict && <ConflictNotice onRestore={form.restoreMine} />}
@@ -220,6 +254,10 @@ export default function SettingsTab({ projectId, project, role, currentUser, onD
                             <MemoryToggle checked={draft.extractMemories} onChange={edit('extractMemories')} disabled={locked} />
                         </div>
                     </Card>
+                    <MuteCard project={project} />
+                    {role === 'owner' && (
+                        <OwnerCards project={project} editorsCanInvite={draft.editorsCanInvite} onEditorsCanInvite={edit('editorsCanInvite')} locked={locked} readOnly={!!readOnly} currentUserId={currentUser?.id} />
+                    )}
                     <SettingsDanger project={project} role={role} currentUserId={currentUser?.id} onDeleted={onDeleted} onLeft={onLeft} />
                 </div>
             </div>

@@ -20,7 +20,7 @@
  *   - no route accepts SQL;
  *   - a caller with no grade gets 404, not 403 — existence is not probeable;
  *   - sharing is licence-gated but reading and row writes are NOT (the drain
- *     exemption: a lapse must never strand a running routine);
+ *     exemption: a lapse must never strand a running automation);
  *   - every compile on this path states dialect 'pg' explicitly.
  */
 
@@ -195,7 +195,7 @@ test('reads and row writes are NOT licence-gated — the drain exemption', () =>
     for (const [verb, p] of [['get', '/:id/rows'], ['post', '/:id/rows'], ['get', '/:id']]) {
         const body = routeBody(verb, p);
         assert.doesNotMatch(body, /requireCapability\('automation_sharing'\)/,
-            `${verb} ${p} must keep working on a lapsed licence — a routine writing nightly must not silently stop`);
+            `${verb} ${p} must keep working on a lapsed licence — an automation writing nightly must not silently stop`);
     }
 });
 
@@ -318,7 +318,7 @@ test('quota refusals use the frozen 409 contract', () => {
     // The STORAGE envelope is not. It used to spend DATA_LIMITS'
     // MAX_TABLES_PER_APP — a constant named, documented and sized for one App
     // Studio app — as a per-organisation cap, and it enforced the row cap only
-    // here, so a routine wrote past it for as long as it liked.
+    // here, so an automation wrote past it for as long as it liked.
     // core/dataEngine/datatableLimits is the one check both callers run.
     assert.doesNotMatch(SRC, /MAX_TABLES_PER_APP/,
         'a per-app constant must not be spent as a per-organisation cap');
@@ -435,11 +435,11 @@ test('both write paths normalise the columns before they enter the model', () =>
         'captured after the replacement it would describe the NEW columns, so no drop is ever seen');
 });
 
-test('a column drop that breaks a routine is refused unless the caller confirms', () => {
+test('a column drop that breaks an automation is refused unless the caller confirms', () => {
     // listUsageForColumn is described in the store as "the destructive-change
     // guard" and had no caller: the commit message for the feature claimed the
     // destructive actions read it before they ask, and on the server they did
-    // not. A dropped column breaks somebody else's routine silently, at 3am.
+    // not. A dropped column breaks somebody else's automation silently, at 3am.
     const body = routeBody('put', '/:id/schema');
     assert.match(body, /breakingColumnUsage\(/);
     assert.match(body, /code: 'breaking_change'/);
@@ -524,7 +524,7 @@ test('featureMap declares both the Community mount and the Enterprise sharing ro
     // gate names are what the licence layer reads out of it.
     const featureMap = require('../license/featureMap');
     assert.strictEqual(featureMap['/api/datatables'].gate, 'automations',
-        'the mount itself is Community — a lapse must never strand a running routine');
+        'the mount itself is Community — a lapse must never strand a running automation');
     assert.strictEqual(featureMap['/api/datatables/*/sharing'].gate, 'automation_sharing',
         'and publishing or granting a datatable is the paid line');
 });

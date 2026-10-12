@@ -1,16 +1,16 @@
 /**
- * What an organisation's routines are made of, for the builder's "Frequently
+ * What an organisation's automations are made of, for the builder's "Frequently
  * used" (Studio → Automations handoff 5):
  *
  *   - stepCounts: how often each step kind and each integration action occurs
- *     across the org's routines, as the ribbon's usage keys
+ *     across the org's automations, as the ribbon's usage keys
  *     ('step:ai_step', 'action:nextcloud_list_files', 'block:<id>');
  *   - valueCounts: for each (tool, input) the literal values the org typed in
  *     (folder paths, board ids), for the chips under a setting in the step
  *     drawer.
  *
  * Read from the saved definitions (the working copies), not from runs: a
- * routine that has not run yet still says what people build here, and a
+ * automation that has not run yet still says what people build here, and a
  * definition holds settings, never run data.
  *
  * Privacy: values are visible to everyone in the org, so a value that looks
@@ -35,7 +35,7 @@ const { walkSteps } = require('./automationGraph');
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
 const CACHE_MAX_SCOPES = 500;
-const MAX_ROUTINES = 2000;
+const MAX_AUTOMATIONS = 2000;
 const MAX_STEP_ROWS = 60;
 const MAX_VALUE_ROWS = 5;
 const MAX_VALUE_LENGTH = 120;
@@ -63,8 +63,8 @@ function usageKeyOf(step) {
         const id = step.blockId;
         return (typeof id === 'string' && id && id.length <= 64) ? `block:${id}` : null;
     }
-    // A flowlet (call_layer) is local to its routine: counting its key across
-    // the org would offer a flowlet that does not exist in the next routine.
+    // A flowlet (call_layer) is local to its automation: counting its key across
+    // the org would offer a flowlet that does not exist in the next automation.
     if (type === 'call_layer') return null;
     return `step:${type}`;
 }
@@ -215,7 +215,7 @@ function topValues(agg, tool, input, limit = MAX_VALUE_ROWS, { viewerId = null }
 // ── Loading + cache ──────────────────────────────────────────────────────
 
 /**
- * The saved definitions of every live (not trashed) routine and Step in the
+ * The saved definitions of every live (not trashed) automation and Step in the
  * scope. Legacy rows stamped without an organisation count for their owner's.
  */
 async function loadDefinitionsFromDb({ orgId, userId }) {
@@ -227,14 +227,14 @@ async function loadDefinitionsFromDb({ orgId, userId }) {
               WHERE a.deleted_at IS NULL
                 AND COALESCE(a.organization_id, u."organizationId") = $1
               ORDER BY a.updated_at DESC
-              LIMIT ${MAX_ROUTINES}`,
+              LIMIT ${MAX_AUTOMATIONS}`,
             [orgId],
         )
         : await getAll(
             `SELECT a.definition_json, a.user_id FROM automations a
               WHERE a.deleted_at IS NULL AND a.user_id = $1
               ORDER BY a.updated_at DESC
-              LIMIT ${MAX_ROUTINES}`,
+              LIMIT ${MAX_AUTOMATIONS}`,
             [userId],
         );
     return rows.map((r) => {
@@ -282,7 +282,7 @@ function makeOrgStepUsage(deps = {}) {
             return (await aggregateFor(scope)).steps;
         },
         async valueUsage(scope, tool, input) {
-            // A personal install holds only the caller's own routines.
+            // A personal install holds only the caller's own automations.
             const viewerId = scope?.orgId ? scope.userId : null;
             return topValues(await aggregateFor(scope), tool, input, MAX_VALUE_ROWS, { viewerId });
         },

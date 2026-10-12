@@ -2,8 +2,8 @@
  * The owner's edits to a form — the web's useFormDetail on the phone's draft
  * store.
  *
- * The routine is opened in the flow editor's draft store (useFlowDraft), the
- * same store the build screen edits, so the Form page and the routine builder
+ * The automation is opened in the flow editor's draft store (useFlowDraft), the
+ * same store the build screen edits, so the Form page and the automation builder
  * never hold two versions of one form. The Questions tab edits a DRAFT of the
  * trigger's form and nothing reaches the store until Save — as on the web, a
  * misread AI brief is one "Discard", never a retired answers column. Save
@@ -24,7 +24,7 @@ import { refreshForms } from './mutations';
 import { cloneForm, sameForm, triggerFormOf, withTriggerForm } from '../model/questionsDraft';
 
 export interface QuestionsDraft {
-    /** The routine is loaded and its trigger is a form. */
+    /** The automation is loaded and its trigger is a form. */
     ready: boolean;
     draft: FormDeclaration | null;
     saved: FormDeclaration | null;
@@ -32,7 +32,7 @@ export interface QuestionsDraft {
     dirty: boolean;
     saving: boolean;
     saveError: unknown;
-    /** Edits are refused while the AI builder streams into this routine. */
+    /** Edits are refused while the AI builder streams into this automation. */
     locked: boolean;
     save: () => Promise<boolean>;
     discard: () => void;
@@ -43,7 +43,7 @@ export interface QuestionsDraft {
 
 function refusedWords(locked: boolean): string {
     return locked
-        ? translate('routines.builder.edits_locked', 'The AI is building this routine — editing is paused until it finishes.')
+        ? translate('automations.builder.edits_locked', 'The AI is building this automation — editing is paused until it finishes.')
         : translate('forms.page.save_failed', 'Could not save the form.');
 }
 
@@ -76,7 +76,7 @@ export function useQuestionsDraft(automationId: string): QuestionsDraft {
         try {
             const store = flow.store.getState();
             // The store refuses edits while the AI builder streams into the
-            // routine (and before it has loaded): that is a failed save, not a
+            // automation (and before it has loaded): that is a failed save, not a
             // saved one — a flush would say "nothing unsaved".
             const written = store.applyOp((definition) => withTriggerForm(definition, form));
             if (!written && !sameForm(triggerFormOf(store.definition), form)) {

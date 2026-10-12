@@ -123,7 +123,7 @@
    "id": "page-two",
    "icon": "📄",
    "title": "Page two does not restyle itself",
-   "bodyMd": "A longer form runs over several pages — the later ones are steps in the routine behind it, edited there rather than on the Questions tab.\n\nEvery later page opens its Styling section with one extra control at the top: the checkbox **Match the first page**. While it is ticked, that page has no styling of its own and simply follows page one — so a visitor never watches the form change appearance halfway through.\n\nUnticking it opens the presets and knobs for that page alone, so you style it from there. Ticking it again gives the page straight back to page one. For Van Dijk's supplier intake, leave it ticked; the only good reason to untick it is a closing page that should deliberately look different."
+   "bodyMd": "A longer form runs over several pages — the later ones are steps in the automation behind it, edited there rather than on the Questions tab.\n\nEvery later page opens its Styling section with one extra control at the top: the checkbox **Match the first page**. While it is ticked, that page has no styling of its own and simply follows page one — so a visitor never watches the form change appearance halfway through.\n\nUnticking it opens the presets and knobs for that page alone, so you style it from there. Ticking it again gives the page straight back to page one. For Van Dijk's supplier intake, leave it ticked; the only good reason to untick it is a closing page that should deliberately look different."
   },
   {
    "type": "quiz",
@@ -162,7 +162,7 @@
    "id": "switches",
    "icon": "🔌",
    "title": "Three switches, three different endings",
-   "bodyMd": "The **Settings** tab holds all three, and builders mix them up constantly:\n\n- **Form is live** (off) — *\"the link answers 'not available' and nothing is collected\"*. The page is gone; everything else is intact.\n- **Collect answers in a table** (off) — the form still opens, still accepts submissions, still starts the routine. Only the table stops being fed.\n- **Delete this form** in the danger zone — type the name to confirm. The form and the routine behind it go. The answers table does **not**; it stays under Datatables until someone removes it there.\n\nThe first two are toggles you can put back. The third is the end of the routine."
+   "bodyMd": "The **Settings** tab holds all three, and builders mix them up constantly:\n\n- **Form is live** (off) — *\"the link answers 'not available' and nothing is collected\"*. The page is gone; everything else is intact.\n- **Collect answers in a table** (off) — the form still opens, still accepts submissions, still starts the automation. Only the table stops being fed.\n- **Delete this form** in the danger zone — type the name to confirm. The form and the automation behind it go. The answers table does **not**; it stays under Datatables until someone removes it there.\n\nThe first two are toggles you can put back. The third is the end of the automation."
   },
   {
    "type": "slide",
@@ -205,7 +205,7 @@
      },
      {
       "id": "delete",
-      "label": "Only if the routine itself must go: danger zone → \"Delete this form\", knowing the table survives it"
+      "label": "Only if the automation itself must go: danger zone → \"Delete this form\", knowing the table survives it"
      }
     ],
     "solution": [
@@ -214,7 +214,7 @@
      "retention",
      "delete"
     ],
-    "feedback": "Close the inflow first: with the form off the air nothing more arrives, so what follows is a decision rather than a race. Then stop the table following the form, then decide how long its rows live — answers are kept indefinitely until a retention window is set. Delete last: it is the only one of the four that does not toggle back, and it removes the routine, not the answers."
+    "feedback": "Close the inflow first: with the form off the air nothing more arrives, so what follows is a decision rather than a race. Then stop the table following the form, then decide how long its rows live — answers are kept indefinitely until a retention window is set. Delete last: it is the only one of the four that does not toggle back, and it removes the automation, not the answers."
    }
   },
   {
@@ -247,7 +247,7 @@
      "feedback": "It can. The toggle goes both ways and only the off direction asks for a confirmation."
     }
    ],
-   "explanation": "Stopping collection stops the table being fed, and that is all it does. The form kept running all summer — those submissions started the routine, they just left no row behind, and nothing will ever put them there."
+   "explanation": "Stopping collection stops the table being fed, and that is all it does. The form kept running all summer — those submissions started the automation, they just left no row behind, and nothing will ever put them there."
   },
   {
    "type": "action",
@@ -266,7 +266,7 @@
    "id": "recap",
    "icon": "✅",
    "title": "What you can do now",
-   "bodyMd": "- **Style a form on purpose.** Pick one of Clean, Corporate, Friendly, Night or Match visitor to get close, then set the accent and the four knobs — Corners, Spacing, Text size, Appearance — and know that the chip going dim just means the five values stopped matching it.\n- **Choose Appearance for the reader, not for yourself.** A form imposes its own light or dark; `auto` is the setting that hands that choice back. On a later page, leave **Match the first page** ticked unless you mean it.\n- **Stop a form with the right switch.** *Form is live* takes the page down, *Collect answers in a table* only stops the table being fed — after the **Stop collecting?** confirm, which leaves the table, its rows and its sharing untouched — and **Delete this form** ends the routine while the answers table lives on under Datatables."
+   "bodyMd": "- **Style a form on purpose.** Pick one of Clean, Corporate, Friendly, Night or Match visitor to get close, then set the accent and the four knobs — Corners, Spacing, Text size, Appearance — and know that the chip going dim just means the five values stopped matching it.\n- **Choose Appearance for the reader, not for yourself.** A form imposes its own light or dark; `auto` is the setting that hands that choice back. On a later page, leave **Match the first page** ticked unless you mean it.\n- **Stop a form with the right switch.** *Form is live* takes the page down, *Collect answers in a table* only stops the table being fed — after the **Stop collecting?** confirm, which leaves the table, its rows and its sharing untouched — and **Delete this form** ends the automation while the answers table lives on under Datatables."
   }
  ],
  "rubrics": {
@@ -276,7 +276,7 @@
    "criteria": [
     "Says that only NEW submissions stop landing in the table, starting from the next submission",
     "Says the answers table itself, the rows already in it and the people it is shared with all stay exactly as they are",
-    "Makes clear the form keeps working — it still opens, still accepts submissions and still starts the routine, because taking it off the air is the separate \"Form is live\" switch",
+    "Makes clear the form keeps working — it still opens, still accepts submissions and still starts the automation, because taking it off the air is the separate \"Form is live\" switch",
     "Notes that switching collecting back on does not import the submissions made in the meantime"
    ],
    "passScore": 70,
@@ -307,14 +307,14 @@
     {
      "method": "GET",
      "path": "/api/automation",
-     "returns": "the caller's own routines, each with id, title, isActive, isDraft and definition (including definition.trigger.kind and definition.trigger.form)"
+     "returns": "the caller's own automations, each with id, title, isActive, isDraft and definition (including definition.trigger.kind and definition.trigger.form)"
     }
    ],
    "criteria": [
     {
      "id": "has-form",
-     "label": "A routine of your own exists — your form is one of them",
-     "hint": "Every form is a routine with a form trigger, so New form in Studio → Forms makes one. The Styling you pick is saved inside the form, where this check cannot look — Preview the form is your proof.",
+     "label": "An automation of your own exists — your form is one of them",
+     "hint": "Every form is an automation with a form trigger, so New form in Studio → Forms makes one. The Styling you pick is saved inside the form, where this check cannot look — Preview the form is your proof.",
      "rule": "GET /api/automation → automations[] is non-empty (definition.trigger.kind and the theme are per row and not readable by the runtime)",
      "endpoint": "/api/automation",
      "expect": {

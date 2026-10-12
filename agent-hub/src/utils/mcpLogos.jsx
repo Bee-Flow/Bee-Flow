@@ -87,6 +87,7 @@ export function McpLogo({ server, size = 32, className = '' }) {
                 width={size}
                 height={size}
                 loading="lazy"
+                referrerPolicy="no-referrer"
                 alt=""
                 className={className}
                 onError={() => setIdx(i => i + 1)}

@@ -7,8 +7,8 @@
  *   - replace writes the whole list in one go, keeps unchanged rows and drops
  *     the ones that are gone;
  *   - "shared with me" finds direct and group shares, reports the strongest
- *     role, names the owner, and leaves out the caller's own routines, trashed
- *     routines, other organisations and org-less routines of other orgs;
+ *     role, names the owner, and leaves out the caller's own automations, trashed
+ *     automations, other organisations and org-less automations of other orgs;
  *   - member counts per group, over active members of the organisation only;
  *   - a transfer moves the owner, drops the new owner's share, keeps the old
  *     owner as editor, and refuses when the owner already changed.
@@ -57,6 +57,7 @@ before(async () => {
             id TEXT PRIMARY KEY,
             user_id TEXT NOT NULL,
             organization_id TEXT,
+            project_id TEXT,
             kind TEXT NOT NULL DEFAULT 'automation',
             title TEXT NOT NULL,
             description TEXT,
@@ -157,7 +158,7 @@ test('shared with me: direct and group shares, strongest role, owner named', asy
     assert.deepStrictEqual(await store.listAutomationsSharedWithUser('vic', { orgId: null }), []);
 });
 
-test('shared with me: a live routine keeps its (non-enumerable) live copy', async () => {
+test('shared with me: a live automation keeps its (non-enumerable) live copy', async () => {
     await seedAutomation('s6-live', { updatedAt: '2026-09-04' });
     await pg.query(
         `UPDATE automations SET live_version = 1, live_definition_json = '{"trigger":{"kind":"schedule"}}' WHERE id = 's6-live'`,
@@ -170,7 +171,7 @@ test('shared with me: a live routine keeps its (non-enumerable) live copy', asyn
     assert.ok(!Object.keys(row).includes('liveDefinition'), 'still never serialised');
 });
 
-test('an org-less routine counts in its owner\'s organisation', async () => {
+test('an org-less automation counts in its owner\'s organisation', async () => {
     await seedAutomation('s6-orgless', { org: null });
     await store.replaceSharesForAutomation('s6-orgless', [{ principalType: 'user', principalId: 'ed', role: 'view' }], 'owner');
     const rows = await store.listAutomationsSharedWithUser('ed', { orgId: 'org1' });

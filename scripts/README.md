@@ -15,6 +15,7 @@ anything that touches production.
 | `dev-nc.sh` | Single entrypoint for the Bee Flow + Nextcloud local dev loop (`up` / `spa` sub-commands) |
 | `run-local-nc.sh` | Run Bee Flow against a local Nextcloud — no App Store, no public registry |
 | `setup-local-db.sh` | One-time local PostgreSQL setup for Bee Flow without Docker |
+| `learn-media-fetch.mjs` | Install a Learning Center video pack (a `.tar.gz` from `LEARN_MEDIA_PACK_URL` or a local path) into `LEARN_MEDIA_DIR`, verifying every file's sha256 against the pack's manifest before swapping it in (`npm run learn-media:fetch`) |
 
 ## CI / hygiene
 

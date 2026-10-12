@@ -270,7 +270,7 @@ router.post('/:id/reidentify-speakers', requireAuth, validate({ body: Reidentify
         res.json(await withInsightsPolicy(updated));
     } catch (err) {
         log.error('[Transcriptions] Re-identify speakers error:', err.message);
-        res.status(500).json({ error: `Failed to re-identify speakers: ${err.message}` });
+        res.status(500).json({ error: 'Failed to re-identify speakers' });
     }
 });
 

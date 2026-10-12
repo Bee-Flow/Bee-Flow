@@ -1,6 +1,6 @@
 import { renderHook, act } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import useDlpDecision from './useDlpDecision';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import useDlpDecision, { DLP_TOUCH_INTERVAL_MS } from './useDlpDecision';
 import { authFetch } from '../utils/helpers';
 
 vi.mock('../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
@@ -10,8 +10,21 @@ beforeEach(() => {
     authFetch.mockResolvedValue({ ok: true, json: async () => ({ ok: true }) });
 });
 
+afterEach(() => {
+    vi.useRealTimers();
+});
+
 function dispatch(type, detail) {
     window.dispatchEvent(new CustomEvent(type, { detail }));
+}
+
+/** authFetch calls to the decision endpoint itself (not the touch heartbeat). */
+function decisionCalls() {
+    return authFetch.mock.calls.filter(([url]) => url.endsWith('/api/chat/dlp-decision'));
+}
+
+function touchCalls() {
+    return authFetch.mock.calls.filter(([url]) => url.endsWith('/api/chat/dlp-decision/touch'));
 }
 
 describe('useDlpDecision — pending shape', () => {
@@ -45,8 +58,8 @@ describe('useDlpDecision — submit', () => {
 
         await act(async () => { await result.current.submit('allow', { rememberForConversation: true }); });
 
-        expect(authFetch).toHaveBeenCalledTimes(1);
-        const [, opts] = authFetch.mock.calls[0];
+        expect(decisionCalls().length).toBe(1);
+        const [, opts] = decisionCalls()[0];
         const body = JSON.parse(opts.body);
         expect(body).toEqual({ decisionId: 'd4', choice: 'allow', rememberForConversation: true });
         expect(result.current.pending).toBeNull();
@@ -60,7 +73,7 @@ describe('useDlpDecision — submit', () => {
             await result.current.submit('redact', { manualAdditions: [{ offset: 0, length: 5 }] });
         });
 
-        const [, opts] = authFetch.mock.calls[0];
+        const [, opts] = decisionCalls()[0];
         const body = JSON.parse(opts.body);
         expect(body.manualAdditions).toEqual([{ offset: 0, length: 5 }]);
         expect(body.decisionId).toBe('d5');
@@ -75,5 +88,46 @@ describe('useDlpDecision — submit', () => {
 
         expect(result.current.error).toBe('Decision not found');
         expect(result.current.pending).not.toBeNull();
+    });
+});
+
+describe('useDlpDecision — keep-alive heartbeat', () => {
+    it('heartbeats the decision immediately and on the interval while the review is open', () => {
+        vi.useFakeTimers();
+        const { result } = renderHook(() => useDlpDecision());
+        act(() => dispatch('beeflow:dlp_preview', { decisionId: 'd7', reviewText: 'x', findings: [] }));
+
+        expect(touchCalls().length).toBe(1);
+        expect(JSON.parse(touchCalls()[0][1].body)).toEqual({ decisionId: 'd7' });
+
+        act(() => { vi.advanceTimersByTime(DLP_TOUCH_INTERVAL_MS * 3); });
+        expect(touchCalls().length).toBe(4);
+        expect(result.current.pending).not.toBeNull();
+    });
+
+    it('a heartbeat failure leaves the review alone — submit still reports its own error', async () => {
+        authFetch.mockImplementation((url) => (
+            url.endsWith('/touch')
+                ? Promise.reject(new Error('offline'))
+                : Promise.resolve({ ok: true, json: async () => ({ ok: true }) })
+        ));
+        const { result } = renderHook(() => useDlpDecision());
+        act(() => dispatch('beeflow:dlp_preview', { decisionId: 'd8', reviewText: 'x', findings: [] }));
+
+        await act(async () => { await result.current.submit('redact'); });
+
+        expect(result.current.error).toBeNull();
+        expect(result.current.pending).toBeNull();
+    });
+
+    it('stops heartbeating once the decision is submitted', async () => {
+        vi.useFakeTimers();
+        const { result } = renderHook(() => useDlpDecision());
+        act(() => dispatch('beeflow:dlp_preview', { decisionId: 'd9', reviewText: 'x', findings: [] }));
+        expect(touchCalls().length).toBe(1);
+
+        await act(async () => { await result.current.submit('allow'); });
+        act(() => { vi.advanceTimersByTime(DLP_TOUCH_INTERVAL_MS * 5); });
+        expect(touchCalls().length).toBe(1);
     });
 });

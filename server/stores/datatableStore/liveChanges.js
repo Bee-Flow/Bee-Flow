@@ -21,7 +21,7 @@ const log = require('../../telemetry/log');
  * Tell the knowledge-source refresh job that a table's rows moved (K8).
  *
  * ── DEBOUNCED, BECAUSE A WRITE STEP IS NOT A WRITE ──────────────────
- * A routine looping over 400 rows bumps the version 400 times in a few
+ * An automation looping over 400 rows bumps the version 400 times in a few
  * seconds. Arming on each one would queue 400 refresh passes over a table that
  * settled once. So the first bump starts a timer and every bump inside it
  * resets nothing — the pass runs once, `DEBOUNCE_MS` after the first.

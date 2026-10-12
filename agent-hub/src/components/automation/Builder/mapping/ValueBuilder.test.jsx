@@ -79,6 +79,7 @@ describe('ValueBuilder', () => {
 
     it('“Adjust it” writes the formula for the user', () => {
         const { onChange } = renderBuilder({ kind: 'ref', path: 'steps.act_4d4307a.output.total' });
+        // Behind "Advanced": a plain drag never needs it.
         fireEvent.change(screen.getByLabelText('Adjust the value'), { target: { value: 'round' } });
         expect(onChange).toHaveBeenCalledWith({
             kind: 'expr', value: 'round(steps.act_4d4307a.output.total)',

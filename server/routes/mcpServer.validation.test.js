@@ -40,8 +40,17 @@ const MOCKS = {
         parseToken: () => null,
         authenticateToken: async (header) => (header === 'Bearer good' ? 'u1' : null),
     },
+    // The access gate is exercised in auth/mcpAccess/gate.test.js; here it only
+    // has to say who the caller is.
+    '../auth/mcpAccess/gate': {
+        gateRequest: async (req) => (req.headers.authorization === 'Bearer good'
+            ? { ok: true, user: { id: 'u1', organizationId: 'org1' }, orgId: 'org1', token: { id: null, name: 'legacy', legacy: true, scopes: null } }
+            : { ok: false, status: 401, reason: 'token_unknown' }),
+        rpcDenied: (res, status, id = null) => res.set('WWW-Authenticate', 'Bearer realm="bee-flow"').status(status)
+            .json({ jsonrpc: '2.0', id, error: { code: -32001, message: 'Unauthorized' } }),
+    },
     '../appStudio/mcpBuilder': builder('studio'),
-    '../automation/mcpBuilder': builder('routines'),
+    '../automation/mcpBuilder': builder('automations'),
     '../core/entitlements/entitlements': { hasCapability: async () => true },
     '../core/entitlements/betaFeatures': { userHasBetaFeature: async () => true },
     '../stores/userStore': { getUser: async () => ({ organizationId: 'org1' }) },
@@ -64,10 +73,10 @@ Module._resolveFilename = function (request, parent, ...rest) {
 
 const mcp = require('./mcpServer');
 const studio = require('./mcpStudio');
-const routines = require('./mcpAutomations');
+const automations = require('./mcpAutomations');
 test.after(() => { Module._resolveFilename = originalResolve; });
 
-const SURFACES = [['/mcp', mcp], ['/mcp/studio', studio], ['/mcp/automations', routines]];
+const SURFACES = [['/mcp', mcp], ['/mcp/studio', studio], ['/mcp/automations', automations]];
 
 function post(router, body, authorization = 'Bearer good') {
     return new Promise((resolve, reject) => {
@@ -132,6 +141,18 @@ for (const [where, surface] of SURFACES) {
         assert.strictEqual(res.body, undefined, 'no body at all');
     });
 
+    test(`${where}: a batch of more than 20 messages is an Invalid Request and nothing runs`, async () => {
+        const call = { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'some_tool', arguments: {} } };
+        const res = await post(surface, new Array(21).fill(call));
+        assert.strictEqual(res.statusCode, 400);
+        assert.strictEqual(res.body.error.code, -32600);
+        assert.strictEqual(res.body.id, null);
+        assert.deepStrictEqual(touched, []);
+        const ok = await post(surface, new Array(20).fill({ jsonrpc: '2.0', id: 2, method: 'ping' }));
+        assert.strictEqual(ok.statusCode, 200);
+        assert.strictEqual(ok.body.length, 20);
+    });
+
     test(`${where}: in a batch, only the request is answered`, async () => {
         const res = await post(surface, [
             { jsonrpc: '2.0', method: 'notifications/cancelled', params: { requestId: 1 } },
@@ -143,7 +164,7 @@ for (const [where, surface] of SURFACES) {
 }
 
 test('params stay open beyond name and arguments: _meta rides along to the builder', async () => {
-    for (const surface of [studio, routines]) {
+    for (const surface of [studio, automations]) {
         const out = await surface.handleRpc({
             jsonrpc: '2.0', id: 7, method: 'tools/call',
             params: { name: 'x_list', arguments: { q: 1 }, _meta: { progressToken: 'pt-1' } },

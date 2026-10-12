@@ -68,6 +68,7 @@ test('the catalogue only holds keys it owns', () => {
 const LATER_ROUNDS = [
     require('./add-nl-collaboration-wave2-editor-versions-translations'),
     require('./add-nl-project-tasks-translations'),
+    require('./add-nl-project-rail-translations'),
 ];
 
 test('every owned English key has Dutch, or is declared identical', () => {
@@ -112,6 +113,7 @@ test('a key declared identical still has the English it was declared for', () =>
         'project_chat.ai_badge': 'AI',
         'project_chat.filter_ai': 'AI',
         'project_chat.filter_team': 'Team',
+        'project_chat.count_summary': '{team} team · {ai} AI',
         'project_chat.pick_agent': 'Agent',
         'project_chat.title': 'Chats',
         'project_content.doc_type_document': 'Document',

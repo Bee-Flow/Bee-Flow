@@ -48,7 +48,7 @@ import { usageHref } from '../../../shared/UsedByTab';
  * then built on fewer sources than the skill declares.
  *
  * ── THE ADVICE LINE POINTS SOMEWHERE ────────────────────────────────
- * When the first flagged step references a routine, a table or a knowledge
+ * When the first flagged step references an automation, a table or a knowledge
  * base, the advice carries a link to it — built with `usageHref`, the same
  * deep link the Used-by table and a step's own reference pill use, so the
  * three cannot disagree about where a thing lives.

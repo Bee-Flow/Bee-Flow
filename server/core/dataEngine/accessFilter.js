@@ -280,7 +280,7 @@ function compileAccessFilter(tableMeta, role, viewer, action, opts = {}) {
     // the where-builder below only recognises the strings 'all'/'own', so every
     // create filter compiled to 1=0 — for owner, editor and viewer alike. The
     // upsert probe carrying it matched nothing, unconditionally, and a nightly
-    // routine keyed on an e-mail address grew one duplicate per run for ever.
+    // automation keyed on an e-mail address grew one duplicate per run for ever.
     // Returning 1=1 instead would only make the next caller's mistake invisible.
     // Use assertCanWrite(tableMeta, role, 'create') for the permission half.
     if (action === 'create') {

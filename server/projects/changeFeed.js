@@ -6,7 +6,7 @@
  *   recordContentChange({ projectId, itemType, itemId, contributors, stats, versionId, source })
  *   recordItemCreated / recordItemRenamed / recordItemMoved({ projectId, itemType, itemId, actorId, ... })
  *   recordProjectChange(projectId, actorId, action, details)   the audit row + its event, one transaction
- *   summarizeChanges(rows, { state, reads, groupBy })          rows → groups (pure)
+ *   summarizeChanges(rows, { state, reads, groupBy })          rows → groups (pure); summarizeChangesPage also says `truncated`
  *   changeWindow(since, state, now)                            where "since your last visit" starts (pure)
  *
  * ── Quiet by design ─────────────────────────────────────────────────────────
@@ -358,8 +358,19 @@ function contributorsOfRow(row) {
  * @param {Array<object>} rows   stores/projectChanges.listChangeRows
  * @param {{ state?: object|null, reads?: Map<string, {seenAt: string|null, seenVersionId: string|null}>,
  *   groupBy?: 'item'|'person', onlyUnread?: boolean }} [opts]
+ * @returns {Array<object>}  at most MAX_GROUPS groups (`summarizeChangesPage` also says whether more were left out)
  */
-function summarizeChanges(rows, { state = null, reads = new Map(), groupBy = 'item', onlyUnread = false } = {}) {
+function summarizeChanges(rows, opts = {}) {
+    return summarizeChangesPage(rows, opts).groups;
+}
+
+/**
+ * summarizeChanges, with `truncated`: more groups than MAX_GROUPS matched and the oldest were left out.
+ * @param {Array<object>} rows
+ * @param {Parameters<typeof summarizeChanges>[1]} [opts]
+ * @returns {{ groups: Array<object>, truncated: boolean }}
+ */
+function summarizeChangesPage(rows, { state = null, reads = new Map(), groupBy = 'item', onlyUnread = false } = {}) {
     const byItem = new Map();
     for (const row of Array.isArray(rows) ? rows : []) {
         const type = row.itemType || row.targetType;
@@ -421,7 +432,9 @@ function summarizeChanges(rows, { state = null, reads = new Map(), groupBy = 'it
         .filter((g) => !onlyUnread || g.unread)
         .sort((a, b) => timeOf(b.lastChangedAt) - timeOf(a.lastChangedAt));
 
-    if (groupBy !== 'person') return groups.slice(0, MAX_GROUPS).map(({ rows: _r, ...g }) => g);
+    if (groupBy !== 'person') {
+        return { groups: groups.slice(0, MAX_GROUPS).map(({ rows: _r, ...g }) => g), truncated: groups.length > MAX_GROUPS };
+    }
 
     // By person: every contributor of a group gets the item under their name.
     const byPerson = new Map();
@@ -445,10 +458,13 @@ function summarizeChanges(rows, { state = null, reads = new Map(), groupBy = 'it
             }
         }
     }
-    return [...byPerson.values()]
-        .sort((a, b) => b.lastAt - a.lastAt)
-        .slice(0, MAX_GROUPS)
-        .map(({ lastAt, ...p }) => ({ ...p, lastChangedAt: Number.isFinite(lastAt) ? new Date(lastAt).toISOString() : null }));
+    const people = [...byPerson.values()].sort((a, b) => b.lastAt - a.lastAt);
+    return {
+        groups: people
+            .slice(0, MAX_GROUPS)
+            .map(({ lastAt, ...p }) => ({ ...p, lastChangedAt: Number.isFinite(lastAt) ? new Date(lastAt).toISOString() : null })),
+        truncated: people.length > MAX_GROUPS,
+    };
 }
 
 const feed = makeChangeFeed();
@@ -461,6 +477,7 @@ module.exports = {
     recordItemMoved: feed.recordItemMoved,
     recordProjectChange: feed.recordProjectChange,
     summarizeChanges,
+    summarizeChangesPage,
     changeWindow,
     ITEM_TYPES,
     SESSION_GAP_MS,

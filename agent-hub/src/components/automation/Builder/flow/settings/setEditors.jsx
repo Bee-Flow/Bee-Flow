@@ -1,5 +1,6 @@
 // The "Edit data" (set) editor with its JSON-extract footer, extracted
 // verbatim from SettingsForm.jsx.
+import { appendKey } from '@shared/expr/path.mjs';
 import { useMemo, useState } from 'react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import { walkPath } from '../../../../../utils/bindingHelpers';
@@ -7,6 +8,7 @@ import { skipGroupOfStep } from '../../../../shared/statusTokens';
 import JsonTreePicker from '../../mapping/JsonTreePicker';
 import PathField from '../../mapping/PathField';
 import { sampleToFields } from '../../mapping/upstream';
+import { jsonPickBinding } from '../../mapping/valueParts';
 import { VariablePickerProvider, useVariablePickerContext } from '../../mapping/VariablePickerContext';
 import AccordionSection from '../AccordionSection';
 import { humanizeFieldKey } from '../displayHelpers';
@@ -106,7 +108,7 @@ function SetFields({ step, draft, set, groups = [], onFocusField, previewSample,
                         ? DETECTED_SOURCE_HINT
                         : 'This step has no list to work through yet — pick the step whose results it should edit.'}
                     warning={unresolved
-                        ? t('routines.ndv.set_source_unresolved', 'This list was not found in the latest data, so this step had nothing to work through. Pick the list again, or re-run the step that produces it.')
+                        ? t('automations.ndv.set_source_unresolved', 'This list was not found in the latest data, so this step had nothing to work through. Pick the list again, or re-run the step that produces it.')
                         : null}
                     source={draft.arrayRef}
                     maxItems={draft.maxItems}
@@ -147,9 +149,9 @@ function SetFields({ step, draft, set, groups = [], onFocusField, previewSample,
                 />,
             )}
             {listMode && (
-                <AccordionSection stepType="set" sectionKey="table" title="Table tools" defaultOpen forceOpen={errorSections.has('table')}>
+                <AccordionSection stepType="set" sectionKey="table" title={t('automations.set_editors.table_tools', 'Table tools')} defaultOpen forceOpen={errorSections.has('table')}>
                     <p className="text-[11px] text-[var(--text-tertiary)] mb-2">
-                        Applied to the whole table, top to bottom, after the fields above.
+                        {t('automations.set_editors.applied_to_the_whole_table_top', 'Applied to the whole table, top to bottom, after the fields above.')}
                     </p>
                     <SetOperationsEditor
                         ops={ops}
@@ -160,19 +162,19 @@ function SetFields({ step, draft, set, groups = [], onFocusField, previewSample,
                     />
                 </AccordionSection>
             )}
-            <AccordionSection stepType="set" sectionKey="advanced" title="Advanced" defaultOpen={!listMode && !!draft.forEach} forceOpen={errorSections.has('advanced')} hasContent={!listMode && !!draft.forEach}>
-                <FormRow label="Works on" hint="Detected from the step above — override it here if the guess is wrong.">
+            <AccordionSection stepType="set" sectionKey="advanced" title={t('automations.set_editors.advanced', 'Advanced')} defaultOpen={!listMode && !!draft.forEach} forceOpen={errorSections.has('advanced')} hasContent={!listMode && !!draft.forEach}>
+                <FormRow label={t('automations.set_editors.works_on', 'Works on')} hint={t('automations.set_editors.detected_from_the_step_above_override', 'Detected from the step above — override it here if the guess is wrong.')}>
                     <select
                         value={listMode ? 'items' : 'single'}
                         onChange={(e) => set('arrayRef', e.target.value === 'items' ? (draft.arrayRef ?? '') : null)}
                         className={inputClass()}
                     >
-                        <option value="items">Each row of a list</option>
-                        <option value="single">The whole run</option>
+                        <option value="items">{t('automations.set_editors.each_row_of_a_list', 'Each row of a list')}</option>
+                        <option value="single">{t('automations.set_editors.the_whole_run', 'The whole run')}</option>
                     </select>
                     {listMode && ops.length > 0 && (
                         <div className="mt-1 text-[10px] text-[var(--text-tertiary)]">
-                            Switching to “The whole run” also removes the table tools.
+                            {t('automations.set_editors.switching_to_the_whole_run_also', 'Switching to “The whole run” also removes the table tools.')}
                         </div>
                     )}
                 </FormRow>
@@ -195,7 +197,7 @@ function SetFields({ step, draft, set, groups = [], onFocusField, previewSample,
                 {!listMode && <ForEachSection draft={draft} set={set} groups={groups} onFocusField={onFocusField} />}
                 {listMode && step?.forEach && (
                     <div className="text-[11px] text-amber-600 dark:text-amber-400">
-                        List mode replaces “Run once per item” — saving removes the old per-item setting.
+                        {t('automations.set_editors.list_mode_replaces_run_once_per', 'List mode replaces “Run once per item” — saving removes the old per-item setting.')}
                     </div>
                 )}
             </AccordionSection>
@@ -237,11 +239,14 @@ function sourceListUnresolved(arrayRef, runStep, previewSample, groups) {
  * "Some of this data is JSON text · Pick fields from it" — the Parse JSON
  * node's successor, folded into Edit data. Rendered only when an upstream
  * sample (or, in list mode, a field of the current row) is a string that
- * parses to a JSON object/array. A pick appends a computed field whose value
- * is a `parseJson(<source>, "<path>")` expression — deterministic, free at
+ * parses to a JSON object/array. A pick appends a field that reads it
+ * (valueParts.jsonPickBinding): a plain path into the JSON text, which the run
+ * reads as the value it encodes — one chip, any key — or, for JSON inside
+ * prose, a `parseJson(<source>, "<path>")` expression. Deterministic, free at
  * run time, and visible/editable like any other field.
  */
 function JsonExtractSection({ draft, set, listMode, elementSample, previewSample }) {
+    const { t } = useTranslation();
     const pickerCtx = useVariablePickerContext();
     const [open, setOpen] = useState(false);
     const [changing, setChanging] = useState(false);
@@ -259,7 +264,9 @@ function JsonExtractSection({ draft, set, listMode, elementSample, previewSample
         if (listMode) {
             if (elementSample && typeof elementSample === 'object' && !Array.isArray(elementSample)) {
                 for (const [k, v] of Object.entries(elementSample)) {
-                    if (jsonish(v)) found.push({ path: `item.${k}`, label: `each row · ${humanizeFieldKey(k)}`, preferred: PREFERRED.test(k) });
+                    // The row's key written canonically: `item["raw-json"]`, not
+                    // `item.raw-json`, which a formula reads as a subtraction.
+                    if (jsonish(v)) found.push({ path: appendKey('item', k), label: `each row · ${humanizeFieldKey(k)}`, preferred: PREFERRED.test(k) });
                 }
             }
         } else {
@@ -280,29 +287,23 @@ function JsonExtractSection({ draft, set, listMode, elementSample, previewSample
 
     const sourcePath = customSource ?? candidates[0]?.path ?? '';
     const sourceLabel = candidates.find(c => c.path === sourcePath)?.label || sourcePath;
-    const parsed = useMemo(() => {
-        if (!sourcePath || !previewSample) return undefined;
-        return parseSampleSource(walkPath(sourcePath, previewSample));
-    }, [sourcePath, previewSample]);
+    const sourceValue = useMemo(() => (sourcePath && previewSample ? walkPath(sourcePath, previewSample) : undefined), [sourcePath, previewSample]);
+    const parsed = useMemo(() => (sourceValue === undefined ? undefined : parseSampleSource(sourceValue)), [sourceValue]);
 
     if (!candidates.length && customSource == null) return null;
 
     const addField = (relPath) => {
         const fields = draft.fields || {};
         const name = suggestFieldName(relPath, Object.keys(fields));
-        // The expr grammar has no backslash escapes — pick whichever quote
-        // style the path doesn't contain (a path needing both is unpickable
-        // upstream in JsonTreePicker for the same reason).
-        const quoted = relPath.includes('"') ? `'${relPath}'` : `"${relPath}"`;
-        set('fields', { ...fields, [name]: { kind: 'expr', value: `parseJson(${sourcePath}, ${quoted})` } });
+        set('fields', { ...fields, [name]: jsonPickBinding(sourcePath, relPath, sourceValue) });
     };
 
     if (!open) {
         return (
             <div className="mt-2 text-[11px] text-[var(--text-secondary)]">
-                Some of this data is JSON text ·{' '}
+                {t('automations.set_editors.some_of_this_data_is_json', 'Some of this data is JSON text ·')}{' '}
                 <button type="button" onClick={() => setOpen(true)} className="text-[var(--accent)] hover:underline">
-                    Pick fields from it
+                    {t('automations.set_editors.pick_fields_from_it', 'Pick fields from it')}
                 </button>
             </div>
         );
@@ -311,12 +312,12 @@ function JsonExtractSection({ draft, set, listMode, elementSample, previewSample
     return (
         <div className="mt-2 rounded border border-[var(--border-default)] bg-[var(--bg-secondary)]/40 p-2 space-y-2">
             <div className="flex items-center gap-2 text-[11px] text-[var(--text-secondary)]">
-                <span className="truncate">From <span className="text-[var(--text-primary)]">{sourceLabel}</span></span>
+                <span className="truncate">{t('automations.set_editors.from', 'From')} <span className="text-[var(--text-primary)]">{sourceLabel}</span></span>
                 <button type="button" onClick={() => setChanging(c => !c)} className="ml-auto shrink-0 text-[10px] text-[var(--accent)] hover:underline">
                     {changing ? 'done' : 'change'}
                 </button>
                 <button type="button" onClick={() => setOpen(false)} className="shrink-0 text-[10px] text-[var(--text-tertiary)] hover:underline">
-                    hide
+                    {t('automations.set_editors.hide', 'hide')}
                 </button>
             </div>
             {changing && (
@@ -331,12 +332,12 @@ function JsonExtractSection({ draft, set, listMode, elementSample, previewSample
                 <>
                     <JsonTreePicker value={parsed} onPick={addField} />
                     <div className="text-[10px] text-[var(--text-tertiary)]">
-                        Click a value to add it as a field. Extraction is exact and free — no AI involved.
+                        {t('automations.set_editors.click_a_value_to_add_it', 'Click a value to add it as a field. Extraction is exact and free — no AI involved.')}
                     </div>
                 </>
             ) : (
                 <div className="text-[11px] italic text-[var(--text-tertiary)]">
-                    This doesn’t look like JSON text — pick another source.
+                    {t('automations.set_editors.this_doesn_t_look_like_json', 'This doesn’t look like JSON text — pick another source.')}
                 </div>
             )}
         </div>

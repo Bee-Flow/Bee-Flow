@@ -1,6 +1,6 @@
 /**
- * One routine in the list. It leads with the trigger, not the status, because
- * the trigger is what tells two similarly named routines apart; the status
+ * One automation in the list. It leads with the trigger, not the status, because
+ * the trigger is what tells two similarly named automations apart; the status
  * rides on the right, where the eye goes second.
  */
 

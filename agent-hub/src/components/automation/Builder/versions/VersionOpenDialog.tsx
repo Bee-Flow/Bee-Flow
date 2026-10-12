@@ -28,14 +28,14 @@ export default function VersionOpenDialog({ automationId, versionId, version, ti
             onClose={onClose}
             size="auto"
             zIndex={1000}
-            title={t('routines.versions.openTitle', 'v{version} · {title}', { version, title })}
-            description={t('routines.versions.openHint', 'Read-only. Restore this version to edit it again.')}
+            title={t('automations.versions.openTitle', 'v{version} · {title}', { version, title })}
+            description={t('automations.versions.openHint', 'Read-only. Restore this version to edit it again.')}
             className="max-w-6xl w-[92vw]"
         >
             <div className="h-[70vh] min-h-[320px] rounded-lg border border-[var(--border-default)] overflow-hidden">
                 {def.isError ? (
                     <div role="alert" className="p-4 text-[12px] text-[var(--error)]">
-                        {t('routines.versions.loadFailed', 'This version could not be loaded.')}
+                        {t('automations.versions.loadFailed', 'This version could not be loaded.')}
                     </div>
                 ) : def.data ? (
                     <DiagramPane definition={def.data} readOnly />

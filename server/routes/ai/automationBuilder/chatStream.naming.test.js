@@ -1,7 +1,7 @@
 /**
- * Naming a routine nobody named, and the diet the small band eats.
+ * Naming an automation nobody named, and the diet the small band eats.
  *
- * A routine that reaches the list, the header, the playbook rail or the
+ * An automation that reaches the list, the header, the playbook rail or the
  * activation e-mail as "Untitled automation" is a bug the person has to fix
  * by hand, so the route names it at three moments — before a finalize, before
  * the auto-finalize, and once after the loop — and tells the client with a
@@ -288,10 +288,10 @@ test('auto-finalize names the draft first, and puts the default back when it fai
         message: BRIEF,
         body: { automationId: 'auto_1' },
         draft: draftRow(),
-        rounds: [{ text: 'Je routine is klaar.' }],
+        rounds: [{ text: 'Je automation is klaar.' }],
         tools: { builder_finalize: (_a, wrap) => { seen.push(wrap.title); return { automation: { id: 'auto_1' } }; } },
     });
-    assert.deepStrictEqual(seen, [DERIVED], 'a routine never ships as "Untitled automation"');
+    assert.deepStrictEqual(seen, [DERIVED], 'an automation never ships as "Untitled automation"');
     assert.deepStrictEqual(ok.dataOf('metadata'), [{ automationId: 'auto_1', title: DERIVED, description: '' }]);
     assert.deepStrictEqual(ok.first('finalized'), { automationId: 'auto_1', autoFinalized: true });
 
@@ -299,7 +299,7 @@ test('auto-finalize names the draft first, and puts the default back when it fai
         message: BRIEF,
         body: { automationId: 'auto_1' },
         draft: draftRow(),
-        rounds: [{ text: 'Je routine is klaar.' }],
+        rounds: [{ text: 'Je automation is klaar.' }],
         tools: { builder_finalize: () => { throw new Error('auto-finalize failed'); } },
     });
     assert.ok(!failed.has('finalized'));

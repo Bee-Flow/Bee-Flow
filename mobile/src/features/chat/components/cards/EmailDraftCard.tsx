@@ -1,6 +1,6 @@
 /**
  * An e-mail the assistant drafted (the web's EmailDraftCard): who it goes to,
- * the subject and the body, with Send and Save as Draft. Nothing leaves the
+ * the subject and the body, with Send and (not for Outlook) Save as Draft. Nothing leaves the
  * workspace until a person presses one of them; the body posted is the
  * allow-listed one (draftPayloads.ts), never the streamed record.
  */
@@ -64,14 +64,18 @@ export function EmailDraftCard({ draft, draftKey }: { draft: DraftRecord; draftK
                         disabled={busy}
                         onPress={() => state.run(() => sendEmailDraft(draft))}
                     />
-                    <Button
-                        label={t('chat.draft.mail_save_draft', 'Save as Draft')}
-                        iconName="FileText"
-                        size="sm"
-                        loading={state.status === 'saving'}
-                        disabled={busy}
-                        onPress={() => state.run(() => saveEmailDraft(draft), { saving: true })}
-                    />
+                    {/* No Save as Draft for Outlook: it needs Mail.ReadWrite,
+                        which Bee Flow never requests, so Graph refuses it. */}
+                    {isOutlook(draft) ? null : (
+                        <Button
+                            label={t('chat.draft.mail_save_draft', 'Save as Draft')}
+                            iconName="FileText"
+                            size="sm"
+                            loading={state.status === 'saving'}
+                            disabled={busy}
+                            onPress={() => state.run(() => saveEmailDraft(draft), { saving: true })}
+                        />
+                    )}
                 </>
             }
         >

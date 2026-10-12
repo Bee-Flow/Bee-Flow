@@ -1,9 +1,9 @@
 /**
- * Run-event notifications: the routine's policy
+ * Run-event notifications: the automation's policy
  * (automation/notificationDefaults.js) turned into messages.
  *
  * notifyRunEvent(automation, event, payload) is the one entry point:
- *   1. settings   the routine's notificationSettings from its WORKING copy.
+ *   1. settings   the automation's notificationSettings from its WORKING copy.
  *                 Who hears about a run is not part of what the run executes,
  *                 so a change on the Settings page applies at once instead of
  *                 waiting for "Make vN live". definitionForRun.js lays the
@@ -12,10 +12,10 @@
  *                 from the store for a live run, as a defence for a caller
  *                 that swapped in a definition of its own.
  *   2. recipients owner / approver / users / groups, resolved inside the
- *                 routine's organisation (automation/notificationRecipients.js).
+ *                 automation's organisation (automation/notificationRecipients.js).
  *   3. digest     an event in summary mode (delivery 'digest', digest on) is
  *                 recorded for the daily summary and sent nowhere now.
- *   4. throttle   at most maxPerHour messages per routine, event and recipient
+ *   4. throttle   at most maxPerHour messages per automation, event and recipient
  *                 in a rolling hour; the rest are recorded as bundled and
  *                 reported later as one "n more" (jobs/automationDigest.js).
  *   5. delivery   bell  Nextcloud notification when the recipient has a
@@ -29,7 +29,7 @@
  *   6. ledger     every attempt, delivered or not, in
  *                 automation_notification_events.
  *
- * Nextcloud and Talk carry the routine name, the event and a link only
+ * Nextcloud and Talk carry the automation name, the event and a link only
  * (automation/notificationMessages.js); the Bee Flow bell and e-mail keep the
  * runner's detailed title and message.
  *
@@ -84,7 +84,7 @@ function defaultDeps() {
  */
 const EMAIL_SKIP_MESSAGES = {
     no_service_email: 'Email not sent: no service mailbox is connected on this Bee Flow server. An administrator can connect one; until then use the in-app bell.',
-    no_owner_email: 'Email not sent: the person this routine belongs to has no email address on file.',
+    no_owner_email: 'Email not sent: the person this automation belongs to has no email address on file.',
     not_sent: 'Email not sent.',
 };
 
@@ -128,7 +128,7 @@ function makeRunNotifier(overrides = {}) {
         return { sent: true };
     }
 
-    /** The routine's settings from its working copy (see the header, step 1). */
+    /** The automation's settings from its working copy (see the header, step 1). */
     async function settingsFor(automation) {
         let definition = automation?.definition || {};
         if (automation?.runsLiveVersion && automation.id) {
@@ -194,14 +194,14 @@ function makeRunNotifier(overrides = {}) {
     }
 
     /**
-     * Notify about one run event, following the routine's policy.
+     * Notify about one run event, following the automation's policy.
      *
-     * @param {object} automation the routine (a run's view of it is fine)
+     * @param {object} automation the automation (a run's view of it is fine)
      * @param {'onError'|'onApproval'|'onSuccess'} event
      * @param {object} payload
      * @param {string} payload.title        Bee Flow bell / e-mail subject
      * @param {string} [payload.message]    Bee Flow bell / e-mail body
-     * @param {string} [payload.link]       SPA path (default: the run, else the routine)
+     * @param {string} [payload.link]       SPA path (default: the run, else the automation)
      * @param {string} [payload.runId]
      * @param {string} [payload.code]       notificationMessages code for Nextcloud/Talk
      * @param {string[]} [payload.approverIds] resolved approvers (onApproval)
@@ -349,7 +349,7 @@ function makeRunNotifier(overrides = {}) {
     /**
      * Compatibility with the pre-handoff-5 call shape:
      * `dispatchRunNotification(automation, resolveNotificationPolicy(a, event), payload)`.
-     * A policy tagged with its event follows the routine's stored settings for
+     * A policy tagged with its event follows the automation's stored settings for
      * that event; an untagged (old-shape) policy is used as given.
      * `payload.userId` addresses one person instead of the policy's recipients.
      */

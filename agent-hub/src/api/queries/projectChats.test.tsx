@@ -4,7 +4,7 @@ import { installServer, message, reply, teamChat, type TestServer } from '../../
 import { queryWrapper, testQueryClient } from '../../test/queryWrapper';
 import {
     discardPendingMessage, foldIn, mergeMessages, refreshTeamChatMessage, teamChatKeys, useCreateProjectChat,
-    useLoadOlderMessages, useSendTeamChatMessage, useTeamChatMessages, useUpdateProjectChat,
+    useLoadOlderMessages, useSendTeamChatMessage, useTeamChatAgents, useTeamChatMessages, useUpdateProjectChat,
     type TeamChat, type TeamChatMessage, type TeamChatMessages,
 } from './projectChats';
 
@@ -158,5 +158,13 @@ describe('chats', () => {
         expect(server.calls[0].body).toEqual({ aiMode: 'mention', message: 'Plan' });
         expect(client.getQueryData<TeamChat>(teamChatKeys.detail('p1', 'c7'))?.title).toBe('Plan');
         expect(client.getQueryData<TeamChatMessages>(teamChatKeys.messages('p1', 'c7'))?.messages).toHaveLength(1);
+    });
+});
+
+describe('the agents a team chat can use', () => {
+    it('asks the route the server has (/chat-agents), not a made-up one', async () => {
+        server.on('GET', '/api/projects/p1/chat-agents', () => ({ agents: [{ id: 'a1', name: 'Helper' }] }));
+        const { result } = renderHook(() => useTeamChatAgents('p1', true), { wrapper: queryWrapper(testQueryClient()) });
+        await waitFor(() => expect(result.current.data).toEqual([{ id: 'a1', name: 'Helper' }]));
     });
 });

@@ -23,7 +23,7 @@
 
 /**
  * The chain, flattened for a subscriber. Votes already carry a stage KEY, but
- * a key is an internal handle — a routine writing "approved by Finance" needs
+ * a key is an internal handle — an automation writing "approved by Finance" needs
  * the name, the rule and whether the stage ran at all. Kept small on purpose:
  * seats are the row's business, not the event's.
  */
@@ -122,9 +122,24 @@ function feed(kind, approval, extra = {}) {
     }
 }
 
-/** A fresh pending row exists — from a paused run or an app request. */
+/**
+ * A deployment gate (a Solution's PRD deploy, source 'deployment') is not a
+ * trigger surface: an automation subscribed to approval.* must not react to
+ * the platform's own release gate, and the gate's row carries the deploy
+ * plan's context. It still shows in the project feed, which carries the fact
+ * and not the content (see feed()).
+ */
+function isTriggerSurface(approval) {
+    return approval.source !== 'deployment';
+}
+
+/** A fresh pending row exists — from a paused run, an app request or a deploy gate. */
 function dispatchApprovalRequested(approval) {
     if (!approval) return;
+    if (!isTriggerSurface(approval)) {
+        feed('approval.requested', approval, { expiresAt: approval.expiresAt || null });
+        return;
+    }
     dispatch('approval.requested', {
         ...basePayload(approval),
         expiresAt: approval.expiresAt || null,
@@ -147,6 +162,7 @@ function dispatchApprovalDecided(approval, { votes = null } = {}) {
         decision: approval.status,
         decidedByName: approval.decidedByName || null,
     });
+    if (!isTriggerSurface(approval)) return;
     const payload = {
         ...basePayload(approval),
         decision: approval.status,

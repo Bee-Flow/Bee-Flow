@@ -1,0 +1,38 @@
+{
+ "id": "10-skip-automation",
+ "title": "PB zonder automation",
+ "recipeId": "invoice_tracker",
+ "options": {
+  "tableMode": "new",
+  "tableTitle": "PB Facturen zonder automation",
+  "inputs": {
+   "folderPath": "/Invoices-Q3"
+  },
+  "tier": "fast",
+  "locale": "nl"
+ },
+ "skip": [
+  "automation"
+ ],
+ "onFail": {
+  "fill": "skip"
+ },
+ "until": "app",
+ "expect": {
+  "phases": {
+   "table": "done",
+   "automation": "skipped",
+   "fill": [
+    "skipped",
+    "failed"
+   ],
+   "app": "awaiting",
+   "design": "done"
+  },
+  "app": {
+   "finalized": true,
+   "maxFailedCalls": 4,
+   "maxRounds": 12
+  }
+ }
+}

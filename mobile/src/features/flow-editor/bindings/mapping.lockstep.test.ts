@@ -89,6 +89,19 @@ describe('filterFields / keyPath / boundPaths', () => {
         expect(ff.filterFields(fields, q)).toStrictEqual(m('filterFields').filterFields?.(fields, q));
     });
 
+    it.each(['otherwise', 'pdf', 'default'])('finds a labelled field by %p, as the web does', (q) => {
+        const byCase = [{
+            key: 'matchesByCase', path: 'steps.c.output.matchesByCase', sample: {},
+            children: [
+                { key: 'pdf', path: 'steps.c.output.matchesByCase.pdf', sample: [], label: 'pdf' },
+                { key: 'default', path: 'steps.c.output.matchesByCase.default', sample: [], label: 'Otherwise', labelKey: 'condition_node.otherwise.label' },
+            ],
+        }];
+        const mine = ff.filterFields(byCase, q);
+        expect(mine).toStrictEqual(m('filterFields').filterFields?.(byCase, q));
+        expect(mine[0]?.children).toHaveLength(1);
+    });
+
     it('filters nothing out of nothing', () => {
         expect(ff.filterGroups(null, 'x')).toStrictEqual(m('filterFields').filterGroups?.(null, 'x'));
         expect(ff.filterFields(null, '')).toStrictEqual(m('filterFields').filterFields?.(null, ''));

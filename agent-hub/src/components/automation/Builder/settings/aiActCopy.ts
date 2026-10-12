@@ -1,7 +1,7 @@
 // The words of the AI Act check, shared by the automatic card
 // (AiActAutoCard), the Activate dialog (AiActQuestionsDialog) and the full
 // editor (AiActWizard): the questions, Bee's evidence lines, the outcomes.
-// English fallbacks here; the catalogue keys are routines.aiact.*.
+// English fallbacks here; the catalogue keys are automations.aiact.*.
 
 import type { useTranslation } from '../../../../hooks/useTranslation';
 import type { AnnexDomainId, Tri } from '../../../../api/queries/automation/readiness';
@@ -18,24 +18,24 @@ export interface QuestionText {
 
 /** One question: its title, hint, answers and the article behind it. */
 export function questionText(q: AiActCheckQuestion, t: T): QuestionText {
-    const yes = { value: 'yes' as Tri, label: t('routines.aiact.yes', 'Yes') };
-    const no = { value: 'no' as Tri, label: t('routines.aiact.no', 'No') };
-    const unknown = { value: 'unknown' as Tri, label: t('routines.aiact.unknown', 'I don\'t know') };
+    const yes = { value: 'yes' as Tri, label: t('automations.aiact.yes', 'Yes') };
+    const no = { value: 'no' as Tri, label: t('automations.aiact.no', 'No') };
+    const unknown = { value: 'unknown' as Tri, label: t('automations.aiact.unknown', 'I don\'t know') };
     if (q === 'usesAi') {
         return {
-            title: t('routines.aiact.q1', 'Does this automation use AI?'),
-            hint: t('routines.aiact.q1_hint', 'An AI step, an agent or a skill that writes, sorts or decides something.'),
+            title: t('automations.aiact.q1', 'Does this automation use AI?'),
+            hint: t('automations.aiact.q1_hint', 'An AI step, an agent or a skill that writes, sorts or decides something.'),
             options: [yes, no],
             why: { label: 'Art. 3', href: 'https://artificialintelligenceact.eu/article/3/' },
         };
     }
     if (q === 'externalOutput') {
         return {
-            title: t('routines.aiact.q2', 'Will people outside the organisation see anything from it?'),
-            hint: t('routines.aiact.q2_hint', 'For example an email to a customer or a public web page. This decides whether you must say that something was made automatically.'),
+            title: t('automations.aiact.q2', 'Will people outside the organisation see anything from it?'),
+            hint: t('automations.aiact.q2_hint', 'For example an email to a customer or a public web page. This decides whether you must say that something was made automatically.'),
             options: [
-                { value: 'no', label: t('routines.aiact.q2_no', 'No, internal only'), hint: t('routines.aiact.q2_no_hint', 'Output stays in your own organisation\'s Nextcloud') },
-                { value: 'yes', label: t('routines.aiact.q2_yes', 'Yes, customers or the public') },
+                { value: 'no', label: t('automations.aiact.q2_no', 'No, internal only'), hint: t('automations.aiact.q2_no_hint', 'Output stays in your own organisation\'s Nextcloud') },
+                { value: 'yes', label: t('automations.aiact.q2_yes', 'Yes, customers or the public') },
                 unknown,
             ],
             why: { label: 'Art. 50', href: 'https://artificialintelligenceact.eu/article/50/' },
@@ -43,17 +43,17 @@ export function questionText(q: AiActCheckQuestion, t: T): QuestionText {
     }
     if (q === 'prohibitedUse') {
         return {
-            title: t('routines.aiact.q4', 'Does it do something the AI Act forbids?'),
-            hint: t('routines.aiact.q4_hint', 'For example manipulating people, social scoring, reading emotions at work or school, or sorting people by biometric data.'),
+            title: t('automations.aiact.q4', 'Does it do something the AI Act forbids?'),
+            hint: t('automations.aiact.q4_hint', 'For example manipulating people, social scoring, reading emotions at work or school, or sorting people by biometric data.'),
             options: [no, yes, unknown],
             why: { label: 'Art. 5', href: 'https://artificialintelligenceact.eu/article/5/' },
         };
     }
     return {
-        title: t('routines.aiact.q3_areas', 'Does it help decide about people in one of these areas?'),
-        hint: t('routines.aiact.q3_hint', 'For example who gets hired, a loan, a benefit or a place at school. Those uses count as high-risk.'),
+        title: t('automations.aiact.q3_areas', 'Does it help decide about people in one of these areas?'),
+        hint: t('automations.aiact.q3_hint', 'For example who gets hired, a loan, a benefit or a place at school. Those uses count as high-risk.'),
         options: [no, yes, unknown],
-        why: { label: t('routines.aiact.annex_iii', 'Annex III'), href: 'https://artificialintelligenceact.eu/annex/3/' },
+        why: { label: t('automations.aiact.annex_iii', 'Annex III'), href: 'https://artificialintelligenceact.eu/annex/3/' },
     };
 }
 
@@ -108,20 +108,20 @@ export function reasonText(r: { code: string; params: Record<string, unknown>; t
     const params = {
         ...r.params,
         labels: steps.map(s => (typeof s?.label === 'string' ? `"${s.label}"` : '')).filter(Boolean).join(', '),
-        domains: ids(r.params.domains).map(id => t(`routines.aiact.area.${id}`, AREA_FALLBACK[id as AnnexDomainId] || id)).join(', '),
-        practices: ids(r.params.practices).map(id => t(`routines.aiact.practice.${id}`, PRACTICE_FALLBACK[id] || id)).join(', '),
+        domains: ids(r.params.domains).map(id => t(`automations.aiact.area.${id}`, AREA_FALLBACK[id as AnnexDomainId] || id)).join(', '),
+        practices: ids(r.params.practices).map(id => t(`automations.aiact.practice.${id}`, PRACTICE_FALLBACK[id] || id)).join(', '),
     };
-    return t(`routines.aiact.reason.${r.code.replace(/^ai_act\./, '').replace(/\./g, '_')}`, r.text, params);
+    return t(`automations.aiact.reason.${r.code.replace(/^ai_act\./, '').replace(/\./g, '_')}`, r.text, params);
 }
 
 /** The outcome in plain words. */
 export function outcomeText(outcome: string | null, t: T): string {
     switch (outcome) {
-        case 'not_applicable': return t('routines.aiact.outcome_not_applicable', 'Not applicable, no AI');
-        case 'minimal': return t('routines.aiact.outcome_minimal', 'Minimal risk, no extra duties');
-        case 'transparency': return t('routines.aiact.outcome_transparency', 'Tell people that AI was used');
-        case 'high_risk': return t('routines.aiact.outcome_high_risk', 'High risk, extra duties apply');
-        case 'prohibited': return t('routines.aiact.outcome_prohibited', 'Prohibited practice');
+        case 'not_applicable': return t('automations.aiact.outcome_not_applicable', 'Not applicable, no AI');
+        case 'minimal': return t('automations.aiact.outcome_minimal', 'Minimal risk, no extra duties');
+        case 'transparency': return t('automations.aiact.outcome_transparency', 'Tell people that AI was used');
+        case 'high_risk': return t('automations.aiact.outcome_high_risk', 'High risk, extra duties apply');
+        case 'prohibited': return t('automations.aiact.outcome_prohibited', 'Prohibited practice');
         default: return '';
     }
 }
@@ -129,16 +129,16 @@ export function outcomeText(outcome: string | null, t: T): string {
 /** A question as a short label for the "What Bee found" list. */
 export function findingLabel(q: AiActCheckQuestion, t: T): string {
     switch (q) {
-        case 'usesAi': return t('routines.aiact.find_uses_ai', 'Uses AI');
-        case 'externalOutput': return t('routines.aiact.find_external', 'Seen outside the organisation');
-        case 'sensitiveUse': return t('routines.aiact.find_sensitive', 'High-risk area');
-        default: return t('routines.aiact.find_prohibited', 'Prohibited practice');
+        case 'usesAi': return t('automations.aiact.find_uses_ai', 'Uses AI');
+        case 'externalOutput': return t('automations.aiact.find_external', 'Seen outside the organisation');
+        case 'sensitiveUse': return t('automations.aiact.find_sensitive', 'High-risk area');
+        default: return t('automations.aiact.find_prohibited', 'Prohibited practice');
     }
 }
 
 /** yes / no / not sure. */
 export function answerWord(a: Tri, t: T): string {
-    if (a === 'yes') return t('routines.aiact.yes', 'Yes');
-    if (a === 'no') return t('routines.aiact.no', 'No');
-    return t('routines.aiact.not_sure', 'Not sure');
+    if (a === 'yes') return t('automations.aiact.yes', 'Yes');
+    if (a === 'no') return t('automations.aiact.no', 'No');
+    return t('automations.aiact.not_sure', 'Not sure');
 }

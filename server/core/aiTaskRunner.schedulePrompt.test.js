@@ -115,14 +115,14 @@ test('the existing guidance survives the addition', () => {
     assert.match(prompt, /^Now: /m);
 });
 
-// ── The agent-routine path gets the same treatment ──────────────────
+// ── The agent path gets the same treatment ──────────────────
 
-test('agent routines pass the schedule through to the context builder', async () => {
-    assert.match(SRC, /routineSchedule: describeTaskSchedule\(task\)/,
-        'executeAgentRoutine must hand the schedule to agentRuntime');
+test('scheduled agent runs pass the schedule through to the context builder', async () => {
+    assert.match(SRC, /scheduleText: describeTaskSchedule\(task\)/,
+        'executeAgentAutomation must hand the schedule to agentRuntime');
 
     // The other half — that contextBuilder actually reads and honours a
-    // routineSchedule — is called for real: buildSystemPrompt() is a pure
+    // automationSchedule — is called for real: buildSystemPrompt() is a pure
     // export with no boot-time side effect, so there is no reason to re-read
     // its source when calling it and inspecting the prompt it returns proves
     // the same property against the real, current implementation.
@@ -131,11 +131,11 @@ test('agent routines pass the schedule through to the context builder', async ()
         agent: { system_prompt: 'You help.' },
         tools: [],
         userId: 'u_schedule_test',
-        messageMetadata: { routineSchedule: describeTaskSchedule({ ...BASE, repeatInterval: 'daily' }) },
+        messageMetadata: { scheduleText: describeTaskSchedule({ ...BASE, repeatInterval: 'daily' }) },
         memoryContext: null,
         isStrictKnowledge: false,
     });
-    assert.match(stable, /every day/, 'contextBuilder must read messageMetadata.routineSchedule');
+    assert.match(stable, /every day/, 'contextBuilder must read messageMetadata.scheduleText');
     assert.match(stable, /never suggest creating a recurring automation/i,
         'and must carry the same ban as the non-agent path');
 });

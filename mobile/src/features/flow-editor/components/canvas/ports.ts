@@ -34,8 +34,8 @@ export const OUT = 'out';
 type Unplaced = Omit<PortSpec, 'dy'>;
 
 const LOOP_PORTS: readonly Unplaced[] = [
-    { id: 'done', wire: null, text: { key: 'routines.canvas.loop_port_done', fallback: 'Done' }, tone: 'then' },
-    { id: 'on_error', wire: 'on_error', text: { key: 'routines.canvas.loop_port_on_error', fallback: 'On error' }, tone: 'error' },
+    { id: 'done', wire: null, text: { key: 'automations.canvas.loop_port_done', fallback: 'Done' }, tone: 'then' },
+    { id: 'on_error', wire: 'on_error', text: { key: 'automations.canvas.loop_port_on_error', fallback: 'On error' }, tone: 'error' },
 ];
 
 function unplacedPorts(node: AnyNode): Unplaced[] {

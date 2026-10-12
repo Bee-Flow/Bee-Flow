@@ -6,7 +6,7 @@
  * does: the connector tenant key mints the JWT here and never leaves. It is
  * the page's client (PlaybookRun.jsx) with a machine at the keyboard:
  *   - a server-run phase (table, fill, design) → POST …/phases/<key>/run, poll while running
- *   - a builder phase (routine, app, app_turn) → PATCH running, open the builder
+ *   - a builder phase (automation, app, app_turn) → PATCH running, open the builder
  *     stream with the phase's brief, PATCH awaiting (finalized) or failed
  *   - an awaiting phase → Continue (PATCH done), or Skip when the case says so
  *   - a failed phase → the case's policy: retry once, skip, or stop
@@ -18,10 +18,10 @@
  *
  * A case file:
  *   { id, title, recipeId? | describe?, options: { tableMode, datatableName?, inputs, tier, approverGroupId? },
- *     skip: ['fill'], onFail: { routine: 'retry_once'|'skip'|'stop', … }, scenario: 'stop_resume_routine'?,
+ *     skip: ['fill'], onFail: { automation: 'retry_once'|'skip'|'stop', … }, scenario: 'stop_resume_automation'?,
  *     until: 'app'?  (stop after this phase landed — matched on the phase key OR kind; cheap partial cases),
- *     expect: { compose?: { kinds:[…] }, phases?: { key: status|[statuses] }, minRows?, routine?, app?, approvals? } }
- *   expect.routine / expect.app / expect.approvals are the drive-builder.js and
+ *     expect: { compose?: { kinds:[…] }, phases?: { key: status|[statuses] }, minRows?, automation?, app?, approvals? } }
+ *   expect.automation / expect.app / expect.approvals are the drive-builder.js and
  *   drive-app-builder.js expectation blocks, judged on the same definitions.
  *
  * Exit codes: 0 pass · 1 mismatch · 2 harness error · 3 a stream/API error ended the run.
@@ -196,9 +196,9 @@ class Harness {
     async runBuilderPhase(phase) {
         const kind = kindOf(phase);
         await this.patch({ phases: [{ key: phase.key, status: 'running' }] });
-        if (this.c.scenario === 'stop_resume_routine' && kind === 'routine' && !this.scenarioDone) {
+        if (this.c.scenario === 'stop_resume_automation' && kind === 'automation' && !this.scenarioDone) {
             this.scenarioDone = true;
-            this.note('scenario: stop while the routine phase runs, then resume');
+            this.note('scenario: stop while the automation phase runs, then resume');
             await this.patch({ status: 'stopped' });
             if (this.pb.status !== 'stopped') throw new Error('stop did not take');
             await this.patch({ status: 'active' });
@@ -214,7 +214,7 @@ class Harness {
         const onEvent = (ev, data) => {
             if (ev === 'round_start') round += 1;
             if (ev === 'tool_call') {
-                // The two streams shape a refusal differently: the routine
+                // The two streams shape a refusal differently: the automation
                 // builder puts it in result.error, the app builder in ok:false.
                 const r = data && data.result;
                 const failed = !!((r && typeof r === 'object' && r.error) || (data && data.ok === false));
@@ -226,7 +226,7 @@ class Harness {
         };
         let res;
         try {
-            if (kind === 'routine') {
+            if (kind === 'automation') {
                 const body = { message: brief, modelTier: tier, timezone: 'Europe/Amsterdam', history: [], ...(cur.artifacts && cur.artifacts.automationId ? { automationId: cur.artifacts.automationId } : {}) };
                 res = await stream('/api/automation/builder/stream', body, this.h, onEvent);
             } else {
@@ -251,7 +251,7 @@ class Harness {
         this.report.streams.push({ phase: phase.key, kind, attempt: cur.attempt || 0, ms: res.ms, rounds: round, calls: calls.length, failedCalls, finalized, aborted: !!aborted, errors: errs.map((e) => e.data && (e.data.error || e.data.code)), callLines: calls, definition: lastDraft ? lastDraft.data.definition : null, events });
         this.note(`${phase.key} stream: ${Math.round(res.ms / 1000)}s, ${round} rounds, ${calls.length} calls (${failedCalls} refused), finalized=${finalized}${aborted ? ' ABORTED' : ''}${errs.length ? ` errors=${errs.length}` : ''}`);
         if (finalized) {
-            const artifacts = kind === 'routine' ? { automationId } : { appId: cur.artifacts.appId };
+            const artifacts = kind === 'automation' ? { automationId } : { appId: cur.artifacts.appId };
             try {
                 await this.patch({ phases: [{ key: phase.key, status: 'awaiting', artifacts, summary: `${kind} finalized by the harness` }] });
             } catch (e) {
@@ -260,7 +260,7 @@ class Harness {
             }
         } else {
             const why = aborted ? `aborted: ${aborted.data && aborted.data.reason}` : (errs.length ? `error: ${JSON.stringify(errs[0].data).slice(0, 200)}` : 'turn ended without finalize (the builder asked a question or stopped)');
-            if (kind === 'routine' && automationId) await this.patch({ phases: [{ key: phase.key, artifacts: { automationId } }] });
+            if (kind === 'automation' && automationId) await this.patch({ phases: [{ key: phase.key, artifacts: { automationId } }] });
             await this.patch({ phases: [{ key: phase.key, status: 'failed', error: why.slice(0, 300) }] });
         }
     }
@@ -371,20 +371,20 @@ function judge(h, expect, drivers) {
     if (Number.isFinite(expect.maxAttempts)) {
         for (const p of r.phases || []) if ((p.attempt || 0) > expect.maxAttempts) failures.push(`phase ${p.key}: ${p.attempt} attempts > ${expect.maxAttempts}`);
     }
-    // The last stream with a definition for a phase: `routine` is the FEEDING
-    // routine (not the approval one), `approvals` is the phase of that key —
-    // a routine since 2026-09-14 (Studio → Approvals), an app_turn before.
+    // The last stream with a definition for a phase: `automation` is the FEEDING
+    // automation (not the approval one), `approvals` is the phase of that key —
+    // an automation since 2026-09-14 (Studio → Approvals), an app_turn before.
     const lastStream = (pred) => [...r.streams].reverse().find((s) => s.definition && pred(s));
     const judgeWith = (label, s, exp) => {
-        const driver = s.kind === 'routine' ? drivers.routine : drivers.app;
+        const driver = s.kind === 'automation' ? drivers.automation : drivers.app;
         if (!driver) return;
         const v = driver.matchExpectation(s.definition, s.events, exp);
         for (const f of v.failures) failures.push(`${label}: ${f}`);
     };
-    if (expect.routine) {
-        const s = lastStream((x) => x.kind === 'routine' && x.phase !== 'approvals') || lastStream((x) => x.kind === 'routine');
-        if (!s) failures.push('routine: no stream with a definition');
-        else judgeWith('routine', s, expect.routine);
+    if (expect.automation) {
+        const s = lastStream((x) => x.kind === 'automation' && x.phase !== 'approvals') || lastStream((x) => x.kind === 'automation');
+        if (!s) failures.push('automation: no stream with a definition');
+        else judgeWith('automation', s, expect.automation);
     }
     if (expect.app) {
         const s = lastStream((x) => x.kind === 'app');
@@ -410,7 +410,7 @@ async function main() {
     const token = jwt.sign({ sub: NC_UID, email: EMAIL, name: NC_UID, nc_admin: true }, key, { algorithm: 'HS256', issuer: 'nextcloud-connector', audience: 'beeflow.nl', expiresIn: 4 * 3600 });
     const headers = { Authorization: `Bearer ${token}`, 'X-Beeflow-Source': 'nextcloud-connector', 'X-Beeflow-NC-Uid': NC_UID, 'Content-Type': 'application/json' };
     const drivers = {};
-    try { drivers.routine = require('/tmp/drive-builder.js'); } catch { /* judged without the routine matcher */ }
+    try { drivers.automation = require('/tmp/drive-builder.js'); } catch { /* judged without the automation matcher */ }
     try { drivers.app = require('/tmp/drive-app-builder.js'); } catch { /* judged without the app matcher */ }
 
     console.log(`\n=== ${caseFile.id}: ${caseFile.title} ===`);

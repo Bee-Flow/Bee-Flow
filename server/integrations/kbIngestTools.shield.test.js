@@ -6,7 +6,7 @@
  *    it to, and this caller never did. That was survivable while the only
  *    caller was the support template, whose prompt spends a paragraph telling
  *    the model to strip personal data — a prompt is not a control, but it was
- *    something. K10 gave every routine a `knowledge_write` step that can be
+ *    something. K10 gave every automation a `knowledge_write` step that can be
  *    pointed straight at a raw email body or a transcript, and what lands here
  *    is text an agent later quotes back with a citation.
  *
@@ -16,7 +16,7 @@
  * The trap this file exists for is the SECOND path. A sourceUri makes the step
  * idempotent, which means `_refreshInPlace` is the path taken on every run
  * after the first — the more travelled one, not the less. Applying either of
- * these only to the first write means a nightly routine's article is screened
+ * these only to the first write means a nightly automation's article is screened
  * once, on the night it was created, and never again.
  *
  * Read as SOURCE rather than executed: reaching the ingest needs a database, a
@@ -62,7 +62,7 @@ test('every ingest through this tool passes the privacy screen', () => {
     }
 });
 
-test('the refresh path — the one a nightly routine takes — takes the options', () => {
+test('the refresh path — the one a nightly automation takes — takes the options', () => {
     // The first write and every write after it must behave the same. A
     // refresh that dropped them would screen an article once and never again.
     const refreshCalls = [...SRC.matchAll(/_refreshInPlace\([^;]*?\);/gs)]
@@ -84,10 +84,10 @@ test('nothing is filed as a support ticket unless it IS one', () => {
     }
 });
 
-test('a routine write and a support write are filed differently', () => {
+test('an automation write and a support write are filed differently', () => {
     const { ORIGINS } = require('./kbIngestTools');
-    assert.notStrictEqual(ORIGINS.routine.sourceType, ORIGINS.support.sourceType);
-    assert.notStrictEqual(ORIGINS.routine.provider, ORIGINS.support.provider);
+    assert.notStrictEqual(ORIGINS.automation.sourceType, ORIGINS.support.sourceType);
+    assert.notStrictEqual(ORIGINS.automation.provider, ORIGINS.support.provider);
     // `support` stays the DEFAULT so callers that predate this are unchanged.
     assert.strictEqual(ORIGINS.support.sourceType, 'support_ticket');
 });

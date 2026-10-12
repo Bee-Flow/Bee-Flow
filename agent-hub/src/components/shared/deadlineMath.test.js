@@ -1,8 +1,8 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import {
-    CLOCK_STATES, DAY_MS, DAYS_WINDOW_MS, HOUR_MS,
-    clockState, isClockState, normalisePct, toMs,
+    CLOCK_STATES, DAY_MS, DAYS_WINDOW_MS, HOUR_MS, OVERDUE_IN_DAYS_AFTER_MS,
+    addCalendarMonths, clockState, isClockState, normalisePct, toMs,
 } from './deadlineMath';
 
 /**
@@ -43,7 +43,7 @@ describe('clockState — the 30-day DSR clock (days)', () => {
         expect(c.pct).toBeCloseTo(12 / 30, 5);
     });
 
-    it('rounds the remaining time UP: 17 d 6 h left is "still 18 days", not 17', () => {
+    it('rounds the remaining time UP: 17 d 6 h left is "18 days left", not 17', () => {
         const d = NOW + 17 * DAY_MS + 6 * HOUR_MS;
         const c = clockState({ dueAt: d, startedAt: NOW - 13 * DAY_MS, now: NOW });
         expect(c.value).toBe(18);
@@ -108,6 +108,33 @@ describe('clockState — the 72 h / 24 h incident clocks (hours)', () => {
         expect(c.value).toBe(2);
         expect(c.overdueValue).toBe(2);
         expect(c.pct).toBe(1);
+    });
+
+    it('an hours clock more than 48 h overdue counts in days ("overdue by 31 days", not 745 hours)', () => {
+        expect(OVERDUE_IN_DAYS_AFTER_MS).toBe(48 * HOUR_MS);
+        const s = NOW - 72 * HOUR_MS - 31 * DAY_MS + HOUR_MS;
+        const late = clockState({ dueAt: s + 72 * HOUR_MS, startedAt: s, now: NOW });
+        expect(late.state).toBe('overdue');
+        expect(late.unit).toBe('days');
+        expect(late.value).toBe(31);
+        expect(late.overdueValue).toBe(31);
+    });
+
+    it('up to 48 h overdue it keeps counting hours; past it, days (rounded up)', () => {
+        const start = (lateMs) => NOW - lateMs - 72 * HOUR_MS;
+        const at48 = clockState({ dueAt: start(48 * HOUR_MS) + 72 * HOUR_MS, startedAt: start(48 * HOUR_MS), now: NOW });
+        expect(at48.unit).toBe('hours');
+        expect(at48.value).toBe(48);
+        const justOver = clockState({ dueAt: start(48 * HOUR_MS + 1) + 72 * HOUR_MS, startedAt: start(48 * HOUR_MS + 1), now: NOW });
+        expect(justOver.unit).toBe('days');
+        expect(justOver.value).toBe(3);
+    });
+
+    it('an explicit unit: hours keeps its hours however late', () => {
+        const s = NOW - 10 * DAY_MS;
+        const c = clockState({ dueAt: s + 72 * HOUR_MS, startedAt: s, now: NOW, unit: 'hours' });
+        expect(c.unit).toBe('hours');
+        expect(c.value).toBe(7 * 24);
     });
 
     it('the unit rule sits exactly at 7 days: a 7-day window counts in days, 6 d 23 h in hours', () => {
@@ -208,5 +235,29 @@ describe('server helpers', () => {
         for (const s of CLOCK_STATES) expect(isClockState(s)).toBe(true);
         expect(isClockState('late')).toBe(false);
         expect(isClockState(undefined)).toBe(false);
+    });
+});
+
+describe('addCalendarMonths — a statutory month is a calendar month (GDPR Art. 12(3))', () => {
+    it('keeps the day and the time of day', () => {
+        expect(addCalendarMonths('2026-08-12T14:02:00Z', 1)).toBe(T('2026-09-12T14:02:00Z'));
+        expect(addCalendarMonths(T('2026-08-12T14:02:00Z'), 3)).toBe(T('2026-11-12T14:02:00Z'));
+    });
+
+    it('ends on the last day of a month that is too short, never in the next one', () => {
+        expect(addCalendarMonths('2027-01-31T10:00:00Z', 1)).toBe(T('2027-02-28T10:00:00Z'));
+        expect(addCalendarMonths('2028-01-31T10:00:00Z', 1)).toBe(T('2028-02-29T10:00:00Z'));
+        expect(addCalendarMonths('2026-08-31T10:00:00Z', 1)).toBe(T('2026-09-30T10:00:00Z'));
+        expect(addCalendarMonths('2026-11-30T10:00:00Z', 3)).toBe(T('2027-02-28T10:00:00Z'));
+    });
+
+    it('crosses the year', () => {
+        expect(addCalendarMonths('2026-12-15T09:00:00Z', 1)).toBe(T('2027-01-15T09:00:00Z'));
+    });
+
+    it('an unreadable date or a fractional month is null, not NaN', () => {
+        expect(addCalendarMonths(null, 1)).toBeNull();
+        expect(addCalendarMonths('not a date', 1)).toBeNull();
+        expect(addCalendarMonths('2026-08-12T14:02:00Z', 1.5)).toBeNull();
     });
 });

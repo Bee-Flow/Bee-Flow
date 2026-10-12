@@ -62,7 +62,7 @@ function RuleSentence({ table, columns, field }: { table: Datatable; columns: re
     return (
         <>
             <Text variant="caption" tone="secondary" testID="retention-rule">
-                {cache ? `${rule} ${t('datatables.retention_managed', 'For this table that window is the whole expiry story: it is what makes a remembered answer go stale, so a routine asks the service again. There is no second, hidden clock.')}` : rule}
+                {cache ? `${rule} ${t('datatables.retention_managed', 'For this table that window is the whole expiry story: it is what makes a remembered answer go stale, so an automation asks the service again. There is no second, hidden clock.')}` : rule}
             </Text>
             {/* The phone's clock in the app's language: the server sends UTC. */}
             {table.lastRetentionAt ? (

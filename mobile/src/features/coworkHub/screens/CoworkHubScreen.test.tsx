@@ -43,7 +43,6 @@ const ANSWERS: Record<string, unknown> = {
     '/api/automation/_runs/recent': {
         runs: [{ id: 'r1', automationId: 'a1', status: 'error', error: 'The mailbox refused', startedAt: STARTED }],
     },
-    '/api/ai-tasks': { tasks: [], maxTasks: 10 },
     '/api/reminders': [],
 };
 

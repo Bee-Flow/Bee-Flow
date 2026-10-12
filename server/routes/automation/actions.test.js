@@ -11,7 +11,7 @@
  *     and the test input do not travel); the card comes back as source 'org';
  *   - suggest-description: the fast tier, the step summary and step names in,
  *     one cleaned sentence out; a model failure is a 502 with a code; an
- *     empty routine is refused before any model call;
+ *     empty automation is refused before any model call;
  *   - counts: run-only callers count only their own runs;
  *   - roles: a viewer may duplicate but not template or suggest.
  *
@@ -168,7 +168,7 @@ test('suggest-description: fast tier, step summary and names in, one clean sente
     assert.match(calls.chat[1][1][0].content, /Write in Dutch/);
 });
 
-test('suggest-description: model failure is a 502 with a code; empty routine and viewers are refused first', async () => {
+test('suggest-description: model failure is a 502 with a code; empty automation and viewers are refused first', async () => {
     chatImpl = async () => { throw new Error('upstream'); };
     const failed = await call('POST', '/a1/suggest-description', {});
     assert.strictEqual(failed.status, 502);

@@ -46,14 +46,14 @@ describe('health', () => {
             graph: {
                 ...GRAPH,
                 problems: [
-                    { code: 'cross_owner', from: 'app:app1', targetId: 'a1', message: 'Invoice desk runs a routine owned by someone else (a1).' },
-                    { code: 'external', from: 'app:app1', targetId: 'x', message: 'Invoice desk depends on a routine outside this project (x).' },
+                    { code: 'cross_owner', from: 'app:app1', targetId: 'a1', message: 'Invoice desk runs an automation owned by someone else (a1).' },
+                    { code: 'external', from: 'app:app1', targetId: 'x', message: 'Invoice desk depends on an automation outside this project (x).' },
                 ],
             },
         });
         // Prose, not a colour a reader has to decode.
-        expect(getByText('Invoice desk runs a routine owned by someone else (a1).')).toBeTruthy();
-        expect(getByText('Invoice desk depends on a routine outside this project (x).')).toBeTruthy();
+        expect(getByText('Invoice desk runs an automation owned by someone else (a1).')).toBeTruthy();
+        expect(getByText('Invoice desk depends on an automation outside this project (x).')).toBeTruthy();
     });
 });
 
@@ -62,7 +62,7 @@ describe('wiring', () => {
         const { getByText, getAllByText, container } = renderTab();
         expect(getByText('Invoice desk')).toBeTruthy();
         expect(getByText('Ship it?')).toBeTruthy();
-        // Twice on purpose: the routine is what the app runs AND what asks for
+        // Twice on purpose: the automation is what the app runs AND what asks for
         // the approval, so it heads its own group and appears as a target.
         expect(getAllByText('Nightly invoices')).toHaveLength(2);
         expect(container.querySelectorAll('li')).toHaveLength(2);
@@ -117,7 +117,7 @@ describe('loading and failure', () => {
  *
  * GET /:id/graph draws six member kinds independently and NAMES the ones it
  * could not read. Before this, the tab read neither `complete` nor
- * `unavailable`: a graph missing its agents and its routines rendered as
+ * `unavailable`: a graph missing its agents and its automations rendered as
  * "Everything in this project is connected and owned consistently." — the
  * cross-owner edge this tab exists to surface could have been sitting in the
  * half that never loaded. The server-side fail-open was closed in O2 phase 1;
@@ -133,7 +133,7 @@ describe('a graph the server could not read whole', () => {
         expect(getByTestId('project-flow-incomplete')).toBeTruthy();
         // Not "agents, automations" — the server sends machine keys precisely
         // so the client can put them in the reader's own language.
-        expect(getByText('agents, routines')).toBeTruthy();
+        expect(getByText('agents, automations')).toBeTruthy();
     });
 
     it('never says everything is connected when part of it was never read', () => {
@@ -150,9 +150,9 @@ describe('a graph the server could not read whole', () => {
 
     it('still lists the problems it did find', () => {
         const { getByText, getByTestId } = renderTab({
-            graph: { ...PARTIAL, problems: [{ code: 'cross_owner', from: 'app:app1', targetId: 'a1', message: 'Invoice desk runs a routine owned by someone else (a1).' }] },
+            graph: { ...PARTIAL, problems: [{ code: 'cross_owner', from: 'app:app1', targetId: 'a1', message: 'Invoice desk runs an automation owned by someone else (a1).' }] },
         });
-        expect(getByText('Invoice desk runs a routine owned by someone else (a1).')).toBeTruthy();
+        expect(getByText('Invoice desk runs an automation owned by someone else (a1).')).toBeTruthy();
         expect(getByTestId('project-flow-incomplete')).toBeTruthy();
     });
 

@@ -94,7 +94,7 @@ const DATA_MODEL_TOOLS = new Set([
 // The generic "never invent ids" hint is stamped ONLY on an id-lookup failure.
 // It used to land on every error without a hint — including "fields must be a
 // non-empty array" and "this table is linked" — steering the model toward
-// re-reading ids when the fix was somewhere else (the routine builder
+// re-reading ids when the fix was somewhere else (the automation builder
 // reverted the same blanket stamp for the same reason).
 const ID_LOOKUP_ERROR_RE = /\bunknown\b[^.]*\b(id|parentId|screenId|sectionId|actionId|nodeId|tableId|datasetId|automationId)\b|does not exist|did you mean/i;
 

@@ -149,8 +149,14 @@ test('a webhook for the primary trigger still needs no body', async () => {
 
 test('args that are not an object are refused by name, instead of silently becoming {}', async () => {
     // `(typeof req.body.args === 'object')` dropped a string, a number and a
-    // boolean alike: the routine ran on an empty payload and said nothing.
+    // boolean alike: the automation ran on an empty payload and said nothing.
     await refuses({ method: 'POST', url: '/a1/agent-invoke', body: { args: 'hello' } }, 'body.args');
+});
+
+test('agent-invoke is a human path: a body cannot claim an agent identity', async () => {
+    // No server-trusted agent id exists on an HTTP session, so a claimed one is
+    // refused as an unknown key instead of being believed.
+    await refuses({ method: 'POST', url: '/a1/agent-invoke', body: { args: {}, callerAgentId: 'agent-1' } }, 'body');
 });
 
 // ═══ POST /:id/form-pick ════════════════════════════════════════════

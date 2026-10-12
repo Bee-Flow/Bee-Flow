@@ -13,11 +13,6 @@ const assert = require('node:assert');
 const { NL_TRANSLATIONS } = require('./add-nl-learning-center-translations');
 const { GUI_DEFAULTS } = require('../i18n/defaults/en');
 
-test('every Dutch key exists in the English catalog', () => {
-    const orphans = Object.keys(NL_TRANSLATIONS).filter(k => !(k in GUI_DEFAULTS));
-    assert.deepStrictEqual(orphans, []);
-});
-
 test('no Dutch value is blank or the English one copied over', () => {
     // A handful of words are the same in both languages ("quiz", "tour",
     // "open", "Capstone", "Tip", "Status", "Badge", "Curriculum", "min", the

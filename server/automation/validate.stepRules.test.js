@@ -1,5 +1,5 @@
 /**
- * Per-step rules added in the routines audit pass: guard branch edges,
+ * Per-step rules added in the automations audit pass: guard branch edges,
  * notification channels, prototype-polluting switch case names, and the
  * BFSF-348 wording of the form-trigger error.
  *
@@ -68,7 +68,7 @@ test('an unlabelled edge out of a NON-brancher is still perfectly normal', () =>
 
 // ── notification.channels ────────────────────────────────────────────────────
 // Never validated: an unsupported channel threw at run time
-// (errorClass notification_channel_unsupported) after the routine had
+// (errorClass notification_channel_unsupported) after the automation had
 // activated green.
 
 const notifWith = (channels) => ({
@@ -111,7 +111,7 @@ test('a non-array channels value is reported as ignored, not as a save failure',
     const r = validateDefinition(notifWith('email'));
     const rec = r.warnings.find(w => w.code === 'notification.channels_shape');
     assert.ok(rec, `got ${JSON.stringify(codesOf(r))}`);
-    assert.equal(r.ok, true, 'the runner falls back to the bell, so the routine still runs');
+    assert.equal(r.ok, true, 'the runner falls back to the bell, so the automation still runs');
 });
 
 // ── A switch case named __proto__ silently loses its rows ────────────────────

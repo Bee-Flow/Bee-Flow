@@ -234,7 +234,7 @@ describe('ActionFlowEditor — editing a step', () => {
 });
 
 /**
- * THE SAME TOOLS AS THE ROUTINE BUILDER.
+ * THE SAME TOOLS AS THE AUTOMATION BUILDER.
  *
  * The steps draw with StepNodeBase and take their actions from
  * NodeRuntimeContext — the same component and the same context the automations
@@ -244,7 +244,7 @@ describe('ActionFlowEditor — editing a step', () => {
  * server derives `stepIndex` by walking it. So reordering is a move, not a
  * re-drag of the edges.
  */
-describe('ActionFlowEditor — the routine builder’s tools', () => {
+describe('ActionFlowEditor — the automation builder’s tools', () => {
     const seqOf = (...msgs) => seq(msgs.map((m) => ({ kind: 'toast', message: m })));
 
     it('right-click offers duplicate and delete', () => {

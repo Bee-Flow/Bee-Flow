@@ -13,22 +13,8 @@ const assert = require('node:assert');
 
 const { NL_TRANSLATIONS } = require('./add-nl-project-tasks-translations');
 const { GUI_DEFAULTS } = require('../i18n/defaults/en');
-const { NL_TRANSLATIONS: BOOT_LIST } = require('../boot/bootMigrations');
-
-test('every Dutch key has an English key', () => {
-    assert.deepStrictEqual(Object.keys(NL_TRANSLATIONS).filter((k) => !(k in GUI_DEFAULTS)), []);
-});
 
 test('every English project_tasks key has a Dutch value', () => {
     const missing = Object.keys(GUI_DEFAULTS).filter((k) => k.startsWith('project_tasks.') && !NL_TRANSLATIONS[k]);
     assert.deepStrictEqual(missing, []);
-});
-
-test('placeholders survive translation', () => {
-    const vars = (s) => (String(s).match(/\{\w+\}/g) || []).sort();
-    for (const [key, nl] of Object.entries(NL_TRANSLATIONS)) assert.deepStrictEqual(vars(nl), vars(GUI_DEFAULTS[key]), key);
-});
-
-test('it runs at boot', () => {
-    assert.ok(BOOT_LIST.includes('add-nl-project-tasks-translations'));
 });

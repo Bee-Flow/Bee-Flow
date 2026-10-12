@@ -29,7 +29,7 @@ describe('a single-page form', () => {
 describe('a multi-page form', () => {
     const shown = started(INITIAL_FILL, { form: page('Intake', { multiPage: true }), csrf: 'c1', issuedAt: 1 }, 10);
 
-    it('waits on its session after page one, and shows page two when the routine pauses for it', () => {
+    it('waits on its session after page one, and shows page two when the automation pauses for it', () => {
         const waiting = submitted(shown, { accepted: true, sessionId: 'sid1', duplicate: false });
         expect(waiting).toMatchObject({ status: 'working', sessionId: 'sid1', fileSessionId: 'sid1', form: null });
         const two = applySession(waiting, { state: 'form', stepId: 's2', form: page('Page two', { theme: null }), csrf: 'c2', issuedAt: 20 }, 30);

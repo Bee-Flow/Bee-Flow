@@ -64,7 +64,7 @@ async function getPermittedTierKeys({ userId, session, taskType = 'direct_chat' 
     // v1 carve-out (C27): taskType 'automation' does NOT filter custom tiers
     // by allowedTaskTypes — existing custom tiers pre-date any "Automations"
     // checkbox in the admin UIs, so filtering would silently strip tiers from
-    // live routines. Tighten once ChatModelTiersConfig/OrgCustomTiersPanel
+    // live automations. Tighten once ChatModelTiersConfig/OrgCustomTiersPanel
     // grow that checkbox.
     const customTiers = await loadMergedCustomTiersForOrg(userOrgId).catch(() => []);
     for (const t of customTiers) {

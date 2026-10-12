@@ -15,7 +15,7 @@
  * "Nextcloud · Upload file", a long prompt is cut at 140 characters. An id is
  * turned into a name when the caller hands one in (`opts.names`).
  *
- * LAYOUT is what moves on the canvas without changing what the routine does:
+ * LAYOUT is what moves on the canvas without changing what the automation does:
  * node positions and sizes, colours and icons, edge colours and the PII line
  * colours. Those never show up in the diff, and a save that changes nothing
  * else is "layout only": it does not create a version (stores/automationStore/
@@ -28,6 +28,9 @@
  */
 
 'use strict';
+
+const { replaceTemplate } = require('./expr');
+const { refHead, splitPathHead } = require('./validate/refPaths');
 
 // ── Layout ───────────────────────────────────────────────────────────────
 
@@ -194,6 +197,7 @@ const STEP_TYPE_LABELS = {
     parse_json: 'Read fields', guard: 'Privacy check', tokenize: 'Hide personal data', call_layer: 'Flowlet',
     call_block: 'Building block', layer_output: 'Flowlet result', http_request: 'Web request', datetime: 'Date and time',
     filter: 'Filter', limit: 'Limit', dedupe: 'Remove duplicates', aggregate: 'Combine', summarize: 'Summarise',
+    flatten: 'Flatten a list',
     stop_error: 'Stop with an error', return_to_app: 'Back to the app', note: 'Note',
 };
 
@@ -234,6 +238,7 @@ const SETTING_LABELS = {
     concurrency: 'Running at the same time', retentionDays: 'Keep runs', notificationSettings: 'Notifications',
     appButtons: 'App buttons', manualTriggerPayload: 'Test input', skipHolidays: 'Skip public holidays',
     pinnedOutput: 'Pinned sample', assignee: 'Approver', approvers: 'Approvers',
+    parents: 'Copied fields', keepEmpty: 'Keep items without a list',
 };
 // Input names that mean "a folder", whatever the tool calls them.
 const FOLDER_KEYS = new Set(['folder', 'folderPath', 'dir', 'directory', 'targetFolder', 'destinationFolder', 'parentPath']);
@@ -256,20 +261,26 @@ const BINDING_KINDS = new Set(['literal', 'ref', 'template', 'expr']);
 function isBinding(v) { return isObject(v) && BINDING_KINDS.has(v.kind) && ('value' in v || 'path' in v); }
 
 function makeRenderer({ labels = new Map(), names = {} } = {}) {
+    // Read with the runner's grammar (validate/refPaths.js), so `steps["read"]…`
+    // and a `}` inside a quoted key render like any other path; the part
+    // after the step is shown exactly as the author wrote it.
     const refText = (raw) => {
         const p = String(raw || '').trim();
-        let m = /^trigger\.output\.?(.*)$/.exec(p);
-        if (m) return m[1] ? `Start › ${m[1]}` : 'Start';
-        m = /^steps\.([^.]+)\.output\.?(.*)$/.exec(p) || /^steps\.([^.]+)\.?(.*)$/.exec(p);
-        if (m) {
-            const who = labels.get(m[1]) || m[1];
-            return m[2] ? `${who} › ${m[2]}` : who;
+        const { root, tokens } = refHead(p);
+        const tail = (n, label) => {
+            const split = splitPathHead(p, n);
+            return split && split.rest ? `${label} › ${split.rest}` : label;
+        };
+        const isOutput = (t) => t && t.type === 'prop' && t.key === 'output';
+        if (root === 'trigger' && isOutput(tokens[1])) return tail(2, 'Start');
+        if (root === 'steps' && tokens[1]?.type === 'prop') {
+            const id = String(tokens[1].key);
+            return tail(isOutput(tokens[2]) ? 3 : 2, labels.get(id) || id);
         }
-        m = /^loop\.[^.]+\.?(.*)$/.exec(p);
-        if (m) return m[1] ? `Current item › ${m[1]}` : 'Current item';
+        if (root === 'loop' && tokens.length > 1) return tail(2, 'Current item');
         return p;
     };
-    const templateText = (s) => String(s).replace(/\{\{\s*([^}]+?)\s*\}\}/g, (_, inner) => `‹${refText(inner)}›`);
+    const templateText = (s) => replaceTemplate(String(s), (inner) => `‹${refText(inner)}›`);
 
     const render = (v, key) => {
         if (v === undefined || v === null || v === '') return null;
@@ -280,8 +291,7 @@ function makeRenderer({ labels = new Map(), names = {} } = {}) {
             if (key === 'agentId' && names.agent?.[v]) return names.agent[v];
             if (key === 'datatableId' && names.datatable?.[v]) return names.datatable[v];
             if (key === 'knowledgeBaseId' && names.knowledgeBase?.[v]) return names.knowledgeBase[v];
-            // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- an anchored alternation, no repeat: linear
-            if ((key === 'overRef' || key === 'sourceRef' || key === 'arrayRef') && /^(trigger|steps|loop)\./.test(v)) return cut(refText(v));
+            if ((key === 'overRef' || key === 'sourceRef' || key === 'arrayRef') && ['trigger', 'steps', 'loop'].includes(refHead(v).root)) return cut(refText(v));
             return cut(templateText(v));
         }
         if (isBinding(v)) {
@@ -424,16 +434,16 @@ function fieldDiff(prevDef, nextDef, opts = {}) {
         changes.push({ ...base(p), change: 'removed', setting: null, settingLabel: null, path: null, before: kindLabel(p.node, p.isTrigger), after: null });
     }
 
-    // Routine-level settings (outside the graph), then each flowlet's own.
-    const routineDiffs = [];
+    // Automation-level settings (outside the graph), then each flowlet's own.
+    const automationDiffs = [];
     for (const k of new Set([...Object.keys(prev), ...Object.keys(next)])) {
         if (GRAPH_KEYS.has(k)) continue;
-        diffSettings(prev[k], next[k], [k], routineDiffs, 0);
+        diffSettings(prev[k], next[k], [k], automationDiffs, 0);
     }
-    for (const d of routineDiffs) {
+    for (const d of automationDiffs) {
         const last = d.parts[d.parts.length - 1];
         changes.push({
-            stepId: null, stepNumber: null, stepLabel: 'Routine', change: 'changed', ...settingOf(d.parts),
+            stepId: null, stepNumber: null, stepLabel: 'Automation', change: 'changed', ...settingOf(d.parts),
             before: before.render(d.before, last), after: after.render(d.after, last),
         });
     }
@@ -514,10 +524,10 @@ function describeText(entries) {
  */
 function describeChange(changes, { reordered = false } = {}) {
     const byStep = new Map();
-    const routine = [];
+    const automation = [];
     let moved = false;
     for (const c of asArray(changes)) {
-        if (c.stepId === null) { routine.push(c); continue; }
+        if (c.stepId === null) { automation.push(c); continue; }
         const k = `${c.layer || ''}::${c.stepId}`;
         if (!byStep.has(k)) byStep.set(k, []);
         byStep.get(k).push(c);
@@ -546,7 +556,7 @@ function describeChange(changes, { reordered = false } = {}) {
     if (moved) entries.push({ code: 'connections_changed', params: {} });
     const seen = new Set();
     let description = false;
-    for (const c of routine) {
+    for (const c of automation) {
         const top = (c.path || c.setting || '').split('.')[0];
         if (top === 'description') { description = true; continue; }
         if (seen.has(top)) continue;
@@ -567,7 +577,7 @@ function describeVersion(prevDef, nextDef, opts = {}) {
     if (layoutOnly) return { layoutOnly: true, changes: [], entries: [], text: null };
     const changes = fieldDiff(prevDef, nextDef, opts);
     // Nothing a person can point at, yet not layout: the order of steps[] or
-    // edges[] moved. The routine works the same.
+    // edges[] moved. The automation works the same.
     const reordered = changes.length === 0;
     const { entries, text } = describeChange(changes, { reordered });
     return { layoutOnly: false, changes, entries, text };

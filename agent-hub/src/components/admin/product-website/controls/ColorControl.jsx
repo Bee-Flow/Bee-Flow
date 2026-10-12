@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { FieldRow } from '../fields';
 import { parseRgbaOverlay, composeRgba } from './colorUtils';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 /**
  * ColorControl — the ONE color affordance for the CMS admin. Swatch button
@@ -45,6 +46,7 @@ function useHexBuffer(hexValue, commitHex) {
 }
 
 function AlphaSlider({ opacity, name, onChange }) {
+    const { t } = useTranslation();
     return (
         <div className="flex items-center gap-2 mt-1.5">
             <span className="text-[10px] text-[var(--text-muted)] shrink-0 w-14">
@@ -56,7 +58,7 @@ function AlphaSlider({ opacity, name, onChange }) {
                 max="100"
                 step="1"
                 value={Math.round(opacity * 100)}
-                aria-label={`${name} opacity`}
+                aria-label={t('cms_site.site.controls.color_opacity', '{name} opacity', { name })}
                 onChange={(e) => onChange(parseInt(e.target.value, 10) / 100)}
                 className="flex-1 accent-[var(--accent-primary)]"
             />
@@ -65,12 +67,13 @@ function AlphaSlider({ opacity, name, onChange }) {
 }
 
 function SwatchInput({ swatchHex, displayName, inherited, overridden, compact, onCommit }) {
+    const { t } = useTranslation();
     return (
         <input
             type="color"
             value={swatchHex}
             onChange={(e) => onCommit(e.target.value)}
-            title={inherited ? `${displayName} — inherited, click to override` : displayName}
+            title={inherited ? t('cms_site.site.controls.color_inherited_title', '{name} — inherited, click to override', { name: displayName }) : displayName}
             className={`${compact ? 'h-7 w-7 p-0 shrink-0' : 'h-8 w-10'} rounded border cursor-pointer bg-[var(--bg-tertiary)]
                 ${overridden ? 'border-[var(--accent-primary)]' : 'border-[var(--border-default)]'}`}
             style={compact ? { minWidth: '28px' } : undefined}
@@ -79,6 +82,7 @@ function SwatchInput({ swatchHex, displayName, inherited, overridden, compact, o
 }
 
 function HexInput({ hexInput, placeholder, displayName, compact, onHexChange }) {
+    const { t } = useTranslation();
     return (
         <input
             type="text"
@@ -87,7 +91,7 @@ function HexInput({ hexInput, placeholder, displayName, compact, onHexChange }) 
             placeholder={placeholder}
             maxLength={7}
             spellCheck={false}
-            aria-label={`${displayName} hex`}
+            aria-label={t('cms_site.site.controls.color_hex', '{name} hex', { name: displayName })}
             className={`${compact ? 'w-20 px-1.5 py-1 uppercase' : 'flex-1 px-2 py-1.5'} ${HEX_FIELD_BASE}`}
         />
     );
@@ -103,6 +107,7 @@ export default function ColorControl({
     allowAlpha = false,
     title,
 }) {
+    const { t } = useTranslation();
     const inheritable = inheritFrom !== undefined;
     const isSet = typeof value === 'string' && value !== '';
 
@@ -114,11 +119,11 @@ export default function ColorControl({
     const commitHex = (hex) => onChange(allowAlpha ? composeRgba(hex, opacity) : hex);
     const [hexInput, handleHexChange] = useHexBuffer(hexValue, commitHex);
 
-    const displayName = title || label || 'Color';
+    const displayName = title || label || t('cms_site.site.controls.color_default_name', 'Color');
     const swatchHex = HEX_RE.test(hexValue)
         ? hexValue
         : (HEX_RE.test(inheritFrom || '') ? inheritFrom : '#000000');
-    const inheritPlaceholder = inheritFrom ? `inherit ${inheritFrom}` : '#RRGGBB';
+    const inheritPlaceholder = inheritFrom ? t('cms_site.site.controls.color_inherit', 'inherit {color}', { color: inheritFrom }) : '#RRGGBB';
 
     const inherited  = inheritable && !isSet;
     const overridden = inheritable && isSet;
@@ -141,16 +146,16 @@ export default function ColorControl({
                 onHexChange={handleHexChange}
             />
             {inherited && !compact ? (
-                <span className="text-[10px] text-[var(--text-muted)] italic shrink-0">Inherited</span>
+                <span className="text-[10px] text-[var(--text-muted)] italic shrink-0">{t('cms_site.site.controls.color_inherited', 'Inherited')}</span>
             ) : null}
             {overridden ? (
                 <button
                     type="button"
                     onClick={() => onChange(null)}
                     className="text-xs text-[var(--text-muted)] hover:text-red-400 px-1"
-                    title="Reset to inherited"
+                    title={t('cms_site.site.controls.color_reset_title', 'Reset to inherited')}
                 >
-                    Reset
+                    {t('cms_site.site.controls.color_reset', 'Reset')}
                 </button>
             ) : null}
         </div>

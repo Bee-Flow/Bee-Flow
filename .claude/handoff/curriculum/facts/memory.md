@@ -144,7 +144,7 @@ stored here."* When on, a sub-toggle appears: **Also read from your general memo
 use facts already saved in your general memory (preferences, context). It still only writes to its own
 bucket."* New agents are created with `memoryEnabled: false`, `useGeneralMemory` defaults to true.
 
-### 2.7 Routine builder → AI step → Advanced
+### 2.7 Automation builder → AI step → Advanced
 Field **Personal memory**, checkbox **Use my personal memory**, hint: *"Ground this step in what you
 have told the assistant about yourself, your preferences and your contacts. The memories closest to
 this step's prompt are added before the model answers. Good for steps that write in your name or
@@ -276,7 +276,7 @@ Writing / extraction
 
 Reading / recall
 - Candidate rows scored per turn: **500** max (`CANDIDATE_LIMIT`), ordered by importance first.
-- Budget injected into a chat prompt: **300 tokens** (~1,200 characters). Routine AI steps get **600**;
+- Budget injected into a chat prompt: **300 tokens** (~1,200 characters). Automation AI steps get **600**;
   the `memory_search` tool works with **1,500** and returns 1–20 rows (default **8**).
 - Scoring: type base (**instruction 100, person 80, project 70, preference 60, workflow 60, fact 40,
   context 20**) + semantic similarity ×100 + recency bonus (max 20, −2 per day) + importance ×20.
@@ -293,7 +293,7 @@ Panel / API
 - `memory_remember` tool caps: content **200** chars, subject 120, attribute 80, value 200, evidence
   200; importance default **0.6**.
 - Manual create default importance **0.5**, default type **fact**.
-- Routine "coverage" memories expire after **30 days**.
+- Automation "coverage" memories expire after **30 days**.
 
 Retention & deletion
 - `memoryRetentionEnforcer` runs **every 24 h** (first sweep 2 minutes after server boot) and flips
@@ -362,8 +362,8 @@ Retention & deletion
 - **Agents** — an agent can own a private memory bucket and optionally also read your general memory.
 - **Projects** — a shared team pool plus an *Extract Project Memories* switch; project instructions and
   KB search travel in the same prompt assembly.
-- **Routines (automations)** — an AI step with **Use my personal memory** is grounded in the *routine
-  owner's* memory; routines can also call `memory_search` / `memory_remember`; "routine coverage"
+- **Automations (automations)** — an AI step with **Use my personal memory** is grounded in the *automation
+  owner's* memory; automations can also call `memory_search` / `memory_remember`; "automation coverage"
   memories stop a daily digest repeating yesterday's topic (30-day TTL).
 - **Privacy Shield / PII** — the read-time scrubber replaces detected personal data with labels before
   the memory block reaches a model. Note the deliberate trade-off recorded in the code: memories are
@@ -467,7 +467,7 @@ Row shape (a `SELECT *` of `user_memories`): `id`, **`user_id`** (owner), `agent
 `content`, `subject`, `attribute`, `value`, `confidence`, `status` (`active` / `superseded` /
 `expired`), `superseded_by`, `source_message_id`, `evidence_quote`, `last_confirmed_at`, `summary`,
 `importance`, `access_count`, `last_accessed_at`, `created_at`, `updated_at`, `project_id`,
-`embedding`, `source_routine_id`, `expires_at`.
+`embedding`, `source_automation_id`, `expires_at`.
 
 Write endpoints (for completeness, not for verification): `POST /agents/memory`,
 `PUT /agents/memory/:id`, `DELETE /agents/memory/:id`, `POST /agents/memory/bulk-delete`,

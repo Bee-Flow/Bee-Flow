@@ -6,7 +6,7 @@
  * The scheduler claims rows by `trigger_type = 'schedule'` plus the
  * schedule_cron/tz columns, never by reading definition JSON. The visual editor
  * only ever PUTs `definition`, so a schedule configured in the node panel left
- * trigger_type at 'manual' and next_run_at unset — the routine simply never
+ * trigger_type at 'manual' and next_run_at unset — the automation simply never
  * fired. `PUT /api/automations/:id` now derives the columns through this helper.
  */
 

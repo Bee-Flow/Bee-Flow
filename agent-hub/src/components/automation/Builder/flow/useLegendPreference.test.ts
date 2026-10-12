@@ -39,7 +39,7 @@ describe('useLegendPreference', () => {
         const hook = open(1280);
         act(() => hook.result.current[1]());
         expect(hook.result.current[0]).toBe(true);
-        expect(getItem('routinesLegendChoice')).toBe('open');
+        expect(getItem('automationsLegendChoice')).toBe('open');
         hook.rerender({ w: 900, h: 400 });
         expect(hook.result.current[0]).toBe(true);
         expect(open(1280).result.current[0]).toBe(true);
@@ -49,9 +49,9 @@ describe('useLegendPreference', () => {
     });
 
     it('reads the old key: a 0 was someone closing it; a 1 was written on every visit and says nothing', () => {
-        setItem('routinesLegendOpen', '0');
+        setItem('automationsLegendOpen', '0');
         expect(open(1920).result.current[0]).toBe(false);
-        setItem('routinesLegendOpen', '1');
+        setItem('automationsLegendOpen', '1');
         expect(open(1280).result.current[0]).toBe(false);
         expect(open(1920).result.current[0]).toBe(true);
     });

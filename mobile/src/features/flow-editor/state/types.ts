@@ -1,5 +1,5 @@
 /**
- * The draft store's shape: one open routine's definition as the editor holds
+ * The draft store's shape: one open automation's definition as the editor holds
  * it, what the server last confirmed, the save pipeline's state, the undo
  * history and the findings — plus the actions that change them.
  */
@@ -51,7 +51,7 @@ export type IssueSource = 'save' | 'activate' | 'builder';
 export type IssueSources = Record<IssueSource, IssueSet>;
 
 export interface DraftData {
-    /** Null until the row exists (a new routine is created on its first edit). */
+    /** Null until the row exists (a new automation is created on its first edit). */
     automationId: string | null;
     /** False until there is a definition to edit (the load has not answered yet). */
     ready: boolean;
@@ -72,7 +72,7 @@ export interface DraftData {
     issues: IssueSet;
     /** `issues` per step id (model/issues.ts buildIssuesByStep), for the badges. */
     issuesByStep: Map<string, StepIssues>;
-    /** Edits are refused while the AI builder streams into this routine. */
+    /** Edits are refused while the AI builder streams into this automation. */
     locked: boolean;
 }
 
@@ -123,7 +123,7 @@ export interface DraftDeps {
 
 export interface DraftOptions {
     automationId: string | null;
-    /** The definition a NEW routine starts from (not saved until the first edit). */
+    /** The definition a NEW automation starts from (not saved until the first edit). */
     seed?: FlowDefinition | null;
     /** The new row's title. */
     title?: string;

@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import BuilderPlanChecklist from './BuilderPlanChecklist';
 
 /**
- * The AI's own checklist, ON the canvas — the routine builder's and the app
+ * The AI's own checklist, ON the canvas — the automation builder's and the app
  * editor's alike (owner, 2026-09-16: it used to ride at the top of the chat
  * thread and scrolled away under the messages it was describing).
  *
@@ -12,7 +12,7 @@ import BuilderPlanChecklist from './BuilderPlanChecklist';
  * thing that was just built. The pill opens it again; the chevron closes it.
  */
 /**
- * Where it sits. The routine canvas is a graph that lays out from the left, so
+ * Where it sits. The automation canvas is a graph that lays out from the left, so
  * the panel rides at the top under the step chips; the app editor's canvas is
  * a PAGE that fills from the top-left, and there the panel sat straight over
  * the component being written (owner, 2026-09-16) — so there it hangs at the

@@ -23,7 +23,7 @@ describe('buildRows — the answer, including the awkward parts', () => {
     it('reads a declared contract even when nothing is mapped yet', () => {
         const rows = buildRows({ paramMetaByName: CONTRACT, inputMapping: {}, formFields: [] });
         expect(rows.map((r) => r.name)).toEqual(['email', 'amount']);
-        // Declared but unbound is a HOLE, not an empty cell: the routine will
+        // Declared but unbound is a HOLE, not an empty cell: the automation will
         // run with the parameter undefined.
         expect(rows.every((r) => r.missing)).toBe(true);
     });
@@ -36,13 +36,13 @@ describe('buildRows — the answer, including the awkward parts', () => {
         });
         const unused = rows.filter((r) => r.unused).map((r) => r.name);
         // `notes` is collected from the person and goes nowhere. Nothing said
-        // so before, and the failure looks identical to a broken routine.
+        // so before, and the failure looks identical to a broken automation.
         expect(unused).toEqual(['notes']);
     });
 
-    it('accuses nothing when the routine declares no contract', () => {
+    it('accuses nothing when the automation declares no contract', () => {
         // Without a contract there is no way to know an unmapped field is a
-        // mistake — the routine may read it some other way. Calling it "not
+        // mistake — the automation may read it some other way. Calling it "not
         // used" would be a claim the screen cannot support.
         const rows = buildRows({
             paramMetaByName: null,
@@ -90,7 +90,7 @@ describe('SentInputsTable — what it says out loud', () => {
     /**
      * The privacy-shaped one. Every app_trigger run carries the viewer's ID.
      * Saying only "the signed-in user is sent" would let an author believe a
-     * name travels with it and write a routine that mails it onward.
+     * name travels with it and write an automation that mails it onward.
      */
     it('says WHAT the signed-in user row carries, not just that it is sent', () => {
         render(
@@ -106,7 +106,7 @@ describe('SentInputsTable — what it says out loud', () => {
         expect(screen.getByText(/no name or e-mail/i)).toBeInTheDocument();
     });
 
-    it('omits the signed-in user row when the target is not an app_trigger routine', () => {
+    it('omits the signed-in user row when the target is not an app_trigger automation', () => {
         render(<SentInputsTable paramMetaByName={CONTRACT} inputMapping={{}} formFields={[]} />);
         expect(screen.queryByText('Signed-in user')).toBeNull();
     });

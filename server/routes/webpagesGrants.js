@@ -13,7 +13,7 @@
  *   DELETE /:id/grants/automations/:automationId
  *   GET    /:id/data-cards                      — het kaartenmodel van de
  *                                                 Data-tab (tabellen, voedende
- *                                                 routines, waarschuwingen)
+ *                                                 automations, waarschuwingen)
  *   GET    /:id/bindings                        — wat de pagina ZELF doet: de
  *                                                 statische scan op uitgaande
  *                                                 oproepen in eigen code, WAAR
@@ -25,7 +25,7 @@
  *
  * Granting an integration the author hasn't connected fails with
  * 409 { code: 'connection_required', provider } — the UI deep-links to
- * Settings → Integrations from that.
+ * Settings → Connections from that.
  *
  * ── What a caller may send ───────────────────────────────────────────────
  *

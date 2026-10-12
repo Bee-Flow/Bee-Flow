@@ -10,18 +10,18 @@ import useConfirm from './useConfirm';
 const level = (dialog: HTMLElement) => Number(dialog.parentElement!.style.zIndex || 50);
 
 /**
- * The shape of the routines list: one `useConfirm()` mounted at the shell
+ * The shape of the automations list: one `useConfirm()` mounted at the shell
  * root, asked from inside a dialog that sits high above the page (the
  * automation flyout at z-1500).
  */
 function Shell({ onAnswer }: { onAnswer: (ok: boolean) => void }) {
     const { confirm, confirmDialog } = useConfirm();
-    const ask = async () => onAnswer(await confirm({ title: 'Delete this routine?', confirmLabel: 'Delete', destructive: true }));
+    const ask = async () => onAnswer(await confirm({ title: 'Delete this automation?', confirmLabel: 'Delete', destructive: true }));
     return (
         <>
             {confirmDialog}
             <Modal open onClose={() => {}} title="Automations" zIndex={1500}>
-                <button type="button" onClick={ask}>Delete routine</button>
+                <button type="button" onClick={ask}>Delete automation</button>
             </Modal>
         </>
     );
@@ -33,14 +33,14 @@ describe('useConfirm', () => {
         const answers: boolean[] = [];
         render(<Shell onAnswer={(ok) => answers.push(ok)} />);
 
-        await user.click(screen.getByRole('button', { name: 'Delete routine' }));
+        await user.click(screen.getByRole('button', { name: 'Delete automation' }));
         const flyout = screen.getByRole('dialog', { name: 'Automations' });
-        const confirmation = screen.getByRole('dialog', { name: 'Delete this routine?' });
+        const confirmation = screen.getByRole('dialog', { name: 'Delete this automation?' });
         expect(level(confirmation)).toBeGreaterThan(level(flyout));
 
         await user.click(within(confirmation).getByRole('button', { name: 'Delete' }));
         expect(answers).toEqual([true]);
-        expect(screen.queryByRole('dialog', { name: 'Delete this routine?' })).toBeNull();
+        expect(screen.queryByRole('dialog', { name: 'Delete this automation?' })).toBeNull();
     });
 
     it('Escape on a "close while recording?" confirmation cancels it, and leaves the dialog behind alone', async () => {

@@ -1,6 +1,6 @@
 /**
  * INBOUND: Bee Flow served AS an MCP server, at /mcp, so Nextcloud's
- * Assistant (or any other client) can call your integrations and routines.
+ * Assistant (or any other client) can call your integrations and automations.
  * That needs a bearer token, because a static config file cannot hold a
  * session cookie. One per user, minted here.
  */

@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import useTranslation from '../../../../../../hooks/useTranslation';
 import { resolveBinding, walkPath } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
 import { isFill, ROLE_COLORS } from '../styleResolver';
@@ -21,7 +22,7 @@ import { EmptyText, ErrorText, SkeletonLines, displayValue, useStickyBinding } f
 const DAY_MS = 24 * 60 * 60 * 1000;
 const MAX_SPAN_DAYS = 60;
 const MAX_CHIPS_PER_DAY = 3;
-const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const WEEKDAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 const DATE_ONLY_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
 
 /** d + n calendar days, LOCAL. Fixed-hour maths drifts an hour across a DST
@@ -71,10 +72,11 @@ function mondayOf(d) {
 }
 
 export default function AppCalendar({ node }) {
+    const { t } = useTranslation();
     const { mode, runAction, actionState, dataState, scope } = useRuntime();
     const {
         dateKey = 'date', endDateKey = null, titleKey = 'title',
-        colorKey = null, view = 'month', emptyText = 'No events yet.',
+        colorKey = null, view = 'month', emptyText = t('studio_apps_runtime.calendar.empty', 'No events yet.'),
     } = node.props || {};
     const { value: source, isLoading, error, errorCode } = useStickyBinding(
         resolveBinding(node.props?.source, { actionState, dataState, scope }),
@@ -97,6 +99,15 @@ export default function AppCalendar({ node }) {
     const [anchorOverride, setAnchorOverride] = useState(null);
     // Which day has its full event list open (the "+N more" toggle).
     const [expandedDay, setExpandedDay] = useState(null);
+    const WEEKDAY_LABELS = {
+        mon: t('studio_apps_runtime.calendar.weekday_mon', 'Mon'),
+        tue: t('studio_apps_runtime.calendar.weekday_tue', 'Tue'),
+        wed: t('studio_apps_runtime.calendar.weekday_wed', 'Wed'),
+        thu: t('studio_apps_runtime.calendar.weekday_thu', 'Thu'),
+        fri: t('studio_apps_runtime.calendar.weekday_fri', 'Fri'),
+        sat: t('studio_apps_runtime.calendar.weekday_sat', 'Sat'),
+        sun: t('studio_apps_runtime.calendar.weekday_sun', 'Sun'),
+    };
     const anchor = anchorOverride || firstEventDay || new Date();
 
     if (error) return <ErrorText error={error} errorCode={errorCode} />;
@@ -109,7 +120,7 @@ export default function AppCalendar({ node }) {
         return (
             <EmptyText
                 text={mode === 'edit'
-                    ? `No row has a usable date in “${dateKey}” — check which field holds the date.`
+                    ? t('studio_apps_runtime.calendar.no_usable_date', 'No row has a usable date in “{field}” — check which field holds the date.', { field: dateKey })
                     : emptyText}
             />
         );
@@ -204,14 +215,14 @@ export default function AppCalendar({ node }) {
                 </span>
                 <div className="flex items-center gap-1">
                     <button
-                        type="button" onClick={() => step(-1)} aria-label={isWeek ? 'Previous week' : 'Previous month'}
+                        type="button" onClick={() => step(-1)} aria-label={isWeek ? t('studio_apps_runtime.calendar.previous_week', 'Previous week') : t('studio_apps_runtime.calendar.previous_month', 'Previous month')}
                         className="inline-flex items-center px-1.5 py-1 border"
                         style={{ borderColor: 'var(--border-default)', borderRadius: 'var(--app-radius)', color: 'var(--text-secondary)' }}
                     >
                         <ChevronLeft className="w-3.5 h-3.5" aria-hidden="true" />
                     </button>
                     <button
-                        type="button" onClick={() => step(1)} aria-label={isWeek ? 'Next week' : 'Next month'}
+                        type="button" onClick={() => step(1)} aria-label={isWeek ? t('studio_apps_runtime.calendar.next_week', 'Next week') : t('studio_apps_runtime.calendar.next_month', 'Next month')}
                         className="inline-flex items-center px-1.5 py-1 border"
                         style={{ borderColor: 'var(--border-default)', borderRadius: 'var(--app-radius)', color: 'var(--text-secondary)' }}
                     >
@@ -221,7 +232,7 @@ export default function AppCalendar({ node }) {
             </div>
             <div className={`grid grid-cols-7 gap-px text-center${fill ? ' shrink-0' : ''}`}>
                 {WEEKDAYS.map((d) => (
-                    <span key={d} className="text-[11px] font-medium py-1" style={{ color: 'var(--text-muted)' }}>{d}</span>
+                    <span key={d} className="text-[11px] font-medium py-1" style={{ color: 'var(--text-muted)' }}>{WEEKDAY_LABELS[d]}</span>
                 ))}
             </div>
             <div
@@ -260,7 +271,7 @@ export default function AppCalendar({ node }) {
                                     style={{ color: 'var(--text-secondary)' }}
                                     aria-expanded={expandedDay === key}
                                 >
-                                    +{entries.length - MAX_CHIPS_PER_DAY} more
+                                    {t('studio_apps_runtime.calendar.more', '+{n} more', { n: entries.length - MAX_CHIPS_PER_DAY })}
                                 </button>
                             ) : null}
                         </div>

@@ -71,10 +71,13 @@ stub('../../core/projectFeed', {
 });
 stub('../../projects/packaging/capture', {
     captureSolution: async () => ({ ok: true, manifest: fx.captured }),
+    loadMembers: async () => ({ automations: [], apps: [], webpages: [], datatables: [], agents: [], knowledgeBases: [] }),
 });
 stub('../../stores/userStore', { getOrganization: async () => ({ id: 'org_project', name: 'Acme' }) });
 stub('../../stores/blueprintStore', {
     MAX_NOTES_BYTES: 64 * 1024,
+    // The ref ledger answers with the refs the captured manifest carries, or the publish 409s solution_changed.
+    allocateRefs: async () => new Map(Object.values(fx.captured?.solution?.entities || {}).flat().map((e, i) => ['k' + i, e.ref])),
     listBlueprintsFor: async (args) => {
         record('listBlueprintsFor', args);
         if (fx.listThrows) throw new Error('de galerij is niet te lezen');
@@ -82,6 +85,16 @@ stub('../../stores/blueprintStore', {
     },
     getBlueprintById: async (id) => { record('getBlueprintById', { id }); return fx.galleryById.get(id) || null; },
     publishRelease: async (args) => { record('publishRelease', args); return fx.published; },
+});
+
+// The server-side publish gate (projects/packaging/publication.js
+// releaseGate) passes here: these tests are about the note, not the gate,
+// which packaging.source.test.js pins.
+stub('../../projects/graphForProject', {
+    buildGraphForProject: async () => ({ graph: { nodes: [], edges: [], externals: [], problems: [] }, members: {}, unavailable: [] }),
+});
+stub('../../projects/completeness', {
+    collectCompleteness: async () => ({ blocked: false, complete: true, findings: [], unavailable: [] }),
 });
 
 // De LLM-laag: modelResolver trekt anders configStore en dus de pool mee.
@@ -100,7 +113,7 @@ const router = require('./packaging');
 
 // ── Fixtures ────────────────────────────────────────────────────────────────
 
-const routine = (over = {}) => ({
+const automation = (over = {}) => ({
     ref: 'aut_1', kind: 'automation', title: 'Herinnering Van Dijk BV',
     description: 'Stuurt een betalingsherinnering', triggerType: 'schedule',
     definition: { steps: [{ id: 's1', type: 'send_email', config: { to: 'jan@vandijk.nl' } }] },
@@ -147,17 +160,17 @@ function exportProject(body) {
 
 function reset() {
     fx.project = { id: 'p1', name: 'Onboarding', organizationId: 'org_project' };
-    // De vorige versie in de galerij: dezelfde routine, andere omschrijving.
+    // De vorige versie in de galerij: dezelfde automatisering, andere omschrijving.
     fx.blueprints = [
         { id: 'bp_mine', solutionKey: 'sol_p1', createdBy: 'alice', version: 1 },
         { id: 'bp_bob', solutionKey: 'sol_p1', createdBy: 'bob', version: 7 },
         { id: 'bp_ander', solutionKey: 'sol_p9', createdBy: 'alice', version: 1 },
     ];
     fx.galleryById = new Map([
-        ['bp_mine', { id: 'bp_mine', manifest: manifestOf({ automations: [routine({ description: 'oud' })] }) }],
-        ['bp_bob', { id: 'bp_bob', manifest: manifestOf({ automations: [routine({ ref: 'aut_9' })] }, 7) }],
+        ['bp_mine', { id: 'bp_mine', manifest: manifestOf({ automations: [automation({ description: 'oud' })] }) }],
+        ['bp_bob', { id: 'bp_bob', manifest: manifestOf({ automations: [automation({ ref: 'aut_9' })] }, 7) }],
     ]);
-    fx.captured = manifestOf({ automations: [routine(), routine({ ref: 'aut_2', title: 'Export' })] }, 2);
+    fx.captured = manifestOf({ automations: [automation(), automation({ ref: 'aut_2', title: 'Export' })] }, 2);
     fx.published = { blueprint: { id: 'bp_mine', version: 2, manifest: fx.captured }, release: { id: 'rel_1' } };
     fx.listThrows = false;
     fx.chatThrows = false;

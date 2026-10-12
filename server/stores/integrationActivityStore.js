@@ -341,6 +341,15 @@ function buildFilters(filters, startIdx = 1) {
     // Dashboards exclude dry-run rows (compliance checks always did); the raw
     // per-run views pass excludeDryRun: false to keep showing them.
     if (filters?.excludeDryRun) conditions.push(`is_dry_run = false`);
+    // Calls a person asked for in a chat, and nothing else: the allow-list the
+    // "Find repeating work" miner reads (integrationManualActivity.js). Keeps a
+    // automation's calls and the scans' own `pattern_scan` reads out of the ideas
+    // mode's activity digest, which would otherwise count its own reads.
+    if (filters?.manualOnly) {
+        conditions.push(`source = ANY($${idx++}::text[])`);
+        params.push([...require('./integrationManualActivity').MANUAL_SOURCES]);
+        conditions.push('automation_id IS NULL');
+    }
     const where = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : '';
     return { where, params, nextIdx: idx };
 }
@@ -727,6 +736,9 @@ async function getIntegrationOverview(filters = {}, interval = 'day', { normaliz
     return require('./integrationOverview').buildOverview(filters, interval, { buildFilters, normalizeCategory });
 }
 
+// "Find repeating work" reads, per user (integrationManualActivity.js).
+const manualActivity = require('./integrationManualActivity').defaultReader(initDB);
+
 module.exports = {
     logIntegrationActivity,
     _signalExternalTransfer, // exported for tests (debounce contract)
@@ -745,6 +757,8 @@ module.exports = {
     getEgressLog,
     getOperatorSummary,
     getSovereigntyByDimension,
+    getManualToolEvents: manualActivity.getManualToolEvents,
+    getAutomatedToolNames: manualActivity.getAutomatedToolNames,
 };
 
 // Awaitable init entry point for migrateDb.

@@ -235,7 +235,7 @@ test('the tools path carries the same setting as the plain path', async () => {
 // ═══ 4. A dry run must not pass a step that cannot run ═══════════
 //
 // The old rule was "in dry run, a soft { error } is not a failure", so the
-// builder could finalise a routine whose steps referenced `loop.f.path` with
+// builder could finalise an automation whose steps referenced `loop.f.path` with
 // no forEach anywhere: every iteration answered {error:"path is required"} and
 // the dry run reported green (2026-09-12). Now only an ENVIRONMENT error keeps
 // the sample fallback — an unconnected app is still plannable.
@@ -276,7 +276,7 @@ function runIntegrationStep(mode) {
     return execIntegrationAction(step, ctx, {}, mode);
 }
 
-test('a dry run FAILS on the step\'s own fault — no more green on a routine that cannot run', async () => {
+test('a dry run FAILS on the step\'s own fault — no more green on an automation that cannot run', async () => {
     for (const error of STEP_FAULTS) {
         reset();
         fx.toolResult = { error };

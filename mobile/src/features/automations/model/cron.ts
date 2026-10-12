@@ -2,9 +2,9 @@
  * The cron dialect a phone may edit.
  *
  * The builder — the web's, and the flow editor's schedule trigger here — writes
- * any 5-field expression server/automation/cron.js accepts. The routine
+ * any 5-field expression server/automation/cron.js accepts. The automation
  * screen's quick picker offers five shapes and nothing else, because a cron
- * field one tap from a live routine is a way to break it by accident. Anything
+ * field one tap from a live automation is a way to break it by accident. Anything
  * outside these five round-trips untouched and is shown read-only — see
  * SchedulePicker.tsx.
  */

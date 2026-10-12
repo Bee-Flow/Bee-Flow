@@ -82,11 +82,14 @@ export function isClaudeReasoning(modelId: string | null | undefined): boolean {
     return Boolean(modelId) && /^claude-(opus|sonnet|haiku)-4/.test(modelId as string);
 }
 
-/** The deployment names the tiers pick from (ChatModelsSection's fallback list; the web's /ai/models is gone). */
+/**
+ * The deployment names the tiers pick from (ChatModelsSection's fallback list; the web's /ai/models is gone).
+ * An entry may be `name=model` (`prod-chat=gpt-6-astra`); the tier stores the deployment name.
+ */
 export function deployedModels(azureModels: string): string[] {
     return azureModels
         .split(',')
-        .map((m) => m.trim())
+        .map((m) => (m.split('=')[0] ?? '').trim())
         .filter(Boolean);
 }
 

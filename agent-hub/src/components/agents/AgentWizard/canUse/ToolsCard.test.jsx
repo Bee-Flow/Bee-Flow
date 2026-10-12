@@ -417,7 +417,7 @@ describe('ToolsCard — automations als tool', () => {
         expect(pills[1]).toContain('note');
     });
 
-    it('houdt een grant zonder routine staan en zegt dat de naam ontbreekt', () => {
+    it('houdt een grant zonder automatisering staan en zegt dat de naam ontbreekt', () => {
         renderCard({
             automationRows: automationRows({
                 toolsConfig: { automations: { a1: {} } },
@@ -427,11 +427,11 @@ describe('ToolsCard — automations als tool', () => {
             automationsState: READ.ERROR,
         });
         expect(screen.getByTestId('agent-automation-row')).toBeTruthy();
-        expect(screen.getByText(/this routine could not be read/)).toBeTruthy();
+        expect(screen.getByText(/this automation could not be read/)).toBeTruthy();
         expect(screen.getByTestId('agent-automations-unreadable')).toBeTruthy();
     });
 
-    it('meldt een routine die de agent niet meer kan aanroepen', () => {
+    it('meldt een automatisering die de agent niet meer kan aanroepen', () => {
         renderCard({
             automationRows: automationRows({
                 toolsConfig: { automations: { a2: {} } },
@@ -441,7 +441,21 @@ describe('ToolsCard — automations als tool', () => {
         expect(screen.getByText(/no agent trigger/)).toBeTruthy();
     });
 
-    it('toont de band niet zonder gegunde routines', () => {
+    it('meldt een gegunde automatisering die niet aan deze agent is gekoppeld, en zwijgt als dat onbekend is', () => {
+        const toolsConfig = { automations: { a1: {} } };
+        const { unmount } = renderCard({ automationRows: automationRows({ toolsConfig, automations: AUTOS, linkedIds: [] }) });
+        expect(screen.getByText(/not linked to this agent/)).toBeTruthy();
+        unmount();
+        renderCard({ automationRows: automationRows({ toolsConfig, automations: AUTOS, linkedIds: ['a1'] }) });
+        expect(screen.queryByText(/not linked to this agent/)).toBeNull();
+    });
+
+    it('zegt niets over koppelingen wanneer die niet te lezen waren', () => {
+        renderCard({ automationRows: automationRows({ toolsConfig: { automations: { a1: {} } }, automations: AUTOS }) });
+        expect(screen.queryByText(/not linked to this agent/)).toBeNull();
+    });
+
+    it('toont de band niet zonder gegunde automations', () => {
         renderCard();
         expect(screen.queryByTestId('agent-automations-band')).toBeNull();
     });

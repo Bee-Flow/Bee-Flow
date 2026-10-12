@@ -6,7 +6,7 @@
  * terminal on disk, never before: the first thing such a caller does is read
  * the row back, and a hook that fires early hands it "running". It also may
  * not take the run down with it — a throwing listener is the listener's
- * problem, not the routine's.
+ * problem, not the automation's.
  *
  * The runner is driven here with the automation store cut at the require seam,
  * so what the hook is handed and what order it happens in are the answers of
@@ -91,7 +91,7 @@ require.cache[execId] = {
 const { resumeFromStep } = require('./resume');
 
 const AUTOMATION = {
-    id: 'a1', name: 'test routine', user_id: 'u1', organization_id: null, is_active: true,
+    id: 'a1', name: 'test automation', user_id: 'u1', organization_id: null, is_active: true,
     definition: { trigger: { type: 'manual' }, steps: [{ id: 's1', type: 'set', fields: { greeting: 'hi' } }] },
 };
 

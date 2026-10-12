@@ -1,7 +1,7 @@
 /**
  * The COMPLIANCE phase — the last one, after access is set.
  *
- * What the playbook built is now a working thing with data in it, a routine
+ * What the playbook built is now a working thing with data in it, an automation
  * that moves that data around and an app other people can open. This phase
  * looks at all three against the frameworks THIS organisation has switched on
  * in the Compliance Center (frameworkPolicy.activeRegulations), and says what
@@ -54,15 +54,15 @@ const SEVERITIES = ['high', 'medium', 'low'];
  * which is not a step type at all, and it missed `integration_action` (every
  * connected-app action, including every mail and chat send) and `code` (whose
  * sandbox is handed an HTTPS fetch that can reach any public host). A review
- * could therefore report "nothing leaves this routine" about a routine whose
+ * could therefore report "nothing leaves this automation" about an automation whose
  * whole job was mailing a customer. That was fixed here first; the lists then
  * had to be written a second time for the checks that ask the same question of
  * what is already running, so they moved to core rather than being copied.
  *
  * The analyser also reads ORDER, which this file could not. `hasPrivacyStep`
- * is "is there a privacy step anywhere in this routine", and the finding it
+ * is "is there a privacy step anywhere in this automation", and the finding it
  * gates is titled "a model reads the data with no privacy check IN FRONT OF
- * IT" — so a shield dropped at the END of a routine, where it protects nothing
+ * IT" — so a shield dropped at the END of an automation, where it protects nothing
  * that already ran, answers a question about position by proving presence.
  * That fact now travels in `flow.models_unshielded`; the gate below still
  * reads the boolean, and the comment there says why.
@@ -108,7 +108,7 @@ function gatherFacts({ table = null, automations = [], app = null, access = null
     const autos = (Array.isArray(automations) ? automations : []).map((a) => {
         const steps = (a && Array.isArray(a.steps)) ? a.steps : [];
         const types = steps.map((s) => (s && s.type) || '').filter(Boolean);
-        // Where personal data travels through THIS routine, asked once. The
+        // Where personal data travels through THIS automation, asked once. The
         // personal columns are handed in so the analyser can say what would
         // travel, not merely that something might.
         const flow = dataFlow.analyseFlow({ steps, personal });
@@ -119,7 +119,7 @@ function gatherFacts({ table = null, automations = [], app = null, access = null
             stepCount: steps.length,
             types: [...new Set(types)],
             // Per STEP, not per type: an integration_action is outbound or not
-            // depending on the tool it runs. Deduped so a routine with four
+            // depending on the tool it runs. Deduped so an automation with four
             // mail sends reads as one outbound kind rather than four.
             outbound: flow.outboundTypes,
             aiSteps: flow.models.map((s2) => s2.type),
@@ -130,12 +130,12 @@ function gatherFacts({ table = null, automations = [], app = null, access = null
             // into the facts the model reads, and it is what the after-the-fact
             // GDPR check reads from the same analyser — so the two halves of
             // this product cannot come to different conclusions about one
-            // routine.
+            // automation.
             flow: dataFlow.flowRecord(flow),
             // Asked of the TOOL names, which is where those words live. This
             // tested step TYPES against tool-shaped patterns, and no real step
             // type contains "nextcloud", "file", "drive" or "onedrive" — so the
-            // flag was false for every routine ever reviewed, and a review that
+            // flag was false for every automation ever reviewed, and a review that
             // should have said "this reads files" never did.
             readsFiles: steps.some((s2) => /nextcloud|file|drive|onedrive|dropbox|sharepoint/i.test((s2 && s2.tool) || '')),
             // compliance/aiAct/signals.js — the product's own detector, not a
@@ -295,10 +295,10 @@ function staticFindings(facts, locale = 'en') {
         // `flow.models_unshielded` counts the models that have no Privacy
         // Shield EARLIER than them, which is the question this finding's own
         // title asks ("no privacy check in front of it"), and a shield dropped
-        // at the end of a routine protects nothing that already ran. But the
+        // at the end of an automation protects nothing that already ran. But the
         // sentence this finding prints is a fixed one — "…and there is no
         // Privacy Shield step in this automation" (copy.js) — and firing it
-        // for a routine that has a shield in the wrong place would make the
+        // for an automation that has a shield in the wrong place would make the
         // review say something untrue in three languages. Tightening the gate
         // is a COPY change first and a gate change second, and this review's
         // whole credibility rests on every sentence being readable off a fact.
@@ -344,7 +344,7 @@ function staticFindings(facts, locale = 'en') {
         }
         // Annex III: a HINT, said as one. The wording used to produce "this may
         // be a high-risk use of AI" — a legal qualification made by keyword
-        // match, wrong in both directions (a routine that merely mentions
+        // match, wrong in both directions (an automation that merely mentions
         // insurance got it; one doing facial recognition got nothing, because
         // five of the ten domains were not in the pattern at all). The pattern
         // now covers all ten (compliance/aiAct/annexIii.js) and what it

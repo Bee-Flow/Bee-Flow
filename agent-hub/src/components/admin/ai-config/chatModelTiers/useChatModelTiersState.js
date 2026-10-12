@@ -49,7 +49,7 @@ export default function useChatModelTiersState(allModels) {
     const [aiStepModel, setAiStepModel] = useState('');
     const [aiStepModelSaving, setAiStepModelSaving] = useState(false);
     const [aiStepModelMessage, setAiStepModelMessage] = useState(null);
-    // The routine Extract data step's own model — same contract, key
+    // The automation Extract data step's own model — same contract, key
     // `data_extraction_model`. Separate from the ai_step override on purpose.
     const [dataExtractionModel, setDataExtractionModel] = useState('');
     const [dataExtractionModelSaving, setDataExtractionModelSaving] = useState(false);

@@ -73,6 +73,8 @@ const express = require('express');
 const log = require('../telemetry/log');
 const router = express.Router();
 const skillStore = require('../stores/skillStore');
+const managedParts = require('../stores/lib/managedParts');
+const solutionStageStore = require('../stores/solutionStageStore');
 const { requirePermission, validateSharedGroupsForOrg, requireActiveOrgForMutations } = require('../auth');
 const { sanitizeEnabledIntegrations } = require('../core/tools/skillInjection');
 const { SkillStructureError } = require('../core/skills/skillStructure');
@@ -110,7 +112,7 @@ const SKILL_FIELDS = {
     // null leaves the groups as they are.
     sharedGroups: z.array(worded(GROUP_TEXT).trim().min(1, GROUP_TEXT),
         { invalid_type_error: 'sharedGroups is a list of group ids.' }).nullable(),
-    automationId: worded('automationId is the id of a routine, or null for none.').nullable(),
+    automationId: worded('automationId is the id of an automation, or null for none.').nullable(),
     // Not narrowed to KNOWN apps: a stored skill may carry one that has since
     // left the registry, and the autosave resends the whole list every time.
     // The sanitiser drops those, as before; the schema refuses the wrong shape.
@@ -309,6 +311,25 @@ router.post('/', requirePermission('manage_skills'), validate({ body: CreateSkil
     }
 });
 
+/**
+ * `managed: null | {solutionId, solutionName, stage, releaseSeq, devRef}`: the
+ * Solution stage that owns this skill (design 5.3). The client never derives
+ * it; a skill outside a stage project answers null without a stage read.
+ */
+async function managedOf(skill) {
+    if (!skill?.projectId || !(await managedParts.managedInfo(skill.projectId))) return null;
+    return solutionStageStore.managedPayloadFor({ projectId: skill.projectId, kind: 'skill', entityId: skill.id });
+}
+
+/**
+ * A refusal the store meant for the client (409 managed_part on a skill in a
+ * Solution stage) goes to the terminal handler, which answers its status,
+ * code and details; only an unexpected error becomes this route's 500.
+ */
+function isClientError(err) {
+    return Number.isInteger(err?.status) && err.status < 500;
+}
+
 // ── GET /api/skills/:id — get skill details ──────────────────
 router.get('/:id', validate({ query: NoQuery }), async (req, res) => {
     try {
@@ -317,7 +338,7 @@ router.get('/:id', validate({ query: NoQuery }), async (req, res) => {
         const viewer = await viewerOf(req);
         const skill = await skillStore.getSkill(req.params.id, orgId, req.session.user.id, viewer);
         if (!skill) return res.status(404).json({ error: 'Skill not found' });
-        res.json(skill);
+        res.json({ ...skill, managed: await managedOf(skill) });
     } catch (err) {
         log.error('[Skills] GET /:id error:', err);
         res.status(500).json({ error: 'Failed to load skill' });
@@ -370,16 +391,39 @@ router.get('/:id/test-runs', requirePermission('manage_skills'), validate({ quer
     }
 });
 
+/**
+ * A skill in a Solution stage changes only through a deploy (design 5.2). The
+ * from-message and AI-improve handlers write through updateSkill inside their
+ * own catch-all, which would turn the store's 409 managed_part into a 500 (and
+ * the AI rewrite would spend a model call first). So the refusal is asked here,
+ * before the handler, and goes to the terminal handler with its status, code
+ * and details. Only for a caller who may edit the skill: anyone else still
+ * reads the handler's own 404/403, never which Solution holds it.
+ *
+ * @param {string[]} changedKeys  what the handler would change
+ */
+function refuseStageSkill(changedKeys) {
+    return async (req, res, next) => {
+        const orgId = await getOrgId(req);
+        const viewer = await viewerOf(req);
+        const skill = await skillStore.getSkill(req.params.id, orgId, req.session.user.id, viewer);
+        if (skill?.projectId && skill.canEdit) {
+            await managedParts.assertManagedWrite({ kind: 'skill', projectId: skill.projectId, changedKeys, managedWrite: null });
+        }
+        next();
+    };
+}
+
 // ── POST /api/skills/:id/examples/from-message ───────────────
 // Turn one message of the caller's OWN conversation into an example. Same
 // `manage_skills` gate as every other skill write; the handler re-checks
 // `canEdit` on the row and reads the conversation owner-scoped.
-router.post('/:id/examples/from-message', requirePermission('manage_skills'), validate({ body: FromMessageBody }), (req, res) => examples().fromMessage(req, res));
+router.post('/:id/examples/from-message', requirePermission('manage_skills'), validate({ body: FromMessageBody }), refuseStageSkill(['examplesV2']), (req, res) => examples().fromMessage(req, res));
 
 // ── POST /api/skills/:id/ai/improve — rewrite this skill with AI ─────
 // A WRITE: it persists through updateSkill and answers with the stored row.
 // Same gate as every other skill write; the handler re-checks `canEdit`.
-router.post('/:id/ai/improve', requirePermission('manage_skills'), validate({ body: ImproveBody }), aiLimit, (req, res) => ai().improve(req, res));
+router.post('/:id/ai/improve', requirePermission('manage_skills'), validate({ body: ImproveBody }), refuseStageSkill(['instructions']), aiLimit, (req, res) => ai().improve(req, res));
 
 // ── POST /api/skills/:id/test — one question through the steps (SSE) ──
 // Writes a `skill_test_runs` row that the overview reads as a verdict, and
@@ -426,6 +470,7 @@ router.put('/:id', requirePermission('manage_skills'), validate({ body: UpdateSk
         res.json({ success: true });
     } catch (err) {
         if (answerStructureError(res, err)) return;
+        if (isClientError(err)) throw err;
         log.error('[Skills] PUT /:id error:', err);
         res.status(500).json({ error: 'Failed to update skill' });
     }
@@ -465,6 +510,7 @@ router.delete('/:id', validate({ query: DeleteQuery, body: DeleteBody }), async 
 
         res.json({ success: true });
     } catch (err) {
+        if (isClientError(err)) throw err;
         log.error('[Skills] DELETE /:id error:', err);
         res.status(500).json({ error: 'Failed to delete skill' });
     }

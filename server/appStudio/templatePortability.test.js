@@ -5,7 +5,7 @@
  * file decide about the installation that reads it? The answer is meant to be
  * "almost nothing", and the tests below are the almost.
  *
- * On the way OUT: nothing that names this organisation travels — not a routine
+ * On the way OUT: nothing that names this organisation travels — not an automation
  * id, not an approver seat, not a knowledge base, not the template's own row id
  * — and the allow-list is what decides that, so a column added to
  * studio_app_templates next year is absent here by default rather than by
@@ -174,7 +174,7 @@ test('a file with no title at all is refused with the reason, not a stack trace'
 
 // ── What the way out removes ───────────────────────────────────────────────
 
-test('a routine id picked up after capture is cleared on the way out, and said so', () => {
+test('an automation id picked up after capture is cleared on the way out, and said so', () => {
     const tpl = storedTemplate();
     // Canonicalize re-keys action ids, so the action is found rather than named.
     const actionId = Object.keys(tpl.definition.actions)[0];
@@ -182,7 +182,7 @@ test('a routine id picked up after capture is cleared on the way out, and said s
     const { envelope, warnings } = buildExport(tpl);
 
     assert.equal(envelope.template.definition.actions[actionId].automationId, null);
-    assert.equal(warnings.some((w) => /routine reference/.test(w)), true);
+    assert.equal(warnings.some((w) => /automation reference/.test(w)), true);
     assert.equal(JSON.stringify(envelope).includes('auto-somebody-elses'), false);
 });
 

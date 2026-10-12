@@ -1,4 +1,4 @@
-// "Ready to activate?" and the AI Act check of one routine: the ONLY place
+// "Ready to activate?" and the AI Act check of one automation: the ONLY place
 // that knows the wire contract of GET /:id/readiness, GET /:id/ai-act,
 // GET /:id/ai-act/suggestion and PUT /:id/ai-act (routes/automation/aiAct.js,
 // handoff 5 package S4). The automatic check (GET /:id/ai-act/check, PUT
@@ -6,7 +6,7 @@
 // The requests themselves go through ./http.
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { type AutomationRequestError, getRoutineJson, putRoutineJson } from './http';
+import { type AutomationRequestError, getAutomationJson, putAutomationJson } from './http';
 
 export type AiActStatus = 'not_required' | 'missing' | 'valid' | 'expired' | 'outdated' | 'prohibited';
 export type Tri = 'yes' | 'no' | 'unknown';
@@ -68,7 +68,7 @@ export interface AiActState {
 export const automationReadinessKeys = {
     readiness: (id: string) => ['automation-readiness', id] as const,
     suggestion: (id: string) => ['automation-readiness', 'ai-act-suggestion', id] as const,
-    /** The automatic check (aiActCheck.ts); the routine's stamp follows it. */
+    /** The automatic check (aiActCheck.ts); the automation's stamp follows it. */
     check: (id: string) => ['automation-readiness', 'ai-act-check', id] as const,
 };
 
@@ -188,15 +188,15 @@ export function answersToBody(a: AiActAnswers): Record<string, unknown> {
 }
 
 export async function fetchReadiness(id: string, signal?: AbortSignal): Promise<Readiness> {
-    return parseReadiness(await getRoutineJson(id, '/readiness', 'readiness', signal));
+    return parseReadiness(await getAutomationJson(id, '/readiness', 'readiness', signal));
 }
 
 export async function fetchAiActSuggestion(id: string, signal?: AbortSignal): Promise<AiActSuggestion> {
-    return parseSuggestion(await getRoutineJson(id, '/ai-act/suggestion', 'ai act suggestion', signal));
+    return parseSuggestion(await getAutomationJson(id, '/ai-act/suggestion', 'ai act suggestion', signal));
 }
 
 export async function saveAiActCheck(id: string, answers: AiActAnswers): Promise<AiActState> {
-    return parseAiActState(await putRoutineJson(id, '/ai-act', answersToBody(answers), 'ai act check'));
+    return parseAiActState(await putAutomationJson(id, '/ai-act', answersToBody(answers), 'ai act check'));
 }
 
 /**

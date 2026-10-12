@@ -6,32 +6,32 @@ import { nOf } from '../../admin/Studio/KnowledgeStudio/plural';
 import { segmentForSection } from '../../admin/Studio/studioRoutes';
 
 /**
- * "Used by 2 buttons": the strip under the routine editor's header.
+ * "Used by 2 buttons": the strip under the automation editor's header.
  *
  * Reads `GET /api/automation/:id/usage`, built from the `automation_usage`
- * index (one row per app, action and routine, written on every app save by
+ * index (one row per app, action and automation, written on every app save by
  * appStudio/automationUsageSync.js).
  *
- * It shows ONLY when at least one App Studio button runs the routine. A
+ * It shows ONLY when at least one App Studio button runs the automation. A
  * pending answer, a failed read, an empty list and an index that is not
- * complete yet all render nothing: the old "No app button runs this routine
+ * complete yet all render nothing: the old "No app button runs this automation
  * yet" / "Could not check" / "Not checked yet" lines sat under every header as
- * noise (owner, 2026-09-28), and deleting a routine keeps its own server-side
+ * noise (owner, 2026-09-28), and deleting an automation keeps its own server-side
  * 409 check against buttons that still use it.
  *
  * Links only when the SERVER said `canOpen`, never derived client-side.
  */
-/** The capsule's sentence; only drawn when at least one button runs the routine. */
+/** The capsule's sentence; only drawn when at least one button runs the automation. */
 function capsuleText(t, count) {
-    return nOf(t, 'routine_editor.used_by.count', count,
+    return nOf(t, 'automation_editor.used_by.count', count,
         'Used by {count} button', 'Used by {count} buttons');
 }
 
 export default function UsedByButtonsCapsule({ automationId, onNavigate = null }) {
     const { t } = useTranslation();
     const api = useAutomationApi();
-    // The answer travels WITH the id it belongs to, so switching routines
-    // never shows the previous routine's count. `usage`: undefined | null | Array.
+    // The answer travels WITH the id it belongs to, so switching automations
+    // never shows the previous automation's count. `usage`: undefined | null | Array.
     const [answer, setAnswer] = useState({ id: null, usage: undefined });
     const [open, setOpen] = useState(false);
 
@@ -48,7 +48,7 @@ export default function UsedByButtonsCapsule({ automationId, onNavigate = null }
         return () => { alive = false; };
     }, [automationId, api]);
 
-    // An answer about ANOTHER routine counts as not yet received.
+    // An answer about ANOTHER automation counts as not yet received.
     const usage = answer.id === automationId ? answer.usage : undefined;
 
     if (!automationId) return null;
@@ -56,8 +56,8 @@ export default function UsedByButtonsCapsule({ automationId, onNavigate = null }
 
     const rows = usage === null ? [] : usage;
     const count = rows.length;
-    // Only a routine that buttons actually run gets the strip. "No app button
-    // runs this routine yet" (and the unknown / not-checked variants) sat under
+    // Only an automation that buttons actually run gets the strip. "No app button
+    // runs this automation yet" (and the unknown / not-checked variants) sat under
     // every builder header as a permanent line of noise (owner, 2026-09-28).
     // The delete path keeps its own 409 check, so hiding them here loses no
     // safety.
@@ -71,7 +71,7 @@ export default function UsedByButtonsCapsule({ automationId, onNavigate = null }
                 aria-expanded={open}
                 onClick={() => setOpen((v) => !v)}
                 data-testid="usedby-buttons-capsule"
-                title={t('routine_editor.used_by.toggle', 'Show which buttons run this routine')}
+                title={t('automation_editor.used_by.toggle', 'Show which buttons run this automation')}
                 className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)]"
             >
                 <MousePointerClick className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
@@ -83,7 +83,7 @@ export default function UsedByButtonsCapsule({ automationId, onNavigate = null }
 
             {open ? (
                 <ul
-                    aria-label={t('routine_editor.used_by.list_label', 'The app buttons that run this routine')}
+                    aria-label={t('automation_editor.used_by.list_label', 'The app buttons that run this automation')}
                     className="mt-1.5 flex flex-col gap-1 list-none p-0 m-0"
                 >
                     {rows.map((row) => (
@@ -114,7 +114,7 @@ function UsageRow({ row, t, onNavigate }) {
     const href = `/app/studio/${segmentForSection('apps')}/${encodeURIComponent(row.consumerId)}`;
     const buttonText = row.wired
         ? (row.label || row.nodeId || row.actionId)
-        : t('routine_editor.used_by.unwired', 'Not wired to a button yet');
+        : t('automation_editor.used_by.unwired', 'Not wired to a button yet');
 
     return (
         <li className="flex items-center gap-1 min-w-0">
@@ -123,7 +123,7 @@ function UsageRow({ row, t, onNavigate }) {
                 <a
                     href={href}
                     onClick={onNavigate ? (e) => { e.preventDefault(); onNavigate(href); } : undefined}
-                    title={t('routine_editor.used_by.open_app', 'Open the app')}
+                    title={t('automation_editor.used_by.open_app', 'Open the app')}
                     className="inline-flex items-center gap-1 truncate text-[var(--text-secondary)] hover:text-[var(--text-primary)] underline decoration-dotted underline-offset-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)] rounded"
                 >
                     <span className="truncate">{appText}</span>

@@ -1,6 +1,6 @@
 /**
  * The English line for each piece of AI Act evidence (aiActDetect.js). The
- * builder translates by `code` (routines.aiact.reason.<code>) and falls back
+ * builder translates by `code` (automations.aiact.reason.<code>) and falls back
  * to this text; the params are what the sentence names. No dashes as
  * punctuation (owner rule), no addresses, no model prose.
  */

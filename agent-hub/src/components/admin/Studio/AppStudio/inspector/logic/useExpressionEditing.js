@@ -19,7 +19,7 @@ import { parseExprToRows } from '../../../../../automation/Builder/utils/conditi
  * picker, live validation and a preview, the other with nothing.
  *
  * What it owns:
- *   - the variable picker (shared with the routine builder), opened from a
+ *   - the variable picker (shared with the automation builder), opened from a
  *     button OR by typing a rooted prefix;
  *   - accepting a path dropped from that picker's leaves;
  *   - live parse + evaluation against the preview sample, through the SAME

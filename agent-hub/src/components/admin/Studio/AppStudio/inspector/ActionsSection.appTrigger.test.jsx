@@ -4,12 +4,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import ActionsSection, { getFormFields } from './ActionsSection';
 
 /**
- * app_trigger routines in the action inspector: typed param prefill from
+ * app_trigger automations in the action inspector: typed param prefill from
  * trigger.params, type badges on mapping rows, and file params locked to
  * file-upload form fields.
  */
 
-const APP_TRIGGER_ROUTINE = {
+const APP_TRIGGER_AUTOMATION = {
     id: 'auto-app',
     title: 'Process invoice',
     isActive: true,
@@ -26,7 +26,7 @@ const APP_TRIGGER_ROUTINE = {
 };
 
 vi.mock('../../../../../hooks/useAutomationApi', () => ({
-    default: () => ({ listAutomations: vi.fn(async () => ({ automations: [APP_TRIGGER_ROUTINE] })) }),
+    default: () => ({ listAutomations: vi.fn(async () => ({ automations: [APP_TRIGGER_AUTOMATION] })) }),
     safeText: vi.fn(async () => ''),
 }));
 
@@ -53,7 +53,7 @@ function defWith(node, actions = {}) {
 function renderActions(node, actions) {
     const definition = defWith(node, actions);
     const onCommit = vi.fn();
-    // The routine tile reads its run count and its solution through react-query
+    // The automation tile reads its run count and its solution through react-query
     // (both degrade to nothing), so the section needs a client the way the real
     // editor shell provides one.
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -90,7 +90,7 @@ describe('ActionsSection — app_trigger typed mapping', () => {
         ]);
     });
 
-    it('shows type badges from the routine contract on mapping rows', async () => {
+    it('shows type badges from the automation contract on mapping rows', async () => {
         const actions = {
             act1: {
                 kind: 'run_automation', automationId: 'auto-app',
@@ -131,11 +131,11 @@ describe('ActionsSection — app_trigger typed mapping', () => {
         expect(values).toEqual(['upload']); // input_text 'title' filtered out
     });
 
-    it('picking an app_trigger routine prefills typed rows (file → first file field)', async () => {
+    it('picking an app_trigger automation prefills typed rows (file → first file field)', async () => {
         const actions = { act1: { kind: 'run_automation', automationId: null } };
         const { onCommit, findByText, getByText } = renderActions(formNode, actions);
-        fireEvent.click(await findByText('Choose a routine…'));
-        // RoutinePicker body lists the app_trigger routine with its badge.
+        fireEvent.click(await findByText('Choose an automation…'));
+        // AutomationPicker body lists the app_trigger automation with its badge.
         fireEvent.click(await findByText('Process invoice'));
 
         await waitFor(() => expect(onCommit).toHaveBeenCalled());

@@ -23,7 +23,7 @@ const aiTaskStore = require('./aiTaskStore');
 
 // ── 1. Structural: the injected-store contract ──────────────────────────
 
-// Every method executeTask/executeAgentRoutine calls on its `store`.
+// Every method executeTask/executeAgentAutomation calls on its `store`.
 const RUNNER_SURFACE = ['markRunning', 'markCompleted', 'markError', 'advanceSchedule', 'updateTask'];
 
 test('cowork store implements the whole runner surface', () => {

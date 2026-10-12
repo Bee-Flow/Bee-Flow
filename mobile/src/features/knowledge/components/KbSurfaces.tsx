@@ -1,6 +1,6 @@
 /**
  * "Where it can be used" — which pickers offer the base: agents, chat,
- * routines (the web's SurfaceCard trio). Switching a surface off does not
+ * automations (the web's SurfaceCard trio). Switching a surface off does not
  * detach what already uses it, so a card says how many still are. The last
  * surface cannot go: a base has to be usable somewhere.
  */
@@ -17,7 +17,7 @@ import type { KnowledgeBase } from '../model/types';
 function surfaceLabel(t: TranslateFn, s: Surface): string {
     if (s === 'agent') return t('knowledge.settings.surface_agent', 'Agents');
     if (s === 'direct_chat') return t('knowledge.settings.surface_direct_chat', 'Chat');
-    return t('knowledge.settings.surface_ai_step', 'Routines');
+    return t('knowledge.settings.surface_ai_step', 'Automations');
 }
 
 function attachedNote(t: TranslateFn, n: number): string | undefined {

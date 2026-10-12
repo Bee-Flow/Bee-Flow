@@ -112,7 +112,7 @@ stub('../stores/notificationStore', {
 });
 
 // Skip the legacy user_sessions pool query in resolveUserSession.
-process.env.ROUTINE_AUTH_LEGACY = '0';
+process.env.AUTOMATION_AUTH_LEGACY = '0';
 // Block the boot tick / setIntervals.
 process.env.NODE_ENV = 'test';
 
@@ -435,7 +435,7 @@ test('the pin is CLONED — a step handler cannot mutate the saved definition', 
 
 // ── The sample goes through the Privacy Shield ────────────────────────────
 //
-// The trigger payload is the one input to a routine nobody in this org typed,
+// The trigger payload is the one input to an automation nobody in this org typed,
 // and executeAutomation scans it with safety.guardToolInput before step 1 runs
 // — an audit row, a stable placeholder for every value, and a `block` policy
 // that can stop the run. That scan keys off the LOCAL triggerPayload, so

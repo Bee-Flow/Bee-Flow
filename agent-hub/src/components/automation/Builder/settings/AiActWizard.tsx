@@ -57,7 +57,7 @@ export default function AiActWizard({ open, onClose, automationId, onDone }: {
 
     const q = AI_ACT_QUESTIONS[step];
     const last = step === AI_ACT_QUESTIONS.length - 1;
-    const heading = t('routines.aiact.title', 'AI Act check');
+    const heading = t('automations.aiact.title', 'AI Act check');
     const finish = () => save.mutate({
         usesAi: draft.usesAi || 'unknown',
         externalOutput: draft.externalOutput || 'unknown',
@@ -85,13 +85,13 @@ export default function AiActWizard({ open, onClose, automationId, onDone }: {
                         <p role="alert" className="text-[var(--error)]">
                             {save.error.code?.startsWith('ai_act') && save.error.message
                                 ? save.error.message
-                                : t('routines.aiact.save_failed', 'Could not record the check. Try again.')}
+                                : t('automations.aiact.save_failed', 'Could not record the check. Try again.')}
                         </p>
                     )}
                 </div>
                 <div className="px-[18px] py-3 border-t border-[var(--border-default)] flex gap-2">
                     <button type="button" disabled={step === 0} onClick={() => setStep(n => n - 1)} className={SECONDARY_BTN}>
-                        {t('routines.aiact.previous', 'Previous')}
+                        {t('automations.aiact.previous', 'Previous')}
                     </button>
                     <button
                         type="button"
@@ -99,7 +99,7 @@ export default function AiActWizard({ open, onClose, automationId, onDone }: {
                         onClick={() => (last ? finish() : setStep(n => n + 1))}
                         className={`${PRIMARY_BTN} ml-auto`}
                     >
-                        {last ? t('routines.aiact.finish', 'Finish check') : t('routines.aiact.next', 'Next')}
+                        {last ? t('automations.aiact.finish', 'Finish check') : t('automations.aiact.next', 'Next')}
                     </button>
                 </div>
             </div>
@@ -142,7 +142,7 @@ function CurrentQuestion({ q, step, draft, setDraft, suggestion }: {
             <div className="flex items-center gap-1.5 text-[var(--text-tertiary)]">
                 <BookOpen className="w-3 h-3" aria-hidden />
                 <a href={text.why.href} target="_blank" rel="noopener noreferrer" className="underline">
-                    {t('routines.aiact.why', 'Why do we ask this?')}
+                    {t('automations.aiact.why', 'Why do we ask this?')}
                 </a>
                 <span>· {text.why.label}</span>
             </div>
@@ -154,7 +154,7 @@ function DomainList({ domains, chosen, onToggle }: { domains: AiActDomain[]; cho
     const { t } = useTranslation();
     return (
         <fieldset className="flex flex-col gap-1 pl-1" data-testid="aiact-domains">
-            <legend className="font-semibold mb-1">{t('routines.aiact.domains', 'Which area? Pick at least one.')}</legend>
+            <legend className="font-semibold mb-1">{t('automations.aiact.domains', 'Which area? Pick at least one.')}</legend>
             {domains.map(d => (
                 <label key={d.id} className="flex items-start gap-2 cursor-pointer">
                     <input
@@ -179,7 +179,7 @@ function WizardHeader({ heading, step, onClose }: { heading: string; step: numbe
         <div className="px-[18px] py-3.5 flex items-center gap-2 border-b border-[var(--border-default)]">
             <h2 className="font-semibold text-sm">{heading}</h2>
             <span className="text-[var(--text-tertiary)]">
-                {t('routines.aiact.progress', 'question {n} of {total}', { n: step + 1, total: AI_ACT_QUESTIONS.length })}
+                {t('automations.aiact.progress', 'question {n} of {total}', { n: step + 1, total: AI_ACT_QUESTIONS.length })}
             </span>
             <div className="flex gap-[3px] ml-2.5" aria-hidden>
                 {AI_ACT_QUESTIONS.map((_, i) => (
@@ -204,11 +204,11 @@ function AnsweredLine({ index, question, answer, reason, onChange }: {
         <div className="flex items-center gap-2 text-[var(--text-secondary)]" data-testid={`aiact-answered-${question}`}>
             <CircleCheck className="w-3.5 h-3.5 shrink-0 text-[var(--success)]" aria-hidden />
             <span className="min-w-0">
-                {index + 1} · {text.title} <b className="text-[var(--text-primary)]">{chosen?.label || t('routines.aiact.unknown', 'I don\'t know')}</b>
+                {index + 1} · {text.title} <b className="text-[var(--text-primary)]">{chosen?.label || t('automations.aiact.unknown', 'I don\'t know')}</b>
                 {reason && <span className="text-[var(--text-tertiary)]"> · {reasonText(reason, t)}</span>}
             </span>
             <button type="button" onClick={onChange} className="ml-auto underline shrink-0">
-                {t('routines.aiact.change', 'change')}
+                {t('automations.aiact.change', 'change')}
             </button>
         </div>
     );
@@ -238,7 +238,7 @@ function OptionCards({ text, value, suggested, onPick }: {
                         <span className="min-w-0">
                             <span className="block font-semibold">
                                 {o.label}
-                                {bee && <span className="font-medium text-[var(--type-ai)]"> · {t('routines.aiact.bee_thinks', 'Bee thinks this')}</span>}
+                                {bee && <span className="font-medium text-[var(--type-ai)]"> · {t('automations.aiact.bee_thinks', 'Bee thinks this')}</span>}
                             </span>
                             {o.hint && <span className="block text-[var(--text-tertiary)]">{o.hint}</span>}
                         </span>

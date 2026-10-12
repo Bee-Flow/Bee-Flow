@@ -16,6 +16,7 @@
  * says "not seen yet — run the step above" rather than guessing a word.
  */
 import { pathListShape } from './listShape';
+import { jsonTextValue } from './upstream/fieldTree';
 import { walkPath } from '../../../../utils/bindingHelpers';
 
 export const KINDS = Object.freeze(['text', 'email', 'number', 'yesno', 'date', 'choice', 'list', 'group', 'table', 'file', 'unknown']);
@@ -34,17 +35,17 @@ export const KINDS = Object.freeze(['text', 'email', 'number', 'yesno', 'date', 
  * producers are `expectedKindFor` and datatableDisplay's `columnTypeKind`.
  */
 export const KIND_WORD = Object.freeze({
-    text: { key: 'routines.kind.text', en: 'text' },
-    email: { key: 'routines.kind.email', en: 'email address' },
-    number: { key: 'routines.kind.number', en: 'number' },
-    yesno: { key: 'routines.kind.yesno', en: 'yes/no' },
-    date: { key: 'routines.kind.date', en: 'date' },
-    choice: { key: 'routines.kind.choice', en: 'one of a list' },
-    list: { key: 'routines.kind.list', en: 'list' },
-    group: { key: 'routines.kind.group', en: 'group' },
-    table: { key: 'routines.kind.table', en: 'table' },
-    file: { key: 'routines.kind.file', en: 'file' },
-    unknown: { key: 'routines.kind.unknown', en: 'not seen yet' },
+    text: { key: 'automations.kind.text', en: 'text' },
+    email: { key: 'automations.kind.email', en: 'email address' },
+    number: { key: 'automations.kind.number', en: 'number' },
+    yesno: { key: 'automations.kind.yesno', en: 'yes/no' },
+    date: { key: 'automations.kind.date', en: 'date' },
+    choice: { key: 'automations.kind.choice', en: 'one of a list' },
+    list: { key: 'automations.kind.list', en: 'list' },
+    group: { key: 'automations.kind.group', en: 'group' },
+    table: { key: 'automations.kind.table', en: 'table' },
+    file: { key: 'automations.kind.file', en: 'file' },
+    unknown: { key: 'automations.kind.unknown', en: 'not seen yet' },
 });
 
 /** What the kind is underneath — for tooltips and for the schema bridge. */
@@ -115,6 +116,26 @@ export function formatBytes(n) {
 }
 
 /**
+ * How many columns a table has: every key its first rows carry, not only the
+ * first row's (a key only row 2 has is still a column the picker offers).
+ */
+function columnCount(rows) {
+    const keys = new Set();
+    for (const r of rows.slice(0, 50)) {
+        if (r && typeof r === 'object' && !Array.isArray(r)) for (const k of Object.keys(r)) keys.add(k);
+    }
+    return keys.size;
+}
+
+/** "· JSON with 3 fields", "· JSON with 1 field", "· JSON, a list of 2". */
+function jsonDetail(encoded, n, tr) {
+    if (Array.isArray(encoded)) return tr('automations.kind.json_list', '· JSON, a list of {n}', { n });
+    return n === 1
+        ? tr('automations.kind.json_record_one', '· JSON with 1 field')
+        : tr('automations.kind.json_record', '· JSON with {n} fields', { n });
+}
+
+/**
  * Describe a picker FIELD row: `{ key, path, sample, children }` from
  * upstream.js, resolved against the merged sample root when there is one.
  *
@@ -139,32 +160,44 @@ export function describeField(field, sampleRoot = null, t = null) {
         const shape = field?.path ? pathListShape(field.path, sampleRoot) : null;
         const count = shape?.count ?? (Array.isArray(value) ? value.length : null);
         if (kind === 'table') {
-            const cols = Array.isArray(value) && value.length ? Object.keys(value.find(r => r && typeof r === 'object') || {}).length : null;
-            const rowsText = count === 1 ? tr('routines.kind.row', '{n} row', { n: 1 }) : tr('routines.kind.rows', '{n} rows', { n: count ?? '?' });
-            const colsText = cols === 1 ? tr('routines.kind.column', '{n} column', { n: 1 }) : tr('routines.kind.columns', '{n} columns', { n: cols ?? '?' });
+            const cols = Array.isArray(value) && value.length ? columnCount(value) : null;
+            const rowsText = count === 1 ? tr('automations.kind.row', '{n} row', { n: 1 }) : tr('automations.kind.rows', '{n} rows', { n: count ?? '?' });
+            const colsText = cols === 1 ? tr('automations.kind.column', '{n} column', { n: 1 }) : tr('automations.kind.columns', '{n} columns', { n: cols ?? '?' });
             return { kind, word, value, count, of: 'records', detail: `· ${rowsText} · ${colsText}` };
         }
         const first = Array.isArray(value) ? value.find(x => x !== null && x !== undefined) : undefined;
         const elemKind = first === undefined ? null : kindOfValue(first);
-        const elemWord = elemKind ? tr(KIND_WORD[elemKind].key, KIND_WORD[elemKind].en) : null;
-        if (count === 0) return { kind, word, value, count, of: null, detail: tr('routines.kind.list_empty', '· empty') };
+        // A list of JSON texts reads "list of 2 · JSON", never as the raw text.
+        const elemWord = jsonTextValue(first) !== undefined
+            ? tr('automations.kind.json', 'JSON')
+            : (elemKind ? tr(KIND_WORD[elemKind].key, KIND_WORD[elemKind].en) : null);
+        if (count === 0) return { kind, word, value, count, of: null, detail: tr('automations.kind.list_empty', '· empty') };
         return {
             kind, word, value, count, of: elemKind,
             detail: count == null
-                ? (elemWord ? tr('routines.kind.list_of_kind', 'of {kind}', { kind: elemWord }) : null)
+                ? (elemWord ? tr('automations.kind.list_of_kind', 'of {kind}', { kind: elemWord }) : null)
                 : (elemWord
-                    ? tr('routines.kind.list_of_n_kind', 'of {n} · {kind}', { n: count, kind: elemWord })
-                    : tr('routines.kind.list_of_n', 'of {n}', { n: count })),
+                    ? tr('automations.kind.list_of_n_kind', 'of {n} · {kind}', { n: count, kind: elemWord })
+                    : tr('automations.kind.list_of_n', 'of {n}', { n: count })),
         };
     }
     if (kind === 'group') {
         const n = Object.keys(value).length;
-        return { kind, word, value, count: n, of: null, detail: tr('routines.kind.group_fields', '· {n} fields', { n }) };
+        const detail = n === 1 ? tr('automations.kind.group_field', '· 1 field') : tr('automations.kind.group_fields', '· {n} fields', { n });
+        return { kind, word, value, count: n, of: null, detail };
     }
     if (kind === 'file') {
         const name = value.name || value.filename || '';
         const size = formatBytes(value.size);
         return { kind, word, value, count: null, of: null, detail: [name, size].filter(Boolean).map(x => `· ${x}`).join(' ') || null };
+    }
+    const encoded = kind === 'text' ? jsonTextValue(value) : undefined;
+    if (encoded !== undefined) {
+        // JSON text (a body, an AI answer): say what it holds, never show the
+        // raw text; its fields open under the row with plain paths.
+        const n = Array.isArray(encoded) ? encoded.length : Object.keys(encoded).length;
+        const detail = jsonDetail(encoded, n, tr);
+        return { kind, word, value, count: null, of: null, detail };
     }
     if (kind === 'text' && typeof value === 'string' && value.length > 120) {
         // "text · 2 paragraphs" (design 1h) — a blob is not a value you read
@@ -172,8 +205,8 @@ export function describeField(field, sampleRoot = null, t = null) {
         const paragraphs = value.split(/\n\s*\n/).filter(x => x.trim()).length;
         const words = value.trim().split(/\s+/).length;
         const detail = paragraphs > 1
-            ? tr('routines.kind.paragraphs', '· {n} paragraphs', { n: paragraphs })
-            : tr('routines.kind.words', '· {n} words', { n: words });
+            ? tr('automations.kind.paragraphs', '· {n} paragraphs', { n: paragraphs })
+            : tr('automations.kind.words', '· {n} words', { n: words });
         return { kind, word, value, count: null, of: null, detail };
     }
     return { kind, word, value, count: null, of: null, detail: null };

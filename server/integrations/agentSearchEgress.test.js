@@ -51,3 +51,12 @@ test('a failing search still writes its row, then rethrows the same error', asyn
     assert.equal(d.rows[0].error, boom);
     assert.equal(d.rows[0].result, null);
 });
+
+test('read_url goes to the page reader, not the search provider, and still writes its row', async () => {
+    const d = deps(async () => { throw new Error('search provider must not be called'); });
+    d.executeReadUrlTool = async (name, args) => ({ url: args.url, text: 'page' });
+    const out = await runAgentSearchWithEgress('read_url', { url: 'https://example.test/a' }, EGRESS, d);
+    assert.deepEqual(out, { url: 'https://example.test/a', text: 'page' });
+    assert.equal(d.rows.length, 1);
+    assert.equal(d.rows[0].toolName, 'read_url');
+});

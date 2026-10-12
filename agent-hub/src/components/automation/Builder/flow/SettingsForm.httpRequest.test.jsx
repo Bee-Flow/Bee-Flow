@@ -105,7 +105,7 @@ describe('SettingsForm — HttpRequestFields', () => {
         expect(screen.getByText('Method')).toBeTruthy();
         // The security toggle lives in the (collapsed) Options accordion — expand it.
         fireEvent.click(screen.getByText('Options'));
-        const toggle = screen.getByRole('checkbox');
+        const toggle = screen.getByRole('checkbox', { name: /Block requests to private/ });
         expect(toggle.checked).toBe(true); // blockPrivateTargets default on
     });
 
@@ -120,7 +120,7 @@ describe('SettingsForm — HttpRequestFields', () => {
     it('toggling the security checkbox off is reflected in the control', () => {
         renderForm({ ...getStep(), id: 'h1' });
         fireEvent.click(screen.getByText('Options'));
-        const toggle = screen.getByRole('checkbox');
+        const toggle = screen.getByRole('checkbox', { name: /Block requests to private/ });
         fireEvent.click(toggle);
         expect(toggle.checked).toBe(false);
     });
@@ -263,7 +263,7 @@ describe('http_request — palette + upstream', () => {
  * `body` is a string and always was; a string can never satisfy `arrayRef` or
  * `repeat_for_each`, both of which require a real array, so a JSON API was
  * unusable as a list. `data` is the same body already parsed, added alongside
- * rather than replacing it — every saved routine reading `body` as text keeps
+ * rather than replacing it — every saved automation reading `body` as text keeps
  * working byte for byte.
  */
 describe('http_request — the parsed response', () => {

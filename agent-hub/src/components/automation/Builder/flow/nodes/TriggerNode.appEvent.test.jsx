@@ -8,7 +8,7 @@ import { NodeRuntimeContext } from '../NodeRuntimeContext';
  * The trigger card is the first card anyone ever sees, and an app-event
  * trigger used to open it with the raw dotted event id in monospace
  * (`gmail.mail.new`) — machine syntax in the one slot that should be saying,
- * in words, what starts this routine.
+ * in words, what starts this automation.
  *
  * What this pins down is the whole doctrine, both halves:
  *   · the card shows the sentence — the name the node-config header already

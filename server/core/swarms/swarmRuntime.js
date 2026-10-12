@@ -27,6 +27,7 @@ const { getAdapter } = require('../providers');
 const { buildDirectChatToolStack } = require('../tools/directChatToolStack');
 const { executeTool: dispatchTool } = require('../tools/toolDispatcher');
 const usageStore = require('../../stores/usageStore');
+const { usageLogFields } = require('../providers/usageNormalizer');
 const dlpRunner = require('../dlp/dlpRunner');
 const { buildTokenPreservationAddendum } = require('../dlp/tokenPreservationPrompt');
 
@@ -281,13 +282,7 @@ async function runWorker({
                             agent_name: worker.name || workerId,
                             agent_type: 'swarm',
                             model: model.modelId,
-                            prompt_tokens: data.prompt_tokens || 0,
-                            completion_tokens: data.completion_tokens || 0,
-                            total_tokens: data.total_tokens || 0,
-                            cached_tokens: data.cached_tokens || 0,
-                            cache_creation_tokens: data.cache_creation_tokens || 0,
-                            reasoning_tokens: data.reasoning_tokens || 0,
-                            cache_ttl: data.cache_ttl || null,
+                            ...usageLogFields(data),
                             stop_reason: data.stop_reason || null,
                             swarm_run_id: swarmRunId,
                             parent_call_id: swarmRunId,  // worker's parent is the swarm run itself

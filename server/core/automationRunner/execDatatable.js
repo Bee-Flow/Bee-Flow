@@ -22,7 +22,7 @@
  *    `datatable_identity_unavailable` rather than with `datatable_forbidden`.
  *    An unresolved orgRole degrades to "not an admin" and an unresolved group
  *    list to "in no group", so the old behaviour reported a lookup outage as an
- *    authorisation refusal on a routine that worked yesterday. A personal table
+ *    authorisation refusal on an automation that worked yesterday. A personal table
  *    is unaffected: its rule is "you are the account", which needs none of them.
  *
  * 2. DEGRADE AN UNRESOLVED FILTER TO "ALL ROWS". ANY operation whose condition
@@ -70,8 +70,9 @@
 'use strict';
 
 const { resolveValue, resolveInputs } = require('../../automation/bind');
+const { hasPlaceholder } = require('../../automation/validate/refPaths');
 const {
-    DATATABLE_WRITE_OPS, DATATABLE_MAX_LIMIT,
+    DATATABLE_WRITE_OPS, DATATABLE_MAX_LIMIT, PENDING_DATATABLE_RE,
 } = require('../../automation/validate/constants');
 // Literals only — no store, no pool — so this one may be required eagerly.
 const { SYSTEM_COLUMNS } = require('../dataEngine/dataModel/vocabulary');
@@ -159,16 +160,37 @@ const VALUELESS_OPS = new Set(['isNull', 'isNotNull']);
  * The keyset cursor a `find_rows` step was given — a binding like every other
  * field, so `{{steps.page1.output.nextCursor}}` is how a loop walks a table
  * bigger than one page. Anything that is not a non-empty string is page 1.
+ *
+ * A bare STRING with a placeholder is that template (the AI builder used to
+ * store the cursor that way, and the validator and portability read it so);
+ * resolveValue would take it for a literal and hand the query the braces.
  */
 function readCursor(binding, runState) {
     if (binding === undefined || binding === null || binding === '') return null;
-    const v = resolveValue(binding, runState, { allowSecrets: false });
+    const asBinding = typeof binding === 'string' && hasPlaceholder(binding) ? { kind: 'template', value: binding } : binding;
+    const v = resolveValue(asBinding, runState, { allowSecrets: false });
     return typeof v === 'string' && v ? v : null;
 }
 
 async function execDatatable(step, ctx, runState, mode) {
     const op = step.op || 'find_rows';
     const isWrite = DATATABLE_WRITE_OPS.has(op);
+
+    // A table the builder only PROPOSED ("pending:<n>", not created until the
+    // user applies the proposal). Before any lookup: resolveDatatableForStep
+    // would call it unknown. A preview simulates it (reads return the empty
+    // shape, which is true of a new table; a write returns what it would
+    // write); a live run must never get here, and fails closed.
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- PENDING_DATATABLE_RE is anchored and bounded (pending:1-999)
+    if (typeof step.datatableId === 'string' && PENDING_DATATABLE_RE.test(step.datatableId)) {
+        if (mode !== 'dry_run') {
+            throw fail('This step points at a table that was proposed but never created. Apply the proposal that creates it, or pick a table.', 'datatable_pending');
+        }
+        const preview = (op === 'add_row' || op === 'save_row')
+            ? { row: resolveInputs(step.values || {}, runState, { allowSecrets: false, listAs: 'json' }), id: null, created: true, updated: 0 }
+            : emptyOutput(op);
+        return { output: { ...preview, _dryRunSynthesised: true, _pendingTable: step.datatableId } };
+    }
 
     // Required lazily: the runner must stay loadable in suites that stub the DB,
     // and these pull in the pg pool.
@@ -283,7 +305,7 @@ async function execDatatable(step, ctx, runState, mode) {
                 // was: it is rows.length clamped by the page size, so a
                 // condition on `count > 100` after a default page of 50 could
                 // never fire. `count` survives as an alias for one release so
-                // existing routines keep working; count_rows answers the
+                // existing automations keep working; count_rows answers the
                 // question the name promised.
                 returned: rows.length,
                 count: rows.length,
@@ -299,7 +321,7 @@ async function execDatatable(step, ctx, runState, mode) {
     if (op === 'count_rows') {
         // COUNT(*) through compileAggregate, which ANDs the same access
         // predicate into the WHERE that feeds the aggregate — so a count can
-        // never report rows the routine may not read.
+        // never report rows the automation may not read.
         const { sql, params } = queryCompiler.compileAggregate(tableMeta, {
             filters, match, aggregates: [{ fn: 'count', field: '*', as: 'total' }], dialect: 'pg',
         }, readFilter);
@@ -309,7 +331,8 @@ async function execDatatable(step, ctx, runState, mode) {
     }
 
     // ── 5. writes ───────────────────────────────────────────────────────
-    const resolvedValues = resolveInputs(step.values || {}, runState, { allowSecrets: false });
+    // A cell is data: a list in a `{{…}}` is stored as JSON, as it always was.
+    const resolvedValues = resolveInputs(step.values || {}, runState, { allowSecrets: false, listAs: 'json' });
 
     // A credential must never become a permanent row. Rows deliberately skip
     // redactForPersistence (they are the user's own data, not a log), so this
@@ -373,6 +396,11 @@ async function execDatatable(step, ctx, runState, mode) {
     } else {
         accessFilter.assertCanWrite(tableMeta, grade, accessAction);
     }
+    // A Solution stage's reference table: its rows are the release's. The
+    // compiler refuses every write on it (RowsLockedError, errorClass
+    // `managed_part`, which an on_error branch matches); asked here as well so
+    // a preview says so instead of synthesising a write the live run refuses.
+    queryCompiler.assertRowsWritable(tableMeta);
 
     if (mode === 'dry_run') {
         // A preview must not leave rows behind — and it must not describe a
@@ -414,7 +442,7 @@ async function execDatatable(step, ctx, runState, mode) {
                     // The real row count, not a hard-coded 1: the row can be
                     // readable and still out of the UPDATE's scope, and
                     // reporting 1 for a statement that changed nothing is how a
-                    // routine claims to have saved something it did not.
+                    // automation claims to have saved something it did not.
                     return {
                         output: {
                             row: { ...existing, ...values }, id: existing.id,
@@ -429,7 +457,7 @@ async function execDatatable(step, ctx, runState, mode) {
         // validate/constants.js promises authors that a datatable step "fails
         // on … a quota" so an on_error branch catches something; only the HTTP
         // route ever enforced it, and only the per-table row cap, so in a
-        // routine it caught nothing and the shared volume had no ceiling at all.
+        // automation it caught nothing and the shared volume had no ceiling at all.
         await assertDatatableQuota(scope, { table, addRows: 1 });
         // A mirror: the source first, the copy from its answer. A refusal
         // carries `errorClass`, so an on_error branch matches it like any
@@ -538,4 +566,4 @@ async function execDatatable(step, ctx, runState, mode) {
         : { output: { updated: n, truncated, ...(warning ? { warning } : {}) } };
 }
 
-module.exports = { execDatatable, MIRROR_WRITE_MAX_PER_STEP, NC_WRITE_MAX_PER_STEP };
+module.exports = { execDatatable, MIRROR_WRITE_MAX_PER_STEP, NC_WRITE_MAX_PER_STEP, _test: { readCursor } };

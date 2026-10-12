@@ -54,6 +54,25 @@ async function startTurn(sendArgs = { message: 'x', modelTier: 'fast' }, { setup
 }
 
 describe('useAutomationBuilderStream — state.turn', () => {
+    it('keeps review previews separate from the draft and clears them on reset', async () => {
+        const original = { trigger: { id: 't' }, steps: [{ id: 's', label: 'Original' }] };
+        const preview = { trigger: { id: 't' }, steps: [{ id: 's', label: 'Proposed' }] };
+        const { result, body, finish } = await startTurn({ message: 'Change it', workMode: 'approve' }, { setup: r => r.current.setDraft(original) });
+        await act(async () => {
+            body.push(sse('proposal_preview', { id: 'p', definition: preview, baseDefinition: original }));
+            body.push(sse('review_plan', { plan: { id: 'plan', status: 'review' } }));
+            body.push(sse('review_questions', { questions: [{ id: 'q', prompt: 'Which folder?', options: ['A', 'B'] }] }));
+            await flush();
+        });
+        expect(result.current.state.draft).toEqual(original);
+        expect(result.current.state.proposal.definition).toEqual(preview);
+        expect(result.current.state.reviewQuestions).toHaveLength(1);
+        await finish();
+        act(() => result.current.reset());
+        expect(result.current.state.proposal).toBeNull();
+        expect(result.current.state.reviewPlan).toBeNull();
+        expect(result.current.state.reviewQuestions).toBeNull();
+    });
     // Date.now advances 1 s per call so "set once" is provable: a second write
     // would land a different number.
     let clock;
@@ -238,6 +257,31 @@ describe('useAutomationBuilderStream — state.turn', () => {
         // Only role + content travel; reasoning and tool calls stay local.
         expect(Object.keys(posted.history[5])).toEqual(['role', 'content']);
         expect(result.current.state.messages).toHaveLength(32);
+        await finish();
+    });
+});
+
+// The composer's Web search switch: the turn posts it, and the server's answer
+// (`web_search`) lands on state so the composer can disable a switch the
+// server refused instead of showing it on while it does nothing.
+describe('useAutomationBuilderStream — web search', () => {
+    beforeEach(() => authFetch.mockReset());
+
+    it('posts the switch as webSearchEnabled', async () => {
+        const off = await startTurn({ message: 'x', modelTier: 'fast', webSearchEnabled: false });
+        expect(JSON.parse(authFetch.mock.calls[0][1].body).webSearchEnabled).toBe(false);
+        await off.finish();
+        authFetch.mockReset();
+        const on = await startTurn({ message: 'x', modelTier: 'fast', webSearchEnabled: true });
+        expect(JSON.parse(authFetch.mock.calls[0][1].body).webSearchEnabled).toBe(true);
+        await on.finish();
+    });
+
+    it('stores the server\'s web_search answer', async () => {
+        const { result, body, finish } = await startTurn();
+        expect(result.current.state.webSearch).toBeNull();
+        await act(async () => { body.push(sse('web_search', { requested: true, available: false, reason: 'not_configured' })); await flush(); });
+        expect(result.current.state.webSearch).toEqual({ requested: true, available: false, reason: 'not_configured' });
         await finish();
     });
 });

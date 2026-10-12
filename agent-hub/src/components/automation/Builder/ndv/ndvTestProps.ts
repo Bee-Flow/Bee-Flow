@@ -32,7 +32,7 @@ export function ndvProps(step: Step, definition: Definition, overrides: Props = 
     };
 }
 
-/** An AI step alone in a manual routine: what the plain suites open. */
+/** An AI step alone in a manual automation: what the plain suites open. */
 export const AI_STEP: Step = { id: 's1', type: 'ai_step', label: 'My AI', prompt: 'Do X', inputs: {}, outputFields: [] };
 export const AI_DEFINITION: Definition = { trigger: { id: 't1', type: 'trigger', kind: 'manual' }, steps: [AI_STEP], edges: [] };
 
@@ -53,7 +53,7 @@ export const GMAIL_CATALOG = {
 
 /**
  * `step` as the only step after a schedule trigger (a trigger opens the
- * trigger itself), in a saved routine, with GMAIL_CATALOG.
+ * trigger itself), in a saved automation, with GMAIL_CATALOG.
  */
 export function scheduledStepProps(step: Step, extra: Props = {}): Props {
     const trigger: Step = { id: 'trg', type: 'trigger', kind: 'schedule', output: {} };

@@ -28,7 +28,7 @@ const { BRANCHER_TYPES } = require('../constants');
  *  1. SIZE. There is no definition size cap anywhere today except bodyParser's
  *     20 MB, and every save writes a full snapshot of the definition into
  *     `automation_versions`. So a 15 MB pasted pin is not one row: it is one row
- *     per save, forever, plus every read of the routine. The cap is the run
+ *     per save, forever, plus every read of the automation. The cap is the run
  *     history's own per-payload cap (payloadTruncation.DEFAULT_MAX_BYTES) —
  *     anything a step output would have been truncated at is not a sane pin.
  *
@@ -73,7 +73,7 @@ function checkPinnedOutput(node, at, { pushE, outgoingLabels = null, isTrigger =
         return;
     }
     if (bytes > DEFAULT_MAX_BYTES) {
-        pushE({ code: 'pin.too_large', severity: 'error', path: at + '.pinnedOutput', message: `${who}: the pinned sample data is ${Math.round(bytes / 1024)} KB — the maximum is ${Math.round(DEFAULT_MAX_BYTES / 1024)} KB. It is stored inside the routine and re-saved in full on every change.`, hint: `${unpin} A few representative rows test the flow just as well as all of them.` });
+        pushE({ code: 'pin.too_large', severity: 'error', path: at + '.pinnedOutput', message: `${who}: the pinned sample data is ${Math.round(bytes / 1024)} KB — the maximum is ${Math.round(DEFAULT_MAX_BYTES / 1024)} KB. It is stored inside the automation and re-saved in full on every change.`, hint: `${unpin} A few representative rows test the flow just as well as all of them.` });
     }
 
     // 2 — the truncation sentinel is not data.

@@ -14,7 +14,7 @@
       "id": "where",
       "icon": "🧭",
       "title": "Two switches that look like a pair",
-      "bodyMd": "Next quarter's bill needs defending, so you go looking for something to turn down. In **Settings → Organisation**, between **Encryption** and **Organisation Info**, sit two candidates:\n\n- **Conversation Memory** — how much of a long *chat* the assistant still sees.\n- **Answer Reuse** — whether the answers a *routine* gets back from a connected app are kept between runs.\n\nSide by side they look like a matched pair of cost dials. They are neither: one governs chats, the other routines, neither touches the other, and each charges in its own currency — detail the assistant loses, or data you now store.\n\nVan Dijk Groep, a Dutch SME of sixty people, turned both; we follow what it cost them. Only organisation admins see either entry, and neither is a paid extra — every plan has both, self-host included."
+      "bodyMd": "Next quarter's bill needs defending, so you go looking for something to turn down. In **Settings → Organisation**, between **Encryption** and **Organisation Info**, sit two candidates:\n\n- **Conversation Memory** — how much of a long *chat* the assistant still sees.\n- **Answer Reuse** — whether the answers a *automation* gets back from a connected app are kept between runs.\n\nSide by side they look like a matched pair of cost dials. They are neither: one governs chats, the other automations, neither touches the other, and each charges in its own currency — detail the assistant loses, or data you now store.\n\nVan Dijk Groep, a Dutch SME of sixty people, turned both; we follow what it cost them. Only organisation admins see either entry, and neither is a paid extra — every plan has both, self-host included."
     },
     {
       "type": "slide",
@@ -75,13 +75,13 @@
       "id": "reuse",
       "icon": "🗄️",
       "title": "Answer Reuse is a cupboard, not a note",
-      "bodyMd": "Two things sound alike and are not.\n\n**Inside one run**, a routine can avoid asking the same question twice — a step ticked **Ask this app only once per run**. Van Dijk's HR routine loops over all sixty employees; that tick stops it hammering the same look-up. The answer lives in memory on the run, dies with the run, is stored nowhere, and needs no permission from you.\n\n**Between runs** is the other thing. The answer is written to the database, encrypted, so tomorrow's run can use it instead of asking again. That means storing what the app sent back — a mailbox search result is somebody's mail. So it is an admin's decision, it is off by default, and saving it records that a human said yes.\n\n**Answer Reuse** governs only the second."
+      "bodyMd": "Two things sound alike and are not.\n\n**Inside one run**, an automation can avoid asking the same question twice — a step ticked **Ask this app only once per run**. Van Dijk's HR automation loops over all sixty employees; that tick stops it hammering the same look-up. The answer lives in memory on the run, dies with the run, is stored nowhere, and needs no permission from you.\n\n**Between runs** is the other thing. The answer is written to the database, encrypted, so tomorrow's run can use it instead of asking again. That means storing what the app sent back — a mailbox search result is somebody's mail. So it is an admin's decision, it is off by default, and saving it records that a human said yes.\n\n**Answer Reuse** governs only the second."
     },
     {
       "type": "quiz",
       "id": "q-halves",
       "icon": "🧮",
-      "question": "The admin turns Answer Reuse on, leaves Answers from connected apps ticked, and saves. A week later the lead routine still calls the ticket system on every run, and the Stored right now line has never appeared. What is missing?",
+      "question": "The admin turns Answer Reuse on, leaves Answers from connected apps ticked, and saves. A week later the lead automation still calls the ticket system on every run, and the Stored right now line has never appeared. What is missing?",
       "multi": false,
       "choices": [
         {
@@ -108,7 +108,7 @@
           "feedback": "It covers both, as two separate ticks. Answers from connected apps is precisely the app half, and it was on."
         }
       ],
-      "explanation": "Three levels must all agree before anything is stored: the server's operator has not switched it off, the organisation allows that kind of answer, and the step's author asked for it. The warning the routine shows reads \"answers are only kept between runs if your organisation allows it\" — which sends admins hunting in the half that was already correct."
+      "explanation": "Three levels must all agree before anything is stored: the server's operator has not switched it off, the organisation allows that kind of answer, and the step's author asked for it. The warning the automation shows reads \"answers are only kept between runs if your organisation allows it\" — which sends admins hunting in the half that was already correct."
     },
     {
       "type": "sim",
@@ -127,13 +127,13 @@
           },
           {
             "id": "loop",
-            "left": "A routine that loops over all sixty employees and repeats the same leave-balance look-up inside one single run.",
+            "left": "An automation that loops over all sixty employees and repeats the same leave-balance look-up inside one single run.",
             "right": "The step tick: Ask this app only once per run",
             "note": "Reuse inside a run stores nothing and needs no organisation setting at all. Nothing to approve."
           },
           {
             "id": "leads",
-            "left": "A lead routine that calls a per-call billed company register, and a burst of new leads keeps asking it about the same twenty companies within the hour.",
+            "left": "A lead automation that calls a per-call billed company register, and a burst of new leads keeps asking it about the same twenty companies within the hour.",
             "right": "Answer Reuse: keep answers for a short while",
             "note": "Only a stored answer survives from one run into the next, and only for the window you set — 60 minutes at most. As a hand-typed web service step it also needs the Answers from web service calls tick."
           },
@@ -157,7 +157,7 @@
       "id": "ttl-purge",
       "icon": "⏱️",
       "title": "The window is also your staleness budget",
-      "bodyMd": "**How long an answer may be reused** runs from 1 to 60 minutes and starts at **5**. Read it twice: whatever you pick is also the longest a run can be working from old data.\n\nThe surprise is what happens when you shorten it. Dragging the window **down** and saving rewrites the expiry on answers **already stored** — the screen says so under the slider. Drop 60 minutes to 5 and the change bites now, not in another 55 minutes. That is what makes it a usable emergency brake when somebody notices a routine acting on yesterday's numbers.\n\nLengthening it is the opposite kind of decision: you are not just buying fewer calls, you are widening the staleness budget for every routine in the organisation at once."
+      "bodyMd": "**How long an answer may be reused** runs from 1 to 60 minutes and starts at **5**. Read it twice: whatever you pick is also the longest a run can be working from old data.\n\nThe surprise is what happens when you shorten it. Dragging the window **down** and saving rewrites the expiry on answers **already stored** — the screen says so under the slider. Drop 60 minutes to 5 and the change bites now, not in another 55 minutes. That is what makes it a usable emergency brake when somebody notices an automation acting on yesterday's numbers.\n\nLengthening it is the opposite kind of decision: you are not just buying fewer calls, you are widening the staleness budget for every automation in the organisation at once."
     },
     {
       "type": "slide",
@@ -171,7 +171,7 @@
       "id": "refusals",
       "icon": "⛔",
       "title": "Two things the product refuses to store",
-      "bodyMd": "Some answers are never kept between runs, however the three levels are set.\n\n**A step that changes something.** Reuse covers look-ups only. On an action that creates or updates in a connected app the tick is greyed out, reading *“This action changes something in <App>, so its answer cannot be reused.”* Some look-ups are refused too — ones checked fresh every time because they move by the minute or have their permissions checked as they run.\n\n**Anything sent out under Privacy Shield's tokenise or redact modes.** There the outgoing arguments are placeholders, so two different people produce an identical question — and would share one stored answer. Rather than risk handing Bram's result to Nadia, storing between runs is refused outright while those modes are on.\n\nNeither refusal warns you on the settings screen. You meet them in the routine."
+      "bodyMd": "Some answers are never kept between runs, however the three levels are set.\n\n**A step that changes something.** Reuse covers look-ups only. On an action that creates or updates in a connected app the tick is greyed out, reading *“This action changes something in <App>, so its answer cannot be reused.”* Some look-ups are refused too — ones checked fresh every time because they move by the minute or have their permissions checked as they run.\n\n**Anything sent out under Privacy Shield's tokenise or redact modes.** There the outgoing arguments are placeholders, so two different people produce an identical question — and would share one stored answer. Rather than risk handing Bram's result to Nadia, storing between runs is refused outright while those modes are on.\n\nNeither refusal warns you on the settings screen. You meet them in the automation."
     },
     {
       "type": "quiz",
@@ -182,7 +182,7 @@
       "choices": [
         {
           "id": "a",
-          "label": "Leave balances read from the HR app each morning by the routine that mails reminders about untaken days.",
+          "label": "Leave balances read from the HR app each morning by the automation that mails reminders about untaken days.",
           "correct": true
         },
         {
@@ -198,7 +198,7 @@
         },
         {
           "id": "d",
-          "label": "A currency rate table a routine fetches from a public web service.",
+          "label": "A currency rate table an automation fetches from a public web service.",
           "correct": false,
           "feedback": "Stable for far longer than the one-hour maximum window, and not personal data. Reuse is safe here."
         }
@@ -211,7 +211,7 @@
       "icon": "✍️",
       "exerciseId": "ex-defend-both-switches",
       "title": "Make the call, and write what it costs",
-      "instruction": "Two requests reach Van Dijk's admin in one week.\n\n1. Support wants faster handling: on every incoming mail the support routine looks up that customer's open tickets in the ticket system, and busy customers are looked up several times an hour. The mail bodies go out under Privacy Shield in its real mode.\n2. Procurement's long tender chats have become the biggest line on the bill, and somebody suggests \"just turn the memory down\".\n\nWrite the decision you would put in writing for both. For each: which screen, which mode, and — the part that matters — the price you are accepting by choosing it. If a setting of yours is not enough on its own, say what else has to happen.",
+      "instruction": "Two requests reach Van Dijk's admin in one week.\n\n1. Support wants faster handling: on every incoming mail the support automation looks up that customer's open tickets in the ticket system, and busy customers are looked up several times an hour. The mail bodies go out under Privacy Shield in its real mode.\n2. Procurement's long tender chats have become the biggest line on the bill, and somebody suggests \"just turn the memory down\".\n\nWrite the decision you would put in writing for both. For each: which screen, which mode, and — the part that matters — the price you are accepting by choosing it. If a setting of yours is not enough on its own, say what else has to happen.",
       "placeholder": "Answer Reuse: I would … , which costs us … . Conversation Memory: I would … , because … . This only works if …",
       "passScore": 65,
       "maxAttempts": 3
@@ -233,12 +233,12 @@
       "id": "now",
       "icon": "✅",
       "title": "What you can do now",
-      "bodyMd": "- **Read the two apart.** Conversation Memory is about a chat and is lossy when on. Answer Reuse is about a routine and stores data between runs. Neither is a general cost dial, and the lossless half — context editing at the model — needs nothing from you.\n- **Defend the Safety limit.** It is the one number on that screen worth choosing on purpose, it applies in both modes, and for providers other than Claude it is the only ceiling there is.\n- **Know which half is missing.** Reuse on but nothing reused? Look at the step, not the setting. And remember that switching Answer Reuse off erases as well as stops, while shortening the window applies to what is already held."
+      "bodyMd": "- **Read the two apart.** Conversation Memory is about a chat and is lossy when on. Answer Reuse is about an automation and stores data between runs. Neither is a general cost dial, and the lossless half — context editing at the model — needs nothing from you.\n- **Defend the Safety limit.** It is the one number on that screen worth choosing on purpose, it applies in both modes, and for providers other than Claude it is the only ceiling there is.\n- **Know which half is missing.** Reuse on but nothing reused? Look at the step, not the setting. And remember that switching Answer Reuse off erases as well as stops, while shortening the window applies to what is already held."
     }
   ],
   "practiceTopic": {
     "title": "Conversation Memory and Answer Reuse",
-    "summary": "The two organisation switches that govern how much of a chat the assistant sees and whether a routine's answers are stored between runs.",
+    "summary": "The two organisation switches that govern how much of a chat the assistant sees and whether an automation's answers are stored between runs.",
     "facts": [
       "Conversation Memory defaults to Keep the full conversation (recommended); summarising is opt-in per organisation and is lossy, because detail folded into the summary is gone for the rest of that conversation.",
       "The Safety limit defaults to 75% of the model's context window and can be set between 25% and 95%; it fires in both modes and is the only protection for providers other than Claude.",
@@ -259,7 +259,7 @@
         "States what that choice costs: the ticket answers are written to the database, and a run may act on data as old as the window.",
         "Notes that the org setting alone changes nothing until the step's author ticks Ask this app only once per run and, under it, keeping the answer for later runs.",
         "Case 2 resists the reflex: summarising is lossy and the folded detail is gone for that conversation, so the defensible lever is the mode choice or the Safety limit, argued against the model's context window.",
-        "Keeps the two switches apart — no claim that either of them governs both chats and routines."
+        "Keeps the two switches apart — no claim that either of them governs both chats and automations."
       ],
       "passScore": 65,
       "guidance": "Reward a decision that is made, not hedged. Full marks do not require a particular answer: storing ticket look-ups for a short window is defensible, and so is refusing because ticket contents are customer data. Withhold marks when the price is left unnamed, when the step-level tick is forgotten, or when the learner treats Conversation Memory as a cost dial without mentioning the detail it destroys."

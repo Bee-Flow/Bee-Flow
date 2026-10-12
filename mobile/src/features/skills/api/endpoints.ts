@@ -52,7 +52,7 @@ export async function updateSkill(id: string, payload: Partial<SkillDraft>): Pro
 }
 
 /**
- * Owner-or-admin. While an agent or a routine step still uses the skill, the
+ * Owner-or-admin. While an agent or an automation step still uses the skill, the
  * first DELETE is refused with `409 in_use`; `confirmedBreaking` — sent only
  * after that list was shown — becomes `?confirmBreaking=true`.
  */

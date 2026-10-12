@@ -1,11 +1,11 @@
 /**
- * The knowledge-base link check for routines.
+ * The knowledge-base link check for automations.
  *
  * Two properties carry the design, and both are about WHEN it bites:
  *
  *   while building  → a warning, because the builder PUTs the whole definition
  *                     on every node edit and a blocked save loses work;
- *   on activation   → an error, because from there the routine runs unattended
+ *   on activation   → an error, because from there the automation runs unattended
  *                     and the runtime silently drops an id it cannot authorise
  *                     — going live with less knowledge than configured, with
  *                     nothing in the run to say so.
@@ -43,7 +43,7 @@ test('a good link produces nothing', async () => {
     assert.deepStrictEqual(await kbStepFindings(def(['kb_ok']), { ...WHO, stage: 'activate' }), []);
 });
 
-test('a base its owner did not make available to routines is reported', async () => {
+test('a base its owner did not make available to automations is reported', async () => {
     const [f] = await kbStepFindings(def(['kb_no_ctx']), { ...WHO, stage: 'draft' });
     assert.strictEqual(f.code, 'kb.context_missing');
     assert.match(f.message, /Interview notes/);
@@ -52,7 +52,7 @@ test('a base its owner did not make available to routines is reported', async ()
 
 test('the same finding is a WARNING while building and an ERROR on activate', async () => {
     // The whole point: a half-built draft must stay saveable, and a live
-    // routine must not run on knowledge it will silently be denied.
+    // automation must not run on knowledge it will silently be denied.
     const [draft] = await kbStepFindings(def(['kb_no_ctx']), { ...WHO, stage: 'draft' });
     const [live] = await kbStepFindings(def(['kb_no_ctx']), { ...WHO, stage: 'activate' });
     assert.strictEqual(draft.severity, 'warning');
@@ -71,15 +71,15 @@ test('a base that no longer exists is named, not ignored', async () => {
     assert.match(f.message, /kb_gone/);
 });
 
-test("the owner's own personal base is fine on their own routine", async () => {
+test("the owner's own personal base is fine on their own automation", async () => {
     // Legal today via the agent path, and the runtime allows it: the owner is
-    // the tenant. Refusing it here would break routines that work.
+    // the tenant. Refusing it here would break automations that work.
     assert.deepStrictEqual(await kbStepFindings(def(['kb_mine']), { ...WHO, stage: 'activate' }), []);
 });
 
 test('a base that never expressed its contexts is usable, not refused', async () => {
     // NULL predates the column. A check that starts demanding a value would
-    // fail every routine on an install that never set one.
+    // fail every automation on an install that never set one.
     assert.deepStrictEqual(await kbStepFindings(def(['kb_legacy']), { ...WHO, stage: 'activate' }), []);
 });
 
@@ -173,7 +173,7 @@ test('a write into a base the owner manages produces nothing', async () => {
 });
 
 test('a write into a base the owner may READ but not manage is refused', async () => {
-    // kb_ok passes every read rule: same org, available to routines. That is
+    // kb_ok passes every read rule: same org, available to automations. That is
     // exactly the case the read rules cannot catch.
     const [f] = await kbStepFindings(wdef('kb_ok'), {
         ...WHO, stage: 'activate', deps: { ...deps, writeAccess: writeAccess([]) },

@@ -4,7 +4,7 @@
 // (core/automationRunner/execution.js): it sleeps between attempts, records
 // every attempt and stands back when a forEach already retried per item. No
 // screen ever wrote the field, so the commonest recoverable failure in an
-// integration routine — a timeout, a rate limit, a 503 — killed the run while
+// integration automation — a timeout, a rate limit, a 503 — killed the run while
 // the runner sat there able to survive it.
 //
 // Two things are pinned here beyond "the fields exist". First: the row writes
@@ -113,7 +113,7 @@ describe('the two fields', () => {
 describe('what the row says will happen', () => {
     it('answers the question an author actually has: what when the tries run out', () => {
         setup({ retry: { max: 2, backoffMs: 5000 } });
-        expect(screen.getByText(/the step fails and the routine stops there/i)).toBeTruthy();
+        expect(screen.getByText(/the step fails and the automation stops there/i)).toBeTruthy();
     });
 
     it('names the kind of failure retrying is for — and the kind it is not', () => {
@@ -133,7 +133,7 @@ describe('what the row says will happen', () => {
     it('warns when the waiting alone could time the run out first', () => {
         setup({ retry: { max: 5, backoffMs: 60000 } });
         const line = screen.getByText(/add up to 300s to this run/i);
-        expect(line.textContent).toMatch(/run the routine out of time/i);
+        expect(line.textContent).toMatch(/run the automation out of time/i);
         expect(line.className).toMatch(/amber/);
     });
 
@@ -166,7 +166,7 @@ describe('the waiting, when the step also runs once per item', () => {
         // before the tries are even used up.
         setup({ retry: { max: 2, backoffMs: 2000 }, forEach: feOver });
         const line = screen.getByText(/add up to 400s across all 100 rows/i);
-        expect(line.textContent).toMatch(/run the routine out of time/i);
+        expect(line.textContent).toMatch(/run the automation out of time/i);
         expect(line.className).toMatch(/amber/);
     });
 

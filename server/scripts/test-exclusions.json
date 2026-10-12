@@ -15,16 +15,6 @@
             "file": "core/automationRunner/safety.egress.test.js",
             "bucket": "needs-infra",
             "reason": "Needs Postgres: egress rows go through the real DB pool and every subtest fails with ECONNREFUSED 127.0.0.1:5432 (6/6 fail in isolation)."
-        },
-        {
-            "file": "routes/automation/catalog.test.js",
-            "bucket": "failing",
-            "reason": "1/8 subtests fails deterministically: expects deliverability 'connector' for nextcloud deck.card.created but the catalog reports 'ok'. Assertion/product drift."
-        },
-        {
-            "file": "routes/cms.export.test.js",
-            "bucket": "failing",
-            "reason": "3/11 subtests fail deterministically against fully mocked stores: the .zip export carries no asset entries and .zip import restores 0 assets. No infra involved; needs a real fix."
         }
     ]
 }

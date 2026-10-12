@@ -1,11 +1,11 @@
 /**
- * Which model a routine's `data_extraction` step runs on, and with what
+ * Which model an automation's `data_extraction` step runs on, and with what
  * request options.
  *
  * Config key `data_extraction_model` (admin UI: Chat model tiers → "Data
  * extraction model"; route /api/ai/config/data-extraction-model). Extraction
  * is not a chat: it wants one small, fast, deterministic model regardless of
- * the tier the routine author picked, thinking off, and a schema it cannot
+ * the tier the automation author picked, thinking off, and a schema it cannot
  * wander from. So the step never reads a tier's options — only its model id,
  * and only as a fallback:
  *
@@ -21,7 +21,7 @@
  * owner's temporary lever for ai_steps on the default tier and is being kept
  * exactly as it is. Pure decision in `dataExtractionModelFor`; the async
  * wrapper only adds the three reads, each of which may fail without failing
- * the step (a config-store hiccup must never fail a routine run — the next
+ * the step (a config-store hiccup must never fail an automation run — the next
  * fallback in the chain answers instead).
  */
 const configStore = require('../../stores/configStore');
@@ -85,7 +85,7 @@ async function resolveDataExtractionModel({ userOrgId = null, userId = null } = 
     try {
         configured = await configStore.getConfig(DATA_EXTRACTION_MODEL_KEY);
     } catch (_) {
-        // A config-store hiccup must never fail a routine step: next fallback.
+        // A config-store hiccup must never fail an automation step: next fallback.
     }
     // The config key decides on its own; the tier map and the global config
     // are only read when it is empty, so a configured extraction model never

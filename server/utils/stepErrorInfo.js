@@ -14,7 +14,7 @@
  *     code,         stable snake_case code ('nextcloud_no_access', 'rate_limited', ...)
  *     title,        English title, params filled in
  *     cause,        English sentence, params filled in
- *     titleKey,     i18n key for the title ('routines.step_error.<code>.title')
+ *     titleKey,     i18n key for the title ('automations.step_error.<code>.title')
  *     causeKey,     i18n key for the cause ('...cause' or '...cause_generic')
  *     params,       the values the texts interpolate ({ service, target, folder, field, app })
  *     settingKey,   the step setting that fixes it: 'connection', 'inputs.<name>',
@@ -115,6 +115,18 @@ const TEXTS = {
         causeGeneric: '{service} did not accept a value from this step. Check the step settings and try again.',
         need: 'field',
     },
+    http_query_invalid: {
+        title: 'The query parameters of this step cannot be used',
+        cause: 'The "Query parameters" setting cannot be sent: {reason}',
+        causeGeneric: 'The "Query parameters" setting of this step cannot be sent. Open the step and check it.',
+        need: 'reason',
+    },
+    http_url_invalid: {
+        title: 'The address of this step is not a valid web address',
+        cause: 'The "URL" setting cannot be used: {reason}',
+        causeGeneric: 'The "URL" setting of this step is not a valid web address. Open the step and check it.',
+        need: 'reason',
+    },
     rate_limited: {
         title: 'Too many requests right now',
         cause: '{service} is limiting how often Bee may call it. Wait a moment, then try again.',
@@ -161,13 +173,13 @@ const STEP_ERROR_CODES = Object.freeze(Object.keys(TEXTS));
 
 // The fix buttons. Keys match the ones agent-hub's ErrorCard already uses.
 const FIX_LABELS = {
-    share_folder: { label: 'Share the folder', labelKey: 'routines.output.fix_share' },
-    share_folder_with: { label: 'Share the folder with {account}', labelKey: 'routines.output.fix_share_with' },
-    switch_account: { label: 'Other account', labelKey: 'routines.output.fix_switch_account' },
-    reconnect: { label: 'Reconnect', labelKey: 'routines.output.fix_reconnect' },
-    pick_other: { label: 'Pick another', labelKey: 'routines.output.fix_pick_other' },
-    open_settings: { label: 'Open the setting', labelKey: 'routines.output.fix_open_settings' },
-    retry: { label: 'Try again', labelKey: 'routines.output.fix_retry' },
+    share_folder: { label: 'Share the folder', labelKey: 'automations.output.fix_share' },
+    share_folder_with: { label: 'Share the folder with {account}', labelKey: 'automations.output.fix_share_with' },
+    switch_account: { label: 'Other account', labelKey: 'automations.output.fix_switch_account' },
+    reconnect: { label: 'Reconnect', labelKey: 'automations.output.fix_reconnect' },
+    pick_other: { label: 'Pick another', labelKey: 'automations.output.fix_pick_other' },
+    open_settings: { label: 'Open the setting', labelKey: 'automations.output.fix_open_settings' },
+    retry: { label: 'Try again', labelKey: 'automations.output.fix_retry' },
 };
 
 // ── Helpers ──────────────────────────────────────────────────────────────
@@ -373,6 +385,10 @@ function isNextcloudError(err, step) {
 }
 
 function classify(err, text, status, step) {
+    // A step that knows exactly what is wrong says so (execOutbound sets stepErrorCode).
+    if (err && typeof err === 'object' && typeof err.stepErrorCode === 'string' && TEXTS[err.stepErrorCode]) {
+        return err.stepErrorCode;
+    }
     if (isNextcloudError(err, step)) {
         const ncCode = (err && typeof err === 'object' && err.ncError?.code) || classifyNextcloudError(text).code;
         let code = NC_CODE_MAP[ncCode] || null;
@@ -406,7 +422,7 @@ function settingAndFixes(code, ctx) {
     const integrationStep = !!step?.tool;
     if (CONNECTION_CODES.has(code)) {
         // Only an integration action has a connection to switch; for any other
-        // step the connection lives in Settings → Integrations.
+        // step the connection lives in Settings → Connections.
         const settingKey = integrationStep ? 'connection' : null;
         const fixes = [];
         if (code === 'nextcloud_no_access') {
@@ -432,6 +448,9 @@ function settingAndFixes(code, ctx) {
         return { settingKey, fixes };
     }
     switch (code) {
+    case 'http_query_invalid':
+    case 'http_url_invalid':
+        return { settingKey: code === 'http_url_invalid' ? 'url' : 'query', fixes: [fix('open_settings', { settingKey: code === 'http_url_invalid' ? 'url' : 'query' })] };
     case 'missing_field':
     case 'validation': {
         const settingKey = field ? inputKey(field) : null;
@@ -496,6 +515,8 @@ function describeStepError(err, opts = {}) {
     if (target?.value) params.target = cap(target.value, MAX_PARAM);
     if (folder) params.folder = cap(folder, MAX_PARAM);
     if (field) params.field = cap(field, MAX_PARAM);
+    const userReason = err && typeof err === 'object' ? /** @type {{ userReason?: unknown }} */ (err).userReason : undefined;
+    if (typeof userReason === 'string' && userReason) params.reason = cap(userReason, MAX_PARAM);
     if (account) params.account = account;
 
     const texts = TEXTS[code] || TEXTS.unknown;
@@ -505,8 +526,8 @@ function describeStepError(err, opts = {}) {
         code,
         title: fill(texts.title, params),
         cause: fill(generic ? texts.causeGeneric : texts.cause, params),
-        titleKey: `routines.step_error.${code}.title`,
-        causeKey: `routines.step_error.${code}.${generic ? 'cause_generic' : 'cause'}`,
+        titleKey: `automations.step_error.${code}.title`,
+        causeKey: `automations.step_error.${code}.${generic ? 'cause_generic' : 'cause'}`,
         params,
         settingKey,
         fixes,
@@ -538,9 +559,9 @@ function legacyStepErrorInfo(message, stepType, inputs) {
 function stepErrorI18nDefaults() {
     const out = {};
     for (const [code, t] of Object.entries(TEXTS)) {
-        out[`routines.step_error.${code}.title`] = t.title;
-        out[`routines.step_error.${code}.cause`] = t.cause;
-        if (t.causeGeneric) out[`routines.step_error.${code}.cause_generic`] = t.causeGeneric;
+        out[`automations.step_error.${code}.title`] = t.title;
+        out[`automations.step_error.${code}.cause`] = t.cause;
+        if (t.causeGeneric) out[`automations.step_error.${code}.cause_generic`] = t.causeGeneric;
     }
     return out;
 }

@@ -2,20 +2,21 @@ import { AlertCircle, ClipboardList } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import EmptyState from '../../components/shared/EmptyState';
 import useAutomationApi from '../../hooks/useAutomationApi';
+import { useTranslation } from '../../hooks/useTranslation';
 import { rememberFormOpened } from '../../utils/formRecents';
 
 /**
  * FormsHomePage — the directory at /app/forms.
  *
  * Every form published in the organisation. A published form has a public URL,
- * so it belongs to the organisation rather than to whoever built the routine
- * behind it — it used to be findable only by opening that routine and knowing
+ * so it belongs to the organisation rather than to whoever built the automation
+ * behind it — it used to be findable only by opening that automation and knowing
  * which panel held the link, which meant a colleague on holiday took the only
  * copy of the address with them.
  *
  * A tile is the form, not a record about the form: the whole card is a link
  * that opens it, and nothing else is on show. The address, the submission
- * count and the way through to the routine were all here at first and were
+ * count and the way through to the automation were all here at first and were
  * taken out — they turn a directory you scan into a table you read. The
  * address is still one click away, in the browser's own address bar, which is
  * also where you copy it from.
@@ -43,6 +44,7 @@ export function formViewPath(form) {
 }
 
 function FormCard({ form, onNavigate }) {
+    const { t } = useTranslation();
     // A real href, so the row can be middle-clicked, copied and read in the
     // status bar — but an in-app navigation on a plain left click, so opening
     // a form does not reload the workspace.
@@ -67,7 +69,7 @@ function FormCard({ form, onNavigate }) {
                             {form.description}
                         </div>
                     ) : null}
-                    {/* A form whose routine is paused or still a draft answers
+                    {/* A form whose automation is paused or still a draft answers
                         404 to its visitors (formPublic.js's loadForm). The one
                         piece of state worth keeping on the tile: without it the
                         card promises something the link will not deliver. */}
@@ -76,7 +78,7 @@ function FormCard({ form, onNavigate }) {
                             className="mt-1.5 inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full border"
                             style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-subtle)' }}
                         >
-                            Not live — the routine is paused or still a draft
+                            {t('forms.home_not_live', 'Not live — the automation is paused or still a draft')}
                         </div>
                     )}
                 </div>
@@ -86,8 +88,9 @@ function FormCard({ form, onNavigate }) {
 }
 
 function SkeletonGrid() {
+    const { t } = useTranslation();
     return (
-        <div className={GRID_CLASSES} role="status" aria-label="Loading forms">
+        <div className={GRID_CLASSES} role="status" aria-label={t('forms.home_loading_label', 'Loading forms')}>
             {Array.from({ length: 6 }).map((_, i) => (
                 <div key={i} className={`${CARD_CLASSES} animate-pulse`} style={CARD_STYLE}>
                     <div className="flex items-start gap-2.5">
@@ -99,12 +102,13 @@ function SkeletonGrid() {
                     </div>
                 </div>
             ))}
-            <span className="sr-only">Loading…</span>
+            <span className="sr-only">{t('forms.home_loading', 'Loading…')}</span>
         </div>
     );
 }
 
 export default function FormsHomePage({ onNavigate = null }) {
+    const { t } = useTranslation();
     const api = useAutomationApi();
     const [forms, setForms] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -136,7 +140,7 @@ export default function FormsHomePage({ onNavigate = null }) {
             <div className="shrink-0 px-4 py-3 border-b flex items-center gap-3" style={{ borderColor: 'var(--border-subtle)' }}>
                 <div className="flex-1 flex items-center gap-2 min-w-0">
                     <ClipboardList className="w-5 h-5 shrink-0" style={{ color: 'var(--accent-primary)' }} />
-                    <h1 className="text-lg font-semibold truncate" style={{ color: 'var(--text-primary)' }}>Forms</h1>
+                    <h1 className="text-lg font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{t('forms.home_title', 'Forms')}</h1>
                 </div>
             </div>
 
@@ -147,7 +151,7 @@ export default function FormsHomePage({ onNavigate = null }) {
                     role="alert"
                 >
                     <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {error}
-                    <button type="button" onClick={load} className="ml-auto underline font-medium">Retry</button>
+                    <button type="button" onClick={load} className="ml-auto underline font-medium">{t('forms.home_retry', 'Retry')}</button>
                 </div>
             )}
 
@@ -157,8 +161,8 @@ export default function FormsHomePage({ onNavigate = null }) {
                 ) : isEmpty ? (
                     <EmptyState
                         icon={<ClipboardList className="w-12 h-12" />}
-                        title="No forms yet"
-                        description="A form is a page the colleagues it is shared with can fill in. Build one in Studio and it will appear here."
+                        title={t('forms.home_empty_title', 'No forms yet')}
+                        description={t('forms.home_empty_text', 'A form is a page the colleagues it is shared with can fill in. Build one in Studio and it will appear here.')}
                     />
                 ) : (
                     <div className={GRID_CLASSES}>

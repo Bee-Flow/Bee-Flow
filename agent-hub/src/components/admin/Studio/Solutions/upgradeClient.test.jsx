@@ -123,7 +123,7 @@ describe('the plan as it is shown before the button', () => {
     it('states, in words, that these were not checked', () => {
         // De groep vangt méér dan tabellen en kennisbanken: ook een
         // vergelijkbare soort waarvan de server-`why` het woord "edited" niet
-        // draagt — een routine die niet te LEZEN was, bijvoorbeeld (upgrade.js
+        // draagt — een automatisering die niet te LEZEN was, bijvoorbeeld (upgrade.js
         // zet die daar bewust neer in plaats van bij "door jou verwijderd").
         // De toelichting mag dus geen uitspraak over tabellen alléén zijn.
         const { getByTestId } = render(<PlanBody rows={planRows(PLAN_BODY)} />);

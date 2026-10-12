@@ -1,7 +1,7 @@
 /**
  * App Studio Builder — the prompt for one turn.
  *
- * The capability profile for the chosen model, the owner's catalog (routines +
+ * The capability profile for the chosen model, the owner's catalog (automations +
  * designed documents, which the core tool menu has no list tools for), the
  * system prompt, the tool menu, and the folded user message the round is
  * actually sent.
@@ -37,7 +37,7 @@ async function assembleTurnPrompt({
 }) {
     // Capability profile for this model — with the admin override map
     // `builder_model_profiles` ({ "<modelId>": {band, temperature, …} })
-    // the routine builder already honours. Without it the configured
+    // the automation builder already honours. Without it the configured
     // Gemma temperature was silently replaced by the band default.
     let profileOverrides = null;
     try {
@@ -48,7 +48,7 @@ async function assembleTurnPrompt({
     const profile = getProfileForModel(modelId, profileOverrides);
     log.info(`[AppStudioBuilder] model=${modelId} tier=${resolvedTier} profile=${JSON.stringify(profile)}`);
 
-    // Owner's routines — rendered into the OWNER CONTEXT machine note of
+    // Owner's automations — rendered into the OWNER CONTEXT machine note of
     // the folded user message (renderOwnerContextNote; out of the system
     // prompt since 2026-09-17 so the prefix is one text for every user).
     // Best-effort.
@@ -73,7 +73,7 @@ async function assembleTurnPrompt({
             return row;
         });
         // The same list, keyed, for the tool-time check in app_set_action:
-        // a run_automation naming a routine the owner does not have is
+        // a run_automation naming an automation the owner does not have is
         // refused when it is written, not at finalize.
         draftWrap._ownedAutomations = new Map((rows || []).map((a) => [a.id, { isActive: !!a.isActive }]));
     } catch (_) { /* prompt renders the empty-state line */ }
@@ -94,7 +94,7 @@ async function assembleTurnPrompt({
     const sys = buildSystemPrompt({
         toolset: profile.toolset === 'core' ? 'core' : 'full',
         catalogMode: profile.catalogMode === 'filtered' ? 'filtered' : 'full',
-        ownerContext: 'note', // the owner's routines/documents ride the per-turn OWNER CONTEXT note below
+        ownerContext: 'note', // the owner's automations/documents ride the per-turn OWNER CONTEXT note below
     });
 
     // Tool menu keys off the capability profile: small models get the
@@ -162,7 +162,7 @@ async function assembleTurnPrompt({
     // the prefix cache holds; a moving `sys` names the culprit. `tools`
     // hashes the NAMES (menu identity), `toolBytes` the serialised schemas
     // — a description edit moves only the second. `fewShots` is a hash of
-    // the bytes, like the routine builder's line, so two sessions can be
+    // the bytes, like the automation builder's line, so two sessions can be
     // compared with grep.
     log.info(`[AppStudioBuilder] prefix sys=${systemPrefixFingerprint(sys)} tools=${toolSetFingerprint(tools)} toolBytes=${toolBytesFingerprint(tools)} fewShots=${systemPrefixFingerprint(JSON.stringify(composed.fewShotMessages))} n=${composed.fewShotMessages.length} history=${composed.windowedHistory.length}`);
     return { profile, sys, tools, toolNameSet, history, approvedPlanForTurn, composed, messages };

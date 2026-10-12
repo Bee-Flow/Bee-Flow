@@ -59,8 +59,6 @@ function buildChatOptions(turn) {
         reasoningEffort: turn.requestReasoningEffort || tierSettings.reasoningEffort || tierDefaults.reasoningEffort || undefined,
         reasoningSummary: tierSettings.reasoningSummary !== undefined ? tierSettings.reasoningSummary : (tierDefaults.reasoningSummary || false),
         budgetTokens: tierSettings.budgetTokens || undefined,
-        // Azure-specific
-        apiVersion: turn.config.apiVersion || undefined,
         // OpenAI Responses API chaining — skip re-uploading full history
         previousResponseId: turn.lastResponseId || undefined,
     };

@@ -117,7 +117,7 @@ test('someone other than the owner cannot apply', async () => {
     const row = await evolution.proposeEvolution({ automationId: 'a1', userId: 'u1', rationale: 'r', expectedEffect: 'e', risk: 'k', plan: [{ tool: 'builder_update_step', args: { stepId: 'ai_1', patch: { prompt: 'x' } } }] }, deps);
     const out = await evolution.applyEvolution(row.id, { userId: 'intruder' }, deps);
     assert.strictEqual(out.status, 'failed');
-    assert.match(out.error, /Only the routine owner/);
+    assert.match(out.error, /Only the automation owner/);
 });
 
 async function applied(deps) {

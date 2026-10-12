@@ -8,7 +8,7 @@
  *
  * The AI builder has always kept them in step (`builderTools.persistDraft`),
  * but the visual editor writes only `definition`, so a schedule configured in
- * the node panel produced a routine whose `trigger_type` stayed 'manual' and
+ * the node panel produced an automation whose `trigger_type` stayed 'manual' and
  * whose `next_run_at` was never computed — it simply never fired (BFSF-318).
  * `PUT /api/automations/:id` now derives the columns through this helper.
  *

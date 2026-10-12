@@ -3,7 +3,7 @@
  *
  * Three surfaces draw the same list (Studio Home "Vraagt aandacht", a
  * Solution's "Te controleren", a builder's "Nog niet klaar") and the things
- * that produce it are scattered: the App Studio validator, the routine
+ * that produce it are scattered: the App Studio validator, the automation
  * validator with its draft/activate ladder, the Solution dependency graph,
  * the app dry run. Four of them already emit `{ code, severity, path|nodeId,
  * message, hint }`; what they lacked was WHICH object the row belongs to and
@@ -24,7 +24,7 @@
  *   }
  *
  * `message` and `remediation` ARE the existing `message` and `hint` — nothing
- * is rephrased. `blockedAt` keeps the routine validator's draft/activate ladder
+ * is rephrased. `blockedAt` keeps the automation validator's draft/activate ladder
  * intact (validate/completenessCodes.js): a completeness code at stage 'draft'
  * is a warning tagged `blockedAt: 'activate'`, and flattening that into a
  * plain severity would re-break BFSF-323. The ladder stays where it is; this

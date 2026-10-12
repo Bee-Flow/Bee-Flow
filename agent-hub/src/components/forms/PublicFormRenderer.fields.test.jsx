@@ -76,6 +76,17 @@ describe('PublicFormRenderer — how each declared type renders', () => {
         expect(select.value).toBe('');
     });
 
+    it('shows and picks options stored the way the form builder saves them, as plain strings (BFSF-483)', () => {
+        // "Test this form" hands over the raw declaration: ['Sales', 'Support'].
+        // Read as objects they rendered as empty, valueless rows.
+        renderForm([{ name: 'topic', type: 'select', label: 'Topic', options: ['Sales', 'Support'] }]);
+        const select = screen.getByLabelText('Topic');
+        const options = [...select.querySelectorAll('option')];
+        expect(options.map(o => [o.value, o.textContent])).toEqual([['', 'Choose…'], ['Sales', 'Sales'], ['Support', 'Support']]);
+        fireEvent.change(select, { target: { value: 'Support' } });
+        expect(select.value).toBe('Support');
+    });
+
     it('lets a dropdown\'s placeholder stand in for that empty choice', () => {
         renderForm([{ name: 'topic', type: 'select', label: 'Topic', placeholder: 'Pick a subject', options: [] }]);
         expect(screen.getByLabelText('Topic').querySelector('option').textContent).toBe('Pick a subject');
@@ -262,10 +273,10 @@ describe('PublicFormRenderer — sending it', () => {
     });
 
     it('shows a rejection with no field detail once, above the button', async () => {
-        const onSubmit = vi.fn(async () => { throw new Error('The routine is not accepting answers.'); });
+        const onSubmit = vi.fn(async () => { throw new Error('The automation is not accepting answers.'); });
         render(<PublicFormRenderer form={form(one)} onSubmit={onSubmit} />);
         fireEvent.click(send());
-        expect(await screen.findByRole('alert')).toHaveTextContent('The routine is not accepting answers.');
+        expect(await screen.findByRole('alert')).toHaveTextContent('The automation is not accepting answers.');
     });
 
     it('sends an empty form as an empty answer set — a declaration with no questions is draft-legal', async () => {

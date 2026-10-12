@@ -1,5 +1,5 @@
 import { Check, Info } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useId, useState, useEffect } from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 
@@ -10,7 +10,9 @@ const OrgDefaultLanguage = () => {
     const [defaultLocale, setDefaultLocale] = useState('en');
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
+    const [saveFailed, setSaveFailed] = useState(false);
     const [loading, setLoading] = useState(true);
+    const selectId = useId();
 
     useEffect(() => {
         setLoading(true);
@@ -25,21 +27,27 @@ const OrgDefaultLanguage = () => {
     }, []);
 
     const handleSave = async (code) => {
+        const previous = defaultLocale;
         setDefaultLocale(code);
         setSaving(true);
         setSaved(false);
+        setSaveFailed(false);
         try {
             const res = await authFetch(`${API_BASE}/api/languages/org/default`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ defaultLocale: code }),
             });
-            if (res.ok) {
-                setSaved(true);
-                setTimeout(() => setSaved(false), 2000);
-            }
-        } catch (e) { console.error(e); }
-        setSaving(false);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            setSaved(true);
+            setTimeout(() => setSaved(false), 2000);
+        } catch {
+            // The select shows what the server holds, not the refused choice.
+            setDefaultLocale(previous);
+            setSaveFailed(true);
+        } finally {
+            setSaving(false);
+        }
     };
 
     if (loading || locales.length <= 1) return null;
@@ -47,7 +55,7 @@ const OrgDefaultLanguage = () => {
     return (
         <div className="space-y-5">
             <div>
-                <h2 className="text-lg font-bold text-[var(--text-primary)]">{t('org.default_language')}</h2>
+                <h3 className="text-base font-semibold text-[var(--text-primary)]">{t('org.default_language')}</h3>
                 <p className="text-sm text-[var(--text-muted)] mt-0.5">{t('org.default_language_desc')}</p>
             </div>
             <div className="p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
@@ -60,12 +68,14 @@ const OrgDefaultLanguage = () => {
                         </svg>
                     </div>
                     <div className="flex-1 min-w-0">
-                        <p className="text-[13px] font-medium text-[var(--text-primary)]">{t('org.new_user_language')}</p>
-                        <p className="text-[11px] text-[var(--text-muted)] mt-0.5 mb-3">
+                        <label htmlFor={selectId} className="block text-[13px] font-medium text-[var(--text-primary)]">{t('org.new_user_language')}</label>
+                        <p id={`${selectId}-desc`} className="text-[11px] text-[var(--text-muted)] mt-0.5 mb-3">
                             {t('org.new_user_language_desc')}
                         </p>
                         <div className="flex items-center gap-3">
                             <select
+                                id={selectId}
+                                aria-describedby={`${selectId}-desc`}
                                 value={defaultLocale}
                                 onChange={e => handleSave(e.target.value)}
                                 disabled={saving}
@@ -83,6 +93,11 @@ const OrgDefaultLanguage = () => {
                             )}
                             {saving && (
                                 <span className="text-[11px] text-[var(--text-muted)]">{t('common.saving')}</span>
+                            )}
+                            {saveFailed && !saving && (
+                                <span role="alert" className="text-[11px] font-medium text-[var(--error-ink)]">
+                                    {t('common.save_failed', 'Save failed')}
+                                </span>
                             )}
                         </div>
                     </div>

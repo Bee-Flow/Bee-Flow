@@ -29,15 +29,15 @@ export type EditableKind = (typeof EDITABLE_KINDS)[number];
 
 /** routes/kind words the web shows for each kind (fieldKinds.js KIND_WORD). */
 export const KIND_WORD: Readonly<Record<FieldKind, { key: string; en: string }>> = {
-    text: { key: 'routines.kind.text', en: 'text' },
-    number: { key: 'routines.kind.number', en: 'number' },
-    yesno: { key: 'routines.kind.yesno', en: 'yes/no' },
-    date: { key: 'routines.kind.date', en: 'date' },
-    choice: { key: 'routines.kind.choice', en: 'one of a list' },
-    list: { key: 'routines.kind.list', en: 'list' },
-    group: { key: 'routines.kind.group', en: 'group' },
-    table: { key: 'routines.kind.table', en: 'table' },
-    unknown: { key: 'routines.kind.unknown', en: 'not seen yet' },
+    text: { key: 'automations.kind.text', en: 'text' },
+    number: { key: 'automations.kind.number', en: 'number' },
+    yesno: { key: 'automations.kind.yesno', en: 'yes/no' },
+    date: { key: 'automations.kind.date', en: 'date' },
+    choice: { key: 'automations.kind.choice', en: 'one of a list' },
+    list: { key: 'automations.kind.list', en: 'list' },
+    group: { key: 'automations.kind.group', en: 'group' },
+    table: { key: 'automations.kind.table', en: 'table' },
+    unknown: { key: 'automations.kind.unknown', en: 'not seen yet' },
 };
 
 /** A field key the server's validateOutputSchema accepts: letters, digits, underscore. */

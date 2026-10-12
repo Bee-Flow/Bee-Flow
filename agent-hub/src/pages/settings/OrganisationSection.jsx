@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { settingsPathForTab } from '../../authedApp/settingsRoutes';
 import OrgInfoPanel, { SECTIONS as INFO_SECTIONS } from '../../components/admin/org/OrgInfoPanel';
 import OrgUsersPanel from '../../components/admin/org/OrgUsersPanel';
 import OrgAcademyPanel from './OrgAcademyPanel';
@@ -6,12 +7,15 @@ import N8nSection from './N8nSection';
 import UsageSection from './UsageSection';
 import GitHubSyncPanel from '../../components/integrations/github/GitHubSyncPanel';
 import NextcloudSyncPanel from '../../components/integrations/nextcloud/NextcloudSyncPanel';
+import OrgMcpAccessPanel from '../../components/mcpAccess/OrgMcpAccessPanel';
 import MeetingNotesAdminPanel from '../../components/meetings/MeetingNotesAdminPanel';
 import GoogleMeetAdminPanel from '../../components/meetings/GoogleMeetAdminPanel';
+import TeamsAdminPanel from '../../components/meetings/TeamsAdminPanel';
 import SummaryTemplatesAdminPanel from '../../components/meetings/SummaryTemplatesAdminPanel';
 import OrgNcIntegrationsPanel from '../../components/integrations/nextcloud/OrgNcIntegrationsPanel';
 import OrgNcPairingPanel from '../../components/integrations/nextcloud/OrgNcPairingPanel';
 import GroupAccessMatrix from '../../components/admin/org/GroupAccessMatrix';
+import McpLibraryPage from '../../components/mcpLibrary/McpLibraryPage';
 import Tabs from '../../components/shared/Tabs';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -91,7 +95,7 @@ const GoogleMapsRow = () => {
                         </button>
                     </div>
                     <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                        Enable <strong>Directions API</strong>, <strong>Places API</strong> &amp; <strong>Maps Embed API</strong> in{' '}
+                        {t('settings.org_integrations.maps_enable', 'Enable')} <strong>Directions API</strong>, <strong>Places API</strong> &amp; <strong>Maps Embed API</strong> {t('settings.org_integrations.maps_in', 'in')}{' '}
                         <a href="https://console.cloud.google.com/apis/library" target="_blank" rel="noopener noreferrer"
                             className="underline" style={{ color: 'var(--accent-primary)' }}>Google Cloud Console</a>
                     </p>
@@ -102,6 +106,10 @@ const GoogleMapsRow = () => {
 };
 
 /* ── OrganisationSection ─────────────────────────────────────────────────── */
+// The info sections whose fields belong to OrgInfoPanel's org form, saved by
+// the generic save bar below (see showOrgSaveBar).
+const ORG_FORM_SECTIONS = ['license', 'auth', 'info'];
+
 // activeSection is now controlled entirely by the parent sidebar.
 // Possible values: 'license' | 'auth' | 'privacy' | 'info' | 'users' | 'integrations'
 const OrganisationSection = ({ user, activeSection = 'license', usageInitialReport = '' }) => {
@@ -122,30 +130,31 @@ const OrganisationSection = ({ user, activeSection = 'license', usageInitialRepo
     const isNcOrg = !!user?.ncOrg?.instanceId;
 
     const isInfoSection = INFO_SECTIONS.some(s => s.id === activeSection);
-    // The Privacy Shield owns its own save bar, and has to: Save must be
-    // DISABLED when the config could not be loaded, and hidden entirely in
-    // read-only mode — neither of which this generic bar can know. Rendering
-    // both put two save affordances on one screen, and this one did nothing
-    // (OrgShieldEditor never calls onStateChange), so the button that looked
-    // like the primary action was the inert one.
-    const showOrgSaveBar = isInfoSection && activeSection !== 'privacy';
+    // The generic save bar serves only the sections whose fields live in
+    // OrgInfoPanel's org form (License & Usage, Sign-in Method, Organisation
+    // Info) — the ones that report through onStateChange. Every other info
+    // section brings its own Save and has to: the Privacy Shield's Save must
+    // be DISABLED when its config could not be loaded and hidden in read-only
+    // mode, and Encryption, AI & Collaboration and Answer Reuse each save
+    // their own editor. OrgInfoPanel stays mounted between info sections, so
+    // showing the bar there put an unsaved Org Info edit's "Save changes"
+    // above an editor it does not save.
+    const showOrgSaveBar = ORG_FORM_SECTIONS.includes(activeSection);
 
     return (
         <div>
-            {/* Save bar — shown above content when info section has changes */}
+            {/* Save bar — shown above the form sections when they have changes;
+                sticky so it stays in reach on the long License and Info pages. */}
             {showOrgSaveBar && (orgState.hasChanges || orgState.saving || orgState.message) && (
-                <div
-                    className="flex items-center gap-3 px-4 py-2.5 rounded-xl mb-4"
-                    style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}
-                >
+                <div className="sticky top-0 z-10 flex items-center gap-3 px-4 py-2.5 rounded-xl mb-4 bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
                     {orgState.message && (
                         <span className={`text-[12px] font-medium flex items-center gap-1.5 ${orgState.message.type === 'success' ? 'text-green-600' : 'text-red-500'}`}>
                             {orgState.message.type === 'success' ? '✓' : '⚠'} {orgState.message.text}
                         </span>
                     )}
                     {orgState.hasChanges && !orgState.message && (
-                        <span className="text-[12px] font-medium flex items-center gap-1.5" style={{ color: '#d97706' }}>
-                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0" />
+                        <span className="text-[12px] font-medium flex items-center gap-1.5 text-[var(--warning-ink)]">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[var(--warning)] flex-shrink-0" />
                             {t('org.unsaved_changes')}
                         </span>
                     )}
@@ -153,8 +162,7 @@ const OrganisationSection = ({ user, activeSection = 'license', usageInitialRepo
                     <button
                         onClick={() => orgState.handleSave?.()}
                         disabled={orgState.saving || !orgState.hasChanges}
-                        className="px-4 py-1.5 rounded-lg text-[13px] font-medium text-white transition-all disabled:opacity-40"
-                        style={{ background: 'var(--accent-primary)' }}
+                        className="px-4 py-1.5 rounded-lg text-[13px] font-medium transition-all disabled:opacity-40 bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]"
                     >
                         {orgState.saving ? t('org.saving') : t('org.save_changes')}
                     </button>
@@ -172,7 +180,7 @@ const OrganisationSection = ({ user, activeSection = 'license', usageInitialRepo
 
             {/* Users & Groups */}
             {activeSection === 'users' && (
-                <OrgUsersPanel user={user} />
+                <OrgUsersPanel user={user} basePath={settingsPathForTab('org_users')} />
             )}
 
             {/* Academy — org learning overview */}
@@ -189,12 +197,8 @@ const OrganisationSection = ({ user, activeSection = 'license', usageInitialRepo
             {activeSection === 'integrations' && isOrgAdmin && (
                 <div className="space-y-4">
                     <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>
-                            {t('org.integ_title')}
-                        </p>
-                        <p className="text-[12px] mb-4" style={{ color: 'var(--text-muted)' }}>
-                            {t('org.integ_subtitle')}
-                        </p>
+                        <h2 className="text-lg font-semibold text-[var(--text-primary)]">{t('org.integ_title')}</h2>
+                        <p className="mt-1 text-sm text-[var(--text-muted)]">{t('org.integ_subtitle')}</p>
                     </div>
                     <Tabs
                         value={intTab}
@@ -209,13 +213,15 @@ const OrganisationSection = ({ user, activeSection = 'license', usageInitialRepo
                     {/* Integration access — the integrations the subscription
                         enables (MCP servers included as ordinary integrations).
                         The org-admin grants each to the whole organisation or a
-                        specific group right here. */}
+                        specific group right here. The page title above and the
+                        selected tab already name it, so the matrix shows no
+                        heading of its own. */}
                     {intTab === 'access' && (
                         <GroupAccessMatrix
                             kinds={['integration']}
                             hideLocked
-                            heading="Integration access"
-                            subtitle="Give an integration to your whole organisation or to a specific group. These are the integrations your subscription includes."
+                            hideHeading
+                            subtitle={t('org.integ_access_subtitle', 'Give an integration to your whole organisation or to a specific group. These are the integrations your subscription includes.')}
                         />
                     )}
 
@@ -228,21 +234,25 @@ const OrganisationSection = ({ user, activeSection = 'license', usageInitialRepo
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                                 <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
-                                    Configure the integrations themselves — credentials, instance URLs and workflows.
+                                    {t('settings.org_integrations.settings_intro', 'Configure the integrations themselves — credentials, instance URLs and workflows.')}
                                 </p>
                             </div>
 
-                            {/* Provider configuration (Nextcloud, n8n, Google Maps) */}
+                            {/* Provider configuration (Nextcloud, n8n, Google Maps).
+                                The bordered n8n / Maps list only renders when it
+                                has a row: an NC org with neither enabled showed
+                                an empty box under its Nextcloud panel. */}
                             <div className="space-y-4">
                                 {isNcOrg && <OrgNcIntegrationsPanel user={user} />}
-                                {!showN8n && !showGoogleMaps && !isNcOrg ? (
-                                    <div className="rounded-xl px-5 py-4" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}>
-                                        <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
+                                {!showN8n && !showGoogleMaps && !isNcOrg && (
+                                    <div className="rounded-xl px-5 py-4 bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
+                                        <p className="text-[13px] text-[var(--text-muted)]">
                                             {t('org.integ_none')}
                                         </p>
                                     </div>
-                                ) : (
-                                    <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-subtle)' }}>
+                                )}
+                                {(showN8n || showGoogleMaps) && (
+                                    <div className="rounded-xl overflow-hidden border border-[var(--border-subtle)]">
                                         {showN8n && (
                                             <div style={{ borderBottom: showGoogleMaps ? '1px solid var(--border-subtle)' : 'none' }}>
                                                 <div className="flex items-center gap-3 px-5 py-3.5" style={{ background: 'var(--bg-secondary)' }}>
@@ -266,24 +276,43 @@ const OrganisationSection = ({ user, activeSection = 'license', usageInitialRepo
                 </div>
             )}
 
+            {/* MCP library — the organisation's remote MCP servers */}
+            {activeSection === 'mcp' && isOrgAdmin && (
+                <McpLibraryPage isServerAdmin={!!user?.isAdmin || user?.role === 'admin' || perms.includes('all')} />
+            )}
+
+            {/* MCP access — the organisation-wide rules for external MCP clients */}
+            {activeSection === 'mcp_access' && isOrgAdmin && (
+                <OrgMcpAccessPanel />
+            )}
+
             {/* GitHub Sync */}
             {activeSection === 'github_sync' && isOrgAdmin && (
                 <GitHubSyncPanel user={user} />
             )}
 
-            {/* Nextcloud Sync */}
+            {/* Nextcloud Sync. The sync panel leads: its "Nextcloud Sync"
+                header is the page title, and it holds what an admin opens this
+                page for. Pairing a further Nextcloud is rare, so it follows. */}
             {activeSection === 'nextcloud_sync' && isOrgAdmin && (
                 <>
-                    {(isNcOrg || isFullAdmin) && <OrgNcPairingPanel />}
                     <NextcloudSyncPanel user={user} />
+                    {(isNcOrg || isFullAdmin) && <div className="mt-6"><OrgNcPairingPanel /></div>}
                     <MeetingNotesAdminPanel user={user} />
-                    <GoogleMeetAdminPanel user={user} />
                 </>
             )}
 
-            {/* Meeting Notes summary templates (org + group) */}
+            {/* Meeting templates: the org and group summary templates, then the
+                org-level Google Meet and Microsoft Teams meeting-notes settings.
+                Those two need no Nextcloud, so they cannot sit under Nextcloud
+                Sync, a row only NC-bound orgs (and super-admins) get. Talk stays
+                there: it only exists with a Nextcloud. */}
             {activeSection === 'meeting_templates' && isOrgAdmin && (
-                <SummaryTemplatesAdminPanel />
+                <>
+                    <SummaryTemplatesAdminPanel />
+                    <GoogleMeetAdminPanel user={user} />
+                    <TeamsAdminPanel user={user} />
+                </>
             )}
         </div>
     );

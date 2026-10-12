@@ -56,6 +56,7 @@
 
 const express = require('express');
 const log = require('../telemetry/log');
+const { usageLogFields, createUsageAccumulator } = require('../core/providers/usageNormalizer');
 const router = express.Router();
 const { llmBridgeLimiter, sideEffectBridgeLimiter, integrationBridgeLimiter, dbBridgeLimiter } = require('./webpagesPreviewRateLimits');
 
@@ -275,9 +276,7 @@ router.post('/:id/ai/chat', requirePreviewToken, llmBridgeLimiter, async (req, r
         agent_name: `Webpage: ${ctx.webpage.name || 'Untitled'}`,
         agent_type: 'webpage_bridge',
         model: modelId,
-        prompt_tokens: result?.usage?.prompt_tokens || 0,
-        completion_tokens: result?.usage?.completion_tokens || 0,
-        total_tokens: (result?.usage?.prompt_tokens || 0) + (result?.usage?.completion_tokens || 0),
+        ...usageLogFields(result?.usage),
         duration_ms: Date.now() - t0,
         source: 'webpage_bridge_ai',
         conversation_id: webpageId,
@@ -376,7 +375,7 @@ router.post('/:id/ai/stream', requirePreviewToken, llmBridgeLimiter, async (req,
  * Runs a multi-round tool loop server-side using the page's granted surface
  * (integrations + automations + KB grounding). The page just awaits one
  * promise; the server orchestrates web search, integration calls, KB lookup,
- * and routine triggers across rounds.
+ * and automation triggers across rounds.
  *
  * SSE event types streamed back:
  *   text         { text }                       — assistant tokens
@@ -472,7 +471,7 @@ function buildAskToolSurface(ctx) {
 router.post('/:id/ai/ask', requirePreviewToken, llmBridgeLimiter, async (req, res) => {
     // `viewerUserId`, NOOIT `userId`: dat laatste is de EIGENAAR van de pagina
     // (auth/webpagePreviewToken.js legt uit waarom die twee claims naast elkaar
-    // bestaan). Het runverslag zei daardoor dat de auteur de routine had gestart,
+    // bestaan). Het runverslag zei daardoor dat de auteur de automatisering had gestart,
     // ook als een ingelogde lezer op een <bf-button> klikte — en dit is sinds W4
     // het pad dat zonder één regel JavaScript bereikbaar is. Geen terugval op
     // `userId`: een onbekende bezoeker is `null`, en `null` is eerlijk.
@@ -501,7 +500,8 @@ router.post('/:id/ai/ask', requirePreviewToken, llmBridgeLimiter, async (req, re
     };
 
     const t0 = Date.now();
-    let totalPromptTokens = 0, totalCompletionTokens = 0;
+    // Every round of the loop, cache read/write included (providers/usageNormalizer.js).
+    const usageAcc = createUsageAccumulator();
 
     try {
         const messages = await buildAiMessages(ctx, req.body || {});
@@ -616,7 +616,7 @@ router.post('/:id/ai/ask', requirePreviewToken, llmBridgeLimiter, async (req, re
                         orgId: ctx.authorOrgId,
                         autoSend: true,
                         // Acts as the page's author; the chokepoint writes the
-                        // egress row, grouped per page like a routine's.
+                        // egress row, grouped per page like an automation's.
                         egress: {
                             source: 'webpage_ai',
                             ids: {
@@ -671,8 +671,7 @@ router.post('/:id/ai/ask', requirePreviewToken, llmBridgeLimiter, async (req, re
                     },
                 });
             } else if (type === 'done') {
-                totalPromptTokens += data?.prompt_tokens || 0;
-                totalCompletionTokens += data?.completion_tokens || 0;
+                usageAcc.add(data);
             } else if (type === 'error') {
                 send('error', { error: data?.error || 'stream error' });
             }
@@ -725,15 +724,13 @@ router.post('/:id/ai/ask', requirePreviewToken, llmBridgeLimiter, async (req, re
             agent_name: `Webpage: ${ctx.webpage.name || 'Untitled'}`,
             agent_type: 'webpage_bridge',
             model: modelId,
-            prompt_tokens: totalPromptTokens,
-            completion_tokens: totalCompletionTokens,
-            total_tokens: totalPromptTokens + totalCompletionTokens,
+            ...usageLogFields(usageAcc.total()),
             duration_ms: Date.now() - t0,
             source: 'webpage_bridge_ai_agentic',
             conversation_id: webpageId,
         }).catch(() => {});
 
-        send('done', { rounds, truncated, prompt_tokens: totalPromptTokens, completion_tokens: totalCompletionTokens });
+        send('done', { rounds, truncated, prompt_tokens: usageAcc.total().prompt_tokens, completion_tokens: usageAcc.total().completion_tokens });
         stopHeartbeat();
         try { res.end(); } catch (_) { /* already closed */ }
     } catch (err) {

@@ -3,7 +3,7 @@
  *
  * Until approvals became authorable the validator read NO field off them, so an
  * approval could go live asking nothing at all — the approver saw "Approval
- * requested" and had to open the routine to find out what they were agreeing
+ * requested" and had to open the automation to find out what they were agreeing
  * to. These rules close that, without stranding the definitions that already
  * exist: the two new codes are COMPLETENESS codes, which warn while you build
  * and block only at activation.
@@ -56,7 +56,7 @@ test('an approval with no question is reported', () => {
 test('a legacy approval carrying only `title` is NOT reported', () => {
     // The engine falls back to `title`, so such a step reaches its approver
     // with a real question. Flagging it would tell people their working
-    // routines are broken — the validator mirrors renderApprovalPrompt.
+    // automations are broken — the validator mirrors renderApprovalPrompt.
     const found = codes(def([approval({ prompt: undefined, title: 'Sign off on the quote' })]), 'activate');
     assert.ok(!found.includes('approval.prompt_missing'), `got: ${found.join(', ')}`);
 });

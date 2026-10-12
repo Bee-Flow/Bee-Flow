@@ -11,7 +11,7 @@ import { EN_ONLY, type Translate } from '../msg';
 import type { AppAction, AppDefinition, AppNode } from '../types';
 
 export interface DescribeOptions {
-    /** Resolves an automation id to its title; without it, "Run routine" unqualified. */
+    /** Resolves an automation id to its title; without it, "Run automation" unqualified. */
     titleFor?: ((automationId: unknown) => string | null | undefined) | null;
     t?: Translate;
 }
@@ -54,7 +54,7 @@ function describeModal(action: AppAction, definition: AppDefinition | null | und
 const DESCRIBE: Readonly<Record<string, Describe>> = {
     run_automation: (action, _def, { titleFor, t }) => {
         const title = typeof titleFor === 'function' ? titleFor(action.automationId) : null;
-        return title ? t(K('run_routine_named'), 'Run routine — {title}', { title: String(title) }) : t(K('run_routine'), 'Run routine');
+        return title ? t(K('run_automation_named'), 'Run automation — {title}', { title: String(title) }) : t(K('run_automation'), 'Run automation');
     },
     navigate: (action, def, { t }) => {
         const screen = (def?.screens || []).find((s) => s.id === action.screenId);

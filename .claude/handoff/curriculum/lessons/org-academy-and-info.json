@@ -4,7 +4,9 @@
   "estMinutes": 9,
   "title": "Is anyone actually learning?",
   "desc": "The Academy panel, custom courses, and the organisation profile behind every document.",
-  "gate": { "permission": "org_admin" },
+  "gate": {
+    "permission": "org_admin"
+  },
   "learningGoal": "After this lesson you can read your team's learning progress in the Academy panel, judge whether a gap needs a custom course, and finish the organisation profile the rest of the workspace hangs off.",
   "steps": [
     {
@@ -65,7 +67,7 @@
       "id": "author",
       "icon": "✍️",
       "title": "Writing a course of your own",
-      "bodyMd": "When your organisation has **Academy Custom Courses (Beta)**, the panel grows a second tab: **Content** — *\"Author your own Academy courses. Drafts stay private until you publish them to your members.\"*\n\n**+ New course** asks for a **Course title**, a **Level** (Beginner / Intermediate / Advanced), a **Description**, an **Icon**, and optionally a **Badge title (earned on completion)**.\n\nA lesson is built from three step types and no others: **Slide**, **Quiz** and **Exercise**. An exercise carries private **Grading criteria** — *\"The AI coach grades against these. Learners never see them.\"* — with a pass score (default 70) and max attempts (default 3).\n\nLimits: 50 courses per organisation, 20 lessons per course, 30 steps per lesson. Over-long titles are silently cut to 120 characters."
+      "bodyMd": "When your organisation has **Academy Custom Courses (Beta)**, the panel gets a **Content** tab beside **Overview** and **Required training** — *\"Author your own Academy courses. Drafts stay private until you publish them to your members.\"*\n\n**+ New course** asks for a **Course title**, a **Level** (Beginner / Intermediate / Advanced), a **Description**, an **Icon**, and optionally a **Badge title (earned on completion)**.\n\nA lesson is built from three step types and no others: **Slide**, **Quiz** and **Exercise**. An exercise carries private **Grading criteria** — *\"The AI coach grades against these. Learners never see them.\"* — with a pass score (default 70) and max attempts (default 3).\n\nLimits: 50 courses per organisation, 20 lessons per course, 30 steps per lesson. Over-long titles are silently cut to 120 characters."
     },
     {
       "type": "quiz",
@@ -121,7 +123,7 @@
         "pairs": [
           {
             "id": "p1",
-            "left": "Pieter's buyers keep attaching quotes to the wrong routine, and each one asks a colleague how it works.",
+            "left": "Pieter's buyers keep attaching quotes to the wrong automation, and each one asks a colleague how it works.",
             "right": "A custom Academy course",
             "note": "Repeatable know-how that only makes sense inside your organisation is exactly what the Content tab is for."
           },
@@ -192,7 +194,10 @@
       "checkId": "org-info",
       "title": "Finish the organisation profile",
       "instruction": "Open Organisation Info and complete the Legal & Invoicing block the way an invoice to your organisation would have to carry it: fill in Street and the VAT Number, and add Postal code, City, Country and the Chamber of Commerce (KVK) number while you are there. Then set New User Language to the language your next colleague should land in, because it is read at account creation and not afterwards. Click Save changes when the Unsaved changes bar appears — we then check the saved profile for a street address and a VAT number.",
-      "launch": { "navigateTo": "settings/organisation/info", "label": "Open Organisation Info" }
+      "launch": {
+        "navigateTo": "settings/organisation/info",
+        "label": "Open Organisation Info"
+      }
     },
     {
       "type": "slide",
@@ -247,7 +252,10 @@
         {
           "id": "street",
           "endpoint": "/auth/organizations/:id",
-          "expect": { "kind": "nonEmpty", "field": "address" },
+          "expect": {
+            "kind": "nonEmpty",
+            "field": "address"
+          },
           "label": "A street address is saved on the profile",
           "hint": "Street, under Legal & Invoicing on Organisation Info — it is read when the tax at checkout is worked out.",
           "rule": "GET /auth/organizations/<your org id> → the object's `address` is a non-empty string"
@@ -255,7 +263,10 @@
         {
           "id": "vat",
           "endpoint": "/auth/organizations/:id",
-          "expect": { "kind": "nonEmpty", "field": "vat" },
+          "expect": {
+            "kind": "nonEmpty",
+            "field": "vat"
+          },
           "label": "The VAT number is filled in",
           "hint": "VAT Number, under Legal & Invoicing — an invoice without it is the one the bookkeeper bounces.",
           "rule": "GET /auth/organizations/<your org id> → the object's `vat` is a non-empty string"

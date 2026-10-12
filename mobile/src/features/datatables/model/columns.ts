@@ -134,6 +134,8 @@ export const MANAGED_COLUMNS: Readonly<Record<string, readonly string[]>> = {
     nextcloud_table: [],
     spreadsheet_file: [],
     form_answers: ['run_id', 'completed_at'],
+    // The cells of a spreadsheet document: row_no, then one column per letter.
+    document_sheet: ['row_no', ...'abcdefghijklmnopqrstuvwxyz'.split('')],
     http_cache: [
         'cache_key', 'request_host', 'request_path', 'request_method',
         'response_status', 'response_body', 'response_headers', 'fetched_at',

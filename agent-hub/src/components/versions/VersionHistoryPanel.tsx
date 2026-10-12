@@ -21,6 +21,7 @@ import {
     type VersionContent, type VersionDetail as VersionDetailData, type VersionMeta, type VersionPeople,
 } from '../../api/queries/versions';
 import useTranslation from '../../hooks/useTranslation';
+import { managedOf } from '../shared/managedPart';
 import NameVersionForm from './NameVersionForm';
 import VersionCompare from './VersionCompare';
 import VersionDetail from './VersionDetail';
@@ -53,6 +54,12 @@ export interface VersionHistoryPanelProps {
      */
     initialCompare?: { from: string; to?: string; at?: string | null } | null;
     title?: string;
+    /**
+     * The `managed` of the item's GET (managedPart.managedOf): a part a Solution
+     * stage manages. Its history can be read and compared, but not restored or
+     * named: only a deploy changes it, so Restore and "Name this version" go.
+     */
+    managed?: unknown;
 }
 
 /**
@@ -223,8 +230,8 @@ const NARROW = 'min-[480px]:w-[400px]';
 const LIST_BESIDE = 'w-[340px] flex-shrink-0 border-r border-[var(--border-subtle)] max-[900px]:hidden';
 
 function HistoryPanel({
-    baseUrl, canEdit, onRestored, onClose, renderContent, projectId, people: extraPeople, currentUserId, expectedVersion, initialCompare, title,
-}: VersionHistoryPanelProps) {
+    baseUrl, canEdit, onRestored, onClose, renderContent, projectId, people: extraPeople, currentUserId, expectedVersion, initialCompare, title, locked = false,
+}: VersionHistoryPanelProps & { locked?: boolean }) {
     const { t } = useTranslation();
     const list = useVersionsQuery(baseUrl);
     const serverPeople = useMemo(() => peopleOfPages(list.data?.pages), [list.data]);
@@ -260,6 +267,7 @@ function HistoryPanel({
                     onNamed={named}
                 />
             )}
+            {locked && <p role="note" className="m-0 px-4 py-1.5 text-[12px] text-[var(--text-secondary)] border-b border-[var(--border-subtle)]" data-testid="version-managed">{t('managed_part.read_only_hint', 'Read-only: this part is managed by a Solution stage.')}</p>}
             {notice && <p role="status" className="m-0 px-4 py-1.5 text-[12px] text-[var(--success-ink)] border-b border-[var(--border-subtle)]" data-testid="version-notice">{notice}</p>}
             {gone && !notice && <GoneNotice gone={gone} />}
             <div className="flex-1 min-h-0 flex">
@@ -301,5 +309,7 @@ export default function VersionHistoryPanel(props: VersionHistoryPanelProps) {
     // Another item, or another version to open on, is another history: its
     // own selection, forms and notices, never those of the one before.
     const open = props.initialCompare;
-    return <HistoryPanel key={`${props.baseUrl}|${open?.from ?? ''}|${open?.to ?? ''}`} {...props} />;
+    // Managed: read and compare, never restore or name (only a deploy changes the part).
+    const locked = managedOf({ managed: props.managed }) !== null;
+    return <HistoryPanel key={`${props.baseUrl}|${open?.from ?? ''}|${open?.to ?? ''}`} {...props} canEdit={props.canEdit && !locked} locked={locked} />;
 }

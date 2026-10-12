@@ -3,17 +3,17 @@
 /**
  * GET /api/automation?triggerProvider=<id> (M2).
  *
- * The meeting-notes outputs bar asks "which of my routines run on this?" and
+ * The meeting-notes outputs bar asks "which of my automations run on this?" and
  * this is the narrowing it uses. Two failures are pinned here:
  *
  *  - AN UNKNOWN PROVIDER MUST BE A 400. `meeting_notes` with an underscore is
  *    the live example: PROVIDER_ID_RE rejects underscores, so that source was
  *    never registered and the spec's spelling matches nothing. A filter that
- *    fell back to the unfiltered list on a typo would hand a "routines on this
- *    meeting" panel every routine the caller owns — a wrong answer that looks
+ *    fell back to the unfiltered list on a typo would hand a "automations on this
+ *    meeting" panel every automation the caller owns — a wrong answer that looks
  *    like a right one.
  *  - THE FILTER MUST SEE EVERY app_event TRIGGER, primary and `triggers[]`.
- *    A routine whose meeting trigger is the second one is still a routine that
+ *    An automation whose meeting trigger is the second one is still an automation that
  *    fires.
  *
  * Route handler invoked directly — same technique as crud.multiTrigger.test.js.
@@ -99,7 +99,7 @@ test('no triggerProvider → the list is untouched', async () => {
     assert.strictEqual(res.body.automations.length, 1);
 });
 
-test('filters to the routines wired to that provider', async () => {
+test('filters to the automations wired to that provider', async () => {
     LIST = [
         auto('meeting', { trigger: appEvent('meeting-notes', 'meeting.processed') }),
         auto('gmail', { trigger: appEvent('gmail', 'mail.new') }),
@@ -152,7 +152,7 @@ test('triggerEvent narrows further, and an unknown event is 400', async () => {
 test('a repeated parameter (an array, not a string) is refused rather than coerced', async () => {
     // Express gives `?triggerProvider=a&triggerProvider=b` as an array. Naive
     // comparison against it is always false, which would look like "no
-    // routines" instead of a bad request.
+    // automations" instead of a bad request.
     LIST = [auto('a1', { trigger: appEvent('meeting-notes', 'meeting.processed') })];
     const res = await dispatch({ url: '/' });
     // The URLSearchParams harness collapses duplicates, so drive the shape

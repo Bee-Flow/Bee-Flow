@@ -16,6 +16,7 @@ const { makeDocumentPresenceRouter } = require('./presence');
 
 const ROLES = { owner: undefined, editor: 'editor', viewer: 'viewer' };
 const published = [];
+const channelled = [];
 const router = makeDocumentPresenceRouter({
     documents: {
         async getDocument(id, userId) {
@@ -26,6 +27,7 @@ const router = makeDocumentPresenceRouter({
         },
     },
     presence,
+    publishChannel: async (channel, event) => { channelled.push([channel, event]); },
     publishTransient: async (projectId, event) => { published.push([projectId, event]); },
     requireAuth: (req, res, next) => (req.session?.user ? next() : res.status(401).json({ error: 'Authentication required' })),
     limiter: (req, res, next) => next(),
@@ -34,7 +36,7 @@ const router = makeDocumentPresenceRouter({
 });
 const api = h.serve('/api/studio-documents', router);
 test.after(api.close);
-test.beforeEach(() => { presence._reset(); published.length = 0; });
+test.beforeEach(() => { presence._reset(); published.length = 0; channelled.length = 0; });
 
 const as = (id) => ({ id, organizationId: 'org1' });
 const beat = (user, body, id = 'd1') => api.call('POST', `/api/studio-documents/${id}/presence`, { user: as(user), body });
@@ -53,6 +55,7 @@ test('an editor says where they are; the others see it, and it goes out on the p
         kind: 'document.presence', actorId: 'editor', targetType: 'document', targetId: 'd1',
         payload: { documentId: 'd1', clientId: 'client-editor', sectionId: 'pricing', state: 'editing' },
     }]);
+    assert.deepStrictEqual(channelled[0], ['doc:d1', published[0][1]], 'the same event goes out on the document channel');
 });
 
 test('a viewer cannot claim to be editing; a stranger learns nothing', async () => {
@@ -62,6 +65,7 @@ test('a viewer cannot claim to be editing; a stranger learns nothing', async () 
     assert.strictEqual((await beat('stranger', { clientId: 'client-strange', state: 'viewing' })).status, 404);
     assert.strictEqual((await api.call('POST', '/api/studio-documents/d1/presence', { user: null, body: { clientId: 'client-anon', state: 'viewing' } })).status, 401);
     assert.deepStrictEqual(published, []);
+    assert.deepStrictEqual(channelled, []);
     assert.deepStrictEqual(presence.list('d1'), []);
 });
 
@@ -77,6 +81,7 @@ test('a private document is presence for its owner only, and nothing is publishe
     const res = await beat('owner', { clientId: 'client-owner', state: 'editing', sectionId: null }, 'solo');
     assert.strictEqual(res.status, 200);
     assert.deepStrictEqual(published, []);
+    assert.deepStrictEqual(channelled.map(([c, e]) => [c, e.targetId, e.payload.state]), [['doc:solo', 'solo', 'editing']], 'no project, but the document channel still hears it');
 });
 
 test('the registry forgets a client after the TTL and keeps `since` while the section stays', () => {

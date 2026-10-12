@@ -78,7 +78,7 @@ test('no gaps, no work', () => {
 test('the error says which step, how big, and what to do', () => {
     const err = replayGapError('http1', 2_400_000);
     assert.match(err.message, /step http1 \(2\.3 MB\)/);
-    assert.match(err.message, /Start the routine again/);
+    assert.match(err.message, /Start the automation again/);
     assert.deepEqual(err.replayGap, { stepId: 'http1', originalBytes: 2_400_000 });
     assert.doesNotMatch(replayGapError('http1', null).message, /\(/, 'no size is said when none is known');
 });

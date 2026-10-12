@@ -18,7 +18,7 @@ const log = require('../../telemetry/log');
  *  - Automations INHERIT the org Privacy Shield; no separate enable flag. A
  *    per-automation `definition.safety` block may only TIGHTEN.
  *  - Egress logging is UNCONDITIONAL (every integration_action / ai_step tool
- *    call writes a metadata row for source='routine'), and since 2026-08 the
+ *    call writes a metadata row for source='automation'), and since 2026-08 the
  *    chat paths follow the same rule (owner decision — the ledger is the
  *    Art-44/RoPA evidence base). `monitorIntegrations` gates CONTENT scanning
  *    only: off = no payload inspection at all; on = regex sniff + GLiNER when
@@ -93,7 +93,7 @@ function collectStringLeafKeys(value, key = null, out = []) {
 // back to that same provider so it knows which record to act on. Redacting one
 // protects nothing — the provider already has it, by definition — and guarantees
 // the call fails. That is not hypothetical: GLiNER reads a 16-hex-character Gmail
-// message id as a phone number (8 of its characters are digits), so a routine
+// message id as a phone number (8 of its characters are digits), so an automation
 // that read each mail of a search result sent a placeholder to Gmail and died on
 // "Invalid id value" for all ten iterations, with the shield reporting a
 // successful redaction.
@@ -167,12 +167,12 @@ async function resolveAutomationPolicy(ctx, { honourAutomationOptOut = true } = 
 
     // Org-level opt-out: the org admin can exclude automations from the
     // Privacy Shield (Settings → Organisation → Privacy Shield → "Apply to
-    // routines"). Missing field (older saves) = applied. When excluded,
+    // automations"). Missing field (older saves) = applied. When excluded,
     // automation runs skip PII/regex guarding entirely — egress logging in
     // logEgress still records where data went (that's audit, not guarding).
     //
-    // `honourAutomationOptOut: false` is for callers that are NOT routines.
-    // This setting's own label is "Apply to routines", so a webpage api/
+    // `honourAutomationOptOut: false` is for callers that are NOT automations.
+    // This setting's own label is "Apply to automations", so a webpage api/
     // handler inheriting it would drop the shield on a surface the admin
     // never agreed to exclude — a switch that silently means more than it
     // says. Such callers keep the shield on; every other rule below is
@@ -230,7 +230,7 @@ async function resolveAutomationPolicy(ctx, { honourAutomationOptOut = true } = 
         confidence: (shield && shield.piiDetectionConfidenceThreshold)
             ?? aiConfig.piiDetectionConfidenceThreshold ?? 0.7,
         // Includes the org's own data types ("Your own data"): the resolver
-        // puts their ids in this list and detectPii runs them, so routines
+        // puts their ids in this list and detectPii runs them, so automations
         // hide the same terms chat does.
         categories: (shield && shield.piiDetectionCategories) || aiConfig.piiDetectionCategories || null,
         // What to do when the detector is unreachable or only partly ran.
@@ -244,7 +244,7 @@ async function resolveAutomationPolicy(ctx, { honourAutomationOptOut = true } = 
     return policy;
 }
 
-function buildAuditBase(ctx, step, { source = 'routine' } = {}) {
+function buildAuditBase(ctx, step, { source = 'automation' } = {}) {
     return {
         organization_id: ctx.orgId || null,
         user_id: ctx.userId || null,
@@ -254,8 +254,8 @@ function buildAuditBase(ctx, step, { source = 'routine' } = {}) {
         automation_id: ctx.automationId || null,
         run_id: ctx.runId || null,
         step_id: step && step.id ? step.id : null,
-        // Carried into the ledger row by logEgress, so a non-routine caller
-        // (a webpage api/ handler) is not filed as a routine in the audit
+        // Carried into the ledger row by logEgress, so a non-automation caller
+        // (a webpage api/ handler) is not filed as an automation in the audit
         // trail — which is a compliance surface, not a label.
         source,
         model: null,
@@ -390,7 +390,7 @@ async function _rawDetect(text, policy) {
  * label); detectPii's spans are disjoint, and overlaps across windows are
  * resolved at the mint site by tokenizeText itself.
  *
- * The allowlist and custom terms were completely inert on routines: safety.js
+ * The allowlist and custom terms were completely inert on automations: safety.js
  * called the bare detector, so an org's own company name kept being redacted
  * (false positives, garbled outputs) and its own codenames were never caught —
  * while the very same settings worked in chat. The codenames now travel as
@@ -721,7 +721,7 @@ async function guardToolOutput(result, policy, auditBase, mode, ctx = null) {
  * Guard an ai_step's messages before the LLM call. Mutates the guarded messages
  * in place (matching the agent runner) and returns { tokenMap, blocked }.
  *
- * Guards the SYSTEM prompt as well as the user message: a routine's system
+ * Guards the SYSTEM prompt as well as the user message: an automation's system
  * prompt is `{{…}}`-interpolated from step data, so it routinely carries the
  * very personal data the shield is supposed to catch, and it used to go to the
  * model untouched.
@@ -863,7 +863,7 @@ async function tokenizeIntoVault(text, policy, ctx) {
  * test-runs only — production runs never pay for extra scanning; there the
  * summaries come free from the guards that already ran).
  *
- * Gated on the resolved policy (org shield "Apply to routines" + PII
+ * Gated on the resolved policy (org shield "Apply to automations" + PII
  * detection on) and capped at ONE scan window (8 000 chars) so a ▶ Execute
  * stays snappy; a longer output is scanned partially and flagged
  * `degraded` so the UI can say "approximate".
@@ -1003,7 +1003,7 @@ async function logEgress({ toolName, toolArgs, result, error, blocked, probe, po
             error: error || null,
             blocked: !!blocked,
             probe: probe || null,
-            source: auditBase.source || 'routine',
+            source: auditBase.source || 'automation',
             model: auditBase.model || null,
             durationMs,
             preResolvedMeta: integMeta,
@@ -1021,9 +1021,9 @@ async function logEgress({ toolName, toolArgs, result, error, blocked, probe, po
             ids: {
                 organization_id: auditBase.organization_id,
                 user_id: auditBase.user_id,
-                // Routines are NOT agents. The automation id used to be
+                // Automations are NOT agents. The automation id used to be
                 // stuffed into agent_id here, which polluted every 'agent'
-                // breakdown with routines; automation_id below is the real
+                // breakdown with automations; automation_id below is the real
                 // attribution, and historical rows remain classifiable via
                 // automation_id IS NOT NULL.
                 agent_id: null,

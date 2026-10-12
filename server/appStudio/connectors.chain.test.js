@@ -22,7 +22,7 @@ const dataModel = require('./dataModel');
 const OWNER = 'owner-1';
 const ORG = 'org-1';
 const app = { id: 'app-1', userId: OWNER, organizationId: ORG };
-const OWNER_SESSION = { user: { id: OWNER, organizationId: ORG }, isAdmin: false, routineProviders: {} };
+const OWNER_SESSION = { user: { id: OWNER, organizationId: ORG }, isAdmin: false, automationProviders: {} };
 
 // A recording executeTool built from a { toolName: handler } map.
 function stubTools(handlers) {
@@ -173,7 +173,7 @@ test('connection: a THROWN not-connected error becomes 409 connection_required, 
 
 test('connection: a soft { error } saying the same thing is classified identically', async () => {
     const { _deps } = deps({
-        vplan_list_cards: { error: 'vPlan not configured. Add your API key and environment in Settings → Integrations.' },
+        vplan_list_cards: { error: 'vPlan not configured. Add your API key and environment in Settings → Connections.' },
     });
     await assert.rejects(
         () => connectors.runConnector(

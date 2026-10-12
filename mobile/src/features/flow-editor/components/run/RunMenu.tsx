@@ -1,7 +1,7 @@
 /**
  * More ways to run — the web's RunFlowMenu (BuilderHeader.jsx) as a sheet:
  * Dry-run (the toolbar's Play), Run live (asked first: every step performs
- * its action), and, for a routine with more than one trigger, which trigger
+ * its action), and, for an automation with more than one trigger, which trigger
  * the next run starts from. A form trigger with nothing saved to run on is
  * opened instead of run: a form runs when somebody fills it in.
  */
@@ -34,7 +34,7 @@ export function RunMenu({
     const { toast } = useToast();
     const runLive = async () => {
         const ok = await confirm({
-            title: t('mobile.flow.run.live_title', 'Run this routine for real?'),
+            title: t('mobile.flow.run.live_title', 'Run this automation for real?'),
             message: t('mobile.flow.run.live_message', 'Every step performs its action — sending messages, writing data, and anything else in the flow.'),
             confirmLabel: t('mobile.flow.run.live_confirm', 'Run it'),
         });
@@ -50,7 +50,7 @@ export function RunMenu({
     const items: ActionMenuItem[] = [
         {
             id: 'dry',
-            label: t('routines.header.dry_run', 'Dry-run (preview)'),
+            label: t('automations.header.dry_run', 'Dry-run (preview)'),
             icon: 'Eye',
             accessibilityHint: t('mobile.flow.run.dry_hint', 'No real actions — safe preview'),
             disabled: runs.running,
@@ -58,9 +58,9 @@ export function RunMenu({
         },
         {
             id: 'live',
-            label: t('routines.header.run_live', 'Run live'),
+            label: t('automations.header.run_live', 'Run live'),
             icon: 'Play',
-            accessibilityHint: t('routines.header.run_live_hint', 'Executes every step for real'),
+            accessibilityHint: t('automations.header.run_live_hint', 'Executes every step for real'),
             disabled: runs.running,
             onPress: () => void runLive(),
         },
@@ -72,5 +72,5 @@ export function RunMenu({
             onPress: () => runs.setFrom(start.id),
         })),
     ];
-    return <ActionMenu visible={visible} onClose={onClose} title={t('routines.header.more_ways_to_run', 'More ways to run')} items={items} testID="run-menu" />;
+    return <ActionMenu visible={visible} onClose={onClose} title={t('automations.header.more_ways_to_run', 'More ways to run')} items={items} testID="run-menu" />;
 }

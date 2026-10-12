@@ -1,13 +1,17 @@
+import { singularKey } from '@shared/expr/rules.mjs';
 import { Lightbulb, Loader2, Plus, Sparkles } from 'lucide-react';
-import { useMemo, useState } from 'react';
-import useAutomationApi from '../../../../../hooks/useAutomationApi';
-import { describeRuleExpr } from '../displayHelpers';
+import { useMemo, useRef, useState } from 'react';
 import { cardClass, rowInputClass } from './formPrimitives';
+import {
+    FilesInsideNote, PRIMARY_BUTTON_CLASS, SuggestProblem, UnmatchedLine, useRuleLine,
+} from './RouteAssistParts';
 import { parseCategories, planRouteHandoff } from './routeHandoff';
 import { suggestOutputs } from './routeIntents';
 import { askFailureMessage, askModelForRules } from './routeRulesRequest';
 import TopicCheckRow from './TopicCheckRow';
 import useTopicPreview from './useTopicPreview';
+import useAutomationApi from '../../../../../hooks/useAutomationApi';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 
 /**
  * "Suggest outputs" — describe the outputs in words, read them back as
@@ -44,10 +48,10 @@ import useTopicPreview from './useTopicPreview';
  *    still saves as a `filter` and several still save as a `switch`
  *    (flow/routeModel.js, writeRoute).
  *  - It is not a preview of code. Every rule is read back through
- *    `describeRuleExpr` — the canvas's own describer — so what the author
- *    checks is "Name ends with “.doc” or Name ends with “.docx”", never the
- *    expression. The expression stays where every other generated expression
- *    lives: under Advanced.
+ *    `ruleSentence` — the canvas's own describer — so what the author checks
+ *    is "any attachment · File type is PDF", never the expression, and a rule
+ *    it cannot describe reads "a custom rule". The expression stays where
+ *    every other generated expression lives: under Advanced.
  *
  * The match count is the honest part. It is evaluated with the same engine
  * the server runs, against whatever sample rows the editor already has — and
@@ -70,13 +74,14 @@ import useTopicPreview from './useTopicPreview';
  * sentence on screen is how someone accepts rules for a question they have
  * already changed their mind about.
  */
-function useRouteSuggestion({ fields, itemVar, sampleRows, unit, topics }) {
+function useRouteSuggestion({ fields, itemVar, sampleRows, unit, perItem: perItemProp, topics, element }) {
     const api = useAutomationApi();
     // Does this node decide about the whole run, or about one row at a time?
     // It follows from what the editor handed down rather than being asked
     // again, and both the model request and the handoff plan below hinge on
     // it, so it is derived once here.
-    const perItem = !!sampleRows || unit === 'items';
+    // An explicit `perItem` wins: `unit` is the list's own word ("messages").
+    const perItem = perItemProp ?? (!!sampleRows || unit === 'items');
     const [text, setText] = useState('');
     const [ai, setAi] = useState(null);        // { rules, problem } once asked
     const [asking, setAsking] = useState(false);
@@ -87,7 +92,7 @@ function useRouteSuggestion({ fields, itemVar, sampleRows, unit, topics }) {
     // question, and leaving it standing under a changed sentence is the same
     // stale-answer trap the model result above is cleared for.
     const [answers, setAnswers] = useState('');
-    const offline = useMemo(() => suggestOutputs(text, { fields, topics }), [text, fields, topics]);
+    const offline = useMemo(() => suggestOutputs(text, { fields, topics, element }), [text, fields, topics, element]);
     const suggestion = offline.rules.length ? offline : (ai || offline);
 
     const retype = (next) => {
@@ -159,12 +164,25 @@ function useRouteHandoff({
     return { offered, named, plan, accept, losingWires };
 }
 
+/**
+ * "Check each attachment instead" removes its own note; focus stays in the
+ * box, on the description, which is suggested again against the files.
+ */
+function useWorkThroughFocus(onWorkThroughList) {
+    const inputRef = useRef(null);
+    const workThroughList = typeof onWorkThroughList === 'function'
+        ? (listPath) => { onWorkThroughList(listPath); inputRef.current?.focus(); }
+        : null;
+    return { inputRef, workThroughList };
+}
+
 function RouteAssist({
     fields = [],
     sampleRows = null,
     sampleRoot = null,
     itemVar = 'item',
     unit = 'records',
+    perItem: perItemProp, // works through a list; derived from the rows when absent
     existingRuleCount = 0,
     wiredOutputNames = [],
     // The accept, and the three handoff props beside it — the list this node
@@ -179,14 +197,21 @@ function RouteAssist({
     // `{ available, reason }` for the topic classifier: "is about" outputs can
     // be suggested only when it is available (routeTopicIntent.ts).
     topics = null,
+    // One item's sample (is it a file, or does it hold files?) and
+    // `(listPath) => void`, which makes the node work through another list.
+    // After an accept: does a row matching several outputs go down each
+    // (`fanOut`), and does one output send what it does not match to Otherwise?
+    itemSample, onWorkThroughList, fanOut, keepRest,
 }) {
+    const { t } = useTranslation();
     const { text, retype, suggestion, fromAi, asking, askError, askAi, answers, setAnswers, perItem } =
-        useRouteSuggestion({ fields, itemVar, sampleRows, unit, topics: topics?.available === true });
+        useRouteSuggestion({ fields, itemVar, sampleRows, unit, perItem: perItemProp, topics: topics?.available === true, element: itemSample });
     const rules = suggestion.rules;
     // "Is about" rules are counted only against rows the classifier scored,
     // after the author asks; every other rule as before (useTopicPreview).
     const { counts, topic } = useTopicPreview({ rules, rows: sampleRows, root: sampleRoot, itemVar });
 
+    const { inputRef, workThroughList } = useWorkThroughFocus(onWorkThroughList);
     const handoff = useRouteHandoff({
         text, answers, suggestion, fromAi, itemVar, perItem, sourceRef, wiredOutputNames,
         onInsertUpstreamStep, onApplyHandoff,
@@ -195,27 +220,21 @@ function RouteAssist({
     return (
         <div className={cardClass()}>
             <div className="flex items-center gap-1.5 text-[11px] font-medium text-[var(--text-primary)]">
-                <Lightbulb size={12} /> Suggest outputs
+                <Lightbulb size={12} /> {t('automations.route_assist.suggest_outputs', 'Suggest outputs')}
             </div>
             <div className="text-[10px] text-[var(--text-tertiary)]">
-                Describe the outputs in your own words and check them below. Nothing changes until you accept.
-                This runs here in the browser first — no AI, and nothing leaves this page.
+                {t('automations.route_assist.describe_the_outputs_in_your_own', 'Describe the outputs in your own words and check them below. Nothing changes until you accept. This runs here in the browser first — no AI, and nothing leaves this page.')}
             </div>
-            <input
+            <input ref={inputRef}
                 type="text"
                 value={text}
                 onChange={(e) => retype(e.target.value)}
-                aria-label="Describe the outputs you want"
-                placeholder="split these files by pdf, word and powerpoint"
+                aria-label={t('automations.route_assist.describe_the_outputs_you_want', 'Describe the outputs you want')}
+                placeholder={t('automations.route_assist.split_these_files_by_pdf_word', 'split these files by pdf, word and powerpoint')}
                 className={rowInputClass('w-full')}
             />
 
-            {/* A description that produced nothing gets a sentence saying what
-                this box does understand. Silence would read as "still
-                thinking", which — with no model behind it — it never is. */}
-            {!rules.length && suggestion.problem && (
-                <div className="text-[10px] text-amber-600 dark:text-amber-400">{suggestion.problem}</div>
-            )}
+            {!rules.length && <SuggestProblem suggestion={suggestion} />}
 
             <AskAiRow
                 offered={!rules.length && text.trim().length > 2}
@@ -242,7 +261,7 @@ function RouteAssist({
                     suggestion={suggestion}
                     fromAi={fromAi}
                     counts={counts}
-                    unit={unit}
+                    unit={unit} keepRest={keepRest}
                     existingRuleCount={existingRuleCount}
                     /* An output that keeps its name keeps its connection —
                        the rule this whole section states out loud — so only
@@ -254,6 +273,8 @@ function RouteAssist({
                     topic={topic}
                 />
             )}
+            <FilesInsideNote filesInside={suggestion.filesInside} sourceRef={sourceRef}
+                ruleCount={rules.length} fanOut={fanOut} onWorkThroughList={workThroughList} />
         </div>
     );
 }
@@ -268,13 +289,18 @@ function RouteAssist({
  * the two indistinguishable — and only one of them is a fixed answer that
  * cannot drift between releases.
  */
-function previewHeading(suggestion, fromAi) {
+function previewHeading(suggestion, fromAi, t) {
     const n = suggestion.rules.length;
     if (fromAi) {
         return `Written by the AI — ${n === 1 ? 'one output' : `${n} outputs`}, checked against the fields this step produces:`;
     }
     const outputs = n === 1 ? 'one output, using' : `${n} outputs, using`;
-    return `${suggestion.understood} — ${outputs} ${suggestion.field?.label || 'this field'}:`;
+    const fileType = suggestion.kind === 'fileType';
+    const understood = fileType ? t('condition_node.suggest.by_file_type', 'Split by file type') : suggestion.understood;
+    const label = fileType && suggestion.field?.path?.startsWith('fileType(')
+        ? t('condition_node.file_type.label', 'File type')
+        : suggestion.field?.label || 'this field';
+    return `${understood} — ${outputs} ${label}:`;
 }
 
 /**
@@ -292,10 +318,11 @@ function previewHeading(suggestion, fromAi) {
  * to know that is what they are getting.
  */
 function AskAiRow({ offered, asking, error, onAsk }) {
+    const { t } = useTranslation();
     if (asking) {
         return (
             <div className="inline-flex items-center gap-1.5 text-[10px] text-[var(--text-tertiary)]">
-                <Loader2 size={11} className="animate-spin" /> Asking the AI…
+                <Loader2 size={11} className="animate-spin" /> {t('automations.route_assist.asking_the_ai', 'Asking the AI…')}
             </div>
         );
     }
@@ -308,13 +335,12 @@ function AskAiRow({ offered, asking, error, onAsk }) {
                         onClick={onAsk}
                         className="inline-flex items-center gap-1.5 px-2 py-1 text-[11px] rounded border border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition"
                     >
-                        <Sparkles size={11} /> Ask the AI instead
+                        <Sparkles size={11} /> {t('automations.route_assist.ask_the_ai_instead', 'Ask the AI instead')}
                     </button>
                     {/* Said BEFORE the click, not after: what travels is the
                         shape of the data, never the data. */}
                     <div className="text-[10px] text-[var(--text-tertiary)]">
-                        This sends your description and the field names — never any rows or values — and every
-                        condition that comes back is checked against those fields before you see it.
+                        {t('automations.route_assist.this_sends_your_description_and_the', 'This sends your description and the field names — never any rows or values — and every condition that comes back is checked against those fields before you see it.')}
                     </div>
                 </div>
             )}
@@ -338,7 +364,7 @@ function AskAiRow({ offered, asking, error, onAsk }) {
  * IT IS THE ONLY THING IN THIS BOX THAT ADDS A STEP, and it says so in those
  * words, twice — in the explanation and again on the button. Everything else
  * here rewrites the outputs of the node the author already has open; this
- * changes the shape of their routine, and an author who reads "use these 3
+ * changes the shape of their automation, and an author who reads "use these 3
  * outputs" and gets a new node on the canvas has been surprised by their own
  * click. It is also why the whole plan — the step's label, what it will be
  * asked, and every rule read back as a sentence — is on screen BEFORE the
@@ -354,23 +380,22 @@ function HandoffOffer({
     offered = false, answers, onAnswers, named = [], plan, perItem, unit,
     existingRuleCount = 0, losingWires = [], onAccept,
 }) {
+    const { t } = useTranslation();
     if (!offered) return null;
     return (
         <div className="space-y-1.5 rounded border border-[var(--border-default)] p-2">
             <div className="flex items-center gap-1.5 text-[11px] font-medium text-[var(--text-primary)]">
-                <Plus size={12} /> Have an AI step answer it first
+                <Plus size={12} /> {t('automations.route_assist.have_an_ai_step_answer_it', 'Have an AI step answer it first')}
             </div>
             <div className="text-[10px] text-[var(--text-tertiary)]">
-                An output can only compare fields that already exist, and none of the fields here holds the answer
-                to that question. An AI step placed before this one can answer it in a single word, and the outputs
-                then check that word. This ADDS A STEP to your routine — it is the only thing in this box that does.
+                {t('automations.route_assist.an_output_can_only_compare_fields', 'An output can only compare fields that already exist, and none of the fields here holds the answer to that question. An AI step placed before this one can answer it in a single word, and the outputs then check that word. This ADDS A STEP to your automation — it is the only thing in this box that does.')}
             </div>
             <input
                 type="text"
                 value={answers}
                 onChange={(e) => onAnswers(e.target.value)}
-                aria-label="Name the possible answers"
-                placeholder="complaint, question, something else"
+                aria-label={t('automations.route_assist.name_the_possible_answers', 'Name the possible answers')}
+                placeholder={t('automations.route_assist.complaint_question_something_else', 'complaint, question, something else')}
                 className={rowInputClass('w-full')}
             />
             {/* A plan this cannot make says why, in a sentence. A greyed-out
@@ -405,23 +430,30 @@ function HandoffOffer({
  * exists yet to reassure anyone with.
  */
 function HandoffPlanPreview({ plan, named, perItem, unit, existingRuleCount, losingWires, onAccept }) {
+    const { t } = useTranslation();
+    const ruleLine = useRuleLine();
     const n = plan.rules.length;
     const one = n === 1;
     const oneWire = losingWires.length === 1;
+    const introParams = {
+        label: plan.step.label,
+        item: perItem ? singularKey(unit) : '',
+        words: named.length === 1 ? t('automations.route_assist.that_word', 'that word') : t('automations.route_assist.those_words', 'those {count} words', { count: named.length }),
+        outputs: one ? t('automations.route_assist.one_output', 'one output') : t('automations.route_assist.n_outputs', '{count} outputs', { count: n }),
+    };
     return (
         <div className="space-y-1.5">
             <div className="text-[10px] text-[var(--text-tertiary)]">
-                One new step, “{plan.step.label}”
-                {perItem ? `, run once per ${unit === 'items' ? 'item' : 'record'} of the list above,` : ','} answering with
-                one of {named.length === 1 ? 'that word' : `those ${named.length} words`} — and {one ? 'one output' : `${n} outputs`} here
-                reading it:
+                {perItem
+                    ? t('automations.route_assist.plan_intro_per_item', 'One new step, “{label}”, run once per {item} of the list above, answering with one of {words}, and {outputs} here reading it:', introParams)
+                    : t('automations.route_assist.plan_intro', 'One new step, “{label}”, answering with one of {words}, and {outputs} here reading it:', introParams)}
             </div>
             <ul className="space-y-1">
                 {plan.rules.map(r => (
                     <li key={r.name} className="text-[11px] text-[var(--text-secondary)]">
                         <span className="text-[var(--text-primary)] font-medium">{r.name}</span>
                         {' — '}
-                        {describeRuleExpr(r.expr)}
+                        {ruleLine(r.expr)}
                     </li>
                 ))}
             </ul>
@@ -431,34 +463,35 @@ function HandoffPlanPreview({ plan, named, perItem, unit, existingRuleCount, los
                 them, so there is nothing to count and "0 of 12 matched" would
                 read as a broken rule rather than an unanswered question. */}
             <div className="text-[10px] text-[var(--text-tertiary)]">
-                Nothing can be counted against the sample {unit} yet — the answer is written by the new step,
-                so it exists only once this has run.
+                {t('automations.route_assist.nothing_to_count', 'Nothing can be counted against the sample {unit} yet. The answer is written by the new step, so it exists only once this has run.', { unit })}
             </div>
             {named.length > n && (
                 <div className="text-[10px] text-amber-600 dark:text-amber-400">
-                    Only the first {n} answers are used — more outputs than that is a lookup table rather than a
-                    routing decision, and every one of them is a port someone has to wire.
+                    {t('automations.route_assist.only_first_used', 'Only the first {count} answers are used. More outputs than that is a lookup table rather than a routing decision, and every one of them is a port someone has to wire.', { count: n })}
                 </div>
             )}
             {existingRuleCount > 0 && (
                 <div className="text-[10px] text-amber-600 dark:text-amber-400">
-                    Accepting replaces the {existingRuleCount === 1 ? 'output' : `${existingRuleCount} outputs`} already
-                    set up below.
+                    {existingRuleCount === 1
+                        ? t('automations.route_assist.accept_replaces_one', 'Accepting replaces the output already set up below.')
+                        : t('automations.route_assist.accept_replaces_many', 'Accepting replaces the {count} outputs already set up below.', { count: existingRuleCount })}
                 </div>
             )}
             {losingWires.length > 0 && (
                 <div className="text-[10px] text-amber-600 dark:text-amber-400">
-                    {losingWires.join(', ')} {oneWire ? 'is' : 'are'} wired on the canvas and
-                    {oneWire ? ' is' : ' are'} not in this plan, so
-                    {oneWire ? ' its connection goes' : ' their connections go'} too.
+                    {oneWire
+                        ? t('automations.route_assist.plan_wire_lost_one', '{names} is wired on the canvas and is not in this plan, so its connection goes too.', { names: losingWires.join(', ') })
+                        : t('automations.route_assist.plan_wire_lost_many', '{names} are wired on the canvas and are not in this plan, so their connections go too.', { names: losingWires.join(', ') })}
                 </div>
             )}
             <button
                 type="button"
                 onClick={onAccept}
-                className="px-2 py-1 text-[11px] rounded border border-[var(--accent)] text-[var(--accent)] bg-[var(--accent)]/10 hover:bg-[var(--accent)]/20 transition"
+                className={PRIMARY_BUTTON_CLASS}
             >
-                Add the step and use {one ? 'this output' : `these ${n} outputs`}
+                {one
+                    ? t('automations.route_assist.add_step_use_one', 'Add the step and use this output')
+                    : t('automations.route_assist.add_step_use_many', 'Add the step and use these {count} outputs', { count: n })}
             </button>
         </div>
     );
@@ -469,22 +502,24 @@ function HandoffPlanPreview({ plan, named, perItem, unit, existingRuleCount, los
  * sample rows say about it — and an accept button that is the first thing in
  * this box to change anything at all.
  */
-function SuggestionPreview({ suggestion, fromAi = false, counts, unit, existingRuleCount, losingWires = [], onApply, onReset, topic }) {
+function SuggestionPreview({ suggestion, fromAi = false, counts, unit, keepRest = false, existingRuleCount, losingWires = [], onApply, onReset, topic }) {
+    const { t } = useTranslation();
+    const ruleLine = useRuleLine();
     const rules = suggestion.rules;
     return (
         <div className="space-y-1.5">
             <div className="text-[10px] text-[var(--text-tertiary)]">
-                {previewHeading(suggestion, fromAi)}
+                {previewHeading(suggestion, fromAi, t)}
             </div>
             <ul className="space-y-1">
                 {rules.map((r, i) => (
                     <li key={r.name} className="text-[11px] text-[var(--text-secondary)]">
                         <span className="text-[var(--text-primary)] font-medium">{r.name}</span>
                         {' — '}
-                        {describeRuleExpr(r.expr)}
+                        {ruleLine(r.expr)}
                         {counts && (
                             <span className="text-[var(--text-tertiary)]">
-                                {' · '}{counts.perRule[i].matched} of {counts.total} sample {unit}
+                                {' · '}{t('automations.route_assist.matched_of_total', '{matched} of {total} sample {unit}', { matched: counts.perRule[i].matched, total: counts.total, unit })}
                             </span>
                         )}
                     </li>
@@ -492,22 +527,17 @@ function SuggestionPreview({ suggestion, fromAi = false, counts, unit, existingR
             </ul>
             <TopicCheckRow unit={unit} topic={topic} />
             {counts
-                ? (
-                    <div className="text-[10px] text-[var(--text-tertiary)]">
-                        {counts.unmatched} of {counts.total} sample {unit} match none of these
-                        {rules.length > 1 ? ' and would take the otherwise output.' : ' and would stop here.'}
-                    </div>
-                )
+                ? <UnmatchedLine counts={counts} ruleCount={rules.length} keepRest={keepRest} unit={unit} />
                 : !topic?.needed && (
                     <div className="text-[10px] text-[var(--text-tertiary)]">
-                        There are no sample {unit} here yet, so none of this can be counted — the lines above are
-                        what will be checked, not what has matched.
+                        {t('automations.route_assist.no_sample_yet', 'There are no sample {unit} here yet, so none of this can be counted. The lines above are what will be checked, not what has matched.', { unit })}
                     </div>
                 )}
             {existingRuleCount > 0 && (
                 <div className="text-[10px] text-amber-600 dark:text-amber-400">
-                    Accepting replaces the {existingRuleCount === 1 ? 'output' : `${existingRuleCount} outputs`} already
-                    set up below.
+                    {existingRuleCount === 1
+                        ? t('automations.route_assist.accept_replaces_one', 'Accepting replaces the output already set up below.')
+                        : t('automations.route_assist.accept_replaces_many', 'Accepting replaces the {count} outputs already set up below.', { count: existingRuleCount })}
                 </div>
             )}
             {/* Naming the canvas cost BEFORE the click, because an accept
@@ -522,31 +552,32 @@ function SuggestionPreview({ suggestion, fromAi = false, counts, unit, existingR
                 about, arriving through a new door. */}
             {losingWires.length > 0 && (
                 <div className="text-[10px] text-amber-600 dark:text-amber-400">
-                    {losingWires.join(', ')} {losingWires.length === 1 ? 'is' : 'are'} wired on the canvas and
-                    {losingWires.length === 1 ? ' is' : ' are'} not in this suggestion, so
-                    {losingWires.length === 1 ? ' its connection goes' : ' their connections go'} too.
+                    {losingWires.length === 1
+                        ? t('automations.route_assist.suggestion_wire_lost_one', '{names} is wired on the canvas and is not in this suggestion, so its connection goes too.', { names: losingWires.join(', ') })
+                        : t('automations.route_assist.suggestion_wire_lost_many', '{names} are wired on the canvas and are not in this suggestion, so their connections go too.', { names: losingWires.join(', ') })}
                 </div>
             )}
             <div className="flex items-center gap-2">
                 <button
                     type="button"
                     onClick={onApply}
-                    className="px-2 py-1 text-[11px] rounded border border-[var(--accent)] text-[var(--accent)] bg-[var(--accent)]/10 hover:bg-[var(--accent)]/20 transition"
+                    className={PRIMARY_BUTTON_CLASS}
                 >
-                    {rules.length === 1 ? 'Use this output' : `Use these ${rules.length} outputs`}
+                    {rules.length === 1
+                        ? t('automations.route_assist.use_one', 'Use this output')
+                        : t('automations.route_assist.use_many', 'Use these {count} outputs', { count: rules.length })}
                 </button>
                 <button
                     type="button"
                     onClick={onReset}
                     className="text-[10px] text-[var(--text-tertiary)] hover:underline"
                 >
-                    Start over
+                    {t('automations.route_assist.start_over', 'Start over')}
                 </button>
             </div>
             {suggestion.truncated && (
                 <div className="text-[10px] text-amber-600 dark:text-amber-400">
-                    Only the first {rules.length} are shown — more outputs than that is a lookup table rather than a
-                    routing decision, and every one of them is a port someone has to wire.
+                    {t('automations.route_assist.only_first_shown', 'Only the first {count} are shown. More outputs than that is a lookup table rather than a routing decision, and every one of them is a port someone has to wire.', { count: rules.length })}
                 </div>
             )}
         </div>

@@ -90,7 +90,10 @@ const MOCKS = {
         }),
         openDuties: () => [],
     },
-    '../../compliance/runner': { runOne: async (...a) => { touched.push({ what: 'runOne', args: a }); } },
+    '../../compliance/runner': {
+        runOne: async (...a) => { touched.push({ what: 'runOne', args: a }); },
+        runForSubject: async (...a) => { touched.push({ what: 'runForSubject', args: a }); return []; },
+    },
     '../../compliance/events': { emit: () => {} },
     '../../compliance/evidence/writeFailures': { onEvidenceWriteFailed: () => () => {} },
     '../../auth/permissions': { requireAuth: pass, requirePermission: () => pass },
@@ -128,31 +131,9 @@ router.use(require('./customFrameworks'));
 router.use(require('./aiAct'));
 test.after(() => { Module._resolveFilename = originalResolve; });
 
-const { terminalErrorHandler } = require('../../core/http/terminalErrorHandler');
+const { dispatcher } = require('../../core/http/routeHarness');
 
-function dispatch({ method, url, body = {} }) {
-    return new Promise((resolve, reject) => {
-        const [pathname, search = ''] = String(url).split('?');
-        const query = {};
-        for (const [k, v] of new URLSearchParams(search)) query[k] = v;
-        const req = {
-            method, url, originalUrl: url, path: pathname, query, body, headers: {},
-            session: { user: { id: 'u1' } }, get() { return undefined; },
-        };
-        const res = {
-            statusCode: 200, headersSent: false,
-            set() { return this; }, setHeader() {},
-            status(c) { this.statusCode = c; return this; },
-            json(b) { this.body = b; this.headersSent = true; resolve(this); return this; },
-            send(b) { this.body = b; this.headersSent = true; resolve(this); return this; },
-            end() { this.headersSent = true; resolve(this); return this; },
-        };
-        router(req, res, (err) => {
-            if (!err) return reject(new Error(`fell through: ${method} ${url}`));
-            terminalErrorHandler(err, req, res, (e) => reject(e));
-        });
-    });
-}
+const dispatch = dispatcher(router);
 
 test.beforeEach(() => { touched.length = 0; });
 
@@ -187,13 +168,23 @@ test('the quick attest and the questionnaire the DPIA drawer sends both still sa
     const quick = await dispatch({ method: 'POST', url: '/dpia/agent-7', body: { mode: 'attestation', risk_level: 'medium', expires_at: '2027-09-22T00:00:00.000Z' } });
     assert.strictEqual(quick.statusCode, 200);
     assert.strictEqual(touched.find((t) => t.what === 'upsertAssessment').args[2].mode, 'attestation');
+    // The agent is re-judged where it is a subject; runOne with a subjectId
+    // wrote "Subject not found." into the Art-35 global slot for an agent
+    // that is not high-risk.
+    assert.deepStrictEqual(touched.find((t) => t.what === 'runForSubject')?.args, ['orgA', ['agent-7'], { runType: 'manual' }]);
+    assert.strictEqual(touched.some((t) => t.what === 'runOne'), false);
 
     touched.length = 0;
     const full = await dispatch({
         method: 'POST', url: '/dpia/agent-7',
         body: {
             mode: 'questionnaire', risk_level: 'high', expires_at: '2027-09-22T00:00:00.000Z',
-            answers: { purpose: 'Support triage', automated_decisions: false },
+            // The three answers a questionnaire cannot do without
+            // (dpia.validation.test.js pins the refusals).
+            answers: {
+                purpose: 'Support triage', data_categories: 'Ticket text',
+                automated_decisions: false, human_oversight: 'An agent sends every reply',
+            },
             mitigations: ['PII redaction before the model call'],
         },
     });

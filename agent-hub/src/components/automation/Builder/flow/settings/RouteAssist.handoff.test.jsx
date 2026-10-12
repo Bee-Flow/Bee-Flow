@@ -19,7 +19,7 @@
  *      a name read-only rather than offering an edit that cannot be saved.
  *   3. IT SAYS IT ADDS A STEP, BEFORE THE CLICK. Everything else in this box
  *      rewrites the outputs of the node already open; this one changes the
- *      shape of the routine, and an author who reads "use these 3 outputs"
+ *      shape of the automation, and an author who reads "use these 3 outputs"
  *      and gets a new node has been surprised by their own click.
  *   4. NOTHING CHANGES UNTIL ACCEPT, AND THEN IN THAT ORDER. The rules name
  *      the new step's id, so the step goes in first; a refused insert writes
@@ -97,7 +97,7 @@ describe('when the offer appears', () => {
     it('not for a problem the offline catalogue raised — that one has a better fix', () => {
         setup();
         // "Dates have to be written in full" is answered by rewriting the
-        // sentence, not by adding a step to the routine.
+        // sentence, not by adding a step to the automation.
         type('anything older than last week');
         expect(screen.getByText(/Dates have to be written in full/i)).toBeTruthy();
         expect(screen.queryByLabelText('Name the possible answers')).toBeNull();
@@ -133,7 +133,7 @@ describe('what it shows before anything happens', () => {
         setup();
         await askAndFail();
         await screen.findByLabelText('Name the possible answers');
-        expect(screen.getByText(/ADDS A STEP to your routine/)).toBeTruthy();
+        expect(screen.getByText(/ADDS A STEP to your automation/)).toBeTruthy();
     });
 
     it('shows nothing to accept until the answers are named', async () => {
@@ -159,8 +159,11 @@ describe('what it shows before anything happens', () => {
         // The names of the ports...
         expect(screen.getByText('something_else')).toBeTruthy();
         // ...and what each one checks, as words — never the expression.
-        expect(screen.getByText(/equals “complaint”/)).toBeTruthy();
+        // New text rules are `equals()`, which reads "is" (R7).
+        expect(screen.getByText(/\bis “complaint”/)).toBeTruthy();
+        expect(screen.queryByText(/is exactly/)).toBeNull();
         expect(screen.queryByText(/steps\..*\.output\./)).toBeNull();
+        expect(screen.queryByText(/==|equals\(/)).toBeNull();
     });
 
     it('says the sample rows cannot answer this one, instead of counting zero', async () => {
@@ -209,7 +212,7 @@ describe('accepting it', () => {
         expect(step.type).toBe('ai_step');
         const field = Object.keys(step.outputSchema.properties)[0];
         for (const rule of onApplyHandoff.mock.calls[0][0].rules) {
-            expect(rule.expr).toBe(`steps.${step.id}.output.${field} == ${JSON.stringify(ruleWord(rule.name))}`);
+            expect(rule.expr).toBe(`equals(steps.${step.id}.output.${field}, ${JSON.stringify(ruleWord(rule.name))})`);
         }
     });
 
@@ -237,7 +240,7 @@ describe('accepting it', () => {
         expect(step.forEach).toEqual({ overRef: 'steps.gmail.output.messages', itemVar: 'item' });
         const plan = onApplyHandoff.mock.calls[0][0];
         expect(plan.source).toBe(`steps.${step.id}.output.results`);
-        expect(plan.rules[0].expr.startsWith('item.output.')).toBe(true);
+        expect(plan.rules[0].expr.startsWith('equals(item.output.')).toBe(true);
     });
 
     it('never sends anything anywhere — the whole handoff is local', async () => {

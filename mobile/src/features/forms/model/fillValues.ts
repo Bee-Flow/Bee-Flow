@@ -3,7 +3,7 @@
  * PublicFormRenderer.jsx (fillValues.lockstep.test.ts cuts the web functions
  * out of their source and runs them beside these): a file's size and type as
  * a card shows them, when a closing page is long enough to be worth keeping,
- * the replay nonce, and the pacing of the poll while the routine works.
+ * the replay nonce, and the pacing of the poll while the automation works.
  */
 
 /** Human file size. 1 decimal from MB up, none below — "0.9 kB" reads as noise. */
@@ -23,26 +23,30 @@ export function fileKind(filename: unknown): string {
 
 /**
  * Short closings ("Thanks!") stay centred under the tick; a long one is a
- * document — the routine's real output — and gets the export bar, because
+ * document — the automation's real output — and gets the export bar, because
  * closing the screen would otherwise lose it for good.
  */
 export const LONG_ENDING_CHARS = 240;
 export const isLongEnding = (text: string | null | undefined): boolean => (text ?? '').length > LONG_ENDING_CHARS;
 
-/** A safe, boring .txt filename from the closing page's own title. */
-export function txtFilename(title: unknown): string {
+/**
+ * A safe, boring filename from the closing page's own title — the web's
+ * resultFilename (components/forms/resultFile.ts), the same rule the server
+ * names a .docx or .pdf of the result by.
+ */
+export function resultFilename(title: unknown, extension: string): string {
     const base = String(title || 'result')
         .trim()
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-+|-+$/g, '')
         .slice(0, 60);
-    return `${base || 'result'}.txt`;
+    return `${base || 'result'}.${extension}`;
 }
 
 /**
  * One nonce per rendered page: a double tap reuses it and the server answers
- * "already got that" instead of running the routine twice. The server takes
+ * "already got that" instead of running the automation twice. The server takes
  * `[A-Za-z0-9_-]{8,80}`.
  */
 export function newNonce(random: () => number = Math.random, now: () => number = Date.now): string {
@@ -62,8 +66,8 @@ export function submitDelay(receivedAt: number, now: number): number {
 }
 
 /**
- * Poll cadence while the routine works: sub-second at first so a fast
- * routine feels instant, easing off so a slow one is not hammered, and a
+ * Poll cadence while the automation works: sub-second at first so a fast
+ * automation feels instant, easing off so a slow one is not hammered, and a
  * ceiling after which the screen offers "Check again" instead of spinning.
  */
 export const POLL_MIN_MS = 700;

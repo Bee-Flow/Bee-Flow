@@ -1,17 +1,17 @@
 /**
- * Which steps of a routine touch which datatable.
+ * Which steps of an automation touch which datatable.
  *
  * Pure: a definition in, a list of {datatableId, stepId, mode, columns} out.
  * The store persists it on every definition save, and three surfaces spend it:
  *
- *   - the node editor's "also used by N other routines";
+ *   - the node editor's "also used by N other automations";
  *   - the Datatables tab's "used by" panel;
  *   - the guard before a column is removed or renamed, which is the one that
  *     turns a silent breakage into a question.
  *
  * It is written on SAVE rather than derived on read for a reason that is easy
  * to miss: getAutomationsForUser is `WHERE user_id = $1`, so nobody can scan a
- * colleague's routines to build this index. The author's own save is the only
+ * colleague's automations to build this index. The author's own save is the only
  * moment the information is legitimately in hand.
  *
  * Walks loop bodies and parallel branches exactly as stepContract, validate and
@@ -27,7 +27,7 @@ function isObject(v) { return v && typeof v === 'object' && !Array.isArray(v); }
 
 /**
  * Every column key a step names, so the destructive-change guard can answer
- * "which routines read the column you are about to delete". Conditions and
+ * "which automations read the column you are about to delete". Conditions and
  * written values both count: losing either breaks the step.
  */
 function columnsOf(step) {
@@ -66,7 +66,7 @@ function collectDatatableUsage(definition) {
     };
 
     walkSteps(definition.steps, visit);
-    // Inline flowlets are part of the same routine and their steps run in it.
+    // Inline flowlets are part of the same automation and their steps run in it.
     if (isObject(definition.layers)) {
         for (const layer of Object.values(definition.layers)) {
             if (isObject(layer)) walkSteps(layer.steps, visit);
@@ -75,7 +75,7 @@ function collectDatatableUsage(definition) {
     return out;
 }
 
-/** The distinct table ids a routine touches — for a cheap "does it use any?". */
+/** The distinct table ids an automation touches — for a cheap "does it use any?". */
 function datatableIdsUsed(definition) {
     return [...new Set(collectDatatableUsage(definition).map(u => u.datatableId))];
 }

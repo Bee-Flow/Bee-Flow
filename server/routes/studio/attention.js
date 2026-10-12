@@ -65,7 +65,7 @@
  * Studio validator through projects/completeness.js, the empty-knowledge-base
  * rule itself, the Solution completeness verdict copied verbatim, the
  * kb_sources status column, the runs table). The two rules that exist nowhere
- * else — a published agent with no knowledge base, a routine's failure streak —
+ * else — a published agent with no knowledge base, an automation's failure streak —
  * are written once in the register. Nothing here rephrases a producer's words.
  *
  * ── A row's deep link opens ────────────────────────────────────────────────
@@ -77,7 +77,7 @@
  * attentionChecks.js solutionDeepLink for why that belongs to the source and
  * not to the shared map. Each source is additionally
  * scoped so the link cannot land on a 403 — apps are limited to the ones this
- * caller can open in the editor, routines to their own, Solutions to the ones
+ * caller can open in the editor, automations to their own, Solutions to the ones
  * they hold a role on.
  *
  * Mounted at /api/studio behind requireAuth (server/index.js); the route

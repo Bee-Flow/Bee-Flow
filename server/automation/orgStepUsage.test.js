@@ -1,5 +1,5 @@
 /**
- * automation/orgStepUsage.js — what an organisation's routines are made of.
+ * automation/orgStepUsage.js — what an organisation's automations are made of.
  *
  * Proven:
  *   - step counts use the ribbon's usage keys, walk loop bodies, parallel

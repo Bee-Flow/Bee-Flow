@@ -2,7 +2,7 @@
  * "Live" — the two halves that make it mean what it says.
  *
  * ── THE HOOK, AND WHY IT IS DEBOUNCED ───────────────────────────────
- * `datatableStore.bumpAfterWrite` runs once per write STEP, and a routine
+ * `datatableStore.bumpAfterWrite` runs once per write STEP, and an automation
  * looping over 400 rows produces 400 of them in a few seconds. Arming on each
  * would queue 400 refresh passes over a table that settled once.
  *

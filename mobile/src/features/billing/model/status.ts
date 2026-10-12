@@ -10,7 +10,7 @@ import { humanise } from '@/shared/lib/display';
 export function subscriptionStatusLabel(status: string, t: TranslateFn): string {
     switch (status) {
         case 'active':
-            return t('routines.active', 'Active');
+            return t('automations.active', 'Active');
         case 'trialing':
             return t('mobile.billing.status_trialing', 'Trial');
         case 'past_due':

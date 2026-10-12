@@ -14,13 +14,13 @@
  * ── WHAT IS AND IS NOT LOCKED ───────────────────────────────────────
  * ONLY the declared columns. Everything else about a managed table is an
  * ordinary table: its rows are listable, sortable, filterable, exportable,
- * editable and deletable, another routine's `find_rows` can read it, it takes
+ * editable and deletable, another automation's `find_rows` can read it, it takes
  * the same Art. 30 description, it counts against the same quota and it is
  * swept by the same retention job. Adding a column of your own is allowed —
  * the writer names its columns explicitly, so an extra one costs it nothing.
  *
  * What is refused is DROPPING or RETYPING a declared column, because both turn
- * the next write into a 500 at 3am inside somebody's nightly routine, and the
+ * the next write into a 500 at 3am inside somebody's nightly automation, and the
  * person who did it has no way to know that. Renaming is a drop under another
  * name: `normalizeFields` matches by id first, so an edit that keeps the id and
  * changes the key is exactly how a column disappears from under the writer.
@@ -70,12 +70,49 @@ const FORM_ANSWERS_FIELDS = Object.freeze([
     { id: 'fld_faxcompl', key: 'completed_at', name: 'Completed', type: 'datetime' },
 ]);
 
+/**
+ * The cells of a SPREADSHEET document (Studio → Documents, docType
+ * 'spreadsheet'; core/documents/sheet). One row per sheet row: `row_no` is
+ * the 1-based row number (unique, so a row is found by its number and two
+ * writers cannot both create row 7), and `a` … `z` hold what was typed in
+ * that column — a value or a formula as text (`=SUM(A1:A3)`). Formulas are
+ * evaluated by the shared sheet engine (shared/expr/sheet.mjs), never stored
+ * evaluated: the table holds what a person typed, like a spreadsheet file.
+ *
+ * Every column is text on purpose: a cell holds a number in one row and a
+ * word in the next, and a typed column would refuse half of what people type.
+ */
+const SHEET_COLUMN_KEYS = Object.freeze('abcdefghijklmnopqrstuvwxyz'.split(''));
+const DOCUMENT_SHEET_FIELDS = Object.freeze([
+    { id: 'fld_sheetrowno', key: 'row_no', name: 'Row', type: 'number', subtype: 'integer', required: true, unique: true },
+    ...SHEET_COLUMN_KEYS.map((k) => ({ id: `fld_sheetcol_${k}`, key: k, name: k.toUpperCase(), type: 'text' })),
+]);
+
 const MANAGED_KINDS = Object.freeze({
+    /**
+     * A spreadsheet document's cells (DOCUMENT_SHEET_FIELDS above). Made by the
+     * document when it is created, never through POST /managed
+     * (`madeByDocument`): a sheet table without its document is a grid nobody
+     * can open. Its rows are an ordinary table's for everyone else — automations
+     * and apps read them like any other.
+     */
+    document_sheet: Object.freeze({
+        kind: 'document_sheet',
+        label: 'Cells of a spreadsheet document',
+        fields: DOCUMENT_SHEET_FIELDS,
+        madeByDocument: true,
+        // Like a form's answers: aged by when the row was made, and off until
+        // the owner sets a window (a spreadsheet is kept until it is deleted).
+        retentionField: 'created_at',
+        defaultRetentionDays: null,
+        defaultDescription: 'The cells of a spreadsheet in Documents: what was typed in each cell, values and formulas, one row per sheet row.',
+        warning: 'The cells are stored in plain text, readable by everyone with access to the spreadsheet or this table.',
+    }),
     /**
      * The answers to a FORM (automation/formAnswers): the third shape. Not an
      * external source (nothing to sync, no linker), not code-owned columns
      * (only the two above are) — the columns are the form's QUESTIONS, derived
-     * from the routine's definition on every save and held in
+     * from the automation's definition on every save and held in
      * `source.columnMap`. Rows are written by the platform when somebody
      * submits. `fieldsFromDefinition` is what makes the whole list locked here
      * and lets retention apply like an ordinary table.
@@ -114,7 +151,7 @@ const MANAGED_KINDS = Object.freeze({
         // delete a copy the next refresh puts straight back.
         retentionField: null,
         defaultRetentionDays: null,
-        defaultDescription: 'A copy of a Nextcloud table, kept in step with Nextcloud so routines, apps and pages can read and change it here.',
+        defaultDescription: 'A copy of a Nextcloud table, kept in step with Nextcloud so automations, apps and pages can read and change it here.',
         // The one thing an editor would not guess: their edit reaches Nextcloud
         // under somebody else's name.
         warning: 'Rows added, changed or deleted here are written to the Nextcloud table on behalf of the account that linked it.',
@@ -134,7 +171,7 @@ const MANAGED_KINDS = Object.freeze({
         fieldsFromSource: true,
         retentionField: null,
         defaultRetentionDays: null,
-        defaultDescription: 'A copy of one worksheet of a spreadsheet kept in Google Drive, OneDrive or Nextcloud Files, kept in step with the file so routines, apps and pages can read and change it here.',
+        defaultDescription: 'A copy of one worksheet of a spreadsheet kept in Google Drive, OneDrive or Nextcloud Files, kept in step with the file so automations, apps and pages can read and change it here.',
         // Two things an editor would not guess: their edit lands in a file
         // under somebody else's name, and a file is not a database.
         warning: 'Rows added, changed or deleted here are written into the file on behalf of the account that linked it. Cell styles are kept where the format allows; charts, pivot tables and macros in the file are not touched but cannot be preserved on every write.',
@@ -152,7 +189,7 @@ const MANAGED_KINDS = Object.freeze({
         // Shown in the create dialog and stored as the Art. 30 purpose. It is
         // pre-filled rather than skipped: the sentence is the processing record,
         // and "third-party responses" is a category an auditor asks about.
-        defaultDescription: 'Answers this workspace\'s routines received from web services, kept so the same question is not paid for twice.',
+        defaultDescription: 'Answers this workspace\'s automations received from web services, kept so the same question is not paid for twice.',
         // The one thing the UI must say out loud, because it is a real
         // reduction against the hidden tier and nobody would guess it.
         warning: 'Rows here hold what a third-party service answered, in plain text, readable and exportable by everyone with access to this table.',
@@ -245,6 +282,8 @@ function managedFieldsError(kind, nextFields) {
 
 module.exports = {
     MANAGED_KINDS,
+    SHEET_COLUMN_KEYS,
+    DOCUMENT_SHEET_FIELDS,
     HTTP_CACHE_FIELDS,
     FORM_ANSWERS_FIELDS,
     isManagedKind,

@@ -2,11 +2,11 @@
  * Filling a form in — the journey of the web's PublicFormPage.jsx, natively.
  *
  * Page one is loaded (or a journey already under way is picked up by its
- * session id), the answers are sent, and while the routine works the session
+ * session id), the answers are sent, and while the automation works the session
  * is polled until it pauses for another page, ends, or fails. The phases are
  * model/fillSession.ts; this hook only runs the effects that move between
  * them, and hands the screen the calls a page needs: send, upload a file,
- * search an app, and hand over what the routine produced.
+ * search an app, and hand over what the automation produced.
  */
 
 import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from 'react';
@@ -63,7 +63,7 @@ function useFillLoad(token: string, resumeSid: string | null, setState: SetFill)
     }, [token, setState]);
 }
 
-/** While the routine works: poll, easing off, until it answers something other than "working". */
+/** While the automation works: poll, easing off, until it answers something other than "working". */
 function useFillPoll(token: string, state: FillState, setState: SetFill) {
     const { status, sessionId } = state;
     useEffect(() => {
@@ -80,7 +80,7 @@ function useFillPoll(token: string, state: FillState, setState: SetFill) {
             }
             const next = await getFillSession(token, sessionId);
             if (!alive) return;
-            // A dropped poll is not fatal: the routine keeps going either way.
+            // A dropped poll is not fatal: the automation keeps going either way.
             if (next) setState((s) => applySession(s, next, Date.now()));
             if (next && next.state !== 'working') return;
             delay = nextPollDelay(delay);

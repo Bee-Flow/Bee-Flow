@@ -1,12 +1,12 @@
 // @typecheck
 /**
- * WHERE PERSONAL DATA TRAVELS — asked once, over a routine's steps, in the
+ * WHERE PERSONAL DATA TRAVELS — asked once, over an automation's steps, in the
  * order they are written, in one vocabulary.
  *
- * The question "does personal data leave through this routine" was answered in
+ * The question "does personal data leave through this automation" was answered in
  * two places that could not see each other:
  *
- *   - `playbooks/phases/compliancePhase.js` asked it of a routine a playbook
+ *   - `playbooks/phases/compliancePhase.js` asked it of an automation a playbook
  *     had just built, from a projection of `{ type, tool }` per step, and
  *     reported the step TYPES that could send.
  *   - the checks under `compliance/checks/gdpr/` asked it of what is already
@@ -26,7 +26,7 @@
  *     finding is titled "a model reads the data with no privacy check IN FRONT
  *     OF IT", and it was suppressed by `types.some(t => PRIVACY_STEPS.has(t))`
  *     — any shield anywhere, including one placed after the model had already
- *     read the raw rows. A routine could silence the finding by putting the
+ *     read the raw rows. An automation could silence the finding by putting the
  *     shield at the end, where it protects nothing.
  *   - THE DESTINATION, not the step type. `integration_action` is the largest
  *     outbound surface the product has and it says nothing at all about where
@@ -36,24 +36,24 @@
  *     argument `dests` while being handed step types.
  *   - WHAT IS ACTUALLY TRAVELLING, not only what could. The egress ledger
  *     (`integration_activity_log`) records the PII categories that really left,
- *     per routine and per tool. A definition that COULD send and a ledger that
+ *     per automation and per tool. A definition that COULD send and a ledger that
  *     says it DID are two different claims and this module keeps them apart —
  *     the same way `personalColumns` keeps a name scan apart from a value scan.
  *
  * AND ONE THING IT DELIBERATELY DOES NOT DO: it never upgrades a guess into a
  * finding because the order looked wrong. A definition's `steps` array is the
- * order a routine is written in, which is the order it runs in for a linear
- * routine and only the authoring order for a branched one (the real graph
+ * order an automation is written in, which is the order it runs in for a linear
+ * automation and only the authoring order for a branched one (the real graph
  * lives in `compliance/aiAct/graph.js`, which is a feature and out of reach
  * from here — and the playbook route sends no edges at all, only
  * `{ type, tool }` per step). So a shield counts as being in front of
- * everything it PRECEDES, and a routine is only reported as unshielded when no
+ * everything it PRECEDES, and an automation is only reported as unshielded when no
  * shield precedes anything — i.e. when every shield it has is at the end. A
  * review that cries wolf is one people learn to skip, which is the failure
  * mode this whole surface is most vulnerable to.
  *
  * NULL IS NOT ZERO, here as everywhere in this directory. `carries: null`
- * means nobody established what this routine handles; `carries: []` means we
+ * means nobody established what this automation handles; `carries: []` means we
  * looked and it handles no personal data. A flow that reports "nothing
  * personal goes out" precisely when it could not look is the one thing this
  * module must never do.
@@ -90,7 +90,7 @@ const { AI_STEP_TYPES } = require('../../automation/automationGraph');
  * produce an artefact that stays inside the workspace, and what carries it
  * outside is the step that then mails or shares it — which is caught here
  * anyway. Counting the generation itself would mark every document-producing
- * routine as exporting data.
+ * automation as exporting data.
  */
 const OUTBOUND_TYPES = Object.freeze(new Set(['http_request', 'notification', 'code']));
 
@@ -107,10 +107,10 @@ const OUTBOUND_TYPES = Object.freeze(new Set(['http_request', 'notification', 'c
  *     comment above AI_STEP_TYPES says so in as many words, CONTRACTS.md says
  *     so, and the Art. 50(2) pass in execDocument.js agrees — so this module
  *     was the one place in the product that called counting rows "handing
- *     data to a model", and every routine that counts a column would have
+ *     data to a model", and every automation that counts a column would have
  *     been told to put a Privacy Shield in front of an arithmetic step.
  *   - `ai_tool` is a model step and was MISSING, which is the expensive
- *     direction: a routine whose model call is an `ai_tool` read as having no
+ *     direction: an automation whose model call is an `ai_tool` read as having no
  *     model in it at all.
  *   - `fill_document` fills a template. It is a GENERATING step — what makes
  *     it interesting to the AI Act is that it writes model output to a file,
@@ -125,6 +125,16 @@ const MODEL_TYPES = Object.freeze(new Set(AI_STEP_TYPES));
 /** The Privacy Shield in its three runtime shapes. */
 const SHIELD_TYPES = Object.freeze(new Set(['guard', 'tokenize', 'untokenize']));
 
+/**
+ * The one shape that puts real values BACK. It is a shield step (the editor
+ * shows it under the shield, and `role` stays 'shield'), but it protects
+ * nothing: a reveal in front of a send means the real values travel. The
+ * editor's own rule already drops it (complianceRules.js SHIELD_TYPES); the
+ * flow reading must agree, or the Art. 30 check calls a re-identifying
+ * automation "guarded".
+ */
+const REVEAL_TYPES = Object.freeze(new Set(['untokenize']));
+
 /** Step types that read or write the workspace's own rows. */
 const STORE_TYPES = Object.freeze(new Set(['datatable']));
 
@@ -132,13 +142,13 @@ const STORE_TYPES = Object.freeze(new Set(['datatable']));
 const ROLES = Object.freeze(['shield', 'exit', 'model', 'store', 'step']);
 
 /**
- * What the routine's flow amounts to. Each value is one distinct situation,
+ * What the automation's flow amounts to. Each value is one distinct situation,
  * not a score — the same shape `personalColumns.CONFIDENCE` takes.
  */
 const VERDICTS = Object.freeze({
     /** The steps could not be read: no array, or nothing in it. */
     unknown: 'unknown',
-    /** Nothing in this routine leaves the workspace. */
+    /** Nothing in this automation leaves the workspace. */
     contained: 'contained',
     /** It sends, and nothing personal that we could see is in play. */
     no_personal_data: 'no_personal_data',
@@ -167,7 +177,7 @@ const str = (v) => (typeof v === 'string' ? v.trim() : '');
  * product's tool names are `<app>_<verb>` throughout, so `gmail_compose` is
  * Gmail and `nextcloud_share_by_email` is Nextcloud. For the three types that
  * are outbound whatever they run, the destination IS the type: an
- * `http_request` goes to a host the routine names and `code` can reach any
+ * `http_request` goes to a host the automation names and `code` can reach any
  * public one, and pretending to know more than that would be an invention.
  */
 function destinationOf(step) {
@@ -228,7 +238,7 @@ function classifyStep(step, index = 0) {
 /**
  * Which kinds of personal data a set of detected columns amounts to.
  *
- * `null` in, `null` out: a caller that never established what the routine
+ * `null` in, `null` out: a caller that never established what the automation
  * handles is not a caller that established it handles nothing.
  */
 function carriedKinds(personal) {
@@ -264,7 +274,7 @@ function kindsCarried(categories) {
 /**
  * The static reading: what the definition says CAN happen.
  *
- * `personal` is what `personalColumns` found in the data this routine works
+ * `personal` is what `personalColumns` found in the data this automation works
  * with — an array, or `null` when nobody looked. `steps` is the definition's
  * step list in the order it is written; see the header for why order is read
  * conservatively.
@@ -273,11 +283,17 @@ function analyseFlow({ steps = null, personal = null } = {}) {
     const readable = Array.isArray(steps) && steps.length > 0;
     const classified = readable ? steps.map((s, i) => classifyStep(s, i)) : [];
     const shields = classified.filter((s) => s.role === 'shield');
-    const firstShield = shields.length ? shields[0].index : null;
-    // "Shielded" means a shield stands EARLIER than it. A shield at the end of
-    // a routine guards nothing that came before it, which is exactly the case
-    // a single boolean could not express.
-    const shielded = (s) => firstShield !== null && firstShield < s.index;
+    // "Shielded" means a hiding shield stands EARLIER than it, with no reveal
+    // in between. A shield at the end of an automation guards nothing that came
+    // before it, and a reveal after it puts the real values back for every step
+    // that follows — until the next hiding shield.
+    const hiddenAt = [];
+    let hidden = false;
+    for (const s of classified) {
+        hiddenAt[s.index] = hidden;
+        if (s.role === 'shield') hidden = !REVEAL_TYPES.has(s.type || '');
+    }
+    const shielded = (s) => hiddenAt[s.index] === true;
     const mark = (s) => ({ ...s, shielded: shielded(s) });
     const exits = classified.filter((s) => s.role === 'exit').map(mark);
     const models = classified.filter((s) => s.role === 'model').map(mark);
@@ -310,7 +326,7 @@ function analyseFlow({ steps = null, personal = null } = {}) {
         carries,
         unguardedExits,
         unguardedModels,
-        // A routine that reads personal data into a model with no shield in
+        // An automation that reads personal data into a model with no shield in
         // front of THAT is a different finding from one that mails it out, and
         // they are both worth having.
         modelsUnshielded: unguardedModels.length,
@@ -334,18 +350,26 @@ function analyseFlow({ steps = null, personal = null } = {}) {
  *
  * → `null` when there is nothing to read from (no rows argument at all), so a
  * ledger that was never consulted does not read as a ledger that is empty.
+ *
+ * `unscanned_calls` counts the calls of rows marked `scanned: false` — written
+ * while the PII scan was off. Their empty category column means "nobody
+ * looked", not "nothing personal", so a caller must never read those calls as
+ * clean. A row with no `scanned` flag at all is not counted: that is a caller
+ * that did not ask, not a ledger that said the scan was off.
  */
 const EGRESS_FIELDS = Object.freeze(['tool', 'destination', 'calls', 'kinds']);
 
 function observedEgress(rows) {
     if (!Array.isArray(rows)) return null;
     const byTool = new Map();
+    let unscanned = 0;
     for (const r of rows) {
         if (!r) continue;
         const tool = str(r.tool_name || r.tool);
         if (!tool) continue;
         const kinds = kindsCarried(r.pii_categories_detected ?? r.categories ?? null) || [];
         const calls = Number(r.calls);
+        if (r.scanned === false) unscanned += (Number.isFinite(calls) && calls > 0 ? calls : 1);
         const prev = byTool.get(tool) || { tool, destination: destinationOf({ type: 'integration_action', tool }), calls: 0, kinds: [] };
         byTool.set(tool, {
             tool: prev.tool,
@@ -359,6 +383,7 @@ function observedEgress(rows) {
         tools,
         kinds: orderKinds(tools.flatMap((t) => t.kinds)),
         destinations: [...new Set(tools.map((t) => t.destination).filter(Boolean))].sort(),
+        unscanned_calls: unscanned,
     };
 }
 
@@ -398,7 +423,7 @@ function mergeObserved(flow, observed) {
  *
  * Built field by field from a named list, never by spreading the flow and
  * deleting what should not travel (BFSF-441). The flow carries whole step
- * objects, and a step object is the routine's own configuration: sooner or
+ * objects, and a step object is the automation's own configuration: sooner or
  * later one of them holds a recipient address, a subject line or a bound
  * value. None of that is in this list, and nothing gets in by being added
  * upstream — which is the entire difference between an allow-list and a
@@ -438,6 +463,6 @@ function flowRecord(flow) {
 module.exports = {
     analyseFlow, observedEgress, mergeObserved, flowRecord,
     classifyStep, destinationOf, isExit, carriedKinds, kindsCarried,
-    OUTBOUND_TYPES, MODEL_TYPES, SHIELD_TYPES, STORE_TYPES,
+    OUTBOUND_TYPES, MODEL_TYPES, SHIELD_TYPES, REVEAL_TYPES, STORE_TYPES,
     ROLES, VERDICTS, DESTINATION_ALIASES, FLOW_FIELDS, EGRESS_FIELDS,
 };

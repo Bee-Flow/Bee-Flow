@@ -2,7 +2,7 @@
  * The ladder's buttons. Through the three steps: Later (on the first) or
  * Back, and Next — a step may be left open, the outcome then says it is
  * pending. On the outcome: Back, and Record as self-declared, which waits
- * for steps 1 and 3 when the routine contains AI.
+ * for steps 1 and 3 when the automation contains AI.
  */
 
 import React from 'react';

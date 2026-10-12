@@ -123,7 +123,7 @@ const COUNTED_RUN_SQL = `
  * @param {{ ready?: () => Promise<void> }} [opts]
  */
 function makeVersionQueries(db, { ready = async () => {} } = {}) {
-    /** version number → { total, failed } over every counted run of the routine. */
+    /** version number → { total, failed } over every counted run of the automation. */
     async function countRunsByVersion(automationId) {
         await ready();
         const r = await db.query(

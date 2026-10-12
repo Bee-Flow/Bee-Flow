@@ -35,7 +35,7 @@ function useGrammarRows(): Array<[string, string]> {
         ['<!-- layout: timeline -->', t('documents.deck.row_layout', 'bullets as steps; also closing, cards')],
         ['<!-- style: accent -->', t('documents.deck.row_style', 'an emphasis slide (or dark)')],
         ['Notes: …', t('documents.deck.row_notes', 'speaker notes for the slide')],
-        ['{{customer.name}}', t('documents.deck.row_placeholder', 'a placeholder a routine fills')],
+        ['{{customer.name}}', t('documents.deck.row_placeholder', 'a placeholder an automation fills')],
     ];
 }
 

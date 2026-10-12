@@ -2,11 +2,11 @@
  * "New form" — a name and ONE choice: what happens with the answers (the
  * web's NewFormDialog).
  *
- *   Collect answers in a table (recommended): the routine is created WITH
+ *   Collect answers in a table (recommended): the automation is created WITH
  *   `collect: true` — the server makes the answers table on that same create —
  *   and the Form page opens, where the questions are edited without ever
- *   seeing the routine builder.
- *   Form that starts a routine: a form trigger, then the builder.
+ *   seeing the automation builder.
+ *   Form that starts an automation: a form trigger, then the builder.
  *
  * Nothing is created until "Create form". The optional brief is not sent with
  * the create: it is parked for the new form and its Questions tab drafts from
@@ -28,7 +28,7 @@ import { MAX_BRIEF_CHARS } from '../model/aiDraft';
 import { MAX_LABEL_LEN } from '../model/contract';
 import { parkSeed } from '../model/seeds';
 
-type Mode = 'collect' | 'routine';
+type Mode = 'collect' | 'automation';
 
 export function NewFormScreen() {
     const t = useTranslation();
@@ -77,14 +77,14 @@ export function NewFormScreen() {
                     />
                     <Divider />
                     <OptionRow
-                        label={t('forms.new.routine_title', 'Form that starts a routine')}
+                        label={t('forms.new.automation_title', 'Form that starts an automation')}
                         description={t(
-                            'forms.new.routine_blurb',
-                            'Every submission starts the steps you build in the routine builder — send an e-mail, file a ticket, ask an agent. No table unless you add one.',
+                            'forms.new.automation_blurb',
+                            'Every submission starts the steps you build in the automation builder — send an e-mail, file a ticket, ask an agent. No table unless you add one.',
                         )}
-                        selected={mode === 'routine'}
-                        onPress={() => setMode('routine')}
-                        testID="new-form-routine"
+                        selected={mode === 'automation'}
+                        onPress={() => setMode('automation')}
+                        testID="new-form-automation"
                     />
                 </Card>
                 {mode === 'collect' ? (

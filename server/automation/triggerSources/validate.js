@@ -115,7 +115,7 @@ function validateTriggerSource(decl, { existingIds = [] } = {}) {
         }
         if (!ev.sample || typeof ev.sample !== 'object' || Array.isArray(ev.sample)) {
             err('event.sample_missing', `${at}.sample`, 'Event must declare a realistic `sample` object.',
-                'The builder shows sample values so an author can bind fields without running the routine first.');
+                'The builder shows sample values so an author can bind fields without running the automation first.');
         } else if (fieldsOk) {
             for (const f of ev.fields) {
                 if (!(f in ev.sample)) {
@@ -217,7 +217,7 @@ function validatePollDiff(src, at) {
     }
     if (src.firstRun != null && src.firstRun !== 'anchor') {
         err('poll.first_run_invalid', `${at}.firstRun`, 'The only supported firstRun mode is "anchor".',
-            'Anchoring records the current state and emits nothing, so activating a routine does not fire once per pre-existing item.');
+            'Anchoring records the current state and emits nothing, so activating an automation does not fire once per pre-existing item.');
     }
     if (!src.emit || typeof src.emit !== 'object') {
         err('poll.emit_missing', `${at}.emit`, 'A poll_diff source must declare how it emits.');
@@ -236,6 +236,42 @@ function validatePollDiff(src, at) {
         err('poll.track_values_too_many', `${at}.maxTrackedItems`,
             'trackValues:true is limited to maxTrackedItems <= 100.',
             'Previous values are stored in the subscription cursor, which has a hard 32 KB budget.');
+    }
+    // A contentWatch variant is a partial source spec that engages when the
+    // subscription's filter names `when` (see pollDiff.resolveEffectiveSource).
+    // Validate the MERGED shape — an override that only makes sense combined
+    // with the base (e.g. it drops changePaths) must be caught here, not after
+    // the first subscription saves one.
+    if (src.contentWatch != null) {
+        const cw = src.contentWatch;
+        if (typeof cw !== 'object' || Array.isArray(cw)) {
+            err('poll.content_watch_invalid', `${at}.contentWatch`, '`contentWatch` must be an object.');
+        } else {
+            if (!cw.when || typeof cw.when !== 'string') {
+                err('poll.content_watch_when_missing', `${at}.contentWatch.when`,
+                    '`contentWatch.when` must name the filter key that engages the variant.',
+                    'e.g. "spreadsheetId" — the variant polls only for subscriptions that picked one.');
+            }
+            if (cw.buildArgs != null && typeof cw.buildArgs !== 'function') {
+                err('poll.content_watch_buildargs_invalid', `${at}.contentWatch.buildArgs`,
+                    '`buildArgs` must be a function (filter) => args.');
+            }
+            if (cw.argsFromFilter != null
+                && (typeof cw.argsFromFilter !== 'object' || Array.isArray(cw.argsFromFilter)
+                    || Object.entries(cw.argsFromFilter).some(([a, k]) => !a || typeof k !== 'string'))) {
+                err('poll.content_watch_argsfromfilter_invalid', `${at}.contentWatch.argsFromFilter`,
+                    '`argsFromFilter` must map argument names to filter keys, e.g. { spreadsheetId: "spreadsheetId" }.');
+            }
+            if (cw.emitFromFilter != null
+                && (typeof cw.emitFromFilter !== 'object' || Array.isArray(cw.emitFromFilter)
+                    || Object.entries(cw.emitFromFilter).some(([f, k]) => !f || typeof k !== 'string'))) {
+                err('poll.content_watch_emitfromfilter_invalid', `${at}.contentWatch.emitFromFilter`,
+                    '`emitFromFilter` must map payload field names to filter keys.');
+            }
+            const { contentWatch: _cw, argsFromFilter: _af, buildArgs: _ba, emitFromFilter: _ef, ...cwSpec } = cw;
+            const { contentWatch: _baseCw, ...base } = src;
+            out.push(...validatePollDiff({ ...base, ...cwSpec }, `${at}.contentWatch`));
+        }
     }
     return out;
 }

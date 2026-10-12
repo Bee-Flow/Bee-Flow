@@ -115,7 +115,7 @@ const DRAFT_TOOL = {
 };
 
 const SYSTEM_COMMON = [
-    'You design FORMS for Bee Flow: a page of questions a person fills in, whose answers land in a table or start a routine.',
+    'You design FORMS for Bee Flow: a page of questions a person fills in, whose answers land in a table or start an automation.',
     'A good form is short, asks one thing per question, and never asks for more than it needs. Rules:',
     '- Pick the type that fits the answer: text for a name or a short answer, textarea when someone will write a few sentences, email, number, date, select when the answer is one of a fixed set of choices (list the choices), checkbox for a yes/no, file for a document to upload.',
     '- Use app_pick when the brief asks for something the person already has IN AN APP — a meeting transcript, an email, a note. It is better than asking them to paste it, and it needs a `source`. Apps available: ' + PICK_SOURCE_HINT,

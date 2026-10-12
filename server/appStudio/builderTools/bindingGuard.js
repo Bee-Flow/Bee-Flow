@@ -179,7 +179,7 @@ function checkComponentDataRefs(entries, model) {
 /**
  * One error line + one hint for a tool result, from the guard's findings —
  * and, when EVERY finding has a did-you-mean, the fix as a machine-readable
- * `_suggestedPatch` (the routine builder's shape: set ops on arg paths). The
+ * `_suggestedPatch` (the automation builder's shape: set ops on arg paths). The
  * small local model cannot edit one field of a call it already sent; it
  * resends it byte-identical, and the ladder in builderTools.js then applies
  * this patch itself.

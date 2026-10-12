@@ -6,11 +6,11 @@ module.exports = {
     // The organisation-wide run log and the "now running" strip above it.
     // Three of these lines exist only to keep an unreadable answer from
     // reading as a quiet one: a strip that could not be read says so, a
-    // server that reports no per-routine activity says so, and a scope that
+    // server that reports no per-automation activity says so, and a scope that
     // failed to load says so — none of the three may render as "nothing ran".
     'runs.title': 'Runs & log',
-    'runs.tab_desc': 'Every time a routine fired, and what happened',
-    'runs.intro': 'Every time a routine fired: what started it, what it did, and what went wrong. Opening a run shows it step by step.',
+    'runs.tab_desc': 'Every time an automation fired, and what happened',
+    'runs.intro': 'Every time an automation fired: what started it, what it did, and what went wrong. Opening a run shows it step by step.',
     'runs.scope_label': 'Whose runs',
     'runs.scope_mine': 'My runs',
     'runs.scope_org': 'Organisation',
@@ -21,8 +21,8 @@ module.exports = {
     'runs.now.window': 'last 24 hours',
     'runs.now.empty': 'Nothing has run in the last 24 hours.',
     'runs.now.unreadable': 'Could not read what is running — this is not “nothing is running”.',
-    'runs.now.unsupported': 'This server did not report per-routine activity, so this strip has nothing to show. The runs below are unaffected.',
-    'runs.now.untitled': 'A routine without a name',
+    'runs.now.unsupported': 'This server did not report per-automation activity, so this strip has nothing to show. The runs below are unaffected.',
+    'runs.now.untitled': 'An automation without a name',
     'runs.now.failed': 'failed',
     'runs.now.failed_because': 'failed — {reason}',
     'runs.now.waiting': 'waiting for a person',
@@ -31,8 +31,8 @@ module.exports = {
     'runs.now.running_plural': '{count} running now',
     'runs.now.done': 'done · {count} run',
     'runs.now.done_plural': 'done · {count} runs',
-    'runs.now.more': 'and {count} more routine',
-    'runs.now.more_plural': 'and {count} more routines',
+    'runs.now.more': 'and {count} more automation',
+    'runs.now.more_plural': 'and {count} more automations',
 
     // Automations builder, design handoff 5 (2026-09-28)
     "runs.day.today": "Today",
@@ -57,6 +57,9 @@ module.exports = {
     "runs.how.schedule": "on a schedule",
     "runs.how.webhook": "called by another system",
     "runs.io.empty": "empty",
+    "runs.io.action": "Action",
+    "runs.io.for_each": "Once for each",
+    "runs.io.hidden": "hidden",
     "runs.io.fields": "{n} fields",
     "runs.io.no": "no",
     "runs.io.nothing": "Nothing",
@@ -100,7 +103,7 @@ module.exports = {
     "runs.sentence.handled_other": "{n} step errors handled",
     "runs.sentence.main_folder": "the main folder",
     "runs.sentence.running": "Still running",
-    "runs.sentence.skipped_busy": "Skipped because the routine was already running",
+    "runs.sentence.skipped_busy": "Skipped because the automation was already running",
     "runs.sentence.step_result": "{step}: {result}",
     "runs.sentence.stopped": "Stopped before it finished",
     "runs.sentence.stopped_at": "Stopped at \"{step}\": {cause}",
@@ -131,6 +134,7 @@ module.exports = {
     "runs.tab.no_steps": "No steps recorded for this run yet.",
     "runs.tab.open_editor": "Open in editor",
     "runs.tab.passed_on": "Passed on",
+    "runs.tab.settings": "Settings in this run",
     "runs.tab.period_24h": "Last 24 hours",
     "runs.tab.period_30d": "Last 30 days",
     "runs.tab.period_7d": "Last 7 days",
@@ -194,4 +198,6 @@ module.exports = {
     "runs.log.refresh": "Refresh",
     "runs.log.technical_tip": "Technical message: {message}",
     "runs.log.untitled": "Untitled",
+    "runs.timeline.binding_misses_one": "1 mapping found nothing",
+    "runs.timeline.binding_misses_many": "{n} mappings found nothing",
 };

@@ -33,7 +33,7 @@
  * ── Missing capabilities skip, never fail ──────────────────────────────────
  *
  * A Blueprint with apps landing on an install without App Studio should install
- * its routines and say what it could not install. Refusing the whole thing
+ * its automations and say what it could not install. Refusing the whole thing
  * would make a partly-usable Solution unusable, and the `requires` entry exists
  * precisely so this can be reported rather than guessed.
  *
@@ -55,16 +55,18 @@
  * Install therefore writes the grants it can VOUCH for and nothing else:
  *
  *   ai           the store's own default — public AI OFF, whatever the file says
- *   automations  only entries that pointed at a routine INSIDE this bundle, by
+ *   automations  only entries that pointed at an automation INSIDE this bundle, by
  *                `{ $ref }`, resolved to the copy this install just created
+ *   tables       the same rule for tables (F14); public columns never
+ *   agent        the same rule for the page's agent, or none
  *   integrations empty. Always. A tool name is authority.
  *
  * updateBridgeGrants replaces the WHOLE column with the normalizer's output, so
  * a grant kind that does not exist yet cannot arrive through this path either:
  * an unknown key in the file is dropped by normalizeBridgeGrants, and the
- * column that lands has the three keys it wrote and no others. That is the
- * narrow direction on purpose — the day `bridge_grants.agent` exists, an
- * installed page starts without one rather than with the file's.
+ * column that lands has the keys it wrote and no others. That is the narrow
+ * direction on purpose — the day a new grant kind exists, an installed page
+ * starts without one rather than with the file's.
  *
  * What the file asked for is NOT thrown away, it is REPORTED:
  * `collectGrantRequires` reads it off the raw manifest into `report.grantRequires`
@@ -85,18 +87,20 @@
  * resolution fills a hole and never overwrites a step that is already wired.
  *
  * Tables are re-linked through automation/portability.rebindDatatables — the
- * same function the single-routine import uses, so "a `datatableKey` finds its
+ * same function the single-automation import uses, so "a `datatableKey` finds its
  * table" has one implementation. Both the tables this bundle brought WITH it
  * and the ones the installer picked go into the same list, which is why a
- * routine that ships alongside its own table now arrives wired rather than
+ * automation that ships alongside its own table now arrives wired rather than
  * pointing at nothing.
  */
 
 'use strict';
 
 const { sanitizeManifest, rewriteRefs, readSource } = require('./manifest');
-const { normalizeResolutions, applyStepResolutions } = require('./resolutions');
+const { normalizeResolutions, applyStepResolutions, resolutionsToBindings } = require('./resolutions');
+const { fromRefs, visitPointers, isRef } = require('./pointers');
 const log = require('../../telemetry/log');
+const crypto = require('crypto');
 
 /**
  * Waar deze installatie vandaan komt, en met hoeveel gezag dat vaststaat.
@@ -216,7 +220,170 @@ function clone(v) {
 }
 
 /**
- * Put back the three things scrub.js emptied on the way out, for ONE routine.
+ * Every `{ $ref }` of one holder back to a real id: the registered pointer
+ * locations through pointers.fromRefs, then the generic rewrite as a backstop
+ * for a `$ref` the registry has no row for (a hand-made file), so nothing that
+ * looks like a reference survives into a stored payload. Mutates `payload`;
+ * every ref with no target lands in `unresolved`.
+ */
+function resolveRefs(holderKind, payload, refMap, unresolved, templateVersions = null) {
+    const { unresolved: missed } = fromRefs(holderKind, payload, refMap);
+    for (const m of missed) unresolved.push(m.ref);
+    for (const key of Object.keys(payload)) payload[key] = rewriteRefs(payload[key], refMap, unresolved);
+    if (holderKind === 'automation') pinTemplateVersions(payload.definition, templateVersions);
+    return payload;
+}
+
+/**
+ * Every `fill_document` step that names a template this install created is
+ * pinned to that copy's revision (`documentVersionId`), so the automation renders
+ * exactly the template it shipped with, and a stage switches template content
+ * with the automation's own flip. `versionByDocId` is `ctx.templateVersions`
+ * (template id → revision id); a step naming anything else is left alone.
+ *
+ * @param {object|null} definition  an automation definition, mutated
+ * @param {Map<string, string>|null} versionByDocId
+ */
+function pinTemplateVersions(definition, versionByDocId) {
+    if (!definition || !(versionByDocId instanceof Map) || !versionByDocId.size) return;
+    require('../../automation/portability').walkAllSteps(definition, (step, _layerKey, isTrigger) => {
+        if (isTrigger || step.type !== 'fill_document') return;
+        const version = versionByDocId.get(step.documentId);
+        if (typeof version === 'string' && version) step.documentVersionId = version;
+    });
+}
+
+/**
+ * Only the `{ $ref }`s whose target already exists, and only of the given
+ * target kinds; every other ref is left for the patch pass. Used before a
+ * automation's resolutions run, so a datatable step that points at a table this
+ * bundle carries is already wired when `rebindDatatables` looks for holes.
+ */
+function resolveKnownRefs(holderKind, payload, refMap, targetKinds) {
+    visitPointers(holderKind, payload, (ptr) => {
+        if (!targetKinds.includes(ptr.targetKind)) return;
+        const value = ptr.get();
+        const real = (v) => (isRef(v) && typeof refMap.get(v.$ref) === 'string' ? refMap.get(v.$ref) : v);
+        if (ptr.many) { if (Array.isArray(value)) ptr.set(value.map(real)); return; }
+        const next = real(value);
+        if (next !== value) ptr.set(next);
+    });
+}
+
+/** `<key>_2` … `<key>_9`: the copies a key clash may try (F7). */
+const MAX_KEY_SUFFIX = 9;
+/** The datatable key grammar allows 63 characters (vocabulary.js KEY_RE). */
+const MAX_TABLE_KEY = 63;
+
+function suffixedKey(key, n) {
+    const tail = `_${n}`;
+    return `${key.slice(0, MAX_TABLE_KEY - tail.length)}${tail}`;
+}
+
+/** The unique (scope, key) index refused this key; the same test createStudioDatatable uses. */
+function isKeyClash(err) {
+    return /uq_datatables_scope_key|already exists|duplicate key/i.test(String(err && err.message));
+}
+
+/** The installed version every stamp of this install carries. */
+function versionOf(solution) {
+    const v = Number(solution?.version);
+    return Number.isInteger(v) && v > 0 ? v : 1;
+}
+
+/**
+ * The context every install function reads, with the defaults an install has.
+ *
+ *   ownerId / projectId / organizationId  who owns what is created, and where
+ *     it is filed. The stage engine passes the run-as user and the stage
+ *     project; a gallery install the installer and the new Solution.
+ *   rekey            fresh step ids per automation (default). The stage engine
+ *     passes false: a stage keeps Dev's step ids (design D3).
+ *   scope            the datatable scope; default the organisation, else the owner.
+ *   datatableKeyFor  (entity) → the physical table key; default `entity.key`.
+ *     A key that differs from the bundle's is recorded as `logical_key`.
+ *   dataModelOptions passed to studioAppDataStore.saveDataModel.
+ *   managedWrite     a deployment's capability (`{ deploymentId }`), for the
+ *     stage engine filing a part INTO a stage project: the store guards
+ *     (stores/lib/managedParts.js) refuse that write with 409 managed_part
+ *     without it. Handed to every guarded store write this file makes
+ *     (`writeOpts`); null for a gallery install or an upgrade.
+ *   installedVersion the version every stamp carries.
+ *   wiring           the installer's resolutions; null applies none.
+ *   templateVersions (filled by the installer) template id → revision id.
+ *
+ * `stamp` only COLLECTS `{ ref, kind, entityId, payload, stepIdMap }`;
+ * `stampAll` writes them once every reference is patched (F2).
+ */
+function makeInstallCtx({
+    ownerId, organizationId = null, projectId = null, refMap = new Map(), can = () => true, req = null,
+    wiring = null, rekey = true, scope = null, datatableKeyFor = null, dataModelOptions = null,
+    managedWrite = null, installedVersion = 1, releaseId = undefined, deps = {},
+} = {}) {
+    const ctx = {
+        ownerId, organizationId, projectId, refMap, can, req, wiring, rekey, scope, datatableKeyFor,
+        dataModelOptions, managedWrite, installedVersion, releaseId, deps, stamped: [],
+        // Template id → the revision a fill_document step is pinned to (installDocumentTemplates).
+        templateVersions: new Map(),
+    };
+    ctx.stamp = async (entry) => { ctx.stamped.push(entry); };
+    return ctx;
+}
+
+/**
+ * The options a guarded store write takes from this ctx: the deployment's
+ * capability when the stage engine handed one over, nothing otherwise (a
+ * gallery install or an upgrade writes outside any stage).
+ */
+function writeOpts(ctx) {
+    return ctx && ctx.managedWrite ? { managedWrite: ctx.managedWrite } : {};
+}
+
+/** The kinds whose CURRENT payload an upgrade compares; the rest keep the payload install wrote. */
+const READ_BACK_KINDS = new Set(['automation', 'app', 'webpage', 'agent']);
+
+/**
+ * Write the stamps collected in `ctx.stamped`, after every reference and every
+ * resolution is in place (F2). The hash is of what the entity looks like NOW,
+ * read through upgrade.currentPayload: that is the payload a later upgrade
+ * compares against, so an untouched entity reads as pristine. A kind upgrade
+ * never rereads (tables, knowledge bases) keeps the payload install wrote.
+ *
+ * Best-effort, never fatal: a Solution that installed but cannot be upgraded
+ * later is a smaller problem than one that refused to install. A missing stamp
+ * makes that entity ineligible for an automatic upgrade, the safe default.
+ */
+async function stampAll(ctx, report) {
+    const { currentPayload } = require('./upgrade');
+    const blueprintStore = require('../../stores/blueprintStore');
+    const byRef = new Map();
+    for (const entry of ctx.stamped.splice(0)) byRef.set(entry.ref, entry);
+    for (const entry of byRef.values()) {
+        let payload = entry.payload;
+        if (READ_BACK_KINDS.has(entry.kind)) {
+            try {
+                const now = await currentPayload(entry.kind, entry.entityId);
+                if (now !== null && now !== undefined) payload = now;
+            } catch (err) {
+                log.warn(`[Blueprint] could not read "${entry.ref}" back for its stamp: ${err.message}`);
+            }
+        }
+        try {
+            await blueprintStore.upsertStamp(null, {
+                projectId: ctx.projectId, ref: entry.ref, kind: entry.kind, entityId: entry.entityId,
+                installHash: installHashOf(payload ?? {}),
+                installedVersion: ctx.installedVersion,
+                ...(entry.stepIdMap !== undefined ? { stepIdMap: entry.stepIdMap } : {}),
+                ...(ctx.releaseId !== undefined ? { releaseId: ctx.releaseId } : {}),
+            });
+        } catch (err) {
+            report.warnings.push(`Could not record how "${entry.ref}" was installed, so it will not be offered future updates automatically: ${err.message}`);
+        }
+    }
+}
+
+/**
+ * Put back the three things scrub.js emptied on the way out, for ONE automation.
  *
  * Connections and approvers come from the installer's `resolutions`; tables are
  * re-linked by KEY through the shared `rebindDatatables`, over the union of the
@@ -231,15 +398,15 @@ function clone(v) {
  *     which ends "check it is the right one before activating". Their pick, so
  *     their check.
  *   - not bound at all — always said out loud. A datatable step with no table
- *     is a routine that cannot run, and it used to arrive that way in silence.
+ *     is an automation that cannot run, and it used to arrive that way in silence.
  */
 function applyResolutionsTo(definition, ref, ctx, report) {
-    // `wiring` is null for an UPGRADE, on purpose and not by accident of an
-    // absent field: an upgrade has no wizard in front of it, so there are no
-    // resolutions to apply, and re-linking a newly added routine's tables
-    // mid-upgrade would be a decision nobody was asked to make. upgrade.js
-    // sets it to null explicitly so this reads as a choice at both ends.
-    if (!ctx.wiring) return;
+    // `wiring` is null when nobody chose anything: a stage copy, or an
+    // UPGRADE of a Solution whose install kept no choices (installed before
+    // they were kept, or with none made). An upgrade has no wizard in front of
+    // it, so it only ever re-applies what the installer chose at install time,
+    // read back from `solution_bindings` (upgrade.js wiringFromBindings).
+    if (!ctx.wiring) return [];
     const { rebindDatatables } = require('../../automation/portability');
 
     const { applied, ignored } = applyStepResolutions(definition, ref, ctx.wiring.resolutions);
@@ -248,7 +415,7 @@ function applyResolutionsTo(definition, ref, ctx, report) {
     }
     for (const row of ignored) {
         report.warnings.push(
-            `What you chose for step "${row.stepId}" of "${ref}" was not used (${row.why.replace(/_/g, ' ')}) — open the routine and set it there.`,
+            `What you chose for step "${row.stepId}" of "${ref}" was not used (${row.why.replace(/_/g, ' ')}) — open the automation and set it there.`,
         );
     }
 
@@ -259,6 +426,10 @@ function applyResolutionsTo(definition, ref, ctx, report) {
         if (entry.matches === 1 && ctx.wiring.freshTableIds.has(entry.datatableId)) continue;
         report.warnings.push(entry.message);
     }
+    // The connection and approver rows that landed on a step: only those are
+    // kept for later updates (persistResolutions), so an update never repeats
+    // "was not used" about a choice that never applied.
+    return applied;
 }
 
 async function installAutomations(entities, ctx, report) {
@@ -271,35 +442,56 @@ async function installAutomations(entities, ctx, report) {
 
     for (const entity of ordered) {
         try {
-            // Through the normal import path, so a Blueprint's routines are
-            // validated by the same code a single-routine import uses.
+            // Through the normal import path, so a Blueprint's automations are
+            // validated by the same code a single-automation import uses.
             const { automation, errors } = sanitizeImport({
                 format: EXPORT_FORMAT, schemaVersion: EXPORT_SCHEMA_VERSION, automation: clone(entity),
             });
-            if (!automation) { report.skipped.push({ ref: entity.ref, kind: 'automation', why: errors.join(' ') }); continue; }
+            if (!automation) { report.skipped.push({ ref: entity.ref, kind: 'automation', why: errors.join(' '), permanent: true }); continue; }
+
+            // Tables and knowledge bases are installed before any automation, so
+            // their `$ref`s resolve now: a step wired to the bundle's own table
+            // is then no hole for the resolutions below to fill or warn about.
+            resolveKnownRefs('automation', { definition: automation.definition }, ctx.refMap, ['datatable', 'knowledgeBase']);
 
             // What the INSTALLER supplied, before the step ids change: a
             // resolution is addressed by the id the wizard read off the
             // manifest, and rekeyDefinition replaces every one of them.
-            applyResolutionsTo(automation.definition, entity.ref, ctx, report);
+            const applied = applyResolutionsTo(automation.definition, entity.ref, ctx, report);
 
             // Fresh step ids per graph, so two installs of the same Blueprint
-            // never share them.
-            const { definition } = rekeyDefinition(automation.definition);
+            // never share them. The rename map goes on the stamp, so an
+            // upgrade can put the same ids on the next version (F10). A stage
+            // copy keeps Dev's ids (ctx.rekey false), and its map is identity.
+            let definition = automation.definition;
+            let stepIdMap = null;
+            if (ctx.rekey !== false) ({ definition, renameMap: stepIdMap } = rekeyDefinition(definition));
 
-            const created = await automationStore.createAutomation({
-                userId: ctx.ownerId,
-                organizationId: ctx.organizationId,
-                title: automation.title,
-                description: automation.description || '',
-                definition,
-                triggerType: automation.triggerType || 'manual',
-                scheduleCron: automation.scheduleCron || null,
-                scheduleTz: automation.scheduleTz || undefined,
-            });
-            await automationStore.updateAutomation(created.id, { projectId: ctx.projectId }, ctx.ownerId);
+            // A reusable Step is a `kind = 'block'` row, which only createStep
+            // makes; createAutomation would land it as a plain automation.
+            const created = entity.kind === 'block'
+                ? await automationStore.createStep({
+                    userId: ctx.ownerId,
+                    organizationId: ctx.organizationId,
+                    title: automation.title,
+                    description: automation.description || '',
+                    definition,
+                })
+                : await automationStore.createAutomation({
+                    userId: ctx.ownerId,
+                    organizationId: ctx.organizationId,
+                    title: automation.title,
+                    description: automation.description || '',
+                    definition,
+                    triggerType: automation.triggerType || 'manual',
+                    scheduleCron: automation.scheduleCron || null,
+                    scheduleTz: automation.scheduleTz || undefined,
+                });
+            await automationStore.updateAutomation(created.id, { projectId: ctx.projectId }, ctx.ownerId, writeOpts(ctx));
             ctx.refMap.set(entity.ref, created.id);
-            await ctx.stamp({ ref: entity.ref, kind: 'automation', entityId: created.id, payload: definition });
+            // Kept only for an automation that actually landed (persistResolutions).
+            if (ctx.wiring && Array.isArray(ctx.wiring.applied)) ctx.wiring.applied.push(...applied);
+            await ctx.stamp({ ref: entity.ref, kind: 'automation', entityId: created.id, payload: definition, stepIdMap });
             report.installed.automations.push({ ref: entity.ref, id: created.id, title: automation.title });
         } catch (err) {
             report.skipped.push({ ref: entity.ref, kind: 'automation', why: err.message });
@@ -307,9 +499,49 @@ async function installAutomations(entities, ctx, report) {
     }
 }
 
+/**
+ * An app's own tables (F13): the SHAPE capture read from
+ * `studio_app_data_meta.model`, written through the store's own save path so
+ * the physical schema is created the way an edit in App Studio creates it.
+ *
+ * A table that reads a Studio datatable this bundle carries arrives pointing
+ * at the copy installed a moment ago (`$ref`). One that read a table outside
+ * the bundle arrives with `datatableId: null`: it is left out and named,
+ * because a linked table with no table behind it is a model the validator
+ * refuses, and the installer links it in the app's data settings. A model that
+ * still does not save is reported, never fatal: the app itself is installed.
+ */
+async function installAppDataModel(appId, entity, ctx, report) {
+    if (!entity.dataModel || typeof entity.dataModel !== 'object' || Array.isArray(entity.dataModel)) return;
+    const holder = { dataModel: clone(entity.dataModel) };
+    const unresolved = [];
+    resolveRefs('app', holder, ctx.refMap, unresolved);
+    for (const ref of [...new Set(unresolved)]) {
+        report.warnings.push(`A reference to "${ref}" in the data model of "${entity.name}" could not be connected — whatever it pointed at was not installed.`);
+    }
+    const model = holder.dataModel;
+    const tables = Array.isArray(model.tables) ? model.tables : [];
+    const unlinked = tables.filter(t => t && typeof t.source === 'object' && t.source !== null
+        && (typeof t.source.datatableId !== 'string' || !t.source.datatableId));
+    if (unlinked.length) {
+        model.tables = tables.filter(t => !unlinked.includes(t));
+        report.warnings.push(`"${entity.name}" reads ${unlinked.length} table(s) from outside this Solution (${unlinked.map(t => `"${t.key || t.id}"`).join(', ')}). They were left out: link them in the app's data settings.`);
+    }
+    try {
+        const out = await require('../../stores/studioAppDataStore')
+            .saveDataModel(appId, ctx.ownerId, model, { ...(ctx.dataModelOptions || {}), ...writeOpts(ctx) });
+        if (out && out.ok === false) {
+            const why = Array.isArray(out.errors) && out.errors.length ? out.errors.join(' ') : 'it was refused';
+            report.warnings.push(`The data model of "${entity.name}" could not be set up (${why}). The app is installed without its own tables.`);
+        }
+    } catch (err) {
+        report.warnings.push(`The data model of "${entity.name}" could not be set up: ${err.message}`);
+    }
+}
+
 async function installApps(entities, ctx, report) {
     if (!ctx.can('app_studio')) {
-        for (const e of entities) report.skipped.push({ ref: e.ref, kind: 'app', why: 'App Studio is not part of this plan.' });
+        for (const e of entities) report.skipped.push({ ref: e.ref, kind: 'app', why: 'App Studio is not part of this plan.', permanent: true });
         return;
     }
     const studioAppStore = require('../../stores/studioAppStore');
@@ -326,6 +558,7 @@ async function installApps(entities, ctx, report) {
             });
             await studioAppStore.setAppProject(created.id, ctx.ownerId, ctx.projectId);
             ctx.refMap.set(entity.ref, created.id);
+            await installAppDataModel(created.id, entity, ctx, report);
             await ctx.stamp({ ref: entity.ref, kind: 'app', entityId: created.id, payload: entity.definition });
             report.installed.apps.push({ ref: entity.ref, id: created.id, name: entity.name });
         } catch (err) {
@@ -336,23 +569,32 @@ async function installApps(entities, ctx, report) {
 
 async function installWebpages(entities, ctx, report) {
     if (!ctx.can('webpages')) {
-        for (const e of entities) report.skipped.push({ ref: e.ref, kind: 'webpage', why: 'Webpages are not part of this plan.' });
+        for (const e of entities) report.skipped.push({ ref: e.ref, kind: 'webpage', why: 'Webpages are not part of this plan.', permanent: true });
         return;
     }
     const webpageStore = require('../../stores/webpageStore');
     for (const entity of entities) {
         try {
+            // The page's knowledge bases: only the ones this bundle carries,
+            // by `$ref` (installed before any page). A bare id names a base of
+            // the installation the file came from, so it is not a pointer here.
+            const kbHolder = { knowledgeBaseIds: (Array.isArray(entity.knowledgeBaseIds) ? entity.knowledgeBaseIds : []).filter(isRef) };
+            const { unresolved } = fromRefs('webpage', kbHolder, ctx.refMap);
+            for (const u of unresolved) {
+                report.warnings.push(`A reference to "${u.ref}" could not be connected — whatever it pointed at was not installed.`);
+            }
             const created = await webpageStore.createWebpage({
                 userId: ctx.ownerId,
                 name: entity.name || 'Untitled Webpage',
                 description: entity.description || '',
                 instructions: entity.instructions || '',
+                ...(kbHolder.knowledgeBaseIds.length ? { knowledgeBaseIds: kbHolder.knowledgeBaseIds } : {}),
             });
             // Unpublished by construction — an installed page must not be live
-            // on arrival any more than an installed routine must be running.
+            // on arrival any more than an installed automation must be running.
             const files = entity.files || {};
-            for (const [slot, content] of [['index.html', files.html], ['style.css', files.css], ['script.js', files.js]]) {
-                if (content) await webpageStore.writeSlot(ctx.ownerId, created.id, slot, content);
+            for (const [slot, content] of [['html', files.html], ['css', files.css], ['js', files.js]]) {
+                if (content) await webpageStore.writeSlot(ctx.ownerId, created.id, slot, content, writeOpts(ctx));
             }
             await webpageStore.setWebpageProject(created.id, ctx.ownerId, ctx.projectId);
             // Een geïnstalleerde pagina is een pagina met code, dus ook zij
@@ -401,7 +643,7 @@ async function installWebpages(entities, ctx, report) {
 async function installDatatables(entities, ctx, report) {
     if (!entities.length) return;
     if (!ctx.can('automations')) {
-        for (const e of entities) report.skipped.push({ ref: e.ref, kind: 'datatable', why: 'Tables are not part of this plan.' });
+        for (const e of entities) report.skipped.push({ ref: e.ref, kind: 'datatable', why: 'Tables are not part of this plan.', permanent: true });
         return;
     }
     const db = require('../../db');
@@ -413,9 +655,9 @@ async function installDatatables(entities, ctx, report) {
     const { assertDatatableQuota } = require('../../core/dataEngine/datatableLimits');
     const PG = { dialect: 'pg' };
 
-    const scope = ctx.organizationId
+    const scope = ctx.scope || (ctx.organizationId
         ? datatableStore.orgScope(ctx.organizationId)
-        : datatableStore.userScope(ctx.ownerId);
+        : datatableStore.userScope(ctx.ownerId));
     const scopeKey = datatableDbStore.scopeKey(scope);
 
     for (const entity of entities) {
@@ -424,12 +666,15 @@ async function installDatatables(entities, ctx, report) {
             // without a stable id is INVISIBLE to the migration planner, so the
             // physical column is never created and nothing says so.
             const norm = normalizeFields(Array.isArray(entity.columns) ? entity.columns : [], []);
-            if (!norm.ok) { report.skipped.push({ ref: entity.ref, kind: 'datatable', why: norm.error }); continue; }
+            if (!norm.ok) { report.skipped.push({ ref: entity.ref, kind: 'datatable', why: norm.error, permanent: true }); continue; }
 
             const rowScope = entity.rowScope === 'own' ? 'own' : 'all';
-            const created = await db.withTransaction(async (client) => datatableStore.createDatatable({
+            const bundleKey = String(entity.key || '');
+            const baseKey = typeof ctx.datatableKeyFor === 'function' ? String(ctx.datatableKeyFor(entity) || '') : bundleKey;
+            const createWith = (key, logicalKey) => db.withTransaction(async (client) => datatableStore.createDatatable({
                 scope, ownerUserId: ctx.ownerId,
-                key: String(entity.key || ''),
+                key,
+                logicalKey,
                 name: String(entity.name || 'Untitled table'),
                 description: String(entity.description || ''),
                 projectId: ctx.projectId,
@@ -440,6 +685,8 @@ async function installDatatables(entities, ctx, report) {
                 fields: norm.fields,
             }, {
                 client,
+                // Filing a table into a stage project at INSERT is a stage write.
+                ...writeOpts(ctx),
                 assertQuota: (usage) => assertDatatableQuota(scope, { addTables: 1, usage }),
                 applyPhysical: async (c, { before, next, modelVersion }) => {
                     const table = next.tables[next.tables.length - 1];
@@ -452,10 +699,30 @@ async function installDatatables(entities, ctx, report) {
                         { client: c, targetVersion: modelVersion });
                 },
             }));
+            // F7: a second install of the same Blueprint in one organisation
+            // meets its own first copy on the unique (scope, key) index. The
+            // copy takes `<key>_<n>` and remembers the bundle's key as
+            // `logical_key`; every in-bundle pointer reaches it through its
+            // `$ref`, so nothing depends on the physical key.
+            let created = null;
+            let key = baseKey;
+            for (let n = 1; !created; n++) {
+                key = n === 1 ? baseKey : suffixedKey(baseKey, n);
+                const logicalKey = key === bundleKey ? null : (bundleKey || null);
+                try {
+                    created = await createWith(key, logicalKey);
+                } catch (err) {
+                    try { datatableDbStore.invalidate(scopeKey); } catch { /* best effort */ }
+                    if (n >= MAX_KEY_SUFFIX || !isKeyClash(err)) throw err;
+                }
+            }
             datatableDbStore.invalidate(scopeKey);
             ctx.refMap.set(entity.ref, created.id);
             await ctx.stamp({ ref: entity.ref, kind: 'datatable', entityId: created.id, payload: { columns: norm.fields } });
-            report.installed.datatables.push({ ref: entity.ref, id: created.id, name: entity.name });
+            report.installed.datatables.push({ ref: entity.ref, id: created.id, name: entity.name, ...(key !== baseKey ? { key } : {}) });
+            if (key !== baseKey) {
+                report.warnings.push(`A table with the key "${baseKey}" already exists here, so "${entity.name || baseKey}" was created as "${key}".`);
+            }
         } catch (err) {
             // The engine memoises "this scope has a model row" inside the
             // transaction that just rolled back, so the memo goes with it.
@@ -515,7 +782,7 @@ async function createRequestedTables(ctx, report) {
  * install made itself.
  *
  * The bundle's own tables come first and WIN a key clash. A Blueprint that
- * ships a table called "invoices" means its own copy when one of its routines
+ * ships a table called "invoices" means its own copy when one of its automations
  * says `datatableKey: 'invoices'` — binding that step to a pre-existing table
  * of the recipient's instead would quietly point the Solution at somebody
  * else's data on the strength of a slug collision.
@@ -577,6 +844,13 @@ async function installAgents(entities, ctx, report) {
     for (const entity of entities) {
         try {
             const config = (entity.config && typeof entity.config === 'object') ? clone(entity.config) : {};
+            // A pipeline release carries the agent's knowledge bases and skills
+            // as `$ref` (gallery files drop them). Bases are installed before
+            // any agent; a ref with nothing behind it leaves the list, named.
+            const { unresolved } = fromRefs('agent', { config }, ctx.refMap);
+            for (const u of unresolved) {
+                report.warnings.push(`A reference to "${u.ref}" in "${entity.name}" could not be connected — whatever it pointed at was not installed.`);
+            }
             // Belt and braces on the one thing that must never arrive wider
             // than it left: whatever the file says, an installed grant acts as
             // whoever uses the agent.
@@ -651,7 +925,7 @@ async function installKnowledgeBases(entities, ctx, report) {
             // around it — an install must not be the one path that writes
             // `knowledge_base_ids` without the compare-and-swap.
             const filed = await kbMembership.setKnowledgeBaseProject(created.id, ctx.ownerId, ctx.projectId,
-                { req: ctx.req, projectId: ctx.projectId });
+                { req: ctx.req, projectId: ctx.projectId, ...writeOpts(ctx) });
             if (!filed) {
                 // Said out loud rather than left as a base that exists and is
                 // in no project. Reachable when the caller had no request to
@@ -668,6 +942,193 @@ async function installKnowledgeBases(entities, ctx, report) {
 }
 
 /**
+ * The ids of a skill's `{ $ref }` list: only the refs, resolved. A bare id
+ * names a row of the installation the file came from, so it is not a pointer
+ * here and never survives; a ref with nothing behind it leaves the list and is
+ * named in `unresolved`.
+ */
+function resolvedRefList(list, refMap, unresolved) {
+    const holder = { knowledge_base_ids: (Array.isArray(list) ? list : []).filter(isRef) };
+    const { unresolved: missed } = fromRefs('skill', holder, refMap);
+    for (const m of missed) unresolved.push(m.ref);
+    return holder.knowledge_base_ids;
+}
+
+/**
+ * The fields a skill is written with (camelCase, as createSkill and
+ * writeManagedSkill take them), from its manifest entry.
+ *
+ * Each body facet is sent once: the structured form when there is one (the
+ * store regenerates the text from it), the text form otherwise (the store
+ * parses it). Sending both would let an empty structured column blank a
+ * written-out text. Links to a base or an automation travel as `$ref` and are
+ * resolved against `refMap`; step references the same. `sharedGroups`,
+ * `isShared` and `enabledIntegrations` are never taken from a file.
+ *
+ * @param {object} entity
+ * @param {Map<string, string>} refMap
+ * @param {string[]} [unresolved]  collects every `$ref` that had no target
+ */
+function skillFieldsOf(entity, refMap, unresolved = []) {
+    const fields = {
+        name: String(entity.name || 'Untitled skill'),
+        description: typeof entity.description === 'string' ? entity.description : '',
+        instructions: typeof entity.instructions === 'string' ? entity.instructions : '',
+        icon: typeof entity.icon === 'string' && entity.icon ? entity.icon : undefined,
+        dynamicActivation: entity.dynamic_activation === true,
+        knowledgeBaseIds: resolvedRefList(entity.knowledge_base_ids, refMap, unresolved),
+        allowedAutomationIds: resolvedRefList(entity.allowed_automation_ids, refMap, unresolved),
+        automationId: resolvedRefList(isRef(entity.automation_id) ? [entity.automation_id] : [], refMap, unresolved)[0] || null,
+    };
+    const steps = (Array.isArray(entity.steps) ? entity.steps : []).map((step) => {
+        if (!step || typeof step !== 'object' || !Array.isArray(step.refs)) return step;
+        const refs = [];
+        for (const r of step.refs) {
+            if (!r || !isRef(r.id)) continue;                 // a bare id names another installation's row
+            const real = refMap.get(r.id.$ref);
+            if (typeof real === 'string') refs.push({ ...r, id: real });
+            else unresolved.push(r.id.$ref);
+        }
+        return { ...step, refs };
+    });
+    for (const [structured, text, camel, value] of [
+        ['steps', 'workflow', 'steps', steps],
+        ['rules_v2', 'rules', 'rulesV2', entity.rules_v2],
+        ['examples_v2', 'examples', 'examplesV2', entity.examples_v2],
+    ]) {
+        if (Array.isArray(value) && value.length) fields[camel] = clone(value);
+        else if (typeof entity[text] === 'string' && entity[text].trim()) fields[text] = entity[text];
+        else if (entity[structured] !== undefined && !Array.isArray(entity[structured])) fields[camel] = entity[structured];
+    }
+    if (entity.output_schema && typeof entity.output_schema === 'object') fields.outputSchema = clone(entity.output_schema);
+    for (const k of Object.keys(fields)) if (fields[k] === undefined) delete fields[k];
+    return fields;
+}
+
+/**
+ * Install the SKILLS.
+ *
+ * Gallery path: the skill is created under the installer, unshared and with no
+ * connected app switched on (`enabled_integrations` is a requirement, never a
+ * grant), then filed through the membership registry's `setProject`, the one
+ * way a skill enters a Solution.
+ *
+ * Stage path (`ctx.managedWrite`): a stage skill has no live copy and is
+ * written in the deployment's commit by `skillStore.writeManagedSkill`, so
+ * nothing is written here. The row is COMPUTED: an id is allocated now so
+ * automations and agents can point at it, and `report.computed.skills` carries
+ * `{ ref, id, fields }`, ready for the commit. `skillFieldsOf` recomputes the
+ * fields once every part of the release has an id.
+ */
+async function installSkills(entities, ctx, report) {
+    if (!entities.length) return;
+    const skillStore = require('../../stores/skillStore');
+    const staged = !!ctx.managedWrite;
+    for (const entity of entities) {
+        try {
+            const unresolved = [];
+            const fields = skillFieldsOf(entity, ctx.refMap, unresolved);
+            if (!staged) {
+                for (const ref of new Set(unresolved)) {
+                    report.warnings.push(`A reference to "${ref}" in the skill "${entity.name}" could not be connected — whatever it pointed at was not installed.`);
+                }
+            }
+            let id;
+            if (staged) {
+                id = crypto.randomUUID();
+                report.computed = report.computed || {};
+                (report.computed.skills = report.computed.skills || []).push({ ref: entity.ref, id, fields });
+            } else {
+                const created = await skillStore.createSkill({
+                    ...fields, orgId: ctx.organizationId || null, userId: ctx.ownerId,
+                    isShared: false, sharedGroups: [], enabledIntegrations: [],
+                });
+                id = created.id;
+                const filed = await require('../membership').getKind('skill')
+                    .setProject(id, ctx.ownerId, ctx.projectId, { projectId: ctx.projectId, req: ctx.req, ...writeOpts(ctx) });
+                if (!filed) report.warnings.push(`The skill "${entity.name}" was created but could not be filed into the Solution. Add it to the project by hand.`);
+            }
+            ctx.refMap.set(entity.ref, id);
+            await ctx.stamp({ ref: entity.ref, kind: 'skill', entityId: id, payload: fields });
+            (report.installed.skills ||= []).push({ ref: entity.ref, id, name: entity.name });
+        } catch (err) {
+            report.skipped.push({ ref: entity.ref, kind: 'skill', why: err.message });
+        }
+    }
+}
+
+/** The fields a template is written with (camelCase), from its manifest entry. */
+function templateFieldsOf(entity) {
+    return {
+        name: String(entity.name || 'Untitled document'),
+        docType: typeof entity.doc_type === 'string' && entity.doc_type ? entity.doc_type : 'document',
+        kind: ['template', 'section', 'document'].includes(entity.kind) ? entity.kind : 'template',
+        description: typeof entity.description === 'string' ? entity.description : '',
+        bodyHtml: typeof entity.body_html === 'string' ? entity.body_html : '',
+        css: typeof entity.css === 'string' ? entity.css : '',
+        settings: entity.settings && typeof entity.settings === 'object' && !Array.isArray(entity.settings) ? clone(entity.settings) : {},
+    };
+}
+
+/**
+ * Install the DOCUMENT TEMPLATES.
+ *
+ * A template is a document row owned by the installer, private and filed into
+ * the Solution through `solution_project_id` (the membership registry's
+ * `document_template` kind), never as project content. The revision a
+ * `fill_document` step is pinned to is recorded in `ctx.templateVersions`
+ * (template id → revision id): `patchReferences` and `resolveRefs` write it
+ * onto the automations.
+ *
+ * Gallery path: `createDocument`, then filed through the registry. Stage path
+ * (`ctx.managedWrite`): the template must exist in the stage before automations
+ * resolve against it, so it is written with the deployment's capability by
+ * `writeManagedTemplate` (one transaction, owned by the run-as user, filed at
+ * INSERT) and the revision it wrote is the pin. A later release's content
+ * reaches an existing template through `createVersionRow`, which the stage
+ * engine calls itself and records in `ctx.templateVersions`.
+ */
+async function installDocumentTemplates(entities, ctx, report) {
+    if (!entities.length) return;
+    const staged = !!ctx.managedWrite;
+    for (const entity of entities) {
+        try {
+            const fields = templateFieldsOf(entity);
+            if (fields.docType === 'page') {
+                report.skipped.push({ ref: entity.ref, kind: 'document', why: 'A page is never a Solution template.', permanent: true });
+                continue;
+            }
+            let id;
+            let versionId;
+            if (staged) {
+                const withTransaction = ctx.deps?.withTransaction || require('../../db').withTransaction;
+                const out = await withTransaction((client) => require('../../stores/document/solutionTemplates').writeManagedTemplate(
+                    client,
+                    { ownerId: ctx.ownerId, orgId: ctx.organizationId || null, projectId: ctx.projectId, fields },
+                    { managedWrite: ctx.managedWrite },
+                ));
+                ({ id, versionId } = out);
+            } else {
+                const created = await require('../../stores/documentStore').createDocument({
+                    userId: ctx.ownerId, visibility: 'private', ...fields,
+                });
+                id = created.id;
+                versionId = created.versionId;
+                const filed = await require('../membership').getKind('document_template')
+                    .setProject(id, ctx.ownerId, ctx.projectId, { projectId: ctx.projectId, req: ctx.req, ...writeOpts(ctx) });
+                if (!filed) report.warnings.push(`The template "${entity.name}" was created but could not be filed into the Solution. Add it to the project by hand.`);
+            }
+            ctx.refMap.set(entity.ref, id);
+            if (versionId) ctx.templateVersions.set(id, versionId);
+            await ctx.stamp({ ref: entity.ref, kind: 'document', entityId: id, payload: fields });
+            (report.installed.documents ||= []).push({ ref: entity.ref, id, name: entity.name, ...(versionId ? { versionId } : {}) });
+        } catch (err) {
+            report.skipped.push({ ref: entity.ref, kind: 'document', why: err.message });
+        }
+    }
+}
+
+/**
  * The bridge grants an installed page gets: the ones this install can vouch
  * for, and nothing else. See the module header for why a granted tool is
  * authority over the installer's account rather than a property of the page.
@@ -678,8 +1139,8 @@ async function installKnowledgeBases(entities, ctx, report) {
  * safety of an install depend on a default two modules away staying what it is.
  * Written out, the install says what it grants.
  *
- * An automation grant survives only if the file pointed at a routine INSIDE
- * this bundle with `{ $ref }` and that routine actually landed. A bare id is
+ * An automation grant survives only if the file pointed at an automation INSIDE
+ * this bundle with `{ $ref }` and that automation actually landed. A bare id is
  * not a reference to anything this bundle contains: it names a row in the
  * installation the file came from, so it is dropped. A `$ref` whose target did
  * not install is dropped too, and NAMED through `unresolved` — the page ends up
@@ -703,12 +1164,43 @@ function safeInstallGrants(entity, refMap, unresolved = []) {
         });
     }
 
+    // Table grants (F14): the same rule as automations. Only a table this bundle
+    // carries, by `$ref`, resolved to the copy this install made. Mode and
+    // columns travel; PUBLIC columns do not: anonymous read access to the
+    // installer's table is the table-shaped twin of public AI, and an install
+    // never switches that on for anybody.
+    const tables = [];
+    for (const grant of (Array.isArray(asked.tables) ? asked.tables : [])) {
+        const pointer = grant && grant.datatableId;
+        const ref = (pointer && typeof pointer === 'object' && typeof pointer.$ref === 'string') ? pointer.$ref : null;
+        if (!ref) continue;                       // a bare id or a hole names nothing in this bundle
+        const real = refMap.get(ref);
+        if (typeof real !== 'string') { unresolved.push(ref); continue; }
+        tables.push({
+            datatableId: real,
+            mode: grant.mode === 'readwrite' ? 'readwrite' : 'read',
+            columns: Array.isArray(grant.columns) ? grant.columns.filter(c => typeof c === 'string') : [],
+            publicColumns: [],
+        });
+    }
+
+    // The page's agent: one in this bundle, by `$ref`, or none.
+    let agent = null;
+    const ap = asked.agent && asked.agent.agentId;
+    if (ap && typeof ap === 'object' && typeof ap.$ref === 'string') {
+        const real = refMap.get(ap.$ref);
+        if (typeof real === 'string') agent = { agentId: real };
+        else unresolved.push(ap.$ref);
+    }
+
     return {
         ai: { ...DEFAULT_BRIDGE_GRANTS.ai },
         automations,
         // A tool name IS the grant: the bridge runs as the page's author, so
         // carrying one over would hand the installer's Gmail to a file.
         integrations: [],
+        tables,
+        agent,
     };
 }
 
@@ -790,52 +1282,127 @@ function collectGrantRequires(manifest) {
  * discipline templateInstall keeps, so an installed entity goes through
  * whatever validation and stamping a hand-edited one would.
  */
-async function patchReferences(manifest, ctx, report) {
+async function patchReferences(manifest, ctx, report, { refs = null } = {}) {
     const entities = manifest.solution.entities;
     const unresolved = [];
+    // An upgrade patches only the parts it ADDED (F11); the parts it replaced
+    // resolve their own references on the way in.
+    const mine = (entity) => (!refs || refs.has(entity.ref)) && ctx.refMap.has(entity.ref);
 
-    for (const entity of entities.apps || []) {
+    for (const entity of (entities.apps || []).filter(mine)) {
         const id = ctx.refMap.get(entity.ref);
-        if (!id) continue;
         try {
-            const definition = rewriteRefs(clone(entity.definition), ctx.refMap, unresolved);
-            await require('../../stores/studioAppStore').saveDefinition(id, ctx.ownerId, definition);
+            const { definition } = resolveRefs('app', { definition: clone(entity.definition) }, ctx.refMap, unresolved);
+            await require('../../stores/studioAppStore').saveDefinition(id, ctx.ownerId, definition, writeOpts(ctx));
         } catch (err) {
             report.warnings.push(`Could not connect the references inside "${entity.name}": ${err.message}`);
         }
     }
 
-    for (const entity of entities.automations || []) {
+    for (const entity of (entities.automations || []).filter(mine)) {
         const id = ctx.refMap.get(entity.ref);
-        if (!id) continue;
-        const before = JSON.stringify(entity.definition);
-        if (!before.includes('"$ref"')) continue;      // nothing to put back
+        if (!JSON.stringify(entity.definition).includes('"$ref"')) continue;      // nothing to put back
         try {
             const live = await require('../../stores/automationStore').getAutomation(id);
-            const definition = rewriteRefs(clone(live.definition), ctx.refMap, unresolved);
+            // The stored copy: its step ids are the ones this install chose.
+            const { definition } = resolveRefs('automation', { definition: clone(live.definition) }, ctx.refMap, unresolved, ctx.templateVersions);
             // goLive: the resolved references are part of the installed
-            // routine, not a pending edit (handoff 5 live split).
-            await require('../../stores/automationStore').updateAutomation(id, { definition }, ctx.ownerId, { goLive: true });
+            // automation, not a pending edit (handoff 5 live split). An automation
+            // that never ran stays a draft: the store moves a live copy only
+            // on an automation that has one (lifecycle LIVE_INVARIANT_SQL).
+            await require('../../stores/automationStore').updateAutomation(id, { definition }, ctx.ownerId, { goLive: true, ...writeOpts(ctx) });
         } catch (err) {
             report.warnings.push(`Could not connect the references inside "${entity.title}": ${err.message}`);
         }
     }
 
-    for (const entity of entities.webpages || []) {
+    for (const entity of (entities.webpages || []).filter(mine)) {
         const id = ctx.refMap.get(entity.ref);
-        if (!id) continue;
         try {
             await require('../../stores/webpageStore').updateBridgeGrants(
-                id, ctx.ownerId, safeInstallGrants(entity, ctx.refMap, unresolved),
+                id, ctx.ownerId, safeInstallGrants(entity, ctx.refMap, unresolved), writeOpts(ctx),
             );
         } catch (err) {
             report.warnings.push(`Could not set what "${entity.name}" is allowed to call: ${err.message}`);
+        }
+        const publicAsked = (Array.isArray(entity?.bridgeGrants?.tables) ? entity.bridgeGrants.tables : [])
+            .some(g => Array.isArray(g?.publicColumns) && g.publicColumns.length);
+        if (publicAsked) {
+            report.warnings.push(`"${entity.name}" asks to show table columns to anonymous visitors. An install never grants that: open the page and choose the public columns yourself.`);
         }
     }
 
     for (const ref of [...new Set(unresolved)]) {
         report.warnings.push(`A reference to "${ref}" could not be connected — whatever it pointed at was not installed.`);
     }
+}
+
+/**
+ * Keep the installer's resolutions as `solution_bindings` rows on the new
+ * project (F3): an upgrade reads them back and fills the same holes. A table
+ * the installer asked to have CREATED is kept as the table that was made.
+ * Never fatal: the install already applied them; without the rows only a
+ * later upgrade forgets them, and the report says so.
+ */
+async function persistResolutions(ctx, report) {
+    if (!ctx.wiring) return;
+    const rows = resolutionsToBindings(ctx.wiring.resolutions, {
+        createdForKey: ctx.wiring.createdForKey,
+        // Connections and approvers: only the ones that landed on a step of a
+        // automation that was installed. One that missed was said once, here.
+        applied: Array.isArray(ctx.wiring.applied) ? ctx.wiring.applied : null,
+    });
+    if (!rows.length) return;
+    try {
+        const store = ctx.deps?.bindings || require('../../stores/solutionStageStore');
+        await store.upsertBindings(ctx.projectId, rows, ctx.ownerId);
+    } catch (err) {
+        report.warnings.push(`Your choices were applied, but could not be saved for later updates, so an update will leave those steps unconnected again: ${err.message}`);
+    }
+}
+
+/** The installer per part kind, for `installOne`. */
+const INSTALLERS = Object.freeze({
+    automation: (...a) => installAutomations(...a),
+    block: (...a) => installAutomations(...a),
+    layer: (...a) => installAutomations(...a),
+    app: (...a) => installApps(...a),
+    webpage: (...a) => installWebpages(...a),
+    datatable: (...a) => installDatatables(...a),
+    agent: (...a) => installAgents(...a),
+    knowledge_base: (...a) => installKnowledgeBases(...a),
+    skill: (...a) => installSkills(...a),
+    document: (...a) => installDocumentTemplates(...a),
+});
+
+/**
+ * Install ONE part through the same path a whole Blueprint takes (inactive on
+ * arrival, one owner, filed into `ctx.projectId`, stamp collected). The stage
+ * engine creates a missing part this way, with a ctx from `makeInstallCtx`
+ * (`rekey: false`, the stage's scope and key rule, run-as owner, stage
+ * project, and the deployment's `managedWrite`: without it the store guards
+ * refuse to file a part into a stage, and the part lands in `report.skipped`
+ * as 409 managed_part). Returns the new id, or null when the part was skipped
+ * (the reason is in `report.skipped`).
+ *
+ * @param {string} kind  automation | block | layer | app | webpage | datatable | agent | knowledge_base | skill | document
+ *
+ * With `ctx.managedWrite` a `skill` is only COMPUTED (its id is allocated and
+ * `report.computed.skills` gets `{ ref, id, fields }`; the deployment's commit
+ * writes the row), and a `document` template is created in the stage with the
+ * revision it is pinned to in `ctx.templateVersions`.
+ */
+async function installOne(kind, entity, ctx, report) {
+    const install = INSTALLERS[kind];
+    if (!install) throw new TypeError(`installOne: no installer for kind '${kind}'`);
+    report.installed = report.installed || {};
+    for (const list of ['automations', 'apps', 'webpages', 'datatables', 'agents', 'knowledgeBases', 'skills', 'documents']) {
+        if (!Array.isArray(report.installed[list])) report.installed[list] = [];
+    }
+    for (const list of ['skipped', 'warnings', 'resolved']) if (!Array.isArray(report[list])) report[list] = [];
+    if (!report.computed || typeof report.computed !== 'object') report.computed = {};
+    await install([entity], ctx, report);
+    return ctx.refMap.get(entity.ref) || null;
 }
 
 /**
@@ -863,11 +1430,15 @@ async function patchReferences(manifest, ctx, report) {
  * @param {object}   [input.resolutions]    what the INSTALLER supplies for the
  *   holes scrub.js left: `{ tables, connections, approvers }`. Normalised
  *   before anything reads it, so an unrecognised key contributes nothing —
- *   see projects/packaging/resolutions.js.
+ *   see projects/packaging/resolutions.js. What was used is kept as
+ *   `solution_bindings` rows on the new project, so an upgrade fills the same
+ *   holes the same way (F3).
+ * @param {object}   [input.deps]           `{ bindings }`: the store the
+ *   resolutions are kept in (default stores/solutionStageStore).
  */
 async function installBlueprint({
     manifest, ownerId, organizationId = null, name = null, blueprintId = null,
-    blueprintOrgId = null, can = () => true, req = null, resolutions = null,
+    blueprintOrgId = null, can = () => true, req = null, resolutions = null, deps = {},
 } = {}) {
     if (!ownerId) return { ok: false, errors: ['An installer is required.'] };
 
@@ -878,7 +1449,8 @@ async function installBlueprint({
     const projectStore = require('../../stores/projectStore');
 
     const report = {
-        installed: { automations: [], apps: [], webpages: [], datatables: [], agents: [], knowledgeBases: [] },
+        installed: { automations: [], apps: [], webpages: [], datatables: [], agents: [], knowledgeBases: [], skills: [], documents: [] },
+        computed: {},
         skipped: [],
         warnings: [],
         // What the file asked a page to be allowed to do and this install would
@@ -924,45 +1496,38 @@ async function installBlueprint({
         return { ok: false, errors: [`The Solution could not be created: ${err.message}`] };
     }
 
-    // Stamping is best-effort and never fails an install: a Solution that
-    // installed but cannot be upgraded later is a smaller problem than one that
-    // refused to install at all. A missing stamp simply makes that entity
-    // ineligible for a later automatic upgrade, which is the safe default.
-    const stamp = async ({ ref, kind, entityId, payload }) => {
-        try {
-            await require('../../stores/blueprintStore').stampEntity({
-                projectId: project.id, ref, kind, entityId,
-                installHash: installHashOf(payload),
-                installedVersion: solution.version || 1,
-            });
-        } catch (err) {
-            report.warnings.push(`Could not record how "${ref}" was installed, so it will not be offered future updates automatically: ${err.message}`);
-        }
-    };
-
-    const ctx = {
-        ownerId, organizationId, projectId: project.id, refMap: new Map(), can, stamp, req,
-        // Everything a routine needs to arrive WIRED. Null during an upgrade;
-        // see applyResolutionsTo for why that is a decision rather than a gap.
+    const ctx = makeInstallCtx({
+        ownerId, organizationId, projectId: project.id, can, req, deps,
+        installedVersion: versionOf(solution),
+        // Everything an automation needs to arrive WIRED. An upgrade rebuilds it
+        // from the bindings this install saves below (persistResolutions).
         wiring: {
             resolutions: normalizeResolutions(resolutions),
-            tables: [],                 // filled in below, before any routine
+            tables: [],                 // filled in below, before any automation
             freshTableIds: new Set(),   // tables this install made itself
             createdForKey: new Map(),
+            applied: [],                // connection/approver rows that landed (persistResolutions)
         },
-    };
+    });
 
     // Tables and knowledge bases first: they are what other entities point AT,
     // and nothing points back at an automation from them.
     await installDatatables(solution.entities.datatables || [], ctx, report);
     await installKnowledgeBases(solution.entities.knowledgeBases || [], ctx, report);
+    await installDocumentTemplates(solution.entities.documents || [], ctx, report);
     await createRequestedTables(ctx, report);
     ctx.wiring.tables = tablesForRebind(solution.entities.datatables || [], ctx, report);
     await installAutomations(solution.entities.automations || [], ctx, report);
     await installApps(solution.entities.apps || [], ctx, report);
     await installWebpages(solution.entities.webpages || [], ctx, report);
+    // Skills after the automations and bases they link to, before the agents that attach them.
+    await installSkills(solution.entities.skills || [], ctx, report);
     await installAgents(solution.entities.agents || [], ctx, report);
     await patchReferences(checked.manifest, ctx, report);
+    await persistResolutions(ctx, report);
+    // Last: every reference and every resolution is in place, so the hash is
+    // of what the entity IS, and an untouched one reads as pristine (F2).
+    await stampAll(ctx, report);
 
     for (const requirement of solution.requires || []) {
         report.warnings.push(`This Solution needs ${requirement.count} ${requirement.kind}(s) supplying before it will work.`);
@@ -981,7 +1546,7 @@ async function installBlueprint({
     }
     for (const { label, n } of askedPerPage.values()) {
         report.warnings.push(
-            `"${label}" asks to be allowed to do ${n} thing(s) — a tool, a routine elsewhere, or public AI. An install never grants those on your behalf: open the page and grant what it should have.`,
+            `"${label}" asks to be allowed to do ${n} thing(s) — a tool, an automation elsewhere, or public AI. An install never grants those on your behalf: open the page and grant what it should have.`,
         );
     }
 
@@ -995,7 +1560,12 @@ module.exports = {
     // and two implementations of it would drift on the details that matter
     // (inactive on arrival, one owner, filed into the project, stamped).
     installAutomations, installApps, installWebpages, patchReferences, installHashOf,
-    installDatatables, installAgents, installKnowledgeBases,
+    installDatatables, installAgents, installKnowledgeBases, installSkills, installDocumentTemplates,
+    // What a skill and a template are written with, and the pin of a fill_document step.
+    skillFieldsOf, templateFieldsOf, pinTemplateVersions,
+    // One part at a time and the deferred stamp pass: the stage engine's
+    // prepare creates missing parts with these, under its own ctx.
+    makeInstallCtx, installOne, stampAll, resolveRefs, applyResolutionsTo,
     // The two halves of "bridge grants are requires": what an install writes,
     // and what it refuses to write and shows instead. The install wizard reads
     // the second one to build its Connect step.

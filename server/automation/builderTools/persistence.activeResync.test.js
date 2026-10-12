@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * persistDraft on an ACTIVE routine re-syncs the trigger rows the engine
+ * persistDraft on an ACTIVE automation re-syncs the trigger rows the engine
  * fires from — app_event subscriptions and secondary automation_schedules —
  * exactly the way PUT /:id does, and with the same fingerprint gates.
  *
@@ -72,7 +72,7 @@ beforeEach(() => {
     createShouldThrow = false;
 });
 
-test('an active routine whose app_event filter changed gets its subscription rebuilt', async () => {
+test('an active automation whose app_event filter changed gets its subscription rebuilt', async () => {
     stored = { id: 'a1', userId: 'u1', isActive: true, definition: def(gmail({ labelId: 'INBOX' })) };
     await persistDraft({ automationId: 'a1', userId: 'u1', def: def(gmail({ labelId: 'Label_9' })) });
     assert.strictEqual(subscriptionWipes, 1);
@@ -83,7 +83,7 @@ test('an active routine whose app_event filter changed gets its subscription reb
     assert.strictEqual(schedulesUpserted.length, 0, 'no schedule trigger came or went');
 });
 
-test('a label-only edit on an active routine leaves the subscription (and its poller cursor) alone', async () => {
+test('a label-only edit on an active automation leaves the subscription (and its poller cursor) alone', async () => {
     stored = { id: 'a1', userId: 'u1', isActive: true, definition: def(gmail({ labelId: 'INBOX' }, { label: 'Old name' })) };
     await persistDraft({ automationId: 'a1', userId: 'u1', def: def(gmail({ labelId: 'INBOX' }, { label: 'New name' })) });
     assert.strictEqual(subscriptionWipes, 0);
@@ -91,7 +91,7 @@ test('a label-only edit on an active routine leaves the subscription (and its po
     assert.strictEqual(schedulesUpserted.length, 0);
 });
 
-test('an INACTIVE routine never touches subscriptions or schedules — activate does that', async () => {
+test('an INACTIVE automation never touches subscriptions or schedules — activate does that', async () => {
     stored = { id: 'a1', userId: 'u1', isActive: false, definition: def(gmail({ labelId: 'INBOX' })) };
     await persistDraft({ automationId: 'a1', userId: 'u1', def: def(gmail({ labelId: 'Label_9' }), [sched('0 7 * * 1-5')]) });
     assert.strictEqual(subscriptionWipes, 0);
@@ -99,7 +99,7 @@ test('an INACTIVE routine never touches subscriptions or schedules — activate 
     assert.strictEqual(schedulesUpserted.length, 0);
 });
 
-test('a new or changed secondary schedule on an active routine gets its schedule row', async () => {
+test('a new or changed secondary schedule on an active automation gets its schedule row', async () => {
     stored = { id: 'a1', userId: 'u1', isActive: true, definition: def(gmail({ labelId: 'INBOX' }), [sched('0 7 * * 1-5')]) };
     await persistDraft({ automationId: 'a1', userId: 'u1', def: def(gmail({ labelId: 'INBOX' }), [sched('0 8 * * 1-5')]) });
     assert.strictEqual(subscriptionWipes, 0, 'the app_event config did not change');

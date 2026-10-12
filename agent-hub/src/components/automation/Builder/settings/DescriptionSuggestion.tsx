@@ -16,7 +16,7 @@ interface Props {
  * that turns into a proposal card with Accept · Edit · Another suggestion.
  */
 // The keys this card renders: Bee writes in the language they are shown in.
-const LANGUAGE_ANCHORS = ['routines.settings.suggest_link', 'routines.settings.suggest_title', 'routines.settings.suggest_accept'];
+const LANGUAGE_ANCHORS = ['automations.settings.suggest_link', 'automations.settings.suggest_title', 'automations.settings.suggest_accept'];
 
 export default function DescriptionSuggestion({ automationId, onAccept, onEdit }: Props) {
     const { t, locale, strings } = useTranslation();
@@ -36,8 +36,8 @@ export default function DescriptionSuggestion({ automationId, onAccept, onEdit }
                 <button type="button" onClick={ask} disabled={suggest.isPending} className={`${LINK_BTN} self-start text-[var(--type-ai)]`}>
                     <Sparkles size={12} />
                     {suggest.isPending
-                        ? t('routines.settings.suggest_busy', 'Bee is reading the steps…')
-                        : t('routines.settings.suggest_link', 'Let Bee suggest a description based on the steps')}
+                        ? t('automations.settings.suggest_busy', 'Bee is reading the steps…')
+                        : t('automations.settings.suggest_link', 'Let Bee suggest a description based on the steps')}
                 </button>
                 {suggest.isError && (
                     <span role="alert" className="text-[12px] text-[var(--error)]">{suggest.error.message}</span>
@@ -50,19 +50,19 @@ export default function DescriptionSuggestion({ automationId, onAccept, onEdit }
     return (
         <div className="rounded-[10px] border border-[color-mix(in_srgb,var(--type-ai)_40%,transparent)] bg-[color-mix(in_srgb,var(--type-ai)_6%,var(--bg-card))] p-3 flex flex-col gap-2 text-[12px]">
             <div className="flex items-center gap-1.5 font-semibold text-[var(--type-ai)]">
-                <Sparkles size={12} /> {t('routines.settings.suggest_title', 'Suggestion from Bee')}
+                <Sparkles size={12} /> {t('automations.settings.suggest_title', 'Suggestion from Bee')}
             </div>
             <p className="leading-[17px] text-[var(--text-primary)]">{proposal}</p>
             <div className="flex items-center gap-2 flex-wrap">
                 <button type="button" className={PRIMARY_BTN} onClick={() => { onAccept(proposal); close(); }}>
-                    {t('routines.settings.suggest_accept', 'Accept')}
+                    {t('automations.settings.suggest_accept', 'Accept')}
                 </button>
                 <button type="button" className={SECONDARY_BTN} onClick={() => { onEdit(proposal); close(); }}>
-                    {t('routines.settings.suggest_edit', 'Edit')}
+                    {t('automations.settings.suggest_edit', 'Edit')}
                 </button>
                 <button type="button" className={SECONDARY_BTN} onClick={ask} disabled={suggest.isPending}>
                     <RefreshCw size={12} className={suggest.isPending ? 'animate-spin' : ''} />
-                    {t('routines.settings.suggest_another', 'Another suggestion')}
+                    {t('automations.settings.suggest_another', 'Another suggestion')}
                 </button>
             </div>
             {suggest.isError && <span role="alert" className="text-[var(--error)]">{suggest.error.message}</span>}

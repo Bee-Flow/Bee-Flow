@@ -9,9 +9,9 @@
  *
  *   "DOET IETS IN EIGEN CODE" — een statische scan van ALLE eigen tekstbestanden
  *   van de pagina op `fetch(` en `XMLHttpRequest` naar een host die niet van
- *   deze installatie is. Zo'n oproep gaat om de routines heen: hij staat niet in
+ *   deze installatie is. Zo'n oproep gaat om de automatiseringen heen: hij staat niet in
  *   Runs, kent geen goedkeuring en niemand ziet hem terug. De kaart biedt
- *   daarom "Maak er een automation van" aan, die een `http_request`-routine met
+ *   daarom "Maak er een automation van" aan, die een `http_request`-automation met
  *   diezelfde URL scaffoldt.
  *
  * ── DE TWEEDE LEZER: DE MARKERINGEN IN DE CODE-TAB ──────────────────
@@ -32,7 +32,7 @@
  *
  * ── DE DERDE LEZER: DE USAGE-INDEX ──────────────────────────────────
  *
- * Uit diezelfde markeringen komt `collectUses`: WELKE tabel, WELKE routine,
+ * Uit diezelfde markeringen komt `collectUses`: WELKE tabel, WELKE automatisering,
  * WELKE agent hangt er via een element aan deze pagina? Dat is wat de
  * middenkolom toont en wat "Wordt gebruikt door" straks omdraait.
  *
@@ -481,9 +481,9 @@ function scanSource(text, source, lineOffset, hosts) {
             // regel herkennen. Een template houdt een beletselteken als staart.
             url: dynamic ? `${prefix}…` : prefix,
             // Het deel dat ECHT vaststaat, zonder beletselteken: dat is wat er
-            // in een gescaffolde routine mag belanden. `dynamic` zegt erbij dat
+            // in een gescaffolde automatisering mag belanden. `dynamic` zegt erbij dat
             // de pagina de rest van het adres ter plekke bouwde, zodat niemand
-            // die routine voor compleet aanziet.
+            // die automatisering voor compleet aanziet.
             urlPrefix: prefix,
             dynamic,
             host: verdict.host,
@@ -785,7 +785,7 @@ function elementsSection(scan) {
 }
 
 
-// ── de usage-index: welke tabel, welke routine, welke agent ───────────
+// ── de usage-index: welke tabel, welke automatisering, welke agent ───────────
 
 /**
  * De families die het vocabulaire kent, uit de registry.
@@ -855,8 +855,8 @@ function emptyTargets() {
  *               de plekken waar hij wordt gebruikt;
  *   unresolved  een element dat wél iets bindt, maar waarvan niet te zeggen is
  *               wát. Dat is geen "niets": een pagina met drie knoppen waarvan de
- *               routine-id ter plekke wordt gebouwd, is geen pagina zonder
- *               routines.
+ *               automation-id ter plekke wordt gebouwd, is geen pagina zonder
+ *               automations.
  *
  * @param {object|null} scan          de uitslag van `scanBfElements`
  * @param {object} args
@@ -976,7 +976,7 @@ async function describePageActions({ webpageId, userId }) {
         // tekent hier zijn markeringen mee; `scanned:false` betekent dáár dat de
         // legenda moet zeggen dat de markering niet kon worden berekend.
         elements: elementsSection(elements),
-        // WELKE tabel, WELKE routine, WELKE agent — per familie, met de plekken
+        // WELKE tabel, WELKE automatisering, WELKE agent — per familie, met de plekken
         // erbij. Dit is wat de middenkolom toont en wat de usage-index omdraait.
         uses: usesSection(elements, { fallbackIds }),
         // De elementen ZELF staan in `elements.marks`, elk met zijn `tag`; deze

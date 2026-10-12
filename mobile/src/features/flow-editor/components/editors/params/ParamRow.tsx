@@ -3,7 +3,7 @@
  * is required — the web's FieldRow in fieldDesigner.jsx. The name box keeps
  * its own text while the author types and COMMITS on submit or when it loses
  * focus, so `email` on the way to `email_address` is never stored, never
- * saved, and never rewrites the routine along the way. Leaving the editor
+ * saved, and never rewrites the automation along the way. Leaving the editor
  * with the box still focused commits too.
  */
 
@@ -107,7 +107,7 @@ export function ParamRow(props: ParamRowProps) {
                 />
             ) : null}
             <View style={styles.required}>
-                <ToggleField value={!!row.required} onChange={(required) => onPatch({ required })} label={t('mobile.flow.params.required', 'required')} disabled={disabled} />
+                <ToggleField value={!!row.required} onChange={(required) => onPatch({ required })} label={t('automations.field_designer.required', 'required')} disabled={disabled} />
             </View>
         </RowCard>
     );

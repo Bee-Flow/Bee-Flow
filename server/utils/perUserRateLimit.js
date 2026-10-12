@@ -87,7 +87,7 @@ function perUserRateLimit({ windowMs, max, keyFn, name, costFn, _redis } = {}) {
         });
     }
 
-    function checkMemory(key, cost, res, next) {
+    function checkMemory(key, cost, res, next, onDeny) {
         const now = Date.now();
         const cutoff = now - windowMs;
         const arr = (buckets.get(key) || []).filter(e => e.t > cutoff);
@@ -96,14 +96,20 @@ function perUserRateLimit({ windowMs, max, keyFn, name, costFn, _redis } = {}) {
         // otherwise be refused forever rather than merely once per window. The
         // route's own per-batch cap is what keeps a single cost sane.
         if (spent + cost > max) {
-            return deny(res, Math.ceil((arr[0].t + windowMs - now) / 1000));
+            // arr is empty when a single request costs more than the whole
+            // budget (nothing spent yet): there is no oldest entry to wait on,
+            // so advise a full window (BFSF-454).
+            const resetAt = arr.length ? arr[0].t + windowMs : now + windowMs;
+            deny(res, Math.ceil((resetAt - now) / 1000));
+            if (onDeny) onDeny();
+            return;
         }
         arr.push({ t: now, cost });
         buckets.set(key, arr);
         next();
     }
 
-    return function rateLimitMiddleware(req, res, next) {
+    function run(req, res, next, onDeny) {
         const key = (typeof keyFn === 'function' ? keyFn(req) : null)
             || req.session?.user?.id
             || req.ip
@@ -111,7 +117,7 @@ function perUserRateLimit({ windowMs, max, keyFn, name, costFn, _redis } = {}) {
         const cost = typeof costFn === 'function' ? normalizeCost(costFn(req)) : 1;
 
         const redis = ns ? currentRedis() : null;
-        if (!redis) return checkMemory(key, cost, res, next);
+        if (!redis) return checkMemory(key, cost, res, next, onDeny);
 
         const now = Date.now();
         const windowStart = Math.floor(now / windowMs);
@@ -128,7 +134,9 @@ function perUserRateLimit({ windowMs, max, keyFn, name, costFn, _redis } = {}) {
                 }
                 if (count > max) {
                     const windowEnd = (windowStart + 1) * windowMs;
-                    return deny(res, Math.ceil((windowEnd - now) / 1000));
+                    deny(res, Math.ceil((windowEnd - now) / 1000));
+                    if (onDeny) onDeny();
+                    return;
                 }
                 next();
             })
@@ -137,9 +145,21 @@ function perUserRateLimit({ windowMs, max, keyFn, name, costFn, _redis } = {}) {
                     warnedRedisFallback = true;
                     log.warn(`[RateLimit] Redis error (${err.message}) — falling back to in-memory limits (per replica). This warning logs once.`);
                 }
-                checkMemory(key, cost, res, next);
+                checkMemory(key, cost, res, next, onDeny);
             });
-    };
+    }
+
+    function rateLimitMiddleware(req, res, next) { return run(req, res, next); }
+
+    // Awaitable form for call sites that cannot be mounted as middleware: the
+    // Redis path answers asynchronously, so reading a flag set by `next`
+    // right after the call sees "denied" for every request (BFSF-459).
+    // Resolves true when the request may proceed; false when a 429 was sent.
+    rateLimitMiddleware.check = (req, res) => new Promise((resolve) => {
+        run(req, res, () => resolve(true), () => resolve(false));
+    });
+
+    return rateLimitMiddleware;
 }
 
 module.exports = { perUserRateLimit };

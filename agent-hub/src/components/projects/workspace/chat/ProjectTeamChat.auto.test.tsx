@@ -1,5 +1,5 @@
-// The AI that joins by itself, as a member of a team chat sees it: the Auto
-// mode (and a mode the organisation does not allow), the one-time notice when
+// The AI that joins by itself, as a member of a team chat sees it: Auto no
+// longer on offer (and a mode the organisation does not allow), the one-time notice when
 // a chat switches to Auto with the way to one's own setting, the "Joined
 // because …" line under an automatic answer with a quiet "Not helpful", and
 // the "Paused" chip once feedback made the AI hold back.
@@ -54,21 +54,20 @@ function renderChat(role: 'owner' | 'editor' | 'viewer' = 'editor', onNavigate?:
     );
 }
 
-it('offers Auto, and a mode the organisation does not allow cannot be picked', async () => {
+it('no longer offers Auto; a chat still on it can move away, and a mode the organisation does not allow cannot be picked', async () => {
     renderChat();
     await screen.findByText('Does anyone know the refund policy?');
-    expect(screen.getByRole('radio', { name: 'Auto' })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.queryByRole('radio', { name: 'Auto' })).toBeNull();
     await waitFor(() => expect(screen.getByRole('radio', { name: 'Always' })).toBeDisabled());
     expect(screen.getByRole('radio', { name: 'On mention' })).toBeEnabled();
 });
 
-it('switching to Auto patches the chat', async () => {
-    server.on('GET', CHAT, { chat: teamChat({ aiMode: 'mention' }), role: 'editor' });
+it('switching a chat on Auto to On mention patches the chat', async () => {
     const user = userEvent.setup();
     renderChat();
     await screen.findByText('Does anyone know the refund policy?');
-    await user.click(screen.getByRole('radio', { name: 'Auto' }));
-    await waitFor(() => expect(server.called('PATCH', CHAT)[0]?.body).toEqual({ aiMode: 'auto' }));
+    await user.click(screen.getByRole('radio', { name: 'On mention' }));
+    await waitFor(() => expect(server.called('PATCH', CHAT)[0]?.body).toEqual({ aiMode: 'mention' }));
 });
 
 it('the switch notice says who turned it on, and links to one\'s own AI settings', async () => {

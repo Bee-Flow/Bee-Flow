@@ -1,5 +1,5 @@
 /**
- * The Canvas tab of the build screen: the routine as a pan-and-zoom diagram
+ * The Canvas tab of the build screen: the automation as a pan-and-zoom diagram
  * (CanvasView), and the pure model under it — the scene (scene.ts), the
  * camera math (viewport.ts), hand-drawn connections (connect.ts) and moves
  * and Arrange (moves.ts).

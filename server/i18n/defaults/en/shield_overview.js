@@ -53,7 +53,7 @@ module.exports = {
     "shield_overview.row_knowledge": "Knowledge bases",
     "shield_overview.row_last_check": "Last check",
     "shield_overview.row_own_types": "Your own types",
-    "shield_overview.row_routines": "Routines",
+    "shield_overview.row_automations": "Automations",
     "shield_overview.row_suggested": "Suggested",
     "shield_overview.rules_body": "These rules run before any rules on an individual agent. If the two disagree, the stricter one wins.",
     "shield_overview.rules_lead": "Agents can be stricter, never looser.",

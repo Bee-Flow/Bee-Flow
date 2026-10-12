@@ -222,7 +222,7 @@ Nextcloud only exposes *some* of its events to webhooks. Files, tags, calendar
 objects, **Forms** submissions and **Tables** rows are delivered this way.
 Sharing, Deck and Talk events are not — Nextcloud has no webhook for them — so
 Bee Flow reads those from the activity feed on a polling interval instead.
-Triggers with no producer at all are labelled in the Routines builder rather
+Triggers with no producer at all are labelled in the Automations builder rather
 than failing silently.
 :::
 
@@ -246,7 +246,7 @@ from the browser.
 ## 4b. Use Bee Flow from Nextcloud Assistant (optional)
 
 Everything above lets Bee Flow act *on* Nextcloud. This does the reverse: it
-makes Bee Flow's tools and routines callable from Nextcloud's own **Assistant**,
+makes Bee Flow's tools and automations callable from Nextcloud's own **Assistant**,
 via the Model Context Protocol.
 
 1. In Bee Flow, open **Settings → Connections → MCP access** and mint a token.
@@ -267,7 +267,7 @@ via the Model Context Protocol.
 3. Set the `Authorization: Bearer <token>` header for that service.
 
 Nextcloud's Assistant can now call every Bee Flow tool the token's owner has
-access to — and every routine they have published as agent-callable. Tools carry
+access to — and every automation they have published as agent-callable. Tools carry
 read-only/destructive annotations drawn from the same classification Bee Flow's
 own dry-run mode uses, so Assistant knows which ones to confirm first.
 

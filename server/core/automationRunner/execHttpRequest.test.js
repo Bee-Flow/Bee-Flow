@@ -136,6 +136,39 @@ test('BFSF-436: response body over the 1MB cap now FAILS THE STEP instead of ret
     );
 });
 
+// A real streamed Response that never ends, to prove the step reads through the
+// bounded helper (BFSF-460) instead of buffering `await resp.text()`.
+function endlessStream(headers = {}) {
+    const state = { pulled: 0, cancelled: false };
+    const body = new ReadableStream({
+        pull(controller) { state.pulled++; controller.enqueue(new Uint8Array(1024).fill(97)); },
+        cancel() { state.cancelled = true; },
+    });
+    return { state, resp: new Response(body, { headers }) };
+}
+
+test('BFSF-460: an endless response fails the step with the 1 MiB message and the stream is cancelled near 4 MiB', async () => {
+    const s = endlessStream();
+    safeFetchImpl = async () => s.resp;
+    await assert.rejects(
+        () => execHttpRequest({ id: 'h1', type: 'http_request', url: 'https://api.example.com/endless' }, {}, baseState(), 'live'),
+        /response body exceeded the 1 MiB limit/,
+    );
+    assert.ok(s.state.cancelled, 'stream cancelled');
+    assert.ok(s.state.pulled * 1024 <= 4 * 1024 * 1024 + 64 * 1024, `pulled ${s.state.pulled} KiB`);
+});
+
+test('BFSF-460: an oversize Content-Length fails the step without reading the body', async () => {
+    const s = endlessStream({ 'content-length': String(5 * 1024 * 1024) });
+    safeFetchImpl = async () => s.resp;
+    await assert.rejects(
+        () => execHttpRequest({ id: 'h1', type: 'http_request', url: 'https://api.example.com/declared' }, {}, baseState(), 'live'),
+        /response body exceeded the 1 MiB limit/,
+    );
+    assert.ok(s.state.cancelled);
+    assert.ok(s.state.pulled <= 1, `pulled ${s.state.pulled}`);
+});
+
 test('blockPrivateTargets default true: a private-address refusal from safeFetch surfaces a friendly, actionable error', async () => {
     safeFetchImpl = async () => { throw new FakePrivateAddressError('169.254.169.254'); };
     const step = { id: 'h1', type: 'http_request', url: 'http://169.254.169.254/latest/meta-data' };
@@ -312,7 +345,7 @@ test('a non-JSON response gains nothing — its output is what it always was', a
 });
 
 test('a JSON content-type with a malformed body does not throw and adds no data', async () => {
-    // Someone else's server returning nonsense must not stop the routine.
+    // Someone else's server returning nonsense must not stop the automation.
     safeFetchImpl = async () => fakeResponse({ status: 200, headers: { 'content-type': 'application/json' }, body: '{"a":1' });
     const { output } = await execHttpRequest({ id: 'h1', type: 'http_request', url: 'https://x.test/' }, {}, baseState(), 'live');
     assert.strictEqual(output.body, '{"a":1');
@@ -566,4 +599,80 @@ test('two calls differing only in a template-resolved URL do not share an answer
     const b = await execHttpRequest(step, ctx, baseState({ trigger: { output: { id: '2' } } }), 'live');
     assert.strictEqual(safeFetchCalls.length, 2);
     assert.notStrictEqual(a.output.body, b.output.body);
+});
+
+// ── A JSON body stays JSON (bind.interpolateJsonBody) ───────────────────────
+//
+// The editor teaches `{"key": "{{trigger.output.value}}"}`. Plain text
+// templating made that body invalid JSON for every value holding a quote, a
+// newline or a backslash, and for every empty value: an API refusing the call
+// for SOME records only. A JSON-shaped body is now filled by where each
+// placeholder stands; a non-JSON body, or a declared non-JSON Content-Type,
+// keeps the plain templating.
+
+const jsonBodyState = () => baseState({ trigger: { output: { summary: 'He said "ship it"\nline\\two', empty: null, list: ['a', 'b'] } } });
+async function sentBody(extra) {
+    safeFetchCalls.length = 0;
+    safeFetchImpl = async () => fakeResponse({ status: 200, body: 'ok' });
+    await execHttpRequest({ id: 'h1', type: 'http_request', method: 'POST', url: 'https://api.example.com/x', ...extra }, {}, jsonBodyState(), 'live');
+    return safeFetchCalls[0].opts.body;
+}
+
+test('JSON body: mapped text with quotes and newlines stays valid JSON; empty becomes null; a quoted list is the list', async () => {
+    const body = await sentBody({ body: '{"text":"{{trigger.output.summary}}","v":{{trigger.output.empty}},"to":"{{trigger.output.list}}"}' });
+    assert.deepStrictEqual(JSON.parse(body), { text: 'He said "ship it"\nline\\two', v: null, to: ['a', 'b'] });
+});
+
+test('JSON body: a declared text Content-Type and a form body keep the plain templating', async () => {
+    assert.strictEqual(
+        await sentBody({ headers: { 'Content-Type': 'text/plain' }, body: '{"text":"{{trigger.output.list}}"}' }),
+        '{"text":"["a","b"]"}',
+    );
+    assert.strictEqual(await sentBody({ body: 'a={{trigger.output.list}}&b=1' }), 'a=["a","b"]&b=1');
+});
+
+// ── step.query: the final URL reaches the fetch, a step without query is
+// unchanged, and errors name the setting ─────────────────────────────────
+const { describeStepError } = require('../../utils/stepErrorInfo');
+const queryState = (over = {}) => ({ trigger: { output: {} }, steps: {}, vars: {}, secrets: {}, loop: {}, _templateWarnings: [], ...over });
+
+test('step.query is serialised into the URL that is fetched, domain bound', async () => {
+    safeFetchCalls.length = 0;
+    safeFetchImpl = async () => fakeResponse({ status: 200, body: '{}' });
+    const step = {
+        id: 'h', type: 'http_request',
+        url: 'https://{{trigger.output.domain}}.example.nl/api/tickets',
+        query: { mode: 'json', json: '{"builder":[{"orderByDesc":"created_at"},{"with":["categories"]},{"paginate":{{trigger.output.size}}}]}' },
+    };
+    await execHttpRequest(step, {}, queryState({ trigger: { output: { domain: 'acme', size: 5 } } }), 'live');
+    assert.strictEqual(safeFetchCalls[0].url, 'https://acme.example.nl/api/tickets?builder%5B0%5D%5BorderByDesc%5D=created_at&builder%5B1%5D%5Bwith%5D%5B0%5D=categories&builder%5B2%5D%5Bpaginate%5D=5');
+});
+
+test('a step without query keeps its hand-written URL byte for byte', async () => {
+    safeFetchCalls.length = 0;
+    safeFetchImpl = async () => fakeResponse({ status: 200, body: '{}' });
+    const url = 'https://x.example.nl/api?builder%5B0%5D%5Ba%5D=b&page=1';
+    await execHttpRequest({ id: 'h', type: 'http_request', url }, {}, queryState(), 'live');
+    assert.strictEqual(safeFetchCalls[0].url, url);
+});
+
+test('invalid query JSON fails with a coded, explained error', async () => {
+    const step = { id: 'h', type: 'http_request', url: 'https://x.example.nl/a', query: { mode: 'json', json: '{oops' } };
+    await assert.rejects(() => execHttpRequest(step, {}, queryState(), 'live'), (e) => {
+        assert.strictEqual(e.stepErrorCode, 'http_query_invalid');
+        const info = describeStepError(e, { step });
+        assert.strictEqual(info.code, 'http_query_invalid');
+        assert.match(info.cause, /Query parameters/);
+        assert.match(info.cause, /JSON is not valid/);
+        return true;
+    });
+});
+
+test('an invalid URL is classified as a URL problem, not a generic bad value', async () => {
+    const step = { id: 'h', type: 'http_request', url: 'https://{{trigger.output.nope}}' };
+    await assert.rejects(() => execHttpRequest(step, {}, queryState(), 'live'), (e) => {
+        assert.match(e.message, /invalid URL/i);
+        assert.strictEqual(describeStepError(e, { step }).code, 'http_url_invalid');
+        return true;
+    });
 });

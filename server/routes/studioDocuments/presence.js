@@ -11,6 +11,7 @@
  * document filed in a project the beat is also published as a transient
  * project event (`document.presence`: ids and a section id, never text), so
  * everybody on the project's live stream sees it at once, on every replica.
+ * For EVERY document it is also published on the channel `doc:<id>` (GET /:id/stream).
  * The answer is this replica's view (core/documents/sectionPresence.js), the
  * fallback for an editor that has no live stream.
  *
@@ -38,6 +39,7 @@ const Beat = bodyOf({
  * @param {object} [deps.documents]       stores/documentStore surface ({ getDocument })
  * @param {object} [deps.presence]        core/documents/sectionPresence surface
  * @param {Function} [deps.publishTransient]
+ * @param {Function} [deps.publishChannel]   the `doc:<id>` channel
  * @param {Function} [deps.requireAuth]
  * @param {Function} [deps.limiter]       rate limit for the beats
  * @param {Function} [deps.describePeople]
@@ -50,6 +52,7 @@ function makeDocumentPresenceRouter(deps = {}) {
     const publishTransient = (...a) => (deps.publishTransient || require('../../core/projectEventBus').publishTransient)(...a);
     // Looked up per request, so loading this router does not load the auth
     // and user stores, and a test's session gate is the one used.
+    const publishChannel = (...a) => (deps.publishChannel || require('../../core/projectEventBus').publishChannel)(...a);
     const requireAuth = deps.requireAuth || ((req, res, next) => require('../../auth/permissions').requireAuth(req, res, next));
     const describePeople = (...a) => (deps.describePeople || require('../../core/documents/documentPeople').describePeople)(...a);
     const log = deps.log || require('../../telemetry/log');
@@ -70,12 +73,14 @@ function makeDocumentPresenceRouter(deps = {}) {
         if (state === 'left') presence().leave(doc.id, clientId, userId);
         else presence().beat(doc.id, { userId, clientId, sectionId, state });
 
-        if (doc.projectId) {
-            publishTransient(doc.projectId, {
-                kind: 'document.presence', actorId: userId, targetType: 'document', targetId: doc.id,
-                payload: { documentId: doc.id, clientId, sectionId, state },
-            }).catch((err) => log.warn('[Documents] presence event not sent:', err && err.message));
-        }
+        const event = {
+            kind: 'document.presence', actorId: userId, targetType: 'document', targetId: doc.id,
+            payload: { documentId: doc.id, clientId, sectionId, state },
+        };
+        const failed = (err) => log.warn('[Documents] presence event not sent:', err && err.message);
+        if (doc.projectId) publishTransient(doc.projectId, event).catch(failed);
+        // The document's own channel, for every document (GET /:id/stream).
+        publishChannel(`doc:${doc.id}`, event).catch(failed);
         const peers = presence().list(doc.id).filter((p) => p.clientId !== clientId)
             .map(({ userId: id, clientId: cid, sectionId: sid, state: st, since }) => ({ userId: id, clientId: cid, sectionId: sid, state: st, since }));
         const orgId = req.session.connectorOrgId || req.session.user.organizationId || null;

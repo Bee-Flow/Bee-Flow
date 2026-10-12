@@ -7,11 +7,13 @@
  * `collectionItemsFields` is the one builder that keeps the source element's
  * fields visible through it as `…output.items[*].<key>` children.
  */
-import { walkPath, walkRelativePath } from '../../../../../utils/bindingHelpers';
-import { applyOpsToSampleRow } from '../../flow/setOperations';
-import { datetimeTargetColumn, impliedListMode, isDateTimeListMode } from '../../flow/datetimeTarget';
-import { SET_STEP_NAME } from '../../flow/stepDisplayName';
+import { appendKey, extractJsonText, getRelativePath } from '@shared/expr/path.mjs';
+import { fieldFor, isRecord } from './fieldTree';
 import { resolveElementSample, sampleToFields } from './sampleFields';
+import { walkPath } from '../../../../../utils/bindingHelpers';
+import { datetimeTargetColumn, impliedListMode, isDateTimeListMode } from '../../flow/datetimeTarget';
+import { applyOpsToSampleRow } from '../../flow/setOperations';
+import { SET_STEP_NAME } from '../../flow/stepDisplayName';
 
 // ── n8n-style utility node describers ──────────────────
 
@@ -19,22 +21,16 @@ import { resolveElementSample, sampleToFields } from './sampleFields';
  * Filter / Limit / Dedupe preserve the source array's ELEMENT shape inside
  * their `items` wrapper. Resolve the node's arrayRef against the accumulated
  * design-time sampleRoot so downstream pickers see the element fields as
- * `steps.<id>.output.items[*].<key>` children (the `[*]` flatten is resolved
- * identically by client walkPath and server bind.js). Falls back to the
- * bare `{ items: [] }` wrapper when the ref can't be resolved.
+ * `steps.<id>.output.items[*].<key>` children, every level of them (the `[*]`
+ * flatten is resolved by the runtime). Falls back to the bare `{ items: [] }`
+ * wrapper when the ref can't be resolved.
  */
 function collectionItemsFields(node, elementSample, wrapperSample) {
     const base = `steps.${node.id}.output`;
     return Object.entries(wrapperSample).map(([k, v]) => {
-        const field = { key: k, path: `${base}.${k}`, sample: v };
-        if (k === 'items' && elementSample && typeof elementSample === 'object' && !Array.isArray(elementSample)) {
-            field.children = Object.entries(elementSample).map(([ck, cv]) => ({
-                key: ck,
-                path: `${base}.items[*].${ck}`,
-                sample: cv,
-            }));
-        }
-        return field;
+        const path = appendKey(base, k);
+        if (k === 'items' && isRecord(elementSample)) return fieldFor(k, path, v);
+        return { key: k, path, sample: v };
     });
 }
 
@@ -110,17 +106,19 @@ export function describeParseJson(node, sampleRoot = null) {
     let src;
     if (sampleRoot && node.sourceRef) {
         src = walkPath(node.sourceRef, sampleRoot);
-        if (typeof src === 'string') { try { src = JSON.parse(src); } catch { src = undefined; } }
+        // The step reads text the way a person would (a fenced or wrapped
+        // answer too), so the preview does.
+        if (typeof src === 'string') src = extractJsonText(src);
     }
     // Grouped mode ("one row per entry") outputs { items, count } instead —
     // field paths then resolve inside a single entry.
     const itemsRef = typeof node.itemsRef === 'string' ? node.itemsRef.trim() : '';
     const rowFrom = (root) => Object.fromEntries(fields.map(f => {
-        const v = root !== undefined ? walkRelativePath(f.path, root) : undefined;
+        const v = root !== undefined ? getRelativePath(root, f.path) : undefined;
         return [f.name, v !== undefined ? v : (f.fallback !== undefined ? f.fallback : '<extracted>')];
     }));
     if (itemsRef) {
-        const arr = src !== undefined ? walkRelativePath(itemsRef, src) : undefined;
+        const arr = src !== undefined ? getRelativePath(src, itemsRef) : undefined;
         const rows = Array.isArray(arr) ? arr.slice(0, 5).map(rowFrom) : [rowFrom(undefined)];
         const sample = { items: rows, count: Array.isArray(arr) ? arr.length : rows.length };
         return {

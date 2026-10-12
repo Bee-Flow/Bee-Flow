@@ -17,7 +17,7 @@ import type { Rect } from './viewport';
 
 function loopCount(node: SceneNode, t: ReturnType<typeof useTranslation>): string {
     const n = node.bodyCount;
-    return n === 1 ? t('routines.canvas.loop_body_inside', '{n} step inside', { n }) : t('routines.canvas.loop_body_inside_plural', '{n} steps inside', { n });
+    return n === 1 ? t('automations.canvas.loop_body_inside', '{n} step inside', { n }) : t('automations.canvas.loop_body_inside_plural', '{n} steps inside', { n });
 }
 
 /** Open a loop here ("3 steps inside", hanging off the card) or close it (the header's chevron). */
@@ -36,7 +36,7 @@ export function LoopToggle({ node, frame }: { node: SceneNode; frame: Rect }) {
                 hitSlop={HIT}
                 accessibilityRole="button"
                 accessibilityState={{ expanded: open }}
-                accessibilityLabel={open ? t('routines.canvas.loop_collapse', 'Collapse — back to a single card') : t('routines.canvas.loop_expand', 'Expand — show the steps that run per item here on the canvas')}
+                accessibilityLabel={open ? t('automations.canvas.loop_collapse', 'Collapse — back to a single card') : t('automations.canvas.loop_expand', 'Expand — show the steps that run per item here on the canvas')}
                 style={open ? styles.toggle : styles.loopChip}
             >
                 <Icon name={open ? 'ChevronUp' : 'ChevronDown'} size={14} color={styles.loopGlyph.color} />

@@ -1,6 +1,6 @@
 /**
- * Where the routine lives and whose it is: its folder (the sidebar folders
- * are organisation-wide; moving a routine files it for everyone who can see
+ * Where the automation lives and whose it is: its folder (the sidebar folders
+ * are organisation-wide; moving an automation files it for everyone who can see
  * the folder), and who it runs as — the owner, with the owner's connected
  * apps and permissions, which is why only the owner can edit it.
  */
@@ -72,7 +72,7 @@ export function PlacementGroup({ flowKey, folderId }: { flowKey: string; folderI
         <>
             <Group title={t('mobile.flow.settings.placement', 'Folder and owner')}>
                 <SettingRow
-                    label={t('routines.settings.folder', 'Folder')}
+                    label={t('automations.settings.folder', 'Folder')}
                     value={move.isPending ? t('common.saving', 'Saving…') : folderName}
                     onPress={() => setPicking(true)}
                     icon={<Icon name="Folder" size={18} />}
@@ -80,7 +80,7 @@ export function PlacementGroup({ flowKey, folderId }: { flowKey: string; folderI
                 />
                 <InfoRow label={t('mobile.flow.settings.runs_as', 'Runs as')} value={user?.displayName || user?.email || t('mobile.flow.settings.you', 'You')} />
                 <NoteRow>
-                    {t('mobile.flow.settings.runs_as_hint', 'A routine runs with its owner’s connected apps and permissions, so only its owner can edit it.')}
+                    {t('mobile.flow.settings.runs_as_hint', 'An automation runs with its owner’s connected apps and permissions, so only its owner can edit it.')}
                 </NoteRow>
             </Group>
             {picking ? (

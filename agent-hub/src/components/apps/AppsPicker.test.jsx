@@ -43,6 +43,13 @@ describe('appCatalog — what the user can reach', () => {
         expect(byId(available, 'outlook')).toBeUndefined();
     });
 
+    it('adds Outlook (only) for a Google login with Microsoft 365 connected in Settings', () => {
+        const available = filterAvailableApps(APP_DEFS, { integrationStatus: { ...GOOGLE, hasMicrosoftConnection: true } });
+        expect(byId(available, 'outlook')).toBeDefined();
+        expect(byId(available, 'outlook-readonly')).toBeDefined();
+        expect(byId(available, 'onedrive')).toBeUndefined();
+    });
+
     it('drops anything the org has not enabled', () => {
         const available = filterAvailableApps(APP_DEFS, {
             integrationStatus: GOOGLE,

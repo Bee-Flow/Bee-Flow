@@ -31,11 +31,11 @@ import { SelectField, type SelectOption } from './SelectField';
 
 /** The separators the web's join chooser offers, in its order. */
 const SEPARATORS: readonly { value: string; key: string; en: string }[] = [
-    { value: ', ', key: 'routines.builder.sep_comma_space', en: 'a comma and a space' },
-    { value: ',', key: 'routines.builder.sep_comma', en: 'a comma' },
-    { value: '; ', key: 'routines.builder.sep_semicolon', en: 'a semicolon' },
-    { value: ' ', key: 'routines.builder.sep_space', en: 'a space' },
-    { value: '\n', key: 'routines.builder.sep_newline', en: 'a new line' },
+    { value: ', ', key: 'automations.builder.sep_comma_space', en: 'a comma and a space' },
+    { value: ',', key: 'automations.builder.sep_comma', en: 'a comma' },
+    { value: '; ', key: 'automations.builder.sep_semicolon', en: 'a semicolon' },
+    { value: ' ', key: 'automations.builder.sep_space', en: 'a space' },
+    { value: '\n', key: 'automations.builder.sep_newline', en: 'a new line' },
 ];
 
 /** A fresh adjustment starts from ITS OWN default choice, never the previous one's. */
@@ -53,23 +53,23 @@ function ArgField({ adjust, onChange, disabled }: { adjust: Adjustment; onChange
     );
     switch (adjust.transform) {
         case 'join':
-            return pick(t('routines.builder.separated_by', 'Separated by'), adjust.arg ?? ', ', SEPARATORS.map((s) => ({ value: s.value, label: t(s.key, s.en) })));
+            return pick(t('automations.builder.separated_by', 'Separated by'), adjust.arg ?? ', ', SEPARATORS.map((s) => ({ value: s.value, label: t(s.key, s.en) })));
         case 'formatNumber':
-            return pick(t('routines.builder.number_style', 'Shown as'), adjust.arg ?? 'amount', NUMBER_STYLES.map((s) => ({ value: s.value, label: numberStyleLabel(s.value) })));
+            return pick(t('automations.builder.number_style', 'Shown as'), adjust.arg ?? 'amount', NUMBER_STYLES.map((s) => ({ value: s.value, label: numberStyleLabel(s.value) })));
         case 'formatDate':
-            return pick(t('routines.builder.date_notation', 'Written as'), adjust.arg ?? DATE_FORMATS[0]?.value ?? '', DATE_FORMATS.map((f) => ({ value: f.value, label: f.example })));
+            return pick(t('automations.builder.date_notation', 'Written as'), adjust.arg ?? DATE_FORMATS[0]?.value ?? '', DATE_FORMATS.map((f) => ({ value: f.value, label: f.example })));
         case 'yesNoText':
             return (
                 <View style={styles.words}>
                     <TextField
-                        label={t('routines.builder.yes_says', 'Yes says')}
+                        label={t('automations.builder.yes_says', 'Yes says')}
                         value={adjust.arg ?? 'yes'}
                         onChangeText={(v) => set(v, adjust.arg2 ?? 'no')}
                         editable={!disabled}
                         containerStyle={styles.word}
                     />
                     <TextField
-                        label={t('routines.builder.no_says', 'no says')}
+                        label={t('automations.builder.no_says', 'no says')}
                         value={adjust.arg2 ?? 'no'}
                         onChangeText={(v) => set(adjust.arg ?? 'yes', v)}
                         editable={!disabled}
@@ -85,13 +85,13 @@ function ArgField({ adjust, onChange, disabled }: { adjust: Adjustment; onChange
 export function AdjustRow({ adjust, onChange, disabled }: { adjust: Adjustment | null; onChange: (next: Adjustment | null) => void; disabled?: boolean }) {
     const t = useTranslation();
     const options: SelectOption[] = [
-        { value: '', label: t('routines.builder.use_as_is', 'use it as it is') },
+        { value: '', label: t('automations.builder.use_as_is', 'use it as it is') },
         ...VALUE_TRANSFORMS.map((tr) => ({ value: tr.id, label: transformLabel(tr.id), description: transformHint(tr.id) })),
     ];
     return (
         <>
             <SelectField
-                label={t('routines.builder.adjust_aria', 'Adjust the value')}
+                label={t('automations.builder.adjust_aria', 'Adjust the value')}
                 value={adjust?.transform ?? ''}
                 options={options}
                 onChange={(id) => onChange(id ? adjustmentFor(id) : null)}

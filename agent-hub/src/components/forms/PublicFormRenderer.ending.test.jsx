@@ -1,7 +1,7 @@
 /**
  * FormEndingView — the closing page of a public form.
  *
- * A routine that pauses on a `form_page` step in "ending" mode hands the
+ * An automation that pauses on a `form_page` step in "ending" mode hands the
  * visitor its actual RESULT there: a document link, the text it just wrote.
  * That description used to render as one flat paragraph, so the visitor read
  * raw `##` and `**` and had to copy a URL out by hand.

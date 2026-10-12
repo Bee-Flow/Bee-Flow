@@ -9,11 +9,11 @@
  * headless run keeps the mail tool `autoSend` exists to use. The moment a
  * `tools` map is stored, the same call is held back instead.
  *
- * HOW THIS RUNS WITHOUT POSTGRES: the same harness as
- * chatStream.turnLifecycle.test.js — the real chatWithAgentStream driven by a
- * scripted fake provider adapter, `ephemeral: true`, and the stores/heavy
- * collaborators swapped through testUtils/stubRequire (keys are the require
- * strings exactly as the modules write them). The tool REGISTRY is stubbed
+ * HOW THIS RUNS WITHOUT POSTGRES: the harness lives in agentTurn.testkit.js —
+ * the real chatWithAgentStream driven by a scripted fake provider adapter,
+ * `ephemeral: true`, and the stores/heavy collaborators swapped through
+ * testUtils/stubRequire (keys are the require strings exactly as the modules
+ * write them). The tool REGISTRY is stubbed
  * too, so `gmail_compose` resolves to the gmail app without loading every
  * integration module; the effect classes come from the real sideEffectMap, so
  * "compose sends, search reads" is the product's own answer, not the test's.
@@ -25,224 +25,22 @@ const test = require('node:test');
 const assert = require('node:assert');
 const fs = require('node:fs');
 const path = require('node:path');
-const { installResolveStub } = require('../../testUtils/stubRequire');
+const {
+    installAgentTurnHarness, turnState, resetTurnState, LEND, fn, GMAIL_TOOL_REGISTRY, GMAIL_TOOLS,
+} = require('./agentTurn.testkit');
 
-// ── Mutable per-test state, read by the stubs below ──────────────────
-const S = {
-    round: 0,
-    drive: null,
-    tools: [],
-    agentConfig: {},
-    dispatched: [],
-    events: [],
-    toolsOfferedPerRound: [],
-};
+// ── Mutable per-test state, read by the stubs of the kit ──────────────
+const S = turnState();
+const TOOLS = GMAIL_TOOLS;
 
 function reset(cfg = {}) {
-    LEND.on = false;
-    S.round = 0;
-    S.drive = cfg.drive || (() => {});
-    S.tools = cfg.tools || TOOLS;
-    // `disableExternalTools` keeps getIntegrationTools out of the assembly, so
-    // the stack is exactly what getAgentTools returns and the assertions can
-    // count it.
-    S.agentConfig = { disableExternalTools: true, ...(cfg.config || {}) };
-    S.dispatched = [];
-    S.events = [];
-    S.toolsOfferedPerRound = [];
+    resetTurnState(S, cfg, TOOLS);
 }
 
-const fn = (name) => ({
-    type: 'function',
-    function: { name, description: name, parameters: { type: 'object', properties: {} } },
-});
-const TOOLS = [fn('gmail_search'), fn('gmail_compose')];
+const kit = installAgentTurnHarness(S, { toolRegistry: GMAIL_TOOL_REGISTRY });
+const { runTurn, eventsOfType } = kit;
 
-const adapter = {
-    stream: async (apiKey, url, model, messages, options, cb) => {
-        S.toolsOfferedPerRound.push((options?.tools || []).map(t => t.function?.name));
-        await S.drive(cb, options, S.round++);
-    },
-};
-
-const AGENT_BASE = {
-    id: 'agent-1', name: 'Test Agent', model: 'claude-x', organization_id: null,
-    owner_id: 'u1', embed_enabled: false,
-};
-
-const noop = () => {};
-
-// The owner's lent Google connection, as connectionResolution would resolve it.
-const LEND = {
-    on: false,
-    override: {
-        integrationUserId: 'owner-2', integrationOrgId: 'org-2',
-        connectionId: 'conn-1', connectionLabel: 'Owner Google', grantId: 'g-1', provider: 'google',
-    },
-};
-
-// Connection lending: off unless a test turns it on, exactly like the
-// product default (INTEGRATION_CONNECTION_LENDING_ENABLED).
-const CONNECTION_RESOLUTION_STUB = {
-    isLendingEnabled: () => LEND.on,
-    providerForTool: () => 'google',
-    runningUserContext: async () => ({ orgId: null, groups: [] }),
-    resolveEffectiveIdentity: async () => (LEND.on ? LEND.override : null),
-};
-
-// The app index toolPolicy builds its grants from. Real names, so the real
-// sideEffectMap is what classifies them: search reads, compose sends.
-const TOOL_REGISTRY_STUB = {
-    TOOL_REGISTRY: [{ app: 'gmail', label: 'Gmail' }],
-    INLINE_TOOL_APPS: [],
-    // `ALL_TOOL_APPS` is de lijst die de attributie-index leest — registry
-    // PLUS de apps die hun tools inline injecteren. Zie automation/toolRegistry.js.
-    ALL_TOOL_APPS: [{ app: 'gmail', label: 'Gmail' }],
-    loadTools: () => [
-        { function: { name: 'gmail_search' } },
-        { function: { name: 'gmail_compose' } },
-    ],
-    loadToolsResult: () => ({
-        tools: [
-            { function: { name: 'gmail_search' } },
-            { function: { name: 'gmail_compose' } },
-        ],
-        ok: true,
-        reason: null,
-    }),
-};
-
-const STUBS = {
-    '../../automation/toolRegistry': TOOL_REGISTRY_STUB,
-    // `installResolveStub` keys on the require string as WRITTEN INSIDE the
-    // asking module, and toolPolicy is a folder now: its attribution index
-    // (toolPolicy/appIndex.js) sits one level deeper and asks for this string
-    // for the very same module. Without it the stub stops matching and the
-    // REAL registry answers — silently, which is the failure mode
-    // server/ARCHITECTURE.md warns about.
-    '../../../automation/toolRegistry': TOOL_REGISTRY_STUB,
-    '../aiAgent': {
-        getAIConfig: async () => ({}),
-        getProviderForModel: async () => ({
-            url: 'http://provider.invalid', apiKey: 'k',
-            providerType: 'claude', providerName: 'claude',
-        }),
-        resolveModelId: async (m) => m,
-    },
-    '../providers': { getAdapter: () => adapter },
-    '../cms/componentManager': {},
-    '../executionEngine': {},
-    '../../stores/agentStore': {
-        getAgent: async () => ({ ...AGENT_BASE, config: S.agentConfig }),
-        getForRuntime: async () => ({ ...AGENT_BASE, config: S.agentConfig }),
-        getAgentToolsWithParams: async () => [],
-        getConversationMeta: async () => ({}),
-        updateConversation: async () => {},
-        getConversationById: async () => null,
-        getOrCreateConversation: async () => ({ id: 'c1', messages: [] }),
-        createNewConversation: async () => ({ id: 'c1', messages: [] }),
-    },
-    '../../stores/usageStore': { logUsage: async () => {} },
-    '../../stores/terminationStore': { logTermination: async () => {} },
-    '../../stores/guardrailEventStore': {
-        logGuardrailEvent: async () => {},
-        logAttachmentPiiFindings: async () => {},
-        logAttachmentScanIncomplete: async () => {},
-    },
-    '../../stores/configStore': { getConfig: async () => null },
-    // Production narrows the belt to the TICKED actions long before the model
-    // sees it — integrationTools' addTools runs every candidate past
-    // toolPolicy.isToolAllowed — so the stub applies the same filter. Handing
-    // back the whole belt regardless of the grants would let a test about the
-    // NAME WHITELIST pass on the confirmation hold instead: the unticked send
-    // would still be offered, gate 2 would hold it, and gate 1 could be
-    // deleted without one assertion here turning red.
-    './agentTools': {
-        getAgentTools: async () => {
-            const policy = require('./toolPolicy');
-            const grants = policy.toolsConfigOf(S.agentConfig);
-            return grants ? S.tools.filter(t => policy.isToolAllowed(t, grants)) : S.tools;
-        },
-    },
-    './modelResolver': { resolveAgentModel: async () => 'claude-x' },
-    './contextBuilder': { buildSystemPrompt: async () => ({ systemPrompt: 'SYS', volatileSystemPrompt: '' }) },
-    './knowledgeSearch': { performKnowledgeSearch: async () => ({}), quickKBSearch: async () => [] },
-    './guardrailsRunner': { runInputGuardrails: async ({ userMessage }) => ({ processedUserMessage: userMessage }) },
-    './attachmentProcessor': { processAttachments: async () => ({}) },
-    './historyHydrator': { hydrateHistoryAttachments: async (m) => m },
-    '../llm/compaction': {
-        compactMessages: (m) => ({ messages: m, newSummary: null, didSummarize: false }),
-        needsSummarization: () => false,
-    },
-    '../../telemetry/metrics': { recordAgentRun: noop },
-    '../llm/promptClassifier': { classifyPromptComplexity: () => ({}) },
-    '../documents/ocr': { mistralOCR: async () => '' },
-    '../privacy/orgShield': {
-        resolveShieldFor: async () => null,
-        mergeWithOrgShield: (a) => a,
-        classifyToolClass: () => 'internal',
-        isBlockedForTool: () => ({ blocked: false, blockedCategories: [], toolClass: 'internal' }),
-    },
-    // Records every call that actually reached dispatch — the whole point of
-    // the two gates is which of these entries never appear.
-    '../tools/toolDispatcher': {
-        executeTool: async (name, args, ctx) => {
-            // `userId`/`lentConnection` are how a borrowed connection shows up
-            // at dispatch — the actAs tests below read them.
-            S.dispatched.push({ name, args, userId: ctx?.userId, lent: !!ctx?.lentConnection });
-            return { ok: true, message: `${name} ran` };
-        },
-    },
-    '../integrations/connectionResolution': CONNECTION_RESOLUTION_STUB,
-    // Same one-level-deeper alias, for toolPolicy/connectionLending.js.
-    '../../integrations/connectionResolution': CONNECTION_RESOLUTION_STUB,
-    '../integrations/integrationLogging': { logToolEgress: noop },
-    '../llm/promptUtils': { processSystemPrompt: async (s) => s },
-    '../llm/promptCacheStability': { toolSetFingerprint: () => 'tf', systemPrefixFingerprint: () => 'sf' },
-    '../privacy/guardrails': { checkRegexPatterns: () => [] },
-    '../dlp/dlpRunner': {
-        getConversationTokenMap: () => ({}),
-        getConversationTokenMapAsync: async () => ({}),
-        mergeTokenMap: () => {},
-    },
-};
-
-// chatStream became a FOLDER (chatStream/index.js + the turn's phases), so the
-// modules under test now write every require one '../' deeper than they used
-// to. installResolveStub matches the request string exactly as the module
-// writes it, so each stub is registered at BOTH depths: the shallow key still
-// covers the agentRuntime modules that did not move, the deeper one covers the
-// ones that did. Missing a key here fails SILENTLY — the real module loads and
-// the turn dies on a live Postgres connect somewhere unrelated.
-const atBothDepths = (map) => {
-    const out = { ...map };
-    for (const [request, exportsObj] of Object.entries(map)) {
-        const deeper = request.startsWith('./') ? '../' + request.slice(2)
-            : request.startsWith('../') ? '../' + request
-                : null;
-        if (deeper && !(deeper in out)) out[deeper] = exportsObj;
-    }
-    return out;
-};
-const restore = installResolveStub(atBothDepths(STUBS));
-
-const { chatWithAgentStream } = require('./chatStream');
-
-test.after(() => restore());
-
-async function runTurn(meta = {}) {
-    const onEvent = (type, data) => S.events.push([type, data]);
-    let result = null, error = null;
-    try {
-        result = await chatWithAgentStream(
-            'agent-1', 'u1', 'hi',
-            { userId: 'u1', encryptionKey: null, session: {} },
-            onEvent, null,
-            { ephemeral: true, ...meta },
-        );
-    } catch (e) { error = e; }
-    return { result, error, events: S.events };
-}
+test.after(() => kit.restore());
 
 /** Call `name` on the first round, answer in prose on every later one. */
 const callThenAnswer = (name) => (cb, options, round) => {
@@ -251,7 +49,6 @@ const callThenAnswer = (name) => (cb, options, round) => {
     cb('done', {});
 };
 
-const eventsOfType = (type) => S.events.filter(([t]) => t === type).map(([, d]) => d);
 
 /**
  * The gmail names offered in a round. Filtered because the stack also carries
@@ -285,7 +82,7 @@ test('a legacy agent keeps its mail tool in a headless run — autoSend still me
 
     assert.deepStrictEqual(gmailOffered(), ['gmail_compose', 'gmail_search'],
         'dropping confirm-tools from an unattended run must not touch an agent with no grants — ' +
-        'that is every mailing routine in the product');
+        'that is every mailing automation in the product');
     assert.deepStrictEqual(S.dispatched.map(d => d.name), ['gmail_compose']);
 });
 
@@ -432,7 +229,7 @@ test('two different pending actions each get their own card', async () => {
 
 test('a name that was never offered is refused before anything is dispatched', async () => {
     reset({
-        // The shape of a prompt injection: a routine name the asker owns, which
+        // The shape of a prompt injection: an automation name the asker owns, which
         // the dispatcher's dynamic-name fallback would happily have run.
         drive: callThenAnswer('automation_pay_invoice'),
         // Curated: this gate is opt-in, like everything else here.
@@ -444,7 +241,7 @@ test('a name that was never offered is refused before anything is dispatched', a
     assert.strictEqual(error, null);
     assert.deepStrictEqual(S.dispatched, [],
         'an unoffered name must never reach toolDispatcher — its dynamic-name fallback runs the ' +
-        "asker's own agent_call routines outside every agent policy");
+        "asker's own agent_call automations outside every agent policy");
     assert.deepStrictEqual(eventsOfType('tool_confirm'), [], 'a refusal is not a confirmation');
 });
 
@@ -452,7 +249,7 @@ test('an UNcurated agent keeps the dispatcher path it has always had for an unof
     // The gate shipped global for one stage, which changed what every agent in
     // the product does with a name outside its stack — with no field anyone
     // could set to ask for it. The dispatcher has its own answer for such a
-    // name (the caller's routines and Steps, a progressive-disclosure hint, a
+    // name (the caller's automations and Steps, a progressive-disclosure hint, a
     // component tool), and that answer is what a legacy agent gets back.
     reset({ drive: callThenAnswer('automation_pay_invoice') });
 
@@ -510,37 +307,37 @@ test('an agent with no grants map lends exactly as it did before', async () => {
         'lending off for every agent that predates the picker');
 });
 
-// ── A granted routine's own confirm ─────────────────────────────────
+// ── A granted automation's own confirm ─────────────────────────────────
 // `automations[].confirm` is keyed on the automation id while the tool is
 // named per user at assembly time, so nothing married the two and the stored
 // value did nothing at all.
 
-const ROUTINE = {
+const AUTOMATION = {
     type: 'function',
     function: { name: 'automation_send_invoice', description: 'Send the invoice', parameters: { type: 'object', properties: {} } },
     __automation: { id: 'auto-1', userId: 'u1' },
 };
 
-test('a routine its owner put on "ask" is held back instead of run', async () => {
+test('an automation its owner put on "ask" is held back instead of run', async () => {
     reset({
         drive: callThenAnswer('automation_send_invoice'),
-        tools: [...TOOLS, ROUTINE],
+        tools: [...TOOLS, AUTOMATION],
         config: { tools: { automations: { 'auto-1': { confirm: 'ask' } } } },
     });
 
     const { error } = await runTurn();
 
     assert.strictEqual(error, null);
-    assert.deepStrictEqual(S.dispatched, [], 'the routine must not run — that is what "ask" was for');
+    assert.deepStrictEqual(S.dispatched, [], 'the automation must not run — that is what "ask" was for');
     const confirms = eventsOfType('tool_confirm');
     assert.strictEqual(confirms.length, 1);
     assert.strictEqual(confirms[0].toolName, 'automation_send_invoice');
 });
 
-test('a routine granted without a confirm runs exactly as before', async () => {
+test('an automation granted without a confirm runs exactly as before', async () => {
     reset({
         drive: callThenAnswer('automation_send_invoice'),
-        tools: [...TOOLS, ROUTINE],
+        tools: [...TOOLS, AUTOMATION],
         config: { tools: { automations: { 'auto-1': {} } } },
     });
 
@@ -549,21 +346,24 @@ test('a routine granted without a confirm runs exactly as before', async () => {
     assert.deepStrictEqual(S.dispatched.map(d => d.name), ['automation_send_invoice'],
         'a grant is permission to call it, not an instruction to ask first');
     assert.deepStrictEqual(eventsOfType('tool_confirm'), []);
+    // The dispatcher refuses a grant on "ask" unless the caller vouches that this
+    // confirm layer stood in front of the call: this path is the one that does.
+    assert.strictEqual(S.dispatched[0].confirmLayer, true, 'the streaming round vouches for its confirm layer');
 });
 
-test('nobody watching: the routine set to "ask" is withheld, and naming it anyway is refused', async () => {
+test('nobody watching: the automation set to "ask" is withheld, and naming it anyway is refused', async () => {
     reset({
         drive: callThenAnswer('automation_send_invoice'),
-        tools: [...TOOLS, ROUTINE],
+        tools: [...TOOLS, AUTOMATION],
         config: { tools: { automations: { 'auto-1': { confirm: 'ask' } } } },
     });
 
     await runTurn({ autoSend: true });
 
     assert.ok(!(S.toolsOfferedPerRound[0] || []).includes('automation_send_invoice'),
-        'with no one to answer, a routine that would ask is left out of the stack');
+        'with no one to answer, an automation that would ask is left out of the stack');
     assert.deepStrictEqual(S.dispatched, [],
-        'and the name gate holds: the withheld routine may not slip through the dispatcher\'s own lookup');
+        'and the name gate holds: the withheld automation may not slip through the dispatcher\'s own lookup');
 });
 
 test('an unticked action of a granted app is refused, not merely un-offered', async () => {
@@ -606,4 +406,30 @@ test('finalizeTurn carries pending confirmations on the assistant message', () =
     const src = fs.readFileSync(path.join(__dirname, 'finalizeTurn.js'), 'utf8');
     assert.match(src, /assistantMsg\.pendingToolCalls\s*=\s*_pendingToolCalls/,
         'the held call must survive a reload the way emailDrafts does');
+});
+
+// ── Studio document writes reach the open editors ───────────────────
+
+test('create_presentation that kept the deck in the library sends document_update', async () => {
+    reset({
+        tools: [fn('create_presentation')],
+        toolResults: { create_presentation: { success: true, documentId: 'doc-9', documentUrl: '/documents/doc-9', file: { name: 'deck.pptx' } } },
+        drive: callThenAnswer('create_presentation'),
+    });
+    const { error } = await runTurn();
+    assert.strictEqual(error, null);
+    assert.deepStrictEqual(eventsOfType('document_update'), [{ documentId: 'doc-9', name: 'deck.pptx', url: '/documents/doc-9' }]);
+});
+
+test('no document_update without a document id, or for a tool that writes no Studio document', async () => {
+    reset({
+        tools: [fn('create_presentation')],
+        toolResults: { create_presentation: { success: true } },
+        drive: callThenAnswer('create_presentation'),
+    });
+    await runTurn();
+    assert.deepStrictEqual(eventsOfType('document_update'), []);
+    reset({ drive: callThenAnswer('gmail_search'), toolResults: { gmail_search: { documentId: 'x' } } });
+    await runTurn();
+    assert.deepStrictEqual(eventsOfType('document_update'), []);
 });

@@ -31,13 +31,14 @@ interface WebRoutes {
 const SERVED = [
     '/app', '/app/a/s1', '/app/agent/a1', '/app/d/c1', '/app/settings', '/app/settings/appearance', '/app/apps', '/app/apps/p1',
     '/app/forms', '/app/forms/tok1', '/app/cowork', '/app/cowork/c1', '/app/work', '/app/work/c1', '/app/studio/cowork',
-    '/app/studio/cowork/c1', '/app/studio/approvals', '/app/studio/approvals/ap1',
+    '/app/studio/cowork/c1', '/app/studio/approvals', '/app/studio/approvals/ap1', '/app/projects', '/app/projects/p1',
+    '/app/projects/p1/tasks',
 ];
 
 /** Addresses the web sends a phone away from. */
 const BOUNCED = [
     '/app/studio', '/app/studio/automations/a1', '/app/studio/webpages/w1', '/app/admin', '/app/admin/security/users',
-    '/app/org-settings/users', '/app/billing', '/app/routines/r1', '/app/notebooks/n1', '/app/projects/p1', '/app/webpages/w1',
+    '/app/org-settings/users', '/app/billing', '/app/automations/r1', '/app/notebooks/n1', '/app/webpages/w1',
     '/app/meeting-notes', '/app/templates', '/app/agent-designer/a1',
 ];
 

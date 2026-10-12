@@ -5,7 +5,7 @@
  * keywords and payload, in order.
  *
  * A step's NAME and DESCRIPTION come from nodeDefs (translated under
- * `routines.node.*`); the picker owns only the id, icon, search keywords and
+ * `automations.node.*`); the picker owns only the id, icon, search keywords and
  * drop payload. The entries the web words itself — the triggers, the two form
  * pages, the Privacy Shield, "Create flowlet" — carry `labelKey`/`descKey`
  * under `mobile.flow.palette.*` with the web's English as the fallback, and
@@ -62,12 +62,12 @@ export const SECONDARY_TRIGGERS: readonly PaletteItem[] = TRIGGERS.filter((t) =>
     (t) => ({ ...t, payload: { ...t.payload, asSecondaryTrigger: true } }),
 );
 
-/** The triggers as offered beside the steps once a routine has one: add, or replace (and say so). */
+/** The triggers as offered beside the steps once an automation has one: add, or replace (and say so). */
 export function additionalTriggerItems(): PaletteItem[] {
     return TRIGGERS.map((t) =>
         CAN_BE_SECONDARY.has(t.payload.triggerKind as string)
             ? {
-                ...t, desc: 'Adds another way to start this routine', descKey: `${KEY}.trigger_adds_desc`,
+                ...t, desc: 'Adds another way to start this automation', descKey: `${KEY}.trigger_adds_desc`,
                 payload: { ...t.payload, asSecondaryTrigger: true },
             }
             : { ...t, desc: 'Replaces the current trigger', descKey: `${KEY}.trigger_replaces_desc` },
@@ -106,10 +106,31 @@ export const DATA_ITEMS: readonly PaletteItem[] = [
         'presentation presentatie powerpoint pptx deck slides slide pitch keynote impress export download house style huisstijl'),
 ];
 
+/**
+ * "Filter a list" (BFSF-485 F1): the Condition node, dropped already working
+ * through a list (a `filter` with an empty `arrayRef`, which auto-map binds to
+ * the nearest list as it does for an inserted Condition). The card keeps the
+ * one node name; the entry's words are its own, under `condition_node.palette.*`.
+ */
+export const FILTER_LIST_ITEM: PaletteItem = {
+    ...worded({
+        id: 'filter_list', icon: 'ListFilter',
+        labelFallback: 'Filter a list',
+        descFallback: 'Keep only the items of a list that match; the rest stop here.',
+        keywords: 'filter keep where only matching items rows list drop exclude subset select',
+        payload: { kind: 'filter', label: nodeDefaultLabel('filter') },
+    }),
+    labelKey: 'condition_node.palette.filter_label',
+    descKey: 'condition_node.palette.filter_desc',
+};
+
 export const COLLECTION_ITEMS: readonly PaletteItem[] = [
+    FILTER_LIST_ITEM,
+    stepItem('flatten', 'flatten', 'Rows3',
+        'flatten split out unnest expand explode one row per each inside nested attachments line items lines table rows'),
     stepItem('limit', 'limit', 'ChevronsDown', 'limit take first last slice top head tail trim shorten cap fewer'),
     stepItem('dedupe', 'dedupe', 'Copy', 'dedupe duplicates unique distinct same repeated identical once'),
-    stepItem('aggregate', 'aggregate', 'Layers', 'aggregate collect pluck pick field values flatten column extract list of'),
+    stepItem('aggregate', 'aggregate', 'Layers', 'aggregate collect pluck pick field values column extract list of'),
     stepItem('summarize', 'summarize', 'Sigma', 'summarize summarise sum count avg average min max statistics aggregate total add up how many'),
 ];
 

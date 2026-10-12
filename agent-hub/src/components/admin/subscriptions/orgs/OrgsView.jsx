@@ -67,12 +67,12 @@ export function OrgsView() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(form),
             });
-            toast.success('Subscription saved.');
+            toast.success(t('admin_subscriptions.orgs_saved', 'Subscription saved.'));
             setEditing(null);
             setAssigning(null);
             reloadAll();
         } catch (e) {
-            toast.error(e.message || 'Save failed');
+            toast.error(e.message || t('admin_subscriptions.orgs_save_failed', 'Save failed'));
         }
     };
 
@@ -89,7 +89,7 @@ export function OrgsView() {
             return res;
         } catch (e) {
             if (e.body?.error === 'trial_already_used') {
-                throw new Error('This organization has already used its trial.');
+                throw new Error(t('admin_subscriptions.orgs_trial_used', 'This organization has already used its trial.'));
             }
             throw e;
         }
@@ -100,12 +100,12 @@ export function OrgsView() {
         setBusy(true);
         try {
             await apiJson(`/api/subscriptions/orgs/${removing.organization_id}`, { method: 'DELETE' });
-            toast.success('Subscription removed.');
+            toast.success(t('admin_subscriptions.orgs_removed', 'Subscription removed.'));
             setRemoving(null);
             setEditing(null);
             reloadAll();
         } catch (e) {
-            toast.error(e.message || 'Remove failed');
+            toast.error(e.message || t('admin_subscriptions.orgs_remove_failed', 'Remove failed'));
         } finally {
             setBusy(false);
         }
@@ -134,18 +134,18 @@ export function OrgsView() {
             />
 
             {loading ? (
-                <Spinner label="Loading organizations…" />
+                <Spinner label={t('admin_subscriptions.orgs_loading', 'Loading organizations…')} />
             ) : (
                 <>
                     {/* Active subscriptions */}
                     <div className="mb-8">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
                             <h3 className="text-[14px] font-bold text-[var(--text-primary)]">
-                                Active subscriptions
+                                {t('admin_subscriptions.orgs_active_title', 'Active subscriptions')}
                                 <span className="ml-2 text-[var(--text-muted)] font-normal">{filteredSubs.length}{filteredSubs.length !== subs.length ? ` / ${subs.length}` : ''}</span>
                             </h3>
                             <div className="flex items-center gap-2">
-                                <SearchInput value={query} onChange={setQuery} placeholder="Search organizations…" className="w-56" />
+                                <SearchInput value={query} onChange={setQuery} placeholder={t('admin_subscriptions.orgs_search', 'Search organizations…')} className="w-56" />
                             </div>
                         </div>
                         <FilterPills
@@ -153,31 +153,31 @@ export function OrgsView() {
                             onChange={setStatusFilter}
                             className="mb-3"
                             options={[
-                                { value: 'active', label: 'Active' },
-                                { value: 'trialing', label: 'Trialing' },
-                                { value: 'suspended', label: 'Suspended' },
-                                { value: 'cancelled', label: 'Cancelled' },
+                                { value: 'active', label: t('admin_subscriptions.orgs_status_active', 'Active') },
+                                { value: 'trialing', label: t('admin_subscriptions.orgs_status_trialing', 'Trialing') },
+                                { value: 'suspended', label: t('admin_subscriptions.orgs_status_suspended', 'Suspended') },
+                                { value: 'cancelled', label: t('admin_subscriptions.orgs_status_cancelled', 'Cancelled') },
                             ]}
                         />
 
                         {filteredSubs.length === 0 ? (
                             <EmptyState
                                 icon={<Building2 className="w-6 h-6" />}
-                                title={subs.length === 0 ? 'No active subscriptions' : 'No matches'}
+                                title={subs.length === 0 ? t('admin_subscriptions.orgs_empty_title', 'No active subscriptions') : t('admin_subscriptions.orgs_no_matches', 'No matches')}
                                 description={subs.length === 0
-                                    ? 'Assign a plan to an organization to see it here.'
-                                    : 'Adjust the search or status filter.'}
+                                    ? t('admin_subscriptions.orgs_empty_desc', 'Assign a plan to an organization to see it here.')
+                                    : t('admin_subscriptions.orgs_no_matches_desc', 'Adjust the search or status filter.')}
                             />
                         ) : (
                             <div className="rounded-xl border border-[var(--border-default)] overflow-hidden">
                                 <table className="w-full text-[13px]">
                                     <thead className="bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
                                         <tr>
-                                            <th className="text-left font-semibold px-4 py-2.5">Organization</th>
-                                            <th className="text-left font-semibold px-4 py-2.5">Plan</th>
-                                            <th className="text-left font-semibold px-4 py-2.5">Status</th>
-                                            <th className="text-left font-semibold px-4 py-2.5">Messages</th>
-                                            <th className="text-left font-semibold px-4 py-2.5">Cost</th>
+                                            <th className="text-left font-semibold px-4 py-2.5">{t('admin_subscriptions.orgs_col_org', 'Organization')}</th>
+                                            <th className="text-left font-semibold px-4 py-2.5">{t('admin_subscriptions.orgs_col_plan', 'Plan')}</th>
+                                            <th className="text-left font-semibold px-4 py-2.5">{t('admin_subscriptions.orgs_col_status', 'Status')}</th>
+                                            <th className="text-left font-semibold px-4 py-2.5">{t('admin_subscriptions.orgs_col_messages', 'Messages')}</th>
+                                            <th className="text-left font-semibold px-4 py-2.5">{t('admin_subscriptions.orgs_col_cost', 'Cost')}</th>
                                             <th className="px-4 py-2.5"></th>
                                         </tr>
                                     </thead>
@@ -194,7 +194,7 @@ export function OrgsView() {
                                                     className="cursor-pointer bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border-t border-[var(--border-default)]"
                                                 >
                                                     <td className="px-4 py-2.5 font-semibold text-[var(--text-primary)]">{sub.org_name}</td>
-                                                    <td className="px-4 py-2.5 text-[var(--text-secondary)]">{sub.plan_name || 'Custom'}</td>
+                                                    <td className="px-4 py-2.5 text-[var(--text-secondary)]">{sub.plan_name || t('admin_subscriptions.orgs_custom', 'Custom')}</td>
                                                     <td className="px-4 py-2.5"><StatusBadge status={sub.status} /></td>
                                                     <td className="px-4 py-2.5 text-[var(--text-secondary)] tabular-nums">
                                                         {(sub.current_usage?.messages || 0).toLocaleString()}{msgLimit ? ` / ${msgLimit.toLocaleString()}` : ''}
@@ -224,7 +224,7 @@ export function OrgsView() {
                     {unsubscribedOrgs.length > 0 && (
                         <div>
                             <h3 className="text-[14px] font-bold text-[var(--text-secondary)] mb-3">
-                                Unsubscribed organizations
+                                {t('admin_subscriptions.orgs_unsubscribed_title', 'Unsubscribed organizations')}
                                 <span className="ml-2 text-[var(--text-muted)] font-normal">{unsubscribedOrgs.length}</span>
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
@@ -233,10 +233,10 @@ export function OrgsView() {
                                         <div className="min-w-0">
                                             <div className="text-[13px] font-semibold text-[var(--text-primary)] truncate">{org.name}</div>
                                             <div className="text-[11px] text-[var(--text-muted)]">
-                                                {(org.total_calls || 0).toLocaleString()} calls · €{(org.estimated_cost || 0).toFixed(4)}
+                                                {t('admin_subscriptions.orgs_calls_cost', '{calls} calls · €{cost}', { calls: (org.total_calls || 0).toLocaleString(), cost: (org.estimated_cost || 0).toFixed(4) })}
                                             </div>
                                         </div>
-                                        <Button size="sm" icon={Plus} onClick={() => setAssigning(org)}>Assign</Button>
+                                        <Button size="sm" icon={Plus} onClick={() => setAssigning(org)}>{t('admin_subscriptions.orgs_assign', 'Assign')}</Button>
                                     </div>
                                 ))}
                             </div>
@@ -246,8 +246,8 @@ export function OrgsView() {
                     {orgs.length === 0 && subs.length === 0 && (
                         <EmptyState
                             icon={<Building2 className="w-6 h-6" />}
-                            title="No organizations yet"
-                            description="Create organizations in Security → Users first, then come back here to assign subscriptions."
+                            title={t('admin_subscriptions.orgs_none_title', 'No organizations yet')}
+                            description={t('admin_subscriptions.orgs_none_desc', 'Create organizations in Security → Users first, then come back here to assign subscriptions.')}
                         />
                     )}
                 </>
@@ -268,9 +268,9 @@ export function OrgsView() {
                 onClose={() => setRemoving(null)}
                 onConfirm={handleRemove}
                 busy={busy}
-                title={`Remove ${removing?.org_name || ''}'s subscription?`}
-                message="The organization will lose all plan-assigned limits and features. This does not delete the org itself."
-                confirmLabel="Remove subscription"
+                title={t('admin_subscriptions.orgs_remove_title', "Remove {name}'s subscription?", { name: removing?.org_name || '' })}
+                message={t('admin_subscriptions.orgs_remove_message', 'The organization will lose all plan-assigned limits and features. This does not delete the org itself.')}
+                confirmLabel={t('admin_subscriptions.orgs_remove_confirm', 'Remove subscription')}
             />
         </div>
     );

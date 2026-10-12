@@ -1,5 +1,5 @@
 /**
- * Saving the form while the AI builder holds the routine is a failed save —
+ * Saving the form while the AI builder holds the automation is a failed save —
  * the draft store refuses the edit, so reporting "saved" would throw the
  * rename or the collect switch away without a word.
  */
@@ -38,7 +38,7 @@ afterEach(() => {
     jest.clearAllMocks();
 });
 
-it('says a rename failed while the AI builder holds the routine, and saves it once it lets go', async () => {
+it('says a rename failed while the AI builder holds the automation, and saves it once it lets go', async () => {
     const { result, unmount } = await renderHook(() => useQuestionsDraft('f1'), { wrapper });
     await waitFor(() => expect(result.current.ready).toBe(true));
     await act(async () => peekDraftStore('f1')?.getState().setLocked(true));
@@ -49,7 +49,7 @@ it('says a rename failed while the AI builder holds the routine, and saves it on
         ok = await result.current.patchSaved({ title: 'Renamed' });
     });
     expect(ok).toBe(false);
-    expect(String(result.current.saveError)).toContain('The AI is building this routine');
+    expect(String(result.current.saveError)).toContain('The AI is building this automation');
     expect(api.put).not.toHaveBeenCalled();
 
     await act(async () => peekDraftStore('f1')?.getState().setLocked(false));

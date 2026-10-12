@@ -1,6 +1,6 @@
 /**
- * Where a routine stands between its working copy and its live version
- * (handoff 5, the live split): on a routine that has gone live, a save only
+ * Where an automation stands between its working copy and its live version
+ * (handoff 5, the live split): on an automation that has gone live, a save only
  * changes the working copy, and runs keep executing the live version until
  * "Make vN live" (POST /:id/publish).
  *
@@ -25,8 +25,12 @@ export interface LiveState {
     pendingChanges: number;
     /** The web's one filled button; null when the only action is Pause. */
     primary: PrimaryAction;
-    /** Pause shows as the quiet secondary while the routine is switched on. */
+    /** Pause shows as the quiet secondary while the automation is switched on. */
     canPause: boolean;
+    /** Managed by a Solution stage: no Publish, no Save; On/Off and Run stay. */
+    managed: boolean;
+    /** Managed and never deployed: there is no live copy to switch on yet. */
+    notDeployed: boolean;
 }
 
 /** The row fields this reads; camelCase as the API sends them. */
@@ -37,6 +41,8 @@ export interface LiveRow {
     liveVersion?: number | null;
     neverLive?: boolean | null;
     pendingChanges?: number | null;
+    /** As a part GET carries it; any non-null value means managed by a Solution stage. */
+    managed?: unknown;
 }
 
 function count(v: unknown): number | null {
@@ -57,13 +63,18 @@ export function liveStateOf(row: LiveRow | null | undefined, countsPending: numb
         : (r.liveVersion === undefined ? !!r.isDraft : liveVersion == null);
     const workingVersion = count(r.version);
     const rowPending = count(r.pendingChanges);
-    const pendingChanges = neverLive ? 0 : (rowPending ?? countsPending ?? 0);
+    const managed = r.managed != null && r.managed !== false;
+    // A managed working copy is what the stage deployed: nothing is "ahead".
+    const pendingChanges = neverLive || managed ? 0 : (rowPending ?? countsPending ?? 0);
 
     if (neverLive) {
-        return { kind: 'never', liveVersion: null, workingVersion, pendingChanges: 0, primary: 'activate', canPause: false };
+        return {
+            kind: 'never', liveVersion: null, workingVersion, pendingChanges: 0, primary: 'activate', canPause: false,
+            managed, notDeployed: managed,
+        };
     }
     if (!r.isActive) {
-        return { kind: 'paused', liveVersion, workingVersion, pendingChanges, primary: 'activate', canPause: false };
+        return { kind: 'paused', liveVersion, workingVersion, pendingChanges, primary: 'activate', canPause: false, managed, notDeployed: false };
     }
     return {
         kind: 'live',
@@ -72,6 +83,8 @@ export function liveStateOf(row: LiveRow | null | undefined, countsPending: numb
         pendingChanges,
         primary: pendingChanges > 0 ? 'publish' : null,
         canPause: true,
+        managed,
+        notDeployed: false,
     };
 }
 
@@ -92,12 +105,12 @@ export function pendingText(live: LiveState, t: Translate): string | null {
     if (live.kind === 'never' || live.pendingChanges <= 0) return null;
     const version = live.workingVersion ?? '';
     return live.pendingChanges === 1
-        ? t('routines.header.editing_pending_one', 'editing v{version} · 1 change not live yet', { version })
-        : t('routines.header.editing_pending_other', 'editing v{version} · {n} changes not live yet', { version, n: live.pendingChanges });
+        ? t('automations.header.editing_pending_one', 'editing v{version} · 1 change not live yet', { version })
+        : t('automations.header.editing_pending_other', 'editing v{version} · {n} changes not live yet', { version, n: live.pendingChanges });
 }
 
-/** "Live · v3" for a routine switched on with a known live version, else null (the caller's own word). */
+/** "Live · v3" for an automation switched on with a known live version, else null (the caller's own word). */
 export function liveVersionWord(live: LiveState | null, t: Translate): string | null {
     if (live?.kind !== 'live' || live.liveVersion == null) return null;
-    return t('routines.header.status_live_version', 'Live · v{version}', { version: live.liveVersion });
+    return t('automations.header.status_live_version', 'Live · v{version}', { version: live.liveVersion });
 }

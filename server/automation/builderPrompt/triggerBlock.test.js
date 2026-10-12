@@ -4,7 +4,7 @@
  *
  * Same drift risk promptCatalogSync.test.js guards for the FULL schema's
  * prose: a trigger the model is told about that cannot fire, or a filter key
- * that silently matches nothing, produces a routine that activates, reports
+ * that silently matches nothing, produces an automation that activates, reports
  * healthy and never runs. The lean band reads THIS block instead of that
  * prose, so it gets the same checks, in both directions.
  *
@@ -59,6 +59,13 @@ test('two renders are the same bytes (memoised, global registry, no per-user inp
     assert.equal(renderTriggerBlockLean(), renderTriggerBlockLean());
     assert.ok(block.startsWith('## Triggers (builder_propose_trigger'));
     assert.ok(block.length < 6000, `the block is the diet, not the catalogue: ${block.length} chars`);
+});
+
+test('agent_call and app_trigger are proposable from the lean band, with the binding path and the linking step', () => {
+    assert.match(block, /agent_call \{toolName, description, params:\[\{name,type,required,description\}\]\}/);
+    assert.match(block, /app_trigger \{params:/);
+    assert.match(block, /arrives as trigger\.output\.<name> \(there is no trigger\.payload\)/);
+    assert.match(block, /link it to an agent under "Who can call this" in the trigger panel/);
 });
 
 // ── The sidecar promises only what the runtime reads ────────────────────────

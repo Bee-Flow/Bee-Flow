@@ -11,26 +11,26 @@ const log = require('../../telemetry/log');
 //
 // The automation runs unattended — the user may not have an active browser
 // session at run-time. We must therefore source OAuth tokens from the
-// long-lived per-user credential vault (routineAuth), not from the
+// long-lived per-user credential vault (automationAuth), not from the
 // `user_sessions` table. Falling back to `user_sessions` masks broken
 // integrations: as soon as the user logs out, every Gmail/Calendar/Drive
 // step would fail, but a search-only step would still run, producing the
 // "no data" emails the user reported.
 //
 // Resolution order:
-//   1. routineAuth.buildUserAuth — vault-backed; works without active login.
+//   1. automationAuth.buildUserAuth — vault-backed; works without active login.
 //      We ask for ALL OAuth providers the user has connected so the catalog
 //      registers every integration the user has rights to use, exactly
 //      matching the build-time catalog.
 //   2. user_sessions row — last-resort backstop for installs that haven't
 //      backfilled the vault yet, or for cases where the vault returns null.
 //      This fallback is ON BY DEFAULT and disabled by setting
-//      ROUTINE_AUTH_LEGACY=0 (see the `!== '0'` gate below). It sources OAuth
+//      AUTOMATION_AUTH_LEGACY=0 (see the `!== '0'` gate below). It sources OAuth
 //      tokens from live browser sessions, so disable it once every user's
-//      credentials live in the routine-credentials vault.
+//      credentials live in the automation-credentials vault.
 
 // Connector-bound users authenticate to Nextcloud through the ExApp reverse
-// proxy, not OAuth — so their routine session must carry the instance binding
+// proxy, not OAuth — so their automation session must carry the instance binding
 // (connectorOrgId + connectorNcUid) and the provider marker that resolveAuth /
 // resolveConnectorAuth (nextcloudClient.js) and isConnectorUser gate on.
 // Without it, NC tools throw on scheduled/offline runs (no warm web session).
@@ -59,8 +59,8 @@ async function resolveUserSession(userId) {
         const { resolveEnabledIntegrations } = require('../integrations/enabledIntegrations');
         const allEnabled = await resolveEnabledIntegrations(userId, user?.organizationId || null);
 
-        const routineAuth = require('../../auth/routineAuth');
-        const built = await routineAuth.buildUserAuth(userId, { enabledIntegrations: allEnabled });
+        const automationAuth = require('../../auth/automationAuth');
+        const built = await automationAuth.buildUserAuth(userId, { enabledIntegrations: allEnabled });
         if (built) {
             return withConnectorIdentity({
                 // Direct-chat-shaped session so getIntegrationTools and tool
@@ -76,7 +76,7 @@ async function resolveUserSession(userId) {
                 refreshToken: built.refreshToken,
                 expiresAt: built.expiresAt,
                 oauthProvider: built.oauthProvider,
-                routineProviders: built.routineProviders || {},
+                automationProviders: built.automationProviders || {},
             }, userRow);
         }
     } catch (err) {
@@ -97,13 +97,13 @@ async function resolveUserSession(userId) {
                 role: userRow.role || null,
             },
             isAdmin: !!userRow.isAdmin,
-            routineProviders: {},
+            automationProviders: {},
         }, userRow);
     }
 
     // Last-resort: legacy user_sessions row. Kept behind a flag so we can
     // ditch it once every install has been migrated to the vault.
-    if (process.env.ROUTINE_AUTH_LEGACY !== '0') {
+    if (require('../../utils/automationAuthLegacy').automationAuthLegacy() !== '0') {
         try {
             const { rows } = await pool.query(
                 `SELECT sess FROM user_sessions

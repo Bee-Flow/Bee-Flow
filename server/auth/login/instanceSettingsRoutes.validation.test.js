@@ -54,30 +54,9 @@ Module._resolveFilename = function (request, parent, ...rest) {
 const router = require('./instanceSettingsRoutes');
 test.after(() => { Module._resolveFilename = originalResolve; });
 
-// A schema refusal travels as an error to the terminal handler, so the
-// harness has to answer one the way index.js does.
-const { terminalErrorHandler } = require('../../core/http/terminalErrorHandler');
+const { dispatcher } = require('../../core/http/routeHarness');
 
-function dispatch({ method, url, body = {}, session }) {
-    return new Promise((resolve, reject) => {
-        const req = {
-            method, url, originalUrl: url, path: url, body, query: {}, headers: {},
-            session: session || { user: { id: 'root' }, isAdmin: true }, get() { return undefined; },
-        };
-        const res = {
-            statusCode: 200, headersSent: false,
-            set() { return this; }, setHeader() {}, cookie() { return this; },
-            status(c) { this.statusCode = c; return this; },
-            json(b) { this.body = b; this.headersSent = true; resolve(this); return this; },
-            send(b) { this.body = b; this.headersSent = true; resolve(this); return this; },
-            end() { this.headersSent = true; resolve(this); return this; },
-        };
-        router(req, res, (err) => {
-            if (!err) return reject(new Error(`fell through: ${method} ${url}`));
-            terminalErrorHandler(err, req, res, (e) => reject(e));
-        });
-    });
-}
+const dispatch = dispatcher(router, { session: () => ({ user: { id: 'root' }, isAdmin: true }) });
 
 test.beforeEach(() => { touched.length = 0; });
 
@@ -118,5 +97,5 @@ test('a whole-form save still writes all three, and a blank secret keeps the sto
     const saved = touched.find((t) => t.what === 'saveConfig').args[0];
     assert.strictEqual(saved.oauth.nextcloudUrl, 'https://nc.example.test');
     assert.strictEqual(saved.oauth.clientId, 'cid2');
-    assert.strictEqual(saved.oauth.clientSecret, 'kept');
+    assert.strictEqual(saved.oauth.clientSecret, undefined, 'omitted secret delegates preservation to the atomic storage layer');
 });

@@ -68,7 +68,7 @@ function checkReturnToApp(ctx, step, at) {
      * `return_to_app` — het antwoord dat de app krijgt.
      *
      * Elk veld hier reist als DATA naar een app-runtime in de browser
-     * (`_appEffects`), en die runtime kan ouder zijn dan de routine. Een
+     * (`_appEffects`), en die runtime kan ouder zijn dan de automation. Een
      * waarde buiten het vocabulaire is daar geen typefout maar een effect
      * dat stil verdwijnt — precies wat deze stap moest voorkomen. Vandaar:
      * het vocabulaire wordt hier GEWEIGERD (integriteit, blokkeert altijd),
@@ -168,7 +168,7 @@ function checkFormPage(ctx, step, at) {
         // same path, same message, so nothing keyed on
         // `form_page.nested_forbidden` changes.
         //
-        // A form page is served on the routine's own public form URL. With
+        // A form page is served on the automation's own public form URL. With
         // no form trigger there is no URL and the page can never be shown.
         if (!nested && !isContractScope) {
             const formTriggers = [trigger, ...(Array.isArray(graph.triggers) ? graph.triggers : [])]
@@ -181,7 +181,7 @@ function checkFormPage(ctx, step, at) {
                 // hint; the step id stays available in `path` (and at the end
                 // of the hint) for the canvas badge mapping. The CODE is
                 // unchanged — the frontend keys on it.
-                pushE({ code: 'form_page.no_form_trigger', severity: 'error', path: at + '.type', message: 'This step type requires your automation to start with a Form trigger.', hint: `Change the trigger to "Form" so the routine has a public form URL to show this page on, or replace step "${step.id}" with a notification.` });
+                pushE({ code: 'form_page.no_form_trigger', severity: 'error', path: at + '.type', message: 'This step type requires your automation to start with a Form trigger.', hint: `Change the trigger to "Form" so the automation has a public form URL to show this page on, or replace step "${step.id}" with a notification.` });
             }
         }
         // An ending page shows text, so zero fields is normal for it.
@@ -192,7 +192,7 @@ function checkFormPage(ctx, step, at) {
         if (!isEnding && step.waitSeconds !== undefined) {
             const w = Number(step.waitSeconds);
             if (!Number.isFinite(w) || w < FORM_PAGE_MIN_WAIT_S || w > FORM_PAGE_MAX_WAIT_S) {
-                pushE({ code: 'form_page.wait_range', severity: 'error', path: at + '.waitSeconds', message: `Step ${step.id}: waitSeconds must be ${FORM_PAGE_MIN_WAIT_S}..${FORM_PAGE_MAX_WAIT_S} (1 minute … 7 days).`, hint: 'How long the routine waits for the visitor before giving up.' });
+                pushE({ code: 'form_page.wait_range', severity: 'error', path: at + '.waitSeconds', message: `Step ${step.id}: waitSeconds must be ${FORM_PAGE_MIN_WAIT_S}..${FORM_PAGE_MAX_WAIT_S} (1 minute … 7 days).`, hint: 'How long the automation waits for the visitor before giving up.' });
             }
         }
     }

@@ -58,7 +58,7 @@ function classifyMailboxError(err, connector) {
     if (status === 403) {
         if (isShared) {
             return mailboxError(403,
-                `No access to the shared mailbox ${connector.address}. Your Microsoft administrator must grant you Full Access, and the connection needs the Mail.Read.Shared permission — reconnect Microsoft in Settings → Integrations.`,
+                `No access to the shared mailbox ${connector.address}. Your Microsoft administrator must grant you Full Access, and the connection needs the Mail.Read.Shared permission — reconnect Microsoft in Settings → Connections.`,
                 'shared_mailbox_denied');
         }
         return mailboxError(403, 'This mailbox refused the request.', 'mailbox_denied');
@@ -72,7 +72,7 @@ function classifyMailboxError(err, connector) {
         return e;
     }
     if (status === 401 || /invalid_grant|reconnect the mailbox|no valid .* tokens/i.test(String(err?.message || ''))) {
-        const e = mailboxError(409, 'The mailbox connection expired — reconnect it in Settings → Integrations.', 'connection_required');
+        const e = mailboxError(409, 'The mailbox connection expired — reconnect it in Settings → Connections.', 'connection_required');
         e.provider = connector?.provider === 'gmail' ? 'gmail' : 'outlook';
         return e;
     }
@@ -388,7 +388,7 @@ function groupIntoThreads(messages, partialThreads = null) {
         if (msg.direction === 'inbound' && msg.is_read === false) t.has_unread = true;
 
         // First response time — a fact about the MAIL, not a judgement, which is
-        // why it belongs here and not in a routine. Computed only for threads we
+        // why it belongs here and not in an automation. Computed only for threads we
         // hold in full (see `complete` below).
         const at = msg.received_at || null;
         if (at && msg.direction === 'inbound' && (!entry.firstInboundAt || at < entry.firstInboundAt)) {

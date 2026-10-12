@@ -151,10 +151,10 @@ router.post('/', validate({ body: CreateBody }), async (req, res) => {
     const icon = req.body.icon || null;
     const category = req.body.category || null;
     const step = await automationStore.createStep({ userId, organizationId, title, description: description || '', definition, icon, category });
-    // A Step is a routine in the same table and its datatable steps run for
+    // A Step is an automation in the same table and its datatable steps run for
     // real, so it belongs in the usage index like any other definition —
     // otherwise a column drop is checked against everything EXCEPT the
-    // building blocks half the org's routines call.
+    // building blocks half the org's automations call.
     await syncDatatableUsage(step?.id, organizationId, definition, { label: 'step create' });
     await syncKbSources(step?.id, definition, { userId, title: step?.title });
     res.json({ step });

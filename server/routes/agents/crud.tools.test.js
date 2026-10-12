@@ -308,7 +308,7 @@ test('a PUT carrying ONLY a refused section stores nothing — not the refused s
     // `datatable_query` enforces it, so the case moved to the test above and a
     // malformed `automations` carries the shape here.)
     // A RESERVED section that is not an object is dropped: `automations`
-    // absent means "no routine is granted", so dropping it narrows. An APP
+    // absent means "no automation is granted", so dropping it narrows. An APP
     // entry is the mirror image — absent means "every action" — so that one
     // is kept as a refusal instead. Both shapes are asserted here together
     // precisely because the same input shape gets opposite treatment, and the

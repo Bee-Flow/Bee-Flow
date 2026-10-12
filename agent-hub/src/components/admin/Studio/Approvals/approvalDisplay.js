@@ -4,6 +4,8 @@
  * timestamp reads.
  */
 
+import { hrefOf, pipelineTarget } from '../../../shared/managedPart';
+
 export const STATUS_TABS = [
     { key: 'pending', label: 'Waiting' },
     { key: 'approved', label: 'Approved' },
@@ -116,4 +118,44 @@ export function formatWhen(ts) {
     } catch {
         return String(ts).slice(0, 16).replace('T', ' ');
     }
+}
+
+/**
+ * Where an approval row came from, for the rows that are not a paused automation.
+ *
+ * A PRD deployment of a Solution asks through the same table as an automation does
+ * (`source: 'deployment'`, `automationTitle` = the sentence of the request,
+ * `context.solutionId` = the Solution whose pipeline it belongs to). Its label
+ * is `approvals.source_deployment`, its text the automationTitle the gate
+ * wrote, and its link the Solution pipeline, where the plan and the stage are.
+ * Without a `solutionId` on the row (an older request) the link falls back to
+ * the Solutions overview rather than to a pipeline it cannot name.
+ *
+ * Returns null for every other source, which keeps the list's old rendering.
+ *
+ * @param {object | null | undefined} row  an approval row (rowToApproval)
+ * @param {(key: string, fallback: string) => string} t
+ * @returns {null | { source: 'deployment', label: string, text: string, target: string, href: string }}
+ */
+export function approvalSourceInfo(row, t) {
+    if (row?.source !== 'deployment') return null;
+    const solutionId = typeof row.context?.solutionId === 'string' ? row.context.solutionId : null;
+    const target = solutionId ? pipelineTarget(solutionId) : 'studio/solutions';
+    return {
+        source: 'deployment',
+        label: t('approvals.source_deployment', 'Deployment'),
+        text: row.automationTitle || row.prompt || '',
+        target,
+        href: hrefOf(target),
+    };
+}
+
+/**
+ * The first fact of a row's meta line: which automation asked, or, for a
+ * deployment, "Deployment · <what is deployed>".
+ */
+export function approvalOriginText(row, t) {
+    const deployment = approvalSourceInfo(row, t);
+    if (deployment) return [deployment.label, deployment.text].filter(Boolean).join(' · ');
+    return row?.automationTitle || t('approvals.automation', 'Automation');
 }

@@ -2,6 +2,7 @@ import { Check, Search, X } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import Modal from './Modal';
 import { getIntegrationIcon } from '../../config/integrationIcons';
+import useTranslation from '../../hooks/useTranslation';
 
 /**
  * The app menu, shared.
@@ -100,7 +101,7 @@ export const PICKER_TEXT = Object.freeze({
     badgeList: 'list',
     // BEWUST LEEG. "Wordt altijd eerst bevestigd" is een regel van de
     // AGENT-runtime (`confirmForTool` zegt bij een send altijd `ask`); een
-    // routine-stap kent die regel niet — daar staat één bevestiging vóór de
+    // automation-stap kent die regel niet — daar staat één bevestiging vóór de
     // eerste onbeheerde run. Een schil die de zin standaard toont, zou hem dus
     // op één van zijn twee oppervlakken verzinnen. Wie de regel wél heeft,
     // geeft de tekst mee.
@@ -233,6 +234,7 @@ export default function AppActionPicker({
     readOnly = false,
     text = null,
 }) {
+    const { t } = useTranslation();
     const txt = useMemo(() => ({ ...PICKER_TEXT, ...(text || {}) }), [text]);
     const flatSet = useMemo(() => new Set(selected), [selected]);
     const [search, setSearch] = useState('');
@@ -371,7 +373,7 @@ export default function AppActionPicker({
                     <button
                         onClick={onClose}
                         className="absolute top-3 right-3 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] z-10"
-                        aria-label="Close"
+                        aria-label={t('common.close', 'Close')}
                     >
                         <X size={18} />
                     </button>
@@ -412,7 +414,7 @@ export default function AppActionPicker({
                                         {/* Per-app first: "this server has no browser" is not the
                                             same sentence as "you have not connected it", and the
                                             surface-wide hint can only say one of the two. */}
-                                        {focused.label || focused.id} is {focused.unavailableHint || unavailableHint}.
+                                        {t('common.app_action_unavailable', '{name} is {hint}.', { name: focused.label || focused.id, hint: focused.unavailableHint || unavailableHint })}
                                     </p>
                                 )}
                             </div>

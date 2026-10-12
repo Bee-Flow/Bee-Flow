@@ -6,6 +6,7 @@ import { resetAppForm } from './formContext';
 import { resolveBinding } from './resolveBinding';
 import { buildScope } from './RuntimeContext';
 import { parseSseStream } from './sseStream';
+import useTranslation from '../../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../../utils/helpers';
 import toast from '../../../../shared/Toast';
 
@@ -103,9 +104,9 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const KNOWN_EFFECT_KEYS = new Set(['toast', 'navigateTo', 'refresh', 'onError']);
 
 /**
- * The effect object to apply after a run: what the ROUTINE returned
+ * The effect object to apply after a run: what the AUTOMATION returned
  * (`_appEffects` from a return_to_app step) laid over what the app AUTHOR
- * wrote on the action. Per key, so an author's toast survives a routine that
+ * wrote on the action. Per key, so an author's toast survives an automation that
  * only asked for a navigation.
  */
 function mergeAppEffects(authored, fromRun) {
@@ -121,14 +122,16 @@ function showToast(tone, message) {
 }
 
 /**
- * "De routine is klaar, maar dit lukte hier niet." Eén plek, zodat elke soort
+ * "De automatisering is klaar, maar dit lukte hier niet." Eén plek, zodat elke soort
  * mislukking dezelfde weg naar buiten neemt: `onError:'errorScreen'` zegt het
  * hardop tegen de bezoeker, `stay` (de versmallende default, en ook wat een
  * ONBEKENDE onError oplevert) laat een regel in de console achter.
  */
-function reportEffectFailures(failures, onError) {
+function reportEffectFailures(failures, onError, tr) {
     if (!failures.length) return;
-    const message = `The routine finished, but ${failures.join(' and ')}.`;
+    const message = tr('studio_apps_runtime.actions.effects_finished_but', 'The automation finished, but {failures}.', {
+        failures: failures.join(tr('studio_apps_runtime.actions.join_and', ' and ')),
+    });
     if (onError === 'errorScreen') showToast('danger', message);
     else console.warn(`[AppStudio] ${message}`);
 }
@@ -180,7 +183,7 @@ function caseMatches(caseValue, exprValue) {
 
 // Distinct copy for a server step rejected by the storage quota (the server
 // marks it with code:'quota_exceeded' — 409 body or step-result body alike).
-const QUOTA_TOAST = 'Storage limit reached — delete rows or attachments to continue';
+const quotaToast = (tr) => tr('studio_apps_runtime.actions.quota_reached', 'Storage limit reached — delete rows or attachments to continue');
 
 // Resolve a navigate action/step's optional params map against the live scope:
 // { key: {kind:'static',value} | {kind:'formula',expr} } → { key: value }.
@@ -195,8 +198,8 @@ function resolveNavParams(params, scope) {
     return out;
 }
 
-function defaultConfirm(step) {
-    const message = (step && step.message) || 'Are you sure?';
+function defaultConfirm(step, tr) {
+    const message = (step && step.message) || tr('studio_apps_runtime.actions.are_you_sure', 'Are you sure?');
     if (typeof window === 'undefined') return Promise.resolve(true);
     // eslint-disable-next-line no-restricted-properties -- the default when no host mounts a dialog
     try { return Promise.resolve(window.confirm(message)); } catch { return Promise.resolve(true); }
@@ -235,6 +238,12 @@ export default function useActionRunner(appId, definition, {
      */
     onBrowseEvent = null,
 } = {}) {
+    const { t } = useTranslation();
+    // A stable translate function: the callbacks below keep their identity (and
+    // never read a stale catalogue) however often the catalogue loads.
+    const tRef = useRef(t);
+    tRef.current = t;
+    const tr = useCallback((key, fallback, params) => tRef.current(key, fallback, params), []);
     const [actionState, setActionState] = useState({});
     // Shared variable state for the whole run surface — sequences seed their
     // local vars from it and merge set_variable/resultVar writes back in.
@@ -327,21 +336,21 @@ export default function useActionRunner(appId, definition, {
      * Apply an EFFECT OBJECT — "what happens when the action is done".
      *
      * Two sources, one shape. The app author writes `action.onSuccess` /
-     * `action.onError` in the inspector; a routine writes the same shape from
+     * `action.onError` in the inspector; an automation writes the same shape from
      * a `return_to_app` step and it reaches here as `_appEffects` on the run
-     * result. The routine's keys are merged OVER the author's at the call
+     * result. The automation's keys are merged OVER the author's at the call
      * sites: it knows what actually happened, the author only knew what was
      * intended.
      *
      * ── NIETS VERDWIJNT STIL ────────────────────────────────────────────────
      * Twee soorten "dit lukt niet", en allebei worden ze gemeld:
-     *   1. EEN EFFECT DAT DEZE APP NIET KENT. Een routine kan nieuwer zijn dan
+     *   1. EEN EFFECT DAT DEZE APP NIET KENT. Een automatisering kan nieuwer zijn dan
      *      het app-bundel dat hem draait. Onbekende sleutels worden overgeslagen
      *      — nooit een crash, en nooit ten koste van de sleutels die we WEL
      *      kennen — maar er gaat een regel naar de console. De serverkant heeft
      *      op dat moment al vastgelegd wat hij verstuurde (de `return_to_app`-
      *      stap schrijft `_appEffects` én `_ignored` in zijn eigen runregel), dus
-     *      "wat heeft de routine gevraagd" is altijd na te lezen in het runlog.
+     *      "wat heeft de automatisering gevraagd" is altijd na te lezen in het runlog.
      *   2. EEN EFFECT DAT HIER NIET UITVOERBAAR IS — een scherm dat deze app
      *      niet heeft, of `resetForm` terwijl er geen formulier is dat de actie
      *      startte. Dan beslist `onError`: `stay` laat de bezoeker staan waar
@@ -361,22 +370,22 @@ export default function useActionRunner(appId, definition, {
         // DE DERDE STAND VAN DE SERVER. `_appEffectsUnknown` betekent: de run
         // slaagde, maar de stappenlees waaruit `_appEffects` komt viel om
         // (server/appStudio/actionExecutor/automationBridge.js). Zonder deze
-        // regel is dat antwoord niet te onderscheiden van "deze routine had
+        // regel is dat antwoord niet te onderscheiden van "deze automatisering had
         // geen terugkeerstap": geen melding, geen navigatie, geen spoor. Dit
         // staat vóór de `!effects`-uitgang, want juist in dat geval is er
         // niets anders dat het zegt.
         if (ctx.effectsUnknown) {
-            failures.push('what the routine asked the app to do next could not be read');
+            failures.push(tr('studio_apps_runtime.actions.failure_effects_unreadable', 'what the automation asked the app to do next could not be read'));
         }
 
         if (!effects || typeof effects !== 'object') {
-            if (failures.length) reportEffectFailures(failures, null);
+            if (failures.length) reportEffectFailures(failures, null, tr);
             return;
         }
         const unknown = Object.keys(effects).filter((k) => !KNOWN_EFFECT_KEYS.has(k));
         if (unknown.length) {
             console.warn(
-                `[AppStudio] The routine asked for ${unknown.map((k) => `"${k}"`).join(', ')}, `
+                `[AppStudio] The automation asked for ${unknown.map((k) => `"${k}"`).join(', ')}, `
                 + 'which this version of the app cannot do — ignored. The run log records what it sent.',
             );
         }
@@ -398,7 +407,7 @@ export default function useActionRunner(appId, definition, {
             // is een mislukking; anders zou een app zonder screens-array niet
             // meer kunnen navigeren.
             const missing = Array.isArray(screens) && !screens.some((sc) => sc && sc.id === screenId);
-            if (missing) failures.push(`the screen “${screenId}” is not part of this app`);
+            if (missing) failures.push(tr('studio_apps_runtime.actions.failure_screen_missing', 'the screen “{screen}” is not part of this app', { screen: String(screenId) }));
             else if (onNavigateRef.current) {
                 // Zonder params exact de aanroep die hier altijd al stond
                 // (één argument). Een tweede argument dat `undefined` is,
@@ -414,7 +423,7 @@ export default function useActionRunner(appId, definition, {
         // `refresh` is een GESLOTEN vocabulaire
         // (validate/constants.js RETURN_TO_APP_REFRESH_MODES), en een gesloten
         // vocabulaire dat als DATA reist heeft een afsluitende tak nodig: deze
-        // app-bundel kan ouder zijn dan de routine die hem aanstuurt.
+        // app-bundel kan ouder zijn dan de automatisering die hem aanstuurt.
         // KNOWN_EFFECT_KEYS vangt een onbekende SLEUTEL; zonder de `else`
         // hieronder viel een onbekende WAARDE van een bekende sleutel stil weg.
         if (effects.refresh === 'tableViews') {
@@ -422,9 +431,9 @@ export default function useActionRunner(appId, definition, {
             // aangemeld, dan is dat een mislukking en geen non-actie. Zonder
             // deze regel gebeurde er niets en werd er ook niets gemeld.
             if (onRefreshRef.current) {
-                try { await onRefreshRef.current(); } catch { failures.push('the data could not be reloaded'); }
+                try { await onRefreshRef.current(); } catch { failures.push(tr('studio_apps_runtime.actions.failure_reload', 'the data could not be reloaded')); }
             } else {
-                failures.push('there is no data on this screen to reload');
+                failures.push(tr('studio_apps_runtime.actions.failure_no_data', 'there is no data on this screen to reload'));
             }
         } else if (effects.refresh === 'resetForm') {
             // Alleen het formulier dat DEZE actie startte. Alle formulieren op
@@ -442,13 +451,13 @@ export default function useActionRunner(appId, definition, {
                 ? ctx.formName
                 : ((typeof ctx.formId === 'string' && ctx.formId) ? ctx.formId : null);
             if (formKey) resetAppForm(formKey);
-            else failures.push('there is no form here to clear');
+            else failures.push(tr('studio_apps_runtime.actions.failure_no_form', 'there is no form here to clear'));
         } else if (effects.refresh) {
-            failures.push(`this app does not know how to refresh “${String(effects.refresh)}”`);
+            failures.push(tr('studio_apps_runtime.actions.failure_refresh_unknown', 'this app does not know how to refresh “{target}”', { target: String(effects.refresh) }));
         }
 
-        if (failures.length) reportEffectFailures(failures, effects.onError);
-    }, []);
+        if (failures.length) reportEffectFailures(failures, effects.onError, tr);
+    }, [tr]);
 
     const pollRun = useCallback(async (runId) => {
         const deadline = Date.now() + POLL_TIMEOUT_MS;
@@ -460,12 +469,12 @@ export default function useActionRunner(appId, definition, {
             );
             let body = null;
             try { body = await res.json(); } catch { body = null; }
-            if (!res.ok) throw new Error(body?.error || `Could not check the run (${res.status})`);
+            if (!res.ok) throw new Error(body?.error || tr('studio_apps_runtime.actions.check_run_failed', 'Could not check the run ({status})', { status: res.status }));
             const status = body?.status;
             if (status && !['pending', 'running', 'queued'].includes(status)) return body;
         }
-        throw new Error('The routine is taking too long — check its run history.');
-    }, [appId]);
+        throw new Error(tr('studio_apps_runtime.actions.run_too_long', 'The automation is taking too long — check its run history.'));
+    }, [appId, tr]);
 
     // ── v1 run_automation bridge (unchanged) ───────────────────────────────
     const runAutomationAction = useCallback(async (actionId, action, opts) => {
@@ -491,22 +500,22 @@ export default function useActionRunner(appId, definition, {
                 } else if (body?.status === 'pending') {
                     // Accepted, but with no run id there is nothing to poll (a
                     // GET on `undefined` would 404 and report a failure the user
-                    // never had). The routine keeps running server-side, so
+                    // never had). The automation keeps running server-side, so
                     // settle neutrally: no error state, no success/error effects.
                     setEntry(actionId, { status: 'idle', result: undefined, error: null });
-                    showToast('info', 'The routine is still running — check its run history.');
+                    showToast('info', tr('studio_apps_runtime.actions.run_still_running', 'The automation is still running — check its run history.'));
                     return;
                 } else {
-                    throw new Error(body?.error || body?.message || 'The action was accepted but never returned a result.');
+                    throw new Error(body?.error || body?.message || tr('studio_apps_runtime.actions.no_result', 'The action was accepted but never returned a result.'));
                 }
             } else if (!res.ok) {
-                throw new Error(body?.error || body?.message || `The action failed (${res.status})`);
+                throw new Error(body?.error || body?.message || tr('studio_apps_runtime.actions.failed_status', 'The action failed ({status})', { status: res.status }));
             }
             if (body?.status === 'error') {
-                throw new Error(body?.error || 'The action failed.');
+                throw new Error(body?.error || tr('studio_apps_runtime.actions.failed', 'The action failed.'));
             }
             if (body?.status === 'awaiting_approval') {
-                // The routine paused on an approval step — working as designed,
+                // The automation paused on an approval step — working as designed,
                 // not a success and certainly not a failure. Settle with the
                 // handle (approvalId) but hold the onSuccess effects: nothing
                 // has succeeded yet, someone still has to decide.
@@ -515,7 +524,7 @@ export default function useActionRunner(appId, definition, {
                     result: body && body.result !== undefined ? body.result : body,
                     error: null,
                 });
-                showToast('info', 'Sent for approval — it continues once someone decides.');
+                showToast('info', tr('studio_apps_runtime.actions.sent_for_approval', 'Sent for approval — it continues once someone decides.'));
                 return;
             }
             setEntry(actionId, {
@@ -529,7 +538,7 @@ export default function useActionRunner(appId, definition, {
             await applyEffects(mergeAppEffects(action.onSuccess, body?._appEffects), { formId: opts.formId, formName: opts.formName, effectsUnknown: !!body?._appEffectsUnknown });
         } catch (err) {
             if (err === CANCELLED || !aliveRef.current) return;
-            const message = err?.message || 'The action failed.';
+            const message = err?.message || tr('studio_apps_runtime.actions.failed', 'The action failed.');
             setEntry(actionId, { status: 'error', result: undefined, error: message });
             // A bare v1 run_automation set actionState.error and stopped there —
             // and no runtime component renders that, so a failed action was
@@ -538,7 +547,7 @@ export default function useActionRunner(appId, definition, {
             showToast('danger', message);
             await applyEffects(action.onError, { formId: opts.formId, formName: opts.formName });
         }
-    }, [appId, draft, setEntry, applyEffects, pollRun]);
+    }, [appId, draft, setEntry, applyEffects, pollRun, tr]);
 
     // ── v2 sequence coordinator ────────────────────────────────────────────
     const runSequence = useCallback(async (actionId, action, opts) => {
@@ -554,7 +563,7 @@ export default function useActionRunner(appId, definition, {
             // sure that is the one on screen before handing it an ordinal.
             const ready = await beforeServerStepRef.current();
             if (ready && ready.ok === false) {
-                showToast('danger', ready.error || 'Your latest changes could not be saved, so this was not run.');
+                showToast('danger', ready.error || tr('studio_apps_runtime.actions.not_saved', 'Your latest changes could not be saved, so this was not run.'));
                 return;
             }
         }
@@ -649,7 +658,7 @@ export default function useActionRunner(appId, definition, {
                 );
             } catch (err) {
                 if (err?.name === 'TimeoutError' || err?.name === 'AbortError') {
-                    throw new Error('That took too long and was stopped. Try again, or with fewer documents.');
+                    throw new Error(tr('studio_apps_runtime.actions.step_too_long', 'That took too long and was stopped. Try again, or with fewer documents.'));
                 }
                 throw err;
             }
@@ -657,9 +666,9 @@ export default function useActionRunner(appId, definition, {
             try { payload = await res.json(); } catch { payload = null; }
             // A quota rejection (409 body or ok:false step result) gets its
             // own actionable copy instead of the raw server error.
-            if (payload?.code === 'quota_exceeded') throw new Error(QUOTA_TOAST);
-            if (!res.ok) throw new Error(payload?.error || `The step failed (${res.status})`);
-            if (payload && payload.ok === false) throw new Error(payload.error || 'The step failed.');
+            if (payload?.code === 'quota_exceeded') throw new Error(quotaToast(tr));
+            if (!res.ok) throw new Error(payload?.error || tr('studio_apps_runtime.actions.step_failed_status', 'The step failed ({status})', { status: res.status }));
+            if (payload && payload.ok === false) throw new Error(payload.error || tr('studio_apps_runtime.actions.step_failed', 'The step failed.'));
             return payload && payload.result !== undefined ? payload.result : payload;
         };
 
@@ -692,14 +701,14 @@ export default function useActionRunner(appId, definition, {
                 );
             } catch (err) {
                 if (err?.name === 'TimeoutError' || err?.name === 'AbortError') {
-                    throw new Error('The browse took too long and was stopped.');
+                    throw new Error(tr('studio_apps_runtime.actions.browse_too_long', 'The browse took too long and was stopped.'));
                 }
                 throw err;
             }
             if (!res.ok || !res.body) {
                 let payload = null;
                 try { payload = await res.json(); } catch { /* not JSON */ }
-                throw new Error(payload?.error || `The browse step failed (${res.status})`);
+                throw new Error(payload?.error || tr('studio_apps_runtime.actions.browse_failed_status', 'The browse step failed ({status})', { status: res.status }));
             }
 
             let final = null;
@@ -707,7 +716,7 @@ export default function useActionRunner(appId, definition, {
             await parseSseStream(res, (evt) => {
                 if (evt.type === 'result') {
                     if (evt.ok) final = evt.result || {};
-                    else failed = evt.error || 'The browse step failed.';
+                    else failed = evt.error || tr('studio_apps_runtime.actions.browse_failed', 'The browse step failed.');
                 } else if (evt.type !== 'done' && evt.type !== 'ping' && publish) {
                     publish(actionId, evt);
                 }
@@ -738,7 +747,7 @@ export default function useActionRunner(appId, definition, {
             if (SERVER_STEP_KINDS.has(step.kind)) {
                 const result = await dispatchServerStep(step, st);
                 st.lastResult = result;
-                // A run_automation STEP carries the routine's return the same
+                // A run_automation STEP carries the automation's return the same
                 // way the bare v1 action does. Held until the sequence is done
                 // rather than applied here: navigating away halfway would abort
                 // the steps that still had to run.
@@ -798,7 +807,7 @@ export default function useActionRunner(appId, definition, {
                     // and a plain link would navigate to a 401 instead of saving.
                     const res = await authFetch(href);
                     if (!res.ok) {
-                        toast.error('That file could not be downloaded.');
+                        toast.error(tr('studio_apps_runtime.actions.download_failed', 'That file could not be downloaded.'));
                         return;
                     }
                     const blob = await res.blob();
@@ -815,7 +824,7 @@ export default function useActionRunner(appId, definition, {
                     return;
                 }
                 case 'confirm': {
-                    const ask = confirmRef.current || defaultConfirm;
+                    const ask = confirmRef.current || ((st2) => defaultConfirm(st2, tr));
                     const ok = await ask(step);
                     if (!ok) throw SEQ_ABORT;
                     return;
@@ -893,7 +902,7 @@ export default function useActionRunner(appId, definition, {
                         st.vars = carried;
                         st.lastResult = iter.lastResult;
                         // Same reason lastResult is carried back: an iteration
-                        // is a copy of the state, so a routine's return picked
+                        // is a copy of the state, so an automation's return picked
                         // up inside the body would otherwise be dropped.
                         if (iter.appEffects) st.appEffects = mergeAppEffects(st.appEffects, iter.appEffects);
                         if (iter.effectsUnknown) st.effectsUnknown = true;
@@ -918,7 +927,7 @@ export default function useActionRunner(appId, definition, {
                         await execSteps(step.onError, st);
                         throw SEQ_ABORT;
                     }
-                    st.error = e?.message || 'The action failed.';
+                    st.error = e?.message || tr('studio_apps_runtime.actions.failed', 'The action failed.');
                     throw e;
                 }
             }
@@ -939,7 +948,7 @@ export default function useActionRunner(appId, definition, {
                 return;
             }
             if (e === CANCELLED || !aliveRef.current) return;
-            const message = state.error || e?.message || 'The action failed.';
+            const message = state.error || e?.message || tr('studio_apps_runtime.actions.failed', 'The action failed.');
             // A server-touching sequence surfaces the error on the triggering
             // control (status:'error'); every failed sequence also toasts so the
             // abort is never silent. onError effects (if any) apply afterwards.
@@ -947,7 +956,7 @@ export default function useActionRunner(appId, definition, {
             showToast('danger', message);
             await applyEffects(action.onError, { formId: opts.formId, formName: opts.formName });
         }
-    }, [appId, draft, setEntry, setVar, applyEffects]);
+    }, [appId, draft, setEntry, setVar, applyEffects, tr]);
 
     const runAction = useCallback(async (actionId, opts = {}) => {
         const action = definitionRef.current?.actions?.[actionId];
@@ -1017,13 +1026,13 @@ export default function useActionRunner(appId, definition, {
                 // and the person went on believing the row was written.
                 // useActionRunner.actionKinds.test.jsx drives every kind in the
                 // server catalog through here and fails on silence.
-                const message = `This app uses an action ("${action.kind}") this version cannot run. Update the app, or ask the person who built it.`;
+                const message = tr('studio_apps_runtime.actions.unsupported_action', 'This app uses an action ("{kind}") this version cannot run. Update the app, or ask the person who built it.', { kind: String(action.kind) });
                 setEntry(actionId, { status: 'error', result: undefined, error: message });
                 showToast('danger', message);
                 return;
             }
         }
-    }, [runSequence, runAutomationAction, setEntry]);
+    }, [runSequence, runAutomationAction, setEntry, tr]);
 
     return { actionState, runAction, vars, setVar };
 }

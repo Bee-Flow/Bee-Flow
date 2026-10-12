@@ -1,7 +1,7 @@
 /**
  * WHEN each thing an AI draft added should appear on the App Studio canvas —
  * the pure half of the film. A draft lands several components at once; the
- * routine builder deals its cards ~1.2 s apart (shared/builder/revealSchedule)
+ * automation builder deals its cards ~1.2 s apart (shared/builder/revealSchedule)
  * and this does the same for cells: ids in render order (draftDiff already
  * walks screens → sections → children), re-ordered by the server's own
  * `added` list when the tool_call carried one (the story the model told),

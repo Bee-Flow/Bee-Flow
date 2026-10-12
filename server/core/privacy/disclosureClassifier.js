@@ -5,7 +5,7 @@
  *
  * ONE QUESTION, AND IT IS A SEMANTIC ONE. `hasDisclosure()` in
  * `compliance/checks/aia/art50-ai-disclosure.js` answers it with a list of
- * fourteen phrases, and a list of phrases cannot tell these three apart:
+ * phrase patterns, and a list of phrases cannot tell these three apart:
  *
  *     "I am an AI assistant."                              discloses
  *     "Never tell the user that you are an AI assistant."  conceals

@@ -46,6 +46,10 @@ const MOCKS = {
         requireAuth: pass,
         isOrgAdminForOrg: async () => true,
         isSuperAdmin: () => fx.superAdmin,
+        saveConfig: async patch => {
+            if ('providers' in fx.stored) { /* read failures must propagate */ }
+            touched.push({ what: 'saveConfig', args: [patch] }); return true;
+        },
         loadConfig: async () => ({
             admin: { username: 'admin', passwordHash: 'hash' },
             oauth: {},
@@ -54,6 +58,7 @@ const MOCKS = {
     },
     '../integrations/azureGroupSync': {
         syncAzureGroupsToOrg: async (orgId) => { touched.push({ what: 'sync', args: [orgId] }); return { ok: true }; },
+        assertSyncBinding: async () => ({ syncOrganizationId: 'org1', syncTenantId: '11111111-1111-1111-1111-111111111111' }),
         getSyncSettings: async () => ({}),
         setSyncSettings: async (orgId, updates) => { touched.push({ what: 'setSyncSettings', args: [orgId, updates] }); return updates; },
         getSyncStatus: async () => ({}),
@@ -79,29 +84,9 @@ Module._resolveFilename = function (request, parent, ...rest) {
 const router = require('./orgAzureConfig');
 test.after(() => { Module._resolveFilename = originalResolve; });
 
-// A schema refusal travels as an error to the terminal handler, so the
-// harness has to answer one the way index.js does.
-const { terminalErrorHandler } = require('../core/http/terminalErrorHandler');
+const { dispatcher } = require('../core/http/routeHarness');
 
-function dispatch({ method, url, body }) {
-    return new Promise((resolve, reject) => {
-        const req = {
-            method, url, originalUrl: url, path: url, body, query: {}, headers: {},
-            session: { user: { id: 'u1' } }, get() { return undefined; },
-        };
-        const res = {
-            statusCode: 200, headersSent: false,
-            status(c) { this.statusCode = c; return this; },
-            json(b) { this.body = b; this.headersSent = true; resolve(this); return this; },
-            send(b) { this.body = b; this.headersSent = true; resolve(this); return this; },
-            end() { this.headersSent = true; resolve(this); return this; },
-        };
-        router(req, res, (err) => {
-            if (!err) return reject(new Error(`fell through: ${method} ${url}`));
-            terminalErrorHandler(err, req, res, (e) => reject(e));
-        });
-    });
-}
+const dispatch = dispatcher(router);
 
 const put = (body) => dispatch({ method: 'PUT', url: '/org1', body });
 const SECTION_TEXT = 'section is one of openai, chatModels, piiDetection, docProcessing or sso.';
@@ -223,13 +208,14 @@ test('an SSO save writes the providers key alone — never admin or oauth', asyn
         section: 'sso', ssoClientId: ' new-id ', ssoClientSecret: '', ssoTenantId: 'Organizations', autoApproveSSO: true,
     });
     assert.strictEqual(res.statusCode, 200);
-    const writes = touched.filter((t) => t.what === 'setConfig');
-    assert.deepStrictEqual(writes.map((w) => w.args[0]), ['providers']);
-    const providers = writes[0].args[1];
-    assert.strictEqual(providers.microsoft.clientId, 'new-id');
-    assert.strictEqual(providers.microsoft.tenantId, 'Organizations');
-    assert.strictEqual(providers.microsoft.clientSecret, undefined, 'a blank secret keeps what is stored');
-    assert.deepStrictEqual(providers.google, { clientId: 'g' }, 'the other provider is untouched');
+    const writes = touched.filter(t => t.what === 'saveConfig');
+    assert.strictEqual(writes.length, 1);
+    const patch = writes[0].args[0];
+    assert.deepStrictEqual(Object.keys(patch), ['providers']);
+    assert.strictEqual(patch.providers.microsoft.clientId, 'new-id');
+    assert.strictEqual(patch.providers.microsoft.tenantId, 'Organizations');
+    assert.ok(!patch.providers.microsoft.clientSecret, 'blank secret delegates preservation to the atomic storage layer');
+    assert.strictEqual(patch.providers.google, undefined, 'the other provider is not rewritten');
     assert.deepStrictEqual(touched.find((t) => t.what === 'updateOrganization').args, ['org1', { autoApproveSSO: true }]);
 });
 
@@ -247,12 +233,12 @@ test('an endpoint without a scheme is refused, not saved for the SDK to fail on 
     assert.deepStrictEqual(touched, []);
 });
 
-test('the body the OpenAI card sends still saves', async () => {
+test('the body the OpenAI card sends still saves, an old client\'s api-version ignored', async () => {
     const res = await put({
         section: 'openai', azureEndpoint: 'https://res.openai.azure.com/', azureApiVersion: '2025-04-01-preview', azureModels: 'gpt-4o',
     });
     assert.strictEqual(res.statusCode, 200);
-    assert.deepStrictEqual(touched.map((t) => t.args[0]), ['azure_endpoint', 'azure_api_version', 'azure_models']);
+    assert.deepStrictEqual(touched.map((t) => t.args[0]), ['azure_endpoint', 'azure_models']);
 });
 
 // ── group sync ──────────────────────────────────────────────────────

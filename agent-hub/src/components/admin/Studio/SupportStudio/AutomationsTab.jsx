@@ -29,14 +29,14 @@ function KnowledgeIngestion({ inbox, kbs, onChanged }) {
     const orgKbs = kbs.filter(kb => !kb.organization_id || !inbox.organization_id || kb.organization_id === inbox.organization_id);
     const [enabled, setEnabled] = useState(!!inbox.kb_ingest_enabled);
     const [kbId, setKbId] = useState(inbox.kb_ingest_kb_id || '');
-    const [routineId, setRoutineId] = useState(inbox.kb_ingest_routine_id || null);
+    const [automationId, setAutomationId] = useState(inbox.kb_ingest_automation_id || null);
     const [newKbName, setNewKbName] = useState('');
     const [busy, setBusy] = useState(false);
     const [status, setStatus] = useState('');
     const [seenInboxId, setSeenInboxId] = useState(inbox.id);
     if (seenInboxId !== inbox.id) {
         setSeenInboxId(inbox.id);
-        setEnabled(!!inbox.kb_ingest_enabled); setKbId(inbox.kb_ingest_kb_id || ''); setRoutineId(inbox.kb_ingest_routine_id || null);
+        setEnabled(!!inbox.kb_ingest_enabled); setKbId(inbox.kb_ingest_kb_id || ''); setAutomationId(inbox.kb_ingest_automation_id || null);
     }
 
     const createKb = async () => {
@@ -64,7 +64,7 @@ function KnowledgeIngestion({ inbox, kbs, onChanged }) {
             });
             const d = await res.json().catch(() => ({}));
             if (!res.ok) { setStatus(d.error || t('support.kb_ingest.save_failed', 'Could not save knowledge ingestion')); return; }
-            setRoutineId(d.routineId || (enabled ? routineId : null));
+            setAutomationId(d.automationId || (enabled ? automationId : null));
             setStatus(t('support.kb_ingest.saved', 'Knowledge ingestion saved.'));
             onChanged?.();
         } finally { setBusy(false); }
@@ -90,7 +90,7 @@ function KnowledgeIngestion({ inbox, kbs, onChanged }) {
                                 <Plus size={12} /> {t('support.kb_ingest.create_new', 'Create new KB')}
                             </button>
                         </div>
-                        {routineId && <span className="text-[11px] text-green-600 dark:text-green-400">{t('support.kb_ingest.routine_active', 'Automation active — resolved tickets are distilled into this knowledge base.')}</span>}
+                        {automationId && <span className="text-[11px] text-green-600 dark:text-green-400">{t('support.kb_ingest.automation_active', 'Automation active — resolved tickets are distilled into this knowledge base.')}</span>}
                     </div>
                 )}
                 <div className="flex items-center justify-between gap-3 pt-1">

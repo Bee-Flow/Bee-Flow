@@ -16,7 +16,7 @@
  *   - GET /api/datatables answered `{datatables: []}` — for members too;
  *   - the builder's datatable picker never even queried, inside a try/catch;
  *   - POST /api/datatables answered 400 `no_organisation`;
- *   - a routine save stamped organization_id NULL, so reconcileUsage's
+ *   - an automation save stamped organization_id NULL, so reconcileUsage's
  *     `WHERE EXISTS (… organization_id = $1)` INSERT matched nothing and the
  *     "used by" index stayed empty while the save returned 200.
  *
@@ -423,14 +423,14 @@ test('the builder picker lists the org tables for a returning member', async () 
     assert.strictEqual(res.body.datatables[0].canWrite, false);
 });
 
-// ── The routine save ────────────────────────────────────────────────────────
+// ── The automation save ────────────────────────────────────────────────────────
 
 const withDatatableStep = {
     trigger: { kind: 'manual' },
     steps: [{ id: 's1', type: 'datatable', op: 'add_row', datatableId: 'tbl_a', values: { name: 'x' } }],
 };
 
-test('a routine save stamps the DB organisation on the usage index', async () => {
+test('an automation save stamps the DB organisation on the usage index', async () => {
     resetState();
     USERS['u-member'] = { id: 'u-member', organizationId: 'org-a', orgRole: 'member', groups: [] };
     AUTOMATIONS['auto_1'] = { id: 'auto_1', userId: 'u-member', isActive: false, definition: {} };
@@ -458,7 +458,7 @@ test('a save whose datatable steps write NO usage rows says so', async () => {
         'a silent no-op INSERT is what made every "used by" panel empty');
 });
 
-test('creating a routine stamps the organisation the DB says, not the session', async () => {
+test('creating an automation stamps the organisation the DB says, not the session', async () => {
     resetState();
     USERS['u-member'] = { id: 'u-member', organizationId: 'org-a', orgRole: 'member', groups: [] };
 

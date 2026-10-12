@@ -185,7 +185,7 @@ async function resolveAppTriggerInputs(automation, inputMapping, formValues, { a
 }
 
 /**
- * The routine's final value for the app's actionResult bindings — the SINGLE
+ * The automation's final value for the app's actionResult bindings — the SINGLE
  * implementation shared with routes/studioAppsRun.js (run + poll endpoints).
  *
  * executeAutomation resolves with the persisted run ROW, which carries no
@@ -207,7 +207,7 @@ async function resolveAppTriggerInputs(automation, inputMapping, formValues, { a
  *              for the app (`_appEffects`). A return_to_app is by construction
  *              the LAST top-level step of the run, so without this line every
  *              existing `actionResult` binding in every app would silently stop
- *              reading the routine's data and start reading the effects object
+ *              reading the automation's data and start reading the effects object
  *              the moment someone added a return step. The effects travel in
  *              their own field — see deriveAppEffects below.
  *
@@ -251,16 +251,37 @@ async function deriveRunOutcome(run) {
     if (run.status !== 'success') return { output: null, appEffects: null };
     try {
         const automationStore = require('../../stores/automationStore');
+        const { isTruncatedOutput } = require('../../automation/payloadTruncation');
+        const { withFullOutput } = require('../../core/automationRunner/replaySeeding');
         const steps = await automationStore.getRunSteps(run.id);
         let output = null;
+        let outputTooLarge = false;
         for (let i = steps.length - 1; i >= 0; i--) {
-            const s = steps[i];
+            let s = steps[i];
             // BEWUST alleen `parentStepId`, niet isTopLevelRow: welke regel de
             // `actionResult`-bindingen van élke bestaande app lezen, is niet
             // iets om en passant te verschuiven. Die scan blijft byte-identiek.
-            if (!s.parentStepId && !NON_ANSWER_STEP_TYPES.has(s.stepType)) { output = s.output ?? null; break; }
+            if (!s.parentStepId && !NON_ANSWER_STEP_TYPES.has(s.stepType)) {
+                // An answer over 256 KB is persisted as the truncation sentinel,
+                // with the full (already redacted) copy kept beside the row. The
+                // app must get that copy, not `{ __truncated__, … }`: every
+                // actionResult path into the sentinel resolved to nothing, so a
+                // list stayed empty exactly when the data got big. Without a
+                // copy (larger than the copy limit) the app is told, not handed
+                // the sentinel as data.
+                if (isTruncatedOutput(s.output)) {
+                    s = await withFullOutput(s);
+                    if (isTruncatedOutput(s.output)) {
+                        outputTooLarge = true;
+                        log.warn(`[ActionExecutor] run ${run.id}: the answer of step ${s.stepId} was too large to keep in full; the app gets no output`);
+                        break;
+                    }
+                }
+                output = s.output ?? null;
+                break;
+            }
         }
-        // De LAATSTE top-level return_to_app wint: een routine mag er één per
+        // De LAATSTE top-level return_to_app wint: een automatisering mag er één per
         // tak dragen, en er draaide er maar één.
         //
         // Genestelde regels tellen niet mee, en dat is hier een HARDERE eis dan
@@ -281,12 +302,12 @@ async function deriveRunOutcome(run) {
             if (eff && typeof eff === 'object' && !Array.isArray(eff)) appEffects = eff;
             break;
         }
-        return { output, appEffects };
+        return { output, appEffects, ...(outputTooLarge ? { outputTooLarge: true } : {}) };
     } catch (e) {
         // MISLUKT LEZEN IS GEEN "GEEN INSTRUCTIES".
         //
         // Zonder `effectsUnknown` is dit antwoord byte-identiek aan dat van een
-        // routine zónder terugkeerstap: runBody laat `_appEffects` dan gewoon
+        // automation zónder terugkeerstap: runBody laat `_appEffects` dan gewoon
         // weg en de bezoeker ziet niets gebeuren — geen toast, geen navigatie,
         // geen spoor. Voor `output` was dat bestaand gedrag; aan diezelfde
         // stille tak hangt sinds P4 een NIEUWE belofte, en die mag niet in
@@ -312,7 +333,7 @@ async function runAutomationStep(app, step, ctx) {
     const automation = automationForRun(await automationStore.getAutomation(automationId), { mode: 'live' });
     if (!automation) return { ok: false, error: 'Automation not found' };
     // Owner-ownership check — a post-wiring transfer must never let the app run
-    // someone else's routine acts-as-owner.
+    // someone else's automation acts-as-owner.
     if (automation.userId !== app.userId) {
         return { ok: false, error: 'Automation does not belong to the app owner' };
     }
@@ -335,7 +356,7 @@ async function runAutomationStep(app, step, ctx) {
     if (run && run.status === 'cancelled' && /already running/i.test(run.error || '')) {
         return { ok: true, result: { runId: run.id, status: 'skipped', output: null } };
     }
-    // A pause on an approval step is NOT a failure — it is the routine working
+    // A pause on an approval step is NOT a failure — it is the automation working
     // as designed. Hand the app its durable handle (approvalId) so a sequence
     // can store it, show it, or branch on `result.status` with a condition
     // step; before this the app got an abort and a danger toast.
@@ -349,7 +370,7 @@ async function runAutomationStep(app, step, ctx) {
     }
     const { output, appEffects } = await deriveRunOutcome(run);
     if (run && run.status && run.status !== 'success') {
-        return { ok: false, error: run.error || 'The routine did not finish successfully', result: { runId: run.id, status: run.status, output } };
+        return { ok: false, error: run.error || 'The automation did not finish successfully', result: { runId: run.id, status: run.status, output } };
     }
     // `_appEffects` rides on the STEP result too, not only on the v1 /run
     // response. Without this line a return_to_app worked on a bare

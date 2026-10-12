@@ -6,7 +6,7 @@
  * The run follows the bridge's contract (server/routes/studioAppsRun.js):
  *   200 { runId, status, output }        — finished inside the 60s wait
  *   202 { runId, status: 'pending' }     — still going; poll GET .../runs/:runId
- *   200 { status: 'skipped', message }   — the routine was already running
+ *   200 { status: 'skipped', message }   — the automation was already running
  *
  * After a 202 the poll's answer is what shows (model/actionRun.ts): the button
  * spins until the poll says the run stopped, and a poll that fails says so.
@@ -54,7 +54,7 @@ function PollFailed({ error, onRetry }: { error: unknown; onRetry: () => void })
     return (
         <Banner
             tone="error"
-            action={<Button label={t('mobile.apps.poll_retry', 'Check again')} variant="ghost" size="sm" onPress={onRetry} testID="app-action-poll-retry" />}
+            action={<Button label={t('forms.public_check_again', 'Check again')} variant="ghost" size="sm" onPress={onRetry} testID="app-action-poll-retry" />}
         >
             {t('mobile.apps.poll_failed', 'Could not check on the run: {reason}', { reason: describeError(error).message })}
         </Banner>

@@ -16,6 +16,10 @@ async function runInputGuardrails({ agent, messages, userMessage, globalConfig, 
     let processedUserMessage = userMessage;
     let userPrivacyMeta = null;
     let assistantTokenisationInfo = null;
+    // What the PII gate decided on this turn (validate.js `options.report`),
+    // handed back as `piiReport` for chat signals (core/privacy/chatSignals.js).
+    // Status, decision and category ids only.
+    const piiReport = {};
 
     // ── Unicode Smuggling Defense (must run FIRST) ───────────────────
     const unicodeResult = sanitizeMessagesUnicode(messages);
@@ -85,6 +89,8 @@ async function runInputGuardrails({ agent, messages, userMessage, globalConfig, 
     // and apply the user's chosen action (ask/redact/block). Running both leads to
     // double scans and conflicting actions.
     const dlpWillHandle = !!(orgShield?.enabled && orgShield?.dlpEnabled);
+    if (dlpWillHandle) piiReport.status = 'deferred_to_dlp';
+    else if (!(globalConfig?.piiDetectionEnabled || orgPiiEnabled)) piiReport.status = 'disabled';
     if (!dlpWillHandle && (globalConfig?.piiDetectionEnabled || orgPiiEnabled)) {
         try {
             const piiMessages = [
@@ -109,7 +115,7 @@ async function runInputGuardrails({ agent, messages, userMessage, globalConfig, 
             const _ps = startPrivacyScanPhase(onEvent, messageText(messages[messages.length - 1]));
             let piiResult;
             try {
-                piiResult = await validateInputForPii(piiMessages, orgPiiEnabled, orgShield, null, existingTokenMap, { vaultUserId: userId || null, onProgress: _ps.onProgress });
+                piiResult = await validateInputForPii(piiMessages, orgPiiEnabled, orgShield, null, existingTokenMap, { vaultUserId: userId || null, onProgress: _ps.onProgress, report: piiReport });
             } finally {
                 _ps.end();
             }
@@ -313,6 +319,11 @@ async function runInputGuardrails({ agent, messages, userMessage, globalConfig, 
         webSearchGuardPiiCategories,
         userPrivacyMeta,
         assistantTokenisationInfo,
+        piiReport: {
+            status: piiReport.status || 'unscanned',
+            decision: piiReport.decision || null,
+            categories: Array.isArray(piiReport.categories) ? piiReport.categories : [],
+        },
     };
 }
 

@@ -69,7 +69,7 @@ test('queueing a review does no compliance work on the caller\'s turn', async (t
 });
 
 test('five flips of one switch are ONE review, not five', async () => {
-    // The thing this prevents: someone toggling a routine while they fiddle
+    // The thing this prevents: someone toggling an automation while they fiddle
     // with it, and every click queueing its own run of the compliance checks.
     //
     // Deliberately waited out on the REAL clock instead of drained. A queue
@@ -93,8 +93,8 @@ test('a queued review fires on its own, without anyone draining it', async () =>
 });
 
 test('a fresh toggle AFTER a review has run gets its own review', async () => {
-    // Coalescing must not become "once per routine, ever": the queue entry has
-    // to be released when it fires, or a routine reviewed at 09:05 would never
+    // Coalescing must not become "once per automation, ever": the queue entry has
+    // to be released when it fires, or an automation reviewed at 09:05 would never
     // be looked at again for any later change.
     subjectReview.reviewAutomation('org1', 'auto-1');
     await settle();
@@ -104,11 +104,11 @@ test('a fresh toggle AFTER a review has run gets its own review', async () => {
     assert.strictEqual(calls.length, 2);
 });
 
-test('the queue is per routine — a busy workspace still reviews each one', async () => {
+test('the queue is per automation — a busy workspace still reviews each one', async () => {
     subjectReview.reviewAutomation('org1', 'auto-1');
     subjectReview.reviewAutomation('org1', 'auto-2');
     subjectReview.reviewAutomation('org2', 'auto-1');   // same id, different organisation
-    assert.strictEqual(subjectReview._armedCount(), 3, 'coalescing is per (org, routine), never global');
+    assert.strictEqual(subjectReview._armedCount(), 3, 'coalescing is per (org, automation), never global');
     await subjectReview._drain();
     assert.deepStrictEqual(
         calls.map(c => [c.orgId, c.subjectIds[0]]).sort(),
@@ -116,9 +116,9 @@ test('the queue is per routine — a busy workspace still reviews each one', asy
     );
 });
 
-test('the review asks under every spelling a check may hold the routine by', async () => {
-    // Art. 50 holds a routine by its bare id; the Machinery check holds the
-    // same routine as "automation:<id>". One spelling reviews half of what
+test('the review asks under every spelling a check may hold the automation by', async () => {
+    // Art. 50 holds an automation by its bare id; the Machinery check holds the
+    // same automation as "automation:<id>". One spelling reviews half of what
     // applies to it and looks exactly like working.
     subjectReview.reviewAutomation('org1', 'auto-1');
     await subjectReview._drain();
@@ -130,7 +130,7 @@ test('a compliance run that blows up never reaches the caller', async () => {
     behaviour = async () => { throw new Error('framework policy unreachable'); };
     subjectReview.reviewAutomation('org1', 'auto-1');
     // _drain awaits the review; if the failure escaped, this rejects and the
-    // activation handler that queued it would have 500'd on a routine it had
+    // activation handler that queued it would have 500'd on an automation it had
     // already switched on.
     await subjectReview._drain();
     assert.strictEqual(calls.length, 1);
@@ -152,7 +152,7 @@ test('nonsense in never throws back out', () => {
 
 test('a toggle that lands DURING a review is re-queued, never swallowed', async () => {
     // The failure this guards: a review slower than the debounce window, with
-    // a toggle arriving inside it. Drop that toggle and the routine's verdict
+    // a toggle arriving inside it. Drop that toggle and the automation's verdict
     // describes the state it was in before the last change — which is the
     // stale dashboard this whole module exists to end, just with a shorter
     // staleness.
@@ -186,10 +186,10 @@ test('subjectSpellings is the single place the two id shapes are written down', 
 
 // ── projects ─────────────────────────────────────────────────────────────
 
-test('a project review asks for both spellings of the project and never collides with a routine of the same id', async () => {
+test('a project review asks for both spellings of the project and never collides with an automation of the same id', async () => {
     subjectReview.reviewProject('org1', 'x1', { reason: 'members' });
     subjectReview.reviewAutomation('org1', 'x1');
-    assert.strictEqual(subjectReview._armedCount(), 2, 'a project and a routine sharing an id have separate slots');
+    assert.strictEqual(subjectReview._armedCount(), 2, 'a project and an automation sharing an id have separate slots');
     await subjectReview._drain();
     const asked = calls.map(c => c.subjectIds).sort((a, b) => a[0].localeCompare(b[0]));
     assert.deepStrictEqual(asked, [['project:x1', 'x1'], ['x1', 'automation:x1']]);

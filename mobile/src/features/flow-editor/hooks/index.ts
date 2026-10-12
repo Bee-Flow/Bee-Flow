@@ -1,5 +1,5 @@
 /**
- * The flow editor's hooks: the open routine's draft, the reads, and the
+ * The flow editor's hooks: the open automation's draft, the reads, and the
  * writes around it. Screens and components use these, never useQuery or the
  * api directly.
  */

@@ -33,7 +33,7 @@ function deps(overrides = {}) {
         // ship green — see the contract test at the bottom of this file.
         resolveIntegration: (name) => (name.startsWith('gmail') ? { integration: 'gmail', label: 'Gmail' } : null),
         getUser: async (id) => ({ id, organizationId: null }),
-        buildUserSession: async () => ({ user: { id: 'u1' }, routineProviders: {} }),
+        buildUserSession: async () => ({ user: { id: 'u1' }, automationProviders: {} }),
         resolveMailboxAddress: async () => 'ik@acme.nl',
         ...overrides,
     };
@@ -57,7 +57,7 @@ test('a Google-SSO session is enough — no separate "connect Gmail" step', asyn
                 oauthProvider: 'google',
                 accessToken: 'sso-at',
                 refreshToken: 'sso-rt',
-                routineProviders: {},
+                automationProviders: {},
             }),
             upsertCredential: async (row) => { upserts.push(row); },
         }),
@@ -93,7 +93,7 @@ test('the chat Apps preference cannot veto a configured mailbox', async () => {
                 oauthProvider: 'google',
                 accessToken: 'sso-at',
                 refreshToken: 'sso-rt',
-                routineProviders: {},
+                automationProviders: {},
             }),
         }),
     });
@@ -111,7 +111,7 @@ test('a session-sourced token is copied into the vault so the SCHEDULED sync sur
         viewerId: 'u1',
         deps: deps({
             getIntegrationTools: async () => GMAIL_TOOLS,
-            buildUserSession: async () => ({ user: { id: 'u1' }, oauthProvider: 'google', accessToken: 'sso-at', refreshToken: 'sso-rt', routineProviders: {} }),
+            buildUserSession: async () => ({ user: { id: 'u1' }, oauthProvider: 'google', accessToken: 'sso-at', refreshToken: 'sso-rt', automationProviders: {} }),
             upsertCredential: async (row) => { upserts.push(row); },
         }),
     });
@@ -131,7 +131,7 @@ test('the vault wins when it has a credential (it refreshes; a session does not)
         deps: deps({
             getIntegrationTools: async () => GMAIL_TOOLS,
             getProviderAuth: async () => ({ accessToken: 'vault-at', refreshToken: 'vault-rt' }),
-            buildUserSession: async () => ({ user: { id: 'u1' }, oauthProvider: 'google', accessToken: 'sso-at', routineProviders: {} }),
+            buildUserSession: async () => ({ user: { id: 'u1' }, oauthProvider: 'google', accessToken: 'sso-at', automationProviders: {} }),
             upsertCredential: async (row) => { upserts.push(row); },
         }),
     });
@@ -147,14 +147,14 @@ test('providers are never mixed: a Microsoft session is not handed to Gmail', as
             viewerId: 'u1',
             deps: deps({
                 getIntegrationTools: async () => GMAIL_TOOLS,
-                buildUserSession: async () => ({ user: { id: 'u1' }, oauthProvider: 'microsoft', accessToken: 'ms-at', routineProviders: {} }),
+                buildUserSession: async () => ({ user: { id: 'u1' }, oauthProvider: 'microsoft', accessToken: 'ms-at', automationProviders: {} }),
             }),
         }),
         (e) => e.code === 'connection_required',
     );
 });
 
-test('a token under routineProviders is used too', async () => {
+test('a token under automationProviders is used too', async () => {
     const identity = await resolveMailboxIdentity(connector(), {
         app: APP,
         viewerId: 'u1',
@@ -164,7 +164,7 @@ test('a token under routineProviders is used too', async () => {
                 user: { id: 'u1' },
                 oauthProvider: 'microsoft',
                 accessToken: 'ms-at',
-                routineProviders: { google: { accessToken: 'g-at', refreshToken: 'g-rt' } },
+                automationProviders: { google: { accessToken: 'g-at', refreshToken: 'g-rt' } },
             }),
         }),
     });

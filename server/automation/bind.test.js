@@ -178,11 +178,17 @@ const {
             'leaveUnresolved: fills resolved tokens, leaves unresolved ones verbatim',
         );
 
-        // [*] projection interpolates as a JSON array string.
+        // [*] projection: JSON for a slot that carries data (the AI prompt
+        // passes listAs 'json'), a comma separated line in the default text.
+        assert.strictEqual(
+            interpolateTemplate('vals={{steps.s1.output.results[*].c}}', runState, { leaveUnresolved: true, listAs: 'json' }),
+            'vals=["A","B"]',
+            "leaveUnresolved + listAs 'json': [*] projection renders as JSON array",
+        );
         assert.strictEqual(
             interpolateTemplate('vals={{steps.s1.output.results[*].c}}', runState, { leaveUnresolved: true }),
-            'vals=["A","B"]',
-            'leaveUnresolved: [*] projection renders as JSON array',
+            'vals=A, B',
+            'default: [*] projection of plain values reads as a list',
         );
     }
 

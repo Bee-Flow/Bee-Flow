@@ -12,7 +12,7 @@
  *     unsigned or tampered body can never reach the decision path (this is the
  *     outermost of the two signatures — Talk's own bot signature is verified
  *     first, in the connector, against the bot secret);
- *   • the existing trigger dispatch is untouched: a routine subscribed to
+ *   • the existing trigger dispatch is untouched: an automation subscribed to
  *     talk.reaction.added still fires exactly as before, additively.
  *
  * Handler invoked directly with mocked stores — the harness family of

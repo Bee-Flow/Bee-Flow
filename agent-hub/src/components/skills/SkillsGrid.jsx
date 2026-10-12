@@ -63,9 +63,6 @@ export default function SkillsGrid({
                             <div>
                                 <div className="flex items-center gap-2">
                                     <h2 className="m-0 text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{t('skills.title', 'Skills')}</h2>
-                                    <span className="text-[10px] font-bold tracking-wider uppercase px-1.5 py-0.5 rounded-md text-purple-500 bg-purple-500/10">
-                                        beta
-                                    </span>
                                 </div>
                                 <p className="m-0 mt-0.5 text-[13px]" style={{ color: 'var(--text-secondary)' }}>
                                     {t('skills.subtitle', 'Reusable instruction packs for consistent AI task execution')}

@@ -1,6 +1,6 @@
 /**
  * The version history over a mocked HTTP client: the saves grouped by what
- * is live, the working copy and the live one marked, a version compared (with the current routine,
+ * is live, the working copy and the live one marked, a version compared (with the current automation,
  * then with another save through the server's diff route), and a restore
  * that asks first and then replaces the open draft.
  */
@@ -13,7 +13,7 @@ import { renderScreen } from '@/shared/testing/renderWithProviders';
 
 import type { FlowDefinition } from '../model';
 import { peekDraftStore } from '../state';
-import { releaseDrafts, serveRoutine } from './testing';
+import { releaseDrafts, serveAutomation } from './testing';
 import { VersionsScreen } from './VersionsScreen';
 
 jest.setTimeout(30_000);
@@ -36,7 +36,7 @@ const summary = (id: string, version: number, savedAt: Date, flags: Record<strin
 });
 
 beforeEach(() => {
-    serveRoutine({ id: 'a1', title: 'Mail sorter', definition: NOW, version: 2 }, {
+    serveAutomation({ id: 'a1', title: 'Mail sorter', definition: NOW, version: 2 }, {
         '/api/automation/a1/versions': {
             versions: [summary('v2', 2, today, { isEditing: true }), summary('v1', 1, yesterday, { isLive: true, name: 'First release' })],
         },
@@ -72,7 +72,7 @@ it('lists the saves by what is live, the working copy and the live one marked', 
     expect(screen.getByTestId('restore-v1')).toBeTruthy();
 });
 
-it('compares a save with the routine now, then with another save', async () => {
+it('compares a save with the automation now, then with another save', async () => {
     await mount();
     await fireEvent.press(await screen.findByTestId('version-v1'));
     expect(await screen.findByText('1 step removed')).toBeTruthy();

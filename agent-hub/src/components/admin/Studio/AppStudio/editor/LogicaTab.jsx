@@ -2,14 +2,14 @@ import { useQuery } from '@tanstack/react-query';
 import { ArrowUpRight, ExternalLink, Plus, Workflow } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useAutomationRows } from './automationTitles';
-import logicRows, { assignNotices, collectBoundTableIds, routineRows } from './logicRows';
+import logicRows, { assignNotices, collectBoundTableIds, derivedAutomationRows } from './logicRows';
 import { toSaveNotices } from './saveNotices';
 import useTranslation from '../../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../../utils/helpers';
 import { kindColorVar } from '../../../../shared/kindColors';
 import { nOf } from '../../KnowledgeStudio/plural';
 import { automationHref } from '../inspector/AutomationTile';
-import RoutinePicker from '../inspector/RoutinePicker';
+import AutomationPicker from '../inspector/AutomationPicker';
 import { getComponentEntry } from '../runtime/componentRegistry';
 import { setAction } from '../state/definitionOps';
 
@@ -72,9 +72,9 @@ async function fetchApprovalFacets(appId) {
 }
 
 /**
- * Runs voor één routine. `null` = niet gelezen; een getal = gelezen.
+ * Runs voor één automation. `null` = niet gelezen; een getal = gelezen.
  *
- * getRunFacetsScoped geeft de vier maps ALTIJD terug, ook leeg — een routine
+ * getRunFacetsScoped geeft de vier maps ALTIJD terug, ook leeg — een automatisering
  * die niet in `automationId` staat heeft dus echt nul runs gehad in het
  * venster, en dat is een gelezen antwoord. Ontbreekt de map zelf, dan is de
  * vorm onbekend en is er niets gelezen.
@@ -96,7 +96,7 @@ export function pendingCountOf(facets) {
     return Number.isFinite(n) ? n : 0;
 }
 
-/** De kleur van een rij: een routine draagt de automation-familie, de rest die van de app. */
+/** De kleur van een rij: een automatisering draagt de automation-familie, de rest die van de app. */
 function rowColor(row) {
     return row.actionKind === 'run_automation' ? kindColorVar('automation') : kindColorVar('app');
 }
@@ -113,7 +113,7 @@ export default function LogicaTab({
     const [pickerOpen, setPickerOpen] = useState(false);
 
     // Eén gedeeld verzoek per sessie (module-cache in automationTitles.js) —
-    // de kolom "Gebeurt" naamt er routines mee en de sectie hieronder leest er
+    // de kolom "Gebeurt" naamt er automatiseringen mee en de sectie hieronder leest er
     // projectId en stappen uit.
     const automationRows = useAutomationRows(true);
     const titleFor = useMemo(
@@ -127,8 +127,8 @@ export default function LogicaTab({
         () => new Set(rows.map((r) => r.automationId).filter(Boolean)),
         [rows],
     );
-    const routines = useMemo(
-        () => routineRows({ app, automationRows, boundTableIds, wiredAutomationIds, t }),
+    const automations = useMemo(
+        () => derivedAutomationRows({ app, automationRows, boundTableIds, wiredAutomationIds, t }),
         [app, automationRows, boundTableIds, wiredAutomationIds, t],
     );
 
@@ -136,8 +136,8 @@ export default function LogicaTab({
     const noticesByRow = useMemo(() => assignNotices(rows, notices), [rows, notices]);
 
     const automationIds = useMemo(
-        () => new Set([...rows, ...routines].map((r) => r.automationId).filter(Boolean)),
-        [rows, routines],
+        () => new Set([...rows, ...automations].map((r) => r.automationId).filter(Boolean)),
+        [rows, automations],
     );
     const needsRuns = automationIds.size > 0;
     const needsApprovals = useMemo(() => rows.some((r) => r.nodeType === 'approval_list'), [rows]);
@@ -192,7 +192,7 @@ export default function LogicaTab({
         return { state: 'none' };
     };
 
-    const addRoutine = (automation) => {
+    const addAutomation = (automation) => {
         setPickerOpen(false);
         if (!automation?.id || typeof onCommit !== 'function') return;
         // De actie komt binnen zonder dat er iets naar wijst. Dat is precies
@@ -217,7 +217,7 @@ export default function LogicaTab({
         return groups;
     }, [rows]);
 
-    const empty = rows.length === 0 && routines.length === 0;
+    const empty = rows.length === 0 && automations.length === 0;
 
     return (
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto" data-editor-view="logic">
@@ -253,7 +253,7 @@ export default function LogicaTab({
                 ) : (
                     <LogicTable
                         groups={byScreen}
-                        routines={routines}
+                        automations={automations}
                         statusOf={statusOf}
                         noticesByRow={noticesByRow}
                         onReveal={onReveal}
@@ -262,10 +262,10 @@ export default function LogicaTab({
                 )}
             </div>
 
-            <RoutinePicker
+            <AutomationPicker
                 open={pickerOpen}
                 onClose={() => setPickerOpen(false)}
-                onPick={addRoutine}
+                onPick={addAutomation}
             />
         </div>
     );
@@ -352,8 +352,8 @@ function StatusCell({ status, t }) {
 
 /**
  * ↗ betekent overal "breng me erheen". Voor een rij die op een component zit is
- * dat het canvas — ook als er een routine achter hangt, want de bedrading
- * verander je bij de knop. Alleen een rij zónder component (een routine van
+ * dat het canvas — ook als er een automatisering achter hangt, want de bedrading
+ * verander je bij de knop. Alleen een rij zónder component (een automatisering van
  * deze oplossing, een actie waar niets naar wijst) heeft geen plek op het
  * canvas en linkt naar de Automations-builder.
  */
@@ -407,8 +407,8 @@ function GroupHeading({ title, hint = null }) {
     );
 }
 
-/** Wanneer · Gebeurt · Status · ↗, per scherm gegroepeerd, routines onderaan. */
-function LogicTable({ groups, routines, statusOf, noticesByRow, onReveal, t }) {
+/** Wanneer · Gebeurt · Status · ↗, per scherm gegroepeerd, automations onderaan. */
+function LogicTable({ groups, automations, statusOf, noticesByRow, onReveal, t }) {
     return (
         <table className="w-full border-collapse text-left text-xs" data-logic-table>
             <thead>
@@ -444,24 +444,24 @@ function LogicTable({ groups, routines, statusOf, noticesByRow, onReveal, t }) {
                 </tbody>
             ))}
 
-            {routines.length ? (
-                <tbody data-logic-routines>
+            {automations.length ? (
+                <tbody data-logic-automations>
                     {/* "Jouw" staat in de kop omdat de lijst het zegt. De rijen
                         komen uit GET /api/automation → getAutomationsForUser
-                        (`WHERE user_id = $1`), dus dit zijn de routines die de
-                        KIJKER bezit. De nachtelijke routine van een collega, in
+                        (`WHERE user_id = $1`), dus dit zijn de automatiseringen die de
+                        KIJKER bezit. De nachtelijke automatisering van een collega, in
                         dezelfde oplossing en op dezelfde tabel, staat er niet —
                         en een lege sectie is niet te onderscheiden van "die zijn
-                        er niet". Versmallen mag; er stilzwijgend "Routines in
+                        er niet". Versmallen mag; er stilzwijgend "Automations in
                         this solution" boven zetten niet. */}
                     <GroupHeading
-                        title={t('app_studio.logic.routines_title', 'Your routines in this solution')}
+                        title={t('app_studio.logic.automations_title', 'Your automations in this solution')}
                         hint={t(
-                            'app_studio.logic.routines_desc',
-                            'Routines you own, filed in the same solution and working on the tables this app is bound to. They are not wired to a button — they run on their own. Routines owned by someone else are not listed here.',
+                            'app_studio.logic.automations_desc',
+                            'Automations you own, filed in the same solution and working on the tables this app is bound to. They are not wired to a button — they run on their own. Automations owned by someone else are not listed here.',
                         )}
                     />
-                    {routines.map((row) => (
+                    {automations.map((row) => (
                         <LogicRow key={row.key} row={row} status={statusOf(row)} notices={[]} onReveal={onReveal} t={t} />
                     ))}
                 </tbody>

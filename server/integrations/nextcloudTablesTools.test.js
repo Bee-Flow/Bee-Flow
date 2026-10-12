@@ -2,9 +2,9 @@
  * Nextcloud Tables tools.
  *
  * The interesting surface is the column-title ↔ column-id translation. The API
- * addresses cells by numeric column id; agents and routine bindings speak
+ * addresses cells by numeric column id; agents and automation bindings speak
  * titles. Getting that wrong in the silent direction — dropping a value whose
- * column the caller mis-spelled — would make a routine look like it stored a
+ * column the caller mis-spelled — would make an automation look like it stored a
  * form submission when it stored half of one.
  */
 const test = require('node:test');

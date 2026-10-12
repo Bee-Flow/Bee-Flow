@@ -1,0 +1,20 @@
+'use strict';
+const { test, before, after } = require('node:test');
+const assert = require('node:assert/strict');
+const { pgliteDb, createProjectScopedSchema } = require('../testUtils/pgliteDb');
+const { makeProjectPinStore, DDL } = require('./projectPinStore');
+const { pg, db } = pgliteDb();
+const store = makeProjectPinStore(db);
+before(() => createProjectScopedSchema(pg, DDL));
+after(() => pg.close());
+test('pins are idempotent and scoped to their project, and cascade on deletion', async () => {
+    await pg.query("INSERT INTO projects (id, name, owner_id) VALUES ('pin-project', 'Pins', 'ann'), ('pin-other', 'Other', 'ann')");
+    await store.put('pin-project', 'task', 't');
+    await store.put('pin-project', 'task', 't');
+    assert.deepEqual(await store.list('pin-project'), [{ type: 'task', id: 't' }]);
+    assert.deepEqual(await store.list('pin-other'), []);
+    await store.remove('pin-other', 'task', 't');
+    assert.equal((await store.list('pin-project')).length, 1);
+    await pg.query("DELETE FROM projects WHERE id = 'pin-project'");
+    assert.deepEqual(await store.list('pin-project'), []);
+});

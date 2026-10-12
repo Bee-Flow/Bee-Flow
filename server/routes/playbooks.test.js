@@ -90,7 +90,7 @@ const CUSTOM_DOC = {
     inputs: [{ key: 'folderPath', label: 'Map met leverancierslijsten', kind: 'folder', default: '/Leveranciers' }],
     phases: [
         { key: 'table', kind: 'table', label: 'Tabel' },
-        { key: 'inlezen', kind: 'routine', label: 'Inlezen', brief: 'Build a routine that I start by hand: manual trigger. 1. nextcloud_list_files on "{{input.folderPath}}". 2. datatable add_row into the EXISTING datatable "{{table.name}}" (id {{table.id}}, key {{table.key}}) with {{field.naam}}, {{field.email}}.' },
+        { key: 'inlezen', kind: 'automation', label: 'Inlezen', brief: 'Build an automation that I start by hand: manual trigger. 1. nextcloud_list_files on "{{input.folderPath}}". 2. datatable add_row into the EXISTING datatable "{{table.name}}" (id {{table.id}}, key {{table.key}}) with {{field.naam}}, {{field.email}}.' },
         { key: 'app', kind: 'app', label: 'Directory-app', brief: 'Build an app on "{{table.name}}": app_link_datatable {name:"{{table.name}}"}, a data_grid with {{field.naam}}, {{field.email}}. Finish with app_finalize.' },
         { key: 'rating_turn', kind: 'app_turn', label: 'Beoordelen', brief: 'Extend this app: a rating form writing {{field.rating}}. Finish with app_finalize.', requiresRole: 'rating' },
     ],
@@ -237,7 +237,7 @@ test('recipes offers nothing built-in — a playbook is described — while the 
     // to resolve, or their briefs and phase labels cannot be composed.
     assert.ok(recipes.getRecipe('invoice_tracker'), 'the module stays for the rows that reference it');
     const doc = recipes.getRecipe('invoice_tracker').toDocument('en');
-    assert.deepEqual(doc.phases.map((p) => p.kind), ['table', 'routine', 'fill', 'design', 'app', 'routine']);
+    assert.deepEqual(doc.phases.map((p) => p.kind), ['table', 'automation', 'fill', 'design', 'app', 'automation']);
     assert.deepEqual(doc.inputs.map((i) => i.key), ['folderPath']);
     assert.equal(doc.table.fields.length, 8);
     const created = await create();
@@ -268,10 +268,10 @@ test('create: validates the options, resolves the org, seeds the phases (table r
     const pb = r.body.playbook;
     assert.match(pb.id, /^pb_/);
     assert.equal(pb.organizationId, 'orgA');
-    assert.equal(statuses(pb), 'table:ready routine:pending fill:pending design:pending app:pending approvals:pending access:pending compliance:pending');
+    assert.equal(statuses(pb), 'table:ready automation:pending fill:pending design:pending app:pending approvals:pending access:pending compliance:pending');
     assert.equal(pb.currentPhase, 'table');
     assert.deepEqual(pb.options, { tableMode: 'new', datatableId: null, tableTitle: 'Facturen', folderPath: '/Invoices-Test', inputs: { folderPath: '/Invoices-Test' }, tier: 'fast', locale: 'nl', approverGroupId: null, ask: null });
-    assert.deepEqual(pb.phases.map((p) => [p.key, p.kind, p.label]), [['table', 'table', 'Tabel'], ['routine', 'routine', 'Automatisering'], ['fill', 'fill', 'Eerste rijen'], ['design', 'design', 'Ontwerp'], ['app', 'app', 'App'], ['approvals', 'routine', 'Goedkeuringsflow'], ['access', 'access', 'Toegang'], ['compliance', 'compliance', 'Compliance-check']]);
+    assert.deepEqual(pb.phases.map((p) => [p.key, p.kind, p.label]), [['table', 'table', 'Tabel'], ['automation', 'automation', 'Automatisering'], ['fill', 'fill', 'Eerste rijen'], ['design', 'design', 'Ontwerp'], ['app', 'app', 'App'], ['approvals', 'automation', 'Goedkeuringsflow'], ['access', 'access', 'Toegang'], ['compliance', 'compliance', 'Compliance-check']]);
     state.approvals = false;
     assert.equal(phase((await create()).body.playbook, 'approvals').status, 'locked');
     assert.equal((await api('POST', '/', { body: { recipeId: 'nope', options: {} } })).body.code, 'recipe_unknown');
@@ -313,8 +313,8 @@ test('an English workspace gets an English demo: the recipes, the columns, the s
     assert.equal(table.summary, 'Table "Invoices" created with 8 columns.');
     assert.equal(state.createdTables.at(-1).key, 'invoices');
     assert.doesNotMatch(state.createdTables.at(-1).description, /Facturen/);
-    // The brief the routine builder is handed speaks the table's real keys.
-    const brief = phase(after, 'routine').brief;
+    // The brief the automation builder is handed speaks the table's real keys.
+    const brief = phase(after, 'automation').brief;
     assert.match(brief, /date \(date\), supplier \(string\), invoice_number \(string\), excl_vat \(number\), vat \(number\), total \(number\)/);
     assert.match(brief, /\*\*"Invoices"\*\* \(id `tbl_new1`, key `invoices`\)/);
     assert.match(brief, /Title "Read invoices"/);
@@ -324,12 +324,12 @@ test('an English workspace gets an English demo: the recipes, the columns, the s
     assert.deepEqual(nl.phases.map((p) => p.label), ['Tabel', 'Automatisering', 'Eerste rijen', 'Ontwerp', 'App', 'Goedkeuringsflow', 'Toegang', 'Compliance-check']);
 });
 
-test('the table phase creates the datatable, lands awaiting with artifacts and the routine brief already composed; Continue makes routine ready', async () => {
+test('the table phase creates the datatable, lands awaiting with artifacts and the automation brief already composed; Continue makes automation ready', async () => {
     const pb = (await create()).body.playbook;
     const run = await api('POST', `/${pb.id}/phases/table/run`);
     assert.equal(run.status, 200, JSON.stringify(run.body));
     const after = run.body.playbook;
-    assert.equal(statuses(after), 'table:awaiting routine:pending fill:pending design:pending app:pending approvals:pending access:pending compliance:pending');
+    assert.equal(statuses(after), 'table:awaiting automation:pending fill:pending design:pending app:pending approvals:pending access:pending compliance:pending');
     const table = phase(after, 'table');
     assert.equal(table.artifacts.datatableId, 'tbl_new1');
     assert.equal(table.artifacts.datatableKey, 'facturen');
@@ -337,18 +337,18 @@ test('the table phase creates the datatable, lands awaiting with artifacts and t
     assert.match(table.summary, /aangemaakt met 8 kolommen/);
     assert.equal(state.createdTables[0].description.length > 0, true);
     // The handoff card can show the next brief right away.
-    const routine = phase(after, 'routine');
-    assert.match(routine.brief, /\*\*"Facturen"\*\* \(id `tbl_new1`, key `facturen`\)/);
-    assert.match(routine.brief, /"\/Invoices-Test"/);
+    const automation = phase(after, 'automation');
+    assert.match(automation.brief, /\*\*"Facturen"\*\* \(id `tbl_new1`, key `facturen`\)/);
+    assert.match(automation.brief, /"\/Invoices-Test"/);
     // A second run is refused: the phase is not ready.
     assert.equal((await api('POST', `/${pb.id}/phases/table/run`)).body.code, 'phase_not_ready');
     // Continue (with an edited brief for the next phase, one CAS write).
-    const cont = await api('PATCH', `/${pb.id}`, { body: { expectedVersion: after.version, phases: [{ key: 'table', status: 'done' }, { key: 'routine', brief: 'EDITED brief' }] } });
+    const cont = await api('PATCH', `/${pb.id}`, { body: { expectedVersion: after.version, phases: [{ key: 'table', status: 'done' }, { key: 'automation', brief: 'EDITED brief' }] } });
     assert.equal(cont.status, 200, JSON.stringify(cont.body));
-    assert.equal(statuses(cont.body.playbook), 'table:done routine:ready fill:pending design:pending app:pending approvals:pending access:pending compliance:pending');
-    assert.equal(phase(cont.body.playbook, 'routine').brief, 'EDITED brief');
-    assert.equal(phase(cont.body.playbook, 'routine').briefEdited, true);
-    assert.equal(cont.body.playbook.currentPhase, 'routine');
+    assert.equal(statuses(cont.body.playbook), 'table:done automation:ready fill:pending design:pending app:pending approvals:pending access:pending compliance:pending');
+    assert.equal(phase(cont.body.playbook, 'automation').brief, 'EDITED brief');
+    assert.equal(phase(cont.body.playbook, 'automation').briefEdited, true);
+    assert.equal(cont.body.playbook.currentPhase, 'automation');
 });
 
 test('table phase refusals: no manage_datatables → 403 and failed; an existing table without required columns → 422 table_unusable', async () => {
@@ -423,43 +423,43 @@ test('GET fails a server phase whose run outlived its own budget (a died mid-wri
     assert.equal(phase(r2.body.playbook, 'table').status, 'running');
 });
 
-test('the client\'s transitions: running → awaiting needs a finalised routine of the owner; the CAS version guards every write; illegal moves are 409', async () => {
+test('the client\'s transitions: running → awaiting needs a finalised automation of the owner; the CAS version guards every write; illegal moves are 409', async () => {
     let pb = (await create()).body.playbook;
     pb = (await api('POST', `/${pb.id}/phases/table/run`)).body.playbook;
     pb = (await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version, phases: [{ key: 'table', status: 'done' }] } })).body.playbook;
     // Stale version.
-    const stale = await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version - 1, phases: [{ key: 'routine', status: 'running' }] } });
+    const stale = await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version - 1, phases: [{ key: 'automation', status: 'running' }] } });
     assert.equal(stale.status, 409);
     assert.equal(stale.body.code, 'version_conflict');
     assert.equal(stale.body.currentVersion, pb.version);
     assert.equal((await api('PATCH', `/${pb.id}`, { body: { phases: [] } })).body.code, 'version_required');
-    // Start the routine (client-run).
-    pb = (await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version, phases: [{ key: 'routine', status: 'running', artifacts: { builderSessionId: 'bs1' } }] } })).body.playbook;
-    assert.equal(phase(pb, 'routine').status, 'running');
-    assert.equal(phase(pb, 'routine').artifacts.builderSessionId, 'bs1');
-    // awaiting without an automation → 409; with a draft → routine_not_finalized; another owner → 403.
-    assert.equal((await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version, phases: [{ key: 'routine', status: 'awaiting' }] } })).body.code, 'artifacts_missing');
+    // Start the automation (client-run).
+    pb = (await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version, phases: [{ key: 'automation', status: 'running', artifacts: { builderSessionId: 'bs1' } }] } })).body.playbook;
+    assert.equal(phase(pb, 'automation').status, 'running');
+    assert.equal(phase(pb, 'automation').artifacts.builderSessionId, 'bs1');
+    // awaiting without an automation → 409; with a draft → automation_not_finalized; another owner → 403.
+    assert.equal((await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version, phases: [{ key: 'automation', status: 'awaiting' }] } })).body.code, 'artifacts_missing');
     state.automations.a1.isDraft = true;
-    assert.equal((await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version, phases: [{ key: 'routine', status: 'awaiting', artifacts: { automationId: 'a1' } }] } })).body.code, 'routine_not_finalized');
+    assert.equal((await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version, phases: [{ key: 'automation', status: 'awaiting', artifacts: { automationId: 'a1' } }] } })).body.code, 'automation_not_finalized');
     state.automations.a1.isDraft = false;
     state.automations.a1.userId = 'u2';
-    assert.equal((await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version, phases: [{ key: 'routine', status: 'awaiting', artifacts: { automationId: 'a1' } }] } })).status, 403);
+    assert.equal((await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version, phases: [{ key: 'automation', status: 'awaiting', artifacts: { automationId: 'a1' } }] } })).status, 403);
     state.automations.a1.userId = 'u1';
     // A trigger the FILL phase will refuse is refused HERE, while the builder is
     // still open — it used to land, the playbook advanced, and the next phase
-    // died with a sentence about triggers on a routine already closed.
+    // died with a sentence about triggers on an automation already closed.
     const wasTrigger = state.automations.a1.definition.trigger.kind;
     state.automations.a1.definition.trigger.kind = 'file_event';
-    const badTrigger = await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version, phases: [{ key: 'routine', status: 'awaiting', artifacts: { automationId: 'a1' } }] } });
+    const badTrigger = await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version, phases: [{ key: 'automation', status: 'awaiting', artifacts: { automationId: 'a1' } }] } });
     assert.equal(badTrigger.body.code, 'trigger_not_manual');
     assert.match(badTrigger.body.error, /file_event/);
     state.automations.a1.definition.trigger.kind = wasTrigger;
-    const ok = await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version, phases: [{ key: 'routine', status: 'awaiting', artifacts: { automationId: 'a1' }, summary: 'Routine built' }] } });
+    const ok = await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version, phases: [{ key: 'automation', status: 'awaiting', artifacts: { automationId: 'a1' }, summary: 'Automation built' }] } });
     assert.equal(ok.status, 200, JSON.stringify(ok.body));
     pb = ok.body.playbook;
-    assert.equal(phase(pb, 'routine').artifacts.automationTitle, 'Facturen inlezen');
+    assert.equal(phase(pb, 'automation').artifacts.automationTitle, 'Facturen inlezen');
     // Illegal: awaiting → running.
-    const ill = await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version, phases: [{ key: 'routine', status: 'running' }] } });
+    const ill = await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version, phases: [{ key: 'automation', status: 'running' }] } });
     assert.equal(ill.status, 409);
     assert.deepEqual([ill.body.code, ill.body.from, ill.body.to], ['illegal_transition', 'awaiting', 'running']);
     // The server-run phases refuse client status writes.
@@ -468,33 +468,33 @@ test('the client\'s transitions: running → awaiting needs a finalised routine 
     assert.equal((await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version, status: 'active' } })).body.code, 'illegal_transition');
     const stopped = await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version, status: 'stopped' } });
     assert.equal(stopped.body.playbook.status, 'stopped');
-    // Resume: the playbook is active again; the awaiting routine stays as it was.
+    // Resume: the playbook is active again; the awaiting automation stays as it was.
     const resumed = await api('PATCH', `/${pb.id}`, { body: { expectedVersion: stopped.body.playbook.version, status: 'active' } });
     assert.equal(resumed.status, 200, JSON.stringify(resumed.body));
     assert.equal(resumed.body.playbook.status, 'active');
-    assert.equal(phase(resumed.body.playbook, 'routine').status, 'awaiting');
+    assert.equal(phase(resumed.body.playbook, 'automation').status, 'awaiting');
 });
 
 test('resume after a stop mid-turn: the running phase lands as failed ("interrupted") so the card offers Retry', async () => {
     let pb = (await create()).body.playbook;
     pb = (await api('POST', `/${pb.id}/phases/table/run`)).body.playbook;
     pb = (await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version, phases: [{ key: 'table', status: 'done' }] } })).body.playbook;
-    pb = (await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version, phases: [{ key: 'routine', status: 'running', artifacts: { automationId: 'a1' } }] } })).body.playbook;
+    pb = (await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version, phases: [{ key: 'automation', status: 'running', artifacts: { automationId: 'a1' } }] } })).body.playbook;
     pb = (await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version, status: 'stopped' } })).body.playbook;
-    assert.equal(phase(pb, 'routine').status, 'running', 'stop leaves the phase as it was — the builder turn finishes on its own');
+    assert.equal(phase(pb, 'automation').status, 'running', 'stop leaves the phase as it was — the builder turn finishes on its own');
     pb = (await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version, status: 'active' } })).body.playbook;
     assert.equal(pb.status, 'active');
-    assert.deepEqual([phase(pb, 'routine').status, phase(pb, 'routine').error, phase(pb, 'routine').artifacts.automationId], ['failed', 'interrupted', 'a1']);
-    // Retry keeps the routine and asks the builder again (attempt 1).
-    const retried = (await api('POST', `/${pb.id}/phases/routine/retry`, { body: { expectedVersion: pb.version } })).body.playbook;
-    assert.deepEqual([phase(retried, 'routine').status, phase(retried, 'routine').attempt, phase(retried, 'routine').artifacts.automationId], ['ready', 1, 'a1']);
+    assert.deepEqual([phase(pb, 'automation').status, phase(pb, 'automation').error, phase(pb, 'automation').artifacts.automationId], ['failed', 'interrupted', 'a1']);
+    // Retry keeps the automation and asks the builder again (attempt 1).
+    const retried = (await api('POST', `/${pb.id}/phases/automation/retry`, { body: { expectedVersion: pb.version } })).body.playbook;
+    assert.deepEqual([phase(retried, 'automation').status, phase(retried, 'automation').attempt, phase(retried, 'automation').artifacts.automationId], ['ready', 1, 'a1']);
 });
 
 /** Straight to a landed compliance review — the closing phase. */
 async function toComplianceAwaiting(options = {}) {
     let pb = (await create(options)).body.playbook;
     pb = (await api('POST', `/${pb.id}/phases/table/run`)).body.playbook;
-    for (const [key, status, artifacts] of [['table', 'done'], ['routine', 'running'], ['routine', 'awaiting', { automationId: 'a1' }], ['routine', 'done']]) {
+    for (const [key, status, artifacts] of [['table', 'done'], ['automation', 'running'], ['automation', 'awaiting', { automationId: 'a1' }], ['automation', 'done']]) {
         pb = (await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version, phases: [{ key, status, ...(artifacts ? { artifacts } : {}) }] } })).body.playbook;
     }
     pb = (await api('POST', `/${pb.id}/phases/fill/run`)).body.playbook;
@@ -517,7 +517,7 @@ async function toComplianceAwaiting(options = {}) {
 async function toDesignReady(options = {}) {
     let pb = (await create(options)).body.playbook;
     pb = (await api('POST', `/${pb.id}/phases/table/run`)).body.playbook;
-    for (const [key, status, artifacts] of [['table', 'done'], ['routine', 'running'], ['routine', 'awaiting', { automationId: 'a1' }], ['routine', 'done']]) {
+    for (const [key, status, artifacts] of [['table', 'done'], ['automation', 'running'], ['automation', 'awaiting', { automationId: 'a1' }], ['automation', 'done']]) {
         pb = (await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version, phases: [{ key, status, ...(artifacts ? { artifacts } : {}) }] } })).body.playbook;
     }
     pb = (await api('POST', `/${pb.id}/phases/fill/run`)).body.playbook;
@@ -582,7 +582,7 @@ test('the design phase is handed the person\'s own words and the brief the build
     let pb = (await api('POST', '/', { body: { recipeId: 'invoice_tracker', title: 'Facturen', options: { tableMode: 'new', folderPath: '/Invoices-Test', locale: 'en', ask: 'Read the invoices. Just one screen in the app.' } } })).body.playbook;
     assert.equal(pb.options.ask, 'Read the invoices. Just one screen in the app.');
     pb = (await api('POST', `/${pb.id}/phases/table/run`)).body.playbook;
-    for (const [key, status, artifacts] of [['table', 'done'], ['routine', 'running'], ['routine', 'awaiting', { automationId: 'a1' }], ['routine', 'done']]) {
+    for (const [key, status, artifacts] of [['table', 'done'], ['automation', 'running'], ['automation', 'awaiting', { automationId: 'a1' }], ['automation', 'done']]) {
         pb = (await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version, phases: [{ key, status, ...(artifacts ? { artifacts } : {}) }] } })).body.playbook;
     }
     pb = (await api('POST', `/${pb.id}/phases/fill/run`)).body.playbook;
@@ -602,7 +602,7 @@ test('a phase that steps aside hands the turn on: a locked approvals phase does 
     let pb = (await create()).body.playbook;
     assert.equal(phase(pb, 'approvals').status, 'locked');
     pb = (await api('POST', `/${pb.id}/phases/table/run`)).body.playbook;
-    for (const [key, status, artifacts] of [['table', 'done'], ['routine', 'running'], ['routine', 'awaiting', { automationId: 'a1' }], ['routine', 'done']]) {
+    for (const [key, status, artifacts] of [['table', 'done'], ['automation', 'running'], ['automation', 'awaiting', { automationId: 'a1' }], ['automation', 'done']]) {
         pb = (await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version, phases: [{ key, status, ...(artifacts ? { artifacts } : {}) }] } })).body.playbook;
     }
     pb = (await api('POST', `/${pb.id}/phases/fill/run`)).body.playbook;
@@ -829,14 +829,14 @@ test('a designer that cannot be reached is a 422 with the fixed sentence and the
     assert.equal(revision.body.correlationId, 'req-4712');
 });
 
-test('the fill phase runs the routine once, records the run and the rows, and lands awaiting; then Continue pre-creates the app and composes its brief', async () => {
+test('the fill phase runs the automation once, records the run and the rows, and lands awaiting; then Continue pre-creates the app and composes its brief', async () => {
     let pb = (await create()).body.playbook;
     pb = (await api('POST', `/${pb.id}/phases/table/run`)).body.playbook;
     pb = (await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version, phases: [{ key: 'table', status: 'done' }] } })).body.playbook;
-    pb = (await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version, phases: [{ key: 'routine', status: 'running' }] } })).body.playbook;
-    pb = (await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version, phases: [{ key: 'routine', status: 'awaiting', artifacts: { automationId: 'a1' } }] } })).body.playbook;
-    pb = (await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version, phases: [{ key: 'routine', status: 'done' }] } })).body.playbook;
-    assert.equal(statuses(pb), 'table:done routine:done fill:ready design:pending app:pending approvals:pending access:pending compliance:pending');
+    pb = (await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version, phases: [{ key: 'automation', status: 'running' }] } })).body.playbook;
+    pb = (await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version, phases: [{ key: 'automation', status: 'awaiting', artifacts: { automationId: 'a1' } }] } })).body.playbook;
+    pb = (await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version, phases: [{ key: 'automation', status: 'done' }] } })).body.playbook;
+    assert.equal(statuses(pb), 'table:done automation:done fill:ready design:pending app:pending approvals:pending access:pending compliance:pending');
     const fill = await api('POST', `/${pb.id}/phases/fill/run`);
     assert.equal(fill.status, 200, JSON.stringify(fill.body));
     pb = fill.body.playbook;
@@ -848,7 +848,7 @@ test('the fill phase runs the routine once, records the run and the rows, and la
     assert.match(f.summary, /32 rijen toegevoegd/);
     // Continue → app pre-created, brief composed, appId shared with approvals.
     pb = (await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version, phases: [{ key: 'fill', status: 'done' }] } })).body.playbook;
-    assert.equal(statuses(pb), 'table:done routine:done fill:done design:ready app:pending approvals:pending access:pending compliance:pending');
+    assert.equal(statuses(pb), 'table:done automation:done fill:done design:ready app:pending approvals:pending access:pending compliance:pending');
     // The DESIGN phase: the server asks the designer with the goal, the table's columns, sample rows and the approvals flag.
     assert.equal((await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version, phases: [{ key: 'design', status: 'running' }] } })).body.code, 'illegal_transition');
     const designed = await api('POST', `/${pb.id}/phases/design/run`);
@@ -865,10 +865,10 @@ test('the fill phase runs the routine once, records the run and the rows, and la
     assert.equal(dIn.approvals, true);
     // Continue → app pre-created, brief composed WITH the design block, appId shared with approvals.
     pb = (await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version, phases: [{ key: 'design', status: 'done' }] } })).body.playbook;
-    assert.equal(statuses(pb), 'table:done routine:done fill:done design:done app:ready approvals:pending access:pending compliance:pending');
+    assert.equal(statuses(pb), 'table:done automation:done fill:done design:done app:ready approvals:pending access:pending compliance:pending');
     assert.equal(state.createdApps, 1);
     assert.equal(phase(pb, 'app').artifacts.appId, 'app_1');
-    assert.equal(phase(pb, 'approvals').artifacts.appId, undefined, 'the approval flow is a routine — no app id');
+    assert.equal(phase(pb, 'approvals').artifacts.appId, undefined, 'the approval flow is an automation — no app id');
     assert.match(phase(pb, 'app').brief, /app_link_datatable \{datatableId:"tbl_new1"\}/);
     assert.match(phase(pb, 'app').brief, /## DESIGN\nFollow this; where it differs from the screens above, THIS wins\. Call `app_set_theme \{preset:"cloud", primary:"#1e7f4f"\}`/);
     // "stat", not "stat tile": every word in the design block has to be a
@@ -886,7 +886,7 @@ test('the fill phase runs the routine once, records the run and the rows, and la
     assert.equal(pb.status, 'active');
     // Last consent completes the playbook.
     pb = (await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version, phases: [{ key: 'approvals', status: 'running' }] } })).body.playbook;
-    // A routine phase: awaiting needs the finalised routine, like the first one.
+    // An automation phase: awaiting needs the finalised automation, like the first one.
     assert.equal((await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version, phases: [{ key: 'approvals', status: 'awaiting' }] } })).body.code, 'artifacts_missing');
     pb = (await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version, phases: [{ key: 'approvals', status: 'awaiting', artifacts: { automationId: 'a1' } }] } })).body.playbook;
     assert.equal(phase(pb, 'approvals').artifacts.automationTitle, 'Facturen inlezen');
@@ -917,13 +917,13 @@ test('the fill phase runs the routine once, records the run and the rows, and la
     assert.equal(pb.currentPhase, null);
 });
 
-test('fill refusals and the slow run: a non-manual routine is 422 trigger_not_manual; a run past the guard answers 202 and GET finishes it later', async () => {
+test('fill refusals and the slow run: a non-manual automation is 422 trigger_not_manual; a run past the guard answers 202 and GET finishes it later', async () => {
     let pb = (await create()).body.playbook;
     pb = (await api('POST', `/${pb.id}/phases/table/run`)).body.playbook;
     pb = (await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version, phases: [{ key: 'table', status: 'done' }] } })).body.playbook;
-    pb = (await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version, phases: [{ key: 'routine', status: 'running' }] } })).body.playbook;
-    pb = (await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version, phases: [{ key: 'routine', status: 'awaiting', artifacts: { automationId: 'a1' } }] } })).body.playbook;
-    pb = (await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version, phases: [{ key: 'routine', status: 'done' }] } })).body.playbook;
+    pb = (await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version, phases: [{ key: 'automation', status: 'running' }] } })).body.playbook;
+    pb = (await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version, phases: [{ key: 'automation', status: 'awaiting', artifacts: { automationId: 'a1' } }] } })).body.playbook;
+    pb = (await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version, phases: [{ key: 'automation', status: 'done' }] } })).body.playbook;
     state.automations.a1.definition.trigger.kind = 'nextcloud_file';
     const bad = await api('POST', `/${pb.id}/phases/fill/run`);
     assert.equal(bad.status, 422);
@@ -963,10 +963,10 @@ test('skip and retry: skipping advances (never the table); a locked approvals ph
     assert.equal((await api('POST', `/${pb.id}/phases/table/skip`, { body: { expectedVersion: pb.version } })).body.code, 'illegal_transition');
     pb = (await api('POST', `/${pb.id}/phases/table/run`)).body.playbook;
     pb = (await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version, phases: [{ key: 'table', status: 'done' }] } })).body.playbook;
-    const skipped = await api('POST', `/${pb.id}/phases/routine/skip`, { body: { expectedVersion: pb.version } });
+    const skipped = await api('POST', `/${pb.id}/phases/automation/skip`, { body: { expectedVersion: pb.version } });
     assert.equal(skipped.status, 200, JSON.stringify(skipped.body));
     pb = skipped.body.playbook;
-    assert.equal(statuses(pb), 'table:done routine:skipped fill:ready design:pending app:pending approvals:locked access:pending compliance:pending');
+    assert.equal(statuses(pb), 'table:done automation:skipped fill:ready design:pending app:pending approvals:locked access:pending compliance:pending');
     const noCap = await api('POST', `/${pb.id}/phases/approvals/retry`, { body: { expectedVersion: pb.version } });
     assert.equal(noCap.body.code, 'capability_missing');
     state.approvals = true;
@@ -982,26 +982,26 @@ test('skip and retry: skipping advances (never the table); a locked approvals ph
 test('a custom recipe document: compose returns it, create stores it with kinds/labels and a fill phase added, the phases run by KIND, and a missing column skips the turn that needs it', async () => {
     const composed = await api('POST', '/recipes/compose', { body: { description: 'Lees leverancierslijsten in en maak een directory-app' } });
     assert.equal(composed.status, 200, JSON.stringify(composed.body));
-    assert.deepEqual(composed.body.recipe.phases.map((p) => p.kind), ['table', 'routine', 'app', 'app_turn']);
+    assert.deepEqual(composed.body.recipe.phases.map((p) => p.kind), ['table', 'automation', 'app', 'app_turn']);
     assert.equal((await api('POST', '/recipes/compose', { body: {} })).body.code, 'description_required');
     state.compose = async () => ({ ok: false, code: 'recipe_invalid', status: 422, error: 'no', errors: [{ code: 'brief_required', path: 'phases[1].brief' }] });
     assert.equal((await api('POST', '/recipes/compose', { body: { description: 'x' } })).status, 422);
 
-    // Create from the document: normalised (a fill phase after the routine), stored on the row.
+    // Create from the document: normalised (a fill phase after the automation), stored on the row.
     const created = await api('POST', '/', { body: { recipe: composed.body.recipe, title: 'Leveranciers', options: { tableMode: 'new', inputs: { folderPath: '/Leveranciers-Test' } } } });
     assert.equal(created.status, 201, JSON.stringify(created.body));
     let pb = created.body.playbook;
     assert.equal(pb.recipeId, 'custom_leveranciers_volgen');
     assert.ok(pb.recipe && pb.recipe.phases, 'the document travels with the playbook');
-    assert.deepEqual(pb.phases.map((p) => [p.key, p.kind]), [['table', 'table'], ['inlezen', 'routine'], ['fill', 'fill'], ['design', 'design'], ['app', 'app'], ['rating_turn', 'app_turn'], ['access', 'access'], ['compliance', 'compliance']]);
+    assert.deepEqual(pb.phases.map((p) => [p.key, p.kind]), [['table', 'table'], ['inlezen', 'automation'], ['fill', 'fill'], ['design', 'design'], ['app', 'app'], ['rating_turn', 'app_turn'], ['access', 'access'], ['compliance', 'compliance']]);
     assert.deepEqual(pb.options.inputs, { folderPath: '/Leveranciers-Test' });
     assert.equal(pb.options.folderPath, '/Leveranciers-Test');
     // An invalid document is refused with the validator's findings.
     const bad = await api('POST', '/', { body: { recipe: { title: 'x', phases: [{ key: 'a', kind: 'fill', label: 'Fill' }] } } });
     assert.equal(bad.body.code, 'recipe_invalid');
-    assert.ok(bad.body.errors.some((e) => e.code === 'fill_without_routine'));
+    assert.ok(bad.body.errors.some((e) => e.code === 'fill_without_automation'));
 
-    // The table phase runs by kind and creates the document's columns; the routine brief renders the real ids.
+    // The table phase runs by kind and creates the document's columns; the automation brief renders the real ids.
     pb = (await api('POST', `/${pb.id}/phases/table/run`)).body.playbook;
     assert.equal(phase(pb, 'table').status, 'awaiting');
     assert.deepEqual(state.createdTables.at(-1).fields.map((f) => f.key), ['naam', 'email', 'rating']);
@@ -1015,7 +1015,7 @@ test('a custom recipe document: compose returns it, create stores it with kinds/
     pb = (await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version, phases: [{ key: 'inlezen', status: 'awaiting', artifacts: { automationId: 'a1' } }] } })).body.playbook;
     pb = (await api('PATCH', `/${pb.id}`, { body: { expectedVersion: pb.version, phases: [{ key: 'inlezen', status: 'done' }] } })).body.playbook;
     assert.equal(phase(pb, 'fill').status, 'ready');
-    // The fill phase runs the routine BEFORE it (key `inlezen`, not `routine`).
+    // The fill phase runs the automation BEFORE it (key `inlezen`, not `automation`).
     const filled = await api('POST', `/${pb.id}/phases/fill/run`);
     assert.equal(filled.status, 200, JSON.stringify(filled.body));
     pb = filled.body.playbook;
@@ -1033,7 +1033,7 @@ test('a custom recipe document: compose returns it, create stores it with kinds/
 
 test('a custom recipe on an EXISTING table: the turn that needs a missing column is skipped with the reason', async () => {
     // The fake table has no `rating` column (getTableMeta serves the invoice schema minus status/bestand).
-    const doc = { ...CUSTOM_DOC, table: { fields: [{ key: 'datum', name: 'Datum', type: 'date' }, { key: 'leverancier', name: 'Leverancier', type: 'text' }, { key: 'rating', name: 'Rating', type: 'number', required: false }] }, phases: CUSTOM_DOC.phases.map((p) => (p.kind === 'routine' ? { ...p, brief: 'Build a routine that I start by hand. datatable add_row into "{{table.name}}" (id {{table.id}}) with {{field.datum}}, {{field.leverancier}}.' } : p.kind === 'app' ? { ...p, brief: 'Build an app on "{{table.name}}" with {{field.datum}}. Finish with app_finalize.' } : p)) };
+    const doc = { ...CUSTOM_DOC, table: { fields: [{ key: 'datum', name: 'Datum', type: 'date' }, { key: 'leverancier', name: 'Leverancier', type: 'text' }, { key: 'rating', name: 'Rating', type: 'number', required: false }] }, phases: CUSTOM_DOC.phases.map((p) => (p.kind === 'automation' ? { ...p, brief: 'Build an automation that I start by hand. datatable add_row into "{{table.name}}" (id {{table.id}}) with {{field.datum}}, {{field.leverancier}}.' } : p.kind === 'app' ? { ...p, brief: 'Build an app on "{{table.name}}" with {{field.datum}}. Finish with app_finalize.' } : p)) };
     let pb = (await api('POST', '/', { body: { recipe: doc, options: { tableMode: 'existing', datatableId: 'tbl_ex', inputs: { folderPath: '/L' } } } })).body.playbook;
     pb = (await api('POST', `/${pb.id}/phases/table/run`)).body.playbook;
     assert.equal(phase(pb, 'table').status, 'awaiting', JSON.stringify(phase(pb, 'table')));

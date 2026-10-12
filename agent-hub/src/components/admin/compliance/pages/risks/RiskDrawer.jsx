@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { CheckCircle2, Plus, Save, ShieldCheck, X } from 'lucide-react';
+import { CheckCircle2, Plus, ShieldCheck } from 'lucide-react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
-import SideDrawer, { DrawerSection, DrawerId } from '../../../../shared/SideDrawer';
-import { PRIMARY_ACTION_STYLE } from '../../../../shared/StudioSectionHeader';
+import SideDrawer, { DrawerSection, DrawerId, DrawerFooter } from '../../../../shared/SideDrawer';
 import { TONES } from '../../../../shared/statusTone';
-import UserPicker from '../../shared/UserPicker';
+import { useDateFormat } from '../../shared/formatDates';
 import { CATEGORIES, OPTIONS, SCALE, RISK_STATUSES, ScorePill, RiskStatusPill, riskRef, ownerName } from './RisksTable';
+import { acceptPatchOf, draftOf, memberOptions, patchOf, treatmentOf } from './riskDraft';
 
 /**
  * RiskDrawer — one register row: the edit form (title, scenario, category,
@@ -13,11 +13,17 @@ import { CATEGORIES, OPTIONS, SCALE, RISK_STATUSES, ScorePill, RiskStatusPill, r
  * (an explicit, recorded human decision — never automatic) and the
  * treatment plan with the add-treatment row. Same handlers as the legacy
  * page: onUpdate(id, patch), onAddTreatment(riskId, fields).
+ *
+ * The footer holds the two decisions: "Accept risk" (secondary, left) and
+ * "Save changes" (primary, right). Accepting sends the whole draft WITH the
+ * new status in one write (riskDraft.acceptPatchOf). The form state and the
+ * bodies it sends live in riskDraft.ts.
  */
 const EMPTY_TREATMENT = Object.freeze({ option: 'mitigate', description: '', due_at: '' });
 
 export default function RiskDrawer({ risk, treatments = [], orgUsers, busy = false, onUpdate, onAddTreatment, onClose, mode = 'inline', testId = 'risk-drawer' }) {
     const { t } = useTranslation();
+    const { formatDay } = useDateFormat();
     const [draft, setDraft] = useState(() => draftOf(risk));
     const [treat, setTreat] = useState(EMPTY_TREATMENT);
     // A fresh draft when another risk opens or this one changed on the
@@ -31,28 +37,32 @@ export default function RiskDrawer({ risk, treatments = [], orgUsers, busy = fal
 
     if (!risk) return null;
     const patch = (p) => setDraft(d => ({ ...d, ...p }));
-    const owner = ownerName(orgUsers, draft.owner_user_id);
     const preview = { ...risk, likelihood: Number(draft.likelihood), impact: Number(draft.impact), score: Number(draft.likelihood) * Number(draft.impact) };
 
     const header = (
         <div className="flex items-center gap-2 min-w-0">
             <DrawerId>{riskRef(risk)}</DrawerId>
             <span className="truncate text-[13px] font-semibold text-[var(--text-primary)]">{risk.title}</span>
-            <RiskStatusPill status={risk.status} />
+            <RiskStatusPill status={risk.status} className="flex-shrink-0" />
         </div>
     );
 
+    const canAccept = risk.status !== 'accepted' && risk.status !== 'closed';
     const footer = (
-        <button
-            type="button"
-            disabled={busy || !draft.title.trim()}
-            onClick={() => onUpdate?.(risk.id, patchOf(draft))}
-            style={PRIMARY_ACTION_STYLE}
-            className="w-full h-8 px-3 rounded-[10px] text-[12px] font-semibold inline-flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-            data-testid={`${testId}-save`}
+        <DrawerFooter
+            onPrimary={() => onUpdate?.(risk.id, patchOf(draft))}
+            primaryLabel={t('compliance.risk_save', 'Save changes')}
+            primaryDisabled={busy || !draft.title.trim()}
+            testId={`${testId}-actions`}
         >
-            <Save size={13} aria-hidden="true" /> {t('compliance.risk_save', 'Save changes')}
-        </button>
+            {canAccept && (
+                <button type="button" disabled={busy} onClick={() => onUpdate?.(risk.id, acceptPatchOf(draft))}
+                    className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[10px] border border-[var(--border-default)] bg-[var(--bg-card)] text-[12px] font-medium text-[var(--text-primary)] disabled:opacity-50 hover:bg-[var(--item-hover-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+                    data-testid={`${testId}-accept`}>
+                    <CheckCircle2 size={13} aria-hidden="true" /> {t('compliance.risk_accept_button', 'Accept risk')}
+                </button>
+            )}
+        </DrawerFooter>
     );
 
     return (
@@ -102,34 +112,21 @@ export default function RiskDrawer({ risk, treatments = [], orgUsers, busy = fal
             </DrawerSection>
 
             <DrawerSection label={t('compliance.risk_f_owner', 'Owner')}>
-                <div className="flex items-center gap-2 text-xs">
-                    <span className={owner ? 'text-[var(--text-primary)] font-medium' : 'text-[var(--text-tertiary)]'} data-testid={`${testId}-owner`}>
-                        {owner || t('compliance.risk_owner_none', 'No owner')}
-                    </span>
-                    {draft.owner_user_id && (
-                        <button type="button" onClick={() => patch({ owner_user_id: '' })} className="inline-flex text-[var(--text-tertiary)] hover:text-[var(--text-primary)]" aria-label={t('compliance.risk_owner_clear', 'Remove owner')}>
-                            <X size={11} aria-hidden="true" />
-                        </button>
-                    )}
-                </div>
-                <UserPicker users={orgUsers} mode="single" label="" placeholder={t('compliance.risk_owner_pick', 'Choose an owner…')} onSelect={(u) => patch({ owner_user_id: u.id })} disabled={busy} />
+                <select value={draft.owner_user_id} onChange={e => patch({ owner_user_id: e.target.value })} disabled={busy}
+                    aria-label={t('compliance.risk_f_owner', 'Owner')} className={INPUT} data-testid={`${testId}-owner`}>
+                    <option value="">{t('compliance.risk_owner_none', 'No owner')}</option>
+                    {memberOptions(orgUsers, draft.owner_user_id).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
             </DrawerSection>
 
             <DrawerSection label={t('compliance.risk_acceptance', 'Acceptance')}>
                 {risk.status === 'accepted' && risk.accepted_at ? (
-                    <div className="inline-flex items-center gap-1.5 text-xs" style={{ color: TONES.success.ink }} data-testid={`${testId}-accepted`}>
+                    <div className="inline-flex items-center gap-1.5 text-xs text-[var(--success-ink)]" data-testid={`${testId}-accepted`}>
                         <ShieldCheck size={13} aria-hidden="true" />
-                        {t('compliance.risk_accepted_stamp', 'Accepted by {name} on {date}', { name: ownerName(orgUsers, risk.accepted_by) || '—', date: formatDate(risk.accepted_at) })}
+                        {t('compliance.risk_accepted_stamp', 'Accepted by {name} on {date}', { name: ownerName(orgUsers, risk.accepted_by) || '—', date: formatDay(risk.accepted_at) || '—' })}
                     </div>
                 ) : risk.status !== 'closed' ? (
-                    <>
-                        <button type="button" disabled={busy} onClick={() => onUpdate?.(risk.id, { status: 'accepted' })}
-                            className="self-start inline-flex items-center gap-1.5 h-8 px-3 rounded-[10px] border border-[var(--border-default)] bg-[var(--bg-card)] text-[12px] font-medium text-[var(--text-primary)] disabled:opacity-50 hover:bg-[var(--item-hover-bg)]"
-                            data-testid={`${testId}-accept`}>
-                            <CheckCircle2 size={13} aria-hidden="true" /> {t('compliance.risk_accept_button', 'Accept risk')}
-                        </button>
-                        <p className="m-0 text-[11px] text-[var(--text-tertiary)]">{t('compliance.risk_accept_note', 'Accepting is a management decision: it records who accepted this risk and when. Nothing is ever accepted automatically.')}</p>
-                    </>
+                    <p className="m-0 text-[11px] text-[var(--text-tertiary)]" data-testid={`${testId}-accept-note`}>{t('compliance.risk_accept_note', 'Accepting is a management decision: it records who accepted this risk and when. Nothing is ever accepted automatically.')}</p>
                 ) : (
                     <p className="m-0 text-[11px] text-[var(--text-tertiary)]">{t('compliance.risk_closed_note', 'Closed — no acceptance needed.')}</p>
                 )}
@@ -147,7 +144,7 @@ export default function RiskDrawer({ risk, treatments = [], orgUsers, busy = fal
                                 </span>
                                 <span className="flex-1 min-w-0 truncate text-[var(--text-secondary)]">{tr.description || '—'}</span>
                                 <span className="text-[var(--text-tertiary)] whitespace-nowrap">
-                                    {tr.done_at ? t('compliance.risk_t_done', 'Done {date}', { date: formatDate(tr.done_at) }) : tr.due_at ? `${t('compliance.risk_t_due', 'Due')} ${formatDate(tr.due_at)}` : '—'}
+                                    {tr.done_at ? t('compliance.risk_t_done', 'Done {date}', { date: formatDay(tr.done_at) || '—' }) : tr.due_at ? `${t('compliance.risk_t_due', 'Due')} ${formatDay(tr.due_at) || '—'}` : '—'}
                                 </span>
                             </li>
                         ))}
@@ -172,45 +169,3 @@ export default function RiskDrawer({ risk, treatments = [], orgUsers, busy = fal
 }
 
 const INPUT = 'w-full rounded-[10px] border border-[var(--border-default)] bg-[var(--bg-card)] px-2.5 py-1.5 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--accent-primary)]';
-
-function draftOf(r) {
-    return {
-        title: r?.title || '',
-        description: r?.description || '',
-        category: r?.category || 'confidentiality',
-        likelihood: r?.likelihood || 3,
-        impact: r?.impact || 3,
-        status: r?.status || 'open',
-        owner_user_id: r?.owner_user_id || '',
-        review_due_at: r?.review_due_at ? String(r.review_due_at).slice(0, 10) : '',
-    };
-}
-
-/** PUT /iso/risks/:id body — the legacy page's allow-list, unchanged. */
-export function patchOf(draft) {
-    return {
-        title: String(draft.title || '').trim() || undefined,
-        description: String(draft.description || '').trim() || null,
-        category: draft.category,
-        likelihood: Number(draft.likelihood),
-        impact: Number(draft.impact),
-        status: draft.status,
-        owner_user_id: draft.owner_user_id || null,
-        review_due_at: draft.review_due_at || null,
-    };
-}
-
-/** POST /iso/risks/:id/treatments body. */
-export function treatmentOf(treat) {
-    return {
-        option: treat.option,
-        description: String(treat.description || '').trim() || undefined,
-        due_at: treat.due_at || undefined,
-    };
-}
-
-function formatDate(value) {
-    const ms = value ? new Date(value).getTime() : NaN;
-    if (Number.isNaN(ms)) return '—';
-    return new Date(ms).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
-}

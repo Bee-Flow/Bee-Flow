@@ -7,6 +7,60 @@
 const { run, getOne, getAll } = require('../../db');
 const { initDB } = require('./schema');
 const { parseJSON } = require('./shared');
+const managedParts = require('../lib/managedParts');
+
+// ── The managed-part guard for webpage writes ─────────────────────────
+//
+// A page filed into a Solution STAGE project (UAT/PRD) is managed
+// (stores/lib/managedParts.js): its files, metadata, grants and published
+// pointer change only through a deploy, which passes `managedWrite`
+// ({ deploymentId }). Publish/audience, access mode, public share, the page's
+// own data.db and its thumbnail stay editable (ALLOWED.webpage).
+//
+// It lives in this module because this is the leaf every webpage aggregate
+// can require without a cycle (webpages.js, versions.js and the facade all
+// do), and because the grant writers here are also called directly, not
+// only through the facade (routes/webpagesAudience.js).
+
+/**
+ * Refuse a write to a managed page unless every changed key is allow-listed
+ * or the write carries the deploy's capability. A page outside a stage
+ * project passes untouched.
+ *
+ * @param {string} webpageId
+ * @param {string[]} changedKeys
+ * @param {{ managedWrite?: { deploymentId?: string }|null, client?: any, projectId?: string|null }} [opts]
+ *        `projectId`: the page's project when the caller already read it (skips the lookup)
+ */
+async function assertWebpageWrite(webpageId, changedKeys, { managedWrite = null, client = null, projectId = undefined } = {}) {
+    if (!webpageId) return { managed: false };
+    let pid = projectId;
+    if (pid === undefined) {
+        if (!client) await initDB();
+        const sql = 'SELECT project_id FROM webpages WHERE id = $1';
+        const row = client ? (await client.query(sql, [webpageId])).rows[0] : await getOne(sql, [webpageId]);
+        pid = row ? row.project_id : null;
+    }
+    if (!pid) return { managed: false };
+    return managedParts.assertManagedWrite({ kind: 'webpage', projectId: pid, changedKeys, managedWrite, client });
+}
+
+// The grant lists that hold pointers a release carries: a change to one of
+// them is a managed write. `ai` and `integrations` stay the stage's own
+// (integration grants are never carried; design section 2).
+const MANAGED_GRANT_LISTS = Object.freeze(['automations', 'tables']);
+
+/** A table binding without its public column gate (the public share is a stage setting). */
+const withoutPublicGate = (tables) => (tables || []).map(({ publicColumns, ...rest }) => rest);
+
+/** The managed grant slices that differ between two normalised grant sets. */
+function changedManagedGrants(before, after) {
+    const keys = [];
+    if (JSON.stringify(before.automations) !== JSON.stringify(after.automations)) keys.push('bridgeGrants.automations');
+    if (JSON.stringify(withoutPublicGate(before.tables)) !== JSON.stringify(withoutPublicGate(after.tables))) keys.push('bridgeGrants.tables');
+    if (JSON.stringify(before.agent) !== JSON.stringify(after.agent)) keys.push('bridgeGrants.agent');
+    return keys;
+}
 
 // ── Bridge grants (runtime API allowlist) ─────────────────────────────
 //
@@ -173,7 +227,7 @@ async function getBridgeGrants(webpageId) {
  * `agent: null` is een geldige waarde (wis de agent); alleen `undefined` laat
  * de huidige staan. Vandaar overal de !== undefined-toets.
  */
-async function updateBridgeGrants(webpageId, userId, patch) {
+async function updateBridgeGrants(webpageId, userId, patch, opts = {}) {
     await initDB();
     const current = await getBridgeGrants(webpageId);
     const merged = normalizeBridgeGrants({
@@ -183,6 +237,10 @@ async function updateBridgeGrants(webpageId, userId, patch) {
         tables: patch?.tables !== undefined ? patch.tables : current.tables,
         agent: patch?.agent !== undefined ? patch.agent : current.agent,
     });
+    // Only a change to a carried pointer is a managed write: narrowing a
+    // table's public columns (the public share) or the AI switches is not.
+    const managedKeys = changedManagedGrants(current, merged);
+    if (managedKeys.length > 0) await assertWebpageWrite(webpageId, managedKeys, opts);
     const { rowCount } = await run(
         `UPDATE webpages SET bridge_grants = $1, updated_at = NOW() WHERE id = $2 AND user_id = $3`,
         [JSON.stringify(merged), webpageId, userId]
@@ -230,11 +288,32 @@ function _grantListSql(list, withAppend) {
 }
 
 /**
+ * The managed-list guard for a single-entry write. Reads the OWNER's row
+ * first, so a caller who does not own the page gets null (not managed_part
+ * details). A no-op passes the guard, the same rule updateBridgeGrants
+ * applies by diffing before it refuses: removing an absent id answers the
+ * current grants without a write; re-granting an unchanged entry writes unguarded.
+ * @returns {Promise<{ result: any }|null>} `{ result }` to answer at once, null to go on and write
+ */
+async function guardManagedEntry(webpageId, userId, list, id, clean, opts) {
+    if (!MANAGED_GRANT_LISTS.includes(list)) return null;
+    const row = await getOne('SELECT bridge_grants, project_id FROM webpages WHERE id = $1 AND user_id = $2', [webpageId, userId]);
+    if (!row) return { result: null };
+    const current = normalizeBridgeGrants(parseJSON(row.bridge_grants, null));
+    const existing = current[list].find(e => e[GRANT_LISTS[list]] === id);
+    if (!clean && !existing) return { result: current };
+    // Re-granting the same pointer (a public column gate is the stage's own) still writes, unguarded.
+    if (clean && existing && JSON.stringify(withoutPublicGate([existing])) === JSON.stringify(withoutPublicGate([clean]))) return null;
+    await assertWebpageWrite(webpageId, [`bridgeGrants.${list}`], { ...opts, projectId: row.project_id || null });
+    return null;
+}
+
+/**
  * Add (or replace) one entry in a bridge-grant list, atomically.
  * @returns the full normalized grants after the write, or null when the page
  *          does not exist / is not owned by `userId`.
  */
-async function upsertBridgeGrantEntry(webpageId, userId, list, entry) {
+async function upsertBridgeGrantEntry(webpageId, userId, list, entry, opts = {}) {
     if (!GRANT_LISTS[list]) throw new Error(`upsertBridgeGrantEntry: unknown list "${list}"`);
     await initDB();
     const idKey = GRANT_LISTS[list];
@@ -244,6 +323,8 @@ async function upsertBridgeGrantEntry(webpageId, userId, list, entry) {
     // written here can never drift from the whole-column path.
     const [clean] = normalizeBridgeGrants({ [list]: [entry] })[list];
     if (!clean) throw new Error(`upsertBridgeGrantEntry: invalid ${list} entry`);
+    const early = await guardManagedEntry(webpageId, userId, list, id, clean, opts);
+    if (early) return early.result;
     const r = await getOne(_grantListSql(list, true), [webpageId, userId, id, JSON.stringify(clean)]);
     if (!r) return null;
     return normalizeBridgeGrants(parseJSON(r.bridge_grants, null));
@@ -253,10 +334,12 @@ async function upsertBridgeGrantEntry(webpageId, userId, list, entry) {
  * Remove one entry from a bridge-grant list, atomically. Same return contract
  * as upsertBridgeGrantEntry; removing something absent is a no-op success.
  */
-async function removeBridgeGrantEntry(webpageId, userId, list, id) {
+async function removeBridgeGrantEntry(webpageId, userId, list, id, opts = {}) {
     if (!GRANT_LISTS[list]) throw new Error(`removeBridgeGrantEntry: unknown list "${list}"`);
     await initDB();
     if (typeof id !== 'string' || !id) throw new Error('removeBridgeGrantEntry: id is required');
+    const early = await guardManagedEntry(webpageId, userId, list, id, null, opts);
+    if (early) return early.result;
     const r = await getOne(_grantListSql(list, false), [webpageId, userId, id]);
     if (!r) return null;
     return normalizeBridgeGrants(parseJSON(r.bridge_grants, null));
@@ -317,6 +400,7 @@ async function listPublicWebpagesBoundToDatatable(datatableId) {
 
 module.exports = {
     DEFAULT_BRIDGE_GRANTS,
+    assertWebpageWrite,
     listPublicWebpagesBoundToDatatable,
     normalizeBridgeGrants,
     getBridgeGrants,

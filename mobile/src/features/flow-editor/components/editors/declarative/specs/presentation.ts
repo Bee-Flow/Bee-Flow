@@ -223,7 +223,7 @@ export const PRESENTATION: EditorSpec = {
                     label: msg('mobile.flow.doc.keep_copy', 'Also keep it in Documents'),
                     description: msg(
                         'mobile.flow.deck.keep_copy_hint',
-                        'Keeps the deck in Studio → Documents as a presentation you can open in Bee Flow, edit and rebuild. Leave it off for a routine that runs often — it makes a document every run.',
+                        'Keeps the deck in Studio → Documents as a presentation you can open in Bee Flow, edit and rebuild. Leave it off for an automation that runs often — it makes a document every run.',
                     ),
                 },
                 {

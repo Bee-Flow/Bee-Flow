@@ -16,6 +16,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { API_BASE, authFetch } from '../utils/helpers';
 
+// The server expires an unanswered decision after ten minutes of silence
+// (decisionQueue.js). While the review is open we heartbeat well under that
+// so a person mid-edit is never expired from under their cursor.
+export const DLP_TOUCH_INTERVAL_MS = 60 * 1000;
+
 /** What the SSE reducer puts on the event. The modal feature-detects the
  *  richer fields (`reviewText`, `provider`, …), so only the id is named. */
 export interface DlpPreviewDetail {
@@ -88,6 +93,24 @@ export default function useDlpDecision(): UseDlpDecisionReturn {
             window.removeEventListener('beeflow:dlp_blocked', onBlocked);
         };
     }, []);
+
+    const decisionId = pending?.decisionId;
+
+    useEffect(() => {
+        if (!decisionId) return undefined;
+        const beat = () => {
+            // Best-effort: a failed beat leaves the modal alone — an expired
+            // decision still reports through submit's own error path.
+            authFetch(`${API_BASE}/api/chat/dlp-decision/touch`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ decisionId }),
+            }).catch(() => {});
+        };
+        beat();
+        const intervalId = setInterval(beat, DLP_TOUCH_INTERVAL_MS);
+        return () => clearInterval(intervalId);
+    }, [decisionId]);
 
     const submit = useCallback(async (
         choice: DlpChoice,

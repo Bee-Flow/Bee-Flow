@@ -1,5 +1,5 @@
 /**
- * The form-test overlay — filling a form-triggered routine's own page in, over
+ * The form-test overlay — filling a form-triggered automation's own page in, over
  * the canvas, and following the run through whatever it pauses on next.
  *
  * What is pinned here is the JOURNEY: page one comes from the declaration being
@@ -51,7 +51,7 @@ describe('FormRunOverlay — page one', () => {
     it('shows the declaration being edited, not something the server stored', async () => {
         renderOverlay();
         expect(screen.getByText('Vraag het')).toBeTruthy();
-        expect(screen.getByText(/runs the routine for real/)).toBeTruthy();
+        expect(screen.getByText(/runs the automation for real/)).toBeTruthy();
         // Page one never asks the server what to render.
         expect(get).not.toHaveBeenCalled();
     });
@@ -69,12 +69,12 @@ describe('FormRunOverlay — page one', () => {
         expect('website_url' in answers).toBe(false);
     });
 
-    it('says the routine finished once the run ends', async () => {
+    it('says the automation finished once the run ends', async () => {
         get.mockResolvedValue({ runId: 'run1', status: 'success', waiting: false });
         renderOverlay();
         fill('Jouw naam', 'Tom');
         fireEvent.click(screen.getByRole('button', { name: 'Verstuur' }));
-        await waitFor(() => expect(screen.getByText('The routine finished.')).toBeTruthy());
+        await waitFor(() => expect(screen.getByText('The automation finished.')).toBeTruthy());
     });
 
     it('reports a run that ended badly instead of sitting on a spinner', async () => {
@@ -116,7 +116,7 @@ describe('FormRunOverlay — the rest of the journey', () => {
         // The step id rides along: a stale overlay must not have page two's
         // answers coerced against page three's declaration.
         expect(body).toEqual({ stepId: 'fp_2', values: { adres: 'Dorpsstraat 1' } });
-        await waitFor(() => expect(screen.getByText('The routine finished.')).toBeTruthy());
+        await waitFor(() => expect(screen.getByText('The automation finished.')).toBeTruthy());
     });
 
     it('follows the run into the CHILD it handed off to', async () => {
@@ -131,7 +131,7 @@ describe('FormRunOverlay — the rest of the journey', () => {
         fill('Je adres', 'Dorpsstraat 1');
         fireEvent.click(screen.getByRole('button', { name: 'Ga door' }));
 
-        await waitFor(() => expect(screen.getByText('The routine finished.')).toBeTruthy());
+        await waitFor(() => expect(screen.getByText('The automation finished.')).toBeTruthy());
         // Resuming starts a child run; the poll has to follow it, or the
         // overlay waits forever on a parent that finished when it handed off.
         expect(get.mock.calls.at(-1)[0]).toBe('/api/automation/runs/run2/form');
@@ -140,7 +140,7 @@ describe('FormRunOverlay — the rest of the journey', () => {
 
 describe('FormRunOverlay — the app picker', () => {
     it('searches through the builder\'s own endpoint, by source', async () => {
-        // The public picker needs a form token this routine does not have yet,
+        // The public picker needs a form token this automation does not have yet,
         // so the overlay uses the owner-scoped one and names the SOURCE.
         post.mockResolvedValue({ results: [{ id: 'tr_1', title: 'Kickoff' }] });
         renderOverlay({
@@ -152,5 +152,34 @@ describe('FormRunOverlay — the app picker', () => {
         expect(url).toBe('/api/automation/auto1/form-pick');
         expect(body.source).toBe('fireflies_transcript');
         await waitFor(() => expect(screen.getByText('Kickoff')).toBeTruthy());
+    });
+});
+
+describe('FormRunOverlay — attached to a live run', () => {
+    it('shows the page the run is waiting on and submits it to that run', async () => {
+        get.mockResolvedValue({ runId: 'run9', status: 'awaiting_form', waiting: true, stepId: 'fp_2', form: PAGE_TWO });
+        post.mockResolvedValue({ accepted: true, run: { id: 'run9' } });
+        const onStartRun = vi.fn();
+        render(<FormRunOverlay automationId="auto1" runId="run9" onStartRun={onStartRun} onClose={vi.fn()} />);
+
+        await waitFor(() => expect(screen.getByText('Nog één ding')).toBeTruthy());
+        expect(get.mock.calls[0][0]).toBe('/api/automation/runs/run9/form');
+        expect(screen.getAllByText('Live run — this page is waiting for you').length).toBeGreaterThan(0);
+
+        get.mockResolvedValue({ runId: 'run9', status: 'success', waiting: false });
+        fill('Je adres', 'Dorpsstraat 1');
+        fireEvent.click(screen.getByRole('button', { name: 'Ga door' }));
+        await waitFor(() => expect(post).toHaveBeenCalled());
+        const [url, body] = post.mock.calls[0];
+        expect(url).toBe('/api/automation/runs/run9/form');
+        expect(body).toEqual({ stepId: 'fp_2', values: { adres: 'Dorpsstraat 1' } });
+        expect(onStartRun).not.toHaveBeenCalled();
+        await waitFor(() => expect(screen.getByText('The automation finished.')).toBeTruthy());
+    });
+
+    it('starts on the working screen until the run has a page for you', async () => {
+        get.mockResolvedValue({ runId: 'run9', status: 'running', waiting: false });
+        render(<FormRunOverlay automationId="auto1" runId="run9" onStartRun={vi.fn()} onClose={vi.fn()} />);
+        expect(screen.getByText('Running the automation…')).toBeTruthy();
     });
 });

@@ -10,7 +10,7 @@ export type GoLiveAction = 'publish' | 'activate';
 
 /**
  * Activate / "Make vN live" was refused with 409 `ai_act_check_required`: Bee
- * checked the routine and has questions it could not answer. This asks ONLY
+ * checked the automation and has questions it could not answer. This asks ONLY
  * those, all on one screen, and "Save and make live" saves the answers and
  * hands back to the caller, which retries the same publish or activate.
  *
@@ -44,20 +44,20 @@ export default function AiActQuestionsDialog({ open, automationId, stamp, action
         onAnswered();
     }, [open, nothingLeft, onAnswered]);
 
-    const heading = t('routines.aiact.title', 'AI Act check');
+    const heading = t('automations.aiact.title', 'AI Act check');
     let body: React.ReactNode;
     if (!r) {
         body = (
             <p className="flex items-center gap-2 text-[var(--text-secondary)]" role="status">
                 <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden />
-                {check.isError ? t('routines.aiact.check_failed', 'Bee could not check this automation right now.') : t('routines.aiact.checking', 'Bee is checking…')}
+                {check.isError ? t('automations.aiact.check_failed', 'Bee could not check this automation right now.') : t('automations.aiact.checking', 'Bee is checking…')}
             </p>
         );
     } else if (r.status === 'prohibited') {
         body = (
             <p className="flex items-start gap-1.5 text-[var(--error)]">
                 <OctagonX className="w-3.5 h-3.5 shrink-0 mt-px" aria-hidden />
-                {t('routines.aiact.prohibited_body', 'The check found a prohibited practice. This automation cannot go live. Ask your compliance officer to review it in the Compliance Hub.')}
+                {t('automations.aiact.prohibited_body', 'The check found a prohibited practice. This automation cannot go live. Ask your compliance officer to review it in the Compliance Hub.')}
             </p>
         );
     } else if (r.questions.length) {
@@ -94,25 +94,25 @@ function Answering({ automationId, result, action, onClose }: {
     const answer = useAnswerAiAct(automationId);
     const complete = draftComplete(result.questions, draft);
     const primary = action === 'publish'
-        ? t('routines.aiact.save_and_live', 'Save and make live')
-        : t('routines.aiact.save_and_activate', 'Save and activate');
+        ? t('automations.aiact.save_and_live', 'Save and make live')
+        : t('automations.aiact.save_and_activate', 'Save and activate');
     return (
         <>
             <div className="p-[18px] flex flex-col gap-3 overflow-y-auto">
                 <p className="text-[var(--text-secondary)] leading-[17px]">
-                    {t('routines.aiact.dialog_intro', 'Bee checked this automation for the AI Act. Answer what it could not work out, then it goes live.')}
+                    {t('automations.aiact.dialog_intro', 'Bee checked this automation for the AI Act. Answer what it could not work out, then it goes live.')}
                 </p>
                 <AiActQuestions questions={result.questions} draft={draft} onChange={setDraft} disabled={answer.isPending} />
                 {answer.error && (
                     <p role="alert" className="text-[var(--error)]">
                         {answer.error.code?.startsWith('ai_act') && answer.error.message
                             ? answer.error.message
-                            : t('routines.aiact.save_failed', 'Could not record the check. Try again.')}
+                            : t('automations.aiact.save_failed', 'Could not record the check. Try again.')}
                     </p>
                 )}
             </div>
             <div className="px-[18px] py-3 border-t border-[var(--border-default)] flex gap-2 justify-end">
-                <button type="button" onClick={onClose} className={SECONDARY_BTN}>{t('routines.aiact.cancel', 'Cancel')}</button>
+                <button type="button" onClick={onClose} className={SECONDARY_BTN}>{t('automations.aiact.cancel', 'Cancel')}</button>
                 <button
                     type="button"
                     disabled={!complete || answer.isPending}

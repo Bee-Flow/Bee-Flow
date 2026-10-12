@@ -224,6 +224,17 @@ test('Fable 5.1 refuses forced tool choice; Fable 5 and Opus 5 accept it', () =>
     assert.strictEqual(describeClaudeModel('claude-opus-5').forcedToolChoice, true);
 });
 
+test('Sonnet 5.5 / Opus 5.5 and later refuse forced tool choice; Sonnet 5 and 4.x keep it', () => {
+    // The API answers `tool_choice: type "tool" and "any" are not supported
+    // for this model.` — every structured-output call on the fast tier 500'd.
+    assert.strictEqual(describeClaudeModel('claude-sonnet-5-5').forcedToolChoice, false);
+    assert.strictEqual(describeClaudeModel('claude-opus-5-5').forcedToolChoice, false);
+    assert.strictEqual(describeClaudeModel('claude-sonnet-6').forcedToolChoice, false);
+    assert.strictEqual(describeClaudeModel('claude-sonnet-5').forcedToolChoice, true);
+    assert.strictEqual(describeClaudeModel('claude-sonnet-4-6').forcedToolChoice, true);
+    assert.strictEqual(describeClaudeModel('claude-haiku-4-5').forcedToolChoice, true);
+});
+
 test('mid-conversation system messages: Opus 5 and Fable yes, Sonnet 5 no', () => {
     assert.strictEqual(describeClaudeModel('claude-opus-5').midConvSystem, true);
     assert.strictEqual(describeClaudeModel('claude-opus-4-8').midConvSystem, true);

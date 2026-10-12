@@ -271,7 +271,7 @@ test('GET /_runs/org/facets proves the permission AGAIN, on its own', async () =
     const res = await call(orgFacets);
     assert.equal(res.statusCode, 403);
     // Facets describe the shape of the organisation's activity — which
-    // routines exist, how often they run, what breaks. Deriving the right to
+    // automations exist, how often they run, what breaks. Deriving the right to
     // see that from "the list call must have been allowed" is how a second
     // endpoint ends up ungated.
     assert.equal(calls.facets.length, 0);

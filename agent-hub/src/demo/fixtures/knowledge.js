@@ -92,7 +92,7 @@ const PRODUCT_DOCS = () => ([
     doc('kbd_faq', 'Frequently asked questions', 'text', 74,
         'Does an assistant see documents the person asking cannot open? No. Retrieval is filtered by the same audience rules that govern the knowledge base itself, before the model is called.'),
     doc('kbd_glossary', 'Glossary', 'text', 74,
-        'Assistant — a configured model with instructions, skills and knowledge. Routine — a saved sequence of steps that can run on a trigger. Skill — reusable instructions an assistant pulls in on demand.'),
+        'Assistant — a configured model with instructions, skills and knowledge. Automation — a saved sequence of steps that can run on a trigger. Skill — reusable instructions an assistant pulls in on demand.'),
 ]);
 
 const HANDBOOK_DOCS = () => ([

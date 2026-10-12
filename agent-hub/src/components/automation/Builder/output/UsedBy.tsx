@@ -42,16 +42,16 @@ export default function UsedBy({ entries, isList, fileRows = false, onAddAfter =
         return (
             <div className="flex items-center flex-wrap gap-2 px-3 py-[9px] rounded-lg border border-dashed border-[var(--border-default)] text-[var(--text-secondary)] text-xs" data-testid="output-used-by">
                 <ArrowRightFromLine size={13} aria-hidden />
-                <span>{t('routines.output.used_by', 'Used by')}</span>
+                <span>{t('automations.output.used_by', 'Used by')}</span>
                 {entries.map(e => (
                     <span key={e.stepId} className="inline-flex items-center gap-1.5 min-w-0">
                         <span className={`inline-flex items-center px-[7px] rounded-full font-semibold leading-[18px] ${CHIP[e.family || ''] || NEUTRAL_CHIP}`}>
                             {e.number != null
-                                ? t('routines.output.used_by_step', 'Step {n} · {label}', { n: e.number, label: e.label })
+                                ? t('automations.output.used_by_step', 'Step {n} · {label}', { n: e.number, label: e.label })
                                 : e.label}
                         </span>
                         <span className="text-[var(--text-tertiary)] truncate">
-                            · {e.fields.length ? e.fields.join(', ') : t('routines.output.used_whole', 'everything')}
+                            · {e.fields.length ? e.fields.join(', ') : t('automations.output.used_whole', 'everything')}
                         </span>
                     </span>
                 ))}
@@ -59,8 +59,8 @@ export default function UsedBy({ entries, isList, fileRows = false, onAddAfter =
         );
     }
     const question = isList
-        ? t('routines.output.unused_list', 'No step uses this list yet. What do you want to do with it?')
-        : t('routines.output.unused', 'No step uses this yet. What do you want to do with it?');
+        ? t('automations.output.unused_list', 'No step uses this list yet. What do you want to do with it?')
+        : t('automations.output.unused', 'No step uses this yet. What do you want to do with it?');
     return (
         <div className="flex flex-col gap-1.5 px-3 py-2.5 rounded-[10px] border border-dashed border-[var(--border-default)] text-xs" data-testid="output-used-by">
             <div className="flex items-center gap-2 text-[var(--text-secondary)]">
@@ -73,19 +73,19 @@ export default function UsedBy({ entries, isList, fileRows = false, onAddAfter =
                         <button type="button" className={SUGGEST_BTN} onClick={() => onAddAfter('loop')}>
                             <Repeat size={12} aria-hidden />
                             {fileRows
-                                ? t('routines.output.suggest_each_file', 'Do something for each file')
-                                : t('routines.output.suggest_each_item', 'Do something for each item')}
+                                ? t('automations.output.suggest_each_file', 'Do something for each file')
+                                : t('automations.output.suggest_each_item', 'Do something for each item')}
                         </button>
                     )}
                     {isList && (
                         <button type="button" className={SUGGEST_BTN} onClick={() => onAddAfter('datatable')}>
                             <Table size={12} aria-hidden />
-                            {t('routines.output.suggest_datatable', 'Save in a datatable')}
+                            {t('automations.output.suggest_datatable', 'Save in a datatable')}
                         </button>
                     )}
                     <button type="button" className={SUGGEST_BTN} onClick={() => onAddAfter(null)}>
                         <Plus size={12} aria-hidden />
-                        {isList ? t('routines.output.suggest_other', 'Other step') : t('routines.output.suggest_next', 'Add a next step')}
+                        {isList ? t('automations.output.suggest_other', 'Other step') : t('automations.output.suggest_next', 'Add a next step')}
                     </button>
                 </div>
             )}

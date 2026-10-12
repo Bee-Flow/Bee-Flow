@@ -64,6 +64,7 @@ const INTEGRATION_PREFIXES = {
     // REST); null lets the probe-captured tls_servername be the truth.
     nmbrs_:         { integration: 'nmbrs',           label: 'NMBRS',               serverFn: () => null },
     vplan_:         { integration: 'vplan',           label: 'vPlan',               server: 'api.vplan.com' },
+    scaleway_:      { integration: 'scaleway-billing', label: 'Scaleway Billing',   server: 'api.scaleway.com' },
     linkedin_:      { integration: 'linkedin',        label: 'LinkedIn',            server: 'api.linkedin.com' },
     withings_:      { integration: 'withings',        label: 'Withings',            server: 'wbsapi.withings.net' },
     github_:        { integration: 'github',          label: 'GitHub',              server: 'api.github.com' },
@@ -107,6 +108,14 @@ const INTEGRATION_PREFIXES = {
     nextcloud_:               { integration: 'nextcloud',               label: 'Nextcloud Files',         serverFn: (_a, ctx) => ctx?.nextcloudUrl || null },
 };
 
+/**
+ * A document builder (create_presentation, create_word_document) asked to
+ * save into Nextcloud. Same test the dispatcher uses: a non-empty string.
+ */
+function writesToNextcloud(args) {
+    return typeof args?.nextcloudPath === 'string' && args.nextcloudPath.trim() !== '';
+}
+
 // ── Static overrides for specific tools ──────────────────────────────
 // These provide precise metadata for tools that need custom server endpoints,
 // direction, or data categories. Entries here override the prefix-based defaults.
@@ -128,14 +137,27 @@ const INTEGRATION_TOOL_MAP = {
         dataCategories: 'search_query, document_content',
     },
     // A .pptx built in-process and kept in Bee Flow's own storage: nothing
-    // leaves the building. (nextcloud_create_presentation is covered by the
-    // nextcloud_ prefix above — that one does write into Nextcloud.)
+    // leaves the building. With `nextcloudPath` the dispatcher writes it into
+    // Nextcloud instead, and then it is classed exactly like the nextcloud_
+    // family (external, server = the Nextcloud URL): the egress ledger, the
+    // org's "Outside tools" PII rules and an automation's external privacy scope
+    // all apply to the content that goes there.
     create_presentation: {
         integration: 'presentation_builder',
         label: 'Presentation builder',
-        serverFn: () => null,
-        isLocal: true,
-        direction: 'received',
+        serverFn: (a, ctx) => (writesToNextcloud(a) ? ctx?.nextcloudUrl || null : null),
+        isLocal: (a) => !writesToNextcloud(a),
+        direction: (a) => (writesToNextcloud(a) ? 'sent' : 'received'),
+        dataCategories: 'document_content',
+    },
+    // Same for a .docx: local when kept in Bee Flow's storage, external (like
+    // nextcloud_create_document) when `nextcloudPath` sends it to Nextcloud.
+    create_word_document: {
+        integration: 'word_document_builder',
+        label: 'Word document builder',
+        serverFn: (a, ctx) => (writesToNextcloud(a) ? ctx?.nextcloudUrl || null : null),
+        isLocal: (a) => !writesToNextcloud(a),
+        direction: (a) => (writesToNextcloud(a) ? 'sent' : 'received'),
         dataCategories: 'document_content',
     },
     web_search: {
@@ -252,6 +274,17 @@ const INTEGRATION_TOOL_MAP = {
     vplan_list_master_data: {
         integration: 'vplan', label: 'vPlan', serverFn: () => 'api.vplan.com',
         direction: 'received', dataCategories: 'planning_data, crm, pii',
+    },
+
+    // ── Scaleway Billing (read-only invoices) ────────────────
+    // Invoices are the organisation's own financial records.
+    scaleway_list_invoices: {
+        integration: 'scaleway-billing', label: 'Scaleway Billing', serverFn: () => 'api.scaleway.com',
+        direction: 'received', dataCategories: 'finance',
+    },
+    scaleway_download_invoice: {
+        integration: 'scaleway-billing', label: 'Scaleway Billing', serverFn: () => 'api.scaleway.com',
+        direction: 'received', dataCategories: 'finance, document_content',
     },
 
     // ── Legacy email tools (generic provider) ────────────────
@@ -446,9 +479,9 @@ function resolveIntegration(toolName, toolArgs = {}, ctx = {}) {
             integration: mapped.integration,
             label: mapped.label,
             server: typeof mapped.serverFn === 'function' ? mapped.serverFn(toolArgs, ctx) : mapped.serverFn,
-            direction: mapped.direction || inferDirection(toolName),
+            direction: (typeof mapped.direction === 'function' ? mapped.direction(toolArgs || {}, ctx) : mapped.direction) || inferDirection(toolName),
             dataCategories: mapped.dataCategories || 'unknown',
-            isLocal: !!mapped.isLocal,
+            isLocal: typeof mapped.isLocal === 'function' ? !!mapped.isLocal(toolArgs || {}, ctx) : !!mapped.isLocal,
         };
     }
 
@@ -507,7 +540,7 @@ function resolveIntegration(toolName, toolArgs = {}, ctx = {}) {
  * over-reported badly — any 9-digit number was a "BSN" (order numbers, epoch
  * seconds, invoice ids) and almost any digit run was a "Phone Number". Every
  * numeric category now validates its candidates (elfproef / Luhn / octet
- * range / digit-count) before the category is reported. Routine rows fed the
+ * range / digit-count) before the category is reported. Automation rows fed the
  * same sovereignty dashboards as the GLiNER-scanned chat rows, so the
  * over-reporting skewed the org-wide "PII leaving the building" numbers.
  */

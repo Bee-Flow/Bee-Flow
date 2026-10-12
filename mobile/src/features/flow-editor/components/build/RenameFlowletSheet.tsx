@@ -1,7 +1,7 @@
 /**
  * Rename a flowlet — its display title only: calls address a flowlet by its
  * key, which never changes (model/flowlets renameLayer). One undoable edit of
- * the routine's draft. Mounted only while open.
+ * the automation's draft. Mounted only while open.
  */
 
 import React, { useState } from 'react';
@@ -17,7 +17,7 @@ export function RenameFlowletSheet({ title, onRename, onClose }: { title: string
         <Sheet
             visible
             onClose={onClose}
-            title={t('mobile.flow.flowlets.rename', 'Rename flowlet')}
+            title={t('automations.flowlets_panel.rename_flowlet', 'Rename flowlet')}
             footer={
                 <Button
                     label={t('common.save', 'Save')}

@@ -1,0 +1,28 @@
+{
+ "id": "04-stop-resume-automation",
+ "title": "PB Facturen stop-hervat",
+ "recipeId": "invoice_tracker",
+ "options": {
+  "tableMode": "new",
+  "tableTitle": "PB Facturen C",
+  "inputs": {
+   "folderPath": "/Invoices-Q3"
+  },
+  "tier": "fast",
+  "locale": "nl"
+ },
+ "scenario": "stop_resume_automation",
+ "until": "automation",
+ "expect": {
+  "status": "active",
+  "phases": {
+   "table": "done",
+   "automation": "awaiting"
+  },
+  "automation": {
+   "finalized": true,
+   "maxRounds": 10,
+   "triggerKind": "manual"
+  }
+ }
+}

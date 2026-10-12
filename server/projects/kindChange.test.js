@@ -60,14 +60,14 @@ function world({ counts = {}, chats = { conversations: 0, teamChats: 0 }, files 
 
 test('into a workspace: the Solution-only kinds are counted, nothing else', async () => {
     const { asked, check } = world({
-        counts: { apps: 2, automations: 1, webpages: 0, datatables: 3, agents: 1, notebooks: 9, documents: 4, meetings: 5 },
+        counts: { apps: 2, automations: 1, webpages: 0, datatables: 3, agents: 1, skills: 2, documentTemplates: 6, notebooks: 9, documents: 4, meetings: 5 },
         chats: { conversations: 30, teamChats: 2 },
         files: 7,
     });
     assert.deepStrictEqual(await check.refusedContent(PROJECT, 'workspace'), {
-        automations: 1, apps: 2, datatables: 3, agents: 1,
+        automations: 1, apps: 2, datatables: 3, agents: 1, skills: 2, documentTemplates: 6,
     });
-    assert.deepStrictEqual(asked.sort(), ['agents', 'apps', 'automations', 'datatables', 'webpages'],
+    assert.deepStrictEqual(asked.sort(), ['agents', 'apps', 'automations', 'datatables', 'documentTemplates', 'skills', 'webpages'],
         'chats, files and the kinds a workspace takes are not even read');
 });
 

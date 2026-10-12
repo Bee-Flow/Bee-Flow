@@ -2,7 +2,7 @@
  * A batch that arrived corrupted is called corrupted, and a refused VALUE is
  * never handed back in the resend.
  *
- * Both measured on one live build, 2026-09-16 ("Invoices-Test" routine):
+ * Both measured on one live build, 2026-09-16 ("Invoices-Test" automation):
  *
  *  1. The call arrived as
  *     [{…}, {spec, label}, "$filter_files", "array_op", "},{spec:{op:"] —

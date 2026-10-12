@@ -1,5 +1,5 @@
 /**
- * Create a scheduled AI task ("routine").
+ * Create a scheduled AI task ("automation").
  *
  * A task is a prompt plus a time: the scheduler wakes up, runs the prompt
  * against the chosen tier, and drops the answer into notifications. Three

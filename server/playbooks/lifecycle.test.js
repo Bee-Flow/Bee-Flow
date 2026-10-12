@@ -36,12 +36,12 @@ test('applyTransition stamps the clocks, merges artifacts and throws a coded err
 test('advance: consent moves the next non-terminal phase to ready; skipped and locked are jumped over; the last consent completes the playbook', () => {
     let phases = L.applyTransition(L.applyTransition(fresh(), 'table', 'running'), 'table', 'awaiting');
     let r = L.advance(phases, 'table');
-    assert.equal(r.nextKey, 'routine');
+    assert.equal(r.nextKey, 'automation');
     assert.deepEqual(statuses(r.phases), ['done', 'ready', 'pending', 'pending', 'pending', 'pending']);
-    assert.equal(L.currentPhaseKey(r.phases), 'routine');
+    assert.equal(L.currentPhaseKey(r.phases), 'automation');
     assert.equal(L.playbookStatus(r.phases), 'active');
-    // routine skipped, fill skipped, app runs, approvals locked → advance from app completes.
-    phases = L.applyTransition(r.phases, 'routine', 'skipped');
+    // automation skipped, fill skipped, app runs, approvals locked → advance from app completes.
+    phases = L.applyTransition(r.phases, 'automation', 'skipped');
     phases = L.applyTransition(phases, 'fill', 'skipped');
     phases = L.applyTransition(phases, 'design', 'skipped');
     phases = L.applyTransition(L.applyTransition(L.applyTransition(phases, 'app', 'ready'), 'app', 'running'), 'app', 'awaiting');
@@ -57,11 +57,11 @@ test('composeBriefFor uses the table artifacts and the owner; nothing for the se
     const base = { userId: 'u_owner', title: 'Facturen', options: { folderPath: '/Invoices-Test' }, phases: fresh() };
     assert.equal(L.composeBriefFor(recipe, 'table', base), null);
     assert.equal(L.composeBriefFor(recipe, 'fill', base), null);
-    assert.throws(() => L.composeBriefFor(recipe, 'routine', base), (e) => e.code === 'artifacts_missing');
+    assert.throws(() => L.composeBriefFor(recipe, 'automation', base), (e) => e.code === 'artifacts_missing');
     const withTable = { ...base, phases: base.phases.map((p) => (p.key === 'table' ? { ...p, artifacts: { datatableId: 'tbl_ac8bd9ea1182', datatableKey: 'facturen', datatableName: 'Facturen', mapping: recipe.schemaMapping(), isMirror: false, hasStatus: true } } : p)) };
-    const routine = L.composeBriefFor(recipe, 'routine', withTable);
-    assert.match(routine, /\*\*"Facturen"\*\* \(id `tbl_ac8bd9ea1182`, key `facturen`\)/);
-    assert.match(routine, /"\/Invoices-Test"/);
+    const automation = L.composeBriefFor(recipe, 'automation', withTable);
+    assert.match(automation, /\*\*"Facturen"\*\* \(id `tbl_ac8bd9ea1182`, key `facturen`\)/);
+    assert.match(automation, /"\/Invoices-Test"/);
     assert.match(L.composeBriefFor(recipe, 'approvals', withTable), /builder_add_approval` with assignee \{userId:"u_owner"\}/);
     assert.match(L.composeBriefFor(recipe, 'approvals', { ...withTable, options: { ...withTable.options, approverGroupId: 'grp_9' } }), /assignee \{groupId:"grp_9"\}/);
     assert.match(L.composeBriefFor(recipe, 'app', withTable), /App name "Facturen"/);

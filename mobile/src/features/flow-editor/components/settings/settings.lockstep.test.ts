@@ -1,5 +1,5 @@
 /**
- * Lockstep: the routine's notification settings against the web's Settings
+ * Lockstep: the automation's notification settings against the web's Settings
  * page (handoff 5: Builder/settings/, which replaced SettingsTab.jsx).
  *
  *   DIFFERENTIAL  normalizeNotificationSettings, toggleChannel and
@@ -10,7 +10,7 @@
  *                 NotificationEventEditor.tsx — a component file, so not
  *                 requirable — with their parameter types dropped, run
  *                 beside the port;
- *   TEXTUAL       every `routines.notify.*` word the phone says is the web's,
+ *   TEXTUAL       every `automations.notify.*` word the phone says is the web's,
  *                 key and English, and every one the web says is the phone's
  *                 but the few that belong to the wide table.
  */
@@ -157,13 +157,13 @@ describe('the words', () => {
 });
 
 describe('the words are the web words', () => {
-    const PAIR = /\bt\(\s*'(routines\.(?:notify|settings)\.[a-z_]+)',\s*'((?:[^'\\]|\\.)*)'/g;
+    const PAIR = /\bt\(\s*'(automations\.(?:notify|settings)\.[a-z_]+)',\s*'((?:[^'\\]|\\.)*)'/g;
     const pairs = (src: string) => new Map([...src.matchAll(PAIR)].map((m) => [m[1] as string, m[2] as string]));
     const webPairs = pairs(EDITOR + SECTION);
     const phone = pairs(['notificationsModel.ts', 'NotificationsGroup.tsx', 'NotificationEventDetails.tsx'].map((f) => fs.readFileSync(path.join(__dirname, f), 'utf8')).join('\n'));
 
     /** On the wide table and the save round trip only: the phone folds like the web's narrow view and saves through the draft. */
-    const WEB_ONLY = ['routines.notify.when', 'routines.notify.who', 'routines.settings.save_failed'];
+    const WEB_ONLY = ['automations.notify.when', 'automations.notify.who', 'automations.settings.save_failed'];
 
     it('every phone word is the web one, key and English', () => {
         expect(phone.size).toBeGreaterThan(30);

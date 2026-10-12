@@ -1,5 +1,6 @@
 import { Menu, X } from 'lucide-react';
 import React from 'react';
+import DocumentsHeaderButton from './DocumentsHeaderButton';
 import EmptyChatState from './EmptyChatState';
 import DirectChatWelcome from '../components/chat/DirectChatWelcome';
 import InputArea from '../components/chat/InputArea';
@@ -9,10 +10,11 @@ import SharedChatReadOnly, { isReadOnlySharedChat } from '../components/chat/Sha
 import CoworkModeToggle from '../components/cowork/CoworkModeToggle';
 import CoworkWelcome from '../components/cowork/CoworkWelcome';
 import { lazy } from '../utils/lazyWithReload';
+import { useTranslation } from '../hooks/useTranslation';
 
 const WebpagePickerPopover = lazy(() => import('../components/webpages/WebpagePickerPopover'));
 
-// The direct-chat pane: minimal toolbar (Cowork switch, notebook / webpage
+// The direct-chat pane: minimal toolbar (Cowork switch, documents / webpage
 // buttons), the mode-dependent welcome state, the chat pane, the webpage
 // selection chip and the side panels. Moved verbatim from the
 // `directChatMode` branch of AgentHub.jsx's main ternary; all state stays in
@@ -21,7 +23,7 @@ const DirectChatView = ({
     isMobile, setSidebarOpen, user,
     notebooksEnabled, conversationStarted,
     coworkMode, setCoworkMode, inCoworkMode,
-    toggleNotebookPanel, showNotebook,
+    sidePanelDocumentId, openDocumentInSidePanel, closeDocumentPanel,
     canUseWebpagesSide, webpageButtonRefDirect, sidePanelWebpageId, closeWebpagePanel,
     webpagePickerOpen, setWebpagePickerOpen, openWebpageInSidePanel,
     messagesContainerRef, messagesEndRef, shouldForceScrollRef,
@@ -34,7 +36,42 @@ const DirectChatView = ({
     retryMessage, editAndRegenerate,
     renderSidePanels,
     activeProject = null, onOpenActiveProject, onLeaveActiveProject,
+    // useChatSignals() from useAgentHubData: the chat-signals notice for the
+    // endpoint this chat posts to, and the person's own switch. Both composers
+    // below get it, so the empty state and the conversation say the same.
+    chatSignals = null,
 }) => {
+    const { t } = useTranslation();
+    // The empty state and the conversation render the same composer; only how
+    // a send ends (the conversation also drops a picked webpage selection) and
+    // the empty state's Shield note differ, so those two stay on the elements.
+    const composerProps = {
+        onStopGenerating: stopGenerating,
+        isLoading,
+        directMode: true,
+        modelTiers,
+        selectedTier,
+        onTierChange: setSelectedTier,
+        input: chatInput,
+        isMobile,
+        setInput: setChatInput,
+        user,
+        activeSkillIds,
+        directSessionSkills,
+        directActivatedSessionSkillIds,
+        directConversationId: currentDirectConversation?.id,
+        onToggleSkill: handleToggleSkill,
+        messages,
+        onVoiceTurnComplete: handleVoiceTurnComplete,
+        chatSignalsNotice: chatSignals?.notice ?? null,
+        onChatSignalsCounted: chatSignals?.setCounted ?? null,
+        cowork: coworkComposer,
+        coworkMode,
+        onCoworkModeChange: setCoworkMode,
+        availableKBs: directChatKbs,
+        selectedKBIds: directChatKBIds,
+        onChangeKBIds: setDirectChatKBIds,
+    };
     return (
                     /* Direct Chat Mode */
                     <>
@@ -74,14 +111,12 @@ const DirectChatView = ({
                                     />
                                 </div>
                                 <div className="flex items-center gap-2 relative">
-                                    {!isMobile && notebooksEnabled && !inCoworkMode && (
-                                        <button
-                                            onClick={toggleNotebookPanel}
-                                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors border text-xs font-medium ${showNotebook ? 'bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] border-[var(--accent-primary)]/30' : 'bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border-[var(--border-subtle)]'}`}
-                                            title={showNotebook ? 'Close Notebook' : 'Open Notebook'}
-                                        >
-                                            📓 {showNotebook ? 'Close' : 'Notebook'}
-                                        </button>
+                                    {!isMobile && !inCoworkMode && (
+                                        <DocumentsHeaderButton
+                                            sidePanelDocumentId={sidePanelDocumentId}
+                                            openDocumentInSidePanel={openDocumentInSidePanel}
+                                            closeDocumentPanel={closeDocumentPanel}
+                                        />
                                     )}
                                     {!isMobile && canUseWebpagesSide && !inCoworkMode && (
                                         <>
@@ -112,7 +147,7 @@ const DirectChatView = ({
                         <div className="flex-1 flex overflow-hidden">
                             {/* Chat Pane */}
                             <div className="flex-1 flex flex-col min-w-0 border-r" style={{ borderColor: 'var(--border-subtle)' }}>
-                                <div ref={messagesContainerRef} className={`flex-1 overflow-y-auto ${isMobile ? 'p-2' : 'p-4'} custom-scrollbar`}>
+                                <div ref={messagesContainerRef} className={`flex-1 overflow-y-auto overflow-x-hidden ${isMobile ? 'p-2' : 'p-4'} custom-scrollbar`}>
                                     {messages.length === 0 ? (
                                         <EmptyChatState>
                                             {/* In Cowork the next thing typed is not
@@ -135,31 +170,9 @@ const DirectChatView = ({
                                                         onPromptClick: (text) => setChatInput(text),
                                                     },
                                                 <InputArea
+                                                    {...composerProps}
                                                     onSendMessage={(text, attachments) => { shouldForceScrollRef.current = true; sendMessage(text, attachments); }}
-                                                    onStopGenerating={stopGenerating}
-                                                    isLoading={isLoading}
-                                                    directMode={true}
-                                                    modelTiers={modelTiers}
-                                                    selectedTier={selectedTier}
-                                                    onTierChange={setSelectedTier}
-                                                    input={chatInput}
-                                                    isMobile={isMobile}
-                                                    setInput={setChatInput}
-                                                    user={user}
                                                     shieldApplies
-                                                    activeSkillIds={activeSkillIds}
-                                                    directSessionSkills={directSessionSkills}
-                                                    directActivatedSessionSkillIds={directActivatedSessionSkillIds}
-                                                    directConversationId={currentDirectConversation?.id}
-                                                    onToggleSkill={handleToggleSkill}
-                                                    messages={messages}
-                                                    onVoiceTurnComplete={handleVoiceTurnComplete}
-                                                    cowork={coworkComposer}
-                                                    coworkMode={coworkMode}
-                                                    onCoworkModeChange={setCoworkMode}
-                                                    availableKBs={directChatKbs}
-                                                    selectedKBIds={directChatKBIds}
-                                                    onChangeKBIds={setDirectChatKBIds}
                                                 />,
                                             )}
                                         </EmptyChatState>
@@ -197,7 +210,7 @@ const DirectChatView = ({
                                                 <div className="text-[11px] mt-0.5" style={{ color: 'var(--accent-primary)' }}>↳</div>
                                                 <div className="flex-1 min-w-0">
                                                     <div className="text-[11px] font-medium mb-0.5" style={{ color: 'var(--text-secondary)' }}>
-                                                        Selection from page{attachedWebpageSelection.tagName ? ` · <${attachedWebpageSelection.tagName}>` : ''}
+                                                        {t('chat.direct_selection_from_page', 'Selection from page')}{attachedWebpageSelection.tagName ? ` · <${attachedWebpageSelection.tagName}>` : ''}
                                                     </div>
                                                     <div className="text-[12px] truncate" style={{ color: 'var(--text-primary)' }}>
                                                         {attachedWebpageSelection.text.length > 140 ? attachedWebpageSelection.text.slice(0, 140) + '…' : attachedWebpageSelection.text}
@@ -206,7 +219,7 @@ const DirectChatView = ({
                                                 <button
                                                     onClick={clearWebpageSelection}
                                                     className="p-0.5 rounded hover:bg-[var(--bg-tertiary)]"
-                                                    title="Remove selection"
+                                                    title={t('webpages.chat.selection_remove', 'Remove selection')}
                                                 >
                                                     <X className="w-3.5 h-3.5" style={{ color: 'var(--text-tertiary)' }} />
                                                 </button>
@@ -220,29 +233,7 @@ const DirectChatView = ({
                                                 // by sending; next message starts fresh.
                                                 if (attachedWebpageSelection) setAttachedWebpageSelection(null);
                                             }}
-                                            onStopGenerating={stopGenerating}
-                                            isLoading={isLoading}
-                                            directMode={true}
-                                            modelTiers={modelTiers}
-                                            selectedTier={selectedTier}
-                                            onTierChange={setSelectedTier}
-                                            input={chatInput}
-                                            isMobile={isMobile}
-                                            setInput={setChatInput}
-                                            user={user}
-                                            activeSkillIds={activeSkillIds}
-                                            directSessionSkills={directSessionSkills}
-                                            directActivatedSessionSkillIds={directActivatedSessionSkillIds}
-                                            directConversationId={currentDirectConversation?.id}
-                                            onToggleSkill={handleToggleSkill}
-                                            messages={messages}
-                                            onVoiceTurnComplete={handleVoiceTurnComplete}
-                                            cowork={coworkComposer}
-                                            coworkMode={coworkMode}
-                                            onCoworkModeChange={setCoworkMode}
-                                            availableKBs={directChatKbs}
-                                            selectedKBIds={directChatKBIds}
-                                            onChangeKBIds={setDirectChatKBIds}
+                                            {...composerProps}
                                         />
                                     </div>
                                 )}

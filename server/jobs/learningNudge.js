@@ -28,10 +28,12 @@ const NUDGE_IDLE_DAYS = 7;      // quiet at least this long before we nudge
 const NUDGE_GIVE_UP_DAYS = 60;  // quiet longer than this → stop nudging entirely
 const REPEAT_EVERY_DAYS = 14;   // max one nudge per user per two weeks
 const TICK_INTERVAL_MS = 24 * 60 * 60 * 1000;
-const MAX_USERS_PER_TICK = 500; // bound one tick's work; the rest catch the next day
-// Bounds NOTIFICATIONS, which MAX_USERS_PER_TICK does not: that one bounds how
-// many blobs we read. Without this, any day on which many users happen to cross
-// the 7-day line together lands as one burst in everyone's bell at once.
+// Bounds NOTIFICATIONS (the work that matters), not candidates examined. Every
+// progress key is scanned each tick: truncating the candidate list without a
+// cursor would examine the same prefix forever and never reach the rest. A
+// nudged user gets a dedup marker, so whoever is left over when the cap is hit
+// is reached on the next tick. Also keeps a day on which many users cross the
+// 7-day line together from landing as one burst in everyone's bell.
 const MAX_NUDGES_PER_TICK = 50;
 
 const MARKER_PREFIX = 'learning_nudge_last_';
@@ -108,14 +110,13 @@ async function run({ now = Date.now() } = {}) {
         return result;
     }
 
-    for (const key of (keys || []).slice(0, MAX_USERS_PER_TICK)) {
+    for (const key of (keys || [])) {
         const userId = key.slice(PROGRESS_PREFIX.length);
         if (!userId) continue;
+        // Cap reached: stop reading blobs. The rest are picked up tomorrow (the
+        // ones nudged today now carry a marker, so the window moves on).
+        if (result.notified >= MAX_NUDGES_PER_TICK && !seeding) break;
         result.checked++;
-        if (result.notified >= MAX_NUDGES_PER_TICK && !seeding) {
-            result.skipped++;
-            continue;
-        }
         try {
             // Dedup first — cheaper than reading the blob.
             const marker = await configStore.getConfig(`${MARKER_PREFIX}${userId}`);
@@ -215,4 +216,4 @@ function stop() {
     }
 }
 
-module.exports = { start, stop, run, _isEligible, _lastActivityAt, MARKER_PREFIX };
+module.exports = { start, stop, run, _isEligible, _lastActivityAt, MARKER_PREFIX, MAX_NUDGES_PER_TICK };

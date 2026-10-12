@@ -16,7 +16,7 @@ const CLEAN = { findings: [], blocked: false, complete: true, unavailable: [] };
 const BLOCKER = {
     code: 'cross_owner', severity: 'error', kind: 'app',
     targetRef: { kind: 'app', id: 'app1', title: 'Desk' },
-    message: 'Desk runs a routine owned by someone else.',
+    message: 'Desk runs an automation owned by someone else.',
     remediation: 'Both must belong to the same person.',
     deepLink: '/app/studio/apps/app1',
 };
@@ -79,10 +79,10 @@ describe('blocking versus advice', () => {
             <SolutionControlPanel completeness={{ ...CLEAN, blocked: true, findings: [BLOCKER] }} loading={false} />,
         );
         expect(getByText('Has to be fixed first')).toBeTruthy();
-        expect(getByText('Desk runs a routine owned by someone else.')).toBeTruthy();
+        expect(getByText('Desk runs an automation owned by someone else.')).toBeTruthy();
     });
 
-    it('a draft routine\'s completeness code is advice, and says what it does block', () => {
+    it('a draft automation\'s completeness code is advice, and says what it does block', () => {
         const { getByText, queryByText } = render(
             <SolutionControlPanel completeness={{ ...CLEAN, findings: [ADVICE] }} loading={false} />,
         );

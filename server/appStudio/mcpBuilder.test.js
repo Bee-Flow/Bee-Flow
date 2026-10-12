@@ -124,7 +124,7 @@ test('the guide is the same one the in-product builder gets', async () => {
     // This channel has no per-turn user message, so the guide must send the
     // agent to the list tools — never to an OWNER CONTEXT note it will not get.
     assert.ok(!result.guide.includes('OWNER CONTEXT'), 'the guide never points at the note');
-    assert.match(result.guide, /call `app_list_automations` for the owner's routines/);
+    assert.match(result.guide, /call `app_list_automations` for the owner's automations/);
 });
 
 test('the screenshot budget is per user and refills', () => {

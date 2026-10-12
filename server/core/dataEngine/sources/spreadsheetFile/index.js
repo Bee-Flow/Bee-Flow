@@ -4,7 +4,7 @@
  *
  * The file lives in the user's own storage — Google Drive (incl. a native
  * Google Sheet), OneDrive, or Nextcloud Files — and stays the truth: the
- * mirror copies its rows into an ordinary datatable (so routines, agents,
+ * mirror copies its rows into an ordinary datatable (so automations, agents,
  * App Studio, knowledge bases and the webpage bridge read it like any other),
  * re-checks the file's version marker whenever somebody looks (the 5 s pulse),
  * every minute in the background, and on a push event where the storage has

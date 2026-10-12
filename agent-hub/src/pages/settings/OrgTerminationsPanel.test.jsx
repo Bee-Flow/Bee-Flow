@@ -579,13 +579,19 @@ describe('OrgTerminationsPanel — unknown termination types', () => {
 });
 
 describe('OrgTerminationsPanel — the large-input badge and the showTokens split', () => {
-    const BIG_PROMPT = { ...ROW, id: 'big', prompt_tokens: 9000, completion_tokens: 100, total_tokens: 9100 };
-    const BIG_ATTACH = { ...ROW, id: 'att', attachment_count: 2, attachment_bytes: 300 * 1024 };
+    const BIG_PROMPT = { ...ROW, id: 'big', error_code: 'payload_too_large', prompt_tokens: 9000, completion_tokens: 100, total_tokens: 9100 };
+    const BIG_ATTACH = { ...ROW, id: 'att', error_code: 'payload_too_large', attachment_count: 2, attachment_bytes: 300 * 1024 };
 
     it('shows the large-input KPI tile and the in-row badge when the prompt is huge', async () => {
         await mount({ list: jsonRes({ rows: [BIG_PROMPT] }) });
         expect(screen.getByText('Likely caused by big prompt / attachment')).toBeInTheDocument();
         expect(screen.getAllByText('Large input').length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('does not label a bad_request error row as large input, even with a big prompt', async () => {
+        await mount({ list: jsonRes({ rows: [{ ...BIG_PROMPT, error_code: 'bad_request' }] }) });
+        expect(screen.queryByText('Large input')).toBeNull();
+        expect(screen.queryByText('Likely caused by big prompt / attachment')).toBeNull();
     });
 
     it('hides the large-input KPI tile entirely when nothing qualifies', async () => {

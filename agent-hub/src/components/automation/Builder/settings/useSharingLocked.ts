@@ -1,7 +1,7 @@
 import { useEntitlements } from '../../../licensing/EntitlementsContext';
 
 /**
- * Sharing a routine is a plan feature (`automation_sharing`). Only a real
+ * Sharing an automation is a plan feature (`automation_sharing`). Only a real
  * answer locks: while the entitlements load (or failed) the controls stay
  * usable and the server has the last word.
  */

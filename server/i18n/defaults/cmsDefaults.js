@@ -473,7 +473,7 @@ const BLOCK_DEFAULTS = {
         eyebrow: 'Live demo',
         title: 'Try it right here',
         lead: '',
-        feature: 'routines',
+        feature: 'automations',
         height: 720,
         theme: 'light',                 // 'light' | 'dark' — passed to the demo
         note: 'This is the real interface running on sample data. Nothing you do here is saved, and nothing leaves your browser.',
@@ -570,6 +570,19 @@ const BLOCK_DEFAULTS = {
         linkLabel: '',
         linkUrl: '',
     },
+    // Latest blog posts. Stores NO posts — they come from GET
+    // /api/cms/blog/posts (the live site's published, visible posts), the same
+    // arrangement as release-notes. `tagId` is the tag's URL form (it ends in
+    // "Id" so the translation denylist keeps it out of locale overrides).
+    'blog-latest': {
+        eyebrow: '',
+        title: 'Latest posts',
+        lead: '',
+        limit: 3,
+        tagId: '',
+        linkLabel: 'All posts',
+        emptyText: '',
+    },
 };
 
 // ── Block type catalogue (drives the "Add block" picker) ─────────────
@@ -606,6 +619,9 @@ const BLOCK_TYPES = [
     { type: 'compare-table', label: 'Comparison table', icon: 'Table',              category: 'Trust' },
     { type: 'github-stats',  label: 'GitHub stats',     icon: 'Github',             category: 'Trust' },
     { type: 'release-notes', label: 'Release notes',    icon: 'ScrollText',         category: 'Trust' },
+    // Same rollback caveat: an export with this block imported into an older
+    // deployment drops it.
+    { type: 'blog-latest',   label: 'Latest posts',     icon: 'Newspaper',          category: 'Content' },
 ];
 
 const BLOCK_TYPE_IDS = BLOCK_TYPES.map(t => t.type);
@@ -637,7 +653,7 @@ const BLOCK_TYPE_IDS = BLOCK_TYPES.map(t => t.type);
 // never become an embed of a third-party origin. It just means a marketing
 // page silently carries a dead panel, hence the validator warning.
 const DEMO_FEATURE_IDS = [
-    'routines', 'meeting-notes', 'agents', 'notebooks', 'privacy-shield',
+    'automations', 'meeting-notes', 'agents', 'notebooks', 'privacy-shield',
     'support', 'skills', 'knowledge', 'legal', 'monitoring', 'compliance',
     'app-studio',
 ];
@@ -683,6 +699,10 @@ const RESERVED_SLUGS = new Set([
     // stay — those are served from in-repo markdown at fixed URLs.
     'privacy', 'terms', 'legal',
     '__cms_preview__',
+    // The blog index and its posts live at /blog and /blog/<post-slug>
+    // (stores/cms/posts.js, core/seo/publicPath.js). A page here would be
+    // shadowed by the blog — or shadow it — so new pages may not take it.
+    'blog',
 ]);
 
 // ── Design system defaults ───────────────────────────────────────────

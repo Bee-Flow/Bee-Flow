@@ -51,9 +51,11 @@ export const PALETTE_ABSENT = {
     // Reached by flow/routeModel.js, which swaps the ONE "Condition" node
     // between condition / switch / filter as its editor grows from a single
     // rule to many, or starts working through a list. Deliberately not
-    // separately addable — they are the same node to the user.
+    // separately addable — they are the same node to the user. The palette's
+    // "Filter a list" (BFSF-485) drops a `filter`, but as the Condition node
+    // already in list mode, with words of its own and the Condition's name.
     switch: 'runtime shape of the Condition node (many rules)',
-    filter: 'runtime shape of the Condition node (works through a list)',
+    filter: 'runtime shape of the Condition node (works through a list); "Filter a list" adds one under the Condition name',
     // Retired from the palette; its ability moved into Edit data. Existing
     // steps still load, render and run.
     parse_json: 'retired — absorbed by Edit data',
@@ -86,7 +88,7 @@ export const SYNTHETIC_TYPES = {
     ghost_step: 'the dashed "next step" slot ahead of the AI\'s frontier while it builds, placed where the next card will land; never saved',
 };
 
-const K = 'routines.node';
+const K = 'automations.node';
 
 /**
  * @typedef {object} NodeDef
@@ -113,7 +115,7 @@ export const NODE_DEFS = {
     trigger: {
         family: 'trigger',
         typeLabel: 'Trigger', defaultLabel: 'Trigger',
-        help: 'What starts this routine. Every routine has exactly one.',
+        help: 'What starts this automation. Every automation has exactly one.',
         sectionKeys: ['inputs', 'config'],
         simpleSections: ['inputs', 'config'],
         issueSections: {
@@ -286,7 +288,7 @@ export const NODE_DEFS = {
     form_page: {
         family: 'pause',
         typeLabel: 'Form page', defaultLabel: 'Ask for more info',
-        help: 'Pauses the run and shows another page on the routine’s own form link, then continues with the answers.',
+        help: 'Pauses the run and shows another page on the automation’s own form link, then continues with the answers.',
         sectionKeys: ['config', 'waiting'],
         simpleSections: ['config', 'waiting'],
         issueSections: {
@@ -364,11 +366,11 @@ export const NODE_DEFS = {
         typeLabel: 'Web service call', defaultLabel: 'Call a web service',
         label: 'Call a web service', desc: 'Send a request to a system that has no ready-made action here',
         help: 'Sends a request straight to another system’s web address and passes on what it sends back. For systems with no ready-made action in the Action list. If you let it reuse an answer, a retry after a later failure uses the answer it already has instead of asking again — and a test run neither reuses one nor keeps one.',
-        sectionKeys: ['request', 'auth', 'headers', 'body', 'options', 'advanced'],
-        simpleSections: ['request', 'auth', 'body'],
+        sectionKeys: ['request', 'query', 'auth', 'headers', 'body', 'options', 'advanced'],
+        simpleSections: ['request', 'query', 'auth', 'body'],
         issueSections: {
             fallback: 'request',
-            map: { label: FLAT, url: 'request', method: 'request', headers: 'headers', body: 'body', timeoutMs: 'options', blockPrivateTargets: 'options', auth: 'auth', forEach: 'advanced', askOnce: 'advanced' },
+            map: { label: FLAT, url: 'request', method: 'request', headers: 'headers', body: 'body', query: 'query', timeoutMs: 'options', blockPrivateTargets: 'options', auth: 'auth', forEach: 'advanced', askOnce: 'advanced' },
         },
     },
     generate_document: {
@@ -481,8 +483,8 @@ export const NODE_DEFS = {
     datatable: {
         family: 'data',
         typeLabel: 'Datatable', defaultLabel: 'Datatable',
-        label: 'Datatable', desc: 'Keep rows that outlast the run — and share them with other routines',
-        help: 'Reads and writes rows in a table that stays put after the run ends, so this routine can pick up where it left off and other routines can use the same data.',
+        label: 'Datatable', desc: 'Keep rows that outlast the run — and share them with other automations',
+        help: 'Reads and writes rows in a table that stays put after the run ends, so this automation can pick up where it left off and other automations can use the same data.',
         sectionKeys: ['table', 'match', 'values', 'advanced'],
         simpleSections: ['table', 'match', 'values'],
         issueSections: {
@@ -523,6 +525,18 @@ export const NODE_DEFS = {
         issueSections: {
             fallback: 'config',
             map: { label: FLAT, arrayRef: 'config', field: 'config', keyField: 'config', maxItems: 'config' },
+        },
+    },
+    flatten: {
+        family: 'data',
+        typeLabel: 'Flatten a list', defaultLabel: 'Flatten a list',
+        label: 'Flatten a list', desc: 'One row for every item of a list inside a list, such as one row per attachment with its email\'s details.',
+        help: 'Turns a list inside a list into one table. Each row is one inner item, such as an attachment, with the details of the item it came from, such as the email.',
+        sectionKeys: ['config', 'more'],
+        simpleSections: ['config'],
+        issueSections: {
+            fallback: 'config',
+            map: { label: FLAT, arrayRef: 'config', parents: 'config', keepEmpty: 'more', maxItems: 'more' },
         },
     },
     aggregate: {
@@ -610,7 +624,7 @@ export const NODE_DEFS = {
         help: 'Pauses the run and asks a person to approve or reject it. Approve and the run carries on from the next step; reject and the run stops here.',
         // 'waiting' rather than 'advanced' for the deadline, for the same
         // reason the form page keeps its wait out of Advanced: how long a
-        // routine holds a real person's decision open is a first-class
+        // automation holds a real person's decision open is a first-class
         // choice, and hiding it behind the density filter is how an approval
         // silently expires over a holiday.
         sectionKeys: ['config', 'waiting'],
@@ -667,21 +681,25 @@ const read = (type, field, t) => {
 };
 
 /** What KIND of node this is — the node editor's heading. */
+/** @param {string | null | undefined} type @param {any} [t] */
 export function nodeTypeLabel(type, t = null) {
     return read(type, 'typeLabel', t);
 }
 
 /** The name a freshly dropped node of this type gets. */
+/** @param {string | null | undefined} type @param {any} [t] */
 export function nodeDefaultLabel(type, t = null) {
     return read(type, 'defaultLabel', t);
 }
 
 /** One or two plain sentences: what does this node do? */
+/** @param {string | null | undefined} type @param {any} [t] */
 export function nodeHelp(type, t = null) {
     return read(type, 'help', t);
 }
 
 /** The palette's invitation to pick this node (absent for types you can't add). */
+/** @param {string | null | undefined} type @param {any} [t] */
 export function nodeLabel(type, t = null) {
     return read(type, 'label', t);
 }

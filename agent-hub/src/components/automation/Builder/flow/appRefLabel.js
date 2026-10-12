@@ -6,7 +6,7 @@ import { appRefParam, parseAppRefParam } from '../../../admin/Studio/studioRoute
  * "Which button, in which screen, of which app" — resolved for the person
  * looking at the builder.
  *
- * A routine made from a button in App Studio carries a back-pointer on its
+ * An automation made from a button in App Studio carries a back-pointer on its
  * trigger (`trigger.appRef = { appId, screenId, nodeId }`), and a link into
  * the builder can carry the same three ids as `?from=app:…`. Two places show
  * them: the breadcrumb strip above the canvas and the trigger card on it.
@@ -31,7 +31,7 @@ import { appRefParam, parseAppRefParam } from '../../../admin/Studio/studioRoute
  * flow/layout.js threads datatable/KB names down through node `data` because a
  * canvas can hold twenty datatable cards and twenty self-fetching cards is
  * twenty requests. An app_trigger is PRIMARY-ONLY (validate.js rejects it in
- * `triggers[]`), so a routine has at most one such card, and the breadcrumb
+ * `triggers[]`), so an automation has at most one such card, and the breadcrumb
  * asks for exactly the same reference. One 60s module-scope cache serves both
  * with a single request, and saves four hops of prop-drilling that every
  * future reader would have to trace.
@@ -42,7 +42,7 @@ import { appRefParam, parseAppRefParam } from '../../../admin/Studio/studioRoute
  */
 
 /**
- * The back-pointer a routine carries on its own trigger, VALIDATED — or null.
+ * The back-pointer an automation carries on its own trigger, VALIDATED — or null.
  *
  * Routed through the same token round-trip the URL uses, so a definition and
  * an address bar cannot disagree about what a well-formed reference is. A
@@ -178,7 +178,7 @@ export function useAppRefLabel(ref) {
  *                                is not.
  *   gone                         null | 'app' | 'screen' | 'node' — the level
  *                                the pointer stops at. This is NOT "no
- *                                trigger": the routine still fires.
+ *                                trigger": the automation still fires.
  *   restricted                   the viewer may not be told anything about it.
  *   unknown                      the answer has not arrived, or could not be
  *                                got. Distinct from `restricted`: one is a

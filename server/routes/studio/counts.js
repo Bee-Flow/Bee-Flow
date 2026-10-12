@@ -135,7 +135,7 @@ const KINDS = [
         // routes/automation/crud.js GET / → automationStore.getAutomationsForUser
         // (`WHERE user_id = $1 AND kind = 'automation'`). A COUNT over the
         // same predicate on the same (tasks-DB) pool: the list selects the
-        // definition JSON of every routine, which is the one column a count
+        // definition JSON of every automation, which is the one column a count
         // never needs.
         key: 'automations',
         gate: async (req, d) => (await moduleActive(d, 'automation')) && (await licenceAllows(d, req, 'automations')),
@@ -173,7 +173,7 @@ const KINDS = [
             // No owners: every run counted here is the caller's, and they are
             // already a "maker" through whatever they built. Feeding them in
             // again would make `makers` say 1 for an organisation whose only
-            // signal was that somebody's routine ran.
+            // signal was that somebody's automation ran.
             return { count: Number(n) || 0, owners: [] };
         },
     },

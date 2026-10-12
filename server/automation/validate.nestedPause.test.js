@@ -59,7 +59,7 @@ test('…and inside a parallel branch, at any depth', () => {
     assert.match(rec.message, /deep/);
 });
 
-test('existing routines that already carry one stay SAVEABLE — draft warns, activation blocks', () => {
+test('existing automations that already carry one stay SAVEABLE — draft warns, activation blocks', () => {
     // This validated green until now, so stored definitions can contain it.
     // Blocking the draft save would strand them: the canvas would hold a node
     // the stored definition does not, and the next action fails with

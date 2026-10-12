@@ -45,7 +45,7 @@ title: Glossary
 | **Pro tier** | 25 users, 20 agents, 50k msg/mo. Includes automations, voice, web pages, meeting notes, skills. |
 | **Privacy Shield** | The in-tenant PII filter that redacts sensitive content before it reaches the model. Always-on; level configurable. |
 | **Reranker** | A cross-encoder that re-orders top-K KB search results for better quality. Optional. |
-| **Routine** | The end-user name for an automation in the SPA (`/app/routines`). |
+| **Automation** | The end-user name for an automation in the SPA (`/app/automations`). |
 | **RRF** | Reciprocal Rank Fusion — combines vector + BM25 search results into a single ranked list. |
 | **Skill** | A reusable bundle (prompt extension + tools + KB) attachable to any agent. Pro+ feature. |
 | **SSE** | Server-Sent Events. The streaming protocol for chat replies. |

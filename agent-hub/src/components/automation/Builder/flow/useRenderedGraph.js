@@ -8,6 +8,21 @@ import { seedPositions } from './layout';
 import { rowBands, ROW_LABEL_OFFSET } from './rowBands';
 import { SYNTHETIC_TYPES } from './nodeDefs';
 
+// The z React Flow gives a selected node when it is allowed to elevate them —
+// reproduced manually for non-note nodes only (BFSF-479, see below).
+const SELECTED_NODE_Z = 1000;
+
+/**
+ * Selection layering (BFSF-479): the canvas sets elevateNodesOnSelect={false}
+ * so a SELECTED note stays pinned to its background z-index (layout.js
+ * NOTE_Z_INDEX) instead of popping +1000 over the nodes and connectors it
+ * overlaps. This re-applies the pop to every selected node that is NOT a
+ * note — the same lift React Flow would have given it.
+ */
+export function applySelectionLayering(nodes) {
+    return (nodes || []).map((n) => (n.selected && n.type !== 'note' && !n.zIndex ? { ...n, zIndex: SELECTED_NODE_Z } : n));
+}
+
 // The decoration pipeline that turns the laid-out nodes/edges into what
 // React Flow actually renders: edge action callbacks, drop-target accents,
 // AI-tool satellites, row gutter labels, identity colours, build-choreography
@@ -162,9 +177,10 @@ export function useRenderedGraph({
         // wide shot's bounds leave room for what comes next.
         const extras = [...toolGraph.nodes, ...rowLabelNodes, ...(ghostNodes || [])];
         const base = extras.length ? [...nodes, ...extras] : nodes;
+        const layered = applySelectionLayering(base);
         const hasFx = !!buildFxById && buildFxById.size > 0;
-        if (!dropHighlightNodeId && !activeToolPortId && !hasFx) return base;
-        return base.map((n) => {
+        if (!dropHighlightNodeId && !activeToolPortId && !hasFx) return layered;
+        return layered.map((n) => {
             let out = n;
             // A card still waiting for its turn in a burst is laid out and
             // measured but invisible; Tab must not land on it.
@@ -184,7 +200,7 @@ export function useRenderedGraph({
     // or, per the "Colour lines by" mode, its branch case / the source's
     // dominant PII group. Stamped as both stroke and data.chipColor so the
     // line and its case chip agree.
-    // PII group → hex, with this routine's own overrides (Lines panel) folded
+    // PII group → hex, with this automation's own overrides (Lines panel) folded
     // over the fixed defaults.
     const piiGroupColors = useMemo(() => resolvePiiGroupColors(definition), [definition]);
 

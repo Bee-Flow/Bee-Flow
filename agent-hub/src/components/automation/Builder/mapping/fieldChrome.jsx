@@ -24,22 +24,36 @@ export function FieldLabelRow({ label, required = false, expectKind = null, hint
     return (
         <div className="flex items-center gap-1">
             <label className={fieldLabelClass()}>{label}</label>
-            {required && <span className={requiredMarkClass()} title="Required">*</span>}
+            {required && <span className={requiredMarkClass()} title={t('automations.field_chrome.required', 'Required')}>*</span>}
             {expectWord && expectKind !== 'text' && (
                 <span className="ml-1 text-[10px] font-normal normal-case tracking-normal text-[var(--text-tertiary)]" data-testid="binding-expects">
-                    · {t('routines.builder.expects_kind', 'expects: {kind}', { kind: expectWord })}
+                    · {t('automations.builder.expects_kind', 'expects: {kind}', { kind: expectWord })}
                 </span>
             )}
             <FieldHint title={label}>{hint}</FieldHint>
-            {autoMapped && (
-                <span
-                    className="ml-auto text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--accent)]/15 text-[var(--accent)] uppercase tracking-wide"
-                    title="Auto-mapped from an upstream step — edit to override"
-                >
-                    auto
-                </span>
-            )}
+            {autoMapped && <AutoMappedPill kind={autoMapped} className="ml-auto" />}
         </div>
+    );
+}
+
+/**
+ * The calm "auto" pill on a slot the Auto-map wand filled. `kind === 'ai'`:
+ * its AI fallback chose this one, not the deterministic matcher — same pill,
+ * but it says so, because an AI pick is the one worth a second look.
+ */
+export function AutoMappedPill({ kind = true, className = '', title = null }) {
+    const { t } = useTranslation();
+    const ai = kind === 'ai';
+    return (
+        <span
+            className={`${className} text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--accent)]/15 text-[var(--accent)] uppercase tracking-wide`}
+            title={ai
+                ? t('automations.builder.auto_mapped_ai_title', 'Mapped by AI from an upstream step — check it, edit to override')
+                : (title || 'Auto-mapped from an upstream step — edit to override')}
+            data-testid={ai ? 'auto-mapped-ai' : undefined}
+        >
+            {ai ? t('automations.builder.auto_mapped_ai', 'auto · AI') : 'auto'}
+        </span>
     );
 }
 
@@ -68,25 +82,25 @@ export function EmptySlotNote({ expectKind, empty, required = true, onPick = nul
     }, [groups, previewSample, expectKind]);
 
     if (!required || !empty || !expectKind || expectKind === 'unknown') return null;
-    const expectWord = expectWordFor(expectKind, t);
+    // One quiet line, no box: the label row above already says what the slot
+    // expects, and the footer counts what is still empty. This only says THIS
+    // one is, and how many upstream fields would fit.
     return (
-        <div
-            className="flex items-center gap-2 px-2 py-1 rounded-md border border-dashed text-[10px]"
-            style={{ borderColor: 'var(--error)', color: 'var(--error)' }}
+        <span
+            className="inline-flex items-center gap-1.5 text-[10px] text-[var(--error)]"
             data-testid="binding-empty-required"
         >
-            <span>{t('routines.builder.still_empty', 'still empty')}</span>
-            <span className="text-[var(--text-secondary)]">· {t('routines.builder.expects_kind', 'expects: {kind}', { kind: expectWord })}</span>
-            {onPick && (
+            <span>{t('automations.builder.still_empty', 'still empty')}</span>
+            {onPick && fitCount > 0 && (
                 <button
                     type="button"
                     onClick={onPick}
-                    className="ml-auto underline hover:no-underline text-[var(--text-primary)]"
+                    className="underline hover:no-underline text-[var(--text-secondary)]"
                 >
-                    {t('routines.builder.pick_n_fit', 'pick ▸ {n} fit', { n: fitCount })}
+                    {t('automations.builder.pick_n_fit', 'pick ▸ {n} fit', { n: fitCount })}
                 </button>
             )}
-        </div>
+        </span>
     );
 }
 

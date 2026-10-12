@@ -76,7 +76,7 @@
  * ── WHAT IS DIFFERENT AFTER THE COPY IS WRITTEN ─────────────────────
  * The KEY COLUMN edited: the row's id IS its key, so the copy row moves to
  * the new id — compileDelete old + compileInsert new in one batch — and
- * the answer carries `id: newId` (a routine holding the old id is told).
+ * the answer carries `id: newId` (an automation holding the old id is told).
  * A ROW-MODE DELETE shifts every row number under it: after the copy
  * delete the mirror is marked stale and a pass runs at once (`syncRows({
  * reason:'write' })`, ≤ 10 k rows — the mark is what makes it read past

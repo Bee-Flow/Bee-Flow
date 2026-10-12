@@ -24,6 +24,7 @@
  */
 
 const pd = require('../../projects/projectData');
+const { errorShape, errorLabel } = require('../../lib/errorShape');
 
 const ORG = pd.orgMatch('p.organization_id');
 const WS = pd.isWorkspace('p');
@@ -151,7 +152,8 @@ module.exports = {
         try {
             shieldOn = await deps.shieldScansFiles(orgId);
         } catch (e) {
-            return { status: 'warn', evidence: { error: 'shield_unreadable' }, details: `The Privacy Shield settings could not be read (${e?.message || 'error'}), so project files were not judged.` };
+            // Class and code only: a driver message can quote values (lib/errorShape.js).
+            return { status: 'warn', evidence: { error: 'shield_unreadable', sql_state: errorShape(e).code }, details: `The Privacy Shield settings could not be read (${errorLabel(e)}), so project files were not judged.` };
         }
         if (!shieldOn) return verdict({ shieldOn: false, total: 0, perProject: [] });
         try {

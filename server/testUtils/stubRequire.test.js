@@ -6,7 +6,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
 
-const { installResolveStub } = require('./stubRequire');
+const { installResolveStub, preloadStubs, evictModule } = require('./stubRequire');
 
 test('installResolveStub redirects a require to the stub, restore() undoes it', () => {
     const restore = installResolveStub({ __fake_stub_pkg__: { hello: 42 } });
@@ -36,4 +36,15 @@ test('unstubbed requires still resolve normally while a stub is active', () => {
     } finally {
         restore();
     }
+});
+
+test('preloadStubs serves the stub under the real path, to any importer', () => {
+    preloadStubs(require, { './mockDb': { stubbed: true } });
+    try {
+        assert.strictEqual(require('./mockDb').stubbed, true);
+        assert.strictEqual(require('../testUtils/mockDb').stubbed, true, 'a different spelling of the same file');
+    } finally {
+        evictModule(require.resolve('./mockDb'));
+    }
+    assert.strictEqual(require('./mockDb').stubbed, undefined, 'the real module loads again once evicted');
 });

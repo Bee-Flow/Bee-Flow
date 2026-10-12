@@ -1,7 +1,7 @@
 /**
  * The shape of a Solution at a glance: one tile per kind with its count, so
- * "3 routines, 2 apps, 1 page" reads as one thing. A kind whose store could
- * not be read shows a dash — telling someone they have no routines when the
+ * "3 automations, 2 apps, 1 page" reads as one thing. A kind whose store could
+ * not be read shows a dash — telling someone they have no automations when the
  * truth is "we could not ask" is the worse failure. Tapping a tile opens
  * Content, where the rows are.
  */

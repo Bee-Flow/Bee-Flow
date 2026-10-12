@@ -21,7 +21,7 @@
  *     consent. A dedicated connect flow asks only the users who opt in.
  *
  *   GET  /auth-url    — start OAuth (state + PKCE)
- *   GET  /callback    — token exchange → encrypted vault (routine_credentials)
+ *   GET  /callback    — token exchange → encrypted vault (automation_credentials)
  *   GET  /status      — { configured, connected, email, needsReauth, sharedMailboxGranted }
  *   POST /disconnect  — vault delete + session clear
  *
@@ -42,7 +42,7 @@ const crypto = require('crypto');
 const log = require('../../telemetry/log');
 const router = express.Router();
 const configStore = require('../../stores/configStore');
-const routineCredentialStore = require('../../stores/routineCredentialStore');
+const automationCredentialStore = require('../../stores/automationCredentialStore');
 const { OAUTH_PROVIDERS, MICROSOFT_SCOPES, loadConfig, requireAuth } = require('../../auth/permissions');
 
 /**
@@ -221,7 +221,7 @@ router.get('/callback', async (req, res) => {
         const userStore = require('../../stores/userStore');
         const user = await userStore.getUser(userId).catch(() => null);
         const orgId = resolveVaultOrgId({ ...user, id: userId });
-        await routineCredentialStore.upsertCredential({
+        await automationCredentialStore.upsertCredential({
             userId,
             orgId,
             provider: 'microsoft',
@@ -235,13 +235,11 @@ router.get('/callback', async (req, res) => {
         await configStore.setConfig(`microsoft365_email_user_${userId}`, email);
 
         try {
-            const aiTaskStore = require('../../stores/aiTaskStore');
             const coworkStore = require('../../stores/coworkStore');
-            const resumed = await aiTaskStore.resumeNeedsReauthForUser(userId)
-                + await coworkStore.resumeNeedsReauthForUser(userId);
-            if (resumed > 0) log.info(`[MicrosoftConnector] resumed ${resumed} routine(s) for user ${userId}`);
+            const resumed = await coworkStore.resumeNeedsReauthForUser(userId);
+            if (resumed > 0) log.info(`[MicrosoftConnector] resumed ${resumed} automation(s) for user ${userId}`);
         } catch (e) {
-            log.warn(`[MicrosoftConnector] resume-routines failed: ${e.message}`);
+            log.warn(`[MicrosoftConnector] resume-automations failed: ${e.message}`);
         }
 
         try {
@@ -283,7 +281,7 @@ router.get('/status', requireAuth, async (req, res) => {
     const { clientId, clientSecret } = await getMicrosoftClientConfig();
     const configured = !!(clientId && clientSecret);
 
-    const cred = await routineCredentialStore.getCredential(userId, 'microsoft').catch(() => null);
+    const cred = await automationCredentialStore.getCredential(userId, 'microsoft').catch(() => null);
     // Microsoft-SSO users without an org have no vault row but ARE connected
     // for this session.
     const sessionConnected = req.session?.oauthProvider === 'microsoft' && !!req.session?.accessToken;
@@ -303,6 +301,10 @@ router.get('/status', requireAuth, async (req, res) => {
         needsReauth,
         sharedMailboxGranted,
         email: connected || needsReauth ? email : null,
+        // Connected only through the Microsoft login, no vault row: the
+        // tile then hides Disconnect, which would clear the SSO tokens from
+        // this session and break every Microsoft app until the next login.
+        viaSso: sessionConnected && cred?.status !== 'active',
     });
 });
 
@@ -343,6 +345,12 @@ function openerTargetOrigin() {
     return /^https?:\/\//i.test(host) ? host.replace(/\/+$/, '') : `https://${host}`;
 }
 
+// The message can carry the account's address as Graph returned it; it is
+// text, never markup.
+function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+}
+
 function callbackHTML(message, success) {
     return `<!DOCTYPE html>
 <html><head><title>Microsoft 365</title>
@@ -356,7 +364,7 @@ function callbackHTML(message, success) {
 </head><body>
 <div class="card">
   <div class="icon">${success ? '✅' : '❌'}</div>
-  <h2>${message}</h2>
+  <h2>${escapeHtml(message)}</h2>
   <p>${success ? 'You can close this window.' : 'Please close this window and try again.'}</p>
 </div>
 <script>

@@ -2,6 +2,7 @@ import { Building2, Eye, Loader2, Lock, Plus, ShieldAlert, ShieldCheck, User, Us
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { audienceOf, describeAccess, joinNames, GROUPS, ORG, PRIVATE } from './datatableDisplay';
 import { datatablesApi } from './datatablesApi';
+import { readGrants } from './grants';
 import useTranslation from '../../../../hooks/useTranslation';
 import ConfirmDialog from '../../../shared/ConfirmDialog';
 import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
@@ -101,7 +102,7 @@ function OrgSharing({ table, canEdit, onChanged }) {
     // shows, which may be one step ahead of it while a group is being picked.
     const audience = audienceOf(table);
     const shownAudience = audienceDraft || audience;
-    const access = describeAccess(table, groupNames);
+    const access = describeAccess(table, groupNames, t);
 
     // The draft is spent the moment the table itself moves.
     useEffect(() => { setAudienceDraft(null); }, [audience, table.id]);
@@ -109,7 +110,7 @@ function OrgSharing({ table, canEdit, onChanged }) {
     const loadGrants = useCallback(async () => {
         try {
             const b = await datatablesApi.listGrants(table.id);
-            setGrants(Array.isArray(b?.grants) ? b.grants : []);
+            setGrants(readGrants(b?.grants));
         } catch (e) {
             setError(e.message || t('datatables.err_grants', 'Could not load who this is shared with'));
         }
@@ -138,7 +139,7 @@ function OrgSharing({ table, canEdit, onChanged }) {
     /** Hold the descriptor until the person has read who gains access. */
     const askThenPatch = (question, descriptor) => setConfirm({ question, descriptor });
 
-    const namesOf = (ids) => joinNames((ids || []).map(g => groupNames.get(g) || g));
+    const namesOf = (ids) => joinNames((ids || []).map(g => groupNames.get(g) || g), t);
     // Say the write half too when it is on, because then "can read" is the
     // smaller half of what is being handed over.
     const andWrite = table.writeMode === 'audience'

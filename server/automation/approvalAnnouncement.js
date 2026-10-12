@@ -3,7 +3,7 @@
  * Bee Flow.
  *
  * Personal data leaves Bee Flow by e-mail only (BFSF-441). A Talk card and a
- * Nextcloud bell therefore carry the routine's name, the event ("approval
+ * Nextcloud bell therefore carry the automation's name, the event ("approval
  * needed"), the role the request is asked of, a link, and nothing else. Never
  * the prompt (it quotes run data), the details, the approver questions or
  * their answers, the attachments, or the request context. The in-app bell and
@@ -26,7 +26,7 @@ const REJECT_EMOJI = '👎';
 
 /** The only keys an announcement has. A test pins this list. */
 const ANNOUNCEMENT_FIELDS = Object.freeze([
-    'event', 'code', 'routineName', 'headline', 'role', 'answerInApp', 'link',
+    'event', 'code', 'automationName', 'headline', 'role', 'answerInApp', 'link',
 ]);
 
 /** Designer-written text fit for one line: trimmed, no line breaks, capped. */
@@ -36,7 +36,7 @@ function oneLine(text, max = 120) {
 }
 
 /**
- * Who the request is asked of, in role terms: the stage name the routine's
+ * Who the request is asked of, in role terms: the stage name the automation's
  * designer gave it (never its free-text description), else the kind of
  * assignee. Never a person's name.
  */
@@ -49,7 +49,7 @@ function roleWording({ approval, stage = null, position = null }) {
     if (Array.isArray(approval?.approvers) && approval.approvers.length) return 'Asked of the approval panel';
     if (approval?.assigneeGroupId) return 'Asked of the assigned group';
     if (approval?.assigneeUserId) return 'Asked of the assigned approver';
-    return 'Asked of the routine owner';
+    return 'Asked of the automation owner';
 }
 
 /**
@@ -57,7 +57,7 @@ function roleWording({ approval, stage = null, position = null }) {
  *
  * @param {object} p
  * @param {object} p.approval          the approval row (read, never passed on)
- * @param {string} [p.automationTitle] the routine's name, when the caller has it
+ * @param {string} [p.automationTitle] the automation's name, when the caller has it
  * @param {string} [p.url]             the deep link into Bee Flow
  * @param {object} [p.stage]           the current stage of a chain
  * @param {{ index: number, total: number }} [p.position]
@@ -67,7 +67,7 @@ function approvalAnnouncement({ approval, automationTitle = '', url = null, stag
     return Object.freeze({
         event: 'approval_needed',
         code: short.code,
-        routineName: short.params.name,
+        automationName: short.params.name,
         headline: short.text,
         role: roleWording({ approval, stage, position }),
         // Whether the request has approver questions, as a yes/no. The

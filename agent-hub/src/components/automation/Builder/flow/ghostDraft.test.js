@@ -94,15 +94,15 @@ describe('projectGhostDraft — the step being typed', () => {
         expect(d).toMatchObject({ kind: 'step', type: 'ai_step', typeLabel: 'AI step', label: 'Rewrite', partial: true });
     });
 
-    it('translates through `t` when given one — keys under routines.canvas.draft, with the English as fallback', () => {
+    it('translates through `t` when given one — keys under automations.canvas.draft, with the English as fallback', () => {
         const t = vi.fn((key, fallback, params) => `[${key}]${params ? JSON.stringify(params) : ''}`);
         const d = projectGhostDraft(draftOf({ name: 'builder_add_action', count: 1, steps: [{ type: 'integration_action', tool: 'gmail_send', label: null, partial: true }] }), { t });
-        expect(d.caption).toBe('[routines.canvas.draft.placing]{"app":"Gmail"}');
-        expect(t).toHaveBeenCalledWith('routines.canvas.draft.placing', 'Placing {app}…', { app: 'Gmail' });
+        expect(d.caption).toBe('[automations.canvas.draft.placing]{"app":"Gmail"}');
+        expect(t).toHaveBeenCalledWith('automations.canvas.draft.placing', 'Placing {app}…', { app: 'Gmail' });
         // The kind label goes through nodeDefs' own key.
-        expect(d.typeLabel).toBe('[routines.node.integration_action.typeLabel]');
+        expect(d.typeLabel).toBe('[automations.node.integration_action.typeLabel]');
         const many = projectGhostDraft(draftOf({ count: 2, steps: [{ type: 'set', tool: null, label: 'A', partial: false }, { type: 'set', tool: null, label: 'B', partial: true }] }), { t });
-        expect(many.stepOf).toBe('[routines.canvas.draft.step_of]{"i":2,"n":2}');
+        expect(many.stepOf).toBe('[automations.canvas.draft.step_of]{"i":2,"n":2}');
     });
 });
 
@@ -130,8 +130,8 @@ describe('projectGhostDraft — activities and the unknown', () => {
     it.each([
         ['builder_request_dry_run', 'testing', 'Running a test…'],
         ['builder_set_plan', 'planning', 'Writing the plan…'],
-        ['builder_summarise', 'summarising', 'Summarising the routine…'],
-        ['builder_finalize', 'finalizing', 'Saving the routine…'],
+        ['builder_summarise', 'summarising', 'Summarising the automation…'],
+        ['builder_finalize', 'finalizing', 'Saving the automation…'],
         ['builder_wire_error_branch', 'wiring', 'Wiring the error branch…'],
         ['builder_remove_step', 'editing', 'Adjusting a step…'],
     ])('%s → %s', (name, kind, caption) => {

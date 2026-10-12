@@ -2,9 +2,9 @@
  * Nextcloud Forms tools.
  *
  * The submission mapper is the load-bearing part: the API returns answers
- * keyed by numeric question id, which is unusable in a routine binding. If the
+ * keyed by numeric question id, which is unusable in an automation binding. If the
  * join against the form's questions is wrong, `{{trigger.output.answers.X}}`
- * silently resolves to undefined and the routine posts a blank field.
+ * silently resolves to undefined and the automation posts a blank field.
  */
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -36,7 +36,7 @@ test('every tool declares a name, description and parameters object', () => {
     }
 });
 
-test('answers are keyed by question text so a routine can bind them', () => {
+test('answers are keyed by question text so an automation can bind them', () => {
     const sub = mapSubmission({
         id: 220,
         formId: 51,

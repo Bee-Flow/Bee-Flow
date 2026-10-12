@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { FieldRow, ImageField } from '../fields';
 import ColorControl from './ColorControl';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 /**
  * BackgroundControl — the Style tab's background area as one card with
@@ -25,24 +26,25 @@ import ColorControl from './ColorControl';
  *   onChangeOverlay — (rgbaString | null)
  */
 export default function BackgroundControl({ image, overlay, onChangeImage, onChangeOverlay }) {
+    const { t } = useTranslation();
     const [showAdvanced, setShowAdvanced] = useState(false);
 
     return (
         <div className="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-secondary)] p-3">
             {/* (a) Image — existing ImageField wiring, behavior unchanged. */}
             <ImageField
-                label="Image"
+                label={t('cms_site.site.controls.bg_image', 'Image')}
                 value={image}
                 onChange={onChangeImage}
-                placeholder="https://… or cms/file.jpg"
+                placeholder={t('cms_site.site.controls.bg_image_placeholder', 'https://… or cms/file.jpg')}
             />
 
             {/* (b) Overlay — only relevant once an image is set. */}
             {image ? (
                 <>
                     <ColorControl
-                        label="Overlay"
-                        hint="Tints the image so foreground text stays readable."
+                        label={t('cms_site.site.controls.bg_overlay', 'Overlay')}
+                        hint={t('cms_site.site.controls.bg_overlay_hint', 'Tints the image so foreground text stays readable.')}
                         value={overlay || ''}
                         onChange={onChangeOverlay}
                         allowAlpha
@@ -59,7 +61,7 @@ export default function BackgroundControl({ image, overlay, onChangeImage, onCha
                                 style={{ transform: showAdvanced ? 'rotate(90deg)' : 'rotate(0deg)' }}
                                 aria-hidden="true"
                             >▸</span>
-                            Advanced
+                            {t('cms_site.site.controls.bg_advanced', 'Advanced')}
                         </button>
                         {overlay ? (
                             <button
@@ -67,15 +69,15 @@ export default function BackgroundControl({ image, overlay, onChangeImage, onCha
                                 onClick={() => onChangeOverlay(null)}
                                 className="text-[10px] text-[var(--text-muted)] hover:text-red-400"
                             >
-                                Remove overlay
+                                {t('cms_site.site.controls.bg_remove_overlay', 'Remove overlay')}
                             </button>
                         ) : null}
                     </div>
                     {showAdvanced ? (
                         <div className="mt-2">
                             <FieldRow
-                                label="Raw overlay value"
-                                hint="The exact CSS color string stored on the block."
+                                label={t('cms_site.site.controls.bg_raw', 'Raw overlay value')}
+                                hint={t('cms_site.site.controls.bg_raw_hint', 'The exact CSS color string stored on the block.')}
                             >
                                 <input
                                     type="text"

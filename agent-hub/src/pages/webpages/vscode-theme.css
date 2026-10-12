@@ -55,7 +55,7 @@
 
    De kleuren zijn de tokens die kindColors.js voor dezelfde soorten uitdeelt
    (automation → --type-trigger, datatable → --type-data, agent → --type-ai),
-   zodat wie in Studio "teal = routine" heeft geleerd hier dezelfde teal ziet.
+   zodat wie in Studio "teal = automation" heeft geleerd hier dezelfde teal ziet.
    Als tint, want dit ligt over de code van de auteur: die moet leesbaar
    blijven. */
 .bf-mark {

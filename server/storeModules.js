@@ -33,13 +33,23 @@ const STORE_MODULES = [
     { name: 'appStore', file: './stores/appStore' },
     { name: 'memoryStore', file: './stores/memoryStore' },
     { name: 'usageStore', file: './stores/usageStore' },
+    // Time-dated price cards (model_price_catalog) that core/llm/modelCosts rates a call
+    // with; its init also loads the in-memory index modelCosts reads.
+    { name: 'modelPriceCatalogStore', file: './stores/modelPriceCatalogStore' },
     { name: 'knowledgeStore', file: './stores/knowledgeStore' },
     { name: 'notificationStore', file: './stores/notificationStore' },
     { name: 'projectStore', file: './stores/projectStore' },
+    { name: 'projectPinStore', file: './stores/projectPinStore' },
+    { name: 'projectBoardStore', file: './stores/projectBoardStore' },
     // Blueprints captured from a Solution. Owns its own DDL, so a standalone
     // db:migrate must create the table too — otherwise it only appears the
     // first time somebody packages a project.
     { name: 'blueprintStore', file: './stores/blueprintStore' },
+    // Solution stages (UAT / PRD): solution_stages, solution_deployments and
+    // their journal, bindings, variables and part options. Soft references
+    // only; after projectStore, whose `projects.stage` / `stage_of` columns
+    // its stage rows pair with.
+    { name: 'solutionStageStore', file: './stores/solutionStageStore' },
     // Per-conversation turn lock (shared threads: one AI run at a time). Owns
     // its own DDL, so a standalone db:migrate must create it too — otherwise the
     // table only appears on first app-side use.
@@ -65,10 +75,14 @@ const STORE_MODULES = [
     // (project_member_colors). FK to projects, so after projectStore; their
     // inits also await projectStore's.
     { name: 'projectTaskStore', file: './stores/projectTaskStore' },
+    // Sprints in a project (project_sprints); its DDL also adds
+    // project_tasks.sprint_id, so it comes after projectTaskStore.
+    { name: 'projectSprintStore', file: './stores/projectSprintStore' },
     { name: 'projectMemberColorStore', file: './stores/projectMemberColorStore' },
     { name: 'reminderStore', file: './stores/reminderStore' },
     { name: 'templateStore', file: './stores/templateStore' },
     { name: 'transcriptionStore', file: './stores/transcriptionStore' },
+    { name: 'teamsImportStore', file: './stores/teamsImportStore' },
     { name: 'voiceprintStore', file: './stores/voiceprintStore' },
     { name: 'mcpStore', file: './stores/mcpStore' },
     { name: 'iconStore', file: './stores/iconStore' },
@@ -77,6 +91,10 @@ const STORE_MODULES = [
     // otherwise they appear only once the app boots and something requires the
     // store, which is exactly how the first version of this feature shipped.
     { name: 'documentStore', file: './stores/documentStore' },
+    // AI / user suggestions on a document, sealed with the document's key
+    // (document_suggestions). No FK: the target is a document id, so no order
+    // constraint beyond being a store with its own DDL.
+    { name: 'documentSuggestionStore', file: './stores/documentSuggestionStore' },
     { name: 'notebookStore', file: './stores/notebookStore' },
     { name: 'notebookConversationStore', file: './stores/notebookConversationStore' },
     { name: 'aiTaskStore', file: './stores/aiTaskStore' },
@@ -84,7 +102,7 @@ const STORE_MODULES = [
     // standalone `npm run db:migrate` never created those tables — they only
     // appeared once the app booted and something required the store.
     { name: 'coworkStore', file: './stores/coworkStore' },
-    { name: 'routineCredentialStore', file: './stores/routineCredentialStore' },
+    { name: 'automationCredentialStore', file: './stores/automationCredentialStore' },
     // Bezit integration_activity_log — en integrationCacheStore's
     // scopes-migratie leest die tabel. Zonder deze registratie faalde die
     // migratie hier bij ELKE run, stil (waargenomen in de upgrade-analyse).
@@ -134,7 +152,7 @@ const STORE_MODULES = [
     // dataset_cache / members / attachments. FK-depends on studio_apps, so it
     // MUST come after studioAppStore (its initDB awaits studioAppStore.ready).
     { name: 'studioAppDataStore', file: './stores/studioAppDataStore' },
-    // Studio Playbooks — phased AI builds (table → routine → fill → app → approvals).
+    // Studio Playbooks — phased AI builds (table → automation → fill → app → approvals).
     { name: 'playbookStore', file: './stores/playbookStore' },
     // App Studio LARGE DATASET manifests (multi-GB genome files) — multipart
     // upload state + ingest claims + artifact keys. Own DDL, no FK.
@@ -152,6 +170,8 @@ const STORE_MODULES = [
     { name: 'skillStore', file: './stores/skillStore' },
     { name: 'skillActivations', file: './stores/skillActivations' },
     { name: 'webpageSchema', file: './stores/webpage/schema' },
+    // Named MCP access tokens (mcp_tokens): sha256 of the secret, scopes, per-token IP list.
+    { name: 'mcpTokenStore', file: './stores/mcpTokenStore' },
     { name: 'webpagePublicShareStore', file: './stores/webpagePublicShareStore' },
     { name: 'terminationStore', file: './stores/terminationStore' },
     { name: 'guardrailEventStore', file: './stores/guardrailEventStore' },
@@ -175,6 +195,11 @@ const STORE_MODULES = [
     // Compliance-hub-familie — allemaal al modern (memo + export), alleen nooit geregistreerd.
     { name: 'complianceStore', file: './stores/complianceStore' },
     { name: 'dpiaStore', file: './stores/dpiaStore' },
+    // Chat signals: weekly/daily counters of how the Privacy Shield handled
+    // chat messages (no ids, no text), and the per-person "Don't count my chat
+    // turns" objection. Read only through stores/lib/chatSignalSuppression.js.
+    { name: 'chatSignalStore', file: './stores/chatSignalStore' },
+    { name: 'chatSignalObjectionStore', file: './stores/chatSignalObjectionStore' },
     { name: 'dsrStore', file: './stores/dsrStore' },
     { name: 'incidentStore', file: './stores/incidentStore' },
     { name: 'riskStore', file: './stores/riskStore' },
@@ -192,6 +217,10 @@ const STORE_MODULES = [
     // the project compliance checks. No text, no offsets — categories + counts.
     { name: 'contentPiiSignalStore', file: './stores/contentPiiSignalStore' },
     { name: 'platformReleaseStore', file: './stores/platformReleaseStore' },
+    // Per-user notification channels and per-project mutes
+    // (user_notification_prefs, project_notification_mutes). No FKs, so the
+    // place in the ladder does not matter.
+    { name: 'notificationPrefsStore', file: './stores/notificationPrefsStore' },
 ];
 
 // Platform-module stores (server/modules/catalog.js) — in v1 the tables of

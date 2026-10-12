@@ -6,7 +6,7 @@
  *                form trigger out of the automation definition)
  *   FormDetail   the same file, GET /forms/:automationId — one form for the
  *                Form page, with its questions, its later pages and, for the
- *                owner only, the routine's definition
+ *                owner only, the automation's definition
  *
  * The answers dashboard's shapes are in answerTypes.ts, the filling screen's
  * in fillTypes.ts.
@@ -51,7 +51,7 @@ export interface FormAnswersInfo {
  *
  * `id` is the form PAGE id — the token in the /f/<id> address and its only
  * credential — not the automation's. Everything the Form page does is keyed by
- * the routine behind it (`automationId`); the token only ever travels to the
+ * the automation behind it (`automationId`); the token only ever travels to the
  * filling screen and into a shared link, never into a Form page route.
  *
  * `url` arrives as the bare path `/f/<id>`; publicFormUrl() in api/endpoints.ts
@@ -69,7 +69,7 @@ export interface FormSummary {
     submissions: number;
     lastSeenAt: string | null;
     createdAt: string | null;
-    /** Whether the caller owns the routine. The automation endpoints are per-user. */
+    /** Whether the caller owns the automation. The automation endpoints are per-user. */
     mine: boolean;
     /** Whether the caller may FILL IT IN: the visitor gate's own verdict. */
     canOpen: boolean;
@@ -88,7 +88,7 @@ export interface FormQuestions {
     theme: Record<string, unknown> | null;
 }
 
-/** A later page of the form: a `form_page` step in the routine. */
+/** A later page of the form: a `form_page` step in the automation. */
 export interface FormPageSummary {
     stepId: string;
     label: string;
@@ -101,9 +101,9 @@ export interface FormDetail extends FormSummary {
     isDraft: boolean;
     questions: FormQuestions;
     pages: FormPageSummary[];
-    /** The routine's definition — present for the owner only. */
+    /** The automation's definition — present for the owner only. */
     definition: Record<string, unknown> | null;
-    routineTitle: string;
+    automationTitle: string;
 }
 
 /** "Build it with AI" — POST /forms/ai/draft → `{ draft: { form, notes } }`. */

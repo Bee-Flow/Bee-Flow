@@ -3,11 +3,11 @@
  * folders.js — the org-wide grouping for the automations sidebar.
  *
  * One flat level, deliberately. Nesting buys a tree UI, cycle checks and a
- * "what happens to the children" question at every move; twenty routines in
+ * "what happens to the children" question at every move; twenty automations in
  * named folders needs none of that.
  *
  * The invariant that matters: **deleting a folder never deletes automations.**
- * Folders are shared across the organisation, so one can easily hold routines
+ * Folders are shared across the organisation, so one can easily hold automations
  * belonging to colleagues the deleting user cannot even see — `getAutomationsForUser`
  * filters on `user_id` alone. Detaching is the only safe reading of "remove
  * this folder", and it is what `deleteFolder` does.

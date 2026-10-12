@@ -253,7 +253,7 @@ export const GENERATED_ACTION_CHECKS = {
                 "labelKey": "learn.check.project-created.owned.label",
                 "labelFallback": "A project you own exists",
                 "hintKey": "learn.check.project-created.owned.hint",
-                "hintFallback": "Click New Project in the sidebar and give it a name — the project you create is yours. The Custom Instructions you type on the General tab are stored inside the project, where this check cannot look.",
+                "hintFallback": "Click New Project in the sidebar, give it a name and click Create project — the project you create is yours. The instructions you type on Settings are stored inside the project, where this check cannot look.",
                 "endpoint": "/api/projects",
                 "expect": {
                     "kind": "rows"
@@ -672,9 +672,9 @@ export const GENERATED_ACTION_CHECKS = {
             {
                 "id": "active",
                 "labelKey": "learn.check.automation-active.active.label",
-                "labelFallback": "A routine of yours is switched on",
+                "labelFallback": "An automation of yours is switched on",
                 "hintKey": "learn.check.automation-active.active.hint",
-                "hintFallback": "Open the routine and press Activate in the builder header — the toggle then reads Pause.",
+                "hintFallback": "Open the automation and press Activate in the builder header — the toggle then reads Pause.",
                 "endpoint": "/api/automation/"
             }
         ]
@@ -684,7 +684,7 @@ export const GENERATED_ACTION_CHECKS = {
             {
                 "id": "second",
                 "labelKey": "learn.check.automation-second.second.label",
-                "labelFallback": "A second routine of your own exists",
+                "labelFallback": "A second automation of your own exists",
                 "hintKey": "learn.check.automation-second.second.hint",
                 "hintFallback": "Chapter 5 built your first one. This step wants a second, built from the brief you just wrote.",
                 "endpoint": "/api/automation/"
@@ -694,18 +694,18 @@ export const GENERATED_ACTION_CHECKS = {
                 "labelKey": "learn.check.automation-second.dryran.label",
                 "labelFallback": "You dry-ran it",
                 "hintKey": "learn.check.automation-second.dryran.hint",
-                "hintFallback": "Press Dry-run in the builder header — it previews every step and performs no real actions.",
+                "hintFallback": "Press Test in the builder header — a dry-run, which previews every step and performs no real actions.",
                 "endpoint": "/api/automation/_runs/recent"
             }
         ]
     },
-    "routine-dry-run": {
+    "automation-dry-run": {
         "criteria": [
             {
-                "id": "has-routine",
-                "labelKey": "learn.check.routine-dry-run.has-routine.label",
-                "labelFallback": "The learner owns at least one routine",
-                "hintKey": "learn.check.routine-dry-run.has-routine.hint",
+                "id": "has-automation",
+                "labelKey": "learn.check.automation-dry-run.has-automation.label",
+                "labelFallback": "The learner owns at least one automation",
+                "hintKey": "learn.check.automation-dry-run.has-automation.hint",
                 "hintFallback": "Create one from the start screen, or open an existing one.",
                 "endpoint": "/api/automation/",
                 "expect": {
@@ -715,10 +715,10 @@ export const GENERATED_ACTION_CHECKS = {
             },
             {
                 "id": "has-dry-run",
-                "labelKey": "learn.check.routine-dry-run.has-dry-run.label",
+                "labelKey": "learn.check.automation-dry-run.has-dry-run.label",
                 "labelFallback": "At least one dry-run has been recorded",
-                "hintKey": "learn.check.routine-dry-run.has-dry-run.hint",
-                "hintFallback": "Press Dry-run in the builder header — it runs no real actions.",
+                "hintKey": "learn.check.automation-dry-run.has-dry-run.hint",
+                "hintFallback": "Press Test in the builder header — a dry-run, it runs no real actions.",
                 "endpoint": "/api/automation/_runs/recent?mode=dry_run&limit=1",
                 "expect": {
                     "kind": "nonEmpty",
@@ -727,13 +727,13 @@ export const GENERATED_ACTION_CHECKS = {
             }
         ]
     },
-    "routine-writes-table": {
+    "automation-writes-table": {
         "criteria": [
             {
                 "id": "table",
-                "labelKey": "learn.check.routine-writes-table.table.label",
+                "labelKey": "learn.check.automation-writes-table.table.label",
                 "labelFallback": "A datatable the learner can write to exists",
-                "hintKey": "learn.check.routine-writes-table.table.hint",
+                "hintKey": "learn.check.automation-writes-table.table.hint",
                 "hintFallback": "Studio → Datatables → New table, or any table shared with you as editor.",
                 "endpoint": "/api/datatables"
             }
@@ -751,14 +751,14 @@ export const GENERATED_ACTION_CHECKS = {
             }
         ]
     },
-    "routine-has-approval": {
+    "automation-has-approval": {
         "criteria": [
             {
                 "id": "has-approval",
-                "labelKey": "learn.check.routine-has-approval.has-approval.label",
-                "labelFallback": "One of your routines contains an approval step",
-                "hintKey": "learn.check.routine-has-approval.has-approval.hint",
-                "hintFallback": "Add the step 'Ask someone to approve' from the canvas ribbon and save the routine.",
+                "labelKey": "learn.check.automation-has-approval.has-approval.label",
+                "labelFallback": "One of your automations contains an approval step",
+                "hintKey": "learn.check.automation-has-approval.has-approval.hint",
+                "hintFallback": "Add the step 'Ask someone to approve' from the People tab of the canvas ribbon; the automation saves automatically.",
                 "endpoint": "/api/automation/"
             }
         ]
@@ -768,9 +768,9 @@ export const GENERATED_ACTION_CHECKS = {
             {
                 "id": "owned",
                 "labelKey": "learn.check.step-published.owned.label",
-                "labelFallback": "You own at least one Step",
+                "labelFallback": "You own at least one building block",
                 "hintKey": "learn.check.step-published.owned.hint",
-                "hintFallback": "The arrow next to + → New building block. Shared Steps from colleagues do not count.",
+                "hintFallback": "The arrow next to + → New building block. Shared building blocks from colleagues do not count.",
                 "endpoint": "/api/step",
                 "expect": {
                     "kind": "rows",
@@ -780,21 +780,21 @@ export const GENERATED_ACTION_CHECKS = {
             {
                 "id": "published",
                 "labelKey": "learn.check.step-published.published.label",
-                "labelFallback": "One of your Steps has been published",
+                "labelFallback": "One of your building blocks has been published",
                 "hintKey": "learn.check.step-published.published.hint",
-                "hintFallback": "Open the Step and press Publish in the header — that is what routines and chats actually run.",
+                "hintFallback": "Open the building block and press Publish in the header — that is what automations and chats actually run.",
                 "endpoint": "/api/step"
             }
         ]
     },
-    "routine-extra-trigger": {
+    "automation-extra-trigger": {
         "criteria": [
             {
-                "id": "has-routine",
-                "labelKey": "learn.check.routine-extra-trigger.has-routine.label",
-                "labelFallback": "A routine of your own exists",
-                "hintKey": "learn.check.routine-extra-trigger.has-routine.hint",
-                "hintFallback": "Create one from the Automations start screen, or open an existing one. The extra trigger is stored inside the routine’s definition, where this check cannot look — the second trigger card on the canvas is your proof.",
+                "id": "has-automation",
+                "labelKey": "learn.check.automation-extra-trigger.has-automation.label",
+                "labelFallback": "An automation of your own exists",
+                "hintKey": "learn.check.automation-extra-trigger.has-automation.hint",
+                "hintFallback": "Create one from the Automations start screen, or open an existing one. The extra trigger is stored inside the automation’s definition, where this check cannot look — the second trigger card on the canvas is your proof.",
                 "endpoint": "/api/automation/",
                 "expect": {
                     "kind": "rows",
@@ -808,9 +808,9 @@ export const GENERATED_ACTION_CHECKS = {
             {
                 "id": "has-step",
                 "labelKey": "learn.check.shield-step-added.has-step.label",
-                "labelFallback": "A routine of your own exists",
+                "labelFallback": "An automation of your own exists",
                 "hintKey": "learn.check.shield-step-added.has-step.hint",
-                "hintFallback": "Open or create one in Studio → Routines. The Privacy Shield step and what it scans are stored inside the routine, where this check cannot look — the step on the canvas is your proof.",
+                "hintFallback": "Open or create one in Studio → Automations. The Privacy Shield step and what it scans are stored inside the automation, where this check cannot look — the step on the canvas is your proof.",
                 "endpoint": "/api/automation",
                 "expect": {
                     "kind": "rows",
@@ -838,7 +838,7 @@ export const GENERATED_ACTION_CHECKS = {
                 "labelKey": "learn.check.datatable-column.owned-in-use.label",
                 "labelFallback": "A table you own is used by something",
                 "hintKey": "learn.check.datatable-column.owned-in-use.hint",
-                "hintFallback": "Its Used by tab lists at least one routine, app, web page or knowledge base.",
+                "hintFallback": "Its Used by tab lists at least one automation, app, web page or knowledge base.",
                 "endpoint": "/api/datatables"
             }
         ]
@@ -904,9 +904,9 @@ export const GENERATED_ACTION_CHECKS = {
             {
                 "id": "has-form",
                 "labelKey": "learn.check.form-appearance-set.has-form.label",
-                "labelFallback": "A routine of your own exists — your form is one of them",
+                "labelFallback": "An automation of your own exists — your form is one of them",
                 "hintKey": "learn.check.form-appearance-set.has-form.hint",
-                "hintFallback": "Every form is a routine with a form trigger, so New form in Studio → Forms makes one. The Styling you pick is saved inside the form, where this check cannot look — Preview the form is your proof.",
+                "hintFallback": "Every form is an automation with a form trigger, so New form in Studio → Forms makes one. The Styling you pick is saved inside the form, where this check cannot look — Preview the form is your proof.",
                 "endpoint": "/api/automation",
                 "expect": {
                     "kind": "rows",
@@ -1260,7 +1260,7 @@ export const GENERATED_ACTION_CHECKS = {
                 "labelKey": "learn.check.shield-configured.enabled.label",
                 "labelFallback": "The shield is switched on and saved",
                 "hintKey": "learn.check.shield-configured.enabled.hint",
-                "hintFallback": "Overview → Protect personal data must be on, and you must press Save All Changes — the check reads the saved organisation setting, not the toggle on screen.",
+                "hintFallback": "Overview → Protect personal data must be on, and you must press Save changes — the check reads the saved organisation setting, not the switch on screen.",
                 "endpoint": "/api/org-privacy-shield/:orgid",
                 "expect": {
                     "kind": "equals",
@@ -1273,7 +1273,7 @@ export const GENERATED_ACTION_CHECKS = {
                 "labelKey": "learn.check.shield-configured.categories.label",
                 "labelFallback": "At least one kind of personal data is ticked",
                 "hintKey": "learn.check.shield-configured.categories.hint",
-                "hintFallback": "What we look for → tick the kinds that matter for your work, then Save All Changes. Overview must no longer read 0 of 21.",
+                "hintFallback": "What we look for → tick the kinds that matter for your work, then Save changes. Overview must no longer show Kinds of data at 0 of 21.",
                 "endpoint": "/api/org-privacy-shield/:orgid",
                 "expect": {
                     "kind": "nonEmpty",
@@ -1285,23 +1285,23 @@ export const GENERATED_ACTION_CHECKS = {
     "shield-terms": {
         "criteria": [
             {
-                "id": "custom-term",
-                "labelKey": "learn.check.shield-terms.custom-term.label",
-                "labelFallback": "One term of your own is saved under Always hide these",
-                "hintKey": "learn.check.shield-terms.custom-term.hint",
-                "hintFallback": "Add a row under Always hide these (name plus text or pattern) and press Save All Changes — a rejected pattern is not stored.",
+                "id": "kinds",
+                "labelKey": "learn.check.shield-terms.kinds.label",
+                "labelFallback": "At least one kind of data is ticked under Hide from AI",
+                "hintKey": "learn.check.shield-terms.kinds.hint",
+                "hintFallback": "On What we look for, tick the kinds your work contains in the Hide from AI column and press Save changes.",
                 "endpoint": "/api/org-privacy-shield/:orgid",
                 "expect": {
                     "kind": "nonEmpty",
-                    "field": "customSensitiveTerms"
+                    "field": "piiDetectionCategories"
                 }
             },
             {
                 "id": "allow-term",
                 "labelKey": "learn.check.shield-terms.allow-term.label",
-                "labelFallback": "One exception is saved under Never hide these",
+                "labelFallback": "One exception is saved under Never hidden",
                 "hintKey": "learn.check.shield-terms.allow-term.hint",
-                "hintFallback": "Add your organisation’s full name under Never hide these and press Save All Changes.",
+                "hintFallback": "Add your organisation’s full name under Never hidden and press Save changes.",
                 "endpoint": "/api/org-privacy-shield/:orgid",
                 "expect": {
                     "kind": "nonEmpty",
@@ -1317,7 +1317,7 @@ export const GENERATED_ACTION_CHECKS = {
                 "labelKey": "learn.check.shield-dlp.shield-on.label",
                 "labelFallback": "The shield itself is switched on",
                 "hintKey": "learn.check.shield-dlp.shield-on.hint",
-                "hintFallback": "On the Overview tab, \"Protect personal data\" must be on — the other tabs stay inactive until it is.",
+                "hintFallback": "On the Overview tab, \"Protect personal data\" must be on — the numbered steps stay inactive until it is.",
                 "endpoint": "/api/org-privacy-shield/:org/effective",
                 "expect": {
                     "kind": "truthy",
@@ -1329,7 +1329,7 @@ export const GENERATED_ACTION_CHECKS = {
                 "labelKey": "learn.check.shield-dlp.dlp-on.label",
                 "labelFallback": "The outbound check is switched on and saved",
                 "hintKey": "learn.check.shield-dlp.dlp-on.hint",
-                "hintFallback": "Leaving your org → \"One last check before an outside AI\", pick a mode card, then Save All Changes and wait for \"Saved successfully!\".",
+                "hintFallback": "Leaving your org → \"One last check before an outside AI\", pick a mode, then Save changes and wait for \"Saved successfully!\".",
                 "endpoint": "/api/org-privacy-shield/:org/effective",
                 "expect": {
                     "kind": "equals",
@@ -1346,7 +1346,7 @@ export const GENERATED_ACTION_CHECKS = {
                 "labelKey": "learn.check.shield-egress-scanning.monitoring-on.label",
                 "labelFallback": "Connected-app traffic is content-checked",
                 "hintKey": "learn.check.shield-egress-scanning.monitoring-on.hint",
-                "hintFallback": "Privacy Shield → Leaving your org → switch on \"Check connected-app traffic for personal data\", then press Save All Changes and wait for the confirmation.",
+                "hintFallback": "Privacy Shield → Leaving your org → switch on \"Check connected-app traffic for personal data\", then press Save changes and wait for the confirmation.",
                 "endpoint": "/api/org-privacy-shield/:orgid",
                 "expect": {
                     "kind": "equals",
@@ -1594,7 +1594,7 @@ export const GENERATED_ACTION_CHECKS = {
                 "labelKey": "learn.check.licence-plan-known.tier.label",
                 "labelFallback": "Your workspace answers with its licence tier",
                 "hintKey": "learn.check.licence-plan-known.tier.hint",
-                "hintFallback": "Open License & Usage and read the plan card. This only confirms that the licence endpoint answers for your account — community is the floor, so a tier always comes back.",
+                "hintFallback": "On cloud, open License & Usage and read the plan card; on a self-hosted install there is no such card. This only confirms that the licence endpoint answers for your account — community is the floor, so a tier always comes back.",
                 "endpoint": "/api/license/status",
                 "expect": {
                     "kind": "truthy",

@@ -3,7 +3,7 @@
  *
  * These are the only per-row facts the two ledgers keep — neither stores what
  * was written or what was sent — so all of them are shown, never trimmed to
- * fit a layout: the model, file, conversation and routine run for a shield
+ * fit a layout: the model, file, conversation and automation run for a shield
  * event; operator, address, result, tool and place for a call.
  */
 
@@ -25,7 +25,7 @@ function guardPairs(row: StreamRow, t: TranslateFn): DetailPair[] {
         [t('admin.shield_activity_d_model', 'AI model'), text(raw.model)],
         [t('admin.shield_activity_d_file', 'File'), text(raw.attachment_filename)],
         [t('admin.shield_activity_d_conversation', 'Conversation'), text(raw.conversation_id)],
-        [t('admin.shield_activity_d_run', 'Routine run'), text(raw.run_id)],
+        [t('admin.shield_activity_d_run', 'Automation run'), text(raw.run_id)],
     ];
 }
 

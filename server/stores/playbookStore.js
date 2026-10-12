@@ -8,7 +8,7 @@
  * builder callback, the handoff card, a poll) and the last writer must never
  * silently win.
  *
- * Owner-only in v1: a playbook's artifacts are the owner's routine and app.
+ * Owner-only in v1: a playbook's artifacts are the owner's automation and app.
  */
 
 'use strict';

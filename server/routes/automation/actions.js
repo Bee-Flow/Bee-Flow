@@ -1,9 +1,9 @@
 /**
- * Whole-routine actions and the Builder header's tab counts (Studio →
+ * Whole-automation actions and the Builder header's tab counts (Studio →
  * Automations handoff 5, artboards 5a/5b/5e).
  *
  *   POST /:id/duplicate            a new draft "<title> (copy)", no runs   (view)
- *   POST /:id/save-as-template     the routine as an organisation template (edit)
+ *   POST /:id/save-as-template     the automation as an organisation template (edit)
  *   POST /:id/suggest-description  one or two plain sentences from the steps (edit)
  *   GET  /:id/counts               { runs7d, runsFailed7d, versions, pendingChanges } (run)
  *
@@ -79,10 +79,10 @@ function describeForModel(automation, { summariseDefinition, stepNumbers }) {
     return `Name: ${name}\n\n${summary}${labels.length ? `\n\nStep names: ${labels.join('; ')}` : ''}`;
 }
 
-/** Reusable Steps and flowlets have their own library; these actions are for routines. */
-function onlyRoutines(a) {
+/** Reusable Steps and flowlets have their own library; these actions are for automations. */
+function onlyAutomations(a) {
     if ((a.kind || 'automation') !== 'automation') {
-        throw new HttpError(400, 'unsupported_kind', 'This works on routines only, not on reusable steps.');
+        throw new HttpError(400, 'unsupported_kind', 'This works on automations only, not on reusable steps.');
     }
 }
 
@@ -127,7 +127,7 @@ function makeActionsRouter(overrides = {}) {
         const loaded = await load(req, res, 'view');
         if (!loaded) return;
         const { a } = loaded;
-        onlyRoutines(a);
+        onlyAutomations(a);
         const userId = req.session.user.id;
         const { stripAppRefs } = require('../../automation/portability');
         const { triggerColumnsFromDefinition } = require('../../automation/triggerColumns');
@@ -137,7 +137,7 @@ function makeActionsRouter(overrides = {}) {
         const warnings = [];
         stripAppRefs(definition, warnings);
         const assigneeErrors = await validateAssignees(definition, userId);
-        if (assigneeErrors.length) throw new HttpError(400, 'invalid_definition', 'This routine names an approver outside your organisation; change the approval step first.', assigneeErrors);
+        if (assigneeErrors.length) throw new HttpError(400, 'invalid_definition', 'This automation names an approver outside your organisation; change the approval step first.', assigneeErrors);
         const cols = triggerColumnsFromDefinition(definition);
         const organizationId = await orgOf(req);
         const created = await store().createAutomation({
@@ -175,12 +175,12 @@ function makeActionsRouter(overrides = {}) {
         const loaded = await load(req, res, 'edit');
         if (!loaded) return;
         const { a } = loaded;
-        onlyRoutines(a);
+        onlyAutomations(a);
         const { buildExport } = require('../../automation/portability');
         const { orgTemplateCard } = require('../../automation/templates');
         const { envelope, warnings } = buildExport(a);
         const definition = envelope.automation.definition;
-        if (!realSteps(definition).length) throw new HttpError(400, 'nothing_to_save', 'Add a step first; an empty routine makes no template.');
+        if (!realSteps(definition).length) throw new HttpError(400, 'nothing_to_save', 'Add a step first; an empty automation makes no template.');
         const row = await store().createAutomationTemplate({
             organizationId: await orgOf(req),
             createdBy: req.session.user.id,

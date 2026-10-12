@@ -16,13 +16,13 @@ import useTranslation from '../../hooks/useTranslation';
  *
  *   Overview  the W3 cards: which datatables this page is bound to (rows,
  *             column chips, a dashed "not used" when the page's own code never
- *             names it), which routines feed those tables, the page's own
- *             knowledge sources, and a warning per routine that writes straight
+ *             names it), which automations feed those tables, the page's own
+ *             knowledge sources, and a warning per automation that writes straight
  *             into a bound table.
  *   Actions   what the page SETS OFF: the static scan of its own code for calls
  *             that go around Studio, the forms and agent blocks that arrive
  *             with `bf-*` (W4), and — promoted from the IDE sidebar into this
- *             surface — the bridge grants (WebpageAppsPanel): which routines
+ *             surface — the bridge grants (WebpageAppsPanel): which automations
  *             and integrations this page's script may call.
  *   Audience  WHO can see it and WHERE it lives (W3 step 4): the three shared
  *             audience rows plus a fourth, Public — one canonical unlisted

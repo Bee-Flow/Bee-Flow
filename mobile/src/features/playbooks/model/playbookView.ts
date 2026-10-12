@@ -18,7 +18,7 @@ type Pair = readonly [key: string, en: string];
 /** A built-in phase's words, by key and by kind (a custom phase brings its own label). */
 export const PHASE_LABEL_KEYS: Readonly<Record<string, Pair>> = Object.freeze({
     table: ['playbooks.phase.table', 'Table'],
-    routine: ['playbooks.phase.routine', 'Automation'],
+    automation: ['playbooks.phase.automation', 'Automation'],
     fill: ['playbooks.phase.fill', 'First rows'],
     design: ['playbooks.phase.design', 'Design'],
     app: ['playbooks.phase.app', 'App'],
@@ -31,7 +31,7 @@ export const PHASE_LABEL_KEYS: Readonly<Record<string, Pair>> = Object.freeze({
 /** The kind whose tile colour and glyph a phase borrows (the web's PHASE_VISUAL). */
 export const PHASE_VISUAL: Readonly<Record<string, KindKey>> = Object.freeze({
     table: 'datatable',
-    routine: 'automation',
+    automation: 'automation',
     fill: 'datatable',
     design: 'app',
     app: 'app',
@@ -113,9 +113,9 @@ function complianceFact(a: Phase['artifacts'], t: TranslateFn): string | null {
 
 const FACTS: Readonly<Record<string, FactFn>> = {
     table: tableFact,
-    routine: (a, t) => {
+    automation: (a, t) => {
         const name = artStr(a, 'automationTitle');
-        return name ? t('playbooks.fact.routine', 'Automation "{name}"', { name }) : null;
+        return name ? t('playbooks.fact.automation', 'Automation "{name}"', { name }) : null;
     },
     fill: (a, t) => {
         const rows = artNum(a, 'rowCount');

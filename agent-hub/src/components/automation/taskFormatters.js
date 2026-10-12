@@ -1,5 +1,5 @@
 /**
- * Pure formatters/helpers for the routines list + editor (§WS5, extracted
+ * Pure formatters/helpers for the automations list + editor (§WS5, extracted
  * verbatim from AITasksDesigner/index.jsx).
  */
 

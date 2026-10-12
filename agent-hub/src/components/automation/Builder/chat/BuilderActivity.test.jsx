@@ -37,7 +37,7 @@ describe('BuilderActivity', () => {
         expect(screen.getByText('Keep high priority')).toBeTruthy();
         expect(screen.getByText('Count them')).toBeTruthy();
         expect(screen.getByText('Collect summaries')).toBeTruthy();
-        expect(screen.queryByText(/builder_add_array_op/)).toBeNull();
+        expect(screen.getAllByText('builder_add_array_op')).toHaveLength(3);
     });
 
     it('shows a refusal reason without a click, and keeps the hint', () => {
@@ -89,10 +89,10 @@ describe('BuilderActivity', () => {
             expect(rows).toHaveLength(3);
             const live = rows[2];
             expect(live.getAttribute('data-live')).toBe('');
-            expect(live.textContent).toContain('Testing the routine…');
+            expect(live.textContent).toContain('Testing the automation…');
             expect(live.textContent).toContain('Read file content · 1/4');
             expect(live.querySelector('.animate-spin')).not.toBeNull();
-            // "Reviewed the routine" is done: a tick, not a spinner.
+            // "Reviewed the automation" is done: a tick, not a spinner.
             expect(rows[1].querySelector('.animate-spin')).toBeNull();
             expect(rows[1].querySelector('.text-emerald-500')).not.toBeNull();
             // The header counts it as a row.
@@ -109,20 +109,20 @@ describe('BuilderActivity', () => {
         it('shows the row before the first step row arrives, without inventing a count', () => {
             const { container } = render(<BuilderActivity toolCalls={before} running={true} liveRun={{ label: '', done: 0, total: 0 }} />);
             const live = container.querySelectorAll('[data-testid="activity-row"]')[2];
-            expect(live.textContent).toContain('Testing the routine…');
+            expect(live.textContent).toContain('Testing the automation…');
             expect(live.textContent).not.toMatch(/\d+\/\d+/);
         });
 
         it('ignores a run once the turn is over — that is the canvas\'s story', () => {
             const { container } = render(<BuilderActivity toolCalls={before} running={false} liveRun={focus} />);
             expect(container.querySelectorAll('[data-testid="activity-row"]')).toHaveLength(2);
-            expect(container.textContent).not.toContain('Testing the routine…');
+            expect(container.textContent).not.toContain('Testing the automation…');
         });
 
         it('translates the live row through t', () => {
-            const t = (k, d) => (k === 'routines.builder.act.dry_run_live' ? 'Routine wordt getest…' : d);
+            const t = (k, d) => (k === 'automations.builder.act.dry_run_live' ? 'Automation wordt getest…' : d);
             const { container } = render(<BuilderActivity toolCalls={before} running={true} liveRun={focus} t={t} />);
-            expect(container.textContent).toContain('Routine wordt getest…');
+            expect(container.textContent).toContain('Automation wordt getest…');
         });
     });
 

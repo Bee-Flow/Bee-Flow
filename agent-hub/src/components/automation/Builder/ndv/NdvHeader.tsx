@@ -79,7 +79,7 @@ export default function NdvHeader(p: NdvHeaderProps) {
                     {p.kicker}
                     {p.position.total > 1 && (
                         // No leading dot when there is no family word (a start step has none).
-                        <span>{p.kicker ? ' · ' : ''}<span>{t('routines.ndv.step_of', 'Step {n} of {total}', { n: p.position.index, total: p.position.total })}</span></span>
+                        <span>{p.kicker ? ' · ' : ''}<span>{t('automations.ndv.step_of', 'Step {n} of {total}', { n: p.position.index, total: p.position.total })}</span></span>
                     )}
                 </div>
                 <div data-testid="ndv-title" className="text-[15px] font-semibold text-[var(--text-primary)] truncate leading-tight" title={typeof p.step.tool === 'string' ? p.step.tool : undefined}>
@@ -90,10 +90,10 @@ export default function NdvHeader(p: NdvHeaderProps) {
                 beside the name at both densities, in execution order. */}
             {p.canNavigate && (
                 <div className="flex items-center gap-0.5 shrink-0 ml-1">
-                    <button type="button" onClick={p.goPrev} disabled={!p.position.prevId} title={t('routines.ndv.prev_step_title', 'Previous step in the flow (Alt+←)')} aria-label={t('routines.ndv.prev_step', 'Previous step')} className={pagerBtn}>
+                    <button type="button" onClick={p.goPrev} disabled={!p.position.prevId} title={t('automations.ndv.prev_step_title', 'Previous step in the flow (Alt+←)')} aria-label={t('automations.ndv.prev_step', 'Previous step')} className={pagerBtn}>
                         <ChevronLeft size={14} />
                     </button>
-                    <button type="button" onClick={p.goNext} disabled={!p.position.nextId} title={t('routines.ndv.next_step_title', 'Next step in the flow (Alt+→)')} aria-label={t('routines.ndv.next_step', 'Next step')} className={pagerBtn}>
+                    <button type="button" onClick={p.goNext} disabled={!p.position.nextId} title={t('automations.ndv.next_step_title', 'Next step in the flow (Alt+→)')} aria-label={t('automations.ndv.next_step', 'Next step')} className={pagerBtn}>
                         <ChevronRight size={14} />
                     </button>
                 </div>
@@ -109,19 +109,19 @@ export default function NdvHeader(p: NdvHeaderProps) {
             {/* Which columns are open (design 1h): two independent booleans.
                 At quick density asking for a side column grows the drawer to
                 the full view with that column open. */}
-            <div className="shrink-0 inline-flex items-center gap-0.5 p-0.5 rounded-lg bg-[var(--bg-tertiary)] font-medium whitespace-nowrap @max-[640px]/ndvhead:hidden" role="group" aria-label={t('routines.ndv.drawer_columns', 'Drawer columns')}>
-                <button type="button" onClick={p.columns.onInput} aria-pressed={inputOn} title={inputOn ? t('routines.ndv.hide_input', 'Hide input') : t('routines.ndv.show_input', 'Show input')} aria-label={inputOn ? t('routines.ndv.hide_input', 'Hide input') : t('routines.ndv.show_input', 'Show input')} className={seg(inputOn)}>
-                    {t('routines.ndv.incoming', 'Incoming')}
+            <div className="shrink-0 inline-flex items-center gap-0.5 p-0.5 rounded-lg bg-[var(--bg-tertiary)] font-medium whitespace-nowrap @max-[640px]/ndvhead:hidden" role="group" aria-label={t('automations.ndv.drawer_columns', 'Drawer columns')}>
+                <button type="button" onClick={p.columns.onInput} aria-pressed={inputOn} title={inputOn ? t('automations.ndv.hide_input', 'Hide input') : t('automations.ndv.show_input', 'Show input')} aria-label={inputOn ? t('automations.ndv.hide_input', 'Hide input') : t('automations.ndv.show_input', 'Show input')} className={seg(inputOn)}>
+                    {t('automations.ndv.incoming', 'Incoming')}
                 </button>
-                <span aria-hidden="true" className={`${seg(true)} @max-[960px]/ndvhead:hidden`}>{t('routines.ndv.settings', 'Settings')}</span>
-                <button type="button" onClick={p.columns.onOutput} aria-pressed={outputOn} title={outputOn ? t('routines.ndv.hide_output', 'Hide output') : t('routines.ndv.show_output', 'Show output')} aria-label={outputOn ? t('routines.ndv.hide_output', 'Hide output') : t('routines.ndv.show_output', 'Show output')} className={seg(outputOn)}>
-                    {t('routines.ndv.continues', 'Continues on')}
+                <span aria-hidden="true" className={`${seg(true)} @max-[960px]/ndvhead:hidden`}>{t('automations.ndv.settings', 'Settings')}</span>
+                <button type="button" onClick={p.columns.onOutput} aria-pressed={outputOn} title={outputOn ? t('automations.ndv.hide_output', 'Hide output') : t('automations.ndv.show_output', 'Show output')} aria-label={outputOn ? t('automations.ndv.hide_output', 'Hide output') : t('automations.ndv.show_output', 'Show output')} className={seg(outputOn)}>
+                    {t('automations.ndv.continues', 'Continues on')}
                 </button>
             </div>
             <SaveStatus saveState={p.save.state} lastSavedAt={p.save.lastSavedAt} onRetry={p.save.onRetry} showWhenIdle size={11} className="shrink-0" />
             {p.onRetryStep && (
-                <button type="button" onClick={p.onRetryStep} disabled={p.retryDisabled} title={t('routines.ndv.retry_title', 'Retry this step and continue downstream from here')} aria-label={t('routines.ndv.retry', 'Retry')} className={`${outline} shrink-0 whitespace-nowrap text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-40`}>
-                    <RotateCcw size={13} /> <span className="@max-[1180px]/ndvhead:hidden">{t('routines.ndv.retry', 'Retry')}</span>
+                <button type="button" onClick={p.onRetryStep} disabled={p.retryDisabled} title={t('automations.ndv.retry_title', 'Retry this step and continue downstream from here')} aria-label={t('automations.ndv.retry', 'Retry')} className={`${outline} shrink-0 whitespace-nowrap text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-40`}>
+                    <RotateCcw size={13} /> <span className="@max-[1180px]/ndvhead:hidden">{t('automations.ndv.retry', 'Retry')}</span>
                 </button>
             )}
             {p.onTest && (
@@ -129,22 +129,22 @@ export default function NdvHeader(p: NdvHeaderProps) {
                     type="button"
                     onClick={p.onTest}
                     disabled={p.testDisabled}
-                    title={t('routines.ndv.test_step_title', 'Test this step only (uses upstream replay or pinned data)')}
-                    aria-label={t('routines.ndv.test_step', 'Test step')}
+                    title={t('automations.ndv.test_step_title', 'Test this step only (uses upstream replay or pinned data)')}
+                    aria-label={t('automations.ndv.test_step', 'Test step')}
                     className="shrink-0 whitespace-nowrap inline-flex items-center gap-1.5 h-[30px] px-3.5 rounded-lg text-[12px] font-semibold bg-[var(--accent-primary)] text-[var(--accent-primary-fg)] hover:opacity-85 disabled:opacity-40 transition"
                 >
                     {p.testBusy ? <Loader2 size={13} className="animate-spin" /> : <Play size={13} fill="currentColor" />}
-                    <span className="@max-[960px]/ndvhead:hidden">{t('routines.ndv.test_step', 'Test step')}</span>
+                    <span className="@max-[960px]/ndvhead:hidden">{t('automations.ndv.test_step', 'Test step')}</span>
                 </button>
             )}
             {p.menu && <NdvStepMenu {...p.menu} />}
             {p.onExpand && (
-                <button type="button" onClick={p.onExpand} title={t('routines.ndv.expand_full_title', 'Open the full view — input data and output side by side')} aria-label={t('routines.ndv.expand_full', 'Expand to the full view')} className={iconBtn}>
+                <button type="button" onClick={p.onExpand} title={t('automations.ndv.expand_full_title', 'Open the full view — input data and output side by side')} aria-label={t('automations.ndv.expand_full', 'Expand to the full view')} className={iconBtn}>
                     <Maximize2 size={15} />
                 </button>
             )}
             {p.onShrink && (
-                <button type="button" onClick={p.onShrink} title={t('routines.ndv.shrink_quick', 'Shrink to the small dialog')} aria-label={t('routines.ndv.shrink_quick', 'Shrink to the small dialog')} className={iconBtn}>
+                <button type="button" onClick={p.onShrink} title={t('automations.ndv.shrink_quick', 'Shrink to the small dialog')} aria-label={t('automations.ndv.shrink_quick', 'Shrink to the small dialog')} className={iconBtn}>
                     <Minimize2 size={15} />
                 </button>
             )}

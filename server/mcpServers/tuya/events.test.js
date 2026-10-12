@@ -63,7 +63,7 @@ test('both events poll the same tool with the same arguments, so they share one 
 
 test('switching a lamp produces exactly one event naming the data point that moved', async () => {
     const first = await poll([device()]);
-    assert.deepStrictEqual(first.events, [], 'activating the routine fires nothing');
+    assert.deepStrictEqual(first.events, [], 'activating the automation fires nothing');
 
     const second = await poll([device({ status: [{ code: 'switch_led', value: true }, { code: 'bright_value_v2', value: 540 }] })], aged(first.cursor));
     assert.strictEqual(second.events.length, 1);
@@ -100,7 +100,7 @@ test('a lock is observable but the payload never implies it is operable', async 
     const first = await poll([lock]);
     const second = await poll([device({ ...lock, status: [{ code: 'lock_motor_state', value: true }] })], aged(first.cursor));
     assert.strictEqual(second.events.length, 1);
-    // isLock travels so a routine can filter locks out; commanding one still
+    // isLock travels so an automation can filter locks out; commanding one still
     // goes through the MCP server's own TUYA_ALLOW_LOCKS gate.
     assert.strictEqual(second.events[0].isLock, true);
 });

@@ -22,13 +22,9 @@ export const PAGE_ROUTES = {
     // entry in that registry and needs nothing here. Adding a page key for one
     // would create a second URL surface for the same screen.
     studio: '/app/studio',
-    // URL slug renamed from /app/ai-tasks → /app/routines (Aug 2026 rename).
-    // Old paths still parse below — permanently, not "for one release": a link
-    // in someone's mailbox does not expire when we ship.
-    aiTasks: '/app/routines',
     // Cowork — the front door for "just do this for me" prompt automation, and
     // the only place it lives: create, correct and run history in one master-
-    // detail page. /app/routines keeps the flow builder for multi-step work.
+    // detail page. Studio → Automations keeps the flow builder for multi-step work.
     // Legacy /app/work and /app/studio/cowork/:id resolve here too (below).
     cowork: '/app/cowork',
     // Consumer directory of published App Studio apps. The run view for a
@@ -38,12 +34,17 @@ export const PAGE_ROUTES = {
     // detail page of its own — its public address IS the page — so rows here
     // open /f/<token> rather than a /app/forms/:id.
     forms: '/app/forms',
+    // The member library keeps the normal sidebar and omits Studio management.
+    documents: '/app/documents',
     reports: '/app/reports',
     components: '/app/components',
     // Kept for /app/meeting-notes backward-compat — the page now renders
     // inside Studio so /app/meeting-notes redirects to /app/studio/meeting-notes.
     meetingNotes: '/app/meeting-notes',
     templates: '/app/templates',
+    // A notebook is a document type now: the library and every notebook live
+    // in Studio → Documents, and /app/notebooks[/<id>] parses into it
+    // (pageFromPath → studio, studioRoutes.parseStudioUrl → documents).
     notebooks: '/app/notebooks',
     // Projects had NO route at all: the list and detail views were pure local
     // state in AgentHub, so they could not be linked, bookmarked, reached with
@@ -77,7 +78,7 @@ export const PAGE_ROUTES = {
 // top-level sidebar row for one of them (Notebooks, Meetings) therefore needs
 // either a phone-shaped page and an entry here, or the row hidden below 768px;
 // without one of the two, tapping it bounces to /app via MobileRouteGuard.
-export const MOBILE_ALLOWED_PAGES = new Set(['agents', 'settings', 'appRun', 'apps', 'forms', 'formView', 'cowork', 'approvals']);
+export const MOBILE_ALLOWED_PAGES = new Set(['agents', 'projects', 'settings', 'appRun', 'apps', 'forms', 'formView', 'cowork', 'approvals']);
 export const isPageAllowedOnMobile = (page) => MOBILE_ALLOWED_PAGES.has(page);
 
 // ── The approvals slice of Studio (B2) ─────────────────────────────────
@@ -130,6 +131,17 @@ export function usesStudioRail(page, section = null) {
     return true;
 }
 
+// Inside one project (/app/projects/:id*) the workspace swaps its global
+// sidebar for the project's own 240px rail
+// (components/projects/workspace/ProjectRail.tsx), exactly as Studio does above.
+// The page key is only ever the bare 'projects' for every /app/projects* URL;
+// WHICH project (if any) is open lives in the project route, so the caller
+// passes its id. The list (no id) and the create form ('new') keep the
+// ordinary sidebar: there is no project to show.
+export function usesProjectRail(page, projectId) {
+    return page === 'projects' && typeof projectId === 'string' && projectId !== '' && projectId !== 'new';
+}
+
 // Reduce a navigateToPage() argument (which may be a bare key, a 'studio/agents'
 // path form, or an 'agentDesigner:<id>' form) to the canonical page key used by
 // MOBILE_ALLOWED_PAGES. Mirrors the alias handling inside navigateToPage().
@@ -148,6 +160,18 @@ export function mobilePageKey(page) {
 const PATH_TO_PAGE = Object.fromEntries(
     Object.entries(PAGE_ROUTES).map(([page, path]) => [path, page])
 );
+
+/** The member library's selected document, including notebook/<id> references. */
+export function parseDocumentUrl(pathname) {
+    const ref = pathname.match(/^\/app\/documents\/(.+?)\/?$/)?.[1];
+    if (!ref) return null;
+    try { return ref.split('/').map(decodeURIComponent).join('/'); }
+    catch { return null; }
+}
+
+export function documentRoutePath(ref = null) {
+    return ref ? `${PAGE_ROUTES.documents}/${ref.split('/').map(encodeURIComponent).join('/')}` : PAGE_ROUTES.documents;
+}
 
 export function pageFromPath(pathname) {
     // Root → agents (redirect to /app)
@@ -178,17 +202,20 @@ export function pageFromPath(pathname) {
     if (pathname === '/app/studio/cowork' || pathname.startsWith('/app/studio/cowork/')) return 'cowork';
     // /app/studio (and sub-sections) → unified Studio
     if (pathname === '/app/studio' || pathname.startsWith('/app/studio/')) return 'studio';
-    // /app/routines or /app/routines/* → aiTasks (internal page key kept for stability)
-    if (pathname === '/app/routines' || pathname.startsWith('/app/routines/')) return 'aiTasks';
-    // Backward-compat: legacy /app/ai-tasks paths still resolve to the same page
-    if (pathname === '/app/ai-tasks' || pathname.startsWith('/app/ai-tasks/')) return 'aiTasks';
+    // The old standalone automations page — /app/ai-tasks (before Aug 2026),
+    // /app/routines, /app/automations [+ /<id>] — opens Studio → Automations
+    // now (parseStudioUrl maps the id). Kept permanently: a link in someone's
+    // mailbox does not expire when we ship.
+    if (/^\/app\/(?:automations|routines|ai-tasks)(?:\/|$)/.test(pathname)) return 'studio';
     // /app/cowork (+ /app/cowork/:id for the detail pane) → Cowork.
     // /app/work is what this page was called before the rename; kept so
     // bookmarks and the old sidebar entry still land somewhere.
     if (pathname === '/app/cowork' || pathname.startsWith('/app/cowork/')) return 'cowork';
     if (pathname === '/app/work' || pathname.startsWith('/app/work/')) return 'cowork';
-    // /app/notebooks/:id → notebooks page (must come before generic /app/*)
-    if (pathname.startsWith('/app/notebooks')) return 'notebooks';
+    if (pathname.startsWith('/app/documents/')) return 'documents';
+    // Legacy /app/notebooks[/:id] → Studio's Documents section, where notebooks
+    // live now (parseStudioUrl maps the id). Before the generic /app/* match.
+    if (pathname === '/app/notebooks' || pathname.startsWith('/app/notebooks/')) return 'studio';
     // /app/projects, /app/projects/:id, /app/projects/:id/:tab
     if (pathname.startsWith('/app/projects')) return 'projects';
     // /app/webpages/:id → unified Studio (Webpages tab)
@@ -250,9 +277,12 @@ export function pageFromPath(pathname) {
     return 'agents';
 }
 
-// Parse /app/admin/{seg1}/{seg2}/{seg3} from the URL
+// Parse /app/admin/{seg1}/{seg2}/{seg3} from the URL. The query and hash are
+// never part of a segment: in-app navigation hands over the whole page string
+// ('admin/compliance/frameworks?tab=calendar'), and 'frameworks?tab=calendar'
+// is not a section.
 export function parseAdminPath(pathname) {
-    const match = pathname.match(/^\/(?:app\/)?admin(?:\/([^/]+))?(?:\/([^/]+))?(?:\/([^/]+))?/);
+    const match = String(pathname || '').match(/^\/(?:app\/)?admin(?:\/([^/?#]+))?(?:\/([^/?#]+))?(?:\/([^/?#]+))?/);
     return {
         seg1: match?.[1] || '',
         seg2: match?.[2] || '',
@@ -279,13 +309,6 @@ export function parseAgentDesignerUrl(pathname) {
 // now lives in ../components/admin/Studio/studioRoutes.js, derived from the
 // Studio app registry.
 
-// Parse the task id out of /app/routines/{taskId} or legacy /app/ai-tasks/{taskId}.
-// Trailing segments ignored.
-export function parseAITasksUrl(pathname) {
-    const match = pathname.match(/^\/app\/(?:routines|ai-tasks)(?:\/([^/]+))?/);
-    return match?.[1] || null;
-}
-
 // Extract the cowork id from /app/cowork/:id, plus the two legacy shapes it
 // used to live at: /app/work/:id and the Studio tab /app/studio/cowork/:id.
 export function parseCoworkUrl(pathname) {
@@ -309,11 +332,6 @@ export function parseDirectChatUrl(pathname) {
     return match ? match[1] : null;
 }
 
-// Extract notebook ID from URL: /app/notebooks/:id
-export function parseNotebookUrl(pathname) {
-    const match = pathname.match(/^\/app\/notebooks\/([a-zA-Z0-9_-]+)/);
-    return match ? match[1] : null;
-}
 
 // A Studio app opened from its own Nextcloud app-menu entry. The connector's
 // per-entry page script (nextcloud-connector/src/studioAppMenus.js) mounts the

@@ -140,6 +140,12 @@ function makeWorkspaceRouter(deps = {}) {
         res.json({ files, kbId });
     });
 
+    router.get('/:id/files/:fileId/content', requireRole('viewer'), validate({ params: S.FileParams, query: S.NoQuery }), async (req, res) => {
+        const result = await projectFiles().fileContent(await loadProject(req), req.params.fileId);
+        if (!result) throw notFound('file_not_found', 'That file is not in this project.');
+        res.set('Cache-Control', 'no-store').json(result);
+    });
+
     router.post('/:id/files', requireRole('editor'), uploadLimiter, acceptProjectFile, async (req, res) => {
         const project = await loadProject(req);
         // A Solution is a builder's bundle; its knowledge is linked bases, and
@@ -201,7 +207,7 @@ function makeWorkspaceRouter(deps = {}) {
     // be told somebody is here because they were ten minutes ago.
     router.post('/:id/presence', requireRole('viewer'), presenceLimiter, validate({ body: S.PresenceBody }), async (req, res) => {
         try {
-            await publishTransient(req.params.id, { kind: 'presence.online', actorId: userIdOf(req) });
+            await publishTransient(req.params.id, { kind: 'presence.online', actorId: userIdOf(req), target: req.body.target || null });
             res.json({ ok: true });
         } catch (err) {
             // Presence is decoration. Never fail a request over it.

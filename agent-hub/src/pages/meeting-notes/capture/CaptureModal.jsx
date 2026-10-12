@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mic, Upload, MessageSquare, Video, ArrowLeft, X } from 'lucide-react';
+import { Mic, Upload, MessageSquare, Video, Users, ArrowLeft, X } from 'lucide-react';
 import Modal from '../../../components/shared/Modal';
 import IconButton from '../../../components/shared/IconButton';
 import useConfirm from '../../../components/shared/useConfirm';
@@ -9,17 +9,20 @@ import RecordPanel from './RecordPanel';
 import UploadPanel from './UploadPanel';
 import TalkImportPanel from './TalkImportPanel';
 import GoogleMeetImportPanel from './GoogleMeetImportPanel';
+import TeamsImportPanel from './TeamsImportPanel';
 import { useCapture } from './CaptureContext';
 import { useRecorder } from '../hooks/RecorderContext';
 import useMediaQuery from '../hooks/useMediaQuery';
 import useNextcloudConnected from '../hooks/useNextcloudConnected';
 import useGoogleMeetConnected from '../hooks/useGoogleMeetConnected';
+import { useTeamsNotesUserSettings } from '../../../api/queries/teamsMeetingNotes';
 
 const PANELS = {
     record: RecordPanel,
     upload: UploadPanel,
     talk: TalkImportPanel,
     gmeet: GoogleMeetImportPanel,
+    teams: TeamsImportPanel,
 };
 
 /**
@@ -37,6 +40,7 @@ function captureText(t) {
         upload: { title: t('meetings.capture_upload_title', 'Upload a recording'), description: t('meetings.capture_upload_desc', 'Drop a file from your computer.') },
         talk: { title: t('meetings.capture_talk_title', 'Import from Nextcloud Talk'), description: t('meetings.capture_talk_desc', 'Transcribe a Talk call recording.') },
         gmeet: { title: t('meetings.capture_gmeet_title', 'Import from Google Meet'), description: t('meetings.capture_gmeet_desc', 'Import a recorded Meet call.') },
+        teams: { title: t('meetings.capture_teams_title', 'Import from Microsoft Teams'), description: t('meetings.capture_teams_desc', 'Import a Teams meeting you organised.') },
     };
 }
 
@@ -46,6 +50,7 @@ function sourceTiles(t) {
         { key: 'upload', icon: Upload, title: t('meetings.capture_tile_upload_title', 'Upload a file'), description: t('meetings.capture_tile_upload_desc', 'Drop a .mp3, .wav, .m4a or .mp4.'), accent: 'var(--accent-primary)' },
         { key: 'talk', icon: MessageSquare, title: t('meetings.capture_tile_talk_title', 'Nextcloud Talk'), description: t('meetings.capture_talk_desc', 'Transcribe a Talk call recording.'), accent: 'var(--type-ai)', requiresNextcloud: true },
         { key: 'gmeet', icon: Video, title: t('meetings.capture_tile_gmeet_title', 'Google Meet'), description: t('meetings.capture_gmeet_desc', 'Import a recorded Meet call.'), accent: 'var(--success)', requiresGoogleMeet: true },
+        { key: 'teams', icon: Users, title: t('meetings.capture_tile_teams_title', 'Microsoft Teams'), description: t('meetings.capture_teams_desc', 'Import a Teams meeting you organised.'), accent: 'var(--accent-secondary)', requiresTeams: true },
     ];
 }
 
@@ -62,6 +67,10 @@ export default function CaptureModal() {
     // missing the Meet scopes — the panel then renders the re-consent CTA.
     const { connected: gmeetConnected, needsReconsent: gmeetNeedsReconsent } = useGoogleMeetConnected(open);
     const gmeetAvailable = gmeetConnected || gmeetNeedsReconsent;
+    // Teams: offered once Microsoft 365 is connected; a grant without the
+    // Teams permissions gets the reconnect prompt inside the panel.
+    const teamsSettings = useTeamsNotesUserSettings(open);
+    const teamsAvailable = teamsSettings.data?.connection?.microsoftConnected === true;
 
     const recording = recorder.state === 'recording' || recorder.state === 'paused';
     const close = async () => {
@@ -82,16 +91,19 @@ export default function CaptureModal() {
     };
 
     const onComplete = () => closeCapture();
-    // 'talk'/'gmeet' are only reachable when the matching integration is
+    // 'talk'/'gmeet'/'teams' are only reachable when the matching integration is
     // connected (the tile is hidden otherwise) — guard the panel too so a
     // stale mode can't render it.
     const ModePanel = mode
         && (mode !== 'talk' || nextcloudConnected)
         && (mode !== 'gmeet' || gmeetAvailable)
+        && (mode !== 'teams' || teamsAvailable)
         && PANELS[mode];
 
     const modeText = captureText(t);
-    const tiles = sourceTiles(t).filter((tile) => (!tile.requiresNextcloud || nextcloudConnected) && (!tile.requiresGoogleMeet || gmeetAvailable));
+    const tiles = sourceTiles(t).filter((tile) => (!tile.requiresNextcloud || nextcloudConnected)
+        && (!tile.requiresGoogleMeet || gmeetAvailable)
+        && (!tile.requiresTeams || teamsAvailable));
     const tileGridClass = tiles.length >= 3
         ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3'
         : 'grid grid-cols-1 sm:grid-cols-2 gap-3';

@@ -12,7 +12,7 @@ import useTranslation from '../../hooks/useTranslation';
  * page is filed into (`projectId`).
  *
  * It deliberately does NOT print "0" or "nothing uses this page". That is a
- * claim, and an owner who reads it might delete a page three routines link
+ * claim, and an owner who reads it might delete a page three automations link
  * to. The tab's badge in the header is absent for the same reason.
  */
 export default function WebpageUsedByTab({ page }) {

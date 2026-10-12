@@ -47,7 +47,7 @@ const APP_BROKEN = { schemaVersion: 2, meta: { name: 'Order portal' }, screens: 
 /**
  * A fully-open, fully-populated fake dependency set: every gate open and every
  * source holding exactly ONE problem, so a body has six rows — three errors
- * (app, routine, Solution) and three warnings (agent, empty base, stale base).
+ * (app, automation, Solution) and three warnings (agent, empty base, stale base).
  */
 function makeDeps(overrides = {}) {
     const calls = { sql: [] };
@@ -295,16 +295,16 @@ test('a part-way source keeps its rows but stops claiming a count', async () => 
 });
 
 test('a source with more rows than fit is capped, and the honest total says so', async () => {
-    // Twenty-five broken routines, each with three failures in a row.
+    // Twenty-five broken automations, each with three failures in a row.
     const many = [];
     for (let i = 0; i < 25; i += 1) {
-        for (let r = 0; r < 3; r += 1) many.push({ automationId: `a${i}`, title: `Routine ${i}`, status: 'error' });
+        for (let r = 0; r < 3; r += 1) many.push({ automationId: `a${i}`, title: `Automation ${i}`, status: 'error' });
     }
     const b = await body({ automationStore: { getRecentRunStatusesForUser: async () => many } });
     assert.strictEqual(rowsFrom(b, 'automationFailing').length, 20, 'the list stays readable');
     assert.strictEqual(b.sources.automationFailing.found, 25, 'the count is what was FOUND, not what is shown');
     assert.strictEqual(b.sources.automationFailing.truncated, true);
-    assert.strictEqual(b.total, 30, '25 routines + the other five sources');
+    assert.strictEqual(b.total, 30, '25 automations + the other five sources');
     assert.strictEqual(b.complete, true, 'a cap is not a gap — nothing went unchecked');
 });
 
@@ -448,7 +448,7 @@ test('a failure in the shared knowledge read marks BOTH its sources unavailable'
     assert.strictEqual(b.sources.appValidation.status, 'checked', 'sharing a read does not share a verdict');
 });
 
-test('runs are asked for the caller only, bounded in time and per routine', async () => {
+test('runs are asked for the caller only, bounded in time and per automation', async () => {
     await body();
     assert.strictEqual(deps._calls.runArgs.userId, 'u1');
     assert.strictEqual(deps._calls.runArgs.perAutomation, 10);
@@ -523,7 +523,7 @@ test('a licence tier that could not be RESOLVED is a gap, not a Community org', 
         },
     });
     assert.ok(b.unavailable.includes('automationFailing'), 'it could not be checked');
-    assert.ok(!b.gated.includes('automationFailing'), 'and it is NOT "you do not have routines"');
+    assert.ok(!b.gated.includes('automationFailing'), 'and it is NOT "you do not have automations"');
     assert.strictEqual(b.sources.automationFailing.found, null);
     assert.strictEqual(b.complete, false, 'a screen may not reassure over this');
 });
@@ -666,10 +666,10 @@ test('`truncated` is true only when a source found more than it could send', asy
     const clean = await body();
     for (const key of SOURCE_KEYS) assert.strictEqual(clean.sources[key].truncated, false);
 
-    // 21 failing routines, one row each, over a per-source cap of 20.
+    // 21 failing automations, one row each, over a per-source cap of 20.
     const many = [];
     for (let i = 0; i < 21; i += 1) {
-        for (let r = 0; r < 3; r += 1) many.push({ automationId: `a${i}`, title: `Routine ${i}`, status: 'error' });
+        for (let r = 0; r < 3; r += 1) many.push({ automationId: `a${i}`, title: `Automation ${i}`, status: 'error' });
     }
     const b = await body({ automationStore: { getRecentRunStatusesForUser: async () => many } });
     assert.strictEqual(b.sources.automationFailing.truncated, true);

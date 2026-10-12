@@ -1,5 +1,5 @@
 /**
- * The agent's to-do list, shared by the routine and App Studio builders.
+ * The agent's to-do list, shared by the automation and App Studio builders.
  */
 const test = require('node:test');
 const assert = require('node:assert/strict');

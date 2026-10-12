@@ -1,5 +1,5 @@
 /**
- * Routines over MCP — a partial builder_add_steps persists its built prefix.
+ * Automations over MCP — a partial builder_add_steps persists its built prefix.
  *
  * addSteps.js's partial result promises "Entries 0..i-1 are built … and stay
  * built". On this surface the draftWrap is rebuilt from the store on every

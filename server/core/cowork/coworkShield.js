@@ -3,7 +3,7 @@
  *
  * The agent runtime gives every turn a PII gate before anything reaches a
  * model adapter (agentRuntime/chatWithAgent.js, "PII Detection"; the streaming
- * twin lives in guardrailsRunner.js). The plain Cowork/Routines path —
+ * twin lives in guardrailsRunner.js). The plain Cowork/Automations path —
  * executeTask without an agent — and the Work composer called adapter.chat()
  * directly, unshielded, while the UI is about to claim otherwise. This module
  * is that same passage, callable from those two spots, behind the per-org

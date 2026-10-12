@@ -5,7 +5,7 @@
  * preference:
  *
  * 1. THE PROMOTION PRODUCES A NODE THAT PASSES ITS OWN CONTRACT. A node built
- *    here is stored, listed in the palette and called by other routines, and
+ *    here is stored, listed in the palette and called by other automations, and
  *    nobody typed a character of it — so a definition that validateCustomNode
  *    or the block scope of validateDefinition refuses is a row its owner
  *    cannot fix. Every happy path below ends by running both.
@@ -18,7 +18,7 @@
  *    name there is the "looks like it saved, saved nothing" bug with a new
  *    front door.
  *
- * 3. THE ROUTINE IT CAME FROM KEEPS WORKING. `callInputs` are the original
+ * 3. THE AUTOMATION IT CAME FROM KEEPS WORKING. `callInputs` are the original
  *    bindings, verbatim. Without them every `steps.x.output.y` the step read
  *    has to be retyped by hand into the call step, and the first one anybody
  *    forgets resolves to undefined.
@@ -38,7 +38,7 @@ const { promoteCodeStep, declaredOutputNames, paramTypeOf, BODY_ID } = require('
 const { validateCustomNode, sandboxAllowedTools, customNodeContract } = require('./customNode');
 const { validateDefinition } = require('./validate');
 
-// A code step as a routine stores one: a body, bound inputs, the tools it may
+// A code step as an automation stores one: a body, bound inputs, the tools it may
 // reach, its own ceilings, and a declaration of what it returns.
 function codeStep(overrides = {}) {
     return {
@@ -74,7 +74,7 @@ test('a promoted code step is a custom node that passes both of its contracts', 
     assert.strictEqual(contract.bodyStepId, BODY_ID);
 });
 
-test('the body reads its inputs from the caller, never from the routine it was promoted out of', () => {
+test('the body reads its inputs from the caller, never from the automation it was promoted out of', () => {
     const { definition } = promoteCodeStep({ step: codeStep() });
     // Inside a layer, what the caller passed is `trigger.output.<param>`. A
     // body left bound to `steps.extract.output.amount` would resolve that
@@ -100,7 +100,7 @@ test('the outputs are bound where execCode really writes the return value', () =
     });
 });
 
-test('callInputs are the original bindings, so the routine it left keeps behaving the same', () => {
+test('callInputs are the original bindings, so the automation it left keeps behaving the same', () => {
     const step = codeStep();
     const r = promoteCodeStep({ step });
     assert.deepStrictEqual(r.callInputs, step.inputs, 'the call step must bind exactly what the code step bound');
@@ -242,7 +242,7 @@ test('an input name the binding grammar cannot address is refused', () => {
 test('a code step that can never run is not promoted into the palette', () => {
     // secretKeys is refused by execCode and by the validator: promoting it
     // would put a node in the palette that fails on its first call, from
-    // inside someone else's routine.
+    // inside someone else's automation.
     const { SECRETS_NOT_CONFIGURED_MESSAGE } = require('./codeSandbox');
     for (const inputs of [{ secretKeys: { kind: 'literal', value: ['stripe_key'] } }, { secretKeys: ['stripe_key'] }]) {
         const r = promoteCodeStep({ step: codeStep({ inputs }) });

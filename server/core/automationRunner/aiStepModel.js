@@ -1,5 +1,5 @@
 /**
- * TEMPORARY override for the model a routine's `ai_step` runs on.
+ * TEMPORARY override for the model an automation's `ai_step` runs on.
  *
  * Config key `ai_step_model` (admin UI: Chat model tiers → "AI step model";
  * route /api/ai/config/ai-step-model). When set, every ai_step that asked for
@@ -39,7 +39,7 @@ async function resolveAiStepModelOverride({ requestedTier } = {}) {
     try {
         configured = await configStore.getConfig(AI_STEP_MODEL_KEY);
     } catch (_) {
-        // A config-store hiccup must never fail a routine step: no override.
+        // A config-store hiccup must never fail an automation step: no override.
     }
     return aiStepOverrideFor({ configured, requestedTier });
 }

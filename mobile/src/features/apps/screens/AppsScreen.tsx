@@ -74,7 +74,7 @@ export function AppsScreen() {
                 noMatch={{
                     title: t('mobile.apps.no_match', 'No app matches that'),
                     message: t('mobile.apps.no_match_hint', 'Try another word.'),
-                    clearLabel: t('routines.mapping.clear_search', 'Clear search'),
+                    clearLabel: t('automations.mapping.clear_search', 'Clear search'),
                 }}
             />
         </Screen>

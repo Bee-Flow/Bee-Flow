@@ -7,8 +7,9 @@
  * dispatch, credential refresh, outcome recovery and notifications rather than
  * growing a second, subtly-different copy of them.
  *
- * The 60s tick matches aiTaskRunner's — anything finer just burns queries,
- * since the finest schedule the UI can express is hourly.
+ * A 60s tick — anything finer just burns queries, since the finest schedule
+ * the UI can express is hourly. It is the only scheduler of these runs: the
+ * old ai_tasks table moved here and has no tick of its own any more.
  */
 
 const coworkStore = require('../../stores/coworkStore');
@@ -19,12 +20,10 @@ const RUNNER_INTERVAL_MS = 60_000;
 const MAX_CONCURRENT = 5;
 
 /**
- * Run one schedule now. `manual` leaves next_run_at alone, as in aiTaskRunner.
- * `surface` is what the notification will call it — the runner is shared with
- * Routines, the vocabulary is not.
+ * Run one schedule now. `manual` leaves next_run_at alone.
  */
 async function executeCowork(schedule, { manual = false } = {}) {
-    return executeTask(schedule, { manual, store: coworkStore, surface: 'cowork' });
+    return executeTask(schedule, { manual, store: coworkStore });
 }
 
 async function processDueCowork() {

@@ -1,6 +1,6 @@
 // @typecheck
 /**
- * OAuth shared helpers — routine-vault upsert, return-URL resolution, the
+ * OAuth shared helpers — automation-vault upsert, return-URL resolution, the
  * constant-time CSRF-state comparison and the popup redirect page.
  *
  * Each lives here exactly once so the legacy Nextcloud flow and the
@@ -8,12 +8,12 @@
  */
 
 const crypto = require('crypto');
-const routineCredentialStore = require('../../stores/routineCredentialStore');
+const automationCredentialStore = require('../../stores/automationCredentialStore');
 const log = require('../../telemetry/log');
 
 /**
- * Persist long-lived OAuth tokens into the routine credential vault. Called
- * after every successful OAuth callback so unattended routines have an
+ * Persist long-lived OAuth tokens into the automation credential vault. Called
+ * after every successful OAuth callback so unattended automations have an
  * encrypted, refresh-capable copy of the user's credentials even after their
  * web session expires. Failures are logged and swallowed — the user's login
  * must not break because the vault write hiccupped.
@@ -24,7 +24,7 @@ async function _vaultUpsertSafe({ userId, orgId, provider, tokenData }) {
         const expiresAt = tokenData.expires_in
             ? Date.now() + Number(tokenData.expires_in) * 1000
             : null;
-        await routineCredentialStore.upsertCredential({
+        await automationCredentialStore.upsertCredential({
             userId,
             orgId,
             provider,
@@ -37,18 +37,16 @@ async function _vaultUpsertSafe({ userId, orgId, provider, tokenData }) {
         // needs_reauth, in both tables. The runners pick them up on the next
         // 60s tick.
         try {
-            const aiTaskStore = require('../../stores/aiTaskStore');
             const coworkStore = require('../../stores/coworkStore');
-            const resumed = await aiTaskStore.resumeNeedsReauthForUser(userId)
-                + await coworkStore.resumeNeedsReauthForUser(userId);
+            const resumed = await coworkStore.resumeNeedsReauthForUser(userId);
             if (resumed > 0) {
-                log.info(`[OAuth/${provider}] resumed ${resumed} routine(s) for user ${userId} after reconnect`);
+                log.info(`[OAuth/${provider}] resumed ${resumed} automation(s) for user ${userId} after reconnect`);
             }
         } catch (resumeErr) {
-            log.warn(`[OAuth/${provider}] resume-routines failed for ${userId}: ${resumeErr.message}`);
+            log.warn(`[OAuth/${provider}] resume-automations failed for ${userId}: ${resumeErr.message}`);
         }
     } catch (err) {
-        log.warn(`[OAuth/${provider}] routine vault upsert failed for user ${userId}: ${err.message}`);
+        log.warn(`[OAuth/${provider}] automation vault upsert failed for user ${userId}: ${err.message}`);
     }
 }
 
@@ -125,6 +123,16 @@ function resolveNativeAppRedirect(key) {
     return NATIVE_APP_REDIRECTS.get(key) || null;
 }
 
+/**
+ * The redirect target stored in the session, checked again where it is used:
+ * returns the map's own literal when the value is one of the fixed targets,
+ * otherwise null. Never returns the value it was given.
+ */
+function knownNativeAppRedirect(value) {
+    for (const target of NATIVE_APP_REDIRECTS.values()) if (target === value) return target;
+    return null;
+}
+
 // When popup=1 (embedded iframe mode), we serve an intermediate HTML page
 // instead of a 302 redirect. This cleans the Referer header and severs the
 // iframe->popup->provider relationship so Google/Microsoft don't block it.
@@ -139,4 +147,4 @@ function popupRedirect(res, url) {
 </body></html>`);
 }
 
-module.exports = { _vaultUpsertSafe, getReturnUrl, oauthStatesMatch, popupRedirect, resolveNativeAppRedirect };
+module.exports = { _vaultUpsertSafe, getReturnUrl, oauthStatesMatch, popupRedirect, resolveNativeAppRedirect, knownNativeAppRedirect };

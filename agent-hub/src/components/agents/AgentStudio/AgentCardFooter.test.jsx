@@ -56,11 +56,11 @@ const agent = (over = {}) => ({
 const footer = () => screen.getByTestId('agent-card-footer');
 
 describe('the counted line', () => {
-    it('says "312 conversations · also in 2 routines, 1 app"', () => {
+    it('says "312 conversations · also in 2 automations, 1 app"', () => {
         render(<AgentCardFooter agent={agent({
             usage: { counts: { automation: 2, app: 1 }, partial: [] },
         })} viewerId="u1" />);
-        expect(footer().textContent).toBe('312 conversations · also in 2 routines, 1 app');
+        expect(footer().textContent).toBe('312 conversations · also in 2 automations, 1 app');
     });
 
     it('uses the SINGULAR key for one — not "1 conversations"', () => {
@@ -68,7 +68,7 @@ describe('the counted line', () => {
             stats: { conversationCount: 1, userCount: 1 },
             usage: { counts: { automation: 1, app: 1 }, partial: [] },
         })} viewerId="u1" />);
-        expect(footer().textContent).toBe('1 conversation · also in 1 routine, 1 app');
+        expect(footer().textContent).toBe('1 conversation · also in 1 automation, 1 app');
     });
 
     it('names the kinds nobody could check instead of counting them as none', () => {
@@ -76,7 +76,7 @@ describe('the counted line', () => {
             usage: { counts: { automation: 2 }, partial: ['app', 'webpage'] },
         })} viewerId="u1" />);
         expect(footer().textContent)
-            .toBe('312 conversations · also in 2 routines · could not check: Apps, Webpages');
+            .toBe('312 conversations · also in 2 automations · could not check: Apps, Webpages');
     });
 
     it('says nothing about used-by when ?usage=1 was never asked', () => {
@@ -117,7 +117,7 @@ describe('the warning', () => {
         const el = footer();
         expect(el.dataset.variant).toBe('ungrounded');
         expect(el.textContent).toBe('Answers from memory — connect a knowledge base');
-        expect(el.textContent).not.toMatch(/312|routine/);
+        expect(el.textContent).not.toMatch(/312|automation/);
         expect(el.getAttribute('style')).toContain('var(--warning)');
     });
 

@@ -20,7 +20,7 @@ import Modal from '../../../shared/Modal';
  * actienamen. Die vorm kan "over deze app is niets gezegd" en "deze app mag
  * niets" niet uit elkaar houden — en dat is precies het verschil waar de
  * agent-grants op draaien (bevinding 1 van de A1b-rechtenlaagreview: de lege
- * sectie werd weggegooid en las daarna als "nooit gekozen", dus álle routines
+ * sectie werd weggegooid en las daarna als "nooit gekozen", dus álle automatiseringen
  * mochten weer). Daarom geeft deze kiezer een `selection`-Map mee: per app een
  * eigen verzameling, met een lege verzameling als échte keuze.
  *

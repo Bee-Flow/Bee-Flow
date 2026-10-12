@@ -10,7 +10,7 @@
  *      to the shared `SERVICES_API_KEY`
  *
  * The config store is required lazily: the automation runner loads this
- * module, and a routine without an "is about" rule must never pay for it.
+ * module, and an automation without an "is about" rule must never pay for it.
  */
 
 const ENDPOINT_CACHE_TTL_MS = 10_000;

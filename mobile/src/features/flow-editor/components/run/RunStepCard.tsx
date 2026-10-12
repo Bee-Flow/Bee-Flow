@@ -64,7 +64,7 @@ function Effect({ row }: { row: RunRowModel }) {
                     size="sm"
                     variant="ghost"
                     iconName={open ? 'ChevronDown' : 'ChevronRight'}
-                    label={row.call ? t('mobile.flow.run.arguments', 'Arguments') : t('routines.ndv.output', 'Output')}
+                    label={row.call ? t('mobile.flow.run.arguments', 'Arguments') : t('automations.ndv.output', 'Output')}
                     onPress={() => setOpen((v) => !v)}
                 />
             ) : null}
@@ -97,7 +97,7 @@ export function RunStepCard({ row, onOpenStep }: { row: RunRowModel; onOpenStep:
                         </Text>
                     ) : null}
                 </Pressable>
-                {row.sample ? <Badge label={t('mobile.flow.run.sample', 'Sample data')} tone="warning" /> : null}
+                {row.sample ? <Badge label={t('automations.dry_run_panel.sample_data', 'Sample data')} tone="warning" /> : null}
             </View>
             {row.sample ? (
                 <Text variant="caption" tone="tertiary">

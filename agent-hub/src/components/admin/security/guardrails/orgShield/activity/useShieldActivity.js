@@ -15,6 +15,12 @@
 //   GET /api/usage/guardrails/recent?limit=&type=&user=
 //   GET /api/usage/integrations/egress?limit=&eu=&user=&integration=&pii=
 //
+// This hook sends only the window and the row cap: never `user` and never
+// `pii`. Every filter runs over the rows held. The server refuses a health
+// category (`pii`) next to a person (`user`, or a route that lists people)
+// with 400 special_category_per_person, and strips health labels from every
+// row that carries a user (core/privacy/specialCategories.js).
+//
 // ── Why the detail rows load UP FRONT now ────────────────────────────────
 // The tab became one cross-filter: clicking a KPI, a bar, a person, a place, a
 // destination or a category chip narrows every panel at once. That is only
@@ -37,7 +43,7 @@
 //
 // ── Live while you look ──────────────────────────────────────────────────
 // Every 30 seconds while the browser tab is visible the four requests run
-// again, so a call a routine just made shows up on the map without a reload.
+// again, so a call an automation just made shows up on the map without a reload.
 // Hidden tab: no polling; back to visible: one refresh straight away. A
 // refresh keeps the data on screen until the new data is in (`loading` is
 // only true before the first load), and a failed refresh keeps the old data

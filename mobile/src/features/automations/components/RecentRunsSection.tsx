@@ -1,5 +1,5 @@
 /**
- * The last few runs of one routine, with a way into the full history. Bounded
+ * The last few runs of one automation, with a way into the full history. Bounded
  * by the query (six rows), so a plain map inside the card is fine.
  */
 

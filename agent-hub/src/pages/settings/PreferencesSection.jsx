@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import AiParticipationSection from './AiParticipationSection';
 import AvatarPicker from './AvatarPicker';
+import { roleLabel as roleLabelFor } from './roleLabel';
 import useProjectsAvailable from '../../hooks/useProjectsAvailable';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useViewport } from '../../hooks/useViewport';
@@ -9,18 +10,10 @@ import { API_BASE, authFetch } from '../../utils/helpers';
 import scopedStorage from '../../utils/scopedStorage';
 import MeetingNotesSection from './MeetingNotesSection';
 import GoogleMeetNotesSection from './GoogleMeetNotesSection';
+import TeamsMeetingNotesSection from './TeamsMeetingNotesSection';
 import SummaryTemplatesSection from './SummaryTemplatesSection';
 import VoiceprintSection from './VoiceprintSection';
 import EditorPreferencesSection from './EditorPreferencesSection';
-
-const ROLE_LABELS = {
-    admin: 'Admin',
-    org_admin: 'Organisation Admin',
-    agent_admin: 'Agent Admin',
-    agent_editor: 'Agent Editor',
-    user: 'User',
-    member: 'Member',
-};
 
 // ── Generic list row used in the General container ───────────────────────────
 const Row = ({ label, description, right, first }) => (
@@ -41,15 +34,23 @@ const Row = ({ label, description, right, first }) => (
 );
 
 // ── Shared dropdown used for Language and Chat History ──────────────────────
-const Dropdown = ({ value, options, onChange }) => {
+// `ariaLabel` names the trigger (pass the row label): its visible text is the
+// current value only.
+const Dropdown = ({ value, options, onChange, ariaLabel }) => {
     const [open, setOpen] = useState(false);
     const ref = useRef(null);
+    const triggerRef = useRef(null);
 
     useEffect(() => {
         if (!open) return;
         const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+        const onKey = (e) => { if (e.key === 'Escape') { setOpen(false); triggerRef.current?.focus(); } };
         document.addEventListener('mousedown', handler);
-        return () => document.removeEventListener('mousedown', handler);
+        document.addEventListener('keydown', onKey);
+        return () => {
+            document.removeEventListener('mousedown', handler);
+            document.removeEventListener('keydown', onKey);
+        };
     }, [open]);
 
     const current = options.find(o => o.value === value) || options[0];
@@ -57,33 +58,31 @@ const Dropdown = ({ value, options, onChange }) => {
     return (
         <div className="relative" ref={ref}>
             <button
+                ref={triggerRef}
+                type="button"
                 onClick={() => setOpen(v => !v)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[13px] transition-colors"
-                style={{
-                    background: 'var(--bg-primary)',
-                    borderColor: open ? 'var(--accent-primary)' : 'var(--border-default)',
-                    color: 'var(--text-primary)',
-                }}
+                aria-haspopup="listbox"
+                aria-expanded={open}
+                aria-label={ariaLabel ? `${ariaLabel}: ${current?.label ?? ''}` : undefined}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[13px] transition-colors bg-[var(--bg-primary)] text-[var(--text-primary)] ${open ? 'border-[var(--accent-primary)]' : 'border-[var(--border-default)]'}`}
             >
                 <span>{current?.label}</span>
-                <ChevronDown
-                    className={`w-3.5 h-3.5 transition-transform ${open ? 'rotate-180' : ''}`}
-                    style={{ color: 'var(--text-muted)' }}
-                />
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform text-[var(--text-muted)] ${open ? 'rotate-180' : ''}`} />
             </button>
             {open && (
                 <div
-                    className="absolute left-0 sm:left-auto sm:right-0 top-full mt-1 min-w-44 max-w-[calc(100vw-2.5rem)] rounded-lg border shadow-xl py-1 z-50"
-                    style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}
+                    role="listbox"
+                    aria-label={ariaLabel}
+                    className="absolute left-0 sm:left-auto sm:right-0 top-full mt-1 min-w-44 max-w-[calc(100vw-2.5rem)] rounded-lg border shadow-xl py-1 z-50 bg-[var(--bg-secondary)] border-[var(--border-default)]"
                 >
                     {options.map(o => (
                         <button
                             key={o.value}
+                            type="button"
+                            role="option"
+                            aria-selected={value === o.value}
                             onClick={() => { onChange(o.value); setOpen(false); }}
-                            className="w-full px-3 py-2 text-left text-[13px] flex items-center justify-between transition-colors"
-                            style={{ color: value === o.value ? 'var(--accent-primary)' : 'var(--text-primary)' }}
-                            onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-tertiary)'}
-                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                            className={`w-full px-3 py-2 text-left text-[13px] flex items-center justify-between transition-colors hover:bg-[var(--bg-tertiary)] ${value === o.value ? 'text-[var(--accent-primary)]' : 'text-[var(--text-primary)]'}`}
                         >
                             <span>{o.label}</span>
                             {value === o.value && <Check className="w-4 h-4" />}
@@ -96,12 +95,13 @@ const Dropdown = ({ value, options, onChange }) => {
 };
 
 // ── iOS-style toggle ─────────────────────────────────────────────────────────
-const Toggle = ({ on, onClick, disabled }) => (
+const Toggle = ({ on, onClick, disabled, ariaLabel }) => (
     <button
         type="button"
         onClick={onClick}
         disabled={disabled}
         aria-pressed={on}
+        aria-label={ariaLabel}
         className="relative w-11 h-6 rounded-full transition-colors flex-shrink-0"
         style={{
             background: on ? 'var(--accent-primary)' : 'var(--border-default)',
@@ -196,9 +196,7 @@ const PreferencesSection = ({
     };
 
     const effectiveRole = localUser?.orgRole || localUser?.role;
-    const roleLabel = effectiveRole
-        ? (ROLE_LABELS[effectiveRole] || effectiveRole.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()))
-        : null;
+    const roleLabel = roleLabelFor(effectiveRole, t);
     const isAdminRole = ['admin', 'org_admin'].includes(effectiveRole);
 
     const hasLanguageRow = locales.length > 1;
@@ -218,6 +216,8 @@ const PreferencesSection = ({
 
     return (
         <div className="space-y-7">
+            <h2 className="text-lg font-semibold text-[var(--text-primary)]">{t('settings.preferences', 'Preferences')}</h2>
+
             {/* ── Profile strip ── */}
             {localUser && (
                 <div
@@ -232,11 +232,9 @@ const PreferencesSection = ({
                             </p>
                             {roleLabel && (
                                 <span
-                                    className="text-[10px] px-1.5 py-0.5 rounded font-medium"
-                                    style={{
-                                        background: isAdminRole ? 'rgba(5,150,105,0.1)' : 'var(--bg-tertiary)',
-                                        color: isAdminRole ? '#059669' : 'var(--text-muted)',
-                                    }}
+                                    className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${isAdminRole
+                                        ? 'bg-[color-mix(in_srgb,var(--success)_12%,transparent)] text-[var(--success-ink)]'
+                                        : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)]'}`}
                                 >
                                     {roleLabel}
                                 </span>
@@ -262,7 +260,7 @@ const PreferencesSection = ({
                         <Row
                             first
                             label={t('settings.interface_language')}
-                            right={<Dropdown value={locale} options={localeOptions} onChange={setLocale} />}
+                            right={<Dropdown value={locale} options={localeOptions} onChange={setLocale} ariaLabel={t('settings.interface_language')} />}
                         />
                     )}
                     {showChatHistory && (
@@ -275,6 +273,7 @@ const PreferencesSection = ({
                                     value={chatHistoryMode}
                                     options={chatHistoryOptions}
                                     onChange={setChatHistoryMode}
+                                    ariaLabel={t('settings.chat_history')}
                                 />
                             }
                         />
@@ -289,6 +288,7 @@ const PreferencesSection = ({
                                     value={defaultAgentMode}
                                     options={startupOptions}
                                     onChange={setDefaultAgentMode}
+                                    ariaLabel={t('settings.startup_behavior', 'Startup')}
                                 />
                             }
                         />
@@ -304,6 +304,7 @@ const PreferencesSection = ({
                             <select
                                 value={defaultAgentId}
                                 onChange={e => setDefaultAgentId(e.target.value)}
+                                aria-label={t('settings.select_agent_label')}
                                 className="w-full sm:w-auto sm:min-w-[180px] px-3 py-1.5 rounded-lg border outline-none focus:border-[var(--accent-primary)] transition-colors text-[13px]"
                                 style={{
                                     borderColor: 'var(--border-default)',
@@ -320,9 +321,9 @@ const PreferencesSection = ({
                     )}
                     <Row
                         first={!hasLanguageRow && !showChatHistory && !showStartup}
-                        label={t('settings.simple_mode_toggle', 'Simple Mode')}
+                        label={t('settings.simple_mode_toggle', 'Enable Simple Mode')}
                         description={`${t('settings.simple_mode_desc', 'Show only New Chat, Search, Agents and your chat history. Hides Studio, Meeting Notes, Notebooks, Webpages and other settings.')}${isMobile ? ` ${t('settings.simple_mode_mobile_note', 'Always on for small screens.')}` : ''}`}
-                        right={<Toggle on={isSimpleMode || isMobile} onClick={handleSimpleModeToggle} disabled={simpleSaving || isMobile} />}
+                        right={<Toggle on={isSimpleMode || isMobile} onClick={handleSimpleModeToggle} disabled={simpleSaving || isMobile} ariaLabel={t('settings.simple_mode_toggle', 'Enable Simple Mode')} />}
                     />
                 </div>
             </div>
@@ -339,6 +340,9 @@ const PreferencesSection = ({
 
             {/* ── Google Meet Meeting Notes (self-hides when not licensed/connected) ── */}
             <GoogleMeetNotesSection />
+
+            {/* ── Microsoft Teams Meeting Notes (self-hides when not licensed/connected) ── */}
+            <TeamsMeetingNotesSection />
 
             {/* ── My summary templates (self-hides when Meeting Notes not licensed) ── */}
             <SummaryTemplatesSection />
@@ -359,7 +363,8 @@ const PreferencesSection = ({
                         <svg width="14" height="14" fill="none" stroke="#dc2626" viewBox="0 0 24 24" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" />
                         </svg>
-                        <span>{t('settings.sign_out')}</span>
+                        {/* Same key as the profile menu's Sign Out, so both read alike. */}
+                        <span>{t('sidebar.sign_out', 'Sign Out')}</span>
                     </button>
                 </div>
             )}

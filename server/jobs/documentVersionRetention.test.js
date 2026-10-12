@@ -5,7 +5,7 @@
  *
  * Pinned, against a real Postgres (pglite) for the SQL the job owns:
  *   - only documents over the threshold are considered, the fullest first;
- *   - every `documentVersionId` a routine, a saved routine version or an app
+ *   - every `documentVersionId` an automation, a saved automation version or an app
  *     (draft or published) pins is collected, from anywhere in the JSON, and
  *     handed to the store as referenced; a table the install lacks pins nothing;
  *   - so is the version each project member last saw of a candidate document

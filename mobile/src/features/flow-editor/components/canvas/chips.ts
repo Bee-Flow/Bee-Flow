@@ -32,17 +32,18 @@ export function chipTone(kind: string): ChipTone {
 /** A branch name is the author's own word; the rest are the canvas's. */
 export function chipWords(kind: string, t: TranslateFn): string {
     switch (kind) {
+        // The Condition's ports, in the web cards' words (C2).
         case 'then':
-            return t('mobile.flow.lane.match', 'match');
+            return t('condition_node.port.match', 'Match');
         case 'else':
         case 'default':
-            return t('mobile.flow.lane.otherwise', 'otherwise');
+            return t('condition_node.otherwise.label', 'Otherwise');
         case 'pii_found':
-            return t('mobile.flow.lane.personal_data', 'personal data');
+            return t('automations.privacy_editors.personal_data', 'personal data');
         case 'pii_clean':
-            return t('mobile.flow.lane.clean', 'clean');
+            return t('automations.privacy_editors.clean', 'clean');
         case 'on_error':
-            return t('routines.canvas.loop_port_on_error', 'On error');
+            return t('automations.canvas.loop_port_on_error', 'On error');
         case 'unrouted':
             return t('mobile.flow.canvas.never_runs', 'never runs');
         default:

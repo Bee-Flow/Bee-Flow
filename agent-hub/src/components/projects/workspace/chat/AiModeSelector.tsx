@@ -1,16 +1,16 @@
-// When the AI answers in a team chat: never, when someone mentions it, on its
-// own when it can help, or after every message. One control for the chat
-// header and the "new team chat" form, and one wording for the badge in the
-// chat list. A mode the organisation does not allow is shown but cannot be
+// When the AI answers in a team chat: never, when someone mentions it, or
+// after every message. "Auto" (on its own when it can help) is no longer
+// offered, but a chat that is still on it keeps its label and badge until
+// someone picks another mode. One control for the chat header, and one
+// wording for the badge in the chat list. A mode the organisation does not allow is shown but cannot be
 // picked (the chat's current mode always can, so nothing changes under you).
 
-import { Sparkles } from 'lucide-react';
 import React from 'react';
 import type { TeamChat, TeamChatAiMode, TeamChatAiPolicy } from '../../../../api/queries/projectChats';
 import { useTranslation, type TranslateFn } from '../../../../hooks/useTranslation';
 import SegmentedControl from '../../../shared/SegmentedControl';
 
-export const AI_MODES: readonly TeamChatAiMode[] = Object.freeze(['off', 'mention', 'auto', 'always']);
+export const AI_MODES: readonly TeamChatAiMode[] = Object.freeze(['off', 'mention', 'always']);
 
 /** The short name of a mode, as the segmented control shows it. */
 export function aiModeLabel(mode: TeamChatAiMode, t: TranslateFn): string {
@@ -63,15 +63,13 @@ export default function AiModeSelector({ value, onChange, readOnly = false, disa
         return (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] border border-[var(--border-default)] text-[var(--text-secondary)] whitespace-nowrap"
                 title={label} data-testid="team-chat-ai-mode-readonly">
-                <Sparkles className="w-3 h-3" aria-hidden="true" />
                 {aiModeBadge(value, t)}
             </span>
         );
     }
     const notAllowed = t('project_chat.ai_mode_not_allowed', 'Your organisation does not allow this');
     return (
-        <div className="inline-flex items-center gap-1.5 flex-shrink-0" title={label}>
-            <Sparkles className="w-3.5 h-3.5 text-[var(--text-tertiary)]" aria-hidden="true" />
+        <div className="inline-flex items-center flex-shrink-0" title={label}>
             <SegmentedControl
                 size="sm"
                 ariaLabel={label}

@@ -1,5 +1,5 @@
 /**
- * A titled card of runs across routines — "Needs you" and "Recent activity".
+ * A titled card of runs across automations — "Needs you" and "Recent activity".
  * Both are capped by the hub (four and six rows), so the card maps its rows.
  */
 

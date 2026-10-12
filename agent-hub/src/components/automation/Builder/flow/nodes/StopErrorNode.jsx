@@ -2,9 +2,10 @@ import React from 'react';
 import { OctagonX } from 'lucide-react';
 import { nodeDefaultLabel, nodeHelp, nodeTypeLabel } from '../nodeDefs';
 import StepNodeBase from './StepNodeBase';
+import { humanizeTemplate } from '../displayHelpers';
 
 export default function StopErrorNode({ id, data }) {
-    const { step, runStep, issues } = data;
+    const { step, runStep, issues, stepLabelById } = data;
     // NOTHING ever runs after a Stop-and-Error — it halts the run by design.
     // The node therefore offers no "+ add next step" and no draggable source
     // port (B9): the canvas used to invite appending steps here, every one of
@@ -21,7 +22,7 @@ export default function StopErrorNode({ id, data }) {
             typeLabel={nodeTypeLabel('stop_error')}
             help={nodeHelp('stop_error')}
             name={step.label || nodeDefaultLabel('stop_error')}
-            sub={step.message || { muted: 'no message' }}
+            sub={humanizeTemplate(step.message, stepLabelById) || { muted: 'no message' }}
             subTitle={step.message || undefined}
             tone="error"
             runStep={runStep}

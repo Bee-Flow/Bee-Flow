@@ -1,3 +1,4 @@
+import { registerNavigationGuard } from '../../../utils/unsavedNavigation';
 // The project workspace: one page per project, a rail of sections on the
 // left, the open section on the right. `projectId === ''` is the create form.
 //
@@ -8,27 +9,29 @@
 // sections are separate chunks, loaded when first opened.
 
 import { AlertTriangle, History, Package } from 'lucide-react';
-import React, { Suspense, useCallback, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { ApiError } from '../../../api/client';
 import { useProjectVisitQuery, type ChangeItemType } from '../../../api/queries/projectChanges';
-import { useProjectChatsQuery } from '../../../api/queries/projectChats';
-import { useProjectFilesQuery } from '../../../api/queries/projectContent';
-import { useProjectTasksQuery } from '../../../api/queries/projectTasks';
 import {
-    useProjectMembersQuery, useProjectQuery, useProjectResourcesQuery, useProjectThreadsQuery,
-    useSetProjectKind, type Project, type ProjectRole,
+    useProjectQuery, useSetProjectKind, type Project, type ProjectRole,
 } from '../../../api/queries/projects';
 import useTranslation from '../../../hooks/useTranslation';
 import { lazy as lazyWithReload } from '../../../utils/lazyWithReload';
+import SegmentedControl from '../../shared/SegmentedControl';
+import useConfirm from '../../shared/useConfirm';
 import ActivityTab from './ActivityTab';
+import ArchivedBand from './ArchivedBand';
+import { useProjectLive, type ViewTarget } from './ProjectLiveContext';
+import ConnectionBand from './ConnectionBand';
 import MembersTab from './MembersTab';
 import OverviewTab from './OverviewTab';
 import ProjectCreateForm from './ProjectCreateForm';
+import ProjectSearchPanel from './ProjectSearchPanel';
 import { projectErrorText } from './projectErrorText';
-import { ProjectLiveProvider } from './ProjectLiveContext';
+import { projectIcon, projectTileStyle } from './projectVisuals';
 import TasksTab from './tasks/TasksTab';
-import ProjectRail, { type RailCounts } from './ProjectRail';
 import SettingsTab from './SettingsTab';
+import { hiddenTabsFor, useRailCounts, useRailGroups } from './useProjectRailData';
 import { useChangeFeedLive, useMarkSeenWhenOpen, useProjectUnread } from './useProjectUnread';
 import {
     contentIntentOf, normalizeWorkspaceTab, roleOfProject, toWorkspaceUser,
@@ -69,33 +72,6 @@ function useWorkspaceRoute(initialTab: string | null | undefined, initialSub: st
         onRouteChange?.(tab, sub);
     }, [onRouteChange]);
     return { ...route, go };
-}
-
-const lengthOf = (v: unknown): number | null => (Array.isArray(v) ? v.length : null);
-
-/** The rail without Notebooks, for a reader who may not use them. */
-const NO_NOTEBOOKS: readonly WorkspaceTabId[] = Object.freeze(['notebooks']);
-/** A Studio Solution holds no tasks. */
-const NO_TASKS: readonly WorkspaceTabId[] = Object.freeze(['tasks']);
-
-/** Rail counts. A count that is not known yet stays absent — never a guessed 0. */
-function useRailCounts(projectId: string): RailCounts {
-    const resources = useProjectResourcesQuery(projectId);
-    const threads = useProjectThreadsQuery(projectId);
-    const teamChats = useProjectChatsQuery(projectId);
-    const files = useProjectFilesQuery(projectId);
-    const members = useProjectMembersQuery(projectId);
-    const tasks = useProjectTasksQuery(projectId);
-    const kbs = lengthOf(resources.data?.knowledgeBases);
-    return {
-        chats: teamChats.data && threads.data ? teamChats.data.chats.length + threads.data.length : null,
-        tasks: tasks.data ? tasks.data.tasks.filter(x => x.status !== 'done').length : null,
-        documents: lengthOf(resources.data?.documents),
-        notebooks: lengthOf(resources.data?.notebooks),
-        meetings: lengthOf(resources.data?.meetings),
-        knowledge: files.data && kbs !== null ? files.data.files.length + kbs : null,
-        members: members.data ? members.data.members.length + 1 : null,
-    };
 }
 
 function KindNotice({ project, role, onNavigate }: { project: Project; role: ProjectRole; onNavigate: (page: string) => void }) {
@@ -174,15 +150,21 @@ interface WorkspaceProps extends Omit<ProjectWorkspacePageProps, 'projectId' | '
     currentUser: WorkspaceUser | null;
 }
 
-function TabContent({ route, project, role, props }: {
+function TabContent({ route, project, role, props, onSettingsDirty }: {
     route: ReturnType<typeof useWorkspaceRoute>;
     project: Project;
     role: ProjectRole;
     props: WorkspaceProps;
+    onSettingsDirty: (dirty: boolean) => void;
 }) {
     const { projectId, currentUser, onNavigate, onOpenThread, onStartChat, onDeleted } = props;
+    // An archived project is read-only: the content tabs get a viewer's role (so every composer and
+    // action hides itself the way it does for a viewer); members and settings keep the real role so
+    // the owner can still restore, transfer or delete.
+    const readOnly = !!project.archivedAt;
+    const tabRole: ProjectRole = readOnly && route.tab !== 'members' && route.tab !== 'settings' ? 'viewer' : role;
     const common: WorkspaceTabProps = {
-        projectId, project, role, currentUser, onNavigate,
+        projectId, project, role: tabRole, readOnly, currentUser, onNavigate,
         notebooksEnabled: props.notebooksEnabled !== false,
         sub: route.sub,
         onOpenSub: (sub) => route.go(route.tab, sub),
@@ -199,8 +181,8 @@ function TabContent({ route, project, role, props }: {
         case 'meetings': return <MeetingsTab {...content} />;
         case 'knowledge': return <KnowledgeTab {...content} />;
         case 'members': return <MembersTab {...common} onLeft={onLeft} />;
-        case 'activity': return <ActivityTab {...common} />;
-        case 'settings': return <SettingsTab {...common} onDeleted={onDeleted} onLeft={onLeft} />;
+        case 'activity': return <ActivityTab {...common} onOpenThread={onOpenThread} />;
+        case 'settings': return <SettingsTab {...common} onDeleted={onDeleted} onLeft={onLeft} onDirtyChange={onSettingsDirty} />;
         default: return <OverviewTab {...common} onOpenTab={route.go} onStartChat={onStartChat} onOpenThread={onOpenThread} />;
     }
 }
@@ -213,6 +195,16 @@ function openItemOf(tab: WorkspaceTabId, sub: string | null): { type: ChangeItem
     return null;
 }
 
+const VIEW_TYPE_OF_TAB: Partial<Record<WorkspaceTabId, ViewTarget['type']>> = {
+    documents: 'document', notebooks: 'notebook', meetings: 'meeting', tasks: 'task', chats: 'chat',
+};
+
+/** The item open inside a tab, as presence names it; null for anything else. */
+export function viewTargetOf(tab: WorkspaceTabId, sub: string | null): ViewTarget | null {
+    const type = VIEW_TYPE_OF_TAB[tab];
+    return type && sub ? { type, id: sub } : null;
+}
+
 /**
  * The reader's side of "what changed": the visit (posted on open and while
  * the page stays open), the unread marks, fresh marks when somebody else
@@ -223,6 +215,14 @@ function useReadState(projectId: string, currentUserId: string | null | undefine
     useChangeFeedLive(projectId, currentUserId);
     const unread = useProjectUnread(projectId);
     const open = openItemOf(tab, sub);
+    // Colleagues see which item this tab has open: the presence beat carries it.
+    const { setViewing } = useProjectLive();
+    const viewType = viewTargetOf(tab, sub)?.type;
+    const viewId = viewTargetOf(tab, sub)?.id;
+    useEffect(() => {
+        setViewing(viewType && viewId ? { type: viewType, id: viewId } : null);
+        return () => setViewing(null);
+    }, [setViewing, viewType, viewId]);
     useMarkSeenWhenOpen(unread, open ? { type: open.type, id: open.id } : null);
     return unread;
 }
@@ -231,9 +231,64 @@ function Workspace(props: WorkspaceProps) {
     const { t } = useTranslation();
     const { projectId, initialTab, initialSub, onRouteChange, currentUser, onClose, onNavigate } = props;
     const projectQuery = useProjectQuery(projectId);
-    const route = useWorkspaceRoute(initialTab, initialSub, onRouteChange);
+    const { confirm, confirmDialog } = useConfirm();
+    const settingsDirty = useRef(false);
+    const onSettingsDirty = useCallback((dirty: boolean) => { settingsDirty.current = dirty; }, []);
+    const plainRoute = useWorkspaceRoute(initialTab, initialSub, onRouteChange);
+    const routeNow = useRef(plainRoute);
+    routeNow.current = plainRoute;
+    // One question for every way out of unsaved Settings: the rail, the app's
+    // navigation guard, the back button. Resolves true when the reader leaves.
+    const leave = useCallback((): boolean | Promise<boolean> => {
+        if (!settingsDirty.current) return true;
+        return confirm({
+            title: t('project_home.settings.leave_title', 'Leave without saving?'),
+            description: t('project_home.settings.leave_body', 'Your changes to the settings have not been saved and will be lost.'),
+            confirmLabel: t('project_home.settings.leave_confirm', 'Leave without saving'),
+            cancelLabel: t('project_home.settings.leave_stay', 'Keep editing'),
+            destructive: true,
+        }).then((ok: boolean) => {
+            if (ok) settingsDirty.current = false;
+            return ok;
+        });
+    }, [confirm, t]);
+    // A click on the section that is already open never prompts.
+    const go = useCallback((tab: WorkspaceTabId, sub: string | null = null, intent: WorkspaceIntent | null = null) => {
+        if (tab === routeNow.current.tab || !settingsDirty.current) { routeNow.current.go(tab, sub, intent); return; }
+        void Promise.resolve(leave()).then((ok) => { if (ok) routeNow.current.go(tab, sub, intent); });
+    }, [leave]);
+    const onDeleted = props.onDeleted;
+    const deleted = useCallback((id: string) => {
+        // The project is gone: nothing is left to protect, and the host's own
+        // guard must not ask about it.
+        settingsDirty.current = false;
+        onDeleted?.(id);
+    }, [onDeleted]);
+    useEffect(() => registerNavigationGuard(leave), [leave]);
+    useEffect(() => {
+        // Keep the form mounted and restore its URL if a browser traversal is cancelled.
+        const location = window.location.href;
+        const state = window.history.state;
+        const beforeUnload = (event: BeforeUnloadEvent) => {
+            if (settingsDirty.current) { event.preventDefault(); event.returnValue = ''; }
+        };
+        const pop = (event: PopStateEvent) => {
+            if (!settingsDirty.current) return;
+            event.stopImmediatePropagation();
+            window.history.pushState(state, '', location);
+            void Promise.resolve(leave()).then((ok) => { if (ok) window.history.back(); });
+        };
+        window.addEventListener('beforeunload', beforeUnload);
+        window.addEventListener('popstate', pop, true);
+        return () => {
+            window.removeEventListener('beforeunload', beforeUnload);
+            window.removeEventListener('popstate', pop, true);
+        };
+    }, [plainRoute.tab, plainRoute.sub, leave]);
+    const route = { ...plainRoute, go };
     const counts = useRailCounts(projectId);
     const unread = useReadState(projectId, currentUser?.id, route.tab, route.sub);
+    const groups = useRailGroups(hiddenTabsFor(projectQuery.data ?? null, props.notebooksEnabled !== false));
 
     if (projectQuery.isPending) return <LoadingRow label={t('project_home.loading_project', 'Loading project…')} />;
     if (projectQuery.isError) return <ProjectUnavailable error={projectQuery.error} onBack={onClose} onRetry={() => projectQuery.refetch()} />;
@@ -242,29 +297,45 @@ function Workspace(props: WorkspaceProps) {
 
     return (
         <div className="h-full flex min-h-0 bg-[var(--bg-primary)]" data-testid="project-workspace">
-            <ProjectRail
-                project={project}
-                role={role}
-                activeTab={route.tab}
-                counts={counts}
-                unread={unread.tabs}
-                onSelect={(tab) => route.go(tab)}
-                onBack={onClose}
-                currentUserId={currentUser?.id}
-                hidden={[...(props.notebooksEnabled === false ? NO_NOTEBOOKS : []), ...(project.kind === 'solution' ? NO_TASKS : [])]}
-            />
             <main className="flex-1 min-w-0 flex flex-col min-h-0">
+                <div className="md:hidden flex items-center gap-2 p-2 border-b border-[var(--border-default)] overflow-x-auto">
+                    <SecondaryButton onClick={() => { void Promise.resolve(leave()).then((ok) => { if (ok) onClose(); }); }}>{t('project_home.all_projects', 'All projects')}</SecondaryButton>
+                    <span className="flex items-center gap-1.5 min-w-0 max-w-[40%] shrink-0" data-testid="project-bar-name">
+                        <span className="flex items-center justify-center shrink-0" style={projectTileStyle(project.color, 20)} aria-hidden="true">{projectIcon(project.icon)}</span>
+                        <span className="truncate text-sm font-medium text-[var(--text-primary)]">{project.name}</span>
+                    </span>
+                    <SegmentedControl
+                        size="sm"
+                        ariaLabel={t('project_home.rail.label', 'Project sections')}
+                        value={route.tab}
+                        onChange={(tab) => route.go(tab)}
+                        options={groups.flatMap((g) => g.items.map((item) => ({
+                            value: item.id,
+                            label: item.label,
+                            badge: unread.tabs[item.id] && item.id !== route.tab ? { count: '•', tone: 'neutral' as const } : (counts[item.id] ?? null),
+                        })))}
+                    />
+                </div>
+                {/* An open team chat shows its own band above its composer. */}
+                {!(route.tab === 'chats' && route.sub) && <ConnectionBand className="px-4 pt-3" />}
                 {(project.kind === null || project.kind === 'solution') && (
                     <div className="px-4 pt-3">
                         <KindNotice project={project} role={role} onNavigate={onNavigate} />
                     </div>
                 )}
+                {project.archivedAt && (
+                    <div className="px-4 pt-3">
+                        <ArchivedBand project={project} isOwner={role === 'owner'} />
+                    </div>
+                )}
                 <div className="flex-1 min-h-0">
                     <Suspense fallback={<LoadingRow label={t('project_home.loading', 'Loading…')} />}>
-                        <TabContent key={route.tab} route={route} project={project} role={role} props={props} />
+                        <TabContent key={route.tab} route={route} project={project} role={role} props={{ ...props, onDeleted: deleted }} onSettingsDirty={onSettingsDirty} />
                     </Suspense>
                 </div>
             </main>
+            {confirmDialog}
+            <ProjectSearchPanel projectId={projectId} role={role} open={!!props.searchOpen} onClose={() => props.onSearchOpenChange?.(false)} onOpenTab={route.go} onOpenThread={props.onOpenThread} />
         </div>
     );
 }
@@ -276,10 +347,8 @@ export default function ProjectWorkspacePage(props: ProjectWorkspacePageProps) {
     // Keyed by project: moving to another project from the sidebar starts
     // every tab afresh. Without it the same composer (its draft, its "share
     // with members" switch) and any open history drawer stayed on screen and
-    // acted on the new project.
-    return (
-        <ProjectLiveProvider projectId={projectId} currentUserId={currentUser?.id}>
-            <Workspace key={projectId} {...props} projectId={projectId} currentUser={currentUser} />
-        </ProjectLiveProvider>
-    );
+    // acted on the new project. The live feed (presence, unread refresh) is
+    // provided by the hub, around the sidebar AND this page, so the rail
+    // shares it.
+    return <Workspace key={projectId} {...props} projectId={projectId} currentUser={currentUser} />;
 }

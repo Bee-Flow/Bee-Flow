@@ -26,7 +26,7 @@ const { test, before, after, beforeEach } = require('node:test');
 const assert = require('node:assert');
 const { PGlite } = require('@electric-sql/pglite');
 const { makeProjectStore, applyProjectSchema } = require('../stores/projectStore');
-const { makeChangeFeed, summarizeChanges, changeWindow } = require('./changeFeed');
+const { makeChangeFeed, summarizeChanges, summarizeChangesPage, changeWindow } = require('./changeFeed');
 
 function facadeFor(pg) {
     const query = async (sql, params) => {
@@ -260,4 +260,19 @@ test('the window: since the last visit, since unread, since a time', () => {
     assert.strictEqual(changeWindow(T(-30), null, now).toISOString(), T(-30));
     assert.strictEqual(changeWindow('2001-01-01T00:00:00Z', null, now).toISOString(), new Date(now - 90 * 86400000).toISOString());
     assert.strictEqual(changeWindow('yesterday', null, now), null);
+});
+
+test('groups are cut to the newest 50, and the page says so', () => {
+    const many = (n) => Array.from({ length: n }, (_, i) => row({ itemId: `d${i}`, actorId: `u${i}`, updatedAt: T(i) }));
+    const state = { firstVisitAt: T(-100) };
+    const full = summarizeChangesPage(many(60), { state });
+    assert.strictEqual(full.groups.length, 50);
+    assert.strictEqual(full.truncated, true);
+    assert.strictEqual(full.groups[0].item.id, 'd59', 'the newest stay');
+    assert.deepStrictEqual(summarizeChangesPage(many(50), { state }).truncated, false);
+    assert.strictEqual(summarizeChanges(many(60), { state }).length, 50, 'the plain call still returns the groups alone');
+    const people = summarizeChangesPage(many(60), { state, groupBy: 'person' });
+    assert.deepStrictEqual([people.groups.length, people.truncated], [50, true]);
+    const unread = summarizeChangesPage(many(60), { state, onlyUnread: true });
+    assert.deepStrictEqual([unread.groups.length, unread.truncated], [50, true]);
 });

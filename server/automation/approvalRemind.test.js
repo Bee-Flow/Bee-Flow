@@ -62,7 +62,7 @@ test('the owner reminds: the claim is taken under their id and the reminder goes
     assert.deepEqual(h.sent, ['ap1']);
 });
 
-test('the asking side may remind: org admin, a viewer of the routine, a run-only member for their own run', async () => {
+test('the asking side may remind: org admin, a viewer of the automation, a run-only member for their own run', async () => {
     for (const who of ['adm', 'vic', 'ron']) {
         const h = harness();
         await h.reminder.remind({ approvalId: 'ap1', viewer: h.viewer(who) });

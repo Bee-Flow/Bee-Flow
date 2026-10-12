@@ -10,6 +10,7 @@
 const assert = require('assert');
 const {
     normalizeAndFilterTools,
+    pickToolHints,
     renderValueTemplate,
     buildAuthHeaders,
     poolKeyFor,
@@ -166,6 +167,50 @@ function rawTool(name, extra = {}) {
     const { tools, warnings } = normalizeAndFilterTools(undefined);
     assert.deepStrictEqual(tools, []);
     assert.deepStrictEqual(warnings, []);
+}
+
+// ── pickToolHints: only the four spec booleans, null when none ───────────
+{
+    assert.deepStrictEqual(
+        pickToolHints({ readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false }),
+        { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false }
+    );
+    // Unknown keys (title is a string hint in the spec) and non-boolean values are dropped.
+    assert.deepStrictEqual(
+        pickToolHints({ readOnlyHint: 'true', destructiveHint: 1, title: 'Delete', allowWrites: true, idempotentHint: false }),
+        { idempotentHint: false }
+    );
+    for (const none of [undefined, null, 'readOnly', 42, [], ['readOnlyHint'], {}, { title: 'x' }, { readOnlyHint: null }]) {
+        assert.strictEqual(pickToolHints(none), null, `no hints for ${JSON.stringify(none)}`);
+    }
+}
+
+// ── annotations survive normalizeAndFilterTools, narrowed to the hints ───
+{
+    const { tools } = normalizeAndFilterTools([
+        rawTool('reader', { annotations: { readOnlyHint: true, title: 'Reader', extra: { nested: true } } }),
+        rawTool('writer', { annotations: { readOnlyHint: false, destructiveHint: true } }),
+        rawTool('plain'),
+        rawTool('junk', { annotations: { readOnlyHint: 'yes' } }),
+    ]);
+    assert.deepStrictEqual(tools.find(t => t.name === 'reader').annotations, { readOnlyHint: true });
+    assert.deepStrictEqual(tools.find(t => t.name === 'writer').annotations, { readOnlyHint: false, destructiveHint: true });
+    assert.ok(!('annotations' in tools.find(t => t.name === 'plain')), 'no annotations key when the tool advertises none');
+    assert.ok(!('annotations' in tools.find(t => t.name === 'junk')), 'no annotations key when none of them is a boolean');
+}
+
+// ── the allow-list does not strip annotations from the tools it keeps ────
+{
+    const { tools } = normalizeAndFilterTools([
+        rawTool('keep', { annotations: { destructiveHint: true } }),
+        rawTool('drop', { annotations: { readOnlyHint: true } }),
+    ], ['keep']);
+    assert.deepStrictEqual(tools, [{
+        name: 'keep',
+        description: 'does keep',
+        inputSchema: { type: 'object', properties: { q: { type: 'string' } } },
+        annotations: { destructiveHint: true },
+    }]);
 }
 
 // ── renderValueTemplate: single + multiple refs, literals preserved ──────

@@ -90,11 +90,11 @@ export default function TruncatedOutput({ sentinel, renderFull, fill = false, fr
                 <div className="flex items-center justify-between gap-2 text-[11px] text-[var(--text-secondary)] shrink-0">
                     <span>
                         {size
-                            ? t('routines.output.truncated.showing_full', { size })
-                            : t('routines.output.truncated.showing_full_plain')}
+                            ? t('automations.output.truncated.showing_full', { size })
+                            : t('automations.output.truncated.showing_full_plain')}
                     </span>
                     <button type="button" onClick={() => setLoad(IDLE)} className="text-[var(--accent)] hover:underline">
-                        {t('routines.output.truncated.show_sample')}
+                        {t('automations.output.truncated.show_sample')}
                     </button>
                 </div>
                 {renderFull(load.value)}
@@ -111,8 +111,8 @@ export default function TruncatedOutput({ sentinel, renderFull, fill = false, fr
                 <Notice
                     t={t}
                     title={size && sample
-                        ? t('routines.output.truncated.title_sized', { size, kept: formatBytes(sample.length) })
-                        : t('routines.output.truncated.title')}
+                        ? t('automations.output.truncated.title_sized', { size, kept: formatBytes(sample.length) })
+                        : t('automations.output.truncated.title')}
                     canLoad={!!ref}
                     status={load.status}
                     onLoad={() => { void showFull(); }}
@@ -120,7 +120,7 @@ export default function TruncatedOutput({ sentinel, renderFull, fill = false, fr
                 {sample && (
                     <div>
                         <div className="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)] mb-0.5">
-                            {t('routines.output.truncated.kept_label')}
+                            {t('automations.output.truncated.kept_label')}
                         </div>
                         <pre className="whitespace-pre-wrap break-words font-mono text-[10px] text-[var(--text-primary)]">{sample}</pre>
                     </div>
@@ -148,8 +148,8 @@ function Notice({ t, title, canLoad, status, onLoad }: NoticeProps) {
             <div className="min-w-0">
                 <div className="font-medium">{title}</div>
                 <div className="mt-0.5 opacity-80">
-                    {t('routines.output.truncated.body')}{' '}
-                    {canLoad ? t('routines.output.truncated.full_kept') : t('routines.output.truncated.no_copy')}
+                    {t('automations.output.truncated.body')}{' '}
+                    {canLoad ? t('automations.output.truncated.full_kept') : t('automations.output.truncated.no_copy')}
                 </div>
                 {canLoad && (
                     <div className="mt-1 flex flex-wrap items-center gap-2">
@@ -160,9 +160,9 @@ function Notice({ t, title, canLoad, status, onLoad }: NoticeProps) {
                             className="inline-flex items-center gap-1 rounded border border-amber-500/50 px-1.5 py-0.5 font-medium hover:bg-amber-500/15 disabled:opacity-60"
                         >
                             {loading && <Loader2 size={11} className="animate-spin" />}
-                            {loading ? t('routines.output.truncated.loading') : t('routines.output.truncated.show_full')}
+                            {loading ? t('automations.output.truncated.loading') : t('automations.output.truncated.show_full')}
                         </button>
-                        {status === 'failed' && <span role="status">{t('routines.output.truncated.load_failed')}</span>}
+                        {status === 'failed' && <span role="status">{t('automations.output.truncated.load_failed')}</span>}
                     </div>
                 )}
             </div>

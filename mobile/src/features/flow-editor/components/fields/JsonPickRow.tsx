@@ -38,7 +38,7 @@ export function JsonPickRow({
     const styles = useThemedStyles(makeStyles);
     const chip = chipsIn(pick.path, true, labels)[0];
     const name = chip ? (chip.suffix ? `${chip.name} ▸ ${chip.suffix}` : chip.name) : pick.path;
-    const from = `${t('routines.builder.from_the_json', '· from the JSON')}${pick.jsonPath ? `: ${pick.jsonPath}` : ''}`;
+    const from = `${t('automations.builder.from_the_json', '· from the JSON')}${pick.jsonPath ? `: ${pick.jsonPath}` : ''}`;
     return (
         <View style={styles.row} testID={testID}>
             <RNText style={[styles.pill, chip ? pillStyle(theme, chip, types) : null]} numberOfLines={2}>
@@ -48,7 +48,7 @@ export function JsonPickRow({
                 <IconButton
                     icon={<Icon name="X" size={16} />}
                     tone="danger"
-                    accessibilityLabel={t('routines.builder.remove_value', 'Remove this value')}
+                    accessibilityLabel={t('automations.builder.remove_value', 'Remove this value')}
                     onPress={onRemove}
                     testID={testID ? `${testID}-remove` : undefined}
                 />

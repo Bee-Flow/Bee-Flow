@@ -5,10 +5,10 @@
  * Proven:
  *   - the throttle counts messages (not channel rows) in the window, and never
  *     counts held rows;
- *   - pending bundles group per routine, event and recipient, skip rows held
+ *   - pending bundles group per automation, event and recipient, skip rows held
  *     for the digest, and disappear once reported;
- *   - the digest reads: which routines have it on, the last summary per
- *     recipient and routine, run statistics (live, not tests, heads only,
+ *   - the digest reads: which automations have it on, the last summary per
+ *     recipient and automation, run statistics (live, not tests, heads only,
  *     waiting counted whenever it started), held rows;
  *   - recent attempts and the retention purge.
  *
@@ -97,7 +97,7 @@ test('a failed attempt is stored with no delivered_at', async () => {
     assert.equal(recent[0].createdAt >= recent[recent.length - 1].createdAt, true, 'newest first');
 });
 
-test('pending bundles group per routine, event and recipient; digest-only rows are not bundles', async () => {
+test('pending bundles group per automation, event and recipient; digest-only rows are not bundles', async () => {
     await store.recordNotificationEvents([
         { automationId: 'a1', event: 'onError', recipient: 'owner', channel: 'email', createdAt: at(10), bundled: true },
         { automationId: 'a1', event: 'onError', recipient: 'owner', channel: 'bell', createdAt: at(20), bundled: true },
@@ -120,14 +120,14 @@ test('pending bundles group per routine, event and recipient; digest-only rows a
     assert.deepEqual((await store.listPendingBundles()).map(x => x.automationId), ['a2']);
 });
 
-test('held rows for the digest: every unreported held row of those routines', async () => {
+test('held rows for the digest: every unreported held row of those automations', async () => {
     const held = await store.listHeldForDigest({ recipient: 'owner', automationIds: ['a1'] });
     assert.deepEqual(held.map(h => h.channel), ['digest']);
     assert.equal(held[0].bundled, true);
     assert.deepEqual(await store.listHeldForDigest({ recipient: 'owner', automationIds: [] }), []);
 });
 
-test('digest routines: switched on, routines only, trash excluded', async () => {
+test('digest automations: switched on, automations only, trash excluded', async () => {
     const rows = await store.listDigestAutomations();
     assert.deepEqual(rows.map(r => r.id), ['a1']);
     assert.equal(rows[0].scheduleTz, 'Europe/Amsterdam');
@@ -135,7 +135,7 @@ test('digest routines: switched on, routines only, trash excluded', async () => 
     assert.equal(rows[0].organizationId, 'org1');
 });
 
-test('the last summary is per recipient and routine', async () => {
+test('the last summary is per recipient and automation', async () => {
     assert.equal(await store.lastDigestAt('owner', ['a1']), null);
     await store.recordNotificationEvents([
         { automationId: 'a1', event: 'digest', recipient: 'owner', channel: 'bell', createdAt: at(420), delivered: true },

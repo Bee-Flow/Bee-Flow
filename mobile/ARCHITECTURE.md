@@ -58,7 +58,7 @@ may be a single file instead (`api.ts` rather than `api/endpoints.ts`).
 A large feature may split `api/` by resource (one file per group of calls,
 readers beside them) and keep substantial device-side state in its own
 `state/` folder rather than in `model/`: the flow editor's draft store (one
-zustand store per open routine, its undo history and its debounced,
+zustand store per open automation, its undo history and its debounced,
 single-flight autosave) lives in `features/flow-editor/state/`, and its hooks
 hand it to screens.
 
@@ -258,7 +258,7 @@ the test.
 
 ## Flow editor
 
-The routine builder (`features/flow-editor`) is the web builder
+The automation builder (`features/flow-editor`) is the web builder
 (`agent-hub/src/components/automation/Builder/`) ported to touch, so it
 follows the rule above more than any other feature does. Its folders, bottom
 up:
@@ -274,7 +274,7 @@ formState/            per step type: step → draft (extract) and draft → patc
 schemaForm/           an app action's inputs from its catalog inputSchema (ToolInputForm)
 api/ · hooks/         definition, catalog, versions, runs, templates, links, folders,
                       lookups (knowledge bases, approvers, credentials, documents), the AI builder stream
-state/                one zustand draft store per open routine: undo, dirty, autosave;
+state/                one zustand draft store per open automation: undo, dirty, autosave;
                       a flowlet edits a scoped view of it (scopedStore)
 components/           outline · canvas · picker · issues · nodeEditor · fields ·
                       variables · editors/<type> · run · versions · settings · ai
@@ -282,7 +282,7 @@ screens/              Build (Steps | Canvas), Flowlet, NodeEditor, Versions, Flo
 ```
 
 Routes: `app/automations/new`, `[id]/build`, `[id]/flowlets/[layerKey]`,
-`[id]/steps/[stepId]`, `[id]/versions`, `[id]/settings`. Forms (`features/forms`) are routines with
+`[id]/steps/[stepId]`, `[id]/versions`, `[id]/settings`. Forms (`features/forms`) are automations with
 a form trigger: the Form page edits that trigger through the same draft store,
 and `app/forms/fill/[token]` fills a form in natively.
 

@@ -117,8 +117,8 @@ before(async () => {
               ('a-1',$1,'Post the notes','automation',$2::jsonb),
               ('a-2',$1,'Only tagged sales','automation',$3::jsonb),
               ('a-3',$1,'A reusable step','block',$2::jsonb),
-              ('a-4','someone-else','Their routine','automation',$2::jsonb),
-              ('a-5',$1,'Gmail routine','automation',$4::jsonb)`,
+              ('a-4','someone-else','Their automation','automation',$2::jsonb),
+              ('a-5',$1,'Gmail automation','automation',$4::jsonb)`,
         [
             OWNER,
             JSON.stringify(appEvent(null)),
@@ -151,7 +151,7 @@ test('every scan runs against real Postgres and finds its consumer', async () =>
         ],
     );
 
-    // automation: the owner's top-level routines whose filter actually fires.
+    // automation: the owner's top-level automations whose filter actually fires.
     // Not the block, not the colleague's, not the Gmail one.
     assert.deepStrictEqual(byKind('automation').map(r => r.id).sort(), ['a-1', 'a-2']);
     assert.strictEqual(byKind('automation').find(r => r.id === 'a-1').unfiltered, true);

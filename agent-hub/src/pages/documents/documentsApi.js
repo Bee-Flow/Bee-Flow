@@ -51,7 +51,21 @@ export async function listDocumentsPage(filters = {}) {
     const query = new URLSearchParams(Object.entries(filters).filter(([,v]) => v !== undefined && v !== null && v !== ''));
     const res = await authFetch(query.size ? `${BASE}?${query}` : BASE);
     const body = await asJson(res, 'Failed to load documents');
-    return { documents: body.documents || [], total: Number(body.total) || 0, people: body.people || {} };
+    // `notebooks` / `spreadsheets`: whether this reader may have (and start) them.
+    return {
+        documents: body.documents || [], total: Number(body.total) || 0, people: body.people || {},
+        notebooks: body.notebooks === true, spreadsheets: body.spreadsheets === true,
+    };
+}
+
+/** Start a spreadsheet: the server makes the table for its cells, then the document. */
+export async function createSpreadsheet({ name, folderId } = {}) {
+    const res = await authFetch(`${BASE}/sheets`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, ...(folderId ? { folderId } : {}) }),
+    });
+    return (await asJson(res, 'The spreadsheet could not be started')).document;
 }
 
 export async function listDocuments(filters = {}) {
@@ -64,7 +78,7 @@ export async function listDocuments(filters = {}) {
 /**
  * The caller's documents WITH the placeholders each one carries.
  *
- * What the routine step's and the app action's document pickers list: a name
+ * What the automation step's and the app action's document pickers list: a name
  * alone does not tell an author which values a template wants, and asking them
  * to open the document in another tab to find out is how a value ends up bound
  * to a placeholder that does not exist.

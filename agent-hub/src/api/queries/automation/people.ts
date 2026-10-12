@@ -1,4 +1,4 @@
-// Who can do what with one routine: the ONLY place that knows the wire
+// Who can do what with one automation: the ONLY place that knows the wire
 // contract of the sharing endpoints (GET/PUT /:id/shares,
 // POST /:id/transfer-owner) and of the people/group search the dialogs use
 // (GET /:id/principals).
@@ -139,7 +139,7 @@ export async function saveShares(id: string, shares: Share[]): Promise<Automatio
 }
 
 export interface TransferResult {
-    /** The routine as the caller now sees it (the old owner is an editor). */
+    /** The automation as the caller now sees it (the old owner is an editor). */
     automation: Record<string, unknown> | null;
     /** English sentences of what did not go through (e.g. the event trigger). */
     warnings: string[];
@@ -193,9 +193,9 @@ export function useTransferOwner(id: string, { onDone }: { onDone?: (result: Tra
 //
 // The directory is read ONCE and filtered on the client: an org has tens to
 // hundreds of members, and a picker that waits on the network per keystroke
-// feels broken. `GET /api/automation/:id/principals` is the routine-scoped
-// list (the routine's organisation, `{ users: [{ id, name }], groups: [{ id,
-// name, memberCount }] }`) anyone who may view the routine can read. A server
+// feels broken. `GET /api/automation/:id/principals` is the automation-scoped
+// list (the automation's organisation, `{ users: [{ id, name }], groups: [{ id,
+// name, memberCount }] }`) anyone who may view the automation can read. A server
 // without it answers 404; then `GET /api/automation/approvals/directory` (the
 // caller's organisation, behind the approvals licence) and finally the admin
 // lists (`/auth/users`, `/auth/groups`, admin only) stand in.

@@ -8,6 +8,7 @@ import OpenAISection from './OpenAISection';
 import ChatModelsSection from './ChatModelsSection';
 import SSOSection from './SSOSection';
 import DocProcessingSection from './DocProcessingSection';
+import loadChatModels from './loadChatModels';
 
 
 export default function OrgAzureConfigPanel({ user }) {
@@ -33,7 +34,6 @@ export default function OrgAzureConfigPanel({ user }) {
     const [azureEndpoint, setAzureEndpoint] = useState('');
     const [azureApiKey, setAzureApiKey] = useState('');
     const [hasAzureApiKey, setHasAzureApiKey] = useState(false);
-    const [azureApiVersion, setAzureApiVersion] = useState('2024-04-01-preview');
     const [azureModels, setAzureModels] = useState('');
 
     // ── Chat Model Tiers ──
@@ -68,7 +68,6 @@ export default function OrgAzureConfigPanel({ user }) {
                 const d = await res.json();
                 setAzureEndpoint(d.azureEndpoint || '');
                 setHasAzureApiKey(d.hasAzureApiKey || false);
-                setAzureApiVersion(d.azureApiVersion || '2024-04-01-preview');
                 setAzureModels(d.azureModels || '');
                 if (d.chatModelTiers) setChatModelTiers(d.chatModelTiers);
                 setSsoClientId(d.ssoClientId || '');
@@ -91,13 +90,9 @@ export default function OrgAzureConfigPanel({ user }) {
         } catch (err) {
             setError(err.message);
         }
-        try {
-            const modelsRes = await authFetch(`${API_BASE}/ai/models`);
-            if (modelsRes.ok) {
-                const modelsData = await modelsRes.json();
-                setAllModels(modelsData.models || modelsData || []);
-            }
-        } catch (_) { }
+        // Every connected provider's chat models: the tiers saved here are the
+        // platform's, which any provider may serve, not only Azure.
+        setAllModels(await loadChatModels(authFetch, API_BASE));
         setLoading(false);
     }, [orgId]);
 
@@ -158,7 +153,6 @@ export default function OrgAzureConfigPanel({ user }) {
                 azureEndpoint={azureEndpoint} setAzureEndpoint={setAzureEndpoint}
                 azureApiKey={azureApiKey} setAzureApiKey={setAzureApiKey}
                 hasAzureApiKey={hasAzureApiKey}
-                azureApiVersion={azureApiVersion} setAzureApiVersion={setAzureApiVersion}
                 azureModels={azureModels} setAzureModels={setAzureModels}
                 {...sharedSaveProps}
             />

@@ -4,7 +4,7 @@ import DiagramPane from './DiagramPane';
 import { TRIGGERS } from './flow/stepPalette';
 
 /**
- * The first screen of a new routine (design 1e). Its only affordance used to
+ * The first screen of a new automation (design 1e). Its only affordance used to
  * be the sentence "pick one from the bar above" — there was no button, and
  * the prop meant to back one was declared and never called (BFSF-327). Now
  * every trigger is a card of its own, and the assistant is one click away.
@@ -12,7 +12,7 @@ import { TRIGGERS } from './flow/stepPalette';
 describe('DiagramPane — the empty canvas', () => {
     beforeEach(cleanup);
 
-    const title = () => screen.queryByText('What does this routine start with?');
+    const title = () => screen.queryByText('What does this automation start with?');
 
     it('offers every trigger as a card, and adds the picked one', () => {
         const onAddTrigger = vi.fn();
@@ -31,7 +31,7 @@ describe('DiagramPane — the empty canvas', () => {
         expect(onRequestOpenPalette).toHaveBeenCalledTimes(1);
     });
 
-    it('hands the whole routine to the assistant when the host wires it', () => {
+    it('hands the whole automation to the assistant when the host wires it', () => {
         const onOpenAssistant = vi.fn();
         render(<DiagramPane definition={null} editable onAddTrigger={vi.fn()} onOpenAssistant={onOpenAssistant} />);
         fireEvent.click(screen.getByRole('button', { name: 'Assistant' }));

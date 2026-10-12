@@ -1,9 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import followToBottom from './followToBottom';
+import { buildSidePanelPayload } from './sidePanelPayload';
+import useChatSignals from '../components/chat/chatSignals/useChatSignals';
 import { directChatKbList } from '../components/chat/knowledgeBaseClaim';
 import useChatEngine from '../hooks/useChatEngine';
+import { chatSignalsSurfaceFor, resolveTurnEndpoint } from '../hooks/useChatEngine/turnEndpoint';
 import { DEFAULT_AGENT_EMOJI, pickAgentAvatar } from '../utils/agentAvatar';
 import { API_BASE, authFetch, generateMessageId } from '../utils/helpers';
+import { memoryLockOf, OPEN_MEMORY_PANEL_EVENT } from '../utils/memoryMode';
 import { hasRenderableContent, normalizeLoadedMessages } from '../utils/messageShape';
 import scopedStorage from '../utils/scopedStorage';
 import { loadWorkspaceNotebook } from '../utils/workspaceNotebook';
@@ -16,7 +20,7 @@ import { loadWorkspaceNotebook } from '../utils/workspaceNotebook';
 // same position the block occupied.
 const useAgentHubData = ({
     user, initialAgentId, initialConversationId, initialDirectConvId,
-    showSettings, showAgentDesigner, showAgentWizard, showStudio, showSkillsPanel, showAITasks,
+    showSettings, showAgentDesigner, showAgentWizard, showStudio, showSkillsPanel,
     coworkMode, setCoworkMode,
     selectedAgent, setSelectedAgent,
     directChatMode, setDirectChatMode,
@@ -35,6 +39,7 @@ const useAgentHubData = ({
     showNotebook, setShowNotebook, setNotebookLinkedId,
     setShowGammaPreview, setGammaPreview,
     sidePanelWebpageId, sidePanelWebpage, sidePanelWebpageFiles, setSidePanelWebpageFiles, setSidePanelReloadKey,
+    sidePanelDocumentId,
     attachedWebpageSelection,
     setSidebarOpen,
     setShowProjectsStore, setActiveProjectId,
@@ -111,6 +116,26 @@ const useAgentHubData = ({
     // chat happens to be on screen when the turn ends.
     const [turnConversation, setTurnConversation] = useState(null);
 
+    // Chat signals: the notice for the endpoint the next turn really goes to
+    // (resolved by the same function the engine uses, so a webpage panel,
+    // which reroutes the turn, has no notice), and the marker the engine adds
+    // to that turn. The engine reads the latest getter through a ref, so a
+    // change of notice never rebuilds sendMessage.
+    const chatSignals = useChatSignals({
+        user,
+        surface: chatSignalsSurfaceFor(resolveTurnEndpoint({
+            isDirectMode: !!directChatMode,
+            customEndpoint: sidePanelWebpageId ? '/ai/chat/webpage/stream' : undefined,
+            agentId: selectedAgent?.id,
+        })),
+        agentId: selectedAgent?.id,
+    });
+    const chatSignalsPayloadRef = useRef(chatSignals.payloadFor);
+    useEffect(() => { chatSignalsPayloadRef.current = chatSignals.payloadFor; }, [chatSignals.payloadFor]);
+    const getChatSignalsPayload = useCallback((surface) => chatSignalsPayloadRef.current?.(surface) ?? null, []);
+    // Lets the engine skip the "Remembered" lookup when memory is paused or off for the org.
+    const getMemoryLock = useCallback(() => memoryLockOf(user), [user]);
+
     // Chat engine hook — owns messages, isLoading, sendMessage, stopGenerating
     const { messages, setMessages, isLoading, sendMessage, stopGenerating, retryMessage, editAndRegenerate } = useChatEngine({
         selectedAgent,
@@ -126,31 +151,13 @@ const useAgentHubData = ({
         }, [selectedAgent]),
         getNotebookPayload: useCallback(() => {
             // `notebookspaceAvailable` flags that the Notebook panel exists in
-            // this UI even when it's currently closed — so the model can call
-            // notebook_write to start a memo and the panel auto-opens via the
-            // workspace_update SSE event. Gated on notebooksEnabled (BFSF-207)
-            // so non-entitled clients stop advertising a notebook surface.
-            // `notebookspaceContent` is only sent when the panel is open
-            // (server treats `undefined` as "no notebook currently rendered",
-            // `""` as "open but blank").
-            return {
-                notebookspaceAvailable: notebooksEnabled,
-                ...(showNotebook ? {
-                    notebookspaceContent: notebookContent || '',
-                    notebookspaceSelection: notebookSelection || '',
-                } : {}),
-                // Webpage side panel — tell the AI which page the user is
-                // currently viewing. Server fetches the latest html/css/js
-                // by id; we only send the metadata so chat payloads stay small.
-                ...(sidePanelWebpageId ? {
-                    sidePanelWebpage: {
-                        id: sidePanelWebpageId,
-                        ...(sidePanelWebpage?.name ? { name: sidePanelWebpage.name } : {}),
-                        ...(sidePanelWebpage?.description ? { description: sidePanelWebpage.description } : {}),
-                    },
-                } : {}),
-            };
-        }, [notebookContent, notebookSelection, showNotebook, sidePanelWebpageId, sidePanelWebpage, notebooksEnabled]),
+            // this UI even when it's closed (BFSF-207: gated on notebooksEnabled).
+            // See sidePanelPayload.ts for the rest.
+            return buildSidePanelPayload({
+                notebooksEnabled, showNotebook, notebookContent, notebookSelection,
+                sidePanelWebpageId, sidePanelWebpage, sidePanelDocumentId,
+            });
+        }, [notebookContent, notebookSelection, showNotebook, sidePanelWebpageId, sidePanelWebpage, sidePanelDocumentId, notebooksEnabled]),
         onNotebookUpdate: useCallback((content) => {
             // BFSF-207: never open the notebook panel for users without the
             // notebooks entitlement (server withholds the tools, this guards
@@ -250,6 +257,8 @@ const useAgentHubData = ({
                 .filter(m => m.role !== 'tool' && m.role !== 'system' && hasRenderableContent(m))
                 .map(({ toolCall, isStreaming, ...clean }) => clean);
         }, [directChatMode, currentDirectConversation?.id, currentConversation?.id, selectedAgent?.id]),
+        getChatSignalsPayload,
+        getMemoryLock,
     });
 
     // Once a thread has a message in it the mode is settled — see
@@ -349,6 +358,13 @@ const useAgentHubData = ({
     }, [setSidebarOpen]);
 
     const [showMemoryPanel, setShowMemoryPanel] = useState(false);
+    // Message rows (the "Memory used" and "Remembered" lines) ask for the panel
+    // by event: they sit too deep in the tree to be handed a callback.
+    useEffect(() => {
+        const open = () => setShowMemoryPanel(true);
+        window.addEventListener(OPEN_MEMORY_PANEL_EVENT, open);
+        return () => window.removeEventListener(OPEN_MEMORY_PANEL_EVENT, open);
+    }, []);
     const [showAgentMenu, setShowAgentMenu] = useState(false);
 
     // Favourites hydrate per-user via the same `user?.id` effect below.
@@ -535,11 +551,11 @@ const useAgentHubData = ({
     // Close the Projects views when the user navigates to a chat (agent or direct).
     // Mirrors how the agent marketplace closes itself in handleSelectAgent etc.
     useEffect(() => {
-        if (showMarketplace || showSettings || showAgentDesigner || showAgentWizard || showStudio || showSkillsPanel || showAITasks) {
+        if (showMarketplace || showSettings || showAgentDesigner || showAgentWizard || showStudio || showSkillsPanel) {
             setShowProjectsStore(false);
             setActiveProjectId(null);
         }
-    }, [showMarketplace, showSettings, showAgentDesigner, showAgentWizard, showStudio, showSkillsPanel, showAITasks, setShowProjectsStore, setActiveProjectId]);
+    }, [showMarketplace, showSettings, showAgentDesigner, showAgentWizard, showStudio, showSkillsPanel, setShowProjectsStore, setActiveProjectId]);
 
     // Load Agents and Handle Startup Logic
     useEffect(() => {
@@ -661,7 +677,9 @@ const useAgentHubData = ({
                             selectConversation(selectedAgent.id, match.id);
                         }
                     }
-                } else {
+                } else if (!/^\/app\/documents(?:\/|$)/.test(window.location.pathname)) {
+                    // A stored default agent initializes behind the member
+                    // library too. Keep the bookmarked document address intact.
                     updateAgentUrl(selectedAgent.id, null);
                 }
             });
@@ -788,7 +806,7 @@ const useAgentHubData = ({
 
     return {
         messages, setMessages, isLoading, sendMessage, stopGenerating, retryMessage, editAndRegenerate,
-        turnConversation,
+        turnConversation, chatSignals,
         conversationStarted, handleVoiceTurnComplete,
         handleToggleSkill, agentAttachedSkillIds,
         designMode, setDesignMode,

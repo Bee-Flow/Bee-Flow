@@ -46,21 +46,21 @@ const mount = async (step, extra) => {
 const openMenu = async () => { await userEvent.click(screen.getByTestId('ndv-more-menu')); };
 
 const NL = {
-    'routines.ndv.pin': 'Vastzetten',
-    'routines.ndv.pinned': 'Vastgezet',
-    'routines.ndv.clear': 'Wissen',
-    'routines.ndv.pin_title': 'Zet deze uitvoer vast',
-    'routines.ndv.unpin_title': 'Uitvoer losmaken',
-    'routines.ndv.edit': 'Bewerken',
-    'routines.ndv.edited': 'Bewerkt',
-    'routines.ndv.disable': 'Uitschakelen',
-    'routines.ndv.disabled': 'Uitgeschakeld',
-    'routines.ndv.disable_title': 'Schakel deze node uit',
-    'routines.ndv.reenable_title': 'Schakel deze node weer in',
-    'routines.ndv.show_input': 'Invoer tonen',
-    'routines.ndv.hide_input': 'Invoer verbergen',
-    'routines.ndv.show_output': 'Uitvoer tonen',
-    'routines.ndv.hide_output': 'Uitvoer verbergen',
+    'automations.ndv.pin': 'Vastzetten',
+    'automations.ndv.pinned': 'Vastgezet',
+    'automations.ndv.clear': 'Wissen',
+    'automations.ndv.pin_title': 'Zet deze uitvoer vast',
+    'automations.ndv.unpin_title': 'Uitvoer losmaken',
+    'automations.ndv.edit': 'Bewerken',
+    'automations.ndv.edited': 'Bewerkt',
+    'automations.ndv.disable': 'Uitschakelen',
+    'automations.ndv.disabled': 'Uitgeschakeld',
+    'automations.ndv.disable_title': 'Schakel deze node uit',
+    'automations.ndv.reenable_title': 'Schakel deze node weer in',
+    'automations.ndv.show_input': 'Invoer tonen',
+    'automations.ndv.hide_input': 'Invoer verbergen',
+    'automations.ndv.show_output': 'Uitvoer tonen',
+    'automations.ndv.hide_output': 'Uitvoer verbergen',
 };
 
 beforeEach(() => {

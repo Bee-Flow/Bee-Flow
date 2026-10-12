@@ -129,7 +129,7 @@ export function useStudioSectionData({ currentPage, canUseCapability, hasLicense
        something to show.
 
        Freshness is a short TTL rather than a load-once claim plus invalidation
-       rules. Renaming an agent, creating a routine and deleting a page all make
+       rules. Renaming an agent, creating an automation and deleting a page all make
        a cached list wrong, and they all happen WHILE you are in Studio — the
        one place you never navigate away from before reaching for this menu. A
        hover is a deliberate act, so re-reading a list a minute old is cheap and

@@ -185,10 +185,10 @@ test('a custom baseUrl is honoured (EU regional processing, proxies)', async () 
     assert.strictEqual(dflt.baseURL, 'https://api.openai.com/v1');
 });
 
-test('Azure inherits everything except the prompt-cache TTL parameters', async () => {
-    // Azure pins its surface to an api-version and 400s on parameters that
-    // version does not know. It sent neither TTL parameter before this change,
-    // and must keep not sending them.
+test('Azure inherits everything except prompt_cache_options', async () => {
+    // '30m' is the only TTL and already the default, and Azure's PTU-M
+    // deployments reject the field — sending it buys nothing and risks a 400.
+    // (Azure's own cache rules are pinned in azure.test.js.)
     const AzureProvider = require('./azure');
     const azure = new AzureProvider();
     const captured = capture(azure);

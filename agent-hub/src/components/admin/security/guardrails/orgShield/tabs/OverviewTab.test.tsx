@@ -199,7 +199,7 @@ describe('the step cards', () => {
         setup({ f: { scanKnowledgeBases: false } });
         const card = step('When we find something');
         expect(within(card).getByText('Knowledge bases').nextElementSibling?.textContent).toBe('Not covered');
-        expect(within(card).getByText('Routines').nextElementSibling?.textContent).toBe('Covered');
+        expect(within(card).getByText('Automations').nextElementSibling?.textContent).toBe('Covered');
     });
 
     it('opens each step\'s own tab, and offers to add own types while there are none', async () => {

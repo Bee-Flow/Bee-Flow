@@ -47,8 +47,8 @@ export default function LoopItemNode({ data }) {
             <div className="min-w-0">
                 <div className="text-xs font-semibold text-[var(--text-primary)] truncate">
                     {batched
-                        ? t('routines.canvas.loop_each_batch', 'Each batch of {n}', { n: batchSize })
-                        : t('routines.canvas.loop_each_item', 'Each item')}
+                        ? t('automations.canvas.loop_each_batch', 'Each batch of {n}', { n: batchSize })
+                        : t('automations.canvas.loop_each_item', 'Each item')}
                 </div>
                 {/* The exact name the steps below bind against. `execLoop` binds
                     a SLICE when batchSize > 1, so the wording changes with it —

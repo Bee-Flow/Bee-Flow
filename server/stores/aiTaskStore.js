@@ -78,7 +78,7 @@ function rowToTask(r) {
         runCount: r.run_count,
         timezone: r.timezone,
         createdAt: r.created_at ? new Date(r.created_at).toISOString() : null,
-        // Routine extensions — agent-scoped scheduled tasks (beta).
+        // Automation extensions — agent-scoped scheduled tasks (beta).
         agentId: r.agent_id || null,
         conversationId: r.conversation_id || null,
         daysOfWeek: r.days_of_week ? safeParseJSON(r.days_of_week, null) : null,
@@ -112,7 +112,7 @@ async function createTask({ userId, title, prompt, repeatInterval, nextRunAt, mo
             timeOfDay || null,
         ]
     );
-    log.info(`[AITaskStore] Created ${agentId ? 'routine' : 'task'} "${title}" for user ${userId}${agentId ? ` (agent ${agentId})` : ''}, next run: ${nextRunAt}`);
+    log.info(`[AITaskStore] Created ${agentId ? 'automation' : 'task'} "${title}" for user ${userId}${agentId ? ` (agent ${agentId})` : ''}, next run: ${nextRunAt}`);
     return rowToTask({
         id, user_id: userId, title, prompt,
         repeat_interval: repeatInterval,
@@ -245,10 +245,10 @@ async function markError(id, error) {
 }
 
 /**
- * Re-activate every routine of `userId` that was paused with
+ * Re-activate every automation of `userId` that was paused with
  * last_status='needs_reauth'. Called from the OAuth callback once the user
  * has reconnected. The runner picks them up on the next minute tick.
- * Returns the number of resumed routines.
+ * Returns the number of resumed automations.
  */
 async function resumeNeedsReauthForUser(userId) {
     await initDB();
@@ -261,13 +261,13 @@ async function resumeNeedsReauthForUser(userId) {
     return rowCount || 0;
 }
 
-// Map a JS getDay() (0 = Sun … 6 = Sat) to the routine day-of-week tokens used
+// Map a JS getDay() (0 = Sun … 6 = Sat) to the automation day-of-week tokens used
 // in the days_of_week JSON array. Keep in sync with the frontend day picker.
 const DOW_TOKENS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 
 function advanceNextRun(currentNextRun, interval, daysOfWeek = null) {
     const d = new Date(currentNextRun);
-    // Routine day-of-week mode: advance one day at a time until we hit a
+    // Automation day-of-week mode: advance one day at a time until we hit a
     // permitted weekday. Falls through to standard intervals below if the
     // array is empty.
     if (Array.isArray(daysOfWeek) && daysOfWeek.length > 0) {

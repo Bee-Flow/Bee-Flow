@@ -384,7 +384,7 @@ router.put('/:id/audience/public', requireAuth, validate({ body: PublicBody }), 
                 await webpageSnapshot.writeSnapshot({ shareId: existing.id, webpageId: wp.id, ownerId: wp.userId });
             } catch (e) {
                 log.error('[Webpages/audience] re-snapshot failed:', e);
-                return res.status(500).json({ error: 'Failed to publish this page: ' + e.message });
+                return res.status(500).json({ error: 'Failed to publish this page' });
             }
             // De poort geldt voor élke levende link van deze pagina, niet
             // alleen voor het adres — anders serveert een losse /share/<token>
@@ -393,7 +393,7 @@ router.put('/:id/audience/public', requireAuth, validate({ body: PublicBody }), 
                 await reSnapshotOtherLiveShares(wp, existing.id);
             } catch (e) {
                 log.error('[Webpages/audience] not every public link was narrowed:', e);
-                return res.status(500).json({ error: 'Column choice saved, but not every public link could be updated: ' + e.message });
+                return res.status(500).json({ error: 'Column choice saved, but not every public link could be updated' });
             }
             const fresh = await webpageStore.getWebpage(wp.id, userId);
             return res.json(await buildModel(req, fresh || wp));
@@ -424,7 +424,7 @@ router.put('/:id/audience/public', requireAuth, validate({ body: PublicBody }), 
         } catch (e) {
             await publicShareStore.deleteShare(created.share.id, userId).catch(() => {});
             log.error('[Webpages/audience] snapshot failed:', e);
-            return res.status(500).json({ error: 'Failed to publish this page: ' + e.message });
+            return res.status(500).json({ error: 'Failed to publish this page' });
         }
         await publicAddress.setCanonicalShare(wp.id, userId, created.share.id);
         // De oude canonieke pas hierna intrekken: tot dit punt was zij het
@@ -439,7 +439,7 @@ router.put('/:id/audience/public', requireAuth, validate({ body: PublicBody }), 
             await reSnapshotOtherLiveShares(wp, created.share.id);
         } catch (e) {
             log.error('[Webpages/audience] not every public link was narrowed:', e);
-            return res.status(500).json({ error: 'Column choice saved, but not every public link could be updated: ' + e.message });
+            return res.status(500).json({ error: 'Column choice saved, but not every public link could be updated' });
         }
 
         const fresh = await webpageStore.getWebpage(wp.id, userId);

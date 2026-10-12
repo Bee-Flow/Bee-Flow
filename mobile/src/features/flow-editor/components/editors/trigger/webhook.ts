@@ -1,6 +1,6 @@
 /**
  * A webhook trigger's endpoint, pure — from agent-hub
- * `Builder/webhooks/useWebhooks.js`: which of the routine's webhook URLs
+ * `Builder/webhooks/useWebhooks.js`: which of the automation's webhook URLs
  * belong to THIS trigger node, the signed cURL command that exercises one,
  * and the secret masked for the screen. Pinned by trigger.lockstep.test.ts.
  */

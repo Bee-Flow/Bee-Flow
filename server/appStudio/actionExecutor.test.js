@@ -548,20 +548,20 @@ test('deriveFinalOutput: run.output wins; else the last executed TOP-LEVEL step 
         { stepId: 's2', stepType: 'integration_action', parentStepId: null, output: { rows: [{ name: 'A' }], count: 1 } },
         // BFSF-371: runDag now takes a Wait LAST in a fan-out, so the final
         // row is often the sleep. `{ waitedSeconds }` is bookkeeping, never the
-        // routine’s answer — a screen bound to actionResult must still see s2.
+        // automation’s answer — a screen bound to actionResult must still see s2.
         { stepId: 'w', stepType: 'wait', parentStepId: null, output: { waitedSeconds: 120 } },
     ];
     try {
         const out = await actionExecutor.deriveFinalOutput({ id: 'run-steps', status: 'success' });
         assert.deepStrictEqual(out, { rows: [{ name: 'A' }], count: 1 }, 'the trailing wait is not the result');
 
-        // A routine whose only top-level step IS a wait has no answer to give.
+        // An automation whose only top-level step IS a wait has no answer to give.
         automationStore.getRunSteps = async () => [
             { stepId: 'trig', stepType: 'trigger', parentStepId: null, output: { ignore: true } },
             { stepId: 'w', stepType: 'wait', parentStepId: null, output: { waitedSeconds: 5 } },
         ];
         assert.strictEqual(await actionExecutor.deriveFinalOutput({ id: 'run-waits', status: 'success' }), null,
-            'a routine that only waited produced nothing');
+            'an automation that only waited produced nothing');
     } finally {
         automationStore.getRunSteps = orig;
     }

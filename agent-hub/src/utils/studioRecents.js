@@ -4,7 +4,7 @@ import scopedStorage from './scopedStorage';
  * Which Studio items this user was last working on, per section.
  *
  * The Studio flyout lists eight sections, and each one is only a category: the
- * agent or routine you actually had open is still a click and a hunt away. The
+ * agent or automation you actually had open is still a click and a hunt away. The
  * second-level panel answers "what was I working on here", and that ordering
  * has two halves.
  *

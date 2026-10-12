@@ -20,19 +20,19 @@ teaching "send this link to a customer" would be wrong.
 
 ## 1. What the feature is for
 
-A **form** is the front door of a **routine (automation)**. Someone fills a page in; that submission
-starts the routine. Optionally every submission is also written as a row into an **answers table**
+A **form** is the front door of a **automation (automation)**. Someone fills a page in; that submission
+starts the automation. Optionally every submission is also written as a row into an **answers table**
 (a datatable of `managed_kind = 'form_answers'`), which gives the owner a dashboard without building
 anything.
 
 The key architectural fact (documented verbatim in `FormsStudio.jsx` and `studioApps.jsx`):
 
 > **A form is not an object of its own in this product.**
-> - What the visitor fills in is declared on a routine's **trigger**: `definition.trigger.kind === 'form'`, `definition.trigger.form`.
-> - Pages after page one are **`form_page` steps** in the same routine.
+> - What the visitor fills in is declared on an automation's **trigger**: `definition.trigger.kind === 'form'`, `definition.trigger.form`.
+> - Pages after page one are **`form_page` steps** in the same automation.
 > - The public **address** is a row in the `automation_form_pages` table, minted by the server on every save (`ensureFormPages` in `server/routes/automation/crud.js`).
 
-So: three places, one routine. "New form" is really "new automation with a form trigger".
+So: three places, one automation. "New form" is really "new automation with a form trigger".
 
 ---
 
@@ -47,7 +47,7 @@ So: three places, one routine. "New form" is really "new automation with a form 
 | One form, filled in | the rendered form itself | `/app/forms/<token>` (and `/f/<token>` → redirect) | `pages/PublicFormPage.jsx` + `components/forms/PublicFormRenderer.jsx` |
 | Universal "New" menu | **Form** (`studio.new.form`) | → `studio/forms/new` | `Studio/NewMenu.jsx` |
 
-**The URL segment is the ROUTINE id, never the token.** `/app/studio/forms/<automationId>` — the
+**The URL segment is the AUTOMATION id, never the token.** `/app/studio/forms/<automationId>` — the
 page token is a credential (192 bits, `crypto.randomBytes(24).toString('hex')` = 48 hex chars) and
 deliberately never travels in a route, in history, in Studio search, in recents, in an export or in
 a Blueprint.
@@ -59,16 +59,16 @@ a Blueprint.
 ### 3.1 Studio → Forms (directory) — `FormsStudio.jsx`
 
 - Heading: **Forms**, with the count chip "**{count} form / {count} forms**".
-- Intro paragraph: *"A form is the front of a routine: whoever fills it in starts it. A published form has an address anyone in your organisation can open once signed in, so it belongs to the organisation rather than to one person."*
+- Intro paragraph: *"A form is the front of an automation: whoever fills it in starts it. A published form has an address anyone in your organisation can open once signed in, so it belongs to the organisation rather than to one person."*
 - Buttons: refresh icon **"Refresh the list"**, primary **"New form"**.
 - Each row shows: the title (or **"Untitled form"**), a status pill, optional chips, description, meta line, and actions.
 - Status pill (three states, never two):
   - **Live** — hint *"Colleagues in your organisation can fill this in after signing in."*
-  - **Not live** — hint *"The routine behind it is paused or still a draft, so the link answers “not available”."*
-  - **Status unknown** — hint *"This row did not say whether the form is live. Open the routine to check."*
+  - **Not live** — hint *"The automation behind it is paused or still a draft, so the link answers “not available”."*
+  - **Status unknown** — hint *"This row did not say whether the form is live. Open the automation to check."*
 - Chips: **"collects answers"**; audience chip (owner only) = **"Everyone in the organisation"** / **"Shared with {count} people and groups"** / **"Only you — not shared yet"**.
 - Meta: "**{count} submissions**" · "**last {when}**" (absent, never "0", when the row carries no number).
-- Row actions: **"Copy the link"** (→ **"Link copied"**, failure **"Could not copy the link — your browser refused clipboard access."**), **"Answers · {count} responses"**, **"Open the routine"**, or the read-only line **"Built by a colleague — only they can open the routine behind it"**.
+- Row actions: **"Copy the link"** (→ **"Link copied"**, failure **"Could not copy the link — your browser refused clipboard access."**), **"Answers · {count} responses"**, **"Open the automation"**, or the read-only line **"Built by a colleague — only they can open the automation behind it"**.
 - Empty state: title **"No forms yet"**, body *"A form is a page the colleagues you share it with can fill in. Create one and it appears here."*
 - Load error banner: **"Could not load the forms — this is not an empty list."** + **"Try again"**. (A failed read is deliberately a different screen from an empty list; the count disappears rather than showing 0.)
 
@@ -78,18 +78,18 @@ a Blueprint.
 - Field **Name** (placeholder `Customer feedback`).
 - Fieldset legend **"What happens with the answers?"** with two cards:
   - **"Collect answers in a table"** + badge **Recommended** — *"A table is created with one column per question and kept in step with the form. Every answer appears there the moment someone submits, and whoever the table is shared with sees them on a dashboard."*
-  - **"Form that starts a routine"** — *"Every submission starts the steps you build in the routine builder — send an e-mail, file a ticket, ask an agent. No table unless you add one."*
+  - **"Form that starts an automation"** — *"Every submission starts the steps you build in the automation builder — send an e-mail, file a ticket, ask an agent. No table unless you add one."*
 - Only in "collect" mode: **"Describe it (optional)"**, textarea `maxLength={12000}`, placeholder *"What should the form ask? A sentence is enough — or paste the checklist, e-mail or policy it should be based on."*, hint *"AI drafts the questions from this on the next screen. You review them before anything is saved."*
 - Buttons **Cancel** / **Create form**. Failure: **"Could not create the form."**
 - Nothing is posted until "Create form". The brief is **not** sent with the create — the form is made
   first, the brief is parked under `form:<id>` (`studioAi/handoff.parkSeed`) and the Questions tab
   runs it once on arrival.
-- Landing: `collect` → `/app/studio/forms/<id>/questions`; `routine` → `/app/studio/automations/<id>` (the builder).
+- Landing: `collect` → `/app/studio/forms/<id>/questions`; `automation` → `/app/studio/automations/<id>` (the builder).
 
 ### 3.3 Form page header — `FormPage.jsx`
 
 - Back link **"All forms"**, renameable title, status chip (Live / Not live / Status unknown).
-- Primary button **"Open the form"** (copies the absolute link), an external-link icon **"Open in a new tab"**, and **"Open the routine"** (owner only).
+- Primary button **"Open the form"** (copies the absolute link), an external-link icon **"Open in a new tab"**, and **"Open the automation"** (owner only).
 - For a non-owner: chip **"shared with you"**, tooltip *"Shared with this account through its answers table — the questions and settings belong to the form's owner."*
 - Tabs: owner sees `questions, share, answers, settings`; a colleague with only the answers table sees `answers` alone.
 - Leaving an edited Questions tab asks: **"Unsaved changes"** / *"The questions were changed and not saved. Leave and lose them?"* / **Leave** / **Keep editing**. `beforeunload` is wired too.
@@ -105,7 +105,7 @@ a Blueprint.
 - Buttons **"Draft the questions"** / **"Change the questions"** → **"Drafting…"**; then **"{count} questions drafted — review them below, then Save."** and an **Undo**.
 - Errors: **"No AI model is set up for this workspace yet."**, **"The AI did not return a usable form. Try again, or describe it more concretely."**, **"Type or paste something first."**, **"Too many drafts in a minute — wait a moment and try again."**, **"Could not draft the questions."**
 
-**The question editor** (`FormBuilderFields`, lazy-loaded, shared with the routine builder):
+**The question editor** (`FormBuilderFields`, lazy-loaded, shared with the automation builder):
 - **Form title**, **Intro text** ("Shown under the title. Optional."), section **Questions**, **"Add a question"**, **Button text** (placeholder `Submit`), **Thank-you message** ("Replaces the form after a successful submission."), section **Styling**, and **"Preview the form" / "Hide preview"**.
 - Empty state inside the editor: *"No questions yet — nobody can submit this form."*
 - Per question: `Question {n} label` ("What do you want to ask?"), a type dropdown, **Required** checkbox, `Question {n} placeholder`, **Move question up/down**, remove.
@@ -114,7 +114,7 @@ a Blueprint.
 - Theme presets: **Clean, Corporate, Friendly, Night, Match visitor**; knobs **Corners, Spacing, Text size, Appearance**; 12 accent colour swatches + a custom colour.
 
 **Notes under the editor:**
-- If the routine has later pages: *"{count} more pages — edit them in the routine"* + **"Open the routine"**.
+- If the automation has later pages: *"{count} more pages — edit them in the automation"* + **"Open the automation"**.
 - If collecting: *"Every question here is a column in the answers table. Renaming a question renames its column; removing one keeps the column, marked “no longer on the form”."*
 - Sticky save bar: **Discard changes** / **Save** → toast **"Saved."**; error **"Could not save the form."**
 
@@ -152,7 +152,7 @@ Card 3 — **"Who can see the answers"**
 - **"All responses"** card with **"Export (CSV)"** and **"Open the table"** and the full row browser; a question focus shows *"Showing the responses that answered “{label}”."* + **"Show every response"**.
 - Empty: **"No responses yet"** / *"Share the link — the first answer shows up here the moment it is submitted."* + **"Copy the link"**.
 - Errors: **"Could not load the answers."** + **Try again**; export failure **"Could not export the responses."**
-- No table at all: **"No answers table"** / *"This form starts a routine and does not collect answers in a table."*
+- No table at all: **"No answers table"** / *"This form starts an automation and does not collect answers in a table."*
 - The dashboard **re-fetches every 30 s** while the tab is visible (`useAnswersSummary`, `REFRESH_MS = 30_000`), and again on `visibilitychange`.
 
 ### 3.7 Settings tab — `form/SettingsTab.jsx`
@@ -163,7 +163,7 @@ Card 3 — **"Who can see the answers"**
   - If the table never got made: *"The table is not there yet — save the form once more, or try again."* + **Try again** (calls the provisioning route).
   - If a write failed: **"The last submission could not be written to the table: {message}"**.
 - Card **"How long answers are kept"**: *"Answers stay in the table until a retention window is set on it."* + **"Open the table's retention settings"** (→ `studio/datatables/<id>/retention`).
-- **Danger zone**: **"Delete this form"**, name confirmation required, notice *"Deleting the form deletes the routine behind it. The answers table is not deleted — remove it under Datatables if the answers are no longer needed."*
+- **Danger zone**: **"Delete this form"**, name confirmation required, notice *"Deleting the form deletes the automation behind it. The answers table is not deleted — remove it under Datatables if the answers are no longer needed."*
 
 ### 3.8 The form itself — `/app/forms/<token>` (`PublicFormPage.jsx`)
 
@@ -175,24 +175,24 @@ Card 3 — **"Who can see the answers"**
 
 ### 3.9 /app/forms (consumer directory) — `pages/forms/FormsHomePage.jsx`
 
-Heading **Forms**; a grid of tiles (title + description); a tile whose routine is off shows
-**"Not live — the routine is paused or still a draft"**. Empty: **"No forms yet"** / *"A form is a page the colleagues it is shared with can fill in. Build one in Studio and it will appear here."* Error: the message + **Retry**.
+Heading **Forms**; a grid of tiles (title + description); a tile whose automation is off shows
+**"Not live — the automation is paused or still a draft"**. Empty: **"No forms yet"** / *"A form is a page the colleagues it is shared with can fill in. Build one in Studio and it will appear here."* Error: the message + **Retry**.
 Only rows where `canOpen !== false` are shown — i.e. the forms this person may actually fill in.
 
 ---
 
 ## 4. Concepts a learner must understand
 
-- **Form** — a page of questions declared on a routine's trigger (`trigger.kind: 'form'`). Not a standalone document; it belongs to a routine.
-- **Routine (automation)** — the steps that run when the form is submitted. A "collect only" form has a trigger and no steps; that is legitimate.
+- **Form** — a page of questions declared on an automation's trigger (`trigger.kind: 'form'`). Not a standalone document; it belongs to an automation.
+- **Automation (automation)** — the steps that run when the form is submitted. A "collect only" form has a trigger and no steps; that is legitimate.
 - **Form page (the token row)** — the row in `automation_form_pages` whose `id` **is** the URL token. 48 hex characters / 192 bits, the whole credential, no second factor. Rotating = new row, old link 404s instantly.
-- **Live** — `isActive && !isDraft` on the routine. A newly created routine is a **draft**; until it is switched on the link answers "not available". `live` is three-valued in the UI because an absent flag is not a claim.
+- **Live** — `isActive && !isDraft` on the automation. A newly created automation is a **draft**; until it is switched on the link answers "not available". `live` is three-valued in the UI because an absent flag is not a claim.
 - **Audience** — who may *fill the form in*: `org` (every signed-in member of the owning organisation) or `restricted` (the owner + listed users + members of listed groups). Never anyone outside the organisation, whatever is chosen. **A new form page is created `restricted` with nobody on it** (`createFormPage` default) — only the owner can open it until someone is added.
 - **Answers table** — a datatable with `managed_kind = 'form_answers'`, one row per submission. Two fixed columns `run_id` ("Run") and `completed_at` ("Completed") plus one per input question. Columns are derived from the definition on every save; `source.columnMap` is the map.
 - **Retired column** — a question removed from the form keeps its column, flagged `retired`. Re-adding the same name+type un-retires it. Retyping a question makes a *new* column (the id hashes page-step-id + name + type code); the old one is retired, never dropped. Only the table owner can delete a retired column by hand.
 - **Grade** — the datatable access ladder (`owner` / `editor` / `viewer`). Sharing the answers table is what shares the Answers dashboard; a colleague with a grade sees the Form page's Answers tab and nothing else.
-- **`mine`** — whether *this* caller owns the routine behind the form. The list is org-wide, but `/api/automation/:id` is still per-user, so only the owner can open the routine, edit questions, change the audience or delete.
-- **Multi-page journey** — a routine may pause at a `form_page` step; the visitor stays on the same URL and their browser polls a **session** (192-bit session id, TTL **8 hours**) until the next page or the closing page appears. One journey = one run chain; the answers row is the same row all the way through.
+- **`mine`** — whether *this* caller owns the automation behind the form. The list is org-wide, but `/api/automation/:id` is still per-user, so only the owner can open the automation, edit questions, change the audience or delete.
+- **Multi-page journey** — an automation may pause at a `form_page` step; the visitor stays on the same URL and their browser polls a **session** (192-bit session id, TTL **8 hours**) until the next page or the closing page appears. One journey = one run chain; the answers row is the same row all the way through.
 - **Display field** — `download` and `notebook` fields give the visitor a file a `generate_document` step produced. They collect nothing, are never required, and **cannot go on page one** (there is no run yet to have made the file).
 - **Collect** — `trigger.form.collect === true`. That single boolean decides whether the answers table exists and follows the form.
 
@@ -212,13 +212,13 @@ Only rows where `canOpen !== false` are shown — i.e. the forms this person may
 9. Go to the **Settings** tab and switch **"Form is live"** on.
 10. Go to **Share** → **"Who can fill it in"** → add the people or groups (a new form is shared with **nobody**), then **Copy the link** and send it to those colleagues.
 
-### W2 — A form that starts a routine (no table)
+### W2 — A form that starts an automation (no table)
 1. Studio → **Forms** → **New form**.
-2. Name it, choose **"Form that starts a routine"**, click **Create form**.
-3. You land in the **routine builder** (`/app/studio/automations/<id>`), not the Form page.
+2. Name it, choose **"Form that starts an automation"**, click **Create form**.
+3. You land in the **automation builder** (`/app/studio/automations/<id>`), not the Form page.
 4. Open the trigger node and edit the form there (same editor: title, Questions, Add a question, Button text, Thank-you message, Styling, Preview the form).
 5. Add the steps that should run — `notification` (e-mail), an approval, an `ai_step`, a datatable write, an integration action.
-6. Activate the routine in the builder (or via the Form page's **Settings → Form is live**).
+6. Activate the automation in the builder (or via the Form page's **Settings → Form is live**).
 7. Back in Studio → **Forms** the row now shows **Live**; use **Copy the link**.
 
 ### W3 — Watching the answers and exporting them
@@ -232,7 +232,7 @@ Only rows where `canOpen !== false` are shown — i.e. the forms this person may
 ### W4 — Sharing the results with a colleague who must not edit the form
 1. Open the form → **Share** tab.
 2. Under **"Who can see the answers"**, click **"Open the table"** or use the sharing control in place to grant the colleague a grade on the answers table (viewer is enough).
-3. The colleague now sees the form in Studio → Forms and can open it — but the Form page shows **only the Answers tab**, the chip **"shared with you"**, and the line **"Built by a colleague — only they can open the routine behind it"** on the directory row.
+3. The colleague now sees the form in Studio → Forms and can open it — but the Form page shows **only the Answers tab**, the chip **"shared with you"**, and the line **"Built by a colleague — only they can open the automation behind it"** on the directory row.
 
 ### W5 — Rotating a leaked link
 1. Open the form → **Share** tab → card **"Link to the form"**.
@@ -245,7 +245,7 @@ Only rows where `canOpen !== false` are shown — i.e. the forms this person may
 1. Open the form → **Settings**.
 2. Toggle **"Collect answers in a table"** off → confirm **Stop collecting** (the table, its rows and its sharing stay).
 3. To take it off the air, toggle **"Form is live"** off (link answers "not available"; nothing is collected).
-4. To remove it entirely: **Danger zone → "Delete this form"**, type the name, confirm. The routine goes; the **answers table stays** — delete that separately under Studio → Datatables if the answers are no longer needed.
+4. To remove it entirely: **Danger zone → "Delete this form"**, type the name, confirm. The automation goes; the **answers table stays** — delete that separately under Studio → Datatables if the answers are no longer needed.
 
 ---
 
@@ -288,7 +288,7 @@ Only rows where `canOpen !== false` are shown — i.e. the forms this person may
 - Dashboard: recent list and question previews are capped server-side; the dashboard refreshes every **30 s**.
 
 **Validation stages**
-- A newly created routine is a **draft** (`isDraft` defaults true) and validated at `stage: 'draft'`, so a half-built form saves.
+- A newly created automation is a **draft** (`isDraft` defaults true) and validated at `stage: 'draft'`, so a half-built form saves.
 - `form.incomplete` (no fields) is a **completeness** code: a warning at draft stage tagged `blockedAt: 'activate'`, and a blocking error on activation. **A form with no questions cannot go live.**
 
 ---
@@ -297,7 +297,7 @@ Only rows where `canOpen !== false` are shown — i.e. the forms this person may
 
 | Failure | What actually happens |
 |---|---|
-| Token unknown / routine paused / draft / trigger no longer a form / caller not admitted | one indistinguishable **404 "Not found"** — probing cannot tell them apart |
+| Token unknown / automation paused / draft / trigger no longer a form / caller not admitted | one indistinguishable **404 "Not found"** — probing cannot tell them apart |
 | Caller outside the audience | also 404 (not 403), by design |
 | CSRF missing or stale | 403 *"This form expired — reload the page and try again."* |
 | Honeypot filled or submitted < 2 s after load | **200 `{accepted:true}`**, nothing runs |
@@ -312,7 +312,7 @@ Only rows where `canOpen !== false` are shown — i.e. the forms this person may
 | The answers table refuses (quota, deleted, lost grade) | **the submission still succeeds and the run still starts**; the reason is written to `source.lastWriteError` and shown on Settings as *"The last submission could not be written to the table: {message}"* |
 | Table provisioning failed on save | the save succeeds; `answers.error` rides back; Settings shows *"The table is not there yet — save the form once more, or try again."* with a **Try again** button → `POST /forms/:id/answers-table` |
 | Provisioning on a form that does not collect | 409 `collect_disabled` |
-| Routine run errors mid-journey | the visitor's poll returns an error phase; for a collecting form the row is still marked completed (`success` **or** `error` both finish the journey) |
+| Automation run errors mid-journey | the visitor's poll returns an error phase; for a collecting form the row is still marked completed (`success` **or** `error` both finish the journey) |
 | Run slower than 5 minutes | the page stops polling and offers a manual retry |
 | `GET /api/automation/forms` returns a non-2xx or a body that is not `{ forms: [...] }` | error banner, the previous list is kept, the count disappears — never "No forms yet" |
 | AI draft fails | 502 `ai_unusable` / 503 `no_model` / 429 — the form is untouched, the box keeps its text |
@@ -350,11 +350,11 @@ The same pair gates the sidebar's consumer Forms row (`useStudioSectionData.js`:
 
 ## 9. How Forms connects to the rest of the product
 
-- **Routines / Automations** — the form *is* a routine's trigger. "Open the routine" goes to `/app/studio/automations/<id>`. Multi-page forms are `form_page` steps; the closing page is a `form_page` with `mode: 'ending'`.
+- **Automations / Automations** — the form *is* an automation's trigger. "Open the automation" goes to `/app/studio/automations/<id>`. Multi-page forms are `form_page` steps; the closing page is a `form_page` with `mode: 'ending'`.
 - **Datatables** — the answers table is an ordinary datatable with `managedKind: 'form_answers'`: sharing, retention, row browser, CSV export, the Dashboard tab and the "used by" index all come from there. Deleting the form does not delete the table.
 - **Notebooks** — the `notebook` display field and the closing page's "Save to Notebook" button.
 - **generate_document** — feeds `download` / `notebook` fields on later pages via `{{steps.<id>.output.fileId}}`.
-- **Approvals** — a routine can pause for an approval mid-journey; the visitor's session follows the newest run in the chain, so an owner approving from the run history continues the journey correctly.
+- **Approvals** — an automation can pause for an approval mid-journey; the visitor's session follows the newest run in the chain, so an owner approving from the run history continues the journey correctly.
 - **Studio counts / sidebar flyout** — `GET /api/studio/counts` returns a `forms` count built with exactly the same de-duplication as the directory; the sidebar flyout lists at most 5 recent forms.
 - **LLM stack** — "Build it with AI" uses the workspace's fast-tier model via `core/llm/llmClient.chatForcedTool` and logs usage.
 - **Uploads / guard** — file answers go through `middleware/uploadGuard` + a malware scan, and their text is extracted (`describeClaimedUpload`) so an `ai_step` can read `trigger.output.<field>.text`.
@@ -365,15 +365,15 @@ The same pair gates the sidebar's consumer Forms row (`useStudioSectionData.js`:
 ## 10. Common mistakes
 
 1. **"Send the link to a customer."** Forms are signed-in, organisation-only today. `/f/<token>` redirects to `/app/forms/<token>` and an outsider gets login, then 404.
-2. **Creating the form and stopping.** A brand-new routine is a **draft**: the row says **Not live** and the link answers "not available". You must switch **Settings → Form is live** on (or activate the routine).
+2. **Creating the form and stopping.** A brand-new automation is a **draft**: the row says **Not live** and the link answers "not available". You must switch **Settings → Form is live** on (or activate the automation).
 3. **Forgetting the audience.** A new form page is `restricted` **with nobody on it** — even a colleague with the link gets 404 until you add them (or switch to "Everyone in the organisation"). The directory chip says **"Only you — not shared yet"**.
 4. **Expecting "collect answers" to backfill.** Switching collection on starts with the **next** submission: *"Earlier submissions are not imported."*
 5. **Renaming vs. removing a question.** Renaming a *label* renames the column (the field `name` is the identity). Removing a question **retires** its column; changing its **type** creates a new column and retires the old one. Nothing is ever dropped automatically.
-6. **Deleting the form to delete the answers.** Deleting the form deletes the routine only; the answers table survives under Datatables.
+6. **Deleting the form to delete the answers.** Deleting the form deletes the automation only; the answers table survives under Datatables.
 7. **Sharing the form instead of the answers.** "Who can fill it in" (audience) and "Who can see the answers" (the table's grants) are two different controls. A colleague with only a table grade sees the Answers tab and nothing else.
 8. **Putting a Download button on page one.** Refused (`field_download_on_trigger`): the document does not exist until a step has made it — it belongs on a later Form page step.
 9. **Assuming a failed table write loses the submission.** It does not; the run still starts and the reason appears on Settings.
-10. **Treating the URL token as an id.** It is a credential. It never goes in a route, an export, a Blueprint or a ticket; use the routine id (`/app/studio/forms/<automationId>`).
+10. **Treating the URL token as an id.** It is a credential. It never goes in a route, an export, a Blueprint or a ticket; use the automation id (`/app/studio/forms/<automationId>`).
 11. **Reading "0 forms" from a failed load.** The directory deliberately hides the count when the read failed — *"Could not load the forms — this is not an empty list."*
 12. **Saving the AI draft blind.** The draft only lands in the unsaved editor; it is **Undo** / **Discard changes** until you press **Save**. On a collecting form an unreviewed save can retire columns.
 13. **>40 questions on one page.** Split it over `form_page` steps instead (`fields_too_many`).
@@ -390,7 +390,7 @@ Purchasing wants every new supplier to hand over the same details before a first
 - Answers → the table gives Inkoop a live list; export CSV into the ERP. Set a retention window on the table (Settings → *"Open the table's retention settings"*) because KvK uittreksels are personal-data-adjacent.
 
 ### S2 — HR: *Verlofaanvraag* (leave request) with an approval
-- **New form**, name "Verlofaanvraag", choose **Form that starts a routine** (the point is the approval, not a spreadsheet) — or choose collect and add the steps later.
+- **New form**, name "Verlofaanvraag", choose **Form that starts an automation** (the point is the approval, not a spreadsheet) — or choose collect and add the steps later.
 - Questions: naam (short text), afdeling (dropdown: Kantoor / Werkplaats / Buitendienst), eerste dag (date), laatste dag (date), reden (long text, optional), vervanger geregeld (checkbox).
 - In the builder add an **approval** step assigned to the team lead, then a `notification` e-mail to the applicant, then a datatable write into a leave register.
 - Share → audience **"Everyone in the organisation"**; pin the link in the intranet.
@@ -400,7 +400,7 @@ Purchasing wants every new supplier to hand over the same details before a first
 - **New form**, "Offerteaanvraag", **Collect answers in a table**, brief pasted from the current qualification checklist.
 - Theme preset **Corporate** with the Van Dijk accent colour; Button text "Aanvraag versturen"; Thank-you message "Bedankt — we nemen binnen één werkdag contact op."
 - Because forms are internal-only today, the receptionist and the inside-sales team fill it in during the intake call; audience = group *Sales*.
-- Add an `ai_step` in the routine that scores the lead and writes the score back, and an integration action that files the lead.
+- Add an `ai_step` in the automation that scores the lead and writes the score back, and an integration action that files the lead.
 - Answers dashboard: Period **30 days**, watch **Responses in this period** and the dropdown breakdown per productgroep; **Export (CSV)** every Monday for the sales meeting; open a single **Response** drawer to jump to the run that scored it.
 
 ---
@@ -411,11 +411,11 @@ All of these are under `app.use('/api/automation', requireModule('automation'), 
 
 | Method + path | Auth / scope | What a row contains |
 |---|---|---|
-| `GET /api/automation/forms` | session; **org-scoped** (every form in the caller's organisation) | `{ forms: [ { id (the URL token), url ("/f/<token>"), automationId, triggerStepId, title, description, live, submissions, lastSeenAt, createdAt, mine (owner flag), canOpen, audience: { mode, groups?, users? }, answers: { collecting, datatableId, grade, rowCount, linked, lastWriteError } } ] }` — **owner field = `mine`** (true only for the routine's owner); `audience.groups/users` only for the owner |
-| `GET /api/automation/forms/:automationId` | session; org-scoped, 404 outside it | `{ form: { …all of the above, plus isActive, isDraft, questions: { title, description, submitLabel, successMessage, collect, fields[], theme }, pages: [{ stepId, label, mode, fields[] }], and — owner only — definition, routineTitle } }` |
-| `GET /api/automation` | session; **per-user** (the caller's own routines) | `{ automations: [ { id, title, description, definition, isActive, isDraft, triggerType, userId, organizationId, … } ] }` — optional `?triggerProvider=&triggerEvent=` filter |
+| `GET /api/automation/forms` | session; **org-scoped** (every form in the caller's organisation) | `{ forms: [ { id (the URL token), url ("/f/<token>"), automationId, triggerStepId, title, description, live, submissions, lastSeenAt, createdAt, mine (owner flag), canOpen, audience: { mode, groups?, users? }, answers: { collecting, datatableId, grade, rowCount, linked, lastWriteError } } ] }` — **owner field = `mine`** (true only for the automation's owner); `audience.groups/users` only for the owner |
+| `GET /api/automation/forms/:automationId` | session; org-scoped, 404 outside it | `{ form: { …all of the above, plus isActive, isDraft, questions: { title, description, submitLabel, successMessage, collect, fields[], theme }, pages: [{ stepId, label, mode, fields[] }], and — owner only — definition, automationTitle } }` |
+| `GET /api/automation` | session; **per-user** (the caller's own automations) | `{ automations: [ { id, title, description, definition, isActive, isDraft, triggerType, userId, organizationId, … } ] }` — optional `?triggerProvider=&triggerEvent=` filter |
 | `GET /api/automation/:id` | session; **owner only** | the single automation (definition included) — use it to assert `definition.trigger.kind === 'form'` and `trigger.form.collect` |
-| `GET /api/automation/:id/forms` | session; owner | that one routine's form-page rows (`listFormPages`) |
+| `GET /api/automation/:id/forms` | session; owner | that one automation's form-page rows (`listFormPages`) |
 | `GET /api/studio/counts` | session (`requireAuthedUser`) | `{ counts: { forms, automations, runs, datatables, apps, … } }` — the `forms` count uses the same de-dup as the directory and is gated on module+licence |
 | `GET /api/datatables` | session; the caller's scopes, filtered by grade | `{ datatables: [ { id, name, key, description, rowCount, managedKind ('form_answers' for an answers table), source (public projection, incl. automationId), retentionDays, subjectColumn, **ownerUserId**, scopeKind, grade, usageCount, updatedAt } ], scope }` |
 | `GET /api/datatables/:id` | session; `requireDatatableGrade('viewer')` | `{ datatable: { …same shape, with `grade` for this caller } }` |

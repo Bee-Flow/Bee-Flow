@@ -11,7 +11,7 @@
  *
  * ── AUTHORISATION IS THE READ RIGHT, NOT THE MANAGE RIGHT ───────────
  * Seeing what depends on a knowledge base tells you the NAMES of agents,
- * routines and apps in the organisation. Anyone who can read the base can see
+ * automations and apps in the organisation. Anyone who can read the base can see
  * that; it is the same population that can already see it in a picker. What
  * it does NOT do is list things the asker cannot see for themselves — the
  * rows are filtered to the asker's own reach, or "used by 3 agents" becomes a

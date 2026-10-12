@@ -18,21 +18,26 @@ import type { BuilderAddedStep, BuilderToolCall, FlowCatalog } from '@/features/
 import { humanizeToolName, nodeTypeLabel, typeGroupOf, type NodeFamily, type Translate } from '@/features/flow-editor/model';
 
 const VERBS: Readonly<Record<string, readonly [string, string]>> = {
-    builder_propose_trigger: ['routines.builder.act.trigger', 'Set the trigger'],
-    builder_remove_step: ['routines.builder.act.remove', 'Removed a step'],
-    builder_update_step: ['routines.builder.act.update', 'Adjusted a step'],
-    builder_update_steps: ['routines.builder.act.update', 'Adjusted a step'],
-    builder_replace_step: ['routines.builder.act.replace', 'Replaced a step'],
-    builder_move_step: ['routines.builder.act.move', 'Moved a step'],
-    builder_wire_error_branch: ['routines.builder.act.error_branch', 'Added a fallback for failures'],
-    builder_set_metadata: ['routines.builder.act.metadata', 'Named the routine'],
-    builder_inspect_tool: ['routines.builder.act.inspect', 'Looked up how an app works'],
-    builder_summarise: ['routines.builder.act.summarise', 'Reviewed the routine'],
-    builder_request_dry_run: ['routines.builder.act.dry_run', 'Tested the routine'],
-    builder_finalize: ['routines.builder.act.finalize', 'Finished and saved'],
-    builder_set_plan: ['routines.builder.act.plan', 'Updated the plan'],
-    builder_create_datatable: ['routines.builder.act.create_datatable', 'Created a table'],
-    builder_propose_plan: ['routines.builder.act.plan', 'Updated the plan'],
+    builder_propose_trigger: ['automations.builder.act.trigger', 'Set the trigger'],
+    builder_remove_step: ['automations.builder.act.remove', 'Removed a step'],
+    builder_update_step: ['automations.builder.act.update', 'Adjusted a step'],
+    builder_update_steps: ['automations.builder.act.update', 'Adjusted a step'],
+    builder_replace_step: ['automations.builder.act.replace', 'Replaced a step'],
+    builder_move_step: ['automations.builder.act.move', 'Moved a step'],
+    builder_wire_error_branch: ['automations.builder.act.error_branch', 'Added a fallback for failures'],
+    builder_set_metadata: ['automations.builder.act.metadata', 'Named the automation'],
+    builder_inspect_tool: ['automations.builder.act.inspect', 'Looked up how an app works'],
+    builder_summarise: ['automations.builder.act.summarise', 'Reviewed the automation'],
+    builder_request_dry_run: ['automations.builder.act.dry_run', 'Tested the automation'],
+    builder_finalize: ['automations.builder.act.finalize', 'Finished and saved'],
+    builder_set_plan: ['automations.builder.act.plan', 'Updated the plan'],
+    builder_create_datatable: ['automations.builder.act.create_datatable', 'Created a table'],
+    builder_propose_plan: ['automations.builder.act.plan', 'Updated the plan'],
+};
+
+/** `builder_add_array_op` ops with a word of their own while no step names them yet. */
+const ARRAY_OP_VERBS: Readonly<Record<string, readonly [string, string]>> = {
+    flatten: ['flatten_node.activity', 'Flattening a list'],
 };
 
 /** The app behind a tool ("Gmail"), or null when the caller cannot say. */
@@ -78,11 +83,13 @@ function stepsOf(added: readonly BuilderAddedStep[], t: Translate, appLabel: App
     return added.map((s) => ({ id: s.id ?? null, type: str(s.type), tool: str(s.tool), family: typeGroupOf(str(s.type)), title: stepTitle(s, t, appLabel) }));
 }
 
-function titleFor(name: string, type: string | null, t: Translate): string {
+function titleFor(name: string, type: string | null, t: Translate, op: string | null = null): string {
     if (type) {
         const label = nodeTypeLabel(type, t);
         if (label) return label;
     }
+    const opVerb = name === 'builder_add_array_op' && op && Object.hasOwn(ARRAY_OP_VERBS, op) ? ARRAY_OP_VERBS[op] : undefined;
+    if (opVerb) return t(opVerb[0], opVerb[1]);
     const verb = VERBS[name];
     if (verb) return t(verb[0], verb[1]);
     // A tool added next month degrades to something readable, never a blank row.
@@ -90,7 +97,7 @@ function titleFor(name: string, type: string | null, t: Translate): string {
 }
 
 function batchTitle(n: number, t: Translate): string {
-    return n === 1 ? t('routines.builder.act.add_step_one', 'Added 1 step') : t('routines.builder.act.add_steps', 'Added {n} steps', { n });
+    return n === 1 ? t('automations.builder.act.add_step_one', 'Added 1 step') : t('automations.builder.act.add_steps', 'Added {n} steps', { n });
 }
 
 export function describeToolCall(call: BuilderToolCall, t: Translate, appLabel: AppLabel = () => null): ActivityRow {
@@ -111,7 +118,7 @@ export function describeToolCall(call: BuilderToolCall, t: Translate, appLabel: 
     const added = call.added?.[0] ?? null;
     const type = added ? str(added.type) : null;
     return {
-        title: titleFor(name, type, t),
+        title: titleFor(name, type, t, str(call.op)),
         detail: (added && str(added.label)) || '',
         type,
         family: type ? typeGroupOf(type) : null,
@@ -126,7 +133,7 @@ export function describeLiveRun(focus: { label?: string | null; done?: number; t
     const label = str(focus?.label);
     const detail = [label, total > 0 ? `${done}/${total}` : null].filter(Boolean).join(' · ');
     return {
-        title: t('routines.builder.act.dry_run_live', 'Testing the routine…'),
+        title: t('automations.builder.act.dry_run_live', 'Testing the automation…'),
         detail, type: null, family: null, status: 'running', error: null, hint: null, steps: [],
     };
 }

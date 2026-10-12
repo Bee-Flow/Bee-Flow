@@ -6,9 +6,11 @@
 import React, { useState } from 'react';
 import { BTN_PRIMARY, BTN_GHOST, testRuntime } from './localRuntimeApi';
 import ProbeResult from './ProbeResult';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 import { PROVIDER_INPUT_CLS, PROVIDER_INPUT_STYLE } from '../shared/ProviderCardShell';
 
 const AddRuntimeForm = ({ runtimes, saving, onConnect }) => {
+    const { t } = useTranslation();
     const first = runtimes[0] || {};
     const [form, setForm] = useState({
         type: first.type || 'ollama',
@@ -57,7 +59,7 @@ const AddRuntimeForm = ({ runtimes, saving, onConnect }) => {
                     type="text"
                     value={form.name}
                     onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                    placeholder="Display name (e.g. GPU box)"
+                    placeholder={t('admin_ai_config.add_name_placeholder', 'Display name (e.g. GPU box)')}
                     className={PROVIDER_INPUT_CLS}
                     style={PROVIDER_INPUT_STYLE}
                 />
@@ -77,7 +79,7 @@ const AddRuntimeForm = ({ runtimes, saving, onConnect }) => {
                 type="password"
                 value={form.apiKey}
                 onChange={e => setForm(f => ({ ...f, apiKey: e.target.value }))}
-                placeholder="API key — only if you started the server with one (optional)"
+                placeholder={t('admin_ai_config.add_key_placeholder', 'API key: only if you started the server with one (optional)')}
                 className={PROVIDER_INPUT_CLS}
                 style={PROVIDER_INPUT_STYLE}
             />
@@ -89,18 +91,18 @@ const AddRuntimeForm = ({ runtimes, saving, onConnect }) => {
                     disabled={!form.url.trim() || testing}
                     onClick={runTest}
                 >
-                    {testing ? 'Testing…' : 'Test connection'}
+                    {testing ? t('admin_ai_config.testing', 'Testing…') : t('admin_ai_config.add_test', 'Test connection')}
                 </button>
                 <button
                     className={BTN_PRIMARY}
                     disabled={!form.url.trim() || saving}
                     onClick={() => onConnect({ ...form, url: form.url.trim(), name: form.name || current.label || form.type })}
                 >
-                    {saving ? 'Connecting…' : 'Connect'}
+                    {saving ? t('admin_ai_config.add_connecting', 'Connecting…') : t('admin_ai_config.local_connect', 'Connect')}
                 </button>
                 {current.docsUrl && (
                     <a href={current.docsUrl} target="_blank" rel="noreferrer" className="text-xs underline" style={{ color: 'var(--text-muted)' }}>
-                        {current.label} docs
+                        {t('admin_ai_config.add_docs', '{label} docs', { label: current.label })}
                     </a>
                 )}
             </div>

@@ -50,6 +50,10 @@ const reset = () => {
 };
 
 const projectFiles = {
+    async fileContent(project, fileId) {
+        rec.files.push(['content', project.id, fileId]);
+        return fileId === FILE_ID ? { file: { id: fileId, name: 'plan.pdf', status: 'ready' }, content: 'Processed text', available: true } : null;
+    },
     async listFiles(project) {
         rec.files.push(['list', project.id]);
         return { files: [{ id: FILE_ID, name: 'plan.pdf', status: 'ready' }], kbId: 'kb_files' };
@@ -279,8 +283,22 @@ test('presence: a transient presence.online for the caller', async () => {
     const res = await call('POST', '/api/projects/p1/presence', { user: VIEWER, body: {} });
     assert.strictEqual(res.status, 200);
     assert.deepStrictEqual(res.body, { ok: true });
-    assert.deepStrictEqual(rec.transients, [['p1', { kind: 'presence.online', actorId: 'u_viewer' }]]);
+    assert.deepStrictEqual(rec.transients, [['p1', { kind: 'presence.online', actorId: 'u_viewer', target: null }]]);
     assert.deepStrictEqual(rec.events, [], 'presence is never a durable event');
+});
+
+test('presence: a ping with a target carries it', async () => {
+    const target = { type: 'document', id: 'doc-1' };
+    const res = await call('POST', '/api/projects/p1/presence', { user: VIEWER, body: { target } });
+    assert.strictEqual(res.status, 200);
+    assert.deepStrictEqual(rec.transients, [['p1', { kind: 'presence.online', actorId: 'u_viewer', target }]]);
+});
+
+test('presence: an unknown target type or an empty id is refused, nothing is published', async () => {
+    assert.strictEqual((await call('POST', '/api/projects/p1/presence', { user: VIEWER, body: { target: { type: 'secret', id: 'x' } } })).status, 400);
+    assert.strictEqual((await call('POST', '/api/projects/p1/presence', { user: VIEWER, body: { target: { type: 'task', id: '  ' } } })).status, 400);
+    assert.strictEqual((await call('POST', '/api/projects/p1/presence', { user: VIEWER, body: { target: { type: 'task', id: 'a', extra: 1 } } })).status, 400);
+    assert.deepStrictEqual(rec.transients, []);
 });
 
 test('presence: a stranger 404, a body with fields 400 — nothing is published', async () => {
@@ -301,4 +319,16 @@ test('every /:id route carries the role gate first', () => {
         const names = layer.route.stack.map(s => s.name);
         assert.strictEqual(names[0], 'requireProjectRoleMw', `${Object.keys(layer.route.methods)} ${layer.route.path}: ${names}`);
     }
+});
+
+
+test('source content is viewer-readable only inside the current project', async () => {
+    const path = `/api/projects/p1/files/${FILE_ID}/content`;
+    const result = await call('GET', path);
+    assert.strictEqual(result.status, 200);
+    assert.strictEqual(result.body.content, 'Processed text');
+    reset();
+    assert.strictEqual((await call('GET', path, { user: STRANGER })).status, 404);
+    assert.strictEqual(rec.files.length, 0);
+    assert.strictEqual((await call('GET', '/api/projects/p1/files/44444444-4444-4444-8444-444444444444/content')).status, 404);
 });

@@ -6,8 +6,8 @@
  * designer asks before a save, this asks too, in the same words:
  *
  *   - a removed or retyped column throws data away → confirmed with the row
- *     count and the routines that read it (the web's destructive dialog);
- *   - 409 `breaking_change` — the server saw a routine this screen's own
+ *     count and the automations that read it (the web's destructive dialog);
+ *   - 409 `breaking_change` — the server saw an automation this screen's own
  *     usage list had not → confirmed again against THAT, then sent with
  *     `confirmBreaking`;
  *   - 409 `version_conflict` — a colleague saved first; their list is
@@ -49,7 +49,7 @@ function destructiveMessage(t: TranslateFn, change: ReturnType<typeof destructiv
     return parts.join('\n\n');
 }
 
-/** The routines that name any of `keys` — or, not knowing the columns, every routine that reads. */
+/** The automations that name any of `keys` — or, not knowing the columns, every automation that reads. */
 function readersOf(usage: readonly UsageRow[], keys: readonly string[]): string[] {
     const hit = usage.filter((u) => u.columns.some((c) => keys.includes(c)));
     return [...new Set(hit.map((u) => u.title || u.consumerId))];

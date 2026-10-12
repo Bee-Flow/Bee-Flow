@@ -31,10 +31,10 @@
  * path; templateInstall.js owns ONLY the data side (model + seed + datasets).
  *
  * run_automation actions ship with automationId: null on purpose — users wire
- * their own routine after install. validate.js reports that as the friendly
+ * their own automation after install. validate.js reports that as the friendly
  * 'action.automation_unset' warning, which the editor renders as a
- * "connect a routine" setup checklist, so templates install cleanly without
- * any routine dependencies.
+ * "connect an automation" setup checklist, so templates install cleanly without
+ * any automation dependencies.
  *
  * templates.test.js asserts every definition passes canonicalize + validate
  * with zero errors (passing each template's own dataModel + dataset ids so the
@@ -53,13 +53,13 @@ const THEME_DEFAULTS = {
 
 const TEMPLATES = [
     // ------------------------------------------------------------------
-    // 1. Request form — the canonical v1 demo: form → routine → thanks.
+    // 1. Request form — the canonical v1 demo: form → automation → thanks.
     // ------------------------------------------------------------------
     {
         id: 'app-request-form',
         version: 1,
         title: 'Request form',
-        description: 'Collect requests with a simple form that hands each submission to one of your Routines, then shows a thank-you screen.',
+        description: 'Collect requests with a simple form that hands each submission to one of your Automations, then shows a thank-you screen.',
         category: 'Forms',
         icon: 'ClipboardList',
         tags: ['form', 'intake', 'requests'],
@@ -154,19 +154,19 @@ const TEMPLATES = [
     },
 
     // ------------------------------------------------------------------
-    // 2. Lookup console — search form → routine result in a table + stat.
+    // 2. Lookup console — search form → automation result in a table + stat.
     // ------------------------------------------------------------------
     {
         id: 'app-lookup-console',
         version: 1,
         title: 'Lookup console',
-        description: 'A search box wired to a Routine, with the results in a table and a match counter. Point it at any routine that returns rows.',
+        description: 'A search box wired to an Automation, with the results in a table and a match counter. Point it at any automation that returns rows.',
         category: 'Data',
         icon: 'Search',
         tags: ['search', 'lookup', 'table'],
         definition: {
             schemaVersion: 1,
-            meta: { name: 'Lookup console', description: 'Search records via a routine.', icon: 'Search' },
+            meta: { name: 'Lookup console', description: 'Search records via an automation.', icon: 'Search' },
             theme: { primary: '#0369A1', ...THEME_DEFAULTS },
             homeScreenId: 'scr_lookup',
             screens: [
@@ -239,13 +239,13 @@ const TEMPLATES = [
     },
 
     // ------------------------------------------------------------------
-    // 3. Ops dashboard — KPI tiles + table fed by one refresh routine.
+    // 3. Ops dashboard — KPI tiles + table fed by one refresh automation.
     // ------------------------------------------------------------------
     {
         id: 'app-ops-dashboard',
         version: 1,
         title: 'Ops dashboard',
-        description: 'Four KPI tiles and a work-queue table, all fed by a single "refresh" Routine, plus a maintenance screen with a run button.',
+        description: 'Four KPI tiles and a work-queue table, all fed by a single "refresh" Automation, plus a maintenance screen with a run button.',
         category: 'Dashboards',
         icon: 'Gauge',
         tags: ['dashboard', 'kpi', 'operations'],
@@ -317,7 +317,7 @@ const TEMPLATES = [
                             style: { padding: 4, gap: 3, background: 'none' },
                             children: [
                                 { id: 'cmp_opsmhead', type: 'heading', props: { text: 'Maintenance', level: 2 }, style: { span: 12 }, visible: true },
-                                { id: 'cmp_opsmwarn', type: 'callout', props: { title: 'Careful', text: 'This triggers the maintenance routine for the whole team. Run it only when needed.', tone: 'warning' }, style: { span: 12 }, visible: true },
+                                { id: 'cmp_opsmwarn', type: 'callout', props: { title: 'Careful', text: 'This triggers the maintenance automation for the whole team. Run it only when needed.', tone: 'warning' }, style: { span: 12 }, visible: true },
                                 { id: 'cmp_opsmrun', type: 'button', props: { label: 'Run maintenance', variant: 'danger', iconLeft: 'Wrench', role: 'button' }, style: { span: 5 }, visible: true, onClick: 'act_opsmaint' },
                             ],
                         },
@@ -335,7 +335,7 @@ const TEMPLATES = [
                     kind: 'run_automation',
                     automationId: null,
                     inputMapping: {},
-                    onSuccess: { toast: { message: 'Maintenance routine started.', tone: 'success' } },
+                    onSuccess: { toast: { message: 'Maintenance automation started.', tone: 'success' } },
                     onError: { toast: { message: 'Maintenance failed to start.', tone: 'danger' } },
                 },
             },
@@ -343,14 +343,14 @@ const TEMPLATES = [
     },
 
     // ------------------------------------------------------------------
-    // 4. Team hub — pure content + contact form; zero routine deps, so it
+    // 4. Team hub — pure content + contact form; zero automation deps, so it
     //    works instantly on install and shows off theming/multi-screen nav.
     // ------------------------------------------------------------------
     {
         id: 'app-team-hub',
         version: 1,
         title: 'Team hub',
-        description: 'A small internal site: welcome page, useful links, and a contact form. Works out of the box — no routine required.',
+        description: 'A small internal site: welcome page, useful links, and a contact form. Works out of the box — no automation required.',
         category: 'Content',
         icon: 'Users',
         tags: ['intranet', 'content', 'links'],
@@ -458,7 +458,7 @@ const TEMPLATES = [
         id: 'app-approval-inbox',
         version: 1,
         title: 'Approval inbox',
-        description: 'A pending-items list fed by one Routine and a decision form that submits approve/reject to another.',
+        description: 'A pending-items list fed by one Automation and a decision form that submits approve/reject to another.',
         category: 'Data',
         icon: 'CheckSquare',
         tags: ['approvals', 'workflow', 'review'],

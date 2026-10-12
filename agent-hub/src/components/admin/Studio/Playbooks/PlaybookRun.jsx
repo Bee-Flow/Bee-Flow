@@ -13,7 +13,7 @@ import ComplianceStage from './stages/ComplianceStage';
 import DesignStage from './stages/DesignStage';
 import DoneCard from './stages/DoneCard';
 import FillStage from './stages/FillStage';
-import RoutineStage from './stages/RoutineStage';
+import AutomationStage from './stages/AutomationStage';
 import TableStage from './stages/TableStage';
 import usePlaybook from './usePlaybook';
 import usePresenterFlag from './usePresenterFlag';
@@ -26,7 +26,7 @@ import useConfirm from '../../../shared/useConfirm';
 
 /**
  * One open playbook — the film. Left, the PhaseRail; right, the stage of
- * the phase in hand (the builders themselves for routine/app, the server
+ * the phase in hand (the builders themselves for automation/app, the server
  * phases as their own tableaux); over the stage's lower third, the
  * HandoffCard whenever the AI has stopped for the person. The bar on top
  * says where we are, how long this phase has run, and holds Autopilot
@@ -326,13 +326,13 @@ export default function PlaybookRun({ playbookId, user = null, onBack, onNavigat
                                     t={t}
                                     presenter={presenter}
                                     busy={busy}
-                                    canMarkDone={(kindOf(active) === 'routine' && !!active.artifacts?.automationId) || ((kindOf(active) === 'app' || kindOf(active) === 'app_turn') && !!active.artifacts?.appId)}
+                                    canMarkDone={(kindOf(active) === 'automation' && !!active.artifacts?.automationId) || ((kindOf(active) === 'app' || kindOf(active) === 'app_turn') && !!active.artifacts?.appId)}
                                     onContinue={onContinue}
                                     onSkipNext={onSkipNext}
                                     onRetry={() => act({ type: 'retry', key: active.key })}
                                     onSkip={() => act({ type: 'skip', key: active.key })}
                                     onStop={onStop}
-                                    onMarkDone={() => act({ type: 'markDone', key: active.key, artifacts: kindOf(active) === 'routine' ? { automationId: active.artifacts?.automationId } : { appId: active.artifacts?.appId } })}
+                                    onMarkDone={() => act({ type: 'markDone', key: active.key, artifacts: kindOf(active) === 'automation' ? { automationId: active.artifacts?.automationId } : { appId: active.artifacts?.appId } })}
                                     onDismiss={() => dispatch({ type: 'dismiss_input', key: active.key })}
                                 />
                             </div>
@@ -362,7 +362,7 @@ function stageKey(playbook, phase) {
 function Stage(props) {
     switch (kindOf(props.phase)) {
         case 'table': return <TableStage {...props} tableMode={props.playbook?.options?.tableMode || 'new'} />;
-        case 'routine': return <RoutineStage {...props} />;
+        case 'automation': return <AutomationStage {...props} />;
         case 'fill': return <FillStage {...props} />;
         case 'design': return <DesignStage {...props} />;
         case 'app':

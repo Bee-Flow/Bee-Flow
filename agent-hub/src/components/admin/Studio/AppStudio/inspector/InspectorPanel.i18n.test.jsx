@@ -61,7 +61,7 @@ vi.mock('../../../../../hooks/useTranslation', () => {
     };
 });
 
-// ActionsSection / RoutinePicker resolve routine titles through the house
+// ActionsSection / AutomationPicker resolve automation titles through the house
 // automations API — stub the network away, exactly as the sibling suite does.
 vi.mock('../../../../../hooks/useAutomationApi', () => ({
     default: () => ({ listAutomations: vi.fn(async () => ({ automations: [] })) }),

@@ -1,22 +1,22 @@
 /**
- * automationUsageStore — de index "welke knop draait deze routine" (P4 deel C).
+ * automationUsageStore — de index "welke knop draait deze automation" (P4 deel C).
  *
  * Wat hier vastligt, in volgorde van hoe erg het is als het breekt:
  *
- *   1. DE EIGENDOMSGRENDEL ZIT IN DE INSERT. Een app mag alleen een routine
+ *   1. DE EIGENDOMSGRENDEL ZIT IN DE INSERT. Een app mag alleen een automatisering
  *      van DEZELFDE eigenaar indexeren. `automationBridge` weigert bij
  *      `automation.userId !== app.userId`, dus een verwijzing over die grens
- *      kan niet draaien; hem tóch indexeren zou de routine-eigenaar de naam
+ *      kan niet draaien; hem tóch indexeren zou de automation-eigenaar de naam
  *      van andermans app tonen. En omdat de grendel in de INSERT zit, is een
  *      niet-lege lijst die NUL rijen schrijft de manier waarop dat zich meldt.
  *   2. DE DELETE IS OP TWEE KOLOMMEN. Delete-then-insert op
  *      `(consumer_kind, consumer_id)` — nooit op het id alleen, want dan zou
  *      een toekomstige tweede soort de rijen van de eerste kunnen wissen.
- *   3. HET automation_id ZIT IN DE SLEUTEL. Eén actie kan twee routines
+ *   3. HET automation_id ZIT IN DE SLEUTEL. Eén actie kan twee automatiseringen
  *      draaien (twee run_automation-stappen in dezelfde sequence). Zonder het
- *      routine-id in de PK overschrijft de tweede de eerste en ziet één van de
- *      twee routines zichzelf als ongebruikt.
- *   4. SCOPE EN EIGENAAR KOMEN VAN DE ROUTINE, NIET VAN DE AANROEPER.
+ *      automation-id in de PK overschrijft de tweede de eerste en ziet één van de
+ *      twee automatiseringen zichzelf als ongebruikt.
+ *   4. SCOPE EN EIGENAAR KOMEN VAN DE AUTOMATISERING, NIET VAN DE AANROEPER.
  *      `owner_user_id` en `organization_id` worden uit de `automations`-rij
  *      gelezen; anders zijn het twee feiten die uit elkaar kunnen lopen.
  *   5. EEN ONTBREKENDE studio_apps-TABEL GEEFT MINDER TITEL, NOOIT MINDER
@@ -83,7 +83,7 @@ function applyInsert(sql, params) {
     if (!a) return { rowCount: 0, rows: [] };   // bestaat niet, of is van iemand anders
 
     // De kolomvolgorde uit het statement zelf, zodat de test niet op een
-    // vaste volgorde leunt. `a.*` komt van de routine-rij, `$n` van de params.
+    // vaste volgorde leunt. `a.*` komt van de automation-rij, `$n` van de params.
     const cols = sql.match(/INSERT INTO automation_usage\s*\(([^)]+)\)/)[1].split(',').map(s => s.trim());
     const vals = sql.match(/SELECT (.+?) FROM automations/)[1].split(',').map(s => s.trim());
     assert.equal(cols.length, vals.length, 'kolommen en waarden lopen niet gelijk op');
@@ -224,7 +224,7 @@ const OWNER = 'u_owner';
 const ORG = 'org_1';
 const RID = 'auto_1';
 
-function routine(id = RID, userId = OWNER, organizationId = ORG) {
+function automation(id = RID, userId = OWNER, organizationId = ORG) {
     return { id, user_id: userId, organization_id: organizationId };
 }
 
@@ -244,7 +244,7 @@ function entry(over = {}) {
 
 test('zonder studio_apps-tabel komen de rijen terug zonder titel, niet zonder rijen', async () => {
     reset();
-    db.automations.push(routine());
+    db.automations.push(automation());
     await store.reconcileAutomationUsage('app', APP, OWNER, [entry()]);
     const rows = await store.listUsageOfAutomation(RID);
     assert.equal(rows.length, 1);
@@ -256,9 +256,9 @@ test('zonder studio_apps-tabel komen de rijen terug zonder titel, niet zonder ri
 
 // ── 1: de eigendomsgrendel ───────────────────────────────────────────
 
-test('een routine van een ANDERE eigenaar wordt niet geindexeerd, en dat is zichtbaar', async () => {
+test('een automatisering van een ANDERE eigenaar wordt niet geindexeerd, en dat is zichtbaar', async () => {
     reset();
-    db.automations.push(routine(RID, 'u_iemand_anders'));
+    db.automations.push(automation(RID, 'u_iemand_anders'));
     const written = await store.reconcileAutomationUsage('app', APP, OWNER, [entry()]);
     assert.equal(written, 0, 'niets geschreven');
     assert.equal(db.rows.length, 0);
@@ -266,15 +266,15 @@ test('een routine van een ANDERE eigenaar wordt niet geindexeerd, en dat is zich
     assert.deepEqual(await store.listUsageOfAutomation(RID), []);
 });
 
-test('een routine die niet meer bestaat wordt niet geindexeerd', async () => {
+test('een automatisering die niet meer bestaat wordt niet geindexeerd', async () => {
     reset();
     const written = await store.reconcileAutomationUsage('app', APP, OWNER, [entry()]);
     assert.equal(written, 0);
 });
 
-test('een routine van dezelfde eigenaar wordt wel geindexeerd', async () => {
+test('een automatisering van dezelfde eigenaar wordt wel geindexeerd', async () => {
     reset();
-    db.automations.push(routine());
+    db.automations.push(automation());
     db.apps.set(APP, 'Facturatie');
     const written = await store.reconcileAutomationUsage('app', APP, OWNER, [entry()]);
     assert.equal(written, 1);
@@ -286,23 +286,23 @@ test('een routine van dezelfde eigenaar wordt wel geindexeerd', async () => {
     );
 });
 
-// ── 4: eigenaar en organisatie komen van de ROUTINE ──────────────────
+// ── 4: eigenaar en organisatie komen van de AUTOMATISERING ──────────────────
 
-test('owner_user_id en organization_id komen van de routine, niet van de aanroeper', async () => {
+test('owner_user_id en organization_id komen van de automatisering, niet van de aanroeper', async () => {
     reset();
-    db.automations.push(routine(RID, OWNER, 'org_van_de_routine'));
+    db.automations.push(automation(RID, OWNER, 'org_van_de_automation'));
     await store.reconcileAutomationUsage('app', APP, OWNER, [entry()]);
     assert.equal(db.rows[0].owner_user_id, OWNER);
-    assert.equal(db.rows[0].organization_id, 'org_van_de_routine');
+    assert.equal(db.rows[0].organization_id, 'org_van_de_automation');
     const rows = await store.listUsageOfAutomation(RID);
-    assert.equal(rows[0].organizationId, 'org_van_de_routine');
+    assert.equal(rows[0].organizationId, 'org_van_de_automation');
 });
 
-// ── 3: het routine-id zit in de sleutel ──────────────────────────────
+// ── 3: het automation-id zit in de sleutel ──────────────────────────────
 
-test('een actie die twee routines draait levert twee rijen, niet een overschreven rij', async () => {
+test('een actie die twee automatiseringen draait levert twee rijen, niet een overschreven rij', async () => {
     reset();
-    db.automations.push(routine('auto_a'), routine('auto_b'));
+    db.automations.push(automation('auto_a'), automation('auto_b'));
     const written = await store.reconcileAutomationUsage('app', APP, OWNER, [
         entry({ automationId: 'auto_a', refId: 'act:act_same' }),
         entry({ automationId: 'auto_b', refId: 'act:act_same' }),
@@ -316,7 +316,7 @@ test('een actie die twee routines draait levert twee rijen, niet een overschreve
 
 test('reconcile vervangt precies de rijen van deze app en laat andere apps staan', async () => {
     reset();
-    db.automations.push(routine());
+    db.automations.push(automation());
     await store.reconcileAutomationUsage('app', APP, OWNER, [entry({ refId: 'act:act_oud' })]);
     await store.reconcileAutomationUsage('app', 'app_2', OWNER, [entry({ refId: 'act:act_van_app2' })]);
     await store.reconcileAutomationUsage('app', APP, OWNER, [entry({ refId: 'act:act_nieuw' })]);
@@ -330,7 +330,7 @@ test('reconcile vervangt precies de rijen van deze app en laat andere apps staan
 
 test('een lege lijst wist de rijen van deze app — de reconciler moet dus weten wat hij doet', async () => {
     reset();
-    db.automations.push(routine());
+    db.automations.push(automation());
     await store.reconcileAutomationUsage('app', APP, OWNER, [entry()]);
     assert.equal(db.rows.length, 1);
     const written = await store.reconcileAutomationUsage('app', APP, OWNER, []);
@@ -340,7 +340,7 @@ test('een lege lijst wist de rijen van deze app — de reconciler moet dus weten
 
 test('een tweede reconcile met dezelfde sleutel schrijft geen tweede rij maar werkt hem bij', async () => {
     reset();
-    db.automations.push(routine());
+    db.automations.push(automation());
     await store.reconcileAutomationUsage('app', APP, OWNER, [entry({ label: 'Oud' })]);
     await store.reconcileAutomationUsage('app', APP, OWNER, [entry({ label: 'Nieuw', wired: false })]);
     assert.equal(db.rows.length, 1);
@@ -353,16 +353,16 @@ test('een tweede reconcile met dezelfde sleutel schrijft geen tweede rij maar we
 
 test('purgeUsageForConsumer haalt alleen de rijen van die app weg', async () => {
     reset();
-    db.automations.push(routine());
+    db.automations.push(automation());
     await store.reconcileAutomationUsage('app', APP, OWNER, [entry()]);
     await store.reconcileAutomationUsage('app', 'app_2', OWNER, [entry()]);
     assert.equal(await store.purgeUsageForConsumer('app', APP), 1);
     assert.deepEqual((await store.listUsageOfAutomation(RID)).map(r => r.consumerId), ['app_2']);
 });
 
-test('purgeUsageOfAutomation haalt de rijen van die routine weg, over apps heen', async () => {
+test('purgeUsageOfAutomation haalt de rijen van die automatisering weg, over apps heen', async () => {
     reset();
-    db.automations.push(routine('auto_a'), routine('auto_b'));
+    db.automations.push(automation('auto_a'), automation('auto_b'));
     await store.reconcileAutomationUsage('app', APP, OWNER, [
         entry({ automationId: 'auto_a', refId: 'act:a' }),
         entry({ automationId: 'auto_b', refId: 'act:b' }),
@@ -386,9 +386,9 @@ test('reconcile zonder eigenaar gooit — een ongegrendelde INSERT mag niet best
     await assert.rejects(() => store.reconcileAutomationUsage('app', '', OWNER, [entry()]), /consumerId/);
 });
 
-test('entries zonder routine-id of zonder ref worden overgeslagen, niet geschreven', async () => {
+test('entries zonder automation-id of zonder ref worden overgeslagen, niet geschreven', async () => {
     reset();
-    db.automations.push(routine());
+    db.automations.push(automation());
     const written = await store.reconcileAutomationUsage('app', APP, OWNER, [
         entry({ automationId: '' }),
         entry({ refId: null }),
@@ -400,9 +400,9 @@ test('entries zonder routine-id of zonder ref worden overgeslagen, niet geschrev
 
 // ── telling ──────────────────────────────────────────────────────────
 
-test('countUsageOfAutomations geeft 0 voor een routine die nergens in staat', async () => {
+test('countUsageOfAutomations geeft 0 voor een automatisering die nergens in staat', async () => {
     reset();
-    db.automations.push(routine('auto_a'));
+    db.automations.push(automation('auto_a'));
     await store.reconcileAutomationUsage('app', APP, OWNER, [
         entry({ automationId: 'auto_a', refId: 'act:1' }),
         entry({ automationId: 'auto_a', refId: 'act:2' }),
@@ -432,10 +432,10 @@ test('de tabel en haar indexen komen uit de runDdl-ladder van deze store', () =>
 // ── het derde antwoord: "nog nooit gekeken" ──────────────────────────
 //
 // `automation_usage` kan alleen rijen tonen, en nul rijen betekent daar twee
-// dingen tegelijk: "geen enkele knop draait deze routine" en "deze index is
+// dingen tegelijk: "geen enkele knop draait deze automation" en "deze index is
 // voor die app nog nooit gebouwd". Op de dag van uitrol is dat tweede waar voor
 // élke bestaande app — de tabel wordt leeg aangelegd en vult zich pas als
-// iemand een app opslaat — en dan leest elke routine-eigenaar "wordt nergens
+// iemand een app opslaat — en dan leest elke automation-eigenaar "wordt nergens
 // gebruikt" over knoppen die gewoon draaien.
 
 test('een reconcile markeert de app als bekeken — ook een die niets aanzet', async () => {
@@ -452,7 +452,7 @@ test('een reconcile markeert de app als bekeken — ook een die niets aanzet', a
 test('de markering wordt in dezelfde transactie geschreven als de rijen', async () => {
     reset();
     db.apps.set(APP, 'Expenses');
-    db.automations.push(routine());
+    db.automations.push(automation());
     await store.reconcileAutomationUsage('app', APP, OWNER, [entry()]);
     const order = db.statements.map(x => x.sql);
     const del = order.findIndex(x => /^DELETE FROM automation_usage WHERE/.test(x));
@@ -473,7 +473,7 @@ test('een app die nog nooit is bekeken staat op de werklijst van de backfill', a
 test('een verwijderde app verliest ook haar markering — hij is niet bekeken, hij is er niet', async () => {
     reset();
     db.apps.set(APP, 'Expenses');
-    db.automations.push(routine());
+    db.automations.push(automation());
     await store.reconcileAutomationUsage('app', APP, OWNER, [entry()]);
     assert.equal((await store.usageIndexCoverage()).pending, 0);
     await store.purgeUsageForConsumer('app', APP);

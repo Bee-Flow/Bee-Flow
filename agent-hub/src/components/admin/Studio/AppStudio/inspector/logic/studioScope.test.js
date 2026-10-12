@@ -79,7 +79,7 @@ describe('buildStudioScope — samples carry the field’s type', () => {
 });
 
 describe('buildStudioScope — the roots that were missing', () => {
-    it('offers every action, not only the routines', () => {
+    it('offers every action, not only the automations', () => {
         const actions = groupsOf(buildStudioScope(DEF, NODE)).actions;
         expect(pathsOf(actions)).toEqual([
             'actions.act_run.result',

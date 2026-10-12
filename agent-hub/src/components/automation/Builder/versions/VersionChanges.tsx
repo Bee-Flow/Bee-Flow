@@ -13,21 +13,21 @@ function ChangesBody({ selected, compare, diff }: Props) {
     const { t } = useTranslation();
     const changes = diff.data?.changes ?? [];
     if (!compare) {
-        return <div className="text-[var(--text-secondary)]">{t('routines.versions.firstVersion', 'This is the first version; there is nothing to compare with yet.')}</div>;
+        return <div className="text-[var(--text-secondary)]">{t('automations.versions.firstVersion', 'This is the first version; there is nothing to compare with yet.')}</div>;
     }
     if (diff.isError) {
-        return <div role="alert" className="text-[var(--error)]">{t('routines.versions.diffFailed', 'The changes could not be loaded.')}</div>;
+        return <div role="alert" className="text-[var(--error)]">{t('automations.versions.diffFailed', 'The changes could not be loaded.')}</div>;
     }
     if (diff.isLoading) return <div className="text-[var(--text-tertiary)]">{t('common.loading', 'Loading…')}</div>;
     if (changes.length === 0) {
-        return <div className="text-[var(--text-secondary)]">{t('routines.versions.noChanges', 'No changes that affect how it runs.')}</div>;
+        return <div className="text-[var(--text-secondary)]">{t('automations.versions.noChanges', 'No changes that affect how it runs.')}</div>;
     }
     return (
         <>
             <div className="font-semibold text-[var(--text-primary)]">
                 {compare.isLive
-                    ? t('routines.versions.changesSinceLive', '{count} changes since the live version', { count: changes.length })
-                    : t('routines.versions.changesSince', '{count} changes compared with v{version}', { count: changes.length, version: compare.version })}
+                    ? t('automations.versions.changesSinceLive', '{count} changes since the live version', { count: changes.length })
+                    : t('automations.versions.changesSince', '{count} changes compared with v{version}', { count: changes.length, version: compare.version })}
             </div>
             <FieldDiffTable changes={changes} from={compare.version} to={selected.version} />
         </>
@@ -42,7 +42,7 @@ export default function VersionChanges(props: Props) {
             <ChangesBody {...props} />
             <div className="flex items-center gap-1.5 text-[var(--text-tertiary)]">
                 <Info size={12} className="shrink-0" />
-                {t('routines.versions.layoutNote', "Layout and position changes don't count as a version; they are merged into the next real change.")}
+                {t('automations.versions.layoutNote', "Layout and position changes don't count as a version; they are merged into the next real change.")}
             </div>
         </div>
     );

@@ -15,11 +15,24 @@ import { isInlineId, parseInlineId, toDisplayPosition } from './inlineFlowlets';
  * second copy of a name the canvas already shows.
  */
 const PORT_LABELLED_TYPES = new Set(['condition', 'guard', 'switch', 'loop']);
+// The Condition's two shapes whose ports carry names an edge chip could cover.
+const NAMED_PORT_TYPES = new Set(['condition', 'switch']);
 
 // Default box a fresh note gets before anyone drags a corner (BFSF-411) —
 // generous enough to hold a sentence or two without the user's first act
 // being a resize.
 export const DEFAULT_NOTE_SIZE = { width: 220, height: 140 };
+
+// A note (BFSF-479) is ALWAYS the canvas's background layer — n8n sticky-note
+// style: it never covers a workflow node, and a connector passing over it is
+// never interrupted by it (the note's fill used to swallow the line where the
+// two overlapped). React Flow paints each edge svg and node wrapper by its
+// own z-index inside one shared stacking context (the viewport), and edges
+// always land at >= 0 — so -1 pins a note below every node AND every
+// connector without touching zIndexMode. A SELECTED note stays down too
+// because the canvas sets elevateNodesOnSelect={false} and re-applies the
+// +1000 pop only to non-note nodes (see useRenderedGraph.js).
+export const NOTE_Z_INDEX = -1;
 
 /**
  * Auto-layout the automation graph. Returns nodes/edges in the shape
@@ -174,7 +187,7 @@ export function buildLayout(def, { runByStep, issuesByStep, onAddAfter = null, o
                 }
                 : {}),
             ...(noteSize
-                ? { width: noteSize.width, height: noteSize.height, style: { width: noteSize.width, height: noteSize.height } }
+                ? { width: noteSize.width, height: noteSize.height, zIndex: NOTE_Z_INDEX, style: { width: noteSize.width, height: noteSize.height } }
                 : {}),
             // A container's entry node is structural: deleting a flowlet's
             // input would leave a triggerless mini-definition the validator
@@ -356,6 +369,8 @@ export function buildLayout(def, { runByStep, issuesByStep, onAddAfter = null, o
                     caseIndex,
                     // Fan-out lane for parallel edges between the same pair.
                     ...(parallelCount > 1 ? { parallelIndex, parallelCount } : {}),
+                    // Its source prints port names: the data chip keeps clear of them (edgeChip.ts).
+                    ...(NAMED_PORT_TYPES.has(typeById.get(e.from)) ? { fromPortLabels: true } : {}),
                     // How much data travelled down THIS connection on the last
                     // run ("201 records", "3 items"). Hitting ▶ on a node no
                     // longer opens its editor, so this is where the answer to
@@ -388,7 +403,7 @@ export function seedPositions(def, dims = { width: 240, height: 96 }) {
     const allSteps = [def.trigger, ...additionalTriggers, ...(def.steps || [])]
         .filter(s => s && !isInlineId(s.id));
     if (allSteps.every(s => isFinitePos(s.position))) return def;
-    // The same row layout the canvas falls back to, so a routine built step
+    // The same row layout the canvas falls back to, so an automation built step
     // by step grows into rows — each new node lands where the wrapped layout
     // of the whole graph puts it, while nodes that already have a position
     // keep it (the apply() below never overwrites one).

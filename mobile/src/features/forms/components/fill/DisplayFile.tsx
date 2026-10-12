@@ -1,5 +1,5 @@
 /**
- * A file the routine made, handed over: `download` saves or shares it (the
+ * A file the automation made, handed over: `download` saves or shares it (the
  * share sheet is where "open with", "save to Drive" and "send" live on a
  * phone), `notebook` copies it into a new notebook and opens that.
  *
@@ -29,7 +29,7 @@ export function DisplayFile({ field, actions }: { field: FillField; actions: Fil
     const notebook = field.type === 'notebook';
     const act = notebook ? actions.openInNotebooks : actions.shareFile;
     const meta = [fileKind(field.filename), fileSize(field.size)].filter(Boolean).join(' · ');
-    const title = field.filename || (notebook ? t('mobile.forms.fill.open_in_notebooks', 'Open in Notebooks') : t('mobile.forms.fill.download', 'Download'));
+    const title = field.filename || (notebook ? t('automations.form_builder_fields.type_notebook', 'Open in Notebooks') : t('mobile.forms.fill.download', 'Download'));
     const run = async () => {
         if (!act || busy) return;
         setBusy(true);

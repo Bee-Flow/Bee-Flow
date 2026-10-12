@@ -9,7 +9,7 @@ Everything below was read from the code on branch `claude/builder-redesign-fase-
 
 ## 1. What the feature is for
 
-Bee Flow agents, routines and Studio apps can call third-party tools (Gmail, Nextcloud Files,
+Bee Flow agents, automations and Studio apps can call third-party tools (Gmail, Nextcloud Files,
 YouTrack, AFAS, n8n, an MCP server…). Three separate decisions govern whether a given tool
 actually fires for a given person:
 
@@ -118,12 +118,7 @@ MCP rows read **"Configure your credentials for {toolCount} tools"** → once fi
 `/app/settings/organisation/nextcloud-sync`, label **"Nextcloud Sync"** (`settings.nextcloud_sync`).
 Visible only when the org is NC-bound (`user.ncOrg.instanceId`) **or** the viewer is a super-admin.
 Contains, in order:
-1. `OrgNcPairingPanel` — heading **"Pair a new Nextcloud"**, button **"Generate pairing code"**,
-   empty state **"No active pairing codes. Generated codes live for 15 minutes and disappear after
-   use."**, expander **"How to use this code on the new Nextcloud"** with the `occ
-   app_api:app:setenv bee_flow BEEFLOW_PAIRING_CODE <CODE>` recipe. Revoke confirm: *"Revoke this
-   pairing code? Anyone who has it will no longer be able to use it."*
-2. `NextcloudSyncPanel` — heading **"Nextcloud Sync"**, **"Sync now"** button, a four-stat row
+1. `NextcloudSyncPanel` — heading **"Nextcloud Sync"**, **"Sync now"** button, a four-stat row
    **Instance / Sync mode / Active users / Last sync**, then sections
    **"Sync mode"** (radio: *Mirror everything* — "Every Nextcloud user is automatically created in
    Bee Flow."; *Selective groups*; *Manual only*), **"New user default status"**
@@ -132,7 +127,16 @@ Contains, in order:
    everything'."), **"Synced users (n)"**, and **Save**.
    Non-NC orgs get: **"Nextcloud sync is only available for organisations bound to a Nextcloud
    instance."**
-3. `MeetingNotesAdminPanel`, `GoogleMeetAdminPanel` (adjacent features, same page).
+2. `OrgNcPairingPanel` — heading **"Pair a new Nextcloud"**, button **"Generate pairing code"**,
+   empty state **"No active pairing codes. Generated codes live for 15 minutes and disappear after
+   use."**, expander **"How to use this code on the new Nextcloud"** with the `occ
+   app_api:app:setenv bee_flow BEEFLOW_PAIRING_CODE <CODE>` recipe. Revoke confirm: *"Revoke this
+   pairing code? Anyone who has it will no longer be able to use it."*
+3. `MeetingNotesAdminPanel` (Talk Meeting Notes; Talk only exists with a Nextcloud).
+
+The org-level Google Meet and Microsoft Teams meeting-notes panels (`GoogleMeetAdminPanel`,
+`TeamsAdminPanel`) are NOT here: they need no Nextcloud, so they sit under
+**Settings → Organisation → Meeting Templates**, after the summary templates.
 
 `OrgNcIntegrationsPanel` (shown under *Integration settings*, section 2.1) — heading
 **"Nextcloud integrations"**, lead *"Choose which Nextcloud tools your agents may use, and exclude
@@ -148,7 +152,7 @@ No synced groups → *"No Nextcloud groups synced yet. Sync runs automatically e
 `/app/settings/organisation/github-sync`, label **"GitHub Sync"** (`settings.github_sync`).
 **The menu row only appears once `GET /api/integrations/github/status` says `connected:true`** —
 i.e. after someone connected a GitHub PAT on the personal Connections screen.
-States: **"GitHub Not Connected"** ("Connect your GitHub account in Settings → Integrations first,
+States: **"GitHub Not Connected"** ("Connect your GitHub account in Settings → Connections first,
 then return here to configure sync."); **"Set Up Agent Sync"** with **"Configure Repository"**;
 the form **"Repository Configuration"** with fields **Repository Owner** (`your-username`),
 **Repository Name** (`beeflow-agents`), **Branch** (`main`) and an **"Auto-sync"** toggle
@@ -265,7 +269,7 @@ the form **"Repository Configuration"** with fields **Repository Owner** (`your-
 - Connections API rate limits per user: **30 writes / 60 s**, **10 shares / 60 s**.
 - Lending expiry choices: none, **7**, **30**, **90** days.
 - Connection `kind` whitelist: `oauth, api_key, basic, mcp, bearer, oauth2_cc`.
-  Grant resource types: `agent, webpage, skill, routine, studio_app`.
+  Grant resource types: `agent, webpage, skill, automation, studio_app`.
 - MCP: per-user process pool with a **5-minute** idle timeout; live registry search cached
   **5 min**, max **200** entries, verified-only by default.
 - NC pairing code: **8 characters**, TTL **15 minutes**, one-shot.
@@ -345,10 +349,10 @@ the form **"Repository Configuration"** with fields **Repository Owner** (`your-
 
 ## 8. How it connects to other features
 
-- **Agents / Skills / Studio apps / Routines** read the resolved integration set at tool-build time
+- **Agents / Skills / Studio apps / Automations** read the resolved integration set at tool-build time
   (`server/core/integrations/integrationTools.js`); per-agent `enabledIntegrations` and the per-user
   `enabled_apps` selection are a *further* narrowing applied after entitlements.
-- **Routines → `http_request` step** picks a named HTTP connection from Settings → Connections —
+- **Automations → `http_request` step** picks a named HTTP connection from Settings → Connections —
   that is why the "HTTP API (custom)" provider exists there.
 - **Usage & Monitoring → "Integration Activity Monitor"** (`usage.integ_*`,
   `/api/usage/integration-*`) reports tool calls, server endpoints, bytes and PII-in-transit.
@@ -388,7 +392,7 @@ the form **"Repository Configuration"** with fields **Repository Owner** (`your-
    (only Compliance is let through).
 10. **Believing stale comments.** `ncIntegrations.js` says "the 11 Nextcloud tools"; the catalogue
     has **14**. Count from `ncIntegrationCatalog.js`, not the prose.
-11. **Deleting a connection that a routine uses** — the confirm says it plainly:
+11. **Deleting a connection that an automation uses** — the confirm says it plainly:
     *"Any automation using it will stop working."*
 
 ---

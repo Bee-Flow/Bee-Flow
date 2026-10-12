@@ -6,7 +6,7 @@
  *
  * `webpages` is a beta capability, not an org integration, so no org
  * integration allow-list can name it. The design-time gate (buildUserAppGate,
- * read by routine save/activate validation and the AI builder) judged it by
+ * read by automation save/activate validation and the AI builder) judged it by
  * that list anyway, while the runtime (getIntegrationTools) hands the tools
  * out on the beta feature OR access to a webpage. In an org with an allow-list
  * the palette offered the step, the runtime would run it, and the validator
@@ -71,7 +71,7 @@ const { getUserPermittedApps, isIntegrationPermittedForUser, webpageToolsAllowed
 
 const USER = { userId: 'u1', session: { user: { id: 'u1' } }, isAdmin: false };
 
-/** The catalog routine activation validates against (routes/automation/activate.js). */
+/** The catalog automation activation validates against (routes/automation/activate.js). */
 async function activationCatalog() {
     const permitted = await getUserPermittedApps(USER);
     const names = new Set();

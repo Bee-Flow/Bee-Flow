@@ -134,7 +134,7 @@ function deepFreeze(value) {
 //               in de vanilla snapshot per definitie niet meer dan inert zijn;
 //   attributes  wat hij kent, wat verplicht is, en wat het betekent;
 //   binding     wat hij oplevert voor de usage-index: welke tabel, welke
-//               routine, welke agent — plus de poort waar dat doorheen moet;
+//               automatisering, welke agent — plus de poort waar dat doorheen moet;
 //   surfaces    per plek: wat blijft ervan over, en waarom.
 //
 // Velden per plek (`surfaces.<plek>`):
@@ -325,7 +325,7 @@ const BF_ELEMENTS = deepFreeze([
                 state: 'refused',
                 message: 'bf-button cannot run an automation in the preview image',
                 notice: 'This button is not active in the preview image.',
-                why: 'De stub-brug maakt van beeflowAutomations.run een weigering; een routine starten vanuit een '
+                why: 'De stub-brug maakt van beeflowAutomations.run een weigering; een automatisering starten vanuit een '
                     + 'screenshot mag sowieso niet.',
             },
         },

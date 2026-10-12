@@ -3,15 +3,15 @@
  *
  * A spreadsheet mirror refreshes every minute and on every pulse, long after
  * the linker's browser session is gone, so its tokens must come from the
- * long-lived routine_credentials vault (auth/routineAuth) — the same source
- * a scheduled routine uses. Two things the vault alone does not cover:
+ * long-lived automation_credentials vault (auth/automationAuth) — the same source
+ * a scheduled automation uses. Two things the vault alone does not cover:
  *
  *   1. A user who signed in with Google/Microsoft SSO and has no
  *      organisation has NO vault row (auth/oauth/shared.js only writes one
  *      when an orgId is known). Their tokens live on the live session. The
  *      first spreadsheet call copies them INTO the vault (per-user scope,
- *      routineAuth.vaultOrgIdFor) so the ticker keeps working after logout.
- *   2. The shim routineAuth.buildUserAuth hands out has no save(): a
+ *      automationAuth.vaultOrgIdFor) so the ticker keeps working after logout.
+ *   2. The shim automationAuth.buildUserAuth hands out has no save(): a
  *      Microsoft refresh (which rotates the refresh token) or a Google
  *      refresh inside the SDK would be lost, and the next tick would fail
  *      with a dead token. The shim built here persists rotated tokens — it
@@ -20,7 +20,7 @@
  *
  * Provider-exact, never mixed: a session's primary tokens are used ONLY when
  * its oauthProvider is the provider asked for; anything else comes from
- * routineProviders[provider]. A Microsoft token is never handed to Google.
+ * automationProviders[provider]. A Microsoft token is never handed to Google.
  *
  * Memoised for a minute per (user, provider), refusals included — a burst of
  * pulses on one table must not re-read and re-decrypt the vault each time.
@@ -46,9 +46,9 @@ function deps() {
     // Lazily required: the pure modules beside this one must stay loadable in
     // suites that stub the database, and these pull in stores at load time.
     return {
-        routineAuth: require('../../../../auth/routineAuth'),
+        automationAuth: require('../../../../auth/automationAuth'),
         resolveUserSession: require('../../../automationRunner/sessionResolution').resolveUserSession,
-        credentialStore: require('../../../../stores/routineCredentialStore'),
+        credentialStore: require('../../../../stores/automationCredentialStore'),
         userStore: require('../../../../stores/userStore'),
     };
 }
@@ -72,7 +72,7 @@ function tokensFromSession(s, provider) {
     if (s.oauthProvider === provider && s.accessToken) {
         return { accessToken: s.accessToken, refreshToken: s.refreshToken || null, expiresAt: s.expiresAt || null, scope: s.oauthScope || null };
     }
-    const rp = s.routineProviders && s.routineProviders[provider];
+    const rp = s.automationProviders && s.automationProviders[provider];
     if (rp && rp.accessToken) {
         return { accessToken: rp.accessToken, refreshToken: rp.refreshToken || null, expiresAt: rp.expiresAt || null, scope: rp.scope || rp.oauthScope || null };
     }
@@ -94,7 +94,7 @@ function makeShim(d, { userId, provider, vaultOrgId, accessToken, refreshToken, 
         refreshToken,
         expiresAt,
         oauthScope: scope,
-        routineProviders: {},
+        automationProviders: {},
         async save() {
             try {
                 const rotated = shim.accessToken !== persisted.accessToken || shim.refreshToken !== persisted.refreshToken;
@@ -126,13 +126,13 @@ function makeShim(d, { userId, provider, vaultOrgId, accessToken, refreshToken, 
 async function vaultOrgIdOf(d, userId, session) {
     const userRow = await d.userStore.getUser(userId).catch(() => null);
     const organizationId = (userRow && userRow.organizationId) || (session && session.user && session.user.organizationId) || null;
-    return d.routineAuth.vaultOrgIdFor({ id: userId, organizationId });
+    return d.automationAuth.vaultOrgIdFor({ id: userId, organizationId });
 }
 
 async function resolveUncached(d, userId, provider, { session }) {
-    // 1. The vault, refreshed when close to expiry (routineAuth persists the
+    // 1. The vault, refreshed when close to expiry (automationAuth persists the
     //    refresh itself and flips a revoked grant to needs_reauth → null).
-    const cred = await d.routineAuth.getProviderAuth(userId, provider);
+    const cred = await d.automationAuth.getProviderAuth(userId, provider);
     if (cred && cred.accessToken) {
         return makeShim(d, {
             userId, provider,

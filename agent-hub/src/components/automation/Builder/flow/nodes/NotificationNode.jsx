@@ -2,7 +2,7 @@ import React from 'react';
 import { Bell } from 'lucide-react';
 import { nodeDefaultLabel, nodeHelp, nodeTypeLabel } from '../nodeDefs';
 import StepNodeBase, { NodeChip, ForEachBadge } from './StepNodeBase';
-import { humanizeExpression } from '../displayHelpers';
+import { humanizeTemplate } from '../displayHelpers';
 import { CHANNEL_LABELS } from '../../notificationDefaults';
 
 export default function NotificationNode({ id, data }) {
@@ -14,8 +14,8 @@ export default function NotificationNode({ id, data }) {
         .map(c => CHANNEL_LABELS[c] || c);
     const title = step.title || '';
     const bodyText = step.body || '';
-    const friendlyTitle = humanizeExpression(title, stepLabelById);
-    const friendlyBody = humanizeExpression(bodyText, stepLabelById);
+    const friendlyTitle = humanizeTemplate(title, stepLabelById);
+    const friendlyBody = humanizeTemplate(bodyText, stepLabelById);
 
     const badges = (
         <>
@@ -29,7 +29,12 @@ export default function NotificationNode({ id, data }) {
             icon={<Bell size={14} />}
             typeLabel={nodeTypeLabel('notification')}
             help={nodeHelp('notification')}
-            name={friendlyTitle || step.label || nodeDefaultLabel('notification')}
+            // The step's own name first: the title is a TEMPLATE for the
+            // message ("Order {{…}}"), which made the card read like the
+            // message instead of saying what the step is. A label that is
+            // still the type's default gives way to the title.
+            name={(step.label && step.label !== nodeDefaultLabel('notification') ? step.label : null)
+                || friendlyTitle || step.label || nodeDefaultLabel('notification')}
             sub={friendlyBody || { muted: 'no message yet' }}
             subTitle={bodyText || undefined}
             badges={badges}

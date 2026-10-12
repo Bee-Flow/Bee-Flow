@@ -456,7 +456,7 @@ test('datatableGrantsOf reads exactly what normalise writes', () => {
     }
 });
 
-// An empty grant means `direct` — the routine fires the moment the model asks
+// An empty grant means `direct` — the automation fires the moment the model asks
 // for it. So a confirm the clamp cannot read may not become an empty grant:
 // that is a typo silently promoted to "sends without asking", the same
 // widening the `actions` branch was fixed for.
@@ -528,7 +528,7 @@ test('buildToolPolicy whitelists by name and drops ask-tools when nobody is watc
 // ── An empty or junk map is not the opt-in ──────────────────────────
 // The regime flip is one PUT away otherwise: `normaliseToolsConfig` turns a
 // malformed `tools` value into `{}`, and a map-shaped nothing that counts as
-// "someone has been through the picker" makes a mailing routine stop mailing
+// "someone has been through the picker" makes a mailing automation stop mailing
 // with nothing in the UI to explain it.
 
 test('hasCuratedGrants asks the CONTENTS, not whether the key is there', () => {
@@ -559,7 +559,7 @@ test('an empty or junk map behaves exactly like no map — attended and headless
 
         const headless = P.buildToolPolicy({ agentConfig, tools, unattended: true });
         assert.deepStrictEqual(headless.droppedForUnattended, [],
-            `${label}: dropping the send tool here is a mailing routine that silently stops mailing`);
+            `${label}: dropping the send tool here is a mailing automation that silently stops mailing`);
         assert.ok(headless.allowedToolNames.has('gmail_compose'));
     }
 });
@@ -574,7 +574,7 @@ test('buildToolPolicy honours a per-automation confirm override', () => {
     assert.strictEqual(policy.confirmByTool.get('summarise_inbox'), 'direct');
     assert.strictEqual(policy.confirmByTool.get('mail_the_client'), 'ask');
     // Without the override an unknown name would fail closed to a write; the
-    // override is the routine's DEFINITION-derived effect and must win.
+    // override is the automation's DEFINITION-derived effect and must win.
     const headless = P.buildToolPolicy({
         agentConfig: {}, tools, unattended: true,
         automationConfirms: new Map([['summarise_inbox', 'direct'], ['mail_the_client', 'ask']]),
@@ -590,9 +590,9 @@ test('isUnattended reads the existing headless markers, not a new flag', () => {
     assert.strictEqual(P.isUnattended(null), false);
 });
 
-test('automationGrantsOf is what narrows the caller-keyed routine set', () => {
-    // getIntegrationTools reads this to keep only the routines the agent's
-    // OWNER granted, out of every routine the person chatting happens to own.
+test('automationGrantsOf is what narrows the caller-keyed automation set', () => {
+    // getIntegrationTools reads this to keep only the automations the agent's
+    // OWNER granted, out of every automation the person chatting happens to own.
     const grants = (config) => P.automationGrantsOf(P.toolsConfigOf(config));
     assert.deepStrictEqual(grants({}), {});
     assert.deepStrictEqual(grants({ tools: {} }), {});
@@ -613,7 +613,7 @@ test('gatedTools is empty without a stored map — the verdict stands, nothing i
         'but nothing is held back: gmail_compose confirms itself with a draft card today, and ' +
         'holding it would take that card away from every agent that predates the picker');
     assert.deepStrictEqual(legacy.droppedForUnattended, [],
-        'and a mailing routine keeps the tool autoSend exists to use');
+        'and a mailing automation keeps the tool autoSend exists to use');
 });
 
 test('storing a map is the opt-in — the same stack is then gated', () => {
@@ -624,14 +624,14 @@ test('storing a map is the opt-in — the same stack is then gated', () => {
     assert.ok(!granted.gatedTools.has('gmail_search'), 'a read has nothing to approve');
 });
 
-test('an explicit per-routine confirm gates even on an agent with no app map', () => {
+test('an explicit per-automation confirm gates even on an agent with no app map', () => {
     const tools = [{ function: { name: 'mail_the_client' } }];
     const policy = P.buildToolPolicy({
         agentConfig: {}, tools,
         automationConfirms: new Map([['mail_the_client', 'ask']]),
     });
     assert.ok(policy.gatedTools.has('mail_the_client'),
-        'the routine\'s own definition is a choice someone made, not a legacy default');
+        'the automation\'s own definition is a choice someone made, not a legacy default');
 });
 
 // ── decideToolCall ──────────────────────────────────────────────────
@@ -838,14 +838,14 @@ test('fallback: decideToolCall reads it the same way it reads a healthy policy',
         'the card still names the effect — effectByTool is filled, not left for decideToolCall to guess');
 });
 
-test('fallback: an explicit per-routine confirm survives the failure too', () => {
+test('fallback: an explicit per-automation confirm survives the failure too', () => {
     const tools = [{ function: { name: 'summarise_inbox' } }, { function: { name: 'mail_the_client' } }];
     const confirms = new Map([['summarise_inbox', 'direct'], ['mail_the_client', 'ask']]);
     const fb = P.fallbackToolPolicy({ agentConfig: {}, tools, automationConfirms: confirms });
 
     assert.deepStrictEqual([...fb.gatedTools], ['mail_the_client'],
-        'the routine\'s own definition is a decision — the fallback may not implement half the rule');
-    assert.ok(!fb.gatedTools.has('summarise_inbox'), 'and a routine set to direct stays direct');
+        'the automation\'s own definition is a decision — the fallback may not implement half the rule');
+    assert.ok(!fb.gatedTools.has('summarise_inbox'), 'and an automation set to direct stays direct');
     assert.deepStrictEqual(
         [...P.buildToolPolicy({ agentConfig: {}, tools, automationConfirms: confirms }).gatedTools],
         [...fb.gatedTools], 'the two builders agree about what a chosen confirm means');
@@ -1074,33 +1074,33 @@ test('an automations grant IS a curation — that one narrows what is offered', 
 // assembly time, so the two can only be married against the ASSEMBLED stack.
 // Nothing did that, which is how `confirm` came to be stored and ignored.
 
-const routine = (name, id) => ({ function: { name }, __automation: { id } });
+const automation = (name, id) => ({ function: { name }, __automation: { id } });
 
-test('automationConfirmsFor maps a granted routine\'s confirm onto its tool name', () => {
-    const stack = [routine('mail_the_client', 'auto-1'), routine('summarise_inbox', 'auto-2'), { function: { name: 'gmail_search' } }];
+test('automationConfirmsFor maps a granted automation\'s confirm onto its tool name', () => {
+    const stack = [automation('mail_the_client', 'auto-1'), automation('summarise_inbox', 'auto-2'), { function: { name: 'gmail_search' } }];
     const cfg = { tools: { automations: { 'auto-1': { confirm: 'ask' }, 'auto-2': { confirm: 'direct' } } } };
 
     const confirms = P.automationConfirmsFor(stack, cfg);
     assert.strictEqual(confirms.get('mail_the_client'), 'ask');
     assert.strictEqual(confirms.get('summarise_inbox'), 'direct');
-    assert.strictEqual(confirms.has('gmail_search'), false, 'a tool that is not a routine has no grant to read');
+    assert.strictEqual(confirms.has('gmail_search'), false, 'a tool that is not an automation has no grant to read');
 
     // And the policy acts on it: the stored "ask" holds the call back.
     const policy = P.buildToolPolicy({ agentConfig: cfg, tools: stack, automationConfirms: confirms });
     assert.ok(policy.gatedTools.has('mail_the_client'),
-        'a stored per-routine confirm that holds nothing back is a lie the owner cannot see through');
+        'a stored per-automation confirm that holds nothing back is a lie the owner cannot see through');
     assert.ok(!policy.gatedTools.has('summarise_inbox'));
 
-    // Nobody watching ⇒ the routine its owner wanted approved is withheld.
+    // Nobody watching ⇒ the automation its owner wanted approved is withheld.
     const headless = P.buildToolPolicy({ agentConfig: cfg, tools: stack, unattended: true, automationConfirms: confirms });
     assert.deepStrictEqual(headless.droppedForUnattended, ['mail_the_client']);
 });
 
-test('a typo in a routine confirm holds the routine back — it does not run it', () => {
+test('a typo in an automation confirm holds the automation back — it does not run it', () => {
     // End to end over the clamp: this is the value a hand-written config (or a
     // picker sending a label instead of a mode) actually produces, and before
-    // the clamp read it the routine dispatched with no card at all.
-    const stack = [routine('mail_the_client', 'auto-1')];
+    // the clamp read it the automation dispatched with no card at all.
+    const stack = [automation('mail_the_client', 'auto-1')];
     const norm = P.normaliseToolsConfig({ tools: { automations: { 'auto-1': { confirm: 'Ask' } } } });
     const cfg = { tools: norm.tools };
 
@@ -1113,12 +1113,12 @@ test('a typo in a routine confirm holds the routine back — it does not run it'
     assert.strictEqual(P.decideToolCall({ toolName: 'mail_the_client', policy }).action, 'confirm');
 });
 
-test('automationConfirmsFor is empty — and free — for an agent that grants no routines', () => {
-    const stack = [routine('mail_the_client', 'auto-1')];
+test('automationConfirmsFor is empty — and free — for an agent that grants no automations', () => {
+    const stack = [automation('mail_the_client', 'auto-1')];
     for (const cfg of [null, {}, { tools: {} }, { tools: { gmail: { actions: '*' } } }, { tools: { automations: {} } }]) {
         assert.strictEqual(P.automationConfirmsFor(stack, cfg).size, 0);
     }
-    // A grant without a confirm is a grant, not an override: the routine is
+    // A grant without a confirm is a grant, not an override: the automation is
     // offered, and nothing about how it dispatches changes.
     const granted = P.automationConfirmsFor(stack, { tools: { automations: { 'auto-1': {} } } });
     assert.strictEqual(granted.size, 0);
@@ -1263,7 +1263,7 @@ test('a broken registry does not lend a curated agent the owner connection', () 
 // ── Gate 1 is opt-in like the rest ──────────────────────────────────
 // It shipped global: EVERY agent refused a name outside the offered stack,
 // where before the grants layer it went on to the dispatcher (which resolves
-// the caller's own routines and Steps, answers a progressive-disclosure name
+// the caller's own automations and Steps, answers a progressive-disclosure name
 // with a "load that group first" hint, and otherwise tries a component tool).
 // That is a behaviour change with no field behind it, on an agent nobody
 // curated — exactly what this layer promised not to do.
@@ -1275,7 +1275,7 @@ test('an unoffered name: refused for a curated agent, passed on for an uncurated
 
     assert.strictEqual(curated.enforceNames, true);
     assert.strictEqual(P.decideToolCall({ toolName: 'automation_pay_invoice', policy: curated }).action, 'refuse',
-        'curating the agent is what closes its stack — an injected routine name stops here');
+        'curating the agent is what closes its stack — an injected automation name stops here');
 
     assert.strictEqual(legacy.enforceNames, false);
     const d = P.decideToolCall({ toolName: 'automation_pay_invoice', policy: legacy });
@@ -1292,7 +1292,7 @@ test('an unoffered name: refused for a curated agent, passed on for an uncurated
     assert.strictEqual(P.decideToolCall({ toolName: '', policy: legacy }).action, 'refuse');
 });
 
-test('a routine carrying its own confirm arms the gate too', () => {
+test('an automation carrying its own confirm arms the gate too', () => {
     // The withheld-in-a-headless-run case: the tool is out of the stack
     // BECAUSE someone chose 'ask', so letting the name through to the
     // dispatcher would run the very thing that was withheld.

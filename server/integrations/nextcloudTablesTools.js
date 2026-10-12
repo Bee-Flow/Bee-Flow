@@ -3,7 +3,7 @@
  *
  * Tables is the data layer of Nextcloud Flow: the place a form submission, an
  * approval decision or a scraped invoice line actually lands. Without it a
- * routine can only move files and post messages; with it, Bee Flow can run the
+ * automation can only move files and post messages; with it, Bee Flow can run the
  * "collect → store → report" workflows that people otherwise build in
  * Airtable, Power Apps or a spreadsheet on someone's desktop.
  *
@@ -136,7 +136,7 @@ const NEXTCLOUD_TABLES_TOOLS = [
         type: 'function',
         function: {
             name: 'nextcloud_tables_list_rows',
-            description: 'Read rows from a table. Values are returned keyed by column TITLE so they are readable and can be bound in a routine. Optionally filter with a simple field/operator/value match.',
+            description: 'Read rows from a table. Values are returned keyed by column TITLE so they are readable and can be bound in an automation. Optionally filter with a simple field/operator/value match.',
             parameters: {
                 type: 'object',
                 properties: {
@@ -217,7 +217,7 @@ async function handle(res, authError, what) {
     // 401 is the connector/session itself. 403 is NOT: the Tables app answers
     // 403 for a table id that does not exist or belongs to someone else, and
     // reporting that as "the Bee Flow connector could not reach Nextcloud"
-    // sent a routine author hunting a connection problem while every other
+    // sent an automation author hunting a connection problem while every other
     // Nextcloud step in the same run was green (2026-09-12). Say which id, and
     // name the tool that hands out valid ones.
     if (res.status === 401) return { error: authError };
@@ -296,7 +296,7 @@ function describeColumn(c) {
  * The table a call means. An id passes through; a title is looked up in the
  * user's table list and must match exactly one table (case-insensitively,
  * then by the same accent/punctuation-blind key column titles use). Every
- * miss is a soft error that lists what IS there, so a routine — or the
+ * miss is a soft error that lists what IS there, so an automation — or the
  * model building one — can correct itself. A title is what the user knows;
  * the id is what the API wants. Before this, a builder briefed with "the
  * table Facturen" had no way to find the id at build time and guessed 1.
@@ -346,7 +346,7 @@ async function fetchColumns(api, ncFetch, authError, tableId) {
 
 /**
  * Resolve a {title: value} map to the [{columnId, value}] shape the API wants.
- * An unknown title is an error, not a silent drop: a routine that quietly
+ * An unknown title is an error, not a silent drop: an automation that quietly
  * discarded half of a form submission would look like it succeeded.
  */
 /**
@@ -590,7 +590,7 @@ async function executeNextcloudTablesTool(toolName, args, userId, session) {
             return {
                 tableId: args.tableId,
                 count: rows.length,
-                // Say so when the cap bit, rather than letting a routine treat
+                // Say so when the cap bit, rather than letting an automation treat
                 // a truncated page as the whole table.
                 truncated: rows.length === limit,
                 columns: cols.columns.map(c => c.title),

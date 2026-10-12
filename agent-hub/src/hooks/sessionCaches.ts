@@ -1,4 +1,5 @@
 import { invalidateIntegrationStatus } from './useIntegrationStatus';
+import { invalidateChatSignals } from '../api/queries/chatSignals';
 import { invalidateShieldStatus } from './useShieldStatus';
 import { invalidateSkills } from './useSkills';
 import { invalidateTrainingGates } from './useTrainingGates';
@@ -30,14 +31,14 @@ import { invalidateAllowedModelsCache } from '../utils/modelMeta';
  *                         until something called `refresh()`.
  *   useShieldStatus       B saw A's org's Privacy Shield state.
  *   appRefLabel           B saw the app name, screen name and button label
- *                         behind a routine's `trigger.appRef` — plus
+ *                         behind an automation's `trigger.appRef` — plus
  *                         `canOpen:true`, so the breadcrumb offered a link
  *                         into an App Studio editor B has no rights to. The
  *                         cache key is appId+screenId+nodeId and names no
  *                         viewer, while the answer is per viewer: a
  *                         non-owner gets `restricted`, with no names and no
  *                         link. Reachable through the same builder URL
- *                         (?from=app:…) or any routine carrying that ref.
+ *                         (?from=app:…) or any automation carrying that ref.
  *   useTrainingGates      B saw the courses A's organisation enforces, with
  *                         their titles and A's own lesson progress ("4 of 7
  *                         done") — and B's create buttons locked or unlocked
@@ -60,6 +61,8 @@ import { invalidateAllowedModelsCache } from '../utils/modelMeta';
 export function clearSessionCaches(): void {
     invalidateIntegrationStatus();
     invalidateShieldStatus();
+    // The person's own "don't count my chat turns" choice and the agent gates.
+    invalidateChatSignals();
     invalidateSkills();
     invalidateTrainingGates();
     clearAppRefCache();

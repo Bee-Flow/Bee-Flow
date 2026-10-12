@@ -14,14 +14,14 @@ const Module = require('module');
 
 let credFixture = null;
 
-const mockId = 'mock:hydration:./routineAuth';
+const mockId = 'mock:hydration:./automationAuth';
 require.cache[mockId] = {
     id: mockId, filename: mockId, loaded: true,
     exports: { getProviderAuth: async () => credFixture },
 };
 const originalResolve = Module._resolveFilename;
 Module._resolveFilename = function (request, parent, ...rest) {
-    if (parent && /auth[\\/]googleSessionHydration\.js$/.test(parent.filename) && request === './routineAuth') {
+    if (parent && /auth[\\/]googleSessionHydration\.js$/.test(parent.filename) && request === './automationAuth') {
         return mockId;
     }
     return originalResolve.call(this, request, parent, ...rest);

@@ -32,7 +32,7 @@ export function serverStepItems(summary: FlowVersionDiff['summary'] | null | und
 
 /**
  * The sheet's rows. `before` is what the version is compared WITH (the
- * current routine, or an older save), `after` the version opened.
+ * current automation, or an older save), `after` the version opened.
  */
 export function diffItems(
     before: DefinitionInput,

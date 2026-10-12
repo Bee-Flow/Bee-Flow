@@ -1,9 +1,10 @@
-import React, { useMemo, useState } from 'react';
 import { Loader2, Check, AlertTriangle, Crown, Pencil, Info } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import CeilingReadOnly from './CeilingReadOnly';
+import { useTranslation } from '../../../../hooks/useTranslation';
+import { useEntitlements } from '../../../licensing/EntitlementsContext';
 import { useResource, apiJson } from '../../subscriptions/hooks/useApi';
 import { PlanEditor } from '../../subscriptions/plans/PlanEditor';
-import { useEntitlements } from '../../../licensing/EntitlementsContext';
-import CeilingReadOnly from './CeilingReadOnly';
 
 /**
  * CloudCeilingEditor — the cloud-mode ceiling. On cloud the ceiling for an org
@@ -19,6 +20,7 @@ const EMERALD = '#10b981';
 const BLUE = '#3b82f6';
 
 export default function CloudCeilingEditor({ orgId, orgName, onCeilingChanged }) {
+    const { t } = useTranslation();
     const entitlements = useEntitlements();
     const plansRes = useResource('/api/subscriptions/plans', { initial: [] });
     const subsRes = useResource('/api/subscriptions/orgs', { initial: [] });
@@ -47,11 +49,11 @@ export default function CloudCeilingEditor({ orgId, orgName, onCeilingChanged })
                 body: JSON.stringify({ plan_id: planId || null, status: 'active' }),
             });
             await subsRes.reload();
-            flash('ok', 'Plan assigned');
+            flash('ok', t('admin_org.ceiling_plan_assigned', 'Plan assigned'));
             entitlements?.reload?.();
             onCeilingChanged?.();
         } catch (e) {
-            flash('error', e.message || 'Failed to assign plan');
+            flash('error', e.message || t('admin_org.ceiling_assign_plan_failed', 'Failed to assign plan'));
         } finally { setAssigning(false); }
     };
 
@@ -66,11 +68,11 @@ export default function CloudCeilingEditor({ orgId, orgName, onCeilingChanged })
             });
             await plansRes.reload();
             setEditing(false);
-            flash('ok', 'Plan updated');
+            flash('ok', t('admin_org.ceiling_plan_updated', 'Plan updated'));
             entitlements?.reload?.();
             onCeilingChanged?.();
         } catch (e) {
-            flash('error', e.message || 'Failed to save plan');
+            flash('error', e.message || t('admin_org.ceiling_save_plan_failed', 'Failed to save plan'));
         } finally { setSavingPlan(false); }
     };
 
@@ -98,7 +100,7 @@ export default function CloudCeilingEditor({ orgId, orgName, onCeilingChanged })
                 <header className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                         <Crown className="w-5 h-5" style={{ color: BLUE }} />
-                        <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>Subscription plan</h2>
+                        <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{t('admin_org.ceiling_cloud_title', 'Subscription plan')}</h2>
                     </div>
                     {message ? (
                         <span className="inline-flex items-center gap-1.5 text-xs" style={{ color: message.type === 'ok' ? EMERALD : '#dc2626' }}>
@@ -107,12 +109,11 @@ export default function CloudCeilingEditor({ orgId, orgName, onCeilingChanged })
                     ) : null}
                 </header>
                 <p className="text-sm mb-4" style={{ color: 'var(--text-muted)', maxWidth: 720 }}>
-                    The plan assigned to <strong>{orgName || 'this organisation'}</strong> is its capability ceiling. Pick a plan,
-                    then distribute its features to members and groups under <strong>Grants</strong>.
+                    {t('admin_org.ceiling_cloud_intro_a', 'The plan assigned to')} <strong>{orgName || t('admin_org.ceiling_this_org', 'this organisation')}</strong> {t('admin_org.ceiling_cloud_intro_b', 'is its capability ceiling. Pick a plan, then distribute its features to members and groups under')} <strong>{t('admin_org.ceiling_grants', 'Grants')}</strong>.
                 </p>
 
                 <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                    <label className="text-sm flex-shrink-0" style={{ color: 'var(--text-secondary)' }}>Plan</label>
+                    <label className="text-sm flex-shrink-0" style={{ color: 'var(--text-secondary)' }}>{t('admin_org.ceiling_plan', 'Plan')}</label>
                     <select
                         value={currentPlanId}
                         disabled={assigning}
@@ -120,7 +121,7 @@ export default function CloudCeilingEditor({ orgId, orgName, onCeilingChanged })
                         className="text-sm rounded-lg px-3 py-2 outline-none flex-1 max-w-sm"
                         style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)', color: 'var(--text-primary)' }}
                     >
-                        <option value="">No plan (custom / no ceiling)</option>
+                        <option value="">{t('admin_org.ceiling_no_plan', 'No plan (custom / no ceiling)')}</option>
                         {plans.map(p => (
                             <option key={p.id} value={p.id}>{p.name}{p.is_default ? ' ★' : ''}</option>
                         ))}
@@ -132,7 +133,7 @@ export default function CloudCeilingEditor({ orgId, orgName, onCeilingChanged })
                             className="inline-flex items-center gap-1.5 text-sm rounded-lg px-3 py-2 font-medium transition-colors"
                             style={{ background: `${EMERALD}1a`, color: EMERALD, border: `1px solid ${EMERALD}` }}
                         >
-                            <Pencil className="w-3.5 h-3.5" /> Edit plan
+                            <Pencil className="w-3.5 h-3.5" /> {t('admin_org.ceiling_edit_plan', 'Edit plan')}
                         </button>
                     ) : null}
                 </div>
@@ -140,7 +141,7 @@ export default function CloudCeilingEditor({ orgId, orgName, onCeilingChanged })
                 {selectedPlan ? (
                     <div className="mt-3 flex items-start gap-2 text-[12px] rounded-lg px-3 py-2" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
                         <Info className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: BLUE }} />
-                        <span>Editing <strong>{selectedPlan.name}</strong> changes the ceiling for <em>every</em> organisation on this plan.</span>
+                        <span>{t('admin_org.ceiling_editing_a', 'Editing')} <strong>{selectedPlan.name}</strong> {t('admin_org.ceiling_editing_b', 'changes the ceiling for')} <em>{t('admin_org.ceiling_editing_every', 'every')}</em> {t('admin_org.ceiling_editing_c', 'organisation on this plan.')}</span>
                     </div>
                 ) : null}
             </section>

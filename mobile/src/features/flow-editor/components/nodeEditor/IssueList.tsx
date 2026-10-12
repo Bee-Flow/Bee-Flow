@@ -1,7 +1,7 @@
 /**
  * What the validator says about this step, at the top of its settings — the
  * web's SettingsForm banner and ValidationLine: what KIND of problem it is
- * before the list ("Fix this before the routine can run" / "Worth checking"),
+ * before the list ("Fix this before the automation can run" / "Worth checking"),
  * and each sentence with the step ids swapped for the names the author typed
  * (humanizeIssueText), so the line names the same step the pill did.
  */
@@ -39,7 +39,7 @@ export function IssueList({ issues, labels }: { issues: StepIssues; labels: Map<
         <View style={styles.box} accessibilityLiveRegion="polite" testID="step-issues">
             {issues.errors.length ? (
                 <Text variant="caption" weight="semibold" tone="error">
-                    {t('routines.builder.fix_before_run', 'Fix this before the routine can run:')}
+                    {t('automations.builder.fix_before_run', 'Fix this before the automation can run:')}
                 </Text>
             ) : null}
             {issues.errors.map((e, i) => (
@@ -47,7 +47,7 @@ export function IssueList({ issues, labels }: { issues: StepIssues; labels: Map<
             ))}
             {issues.warnings.length ? (
                 <Text variant="caption" weight="semibold" tone="warning">
-                    {t('routines.builder.worth_checking', 'Worth checking:')}
+                    {t('automations.builder.worth_checking', 'Worth checking:')}
                 </Text>
             ) : null}
             {issues.warnings.map((w, i) => (

@@ -22,7 +22,11 @@
  * shared browser comfortably serves the low-volume export/thumbnail/ingest load.
  */
 
-const pwtRunner = require('./pwtRunner');
+const DEFAULT_DEPS = {
+    pwtRunner: require('./pwtRunner'),
+    chromium: () => require('playwright').chromium,
+};
+let _deps = DEFAULT_DEPS;
 
 const CONNECT_TIMEOUT_MS = parseInt(process.env.BROWSER_CONNECT_TIMEOUT_MS || '30000', 10);
 // Dev-only escape hatch: launch a browser in-process when no remote backend is
@@ -35,29 +39,54 @@ let _conn = null;          // persistent connected (or locally-launched) Browser
 let _connecting = null;    // in-flight connect promise (dedupes concurrent first use)
 
 function chromium() {
-    return require('playwright').chromium;
+    return _deps.chromium();
+}
+
+/**
+ * The code every "no browser to render with" failure carries, so a route can
+ * answer with a sanitized 503 instead of a generic 500 (or, worse, these
+ * operator-facing words). The detail stays in `err.message` for the log.
+ */
+const BACKEND_UNAVAILABLE = 'browser_backend_unavailable';
+
+function backendUnavailable(detail, cause) {
+    const err = new Error(
+        `Browser backend unavailable (${detail}). Run the browser sidecar and set BROWSER_WS_ENDPOINT `
+        + `to its Playwright server (ws://browser:9222/<path> in the self-host compose files), or mount `
+        + `the Docker socket so the server can start the shared browser container itself. `
+        + `BROWSER_ALLOW_LOCAL_LAUNCH only works for native dev with a locally installed browser; the `
+        + `server image has none.`
+    );
+    err.code = BACKEND_UNAVAILABLE;
+    if (cause) err.cause = cause;
+    return err;
+}
+
+/** Did this error come from a missing or unreachable browser backend? */
+function isBackendUnavailable(err) {
+    return !!err && err.code === BACKEND_UNAVAILABLE;
 }
 
 async function establish() {
     let endpoint = null;
     try {
-        endpoint = await pwtRunner.getBrowserEndpoint();
+        endpoint = await _deps.pwtRunner.getBrowserEndpoint();
     } catch (err) {
-        if (!ALLOW_LOCAL) {
-            throw new Error(
-                `Browser backend unavailable (${err.message}). Start Docker so the server can launch the `
-                + `shared browser container, or set BROWSER_WS_ENDPOINT to a reachable Playwright server. `
-                + `For native dev, install a local browser and set BROWSER_ALLOW_LOCAL_LAUNCH=true.`
-            );
-        }
+        if (!ALLOW_LOCAL) throw backendUnavailable(err.message, err);
         endpoint = null; // fall through to dev-only local launch
     }
 
     let browser;
-    if (endpoint) {
-        browser = await chromium().connect(endpoint, { timeout: CONNECT_TIMEOUT_MS });
-    } else {
-        browser = await chromium().launch({ headless: true, args: LOCAL_LAUNCH_ARGS });
+    try {
+        if (endpoint) {
+            browser = await chromium().connect(endpoint, { timeout: CONNECT_TIMEOUT_MS });
+        } else {
+            browser = await chromium().launch({ headless: true, args: LOCAL_LAUNCH_ARGS });
+        }
+    } catch (err) {
+        // A sidecar that is stopped, or an endpoint with the wrong path, fails
+        // here rather than in getBrowserEndpoint.
+        throw backendUnavailable(err.message, err);
     }
     // Drop the cached handle the moment the remote browser goes away so the next
     // call reconnects/respawns instead of throwing on a dead socket.
@@ -121,7 +150,7 @@ async function newSharedContext(contextOptions) {
 
 /** Pass-through to the underlying remote ws endpoint (rarely needed directly). */
 async function getBrowserEndpoint() {
-    return pwtRunner.getBrowserEndpoint();
+    return _deps.pwtRunner.getBrowserEndpoint();
 }
 
 /** Tear down the persistent connection (e.g. on process shutdown). */
@@ -131,4 +160,17 @@ async function close() {
     if (b) { try { await b.close(); } catch (_) { /* ignore */ } }
 }
 
-module.exports = { withContext, newSharedContext, getBrowserEndpoint, close };
+/**
+ * Test seam: swap the runner and the Playwright `chromium` getter, and drop
+ * any cached connection. No argument restores the real ones.
+ */
+function __setDepsForTests(over = null) {
+    _deps = { ...DEFAULT_DEPS, ...(over || {}) };
+    _conn = null;
+    _connecting = null;
+}
+
+module.exports = {
+    withContext, newSharedContext, getBrowserEndpoint, close,
+    isBackendUnavailable, BACKEND_UNAVAILABLE, __setDepsForTests,
+};

@@ -187,4 +187,45 @@ function routeUnderTest(test, path, load, { answer, gates = {}, ...serveOptions 
     return { db, api };
 }
 
-module.exports = { USER, recordDb, openGates, serve, routeUnderTest, assertRefused };
+/**
+ * In-process dispatch straight into a router, for the validation tests that
+ * stub the stores behind it and need no listening socket: a fake req/res pair
+ * goes through `router`, and an error it passes on is answered by the terminal
+ * error handler the way index.js answers it. Resolves with the `res` (its
+ * `statusCode` and `body`); a request no route handles rejects.
+ *
+ *   const dispatch = h.dispatcher(router, { session: () => ({ user: { id: 'u1' } }) });
+ *   const res = await dispatch({ method: 'PUT', url: '/x?limit=5', body: {} });
+ *
+ * `session` builds the default session, a fresh one per call, because routes
+ * write to it (login, MFA, signup); a call may pass its own. The query string
+ * is parsed into `req.query`, and `req.path` is the url without it.
+ */
+function dispatcher(router, { session: makeSession = () => ({ user: { id: 'u1' } }) } = {}) {
+    const { terminalErrorHandler } = require('./terminalErrorHandler');
+    return function dispatch({ method, url, body = {}, session }) {
+        return new Promise((resolve, reject) => {
+            const [pathname, search = ''] = String(url).split('?');
+            const query = {};
+            for (const [k, v] of new URLSearchParams(search)) query[k] = v;
+            const req = {
+                method, url, originalUrl: url, path: pathname, query, body, headers: {},
+                session: session || makeSession(), get() { return undefined; },
+            };
+            const res = {
+                statusCode: 200, headersSent: false,
+                set() { return this; }, setHeader() {}, cookie() { return this; },
+                status(c) { this.statusCode = c; return this; },
+                json(b) { this.body = b; this.headersSent = true; resolve(this); return this; },
+                send(b) { this.body = b; this.headersSent = true; resolve(this); return this; },
+                end() { this.headersSent = true; resolve(this); return this; },
+            };
+            router(req, res, (err) => {
+                if (!err) return reject(new Error(`fell through: ${method} ${url}`));
+                terminalErrorHandler(err, req, res, (e) => reject(e));
+            });
+        });
+    };
+}
+
+module.exports = { USER, recordDb, openGates, serve, routeUnderTest, assertRefused, dispatcher };

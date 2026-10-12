@@ -40,7 +40,7 @@ export async function getFillSession(token: string, sid: string, signal?: AbortS
     try {
         return readFillSession(await api.get<unknown>(sessionPath(token, sid), { signal, retry: false }));
     } catch {
-        // A dropped poll is not fatal — the routine keeps going either way.
+        // A dropped poll is not fatal — the automation keeps going either way.
         return null;
     }
 }

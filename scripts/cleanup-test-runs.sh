@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Remove what the playbook test runs left behind (playbooks, their routines,
+# Remove what the playbook test runs left behind (playbooks, their automations,
 # apps and created tables; with --forms also the test forms and their
 # "Answers — …" tables). DRY RUN unless --apply is given.
 #

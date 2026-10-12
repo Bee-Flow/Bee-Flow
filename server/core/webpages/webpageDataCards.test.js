@@ -5,7 +5,7 @@
  * gemonkeypatcht. Getoetst wordt wat het model BEWEERT: dat "niet gebruikt"
  * alleen wordt gezegd als het te controleren viel, dat een tabel die de
  * eigenaar niet mag lezen zichtbaar blijft als `missing`, en dat een
- * schrijvende routine een waarschuwing oplevert.
+ * schrijvende automatisering een waarschuwing oplevert.
  *
  * Draaien: cd server && node --test --test-force-exit core/webpages/webpageDataCards.test.js
  */
@@ -151,7 +151,7 @@ test('an internal failure to resolve does not leak its message into the card', a
     });
 });
 
-test('feeding routines are folded per automation, widest mode wins, and a writer warns', async () => {
+test('feeding automations are folded per automation, widest mode wins, and a writer warns', async () => {
     const usage = [
         { consumerKind: 'automation', automationId: 'auto_1', automationTitle: 'Tarieven beheren', mode: 'read', columns: ['name'], lastRunAt: null },
         { consumerKind: 'automation', automationId: 'auto_1', automationTitle: 'Tarieven beheren', mode: 'write', columns: ['price'], lastRunAt: '2026-09-01T10:00:00.000Z' },

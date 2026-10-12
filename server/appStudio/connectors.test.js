@@ -20,7 +20,7 @@ const connectors = require('./connectors');
 const OWNER = 'owner-1';
 const ORG = 'org-1';
 const app = { id: 'app-1', userId: OWNER, organizationId: ORG };
-const OWNER_SESSION = { user: { id: OWNER, organizationId: ORG }, isAdmin: false, routineProviders: {} };
+const OWNER_SESSION = { user: { id: OWNER, organizationId: ORG }, isAdmin: false, automationProviders: {} };
 
 function fakeResp(body, { ok = true, status = 200 } = {}) {
     const text = typeof body === 'string' ? body : JSON.stringify(body);
@@ -171,7 +171,7 @@ test('integration_tool: a tool error surfaces as a 502', async () => {
 
 // ── automation: owner-ownership gate ────────────────────────────────
 
-test('automation: routine owned by someone else → 403 (no run)', async () => {
+test('automation: automation owned by someone else → 403 (no run)', async () => {
     let ran = false;
     const connector = { id: 'c1', kind: 'automation', automationId: 'auto-1' };
     await assert.rejects(
@@ -187,7 +187,7 @@ test('automation: routine owned by someone else → 403 (no run)', async () => {
     assert.strictEqual(ran, false);
 });
 
-test('automation: missing routine → 404', async () => {
+test('automation: missing automation → 404', async () => {
     const connector = { id: 'c1', kind: 'automation', automationId: 'gone' };
     await assert.rejects(
         () => connectors.runConnector(connector, {
@@ -198,7 +198,7 @@ test('automation: missing routine → 404', async () => {
     );
 });
 
-test('automation: owner routine runs acts-as-owner with viewer id in the trigger payload', async () => {
+test('automation: owner automation runs acts-as-owner with viewer id in the trigger payload', async () => {
     const calls = [];
     const connector = { id: 'c1', kind: 'automation', automationId: 'auto-1' };
     const result = await connectors.runConnector(connector, {
@@ -368,7 +368,7 @@ test('rest: injects the owner bearer credential and never a viewer one', async (
     assert.strictEqual(seenHeaders.Authorization, 'Bearer OWNER-TOKEN');
 });
 
-// The credential hop goes through routineAuth.getProviderAuth, which refreshes
+// The credential hop goes through automationAuth.getProviderAuth, which refreshes
 // a token that is about to expire and returns null for a revoked / needs-reauth
 // credential. A raw store read did neither, so a connector on a short-lived
 // provider (Withings: 3 h) failed silently once its first token aged out.
@@ -466,7 +466,7 @@ test('rest: the timeout covers the BODY read, not just the headers', async () =>
 // ── integration_tool runAs:'viewer' ─────────────────────────────────
 
 const VIEWER = 'viewer-9';
-const VIEWER_SESSION = { user: { id: VIEWER, organizationId: ORG, groups: ['g1'] }, isAdmin: false, routineProviders: {} };
+const VIEWER_SESSION = { user: { id: VIEWER, organizationId: ORG, groups: ['g1'] }, isAdmin: false, automationProviders: {} };
 const viewerConnector = {
     id: 'c1', kind: 'integration_tool', tool: 'gmail_list_messages',
     integrationId: 'gmail', runAs: 'viewer',
@@ -498,7 +498,7 @@ test('viewer mode: falls back to a delegated lend grant and runs as the grantor'
         _deps: {
             buildUserSession: async (userId) => {
                 sessions.push(userId);
-                return userId === VIEWER ? VIEWER_SESSION : { user: { id: userId, organizationId: ORG }, routineProviders: {} };
+                return userId === VIEWER ? VIEWER_SESSION : { user: { id: userId, organizationId: ORG }, automationProviders: {} };
             },
             getIntegrationTools: async () => toolSet('some_other_tool'),
             resolveConnectionForRun: async (q) => {

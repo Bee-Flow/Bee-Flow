@@ -1,4 +1,5 @@
 import { nowLocalIso, todayIso } from './localDate';
+import useTranslation from '../../../../../../hooks/useTranslation';
 import { useFormField } from '../formContext';
 import { Field, INPUT_CLASS, inputStyle } from '../uiBits';
 
@@ -14,8 +15,9 @@ function seedValue(defaultValue, withTime) {
 }
 
 export default function AppInputDatetime({ node }) {
+    const { t } = useTranslation();
     const {
-        name, label = 'When', required = false, withTime = true, defaultValue = null,
+        name, label = t('studio_apps_runtime.inputs.when', 'When'), required = false, withTime = true, defaultValue = null,
     } = node.props || {};
     const seeded = seedValue(defaultValue, withTime);
     const { value, setValue, error } = useFormField({ name, defaultValue: seeded, required, label });

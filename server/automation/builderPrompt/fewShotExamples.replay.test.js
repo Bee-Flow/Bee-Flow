@@ -99,7 +99,9 @@ function freshWrap() {
 /** The create-table dependencies, stubbed the way datatableCreate.test.js stubs them. */
 function createDeps() {
     return {
-        resolvePrincipal: async () => ({ kind: 'user', id: 'u_test' }),
+        resolvePrincipal: async () => ({ userId: 'u_test', orgId: null }),
+        defaultCreateScope: (p) => ({ kind: 'user', id: p.userId }),
+        evaluateForRequest: async () => ({}),
         hasManageDatatables: async () => true,
         createStudioDatatable: async ({ name, fields }) => ({
             ok: true,
@@ -175,9 +177,9 @@ function synthesisedOutput(step, runState) {
     return { bound, recorded: JSON.parse(JSON.stringify({ ...bound, ...stamps })) };
 }
 
-/** The `_hint` builder_request_dry_run puts on a recorded object output (builderTools.js). */
+/** The `_hint` builder_request_dry_run puts on a recorded object output (builderTools.js dryRunHint). */
 function hintFor(recorded) {
-    return { outputType: 'object', topKeys: Object.keys(recorded), shape: shapeCache.renderShapeHint(shapeCache.describeValue(recorded)) };
+    return { outputType: 'object', topKeys: Object.keys(recorded), shape: shapeCache.shapeHintOf(recorded) };
 }
 
 /**
@@ -256,7 +258,13 @@ for (const [n, example] of examples().entries()) {
                 // is undefined is not a key on the wire.
                 real = JSON.parse(JSON.stringify(await applyToolCall(call.name, args, wrap)));
             }
-            assert.ok(!real.error, `${label}: the real builders must accept the few-shot call — ${real.error}`);
+            if (typeof call.echo?.error === 'string') {
+                // A recorded REFUSAL teaches reading the error and resending
+                // the corrected call: it must be the refusal the builders give.
+                assert.ok(real.error, `${label}: the recorded refusal must be what the builders answer — they accepted the call`);
+            } else {
+                assert.ok(!real.error, `${label}: the real builders must accept the few-shot call — ${real.error}`);
+            }
             if (call.name === 'builder_add_steps') {
                 for (const a of call.echo.added) idMap.set(a.id, real.idMap[a.tempId]);
                 for (const a of call.echo.added) knownIds.add(a.id);
@@ -275,7 +283,7 @@ for (const [n, example] of examples().entries()) {
             assert.deepEqual(withoutRouteKeys(call.echo), withoutRouteKeys(withRealIds(real, recordedIds)), `${label}: the recorded echo is not what the builders return`);
         }
         // Every example ends named and finalized, in the user's language.
-        assert.ok(wrap.title && wrap.title !== 'Untitled automation', 'the example named the routine');
+        assert.ok(wrap.title && wrap.title !== 'Untitled automation', 'the example named the automation');
         const last = example[example.length - 1];
         assert.equal(last.role, 'assistant');
         assert.ok(typeof last.content === 'string' && last.content.length > 0 && !last.tool_calls, 'ends with one sentence for the user');
@@ -306,7 +314,7 @@ test('builder_set_metadata is called in reply 1 of every example, beside the tri
     for (const ex of examples()) {
         const firstReply = ex.find(m => m.role === 'assistant');
         const names = firstReply.tool_calls.map(tc => tc.function.name);
-        assert.ok(names.includes('builder_set_metadata'), `reply 1 names the routine: ${names.join(', ')}`);
+        assert.ok(names.includes('builder_set_metadata'), `reply 1 names the automation: ${names.join(', ')}`);
         assert.ok(names.includes('builder_propose_trigger'), 'beside the trigger');
         const args = JSON.parse(firstReply.tool_calls.find(tc => tc.function.name === 'builder_set_metadata').function.arguments);
         assert.ok(args.title.length <= 60, `title ≤ 60 chars: ${args.title}`);

@@ -52,25 +52,25 @@ function requirementLine(item, t) {
     const where = item.stepId
         ? t('solutions.requires_at_step', 'step {step}').replace('{step}', item.stepId)
         : '';
-    const inRoutine = item.automationTitle
+    const inAutomation = item.automationTitle
         ? t('solutions.requires_in', 'in {name}').replace('{name}', item.automationTitle)
         : '';
     if (item.kind === 'datatable') {
         const key = item.datatableKey
             ? t('solutions.requires_table_named', 'a table for "{key}"').replace('{key}', item.datatableKey)
             : t('solutions.requires_table', 'a table');
-        return [key, where, inRoutine].filter(Boolean).join(' · ');
+        return [key, where, inAutomation].filter(Boolean).join(' · ');
     }
     if (item.kind === 'connection') {
-        return [t('solutions.requires_connection', 'a connection'), where, inRoutine].filter(Boolean).join(' · ');
+        return [t('solutions.requires_connection', 'a connection'), where, inAutomation].filter(Boolean).join(' · ');
     }
     if (item.kind === 'approver') {
-        return [t('solutions.requires_approver', 'someone to approve'), where, inRoutine].filter(Boolean).join(' · ');
+        return [t('solutions.requires_approver', 'someone to approve'), where, inAutomation].filter(Boolean).join(' · ');
     }
     if (item.kind === 'knowledge_base') {
-        return [t('solutions.requires_kb', 'a knowledge base'), where, inRoutine].filter(Boolean).join(' · ');
+        return [t('solutions.requires_kb', 'a knowledge base'), where, inAutomation].filter(Boolean).join(' · ');
     }
-    return [item.kind, where, inRoutine].filter(Boolean).join(' · ');
+    return [item.kind, where, inAutomation].filter(Boolean).join(' · ');
 }
 
 export function RequirementsPreview({ requires }) {
@@ -79,14 +79,13 @@ export function RequirementsPreview({ requires }) {
     if (!Array.isArray(items) || items.length === 0) return null;
     return (
         <div data-testid="solution-requires-preview">
-            <h3 className="text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>
+            <h3 className="text-sm font-semibold mb-2 text-[var(--text-primary)]">
                 {t('projects.blueprint_requires', 'Whoever installs it has to supply')}
             </h3>
             <ul className="space-y-1">
                 {items.map((item, i) => (
                     <li key={`${item.kind}-${item.stepId || item.externalId || i}`}
-                        className="px-3 py-2 rounded-lg text-sm"
-                        style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
+                        className="px-3 py-2 rounded-[var(--radius-md)] text-[13px] bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
                         {requirementLine(item, t)}
                     </li>
                 ))}

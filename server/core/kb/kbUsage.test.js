@@ -192,7 +192,7 @@ function describe_scrub() {
     test('automations and apps are deliberately NOT rewritten', async () => {
         // The id sits at an unknown depth inside a definition that also
         // encodes the shape of a canvas. Rewriting arbitrary JSON in place
-        // risks corrupting a routine somebody spent an afternoon building, to
+        // risks corrupting an automation somebody spent an afternoon building, to
         // save them an error that already names the missing base.
         const d = scrubDb({ tables: ['agents', 'automations', 'studio_apps'] });
         await scrubReferences('kb1', { db: d });

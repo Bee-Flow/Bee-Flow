@@ -54,7 +54,7 @@
  *   kb sources  → the `status` column kb_sources already maintains.
  *   runs        → automationStore.getRecentRunStatusesForUser.
  * Only two rules are genuinely new, because nothing anywhere produced them: a
- * published agent with no knowledge base, and a routine's failure streak. Both
+ * published agent with no knowledge base, and an automation's failure streak. Both
  * are written once, here, and go through core/findings/finding.js like the
  * rest.
  */
@@ -97,11 +97,11 @@ const APP_READ_CONCURRENCY = 4;
 /** Rows one source may contribute before the rest are folded into a count. */
 const MAX_ROWS_PER_SOURCE = 20;
 
-/** Runs looked at per routine when counting a failure streak. */
+/** Runs looked at per automation when counting a failure streak. */
 const RUN_WINDOW = 10;
-/** Failures in a row before a routine is "failing" rather than "flaky". */
+/** Failures in a row before an automation is "failing" rather than "flaky". */
 const MIN_FAILURE_STREAK = 3;
-/** How far back the streak may reach. A routine nobody has run in a month is
+/** How far back the streak may reach. An automation nobody has run in a month is
  *  not a thing that needs attention today. */
 const RUN_LOOKBACK_MS = 30 * 24 * 3600 * 1000;
 
@@ -166,10 +166,10 @@ function agentConfigOf(row) {
 /**
  * How many of the newest runs failed WITHOUT a success in between.
  *
- * The rows arrive newest-first per routine, so this is a leading count and it
+ * The rows arrive newest-first per automation, so this is a leading count and it
  * stops at the first run that is not an error. A run that is still 'running' or
  * 'queued' stops it too: an unfinished run has not failed, and treating it as a
- * failure would report a routine that is at this moment working.
+ * failure would report an automation that is at this moment working.
  */
 function leadingErrorStreak(statuses) {
     let n = 0;
@@ -377,13 +377,13 @@ function evaluateKbEmptyInUse(data = {}) {
 }
 
 /**
- * 4. A routine that failed its last few runs in a row.
+ * 4. An automation that failed its last few runs in a row.
  *
  * The streak is counted here rather than in SQL so it is a rule anyone can
  * read and a test can drive with plain objects — see the store function's
  * header for why the query returns a window instead of a verdict.
  *
- * An error, unlike the other five: a routine that has failed three times
+ * An error, unlike the other five: an automation that has failed three times
  * running is not doing its job, and it will not start again on its own.
  */
 function evaluateAutomationFailing(data = {}) {
@@ -398,8 +398,8 @@ function evaluateAutomationFailing(data = {}) {
             severity: 'error',
             kind: 'automation',
             targetRef: { kind: 'automation', id: group.id, title: group.title },
-            message: `${nameOrDefault(group.title, 'A routine')} failed its last ${streak} runs in a row.`,
-            remediation: 'Open the routine and check the run log for the step that keeps failing.',
+            message: `${nameOrDefault(group.title, 'An automation')} failed its last ${streak} runs in a row.`,
+            remediation: 'Open the automation and check the run log for the step that keeps failing.',
         }, miss, 'automations:row');
     }
     return { findings, gaps };
@@ -686,7 +686,7 @@ const SOURCES = [
         load: async (req, d) => {
             const now = typeof d.now === 'function' ? d.now() : Date.now();
             const sinceTs = new Date(now - RUN_LOOKBACK_MS).toISOString();
-            // The caller's OWN routines. `automations` are user-scoped and the
+            // The caller's OWN automations. `automations` are user-scoped and the
             // organisation-wide run list sits behind manage_automations, so this
             // is both the narrowest correct scope and the only one whose deep
             // link (/app/studio/automations/:id) opens for this reader.

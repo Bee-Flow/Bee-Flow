@@ -54,7 +54,7 @@ export function ProjectFormSheet({
             visible={visible}
             onClose={onClose}
             title={initial ? t('mobile.projects.edit_title', 'Edit details') : t('solutions.new', 'New Solution')}
-            subtitle={initial ? undefined : t('solutions.intro', 'A Solution bundles routines, apps and webpages that work together — and packages as a Blueprint you can install elsewhere.')}
+            subtitle={initial ? undefined : t('solutions.intro', 'A Solution bundles automations, apps and webpages that work together — and packages as a Blueprint you can install elsewhere.')}
             submitLabel={initial ? t('common.save', 'Save') : t('common.create', 'Create')}
             onSubmit={() => void form.submit()}
             canSubmit={form.canSubmit && (initial ? form.dirty : true)}

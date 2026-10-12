@@ -43,6 +43,10 @@ function kindHoldsOtherContent(t: TranslateFn, details: Record<string, unknown> 
 /** Refusals of team chats, their messages, and content made in a project. */
 function chatOrContentText(t: TranslateFn, code: string | null): string | null {
     switch (code) {
+        case 'board_changed': return t('project_tasks.board_changed', 'The board changed. Close and reopen the column settings before saving.');
+        case 'column_not_empty': return t('project_tasks.column_not_empty', 'Move all tasks out of this column before removing it or changing its status.');
+        case 'invalid_columns': return t('project_tasks.invalid_columns', 'Keep at least one column for each status, with unique names.');
+        case 'invalid_position': return t('project_tasks.invalid_position', 'The destination changed. Refresh the board and try again.');
         case 'chat_archived':
             return t('project_chat.archived_notice', 'This chat is archived. Restore it to post again.');
         case 'ai_mode_not_allowed':
@@ -72,12 +76,34 @@ function chatOrContentText(t: TranslateFn, code: string | null): string | null {
  * The sentence to show for a refused project request. `source` is what was
  * thrown (or, for callers that use fetch directly, the response body).
  */
+/** Refusals of a document whose encryption key this session does not hold. */
+function encryptionText(t: TranslateFn, code: string | null): string | null {
+    switch (code) {
+        case 'document_encryption_key_unavailable':
+            return t('documents.encryption.key_unavailable', 'Your encryption key is not loaded in this session. Sign in again (or enter your encryption PIN) to unlock it, then try again.');
+        case 'document_decryption_failed':
+            return t('documents.encryption.decryption_failed', 'This document could not be opened with your key. Sign in again and try once more; if it keeps failing, ask your administrator.');
+        case 'document_encryption_invalid':
+            return t('documents.encryption.invalid', 'This document uses an encryption format this version does not recognise. Ask your administrator before changing it.');
+        default: return null;
+    }
+}
+
 export function projectErrorText(t: TranslateFn, source: unknown, fallback?: string): string {
     const { code, details, message } = projectErrorInfo(source);
-    const known = chatOrContentText(t, code);
+    const known = chatOrContentText(t, code) || encryptionText(t, code);
     if (known) return known;
     switch (code) {
+        case 'invalid_date_range': return t('project_tasks.invalid_date_range', 'The start date must be on or before the due date.');
         case 'SHARED_CHATS_REMAIN': return sharedChatsRemain(t, details);
+        case 'owner_changed':
+            return t('project_home.transfer.owner_changed', 'The owner changed in the meantime. Reload the page and try again.');
+        case 'project_archived':
+            return t('project_home.archived.refused', 'This project is archived and read-only. The owner can restore it.');
+        case 'transfer_first':
+            return t('project_home.transfer.transfer_first', 'Transfer the project to someone else first.');
+        case 'not_a_member':
+            return t('project_home.transfer.not_a_member', 'Only a member of this project can become its owner.');
         case 'KIND_ALREADY_SET': return kindAlreadySet(t, details);
         case 'KIND_HOLDS_OTHER_CONTENT': return kindHoldsOtherContent(t, details);
         case 'KIND_NOT_ALLOWED':

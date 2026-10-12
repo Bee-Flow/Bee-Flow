@@ -6,6 +6,7 @@ import StepNodeBase from './StepNodeBase';
 import { CONTAINER_HEADER } from '../inlineFlowlets';
 import { useNodeRuntime } from '../NodeRuntimeContext';
 import { statusVar, typeColorVar, typeTint } from '../nodeTypeColors';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 
 /**
  * A "call_layer" node — runs an inline flowlet (sub-flow declared in
@@ -23,6 +24,7 @@ import { statusVar, typeColorVar, typeTint } from '../nodeTypeColors';
  *               children occupy.
  */
 export default function CallFlowletNode({ id, data }) {
+    const { t } = useTranslation();
     const { step, runStep, issues, onAddAfter, inlineExpanded: container } = data;
     const { onOpenLayer, layerSummaries, onToggleInline, layerRefCounts } = useNodeRuntime();
     const summary = step.layerKey ? (layerSummaries?.[step.layerKey] || '') : '';
@@ -46,8 +48,8 @@ export default function CallFlowletNode({ id, data }) {
             type="button"
             onClick={(e) => { e.stopPropagation(); onOpenLayer(step.layerKey); }}
             onMouseDown={(e) => e.stopPropagation()}
-            aria-label="Open flowlet"
-            title="Open this flowlet on its own canvas"
+            aria-label={t('automations.call_flowlet_node.open_flowlet', 'Open flowlet')}
+            title={t('automations.call_flowlet_node.open_this_flowlet_on_its_own', 'Open this flowlet on its own canvas')}
             className="h-5 w-5 rounded-md flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
         >
             <SquareArrowOutUpRight size={11} />
@@ -84,6 +86,7 @@ export default function CallFlowletNode({ id, data }) {
  * the status colour — the same rule as a card.
  */
 function ExpandedFlowlet({ id, step, summary, runStep, refCount, onOpenLayer, onToggle }) {
+    const { t } = useTranslation();
     // Same rule as a card, and now from the same place: nodeTypeColors reads
     // the shared status table, so a running flowlet is the blue the run panel
     // draws it in rather than the amber this file used to pick, and a
@@ -104,7 +107,7 @@ function ExpandedFlowlet({ id, step, summary, runStep, refCount, onOpenLayer, on
                     style={{ color: typeColorVar('loop') }}
                 >
                     <Layers size={12} className="inline-block align-[-2px] mr-1" />
-                    Flowlet
+                    {t('automations.call_flowlet_node.flowlet', 'Flowlet')}
                 </span>
                 <div className="min-w-0 flex-1">
                     <div className="text-xs font-semibold truncate">{step.label || step.layerKey || 'Flowlet'}</div>
@@ -123,7 +126,7 @@ function ExpandedFlowlet({ id, step, summary, runStep, refCount, onOpenLayer, on
                     <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); onOpenLayer(step.layerKey); }}
-                        title="Open this flowlet on its own canvas"
+                        title={t('automations.call_flowlet_node.open_this_flowlet_on_its_own', 'Open this flowlet on its own canvas')}
                         className="shrink-0 text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
                     >
                         <SquareArrowOutUpRight size={13} />
@@ -133,7 +136,7 @@ function ExpandedFlowlet({ id, step, summary, runStep, refCount, onOpenLayer, on
                     <button
                         type="button"
                         onClick={onToggle}
-                        title="Collapse this flowlet"
+                        title={t('automations.call_flowlet_node.collapse_this_flowlet', 'Collapse this flowlet')}
                         className="shrink-0 text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
                     >
                         <ChevronDown size={15} />

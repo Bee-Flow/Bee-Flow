@@ -2,7 +2,7 @@
  * Withings connector routes — mounted at /api/integrations/withings.
  *
  *   GET  /auth-url    — start OAuth (CSRF state, offline by default)
- *   GET  /callback    — token exchange → encrypted vault (routine_credentials)
+ *   GET  /callback    — token exchange → encrypted vault (automation_credentials)
  *   GET  /status      — { configured, connected, needsReauth, withingsUserId }
  *   POST /disconnect  — vault delete + audit
  *
@@ -20,7 +20,7 @@
  * and the SSO provider guard 404s on it.)
  *
  * Two Withings deviations from plain OAuth2, both handled below and shared with
- * the vault refresher (auth/routineAuth.js):
+ * the vault refresher (auth/automationAuth.js):
  *   • the token endpoint is action-dispatched — `action=requesttoken`;
  *   • a refusal arrives as HTTP 200 with a non-zero `status`, and the tokens
  *     live one level down under `body`.
@@ -35,8 +35,8 @@ const crypto = require('crypto');
 const log = require('../../telemetry/log');
 const router = express.Router();
 const configStore = require('../../stores/configStore');
-const routineCredentialStore = require('../../stores/routineCredentialStore');
-const routineAuth = require('../../auth/routineAuth');
+const automationCredentialStore = require('../../stores/automationCredentialStore');
+const automationAuth = require('../../auth/automationAuth');
 const { OAUTH_PROVIDERS, requireAuth } = require('../../auth/permissions');
 
 const PROVIDER = 'withings';
@@ -67,7 +67,7 @@ router.get('/auth-url', requireAuth, async (req, res) => {
     const userId = req.session?.user?.id;
     if (!userId) return res.status(401).json({ error: 'Not authenticated' });
 
-    const { clientId } = await routineAuth.withingsClientConfig();
+    const { clientId } = await automationAuth.withingsClientConfig();
     if (!clientId) {
         return res.status(400).json({
             error: 'Withings is not configured. Ask your admin to set the Withings Client ID and Secret in Admin → Integrations.',
@@ -122,7 +122,7 @@ router.get('/callback', async (req, res) => {
     clearOAuthState();
 
     try {
-        const { clientId, clientSecret } = await routineAuth.withingsClientConfig();
+        const { clientId, clientSecret } = await automationAuth.withingsClientConfig();
         if (!clientId || !clientSecret) throw new Error('Withings OAuth is not configured');
         const redirectUri = storedRedirectUri || buildRedirectUri(req);
 
@@ -153,7 +153,7 @@ router.get('/callback', async (req, res) => {
         const payload = await tokenRes.json().catch(() => null);
         if (!payload) throw new Error('Withings returned a non-JSON token response');
         // Shared unwrapper: status must be 0 and the tokens live under `body`.
-        const tokenData = routineAuth.readWithingsBody(payload, 'token exchange');
+        const tokenData = automationAuth.readWithingsBody(payload, 'token exchange');
         if (!tokenData.access_token || !tokenData.refresh_token) {
             throw new Error('Withings token response was missing tokens');
         }
@@ -161,7 +161,7 @@ router.get('/callback', async (req, res) => {
         const userStore = require('../../stores/userStore');
         const user = await userStore.getUser(userId).catch(() => null);
         const orgId = resolveVaultOrgId({ ...user, id: userId });
-        await routineCredentialStore.upsertCredential({
+        await automationCredentialStore.upsertCredential({
             userId,
             orgId,
             provider: PROVIDER,
@@ -177,15 +177,13 @@ router.get('/callback', async (req, res) => {
         const withingsUserId = tokenData.userid ? String(tokenData.userid) : '';
         await configStore.setConfig(`withings_userid_user_${userId}`, withingsUserId);
 
-        // Resume routines paused while the credential was in needs_reauth.
+        // Resume automations paused while the credential was in needs_reauth.
         try {
-            const aiTaskStore = require('../../stores/aiTaskStore');
             const coworkStore = require('../../stores/coworkStore');
-            const resumed = await aiTaskStore.resumeNeedsReauthForUser(userId)
-                + await coworkStore.resumeNeedsReauthForUser(userId);
-            if (resumed > 0) log.info(`[WithingsConnector] resumed ${resumed} routine(s) for user ${userId}`);
+            const resumed = await coworkStore.resumeNeedsReauthForUser(userId);
+            if (resumed > 0) log.info(`[WithingsConnector] resumed ${resumed} automation(s) for user ${userId}`);
         } catch (e) {
-            log.warn(`[WithingsConnector] resume-routines failed: ${e.message}`);
+            log.warn(`[WithingsConnector] resume-automations failed: ${e.message}`);
         }
 
         // Metadata row in the named-connections layer — upsert, not insert: one
@@ -218,10 +216,10 @@ router.get('/status', requireAuth, async (req, res) => {
     const userId = req.session?.user?.id;
     if (!userId) return res.status(401).json({ error: 'Not authenticated' });
 
-    const { clientId, clientSecret } = await routineAuth.withingsClientConfig();
+    const { clientId, clientSecret } = await automationAuth.withingsClientConfig();
     const configured = !!(clientId && clientSecret);
 
-    const cred = await routineCredentialStore.getCredential(userId, PROVIDER).catch(() => null);
+    const cred = await automationCredentialStore.getCredential(userId, PROVIDER).catch(() => null);
     const connected = cred?.status === 'active';
     const needsReauth = !connected && cred?.status === 'needs_reauth';
     const withingsUserId = (connected || needsReauth)

@@ -13,7 +13,6 @@ vi.mock('../licensing/LicenseContext', () => ({
 }));
 // Heavy siblings rendered by other sections — not under test here.
 vi.mock('./FeatureKillSwitches', () => ({ default: () => null }));
-vi.mock('./McpMarketplace', () => ({ default: () => null }));
 
 const OAUTH_START = '/ai/config/service-email/oauth/start';
 const json = (body, ok = true) => Promise.resolve({ ok, json: async () => body });

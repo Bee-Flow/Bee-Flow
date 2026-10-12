@@ -17,7 +17,7 @@ function deps({ automation, runs = {}, rowCount = 3, execute } = {}) {
 }
 const manual = { id: 'a1', userId: 'u1', isDraft: false, definition: { trigger: { kind: 'manual' } } };
 
-test('runs the routine once: the run id arrives through onRunCreated, rowsBefore is read first, the run resolves in time', async () => {
+test('runs the automation once: the run id arrives through onRunCreated, rowsBefore is read first, the run resolves in time', async () => {
     const seen = [];
     const r = await startFillPhase({ playbook: PB, automationId: 'a1', tableArtifacts: TABLE, onRunCreated: (run) => seen.push(run.id) }, deps({ automation: manual }));
     assert.equal(r.ok, true);
@@ -28,8 +28,8 @@ test('runs the routine once: the run id arrives through onRunCreated, rowsBefore
     assert.deepEqual(seen, ['run_1']);
 });
 
-test('refuses: no routine, another owner, a routine that does not start by hand', async () => {
-    assert.equal((await startFillPhase({ playbook: PB, automationId: null, tableArtifacts: TABLE }, deps({ automation: manual }))).code, 'routine_missing');
+test('refuses: no automation, another owner, an automation that does not start by hand', async () => {
+    assert.equal((await startFillPhase({ playbook: PB, automationId: null, tableArtifacts: TABLE }, deps({ automation: manual }))).code, 'automation_missing');
     assert.equal((await startFillPhase({ playbook: PB, automationId: 'a1', tableArtifacts: TABLE }, deps({ automation: { ...manual, userId: 'u2' } }))).code, 'not_owner');
     const r = await startFillPhase({ playbook: PB, automationId: 'a1', tableArtifacts: TABLE }, deps({ automation: { ...manual, definition: { trigger: { kind: 'nextcloud_file' } } } }));
     assert.equal(r.code, 'trigger_not_manual');

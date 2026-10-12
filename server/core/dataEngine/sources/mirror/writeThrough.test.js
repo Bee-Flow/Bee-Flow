@@ -148,7 +148,7 @@ test('delete: probe, then source, then copy; already-gone at the source still co
 
 test('batch forms without many-calls: the per-row loop; collect reports per index and stops when the source is unreachable', async () => {
     const wt = makeWriteThrough(base());
-    // the routine-step contract: the first refusal throws
+    // the automation-step contract: the first refusal throws
     await assert.rejects(() => wt.insertRows(ctx(wt), [{ a: 'ok' }, { derived: 1 }, { a: 'never' }]), (e) => e.code === 'derived_column');
     assert.equal(src.calls.length, 1, 'stopped at the refusal');
     src.calls.length = 0;

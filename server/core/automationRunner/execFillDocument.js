@@ -17,7 +17,7 @@
  * meant teaching all of them a second one.
  *
  * WHOSE DOCUMENT. documentStore.getDocument is owner-scoped, and the owner
- * here is the routine's owner (`ctx.userId`) — the same identity the rest of
+ * here is the automation's owner (`ctx.userId`) — the same identity the rest of
  * the run acts as. A template id belonging to somebody else is simply not
  * found, which is the behaviour every other owner-scoped read in this codebase
  * has: a 404, never a 403 that confirms the id exists.
@@ -26,6 +26,7 @@
 const crypto = require('crypto');
 const automationStore = require('../../stores/automationStore');
 const { interpolateTemplate, resolveValue, walkPath } = require('../../automation/bind');
+const { scanTemplate } = require('../../automation/expr');
 const { renderFilledDocument, documentFileName } = require('../documents/renderFilledDocument');
 const { resolveDocumentMarking, markingOutcome } = require('./execDocument');
 const log = require('../../telemetry/log');
@@ -41,8 +42,19 @@ const TTL_DEFAULT_DAYS = 7;
 // dataset being printed — and every hole costs a binding resolution.
 const MAX_VALUES = 200;
 
-/** A string that is exactly one `{{path}}` and nothing else. */
-const SOLE_TOKEN_RE = /^\s*\{\{\s*([^{}]+?)\s*\}\}\s*$/;
+/**
+ * The path of a string that is exactly one `{{path}}` and nothing else
+ * (surrounding whitespace allowed), else null. Read with the runner's own
+ * quote-aware scanner, so `{{ x["a}b"] }}` and `{{{ x }}}` are one
+ * placeholder, as interpolateTemplate reads them; the regex this replaced
+ * refused any brace inside and flattened such a list to JSON text.
+ * Shared with execPresentation (the same rule for slides).
+ */
+function soleTemplatePath(text) {
+    if (typeof text !== 'string' || !text.includes('{{')) return null;
+    const parts = scanTemplate(text).filter(p => p.type === 'ref' || p.value.trim());
+    return parts.length === 1 && parts[0].type === 'ref' ? parts[0].inner : null;
+}
 
 /**
  * Resolve one bound value for a placeholder.
@@ -63,9 +75,9 @@ function resolveBoundValue(raw, runState) {
     if (raw === null || raw === undefined) return raw;
     if (typeof raw === 'object') return resolveValue(raw, runState);
     if (typeof raw !== 'string') return raw;
-    const sole = SOLE_TOKEN_RE.exec(raw);
-    if (sole) {
-        const v = walkPath(sole[1], runState);
+    const sole = soleTemplatePath(raw);
+    if (sole !== null) {
+        const v = walkPath(sole, runState);
         return v === undefined ? undefined : v;
     }
     return interpolateTemplate(raw, runState);
@@ -89,6 +101,8 @@ function buildValues(rawValues, runState) {
         const value = resolveBoundValue(rawValues[key], runState);
         if (value === undefined) continue;          // let the filler report the hole
         if (!require('../documents/documentContract').safePath(key)) throw new Error('Unsafe document parameter path');
+        // A document parameter key, not a run path: safePath above allows
+        // only dotted names (`customer.name`), so a split is its whole grammar.
         const parts = String(key).split('.').filter(Boolean);
         if (!parts.length) continue;
         let cur = out;
@@ -222,7 +236,7 @@ async function execFillDocument(step, ctx, runState, mode) {
 
     // Optionally keep the FILLED document in the library as its own document,
     // so a person can correct a line by hand before it goes out. Off by
-    // default: a routine that runs nightly would otherwise mint a document a
+    // default: an automation that runs nightly would otherwise mint a document a
     // day forever. A failure here never fails the step — the PDF, which is
     // what the rest of the run uses, already exists.
     let savedCopy = null;
@@ -234,7 +248,7 @@ async function execFillDocument(step, ctx, runState, mode) {
                 userId: ctx.userId,
                 name: copyName.slice(0, 200),
                 docType: doc.docType,
-                description: `Filled in by the routine on ${new Date().toISOString().slice(0, 10)}.`,
+                description: `Filled in by the automation on ${new Date().toISOString().slice(0, 10)}.`,
                 // For a presentation the filled OUTLINE is what is kept, so the
                 // copy opens as slides and can still be edited.
                 bodyHtml: fill.bodyHtml,
@@ -283,5 +297,6 @@ async function execFillDocument(step, ctx, runState, mode) {
 module.exports = {
     MAX_DOCUMENT_BYTES, TTL_MIN_DAYS, TTL_MAX_DAYS, TTL_DEFAULT_DAYS, MAX_VALUES,
     execFillDocument,
+    soleTemplatePath,
     _test: { buildValues, resolveBoundValue, fillReport },
 };

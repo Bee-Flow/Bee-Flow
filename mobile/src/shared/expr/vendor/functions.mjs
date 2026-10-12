@@ -16,6 +16,9 @@
  * (agent-hub .../mapping/exprFunctions.js) and its lockstep test track this set.
  */
 
+import { extractJsonText, getRelativePath, parseJsonText, parsePath, walkTokens } from './path.mjs';
+import { equalsValue, fileTypeOf, isEmptyValue, quantify, textContains, textEndsWith, textStartsWith } from './rules.mjs';
+
 // ── Deterministic ISO date helpers (UTC-only) ──────────────────────────────
 // Dates are ISO strings. We parse to a UTC instant MANUALLY so a bare
 // 'YYYY-MM-DDTHH:MM:SS' (no zone) means the same thing in every JS engine —
@@ -206,50 +209,36 @@ const ciEq = (a, b) => String(a).toLowerCase() === String(b).toLowerCase();
 const ci = (x) => String(x).toLowerCase();
 
 // ── JSON path walker (for parseJson) ───────────────────────────────────────
-// A miniature of the binding resolver's walkRelativePath (server
-// automation/bind.js): dotted keys, [0] indices, ["quoted keys"], and a [*]
-// wildcard that maps the remainder over an array and flattens one level.
-// Prototype-chain members never resolve (own-property gate), so JSON text can
-// never be used to reach `constructor`/`__proto__`. Misses return undefined —
-// same contract as every path lookup in the engine.
-function walkJsonSegments(value, segments, s) {
-    let cur = value;
-    for (let t = s; t < segments.length; t++) {
-        const seg = segments[t];
-        if (seg.wild) {
-            if (!Array.isArray(cur)) return undefined;
-            const out = [];
-            for (const el of cur) {
-                const m = walkJsonSegments(el, segments, t + 1);
-                if (m === undefined) continue;
-                if (Array.isArray(m)) out.push(...m);
-                else out.push(m);
-            }
-            return out;
-        }
-        if (cur == null) return undefined;
-        if (!Object.prototype.hasOwnProperty.call(cur, seg.key)) return undefined;
-        cur = cur[seg.key];
-    }
-    return cur;
-}
-
-function walkJsonPath(value, path) {
-    const segments = [];
+// The binding resolver's own walker (path.mjs getRelativePath), so a path
+// means the same value here as in a ref, a template or the parse_json step:
+// dotted keys, [0] and [-1], ["quoted keys"] with escapes, a [*] wildcard
+// that maps the remainder and flattens one level, JSON text read as the value
+// it encodes. Prototype-chain members never resolve (own-property gate), so
+// JSON text can never be used to reach `constructor`/`__proto__`. Misses
+// return undefined — same contract as every path lookup in the engine.
+//
+// This used to be a private copy of an older tokenizer, which split on `.`
+// and `[…]`, read ANY other character as part of a key and skipped empty
+// segments. Paths the shared grammar cannot read (".data.id",
+// "items[0].Story Points", "a..b", "user:name") are still read with that
+// tokenizer, verbatim, and then walked by the shared walker, so formulas
+// written against the old walker keep working and keep its safety rules.
+function legacyTokens(path) {
+    const tokens = [];
     let i = 0;
     let buf = '';
-    const flush = () => { if (buf.length) { segments.push({ key: buf }); buf = ''; } };
+    const flush = () => { if (buf.length) { tokens.push({ type: 'prop', key: buf }); buf = ''; } };
     while (i < path.length) {
         const c = path[i];
         if (c === '.') { flush(); i++; continue; }
         if (c === '[') {
             flush();
             const close = path.indexOf(']', i);
-            if (close < 0) return undefined; // malformed → miss, never throw
+            if (close < 0) return null; // malformed → miss, never throw
             const raw = path.slice(i + 1, close);
-            if (raw === '*') segments.push({ wild: true });
-            else if ((raw.startsWith('"') && raw.endsWith('"')) || (raw.startsWith("'") && raw.endsWith("'"))) segments.push({ key: raw.slice(1, -1) });
-            else segments.push({ key: parseInt(raw, 10) });
+            if (raw === '*') tokens.push({ type: 'wild' });
+            else if ((raw.startsWith('"') && raw.endsWith('"')) || (raw.startsWith("'") && raw.endsWith("'"))) tokens.push({ type: 'prop', key: raw.slice(1, -1) });
+            else tokens.push({ type: 'prop', key: parseInt(raw, 10) });
             i = close + 1;
             continue;
         }
@@ -257,18 +246,29 @@ function walkJsonPath(value, path) {
         i++;
     }
     flush();
-    return walkJsonSegments(value, segments, 0);
+    return tokens;
+}
+
+function walkJsonPath(value, path) {
+    let p = path.trim();
+    if (p.startsWith('$.')) p = p.slice(2);
+    else if (p.startsWith('$[')) p = p.slice(1);
+    // getRelativePath strips the same `$.` / `$[` prefix itself, so it gets
+    // the path as written; the check only decides whether the shared
+    // grammar can read it at all.
+    if (parsePath(p.startsWith('[') ? `$${p}` : `$.${p}`)) return getRelativePath(value, path);
+    const tokens = legacyTokens(p);
+    return tokens ? walkTokens(tokens, value) : undefined;
 }
 
 export const FUNCTIONS = {
     // ── Original 7 (kept byte-identical to server/automation/expr.js) ──────
     contains: (a, b) => {
-        if (a == null) return false;
         if (Array.isArray(a)) return a.some((x) => x === b || (typeof x === 'string' && typeof b === 'string' && ci(x).includes(ci(b))));
-        return ci(a).includes(b == null ? '' : ci(b));
+        return textContains(a, b);
     },
-    startsWith: (a, b) => (a == null ? false : ci(a).startsWith(b == null ? '' : ci(b))),
-    endsWith: (a, b) => (a == null ? false : ci(a).endsWith(b == null ? '' : ci(b))),
+    startsWith: (a, b) => textStartsWith(a, b),
+    endsWith: (a, b) => textEndsWith(a, b),
     lower: (a) => (a == null ? '' : String(a).toLowerCase()),
     upper: (a) => (a == null ? '' : String(a).toUpperCase()),
     len: (a) => {
@@ -277,12 +277,14 @@ export const FUNCTIONS = {
         if (typeof a === 'object') return Object.keys(a).length;
         return 0;
     },
-    isEmpty: (a) => {
-        if (a == null) return true;
-        if (Array.isArray(a) || typeof a === 'string') return a.length === 0;
-        if (typeof a === 'object') return Object.keys(a).length === 0;
-        return false;
-    },
+    isEmpty: (a) => isEmptyValue(a),
+
+    // ── Rules (logic in rules.mjs, shared with the rule rows) ──────────────
+    equals: (a, b) => equalsValue(a, b),
+    fileType: (v) => fileTypeOf(v),
+    anyOf: (l, t, v) => quantify('any', l, t, v),
+    everyOf: (l, t, v) => quantify('every', l, t, v),
+    noneOf: (l, t, v) => quantify('none', l, t, v),
 
     // ── Numeric ────────────────────────────────────────────────────────────
     number: (x) => toNum(x),
@@ -528,6 +530,14 @@ export const FUNCTIONS = {
     // so the two-argument form IS the way to reach into the parsed value.
     // Already-parsed objects/arrays pass through, so the same expression
     // works whether an upstream tool returned text or structured data.
+    //
+    // Text is read the way a language model writes JSON (path.mjs
+    // extractJsonText): plain JSON first, else a ```json fence or one record
+    // (or list of records) inside prose; a JSON string that holds JSON
+    // (encoded twice) is unwrapped once. Plain JSON.parse returned null for a
+    // fenced answer, which is how models answer about half the time. An error
+    // text or page that merely contains `{}` or `[429]`, or a cut-off answer,
+    // is still null, so `parseJson(body) == null` keeps guarding on it.
     parseJson: (text, path) => {
         if (text == null) return null;
         let v;
@@ -537,7 +547,14 @@ export const FUNCTIONS = {
             if (s.charCodeAt(0) === 0xFEFF) s = s.slice(1); // strip BOM
             s = s.trim();
             if (!s) return null;
-            try { v = JSON.parse(s); } catch { return null; }
+            try { v = JSON.parse(s); } catch {
+                v = extractJsonText(s);
+                if (v === undefined) return null;
+            }
+            if (typeof v === 'string') {
+                const inner = parseJsonText(v);
+                if (inner !== undefined) v = inner;
+            }
         }
         return (path == null || path === '' || path === '$') ? v : walkJsonPath(v, String(path));
     },
@@ -661,6 +678,11 @@ export const EXPR_FUNCTIONS = [
     { name: 'upper', signature: 'upper(text)', description: 'Uppercase the text.' },
     { name: 'len', signature: 'len(value)', description: 'Length of text, a list, or an object.' },
     { name: 'isEmpty', signature: 'isEmpty(value)', description: 'True for missing values, empty text, lists or objects.' },
+    { name: 'equals', signature: 'equals(a, b)', description: 'True when a and b are the same: text ignores upper/lower case and surrounding spaces, "5" equals 5.' },
+    { name: 'fileType', signature: 'fileType(file)', description: 'The kind of a file (or of each file in a list): pdf, word, excel, powerpoint, image, text, archive, audio, video or other — from its MIME type, else its extension.' },
+    { name: 'anyOf', signature: 'anyOf(list, test, value)', description: 'True when at least one entry passes the test — anyOf(item.attachments[*].filename, "endsWith", ".pdf"). Tests: equals, !equals, contains, !contains, startsWith, endsWith, ==, !=, >, >=, <, <=, isEmpty, !isEmpty.' },
+    { name: 'everyOf', signature: 'everyOf(list, test, value)', description: 'True when the list is not empty and every entry passes the test.' },
+    { name: 'noneOf', signature: 'noneOf(list, test, value)', description: 'True when no entry passes the test (also for an empty list).' },
     { name: 'number', signature: 'number(value)', description: 'Convert to a number (or null if not numeric).' },
     { name: 'round', signature: 'round(value, places?)', description: 'Round to the given decimal places (default 0).' },
     { name: 'floor', signature: 'floor(value)', description: 'Round down to a whole number.' },

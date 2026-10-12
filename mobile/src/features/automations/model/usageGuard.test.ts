@@ -7,7 +7,7 @@ const row = (over: Partial<AutomationUsageRow> = {}): AutomationUsageRow => ({
 });
 
 describe('usageGuard', () => {
-    it('lists each app button that starts the routine', () => {
+    it('lists each app button that starts the automation', () => {
         expect(usageGuard({ usage: [row(), row({ label: null, consumerTitle: null })], complete: true }, false)).toEqual({
             blocked: true,
             usage: [

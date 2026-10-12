@@ -20,7 +20,7 @@ import AppEmoji from '../../icons/AppEmoji';
  * answer". Three shapes for one story, none of them the shape the builders
  * one tab over use for exactly the same thing. This is that shape: the same
  * StepBadge, rail and `<details>` per row, so a person who has watched a
- * routine being built recognises a search being run.
+ * automation being built recognises a search being run.
  *
  * WHAT DIFFERS FROM THE BUILDERS, AND WHY.
  *

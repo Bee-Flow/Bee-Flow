@@ -87,13 +87,13 @@ export default function VersionMiniCanvas({ definition, added, changed }: Props)
                                     : `border border-[var(--border-default)] ${anyMark ? 'opacity-55' : ''}`}`}
                     >
                         <span className="truncate text-[var(--text-primary)]" title={c.label || undefined}>
-                            {c.start && !c.label ? t('routines.versions.start', 'Start') : c.label}
+                            {c.start && !c.label ? t('automations.versions.start', 'Start') : c.label}
                         </span>
                         {c.mark && (
                             <span className={`absolute -top-[9px] right-2 px-1.5 rounded-full text-white text-[10px] font-bold ${
                                 c.mark === 'new' ? 'bg-[var(--success)]' : 'bg-[var(--warning)]'}`}
                             >
-                                {c.mark === 'new' ? t('routines.versions.badge.new', 'new') : t('routines.versions.badge.changed', 'changed')}
+                                {c.mark === 'new' ? t('automations.versions.badge.new', 'new') : t('automations.versions.badge.changed', 'changed')}
                             </span>
                         )}
                     </li>

@@ -25,7 +25,7 @@
  * model to fix a binding that was fine.
  */
 
-const { DATATABLE_OPS } = require('../validate/constants');
+const { DATATABLE_OPS, PENDING_DATATABLE_RE } = require('../validate/constants');
 const { KEY_RE, SYSTEM_COLUMNS } = require('../../core/dataEngine/dataModel/vocabulary');
 
 const isPlainObject = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
@@ -162,13 +162,13 @@ function translateDatatableVocabulary(args) {
             if (v.kind !== 'literal') {
                 return {
                     error: field === 'datatableId'
-                        ? 'datatableId must name ONE existing table (an id from the "Datatables you may use" block); it cannot be a ref or template — a routine cannot pick its table at run time.'
-                        : 'datatableKey must be the table\'s key string (copied from the "Datatables you may use" block); it cannot be a ref or template — a routine cannot pick its table at run time.',
+                        ? 'datatableId must name ONE existing table (an id from the "Datatables you may use" block); it cannot be a ref or template — an automation cannot pick its table at run time.'
+                        : 'datatableKey must be the table\'s key string (copied from the "Datatables you may use" block); it cannot be a ref or template — an automation cannot pick its table at run time.',
                     _fixHint: `Reject reason: ${field} is a binding. Replace it with the table ${field === 'datatableId' ? 'id' : 'key'} string and resend the same step.`,
                 };
             }
             out[field] = String(v.value ?? '');
-            notes.push(`${field} was sent as a binding object — the table is chosen when the routine is built, not at run time; read as "${out[field]}".`);
+            notes.push(`${field} was sent as a binding object — the table is chosen when the automation is built, not at run time; read as "${out[field]}".`);
         } else if (typeof v.id === 'string') {
             // The catalog row echoed back whole ({id, key, name, …}).
             out[field] = v.id;
@@ -196,7 +196,7 @@ function translateDatatableVocabulary(args) {
 }
 
 const TABLE_LIST_CAP = 20;
-const describeTable = (t) => `${t.id} (${t.key}, "${t.name}")`;
+const describeTable = (t) => `${t.id} (${t.key}, "${t.name}")${t.pending ? ' — NEW, created on Apply' : ''}`;
 function listTables(datatables) {
     const shown = datatables.slice(0, TABLE_LIST_CAP).map(describeTable);
     const rest = datatables.length - shown.length;
@@ -227,16 +227,27 @@ function lookupTable(term, datatables) {
  *   against — permissive, the validator still demands an id).
  */
 function resolveDatatableRef({ id, key, datatables } = {}) {
-    if (!Array.isArray(datatables)) return { table: null, notes: [] };
-    if (datatables.length === 0) {
-        return {
-            error: 'This user has no datatables, so a datatable step cannot be built. Tell the user to create the table first (Studio → Datatables), then continue — never invent an id.',
-            _fixHint: 'Reject reason: no datatable exists. Do not retry this step; tell the user which table to create and stop.',
-        };
-    }
     const asText = (v) => (v == null ? '' : String(v).trim());
     const idText = asText(id);
     const keyText = asText(key);
+    // A "pending:<n>" id exists only inside the proposal that staged it (its
+    // row is in the catalog then). Anywhere else it is a forged or stale id,
+    // and "no catalog to check against" must not let it through: it would be
+    // stored and fail at Apply or at run time.
+    if (PENDING_DATATABLE_RE.test(idText) && !(Array.isArray(datatables) && datatables.some(t => t && t.id === idText))) {
+        return {
+            error: `"${idText}" is not a table: pending ids exist only inside the proposal that staged them. Use the id builder_create_datatable returned in THIS proposal.`,
+            _fixHint: 'Reject reason: unknown pending table id. Call builder_create_datatable for the table (it returns the id to use), or ask the user which existing table to use. Never type a pending id yourself.',
+            _rejectedPath: 'datatableId',
+        };
+    }
+    if (!Array.isArray(datatables)) return { table: null, notes: [] };
+    if (datatables.length === 0) {
+        return {
+            error: 'This user has no datatables, so a datatable step cannot be built. If the flow needs a table, create it with builder_create_datatable (in a preview it is staged and created when the user applies), or tell the user to create it first (Studio → Datatables). Never invent an id.',
+            _fixHint: 'Reject reason: no datatable exists. Do not retry this step as it is: create the table with builder_create_datatable({name, fields}) and bind the step to the id it returns, or tell the user which table to create and stop. Never invent an id.',
+        };
+    }
     const notes = [];
 
     // `_rejectedPath` names the spec field whose VALUE caused the refusal, so
@@ -265,7 +276,7 @@ function resolveDatatableRef({ id, key, datatables } = {}) {
             table = r.hits[0];
             if (r.how !== 'id') notes.push(`datatableId "${idText}" resolved to ${table.id} (key ${table.key}, "${table.name}") by its ${r.how} — use the id from the Datatables block next time.`);
         } else if (keyText) {
-            // An exported routine carries the key and a blanked (or foreign)
+            // An exported automation carries the key and a blanked (or foreign)
             // id — the key is what re-links it.
             const rk = lookupTable(keyText, datatables);
             if (rk.hits.length > 1) return ambiguous(keyText, rk.hits, 'datatableKey');
@@ -435,6 +446,7 @@ function mapColumnName(name, columns, { allowSystem = false, what = 'matchColumn
 
 module.exports = {
     normaliseKey,
+    lookupTable,
     DATATABLE_OP_ALIASES,
     resolveDatatableOp,
     translateDatatableVocabulary,

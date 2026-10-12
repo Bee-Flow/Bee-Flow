@@ -37,7 +37,7 @@ assistant forgot what we discussed". So local compaction is now **opt-in per org
 OFF**, and the lossless provider-side mechanism (Anthropic `context_management`) carries the load
 instead. A **Safety limit** slider defends the hard ceiling in both modes.
 
-**Answer Reuse** decides whether the answers routines get back from connected apps and web services
+**Answer Reuse** decides whether the answers automations get back from connected apps and web services
 may be **stored in the database between runs**. That is a data-processing decision, not a performance
 tweak — a Gmail search result is somebody's mail — so it belongs to an org admin, is **off by
 default**, and leaves a config row recording that a human said yes.
@@ -106,16 +106,16 @@ The screen deliberately exposes only **two** controls. `compactionThreshold` (16
 |---|---|
 | Sidebar entry | `Answer Reuse` |
 | Heading (H2, DatabaseZap icon) | `Reusing answers between runs` |
-| Intro | `Routines often ask an app the same question over and over. This decides whether the answer may be stored so a later run can use it — which means storing what the app sent back.` |
+| Intro | `Automations often ask an app the same question over and over. This decides whether the answer may be stored so a later run can use it — which means storing what the app sent back.` |
 | Kill-switch banner (amber, only when the env flag is set) | `This is switched off for the whole server by its operator, so nothing is stored whatever you choose here.` |
 | Choice card 1 (DatabaseZap) | `Ask every run (recommended)` |
-| … its description | `Nothing an app answers is stored. A routine can still avoid asking the same thing twice inside one run — that reuse never leaves the run.` |
+| … its description | `Nothing an app answers is stored. An automation can still avoid asking the same thing twice inside one run — that reuse never leaves the run.` |
 | Choice card 2 (Timer) | `Keep answers for a short while` |
 | … its description | `Answers to look-ups are stored, encrypted, so a later run can use them instead of asking again. Only look-ups, never anything that changes something, and only for steps whose author asked for it. Faster and cheaper — but a run can then work from data that is a few minutes old.` |
 | Scope block heading (only when ON) | `What may be kept` |
-| Scope note | `These are two different promises. The first is about apps this organisation connected and whose permissions it manages. The second is about any web address a routine author types in, so it is off until you say otherwise.` |
-| Checkbox 1 | `Answers from connected apps` — `Look-ups a routine makes through an app action — a calendar, a mailbox, a ticket system.` |
-| Checkbox 2 | `Answers from web service calls` — `Replies to a "Call a web service" step, which can point at any address the routine author chooses. Only ever GET and HEAD, and never when that step is allowed to reach private addresses.` |
+| Scope note | `These are two different promises. The first is about apps this organisation connected and whose permissions it manages. The second is about any web address an automation author types in, so it is off until you say otherwise.` |
+| Checkbox 1 | `Answers from connected apps` — `Look-ups an automation makes through an app action — a calendar, a mailbox, a ticket system.` |
+| Checkbox 2 | `Answers from web service calls` — `Replies to a "Call a web service" step, which can point at any address the automation author chooses. Only ever GET and HEAD, and never when that step is allowed to reach private addresses.` |
 | TTL label | `How long an answer may be reused` |
 | TTL note | `After this, the answer is deleted and the next run asks the app again. This is also the longest a run can be working from stale data. Shortening it applies to answers already stored, not just new ones.` |
 | TTL readout | `5 minutes` (`{{n}} minutes`) |
@@ -128,9 +128,9 @@ The screen deliberately exposes only **two** controls. `compactionThreshold` (16
 The stored-count line and the delete button **only render when `entries + expiredEntries > 0`**, so
 on a clean org the screen has no counter at all.
 
-### 2.4 The step-level tick (Routine builder, not settings)
+### 2.4 The step-level tick (Automation builder, not settings)
 
-In a routine step's **Advanced** section (`AskOnceRow`):
+In an automation step's **Advanced** section (`AskOnceRow`):
 
 - `Ask this app only once per run` — *"If this step asks the same thing more than once in a run —
   inside a loop, say — the first answer is used again instead of asking every time."*
@@ -143,7 +143,7 @@ Disabled reasons an author can meet:
 - `This action changes something in <App>, so its answer cannot be reused.`
 - `This look-up is checked fresh every time — either it changes by the minute, or its permissions are checked as it runs.`
 
-Validator warning shown on the routine when the nested tick is on:
+Validator warning shown on the automation when the nested tick is on:
 `Step <id>: answers are only kept between runs if your organisation allows it.` with hint
 `An administrator turns this on under Organisation settings; until then this step asks every run.`
 
@@ -165,7 +165,7 @@ Validator warning shown on the routine when the nested tick is on:
   or not compaction is on**, because a summary beats a hard `400 prompt is too long`.
 - **Watermark (`summaryUpTo`)** — how many messages are already inside the stored summary, so later
   turns rebuild the summary block locally instead of re-summarising the whole prefix every turn.
-- **Run memo** — a routine reusing an answer *inside one run*. Lives in memory on the run, dies with
+- **Run memo** — an automation reusing an answer *inside one run*. Lives in memory on the run, dies with
   it, stores nothing, needs no org permission. This is what `Ask this app only once per run` gives.
 - **Durable answer cache** — a Postgres row that *outlives* the run. This is what Answer Reuse
   governs. Key is an HMAC under a server secret; the payload is AES-256-GCM encrypted.
@@ -200,7 +200,7 @@ Validator warning shown on the routine when the nested tick is on:
 4. **Save**.
 5. If you change your mind before saving, click **Cancel** — it restores the last loaded values.
 
-### W3 — Allow routines to reuse app answers between runs
+### W3 — Allow automations to reuse app answers between runs
 1. Settings → Organisation → **Answer Reuse**.
 2. Click **Keep answers for a short while**. The scope block and TTL slider appear.
 3. Leave **Answers from connected apps** ticked. Leave **Answers from web service calls** unticked
@@ -208,9 +208,9 @@ Validator warning shown on the routine when the nested tick is on:
 4. Drag **How long an answer may be reused** to the window you want (minimum 1 minute, maximum
    60 minutes, in 1-minute steps; the default is 5 minutes).
 5. **Save** → toast `Saved`.
-6. Go to the routine that should benefit: open the step, open **Advanced**, tick
+6. Go to the automation that should benefit: open the step, open **Advanced**, tick
    **Ask this app only once per run**, then tick **…and keep the answer for later runs too**.
-7. Save the routine and run it twice. The second run skips the app call.
+7. Save the automation and run it twice. The second run skips the app call.
 
 ### W4 — Shorten the window after noticing stale data
 1. Settings → Organisation → **Answer Reuse**.
@@ -320,8 +320,8 @@ skipped too); `blockPrivateTargets` must not be `false`; only 2xx responses; a r
 | Compaction throws mid-turn | Logged (`Compaction failed, using full history`) and the turn continues with the **full** history. |
 | The fast-tier summariser fails | The watermark does **not** advance; the evicted messages stay verbatim and the fold is retried next turn. |
 | Anthropic rejects `context_management` | Logged, the parameter is stripped and the request is retried **once** without it. |
-| Answer Reuse cache unreachable / decrypt fails | Treated as a **miss** — the routine makes the real call. A blob that will not decrypt is reaped. |
-| Quota exceeded | The write is refused and counted; the routine keeps working, just without reuse. |
+| Answer Reuse cache unreachable / decrypt fails | Treated as a **miss** — the automation makes the real call. A blob that will not decrypt is reaped. |
+| Quota exceeded | The write is refused and counted; the automation keeps working, just without reuse. |
 | `GET /api/org-integration-cache/:orgId` errors | `500 {"error":"Failed to load the setting"}` → `Could not load this setting.` |
 | Purge fails | `500 {"error":"Failed to clear the stored answers"}` → toast `Could not clear the stored answers`. |
 
@@ -362,7 +362,7 @@ Compliance entry and nothing else under Organisation. `member` carries neither.
   so the cost of compaction is a fast-tier call, not a frontier one.
 - **Providers** — the lossless half lives in the Claude adapter. Non-Claude providers get no
   server-side context editing, so for them the Safety limit is the only protection.
-- **Routines / App actions** — Answer Reuse is meaningless without the per-step tick, and vice versa.
+- **Automations / App actions** — Answer Reuse is meaningless without the per-step tick, and vice versa.
   `execAi.js` gates app look-ups on `scopes.integration`; `httpCache.js` gates "Call a web service"
   on `scopes.http`.
 - **Privacy Shield** — `egressMode` decides whether a durable entry is even legal. Under `tokenize`
@@ -381,16 +381,16 @@ Compliance entry and nothing else under Organisation. `member` carries neither.
 ## 9. Common mistakes
 
 1. **Assuming the two switches are the same knob.** Conversation Memory is about a *chat*; Answer
-   Reuse is about a *routine*. Neither affects the other.
+   Reuse is about a *automation*. Neither affects the other.
 2. **Turning compaction on to "make chats cheaper" and then reporting lost detail.** The second card
    says it plainly: detail is *permanently lost to the assistant*. On a 1M-token model there is
    usually nothing to gain.
-3. **Expecting the org switch alone to speed up a routine.** Nothing is reused until the routine
-   author also ticks `…and keep the answer for later runs too` on the step. Until then the routine
+3. **Expecting the org switch alone to speed up an automation.** Nothing is reused until the automation
+   author also ticks `…and keep the answer for later runs too` on the step. Until then the automation
    validator shows the warning *"answers are only kept between runs if your organisation allows it"*
    — which reads backwards to most admins, because the missing half is often the *step*, not the org.
 4. **Ticking `Answers from web service calls` without meaning to.** It is a second, wider promise:
-   any address the routine author types in.
+   any address the automation author types in.
 5. **Believing the copy "Only ever GET and HEAD".** That sentence in the **Answers from web service
    calls** checkbox description is **stale**. `CACHEABLE_METHODS` in `httpCache.js` (line 132) is
    `GET, HEAD, POST, PUT, PATCH, DELETE` — the method refusal was removed on 2026-09-02 and the
@@ -427,27 +427,27 @@ headroom before the emergency fold does anything at all. If a tender chat ever d
 the fold still protects it — she sees the divider *Eerdere berichten zijn samengevat* and knows what
 happened.
 
-### 10.2 HR — a routine that must never reuse a stale answer
-Van Dijk's HR routine runs every morning: for each of 180 employees it looks up the leave balance in
-the HR app and mails a reminder to anyone with untaken days. The routine author ticked
+### 10.2 HR — an automation that must never reuse a stale answer
+Van Dijk's HR automation runs every morning: for each of 180 employees it looks up the leave balance in
+the HR app and mails a reminder to anyone with untaken days. The automation author ticked
 **Ask this app only once per run** to survive the loop, then also ticked **…and keep the answer for
 later runs too** because it looked faster.
 
 The admin's call: leave balances change during the day, and a reminder based on a stale balance is
 an HR complaint. In **Answer Reuse** he leaves the org setting on **Ask every run (recommended)**.
-The routine still deduplicates *inside* one run (that reuse never leaves the run and stores nothing),
+The automation still deduplicates *inside* one run (that reuse never leaves the run and stores nothing),
 and nothing about 180 employees' leave records is written to the database. If he ever does turn it
-on, he keeps the TTL at **5 minutes**, which is also the longest the routine could be working from
+on, he keeps the TTL at **5 minutes**, which is also the longest the automation could be working from
 stale data.
 
 ### 10.3 Sales — a paid reference API worth caching
-The sales routine enriches inbound leads: for every new lead it calls a paid KvK/company-data web
+The sales automation enriches inbound leads: for every new lead it calls a paid KvK/company-data web
 service, one call per lead, billed per call. The same twenty companies come back week after week.
 
 The admin opens **Answer Reuse**, picks **Keep answers for a short while**, and — because this is a
 hand-typed "Call a web service" step, not a connected app — ticks **Answers from web service calls**
 as well as leaving **Answers from connected apps** ticked. He drags **How long an answer may be
-reused** to **60 minutes**, the maximum, and saves. The routine author then ticks both boxes on that
+reused** to **60 minutes**, the maximum, and saves. The automation author then ticks both boxes on that
 step. A week later the screen reads `Stored right now: 214 answer(s), 3.2 MB.`
 
 When the data provider corrects a company's details, the admin does not wait out the hour: he clicks

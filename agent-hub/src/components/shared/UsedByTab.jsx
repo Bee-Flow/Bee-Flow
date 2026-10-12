@@ -28,7 +28,7 @@
  * solution's last touch is a release version.
  *
  * ── THE NAVIGATION RULE (pinned by DatatablesStudio.hygiene.test.jsx) ─
- * Usage is org-wide, but many owners are user-scoped: a colleague's routine
+ * Usage is org-wide, but many owners are user-scoped: a colleague's automation
  * has no page this account can open. It used to be a raw <a href>, which on
  * this SPA full-reloads the app and lands on nothing — a link that looks
  * like an answer and is a dead end. So: a row with `ownerId` set to someone
@@ -69,7 +69,7 @@ const EXTRA_KIND = Object.freeze({
 
 /** Studio deep-link segment per kind — only kinds with a detail page. */
 const STUDIO_PATH = Object.freeze({
-    automation: 'routines',
+    automation: 'automations',
     agent: 'agents',
     app: 'apps',
     webpage: 'webpages',

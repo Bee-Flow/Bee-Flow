@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import {
-    chipsOf, healthOf, partitionSolutions, readSummary, runsOf, tabOf, updateOf,
+    chipsOf, filterSolutions, healthOf, needsAttention, partitionSolutions, readSummary, runsOf, tabOf, updateOf,
 } from './solutionOverviewModel';
 
 /**
@@ -23,7 +23,7 @@ function row(over = {}) {
         installedFromBlueprintId: null,
         counts: {
             automations: 3, apps: 1, webpages: 1, datatables: 2, agents: 0,
-            knowledgeBases: 1, notebooks: 0,
+            knowledgeBases: 1, notebooks: 0, skills: 0, documentTemplates: 0,
         },
         runs: { today: 12, failed: 0 },
         completeness: { blocked: false, complete: true, findings: 0, errors: 0, warnings: 0, unavailable: [] },
@@ -143,10 +143,16 @@ describe('the count chips', () => {
         // silent about it. Without this list a store outage looks exactly like
         // a Solution that holds nothing.
         const { chips, unreadable } = chipsOf(row({
-            counts: { automations: null, apps: 1, webpages: 0, datatables: null, agents: 0, knowledgeBases: 0, notebooks: 0 },
+            counts: { automations: null, apps: 1, webpages: 0, datatables: null, agents: 0, knowledgeBases: 0, notebooks: 0, skills: 0, documentTemplates: 0 },
         }));
         expect(chips.map(c => c.section)).toEqual(['apps']);
         expect(unreadable).toEqual(['automations', 'datatables']);
+    });
+
+    it('skills and document templates are counted like the rest', () => {
+        const { chips } = chipsOf(row({ counts: { ...row().counts, skills: 2, documentTemplates: 1 } }));
+        expect(chips.filter(c => ['skills', 'documentTemplates'].includes(c.section)))
+            .toEqual([{ section: 'skills', kind: 'skill', count: 2 }, { section: 'documentTemplates', kind: 'document', count: 1 }]);
     });
 
     it('a section the server did not mention at all counts as unreadable', () => {
@@ -220,5 +226,28 @@ describe('reading the summary payload', () => {
 
     it('an empty list that DID arrive says nothing is missing', () => {
         expect(readSummary({ projects: [], unavailable: [] }).unavailable).toEqual([]);
+    });
+});
+
+describe('needsAttention and filterSolutions', () => {
+    const calm = { id: 'a', name: 'Quotes', permission: 'owner', completeness: { blocked: false, complete: true, findings: 0, errors: 0, warnings: 0, unavailable: [] }, runs: { today: 1, failed: 0 } };
+    const failing = { id: 'b', name: 'Invoices', permission: 'viewer', completeness: { blocked: false, complete: true, findings: 0, errors: 0, warnings: 0, unavailable: [] }, runs: { today: 2, failed: 1 } };
+    const waiting = { ...calm, id: 'c', name: 'Onboarding', stages: [{ stage: 'uat', pending: { seq: 2 } }] };
+
+    it('flags failed runs and a waiting stage, not a calm card', () => {
+        expect(needsAttention(calm)).toBe(false);
+        expect(needsAttention(failing)).toBe(true);
+        expect(needsAttention(waiting)).toBe(true);
+    });
+
+    it('sorts the cards that need attention first and keeps the order otherwise', () => {
+        expect(filterSolutions([calm, failing, waiting]).map(r => r.id)).toEqual(['b', 'c', 'a']);
+    });
+
+    it('filters by scope and by a case-insensitive search', () => {
+        const rows = [calm, failing, waiting];
+        expect(filterSolutions(rows, { scope: 'mine' }).map(r => r.id)).toEqual(['c', 'a']);
+        expect(filterSolutions(rows, { scope: 'attention' }).map(r => r.id)).toEqual(['b', 'c']);
+        expect(filterSolutions(rows, { query: 'INVO' }).map(r => r.id)).toEqual(['b']);
     });
 });

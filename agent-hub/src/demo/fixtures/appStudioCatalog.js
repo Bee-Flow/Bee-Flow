@@ -681,7 +681,7 @@ export const DEMO_CATALOG = {
         "table": {
             "label": "Table",
             "category": "Data",
-            "description": "A table over an array of objects â€” usually a routine result. Missing keys render as â€œâ€”â€.",
+            "description": "A table over an array of objects â€” usually an automation result. Missing keys render as â€œâ€”â€.",
             "props": {
                 "source": {
                     "type": "binding",

@@ -27,7 +27,7 @@ interface CatalogLike {
 }
 
 // Steps whose output is a list by construction.
-const LIST_KINDS = new Set(['filter', 'limit', 'dedupe', 'aggregate']);
+const LIST_KINDS = new Set(['filter', 'flatten', 'limit', 'dedupe', 'aggregate']);
 
 /**
  * Best-effort guess whether a step's output is a list. Heuristic only:
@@ -123,9 +123,9 @@ export function fitsAfterCards(
             id: `${shape}:${spec.key}`,
             family: spec.family,
             Icon: (item.icon || AI_STEP.icon) as IconType,
-            titleKey: `routines.ribbon.fit_${spec.key}`,
+            titleKey: `automations.ribbon.fit_${spec.key}`,
             title: spec.title,
-            whyKey: `routines.ribbon.fit_${spec.key}_why`,
+            whyKey: `automations.ribbon.fit_${spec.key}_why`,
             why: spec.why,
             payload: spec.label ? { ...item.payload, label: spec.label } : item.payload,
             ...(g.disabled ? { disabled: true, disabledReason: g.disabledReason } : null),

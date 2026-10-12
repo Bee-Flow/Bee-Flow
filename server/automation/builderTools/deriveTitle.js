@@ -1,5 +1,5 @@
 /**
- * Builder tools — a name for a routine the model never named.
+ * Builder tools — a name for an automation the model never named.
  *
  * builder_set_metadata is on every menu and every prompt now says to call it
  * in the first reply, and still a build can reach finalize — the model's own
@@ -27,9 +27,9 @@
  *       itself unless it is generic ("Build an automation");
  *   (c) the first sentence of ≥ 25 chars that is not trigger boilerplate
  *       ("I start it by hand: manual trigger…"), a leading imperative
- *       stripped ("Create a routine that …"), cut at a word boundary;
+ *       stripped ("Create an automation that …"), cut at a word boundary;
  *   (d) the definition: `<trigger>: <first step> → <last step>`;
- *   (e) 'New routine'.
+ *   (e) 'New automation'.
  * Always ≤ 60 chars, never the default name.
  */
 
@@ -43,10 +43,10 @@ const MAX_TITLE = 60;
 // is a statement wherever it stands ("give it the title "X""); `naam`/`name`
 // only at the start of the brief, a line or a sentence (after . ! ? ;), or
 // with a colon — mid-sentence it names a field ("the sender name "From"",
-// "kolom naam "Leverancier"") and once naming the routine after that nothing
+// "kolom naam "Leverancier"") and once naming the automation after that nothing
 // downstream repairs it. A quoted title is ≥ 3 chars, and an apostrophe
 // followed by a letter ("It's") is part of a single-quoted title rather than
-// its end. Mirrored by the playbook's RoutineStage (agent-hub) so the seed
+// its end. Mirrored by the playbook's AutomationStage (agent-hub) so the seed
 // title it sends is the one this would derive — deriveTitle.test.js pins the
 // two sources equal.
 const TITLE_IN_BRIEF_RE = /(?:\b(?:app\s+)?(?:title|titel)|(?:^|\n|[.!?;]\s+)\s*(?:[-*•]\s+)?(?:app\s+)?(?:naam|name)|\b(?:app\s+)?(?:naam|name)(?=\s*[:=]))\s*[:=]?\s*["“„'‘]((?:[^"”“'’\n]|['’](?=\w)){3,120})["”“'’](?!\w)/i;
@@ -55,9 +55,9 @@ const TITLE_IN_BRIEF_RE = /(?:\b(?:app\s+)?(?:title|titel)|(?:^|\n|[.!?;]\s+)\s*
 const GENERIC_HEADING_RE = /^(?:build|create|make|maak|bouw)\s+(?:an?|een|the|de)\s+(?:automation|routine|automatisering|app|flow|workflow)\b\s*$/i;
 const QUOTED_RE = /["“„]([^"”“\n]{2,120})["”“]/;
 
-// (c) sentences that describe how the routine STARTS, not what it does.
+// (c) sentences that describe how the automation STARTS, not what it does.
 const BOILERPLATE_RE = /\b(?:met de hand|by hand|manual trigger|handmatig|no schedule|geen schema|start it by hand|die ik met|that I start)\b/i;
-// A leading imperative that would make every title read "Create a routine
+// A leading imperative that would make every title read "Create an automation
 // that …": the verb + article + noun + relative pronoun, all optional pieces
 // matched together. "Can you " / "Kun je " / "Please " are polite prefixes
 // of the same kind.
@@ -89,7 +89,7 @@ function titleStatedIn(brief) {
     return m ? m[1].trim() : null;
 }
 
-/** The first heading worth naming the routine after. */
+/** The first heading worth naming the automation after. */
 function titleFromHeading(brief) {
     for (const line of brief.split('\n')) {
         const m = /^\s*#{1,3}\s+(.+?)\s*$/.exec(line);
@@ -103,7 +103,7 @@ function titleFromHeading(brief) {
     return null;
 }
 
-/** The first sentence that says what the routine does. */
+/** The first sentence that says what the automation does. */
 function titleFromSentence(brief) {
     const text = brief
         .split('\n').map(l => l.replace(/^\s*(?:#{1,3}\s+|[-*]\s+|\d+\.\s+)/, '')).join('\n')
@@ -112,7 +112,7 @@ function titleFromSentence(brief) {
     for (const raw of sentences) {
         if (BOILERPLATE_RE.test(raw)) continue;
         // A `Title "…"` line is rule (a)'s business; as a sentence it would
-        // name the routine 'Title "…"'.
+        // name the automation 'Title "…"'.
         if (TITLE_IN_BRIEF_RE.test(raw)) continue;
         let s = raw.replace(/[.!?:]+$/, '').trim();
         s = s.replace(IMPERATIVE_RE, '').replace(POLITE_RE, '').trim();
@@ -134,7 +134,7 @@ function titleFromDefinition(def) {
     if (!trigger) return null;
     const kind = trigger.kind === 'app_event' && trigger.appEvent
         ? `${trigger.appEvent.provider || 'app'} ${trigger.appEvent.event || 'event'}`
-        : (KIND_LABELS[trigger.kind] || 'Routine');
+        : (KIND_LABELS[trigger.kind] || 'Automation');
     const steps = (Array.isArray(def.steps) ? def.steps : []).filter(s => s && s.type !== 'note');
     if (!steps.length) return null;
     const first = stepName(steps[0]);
@@ -153,7 +153,7 @@ function deriveTitle({ brief, def } = {}) {
         () => titleFromHeading(text),
         () => titleFromSentence(text),
         () => titleFromDefinition(def),
-        () => 'New routine',
+        () => 'New automation',
     ];
     for (const pick of candidates) {
         const raw = pick();
@@ -161,7 +161,7 @@ function deriveTitle({ brief, def } = {}) {
         const title = clamp(raw);
         if (title && title !== UNTITLED_AUTOMATION) return title;
     }
-    return 'New routine';
+    return 'New automation';
 }
 
 /**

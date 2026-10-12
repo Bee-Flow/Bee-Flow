@@ -11,7 +11,8 @@
  */
 
 const crypto = require('crypto');
-const { run, getOne, getAll, exec, withTransaction } = require('../db');
+const contentCrypto = require('./lib/documentCrypto');
+const { run, getOne, getAll, exec, withTransaction } = contentCrypto.readingDb(require('../db'));
 const { makeStoreInit } = require('./lib/storeInit');
 const { runDdl, CODES } = require('./lib/_ddl');
 const { buildUpdate } = require('./lib/sqlBuilder');
@@ -21,6 +22,8 @@ const { countWords, stripMarkdownLite } = require('../utils/text');
 const log = require('../telemetry/log');
 const { parseJSONObject: parseJSON } = require('./lib/json');
 const { isCoEdited } = require('./lib/coEditGuard');
+
+const { sharingDdl, sharingSql } = require('./lib/documentSharing');
 
 const initDB = makeStoreInit('NotebookStore', _initDB);
 
@@ -115,7 +118,17 @@ async function _initDB() {
         // the reader's access, never copied here.
         `ALTER TABLE notebooks ADD COLUMN IF NOT EXISTS last_edited_by TEXT DEFAULT NULL`,
         `ALTER TABLE notebooks ADD COLUMN IF NOT EXISTS last_edited_at TIMESTAMPTZ DEFAULT NULL`,
+        // A notebook is a document type: it is listed in the Documents
+        // library next to pages and designed documents (stores/notebookLibrary.js)
+        // and filed the same way there, in one of the owner's document folders
+        // and under categories. Adding the columns is the whole upgrade: every
+        // existing notebook is in the library from the first boot, unfiled.
+        `ALTER TABLE notebooks ADD COLUMN IF NOT EXISTS folder_id TEXT DEFAULT NULL`,
+        `ALTER TABLE notebooks ADD COLUMN IF NOT EXISTS categories JSONB NOT NULL DEFAULT '[]'::jsonb`,
+        `CREATE INDEX IF NOT EXISTS idx_notebooks_user_updated ON notebooks(user_id, updated_at DESC)`,
     ]);
+
+    await exec(sharingDdl('notebooks'));
 
     // ── Notebook Sources table ───────────────────────────────────────
     await exec(`
@@ -134,11 +147,19 @@ async function _initDB() {
             updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         );
         CREATE INDEX IF NOT EXISTS idx_notebook_sources_notebook ON notebook_sources(notebook_id);
+        CREATE INDEX IF NOT EXISTS idx_notebook_sources_notebook_status ON notebook_sources(notebook_id, status);
         -- V2 source improvements: manual ordering, ingestion stage, and stored
         -- original text so pasted-text / meeting sources become retryable.
         ALTER TABLE notebook_sources ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0;
         ALTER TABLE notebook_sources ADD COLUMN IF NOT EXISTS stage TEXT;
         ALTER TABLE notebook_sources ADD COLUMN IF NOT EXISTS content_text TEXT;
+        -- Which record a source was copied from (a meeting's id for type
+        -- 'meeting'), so "what happens to this meeting" can name the notebooks
+        -- that hold it instead of saying it could not check them. The partial
+        -- index keeps meetingUsage's probe for older, ref-less meeting rows cheap.
+        ALTER TABLE notebook_sources ADD COLUMN IF NOT EXISTS source_ref_id TEXT;
+        CREATE INDEX IF NOT EXISTS idx_notebook_sources_ref ON notebook_sources(source_ref_id) WHERE source_ref_id IS NOT NULL;
+        CREATE INDEX IF NOT EXISTS idx_notebook_sources_meeting_noref ON notebook_sources(id) WHERE type = 'meeting' AND source_ref_id IS NULL;
     `);
 
     // One-off backfill: meeting-note sources were stored as generic 'text'
@@ -191,7 +212,7 @@ async function _initDB() {
             reden: 'a version written concurrently during boot took the number; the next boot numbers the rest',
         },
         // Race-safe numbering: two writers computing MAX(seq)+1 at once collide
-        // here and the loser retries (insertVersionRow).
+        // here; insertVersionRow serializes writers on the notebook lock.
         `CREATE UNIQUE INDEX IF NOT EXISTS idx_notebook_versions_seq ON notebook_versions(notebook_id, seq) WHERE seq IS NOT NULL`,
     ]);
     log.info('[NotebookStore] PostgreSQL initialized');
@@ -210,12 +231,16 @@ async function _initDB() {
 async function createNotebook({ userId, name, description, instructions, knowledgeBaseIds, settings, type, projectId = null, organizationId = null }) {
     await initDB();
     const id = crypto.randomUUID();
+    if (!organizationId && (await getOne("SELECT to_regclass('public.users') AS present"))?.present) {
+        organizationId = (await getOne('SELECT \"organizationId\" FROM users WHERE id = $1', [userId]))?.organizationId || null;
+    }
     const notebookType = type || 'notebook';
+    const stored = await contentCrypto.sealFields({ instructions: instructions || '', settings: settings || {}, document_content: '' }, { type: 'notebook', id, userId, organizationId, projectId }, contentCrypto.NOTEBOOK_FIELDS);
     await run(
         `INSERT INTO notebooks (id, user_id, name, description, instructions, knowledge_base_ids, settings, document_content, type, project_id, organization_id)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-        [id, userId, name || 'Untitled Notebook', description || '', instructions || '',
-         JSON.stringify(knowledgeBaseIds || []), JSON.stringify(settings || {}), '', notebookType,
+        [id, userId, name || 'Untitled Notebook', description || '', stored.instructions,
+         JSON.stringify(knowledgeBaseIds || []), JSON.stringify(stored.settings), stored.document_content, notebookType,
          projectId || null, organizationId || null]
     );
     log.info(`[NotebookStore] Created ${notebookType} "${name}" for user ${userId}`);
@@ -364,12 +389,15 @@ async function listNotebookCards(userId, opts = {}) {
  */
 async function resolveNotebookRole(id, userId) {
     if (!id || !userId) return null;
-    const row = await getOne('SELECT user_id, project_id FROM notebooks WHERE id = $1', [id]);
+    const row = await getOne('SELECT user_id, project_id, sharing_audience FROM notebooks WHERE id = $1', [id]);
     if (!row) return null;
     if (row.user_id === userId) return 'owner';
-    if (!row.project_id) return null;          // standalone: owner-only, as before
     const { projectRoleOf } = require('./lib/projectRole');
-    return await projectRoleOf(userId, row.project_id);
+    const role = row.project_id ? await projectRoleOf(userId, row.project_id) : null;
+    if (role) return role;
+    if (!['organisation', 'restricted'].includes(row.sharing_audience)) return null;
+    const shared = await getOne(`SELECT n.id FROM notebooks n WHERE n.id = $1 AND ${sharingSql('n')}`, [id, userId]);
+    return shared ? 'viewer' : null;
 }
 
 /**
@@ -444,22 +472,16 @@ const NOTEBOOK_COLUMNS = {
     lastEditedBy: 'last_edited_by',
 };
 
-/**
- * A content write while no co-editing document exists for the notebook: the
- * row lock, then the check (stores/lib/coEditGuard.js), then the write, in
- * one transaction. Null when refused.
- *
- * @param {string} id @param {string} sql @param {any[]} params
- */
-function writeUnlessCoEdited(id, sql, params) {
+async function _updateNotebook(id, userId, updates) {
+    await initDB();
     return withTransaction(async (client) => {
-        await client.query('SELECT id FROM notebooks WHERE id = $1 FOR UPDATE', [id]);
-        if (await isCoEdited(client, 'notebook', id)) return null;
-        return client.query(sql, params);
+        const { rows } = await client.query('SELECT * FROM notebooks WHERE id = $1 FOR UPDATE', [id]);
+        if (!rows[0]) return { ok: false, conflict: false };
+        return updateNotebookLocked(id, userId, updates, client, rows[0]);
     });
 }
 
-async function _updateNotebook(id, userId, updates) {
+async function updateNotebookLocked(id, userId, updates, client, lockedRow) {
     await initDB();
     const write = {
         name: updates.name,
@@ -526,6 +548,10 @@ async function _updateNotebook(id, userId, updates) {
     // Who changed the document: the caller, unless a system path names the
     // person it writes for (a materialised co-editing session).
     if (contentChanged) write.lastEditedBy = updates.lastEditedBy !== undefined ? updates.lastEditedBy : userId;
+    const resource = contentCrypto.resourceOf(lockedRow, 'notebook');
+    for (const [property, column] of Object.entries({ instructions: 'instructions', settings: 'settings', documentContent: 'document_content', documentMd: 'document_md', preview: 'preview' })) {
+        if (write[property] !== undefined) write[property] = await contentCrypto.seal(write[property], resource, column, { json: column === 'settings' });
+    }
     const built = buildUpdate({ table: 'notebooks', updates: write, columnMap: NOTEBOOK_COLUMNS });
     const params = built ? built.params : [];
     // The clauses the builder cannot express: activity stamps, the version
@@ -570,7 +596,7 @@ async function _updateNotebook(id, userId, updates) {
     // The document of a co-edited notebook is its live state: a single-writer
     // content write is refused (every caller checked first; this closes the
     // gap between that check and this write). A conflict to a CAS caller.
-    const written = contentChanged ? await writeUnlessCoEdited(id, sql, params) : await run(sql, params);
+    const written = contentChanged && await isCoEdited(client, 'notebook', id) ? null : await client.query(sql, params);
     if (!written) return { ok: false, conflict: true, coEdited: true };
     const { rowCount, rows } = written;
     if (rowCount > 0) return { ok: true, conflict: false, version: rows && rows[0] ? rows[0].version : undefined };
@@ -680,11 +706,21 @@ async function deleteNotebook(id, userId) {
  */
 async function setNotebookProject(id, userId, projectId) {
     await initDB();
-    const { rowCount } = await run(
-        'UPDATE notebooks SET project_id = $1, updated_at = NOW() WHERE id = $2 AND user_id = $3',
-        [projectId || null, id, userId]
-    );
-    return rowCount > 0;
+    const files = { created: [], replaced: [] };
+    let result;
+    try {
+        result = await withTransaction(async (client) => {
+            const { rows } = await client.query('UPDATE notebooks SET project_id = $1, updated_at = NOW() WHERE id = $2 AND user_id = $3 RETURNING *', [projectId || null, id, userId]);
+            if (!rows[0]) return false;
+            await require('./lib/documentSharingCrypto').transition(client, 'notebook', rows[0], rows[0].sharing_audience || 'private', files);
+            return true;
+        });
+    } catch (e) {
+        await require('./lib/notebookFileCrypto').removeFiles(files.created);
+        throw e;
+    }
+    await require('./lib/notebookFileCrypto').removeFiles(files.replaced);
+    return result;
 }
 
 /**
@@ -739,7 +775,7 @@ async function listProjectNotebooks(projectId, { limit = 50, offset = 0, type = 
                 (SELECT COALESCE(SUM(ns.word_count),0) FROM notebook_sources ns WHERE ns.notebook_id = n.id AND ns.status = 'ready') AS source_word_count
            FROM notebooks n
           WHERE n.project_id = $1 AND COALESCE(n.type, 'notebook') = $2
-          ORDER BY COALESCE(n.last_activity_at, n.updated_at) DESC
+          ORDER BY COALESCE(n.last_activity_at, n.updated_at) DESC, n.id
           LIMIT $3 OFFSET $4`,
         [projectId, type, Math.min(Math.max(1, limit), MAX_CARD_LIMIT), Math.max(0, offset)]
     );
@@ -788,26 +824,45 @@ async function clearProjectFromNotebooks(projectId) {
 
 // ── Source CRUD ─────────────────────────────────────────────────────
 
-async function addSource({ notebookId, type, name, storageKey, fileName, metadata, wordCount, contentText, stage }) {
+async function addSource({ notebookId, type, name, storageKey, fileName, metadata, wordCount, contentText, stage, sourceRefId, client: existingClient = null }) {
     await initDB();
     const id = crypto.randomUUID();
-    // Append to the end of the manual order.
-    const ord = await getOne('SELECT COALESCE(MAX(sort_order), -1) + 1 AS next FROM notebook_sources WHERE notebook_id = $1', [notebookId]);
-    const sortOrder = ord?.next ?? 0;
-    await run(
-        `INSERT INTO notebook_sources (id, notebook_id, type, name, storage_key, file_name, metadata, status, word_count, content_text, stage, sort_order)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, 'processing', $8, $9, $10, $11)`,
+    // Append to the end of the manual order, in one round trip. Two sources
+    // added at the same instant can still share a position; the list breaks
+    // that tie on created_at (getSources), so the order stays stable.
+    const transaction = existingClient ? async (fn) => fn(existingClient) : withTransaction;
+    const ins = await transaction(async (client) => {
+        const { rows } = await client.query('SELECT * FROM notebooks WHERE id = $1 FOR UPDATE', [notebookId]);
+        if (!rows[0]) throw Object.assign(new Error('Notebook not found'), { status: 404 });
+        const resource = { ...contentCrypto.resourceOf(rows[0], 'notebook-source'), id };
+        const stored = await contentCrypto.sealFields({ metadata: metadata || {}, content_text: contentText || null }, resource, { metadata: true, content_text: false });
+        return client.query(
+        `INSERT INTO notebook_sources (id, notebook_id, type, name, storage_key, file_name, metadata, status, word_count, content_text, stage, sort_order, source_ref_id)
+         SELECT $1::text, $2::text, $3::text, $4::text, $5::text, $6::text, $7::jsonb, 'processing', $8::int, $9::text, $10::text,
+                COALESCE(MAX(sort_order), 0) + 1, $11::text
+           FROM notebook_sources WHERE notebook_id = $2::text
+         RETURNING sort_order`,
         [id, notebookId, type, name || 'Untitled', storageKey || null, fileName || null,
-         JSON.stringify(metadata || {}), wordCount || 0, contentText || null, stage || 'queued', sortOrder]
-    );
-    await touchActivity(notebookId, 'source');
+         JSON.stringify(stored.metadata), wordCount || 0, stored.content_text, stage || 'queued', sourceRefId ? String(sourceRefId) : null]
+        );
+    });
+    const sortOrder = ins?.rows?.[0]?.sort_order ?? 0;
+    if (existingClient) await existingClient.query("UPDATE notebooks SET last_activity_at = NOW(), last_activity_kind = 'source' WHERE id = $1", [notebookId]);
+    else await touchActivity(notebookId, 'source');
     return { id, notebookId, type, name, storageKey, fileName, metadata: metadata || {}, status: 'processing', stage: stage || 'queued', wordCount: wordCount || 0, sortOrder };
 }
+
+// Every column except content_text (up to 1 MB a row): the list is read on every
+// chat turn and every poll, and only needs to know WHETHER there is content.
+// Use getSourceContent(id) for the text itself.
+const SOURCE_LIST_COLUMNS = `id, notebook_id, type, name, storage_key, file_name, metadata, status, error,
+    word_count, created_at, updated_at, sort_order, stage,
+    (content_text IS NOT NULL AND content_text <> '') AS has_content`;
 
 async function getSources(notebookId) {
     await initDB();
     const rows = await getAll(
-        `SELECT * FROM notebook_sources WHERE notebook_id = $1 ORDER BY sort_order ASC, created_at ASC`,
+        `SELECT ${SOURCE_LIST_COLUMNS} FROM notebook_sources WHERE notebook_id = $1 ORDER BY sort_order ASC, created_at ASC`,
         [notebookId]
     );
     return rows.map(mapSourceRow);
@@ -816,7 +871,7 @@ async function getSources(notebookId) {
 /** Full extracted text of a source (for the preview panel + text/meeting retry). */
 async function getSourceContent(id) {
     await initDB();
-    const r = await getOne('SELECT content_text FROM notebook_sources WHERE id = $1', [id]);
+    const r = await getOne('SELECT id, content_text FROM notebook_sources WHERE id = $1', [id]);
     return r ? (r.content_text || '') : null;
 }
 
@@ -832,7 +887,7 @@ async function reorderSources(notebookId, orderedIds) {
 
 async function getSource(id) {
     await initDB();
-    const r = await getOne('SELECT * FROM notebook_sources WHERE id = $1', [id]);
+    const r = await getOne(`SELECT ${SOURCE_LIST_COLUMNS} FROM notebook_sources WHERE id = $1`, [id]);
     return r ? mapSourceRow(r) : null;
 }
 
@@ -847,18 +902,82 @@ const SOURCE_COLUMNS = {
     sortOrder: 'sort_order',
 };
 
-async function updateSource(id, updates) {
+/**
+ * @param {string} id
+ * @param {object} updates
+ * @param {{ onlyIfProcessing?: boolean }} [opts] With `onlyIfProcessing` the
+ *   write only lands while the row is still `processing`, so a cancel or a
+ *   delete that happened meanwhile wins over the ingestion still running.
+ *   Returns false when nothing was written.
+ */
+async function updateSource(id, updates, { onlyIfProcessing = false } = {}) {
     await initDB();
-    const built = buildUpdate({
-        table: 'notebook_sources',
-        updates,
-        columnMap: SOURCE_COLUMNS,
-        extraSet: ['updated_at = NOW()'],
-        where: [{ col: 'id', value: id }],
+    return withTransaction(async (client) => {
+        const { rows } = await client.query('SELECT n.* FROM notebooks n JOIN notebook_sources s ON s.notebook_id = n.id WHERE s.id = $1 FOR UPDATE OF n', [id]);
+        if (!rows[0]) return false;
+        const resource = { ...contentCrypto.resourceOf(rows[0], 'notebook-source'), id };
+        updates = { ...updates };
+        if (updates.metadata !== undefined) updates.metadata = await contentCrypto.seal(updates.metadata, resource, 'metadata', { json: true });
+        if (updates.contentText !== undefined) updates.contentText = await contentCrypto.seal(updates.contentText, resource, 'content_text');
+        const where = [{ col: 'id', value: id }];
+        if (onlyIfProcessing) where.push({ col: 'status', value: 'processing' });
+        const built = buildUpdate({
+            table: 'notebook_sources',
+            updates,
+            columnMap: SOURCE_COLUMNS,
+            extraSet: ['updated_at = NOW()'],
+            where,
+        });
+        if (!built) return false;
+        const { rowCount } = await client.query(built.sql, built.params);
+        return rowCount > 0;
     });
-    if (!built) return false;
-    const { rowCount } = await run(built.sql, built.params);
+}
+
+/**
+ * Claim a finished or failed source for a retry: back to processing, in one
+ * conditional write. False when it is already processing (an ingestion is
+ * still running; a second one would race it) or gone.
+ */
+async function claimSourceForRetry(id) {
+    await initDB();
+    const { rowCount } = await run(
+        `UPDATE notebook_sources SET status = 'processing', stage = 'queued', error = NULL, updated_at = NOW()
+          WHERE id = $1 AND status <> 'processing'`, [id]);
     return rowCount > 0;
+}
+
+/** Current status of a source, or null once the row is gone (deleted). */
+async function getSourceStatus(id) {
+    await initDB();
+    const r = await getOne('SELECT status FROM notebook_sources WHERE id = $1', [id]);
+    return r ? r.status : null;
+}
+
+/** Number of sources in a notebook (for the per-notebook cap). */
+async function countSources(notebookId) {
+    await initDB();
+    const r = await getOne('SELECT COUNT(*) AS n FROM notebook_sources WHERE notebook_id = $1', [notebookId]);
+    return parseInt(r?.n) || 0;
+}
+
+/**
+ * Delete several sources of ONE notebook in two statements. Ids that do not
+ * belong to `notebookId` are skipped, exactly like deleteSource.
+ * @returns {Promise<object[]>} the deleted sources (mapped), for artifact cleanup
+ */
+async function deleteSources(ids, notebookId) {
+    await initDB();
+    const wanted = [...new Set((ids || []).filter(i => typeof i === 'string'))];
+    if (wanted.length === 0) return [];
+    const rows = await getAll(
+        `SELECT ${SOURCE_LIST_COLUMNS} FROM notebook_sources WHERE id = ANY($1::text[]) AND notebook_id = $2`,
+        [wanted, notebookId]
+    );
+    if (rows.length === 0) return [];
+    await run('DELETE FROM notebook_sources WHERE id = ANY($1::text[]) AND notebook_id = $2', [rows.map(r => r.id), notebookId]);
+    await touchActivity(notebookId, 'source');
+    return rows.map(mapSourceRow);
 }
 
 // Delete a source. When `notebookId` is supplied the lookup + delete are scoped
@@ -869,8 +988,8 @@ async function updateSource(id, updates) {
 async function deleteSource(id, notebookId = null) {
     await initDB();
     const r = notebookId
-        ? await getOne('SELECT * FROM notebook_sources WHERE id = $1 AND notebook_id = $2', [id, notebookId])
-        : await getOne('SELECT * FROM notebook_sources WHERE id = $1', [id]);
+        ? await getOne(`SELECT ${SOURCE_LIST_COLUMNS} FROM notebook_sources WHERE id = $1 AND notebook_id = $2`, [id, notebookId])
+        : await getOne(`SELECT ${SOURCE_LIST_COLUMNS} FROM notebook_sources WHERE id = $1`, [id]);
     if (!r) return null;
     await run('DELETE FROM notebook_sources WHERE id = $1', [r.id]);
     await touchActivity(r.notebook_id, 'source');
@@ -898,9 +1017,21 @@ async function touchActivity(notebookId, kind) {
  */
 async function timeoutStuckSources(notebookId, { stuckMinutes = 10 } = {}) {
     await initDB();
+    // The list is polled while sources ingest; almost every poll has nothing to
+    // time out. A cheap indexed probe first, so the UPDATE (a write, with its
+    // row locks and WAL) only runs when a row is actually overdue.
+    const overdue = await getOne(
+        `SELECT 1 AS x FROM notebook_sources
+          WHERE notebook_id = $1 AND status = 'processing'
+            AND updated_at < NOW() - ($2::int * INTERVAL '1 minute')
+          LIMIT 1`,
+        [notebookId, stuckMinutes]
+    );
+    if (!overdue) return 0;
     const { rowCount } = await run(
         `UPDATE notebook_sources
             SET status = 'error',
+                stage = 'error',
                 error = 'Ingestion timed out — retry or re-upload.',
                 updated_at = NOW()
           WHERE notebook_id = $1
@@ -923,6 +1054,7 @@ function mapNotebookRow(r) {
         instructions: r.instructions || '',
         knowledgeBaseIds: parseJSON(r.knowledge_base_ids, []),
         settings: parseJSON(r.settings, {}),
+        cryptoContext: r._contentCryptoContext || null,
         documentContent: r.document_content || '',
         documentMd: r.document_md != null ? r.document_md : null,
         documentFormat: r.document_format || 'html',
@@ -933,6 +1065,9 @@ function mapNotebookRow(r) {
         organizationId: r.organization_id || null,
         version: typeof r.version === 'number' ? r.version : (parseInt(r.version) || 0),
         sourceCount: parseInt(r.source_count) || 0,
+        // Where its owner filed it in the Documents library (notebookLibrary).
+        folderId: r.folder_id || null,
+        categories: Array.isArray(r.categories) ? r.categories : parseJSON(r.categories, []),
         lastEditedBy: r.last_edited_by || null,
         lastEditedAt: r.last_edited_at ? new Date(r.last_edited_at).toISOString() : null,
         createdAt: r.created_at ? new Date(r.created_at).toISOString() : null,
@@ -956,7 +1091,7 @@ function mapSourceRow(r) {
         sortOrder: parseInt(r.sort_order) || 0,
         // Flag (not the content) so the list payload stays small but the UI knows
         // a preview is available and whether a text/meeting source can be retried.
-        hasContent: !!(r.content_text && r.content_text.length),
+        hasContent: r.has_content !== undefined ? !!r.has_content : !!(r.content_text && r.content_text.length),
         createdAt: r.created_at ? new Date(r.created_at).toISOString() : null,
         updatedAt: r.updated_at ? new Date(r.updated_at).toISOString() : null,
     };
@@ -992,8 +1127,6 @@ const AUTO_VERSION_DEBOUNCE_MS = 5 * 60 * 1000; // 5 minutes
 const VERSION_NAME_MAX = 80;
 const MAX_CONTRIBUTORS = 50;
 const MAX_STATS_JSON = 4000;
-const SEQ_INSERT_ATTEMPTS = 5;
-const UNIQUE_VIOLATION = '23505';
 
 // The labels the old routes wrote into `summary`, read as a source.
 const LEGACY_SUMMARY_SOURCES = {
@@ -1088,35 +1221,27 @@ function parseJSONValue(v, fallback) {
     try { return JSON.parse(v); } catch { return fallback; }
 }
 
-/**
- * Insert one version row, numbering it MAX(seq)+1 for its notebook. Two
- * writers computing the same number collide on the partial unique index and
- * the loser retries; after SEQ_INSERT_ATTEMPTS it throws rather than write an
- * unnumbered row that could never be named "v…".
- */
+/** Insert MAX(seq)+1 while holding the notebook lock, also used by sharing. */
 async function insertVersionRow(v) {
-    let lastErr = null;
-    for (let attempt = 0; attempt < SEQ_INSERT_ATTEMPTS; attempt++) {
-        try {
-            const row = await getOne(
-                `INSERT INTO notebook_versions
-                     (id, notebook_id, content, content_md, summary, content_length, source, name,
-                      created_by, contributors, stats, content_hash, pinned, restored_from, seq)
-                 SELECT $1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11::jsonb, $12, $13, $14,
-                        COALESCE(MAX(seq), 0) + 1
-                   FROM notebook_versions WHERE notebook_id = $2
-                 RETURNING ${VERSION_META_COLUMNS}`,
-                [v.id, v.notebookId, v.html, v.markdown, v.summary, v.html.length, v.source, v.name,
-                    v.createdBy, JSON.stringify(v.contributors), v.stats ? JSON.stringify(v.stats) : null,
-                    v.hash, v.pinned, v.restoredFrom]
-            );
-            return row;
-        } catch (err) {
-            if (err?.code !== UNIQUE_VIOLATION) throw err;
-            lastErr = err;
-        }
-    }
-    throw lastErr;
+    return withTransaction(async (client) => {
+        const { rows } = await client.query('SELECT * FROM notebooks WHERE id = $1 FOR UPDATE', [v.notebookId]);
+        if (!rows[0]) throw Object.assign(new Error('Notebook not found'), { status: 404 });
+        const resource = { ...contentCrypto.resourceOf(rows[0], 'notebook-version'), id: v.id };
+        const sealed = await contentCrypto.sealFields({ content: v.html, content_md: v.markdown }, resource, { content: false, content_md: false });
+        const inserted = await client.query(
+            `INSERT INTO notebook_versions
+                 (id, notebook_id, content, content_md, summary, content_length, source, name,
+                  created_by, contributors, stats, content_hash, pinned, restored_from, seq)
+             SELECT $1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11::jsonb, $12, $13, $14,
+                    COALESCE(MAX(seq), 0) + 1
+               FROM notebook_versions WHERE notebook_id = $2
+             RETURNING ${VERSION_META_COLUMNS}`,
+            [v.id, v.notebookId, sealed.content, sealed.content_md, v.summary, v.html.length, v.source, v.name,
+                v.createdBy, JSON.stringify(v.contributors), v.stats ? JSON.stringify(v.stats) : null,
+                v.hash, v.pinned, v.restoredFrom]
+        );
+        return inserted.rows[0];
+    });
 }
 
 /** The newest version of a notebook (metadata only), or null. */
@@ -1378,37 +1503,44 @@ async function shouldAutoVersion(notebookId) {
  */
 async function writeCollabContent(id, content = {}) {
     await initDB();
-    const rawHtml = typeof content.html === 'string' ? content.html : '';
-    const html = rawHtml && looksLikeHtml(rawHtml) ? sanitizeDocumentHtml(rawHtml) : rawHtml;
-    let markdown = typeof content.markdown === 'string' ? content.markdown : undefined;
-    if (markdown === undefined) {
-        const r = html.trim() ? tryHtmlToMarkdown(html) : { ok: true, md: '' };
-        markdown = r.ok ? r.md : null;
-    }
-    const plain = typeof content.text === 'string'
-        ? content.text
-        : (!html.trim() ? '' : (looksLikeHtml(html) ? htmlToPlainText(html) : stripMarkdownLite(html)));
-    const words = Number.isFinite(content.wordCount) ? Math.max(0, Math.floor(content.wordCount)) : countWords(plain);
-    const editedBy = typeof content.editedBy === 'string' && content.editedBy ? content.editedBy : null;
-    const row = await getOne(
-        `UPDATE notebooks
-            SET document_content = $1,
-                document_md = COALESCE($2, document_md),
-                document_format = 'html',
-                preview = $3,
-                doc_word_count = $4,
-                version = version + 1,
-                updated_at = NOW(),
-                last_activity_at = NOW(),
-                last_activity_kind = 'edit',
-                last_edited_by = COALESCE($5, last_edited_by),
-                last_edited_at = NOW()
-          WHERE id = $6
-          RETURNING version`,
-        [html, markdown, String(plain || '').slice(0, 300), words, editedBy, id]
-    );
-    if (!row) return null;
-    return { version: typeof row.version === 'number' ? row.version : (parseInt(row.version, 10) || 0) };
+    return withTransaction(async (client) => {
+        const { rows } = await client.query('SELECT * FROM notebooks WHERE id = $1 FOR UPDATE', [id]);
+        if (!rows[0]) return null;
+        const resource = contentCrypto.resourceOf(rows[0], 'notebook');
+        const rawHtml = typeof content.html === 'string' ? content.html : '';
+        const html = rawHtml && looksLikeHtml(rawHtml) ? sanitizeDocumentHtml(rawHtml) : rawHtml;
+        let markdown = typeof content.markdown === 'string' ? content.markdown : undefined;
+        if (markdown === undefined) {
+            const r = html.trim() ? tryHtmlToMarkdown(html) : { ok: true, md: '' };
+            markdown = r.ok ? r.md : null;
+        }
+        const plain = typeof content.text === 'string'
+            ? content.text
+            : (!html.trim() ? '' : (looksLikeHtml(html) ? htmlToPlainText(html) : stripMarkdownLite(html)));
+        const words = Number.isFinite(content.wordCount) ? Math.max(0, Math.floor(content.wordCount)) : countWords(plain);
+        const editedBy = typeof content.editedBy === 'string' && content.editedBy ? content.editedBy : null;
+        const stored = await contentCrypto.sealFields({ document_content: html, document_md: markdown, preview: String(plain || '').slice(0, 300) }, resource, contentCrypto.NOTEBOOK_FIELDS);
+        const result = await client.query(
+            `UPDATE notebooks
+                SET document_content = $1,
+                    document_md = COALESCE($2, document_md),
+                    document_format = 'html',
+                    preview = $3,
+                    doc_word_count = $4,
+                    version = version + 1,
+                    updated_at = NOW(),
+                    last_activity_at = NOW(),
+                    last_activity_kind = 'edit',
+                    last_edited_by = COALESCE($5, last_edited_by),
+                    last_edited_at = NOW()
+              WHERE id = $6
+              RETURNING version`,
+            [stored.document_content, stored.document_md, stored.preview, words, editedBy, id]
+        );
+        const row = result.rows[0];
+        if (!row) return null;
+        return { version: typeof row.version === 'number' ? row.version : (parseInt(row.version, 10) || 0) };
+    });
 }
 
 module.exports = {
@@ -1438,8 +1570,12 @@ module.exports = {
     getSources,
     getSource,
     getSourceContent,
+    getSourceStatus,
+    countSources,
+    deleteSources,
     reorderSources,
     updateSource,
+    claimSourceForRetry,
     deleteSource,
     timeoutStuckSources,
     // Versions

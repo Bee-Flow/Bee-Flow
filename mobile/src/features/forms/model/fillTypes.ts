@@ -54,7 +54,7 @@ export interface FillForm {
     successMessage: string;
     theme: Record<string, unknown> | null;
     fields: FillField[];
-    /** Page one only: whether the routine may pause for another page. */
+    /** Page one only: whether the automation may pause for another page. */
     multiPage: boolean;
 }
 

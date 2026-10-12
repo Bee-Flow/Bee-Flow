@@ -1,7 +1,7 @@
 /**
- * The routine id behind a flow key, reactively: the key itself for a routine
+ * The automation id behind a flow key, reactively: the key itself for an automation
  * with no editor open, the draft store's id otherwise — which changes from
- * null to the new id the moment a new routine is created, and re-renders the
+ * null to the new id the moment a new automation is created, and re-renders the
  * caller when it does.
  */
 

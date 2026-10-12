@@ -118,7 +118,7 @@ describe('DatatableScreen', () => {
     it('lists who uses the table, step by step', async () => {
         await render('usage');
         expect(await screen.findByText('Nightly import')).toBeTruthy();
-        expect(screen.getByText('routine · step 2 · insert')).toBeTruthy();
+        expect(screen.getByText('automation · step 2 · insert')).toBeTruthy();
         expect(screen.getByText('writes')).toBeTruthy();
     });
 
@@ -152,7 +152,7 @@ describe('DatatableScreen flows', () => {
         );
     });
 
-    it('asks before removing a column, naming the routine that reads it', async () => {
+    it('asks before removing a column, naming the automation that reads it', async () => {
         (api.put as jest.Mock).mockResolvedValue({ fields: FIELDS.slice(1), modelVersion: 4 });
         await render();
         await fireEvent.press(await screen.findByText('Company'));

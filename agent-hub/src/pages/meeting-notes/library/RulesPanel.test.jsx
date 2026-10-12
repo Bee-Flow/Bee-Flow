@@ -122,7 +122,7 @@ describe('runLabel', () => {
 /* ── het paneel ──────────────────────────────────────────────────────── */
 
 describe('RulesPanel', () => {
-    it('asks only for the meeting-notes routines and reads them as one sentence', async () => {
+    it('asks only for the meeting-notes automations and reads them as one sentence', async () => {
         api.listAutomations.mockResolvedValue({ automations: [rule()] });
         api.getRunFacets.mockResolvedValue({ facets: { automationId: { 'a-1': 2 } }, rangeHours: 24 });
         render(<RulesPanel currentUserId="me" onNavigate={vi.fn()} />);
@@ -246,6 +246,7 @@ describe('RulesPanel', () => {
 
         await waitFor(() => expect(api.suggestAutomationsStream).toHaveBeenCalled());
         const [body] = api.suggestAutomationsStream.mock.calls[0];
+        expect(body.mode).toBe('ideas');
         expect(body.focus.startsWith(COMPOSER_SEED)).toBe(true);
         expect(body.focus).toContain('tell the team');
 

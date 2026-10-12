@@ -193,7 +193,7 @@ export const BF_ELEMENTS = [
                 "state": "refused",
                 "message": "bf-button cannot run an automation in the preview image",
                 "notice": "This button is not active in the preview image.",
-                "why": "De stub-brug maakt van beeflowAutomations.run een weigering; een routine starten vanuit een screenshot mag sowieso niet."
+                "why": "De stub-brug maakt van beeflowAutomations.run een weigering; een automatisering starten vanuit een screenshot mag sowieso niet."
             }
         }
     },

@@ -282,10 +282,10 @@ test('live: the admin model, the fixed options, thinking off, the shaped output'
     // Guarded on the way out and on the way back.
     assert.ok(guardCalls.some(c => c.kind === 'ai_input' && JSON.stringify(c.messages).includes('Factuurdatum')));
     assert.ok(guardCalls.some(c => c.kind === 'ai_output'));
-    // Usage logged as routine spend against the extraction model.
+    // Usage logged as automation spend against the extraction model.
     assert.strictEqual(usageRows.length, 1);
     assert.strictEqual(usageRows[0].model, 'model-extract');
-    assert.strictEqual(usageRows[0].source, 'routine');
+    assert.strictEqual(usageRows[0].source, 'automation');
 });
 
 test('live: unset config falls back to the fast tier MODEL only — its options are still not used', async () => {

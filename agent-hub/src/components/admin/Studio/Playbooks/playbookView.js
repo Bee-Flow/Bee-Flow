@@ -64,8 +64,8 @@ export function phaseFact(phase, t) {
             return Number.isFinite(a.rowCount)
                 ? t('playbooks.fact.table_rows', '{name} · {n} rows', { name: a.datatableName, n: a.rowCount })
                 : a.datatableName;
-        case 'routine':
-            return a.automationTitle ? t('playbooks.fact.routine', 'Automation "{name}"', { name: a.automationTitle }) : null;
+        case 'automation':
+            return a.automationTitle ? t('playbooks.fact.automation', 'Automation "{name}"', { name: a.automationTitle }) : null;
         case 'fill':
             return Number.isFinite(a.rowCount) ? t('playbooks.fact.fill', '{n} rows', { n: a.rowCount }) : null;
         case 'design':
@@ -105,8 +105,8 @@ export function phaseFacts(phase, t) {
             add(t('playbooks.inspect.rows', 'Rows'), a.rowCount);
             if (a.isMirror) add(t('playbooks.inspect.kind', 'Kind'), t('playbooks.table.mirror', 'Nextcloud mirror'));
             break;
-        case 'routine':
-            add(t('playbooks.done.routine', 'Automation'), a.automationTitle || a.automationId);
+        case 'automation':
+            add(t('playbooks.done.automation', 'Automation'), a.automationTitle || a.automationId);
             break;
         case 'fill':
             // The wire value ("success", "error") is not a word a person reads,

@@ -178,7 +178,7 @@ const CONTENT_SPECS = {
     },
     keyValue: {
         label: 'Key–value', category: 'Data',
-        description: 'Renders an object as label/value rows (e.g. one record from a routine result).',
+        description: 'Renders an object as label/value rows (e.g. one record from an automation result).',
         props: {
             source: { type: 'binding', default: { kind: 'static', value: null } },
             fields: {

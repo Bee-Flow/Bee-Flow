@@ -20,7 +20,7 @@ import FeatureDemo from './FeatureDemo';
 
 const base = {
     enabled: true,
-    feature: 'routines',
+    feature: 'automations',
     height: 760,
     theme: 'light',
     title: 'The actual builder',
@@ -74,7 +74,7 @@ describe('on desktop', () => {
 
         const iframe = container.querySelector('iframe.feature-demo-iframe');
         expect(iframe).not.toBeNull();
-        expect(iframe.getAttribute('src')).toBe('/__demo__/routines?theme=light');
+        expect(iframe.getAttribute('src')).toBe('/__demo__/automations?theme=light');
         expectContainment(iframe);
     });
 
@@ -108,7 +108,7 @@ describe('on a phone', () => {
         // sits outside the tab order (it is inside an aria-hidden subtree),
         // and does NOT carry vw — viewport meta is inert inside an iframe.
         const iframe = canvas.querySelector('iframe.feature-demo-iframe');
-        expect(iframe.getAttribute('src')).toBe('/__demo__/routines?theme=light');
+        expect(iframe.getAttribute('src')).toBe('/__demo__/automations?theme=light');
         expectContainment(iframe);
         expect(iframe.getAttribute('tabindex')).toBe('-1');
 
@@ -124,7 +124,7 @@ describe('on a phone', () => {
         const button = container.querySelector('a.feature-demo-open-btn');
         for (const link of [overlay, button]) {
             expect(link).not.toBeNull();
-            expect(link.getAttribute('href')).toBe('/__demo__/routines?theme=light&vw=1280');
+            expect(link.getAttribute('href')).toBe('/__demo__/automations?theme=light&vw=1280');
             // Same tab on purpose: the demo host's close button relies on
             // history.back() landing on this exact page.
             expect(link.getAttribute('target')).toBeNull();
@@ -140,7 +140,7 @@ describe('on a phone', () => {
     it('carries a dark theme into the full-screen URL', () => {
         const { container } = render(<FeatureDemo data={{ ...base, theme: 'dark' }} />);
         expect(container.querySelector('a.feature-demo-open-overlay').getAttribute('href'))
-            .toBe('/__demo__/routines?theme=dark&vw=1280');
+            .toBe('/__demo__/automations?theme=dark&vw=1280');
     });
 
     it('still renders the placeholder for an unknown feature — no iframe, no links', () => {

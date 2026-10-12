@@ -38,7 +38,7 @@
  *     may see it; a language model does not get to widen either.
  *   - `steps[].refs` are re-attached from the CURRENT step of the same id.
  *     The model is shown the ids and may keep them; it may not invent a
- *     reference to a routine, table or knowledge base, because it has no way
+ *     reference to an automation, table or knowledge base, because it has no way
  *     to know which ids exist and a wrong one is a broken pill on screen.
  */
 

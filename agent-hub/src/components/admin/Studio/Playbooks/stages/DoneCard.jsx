@@ -29,15 +29,15 @@ function DoorLink({ icon, kind, label, name, onClick, t }) {
 
 /**
  * The end of the film: what was built, how long it took, and three doors —
- * the routine, the table, the app. A stopped playbook gets the same card
+ * the automation, the table, the app. A stopped playbook gets the same card
  * with what DID land; skipped and locked phases are named, not hidden.
  */
 export default function DoneCard({ playbook, onNavigate, onBack, onResume = null, t, presenter = false, busy = false }) {
     const phases = Array.isArray(playbook?.phases) ? playbook.phases : [];
     const byKind = (k) => phases.find((p) => kindOf(p) === k) || null;
     const table = byKind('table')?.artifacts || {};
-    // Every routine that landed gets a door — the feeding one and the approval one.
-    const routines = phases.filter((p) => kindOf(p) === 'routine' && p.artifacts && p.artifacts.automationId);
+    // Every automation that landed gets a door — the feeding one and the approval one.
+    const automations = phases.filter((p) => kindOf(p) === 'automation' && p.artifacts && p.artifacts.automationId);
     const app = byKind('app')?.artifacts || {};
     const fill = byKind('fill');
     const access = byKind('access');
@@ -68,8 +68,8 @@ export default function DoneCard({ playbook, onNavigate, onBack, onResume = null
                 </div>
 
                 <div className="mt-5 grid gap-2">
-                    {routines.map((p) => (
-                        <DoorLink key={p.key} icon={<Workflow />} kind="automation" label={p.requires === 'approvals' ? phaseLabel(p, t) : t('playbooks.done.routine', 'Automation')} name={p.artifacts.automationTitle || t('playbooks.done.routine_unnamed', 'The automation')} onClick={() => go(`studio/automations/${p.artifacts.automationId}`)} t={t} />
+                    {automations.map((p) => (
+                        <DoorLink key={p.key} icon={<Workflow />} kind="automation" label={p.requires === 'approvals' ? phaseLabel(p, t) : t('playbooks.done.automation', 'Automation')} name={p.artifacts.automationTitle || t('playbooks.done.automation_unnamed', 'The automation')} onClick={() => go(`studio/automations/${p.artifacts.automationId}`)} t={t} />
                     ))}
                     {table.datatableId && <DoorLink icon={<Table2 />} kind="datatable" label={t('playbooks.done.table', 'Table')} name={table.datatableName || table.datatableKey || t('playbooks.done.table_unnamed', 'The table')} onClick={() => go(`studio/datatables/${table.datatableId}`)} t={t} />}
                     {app.appId && <DoorLink icon={<AppWindow />} kind="app" label={t('playbooks.done.app', 'App')} name={app.appName || playbook.title} onClick={() => go(`studio/apps/${app.appId}`)} t={t} />}

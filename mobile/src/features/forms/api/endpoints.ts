@@ -3,11 +3,11 @@
  * is gated by requireModule('automation') + requireLicenseFeature('automations'),
  * so a 402/403 is a normal answer.
  *
- * A form is not an object of its own: it is a routine whose trigger has
+ * A form is not an object of its own: it is an automation whose trigger has
  * `kind: 'form'`. Its questions are saved through the ordinary PUT of the
- * routine (the flow editor's draft store does that), its link is one of the
- * routine's form links (the flow editor's links calls), and going live is
- * arming the routine. What is here is what exists for forms alone.
+ * automation (the flow editor's draft store does that), its link is one of the
+ * automation's form links (the flow editor's links calls), and going live is
+ * arming the automation. What is here is what exists for forms alone.
  */
 
 import { api } from '@/core/api/client';
@@ -24,7 +24,7 @@ const formPath = (automationId: string) => `${formsPath}/${encodeURIComponent(au
 /**
  * Every form in the caller's organisation. Org-scoped on purpose: a form has
  * an address, and an address belongs to the organisation that hands it out.
- * `mine` marks the ones whose routine this caller owns; `canOpen` the ones
+ * `mine` marks the ones whose automation this caller owns; `canOpen` the ones
  * they may fill in.
  */
 export async function listForms(signal?: AbortSignal): Promise<FormSummary[]> {
@@ -32,7 +32,7 @@ export async function listForms(signal?: AbortSignal): Promise<FormSummary[]> {
 }
 
 /**
- * One form, for the Form page — by the ROUTINE's id. Same audience as the
+ * One form, for the Form page — by the AUTOMATION's id. Same audience as the
  * list (404 outside the organisation); the definition comes along for the
  * owner only.
  */

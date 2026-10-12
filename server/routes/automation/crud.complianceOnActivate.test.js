@@ -1,27 +1,27 @@
 'use strict';
 
 /**
- * Activation wakes the compliance work for THAT routine — the same minute,
+ * Activation wakes the compliance work for THAT automation — the same minute,
  * not at the next sweep.
  *
  * compliance/scheduler.js runs every six hours, and until this landed it was
- * the only thing that ever moved a verdict. Switch a routine on at 09:05 and
+ * the only thing that ever moved a verdict. Switch an automation on at 09:05 and
  * the last word on the workspace was the 06:00 sweep — a sweep that could not
  * have seen it. For the rest of the morning the Compliance Center described a
- * workspace this routine was not in: green, confident, and silent about a
+ * workspace this automation was not in: green, confident, and silent about a
  * thing now running unattended with personal data in it. An evening
  * activation was not looked at until the next day.
  *
  * Four properties, and every one of them is load-bearing:
  *
- *   1. the review is QUEUED on activation, for this routine, in the
+ *   1. the review is QUEUED on activation, for this automation, in the
  *      organisation whose checks can actually see it;
  *   2. it happens AFTER the response — nobody waits behind a spinner for a
  *      compliance sweep;
  *   3. anything going wrong in the compliance path leaves the activation
- *      alone: the routine is already on and the user has already been told;
+ *      alone: the automation is already on and the user has already been told;
  *   4. an activation that was REFUSED queues nothing — compliance must not be
- *      told about a routine that did not go live.
+ *      told about an automation that did not go live.
  *
  * Run: node --test --test-force-exit server/routes/automation/crud.complianceOnActivate.test.js
  */
@@ -125,7 +125,7 @@ function reset() {
     reviewThrows = false; userLookupThrows = false; userLookups.length = 0;
 }
 
-function routine(id, extra = {}) {
+function automation(id, extra = {}) {
     AUTOMATIONS[id] = {
         id, userId: 'user1', isActive: false, isDraft: true, triggerType: 'manual', scheduleCron: null,
         definition: { trigger: { id: 'trg1', kind: 'manual' }, steps: [], edges: [] },
@@ -134,9 +134,9 @@ function routine(id, extra = {}) {
     return { params: { id }, session: { user: { id: 'user1' }, isAdmin: false }, body: {} };
 }
 
-test('activating a routine queues a compliance review of THAT routine', async () => {
+test('activating an automation queues a compliance review of THAT automation', async () => {
     reset();
-    const req = routine('auto1', { organizationId: 'org-acme' });
+    const req = automation('auto1', { organizationId: 'org-acme' });
     const res = makeRes();
     await activateHandler(req, res);
     await flushAsync();
@@ -146,13 +146,13 @@ test('activating a routine queues a compliance review of THAT routine', async ()
     assert.deepStrictEqual(
         queued.map(q => [q.orgId, q.automationId, q.reason]),
         [['org-acme', 'auto1', 'activation']],
-        'one review, of this routine, in its own organisation — not a workspace sweep',
+        'one review, of this automation, in its own organisation — not a workspace sweep',
     );
 });
 
 test('the review is queued AFTER the response — the user does not wait for compliance', async () => {
     reset();
-    const req = routine('auto2', { organizationId: 'org-acme' });
+    const req = automation('auto2', { organizationId: 'org-acme' });
     const res = makeRes();
     await activateHandler(req, res);
     await flushAsync();
@@ -162,14 +162,14 @@ test('the review is queued AFTER the response — the user does not wait for com
         `the activation response must be written before any compliance work is queued (response #${res.jsonSeq}, queue #${queued[0].seq})`);
 });
 
-test('the organisation is the ROUTINE\'S, falling back to its OWNER\'S — the checks scope by that COALESCE', async () => {
+test('the organisation is the AUTOMATION\'S, falling back to its OWNER\'S — the checks scope by that COALESCE', async () => {
     reset();
-    // Routines saved before organization_id was stamped carry NULL; the
+    // Automations saved before organization_id was stamped carry NULL; the
     // compliance subject queries fall back to the owner's organisation
     // (COALESCE(a.organization_id, u."organizationId")), so this must too or
-    // the review asks a dashboard that cannot see the routine.
+    // the review asks a dashboard that cannot see the automation.
     USERS.user1 = { id: 'user1', organizationId: 'org-from-owner' };
-    const req = routine('auto3', { organizationId: null });
+    const req = automation('auto3', { organizationId: null });
     await activateHandler(req, makeRes());
     await flushAsync();
     assert.deepStrictEqual(queued.map(q => q.orgId), ['org-from-owner']);
@@ -178,7 +178,7 @@ test('the organisation is the ROUTINE\'S, falling back to its OWNER\'S — the c
     queued = [];
     userLookups.length = 0;
     USERS.user1 = { id: 'user1', organizationId: 'org-from-owner' };
-    const req2 = routine('auto4', { organizationId: 'org-on-the-row' });
+    const req2 = automation('auto4', { organizationId: 'org-on-the-row' });
     await activateHandler(req2, makeRes());
     await flushAsync();
     assert.deepStrictEqual(queued.map(q => q.orgId), ['org-on-the-row'], 'the row wins when it has one');
@@ -190,10 +190,10 @@ test('the organisation is the ROUTINE\'S, falling back to its OWNER\'S — the c
     // because the handler reads identities for its own reasons as well (orgOf,
     // the agent catalogue) and those are the same on both paths. The agent
     // gate measures the same property from the other side: activating a
-    // routine that names no agent reads no identity at all
+    // automation that names no agent reads no identity at all
     // (crud.agentGate.test.js, 'and no identity read either') — which is the
     // assertion the unconditional read had turned red.
-    // Two readers ask for the routine's organisation on activation: this
+    // Two readers ask for the automation's organisation on activation: this
     // compliance review and the AI Act gate (automation/aiActCheck.js, which
     // checks the organisation's compliance hub licence). Each follows the same
     // "first, then" rule, so the unstamped row pays one fallback read per
@@ -202,10 +202,10 @@ test('the organisation is the ROUTINE\'S, falling back to its OWNER\'S — the c
         'a stamped row answers the question by itself; only the unstamped one pays for the fallback');
 });
 
-test('a routine with no organisation at all queues nothing — no check could match it', async () => {
+test('an automation with no organisation at all queues nothing — no check could match it', async () => {
     reset();
     USERS.user1 = { id: 'user1', organizationId: null };
-    const req = routine('auto5', { organizationId: null });
+    const req = automation('auto5', { organizationId: null });
     const res = makeRes();
     await activateHandler(req, res);
     await flushAsync();
@@ -216,19 +216,19 @@ test('a routine with no organisation at all queues nothing — no check could ma
 test('a compliance queue that throws does NOT fail the activation', async () => {
     reset();
     reviewThrows = true;
-    const req = routine('auto6', { organizationId: 'org-acme' });
+    const req = automation('auto6', { organizationId: 'org-acme' });
     const res = makeRes();
     await activateHandler(req, res);
     await flushAsync();
 
-    assert.strictEqual(res.statusCode, 200, 'the routine is on and the user was told so — compliance cannot retract that');
+    assert.strictEqual(res.statusCode, 200, 'the automation is on and the user was told so — compliance cannot retract that');
     assert.strictEqual(AUTOMATIONS.auto6.isActive, true);
 });
 
 test('an organisation lookup that throws does NOT fail the activation', async () => {
     reset();
     userLookupThrows = true;
-    const req = routine('auto7', { organizationId: null });
+    const req = automation('auto7', { organizationId: null });
     const res = makeRes();
     await activateHandler(req, res);
     await flushAsync();
@@ -238,10 +238,10 @@ test('an organisation lookup that throws does NOT fail the activation', async ()
     assert.deepStrictEqual(queued, [], 'and nothing is queued against a guessed organisation');
 });
 
-test('a REFUSED activation queues nothing — compliance is not told about a routine that never went live', async () => {
+test('a REFUSED activation queues nothing — compliance is not told about an automation that never went live', async () => {
     reset();
-    const req = routine('auto8', { organizationId: 'org-acme' });
-    // An edited pin is a hard 400: the routine stays off (see
+    const req = automation('auto8', { organizationId: 'org-acme' });
+    // An edited pin is a hard 400: the automation stays off (see
     // crud.activateCatchup.test.js for the rule itself).
     AUTOMATIONS.auto8.definition.steps = [{
         id: 's1', type: 'notification', title: 'x', body: 'y',
@@ -256,9 +256,9 @@ test('a REFUSED activation queues nothing — compliance is not told about a rou
     assert.deepStrictEqual(queued, [], 'nothing changed, so there is nothing to re-judge');
 });
 
-test('deactivating queues a review too — a finding about a routine nobody runs is wrong', async () => {
+test('deactivating queues a review too — a finding about an automation nobody runs is wrong', async () => {
     reset();
-    const req = routine('auto9', { organizationId: 'org-acme', isActive: true, isDraft: false });
+    const req = automation('auto9', { organizationId: 'org-acme', isActive: true, isDraft: false });
     const res = makeRes();
     await deactivateHandler(req, res);
     await flushAsync();
@@ -272,16 +272,16 @@ test('deactivating queues a review too — a finding about a routine nobody runs
     assert.ok(res.jsonSeq < queued[0].seq, 'and it still lands after the response');
 });
 
-test('on-off-on-off reaches the queue as four asks about ONE routine, which the queue then coalesces', async () => {
+test('on-off-on-off reaches the queue as four asks about ONE automation, which the queue then coalesces', async () => {
     reset();
     for (let i = 0; i < 2; i++) {
-        await activateHandler(routine('auto10', { organizationId: 'org-acme' }), makeRes());
-        await deactivateHandler(routine('auto10', { organizationId: 'org-acme', isActive: true }), makeRes());
+        await activateHandler(automation('auto10', { organizationId: 'org-acme' }), makeRes());
+        await deactivateHandler(automation('auto10', { organizationId: 'org-acme', isActive: true }), makeRes());
     }
     await flushAsync();
     // The route's job is to ASK; compliance/subjectReview.js is what collapses
     // the asks into one run (subjectReview.test.js pins that). What matters
-    // here is that every ask names one routine and one organisation — the
+    // here is that every ask names one automation and one organisation — the
     // route never reaches for a full-workspace sweep.
     assert.strictEqual(queued.length, 4);
     assert.deepStrictEqual([...new Set(queued.map(q => q.automationId))], ['auto10']);

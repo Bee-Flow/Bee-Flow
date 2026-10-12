@@ -46,11 +46,11 @@
  *
  *   - `core/agentRuntime/toolStackAssembly.js` geeft de agentconfig door aan
  *     `getIntegrationTools`, maar dáár wordt alleen `config.tools` gelezen
- *     (de routine-curatie). Welke apps een agent krijgt hangt aan
+ *     (de automation-curatie). Welke apps een agent krijgt hangt aan
  *     `enabled_apps_user_<id>` — de GEBRUIKER — plus `AUTO_ENABLED_APPS`,
  *     waar `agent-search` in staat, plus of er überhaupt een zoekprovider
- *     geconfigureerd is (`searchAvailable`). Buiten aiTaskRunner (routine-
- *     OAuth), routineAuth en de packaging leest niemand in server/ het veld
+ *     geconfigureerd is (`searchAvailable`). Buiten aiTaskRunner (automation-
+ *     OAuth), automationAuth en de packaging leest niemand in server/ het veld
  *     `config.enabledIntegrations`.
  *   - `stores/agent/initSchema.js` (R4-backfill) heeft `agent-search` in
  *     ÉLKE agentrij van vóór die migratie gezet. Als "web staat aan" zou

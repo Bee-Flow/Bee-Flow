@@ -43,7 +43,7 @@ export function RecentSearches({
                 message={
                     tooShort
                         ? `Two characters or more, and Bee Flow starts looking.`
-                        : 'Chats, notebooks, documents, knowledge bases, routines and meeting notes — all at once.'
+                        : 'Chats, notebooks, documents, knowledge bases, automations and meeting notes — all at once.'
                 }
             />
         );

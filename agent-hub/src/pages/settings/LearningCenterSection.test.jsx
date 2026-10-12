@@ -97,6 +97,14 @@ describe('LearningCenterSection — redesigned shell', () => {
 
     it('a course opens as its own screen with a lessons table, and back returns to the map', async () => {
         render(<LearningCenterSection user={USER} />);
+        // Wait for the server-hydrated path to settle the columns first: the
+        // pre-hydration paint expands a different path column, and grabbing a
+        // row before the reorder captures an element the collapse then
+        // unmounts — a click on a detached node reaches no handler.
+        await waitFor(() => {
+            const first = screen.getAllByTestId('curriculum-column')[0];
+            expect(within(first).getByText('Build agents & automations')).toBeTruthy();
+        });
         const station = (await screen.findAllByTestId('course-station'))[0];
         fireEvent.click(station);
         expect(await screen.findByTestId('course-view')).toBeTruthy();
@@ -109,6 +117,25 @@ describe('LearningCenterSection — redesigned shell', () => {
         expect(screen.getByTestId('lesson-steps')).toBeTruthy();
         fireEvent.click(screen.getByLabelText('Back to the overview'));
         expect(await screen.findByTestId('curriculum-map')).toBeTruthy();
+    });
+
+    it('the curriculum map opens as category tiles: one path expanded, the rest behind their tile (BFSF-473)', async () => {
+        render(<LearningCenterSection user={USER} />);
+        await screen.findByTestId('learning-hero');
+        // Every category renders as one large tile — never more than one list open.
+        const tiles = screen.getAllByTestId('curriculum-tile');
+        expect(tiles.length).toBeGreaterThanOrEqual(3);
+        expect(tiles.filter((tile) => tile.getAttribute('aria-expanded') === 'true').length).toBe(1);
+        // The learner's own path (builder, first column) is the one that starts open.
+        const firstCol = screen.getAllByTestId('curriculum-column')[0];
+        expect(within(firstCol).getAllByTestId('course-station').length).toBeGreaterThan(0);
+        // A collapsed category shows its tile but no course rows; clicking opens it
+        // and closes the previous one (accordion).
+        const secondCol = screen.getAllByTestId('curriculum-column')[1];
+        expect(within(secondCol).queryByTestId('course-station')).toBeNull();
+        fireEvent.click(within(secondCol).getByTestId('curriculum-tile'));
+        expect(within(secondCol).getAllByTestId('course-station').length).toBeGreaterThan(0);
+        expect(within(firstCol).queryByTestId('course-station')).toBeNull();
     });
 
     it('the Review and Achievements tabs render from the rail', async () => {

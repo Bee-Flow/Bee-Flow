@@ -76,7 +76,7 @@ export function HistoryTab({ documentId, editable, beforeRestore, onRestored }: 
         const ok = await confirm({
             title: t('documents.restore', 'Restore this version'),
             message: t('mobile.studio_documents.history.restore_message', 'The document goes back to this revision. What it is now stays in the history.'),
-            confirmLabel: t('routine_editor.version_restore', 'Restore'),
+            confirmLabel: t('automation_editor.version_restore', 'Restore'),
             tone: 'primary',
         });
         if (!ok) return;

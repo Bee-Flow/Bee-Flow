@@ -1,6 +1,6 @@
 /**
- * A routine as a file, pure: the name the exported file gets, and reading a
- * picked file back into the envelope POST /import takes (a routine exported
+ * An automation as a file, pure: the name the exported file gets, and reading a
+ * picked file back into the envelope POST /import takes (an automation exported
  * here or on the web: `{ format: 'beeflow.automation', automation }`, or a
  * bare `{ automation }`). The server checks the format and the definition
  * itself; this only refuses what is not a JSON object at all, so a wrong
@@ -10,7 +10,7 @@
 /** "Invoice reminders.beeflow.json" — letters, digits, spaces, dashes and underscores only. */
 export function exportFileName(title: string | null | undefined): string {
     const safe = (title || '').replace(/[^\p{L}\p{N} _-]/gu, '').trim().replace(/\s+/g, ' ').slice(0, 80);
-    return `${safe || 'Routine'}.beeflow.json`;
+    return `${safe || 'Automation'}.beeflow.json`;
 }
 
 export type ParsedImport = { ok: true; envelope: Record<string, unknown> } | { ok: false; reason: 'empty' | 'not_json' | 'not_object' };

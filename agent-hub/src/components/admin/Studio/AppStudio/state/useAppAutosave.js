@@ -134,6 +134,12 @@ export default function useAppAutosave({ appId, definition, version, enabled = t
                         setSafe('error', outcome.error);
                         onInvalidRef.current?.({ errors, warnings: res.warnings || [] });
                         break;
+                    } else if (res.managed) {
+                        // A Solution stage took the app over (409 managed_part): say
+                        // that, not a generic failure. Retrying cannot help.
+                        outcome = { ok: false, error: res.error || res.managed.message || 'This app is managed by a Solution stage.' };
+                        setSafe('error', outcome.error);
+                        break;
                     } else {
                         outcome = { ok: false, error: 'Saving failed.' };
                         setSafe('error', outcome.error);

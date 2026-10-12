@@ -8,7 +8,7 @@
  * talked to each other:
  *
  *   appStudio/validate.js      a button wired to nothing (`component.control_inert`)
- *   automation/validate.js     a half-built routine, on the draft/activate ladder
+ *   automation/validate.js     a half-built automation, on the draft/activate ladder
  *   projects/graph.js          a broken, external or cross-owner reference
  *   stores/knowledgeBases      a base with no documents that something reads
  *
@@ -21,9 +21,9 @@
  *
  * ── The ladder is kept, not flattened ───────────────────────────────────────
  *
- * A routine that is a DRAFT is validated at `stage: 'draft'`: its completeness
+ * An automation that is a DRAFT is validated at `stage: 'draft'`: its completeness
  * codes come back as warnings tagged `blockedAt: 'activate'` — advice, because a
- * half-built flow is the normal state of a flow being built. The same routine
+ * half-built flow is the normal state of a flow being built. The same automation
  * once it is ACTIVE is validated at `stage: 'activate'` and those same codes
  * block. Flattening that into one severity is what BFSF-323 was about, so the
  * verdict travels on `blockedAt` and the ladder stays where it lives.
@@ -157,7 +157,7 @@ function emptyKnowledgeBaseFinding(kb) {
     });
 }
 
-/** Which stage a routine is validated at: what is live must be finishable. */
+/** Which stage an automation is validated at: what is live must be finishable. */
 function stageFor(automation) {
     return (automation?.isActive && !automation?.isDraft) ? 'activate' : 'draft';
 }
@@ -255,13 +255,13 @@ function collectRequires({ automations = [], graph = null } = {}) {
     // is `buildGraphForProject`'s own answer, and it reaches the verdict
     // through `unavailable` — reporting it a second time from this walk would
     // make the pure function block on its own documented default, which is
-    // what a caller asking only about routines passes.
+    // what a caller asking only about automations passes.
 
     for (const a of automations.filter(Boolean)) {
         if (!a.definition || typeof a.definition !== 'object') {
-            // A routine handed over without its definition. The contract says
+            // An automation handed over without its definition. The contract says
             // callers pass definitions; one that does not gets a named gap
-            // rather than a clean bill for a routine nobody opened.
+            // rather than a clean bill for an automation nobody opened.
             cannotRead('automations');
             continue;
         }
@@ -310,7 +310,7 @@ function collectRequires({ automations = [], graph = null } = {}) {
  * @param {object}   input
  * @param {object}   input.graph            the result of buildGraphForProject (nodes/edges/problems)
  * @param {Array}    input.apps             apps WITH their definitions
- * @param {Array}    input.automations      routines WITH definition/isActive/isDraft
+ * @param {Array}    input.automations      automations WITH definition/isActive/isDraft
  * @param {Array}    input.knowledgeBases   the bases filed into this project
  * @param {Map|object} input.kbDocumentCounts  kb id → document count, or `null` per id when unread
  * @param {string[]} input.unavailable      sections the loader could not read
@@ -351,11 +351,11 @@ function buildCompleteness({
         }
     }
 
-    // ── 2. Routines, on their own stage ─────────────────────────────────
+    // ── 2. Automations, on their own stage ─────────────────────────────────
     const { validateDefinition } = require('../automation/validate');
     for (const a of automations.filter(Boolean)) {
-        // Same rule as the catch below it, which was already right: a routine
-        // that could not be validated is not a routine without problems.
+        // Same rule as the catch below it, which was already right: an automation
+        // that could not be validated is not an automation without problems.
         // Arriving without a definition is the earlier version of that.
         if (!a.definition || typeof a.definition !== 'object') { miss('automations'); continue; }
         let result;

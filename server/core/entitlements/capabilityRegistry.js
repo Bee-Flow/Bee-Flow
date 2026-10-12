@@ -27,6 +27,8 @@
  *     defaultState,   // 'on'|'off' — GA betas + community integrations = 'on'
  *     userFacing,     // surfaced in the org Access & Permissions matrix
  *     groupTogglable, // org-admin may grant this per group
+ *     groupScoped,    // beta only: the menu alone does not grant it to every
+ *                     //   member; see `groupScoped` in betaFeatures.js
  *     aliasOf,        // deprecated beta aliases
  *     _ncFamily,      // nextcloud-* — keeps the existing orgActiveSet exemption
  *   }
@@ -116,6 +118,7 @@ const INTEGRATION_CATALOG = [
     { id: 'afas-profit',      name: 'AFAS Profit',           description: 'Query AFAS Profit GetConnectors (read-only)', category: 'Productivity' },
     { id: 'nmbrs',            name: 'NMBRS',                 description: 'Read NMBRS payroll & HR data (read-only)',    category: 'Productivity' },
     { id: 'vplan',            name: 'vPlan',                 description: 'Read vPlan planning, capacity & time tracking (read-only)', category: 'Productivity' },
+    { id: 'scaleway-billing', name: 'Scaleway Billing',      description: 'Fetch Scaleway invoices (PDF) for automations (read-only)', category: 'Productivity' },
     { id: 'youtrack',         name: 'YouTrack',              description: 'Issue tracking',                             category: 'Developer' },
     { id: 'github',           name: 'GitHub',                description: 'Repository management, view code',           category: 'Developer' },
     { id: 'n8n',              name: 'n8n',                   description: 'Workflow automation',                        category: 'Automation' },
@@ -273,6 +276,7 @@ async function listCustomIntegrationCapabilities(orgId) {
     if (cached && (Date.now() - cached.at) < CUSTOM_INTEGRATION_TTL_MS) return cached.list;
     try {
         const rows = await customIntegrationStore().listActiveForOrg(orgKey);
+        const { isLibraryRow } = require('../../stores/lib/customIntegrationSource');
         const list = (rows || []).map(row => ({
             id: `custom:${row.id}`,
             kind: CapabilityKind.INTEGRATION,
@@ -288,6 +292,10 @@ async function listCustomIntegrationCapabilities(orgId) {
             _customOrgId: row.orgId,
             _customSlug: row.slug,
             _customKind: row.kind,
+            // Which licence admits it to the ceiling (entitlements.buildCeiling):
+            // 'mcp_library' rows need mcp_marketplace, builder rows the
+            // ai_integration_builder beta.
+            _customSource: isLibraryRow(row) ? 'mcp_library' : 'builder',
         }));
         _customByOrg.set(orgKey, { at: Date.now(), list });
         for (const c of list) _customById.set(c.id, c);
@@ -344,6 +352,7 @@ function build() {
             defaultState: f.lifecycle === 'ga' ? 'on' : 'off',
             userFacing: !f.deprecated && f.lifecycle !== 'experimental',
             groupTogglable: !f.deprecated,
+            groupScoped: !!f.groupScoped,
             aliasOf: f.aliasOf || null,
             deprecated: !!f.deprecated,
         });

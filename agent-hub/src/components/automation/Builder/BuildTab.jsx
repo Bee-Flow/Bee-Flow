@@ -1,6 +1,7 @@
 // §WS5 — BuildTab body, extracted verbatim from BuilderShell.jsx. The shell
 // keeps orchestration state; BuildTab is the build-tab UI (canvas, ribbon,
 // chat column, inspector overlay). Its prop list is fully explicit.
+import { followSuccessors } from '@shared/expr/routeFollow.mjs';
 import { Sparkles, X } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useBuilderConfirm } from './BuilderConfirmContext';
@@ -8,8 +9,8 @@ import BuilderHeader from './BuilderHeader';
 import CanvasPlanPanel from './CanvasPlanPanel';
 
 import { AutomationSummary, AssistantWelcome, RunProgressBanner, MessageBubble, BuilderWaitingCard } from './chat/index';
-import { modelKeyFor, recordTtft } from './chat/timeToFirstToken';
 import { addedStepsOf, describeToolCall } from './chat/toolCallDisplay';
+import { webSearchUnavailableHint } from './chat/webSearchStatus';
 import DiagramPane, { applyAddNode } from './DiagramPane';
 import AddStepMenu from './flow/AddStepMenu';
 import AddStepRibbon from './flow/AddStepRibbon';
@@ -26,10 +27,13 @@ import {
     flowToScopePosition, prefixAddedStep, parseInlineId, isInlineId,
 } from './flow/inlineFlowlets';
 import { seedPositions } from './flow/layout';
+import { COL_PITCH } from './flow/buildChoreography';
+import { placeNewStep } from './flow/placeStep';
 import { applyDeleteNodes, applyDuplicateNode } from './flow/nodeOps';
 import { normalizeDefinitionShape, emptyGraph } from './flow/normalizeDefinition';
 import { renameFormField } from './flow/renameFormField';
 import { stepOutputIsArray } from './flow/ribbon/fitsAfter';
+import { followAfterAdd, followedMessages } from './flow/routeFollowNotes';
 import { isRouteStep, routePorts } from './flow/routeModel';
 import { insertStepBefore } from './flow/settings/routeHandoff';
 import { computeRunFocus } from './flow/runFocus';
@@ -48,6 +52,14 @@ import useAutomationApi from '../../../hooks/useAutomationApi';
 import { useTranslation } from '../../../hooks/useTranslation';
 import scopedStorage from '../../../utils/scopedStorage';
 import InputArea from '../../chat/InputArea';
+import WorkModePicker, { WORK_MODES } from './chat/WorkModePicker';
+import { isWorkModeShortcut, nextWorkMode } from './chat/workModeShortcut';
+import PlanReview from './chat/PlanReview';
+import ProposalCard from './chat/ProposalCard';
+import { previewCatalog } from './chat/pendingTables';
+import PlanInlineCard from './chat/PlanInlineCard';
+import QuestionsCard from './chat/QuestionsCard';
+import { AssistantFieldProvider } from './chat/AssistantFieldContext';
 import { toast } from '../../shared/Toast';
 import { ribbonAnchor, addOptionsFor } from './flow/ribbon/ribbonAnchor';
 // The plan panel floats over the canvas's left edge: 240 px wide, 12 px clear
@@ -63,16 +75,16 @@ const PLAN_PANEL_INSET_PX = 264;
  * accepting the step and surfacing a red banner two edits later.
  */
 const LOOP_BODY_REFUSALS = {
-    trigger: 'A routine starts in one place. The loop already runs once per item — you can\'t start a new flow inside it.',
+    trigger: 'An automation starts in one place. The loop already runs once per item — you can\'t start a new flow inside it.',
     form_page: 'Form steps can\'t run inside a loop: one page, one visitor, one answer. Put the form before or after the loop.',
     approval: 'Approvals can\'t run inside a loop: the run would pause on every item and could never be approved. Move the approval to the main flow, before or after the loop — approve once, then let every item through.',
     layer_output: 'Return hands data back from a flowlet. A loop keeps its results for the steps after it instead.',
     // Beëindigt de HELE run. Een lus is niet het einde daarvan: de stap zou per
     // item opnieuw draaien, geen runregel opleveren (de body wordt met
     // recordSteps:false gedraaid) en de app dus niets teruggeven, terwijl de
-    // routine na de lus gewoon doorloopt. De validator weigert hem hier ook —
+    // automatisering na de lus gewoon doorloopt. De validator weigert hem hier ook —
     // server/automation/validate/constants.js NESTED_FORBIDDEN_RULES.
-    return_to_app: 'Back to the app ends the whole routine, so it cannot sit inside a loop — the loop would just run it again for the next item. Put it after the loop, as the last step.',
+    return_to_app: 'Back to the app ends the whole automation, so it cannot sit inside a loop — the loop would just run it again for the next item. Put it after the loop, as the last step.',
 };
 
 /** Toast copy after an auto-map, noting when the step now iterates per item. */
@@ -96,12 +108,22 @@ function autoMapToastMessage(count, forEachEnabled) {
 export default function BuildTab({
     headerProps = null,
     mode = 'automation',
+    // An automation managed by a Solution stage: the canvas shows, nothing edits and
+    // there is no way into the AI builder (BuilderShell hands this down).
+    readOnly = false,
     assistantOpen, setAssistantOpen,
+    alwaysPlanLarge = true, setAlwaysPlanLarge = null,
+    workMode = 'approve', setWorkMode = null, assistantContext = null, onClearAssistantContext = null,
+    onAskAssistant = null, onApplyProposal = null, onDiscardProposal = null, onApprovePlan = null, onRejectPlan = null,
+    // An Apply in flight, and a counter the shell bumps after Apply created tables (refetch the catalog).
+    applyingProposal = false, catalogNonce = 0,
     chatWidth, onChatResizeStart,
     // The form-test overlay: `{ form, triggerStepId }` while open. Rendered here
     // rather than in the shell so it sits OVER the canvas — the point of the
     // overlay is that each step lights up behind the page you are filling in.
     formTest = null, onFormTestRun = null, onCloseFormTest = null,
+    // (runId) — open that form overlay attached to a run parked on a page.
+    onOpenFormOverlay = null,
     state, automation = null, rootDef, scopedDef, scopeKey, setScopeKey, onVisualEditRoot,
     chatInput, setChatInput, modelTiers, selectedTier, setSelectedTier, user,
     onSend, onStopBuild = null, messagesContainerRef, messagesBodyRef = null, messagesEndRef, onMessagesScroll = undefined,
@@ -159,7 +181,7 @@ export default function BuildTab({
     // straight to it (design 1d). Resolved lazily — see useWaitingFormUrl.
     const waitingForForm = (state?.steps || []).some(row => row?.status === 'awaiting_form');
     const waitingFormUrl = useWaitingFormUrl(builderApi, automation?.id || null, waitingForForm);
-    // The step catalog's labels/descriptions are translatable (routines.node.*);
+    // The step catalog's labels/descriptions are translatable (automations.node.*);
     // stepPalette is a plain module, so the translator rides in on `scope`.
     const { t } = useTranslation();
     const [catalog, setCatalog] = useState(null);
@@ -167,7 +189,7 @@ export default function BuildTab({
         let alive = true;
         builderApi.getCatalog().then(c => { if (alive) setCatalog(c); }).catch(() => {});
         return () => { alive = false; };
-    }, [builderApi]);
+    }, [builderApi, catalogNonce]);
 
     // ── Expanded flowlets ───────────────────────────────────────────────────
     //
@@ -307,7 +329,7 @@ export default function BuildTab({
     }, [inlineSidecar, onVisualEdit, onVisualEditRoot, rootDef, scopeKey]);
 
     /**
-     * Rename one form question's binding name across the WHOLE routine.
+     * Rename one form question's binding name across the WHOLE automation.
      *
      * A form field's `name` is `trigger.output.<name>` (or
      * `steps.<pageId>.output.<name>`), so renaming it is never a local edit: it
@@ -340,7 +362,7 @@ export default function BuildTab({
      * of its own, because every way of getting the rewire wrong is silent:
      * leave the incoming edges where they were and the new step dangles with
      * nothing above it; move them without the edge back and the Condition is
-     * ORPHANED, with no path from the trigger, in a routine that still
+     * ORPHANED, with no path from the trigger, in an automation that still
      * validates and still saves. What lands HERE is only what needs the
      * shell: the running lock, the flowlet the target lives in, and the
      * commit.
@@ -356,6 +378,19 @@ export default function BuildTab({
         onVisualEditFlat?.(prefix ? prefixAddedStep(inserted, newStep.id, prefix) : inserted);
         return true;
     }, [flatDef, state.running, onVisualEditFlat]);
+
+    /**
+     * "Use what this Condition keeps": the Condition editor's notice about next
+     * steps that still read the list the Condition was given (W7). Re-points
+     * them at the Condition's output in one commit, so one Undo restores them.
+     */
+    const onFollowRoute = useCallback((routeId, stepIds) => {
+        if (!flatDef || state.running || !routeId) return;
+        const { definition: followed, rebound } = followSuccessors(flatDef, routeId, stepIds);
+        if (!rebound?.length) return;
+        onVisualEditFlat?.(followed);
+        for (const msg of followedMessages(rebound, followed, t)) toast.success(msg);
+    }, [flatDef, state.running, onVisualEditFlat, t]);
 
     // What each node ACTUALLY produced (pinned > last run, hygiene-filtered) —
     // the single map that makes auto-map, the pickers and the node editor see
@@ -572,7 +607,7 @@ export default function BuildTab({
         // branch would then emit a graph with no steps/edges (BFSF-318).
         const baseDef = normalizeDefinitionShape(flatDef) || emptyGraph();
 
-        // Triggers are searchable and browsable now that a routine already has
+        // Triggers are searchable and browsable now that an automation already has
         // one (BFSF-325). Five of the seven kinds can only be the ONE primary
         // trigger — the validator rejects them in `definition.triggers[]` — so
         // picking one replaces what is there. That is a destructive answer to a
@@ -584,7 +619,7 @@ export default function BuildTab({
             const to = defaultTriggerLabel(payload.triggerKind || 'manual');
             confirmAction({
                 title: `Replace the ${from} trigger with ${to}?`,
-                description: 'A routine can only have one trigger of these kinds, so the current one and its settings are replaced.',
+                description: 'An automation can only have one trigger of these kinds, so the current one and its settings are replaced.',
                 confirmLabel: 'Replace',
                 destructive: true,
             }).then((ok) => { if (ok) addStepAt({ ...payload, __confirmedReplace: true }, opts); });
@@ -652,7 +687,7 @@ export default function BuildTab({
                 const src = [baseDef.trigger, ...(baseDef.steps || [])]
                     .find(n => n?.id === sourceId);
                 if (src?.position) {
-                    position = { x: src.position.x + 280, y: src.position.y };
+                    position = { x: src.position.x + COL_PITCH, y: src.position.y };
                 }
             }
             if (!position && payload.kind !== 'trigger') {
@@ -663,7 +698,7 @@ export default function BuildTab({
                     return (!acc || x > acc.position.x) ? n : acc;
                 }, null);
                 if (rightmost?.position) {
-                    position = { x: rightmost.position.x + 280, y: rightmost.position.y };
+                    position = { x: rightmost.position.x + COL_PITCH, y: rightmost.position.y };
                 }
             }
             if (!position) {
@@ -715,6 +750,19 @@ export default function BuildTab({
             const firstPort = isRouteStep(inserted) ? routePorts(inserted)[0] : null;
             next = { ...next, edges: spliceStepIntoEdge(withoutAuto, insertedId, sourceId, targetId, identity, firstPort) };
         }
+        // Positions are stored, so nothing re-lays-out after this: the new card
+        // gets a free column next to its source here (and a splice makes room by
+        // sliding the downstream cards right), instead of the edge midpoint or
+        // source+offset it was handed, which landed it on top of its neighbours.
+        // A drop point the author chose is kept when it is clear of every card.
+        // Inside an expanded flowlet positions live in that flowlet's own space.
+        const before = new Set((baseDef.steps || []).map(s => s.id));
+        const addedId = (next.steps || []).find(s => !before.has(s.id))?.id;
+        if (!scopePrefix && sourceId && addedId) {
+            next = placeNewStep(next, addedId, {
+                sourceId, targetId, keepIfFree: !!opts.position && !targetId,
+            });
+        }
         // Auto-map the new step's inputs from its upstream source (only when
         // wired from a source node — a bare add has no upstream to map from).
         let finalDef = next;
@@ -736,6 +784,15 @@ export default function BuildTab({
                 if (!scopePrefix) pendingAutoMapRef.current.push(insertedId);
             }
         }
+        // Follow the route: a step wired next to a Condition that works through
+        // a list reads what that Condition KEEPS, not the list it was given —
+        // the step after an inserted Condition as much as a step added after
+        // one (shared/expr/routeFollow.mjs). Same commit, so one Undo.
+        if (sourceId && addedId) {
+            const followed = followAfterAdd(finalDef, addedId, t);
+            finalDef = followed.definition;
+            for (const msg of followed.messages) toast.success(msg);
+        }
         // Last: move the new step into the flowlet it was added to. Everything
         // above addressed it by its bare id (splice, auto-map), and the ids in
         // the bindings auto-map just wrote are flat ids that decompose turns
@@ -747,7 +804,7 @@ export default function BuildTab({
      
     // itself after the replace-trigger confirm resolves; listing it would be
     // circular, and the identity it closes over is the same one on both passes.
-    }, [flatDef, inlineSidecar, inlineShift, rootDef, scopeKey, setScopeKey, onVisualEditFlat, onVisualEditRoot, autoMapEnabled, catalog, realOutputById, recordUsage, confirmAction]);
+    }, [flatDef, inlineSidecar, inlineShift, rootDef, scopeKey, setScopeKey, onVisualEditFlat, onVisualEditRoot, autoMapEnabled, catalog, realOutputById, recordUsage, confirmAction, t]);
 
     // Latest scoped definition + real-output map for the catalog drain effect —
     // by the time the catalog arrives, `scopedDef` from the add-time closure
@@ -762,6 +819,7 @@ export default function BuildTab({
         let def = scopedDefRef.current;
         if (!def) return;
         let mappedAny = false, keysTotal = 0, anyForEach = false;
+        const messages = [];
         for (const id of ids) {
             const r = applyAutoMapToStep(def, id, catalog, { realOutputById: realOutputRef.current });
             if (r.mappedKeys.length || r.forEachEnabled) {
@@ -770,12 +828,15 @@ export default function BuildTab({
                 keysTotal += r.mappedKeys.length;
                 anyForEach = anyForEach || !!r.forEachEnabled;
             }
+            // The Condition only became a list Condition just now: follow it here too.
+            const followed = followAfterAdd(def, id, t);
+            def = followed.definition;
+            messages.push(...followed.messages);
         }
-        if (mappedAny) {
-            onVisualEditFlat?.(def);
-            toast.success(autoMapToastMessage(keysTotal, anyForEach));
-        }
-    }, [catalog, onVisualEditFlat]);
+        if (mappedAny || messages.length) onVisualEditFlat?.(def);
+        if (mappedAny) toast.success(autoMapToastMessage(keysTotal, anyForEach));
+        for (const msg of messages) toast.success(msg);
+    }, [catalog, onVisualEditFlat, t]);
 
     // The context popover's pick handler: run the insert with whatever target
     // that popover was opened for, then manage its own open/closed state.
@@ -846,7 +907,7 @@ export default function BuildTab({
     // persistStepPatch silently no-ops is worse than no panel at all.
     const editsLocked = !!state.running;
     const refuseWhileBuilding = useCallback(() => {
-        toast.info(t('routines.builder.edits_locked', 'The AI is building this routine — editing is paused until it finishes.'));
+        toast.info(t('automations.builder.edits_locked', 'The AI is building this automation — editing is paused until it finishes.'));
     }, [t]);
 
     const onNodeClickWrapped = useCallback((id) => {
@@ -987,7 +1048,12 @@ export default function BuildTab({
 
     // The assistant is summonable: shown only when opened, and never in step
     // mode (v1 Steps are built visually — no AI chat).
-    const showChat = assistantOpen && mode !== 'step';
+    const showChat = assistantOpen && mode !== 'step' && !readOnly;
+    const [reviewOpen, setReviewOpen] = useState(false);
+    const [previewOpen, setPreviewOpen] = useState(false);
+    const reviewPlanId = state.reviewPlan?.id;
+    useEffect(() => { if (reviewPlanId && ['review', 'paused'].includes(state.reviewPlan?.status)) setReviewOpen(true); }, [reviewPlanId, state.reviewPlan?.status]);
+    useEffect(() => { if (!state.proposal) setPreviewOpen(false); }, [state.proposal]);
     // The plan exists only once the agent has written one — so this is "while
     // it builds", and it stays readable for a moment after the turn ends.
     const hasPlan = Array.isArray(state.todos) && state.todos.length > 0;
@@ -1012,7 +1078,7 @@ export default function BuildTab({
         isBlockRoot: mode === 'step',
         mode: paletteMode,
         frequent: frequentItems,
-        // The form steps ride on the routine's own public form URL, so the
+        // The form steps ride on the automation's own public form URL, so the
         // validator rejects them outright without a form trigger. Same test it
         // applies (`form_page.no_form_trigger`): the primary trigger or any
         // secondary one.
@@ -1034,18 +1100,6 @@ export default function BuildTab({
             || (tailMsg.thinkingParts && tailMsg.thinkingParts.length)
             || (tailMsg.toolCalls && tailMsg.toolCalls.length)));
     const waitingForFirstToken = !!state.running && !state.turn?.firstEventAt && nothingStreamedYet;
-    const waitModelKey = modelKeyFor(state.turn, selectedTier);
-    // File the measured silence once per turn, under the model that ran it,
-    // so the NEXT wait can say "usually about 2m 10s". Keyed on `sentAt`:
-    // `state.turn` is replaced copy-on-write by every later event too, and
-    // without the guard each ping after the first token would file it again.
-    const ttftFiledForRef = useRef(null);
-    useEffect(() => {
-        const turn = state.turn;
-        if (!turn?.firstEventAt || !turn.sentAt || ttftFiledForRef.current === turn.sentAt) return;
-        ttftFiledForRef.current = turn.sentAt;
-        recordTtft(modelKeyFor(turn, selectedTier), turn.firstEventAt - turn.sentAt);
-    }, [state.turn, selectedTier]);
 
     return (
         <div className="flex flex-col h-full min-h-0">
@@ -1073,6 +1127,7 @@ export default function BuildTab({
                 plan's own fallback, taken on first use (2026-09-03). Collapsed it
                 is one 48px row; the drawer caps itself at calc(100% - 200px) and
                 the canvas row keeps a 220px minimum, so nothing is squeezed out. */}
+            {!readOnly && (
             <AddStepRibbon
                 scope={paletteScope}
                 hasTrigger={!!scopedDef?.trigger}
@@ -1088,35 +1143,40 @@ export default function BuildTab({
                 anchor={ribbonAnchorStep}
                 usageVersion={usageTick}
             />
+            )}
             <div className="flex flex-1 min-h-0">
             {/* Chat column — collapses entirely in Focus mode. The expand
                 handle lives at the top of the diagram column when collapsed. */}
             {showChat && (
                 <div
                     style={{ width: chatWidth }}
-                    className="flex flex-col bg-[var(--bg-secondary)] border-r border-[var(--border-default)] flex-shrink-0 min-w-[240px] max-w-[600px]"
+                    className="@container/assistant flex flex-col bg-[var(--bg-secondary)] border-r border-[var(--border-default)] flex-shrink-0 min-w-[240px] max-w-[600px]"
+                    data-popover-boundary
                     data-surface="subtle"
                 >
-                    <div className="flex items-center justify-between gap-2 px-3 py-1.5 border-b border-[var(--border-default)]">
+                    <div className="flex items-center justify-between gap-2 px-3 h-12 bg-[var(--bg-card)] border-b border-[var(--border-default)]">
                         <div className="flex items-center gap-2 min-w-0">
-                            <span className="w-7 h-7 rounded-lg bg-[var(--accent)]/15 text-[var(--accent)] flex items-center justify-center flex-shrink-0">
+                            <span className="w-7 h-7 rounded-lg bg-[color-mix(in_srgb,var(--type-ai)_14%,transparent)] text-[var(--type-ai)] flex items-center justify-center flex-shrink-0">
                                 <Sparkles size={14} />
                             </span>
-                            <span className="text-sm font-semibold text-[var(--text-primary)] truncate">Assistant</span>
+                            <span className="text-sm font-semibold text-[var(--text-primary)] truncate">{t('automations.assistant.title', 'Assistant')}</span>
+                            {state.reviewPlan && <button type="button" onClick={() => setReviewOpen(!reviewOpen)} aria-pressed={reviewOpen} className="rounded-md px-2 py-1 text-[11px] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]">{t('automations.assistant.plan', 'Plan')} v{state.reviewPlan.version}</button>}
                         </div>
                         <button
                             onClick={() => setAssistantOpen(false)}
-                            title="Close the assistant"
-                            aria-label="Close the assistant"
+                            title={t('automations.assistant.close', 'Close the assistant')}
+                            aria-label={t('automations.assistant.close', 'Close the assistant')}
                             className="p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
                         >
                             <X size={15} />
                         </button>
                     </div>
-                    <div ref={messagesContainerRef} onScroll={onMessagesScroll} className="flex-1 overflow-y-auto px-4 py-6 custom-scrollbar">
+                    <div ref={messagesContainerRef} onScroll={onMessagesScroll} className="flex-1 overflow-y-auto px-4 py-4 custom-scrollbar">
                         {state.messages.length === 0 && (
                             <AssistantWelcome
                                 triggerKind={scopedDef?.trigger?.kind}
+                                definition={scopedDef}
+                                selectedStep={ndvStep || stepById(assistantContext?.id)}
                                 onPick={(text) => setChatInput(text)}
                             />
                         )}
@@ -1125,6 +1185,7 @@ export default function BuildTab({
                                 <MessageBubble
                                     key={i}
                                     msg={m}
+                                    onFocusStep={(id) => { openNdv(id); diagramRef.current?.focusStep?.(id); }}
                                     // Only the message being streamed — a run
                                     // belongs to the turn that started it.
                                     liveRun={i === state.messages.length - 1 ? liveRunFocus : null}
@@ -1135,14 +1196,32 @@ export default function BuildTab({
                                 long this usually takes, instead of a bare "Thinking…"
                                 that read as a hang. See waitingForFirstToken above. */}
                             {waitingForFirstToken && (
-                                <BuilderWaitingCard turn={state.turn} startedAt={buildStart.at} modelKey={waitModelKey} />
+                                <BuilderWaitingCard />
                             )}
+                            {/* No `running` here: the questions event arrives while the stream is still closing (the turn ends right after the call), and a card mounted greyed-out and disabled read as unusable. Sending aborts what is left of that stream. */}
+                            <QuestionsCard key={state.reviewQuestions?.[0]?.id || 'questions'} questions={state.reviewQuestions} onAnswer={(text, answers) => onSend(text, [], { answers })} />
+                            {!state.reviewQuestions?.length && <PlanInlineCard plan={state.reviewPlan} running={state.running} onOpen={() => setReviewOpen(true)} onApprove={pauseAfterStep => { setReviewOpen(false); onApprovePlan?.(pauseAfterStep); }} />}
+                            <ProposalCard key={state.proposal?.id || 'preview'} realOutputById={realOutputById} proposal={state.proposal} running={state.running} applying={applyingProposal} onApply={onApplyProposal} onDiscard={onDiscardProposal} onPreview={() => setPreviewOpen(true)} />
                             <div ref={messagesEndRef} />
                         </div>
                     </div>
-                    <div className="w-full flex flex-col flex-shrink-0">
+                    <div className="w-full flex flex-col flex-shrink-0 p-3" onKeyDownCapture={e => {
+                        if (isWorkModeShortcut(e.nativeEvent) && setWorkMode && !state.running) {
+                            e.preventDefault();
+                            setWorkMode(nextWorkMode(WORK_MODES, workMode));
+                        }
+                    }}>
+                        {assistantContext && <div className="flex items-center gap-1.5 mb-2 px-2 py-1.5 rounded-lg border border-[var(--border-default)] bg-[var(--bg-card)] text-[11px] text-[var(--type-ai)]"><Sparkles size={12} /><span className="flex-1 min-w-0 truncate">@{assistantContext.label}</span><button type="button" onClick={onClearAssistantContext} aria-label={t('automations.assistant.clear_context', 'Clear step context')}><X size={12} /></button></div>}
+                        {/(?:^|\s)@[^@\s]*$/.test(chatInput) && <div className="mb-2 max-h-44 overflow-y-auto rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] p-1" role="listbox" aria-label={t('automations.assistant.mention_step', 'Mention a step')}>
+                            {[flatDef?.trigger, ...(flatDef?.triggers || []), ...(flatDef?.steps || [])].filter(Boolean).filter(step => (step.label || step.type || step.kind || '').toLowerCase().includes(chatInput.split('@').at(-1).toLowerCase())).map(step => <button key={step.id} type="button" role="option" aria-selected={assistantContext?.id === step.id} onClick={() => { onAskAssistant?.(step.id); setChatInput(chatInput.replace(/@[^@\s]*$/, '')); }} className="block w-full rounded-lg px-2 py-2 text-left text-xs hover:bg-[var(--bg-secondary)]">@{step.label || step.type || step.kind}</button>)}
+                        </div>}
+                        {applyingProposal && <p role="status" className="mb-2 text-[11px] text-[var(--text-tertiary)]">{t('automations.assistant.applying_hint', 'Applying the proposal. You can write again in a moment.')}</p>}
                         <InputArea
-                            onSendMessage={onSend}
+                            compact
+                            placeholder={t('automations.assistant.placeholder', 'Describe what you want…')}
+                            webSearchUnavailable={webSearchUnavailableHint(state.webSearch, t)}
+                            toolbarExtra={setWorkMode ? <WorkModePicker anchor="composer" alwaysPlanLarge={alwaysPlanLarge} onAlwaysPlanLargeChange={setAlwaysPlanLarge} value={workMode} onChange={setWorkMode} disabled={state.running} planStatus={state.reviewPlan?.status} planVersion={state.reviewPlan?.version} /> : null}
+                            onSendMessage={applyingProposal ? () => {} : onSend}
                             onStopGenerating={onStopBuild || undefined}
                             isLoading={state.running}
                             directMode={true}
@@ -1169,23 +1248,32 @@ export default function BuildTab({
                 The summary sits on top so it doesn't compete with the canvas
                 for vertical space. */}
             <div className="flex-1 min-w-0 flex flex-col relative bg-[var(--bg-primary)]">
+                {reviewOpen && state.reviewPlan && <PlanReview plan={state.reviewPlan} running={state.running} onReject={onRejectPlan} onApprove={pauseAfterStep => { setReviewOpen(false); onApprovePlan?.(pauseAfterStep); }} onClose={() => setReviewOpen(false)} onComment={(section, index, line) => {
+                    setAssistantOpen(true);
+                    setWorkMode?.('plan');
+                    setChatInput(t('automations.assistant.plan_comment_prompt', 'Comment on plan v{version}, {section} {n}: "{line}" — ', { version: state.reviewPlan.version, section, n: index + 1, line }));
+                }} />}
+                {previewOpen && state.proposal && <div className="absolute inset-0 z-20 flex flex-col bg-[var(--bg-primary)]">
+                    <div className="flex flex-wrap items-center gap-2 px-4 py-2 bg-[var(--bg-card)] border-b border-[var(--border-default)] text-xs"><Sparkles size={13} /><span className="flex-1">{t('automations.assistant.proposal', 'Proposal')}</span><button type="button" disabled={state.running} onClick={() => { setPreviewOpen(false); setAssistantOpen(true); }} className="rounded-lg px-3 py-1.5 bg-[var(--text-primary)] text-[var(--bg-primary)] disabled:opacity-50">{t('automations.assistant.review_changes', 'Review changes')}</button><button type="button" onClick={() => setPreviewOpen(false)} className="p-1.5" aria-label={t('automations.assistant.show_canvas', 'Show canvas')}><X size={14} /></button></div>
+                    <div className="flex-1 min-h-0 [&_.react-flow__node>div]:!border-dashed [&_.react-flow__node]:opacity-75"><DiagramPane definition={state.proposal.definition} catalog={previewCatalog(catalog, state.proposal)} editable={false} /></div>
+                </div>}
                 {state.pendingExternalDraft && (
                     <div className="px-4 py-2 border-b border-amber-500/30 bg-amber-500/10 flex items-center justify-between gap-3 flex-shrink-0">
                         <div className="text-xs text-amber-700 dark:text-amber-400">
-                            The chat assistant proposed changes while you were editing. Accept them, or keep your local edits.
+                            {t('automations.build_tab.the_chat_assistant_proposed_changes_while', 'The chat assistant proposed changes while you were editing. Accept them, or keep your local edits.')}
                         </div>
                         <div className="flex items-center gap-1.5">
                             <button
                                 onClick={dismissExternalDraft}
                                 className="px-2 py-1 text-xs rounded text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]"
                             >
-                                Keep mine
+                                {t('automations.build_tab.keep_mine', 'Keep mine')}
                             </button>
                             <button
                                 onClick={acceptExternalDraft}
                                 className="px-2 py-1 text-xs rounded bg-[var(--accent)] text-white hover:opacity-90"
                             >
-                                Accept chat changes
+                                {t('automations.build_tab.accept_chat_changes', 'Accept chat changes')}
                             </button>
                         </div>
                     </div>
@@ -1209,11 +1297,11 @@ export default function BuildTab({
                         zoom stack below it (15 + 182 + 8 px of it, then the
                         tab's own 40px); on a short canvas the stack lies down as
                         one row and the tab keeps to the top. */}
-                    {!showChat && mode !== 'step' && (
+                    {!showChat && mode !== 'step' && !readOnly && (
                         <button
                             onClick={() => setAssistantOpen(true)}
-                            title="Open the AI assistant"
-                            aria-label="Open the AI assistant"
+                            title={t('automations.build_tab.open_the_ai_assistant', 'Open the AI assistant')}
+                            aria-label={t('automations.build_tab.open_the_ai_assistant', 'Open the AI assistant')}
                             className={`absolute left-0 top-[clamp(52px,50%_-_20px,100%_-_245px)] z-20 flex items-center px-1.5 py-3 rounded-r-lg bg-[var(--accent)]/15 text-[var(--accent)] ring-1 ring-[var(--accent)]/40 hover:bg-[var(--accent)]/25 shadow-sm transition ${state.running ? 'animate-pulse' : ''}`}
                         >
                             <Sparkles size={16} />
@@ -1243,11 +1331,12 @@ export default function BuildTab({
                         runSteps={replaySteps}
                         replayStepId={replayStepId}
                         formUrl={waitingFormUrl}
+                        onOpenFormOverlay={onOpenFormOverlay && state.dryRun?.id ? () => onOpenFormOverlay(state.dryRun.id) : null}
                         onNodeClick={onNodeClickWrapped}
                         onNodeExpand={onNodeExpand}
                         validation={state.validation}
-                        editable
-                        structuralEditsBlocked={state.running}
+                        editable={!readOnly}
+                        structuralEditsBlocked={state.running || readOnly}
                         buildCue={buildCue}
                         cameraInsetLeft={hasPlan ? PLAN_PANEL_INSET_PX : 0}
                         ribbonRootRef={ribbonRootRef}
@@ -1257,11 +1346,12 @@ export default function BuildTab({
                         // The empty canvas's "Choose a trigger" button. With no
                         // trigger yet `paletteMode` is already 'trigger', so the
                         // picker opens on the seven trigger kinds.
-                        onRequestOpenPalette={() => setPalette({ open: true, position: null, edgeSource: null })}
+                        onRequestOpenPalette={readOnly ? null : () => setPalette({ open: true, position: null, edgeSource: null })}
                         // The empty canvas (design 1e): every trigger as a card, and the
                         // assistant one click away.
-                        onAddTrigger={handleAddNode}
-                        onOpenAssistant={mode !== 'step' ? () => setAssistantOpen(true) : null}
+                        onAddTrigger={readOnly ? null : handleAddNode}
+                        onOpenAssistant={mode !== 'step' && !readOnly ? () => (onAskAssistant ? onAskAssistant() : setAssistantOpen(true)) : null}
+                        onAskAssistant={mode !== 'step' && !readOnly ? onAskAssistant : null}
                         // Marks the edited card, its source (dashed) and what comes
                         // next (dimmed) while the drawer is open.
                         editingStepId={ndvStep?.id || null}
@@ -1309,13 +1399,13 @@ export default function BuildTab({
                     "+" / edge "+" must land it at a specific spot. The ribbon
                     handles browse/add-anywhere; this small picker handles the
                     positioned case. The new node lands at palette.position. */}
-                {palette.open && (
+                {palette.open && !readOnly && (
                     <>
                         <div className="absolute inset-0 z-30" onMouseDown={closePalette} />
                         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 w-[360px] max-h-[70vh] flex flex-col rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] shadow-2xl overflow-hidden">
                             <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--border-default)]">
-                                <span className="text-sm font-semibold text-[var(--text-primary)]">Add a step here</span>
-                                <button type="button" onClick={closePalette} aria-label="Close" className="p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"><X size={14} /></button>
+                                <span className="text-sm font-semibold text-[var(--text-primary)]">{t('automations.build_tab.add_a_step_here', 'Add a step here')}</span>
+                                <button type="button" onClick={closePalette} aria-label={t('automations.build_tab.close', 'Close')} className="p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"><X size={14} /></button>
                             </div>
                             <AddStepMenu
                                 scope={{
@@ -1367,6 +1457,7 @@ export default function BuildTab({
                     A flex sibling of the canvas row, so the canvas shrinks by
                     itself; no portal, no backdrop. */}
                 {ndvStep && (
+                    <AssistantFieldProvider value={onAskAssistant ? field => onAskAssistant(ndvStep.id, field) : null}>
                     <NodeDetailView
                         key={ndvStep.id}
                         density={ndvDensity}
@@ -1385,6 +1476,7 @@ export default function BuildTab({
                         onSaveStep={onSaveStepFlat}
                         onRenameBinding={onRenameBinding}
                         onInsertStepBefore={onInsertStepBefore}
+                        onFollowRoute={editsLocked ? null : onFollowRoute}
                         validation={state.validation}
                         modelTiers={modelTiers}
                         onExecuteStep={onExecuteStep}
@@ -1401,11 +1493,13 @@ export default function BuildTab({
                         onAddAfterStep={editsLocked ? null : onAddAfterStep}
                         onClose={closeNdv}
                     />
+                    </AssistantFieldProvider>
                 )}
                 {formTest && (
                     <FormRunOverlay
                         automationId={state.automationId || automation?.id}
                         form={formTest.form}
+                        runId={formTest.runId}
                         onStartRun={onFormTestRun}
                         onClose={onCloseFormTest}
                     />

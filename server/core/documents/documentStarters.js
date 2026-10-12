@@ -55,7 +55,7 @@ function pageStarters(locale = 'en') {
 // ── Presentations ──────────────────────────────────────────────────────
 //
 // A presentation starter is an OUTLINE (core/documents/deckModel.js grammar)
-// with the same {{placeholders}} a document has, so a routine can fill it per
+// with the same {{placeholders}} a document has, so an automation can fill it per
 // run. The look is left to the house style: `settings.deck` stays empty.
 
 const DECK_DUTCH = {

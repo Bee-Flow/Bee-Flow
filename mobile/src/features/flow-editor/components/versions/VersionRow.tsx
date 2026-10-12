@@ -56,15 +56,15 @@ export function VersionRow({ version, current, restoring, onOpen, onRestore }: V
                     <Text variant="body" tone="secondary" numberOfLines={1} style={styles.title}>
                         {versionTitle(version, t)}
                     </Text>
-                    {version.isEditing || current ? <Badge label={t('routines.versions.chip.editing', 'editing')} tone="neutral" /> : null}
+                    {version.isEditing || current ? <Badge label={t('automations.versions.chip.editing', 'editing')} tone="neutral" /> : null}
                     {version.isLive ? (
                         <Badge
-                            label={liveSince ? t('routines.versions.chip.liveSince', 'live since {date}', { date: liveSince }) : t('routines.versions.chip.live', 'live')}
+                            label={liveSince ? t('automations.versions.chip.liveSince', 'live since {date}', { date: liveSince }) : t('automations.versions.chip.live', 'live')}
                             tone="success"
                         />
                     ) : null}
                     {version.name ? (
-                        <View accessible accessibilityLabel={t('routines.versions.milestone', 'Milestone')}>
+                        <View accessible accessibilityLabel={t('automations.versions.milestone', 'Milestone')}>
                             <Icon name="Flag" size={12} color={styles.milestone.color} />
                         </View>
                     ) : null}

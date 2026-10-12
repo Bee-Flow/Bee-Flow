@@ -50,7 +50,7 @@ export const STEP_OF = {
     customterms: 2,
     action: 3,
     transparency: 3,
-    routines: 3,
+    automations: 3,
     knowledge: 3,
     toolcalls: 4,
     dlp: 4,
@@ -131,7 +131,7 @@ export function derivePosture(f, { categories = [], env = {}, licence = {}, guar
     });
 
     rows.push({
-        id: 'routines',
+        id: 'automations',
         tab: 'processing',
         icon: 'Workflow',
         tone: 'ok',

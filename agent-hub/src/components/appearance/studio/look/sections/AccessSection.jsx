@@ -2,6 +2,7 @@ import { Users, Lock } from 'lucide-react';
 import React from 'react';
 import Toggle from '../../../../shared/Toggle';
 import { SECTION_IDS } from '../useLookForm';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 
 /**
  * AccessSection — per-user override toggle. When off, every user sees the
@@ -9,6 +10,7 @@ import { SECTION_IDS } from '../useLookForm';
  * hides itself.
  */
 export default function AccessSection({ form, setForm, saving }) {
+    const { t } = useTranslation();
     const allow = !!form.allowUserOverride;
     return (
         <section
@@ -20,10 +22,10 @@ export default function AccessSection({ form, setForm, saving }) {
                 className="text-base font-semibold mb-1"
                 style={{ color: 'var(--text-primary)' }}
             >
-                Member access
+                {t('appearance.access_member_access', 'Member access')}
             </h3>
             <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
-                Control whether individual members can override this theme on their own device.
+                {t('appearance.access_control_whether_individual_members_can', 'Control whether individual members can override this theme on their own device.')}
             </p>
             <div
                 className="rounded-xl border p-4 flex items-center gap-3"
@@ -42,7 +44,7 @@ export default function AccessSection({ form, setForm, saving }) {
                 </div>
                 <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                        Allow members to pick their own theme
+                        {t('appearance.access_allow_members_to_pick_their_own_theme', 'Allow members to pick their own theme')}
                     </p>
                     <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
                         {allow

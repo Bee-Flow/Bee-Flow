@@ -19,7 +19,7 @@
  *   1. NAME NOT OFFERED — checked first, before anything reads the arguments.
  *      A name the model was never handed is not a call, it is drift or an
  *      injection, and letting it through reaches the dispatcher's dynamic-name
- *      fallback, which runs the ASKER's own routines outside every agent
+ *      fallback, which runs the ASKER's own automations outside every agent
  *      policy. Nothing is dispatched, nothing is logged as egress.
  *
  *   2. NEEDS CONFIRMATION — checked LAST, immediately before dispatch, so a
@@ -41,7 +41,7 @@
  * Gate 1 shipped global for one stage, and that was a behaviour change with no
  * field behind it: before the grants layer a name outside the stack went on to
  * `executeTool`, where the dispatcher resolves it against the caller's own
- * agent-callable routines and Steps, answers a progressive-disclosure name
+ * agent-callable automations and Steps, answers a progressive-disclosure name
  * with a "load that group first" hint, and otherwise tries a component tool.
  * Refusing all of that for every agent in the product — to close a hole that
  * only a curated agent had asked to have closed — is the opposite of shipping
@@ -67,6 +67,9 @@ const log = require('../../telemetry/log');
 // Lazy, like the per-call require below: orgShield is where tool classes are
 // decided, and loading it here would pull the shield into this module's graph.
 const _toolClassOf = (name) => require('../privacy/orgShield').classifyToolClass(name);
+
+// Agent tools whose result carries the `documentId` of a Studio document they wrote.
+const STUDIO_WRITE_TOOLS = new Set(['create_presentation']);
 
 /**
  * Serialize a tool result for the LLM's tool message.
@@ -242,7 +245,7 @@ async function executeToolRound({
                         // dispatcher exactly as it did before the grants layer
                         // (its own dynamic-name lookup may still claim it).
                         // Logged all the same: this is the shape of drift and
-                        // of an injected routine name, and it should be
+                        // of an injected automation name, and it should be
                         // visible without changing what a legacy agent does.
                         log.warn(`[AgentRuntime] Tool '${toolName}' was not offered this round — ` +
                             'passing it to the dispatcher: this agent has no stored tool grants, so the ' +
@@ -269,7 +272,7 @@ async function executeToolRound({
                     // step below. classifyToolClass lives in orgShield (single source
                     // of truth shared with the admin route/UI).
                     const { classifyToolClass: _classifyToolClass } = require('../privacy/orgShield');
-                    const _toolClass = _classifyToolClass(toolName);
+                    const _toolClass = _classifyToolClass(toolName, toolArgs);
                     const _piiThreshold = (typeof dlpShield?.piiDetectionConfidenceThreshold === 'number')
                         ? dlpShield.piiDetectionConfidenceThreshold : 0.7;
                     const _blockCats = new Set((dlpShield?.toolPiiPolicy?.[_toolClass]?.blockCategories) || []);
@@ -330,7 +333,7 @@ async function executeToolRound({
                     // if any detected PII category is in this tool-class's block list.
                     // Web search with a configured-but-disabled guard stays monitor-only
                     // (logged, allowed) to preserve historical behavior.
-                    const _isSearchTool = /^(agent_search|web_search|search|brave_search|browse_web)$/i.test(toolName || '');
+                    const _isSearchTool = /^(agent_search|web_search|search|brave_search|browse_web|read_url)$/i.test(toolName || '');
                     const _monitorCats = (_isSearchTool && !webSearchGuardEnabled
                         && Array.isArray(webSearchGuardPiiCategories) && webSearchGuardPiiCategories.length)
                         ? webSearchGuardPiiCategories : null;
@@ -616,7 +619,7 @@ async function executeToolRound({
                                         testAs: messageMetadata.testAs || null,
                                         session: userAuth?.session,
                                         userAuth,
-                                        // Routine/cowork runs set this: there is no one
+                                        // Automation/cowork runs set this: there is no one
                                         // present to approve an email draft, so a
                                         // composed mail must actually go out instead of
                                         // parking forever. Absent (normal chat) it stays
@@ -628,6 +631,10 @@ async function executeToolRound({
                                         unattended: false,
                                         fixedParams: fixedParams,
                                         agentId: agent.id,
+                                        // This path holds a call on 'ask' until the
+                                        // person approved it, so the dispatcher may
+                                        // run an automation granted on 'ask'.
+                                        confirmLayer: true,
                                         conversationId: conversation.id,
                                         send: onEvent,
                                         req: messageMetadata.req || null,
@@ -643,6 +650,9 @@ async function executeToolRound({
                                         // connection overrode it below, which silently broke
                                         // dynamic-skill activation on the agent streaming path.
                                         orgId: messageMetadata.orgId || agent.organization_id || null,
+                                        // Per-chat memory controls, for memory_search / memory_remember.
+                                        memoryReadEnabled: messageMetadata.memoryReadEnabled,
+                                        memoryWriteEnabled: messageMetadata.memoryWriteEnabled,
                                         // Skill-scoped app enablement: lets activate_skill
                                         // widen the integration toolbelt mid-conversation.
                                         onSkillsActivated,
@@ -784,6 +794,11 @@ async function executeToolRound({
                 // would hold both slots and push a CONCURRENT user's
                 // pre-first-token scan behind the whole burst.
                 const _TOOL_SCAN_CONCURRENCY = 3;
+                // privacy_scan_knowledge_bases=false: the org does not want
+                // knowledge-base content tokenised. Such a result is still held to
+                // the tool class's block list (strip, never tokenise).
+                const _kbTokenisingOff = (r) => dlpShield?.privacy_scan_knowledge_bases === false
+                    && (r.finalToolResult?._action === 'kb_sources' || r.toolName === 'kb_search');
                 const _preScans = new Array(toolResults.length).fill(null);
                 if (dlpShield?.enabled) {
                     const { detectPii: _detectPii } = require('../privacy/piiDetection');
@@ -802,7 +817,10 @@ async function executeToolRound({
                                 // Every built-in category, as before, plus the
                                 // org's own data types that are hidden from the
                                 // AI or blocked for this tool's class.
-                                const _resCats = scanCategoriesFor(dlpShield, _toolClassOf(toolResults[i].toolName));
+                                const _kbOff = _kbTokenisingOff(toolResults[i]);
+                                const _resBlock = Array.isArray(toolResults[i].blockCats) ? toolResults[i].blockCats : [];
+                                if (_kbOff && _resBlock.length === 0) continue; // nothing to strip, nothing to tokenise
+                                const _resCats = _kbOff ? _resBlock : scanCategoriesFor(dlpShield, _toolClassOf(toolResults[i].toolName));
                                 entry.pii = await _detectPii(scanStr, _resCats, _preThreshold);
                             } catch (e) {
                                 // Fail-open, exactly as the in-loop version did.
@@ -835,6 +853,18 @@ async function executeToolRound({
                     });
                     // Sanitize tool result before streaming to client to prevent API key exposure
                     onEvent('tool_end', { name: toolName, result: sanitizeToolResult(finalToolResult) });
+
+                    // A tool that WROTE a Studio document (a presentation kept in the
+                    // library): same event as direct chat, so open Documents lists and
+                    // editors refresh. Only on a real document id, never on a plain
+                    // tool result that merely mentions one.
+                    if (STUDIO_WRITE_TOOLS.has(toolName) && finalToolResult?.documentId && !finalToolResult.error) {
+                        onEvent('document_update', {
+                            documentId: finalToolResult.documentId,
+                            name: finalToolResult.file?.name || finalToolResult.name,
+                            url: finalToolResult.documentUrl || finalToolResult.url,
+                        });
+                    }
 
                     // Emit email_draft SSE event for user approval (with dedup).
                     // Use a key derived via _stableStringify so the dedup is order-stable —
@@ -1039,6 +1069,11 @@ async function executeToolRound({
                             const { redactAndTokenizeToolResult } = require('../dlp/toolResultRedact');
                             const _scanStr = _preScan.scanStr;
                             const _resPii = _preScan.pii;      // scanned concurrently above
+                            // KB result with tokenising off: only blocked categories count.
+                            if (_resPii?.entities && _kbTokenisingOff(result)) {
+                                _resPii.entities = _resPii.entities.filter(e => _resBlockCats.has(e.category)
+                                    || (Array.isArray(e.alsoCategories) && e.alsoCategories.some(c => _resBlockCats.has(c))));
+                            }
                             if (_resPii?.hasPii && _resPii.entities?.length) {
                                 const _existing = _dlpRunner.getConversationTokenMap(conversation?.id) || {};
                                 const _r = redactAndTokenizeToolResult(_scanStr, _resPii.entities, _resBlockCats, _existing);
@@ -1076,7 +1111,7 @@ async function executeToolRound({
                 }
 
                 // Save conversation after tool execution (so tool calls are persisted)
-                log.info('[AgentStream] Saving conversation with tool calls:', JSON.stringify(durableMessages.slice(-3), null, 2));
+                log.info(`[AgentStream] Saving conversation with tool calls: ${durableMessages.length} messages`);
                 await persistDurable();
 
     // Why the loop should stop, or null to keep going. A reason rather than a

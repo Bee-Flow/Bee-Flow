@@ -171,3 +171,36 @@ export function readSummary(body) {
         checkedCount: Number.isFinite(body?.checkedCount) ? body.checkedCount : null,
     };
 }
+
+/**
+ * Whether a card asks for a look: something to fix or unreadable, a failed run
+ * today, or a stage whose last deployment failed or is waiting. An update
+ * available is news, not attention. Unknown ("not checked") does NOT count as
+ * attention either, but it also never counts as fine: it sorts with the rest.
+ */
+export function needsAttention(row) {
+    const health = healthOf(row).state;
+    if (health === 'blocking' || health === 'unread' || health === 'advice') return true;
+    if (runsOf(row).state === 'failed') return true;
+    const stages = Array.isArray(row?.stages) ? row.stages : [];
+    return stages.some(s => s && (s.lastDeploymentStatus === 'failed'
+        || s.lastDeploymentStatus === 'awaiting_approval'
+        || s.lastDeploymentStatus === 'succeeded_with_warnings'
+        || s.pending));
+}
+
+/**
+ * Search + scope for the overview toolbar. scope: 'all' | 'mine' | 'attention'.
+ * `mine` is the Solutions the reader owns. The server's order is kept inside
+ * each group; cards that need attention come first (stable).
+ */
+export function filterSolutions(rows, { query = '', scope = 'all' } = {}) {
+    const q = String(query || '').trim().toLowerCase();
+    const kept = (rows || []).filter(row => {
+        if (scope === 'mine' && row.permission !== 'owner') return false;
+        if (scope === 'attention' && !needsAttention(row)) return false;
+        if (!q) return true;
+        return `${row.name || ''} ${row.description || ''}`.toLowerCase().includes(q);
+    });
+    return [...kept.filter(needsAttention), ...kept.filter(r => !needsAttention(r))];
+}

@@ -65,7 +65,7 @@ ent.resolveEntitlements = async () => ({
     ceiling: { core: [], integration: [], beta: [] },
     effective: { core: [], integration: ['n8n'], beta: [] },
 });
-ent.hasCapability = async () => false;          // no routines in this file
+ent.hasCapability = async () => false;          // no automations in this file
 
 const callable = require('../../automation/agentCallableTools');
 callable.getAgentCallableToolsForUser = async () => [];

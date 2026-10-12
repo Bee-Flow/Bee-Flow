@@ -88,12 +88,14 @@ module.exports = {
     'signup.privacy_strict_desc': 'AI moderation plus personal-data filtering. Hides names, email addresses, phone numbers and addresses.',
     'signup.eu_only_models': 'EU-only models',
     'signup.eu_only_models_desc': 'Restrict AI to EU-hosted models only',
-    'signup.privacy_tune_later': 'You can fine-tune these settings later in Organisation Settings → Privacy Shield.',
-    'signup.privacy_tune_later_personal': 'You can fine-tune these settings later in Settings → Privacy.',
+    'signup.privacy_tune_later': 'You can fine-tune these settings later in Settings → Organisation → Privacy Shield.',
+    'signup.privacy_tune_later_personal': 'You can fine-tune these settings later in Settings → Account → Privacy Shield.',
     'signup.shield_enable': 'Privacy Shield',
     'signup.shield_enable_desc': 'Check messages for personal data and hide it, or stop the message, before it reaches the AI.',
     'signup.shield_enable_desc_personal': 'Check your messages for personal data and hide it before it reaches the AI. Recommended — you can change this later in Settings.',
     'signup.pii_categories': 'Kinds of personal data',
     'signup.shield_on_summary': '{n} kinds of data',
     'signup.shield_off_summary': 'Off',
+    // Hardcoded literals converted (2026-10)
+    'signup.tagline_placeholder': 'Working smarter with AI',
 };

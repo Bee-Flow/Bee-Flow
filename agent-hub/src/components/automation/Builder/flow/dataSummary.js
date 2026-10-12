@@ -9,6 +9,8 @@
  * Pure and framework-free.
  */
 
+import { stepPayload } from './stepPayload';
+
 /**
  * Keys that conventionally hold "the actual list" inside a result envelope.
  * A Gmail search returns `{query, total, results:[…]}` — reporting that as
@@ -57,8 +59,12 @@ function envelopeList(obj) {
     // chip reading "2 items" where the identical first-match node reads
     // "1 record", and "0 items" when nothing matched. A first-match switch
     // emits no `branches` key at all, so nothing about it changes here.
+    //
+    // `logs` is the same kind of thing — the console lines of a Code step,
+    // next to `result` — and is excluded as a default for the case where the
+    // step type is not known (callers that know it pass stepPayload instead).
     const arrays = Object.entries(obj)
-        .filter(([k, v]) => Array.isArray(v) && k !== 'branches')
+        .filter(([k, v]) => Array.isArray(v) && k !== 'branches' && k !== 'logs')
         .map(([, v]) => v);
     return arrays.length === 1 ? { list: arrays[0], conventional: false } : null;
 }
@@ -176,5 +182,7 @@ export function summariseEdgeData(sourceStep, runStep, edge) {
         }
         return summary;
     }
-    return summariseData(output);
+    // A Code step wraps its payload in `{ result, logs, httpCalls }`: the
+    // connection carries `result`, not the diagnostics.
+    return summariseData(stepPayload(sourceStep?.type, output));
 }

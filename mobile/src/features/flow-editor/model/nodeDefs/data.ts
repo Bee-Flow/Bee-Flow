@@ -5,7 +5,7 @@
  * Data copied from the web builder's flow/nodeDefs.js; nodeDefs.lockstep.test.ts
  * requires the web module and compares every record, so a changed word fails.
  * The palette wording is `labelFallback` here (the English under the
- * `routines.node.<type>.label` key; ./index.ts serves it as `label`), and a
+ * `automations.node.<type>.label` key; ./index.ts serves it as `label`), and a
  * quoted issue-map key is a validation path segment, not copy.
  */
 
@@ -73,8 +73,8 @@ export const DATA_DEFS: Record<string, NodeDefSource> = {
         family: 'data',
         typeLabel: 'Datatable',
         defaultLabel: 'Datatable',
-        desc: 'Keep rows that outlast the run — and share them with other routines',
-        help: 'Reads and writes rows in a table that stays put after the run ends, so this routine can pick up where it left off and other routines can use the same data.',
+        desc: 'Keep rows that outlast the run — and share them with other automations',
+        help: 'Reads and writes rows in a table that stays put after the run ends, so this automation can pick up where it left off and other automations can use the same data.',
         sectionKeys: ['table', 'match', 'values', 'advanced'],
         simpleSections: ['table', 'match', 'values'],
         issueSections: {

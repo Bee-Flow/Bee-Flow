@@ -5,7 +5,7 @@
  * An action item is a sentence a meeting produced. M3 lets the owner send it
  * somewhere it can actually be worked on, and records where it went:
  *
- *   automation      start a routine with the action as its trigger payload
+ *   automation      start an automation with the action as its trigger payload
  *   datatable_row   append a row to one of the owner's own tables
  *   kb              file it as a text source in a knowledge base
  *
@@ -17,7 +17,7 @@
  * ── EVERY PAYLOAD IS AN ALLOW-LIST, NEVER A SPREAD ──────────────────
  * The one habit this file exists to enforce. `{ ...item }` is one character
  * shorter and would ship `id`, `done`, `destination`, `segmentIndex` — and
- * whatever field M4 or a later stage adds to an action item — into a routine's
+ * whatever field M4 or a later stage adds to an action item — into an automation's
  * run payload, a row in a table other people read, and a knowledge base an
  * agent answers from. None of those would be noticed the day the field is
  * added, which is precisely the failure mode BFSF-441 names: build the payload
@@ -27,10 +27,10 @@
  *
  * ── BFSF-441, AND WHY TEXT MAY TRAVEL AT ALL ────────────────────────
  * An action can name a person ("Sandra belt de klant terug"). All three
- * destinations are INSIDE Bee Flow — the user's own routine, their own table,
+ * destinations are INSIDE Bee Flow — the user's own automation, their own table,
  * their own knowledge base — so carrying the text there is not an outgoing
  * transfer and the reference-only rule does not apply. The rule DOES apply one
- * link further on: a routine whose steps post to Google Chat or a webhook is
+ * link further on: an automation whose steps post to Google Chat or a webhook is
  * an outgoing destination, and that step is where it is gated. What this
  * module records on the note is only ever a REFERENCE (kind + id + the label
  * that was on screen), never a copy of anything the other system holds.
@@ -98,10 +98,10 @@ export function actionFieldValue(fieldId, item, meeting = null) {
 }
 
 /**
- * The payload a manually-started routine enters with.
+ * The payload a manually-started automation enters with.
  *
  * Shape is FIXED — every key present, '' when the action has no value — so a
- * routine binding to `trigger.output.action.assignee` gets an empty string
+ * automation binding to `trigger.output.action.assignee` gets an empty string
  * rather than `undefined` on the one meeting where nobody was named. A binding
  * that silently resolves to undefined is the failure BFSF-408 already cost us
  * once.
@@ -200,12 +200,12 @@ export function buildKbSource(item, meeting, { labels = {} } = {}) {
  * The `destination` record the note stores — the shape
  * `core/meetingNotes/actionItems.js` validates.
  *
- * `ref` is the CONTAINER (the routine, the table, the knowledge base): known
+ * `ref` is the CONTAINER (the automation, the table, the knowledge base): known
  * before the write is attempted, so it is always there and is what the chip
  * links to. `itemRef` is what the write created inside it (the run, the row,
  * the source) and is OPTIONAL — `POST /api/automation/:id/run` answers 202
  * with no run id when a run outlives its 60-second window, and the run really
- * did start. Recording no itemRef says "sent to this routine"; inventing one
+ * did start. Recording no itemRef says "sent to this automation"; inventing one
  * would be a lie the chip then linked to.
  *
  * An unknown kind or a missing ref answers `null`: better no chip than a chip

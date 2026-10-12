@@ -7,7 +7,7 @@ import AiDraftPanel, { isBlankForm } from './AiDraftPanel';
  * "Build it with AI": a blank form takes a brief and is drafted whole; a
  * form with questions takes a request and sends the current questions along;
  * the draft lands in the editor through onApply and NOTHING is posted to the
- * routine; Undo restores what the editor held; every server refusal has its
+ * automation; Undo restores what the editor held; every server refusal has its
  * own sentence; a parked brief runs once by itself.
  */
 

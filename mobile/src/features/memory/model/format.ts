@@ -37,7 +37,7 @@ export interface TypeChip {
 
 /**
  * The filter chips: the seven known types that have rows, then any type this
- * build does not know — the import extractor and the routine bookkeeping both
+ * build does not know — the import extractor and the automation bookkeeping both
  * write ids outside the seven, and those rows still need a way to be found
  * and deleted.
  */

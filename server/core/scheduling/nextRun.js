@@ -16,7 +16,7 @@
  *
  *   1. A provider that said WHEN to come back (`Retry-After`) outranks our
  *      own schedule. Ignoring it is how a soft rate-limit becomes a block.
- *   2. A cron schedule, resolved with the SAME parser the routine scheduler
+ *   2. A cron schedule, resolved with the SAME parser the automation scheduler
  *      uses (`automation/cron.nextRunAt`) — so a schedule an editor accepted
  *      is one this can actually compute. Skipped while a streak of failures
  *      is running: cron says "every Monday at six", and honouring that after

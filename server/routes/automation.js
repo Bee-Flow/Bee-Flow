@@ -21,6 +21,8 @@
  *   GET    /:id/webhooks                   list webhooks for the automation
  *   POST   /:id/form                       create (or return) the hosted form URL
  *   GET    /:id/forms                      list hosted form URLs
+ *   GET    /:id/agent-bindings             agents that may call an agent_call automation
+ *   PUT    /:id/agent-bindings             set which (editable) agents may call it
  *   POST   /:id/form/:token/rotate         mint a new form URL (old one dies)
  *   DELETE /:id/form/:token                take the form offline
  *
@@ -82,13 +84,16 @@ router.use(require('./automation/crud'));
 router.use(require('./automation/runs'));
 router.use(require('./automation/versions'));
 router.use(require('./automation/webhooksAndRunOps'));
-// Handoff 5: who a routine is shared with, and handing it to a new owner.
+// Handoff 5: who an automation is shared with, and handing it to a new owner.
 // Every path has a literal second segment, so position is free.
 router.use(require('./automation/sharing').makeSharingRouter());
+// Which agents may call an agent_call automation (routes/automation/agentBindings.js).
+// Literal second segment, so position is free.
+router.use(require('./automation/agentBindings').makeAgentBindingsRouter());
 // Handoff 5: the Settings page's Notifications section (read side; the policy
 // itself is saved with the definition). Literal second segment too.
 router.use(require('./automation/notifications').makeNotificationsRouter());
-// Handoff 5: the routine's AI Act check and its "Ready to activate?"
+// Handoff 5: the automation's AI Act check and its "Ready to activate?"
 // checklist (routes/automation/aiAct.js). Literal second segments too.
 router.use(require('./automation/aiAct').makeAiActRouter());
 // Handoff 5: the builder's "Frequently used" (routes/automation/usage.js).

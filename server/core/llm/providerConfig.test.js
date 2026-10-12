@@ -38,6 +38,7 @@ const {
     getAIConfig,
     saveAIConfig,
     ensureScalewayProvider,
+    ensureEuGptProvider,
     getProviders,
     addProvider,
     updateProvider,
@@ -52,6 +53,7 @@ test.beforeEach(() => {
     store.failing = false;
     delete process.env.SCALEWAY_API_KEY;
     delete process.env.SCALEWAY_URL;
+    delete process.env.EUGPT_API_KEY;
 });
 
 const ai = () => store.config.get('ai');
@@ -100,7 +102,7 @@ test('saveAIConfig files each vendor key as a secret and derives that vendor\'s 
     const ok = await saveAIConfig({
         url: 'https://api.mistral.ai/v1', model: 'ministral-8b-latest',
         openaiApiKey: 'sk-openai', claudeApiKey: 'sk-claude', googleApiKey: 'g-key',
-        azureEndpoint: 'https://acme.openai.azure.com', azureApiKey: 'az-key', azureApiVersion: '2025-04-01-preview',
+        azureEndpoint: 'https://acme.openai.azure.com', azureApiKey: 'az-key', azureApiVersion: '2025-04-01-preview', // old clients still send it
         piiDetectionEnabled: true,
     });
     assert.strictEqual(ok, true);
@@ -115,7 +117,9 @@ test('saveAIConfig files each vendor key as a secret and derives that vendor\'s 
     assert.strictEqual(byId['openai-default'].apiKey, 'sk-openai');
     assert.strictEqual(byId['claude-default'].url, 'https://api.anthropic.com/v1');
     assert.strictEqual(byId['google-default'].type, 'google');
-    assert.strictEqual(byId['azure-default'].apiVersion, '2025-04-01-preview');
+    assert.strictEqual(byId['azure-default'].url, 'https://acme.openai.azure.com');
+    assert.strictEqual(byId['azure-default'].apiVersion, undefined, 'Azure runs on v1 GA: no api-version is stored');
+    assert.strictEqual(store.config.get('azure_api_version'), undefined);
     assert.ok(!byId['mistral-default'], 'no Mistral key was saved, so no Mistral row');
 });
 
@@ -170,6 +174,32 @@ test('ensureScalewayProvider does nothing without a key', async () => {
     assert.strictEqual(ai(), undefined);
 });
 
+// ─── ensureEuGptProvider ─────────────────────────────────────────────────────
+
+test('ensureEuGptProvider seeds the API host, not the chat web app', async () => {
+    store.secrets.set('eugpt_api_key', 'eugpt_k');
+    await ensureEuGptProvider();
+    const row = ai().providers.find(p => p.id === 'eugpt-default');
+    assert.strictEqual(row.url, 'https://api.eugpt.ai/v1');
+    assert.strictEqual(row.apiKey, 'eugpt_k');
+});
+
+test('ensureEuGptProvider moves a row saved with the old chat.eugpt.ai URL, and only that one', async () => {
+    store.secrets.set('eugpt_api_key', 'eugpt_k');
+    store.config.set('ai', { providers: [{ id: 'eugpt-default', type: 'eugpt', url: 'https://chat.eugpt.ai/v1/', apiKey: 'eugpt_k' }] });
+    await ensureEuGptProvider();
+    assert.strictEqual(ai().providers[0].url, 'https://api.eugpt.ai/v1');
+
+    const writesBefore = store.writes.length;
+    await ensureEuGptProvider();
+    assert.strictEqual(store.writes.length, writesBefore, 'a moved row is not rewritten on every read');
+
+    // A URL the admin chose is theirs.
+    store.config.set('ai', { providers: [{ id: 'eugpt-default', type: 'eugpt', url: 'https://proxy.example/v1', apiKey: 'eugpt_k' }] });
+    await ensureEuGptProvider();
+    assert.strictEqual(ai().providers[0].url, 'https://proxy.example/v1');
+});
+
 // ─── getProviders / CRUD ─────────────────────────────────────────────────────
 
 test('getProviders returns the rows, the default and the presets (self-hosted runtimes included)', async () => {
@@ -189,9 +219,8 @@ test('addProvider: the first row becomes the default, vendor-specific fields are
     assert.strictEqual(created.location, 'europe-west4');
     assert.strictEqual(ai().defaultProviderId, created.id);
 
-    const second = await addProvider({ id: 'azure-1', name: 'Azure', type: 'azure', url: 'https://acme.openai.azure.com', apiVersion: 'v' });
+    const second = await addProvider({ id: 'azure-1', name: 'Azure', type: 'azure', url: 'https://acme.openai.azure.com' });
     assert.strictEqual(second.id, 'azure-1');
-    assert.strictEqual(second.apiVersion, 'v');
     assert.strictEqual(ai().defaultProviderId, created.id, 'a second row does not steal the default');
 });
 

@@ -204,7 +204,7 @@ function EditorChrome({ app, onClose, onAppUpdated, chatSlot }) {
     const [editorView, setEditorView] = useState('edit');
 
     // ---- presenter mode ----------------------------------------------------
-    // Shift+P, shared flag with the routine canvas (shared/builder/presenterFlag):
+    // Shift+P, shared flag with the automation canvas (shared/builder/presenterFlag):
     // larger banner/ghost/activity type, nothing else — on a DOM grid the cards
     // are the app's own components and are not scaled.
     const [presenter, setPresenter] = useState(readPresenter);

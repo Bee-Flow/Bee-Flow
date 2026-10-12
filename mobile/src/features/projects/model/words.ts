@@ -24,13 +24,15 @@ export function byCount(count: number, one: string, many: string): string {
  */
 const SECTION_NAME: Readonly<Record<string, (t: TranslateFn) => string>> = {
     apps: (t) => t('solutions.section_apps', 'apps'),
-    automations: (t) => t('solutions.section_automations', 'routines'),
+    automations: (t) => t('solutions.section_automations', 'automations'),
     webpages: (t) => t('solutions.section_webpages', 'pages'),
     datatables: (t) => t('solutions.section_datatables', 'tables'),
     agents: (t) => t('solutions.section_agents', 'agents'),
+    skills: (t) => t('solutions.section_skills', 'skills'),
+    documentTemplates: (t) => t('solutions.section_document_templates', 'templates'),
     knowledgeBases: (t) => t('solutions.section_knowledge_bases', 'knowledge bases'),
     knowledgeSources: (t) => t('solutions.section_knowledge_sources', 'knowledge sources'),
-    routineExistence: (t) => t('solutions.section_routine_existence', 'the check on which routines still exist'),
+    automationExistence: (t) => t('solutions.section_automation_existence', 'the check on which automations still exist'),
     all: (t) => t('solutions.section_all', 'everything in this Solution'),
     notebooks: (t) => t('solutions.section_notebooks', 'notebooks'),
     runs: (t) => t('solutions.section_runs', 'how often things ran'),
@@ -63,14 +65,16 @@ export const COUNTED_SECTIONS: readonly { section: string; kind: KindKey }[] = [
     { section: 'agents', kind: 'agent' },
     { section: 'knowledgeBases', kind: 'kb' },
     { section: 'notebooks', kind: 'meeting' },
+    { section: 'skills', kind: 'skill' },
+    { section: 'documentTemplates', kind: 'document' },
 ];
 
-/** "3 routines", "1 routine" — for every kind a Solution can hold. */
+/** "3 automations", "1 automation" — for every kind a Solution can hold. */
 export function countPhrase(section: string, count: number, t: TranslateFn): string | null {
     const p = { count };
     switch (section) {
         case 'automations':
-            return byCount(count, t('solutions.install_count_automations', '{count} routine', p), t('solutions.install_count_automations_plural', '{count} routines', p));
+            return byCount(count, t('solutions.install_count_automations', '{count} automation', p), t('solutions.install_count_automations_plural', '{count} automations', p));
         case 'apps':
             return byCount(count, t('solutions.install_count_apps', '{count} app', p), t('solutions.install_count_apps_plural', '{count} apps', p));
         case 'webpages':
@@ -79,6 +83,10 @@ export function countPhrase(section: string, count: number, t: TranslateFn): str
             return byCount(count, t('solutions.install_count_datatables', '{count} table', p), t('solutions.install_count_datatables_plural', '{count} tables', p));
         case 'agents':
             return byCount(count, t('solutions.install_count_agents', '{count} agent', p), t('solutions.install_count_agents_plural', '{count} agents', p));
+        case 'skills':
+            return byCount(count, t('solutions.install_count_skills', '{count} skill', p), t('solutions.install_count_skills_plural', '{count} skills', p));
+        case 'documentTemplates':
+            return byCount(count, t('solutions.install_count_document_templates', '{count} template', p), t('solutions.install_count_document_templates_plural', '{count} templates', p));
         case 'knowledgeBases':
             return byCount(count, t('solutions.install_count_knowledge_bases', '{count} knowledge base', p), t('solutions.install_count_knowledge_bases_plural', '{count} knowledge bases', p));
         case 'notebooks':

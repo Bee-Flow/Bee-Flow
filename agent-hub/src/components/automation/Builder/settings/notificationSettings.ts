@@ -1,5 +1,5 @@
 /**
- * The per-routine notification policy as the Settings page edits it
+ * The per-automation notification policy as the Settings page edits it
  * (`definition.notificationSettings`, handoff 5 shape):
  *
  *   { onError|onApproval|onSuccess: { enabled, channels: ('bell'|'email'|'talk')[],
@@ -10,7 +10,7 @@
  *
  * `normalizeNotificationSettings` also reads the older shape
  * (`{ enabled, level, channels: ['inapp'|'email'|'nc_talk'|'nc_notification'] }`),
- * so a routine saved before this page keeps the choices it had.
+ * so an automation saved before this page keeps the choices it had.
  * The defaults are quiet on success and loud on errors and approvals: the bell
  * stays calm unless someone has to act. They are the server's
  * (Builder/notificationDefaults.js mirrors server/automation/notificationDefaults.js,

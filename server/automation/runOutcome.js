@@ -317,7 +317,7 @@ function buildRunOutcome(input = {}) {
     }
     if (status === 'cancelled') {
         if (input.cancelReason === 'already_running') {
-            return outcome('cancelled', { reasonCode: 'already_running' }, 'Skipped because the routine was already running');
+            return outcome('cancelled', { reasonCode: 'already_running' }, 'Skipped because the automation was already running');
         }
         return outcome('cancelled', { reasonCode: 'cancelled' }, 'Stopped before it finished');
     }

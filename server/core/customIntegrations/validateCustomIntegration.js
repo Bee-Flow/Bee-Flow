@@ -191,10 +191,16 @@ function collectBodyPlaceholders(node, path, depth, out) {
  * @param {object} [opts]
  * @param {string} [opts.kind='rest']  'rest' | 'mcp_remote'
  * @param {boolean} [opts.strict]      promote lint findings to errors (activation)
+ * @param {boolean} [opts.librarySource] the MCP library's own install path:
+ *                                       `meta.source` must then be 'mcp_library'.
+ *                                       Anywhere else `meta.source` is refused,
+ *                                       because that marker decides which gate
+ *                                       and licence govern a row
+ *                                       (customIntegrations/mcpLibrary/gate.js).
  * @param {string} [opts.slug]         integration slug; enables the combined
  *                                     cint_<slug>_<tool> length check
  */
-function validateCustomIntegration(def, { kind = 'rest', strict = false, slug = null } = {}) {
+function validateCustomIntegration(def, { kind = 'rest', strict = false, slug = null, librarySource = false } = {}) {
     const errors = [];
     const warnings = [];
     const pushE = (rec) => errors.push({ ...rec, severity: 'error' });
@@ -264,6 +270,9 @@ function validateCustomIntegration(def, { kind = 'rest', strict = false, slug = 
         if (!isObject(def.meta)) {
             pushE({ code: 'meta.invalid', path: 'meta', message: 'meta must be an object.', hint: 'Use { docsUrl, notes } or omit meta entirely.' });
         } else {
+            if (librarySource ? def.meta.source !== 'mcp_library' : def.meta.source !== undefined) {
+                pushE({ code: 'meta.source_reserved', path: 'meta.source', message: librarySource ? 'meta.source must be "mcp_library" here.' : 'meta.source is reserved for the MCP library.', hint: 'Remove meta.source; it is set by the MCP library itself and cannot be chosen.' });
+            }
             if (def.meta.docsUrl !== undefined) {
                 let okUrl = false;
                 if (typeof def.meta.docsUrl === 'string') {
@@ -853,4 +862,4 @@ function deriveOpenAiTools(def, slug) {
     });
 }
 
-module.exports = { validateCustomIntegration, deriveOpenAiTools };
+module.exports = { validateCustomIntegration, deriveOpenAiTools, isDeniedHeader };

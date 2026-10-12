@@ -79,7 +79,7 @@ describe('WebpageAppsPanel — i18n', () => {
         expect(await screen.findByText('⟦webpages.apps.title⟧')).toBeInTheDocument();
         expect(screen.getByText('⟦webpages.apps.subtitle⟧')).toBeInTheDocument();
         expect(screen.getByText('⟦webpages.apps.section_apps⟧')).toBeInTheDocument();
-        expect(screen.getByText('⟦webpages.apps.section_routines⟧')).toBeInTheDocument();
+        expect(screen.getByText('⟦webpages.apps.section_automations⟧')).toBeInTheDocument();
     });
 
     it('BIJT — "Verwijder X" reist met de naam als PARAMETER, niet als aangeplakte tekst', async () => {

@@ -352,6 +352,8 @@ const MISTRAL_API_ID = /^(mistral|ministral|magistral|codestral|devstral|pixtral
  */
 function isReasoningModel(modelId) {
     if (!modelId || typeof modelId !== 'string') return false;
+    // A custom-named Azure deployment (`prod-chat`) answers for its model.
+    modelId = require('../providers/azureDeployments').azureModelFor(modelId);
     // OpenAI answers for itself — `^gpt-5` never matched gpt-6, so gpt-6 models
     // silently lost their reasoning summaries (the "thinking" bubbles).
     if (/^gpt-|^o\d/i.test(modelId)) {
@@ -393,6 +395,7 @@ function isReasoningModel(modelId) {
  * `none` (see mistralModels.cheapestMistralEffort).
  */
 function _cheapestEffort(modelId) {
+    modelId = require('../providers/azureDeployments').azureModelFor(modelId);
     // Mistral's switch is none/high: no cheap reasoning level exists, so a
     // speed tier gets `none` rather than the generic 'medium' — which would
     // map to `high`, the slowest setting there is.

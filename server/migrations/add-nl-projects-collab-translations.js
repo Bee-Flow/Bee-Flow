@@ -35,7 +35,7 @@ const NL_TRANSLATIONS = {
     // ── Projectbronnen ─────────────────────────────────────────
     'projects.resources': 'In dit project',
     'projects.notebooks': 'Notitieboeken',
-    'projects.routines': 'Routines',
+    'projects.automations': 'Automatiseringen',
     'projects.apps': 'Apps',
     'projects.add_existing': 'Bestaande toevoegen',
     'projects.remove_from_project': 'Uit project halen',

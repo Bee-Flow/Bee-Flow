@@ -1,7 +1,7 @@
 /**
  * What an enabled answer cache may keep, and for how long: the web's two
  * scope ticks (two different promises — connected apps versus any address a
- * routine author types in) and its minute slider, as a Stepper.
+ * automation author types in) and its minute slider, as a Stepper.
  */
 
 import React from 'react';
@@ -33,7 +33,7 @@ export function IntegrationCacheScopes({
                 title={t('admin.integration_cache.scopes_label', 'What may be kept')}
                 footer={t(
                     'admin.integration_cache.scopes_note',
-                    'These are two different promises. The first is about apps this organisation connected and whose permissions it manages. The second is about any web address a routine author types in, so it is off until you say otherwise.',
+                    'These are two different promises. The first is about apps this organisation connected and whose permissions it manages. The second is about any web address an automation author types in, so it is off until you say otherwise.',
                 )}
             >
                 <ToggleRow
@@ -41,7 +41,7 @@ export function IntegrationCacheScopes({
                     label={t('admin.integration_cache.scope_integration', 'Answers from connected apps')}
                     description={t(
                         'admin.integration_cache.scope_integration_desc',
-                        'Look-ups a routine makes through an app action — a calendar, a mailbox, a ticket system.',
+                        'Look-ups an automation makes through an app action — a calendar, a mailbox, a ticket system.',
                     )}
                     value={scopes.integration}
                     disabled={disabled}
@@ -52,7 +52,7 @@ export function IntegrationCacheScopes({
                     label={t('admin.integration_cache.scope_http', 'Answers from web service calls')}
                     description={t(
                         'admin.integration_cache.scope_http_desc',
-                        'Replies to a "Call a web service" step, which can point at any address the routine author chooses. Only ever GET and HEAD, and never when that step is allowed to reach private addresses.',
+                        'Replies to a "Call a web service" step, which can point at any address the automation author chooses. Only ever GET and HEAD, and never when that step is allowed to reach private addresses.',
                     )}
                     value={scopes.http}
                     disabled={disabled}

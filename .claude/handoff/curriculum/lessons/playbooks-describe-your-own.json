@@ -55,7 +55,7 @@
      "id": "d",
      "label": "It is refused at the preview — the composer checks your permissions before it writes a plan.",
      "correct": false,
-     "feedback": "Composing checks the plan, not your rights: the only thing refused there is a plan with no routine and no app phase. Permissions bite when a phase actually runs."
+     "feedback": "Composing checks the plan, not your rights: the only thing refused there is a plan with no automation and no app phase. Permissions bite when a phase actually runs."
     }
    ],
    "explanation": "Reading playbooks needs only a session; every write needs manage_apps, which Organisation Admin, Agent Admin and Agent Editor hold. Inside the table phase a second check applies: manage_datatables decides whether a new organisation table may be created, and an existing table additionally needs editor rights — one you may only read fails the phase (table_read_only). So check both before you describe a playbook that starts a new table."
@@ -93,19 +93,19 @@
     },
     {
      "id": "d",
-     "label": "He has to name the phases himself — Table, Routine, App — or the plan has no order.",
+     "label": "He has to name the phases himself — Table, Automation, App — or the plan has no order.",
      "correct": false,
-     "feedback": "You never list phases. The table phase is put first when a table is declared, a First rows phase follows the routine that feeds it, and a Design phase is inserted right before the app."
+     "feedback": "You never list phases. The table phase is put first when a table is declared, a First rows phase follows the automation that feeds it, and a Design phase is inserted right before the app."
     }
    ],
-   "explanation": "The dialog says it in the product's own words: \"The model's playbook is not runnable. A playbook needs a routine or an app phase — a table alone builds nothing.\" The plan is checked before you ever see it, and the model gets exactly one repair round; if it still returns a table and nothing else, nothing is created. Name the work: what is read in, and what the app should show."
+   "explanation": "The dialog says it in the product's own words: \"The model's playbook is not runnable. A playbook needs an automation or an app phase — a table alone builds nothing.\" The plan is checked before you ever see it, and the model gets exactly one repair round; if it still returns a table and nothing else, nothing is created. Name the work: what is read in, and what the app should show."
   },
   {
    "type": "slide",
    "id": "language",
    "icon": "🌍",
    "title": "Language decides the words, your typing does not",
-   "bodyMd": "Above the description sits a **Language** control — **English** or **Nederlands** — with the hint: *\"The table's columns, the briefs the AI works from and the app's labels are all in this language.\"*\n\nA playbook remembers that choice. It decides the column names, the routine and app titles, the screen names and the phase summaries you read between phases.\n\nSo Anne can type her description in English and set Language to **Nederlands**, and the table comes back with Dutch column names — the two are independent. Pick the language the service team will actually read on screen, not the one you happen to be typing in."
+   "bodyMd": "Above the description sits a **Language** control — **English** or **Nederlands** — with the hint: *\"The table's columns, the briefs the AI works from and the app's labels are all in this language.\"*\n\nA playbook remembers that choice. It decides the column names, the automation and app titles, the screen names and the phase summaries you read between phases.\n\nSo Anne can type her description in English and set Language to **Nederlands**, and the table comes back with Dutch column names — the two are independent. Pick the language the service team will actually read on screen, not the one you happen to be typing in."
   },
   {
    "type": "slide",
@@ -126,20 +126,20 @@
      {
       "id": "full",
       "left": "\"Read the maintenance reports in /Service/Rapporten into a table with date, customer and hours, then build an app that shows them per customer.\"",
-      "right": "Table → Routine → First rows → Design → App",
-      "note": "Read, stored, shown — all three answered. The routine that feeds the table gets a First rows phase behind it, and every app is designed before it is built."
+      "right": "Table → Automation → First rows → Design → App",
+      "note": "Read, stored, shown — all three answered. The automation that feeds the table gets a First rows phase behind it, and every app is designed before it is built."
      },
      {
       "id": "tableonly",
       "left": "\"Keep a table of our subcontractors with name, trade and hourly rate.\"",
       "right": "Refused — a table alone builds nothing",
-      "note": "No routine, no app. The model gets one repair round on the validator's finding; when it still returns only a table nothing is created and the dialog shows \"The model's playbook is not runnable. A playbook needs a routine or an app phase — a table alone builds nothing.\""
+      "note": "No automation, no app. The model gets one repair round on the validator's finding; when it still returns only a table nothing is created and the dialog shows \"The model's playbook is not runnable. A playbook needs an automation or an app phase — a table alone builds nothing.\""
      },
      {
       "id": "approval",
       "left": "\"…and the service manager approves each report before it may be invoiced.\"",
-      "right": "…plus a second routine phase for the approval flow",
-      "note": "An approval is never built into the app. It is a second routine that parks the row and asks for a decision in Studio → Approvals; it needs a status column, and the Enterprise capability."
+      "right": "…plus a second automation phase for the approval flow",
+      "note": "An approval is never built into the app. It is a second automation that parks the row and asks for a decision in Studio → Approvals; it needs a status column, and the Enterprise capability."
      },
      {
       "id": "secondscreen",
@@ -165,7 +165,7 @@
    "type": "quiz",
    "id": "q-brief",
    "icon": "❓",
-   "question": "Phase 2 of Anne's playbook is the routine, and it is already running when she realises the brief — the instruction that phase's builder works from — should have said \"one row per report\". What can she still do?",
+   "question": "Phase 2 of Anne's playbook is the automation, and it is already running when she realises the brief — the instruction that phase's builder works from — should have said \"one row per report\". What can she still do?",
    "multi": false,
    "choices": [
     {
@@ -221,7 +221,7 @@
    "criteria": [
     "Names a concrete source: a Nextcloud folder with a path, an existing table, a mailbox — not \"our data\".",
     "Names where the rows go and lists real column names, so a table phase with typed columns can be composed.",
-    "Names what the app shows or lets someone do, so the plan gets a routine or an app phase rather than a table alone.",
+    "Names what the app shows or lets someone do, so the plan gets an automation or an app phase rather than a table alone.",
     "Stays inside what the workspace can reach (Nextcloud files, e-mail, HTTP, AI steps), and asks for an approval decision rather than an approve button inside the app."
    ],
    "passScore": 70,
@@ -235,11 +235,11 @@
    "The second choice card in New playbook is \"Describe it\" — \"Say what should be read, stored and built — the AI writes the phases.\"",
    "The description field is labelled \"What should this playbook build?\" and takes up to 2,000 characters.",
    "The button reads \"Let the AI write the phases\", spins with \"Writing the playbook…\" beside it while it runs, and becomes \"Write it again\" once a plan has been composed.",
-   "A composed plan with no routine and no app phase is refused: a playbook needs a builder phase, because a table alone builds nothing.",
+   "A composed plan with no automation and no app phase is refused: a playbook needs a builder phase, because a table alone builds nothing.",
    "The preview card shows the title, the phases as chips with arrows, and \"Columns:\" listing each column as name (type).",
    "The Language control (English or Nederlands) decides the table's columns, the briefs the AI works from and the app's labels — not the language the description was typed in.",
    "Reads need only a session, but every write — create, compose, run, skip, retry — needs manage_apps (Organisation Admin, Agent Admin, Agent Editor); the table phase separately checks manage_datatables.",
-   "Composing creates nothing: the table, routine and app appear only after Start, phase by phase."
+   "Composing creates nothing: the table, automation and app appear only after Start, phase by phase."
   ]
  },
  "actionChecks": [

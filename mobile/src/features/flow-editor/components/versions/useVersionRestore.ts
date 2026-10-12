@@ -34,8 +34,8 @@ export function useVersionRestore(flowKey: string, onRestored: () => void) {
         if (restoringId) return;
         const ok = await confirm({
             title: t('mobile.flow.versions.restore_title', 'Restore version {n}?', { n: v.version }),
-            message: t('mobile.flow.versions.restore_message', 'The routine goes back to how it looked then; the current definition is replaced.'),
-            confirmLabel: t('routine_editor.version_restore', 'Restore'),
+            message: t('mobile.flow.versions.restore_message', 'The automation goes back to how it looked then; the current definition is replaced.'),
+            confirmLabel: t('automation_editor.version_restore', 'Restore'),
         });
         if (!ok) return;
         setRestoringId(v.id);

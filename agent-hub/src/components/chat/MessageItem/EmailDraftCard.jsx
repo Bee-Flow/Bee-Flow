@@ -137,7 +137,11 @@ export default function EmailDraftCard({ msg, emailDraftStatuses, setEmailDraftS
                                 <><Send className="w-3 h-3" /> {t('chat.draft.mail_send', 'Send Email')}</>
                             )}
                         </button>
-                        <button
+                        {/* No "Save as Draft" for Outlook: saving a draft needs
+                            Mail.ReadWrite, which Bee Flow deliberately never
+                            requests (Mail.Send covers sending), so Graph would
+                            refuse it every time. */}
+                        {!isOutlook && <button
                             onClick={() => handleSaveAsDraft(draft, i)}
                             disabled={status === 'sending' || status === 'saving_draft'}
                             className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition-colors disabled:opacity-50"
@@ -147,7 +151,7 @@ export default function EmailDraftCard({ msg, emailDraftStatuses, setEmailDraftS
                             ) : (
                                 <><FileText className="w-3 h-3" /> {t('chat.draft.mail_save_draft', 'Save as Draft')}</>
                             )}
-                        </button>
+                        </button>}
                         <button
                             onClick={() => handleDiscard(i)}
                             disabled={status === 'sending' || status === 'saving_draft'}

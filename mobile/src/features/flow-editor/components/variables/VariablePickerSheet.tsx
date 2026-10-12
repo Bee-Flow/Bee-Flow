@@ -51,15 +51,15 @@ export function VariablePickerSheet({
     const rows = request?.list ? listRows(groups, { query, sampleRoot }) : pickerRows(groups, { query, expanded, sampleRoot });
     const nothingUpstream = groups.length === 0;
     const empty = nothingUpstream
-        ? t('routines.mapping.no_upstream', 'No upstream data yet. Connect this step to a previous one to see its output here.')
-        : t('routines.mapping.no_matches', 'No matches.');
+        ? t('automations.mapping.no_upstream', 'No upstream data yet. Connect this step to a previous one to see its output here.')
+        : t('automations.mapping.no_matches', 'No matches.');
 
     return (
         <Sheet
             visible={request !== null}
             onClose={close}
-            title={request?.title ?? t('routines.builder.pick_data', 'Pick data from a step')}
-            subtitle={request?.list ? t('routines.builder.lists_detected', 'Lists found in previous steps') : undefined}
+            title={request?.title ?? t('automations.builder.pick_data', 'Pick data from a step')}
+            subtitle={request?.list ? t('automations.builder.lists_detected', 'Lists found in previous steps') : undefined}
             scroll={false}
             tall
         >
@@ -67,7 +67,7 @@ export function VariablePickerSheet({
                 <SearchField
                     value={query}
                     onChangeText={setQuery}
-                    placeholder={t('routines.mapping.search', 'Search a field…')}
+                    placeholder={t('automations.mapping.search', 'Search a field…')}
                 />
                 <VariableList
                     testID="variable-picker-list"

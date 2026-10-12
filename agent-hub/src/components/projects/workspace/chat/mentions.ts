@@ -4,7 +4,7 @@
 
 import type { TeamChatRef } from '../../../../api/queries/projectChatTypes';
 
-export type MentionKind = 'user' | 'ai' | 'agent' | 'document' | 'notebook' | 'meeting';
+export type MentionKind = 'user' | 'ai' | 'agent' | 'document' | 'notebook' | 'meeting' | 'task';
 
 export interface MentionCandidate {
     /** Unique per list: the user id, `ai`, or `agent:<id>`. */
@@ -44,6 +44,10 @@ export function findMentionQuery(text: string, caret: number): MentionQuery | nu
 export function matchCandidates(candidates: MentionCandidate[], query: string, limit = 8): MentionCandidate[] {
     const q = query.trim().toLowerCase();
     if (!q) return candidates.slice(0, limit);
+    if (q === 'task' || q.startsWith('task:')) {
+        const title = q === 'task' ? '' : q.slice(5);
+        return candidates.filter(c => c.kind === 'task' && (!title || c.label.toLowerCase().includes(title))).slice(0, limit);
+    }
     return candidates.filter((c) => {
         const label = c.label.toLowerCase();
         return label.startsWith(q) || c.token.toLowerCase().startsWith(q) || label.split(/\s+/).some(w => w.startsWith(q));

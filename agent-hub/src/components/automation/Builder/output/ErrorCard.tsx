@@ -8,7 +8,7 @@ export interface ErrorFix {
     id: 'share_folder' | 'switch_account' | 'reconnect' | 'pick_other' | 'open_settings' | 'retry' | string;
     /** English, from the server: the fallback when no key translates it. */
     label?: string | null;
-    /** 'routines.output.fix_*': the server's translation key for the label. */
+    /** 'automations.output.fix_*': the server's translation key for the label. */
     labelKey?: string | null;
     params?: Record<string, unknown> | null;
 }
@@ -53,13 +53,13 @@ function fixLabel(t: TranslateFn, fix: ErrorFix): string {
         switch (fix.id) {
         case 'share_folder':
             return account
-                ? t('routines.output.fix_share_with', 'Share the folder with {account}', { account })
-                : t('routines.output.fix_share', 'Share the folder');
-        case 'switch_account': return t('routines.output.fix_switch_account', 'Other account');
-        case 'reconnect': return t('routines.output.fix_reconnect', 'Reconnect');
-        case 'pick_other': return t('routines.output.fix_pick_other', 'Pick another');
-        case 'open_settings': return t('routines.output.fix_open_settings', 'Open the setting');
-        case 'retry': return t('routines.output.fix_retry', 'Try again');
+                ? t('automations.output.fix_share_with', 'Share the folder with {account}', { account })
+                : t('automations.output.fix_share', 'Share the folder');
+        case 'switch_account': return t('automations.output.fix_switch_account', 'Other account');
+        case 'reconnect': return t('automations.output.fix_reconnect', 'Reconnect');
+        case 'pick_other': return t('automations.output.fix_pick_other', 'Pick another');
+        case 'open_settings': return t('automations.output.fix_open_settings', 'Open the setting');
+        case 'retry': return t('automations.output.fix_retry', 'Try again');
         default: return null;
         }
     };
@@ -76,11 +76,11 @@ function settingWords(t: TranslateFn, p: Record<string, unknown>, info: StepErro
     const label = str(p.settingLabel);
     if (label) return label;
     const key = str(p.settingKey) || str(info?.settingKey);
-    if (!key) return t('routines.output.fix_setting_generic', 'highlighted');
-    if (key === 'connection') return t('routines.output.setting_connection', 'Connection');
-    if (key === 'tool') return t('routines.output.setting_action', 'Action');
-    if (key === 'modelTier') return t('routines.output.setting_model', 'Model');
-    if (key === 'prompt') return t('routines.output.setting_prompt', 'Prompt');
+    if (!key) return t('automations.output.fix_setting_generic', 'highlighted');
+    if (key === 'connection') return t('automations.output.setting_connection', 'Connection');
+    if (key === 'tool') return t('automations.output.setting_action', 'Action');
+    if (key === 'modelTier') return t('automations.output.setting_model', 'Model');
+    if (key === 'prompt') return t('automations.output.setting_prompt', 'Prompt');
     return key.replace(/^inputs\./, '');
 }
 
@@ -104,17 +104,17 @@ function fixAction(t: TranslateFn, fix: ErrorFix, info: StepErrorInfo | null, ca
         const url = str(p.shareUrl) || str(p.url);
         if (url) return { kind: 'open', url };
         const folder = str(p.folder) || str(p.path);
-        const account = str(p.account) || t('routines.output.the_account', 'the account this step uses');
+        const account = str(p.account) || t('automations.output.the_account', 'the account this step uses');
         return {
             kind: 'explain',
             text: folder
                 ? t(
-                    'routines.output.fix_share_explain',
+                    'automations.output.fix_share_explain',
                     'Open the folder {folder} in Nextcloud Files, choose Share, and share it with {account}. Then try the step again.',
                     { folder, account },
                 )
                 : t(
-                    'routines.output.fix_share_explain_generic',
+                    'automations.output.fix_share_explain_generic',
                     'Open the folder in Nextcloud Files, choose Share, and share it with {account}. Then try the step again.',
                     { account },
                 ),
@@ -128,7 +128,7 @@ function fixAction(t: TranslateFn, fix: ErrorFix, info: StepErrorInfo | null, ca
 
 function settingExplain(t: TranslateFn, p: Record<string, unknown>, info: StepErrorInfo | null): string {
     return t(
-        'routines.output.fix_setting_explain',
+        'automations.output.fix_setting_explain',
         'Change the "{setting}" setting in column 2, then try again.',
         { setting: settingWords(t, p, info) },
     );
@@ -136,7 +136,7 @@ function settingExplain(t: TranslateFn, p: Record<string, unknown>, info: StepEr
 
 /** Title, cause and raw message, from the classification when there is one. */
 function errorTexts(t: TranslateFn, info: StepErrorInfo | null, error: string | null, remediation: string | null) {
-    const fallbackTitle = t('routines.output.error_title', 'This step stopped with an error');
+    const fallbackTitle = t('automations.output.error_title', 'This step stopped with an error');
     // Without a classification the row's own message is the only cause there
     // is; with one, the raw message moves behind "technical message".
     if (!info) return { title: fallbackTitle, cause: error || remediation, technical: null };
@@ -168,7 +168,7 @@ export default function ErrorCard({ info, error, remediation = null, onRetry = n
             if (onFix?.(fix, info) === false) setExplain(settingExplain(t, fix.params || {}, info));
         }
         else if (onRetry) onRetry();
-        else setExplain(t('routines.output.fix_retry_explain', 'Run the step again with Test step.'));
+        else setExplain(t('automations.output.fix_retry_explain', 'Run the step again with Test step.'));
     };
 
     return (
@@ -190,7 +190,7 @@ export default function ErrorCard({ info, error, remediation = null, onRetry = n
                     ))}
                     {technical && (
                         <button type="button" aria-expanded={showTech} onClick={() => setShowTech(v => !v)} className="ml-auto text-[var(--text-tertiary)] underline hover:text-[var(--text-primary)]">
-                            {t('routines.output.technical_message', 'technical message')}
+                            {t('automations.output.technical_message', 'technical message')}
                         </button>
                     )}
                 </div>

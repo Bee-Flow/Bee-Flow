@@ -73,8 +73,8 @@ beforeEach(() => {
 
 const KB = (id, name, extra = {}) => ({ id, name, document_count: 3, usage_contexts: ['direct_chat'], ...extra });
 
-/** A signed-in user who is allowed to see the picker at all. */
-const USER = { id: 1, name: 'Tester', betaFeatures: ['knowledge_bases_beta'] };
+/** A signed-in user: every signed-in account may see the picker. */
+const USER = { id: 1, name: 'Tester' };
 
 function Harness({ onIdsChange, ...props } = {}) {
     const [input, setInput] = useState('');
@@ -150,8 +150,8 @@ describe('the KB pill — when it may not speak', () => {
         render(
             <InputArea
                 onSendMessage={vi.fn()} onStopGenerating={vi.fn()} isLoading={false} directMode
-                input="" setInput={vi.fn()} user={{ id: 1, name: 'Tester', betaFeatures: [] }}
-                availableKBs={[KB('kb1', 'Handbook')]} selectedKBIds={[]} onChangeKBIds={vi.fn()}
+                input="" setInput={vi.fn()} user={USER}
+                availableKBs={[KB('kb1', 'Handbook')]} selectedKBIds={[]}
             />,
         );
         await screen.findByTestId('composer-tools-button');
@@ -161,19 +161,20 @@ describe('the KB pill — when it may not speak', () => {
 
 describe('the KB pill — telling without offering', () => {
     /**
-     * The picker is behind a product gate; the GROUNDING is not. A chat that
-     * carries bases searches them for whoever opens it, so an account without
-     * the gate must still be told — otherwise the retrieval is real and
-     * invisible, which is the failure the pill exists to prevent, only quieter.
+     * The picker needs a host that can change the list (`onChangeKBIds`); the
+     * GROUNDING does not. A chat that carries bases searches them for whoever
+     * opens it, so a surface without the picker must still tell — otherwise
+     * the retrieval is real and invisible, which is the failure the pill
+     * exists to prevent, only quieter.
      */
-    const ungated = { id: 2, name: 'Reader', betaFeatures: [] };
+    const reader = { id: 2, name: 'Reader' };
 
-    it('states what an account without the picker is grounded on', async () => {
+    it('states what a chat without the picker is grounded on', async () => {
         render(
             <InputArea
                 onSendMessage={vi.fn()} onStopGenerating={vi.fn()} isLoading={false} directMode
-                input="" setInput={vi.fn()} user={ungated} directConversationId="conv-1"
-                availableKBs={[KB('kb1', 'Handbook')]} selectedKBIds={['kb1']} onChangeKBIds={vi.fn()}
+                input="" setInput={vi.fn()} user={reader} directConversationId="conv-1"
+                availableKBs={[KB('kb1', 'Handbook')]} selectedKBIds={['kb1']}
             />,
         );
         const pill = await screen.findByTestId('composer-pill-kb');
@@ -185,19 +186,19 @@ describe('the KB pill — telling without offering', () => {
         expect(screen.queryByTestId('composer-kb-picker')).not.toBeInTheDocument();
     });
 
-    it('stays a control for an account that may change the list', async () => {
+    it('stays a control for any signed-in account that may change the list', async () => {
         render(<Harness availableKBs={[KB('kb1', 'Handbook')]} selectedKBIds={['kb1']} />);
         const pill = await screen.findByTestId('composer-pill-kb');
         expect(pill.tagName).toBe('BUTTON');
         expect(pill).toHaveAttribute('aria-haspopup', 'dialog');
     });
 
-    it('says nothing to an account with neither the picker nor a grounding', async () => {
+    it('says nothing where there is neither a picker nor a grounding', async () => {
         render(
             <InputArea
                 onSendMessage={vi.fn()} onStopGenerating={vi.fn()} isLoading={false} directMode
-                input="" setInput={vi.fn()} user={ungated}
-                availableKBs={[KB('kb1', 'Handbook')]} selectedKBIds={[]} onChangeKBIds={vi.fn()}
+                input="" setInput={vi.fn()} user={reader}
+                availableKBs={[KB('kb1', 'Handbook')]} selectedKBIds={[]}
             />,
         );
         await screen.findByTestId('composer-tools-button');

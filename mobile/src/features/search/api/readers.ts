@@ -1,7 +1,7 @@
 /**
  * Contract readers for the two surfaces only search reads: the conversation
  * search and the notebook list as a keystroke asks for it. The knowledge,
- * routine and meeting-note lists are read by their own features (api/corpus.ts,
+ * automation and meeting-note lists are read by their own features (api/corpus.ts,
  * api/matches.ts). The casing differs per endpoint on purpose — see
  * model/types.ts.
  */

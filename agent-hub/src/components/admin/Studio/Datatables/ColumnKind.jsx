@@ -20,7 +20,7 @@ import { KIND_WORD } from '../../../automation/Builder/mapping/fieldKinds';
  *
  * `relation` is the second: a link to one row of another table, met only on
  * a table that mirrors a Nextcloud table. The builder's own kinds do not know
- * it (a routine never authors one), so the word lives here.
+ * it (an automation never authors one), so the word lives here.
  */
 const RELATION_WORD = { key: 'datatables.kind_relation', en: 'link to a row' };
 

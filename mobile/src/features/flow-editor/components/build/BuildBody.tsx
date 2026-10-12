@@ -2,7 +2,7 @@
  * The build screen's body: the toolbar, the run line, and the flow as the
  * Steps outline or the Canvas, with the findings pill over it. A flowlet's
  * screen draws the same body without runs and without the pill: a test run
- * and the findings belong to the routine.
+ * and the findings belong to the automation.
  */
 
 import React, { useState, type ReactNode } from 'react';
@@ -46,7 +46,7 @@ export interface BuildBodyProps {
     card: CardContext;
     catalog: FlowCatalog | null;
     editing: Editing;
-    /** The routine's test runs; absent in a flowlet. */
+    /** The automation's test runs; absent in a flowlet. */
     runs: TestRuns | null;
     onAdd: (target: AddTarget) => void;
     onOpen: (address: string) => void;
@@ -72,7 +72,7 @@ export function BuildBody({ draft, definition, card, catalog, editing, runs, onA
     const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(() => new Set());
     const lockedBanner = locked ? (
         <View style={styles.banner}>
-            <Banner tone="info">{t('routines.builder.edits_locked', 'The AI is building this routine — editing is paused until it finishes.')}</Banner>
+            <Banner tone="info">{t('automations.builder.edits_locked', 'The AI is building this automation — editing is paused until it finishes.')}</Banner>
         </View>
     ) : null;
     return (

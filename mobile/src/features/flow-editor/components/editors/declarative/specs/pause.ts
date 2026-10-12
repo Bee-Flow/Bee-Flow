@@ -56,7 +56,7 @@ export const NOTIFICATION: EditorSpec = {
                     label: msg('mobile.flow.notification.send_to', 'Send to'),
                     hint: msg(
                         'mobile.flow.notification.send_to_hint',
-                        'In-app lands in the Bee Flow notification centre — the bell in the top bar. Email goes to the person this routine belongs to.',
+                        'In-app lands in the Bee Flow notification centre — the bell in the top bar. Email goes to the person this automation belongs to.',
                     ),
                     options: channelOptions,
                     read: (draft) => stepChannelsToUi(draft.channels),

@@ -17,6 +17,10 @@
  * never field values, so no employee data lands in the evidence chain.
  */
 
+// One page of rows: enough to show the feed has a population, never a mirror
+// of the employee list. A full page means there may be more (`truncated`).
+const PAGE_SIZE = 100;
+
 module.exports = {
     id: 'afas',
     titleKey: 'compliance.connector.afas.title',
@@ -38,7 +42,7 @@ module.exports = {
         const raw = String(token).trim();
         const encoded = raw.startsWith('<') ? Buffer.from(raw).toString('base64') : raw;
 
-        const res = await safeFetch(`${baseUrl}/connectors/${encodeURIComponent(connectorName)}?skip=0&take=100`, {
+        const res = await safeFetch(`${baseUrl}/connectors/${encodeURIComponent(connectorName)}?skip=0&take=${PAGE_SIZE}`, {
             headers: { 'Authorization': `AfasToken ${encoded}`, 'Accept': 'application/json' },
         });
         if (!res.ok) {
@@ -56,6 +60,7 @@ module.exports = {
                 source: 'afas',
                 connector: connectorName,
                 rows: data.rows.length,
+                truncated: data.rows.length >= PAGE_SIZE,
                 fields: data.rows.length ? Object.keys(data.rows[0]).slice(0, 40) : [],
                 fetched: true,
             },

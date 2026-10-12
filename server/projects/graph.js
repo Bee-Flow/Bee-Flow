@@ -1,6 +1,6 @@
 /**
- * The dependency graph of a Solution: which app runs which routine, which
- * routine asks whom to approve, which page is allowed to call what.
+ * The dependency graph of a Solution: which app runs which automation, which
+ * automation asks whom to approve, which page is allowed to call what.
  *
  * ── Why this module is the spine ────────────────────────────────────────────
  *
@@ -45,7 +45,7 @@
  * make this module do I/O. `automation/datatableUsage.collectDatatableUsage`
  * derives the same facts from the definition, purely — the same walk over
  * loops, branches and layers — so the graph keeps its "no database" promise
- * and cannot disagree with the index about what a routine touches.
+ * and cannot disagree with the index about what an automation touches.
  *
  * An app→datatable edge is NOT drawn yet, and the hook that would draw it says
  * why: the app definition does not carry the binding in a readable form, and
@@ -86,10 +86,10 @@ function approvalNodeId(ownerType, ownerId, stepId) {
 }
 
 /**
- * The synthetic node for a routine's own form.
+ * The synthetic node for an automation's own form.
  *
  * Keyed on the AUTOMATION, never on the form page: the page's id is its URL and
- * its credential. A routine has one form trigger, so the automation id is a
+ * its credential. An automation has one form trigger, so the automation id is a
  * complete key anyway.
  */
 function formNodeId(automationId) { return `form:${automationId}`; }
@@ -114,32 +114,35 @@ function classify(targetId, byId, known) {
 /**
  * What each kind of target is CALLED in a sentence.
  *
- * The prose used to say "a routine" because a routine was the only thing an
+ * The prose used to say "an automation" because an automation was the only thing an
  * edge could point at. Now that a reference can be a table, a knowledge base or
  * a skill, the noun is a parameter — an unknown kind falls back to the neutral
  * "thing" rather than claiming the wrong one.
  */
 const TARGET_NOUN = {
-    automation: 'routine',
+    automation: 'automation',
     datatable: 'table',
     knowledge_base: 'knowledge base',
     skill: 'skill',
 };
 
+/** "a table", "an automation": the article the noun takes. */
+const withArticle = (noun) => `${/^[aeiou]/i.test(noun) ? 'an' : 'a'} ${noun}`;
+
 const PROSE = {
-    [PROBLEM.UNWIRED]: (from, target, noun = 'routine') => `${from} has a step that never got a ${noun} picked, so it does nothing when someone uses it.`,
-    [PROBLEM.MISSING]: (from, target, noun = 'routine') => `${from} points at a ${noun} that no longer exists (${target}).`,
-    [PROBLEM.EXTERNAL]: (from, target, noun = 'routine') => `${from} depends on a ${noun} outside this project (${target}), so packaging cannot carry it.`,
-    [PROBLEM.UNRESOLVED]: (from, target, noun = 'routine') => `${from} points at a ${noun} that is not in this project (${target}).`,
+    [PROBLEM.UNWIRED]: (from, target, noun = 'automation') => `${from} has a step that never got ${withArticle(noun)} picked, so it does nothing when someone uses it.`,
+    [PROBLEM.MISSING]: (from, target, noun = 'automation') => `${from} points at ${withArticle(noun)} that no longer exists (${target}).`,
+    [PROBLEM.EXTERNAL]: (from, target, noun = 'automation') => `${from} depends on ${withArticle(noun)} outside this project (${target}), so packaging cannot carry it.`,
+    [PROBLEM.UNRESOLVED]: (from, target, noun = 'automation') => `${from} points at ${withArticle(noun)} that is not in this project (${target}).`,
     // Deliberately NOT parameterised: cross-owner is the acts-as-owner refusal,
     // and only an automation is ever executed that way.
-    [PROBLEM.CROSS_OWNER]: (from, target) => `${from} runs a routine owned by someone else (${target}). It will refuse at the moment someone presses the button — both must belong to the same person.`,
+    [PROBLEM.CROSS_OWNER]: (from, target) => `${from} runs an automation owned by someone else (${target}). It will refuse at the moment someone presses the button — both must belong to the same person.`,
 };
 
 /**
  * The severity each problem carries on the shared Finding shape
  * (core/findings/finding.js). What is broken the moment someone clicks is an
- * error; what is a normal state while building (the "connect a routine" state
+ * error; what is a normal state while building (the "connect an automation" state
  * every template ships in), or a limit on packaging rather than on running,
  * is a warning. UNRESOLVED is "I could not check" and must never read as "it
  * is gone" — see classify().
@@ -212,7 +215,7 @@ function buildProjectGraph({
     };
 
     for (const a of automations.filter(Boolean)) {
-        nodes.push({ id: nodeId('automation', a.id), type: 'automation', entityId: a.id, name: a.title || 'Untitled routine', ownerId: a.userId || null, kind: a.kind || 'automation' });
+        nodes.push({ id: nodeId('automation', a.id), type: 'automation', entityId: a.id, name: a.title || 'Untitled automation', ownerId: a.userId || null, kind: a.kind || 'automation' });
     }
     for (const app of apps.filter(Boolean)) {
         nodes.push({ id: nodeId('app', app.id), type: 'app', entityId: app.id, name: app.name || 'Untitled app', ownerId: app.userId || null });
@@ -237,7 +240,7 @@ function buildProjectGraph({
      * The prose is rendered HERE, at construction — a `message` travels
      * through JSON and can be translated, a formatter map cannot. `fromRef`
      * is the object that HOLDS the broken reference: that is where "Show me"
-     * opens, so it is the Finding's `kind` + `targetRef`; the routine it
+     * opens, so it is the Finding's `kind` + `targetRef`; the automation it
      * points at stays in `targetId`.
      */
     const addProblem = (code, fromNode, fromName, targetId, fromRef, targetKind = 'automation') => {
@@ -256,7 +259,7 @@ function buildProjectGraph({
     };
 
     // Deduped on kind AND id: two kinds can only collide by accident, and an
-    // accident that merged a missing table into a missing routine would report
+    // accident that merged a missing table into a missing automation would report
     // one dependency where there are two.
     const noteExternal = (targetKind, targetId, byNode) => {
         const seen = externals.find(e => e.id === targetId && e.kind === targetKind);
@@ -285,7 +288,7 @@ function buildProjectGraph({
             addProblem(verdict, fromNode, fromName, null, fromRef, targetKind);
         } else if (actsAsOwner) {
             // The target is in this project — but these two call paths execute
-            // as the CALLER's owner, and refuse outright when the routine
+            // as the CALLER's owner, and refuse outright when the automation
             // belongs to somebody else.
             const target = world.byId.get(targetId);
             if (fromOwnerId && target?.userId && target.userId !== fromOwnerId) {
@@ -321,7 +324,7 @@ function buildProjectGraph({
     // ── Automations: approval steps and call_block ──────────────────────
     for (const a of automations.filter(Boolean)) {
         const from = nodeId('automation', a.id);
-        const name = a.title || 'A routine';
+        const name = a.title || 'An automation';
         walkAllSteps(a.definition, (step, layerKey) => {
             if (step.type === 'approval') {
                 const id = approvalNodeId('automation', a.id, step.id || 'step');
@@ -362,13 +365,13 @@ function buildProjectGraph({
     // ── Automations: the tables their steps read and write ──────────────
     for (const a of automations.filter(Boolean)) {
         const from = nodeId('automation', a.id);
-        const name = a.title || 'A routine';
+        const name = a.title || 'An automation';
         for (const use of collectDatatableUsage(a.definition)) {
             linkTo({
                 fromNode: from, fromName: name, fromOwnerId: a.userId,
                 fromRef: { kind: 'automation', id: a.id, title: a.title || null, stepId: use.stepId || null },
                 targetId: use.datatableId, targetKind: 'datatable',
-                // A datatable step runs inside the routine's own run, under the
+                // A datatable step runs inside the automation's own run, under the
                 // runner's identity, and the grade is re-checked there — so
                 // ownership is not a second gate the way it is for an app
                 // action. Reading and writing are separate verbs because they
@@ -445,7 +448,7 @@ function buildProjectGraph({
         });
     }
 
-    // ── Forms: a routine whose TRIGGER is a public form ──────────────────
+    // ── Forms: an automation whose TRIGGER is a public form ──────────────────
     //
     // Derived from the trigger, never from `automation_form_pages`: that row's
     // id is the public URL AND the only credential guarding it, so it is not

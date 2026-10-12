@@ -109,6 +109,18 @@ test('a row from before the change feed still reads', async () => {
     assert.deepStrictEqual(row.updatedAt, row.createdAt);
 });
 
+test('activity rows made in the same instant page in a fixed order, so no row is shown twice or skipped', async () => {
+    const pid = await newProject();
+    await pg.query(
+        `INSERT INTO project_activity (id, project_id, actor_id, action, details, created_at)
+         SELECT 'tie' || s, $1, 'anna', 'member_added', '{}', TIMESTAMPTZ '2026-01-01 10:00:00+00' FROM generate_series(1, 7) s`,
+        [pid],
+    );
+    const seen = [];
+    for (let offset = 0; offset < 7; offset += 3) seen.push(...(await store.listActivity(pid, 3, offset)).map((r) => r.id));
+    assert.deepStrictEqual([...seen].sort(), ['tie1', 'tie2', 'tie3', 'tie4', 'tie5', 'tie6', 'tie7']);
+});
+
 test('writes the audit row and its event together, with one seq', async () => {
     const pid = await newProject();
     const out = await store.recordActivityEvent(pid, {

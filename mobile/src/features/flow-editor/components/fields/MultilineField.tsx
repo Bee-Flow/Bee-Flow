@@ -34,7 +34,7 @@ export function MultilineField({
     error?: string | null;
     maxLength?: number;
     lines?: number;
-    /** Read-only while the routine is locked (the AI builder holds it). */
+    /** Read-only while the automation is locked (the AI builder holds it). */
     disabled?: boolean;
     testID?: string;
 }) {

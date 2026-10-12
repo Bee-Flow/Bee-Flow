@@ -3,9 +3,9 @@
  *
  * The list is scoped per user by the server (`getAutomationsForUser` filters on
  * `user_id`), so there is no "mine / everyone" switch to build — a colleague's
- * routine is simply not here.
+ * automation is simply not here.
  *
- * "New routine" opens the flow editor's new-routine screen (from scratch or
+ * "New automation" opens the flow editor's new-automation screen (from scratch or
  * from a template); holding a row offers editing its flow and deleting it,
  * after asking which app buttons start it.
  */
@@ -17,10 +17,10 @@ import { useTranslation } from '@/core/i18n';
 import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Chip, Icon, IconButton, Screen, ScreenHeader, SearchField } from '@/shared/ui';
 
+import { AutomationRowMenu } from '../components/AutomationRowMenu';
 import { AutomationsList } from '../components/AutomationsList';
-import { DeleteRoutineSheet } from '../components/DeleteRoutineSheet';
-import { NewRoutineMenu } from '../components/NewRoutineMenu';
-import { RoutineRowMenu } from '../components/RoutineRowMenu';
+import { DeleteAutomationSheet } from '../components/DeleteAutomationSheet';
+import { NewAutomationMenu } from '../components/NewAutomationMenu';
 import { useSettledRunRefresh } from '../hooks/mutations';
 import { useActiveRuns, useAutomations } from '../hooks/queries';
 import { useRunStream } from '../hooks/useRunStream';
@@ -84,7 +84,7 @@ export function AutomationsScreen() {
                 actions={
                     <IconButton
                         icon={<Icon name="Plus" size={20} color={theme.colors.textSecondary} />}
-                        accessibilityLabel={t('routines.new', 'New routine')}
+                        accessibilityLabel={t('automations.new', 'New automation')}
                         onPress={() => setCreating(true)}
                     />
                 }
@@ -117,9 +117,9 @@ export function AutomationsScreen() {
                 onMenu={setMenu}
             />
 
-            <NewRoutineMenu visible={creating} onClose={() => setCreating(false)} />
-            <RoutineRowMenu automation={menu} onClose={() => setMenu(null)} onDelete={setDeleting} />
-            <DeleteRoutineSheet automation={deleting} onClose={() => setDeleting(null)} />
+            <NewAutomationMenu visible={creating} onClose={() => setCreating(false)} />
+            <AutomationRowMenu automation={menu} onClose={() => setMenu(null)} onDelete={setDeleting} />
+            <DeleteAutomationSheet automation={deleting} onClose={() => setDeleting(null)} />
         </Screen>
     );
 }

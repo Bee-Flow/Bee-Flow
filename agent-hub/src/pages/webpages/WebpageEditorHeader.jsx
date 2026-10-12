@@ -1,6 +1,8 @@
 import { Code2, Database, Download, Eye, History, Link2, Upload, Users } from 'lucide-react';
 import React from 'react';
 import { visibilityOf } from './webpageVisibility';
+import { managedOf } from '../../components/shared/managedPart';
+import ManagedPartBanner from '../../components/shared/ManagedPartBanner';
 import StatusActionPill from '../../components/shared/StatusActionPill';
 import statusOf from '../../components/shared/statusOf';
 import StudioSectionHeader, { OBJHEAD, OBJHEAD_FOLD } from '../../components/shared/StudioSectionHeader';
@@ -57,6 +59,11 @@ import useTranslation from '../../hooks/useTranslation';
  *   onAddImage      () => void — owner only; omitted → no button
  *   onDownloadZip   () => void
  *   extras          node appended after the built-in extras (viewer menus)
+ *   managed         the `managed` of the page GET (managedPart.managedOf); a
+ *                   page of a Solution stage is read-only: no rename, no Code
+ *                   or History tab (the only ways to write it), no Add image,
+ *                   no Republish (a deploy owns the frozen copy), and the
+ *                   banner under the row. Falls back to `page.managed`.
  */
 
 /** The five sections of an open webpage, in artboard order. */
@@ -120,13 +127,15 @@ function ExtraButton({ icon, label, onClick }) {
  * published snapshot, not the live page — is an action the screen cannot
  * carry out, so it is not offered.
  */
-function buildTabs(t, counts, isOwner) {
+function buildTabs(t, counts, isOwner, managed = false) {
     const c = counts || {};
     return [
         { id: 'preview', label: t('webpages.tab.preview', 'Preview') },
         { id: 'data', label: t('webpages.tab.data', 'Data & links'), count: c.data },
-        isOwner && { id: 'code', label: t('webpages.tab.code', 'Code') },
-        isOwner && { id: 'history', label: t('webpages.tab.history', 'History'), count: c.history },
+        // A managed page is written by its deploys only: the code editor and
+        // the restore in History are the two doors, so neither is offered.
+        isOwner && !managed && { id: 'code', label: t('webpages.tab.code', 'Code') },
+        isOwner && !managed && { id: 'history', label: t('webpages.tab.history', 'History'), count: c.history },
         // No endpoint answers "who uses this page" yet, so this badge stays
         // absent. A confident 0 would be a claim the row cannot back up.
         { id: 'usedby', label: t('webpages.tab.used_by', 'Used by'), count: c.usedBy },
@@ -177,9 +186,11 @@ function CapsuleSlot({
  * a one-click "Publish" would widen a personal page to the whole organisation
  * without naming the audience — and the title is where that is said out loud.
  */
-function publishAction(t, status, { isOwner, onPublish, publishBusy }) {
+function publishAction(t, status, { isOwner, onPublish, publishBusy, managed = false }) {
     if (!isOwner || !onPublish) return null;
     const published = status === 'published';
+    // A live managed page has nothing to re-freeze: the deploy pinned it.
+    if (managed && published) return null;
     return {
         label: published
             ? t('webpages.publish.republish', 'Republish')
@@ -196,7 +207,20 @@ function publishAction(t, status, { isOwner, onPublish, publishBusy }) {
     };
 }
 
-export default function WebpageEditorHeader({
+export default function WebpageEditorHeader(props) {
+    // The banner sits under the row, outside it: one decision here, so the row
+    // itself only knows "managed or not".
+    const managed = props.managed ?? managedOf(props.page);
+    return (
+        <>
+            {/* A managed page is read-only whoever opens it: the owner's chrome shrinks to the audience. */}
+            <WebpageEditorRow {...props} managed={!!managed} canEdit={!!props.isOwner && !managed} />
+            {managed ? <ManagedPartBanner managed={managed} /> : null}
+        </>
+    );
+}
+
+function WebpageEditorRow({
     page,
     isOwner = false,
     activeTab = 'preview',
@@ -218,6 +242,8 @@ export default function WebpageEditorHeader({
     onAddImage,
     onDownloadZip,
     extras = null,
+    managed,
+    canEdit,
 }) {
     const { t } = useTranslation();
     const status = statusOf.webpage(page);
@@ -226,7 +252,7 @@ export default function WebpageEditorHeader({
     // A draft's next step is Publish; a live page's is to re-freeze what its
     // audience reads — which is why the label changes rather than the button
     // disappearing: "published" is not "finished".
-    const action = publishAction(t, status, { isOwner, onPublish, publishBusy });
+    const action = publishAction(t, status, { isOwner, onPublish, publishBusy, managed });
 
     const capsule = (
         <CapsuleSlot
@@ -249,16 +275,16 @@ export default function WebpageEditorHeader({
         <StudioSectionHeader
             kind="webpage"
             title={page?.name || ''}
-            onRename={isOwner ? onRename : undefined}
+            onRename={canEdit ? onRename : undefined}
             statusChip={statusChip}
-            tabs={buildTabs(t, counts, isOwner)}
+            tabs={buildTabs(t, counts, isOwner, managed)}
             activeTab={activeTab}
             onTab={onTab}
             capsule={capsule}
             primary={<StatusActionPill status={status} action={action} containerName={OBJHEAD} />}
             extras={(
                 <>
-                    {isOwner && onAddImage && (
+                    {canEdit && onAddImage && (
                         <ExtraButton icon={Upload} label={t('webpages.action.add_image', 'Add image')} onClick={onAddImage} />
                     )}
                     {onDownloadZip && (

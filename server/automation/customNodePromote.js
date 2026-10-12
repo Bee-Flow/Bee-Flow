@@ -1,8 +1,8 @@
 /**
  * "Make this reusable" — one code step, promoted to a custom node.
  *
- * A code step lives inside one routine: its inputs are bound to that
- * routine's steps, its ceilings are that step's ceilings, and the only way to
+ * A code step lives inside one automation: its inputs are bound to that
+ * automation's steps, its ceilings are that step's ceilings, and the only way to
  * use it twice is to paste it. Promotion turns it into a Step row
  * (kind='block' — stores/automationStore/steps.js), which is the same
  * contract stepContract.js reads plus the body and the capability manifest
@@ -17,9 +17,9 @@
  *                    node: a node whose behaviour turns on a number nobody
  *                    can see is the thing promotion exists to end.
  *   callInputs       the ORIGINAL bindings, per param name, for the
- *                    call_block that replaces the step in the routine it came
+ *                    call_block that replaces the step in the automation it came
  *                    from. Promotion that does not hand these back is a
- *                    promotion that silently changes the routine it promoted
+ *                    promotion that silently changes the automation it promoted
  *                    out of: every `steps.x.output.y` the step read would
  *                    have to be retyped by hand, and the first one anybody
  *                    forgets resolves to undefined and writes nothing.
@@ -127,7 +127,7 @@ function refuse(issues) {
 /**
  * Promote one code step to a custom-node definition.
  *
- * @param {object}   step        the `code` step, as it is stored in the routine.
+ * @param {object}   step        the `code` step, as it is stored in the automation.
  * @param {string[]} [outputs]   the names the body returns, when the author
  *                               named them. Without it the step's own
  *                               `outputSchema` is read, and without that the
@@ -136,7 +136,7 @@ function refuse(issues) {
  *
  * @returns {{ ok: true, definition, callInputs, contract, warnings }
  *        | { ok: false, reason, issues }}
- *   `callInputs` is the map a call_block needs to reproduce, in the routine
+ *   `callInputs` is the map a call_block needs to reproduce, in the automation
  *   this came from, exactly what the step did before.
  */
 function promoteCodeStep({ step, outputs = null, label = null } = {}) {
@@ -234,7 +234,7 @@ function promoteCodeStep({ step, outputs = null, label = null } = {}) {
         inputs: bodyInputs,
         allowedTools: toolNames,
         // Carried, never re-defaulted: a body that needed eight seconds of
-        // wall clock inside the routine needs them inside the node too, and a
+        // wall clock inside the automation needs them inside the node too, and a
         // promotion that quietly hands it the 5s default is a step that is
         // simply not what its author thinks it is.
         ...(isObject(step.limits) ? { limits: { ...step.limits } } : {}),

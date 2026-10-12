@@ -1,4 +1,4 @@
-/** The schedule picker in a sheet, saving through the routine's definition. */
+/** The schedule picker in a sheet, saving through the automation's definition. */
 
 import React from 'react';
 

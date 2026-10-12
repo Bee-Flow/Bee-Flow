@@ -68,7 +68,7 @@ export const NAV_SURFACE_GATES = {
     'studio/knowledge':                        { feat: [], permView: [], permWrite: ['manage_knowledge'] },
     'studio/meetingNotes':                     { feat: ['meeting_notes'], permView: [], permWrite: [] },
     'studio/playbooks':                        { feat: ['automations',  'app_studio'], permView: [], permWrite: ['manage_apps'] },
-    'studio/routines':                         { feat: ['automations'], permView: [], permWrite: [] },
+    'studio/automations':                         { feat: ['automations'], permView: [], permWrite: [] },
     'studio/runs':                             { feat: ['automations'], permView: [], permWrite: [] },
     'studio/skills':                           { feat: ['skills'], permView: [], permWrite: ['manage_skills'] },
     'studio/solutions':                        { feat: ['projects'], permView: [], permWrite: [] },

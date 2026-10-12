@@ -9,7 +9,7 @@
  * processJobInline pending/manual paths.
  *
  * Every dependency (gmeetImportStore, configStore/userStore, settings,
- * calendar, artifacts, ingest, routineAuth, entitlements) is stubbed via the
+ * calendar, artifacts, ingest, automationAuth, entitlements) is stubbed via the
  * Module resolve hook; the job store is an in-memory fake mirroring the real
  * store's semantics.
  *
@@ -228,10 +228,10 @@ const MOCKS = {
     '../../stores/transcriptionStore': {
         getTranscriptionBySourceUri: async (uri) => fx.existingByUri[uri] || null,
     },
-    '../../stores/routineCredentialStore': {
+    '../../stores/automationCredentialStore': {
         upsertCredential: async (row) => { fx.vaultWrites.push(row); },
     },
-    '../../auth/routineAuth': {
+    '../../auth/automationAuth': {
         getProviderAuth: async (userId, provider) => {
             fx.authCalls.push({ userId, provider });
             return fx.authByUser[userId] || null;

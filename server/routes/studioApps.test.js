@@ -934,19 +934,19 @@ test('PUT /:id/definition — 400 / 404 / 409 / 413 / 422 error paths', async ()
     }
 });
 
-test('PATCH /:id/publish — refuses validation errors and dangling/foreign/inactive routines', async () => {
+test('PATCH /:id/publish — refuses validation errors and dangling/foreign/inactive automations', async () => {
     const app = await createApp('owner', { name: 'Publish gate' });
 
-    // Draft referencing a routine the owner does NOT have. Draft-save allows it
+    // Draft referencing an automation the owner does NOT have. Draft-save allows it
     // (no ownedAutomations opts at save time) — publish must block it.
     const save = await api('PUT', `/${app.id}/definition`, { user: 'owner', body: { definition: draftWithAutomation('auto-nope'), baseVersion: 1 } });
-    assert.strictEqual(save.status, 200, 'draft save tolerates unresolved routine ids');
+    assert.strictEqual(save.status, 200, 'draft save tolerates unresolved automation ids');
     const dangling = await api('PATCH', `/${app.id}/publish`, { user: 'owner', body: { isPublished: true } });
     assert.strictEqual(dangling.status, 422);
     assert.ok(dangling.body.errors.some(e => e.code === 'action.automation_missing'), JSON.stringify(dangling.body.errors));
     assert.strictEqual(state.apps.get(app.id).isPublished, false, 'refused publish flipped nothing');
 
-    // Inactive routine blocks too.
+    // Inactive automation blocks too.
     await api('PUT', `/${app.id}/definition`, { user: 'owner', body: { definition: draftWithAutomation('auto-off'), baseVersion: 2 } });
     const inactive = await api('PATCH', `/${app.id}/publish`, { user: 'owner', body: { isPublished: true } });
     assert.strictEqual(inactive.status, 422);
@@ -958,7 +958,7 @@ test('PATCH /:id/publish — refuses validation errors and dangling/foreign/inac
     assert.strictEqual(broken.status, 422);
     assert.ok(broken.body.errors.some(e => e.code === 'action.navigate_unresolved'));
 
-    // Healthy draft with an owned active routine publishes.
+    // Healthy draft with an owned active automation publishes.
     state.apps.get(app.id).definition = draftWithAutomation('auto-1');
     const good = await api('PATCH', `/${app.id}/publish`, { user: 'owner', body: { isPublished: true, sharedGroups: [] } });
     assert.strictEqual(good.status, 200, JSON.stringify(good.body));
@@ -1182,7 +1182,7 @@ test('GET /:id/ref — a pointer that leads nowhere says so, and never 404s', as
     await api('PUT', `/${app.id}/definition`, { user: 'owner', body: { definition: def, baseVersion: 1 } });
     const screenId = def.screens[0].id;
 
-    // A deleted screen / button is NOT "no trigger" — the routine still fires,
+    // A deleted screen / button is NOT "no trigger" — the automation still fires,
     // so the answer has to name which level stopped resolving.
     const noScreen = await api('GET', `/${app.id}/ref?screenId=scr_gone01&nodeId=cmp_btn001`, { user: 'owner' });
     assert.strictEqual(noScreen.status, 200);
@@ -1498,8 +1498,8 @@ test('POST /:id/check — reports a clean app without changing anything', async 
     assert.strictEqual(state.apps.get(app.id).definitionVersion, before.definitionVersion);
 });
 
-test('POST /:id/check — surfaces the same routine problems that block publish', async () => {
-    const app = await createApp('owner', { name: 'Check routines' });
+test('POST /:id/check — surfaces the same automation problems that block publish', async () => {
+    const app = await createApp('owner', { name: 'Check automations' });
     await api('PUT', `/${app.id}/definition`, {
         user: 'owner',
         body: { definition: draftWithAutomation('auto-nope'), baseVersion: 1 },
@@ -1523,7 +1523,7 @@ test('POST /:id/check — surfaces the same routine problems that block publish'
 
 // An app the AI builder made LINKS a Studio table (app_link_datatable), so
 // every binding on it carries a `source`. The check re-validates with the
-// routines list; until it also carried the owner's Studio tables, each of those
+// automations list; until it also carried the owner's Studio tables, each of those
 // bindings came back as `binding.datatable_unverified` — five warnings on a
 // freshly built app that the author could not act on, and that the publish
 // gate (which has the list) never raised.

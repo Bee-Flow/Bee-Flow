@@ -12,6 +12,24 @@ const { planVersionWrite } = require('../../automation/diffSummary');
 // a working-copy write never moves the live copy (see lifecycle.js).
 const { AUTOMATION_SELECT, LIVE_INVARIANT_SQL, stripLiveFollowingFields } = require('./lifecycle');
 
+/**
+ * The managed-write guard (stores/lib/managedParts.js): an automation filed into a
+ * Solution stage project is changed in Dev and deployed, so only the
+ * allow-listed keys move without a deploy's `managedWrite` capability.
+ * Required lazily: the guard reaches projectStore, which this aggregate must
+ * not load at require time. `override` is a test's own instance.
+ */
+function guardOf(override) {
+    return override || require('../lib/managedParts');
+}
+
+/** `updates` without the keys whose value is `undefined` (nothing to write). */
+function suppliedOf(updates) {
+    const out = {};
+    for (const [k, v] of Object.entries(updates || {})) if (v !== undefined) out[k] = v;
+    return out;
+}
+
 async function createAutomation({ userId, organizationId = null, title, description = '', definition, triggerType, scheduleCron = null, scheduleTz = 'Europe/Amsterdam', nextRunAt = null, createdFromChatId = null, versionMeta = null }) {
     await initDB();
     const id = crypto.randomUUID();
@@ -29,7 +47,7 @@ async function createAutomation({ userId, organizationId = null, title, descript
     // Seed the v1 version snapshot so run history can render the flow exactly
     // as it was at run time, even for runs that fire before the first edit
     // (updateAutomation only inserts a version row on subsequent changes).
-    // Handoff 5: v1 says how the routine came to be ("Created", "Created from
+    // Handoff 5: v1 says how the automation came to be ("Created", "Created from
     // template ...", "Copied from ..."), as codes the UI translates plus text.
     const v1 = versionMeta || {};
     const v1Json = v1.descriptionJson != null ? v1.descriptionJson : [{ code: 'created', params: {} }];
@@ -46,9 +64,9 @@ async function createAutomation({ userId, organizationId = null, title, descript
 }
 
 /**
- * One routine, or null. A routine in the TRASH is null too, unless the caller
+ * One automation, or null. An automation in the TRASH is null too, unless the caller
  * asks for it (`includeDeleted`) — the trash and restore routes are the only
- * ones that do, so nothing can run, schedule or open a deleted routine.
+ * ones that do, so nothing can run, schedule or open a deleted automation.
  */
 async function getAutomation(id, { includeDeleted = false } = {}) {
     await initDB();
@@ -81,7 +99,7 @@ async function getAutomationsForUser(userId) {
  * Automations filed into a project.
  *
  * `kinds` defaults to the top-level automations alone, which is what the
- * project's Content list means by "the routines in here" — a reusable Step
+ * project's Content list means by "the automations in here" — a reusable Step
  * (kind 'block') or a sub-flow (kind 'layer') is a building material, not
  * something a member files.
  *
@@ -103,7 +121,7 @@ async function getAutomationsForProject(projectId, { kinds = ['automation'] } = 
 }
 
 /**
- * How many routines each of these projects holds — ONE query for the whole
+ * How many automations each of these projects holds — ONE query for the whole
  * list, keyed by project id.
  *
  * The overview draws a card per Solution and every card carries a tally. Doing
@@ -257,7 +275,7 @@ async function releaseAutomation(id) {
  * A `wait` step, though, may sleep far longer than that: execWait extends the
  * runner's IN-PROCESS deadline via ctx.extendRunDeadline and nothing told the
  * database, so the reaper cleared the row mid-sleep, the concurrency guard
- * lapsed, and the scheduler started a SECOND run of the same routine while the
+ * lapsed, and the scheduler started a SECOND run of the same automation while the
  * first was still sleeping.
  *
  * Guarded on running_instance_id so a row that was already reaped and re-claimed
@@ -462,8 +480,8 @@ async function resetAttempts(id) {
 }
 
 /**
- * Write a routine. A `definition` write is a WORKING-copy save: a structural
- * change bumps the version and snapshots it; on a routine that has a live
+ * Write an automation. A `definition` write is a WORKING-copy save: a structural
+ * change bumps the version and snapshots it; on an automation that has a live
  * version it may not move the trigger-derived columns
  * (lifecycle.LIVE_FOLLOWING_FIELDS), those follow the live definition and
  * change on publish.
@@ -475,14 +493,19 @@ async function resetAttempts(id) {
  * plain-language description (description + description_json).
  *
  * opts.goLive        this write is what should RUN (an approved evolution, a
- *                    package upgrade): the live copy moves with it on a routine
+ *                    package upgrade): the live copy moves with it on an automation
  *                    that is or has been live, and trigger columns are written.
  * opts.versionMeta   { name, description, descriptionJson, isLayoutOnly } for
  *                    the version row this write creates (handoff 5 versions).
  * opts.forceVersion  write a version even for a layout-only change (a restore);
  *                    it is marked is_layout_only then.
  *
- * Whatever the path, a never-live routine that ends up ACTIVE gets its working
+ * opts.managedWrite  `{ deploymentId }`: the capability a deploy passes to write
+ *                    an automation of a Solution stage beyond the allow-list
+ *                    (stores/lib/managedParts.js). Without it such a write
+ *                    throws 409 managed_part.
+ *
+ * Whatever the path, a never-live automation that ends up ACTIVE gets its working
  * copy published in the same transaction (lifecycle.LIVE_INVARIANT_SQL).
  */
 async function updateAutomation(id, updates, savedByUserId, opts = {}) {
@@ -526,7 +549,7 @@ function buildAutomationUpdate(updates) {
         // Never coerce a falsy definition into `{}`. An empty object is
         // truthy, so it reads back as a "present" definition and silently
         // defeats the builder's `def || seed` fallbacks — that is how a
-        // routine ended up persisting a trigger-only graph and failing
+        // automation ended up persisting a trigger-only graph and failing
         // validation forever (BFSF-318). Callers must validate first.
         const v = updates.definition;
         if (!v || typeof v !== 'object' || Array.isArray(v)) {
@@ -552,7 +575,9 @@ function buildAutomationUpdate(updates) {
  *
  * @param {{ query: (sql: string, params?: any[]) => Promise<{ rows: any[] }> }} client
  */
-async function updateAutomationWith(client, id, updates, savedByUserId, { goLive = false, versionMeta = null, forceVersion = false } = {}) {
+async function updateAutomationWith(client, id, updates, savedByUserId, {
+    goLive = false, versionMeta = null, forceVersion = false, managedWrite = null, managedParts = null,
+} = {}) {
     const { write, definitionJson, buildFor, built: initial } = buildAutomationUpdate(updates);
     if (!initial) return false;
     const definitionChanged = definitionJson !== null;
@@ -562,8 +587,29 @@ async function updateAutomationWith(client, id, updates, savedByUserId, { goLive
         // at all (layout-only is not) and describes what changed. The live
         // version rides along: it decides which columns this write may move.
         // Locked, so a concurrent publish cannot slip in between.
-        const prevRow = await client.query('SELECT definition_json, live_version FROM automations WHERE id = $1 FOR UPDATE', [id]);
-        const hasLive = prevRow.rows[0]?.live_version != null;
+        const prevRow = await client.query('SELECT definition_json, live_version, project_id FROM automations WHERE id = $1 FOR UPDATE', [id]);
+        const locked = prevRow.rows[0];
+        const hasLive = locked?.live_version != null;
+        if (locked) {
+            // On a managed automation only the allow-list moves without a deploy.
+            // The values go along, so switching a never-live automation OFF passes
+            // while switching it ON (which would publish the working copy) does not.
+            // A goLive write also copies the working copy into the live columns
+            // (LIVE_INVARIANT_SQL below), a publish whatever keys it carries.
+            const guard = guardOf(managedParts);
+            const supplied = suppliedOf(updates);
+            await guard.assertManagedWrite({
+                kind: 'automation', projectId: locked.project_id,
+                changedKeys: goLive ? { ...supplied, liveDefinition: true } : supplied,
+                managedWrite, client, liveVersion: locked.live_version ?? null,
+            });
+            // Filing INTO a stage project is a stage write too.
+            if (supplied.projectId && supplied.projectId !== locked.project_id) {
+                await guard.assertManagedWrite({
+                    kind: 'automation', projectId: supplied.projectId, changedKeys: ['projectId'], managedWrite, client,
+                });
+            }
+        }
         let plan = null;
         if (definitionChanged) {
             const pj = prevRow.rows[0]?.definition_json;
@@ -573,7 +619,7 @@ async function updateAutomationWith(client, id, updates, savedByUserId, { goLive
         const built = buildFor(stripLiveFollowingFields(write, { hasLive, goLive }));
         if (!built) {
             // Everything asked for was a live-following column on a live
-            // routine: nothing to write, the row stands as it is.
+            // automation: nothing to write, the row stands as it is.
             const same = await client.query(`${AUTOMATION_SELECT} WHERE a.id = $1 AND a.deleted_at IS NULL`, [id]);
             await client.query('COMMIT');
             return rowToAutomation(same.rows[0] || null);
@@ -626,10 +672,46 @@ async function updateAutomationWith(client, id, updates, savedByUserId, { goLive
     }
 }
 
-async function deleteAutomation(id) {
+/**
+ * Hard delete. On an automation of a Solution stage only a deploy (`managedWrite`)
+ * may; an automation there is retired, never deleted by hand.
+ *
+ * @param {string} id
+ * @param {{ managedWrite?: { deploymentId?: string }|null, managedParts?: any }} [opts]
+ */
+async function deleteAutomation(id, { managedWrite = null, managedParts = null } = {}) {
     await initDB();
-    const { rowCount } = await run('DELETE FROM automations WHERE id = $1', [id]);
-    return rowCount > 0;
+    const client = await getClient();
+    try {
+        await client.query('BEGIN');
+        const deleted = await deleteAutomationWith(client, id, { managedWrite, managedParts });
+        await client.query('COMMIT');
+        return deleted;
+    } catch (e) {
+        await client.query('ROLLBACK').catch(() => {});
+        throw e;
+    } finally {
+        client.release();
+    }
 }
 
-module.exports = { createAutomation, getAutomation, getAutomationsForUser, getAutomationsForProject, countAutomationsForProject, clearProjectFromAutomations, getDueAutomations, claimDueAutomations, markRunning, releaseAutomation, touchAutomationRunning, reapStuckAutomations, reapExpiredApprovals, reapExpiredFormWaits, reapStuckRuns, deleteRunsOlderThan, resetAttempts, updateAutomation, updateAutomationWith, deleteAutomation };
+/**
+ * deleteAutomation on a `{ query }` handle (a transaction's client): the row
+ * is locked while the managed-write guard decides, so no filing into a stage
+ * or deploy lands between the check and the DELETE. Answers whether a row went.
+ *
+ * @param {{ query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number }> }} q
+ * @param {string} id
+ * @param {{ managedWrite?: { deploymentId?: string }|null, managedParts?: any }} [opts]
+ */
+async function deleteAutomationWith(q, id, { managedWrite = null, managedParts = null } = {}) {
+    const cur = await q.query('SELECT project_id FROM automations WHERE id = $1 FOR UPDATE', [id]);
+    if (!cur.rows[0]) return false;
+    await guardOf(managedParts).assertManagedWrite({
+        kind: 'automation', projectId: cur.rows[0].project_id, changedKeys: ['delete'], managedWrite, client: q,
+    });
+    const r = await q.query('DELETE FROM automations WHERE id = $1 RETURNING id', [id]);
+    return r.rows.length > 0;
+}
+
+module.exports = { createAutomation, getAutomation, getAutomationsForUser, getAutomationsForProject, countAutomationsForProject, clearProjectFromAutomations, getDueAutomations, claimDueAutomations, markRunning, releaseAutomation, touchAutomationRunning, reapStuckAutomations, reapExpiredApprovals, reapExpiredFormWaits, reapStuckRuns, deleteRunsOlderThan, resetAttempts, updateAutomation, updateAutomationWith, deleteAutomation, deleteAutomationWith };

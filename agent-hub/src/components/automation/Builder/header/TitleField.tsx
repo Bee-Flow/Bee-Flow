@@ -14,8 +14,8 @@ interface TitleFieldProps {
 }
 
 /**
- * The routine name, renamed inline (click, type, Enter). While a flowlet is
- * open it reads `Routine / Flowlet`: the first half leaves the flowlet, the
+ * The automation name, renamed inline (click, type, Enter). While a flowlet is
+ * open it reads `Automation / Flowlet`: the first half leaves the flowlet, the
  * second is the flowlet's own name, and a FLOWLET chip plus a delete action
  * follow. The rename commits through the scope-aware onRename of the shell.
  * A long name truncates (at most 40rem even on an ultrawide bar, so the
@@ -40,15 +40,15 @@ export default function TitleField({ title, scope = null, onRename, onExitScope,
     };
 
     const untitled = scope
-        ? t('routines.header.untitled_flowlet', 'Untitled flowlet')
-        : t('routines.header.untitled', 'Untitled automation');
+        ? t('automations.header.untitled_flowlet', 'Untitled flowlet')
+        : t('automations.header.untitled', 'Untitled automation');
     // An empty flowlet stays deletable however many call steps point at it:
     // there is nothing in it to lose (BFSF-340).
     const refs = scope?.refCount || 0;
     const layerInUse = refs > 0 && !scope?.empty;
-    let deleteTitle = t('routines.header.delete_flowlet', 'Delete this flowlet');
-    if (layerInUse) deleteTitle = t('routines.header.delete_flowlet_in_use', 'Used by {n} steps. Remove those first.', { n: refs });
-    else if (refs > 0) deleteTitle = t('routines.header.delete_flowlet_empty', 'Delete this empty flowlet and the {n} "Call flowlet" steps that use it', { n: refs });
+    let deleteTitle = t('automations.header.delete_flowlet', 'Delete this flowlet');
+    if (layerInUse) deleteTitle = t('automations.header.delete_flowlet_in_use', 'Used by {n} steps. Remove those first.', { n: refs });
+    else if (refs > 0) deleteTitle = t('automations.header.delete_flowlet_empty', 'Delete this empty flowlet and the {n} "Call flowlet" steps that use it', { n: refs });
 
     return (
         <div className="min-w-0 flex items-center gap-2">
@@ -57,10 +57,10 @@ export default function TitleField({ title, scope = null, onRename, onExitScope,
                     <button
                         type="button"
                         onClick={() => onExitScope?.()}
-                        title={`${title || t('routines.header.untitled', 'Untitled automation')}\n${t('routines.header.exit_scope', 'Back to the automation canvas')}`}
+                        title={`${title || t('automations.header.untitled', 'Untitled automation')}\n${t('automations.header.exit_scope', 'Back to the automation canvas')}`}
                         className="text-[14px] font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] truncate hover:bg-[var(--bg-secondary)] rounded px-1 -mx-1 transition text-left flex-shrink min-w-0 max-w-[10rem]"
                     >
-                        {title || t('routines.header.untitled', 'Untitled automation')}
+                        {title || t('automations.header.untitled', 'Untitled automation')}
                     </button>
                     <span className="text-[14px] text-[var(--text-tertiary)] flex-shrink-0">/</span>
                 </>
@@ -69,7 +69,7 @@ export default function TitleField({ title, scope = null, onRename, onExitScope,
                 <input
                     ref={inputRef}
                     value={draft}
-                    aria-label={t('routines.header.rename_label', 'Name')}
+                    aria-label={t('automations.header.rename_label', 'Name')}
                     onChange={(e) => setDraft(e.target.value)}
                     onBlur={commit}
                     onKeyDown={(e) => {
@@ -82,7 +82,7 @@ export default function TitleField({ title, scope = null, onRename, onExitScope,
                 <button
                     type="button"
                     onClick={() => setEditing(true)}
-                    title={`${displayTitle || untitled}\n${t('routines.header.rename_title', 'Click to rename')}`}
+                    title={`${displayTitle || untitled}\n${t('automations.header.rename_title', 'Click to rename')}`}
                     className="text-[14px] font-semibold text-[var(--text-primary)] truncate hover:bg-[var(--bg-secondary)] rounded px-1 -mx-1 transition text-left min-w-0 max-w-[40rem]"
                 >
                     {displayTitle || untitled}
@@ -90,7 +90,7 @@ export default function TitleField({ title, scope = null, onRename, onExitScope,
             )}
             {scope && (
                 <span className="text-[11px] uppercase tracking-wide font-medium px-2 py-0.5 rounded-full bg-[var(--bg-secondary)] text-[var(--text-secondary)] flex-shrink-0">
-                    {t('routines.header.flowlet_chip', 'Flowlet')}
+                    {t('automations.header.flowlet_chip', 'Flowlet')}
                 </span>
             )}
             {scope && onDeleteLayer && (
@@ -99,7 +99,7 @@ export default function TitleField({ title, scope = null, onRename, onExitScope,
                     onClick={layerInUse ? undefined : () => onDeleteLayer()}
                     disabled={layerInUse}
                     title={deleteTitle}
-                    aria-label={t('routines.header.delete_flowlet_label', 'Delete flowlet')}
+                    aria-label={t('automations.header.delete_flowlet_label', 'Delete flowlet')}
                     className="p-1.5 rounded-lg text-[var(--text-tertiary)] hover:text-[var(--error)] hover:bg-[var(--bg-secondary)] transition disabled:opacity-40 disabled:hover:text-[var(--text-tertiary)] disabled:hover:bg-transparent flex-shrink-0"
                 >
                     <Trash2 size={14} />

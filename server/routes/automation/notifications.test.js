@@ -1,6 +1,6 @@
 /**
  * GET /api/automation/:id/notifications: the Settings page's read of a
- * routine's notification policy, channel availability and latest attempts.
+ * automation's notification policy, channel availability and latest attempts.
  * The router is built with makeNotificationsRouter and fakes; no module mocks.
  *
  * Run: cd server && node --test routes/automation/notifications.test.js
@@ -63,7 +63,7 @@ async function get(path) {
     return { status: r.status, body: await r.json() };
 }
 
-test('an old-shape routine comes back in the new shape, with channels and recent attempts', async () => {
+test('an old-shape automation comes back in the new shape, with channels and recent attempts', async () => {
     currentUser = 'owner';
     mail = true;
     const { status, body } = await get('/a1/notifications');
@@ -101,7 +101,7 @@ test('a viewer may read it; someone without access may not', async () => {
     assert.deepEqual(denied.body, { error: 'Forbidden', code: 'automation_forbidden', need: 'view' });
 });
 
-test('an unknown routine is a 404', async () => {
+test('an unknown automation is a 404', async () => {
     currentUser = 'owner';
     assert.equal((await get('/nope/notifications')).status, 404);
 });

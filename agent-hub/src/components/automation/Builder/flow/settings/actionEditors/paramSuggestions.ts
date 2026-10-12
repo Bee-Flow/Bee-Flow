@@ -41,12 +41,12 @@ export function safeDefault(key: string, prop: SchemaProp | undefined, t: Tr, to
     const fmt = String(prop?.format || '').toLowerCase();
     if (fmt === 'date' || fmt === 'date-time') {
         const iso = today.toISOString().slice(0, 10);
-        return { binding: { kind: 'literal', value: iso }, label: t('routines.ndv.suggest_today', 'Today ({date})', { date: iso }), source: 'default' };
+        return { binding: { kind: 'literal', value: iso }, label: t('automations.ndv.suggest_today', 'Today ({date})', { date: iso }), source: 'default' };
     }
     if (type && type !== 'string') return null;
     const words = `${key} ${prop?.title || ''}`.toLowerCase();
     if (/folder|directory|\bdir\b|dir_?path|parent/.test(words)) {
-        return { binding: { kind: 'literal', value: '/' }, label: t('routines.ndv.suggest_root', 'Root folder /'), source: 'default' };
+        return { binding: { kind: 'literal', value: '/' }, label: t('automations.ndv.suggest_root', 'Root folder /'), source: 'default' };
     }
     return null;
 }

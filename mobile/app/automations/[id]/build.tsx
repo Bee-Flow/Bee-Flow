@@ -1,5 +1,5 @@
 /**
- * Build a routine: its flow as an editable outline. See features/flow-editor BuildScreen.
+ * Build an automation: its flow as an editable outline. See features/flow-editor BuildScreen.
  *
  * Frozen while the step editor is pushed over it: both edit one draft store,
  * and a hidden outline or canvas has no reason to rebuild on every keystroke.

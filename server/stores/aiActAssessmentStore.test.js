@@ -80,7 +80,7 @@ test('record: inserts org-scoped with jsonb signals/answers, expiry defaults to 
     assert.ok(store.isCurrent(out));
 });
 
-test('record: source and evidence from the routine\'s own check; boot adds both columns', async () => {
+test('record: source and evidence from the automation\'s own check; boot adds both columns', async () => {
     assert.match(bootDdl, /ALTER TABLE compliance_ai_act_assessments ADD COLUMN IF NOT EXISTS source TEXT/);
     assert.match(bootDdl, /ALTER TABLE compliance_ai_act_assessments ADD COLUMN IF NOT EXISTS evidence JSONB/);
     await store.record('orgA', 'automation', 'a1', { outcome: 'minimal', attestedBy: 'bee', source: 'auto', evidence: { v: 1, questions: { usesAi: { answer: 'yes' } } } });

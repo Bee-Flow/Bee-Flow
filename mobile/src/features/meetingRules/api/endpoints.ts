@@ -3,10 +3,10 @@
  * module, licence feature and training gate — a 402/403 here is a licence
  * answer, which the screen words as such).
  *
- *   GET  /?triggerProvider=meeting-notes  the READER's own routines with a
+ *   GET  /?triggerProvider=meeting-notes  the READER's own automations with a
  *        meeting-notes app_event trigger (routes/automation/crud.js; the list
  *        is `getAutomationsForUser`, so a colleague sees theirs, not these).
- *   GET  /_runs/facets?range=24&mode=live  the reader's run counts per routine
+ *   GET  /_runs/facets?range=24&mode=live  the reader's run counts per automation
  *        (routes/automation/runs.js), `{ facets, rangeHours }`; the server
  *        clamps `range`, so the window comes from the answer.
  *   POST /  a draft with the meeting-notes trigger; answers `{ automation }`.

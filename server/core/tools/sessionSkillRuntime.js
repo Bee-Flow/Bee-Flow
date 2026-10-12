@@ -180,7 +180,6 @@ async function bootstrapSessionSkills({
     modelId,
     message,
     timezone = 'UTC',
-    apiVersion,
     userContext = null,
 }) {
     const seed = typeof message === 'string' && message.trim()
@@ -233,7 +232,6 @@ async function bootstrapSessionSkills({
     const result = await adapter.chat(apiKey, apiUrl, modelId, bootstrapMessages, {
         maxTokens: 2000,
         temperature: 0.2,
-        apiVersion: apiVersion || undefined,
     });
 
     const skills = parseSkillPayload(result?.content || '');

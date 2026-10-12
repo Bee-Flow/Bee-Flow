@@ -2,8 +2,10 @@ import React from 'react';
 import Slider from '../../../../shared/Slider';
 import RadiusChip from '../../shared/RadiusChip';
 import { SECTION_IDS } from '../useLookForm';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 
 export default function RadiusSection({ form, setForm, saving }) {
+    const { t } = useTranslation();
     return (
         <section
             id={SECTION_IDS.radius}
@@ -14,10 +16,10 @@ export default function RadiusSection({ form, setForm, saving }) {
                 className="text-base font-semibold mb-1"
                 style={{ color: 'var(--text-primary)' }}
             >
-                Corner roundness
+                {t('appearance.radius_corner_roundness', 'Corner roundness')}
             </h3>
             <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
-                A multiplier applied to every rounded corner in the app.
+                {t('appearance.radius_a_multiplier_applied_to_every_rounded', 'A multiplier applied to every rounded corner in the app.')}
             </p>
             <Slider
                 value={form.radiusScale}

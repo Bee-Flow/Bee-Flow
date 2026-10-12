@@ -65,12 +65,19 @@ export function installsBadge(remote) {
     return { count: total > 0 ? total : undefined };
 }
 
-/** Eén helft van de telling: een getal, of de mededeling dat het er niet is. */
-function Half({ known, phrase, unknownPhrase, testId }) {
+/** Eén helft van de telling: een grote kaart met getal, of de mededeling dat het er niet is. */
+function Half({ count, label, unknownPhrase, testId }) {
+    const known = count !== null;
     return (
-        <li className="px-3 py-2 rounded-lg text-sm" data-testid={testId}
-            style={{ background: 'var(--bg-secondary)', color: known ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
-            {known ? phrase : unknownPhrase}
+        <li className="flex flex-col gap-1 px-4 py-3 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-secondary)]"
+            data-testid={testId}>
+            <span className={`text-2xl font-semibold tabular-nums ${known ? 'text-[var(--text-primary)]' : 'text-[var(--text-tertiary)]'}`}
+                  aria-hidden="true">
+                {known ? count : '–'}
+            </span>
+            <span className={`text-sm ${known ? 'text-[var(--text-secondary)]' : 'text-[var(--text-tertiary)]'}`}>
+                {known ? label : unknownPhrase}
+            </span>
         </li>
     );
 }
@@ -81,7 +88,7 @@ export default function SolutionInstallsTab({ remote }) {
 
     if (state === 'loading') {
         return (
-            <div className="flex items-center justify-center py-16" style={{ color: 'var(--text-tertiary)' }}>
+            <div className="flex items-center justify-center py-16 text-[var(--text-tertiary)]">
                 <Loader2 className="w-5 h-5 animate-spin" />
             </div>
         );
@@ -100,18 +107,18 @@ export default function SolutionInstallsTab({ remote }) {
 
     return (
         <div className="space-y-4">
-            <ul className="space-y-1.5">
+            <ul className="grid gap-3 sm:grid-cols-2">
                 <Half
-                    known={here !== null} testId="installs-here"
-                    phrase={nOf(t, 'solutions.installs_here', here || 0,
+                    count={here} testId="installs-here"
+                    label={nOf(t, 'solutions.installs_here', here || 0,
                         '{count} Solution in your organisation came from this Blueprint',
                         '{count} Solutions in your organisation came from this Blueprint')}
                     unknownPhrase={t('solutions.installs_here_unknown',
                         'How many were installed in your organisation could not be read.')}
                 />
                 <Half
-                    known={elsewhere !== null} testId="installs-elsewhere"
-                    phrase={nOf(t, 'solutions.installs_elsewhere', elsewhere || 0,
+                    count={elsewhere} testId="installs-elsewhere"
+                    label={nOf(t, 'solutions.installs_elsewhere', elsewhere || 0,
                         '{count} other Solution elsewhere on this instance came from it',
                         '{count} other Solutions elsewhere on this instance came from it')}
                     unknownPhrase={t('solutions.installs_elsewhere_unknown',

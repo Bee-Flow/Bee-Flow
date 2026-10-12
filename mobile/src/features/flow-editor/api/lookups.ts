@@ -2,12 +2,12 @@
  * The lists a step editor picks from that the catalog does not carry:
  *
  *   - the knowledge bases an AI step may ground in (GET /api/kb?context=ai_step,
- *     K5: only the bases their owner made available to routines, plus any that
+ *     K5: only the bases their owner made available to automations, plus any that
  *     never said — missing means everywhere);
  *   - the approver directory (GET /api/automation/approvals/directory,
  *     member-readable: picking an approver is an authoring act);
- *   - a routine's people and groups (GET /api/automation/:id/principals), the
- *     notification recipients' picker: scoped to the routine and readable by
+ *   - an automation's people and groups (GET /api/automation/:id/principals), the
+ *     notification recipients' picker: scoped to the automation and readable by
  *     anyone who may see it, where the approver directory sits behind the
  *     approvals licence;
  *   - the HTTP credentials a request step may use, own and lent
@@ -65,7 +65,7 @@ export async function getApprovalDirectory(signal?: AbortSignal): Promise<Approv
     return readApprovalDirectory(await api.get<unknown>('/api/automation/approvals/directory', { signal }));
 }
 
-/** The routine's people (`users`) and groups, read into the directory shape the pickers share. */
+/** The automation's people (`users`) and groups, read into the directory shape the pickers share. */
 export function readPrincipals(raw: unknown): ApprovalDirectory {
     const rows = (key: string) => field.list(readNamed)(pick(raw, key)).filter((r) => r.id !== '');
     return { members: rows('users'), groups: rows('groups') };
@@ -79,7 +79,7 @@ export async function listHttpConnections(signal?: AbortSignal): Promise<HttpCon
     return readHttpConnections(await api.get<unknown>('/api/integrations/connections', { signal, query: { provider: 'http', includeShared: '1' } }));
 }
 
-/** Their React Query keys: the caller's, not a routine's — under the 'automate' prefix the tab has always used. */
+/** Their React Query keys: the caller's, not an automation's — under the 'automate' prefix the tab has always used. */
 export const lookupKeys = {
     aiStepKnowledgeBases: ['automate', 'flow-lookups', 'kb', 'ai_step'] as const,
     approvalDirectory: ['automate', 'flow-lookups', 'approval-directory'] as const,

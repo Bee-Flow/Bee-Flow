@@ -37,8 +37,8 @@ const FEATURES = [
     // workspaces (`projects`, above), which must still 403 on community.
     'automation_sharing',
     // Approvals — the other half of that same collaboration boundary: routing
-    // a routine's decision past a colleague is the paid act, building the
-    // routine is not. Note this covers only the CEILING (is the key Enterprise);
+    // an automation's decision past a colleague is the paid act, building the
+    // automation is not. Note this covers only the CEILING (is the key Enterprise);
     // which approvals ROUTES carry the gate — and, crucially, which deliberately
     // do not, so in-flight approvals can still be drained after a lapse — is
     // pinned by routes/automation/approvals.licenseGate.test.js.
@@ -147,9 +147,9 @@ async function runGate(featureName, tier) {
     // ── And the inverse: the paid COLLABORATION boundary on top of the free
     //    builder must STILL be locked on community, so demoting the builder
     //    didn't widen the gate. `automation_sharing` (org-wide sharing of
-    //    automations/routines) + `projects` (team workspaces) are the
+    //    automations) + `projects` (team workspaces) are the
     //    collaboration features that sit ABOVE the free personal builder. They
-    //    must 403. `approvals` joins them: the routine runs free, but handing
+    //    must 403. `approvals` joins them: the automation runs free, but handing
     //    its decision to a colleague does not.
     for (const feature of ['automation_sharing', 'projects', 'approvals']) {
         const { res, calledNext } = await runGate(feature, 'community');

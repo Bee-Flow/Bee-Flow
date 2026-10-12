@@ -8,7 +8,7 @@ const assert = require('node:assert');
 const { walkSteps: sharedWalk } = require('./stepContract');
 const g = require('./automationGraph');
 
-// A routine with an AI step inside a loop body, a parallel with two branches
+// An automation with an AI step inside a loop body, a parallel with two branches
 // (one holding a data_extraction), a summarize step (NOT AI) and two
 // documents: one that references the loop's AI step, one that only comes
 // after it. Plus a layer with its own AI step and document.
@@ -176,7 +176,7 @@ test('generatingStepsDownstreamOfAi: `steps.ai_1` does not match `steps.ai_10`',
     assert.deepStrictEqual(hit.aiStepIds, ['ai_10']);
 });
 
-test('generatingStepsDownstreamOfAi: a routine without AI steps has no subjects', () => {
+test('generatingStepsDownstreamOfAi: an automation without AI steps has no subjects', () => {
     const def = { trigger: { id: 't', kind: 'manual' }, steps: [
         { id: 'sum', type: 'summarize' },
         { id: 'doc', type: 'generate_document', content: '{{steps.sum.output}}' },
@@ -202,7 +202,7 @@ test('formTriggersOf and hasFormPage', () => {
 
     const pageOnly = { trigger: { id: 't', kind: 'manual' }, steps: [{ id: 'l', type: 'loop', body: [{ id: 'p', type: 'form_page', mode: 'input' }] }] };
     assert.deepStrictEqual(g.formTriggersOf(pageOnly), []);
-    assert.strictEqual(g.hasFormPage(pageOnly), true, 'a nested form_page still makes the routine customer-facing');
+    assert.strictEqual(g.hasFormPage(pageOnly), true, 'a nested form_page still makes the automation customer-facing');
 
     const none = { trigger: { id: 't', kind: 'schedule' }, steps: [{ id: 'a', type: 'ai_step' }] };
     assert.strictEqual(g.hasFormPage(none), false);

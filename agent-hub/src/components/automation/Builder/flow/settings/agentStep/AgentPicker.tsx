@@ -36,13 +36,13 @@ export function agentRowsOf(catalog: unknown): AgentRow[] | null {
 function agentReasonText(t: TranslateFn, reason: string | null | undefined): string {
     switch (reason) {
         case 'not_published':
-            return t('routine_editor.agent_reason_not_published', 'Not published yet — publish it to use it in a routine.');
+            return t('automation_editor.agent_reason_not_published', 'Not published yet — publish it to use it in an automation.');
         case 'other_org':
-            return t('routine_editor.agent_reason_other_org', 'Belongs to another workspace.');
+            return t('automation_editor.agent_reason_other_org', 'Belongs to another workspace.');
         case 'not_shared':
-            return t('routine_editor.agent_reason_not_shared', 'Not shared with you.');
+            return t('automation_editor.agent_reason_not_shared', 'Not shared with you.');
         default:
-            return t('routine_editor.agent_reason_unavailable', 'Not available to this routine.');
+            return t('automation_editor.agent_reason_unavailable', 'Not available to this automation.');
     }
 }
 
@@ -57,17 +57,17 @@ function AgentChooser({ rows, agentId, onPick, t }: AgentChooserProps) {
     const listed = (rows || []).some((a) => a.id === agentId);
     return (
         <div className="space-y-2">
-            <div className="flex max-h-56 flex-col gap-1.5 overflow-auto" role="radiogroup" aria-label={t('routine_editor.agent_field_label', 'Which agent')}>
+            <div className="flex max-h-56 flex-col gap-1.5 overflow-auto" role="radiogroup" aria-label={t('automation_editor.agent_field_label', 'Which agent')}>
                 {agentId && !listed ? (
                     <label className="flex cursor-pointer items-start gap-2 text-sm text-[var(--text-primary)]">
                         <input
                             type="radio" className="mt-0.5" name="ai-step-agent" checked readOnly
-                            aria-label={t('routine_editor.agent_unlisted_aria', 'Agent {id}', { id: agentId })}
+                            aria-label={t('automation_editor.agent_unlisted_aria', 'Agent {id}', { id: agentId })}
                         />
                         <span className="min-w-0">
                             <span className="block truncate">{agentId}</span>
                             <span className={`block ${hintTextClass()}`}>
-                                {t('routine_editor.agent_unlisted_hint', 'This step runs on this agent, and it is not in the list above. Pick another one, or leave it and the step will say so when it runs.')}
+                                {t('automation_editor.agent_unlisted_hint', 'This step runs on this agent, and it is not in the list above. Pick another one, or leave it and the step will say so when it runs.')}
                             </span>
                         </span>
                     </label>
@@ -90,7 +90,7 @@ function AgentChooser({ rows, agentId, onPick, t }: AgentChooserProps) {
                                 <span className="truncate">{a.name}</span>
                                 {a.scope === 'personal' ? (
                                     <span className="shrink-0 rounded-full bg-[var(--bg-secondary)] px-1.5 py-0.5 text-[10px] text-[var(--text-secondary)]">
-                                        {t('routine_editor.agent_scope_personal', 'Personal')}
+                                        {t('automation_editor.agent_scope_personal', 'Personal')}
                                     </span>
                                 ) : null}
                             </span>
@@ -105,11 +105,11 @@ function AgentChooser({ rows, agentId, onPick, t }: AgentChooserProps) {
             </div>
             {rows === null ? (
                 <SectionNote tone="warn">
-                    {t('routine_editor.agent_list_unreadable', 'The list of agents could not be read, so it is not shown. That is not the same as having none — try again in a moment. A step that already names an agent keeps it.')}
+                    {t('automation_editor.agent_list_unreadable', 'The list of agents could not be read, so it is not shown. That is not the same as having none — try again in a moment. A step that already names an agent keeps it.')}
                 </SectionNote>
             ) : null}
             {rows !== null && rows.length === 0 ? (
-                <EmptySectionNote>{t('routine_editor.agent_list_empty', 'No agents yet — build one under Agents first.')}</EmptySectionNote>
+                <EmptySectionNote>{t('automation_editor.agent_list_empty', 'No agents yet — build one under Agents first.')}</EmptySectionNote>
             ) : null}
         </div>
     );
@@ -127,7 +127,7 @@ export interface AgentPickerProps {
 
 export default function AgentPicker({ rows, agentId, preview, skillCount, onPick, onNavigate = null, t }: AgentPickerProps) {
     const [choosing, setChoosing] = useState(false);
-    const title = t('routine_editor.agent_field_label', 'Which agent');
+    const title = t('automation_editor.agent_field_label', 'Which agent');
     const row = (rows || []).find((a) => a.id === agentId) || null;
     const name = preview?.name || row?.name || agentId;
     const open = (e: MouseEvent) => {
@@ -155,7 +155,7 @@ export default function AgentPicker({ rows, agentId, preview, skillCount, onPick
                             aria-expanded={choosing}
                             className="rounded px-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:underline"
                         >
-                            {t('routines.agent_step.choose_another', 'Choose another')}
+                            {t('automations.agent_step.choose_another', 'Choose another')}
                         </button>
                         <a
                             href={studioHref('agents', agentId)}
@@ -164,7 +164,7 @@ export default function AgentPicker({ rows, agentId, preview, skillCount, onPick
                             onClick={open}
                             className="inline-flex items-center gap-0.5 rounded px-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:underline"
                         >
-                            {t('routines.agent_step.open_agent', 'Open')}
+                            {t('automations.agent_step.open_agent', 'Open')}
                             <ArrowUpRight size={12} aria-hidden="true" />
                         </a>
                     </span>

@@ -16,8 +16,8 @@ import {
 } from './actionSteps';
 import { describeAiStep, describeDataExtraction } from './aiSteps';
 import {
-    describeAggregate, describeCollectionItems, describeDateTime, describeDedupe, describeParseJson, describeSet,
-    describeSummarize,
+    describeAggregate, describeCollectionItems, describeDateTime, describeDedupe, describeFlatten, describeParseJson,
+    describeSet, describeSummarize,
 } from './collectionSteps';
 import { describeApproval, describeCallLayer, describeCondition, describeSwitch, describeWait } from './controlFlowSteps';
 import { describeDatatable, describeKnowledgeWrite } from './dataSteps';
@@ -62,10 +62,11 @@ const DESCRIBERS: Record<string, Describer> = {
     wait: (n) => describeWait(n),
     approval: (n) => describeApproval(n),
     form_page: (n) => describeFormPage(n),
-    switch: (n) => describeSwitch(n),
+    switch: (n, c) => describeSwitch(n, c.sampleRoot ?? null),
     filter: (n, c) => describeCollectionItems(n, ROUTE_STEP_NAME, c.sampleRoot),
     limit: (n, c) => describeCollectionItems(n, t('mobile.flow.group.limit', 'Limit'), c.sampleRoot),
     dedupe: (n, c) => describeDedupe(n, c.sampleRoot),
+    flatten: (n, c) => describeFlatten(n, c.sampleRoot),
     aggregate: (n, c) => describeAggregate(n, c.sampleRoot),
     summarize: (n) => describeSummarize(n),
     datatable: (n, c) => describeDatatable(n, c.catalog),

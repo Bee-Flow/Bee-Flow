@@ -6,7 +6,7 @@
  *
  * Lived inside routes/automation/crud.js until 2026-09-04. It is shared now
  * because the MCP builder saves through builderTools/persistence.js, not
- * through PUT /:id — and an edit to an ACTIVE routine over MCP left the old
+ * through PUT /:id — and an edit to an ACTIVE automation over MCP left the old
  * subscription (and its stale filter) in place until the next deactivate →
  * activate. Same code, same callers, one more entry point.
  */

@@ -24,6 +24,11 @@ import scopedStorage from '../../../../utils/scopedStorage';
  * excludes it — UNLESS it holds a validation error (`forceOpen`) or the user
  * has already configured it (`hasContent`): hiding a thing that is switched
  * on reads as data loss.
+ *
+ * ADVANCED (`sectionKey === 'advanced'`) is not a collapsible block any more:
+ * the header's Simple / Advanced switch is the one control. In Simple its
+ * block is left out entirely (a validation error inside it still shows it);
+ * in Advanced its settings are shown inline, without a band or toggle.
  */
 export default function AccordionSection({
     stepType,
@@ -44,8 +49,10 @@ export default function AccordionSection({
     children,
 }) {
     const storageKey = `collapse.inspector.${stepType}.${sectionKey}`;
+    const isAdvanced = sectionKey === 'advanced';
     const [open, setOpen] = useState(() => {
         if (forceOpen) return true; // an error is present on first mount
+        if (isAdvanced) return false;
         const v = scopedStorage.getItem(storageKey);
         if (v === '1') return true;
         if (v === '0') return false;
@@ -63,7 +70,11 @@ export default function AccordionSection({
     const ctx = useFormDensity();
     const mode = resolveMode(ctx);
     const { onHiddenSection, onShownSection } = ctx;
-    const hidden = mode === 'simple' && hiddenInSimple(stepType, sectionKey) && !forceOpen && !hasContent;
+    // Advanced is the MODE now, not a second button: in Simple its block is
+    // left out (unless an error sits in it), in Advanced it is simply there.
+    const hidden = isAdvanced
+        ? mode === 'simple' && !forceOpen
+        : mode === 'simple' && hiddenInSimple(stepType, sectionKey) && !forceOpen && !hasContent;
 
     // Report both directions so the host's "Show all options (N)" count can
     // go down as well as up. A visible section's report is a harmless no-op
@@ -73,17 +84,35 @@ export default function AccordionSection({
         else onShownSection?.(sectionKey);
     }, [hidden, sectionKey, onHiddenSection, onShownSection]);
 
-    // A section REVEALED by the hidden→visible transition (the user pressed
-    // "Show all options") opens — revealing it still collapsed would make the
-    // switch look like it did nothing. Never the other way round, and never
-    // written to the persisted preference (only the user's own toggle is).
+    // A section REVEALED because the author pressed "Show all options" opens —
+    // revealing it still collapsed would make the switch look like it did
+    // nothing. Only that: a section that appears because it now HOLDS
+    // something (the builder set a forEach after a connect) stays closed, and
+    // Advanced never opens this way. Never written to the persisted preference.
     const prevHidden = useRef(hidden);
+    const prevMode = useRef(mode);
     useEffect(() => {
-        if (prevHidden.current && !hidden && !forceOpen) setOpen(true);
+        const switchedToAll = prevMode.current === 'simple' && mode !== 'simple';
+        if (prevHidden.current && !hidden && !forceOpen && switchedToAll && !isAdvanced) setOpen(true);
         prevHidden.current = hidden;
-    }, [hidden, forceOpen]);
+        prevMode.current = mode;
+    }, [hidden, forceOpen, mode, isAdvanced]);
 
     if (hidden) return null;
+    // No band, no toggle: the Simple / Advanced switch in the header already
+    // decided that these settings are wanted. Errors still show their count.
+    if (isAdvanced) {
+        return (
+            <div className="pt-2 space-y-2" data-section-key={sectionKey}>
+                {errorCount > 0 && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-700 dark:text-red-300 border border-red-500/30 tabular-nums">
+                        {errorCount}
+                    </span>
+                )}
+                {children}
+            </div>
+        );
+    }
 
     const onToggle = (next) => {
         setOpen(next);
@@ -99,14 +128,16 @@ export default function AccordionSection({
         </span>
     ) : null;
 
+    // Inputs are what the step is FOR: a plain heading, never folded away.
+    const isInputs = sectionKey === 'inputs';
     return (
         <CollapsibleSection
-            variant="section"
+            variant={isInputs ? 'static' : (isAdvanced ? 'quiet' : 'section')}
             title={title}
-            open={open}
+            open={isInputs || open}
             onToggle={onToggle}
             // In Simple, say WHY a normally-hidden section is still here.
-            badge={badge ?? (hasContent && mode === 'simple' && hiddenInSimple(stepType, sectionKey) ? 'set' : null)}
+            badge={badge ?? (hasContent && ((mode === 'simple' && hiddenInSimple(stepType, sectionKey)) || (isAdvanced && !open)) ? 'set' : null)}
             meta={errorChip || meta ? <>{errorChip}{meta}</> : null}
         >
             {children}

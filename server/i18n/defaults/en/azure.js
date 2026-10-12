@@ -2,6 +2,17 @@
 // Merged into GUI_DEFAULTS by ./index.js. The frontend copy (agent-hub/src/i18n/en-defaults.js)
 // is GENERATED from these files: after an edit, run `node scripts/gen-i18n-defaults.mjs`.
 module.exports = {
+    'azure.identity_admin_title': 'Microsoft identities and directory sync',
+    'azure.identity_admin_help': 'Verify the person and their tenant before linking an identity. An email match alone is insufficient.',
+    'azure.identity_local_user': 'Local user ID',
+    'azure.identity_confirm': 'Confirm identity link',
+    'azure.sync_target_organization': 'Directory sync organization ID',
+    'azure.sync_target_tenant': 'Directory sync tenant GUID',
+    'azure.sync_confirm_binding': 'Save directory sync binding',
+    'azure.identity_disconnect_user': 'Disconnect Microsoft identity for local user ID',
+    'azure.identity_disconnect_confirm': 'I confirm this account must stop accepting its current Microsoft identity.',
+    'azure.identity_disconnect': 'Disconnect identity',
+
     // ── Azure Configuration ─────────────────────────────────────
     'azure.title': 'Azure Configuration',
     'azure.subtitle': 'Manage Azure services for your platform. Changes here apply to the same configuration used in the admin dashboard.',
@@ -62,10 +73,8 @@ module.exports = {
     'azure.api_key': 'API Key',
     'azure.api_key_help_set': 'Key is configured. Enter a new value to replace it.',
     'azure.api_key_help_empty': 'Found in Azure Portal → your OpenAI resource → Keys and Endpoint',
-    'azure.api_version': 'API Version',
-    'azure.api_version_help': 'Azure OpenAI API version string',
     'azure.deployed_models': 'Deployed Model Names',
-    'azure.deployed_models_help': 'Comma-separated list of your Azure-deployed model names (deployment IDs)',
+    'azure.deployed_models_help': 'Comma-separated list of your Azure deployment names. Use name=model when a deployment is not named after its model (e.g. prod-chat=gpt-6-astra)',
     'azure.get_from_portal': 'Get from',
 
     // Azure → Chat Model Tiers Section
@@ -242,4 +251,29 @@ module.exports = {
     "azure.embed_model": "Embedding Model",
     "azure.embed_model_help": "Select the deployment name for your Azure OpenAI embedding model. Used for KB document embeddings when Azure processing is enabled.",
     "azure.key_configured": "Key is configured. Enter a new value to replace it.",
+    // ── Hard-coded literals converted 2026-10 (integrations, agents, appearance, support, knowledge, wizards) ──
+    'azure.doc_processing_text_embedding_3_small_1536_dims': 'text-embedding-3-small (1536 dims)',
+    'azure.doc_processing_text_embedding_3_large_3072_dims': 'text-embedding-3-large (3072 dims)',
+    'azure.doc_processing_text_embedding_ada_002_1536_dims': 'text-embedding-ada-002 (1536 dims)',
+    'azure.open_ai_model_one': '{count} model',
+    'azure.open_ai_model_other': '{count} models',
+    'azure.open_ai_gpt_4_1_gpt_5_mini_gpt_5_4': 'gpt-4.1, gpt-5-mini, gpt-5.4',
+    'azure.sso_xxxxxxxx_xxxx_xxxx_xxxx_xxxxxxxxxxxx': 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+    'azure.sso_your_tenant_guid_or_common': 'your-tenant-guid or common',
+    'azure.sso_group_s': 'group(s),',
+    'azure.sso_user_s_synced': 'user(s) synced',
+    'azure.sso_new_user_s': 'new user(s)',
+    'azure.sso_1_hour': '1 hour',
+    'azure.sso_3_hours': '3 hours',
+    'azure.sso_6_hours': '6 hours',
+    'azure.sso_12_hours': '12 hours',
+    'azure.sso_24_hours': '24 hours',
+    'azure.sso_48_hours': '48 hours',
+    'azure.sso_weekly': 'Weekly',
+    'azure.sso_azure_portal_app_registrations': 'Azure Portal → App registrations',
+    'azure.sso_under': 'Under',
+    'azure.sso_authentication': 'Authentication',
+    'azure.sso_add_a_redirect_uri': ', add a redirect URI:',
+    'azure.components_model_one': '{count} model',
+    'azure.components_model_other': '{count} models',
 };

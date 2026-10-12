@@ -67,8 +67,8 @@ export function AppEventFields(editor: StepEditorProps) {
         return (
             <Note>
                 {t(
-                    'mobile.flow.trigger.no_event_sources',
-                    'No event sources are available to you yet. Connect an app (e.g. Gmail or Nextcloud) in Settings → Integrations first.',
+                    'automations.trigger_editors.no_event_sources_are_available_to',
+                    'No event sources are available to you yet. Connect an app (e.g. Gmail or Nextcloud) in Settings → Connections first.',
                 )}
             </Note>
         );
@@ -76,11 +76,11 @@ export function AppEventFields(editor: StepEditorProps) {
     return (
         <>
             <SelectField
-                label={t('routines.versions.setting.provider', 'App')}
+                label={t('automations.versions.setting.provider', 'App')}
                 value={provider}
                 options={providerOptions(defs, provider, t)}
                 onChange={(next) => setMany(pickProvider(defs, next))}
-                prompt={t('mobile.flow.trigger.choose_app', 'Choose an app…')}
+                prompt={t('automations.form_builder_fields.choose_an_app', 'Choose an app…')}
                 disabled={ctx.disabled}
                 testID="trigger-app"
             />
@@ -93,7 +93,7 @@ export function AppEventFields(editor: StepEditorProps) {
                 </Warn>
             ) : null}
             <SelectField
-                label={t('routine_editor.trigger.event', 'Event')}
+                label={t('automation_editor.trigger.event', 'Event')}
                 value={event}
                 options={eventOptions(def, event, t)}
                 onChange={(next) => setMany(pickEvent(next))}

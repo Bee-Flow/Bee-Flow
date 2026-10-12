@@ -13,7 +13,7 @@
  * Run: cd agent-hub && npx vitest run src/demo/fixtures/interactions.test.js
  */
 import { describe, it, expect } from 'vitest';
-import * as routines from './routines';
+import * as automations from './automations';
 import * as agents from './agents';
 
 const call = async (mod, route, args) => {
@@ -26,7 +26,7 @@ describe('executing an automation step', () => {
     const ROUTE = 'POST /api/automation/:id/steps/:stepId/run';
 
     it('returns output for the step you pressed play on', async () => {
-        const res = await call(routines, ROUTE, {
+        const res = await call(automations, ROUTE, {
             params: { id: 'auto_demo_spend_report', stepId: 'search_invoices' },
             body: { mode: 'only' },
         });
@@ -43,8 +43,8 @@ describe('executing an automation step', () => {
     });
 
     it('the numbers are consistent across steps, so the flow reads as one story', async () => {
-        const state = routines.createState();
-        const one = (stepId) => routines.ROUTES[ROUTE]({
+        const state = automations.createState();
+        const one = (stepId) => automations.ROUTES[ROUTE]({
             state, params: { id: 'auto_demo_spend_report', stepId }, body: { mode: 'only' },
         }).steps[0].output;
 
@@ -62,7 +62,7 @@ describe('executing an automation step', () => {
     });
 
     it('mode "from" runs the step and everything downstream', async () => {
-        const res = await call(routines, ROUTE, {
+        const res = await call(automations, ROUTE, {
             params: { id: 'auto_demo_spend_report', stepId: 'total_per_vendor' },
             body: { mode: 'from' },
         });
@@ -73,7 +73,7 @@ describe('executing an automation step', () => {
     });
 
     it('never claims the notification was actually delivered', async () => {
-        const res = await call(routines, ROUTE, {
+        const res = await call(automations, ROUTE, {
             params: { id: 'auto_demo_spend_report', stepId: 'notify_finance' },
             body: { mode: 'only' },
         });
@@ -83,7 +83,7 @@ describe('executing an automation step', () => {
     });
 
     it('running the whole flow lights up every node', async () => {
-        const res = await call(routines, 'POST /api/automation/:id/run', {
+        const res = await call(automations, 'POST /api/automation/:id/run', {
             params: { id: 'auto_demo_spend_report' },
         });
         expect(res.steps.length).toBeGreaterThanOrEqual(6);
@@ -96,7 +96,7 @@ describe('refining an agent', () => {
     const ROUTE = 'POST /agents/wizard/refine';
     const CURRENT = 'Je bent de LinkedIn-contentschrijver voor ons bedrijf.';
 
-    const refine = (refinement) => routines && agents.ROUTES[ROUTE]({
+    const refine = (refinement) => automations && agents.ROUTES[ROUTE]({
         state: agents.createState(),
         params: {},
         body: {

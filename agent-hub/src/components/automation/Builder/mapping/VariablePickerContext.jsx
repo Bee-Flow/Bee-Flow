@@ -10,9 +10,9 @@ import React, { createContext, useContext } from 'react';
  * Default empty so the fields render a graceful "no upstream variables
  * yet" message when used outside a provider.
  */
-const VariablePickerContext = createContext({ groups: [], previewSample: null, stepLabelById: new Map(), stepTypeById: new Map() });
+const VariablePickerContext = createContext({ groups: [], previewSample: null, stepLabelById: new Map(), stepTypeById: new Map(), definition: null });
 
-export function VariablePickerProvider({ groups, previewSample, stepLabelById, stepTypeById, children }) {
+export function VariablePickerProvider({ groups, previewSample, stepLabelById, stepTypeById, definition = null, children }) {
     const value = React.useMemo(
         () => ({
             groups: groups || [],
@@ -23,8 +23,10 @@ export function VariablePickerProvider({ groups, previewSample, stepLabelById, s
             // id → step type, so a reference pill can wear its step's family
             // colour (refEditorDom.pillTint).
             stepTypeById: stepTypeById || new Map(),
+            // The graph, so a list picked from a flatten names its item (listNounKey).
+            definition,
         }),
-        [groups, previewSample, stepLabelById, stepTypeById],
+        [groups, previewSample, stepLabelById, stepTypeById, definition],
     );
     return (
         <VariablePickerContext.Provider value={value}>

@@ -1,9 +1,9 @@
 /**
- * Every webhook URL of the routine, whichever trigger it belongs to — the
+ * Every webhook URL of the automation, whichever trigger it belongs to — the
  * web's full WebhookPanel in the Settings tab (a webhook trigger's own
  * editor shows just its own). Requests must be HMAC-signed; the secret is
  * shown once, right after "New webhook" or Rotate, with "Copy as cURL".
- * A new URL is made for the routine's first webhook trigger: a routine
+ * A new URL is made for the automation's first webhook trigger: an automation
  * without one has nothing to receive a webhook with, and says so.
  */
 
@@ -70,14 +70,14 @@ export function WebhooksGroup({ flowKey, store }: { flowKey: string; store: Draf
     const error = hooks.create.error ?? hooks.rotate.error ?? hooks.remove.error ?? hooks.list.error;
     return (
         <Group
-            title={t('routine_editor.webhooks', 'Webhooks')}
+            title={t('automation_editor.webhooks', 'Webhooks')}
             footer={t('mobile.flow.settings.webhooks_hint', 'Requests must be HMAC-signed. Use “Copy as cURL” immediately after Create/Rotate to grab a complete signed-request template.')}
         >
             <View style={styles.body}>
                 {error ? <Banner tone="error">{describeError(error).message}</Banner> : null}
                 {hooks.list.isLoading ? <Spinner /> : null}
                 {!hooks.list.isLoading && !rows.length ? (
-                    <Text variant="caption" tone="tertiary">{t('routines.settings.webhooks_none', 'No webhooks yet.')}</Text>
+                    <Text variant="caption" tone="tertiary">{t('automations.settings.webhooks_none', 'No webhooks yet.')}</Text>
                 ) : null}
                 {rows.map((row) => (
                     <WebhookRow
@@ -99,7 +99,7 @@ export function WebhooksGroup({ flowKey, store }: { flowKey: string; store: Draf
                         size="sm"
                         variant="secondary"
                         iconName="Plus"
-                        label={hooks.create.isPending ? t('routines.settings.webhook_creating', 'Creating…') : t('routine_editor.webhook_new', 'New webhook')}
+                        label={hooks.create.isPending ? t('automations.settings.webhook_creating', 'Creating…') : t('automation_editor.webhook_new', 'New webhook')}
                         onPress={() => create(target)}
                         disabled={hooks.create.isPending || locked}
                         testID="settings-new-webhook"

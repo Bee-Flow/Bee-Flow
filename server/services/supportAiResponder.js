@@ -122,7 +122,7 @@ async function _resolveOperatorIntegrations(cfg) {
     if (!grantedIntegrationIds.length || !cfg.operatorUserId) return empty;
 
     try {
-        const routineAuth = require('../auth/routineAuth');
+        const automationAuth = require('../auth/automationAuth');
         const { getIntegrationTools } = require('../core/integrations/integrationTools');
         const { toolNamesForApps } = require('../automation/toolRegistry');
 
@@ -130,8 +130,8 @@ async function _resolveOperatorIntegrations(cfg) {
         // operator has no working OAuth creds for the granted providers; fall
         // back to a bare shim so non-OAuth tools (n8n/YouTrack/Gamma) still load
         // while OAuth tools naturally drop (getIntegrationTools needs accessToken).
-        const session = await routineAuth.buildUserAuth(cfg.operatorUserId, { enabledIntegrations: grantedIntegrationIds })
-            || { userId: cfg.operatorUserId, accessToken: null, oauthProvider: null, routineProviders: {} };
+        const session = await automationAuth.buildUserAuth(cfg.operatorUserId, { enabledIntegrations: grantedIntegrationIds })
+            || { userId: cfg.operatorUserId, accessToken: null, oauthProvider: null, automationProviders: {} };
 
         const { tools: opTools } = await getIntegrationTools({
             userId: cfg.operatorUserId, session, isAdmin: false,

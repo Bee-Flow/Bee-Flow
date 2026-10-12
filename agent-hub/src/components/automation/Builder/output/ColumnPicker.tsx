@@ -31,11 +31,11 @@ export default function ColumnPicker({ cols, shown }: ColumnPickerProps) {
 
     const row = (c: OutputColumn, on: boolean, i: number) => <PickerRow key={c.key} col={c} on={on} pinned={on && i === 0} cols={cols} shown={shown} />;
 
-    const techNames = cols.columns.filter(c => c.technical).slice(0, 4).map(c => c.key).join(', ');
+    const techNames = cols.columns.filter(c => c.technical).slice(0, 4).map(c => c.label.toLowerCase()).join(', ');
     return (
         <div
             role="dialog"
-            aria-label={t('routines.output.columns_dialog', 'Choose columns')}
+            aria-label={t('automations.output.columns_dialog', 'Choose columns')}
             className="absolute left-0 top-full mt-1 w-[300px] max-h-[420px] rounded-xl bg-[var(--bg-card)] border border-[var(--border-default)] shadow-2xl z-30 flex flex-col overflow-hidden text-xs"
         >
             <label className="flex items-center gap-1.5 px-3 py-2.5 border-b border-[var(--border-default)] text-[var(--text-tertiary)]">
@@ -44,17 +44,17 @@ export default function ColumnPicker({ cols, shown }: ColumnPickerProps) {
                     type="search"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder={t('routines.output.find_column', 'Find a column…')}
-                    aria-label={t('routines.output.find_column', 'Find a column…')}
+                    placeholder={t('automations.output.find_column', 'Find a column…')}
+                    aria-label={t('automations.output.find_column', 'Find a column…')}
                     className="flex-1 min-w-0 bg-transparent outline-none text-[var(--text-primary)]"
                 />
             </label>
             <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pb-1">
-                <div className={SECTION}>{t('routines.output.cols_shown', 'Shown')}</div>
+                <div className={SECTION}>{t('automations.output.cols_shown', 'Shown')}</div>
                 {shownCols.map((c, i) => row(c, true, i))}
                 {hidden.length > 0 && (
                     <>
-                        <div className={`${SECTION} border-t border-[var(--border-default)] mt-1`}>{t('routines.output.cols_hidden', 'Hidden')}</div>
+                        <div className={`${SECTION} border-t border-[var(--border-default)] mt-1`}>{t('automations.output.cols_hidden', 'Hidden')}</div>
                         {hidden.map((c) => row(c, false, -1))}
                     </>
                 )}
@@ -67,16 +67,16 @@ export default function ColumnPicker({ cols, shown }: ColumnPickerProps) {
                             className="w-full flex items-center gap-2 px-3 py-2 border-t border-[var(--border-default)] mt-1 text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
                         >
                             {techOpen ? <ChevronDown size={13} aria-hidden /> : <ChevronRight size={13} aria-hidden />}
-                            {t('routines.output.cols_technical', 'Technical · {count} ({names})', { count: technical.length, names: techNames })}
+                            {t('automations.output.cols_technical', 'Technical · {count} ({names})', { count: technical.length, names: techNames })}
                         </button>
                         {techOpen && technical.map((c) => row(c, false, -1))}
                     </>
                 )}
             </div>
             <div className="flex gap-1.5 px-3 py-2 border-t border-[var(--border-default)] bg-[var(--bg-secondary)]">
-                <button type="button" onClick={cols.showAll} className={FOOT_BTN}>{t('routines.output.show_all', 'Show all')}</button>
+                <button type="button" onClick={cols.showAll} className={FOOT_BTN}>{t('automations.output.show_all', 'Show all')}</button>
                 <button type="button" onClick={cols.reset} className={FOOT_BTN} disabled={!cols.customised && cols.split.length === 0}>
-                    {t('routines.output.back_to_suggestion', 'Back to suggestion')}
+                    {t('automations.output.back_to_suggestion', 'Back to suggestion')}
                 </button>
             </div>
         </div>
@@ -85,11 +85,16 @@ export default function ColumnPicker({ cols, shown }: ColumnPickerProps) {
 
 interface PickerRowProps { col: OutputColumn; on: boolean; pinned: boolean; cols: OutputColumnsState; shown: string[] }
 
-/** One column in the picker: its checkbox, and split / keep together for a group. */
+/**
+ * One column in the picker: its checkbox, and split / keep together for a
+ * group. A per-item step's columns are already one per output field, so they
+ * never split.
+ */
 function PickerRow({ col: c, on, pinned, cols, shown }: PickerRowProps) {
     const { t } = useTranslation();
     const Box = on ? SquareCheck : Square;
-    const firstOfSplit = c.parent && shown.find(k => k.startsWith(`${c.parent}.`)) === c.key;
+    const canSplit = c.kind === 'group' && !c.parent && !c.perItem;
+    const firstOfSplit = !!c.parent && !c.perItem && shown.find(k => k.startsWith(`${c.parent}.`)) === c.key;
     return (
         <div className={`flex items-center gap-2 px-3 py-[5px] ${on ? '' : 'text-[var(--text-secondary)]'}`}>
             <button
@@ -103,17 +108,17 @@ function PickerRow({ col: c, on, pinned, cols, shown }: PickerRowProps) {
                 <span className="truncate">{c.label}</span>
             </button>
             {c.kind === 'group' && c.groupSize != null && (
-                <span className="text-[var(--text-tertiary)] shrink-0">{t('routines.output.group_n', 'group · {count}', { count: c.groupSize })}</span>
+                <span className="text-[var(--text-tertiary)] shrink-0">{t('automations.output.group_n', 'group · {count}', { count: c.groupSize })}</span>
             )}
-            {pinned && <Pin size={12} className="ml-auto shrink-0 text-[var(--text-tertiary)]" aria-label={t('routines.output.pinned', 'Pinned on the left')} />}
-            {c.kind === 'group' && !c.parent && (
+            {pinned && <Pin size={12} className="ml-auto shrink-0 text-[var(--text-tertiary)]" aria-label={t('automations.output.pinned', 'Pinned on the left')} />}
+            {canSplit && (
                 <button type="button" onClick={() => cols.splitGroup(c.key, shown)} className="ml-auto shrink-0 font-semibold text-[var(--type-ai)] hover:underline">
-                    {t('routines.output.split', 'split')}
+                    {t('automations.output.split', 'split')}
                 </button>
             )}
-            {firstOfSplit && c.parent && (
+            {firstOfSplit && (
                 <button type="button" onClick={() => cols.joinGroup(c.parent as string, shown)} className="ml-auto shrink-0 font-semibold text-[var(--type-ai)] hover:underline">
-                    {t('routines.output.join', 'keep together')}
+                    {t('automations.output.join', 'keep together')}
                 </button>
             )}
         </div>

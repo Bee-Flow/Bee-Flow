@@ -11,7 +11,7 @@ const VARIANT_ICON = { agent: Bot, skill: Zap, instruction: Sparkles };
 /** The tool port's label: an invitation on a bare step, a count otherwise. */
 function toolPortLabel(toolState, variant, toolCount, t) {
     if (toolState.mode !== 'none') return `tools · ${toolCount || 'all'}`;
-    return variant === 'instruction' ? 'Drop an app here to give it a tool' : t('routines.card.port_tools_none', 'tools');
+    return variant === 'instruction' ? 'Drop an app here to give it a tool' : t('automations.card.port_tools_none', 'tools');
 }
 
 /**

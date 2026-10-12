@@ -42,7 +42,7 @@ test('the catalogue is the whole of Annex III — ten domains, each citing its o
 
 test('the five domains the old regex could not see are now asked about', () => {
     // The pattern that decided "high risk" before covered recruitment, credit,
-    // education, essential services and insurance. A routine doing facial
+    // education, essential services and insurance. An automation doing facial
     // recognition, border control or recidivism scoring produced NOTHING.
     for (const id of ['biometrics', 'critical_infrastructure', 'law_enforcement', 'migration', 'justice']) {
         assert.ok(ALL.includes(id), `${id} is not in the catalogue`);

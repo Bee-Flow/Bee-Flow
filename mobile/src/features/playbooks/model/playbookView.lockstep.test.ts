@@ -53,7 +53,7 @@ const PHASES: Phase[] = [
     p('table', { artifacts: { datatableName: 'Invoices', rowCount: 32 } }),
     p('table', { artifacts: { datatableName: 'Invoices', rowCount: '32' } }),
     p('table'),
-    p('routine', { artifacts: { automationTitle: 'Read invoices' } }),
+    p('automation', { artifacts: { automationTitle: 'Read invoices' } }),
     p('fill', { artifacts: { rowCount: 12 } }),
     p('d1', { kind: 'design', artifacts: { designName: 'Board', screenCount: 3 } }),
     p('d2', { kind: 'design', artifacts: { designName: 'Board' } }),

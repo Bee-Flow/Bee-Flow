@@ -46,7 +46,7 @@ async function requestApprovalStep(app, model, step, ctx) {
         if (!licensed) return { ok: false, error: 'Approvals are an Enterprise feature — this app cannot request one on the current plan' };
     }
 
-    // Public pages can request (parity with public forms triggering routines
+    // Public pages can request (parity with public forms triggering automations
     // with approval steps) — so the pending pool is capped per app.
     const pending = await automationStore.countPendingApprovalsForApp(app.id).catch(() => 0);
     if (pending >= APP_APPROVAL_PENDING_CAP) {
@@ -73,9 +73,9 @@ async function requestApprovalStep(app, model, step, ctx) {
     ];
 
     // ── The stage chain ──────────────────────────────────────────────────
-    // Apps author exactly the shape routines do, and desugar through exactly
+    // Apps author exactly the shape automations do, and desugar through exactly
     // the same rulebook — an invoice app's "team lead → finance → director"
-    // is the same object a routine's is, decided by the same code. Stage
+    // is the same object an automation's is, decided by the same code. Stage
     // names and descriptions are rendered against the action scope (an
     // approver must see the supplier the stage is about), and each stage's
     // `when` is evaluated ONCE here, at request time, so the chain shown to
@@ -200,7 +200,7 @@ async function requestApprovalStep(app, model, step, ctx) {
         organizationId: orgId,
         automationId: null,
         // The display title every list shows — for an app-sourced approval
-        // that is the APP's name, not a routine's.
+        // that is the APP's name, not an automation's.
         automationTitle: app.name || 'App',
         ...project,
         runId: null, rootRunId: null, stepId: null,

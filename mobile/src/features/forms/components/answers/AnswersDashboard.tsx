@@ -82,7 +82,7 @@ function Questions({ summary, onSeeAll }: { summary: AnswersSummary; onSeeAll: (
 
 export interface AnswersDashboardProps {
     datatableId: string;
-    /** The routine whose runs the owner may open; null for a colleague. */
+    /** The automation whose runs the owner may open; null for a colleague. */
     runsOf: string | null;
     /** The form's address, for "Copy the link" when nothing has come in yet. */
     link: string | null;

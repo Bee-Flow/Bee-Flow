@@ -152,7 +152,7 @@ type TabState = ReturnType<typeof useOwnDataTab>;
 function TypesPane({ s, props }: { s: TabState; props: OwnDataTabProps }) {
     const { f, licence, readOnly, typeErrors, t } = props;
     const { types, lists, canBlockExternal, note } = s;
-    const routines = f.applyToAutomations !== false;
+    const automations = f.applyToAutomations !== false;
     if (!licence.canUseCustomData) {
         return (
             <OwnDataLocked
@@ -167,7 +167,7 @@ function TypesPane({ s, props }: { s: TabState; props: OwnDataTabProps }) {
     if (types.length === 0) {
         return (
             <OwnDataLanding
-                types={types} readOnly={readOnly} routines={routines} note={note}
+                types={types} readOnly={readOnly} automations={automations} note={note}
                 onStart={starter => start(starter)}
                 onDescribe={text => start('other', text)}
                 t={t}
@@ -176,7 +176,7 @@ function TypesPane({ s, props }: { s: TabState; props: OwnDataTabProps }) {
     }
     return (
         <OwnDataList
-            types={types} lists={lists} canBlockExternal={canBlockExternal} readOnly={readOnly} routines={routines}
+            types={types} lists={lists} canBlockExternal={canBlockExternal} readOnly={readOnly} automations={automations}
             guardDown={s.guardDown}
             typeErrors={typeErrors} note={note}
             onAdd={() => start('other')}

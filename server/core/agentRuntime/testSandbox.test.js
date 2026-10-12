@@ -3,7 +3,7 @@
 /**
  * The two rules a test set stands on, and both of them are refusals.
  *
- *   1. The sandbox only ever NARROWS. Nothing that sends, no routine, nothing
+ *   1. The sandbox only ever NARROWS. Nothing that sends, no automation, nothing
  *      that would ask for approval — and, unlike the headless drop in
  *      toolPolicy, without waiting for the agent to have a curated `tools` map.
  *      An agent nobody curated is exactly the agent whose mail tool would
@@ -46,21 +46,21 @@ test('sends never reach a test run — not even for an agent nobody curated', ()
     assert.strictEqual(withheldFor(res, 'calendar_create_event'), 'sends');
 });
 
-test('a routine is withheld because nothing can classify it', () => {
-    const routine = tool('file_the_ticket', { __automation: { id: 'au-1', userId: 'u1' } });
-    const res = S.sandboxToolStack([routine, tool('gmail_search')], {});
+test('an automation is withheld because nothing can classify it', () => {
+    const automation = tool('file_the_ticket', { __automation: { id: 'au-1', userId: 'u1' } });
+    const res = S.sandboxToolStack([automation, tool('gmail_search')], {});
     assert.deepStrictEqual(names(res.tools), ['gmail_search']);
-    assert.strictEqual(withheldFor(res, 'file_the_ticket'), 'routine');
+    assert.strictEqual(withheldFor(res, 'file_the_ticket'), 'automation');
 });
 
-test('a routine is withheld even when its name looks read-only', () => {
+test('an automation is withheld even when its name looks read-only', () => {
     // `datatable_query` is in READ_ONLY. Carrying `__automation` means the
-    // name is the AUTHOR'S label for a routine, not the built-in tool — so the
+    // name is the AUTHOR'S label for an automation, not the built-in tool — so the
     // name-level classification says nothing at all here.
     const disguised = tool('datatable_query', { __automation: { id: 'au-2' } });
     const res = S.sandboxToolStack([disguised], {});
     assert.deepStrictEqual(res.tools, []);
-    assert.strictEqual(withheldFor(res, 'datatable_query'), 'routine');
+    assert.strictEqual(withheldFor(res, 'datatable_query'), 'automation');
 });
 
 test('a tool the agent put on "ask" is withheld', () => {

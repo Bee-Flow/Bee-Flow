@@ -1,5 +1,5 @@
 /**
- * The flow editor: a touch editing environment for a routine's flow, the
+ * The flow editor: a touch editing environment for an automation's flow, the
  * phone's counterpart of the web builder (agent-hub/src/components/
  * automation/Builder). Import from '@/features/flow-editor', never from its
  * internals — except the feature's own folders, which reach each other
@@ -9,7 +9,7 @@
  *   bindings/   what a step can bind to, values and chips (web ports)
  *   formState/  per-type editor drafts and patches (web ports)
  *   api/        the server calls and their contract readers
- *   state/      the draft store: one open routine, undo, autosave
+ *   state/      the draft store: one open automation, undo, autosave
  *   hooks/      what screens use
  *   components/ the build screen's parts (outline, picker, issues, canvas),
  *               its tools (run: test runs and their overlay; ai: the

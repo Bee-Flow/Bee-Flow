@@ -2,6 +2,7 @@ import { Mail, Plus, Trash2, Link2, Unlink, CheckCircle2, AlertCircle, Save } fr
 import React, { useState, useCallback } from 'react';
 import { INPUT_FIELD, PRIMARY_BTN, PRIMARY_BTN_STYLE, GHOST_BTN } from './supportStyles';
 import useTranslation from '../../../../hooks/useTranslation';
+import { isTrustedOAuthOrigin } from '../../../../lib/oauthMessageOrigin';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import EmptyState from '../../../shared/EmptyState';
 import FormField from '../../../shared/FormField';
@@ -89,6 +90,7 @@ function InboxCard({ inbox, agents, kbs, selected, onSelect, onChanged }) {
         if (!res.ok || !d.url) { toast.error(d.error || t('support.settings.connect_failed', 'Could not connect')); return; }
         const popup = window.open(d.url, 'support-mailbox-oauth', 'width=520,height=680');
         const onMsg = (ev) => {
+            if (!isTrustedOAuthOrigin(ev.origin, API_BASE)) return;
             if (ev?.data && typeof ev.data === 'string' && ev.data.includes('support-mailbox-oauth')) {
                 window.removeEventListener('message', onMsg);
                 try { popup && popup.close(); } catch (_) {}

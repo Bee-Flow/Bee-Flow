@@ -5,7 +5,7 @@ import {
 } from './shieldRows';
 
 const WIN = { start: '2026-09-01T00:00:00Z', end: '2026-09-11T00:00:00Z', buckets: 10 };
-const placeLabel = (row) => (row.automation_id ? `Routine — ${row.agent_name}` : 'Direct chat');
+const placeLabel = (row) => (row.automation_id ? `Automation — ${row.agent_name}` : 'Direct chat');
 
 describe('normaliseGuardRows', () => {
     it('flattens a guardrail event onto the filter axes', () => {

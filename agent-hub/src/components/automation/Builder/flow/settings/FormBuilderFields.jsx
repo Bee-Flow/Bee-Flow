@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Plus, Trash2, ChevronUp, ChevronDown, Eye } from 'lucide-react';
+import { Plus, Trash2, ChevronUp, ChevronDown, ChevronRight, Eye, Maximize2, Play } from 'lucide-react';
 import { FormRow, inputClass, textareaClass, denseInputClass, cardClass, subLabelClass } from './formPrimitives';
 import PublicFormRenderer, { FormEndingView } from '../../../../forms/PublicFormRenderer';
 import TemplateField from '../../mapping/TemplateField';
@@ -9,7 +9,11 @@ import { loadPickSources, pickSourcesSync } from '../pickSourceCatalog';
 // chances to ship an edit that moves a binding without moving what points at
 // it (see fieldDesigner.jsx).
 import { BindingNameField } from './fieldDesigner';
-import { walkPath, previewValue } from '../../../../../utils/bindingHelpers';
+import { normaliseOptions } from '../../../../forms/formOptions';
+import { buildPreviewConfig, fillTemplate, isDisplayField, DISPLAY_FIELD_TYPES } from './formPreview';
+import { useTranslation } from '../../../../../hooks/useTranslation';
+
+export { normaliseOptions, fillTemplate };
 
 /**
  * The shared editor for ONE hosted form page — used by the form trigger (page
@@ -36,7 +40,7 @@ import { walkPath, previewValue } from '../../../../../utils/bindingHelpers';
  *   variant     — 'input' (a page with questions) or 'ending' (a closing page:
  *                 text only, no questions, no submit button)
  *   allowVariables — offer the {} picker on every text slot, so the page can
- *                 greet the visitor by name or summarise what the routine did.
+ *                 greet the visitor by name or summarise what the automation did.
  *                 OFF for the trigger: page one is rendered before anything has
  *                 run, and the server passes it no interpolator, so a `{{…}}`
  *                 there would reach the visitor verbatim.
@@ -79,8 +83,6 @@ function usePickSources() {
  * Mirrors DISPLAY_FIELD_TYPES on the server (automation/formTriggerContract.js)
  * and in the renderer (components/forms/PublicFormRenderer.jsx).
  */
-const DISPLAY_FIELD_TYPES = ['download', 'notebook'];
-const isDisplayField = (f) => DISPLAY_FIELD_TYPES.includes(f?.type);
 
 // One click sets all five theme keys. This IS the "styling without code" story;
 // the individual knobs below are for the people who want to fine-tune.
@@ -169,20 +171,6 @@ export function slugifyFieldName(label, taken = new Set()) {
 }
 
 /**
- * Resolve `{{path}}` against the builder's sample tree for the preview only.
- * Unresolvable paths are left standing — a typo should stay visible instead of
- * quietly turning into an empty string.
- */
-export function fillTemplate(text, sampleRoot) {
-    const s = String(text ?? '');
-    if (!s || !sampleRoot || !/\{\{[^}]+\}\}/.test(s)) return s;
-    return s.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (full, expr) => {
-        const v = walkPath(expr.trim(), sampleRoot);
-        return v === undefined ? full : previewValue(v, 40);
-    });
-}
-
-/**
  * The stored options array as the "one per line" text the author edits.
  *
  * The blank filter is deliberate: an AI-authored `{ label: 'B' }` with no
@@ -196,13 +184,6 @@ const joinOptions = (options) => (options || [])
 
 /** The reverse: the text the author typed as the array we persist. */
 const splitOptions = (text) => text.split('\n').map(s => s.trim()).filter(Boolean);
-
-export function normaliseOptions(options) {
-    if (!Array.isArray(options)) return [];
-    return options
-        .map(o => (typeof o === 'string' ? { value: o, label: o } : (o && typeof o === 'object' && o.value ? { value: o.value, label: o.label || o.value } : null)))
-        .filter(Boolean);
-}
 
 export default function FormBuilderFields({
     form,
@@ -221,11 +202,23 @@ export default function FormBuilderFields({
     onTestSubmit = null,
     // (from, to) => number|undefined. Renames a question's BINDING NAME and
     // rewrites every step that points at it, in one edit — see
-    // BindingNameField. Supplied only where the whole routine is in scope (the
+    // BindingNameField. Supplied only where the whole automation is in scope (the
     // builder); null in the standalone Forms editor, which can see the form but
     // not the steps that bind it, and where the name is therefore read-only.
     onRenameField = null,
+    // () => void. Offers "Open form editor" at the top: the full-screen overview
+    // (FormEditorModal) lives with whoever knows the other pages.
+    onOpenEditor = null,
+    // () => void. When present the trigger's inline preview is replaced by a
+    // compact "Test this form" bar that runs the shell's own test path
+    // (the form overlay) instead of rendering the whole form in the panel.
+    onTestForm = null,
+    // The modal draws its own live preview next to the editor.
+    hidePreview = false,
+    // Start with every question expanded instead of collapsed to its row.
+    defaultExpanded = false,
 }) {
+    const { t } = useTranslation();
     // Default OPEN when this is the trigger's own testable editor
     // (onTestSubmit present) — BFSF-408, reopened. A tester following "hit
     // play, see a form" never found the preview when it started collapsed
@@ -233,7 +226,16 @@ export default function FormBuilderFields({
     // with the preview itself, only its discoverability. A `form_page` step's
     // look-see (onTestSubmit null — nothing to submit there) keeps the old
     // collapsed default; it is a picture, not a test.
-    const [showPreview, setShowPreview] = useState(!!onTestSubmit);
+    const [showPreview, setShowPreview] = useState(!!onTestSubmit && !onTestForm);
+    // Questions are collapsed to one row each; `open` holds the indexes that are
+    // expanded. A question the author just added opens itself.
+    const [open, setOpen] = useState(() => new Set(defaultExpanded && Array.isArray(form?.fields) ? form.fields.map((_, i) => i) : []));
+    const setOpenAt = (i, on) => setOpen(prev => {
+        const next = new Set(prev);
+        if (on) next.add(i); else next.delete(i);
+        return next;
+    });
+    const useCompactTest = !!onTestSubmit && !!onTestForm;
     const fields = useMemo(() => (Array.isArray(form?.fields) ? form.fields : []), [form]);
     const isEnding = variant === 'ending';
     // Keep the real index: the card edits `fields[i]`, and a filtered list
@@ -251,27 +253,10 @@ export default function FormBuilderFields({
     // the server interpolates at the moment the page is shown. So resolve the
     // same way here, against the sample tree, and leave unresolvable paths
     // standing so a typo stays visible rather than silently vanishing.
-    const previewConfig = useMemo(() => {
-        const fill = allowVariables ? (s) => fillTemplate(s, previewSample) : (s) => s;
-        return {
-            title: fill(form?.title) || (isEnding ? 'All done' : 'Form'),
-            description: fill(form?.description) || '',
-            submitLabel: fill(form?.submitLabel) || 'Submit',
-            successMessage: fill(form?.successMessage) || 'Thanks!',
-            theme,
-            fields: fields.filter(f => f?.name).map(f => ({
-                ...f,
-                label: fill(f.label),
-                placeholder: fill(f.placeholder),
-                maxSizeMb: f.maxSizeMb || 10,
-                options: normaliseOptions(f.options),
-                // The real filename and size come from the ledger at serve
-                // time, so the preview stands in for them — a button labelled
-                // only "Download" tells the author nothing about the shape.
-                ...(isDisplayField(f) ? { filename: 'document.pdf', size: 182_000 } : {}),
-            })),
-        };
-    }, [form, fields, theme, isEnding, allowVariables, previewSample]);
+    const previewConfig = useMemo(
+        () => buildPreviewConfig({ form, theme, isEnding, allowVariables, previewSample }),
+        [form, theme, isEnding, allowVariables, previewSample],
+    );
 
     const patch = (changes) => onChange({ ...form, ...changes });
     const setFields = (next) => patch({ fields: next });
@@ -280,6 +265,7 @@ export default function FormBuilderFields({
         const taken = new Set(fields.map(f => f.name));
         const label = 'New question';
         setFields([...fields, { name: slugifyFieldName(label, taken), type: 'text', label, required: false, placeholder: '' }]);
+        setOpenAt(fields.length, true);
     };
     const addFileField = (type) => {
         const taken = new Set(fields.map(f => f.name));
@@ -287,13 +273,25 @@ export default function FormBuilderFields({
         setFields([...fields, { name: slugifyFieldName(label, taken), type, label, fileId: '' }]);
     };
     const updateField = (i, changes) => setFields(fields.map((f, j) => (j === i ? { ...f, ...changes } : f)));
-    const removeField = (i) => setFields(fields.filter((_, j) => j !== i));
+    const removeField = (i) => {
+        setFields(fields.filter((_, j) => j !== i));
+        // Indexes after the removed one shift down by one.
+        setOpen(prev => new Set([...prev].filter(k => k !== i).map(k => (k > i ? k - 1 : k))));
+    };
     const moveField = (i, dir) => {
         const j = i + dir;
         if (j < 0 || j >= fields.length) return;
         const next = fields.slice();
         [next[i], next[j]] = [next[j], next[i]];
         setFields(next);
+        setOpen(prev => {
+            const had = prev.has(i), hadJ = prev.has(j);
+            const n = new Set(prev);
+            n.delete(i); n.delete(j);
+            if (had) n.add(j);
+            if (hadJ) n.add(i);
+            return n;
+        });
     };
 
     /**
@@ -348,9 +346,8 @@ export default function FormBuilderFields({
         <div className={onTestSubmit ? 'rounded-lg border border-[var(--accent)]/40 bg-[var(--accent)]/[0.06] p-3 space-y-2' : ''}>
             {onTestSubmit && (
                 <div className="text-[11px] text-[var(--text-secondary)] leading-snug">
-                    <span className="font-semibold text-[var(--text-primary)]">Test this form.</span>{' '}
-                    Fill it in below and press its Submit button to send a real test through this
-                    routine — nothing goes live, and no visitor sees it.
+                    <span className="font-semibold text-[var(--text-primary)]">{t('automations.form_builder_fields.test_this_form', 'Test this form.')}</span>{' '}
+                    {t('automations.form_builder_fields.fill_it_in_below_and_press', 'Fill it in below and press its Submit button to send a real test through this automation — nothing goes live, and no visitor sees it.')}
                 </div>
             )}
             <button
@@ -382,15 +379,41 @@ export default function FormBuilderFields({
         </div>
     );
 
+    const testBar = (
+        <div className="flex items-center gap-2 rounded-lg border border-[var(--accent)]/40 bg-[var(--accent)]/[0.06] p-2" data-testid="form-test-bar">
+            <button
+                type="button"
+                onClick={onTestForm}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-[var(--accent)] text-white hover:opacity-90"
+            >
+                <Play size={12} /> {t('automations.form_builder_fields.test_this_form_button', 'Test this form')}
+            </button>
+            <span className="text-[11px] text-[var(--text-secondary)] leading-snug">
+                {t('automations.form_builder_fields.test_this_form_hint', 'Opens the form over the canvas; submitting it starts a test run.')}
+            </span>
+        </div>
+    );
+
+    const allOpen = fields.length > 0 && fields.every((_, i) => open.has(i));
+
     return (
         <div className="space-y-3">
+            {onOpenEditor && (
+                <button
+                    type="button"
+                    onClick={onOpenEditor}
+                    className="w-full inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium border border-[var(--border-default)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
+                >
+                    <Maximize2 size={13} /> {t('automations.form_builder_fields.open_form_editor', 'Open form editor')}
+                </button>
+            )}
             <FormRow label={isEnding ? 'Heading' : 'Form title'} hint={allowVariables ? varsHint.trim() : null}>
                 {textSlot({ slot: 'title', placeholder: isEnding ? 'All done' : 'Get in touch' })}
             </FormRow>
             <FormRow
                 label={isEnding ? 'Message' : 'Intro text'}
                 hint={isEnding
-                    ? `Tell the visitor what happened.${varsHint || ' Use {{steps.…}} to show what the routine did — it is filled in when the page is shown.'}`
+                    ? `Tell the visitor what happened.${varsHint || ' Use {{steps.…}} to show what the automation did — it is filled in when the page is shown.'}`
                     : `Shown under the title. Optional.${varsHint}`}
             >
                 {textSlot({ slot: 'description', rows: isEnding ? 4 : 2 })}
@@ -399,20 +422,36 @@ export default function FormBuilderFields({
             {/* Near the TOP of the panel, not buried after Theme settings —
                 only for the trigger's own testable editor. A form_page's
                 inert look-see stays where it always was, below. */}
-            {onTestSubmit && previewSection}
+            {useCompactTest && testBar}
+            {onTestSubmit && !useCompactTest && !hidePreview && previewSection}
 
             {!isEnding && (
                 <>
                     <div className="space-y-1.5">
-                        <div className={subLabelClass()}>Questions</div>
+                        <div className="flex items-center justify-between gap-2">
+                            <div className={subLabelClass()}>{t('automations.form_builder_fields.questions', 'Questions')}</div>
+                            {fields.length > 0 && (
+                                <button
+                                    type="button"
+                                    onClick={() => setOpen(allOpen ? new Set() : new Set(fields.map((_, i) => i)))}
+                                    className="text-[10px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+                                >
+                                    {allOpen
+                                        ? t('automations.form_builder_fields.collapse_all', 'Collapse all')
+                                        : t('automations.form_builder_fields.expand_all', 'Expand all')}
+                                </button>
+                            )}
+                        </div>
                         {fields.length === 0 && (
-                            <div className="text-[11px] text-[var(--text-tertiary)] italic">No questions yet — nobody can submit this form.</div>
+                            <div className="text-[11px] text-[var(--text-tertiary)] italic">{t('automations.form_builder_fields.no_questions_yet_nobody_can_submit', 'No questions yet — nobody can submit this form.')}</div>
                         )}
                         {fields.map((field, i) => (
                             <FieldCard
                                 key={i}
                                 field={field}
                                 index={i}
+                                expanded={open.has(i)}
+                                onToggle={() => setOpenAt(i, !open.has(i))}
                                 count={fields.length}
                                 bindingBase={bindingBase}
                                 allowVariables={allowVariables}
@@ -430,29 +469,29 @@ export default function FormBuilderFields({
                             onClick={addField}
                             className="flex items-center gap-1 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] px-2 py-1 rounded transition"
                         >
-                            <Plus size={12} /> Add a question
+                            <Plus size={12} /> {t('automations.form_builder_fields.add_a_question', 'Add a question')}
                         </button>
                     </div>
 
-                    <FormRow label="Button text">
+                    <FormRow label={t('automations.form_builder_fields.button_text', 'Button text')}>
                         {textSlot({ slot: 'submitLabel', placeholder: 'Submit' })}
                     </FormRow>
-                    <FormRow label="Thank-you message" hint={`Replaces the form after a successful submission.${varsHint}`}>
+                    <FormRow label={t('automations.form_builder_fields.thank_you_message', 'Thank-you message')} hint={`Replaces the form after a successful submission.${varsHint}`}>
                         {textSlot({ slot: 'successMessage', rows: 2 })}
                     </FormRow>
                 </>
             )}
 
             {/* A closing page asks nothing, so it has no Questions block — but
-                it IS where a document the routine just made should land. Only
+                it IS where a document the automation just made should land. Only
                 display fields are offered here; anything that collected input
                 would have no way to be submitted. */}
             {isEnding && (
                 <div className="space-y-1.5">
-                    <div className={subLabelClass()}>Downloads</div>
+                    <div className={subLabelClass()}>{t('automations.form_builder_fields.downloads', 'Downloads')}</div>
                     {displayFields.length === 0 && (
                         <div className="text-[11px] text-[var(--text-tertiary)] italic">
-                            Nothing to hand over — offer a file the routine made, to save or to open in Notebooks.
+                            {t('automations.form_builder_fields.nothing_to_hand_over_offer_a', 'Nothing to hand over — offer a file the automation made, to save or to open in Notebooks.')}
                         </div>
                     )}
                     {displayFields.map(({ field, index }) => (
@@ -460,6 +499,8 @@ export default function FormBuilderFields({
                             key={index}
                             field={field}
                             index={index}
+                            expanded
+                            collapsible={false}
                             count={fields.length}
                             bindingBase={bindingBase}
                             allowVariables={allowVariables}
@@ -478,7 +519,7 @@ export default function FormBuilderFields({
                             onClick={() => addFileField('download')}
                             className="flex items-center gap-1 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] px-2 py-1 rounded transition"
                         >
-                            <Plus size={12} /> Add a download
+                            <Plus size={12} /> {t('automations.form_builder_fields.add_a_download', 'Add a download')}
                         </button>
                         {/* Both write the same field shape and the type
                             dropdown swaps between them, so this is a shortcut
@@ -488,7 +529,7 @@ export default function FormBuilderFields({
                             onClick={() => addFileField('notebook')}
                             className="flex items-center gap-1 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] px-2 py-1 rounded transition"
                         >
-                            <Plus size={12} /> Add an Open in Notebooks
+                            <Plus size={12} /> {t('automations.form_builder_fields.add_an_open_in_notebooks', 'Add an Open in Notebooks')}
                         </button>
                     </div>
                 </div>
@@ -504,12 +545,13 @@ export default function FormBuilderFields({
             {/* Only reached when onTestSubmit is null (a form_page step's
                 inert look-see) — the trigger's own copy already rendered near
                 the top, above. */}
-            {!onTestSubmit && previewSection}
+            {!onTestSubmit && !hidePreview && previewSection}
         </div>
     );
 }
 
-function FieldCard({ field, index, count, bindingBase, onChange, onRemove, onMove, allowVariables = false, onFocusField = null, previewSample = null, siblings = [], onRenameField = null }) {
+function FieldCard({ field, index, count, bindingBase, expanded = true, collapsible = true, onToggle = null, onChange, onRemove, onMove, allowVariables = false, onFocusField = null, previewSample = null, siblings = [], onRenameField = null }) {
+    const { t } = useTranslation();
     const [showAdvanced, setShowAdvanced] = useState(false);
     // The choices textarea keeps its OWN text. The stored array is trimmed and
     // blank-free, so deriving the value from it would eat the trailing space or
@@ -526,6 +568,8 @@ function FieldCard({ field, index, count, bindingBase, onChange, onRemove, onMov
     // Both point at a generated file by id, and neither collects anything —
     // only the button on the visitor's page differs.
     const isDownload = DISPLAY_FIELD_TYPES.includes(field.type);
+    const typeMeta = FIELD_TYPES.find(ft => ft.value === (field.type || 'text'));
+    const typeLabel = typeMeta ? t(`automations.form_builder_fields.type_${typeMeta.value}`, typeMeta.label) : field.type;
 
     // Same rule as the page-level slots: a template only makes sense where the
     // server has a run to interpolate against. See `textSlot` above.
@@ -558,36 +602,64 @@ function FieldCard({ field, index, count, bindingBase, onChange, onRemove, onMov
     return (
         <div className={cardClass()}>
             <div className="flex items-center gap-1">
-                <span className="flex-1 text-xs font-medium text-[var(--text-primary)] truncate">{field.label || field.name}</span>
-                <button type="button" onClick={() => onMove(-1)} disabled={index === 0} aria-label="Move question up" title="Move up"
+                {collapsible ? (
+                    <button
+                        type="button"
+                        onClick={onToggle}
+                        aria-expanded={expanded}
+                        aria-label={expanded
+                            ? t('automations.form_builder_fields.collapse_question', 'Collapse question {n}', { n: index + 1 })
+                            : t('automations.form_builder_fields.expand_question', 'Expand question {n}', { n: index + 1 })}
+                        className="flex-1 min-w-0 flex items-center gap-1.5 text-left rounded hover:bg-[var(--bg-tertiary)] px-0.5 py-0.5"
+                    >
+                        <ChevronRight size={12} className={`shrink-0 text-[var(--text-tertiary)] transition-transform ${expanded ? 'rotate-90' : ''}`} />
+                        <span className="shrink-0 text-[10px] tabular-nums text-[var(--text-tertiary)]">{index + 1}</span>
+                        <span className="min-w-0 truncate text-xs font-medium text-[var(--text-primary)]">{field.label || field.name}</span>
+                        {!expanded && (
+                            <>
+                                <span className="shrink-0 text-[10px] text-[var(--text-tertiary)]">{typeLabel}</span>
+                                {!isDownload && field.required && (
+                                    <span className="shrink-0 text-[9px] uppercase tracking-wide px-1 rounded bg-[var(--accent)]/15 text-[var(--accent)]" data-testid="required-badge">
+                                        {t('automations.form_builder_fields.required_badge', 'required')}
+                                    </span>
+                                )}
+                            </>
+                        )}
+                    </button>
+                ) : (
+                    <span className="flex-1 text-xs font-medium text-[var(--text-primary)] truncate">{field.label || field.name}</span>
+                )}
+                <button type="button" onClick={() => onMove(-1)} disabled={index === 0} aria-label={t('automations.form_builder_fields.move_question_up', 'Move question up')} title={t('automations.form_builder_fields.move_up', 'Move up')}
                     className="p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-30">
                     <ChevronUp size={12} />
                 </button>
-                <button type="button" onClick={() => onMove(1)} disabled={index === count - 1} aria-label="Move question down" title="Move down"
+                <button type="button" onClick={() => onMove(1)} disabled={index === count - 1} aria-label={t('automations.form_builder_fields.move_question_down', 'Move question down')} title={t('automations.form_builder_fields.move_down', 'Move down')}
                     className="p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-30">
                     <ChevronDown size={12} />
                 </button>
-                <button type="button" onClick={onRemove} aria-label={`Remove ${field.label || field.name}`} title="Remove this question"
+                <button type="button" onClick={onRemove} aria-label={`Remove ${field.label || field.name}`} title={t('automations.form_builder_fields.remove_this_question', 'Remove this question')}
                     className="p-1 rounded text-[var(--text-tertiary)] hover:text-red-500 hover:bg-red-500/10">
                     <Trash2 size={12} />
                 </button>
             </div>
 
+            {expanded && (
+            <>
             <div className="flex items-start gap-2">
                 {/* NOTE: `name` is deliberately untouched by this field. It was
                     slugged once when the question was created; re-deriving it
                     here would break every downstream <base>.<name> binding
                     silently. */}
                 <div className="flex-1 min-w-0">
-                    {slot('label', `Question ${index + 1} label`, 'What do you want to ask?')}
+                    {slot('label', t('automations.form_builder_fields.question_label', 'Question {n} label', { n: index + 1 }), t('automations.form_builder_fields.what_to_ask', 'What do you want to ask?'))}
                 </div>
                 <select
-                    aria-label={`Question ${index + 1} type`}
+                    aria-label={t('automations.form_builder_fields.question_type', 'Question {n} type', { n: index + 1 })}
                     value={field.type || 'text'}
                     onChange={(e) => onChange({ type: e.target.value })}
                     className={denseInputClass('!w-auto shrink-0')}
                 >
-                    {FIELD_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                    {FIELD_TYPES.map(ft => <option key={ft.value} value={ft.value}>{t(`automations.form_builder_fields.type_${ft.value}`, ft.label)}</option>)}
                 </select>
             </div>
 
@@ -597,25 +669,24 @@ function FieldCard({ field, index, count, bindingBase, onChange, onRemove, onMov
             {!isDownload && (
                 <label className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)] cursor-pointer select-none">
                     <input type="checkbox" checked={!!field.required} onChange={(e) => onChange({ required: e.target.checked })} />
-                    Required
+                    {t('automations.form_builder_fields.required', 'Required')}
                 </label>
             )}
 
             {isDownload && (
                 <div className="space-y-0.5">
-                    <div className="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">File to offer</div>
+                    <div className="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">{t('automations.form_builder_fields.file_to_offer', 'File to offer')}</div>
                     {slot('fileId', `Download ${index + 1} file`, '{{steps.<id>.output.fileId}}')}
                     <p className="text-[10px] text-[var(--text-tertiary)]">
-                        Point this at the Make a document step, e.g.{' '}
-                        <code>{'{{steps.doc_1.output.fileId}}'}</code>. The link is built when the
-                        page is shown and only works for this visitor.
+                        {t('automations.form_builder_fields.point_this_at_the_make_a', 'Point this at the Make a document step, e.g.')}{' '}
+                        <code>{'{{steps.doc_1.output.fileId}}'}</code>{t('automations.form_builder_fields.the_link_is_built_when_the', '. The link is built when the page is shown and only works for this visitor.')}
                     </p>
                 </div>
             )}
 
             {field.type === 'select' && (
                 <div className="space-y-0.5">
-                    <div className="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">Choices (one per line)</div>
+                    <div className="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">{t('automations.form_builder_fields.choices_one_per_line', 'Choices (one per line)')}</div>
                     <textarea
                         rows={4}
                         aria-label={`Question ${index + 1} choices`}
@@ -635,11 +706,11 @@ function FieldCard({ field, index, count, bindingBase, onChange, onRemove, onMov
             {field.type === 'file' && (
                 <div className="flex items-center gap-2">
                     <div className="flex-1 min-w-0 space-y-0.5">
-                        <div className="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">Accepted types</div>
-                        <input type="text" value={field.accept || ''} onChange={(e) => onChange({ accept: e.target.value })} className={denseInputClass('w-full')} placeholder="application/pdf,image/*" />
+                        <div className="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">{t('automations.form_builder_fields.accepted_types', 'Accepted types')}</div>
+                        <input type="text" value={field.accept || ''} onChange={(e) => onChange({ accept: e.target.value })} className={denseInputClass('w-full')} placeholder={t('automations.form_builder_fields.application_pdf_image', 'application/pdf,image/*')} />
                     </div>
                     <div className="w-24 shrink-0 space-y-0.5">
-                        <div className="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">Max MB</div>
+                        <div className="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">{t('automations.form_builder_fields.max_mb', 'Max MB')}</div>
                         <input type="number" min={1} max={25} value={field.maxSizeMb ?? 10} onChange={(e) => onChange({ maxSizeMb: Number(e.target.value) || 10 })} className={denseInputClass('w-full')} />
                     </div>
                 </div>
@@ -659,7 +730,7 @@ function FieldCard({ field, index, count, bindingBase, onChange, onRemove, onMov
             {!isDownload && showAdvanced && (
                 <div className="space-y-1.5">
                     <div className="space-y-0.5">
-                        <div className="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">Placeholder</div>
+                        <div className="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">{t('automations.form_builder_fields.placeholder', 'Placeholder')}</div>
                         {slot('placeholder', `Question ${index + 1} placeholder`)}
                     </div>
                     <BindingNameField
@@ -670,6 +741,8 @@ function FieldCard({ field, index, count, bindingBase, onChange, onRemove, onMov
                         onChange={onChange}
                     />
                 </div>
+            )}
+            </>
             )}
         </div>
     );
@@ -686,9 +759,10 @@ function FieldCard({ field, index, count, bindingBase, onChange, onRemove, onMov
  * their team for a Fireflies transcript without having Fireflies themselves.
  */
 function AppPickEditor({ field, index, onChange }) {
+    const { t } = useTranslation();
     const sources = usePickSources();
     const chosen = sources.find(s => s.id === field.source) || null;
-    // A source that is set but unknown to this install — an imported routine,
+    // A source that is set but unknown to this install — an imported automation,
     // or an app that has since been removed. Said out loud rather than quietly
     // reset, because resetting would change what the form asks for.
     const unknown = !!field.source && sources.length > 0 && !chosen;
@@ -696,14 +770,14 @@ function AppPickEditor({ field, index, onChange }) {
     return (
         <div className="space-y-1.5">
             <div className="space-y-0.5">
-                <div className="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">App to pick from</div>
+                <div className="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">{t('automations.form_builder_fields.app_to_pick_from', 'App to pick from')}</div>
                 <select
                     aria-label={`Question ${index + 1} app`}
                     value={field.source || ''}
                     onChange={(e) => onChange({ source: e.target.value })}
                     className={denseInputClass('w-full')}
                 >
-                    <option value="">Choose an app…</option>
+                    <option value="">{t('automations.form_builder_fields.choose_an_app', 'Choose an app…')}</option>
                     {sources.map(s => (
                         <option key={s.id} value={s.id}>
                             {s.label}{s.available ? '' : ' — not connected for you'}
@@ -712,12 +786,12 @@ function AppPickEditor({ field, index, onChange }) {
                 </select>
                 {unknown && (
                     <p className="text-[10px] text-amber-600 dark:text-amber-500">
-                        “{field.source}” is not an app this workspace can pick from. Choose another one, or connect it first.
+                        “{field.source}{t('automations.form_builder_fields.is_not_an_app_this_workspace', '” is not an app this workspace can pick from. Choose another one, or connect it first.')}
                     </p>
                 )}
                 {chosen && (
                     <p className="text-[10px] text-[var(--text-tertiary)]">
-                        Whoever fills this form in searches their OWN {chosen.app}
+                        {t('automations.form_builder_fields.whoever_fills_this_form_in_searches', 'Whoever fills this form in searches their OWN')} {chosen.app}
                         {chosen.available ? '' : ' — you have not connected it yourself, so you will not be able to try the search here'}.
                     </p>
                 )}
@@ -729,13 +803,13 @@ function AppPickEditor({ field, index, onChange }) {
                     checked={!!field.multiple}
                     onChange={(e) => onChange({ multiple: e.target.checked, ...(e.target.checked ? {} : { maxItems: undefined }) })}
                 />
-                Allow more than one
+                {t('automations.form_builder_fields.allow_more_than_one', 'Allow more than one')}
             </label>
 
             {field.multiple && (
                 <div className="flex items-center gap-2">
                     <div className="w-24 shrink-0 space-y-0.5">
-                        <div className="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">Max</div>
+                        <div className="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">{t('automations.form_builder_fields.max', 'Max')}</div>
                         <input
                             type="number"
                             min={1}
@@ -755,22 +829,23 @@ function AppPickEditor({ field, index, onChange }) {
                     checked={field.withText !== false}
                     onChange={(e) => onChange({ withText: e.target.checked })}
                 />
-                Bring the content into the routine
+                {t('automations.form_builder_fields.bring_the_content_into_the_automation', 'Bring the content into the automation')}
             </label>
             <p className="text-[10px] text-[var(--text-tertiary)]">
                 {field.withText !== false
-                    ? <>The record is read when the form is submitted, so a later step can use <code>{field.name}.text</code> — the transcript, the email body, the note.</>
-                    : <>Only a reference travels: the title and the id. Nothing is read from the app.</>}
+                    ? <>{t('automations.form_builder_fields.the_record_is_read_when_the', 'The record is read when the form is submitted, so a later step can use')} <code>{field.name}.text</code> {t('automations.form_builder_fields.the_transcript_the_email_body_the', '— the transcript, the email body, the note.')}</>
+                    : <>{t('automations.form_builder_fields.only_a_reference_travels_the_title', 'Only a reference travels: the title and the id. Nothing is read from the app.')}</>}
             </p>
         </div>
     );
 }
 
 function ThemeEditor({ theme, onChange, inherits = false, canInherit = false }) {
+    const { t } = useTranslation();
     const activePreset = THEME_PRESETS.find(p => Object.keys(p.theme).every(k => p.theme[k] === theme?.[k]));
     return (
         <div className="space-y-2">
-            <div className={subLabelClass()}>Styling</div>
+            <div className={subLabelClass()}>{t('automations.form_builder_fields.styling', 'Styling')}</div>
 
             {canInherit && (
                 // A later page defaults to the trigger's look so a form does not
@@ -782,7 +857,7 @@ function ThemeEditor({ theme, onChange, inherits = false, canInherit = false }) 
                         checked={inherits}
                         onChange={(e) => onChange(e.target.checked ? null : { ...theme })}
                     />
-                    Match the first page
+                    {t('automations.form_builder_fields.match_the_first_page', 'Match the first page')}
                 </label>
             )}
 
@@ -808,7 +883,7 @@ function ThemeEditor({ theme, onChange, inherits = false, canInherit = false }) 
                     </div>
 
                     <div className="space-y-0.5">
-                        <div className="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">Accent colour</div>
+                        <div className="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">{t('automations.form_builder_fields.accent_colour', 'Accent colour')}</div>
                         <div className="flex flex-wrap items-center gap-1">
                             {COLOR_PRESETS.map(hex => (
                                 <button
@@ -822,7 +897,7 @@ function ThemeEditor({ theme, onChange, inherits = false, canInherit = false }) 
                             ))}
                             <input
                                 type="color"
-                                aria-label="Custom accent colour"
+                                aria-label={t('automations.form_builder_fields.custom_accent_colour', 'Custom accent colour')}
                                 value={theme?.primary || '#0F766E'}
                                 onChange={(e) => onChange({ ...theme, primary: e.target.value })}
                                 className="h-5 w-7 rounded cursor-pointer border-0 bg-transparent p-0"

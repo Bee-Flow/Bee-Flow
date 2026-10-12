@@ -3,7 +3,7 @@
  * in its run banner (RunProgressBanner, the runFocus "where the run is"
  * banner) and its result drawer's header, as one phrase and a tone. Pure.
  *
- *   going     "Testing the routine… · Send the email · 2/5 · 12s"
+ *   going     "Testing the automation… · Send the email · 2/5 · 12s"
  *   failed    "Failed at Send the email" (or the request's own error)
  *   finished  "Test run finished · 5 steps · 1.2s"
  *   waiting   "Waiting for a form at Ask for details"
@@ -28,7 +28,7 @@ export interface RunBannerModel {
 function goingText(state: TestRunState, focus: RunFocus | null, t: Translate, now: number): string {
     const head = state.kind === 'step'
         ? t('mobile.flow.run.testing_step', 'Testing…')
-        : t('routines.builder.act.dry_run_live', 'Testing the routine…');
+        : t('automations.builder.act.dry_run_live', 'Testing the automation…');
     const where = focus?.label || null;
     const count = focus && focus.total > 0 && focus.done > 0 ? `${Math.min(focus.done, focus.total)}/${focus.total}` : null;
     const clock = formatElapsed(state.startedAt, now);
@@ -41,7 +41,7 @@ function stepCount(state: TestRunState): number {
 
 function settledText(state: TestRunState, t: Translate): string {
     const n = stepCount(state);
-    const steps = n === 1 ? t('routines.canvas.summary_step', '{n} step', { n }) : t('routines.canvas.summary_steps', '{n} steps', { n });
+    const steps = n === 1 ? t('automations.canvas.summary_step', '{n} step', { n }) : t('automations.canvas.summary_steps', '{n} steps', { n });
     const ms = testDurationMs(state);
     return [t('mobile.flow.run.done', 'Test run finished'), steps, ms == null ? null : formatDuration(ms)].filter(Boolean).join(' · ');
 }

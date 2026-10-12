@@ -65,7 +65,7 @@ const RULES = Object.freeze({
     'hardcoded-secret': {
         severity: 'warn',
         approver: 'author',
-        message: 'This looks like a password or key written into the code. Anyone who can open the routine can read it.',
+        message: 'This looks like a password or key written into the code. Anyone who can open the automation can read it.',
         fix: 'Pass it in as an input, or use an integration that signs in by itself.',
     },
     'dynamic-host': {

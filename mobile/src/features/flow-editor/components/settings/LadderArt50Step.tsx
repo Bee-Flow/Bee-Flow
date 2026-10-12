@@ -1,6 +1,6 @@
 /**
  * Step 2 — Art. 50: nothing to answer. What the checks see: whether the
- * routine talks to people and says it is AI, and whether it generates
+ * automation talks to people and says it is AI, and whether it generates
  * content and marks it.
  */
 

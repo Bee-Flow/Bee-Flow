@@ -4,7 +4,7 @@
 //         → idle  (auto, after `flashMs`)
 //   idle  → saving → error (with error captured; persists until reset)
 //
-// Replaces the per-Studio savingState reducers in RoutinesStudio,
+// Replaces the per-Studio savingState reducers in AutomationsStudio,
 // SkillsStudio, and KBsStudio (and inline copies in admin panels).
 //
 // Usage:

@@ -1,19 +1,19 @@
 'use strict';
 
 /**
- * W1/FIX1 — a schedule routine that LOSES its cron must not keep a stale
+ * W1/FIX1 — a schedule automation that LOSES its cron must not keep a stale
  * next_run_at.
  *
  * The bug: PUT /:id recomputed next_run_at only when
  * `triggerType === 'schedule' && scheduleCron`, and cleared it only when the
- * request explicitly sent a triggerType that was not 'schedule'. A routine
+ * request explicitly sent a triggerType that was not 'schedule'. An automation
  * that stayed a schedule trigger but lost its cron hit neither branch —
  * triggerColumnsFromDefinition maps a missing `trigger.schedule.cron` to null,
  * so schedule_cron went NULL while trigger_type stayed 'schedule' and
  * next_run_at kept its old, now-past value. claimDueAutomations
  * (stores/automationStore/automations.js) claims exactly that shape, and the
  * runner's post-run advance is gated on `automation.scheduleCron` — which was
- * now null. Net effect on an ACTIVE routine: it re-ran, with live side
+ * now null. Net effect on an ACTIVE automation: it re-ran, with live side
  * effects, every scheduler tick (~60s) forever.
  *
  * Route handler invoked directly — same harness as crud.subscriptionResync.js.
@@ -94,7 +94,7 @@ function makeRes() {
 
 const putHandler = findHandler(crudRouter, 'put', '/:id');
 
-// An ACTIVE, armed daily-at-09:00 routine whose next_run_at is already in the
+// An ACTIVE, armed daily-at-09:00 automation whose next_run_at is already in the
 // past — i.e. the row the scheduler is about to claim.
 const PAST = '2020-01-01T08:00:00.000Z';
 function seed(overrides = {}) {
@@ -216,7 +216,7 @@ test('a bad cron is still a 400 and an unreachable one still reports no upcoming
 
 // ── runPolicy is a setting: its timeout reaches the reaper's column on save ──
 
-test('a runPolicy save keeps run_timeout_ms in step, also on a live routine', async () => {
+test('a runPolicy save keeps run_timeout_ms in step, also on a live automation', async () => {
     seed({ liveVersion: 3 });
     const res = await put({
         definition: {
@@ -235,4 +235,37 @@ test('a definition without a runPolicy leaves run_timeout_ms alone', async () =>
     const res = await put({ definition: { trigger: { id: 'trg', kind: 'manual' }, steps: [], edges: [] } });
     assert.strictEqual(res.statusCode, 200);
     assert.ok(!('runTimeoutMs' in lastUpdate));
+});
+
+// ── BFSF-452: saving an ACTIVE automation refuses hand-written pins ──────────
+
+const pinDef = (pin) => ({
+    trigger: { id: 'trg1', kind: 'manual', label: 'Start' },
+    steps: [{ id: 's1', type: 'set', ...pin }],
+    edges: [],
+});
+function seedManual(extra = {}) {
+    seed({ triggerType: 'manual', scheduleCron: null, scheduleTz: null, nextRunAt: null, definition: pinDef({}), ...extra });
+}
+
+test('BFSF-452: active automation: saving an edited pin is refused with 400', async () => {
+    seedManual();
+    const res = await put({ definition: pinDef({ pinnedOutput: { a: 1 }, pinnedSource: 'edited' }) });
+    assert.strictEqual(res.statusCode, 400);
+    assert.strictEqual(res.body.code, 'pinned_edited_sample');
+    assert.strictEqual(res.body.details[0].code, 'pin.edited_sample_blocks_activation');
+    assert.match(res.body.error, /^Cannot save while this automation is active/);
+});
+
+test('BFSF-452: active automation: a captured pin still saves', async () => {
+    seedManual();
+    const res = await put({ definition: pinDef({ pinnedOutput: { a: 1 }, pinnedSource: 'captured' }) });
+    assert.strictEqual(res.statusCode, 200);
+    assert.ok(res.body.warnings.some(w => w.code === 'pin.serves_sample_data'));
+});
+
+test('BFSF-452: inactive automation: an edited pin still saves', async () => {
+    seedManual({ isActive: false });
+    const res = await put({ definition: pinDef({ pinnedOutput: { a: 1 }, pinnedSource: 'edited' }) });
+    assert.strictEqual(res.statusCode, 200);
 });

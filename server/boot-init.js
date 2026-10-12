@@ -12,7 +12,6 @@
  *   INIT_MS_TENANT_ID         — Microsoft SSO Tenant ID (default: 'common')
  *   INIT_AZURE_ENDPOINT       — Azure OpenAI endpoint URL
  *   INIT_AZURE_API_KEY        — Azure OpenAI API key
- *   INIT_AZURE_API_VERSION    — Azure OpenAI API version
  *   INIT_AZURE_MODELS         — Azure OpenAI deployment models (comma-separated)
  *   INIT_BING_SEARCH_KEY      — Bing Search API key
  *   INIT_BING_SEARCH_MARKET   — Bing Search market (e.g. en-US, nl-NL)
@@ -34,7 +33,6 @@ async function runBootInit() {
     const msTenantId = process.env.INIT_MS_TENANT_ID;
     const azureEndpoint = process.env.INIT_AZURE_ENDPOINT;
     const azureApiKey = process.env.INIT_AZURE_API_KEY;
-    const azureApiVersion = process.env.INIT_AZURE_API_VERSION;
     const azureModels = process.env.INIT_AZURE_MODELS;
     const bingSearchKey = process.env.INIT_BING_SEARCH_KEY;
     const bingSearchMarket = process.env.INIT_BING_SEARCH_MARKET;
@@ -80,7 +78,7 @@ async function runBootInit() {
                 const config = await loadConfig();
                 if (!config.admin.passwordHash) {
                     config.admin.passwordHash = await bcrypt.hash(adminPassword, 12);
-                    if (saveConfig(config)) {
+                    if (await saveConfig({ admin: config.admin })) {
                         log.info('[boot-init] ✅ Admin password set');
 
                         // Create admin user in the users table
@@ -115,7 +113,7 @@ async function runBootInit() {
                 if (msClientSecret) config.providers.microsoft.clientSecret = msClientSecret;
                 config.providers.microsoft.tenantId = msTenantId || 'common';
 
-                if (saveConfig(config)) {
+                if (await saveConfig({ providers: { microsoft: config.providers.microsoft } })) {
                     log.info('[boot-init] ✅ Microsoft SSO configured');
                 } else {
                     log.error('[boot-init] ❌ Failed to save Microsoft SSO config');
@@ -129,7 +127,6 @@ async function runBootInit() {
                 await saveAIConfig({
                     azureEndpoint: azureEndpoint || undefined,
                     azureApiKey: azureApiKey || undefined,
-                    azureApiVersion: azureApiVersion || undefined,
                 });
                 if (azureModels) {
                     await configStore.setConfig('azure_models', azureModels);

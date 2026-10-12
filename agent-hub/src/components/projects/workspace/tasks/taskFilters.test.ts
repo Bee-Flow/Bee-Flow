@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ProjectTask } from '../../../../api/queries/projectTasks';
-import { allLabels, applyFilters, hasFilters, NO_FILTERS, sortTasks } from './taskFilters';
+import { activeFilterCount, allLabels, applyFilters, hasFilters, NO_FILTERS, sortTasks } from './taskFilters';
 
 const task = (id: string, extra: Partial<ProjectTask> = {}): ProjectTask => ({
     id, title: id, description: '', status: 'todo', priority: 'normal', labels: [], checklist: [], sortOrder: 0, source: null,
@@ -30,6 +30,9 @@ describe('task filters', () => {
         expect(hasFilters(NO_FILTERS)).toBe(false);
         expect(hasFilters({ ...NO_FILTERS, label: 'x' })).toBe(true);
         expect(allLabels(TASKS)).toEqual(['launch', 'legal']);
+        // The Filter button counts menu filters only; the search shows itself.
+        expect(activeFilterCount({ ...NO_FILTERS, search: 'x' })).toBe(0);
+        expect(activeFilterCount({ ...NO_FILTERS, who: 'me', label: 'x', overdueOnly: true })).toBe(3);
     });
 
     it('sorts by due date (none last), by priority, and newest first', () => {

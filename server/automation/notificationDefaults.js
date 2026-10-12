@@ -1,5 +1,5 @@
 /**
- * Per-routine notification policy: the shape, the defaults and the reader.
+ * Per-automation notification policy: the shape, the defaults and the reader.
  *
  * Stored under `definition.notificationSettings` (Studio → Automations
  * handoff 5, the Settings page's Notifications section):
@@ -35,13 +35,13 @@
  * it in the daily summary instead (the design's "Het is gelukt · samenvatting").
  * Without an enabled digest it falls back to direct, so nothing is ever lost.
  *
- * `throttle.maxPerHour`: at most that many messages per routine, event and
+ * `throttle.maxPerHour`: at most that many messages per automation, event and
  * recipient in any rolling hour; the rest are bundled into one "n more"
  * message when the hour has passed (jobs/automationDigest.js). null = no cap.
  *
  * The older shape ({ enabled, level, channels: inapp|email|nc_talk|
  * nc_notification, ncTalkRoom }) is read by normalizeNotificationSettings, so
- * a routine saved before handoff 5 keeps behaving as it did. Nothing rewrites
+ * an automation saved before handoff 5 keeps behaving as it did. Nothing rewrites
  * stored rows: the next save from the Settings page writes the new shape.
  *
  * Mirrored as data in

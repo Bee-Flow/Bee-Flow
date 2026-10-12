@@ -14,7 +14,7 @@
 import type { TranslateFn } from '@/core/i18n';
 
 import { findingKind, worstByEntity } from './checks';
-import { dependenciesByNode, formTriggeredRoutines, nodeIdFor } from './graph';
+import { dependenciesByNode, formTriggeredAutomations, nodeIdFor } from './graph';
 import { BANDS, SECTIONS, mayRemove, type BandKey, type SectionDef } from './sections';
 import type { Completeness, Finding, GraphNode, SolutionGraph } from './solution';
 import type { FiledItem, ProjectResources } from './types';
@@ -69,7 +69,7 @@ export function contentBands(input: ContentInput): BandContent[] {
     const derived: Derived = {
         deps: dependenciesByNode(input.graph),
         worst: worstByEntity(input.completeness?.findings),
-        forms: formTriggeredRoutines(input.graph),
+        forms: formTriggeredAutomations(input.graph),
     };
     return BANDS.map(({ key, sections }) => {
         const states: SectionState[] = SECTIONS.filter((s) => sections.includes(s.key)).map((section) => {

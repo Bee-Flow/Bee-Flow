@@ -19,7 +19,7 @@ const render = (ui, options) => rtlRender(ui, { wrapper: queryWrapper(), ...opti
  * handler, routes/skills/examples.js), it reads the redacted preview before
  * anything is stored, and it says so on screen before the click.
  *
- * For "May use", the claim is that only an `agent_call` routine can be
+ * For "May use", the claim is that only an `agent_call` automation can be
  * offered — "may use" means "offered as a callable tool", and the runtime
  * dispatches nothing else.
  */
@@ -311,7 +311,7 @@ describe('taking an example from a conversation', () => {
 });
 
 describe('"may use"', () => {
-    it('offers a routine to link and records it as an allowed automation', () => {
+    it('offers an automation to link and records it as an allowed automation', () => {
         const onPatch = vi.fn();
         render(<CanUseHarness
             automations={[{ id: 'a1', title: 'Look up quote status' }]}
@@ -322,7 +322,7 @@ describe('"may use"', () => {
         expect(onPatch).toHaveBeenCalledWith({ allowedAutomationIds: ['a1'] });
     });
 
-    it('says why the routine list is empty instead of showing nothing', () => {
+    it('says why the automation list is empty instead of showing nothing', () => {
         render(<CanUseHarness automations={[]} knowledgeBases={[]} />);
         fireEvent.click(screen.getByTestId('skill-grant-add'));
         expect(screen.getByText(/an agent calls it/)).toBeTruthy();

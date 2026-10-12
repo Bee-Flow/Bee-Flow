@@ -4,7 +4,7 @@
  * An `app_pick` field asks the person filling a form for a RECORD in an app
  * they already use — the Fireflies transcript of last Tuesday's call, the Bee
  * Flow meeting note, the customer's email — instead of asking them to copy and
- * paste it. They search, they click, and the routine receives the record's text
+ * paste it. They search, they click, and the automation receives the record's text
  * the same way it receives the text of an uploaded document.
  *
  * This module is the registry of what may be picked, and nothing else: pure
@@ -35,7 +35,7 @@
  *
  *   • ONE SHAPE OUT, WHATEVER WENT IN. Fireflies answers with sentences, Gmail
  *     with a MIME body, a meeting note with a summary and a transcript. A
- *     routine binding `trigger.output.<field>.text` must not have to care. Each
+ *     automation binding `trigger.output.<field>.text` must not have to care. Each
  *     source flattens its own record to `{ title, subtitle, url, text }`, the
  *     same contract `file` fields got from formUploadText — so an ai_step reads
  *     a picked transcript exactly as it reads an attached PDF.
@@ -104,7 +104,7 @@ function driveQuery(query) {
 }
 
 /**
- * An email as a routine should read it: the headers that say who and when,
+ * An email as an automation should read it: the headers that say who and when,
  * then the body. Built as a list-then-join rather than a clever filter, so a
  * message missing its From line still renders with the blank line in the right
  * place.
@@ -152,7 +152,7 @@ function minutes(v) {
  * Drop the empty keys from a `data` object.
  *
  * A structured field that is present-but-empty is worse than an absent one: a
- * routine branching on `data.organizer` cannot tell "this meeting had no
+ * automation branching on `data.organizer` cannot tell "this meeting had no
  * organizer" from "this source does not report one", and an ai_step handed
  * `organizer: ""` will cheerfully reason about the empty string.
  */
@@ -202,7 +202,7 @@ const SOURCES = [
         mapRecord: (raw) => {
             const sentences = Array.isArray(raw?.sentences) ? raw.sentences : [];
             // Speaker-prefixed lines, because "who said it" is half of what a
-            // routine summarising a call has to work with.
+            // automation summarising a call has to work with.
             const body = sentences
                 .map(s => `${s?.speaker ? `${s.speaker}: ` : ''}${str(s?.text, 4000)}`)
                 .join('\n');
@@ -214,7 +214,7 @@ const SOURCES = [
                 // upward rather than presenting a clipped call as a whole one.
                 text: body,
                 partial: !!raw?.truncated,
-                // The METADATA of the call, not a second copy of it. A routine
+                // The METADATA of the call, not a second copy of it. An automation
                 // that only needs "when was this and who was on it" should not
                 // have to send a model the whole transcript to find out.
                 data: compact({
@@ -305,7 +305,7 @@ const SOURCES = [
         })),
         // drive_get_content is the one that EXPORTS — a Doc as text, a Sheet as
         // CSV, a PDF through the extractor. drive_get_file would hand back
-        // metadata a routine cannot read.
+        // metadata an automation cannot read.
         fetchTool: 'drive_get_content',
         fetchArgs: (recordId) => ({ fileId: recordId }),
         mapRecord: (raw) => ({

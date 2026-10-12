@@ -1,5 +1,5 @@
 /**
- * The three lists every picker in the skill editor needs — routines an agent
+ * The three lists every picker in the skill editor needs — automations an agent
  * can call, knowledge bases, tables — read independently, so one list that
  * falls over does not take the others (or the editor) down.
  *
@@ -12,12 +12,12 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { skillKeys } from '../api/keys';
-import { listAgentKnowledgeBases, listCallableRoutines, listTables, type PickerItem } from '../api/pickers';
+import { listAgentKnowledgeBases, listCallableAutomations, listTables, type PickerItem } from '../api/pickers';
 
-export type PickerList = 'routines' | 'kbs' | 'tables';
+export type PickerList = 'automations' | 'kbs' | 'tables';
 
 export interface PickerData {
-    routines: PickerItem[];
+    automations: PickerItem[];
     kbs: PickerItem[];
     tables: PickerItem[];
     loaded: boolean;
@@ -26,7 +26,7 @@ export interface PickerData {
 }
 
 const FETCH: Record<PickerList, () => Promise<PickerItem[] | null>> = {
-    routines: listCallableRoutines,
+    automations: listCallableAutomations,
     kbs: listAgentKnowledgeBases,
     tables: listTables,
 };
@@ -41,13 +41,13 @@ function usePickerList(list: PickerList, enabled: boolean) {
 }
 
 export function usePickerData(enabled = true): PickerData {
-    const routines = usePickerList('routines', enabled);
+    const automations = usePickerList('automations', enabled);
     const kbs = usePickerList('kbs', enabled);
     const tables = usePickerList('tables', enabled);
-    const reads = { routines, kbs, tables };
+    const reads = { automations, kbs, tables };
     const lists = Object.keys(reads) as PickerList[];
     return {
-        routines: routines.data ?? [],
+        automations: automations.data ?? [],
         kbs: kbs.data ?? [],
         tables: tables.data ?? [],
         loaded: lists.every((l) => reads[l].data !== undefined),

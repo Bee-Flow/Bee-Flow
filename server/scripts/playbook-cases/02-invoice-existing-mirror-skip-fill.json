@@ -19,7 +19,7 @@
   "status": "done",
   "phases": {
    "table": "done",
-   "routine": "done",
+   "automation": "done",
    "fill": "skipped",
    "app": "done",
    "approvals": [
@@ -29,7 +29,7 @@
    ],
    "design": "done"
   },
-  "routine": {
+  "automation": {
    "finalized": true,
    "maxFailedCalls": 2,
    "maxRounds": 10,

@@ -1,7 +1,7 @@
 /**
- * The routine's draft seen through one of its flowlets (state/scopedStore):
+ * The automation's draft seen through one of its flowlets (state/scopedStore):
  * the same key, the same row, a store whose definition is the flowlet's and
- * whose edits land in the whole routine. Stable per routine store and key.
+ * whose edits land in the whole automation. Stable per automation store and key.
  */
 
 import { useMemo } from 'react';

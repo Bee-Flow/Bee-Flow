@@ -1,5 +1,5 @@
 /**
- * A new routine starts from the same document on both clients: the web's
+ * A new automation starts from the same document on both clients: the web's
  * createAutomationDraft and createFormAutomation
  * (agent-hub/src/components/admin/Studio/studioApps.jsx), read as TEXT —
  * they import the builder chunk lazily and cannot run under jest.
@@ -16,7 +16,7 @@ const WEB = fs.readFileSync(
     'utf8',
 );
 
-describe('the new-routine seed', () => {
+describe('the new-automation seed', () => {
     it('is the web draft body: schemaVersion 1, a manual trigger, empty steps, edges and vars', () => {
         const body = WEB.slice(WEB.indexOf('export async function createAutomationDraft'));
         expect(body).toContain('schemaVersion: 1,');

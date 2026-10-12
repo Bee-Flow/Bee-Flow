@@ -717,7 +717,7 @@ test('the thinking temperature floor is the family\'s own number — Gemma 4 has
 // assistant messages after the last user turn. BaseProvider strips the
 // internal `thinking` field, so the mapping has to happen before it.
 
-const THOUGHT = [{ id: 't0', text: 'The table needs a supplier column.' }, { id: 't1', text: 'Then the routine.' }];
+const THOUGHT = [{ id: 't0', text: 'The table needs a supplier column.' }, { id: 't1', text: 'Then the automation.' }];
 const TURN = [
     { role: 'system', content: 'You build apps.' },
     { role: 'user', content: 'Build an invoice tracker.' },
@@ -728,7 +728,7 @@ const TURN = [
 test('reasoning_content is replayed on the assistant tool-call message when the turn thinks on llama.cpp', () => {
     const body = new LocalProvider('llamacpp').buildRequestBody('gemma-4-26b-a4b', TURN, { reasoningEffort: 'medium' });
     const assistant = body.messages[2];
-    assert.strictEqual(assistant.reasoning_content, 'The table needs a supplier column.\nThen the routine.');
+    assert.strictEqual(assistant.reasoning_content, 'The table needs a supplier column.\nThen the automation.');
     assert.strictEqual(assistant.thinking, undefined, 'the internal field never reaches the wire');
     assert.deepStrictEqual(assistant.tool_calls, TURN[2].tool_calls);
     // The caller's message objects are not mutated.
@@ -745,7 +745,7 @@ test('no replay when the turn does not think, off llama.cpp, before the last use
     assert.strictEqual(at2('llamacpp', TURN, { reasoningEffort: 'none' }).reasoning_content, undefined);
     assert.strictEqual(at2('llamacpp', TURN, { budgetTokens: 0 }).reasoning_content, undefined);
     // No preference expressed is not "off": the server may be thinking by default.
-    assert.strictEqual(at2('llamacpp', TURN, {}).reasoning_content, 'The table needs a supplier column.\nThen the routine.');
+    assert.strictEqual(at2('llamacpp', TURN, {}).reasoning_content, 'The table needs a supplier column.\nThen the automation.');
     // vLLM / Ollama / a generic endpoint: the field is llama-server's replay contract, not theirs.
     assert.strictEqual(at2('vllm', TURN, { reasoningEffort: 'medium' }).reasoning_content, undefined);
     assert.strictEqual(at2('ollama', TURN, { reasoningEffort: 'medium' }).reasoning_content, undefined);

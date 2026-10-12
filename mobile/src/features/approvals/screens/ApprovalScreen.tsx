@@ -4,7 +4,7 @@
  * This screen exists because the notification router used to answer
  * `WEB_ONLY('Approving a step')` for a link the phone was perfectly capable of
  * acting on — and because approving is the most phone-shaped thing in the
- * whole automation product: a routine has stopped on a yes-or-no, and the
+ * whole automation product: an automation has stopped on a yes-or-no, and the
  * alternative to answering it here is that it waits until you are back at a
  * computer.
  *

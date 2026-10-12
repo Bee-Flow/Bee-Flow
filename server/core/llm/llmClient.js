@@ -11,6 +11,7 @@ const { getProviderForModel } = require('../aiAgent');
 const { parseGemmaArgs, recoverLeakedToolCalls, hasLeakedToolCallSyntax } = require('./leakedToolCalls');
 const { looksGarbled } = require('./partialJsonScan');
 const log = require('../../telemetry/log');
+const { createUsageAccumulator } = require('../providers/usageNormalizer');
 
 // How much of an unparsable argument string one warning may carry: enough
 // for a whole compose answer to become a parser fixture, never a batch dump.
@@ -139,6 +140,26 @@ function readStopReason(result) {
 }
 
 /**
+ * Whether a forced-tool answer without the tool deserves one more round: only
+ * on an adapter that could not force the call for this model (it ran under
+ * `auto`), and not when the model declined on policy or ran out of room —
+ * a retry repeats both.
+ */
+function shouldRetryUnforced(adapter, modelId, read) {
+    if (typeof adapter?.supportsForcedToolChoice !== 'function') return false;
+    if (adapter.supportsForcedToolChoice(modelId)) return false;
+    return !['refusal', 'max_tokens', 'length', 'model_context_window_exceeded'].includes(read.stopReason);
+}
+
+/** Usage of two rounds as one, in the normalised shape. */
+function sumUsage(a, b) {
+    const acc = createUsageAccumulator();
+    acc.add(a);
+    acc.add(b);
+    return acc.hasUsage ? acc.total() : (b ?? a);
+}
+
+/**
  * Read a forced tool call's answer out of a chat result, wherever the model
  * put it. The ladder, most to least precise:
  *   1. the tool call whose name matches `toolName` — a model with several
@@ -233,7 +254,7 @@ class LLMClient {
     /**
      * Resolve the provider config + adapter for a model.
      * @returns {Promise<{ apiKey: string, baseUrl: string, adapter: any, providerType: string, modelId: string,
-     *   project: string|null, location: string|null, serviceAccountKey: any, apiVersion: string|null }>}
+     *   project: string|null, location: string|null, serviceAccountKey: any }>}
      */
     async _resolve(modelId) {
         const config = await getProviderForModel(modelId);
@@ -248,10 +269,6 @@ class LLMClient {
             project: config.project || null,
             location: config.location || null,
             serviceAccountKey: config.serviceAccountKey || null,
-            // apiVersion is required by the Azure adapter (api-version query
-            // param). The direct-chat tier path forwards it; dropping it here
-            // silently broke Azure-hosted calls (e.g. title generation).
-            apiVersion: config.apiVersion || null,
         };
     }
 
@@ -260,8 +277,8 @@ class LLMClient {
      * @returns {Promise<{content, toolCalls, usage}>}
      */
     async chat(modelId, messages, options = {}) {
-        const { apiKey, baseUrl, adapter, project, location, serviceAccountKey, apiVersion } = await this._resolve(modelId);
-        return adapter.chat(apiKey, baseUrl, modelId, messages, { ...options, project, location, serviceAccountKey, apiVersion });
+        const { apiKey, baseUrl, adapter, project, location, serviceAccountKey } = await this._resolve(modelId);
+        return adapter.chat(apiKey, baseUrl, modelId, messages, { ...options, project, location, serviceAccountKey });
     }
 
     /**
@@ -300,8 +317,8 @@ class LLMClient {
      */
     async chatForcedTool(modelId, messages, toolDef, options = {}) {
         const resolved = await this._resolve(modelId);
-        const { apiKey, baseUrl, adapter, project, location, serviceAccountKey, apiVersion } = resolved;
-        const providerOpts = { project, location, serviceAccountKey, apiVersion };
+        const { apiKey, baseUrl, adapter, project, location, serviceAccountKey } = resolved;
+        const providerOpts = { project, location, serviceAccountKey };
         const toolName = toolDef?.function?.name;
         const schema = toolDef?.function?.parameters;
 
@@ -363,7 +380,28 @@ class LLMClient {
         // has been seen to use is read by extractForcedResult; returning
         // `structured: null` for an answer that was sitting in `content` all
         // along made every caller report "the model answered nothing".
-        return extractForcedResult(result, toolName, { modelId });
+        const read = extractForcedResult(result, toolName, { modelId });
+        if (read.structured || !shouldRetryUnforced(adapter, modelId, read)) return read;
+
+        // A model that refuses a forced tool_choice (Claude Sonnet 5.5 /
+        // Opus 5.5 / Fable 5.1) ran this call with `auto` plus an instruction,
+        // and `auto` does not guarantee a call. One retry that quotes the
+        // prose answer back and asks for the tool is the documented remedy.
+        log.warn(`[LLMClient] forced tool ${toolName} on ${modelId}: answered without the tool under auto (stop=${read.stopReason}); retrying once`);
+        const retryMessages = [...messages];
+        if (typeof result?.content === 'string' && result.content.trim()) {
+            retryMessages.push({ role: 'assistant', content: result.content });
+        }
+        retryMessages.push({
+            role: 'user',
+            content: toolName
+                ? `Call the \`${toolName}\` tool now with your answer. Do not reply in plain text.`
+                : 'Call one of the provided tools now with your answer. Do not reply in plain text.',
+        });
+        const retried = await adapter.chat(apiKey, baseUrl, modelId, retryMessages, forcedOpts);
+        const second = extractForcedResult(retried, toolName, { modelId });
+        // Both rounds were billed; a caller that books usage must see both.
+        return second.structured ? { ...second, usage: sumUsage(result?.usage, retried?.usage) } : read;
     }
 
     /**
@@ -383,8 +421,8 @@ class LLMClient {
      *   text, thinking, tool_use, done, error
      */
     async stream(modelId, messages, options = {}, onEvent) {
-        const { apiKey, baseUrl, adapter, project, location, serviceAccountKey, apiVersion } = await this._resolve(modelId);
-        return adapter.stream(apiKey, baseUrl, modelId, messages, { ...options, project, location, serviceAccountKey, apiVersion }, onEvent);
+        const { apiKey, baseUrl, adapter, project, location, serviceAccountKey } = await this._resolve(modelId);
+        return adapter.stream(apiKey, baseUrl, modelId, messages, { ...options, project, location, serviceAccountKey }, onEvent);
     }
 
     /**
@@ -462,14 +500,14 @@ class LLMClient {
     /**
      * Generate a title using an ALREADY-RESOLVED provider/adapter — the exact
      * same primitives the direct-chat tier path uses (getProviderForModel +
-     * getAdapter → adapter.chat(apiKey, apiUrl, modelId, msgs, { …, apiVersion })).
+     * getAdapter → adapter.chat(apiKey, apiUrl, modelId, msgs, { … })).
      * Callers that have already resolved the provider (e.g. directChat, which
      * shares the conversation's adapter) pass it in so there's no second
      * lookup and no chance of a divergent resolution.
-     * @param {{adapter, apiKey, apiUrl, modelId, apiVersion}} provider
+     * @param {{adapter, apiKey, apiUrl, modelId}} provider
      */
     async generateTitleWithProvider(provider, userMessage, systemPrompt, options = {}) {
-        const { adapter, apiKey, apiUrl, modelId, apiVersion } = provider || {};
+        const { adapter, apiKey, apiUrl, modelId } = provider || {};
         if (!adapter || !modelId) return 'New Chat';
         const { maxInputChars = 500, ...chatOpts } = options;
         const messages = this._buildTitleMessages(userMessage, systemPrompt, maxInputChars);
@@ -480,7 +518,6 @@ class LLMClient {
                 temperature: 0.3,
                 budgetTokens: 0,           // Disable thinking — title gen is trivial
                 reasoningEffort: 'none',   // Disable reasoning for OpenAI models too
-                apiVersion: apiVersion || undefined,
                 ...chatOpts,
             });
             return this._sanitiseTitle(result.content || '');
@@ -493,7 +530,7 @@ class LLMClient {
     /**
      * Generate a short title for a conversation. Resolves the provider the same
      * way the chat-tier path does (via _resolve → getProviderForModel +
-     * getAdapter, now including apiVersion) and delegates to
+     * getAdapter) and delegates to
      * generateTitleWithProvider, so a provider error returns 'New Chat' instead
      * of bubbling.
      */
@@ -506,7 +543,7 @@ class LLMClient {
             return 'New Chat';
         }
         return this.generateTitleWithProvider(
-            { adapter: r.adapter, apiKey: r.apiKey, apiUrl: r.baseUrl, modelId: r.modelId || modelId, apiVersion: r.apiVersion },
+            { adapter: r.adapter, apiKey: r.apiKey, apiUrl: r.baseUrl, modelId: r.modelId || modelId },
             userMessage,
             systemPrompt,
             options,
@@ -541,21 +578,13 @@ class LLMClient {
         // Cross-round usage accumulation. A tool loop is one logical model call
         // to its callers (usage logging, cost accounting), but N provider calls
         // under the hood — returning only the last round's usage under-bills
-        // every round before it. Canonical snake_case; tolerates adapters that
-        // report camelCase (the same dual-read usageEntry() does).
-        const usageTotals = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0, cached_tokens: 0, reasoning_tokens: 0 };
-        const addUsage = (u) => {
-            if (!u || typeof u !== 'object') return;
-            const pick = (snake, camel) => {
-                const v = u[snake] ?? u[camel];
-                return Number.isFinite(Number(v)) ? Number(v) : 0;
-            };
-            usageTotals.prompt_tokens += pick('prompt_tokens', 'promptTokens');
-            usageTotals.completion_tokens += pick('completion_tokens', 'completionTokens');
-            usageTotals.total_tokens += pick('total_tokens', 'totalTokens');
-            usageTotals.cached_tokens += pick('cached_tokens', 'cachedTokens');
-            usageTotals.reasoning_tokens += pick('reasoning_tokens', 'reasoningTokens');
-        };
+        // every round before it. The accumulator reads raw or normalised usage
+        // (snake_case or camelCase) and keeps the cache read/write counts, the
+        // 5m/1h write split, tier/geo and server-tool counts, so one usage row
+        // covers the whole loop without losing what the cost depends on.
+        const usageAcc = createUsageAccumulator();
+        const usageTotals = usageAcc.total();
+        const addUsage = (u) => usageAcc.add(u);
 
         // Force the synthesis call to emit structured output via `finalTool`.
         // Reuses the same provider-aware forcing as chatForcedTool, so the

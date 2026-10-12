@@ -1,15 +1,15 @@
 /**
- * The per-routine run scope (handoff 5 sharing): buildRunFilterWhere's
+ * The per-automation run scope (handoff 5 sharing): buildRunFilterWhere's
  * `{ automation: { automationId } }` scope and the `startedByUserId` filter,
  * run for real against PGlite so the SQL is proven, not just its shape.
  *
  * Proven:
- *   - the routine scope matches that routine's runs whoever owned it then;
+ *   - the automation scope matches that automation's runs whoever owned it then;
  *   - two scopes at once still match nothing;
  *   - startedByUserId keeps the runs that person started OR submitted the
  *     form for, and nothing else;
  *   - it only ever narrows the user scope too;
- *   - the user scope leaves out the runs of a routine in the trash (r6).
+ *   - the user scope leaves out the runs of an automation in the trash (r6).
  *
  * Run: cd server && node --test stores/automationStore/runs.automationScope.test.js
  */
@@ -41,7 +41,7 @@ before(async () => {
             ('r4', 'a1', 'new-owner', NULL, NULL),
             ('r5', 'a2', 'new-owner', 'ron', NULL),
             ('r6', 'a3', 'new-owner', 'ron', NULL);
-        -- The routines the lists join for title/kind; a3 sits in the trash.
+        -- The automations the lists join for title/kind; a3 sits in the trash.
         CREATE TABLE automations (id TEXT PRIMARY KEY, deleted_at TIMESTAMPTZ);
         INSERT INTO automations (id, deleted_at) VALUES ('a1', NULL), ('a2', NULL), ('a3', NOW());
     `);
@@ -55,7 +55,7 @@ async function ids(scope, filters = {}) {
     return r.rows.map(x => x.id);
 }
 
-test('the routine scope: every run of that routine, whoever owned it then', async () => {
+test('the automation scope: every run of that automation, whoever owned it then', async () => {
     assert.deepStrictEqual(await ids({ automation: { automationId: 'a1' } }), ['r1', 'r2', 'r3', 'r4']);
     const w = buildRunFilterWhere({ automation: { automationId: 'a1' } }, {}, 1);
     assert.strictEqual(w.joinUsers, false);

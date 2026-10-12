@@ -105,7 +105,7 @@ export function useBfMarks(webpageId, { enabled = true, reloadKey = null } = {})
 export function familyLabel(t, family) {
     switch (family) {
         case 'datatable': return t('webpages.code.family_datatable', 'Data table');
-        case 'automation': return t('webpages.code.family_automation', 'Routine');
+        case 'automation': return t('webpages.code.family_automation', 'Automation');
         case 'agent': return t('webpages.code.family_agent', 'Agent');
         case 'incomplete': return t('webpages.code.family_incomplete', 'Not linked yet');
         case 'unknown': return t('webpages.code.family_unknown', 'Not recognised');

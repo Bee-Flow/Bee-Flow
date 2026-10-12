@@ -1,5 +1,5 @@
 /**
- * Global search, the CORPUS-FILTERED half: knowledge bases, routines and
+ * Global search, the CORPUS-FILTERED half: knowledge bases, automations and
  * meeting notes have NO query parameter on their list routes. Refetching all
  * three per keystroke would be three requests for a filter the phone can do in
  * a millisecond, so the lists are pulled once with a long staleTime and matched
@@ -70,7 +70,7 @@ export async function fetchSearchCorpus(signal?: AbortSignal): Promise<SearchCor
 
     const [basesResult, automationsResult, transcriptsResult] = await Promise.allSettled([
         listKnowledgeBases(signal),
-        // Without `kind: 'block'` rows: those are reusable Steps, not routines.
+        // Without `kind: 'block'` rows: those are reusable Steps, not automations.
         listAutomations(signal),
         listTranscriptions(signal, 100),
     ]);

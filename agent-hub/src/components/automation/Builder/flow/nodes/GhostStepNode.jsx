@@ -132,7 +132,7 @@ export default function GhostStepNode({ data }) {
     const { t } = useTranslation();
     if (data?.draft && typeof data.draft === 'object') return <DraftGhost draft={data.draft} />;
     const caption = typeof data?.caption === 'string' && data.caption.trim() ? data.caption.trim() : null;
-    const text = caption || t('routines.canvas.build_next', 'Working on the next step…');
+    const text = caption || t('automations.canvas.build_next', 'Working on the next step…');
     return (
         <div
             className="pointer-events-none select-none flex flex-col items-center justify-center gap-1.5 px-4"

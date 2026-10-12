@@ -3,8 +3,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('../../../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 
-import { authFetch } from '../../../../../utils/helpers';
 import ConnectorSyncPanel from './ConnectorSyncPanel';
+import { authFetch } from '../../../../../utils/helpers';
 
 /**
  * "Keep this in a table" — the panel that turns a connector into a cached,

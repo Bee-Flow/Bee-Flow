@@ -1,9 +1,9 @@
 /**
- * A routine's webhook URLs and public form links: the list, and the three
+ * An automation's webhook URLs and public form links: the list, and the three
  * writes on it. Creating one checks the named trigger against the STORED
  * definition (a trigger dropped a second ago must be saved first), so the
- * draft is flushed before a create. `flowKey` is the routine id, or a new
- * routine's draft key.
+ * draft is flushed before a create. `flowKey` is the automation id, or a new
+ * automation's draft key.
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';

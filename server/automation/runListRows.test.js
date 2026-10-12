@@ -121,7 +121,7 @@ test('decorate: the org log gets no names and no approval lookups; a failing loo
     );
     assert.equal(rows[0].startedBy, null);
     assert.equal(rows[0].approvalId, undefined);
-    assert.equal(rows[0].stepsTotal, 4, 'the routine\'s own definition stands in for a missing snapshot');
+    assert.equal(rows[0].stepsTotal, 4, 'the automation\'s own definition stands in for a missing snapshot');
     assert.deepEqual(await decorator.decorate([]), []);
 });
 

@@ -1,4 +1,4 @@
-/** Rename and re-describe a routine. Its steps are the flow editor's (Edit flow). */
+/** Rename and re-describe an automation. Its steps are the flow editor's (Edit flow). */
 
 import React, { useState } from 'react';
 
@@ -58,7 +58,7 @@ export function AutomationEditSheet({
                 multiline
                 maxLines={5}
                 autoCapitalize="sentences"
-                hint={t('mobile.automations.description_hint', 'What this routine is for, in a sentence.')}
+                hint={t('mobile.automations.description_hint', 'What this automation is for, in a sentence.')}
             />
         </Sheet>
     );

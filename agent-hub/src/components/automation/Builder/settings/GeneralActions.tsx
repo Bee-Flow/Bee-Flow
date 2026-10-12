@@ -14,7 +14,7 @@ interface Notice { tone: 'ok' | 'error'; text: string; copyId?: string; trashed?
 
 /**
  * Settings › General › Actions (artboard 5e-1): Duplicate · Export · Save as
- * template · Delete… Delete moves the routine to the trash (30 days, runs
+ * template · Delete… Delete moves the automation to the trash (30 days, runs
  * stay) and offers Undo right here.
  */
 export default function GeneralActions({ automation, onAutomationChange }: {
@@ -44,19 +44,19 @@ export default function GeneralActions({ automation, onAutomationChange }: {
     const actions: { key: ActionKey; icon: LucideIcon; title: string; hint: string; button: string; danger?: boolean; onClick: () => void }[] = [
         {
             key: 'duplicate', icon: Copy,
-            title: t('routines.settings.action_duplicate', 'Duplicate'),
-            hint: t('routines.settings.action_duplicate_hint', 'A copy as a draft, without runs'),
-            button: t('routines.settings.action_duplicate', 'Duplicate'),
+            title: t('automations.settings.action_duplicate', 'Duplicate'),
+            hint: t('automations.settings.action_duplicate_hint', 'A copy as a draft, without runs'),
+            button: t('automations.settings.action_duplicate', 'Duplicate'),
             onClick: () => run('duplicate', async () => {
                 const copyId = await duplicateAutomationOnServer(id);
-                return { tone: 'ok', text: t('routines.settings.duplicated', 'Copy created as a draft.'), copyId: copyId || undefined };
+                return { tone: 'ok', text: t('automations.settings.duplicated', 'Copy created as a draft.'), copyId: copyId || undefined };
             }),
         },
         {
             key: 'export', icon: Download,
-            title: t('routines.settings.action_export', 'Export'),
-            hint: t('routines.settings.action_export_hint', 'A file to share or to import into another environment'),
-            button: t('routines.settings.action_export', 'Export'),
+            title: t('automations.settings.action_export', 'Export'),
+            hint: t('automations.settings.action_export_hint', 'A file to share or to import into another environment'),
+            button: t('automations.settings.action_export', 'Export'),
             onClick: () => run('export', async () => {
                 const warnings = await downloadAutomationExport(id, title);
                 return warnings.length ? { tone: 'ok', text: warnings[0] } : null;
@@ -64,24 +64,24 @@ export default function GeneralActions({ automation, onAutomationChange }: {
         },
         {
             key: 'template', icon: Package,
-            title: t('routines.settings.action_template', 'Save as template'),
-            hint: t('routines.settings.action_template_hint', 'Colleagues can start their own from it'),
-            button: t('routines.settings.action_template_button', 'As template'),
+            title: t('automations.settings.action_template', 'Save as template'),
+            hint: t('automations.settings.action_template_hint', 'Colleagues can start their own from it'),
+            button: t('automations.settings.action_template_button', 'As template'),
             onClick: () => run('template', async () => {
                 await saveAsTemplate(id, { title, description: automation.description || undefined });
-                return { tone: 'ok', text: t('routines.settings.template_saved', 'Saved as a template for your organisation.') };
+                return { tone: 'ok', text: t('automations.settings.template_saved', 'Saved as a template for your organisation.') };
             }),
         },
         {
             key: 'delete', icon: Trash2, danger: true,
-            title: t('routines.settings.action_delete', 'Delete'),
-            hint: t('routines.settings.action_delete_hint', 'First 30 days in the trash; runs are kept'),
-            button: t('routines.settings.action_delete_button', 'Delete…'),
+            title: t('automations.settings.action_delete', 'Delete'),
+            hint: t('automations.settings.action_delete_hint', 'First 30 days in the trash; runs are kept'),
+            button: t('automations.settings.action_delete_button', 'Delete…'),
             onClick: async () => {
                 const ok = await confirm({
-                    title: t('routines.settings.delete_confirm_title', 'Move this automation to the trash?'),
-                    description: t('routines.settings.delete_confirm_body', 'It stops running. You can restore it from the trash for 30 days; its runs are kept.'),
-                    confirmLabel: t('routines.settings.delete_confirm', 'Move to trash'),
+                    title: t('automations.settings.delete_confirm_title', 'Move this automation to the trash?'),
+                    description: t('automations.settings.delete_confirm_body', 'It stops running. You can restore it from the trash for 30 days; its runs are kept.'),
+                    confirmLabel: t('automations.settings.delete_confirm', 'Move to trash'),
                     destructive: true,
                 });
                 if (!ok) return;
@@ -89,7 +89,7 @@ export default function GeneralActions({ automation, onAutomationChange }: {
                     const trashed = await trashAutomation(id);
                     invalidateAutomationTrash();
                     onAutomationChange?.({ ...automation, deletedAt: new Date().toISOString(), ...(trashed.automation || {}), isActive: false });
-                    return { tone: 'ok', text: t('routines.settings.trashed', 'Moved to the trash.'), trashed: true };
+                    return { tone: 'ok', text: t('automations.settings.trashed', 'Moved to the trash.'), trashed: true };
                 });
             },
         },
@@ -97,7 +97,7 @@ export default function GeneralActions({ automation, onAutomationChange }: {
 
     return (
         <div className="flex flex-col gap-2 pt-1">
-            <div className="text-[12px] font-semibold text-[var(--text-secondary)]">{t('routines.settings.actions', 'Actions')}</div>
+            <div className="text-[12px] font-semibold text-[var(--text-secondary)]">{t('automations.settings.actions', 'Actions')}</div>
             <ul className="rounded-[10px] border border-[var(--border-default)] bg-[var(--bg-card)] divide-y divide-[var(--border-default)]">
                 {actions.filter((a) => allowed[a.key]).map((a) => (
                     <li key={a.key} className="flex items-center gap-3 px-3.5 py-2.5 text-[12px]">
@@ -122,7 +122,7 @@ export default function GeneralActions({ automation, onAutomationChange }: {
                     <span>{notice.text}</span>
                     {notice.copyId && (
                         <a className={LINK_BTN} href={`/app/studio/automations/${encodeURIComponent(notice.copyId)}`}>
-                            {t('routines.settings.open_copy', 'Open the copy')}
+                            {t('automations.settings.open_copy', 'Open the copy')}
                         </a>
                     )}
                     {notice.trashed && (
@@ -135,10 +135,10 @@ export default function GeneralActions({ automation, onAutomationChange }: {
                                 invalidateAutomationTrash();
                                 // Always restored paused (POST /:id/restore).
                                 onAutomationChange?.({ ...automation, deletedAt: null, isActive: false });
-                                return { tone: 'ok', text: t('routines.settings.restored', 'Restored.') };
+                                return { tone: 'ok', text: t('automations.settings.restored', 'Restored.') };
                             })}
                         >
-                            {t('routines.settings.undo', 'Undo')}
+                            {t('automations.settings.undo', 'Undo')}
                         </button>
                     )}
                 </div>

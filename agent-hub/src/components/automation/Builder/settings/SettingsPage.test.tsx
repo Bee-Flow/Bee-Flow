@@ -65,7 +65,7 @@ describe('Settings page', () => {
         expect(typeof railProps.current?.onOpenSection).toBe('function');
     });
 
-    it('is read-only for someone the routine is only shared with to view', () => {
+    it('is read-only for someone the automation is only shared with to view', () => {
         render(withQueryClient(<SettingsTab automation={{ ...automation, myRole: 'view' }} onSave={vi.fn()} />));
         expect(screen.getByRole('note').textContent).toMatch(/Only the owner and people who can edit/);
         expect(screen.getByLabelText('Name').matches(':disabled')).toBe(true);

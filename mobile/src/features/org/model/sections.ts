@@ -59,7 +59,7 @@ export const WEB_ORG_SECTIONS: readonly OrgSection[] = [
     { id: 'auth', labelKey: 'settings.signin_method', label: 'Sign-in Method', icon: 'KeyRound', color: '#10b981', href: '/org/sign-in' },
     { id: 'privacy', labelKey: 'settings.privacy_shield', label: 'Privacy Shield', icon: 'Shield', color: '#ef4444', href: '/org/shield' },
     { id: 'encryption', labelKey: 'settings.encryption', label: 'Encryption', icon: 'Lock', color: '#8b5cf6', href: '/org/encryption' },
-    { id: 'ai_context', labelKey: 'settings.ai_context', label: 'Conversation Memory', icon: 'Brain', color: '#f59e0b', href: '/org/ai-context' },
+    { id: 'ai_context', labelKey: 'settings.ai_context', label: 'AI & Collaboration', icon: 'Brain', color: '#f59e0b', href: '/org/ai-context' },
     { id: 'integration_cache', labelKey: 'settings.integration_cache', label: 'Answer Reuse', icon: 'DatabaseZap', color: '#06b6d4', href: '/org/integration-cache' },
     { id: 'info', labelKey: 'settings.org_info', label: 'Organisation Info', icon: 'Info', color: '#14b8a6', href: '/org/info' },
     { id: 'org_usage', labelKey: 'settings.usage_monitoring', label: 'Usage & Monitoring', icon: 'BarChart3', color: '#f59e0b', href: '/org/usage' },
@@ -69,9 +69,21 @@ export const WEB_ORG_SECTIONS: readonly OrgSection[] = [
     { id: 'org_integrations', labelKey: 'settings.integrations', label: 'Integrations', icon: 'Link2', color: '#0ea5e9', href: '/org/integrations' },
     { id: 'org_github_sync', labelKey: 'settings.github_sync', label: 'GitHub Sync', icon: 'FolderGit2', color: '#8b5cf6', href: '/org/github-sync' },
     { id: 'org_nextcloud_sync', labelKey: 'settings.nextcloud_sync', label: 'Nextcloud Sync', icon: 'Cloud', color: '#0082C9', href: '/org/nextcloud' },
-    { id: 'org_meeting_templates', labelKey: 'settings.meeting_templates', label: 'Meeting templates', icon: 'FileText', color: '#a855f7', href: '/org/meeting-templates' },
+    { id: 'org_meeting_templates', labelKey: 'settings.meeting_templates', label: 'Meeting Templates', icon: 'FileText', color: '#a855f7', href: '/org/meeting-templates' },
     { id: 'org_azure', labelKey: 'settings.azure_config', label: 'Azure Configuration', icon: 'Cloud', color: '#0078D4', href: '/org/azure' },
 ];
+
+/**
+ * Web sections the phone deliberately does not offer (yet). Each one is a
+ * decision with a reason, not a gap nobody noticed: the lockstep tests skip
+ * exactly these and nothing else, and a deep link to one opens the org index.
+ *
+ *   org_mcp — the MCP library (Settings → Organisation → MCP), a web-only
+ *             screen for now; no mobile port planned in this round.
+ *   org_mcp_access — MCP tokens and scopes for outside clients: an admin
+ *             task done at a desk, where the token is pasted into a client.
+ */
+export const WEB_ONLY_ORG_SECTIONS: readonly string[] = ['org_mcp', 'org_mcp_access'];
 
 /** The phone's extra rows, listed after the web's. */
 export const MOBILE_ORG_SECTIONS: readonly OrgSection[] = [

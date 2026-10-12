@@ -29,7 +29,7 @@ vi.mock('./WebpageAppsPanel', () => ({
     default: ({ webpageId }) => <div data-testid="apps-panel">{`grants for ${webpageId}`}</div>,
 }));
 
-import WebpageActionsPanel, { scaffoldHttpRoutine, routineDeepLink } from './WebpageActionsPanel';
+import WebpageActionsPanel, { scaffoldHttpAutomation, automationDeepLink } from './WebpageActionsPanel';
 
 const CALL = {
     kind: 'fetch', method: null, url: 'https://api.vendor.com/v1/rates',
@@ -69,13 +69,13 @@ describe('WebpageActionsPanel', () => {
         expect(screen.getByText('https://api.vendor.com/v1/rates')).toBeInTheDocument();
     });
 
-    it('scaffolds an http_request routine with that URL and deep-links to it', async () => {
+    it('scaffolds an http_request automation with that URL and deep-links to it', async () => {
         authFetch.mockResolvedValue(response(clone()));
         createAutomation.mockResolvedValue({ automation: { id: 'auto_9' } });
         const onNavigate = vi.fn();
         render(<WebpageActionsPanel webpageId="wp1" onNavigate={onNavigate} />);
 
-        fireEvent.click(await screen.findByText('Turn it into a routine'));
+        fireEvent.click(await screen.findByText('Turn it into an automation'));
 
         await waitFor(() => expect(createAutomation).toHaveBeenCalledTimes(1));
         const body = createAutomation.mock.calls[0][0];
@@ -84,12 +84,12 @@ describe('WebpageActionsPanel', () => {
         await waitFor(() => expect(onNavigate).toHaveBeenCalledWith('studio/automations/auto_9'));
     });
 
-    it('a refused routine (no licence) says so instead of showing a stack trace', async () => {
+    it('a refused automation (no licence) says so instead of showing a stack trace', async () => {
         authFetch.mockResolvedValue(response(clone()));
         createAutomation.mockRejectedValue(new Error('403 Forbidden'));
         render(<WebpageActionsPanel webpageId="wp1" />);
 
-        fireEvent.click(await screen.findByText('Turn it into a routine'));
+        fireEvent.click(await screen.findByText('Turn it into an automation'));
         expect(await screen.findByRole('alert')).toHaveTextContent('not part of this plan');
     });
 
@@ -156,7 +156,7 @@ describe('WebpageActionsPanel — forms, agent and the promoted grants list', ()
         expect(screen.queryByText('No chat block on this page.')).toBeNull();
     });
 
-    it('somt de blokken op die een routine starten, in plaats van te beweren dat ze niet bestaan', async () => {
+    it('somt de blokken op die een automatisering starten, in plaats van te beweren dat ze niet bestaan', async () => {
         // De kaart zei letterlijk "form blocks are not part of this page's
         // building blocks yet" terwijl de Code-tab ernaast een bf-form met
         // bestand en regel tekende — twee panelen in dezelfde tab die elkaar
@@ -185,7 +185,7 @@ describe('WebpageActionsPanel — forms, agent and the promoted grants list', ()
         unmount();
         authFetch.mockResolvedValue(response(clone()));
         render(<WebpageActionsPanel webpageId="wp1" />);
-        expect(await screen.findByText('This page has no blocks that start a routine.')).toBeInTheDocument();
+        expect(await screen.findByText('This page has no blocks that start an automation.')).toBeInTheDocument();
 
         authFetch.mockResolvedValue(response(clone({
             forms: { supported: true, scanned: false },
@@ -214,29 +214,29 @@ describe('WebpageActionsPanel — forms, agent and the promoted grants list', ()
     });
 });
 
-describe('scaffoldHttpRoutine', () => {
+describe('scaffoldHttpAutomation', () => {
     it('takes the fixed part of a run-time-built address, never the ellipsis', () => {
-        const body = scaffoldHttpRoutine({
+        const body = scaffoldHttpAutomation({
             ...CALL, url: 'https://api.vendor.com/v1/…', urlPrefix: 'https://api.vendor.com/v1/', dynamic: true,
         });
         expect(body.definition.steps[0].url).toBe('https://api.vendor.com/v1/');
         expect(body.definition.steps[0].url).not.toContain('…');
-        // …en de routine zegt zelf dat hij nog niet af is.
+        // …en de automatisering zegt zelf dat hij nog niet af is.
         expect(body.description).toMatch(/built the rest of the address/);
     });
 
     it('keeps private targets blocked and carries the method it knew', () => {
-        const body = scaffoldHttpRoutine({ ...CALL, kind: 'xhr', method: 'POST' });
+        const body = scaffoldHttpAutomation({ ...CALL, kind: 'xhr', method: 'POST' });
         expect(body.definition.steps[0].blockPrivateTargets).toBe(true);
         expect(body.definition.steps[0].method).toBe('POST');
         // Een fetch levert geen methode op; die mag niet verzonnen worden als POST.
-        expect(scaffoldHttpRoutine(CALL).definition.steps[0].method).toBe('GET');
+        expect(scaffoldHttpAutomation(CALL).definition.steps[0].method).toBe('GET');
     });
 
     it('wires the one step to the trigger, so the draft is runnable', () => {
-        const body = scaffoldHttpRoutine(CALL);
+        const body = scaffoldHttpAutomation(CALL);
         expect(body.definition.edges).toEqual([{ from: 'trg', to: 'http_1' }]);
         expect(body.definition.trigger.id).toBe('trg');
-        expect(routineDeepLink('auto_1')).toBe('studio/automations/auto_1');
+        expect(automationDeepLink('auto_1')).toBe('studio/automations/auto_1');
     });
 });

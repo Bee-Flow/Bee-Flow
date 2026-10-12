@@ -26,6 +26,7 @@ const Module = require('module');
 // Every store and side-effect call lands in `touched`. A refused request must
 // leave it empty.
 const touched = [];
+let licenseSeatCap = null;
 const pass = (req, res, next) => next();
 
 const MOCKS = {
@@ -48,6 +49,7 @@ const MOCKS = {
         getInvitationById: async () => null,
         deleteInvitation: async () => true,
     },
+    '../../license': { getMaxSeatsForOrg: async () => licenseSeatCap },
     '../../utils/emailService': { sendInvitationEmail: async () => ({ success: true }) },
     '../../utils/perUserRateLimit': { perUserRateLimit: () => pass },
     '../../telemetry/log': { info() {}, warn() {}, error() {}, debug() {} },
@@ -71,32 +73,11 @@ Module._resolveFilename = function (request, parent, ...rest) {
 const router = require('./invitationRoutes');
 test.after(() => { Module._resolveFilename = originalResolve; });
 
-// A schema refusal travels as an error to the terminal handler, so the
-// harness has to answer one the way index.js does.
-const { terminalErrorHandler } = require('../../core/http/terminalErrorHandler');
+const { dispatcher } = require('../../core/http/routeHarness');
 
-function dispatch({ method, url, body = {}, session }) {
-    return new Promise((resolve, reject) => {
-        const req = {
-            method, url, originalUrl: url, path: url, body, query: {}, headers: {},
-            session: session || { user: { id: 'root' }, isAdmin: true }, get() { return undefined; },
-        };
-        const res = {
-            statusCode: 200, headersSent: false,
-            set() { return this; }, setHeader() {},
-            status(c) { this.statusCode = c; return this; },
-            json(b) { this.body = b; this.headersSent = true; resolve(this); return this; },
-            send(b) { this.body = b; this.headersSent = true; resolve(this); return this; },
-            end() { this.headersSent = true; resolve(this); return this; },
-        };
-        router(req, res, (err) => {
-            if (!err) return reject(new Error(`fell through: ${method} ${url}`));
-            terminalErrorHandler(err, req, res, (e) => reject(e));
-        });
-    });
-}
+const dispatch = dispatcher(router, { session: () => ({ user: { id: 'root' }, isAdmin: true }) });
 
-test.beforeEach(() => { touched.length = 0; });
+test.beforeEach(() => { touched.length = 0; licenseSeatCap = null; });
 
 /** Assert: refused with 400, the named field is in `details`, nothing touched. */
 async function refuses(request, field) {
@@ -139,4 +120,13 @@ test('a role the installation does define still travels to the invitee', async (
     const created = touched.find((t) => t.what === 'createInvitation').args[0];
     assert.strictEqual(created.role, 'agent_admin');
     assert.strictEqual(created.email, 'new@acme.test', 'trimmed once, by the schema');
+});
+
+test('a licence seat cap blocks the invite up front, even when the plan has no user limit', async () => {
+    licenseSeatCap = 1; // getActiveSeatCount mock reports 1 active seat
+    const res = await dispatch({ method: 'POST', url: '/invitations', body: { email: 'capped@acme.test' } });
+    assert.strictEqual(res.statusCode, 403);
+    assert.strictEqual(res.body.code, 'seat_cap_exceeded');
+    assert.strictEqual(res.body.max, 1);
+    assert.deepStrictEqual(touched, []);
 });

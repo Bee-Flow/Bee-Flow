@@ -5,7 +5,7 @@
  * and nothing else: the server re-reads the record as the person submitting,
  * so any content the browser sent would be content the server never asked for.
  * Second, that a question taking several records behaves like a list all the
- * way through — empty is `[]`, not `''`, or a routine that loops over the
+ * way through — empty is `[]`, not `''`, or an automation that loops over the
  * answer loops over nothing.
  */
 

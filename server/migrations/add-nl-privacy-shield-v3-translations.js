@@ -30,9 +30,12 @@ const NL_TRANSLATIONS = {
     'shield_shell.guard_running_checked': 'Detectie actief · gecontroleerd {when}',
     'shield_shell.hiw_two_checks': 'Stap 3 is de poort die altijd dichtgaat; stap 4 is één extra blik, alleen vóór een model buiten je organisatie, en de enige plek waar een medewerker iets te zeggen heeft. Het bericht bij stap 3 tegenhouden levert géén Ask-venster op — dat is stap 4 op “Ask”.',
     'shield_shell.hiw_two_checks_lead': 'Stap 3 en 4 zijn geen alternatieven.',
+    'shield_shell.hiw_open_outbound': 'Open Buiten je organisatie',
+    'shield_shell.hiw_open_processing': 'Open Als we iets vinden',
     'shield_shell.path_label': 'Pad',
     'shield_shell.save_changes': 'Wijzigingen opslaan',
     'shield_shell.summary_kinds': '{n} van {total} soorten',
+    'shield_shell.summary_kinds_of': '{n} van {total}',
     'shield_shell.summary_last_days': 'laatste {n} dagen',
     'shield_shell.summary_replace': 'vervangen door placeholders',
     'shield_shell.summary_review': '{n} om na te kijken',
@@ -116,7 +119,7 @@ const NL_TRANSLATIONS = {
 
     // ── When we find something + Leaving your org: the flow card and the two checks ───
     'shield_checks.action_heading': 'Als we persoonsgegevens vinden',
-    'shield_checks.automations_desc': 'Routines draaien zelfstandig, zonder dat iemand meekijkt. Hun gegevens en AI-stappen worden op dezelfde manier gecontroleerd als chat.',
+    'shield_checks.automations_desc': 'Automatiseringen draaien zelfstandig, zonder dat iemand meekijkt. Hun gegevens en AI-stappen worden op dezelfde manier gecontroleerd als chat.',
     'shield_checks.dlp_desc': 'Vlak voordat een bericht naar een AI buiten je organisatie gaat, wordt het nog één keer op persoonsgegevens gecontroleerd en afgehandeld zoals jij kiest.',
     'shield_checks.eu_desc_bold': 'alleen modellen',
     'shield_checks.eu_desc_lead': 'Chats gaan alleen naar AI-modellen die in de EU worden gehost (in te stellen onder AI Config → Chat Models). Geldt voor',
@@ -149,6 +152,7 @@ const NL_TRANSLATIONS = {
     'shield_checks.tools_gap_count_one': '1 tool-aanroep bevatte persoonsgegevens in de afgelopen {days} dagen.',
     'shield_checks.tools_gap_link': 'tool-kolommen van de matrix',
     'shield_checks.tools_gap_no_count': 'Stap ① en ② gelden niet voor tool-aanroepen — houd soorten tegen in de',
+    'shield_checks.tools_gap_tail': 'Tool-aanroepen gaan om stap 3 en 4 heen — houd soorten tegen in de',
 
     // ── What happened: in short, worth a look, KPIs, day by day, where it went, the log ───
     'shield_activity.action_held': 'Bestand tegengehouden',
@@ -218,6 +222,9 @@ const NL_TRANSLATIONS = {
     'shield_activity.log_hint': 'klik een rij om alles te zien wat is vastgelegd',
     'shield_activity.log_title': 'Logboek',
     'shield_activity.map_hint': 'klik een punt of een rij om te filteren',
+    'shield_activity.part_figures': 'Cijfers',
+    'shield_activity.part_lists': 'Soorten & mensen',
+    'shield_activity.parts_label': 'Onderdelen van Wat er gebeurde',
     'shield_activity.map_stayed': '{p}% bleef in Europa',
     'shield_activity.map_title': 'Waar het heen ging',
     'shield_activity.no_filter': 'Alles wordt getoond. Klik hieronder op iets om te verfijnen — filters stapelen.',
@@ -248,6 +255,7 @@ const NL_TRANSLATIONS = {
     'shield_activity.show_these': 'Toon deze',
     'shield_activity.showing': '{n} van {total} getoond',
     'shield_activity.showing_these': 'Deze worden getoond',
+    'shield_activity.special_category_total_only': 'Gezondheidsgegevens zie je alleen als totaal voor de organisatie, nooit per persoon.',
     'shield_activity.subtitle': 'Elke keer dat het schild ingreep bij een bericht, en elke aanroep van je organisatie naar een externe dienst.',
     'shield_activity.type_web_search': 'Webzoekopdracht',
     'shield_activity.worth_a_look': 'Het bekijken waard',

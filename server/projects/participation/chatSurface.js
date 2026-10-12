@@ -47,10 +47,12 @@ function makeChatSurface(deps = {}) {
         const project = await getProject(chat.projectId);
         if (!project) return null;
         const box = await chatCrypto().forProject(project);
-        const { messages } = await store().listMessages(chat.id, { limit: CONTEXT_MESSAGES });
+        // The main conversation only: a thread is its own conversation, and its
+        // replies must not read as later turns (or fill the window) here.
+        const { messages } = await store().listMessages(chat.id, { limit: CONTEXT_MESSAGES, threadId: null });
         const opened = [];
         for (const m of messages) {
-            if (m.deletedAt || m.authorKind === 'system') continue;
+            if (m.deletedAt || m.authorKind === 'system' || m.threadId) continue;
             let text;
             try {
                 text = box.openContent(chat.id, m.id, m.content);

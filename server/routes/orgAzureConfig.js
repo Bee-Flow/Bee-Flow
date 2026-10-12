@@ -21,8 +21,8 @@ const router = express.Router();
 const configStore = require('../stores/configStore');
 const userStore = require('../stores/userStore');
 const { resolveUserOrgIds } = require('../auth');
-const { loadConfig, isSuperAdmin } = require('../auth/permissions');
-const { syncAzureGroupsToOrg, getSyncSettings, setSyncSettings, getSyncStatus } = require('../integrations/azureGroupSync');
+const { loadConfig, saveConfig, isSuperAdmin } = require('../auth/permissions');
+const { syncAzureGroupsToOrg, getSyncSettings, setSyncSettings, getSyncStatus, assertSyncBinding } = require('../integrations/azureGroupSync');
 const { validate } = require('../core/http/validate');
 const { forbidden } = require('../core/http/errors');
 const { z } = require('zod');
@@ -128,6 +128,8 @@ const ConfigBody = z.preprocess(
         section('openai', {
             azureEndpoint: endpoint('azureEndpoint'),
             azureApiKey: text('azureApiKey'),
+            // Accepted and ignored: Azure runs on the v1 GA API, which has no
+            // api-version, and installed apps older than that still send it.
             azureApiVersion: text('azureApiVersion'),
             azureModels: text('azureModels'),
         }),
@@ -216,7 +218,6 @@ router.get('/:orgId', requireAuth, platformConfigGate, async (req, res) => {
     // Azure OpenAI — global keys (same as admin dashboard)
     const azureEndpoint = await configStore.getConfig('azure_endpoint') || '';
     const azureApiKey = await configStore.getSecret('azure_api_key');
-    const azureApiVersion = await configStore.getConfig('azure_api_version') || '2025-04-01-preview';
     const azureModels = await configStore.getConfig('azure_models') || '';
 
     // Chat Model Tiers — same config key as GET /ai/config/chat-models
@@ -247,7 +248,6 @@ router.get('/:orgId', requireAuth, platformConfigGate, async (req, res) => {
         azureEndpoint,
         hasAzureApiKey: !!azureApiKey,
         azureApiKeyMasked: maskSecret(azureApiKey),
-        azureApiVersion,
         azureModels,
 
         // Chat Model Tiers
@@ -295,10 +295,9 @@ router.put('/:orgId', requireAuth, platformConfigGate, validate({ body: ConfigBo
 
     // Save by section — uses the same global keys as POST /ai/config
     if (section === 'openai') {
-        const { azureEndpoint, azureApiKey, azureApiVersion, azureModels } = req.body;
+        const { azureEndpoint, azureApiKey, azureModels } = req.body;
         if (azureEndpoint !== undefined) await configStore.setConfig('azure_endpoint', azureEndpoint || '');
         if (azureApiKey !== undefined) await configStore.setSecret('azure_api_key', azureApiKey || '');
-        if (azureApiVersion !== undefined) await configStore.setConfig('azure_api_version', azureApiVersion || '2025-04-01-preview');
         if (azureModels !== undefined) await configStore.setConfig('azure_models', azureModels || '');
     }
 
@@ -351,20 +350,11 @@ router.put('/:orgId', requireAuth, platformConfigGate, validate({ body: ConfigBo
     if (section === 'sso') {
         // The tenant id is checked by the schema (GUID or a known alias).
         const { ssoClientId, ssoClientSecret, ssoTenantId, autoApproveSSO } = req.body;
-        // Read straight from the store, not through loadConfig(): that one
-        // answers a FAILED read with its defaults, and writing those back
-        // would wipe the other providers (Google SSO) along with this one.
-        const providers = (await configStore.getConfig('providers')) || {};
-        providers.microsoft = providers.microsoft || {};
-        if (ssoClientId !== undefined) providers.microsoft.clientId = ssoClientId;
-        // Blank keeps the stored secret: the screen only sends one it was given.
-        if (ssoClientSecret) providers.microsoft.clientSecret = ssoClientSecret;
-        if (ssoTenantId !== undefined) providers.microsoft.tenantId = ssoTenantId || 'common';
-        // Only the key this section changed, and awaited. saveConfig() fired
-        // three writes without waiting (so a failed one still answered
-        // `ok: true`) and re-wrote the `admin` and `oauth` keys from whatever
-        // loadConfig() returned — its defaults, on a read that failed.
-        await configStore.setConfig('providers', providers);
+        await saveConfig({ providers: { microsoft: {
+            ...(ssoClientId !== undefined ? { clientId: ssoClientId } : {}),
+            ...(ssoClientSecret ? { clientSecret: ssoClientSecret } : {}),
+            ...(ssoTenantId !== undefined ? { tenantId: ssoTenantId || 'common' } : {}),
+        } } });
 
         // Update org-level autoApproveSSO flag
         if (autoApproveSSO !== undefined) {
@@ -381,7 +371,7 @@ router.put('/:orgId', requireAuth, platformConfigGate, validate({ body: ConfigBo
 // ═══════════════════════════════════════════════════════════
 
 // POST /:orgId/sync-groups — trigger a sync
-router.post('/:orgId/sync-groups', requireAuth, validate({ body: NoBody }), async (req, res) => {
+router.post('/:orgId/sync-groups', requireAuth, async (req, _res, next) => { await assertSyncBinding(req.params.orgId); next(); }, validate({ body: NoBody }), async (req, res) => {
     const { orgId } = req.params;
     const admin = await isOrgAdmin(req, orgId);
     if (!admin) {
@@ -407,7 +397,7 @@ router.get('/:orgId/sync-groups/status', requireAuth, async (req, res) => {
 });
 
 // PUT /:orgId/sync-groups/settings — update sync settings
-router.put('/:orgId/sync-groups/settings', requireAuth, validate({ body: SyncSettingsBody }), async (req, res) => {
+router.put('/:orgId/sync-groups/settings', requireAuth, async (req, _res, next) => { await assertSyncBinding(req.params.orgId); next(); }, validate({ body: SyncSettingsBody }), async (req, res) => {
     const { orgId } = req.params;
     const admin = await isOrgAdmin(req, orgId);
     if (!admin) {

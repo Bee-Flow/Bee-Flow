@@ -5,7 +5,7 @@
  * buildSystemPrompt() is STATIC and byte-stable across turns AND sessions
  * for a given (toolset, catalogMode) pair — the catalog is rendered once per
  * process and nothing per user is in it (since 2026-09-17 the owner's
- * routines and documents ride the OWNER CONTEXT machine note in the folded
+ * automations and documents ride the OWNER CONTEXT machine note in the folded
  * user message, renderOwnerContextNote) — so provider prompt caches
  * (Anthropic system breakpoint, OpenAI prefix cache, the llama.cpp prefix
  * cache on the local box) keep hitting while the user iterates and across
@@ -24,10 +24,10 @@ const { renderCatalogText, renderCompactCatalogText } = require('./builderPrompt
 const { buildCoreSystemPrompt } = require('./builderPrompt/corePrompt');
 const { buildFewShotMessages } = require('./builderPrompt/fewShots');
 
-// The machine note that carries the owner's routines and documents. Defined
+// The machine note that carries the owner's automations and documents. Defined
 // here (with the renderer) and listed in routes/ai/appStudioBuilder/turnLoop.js
 // MACHINE_PREFIXES so sanitizeHistory strips it from cross-turn history.
-const OWNER_CONTEXT_PREFIX = '[OWNER CONTEXT — machine-generated: the owner\'s routines and documents]';
+const OWNER_CONTEXT_PREFIX = '[OWNER CONTEXT — machine-generated: the owner\'s automations and documents]';
 
 // The full prompt's two owner sections, when the lists were NOT rendered
 // into it (the route's path since 2026-09-17): point at where they ARE.
@@ -36,9 +36,9 @@ const OWNER_CONTEXT_PREFIX = '[OWNER CONTEXT — machine-generated: the owner\'s
 // external agent that has the list tools — is told to call them
 // (ownerContext 'tools', the default): a pointer at a note that never
 // arrives is an instruction the reader can only fail.
-const ROUTINES_IN_NOTE = '_(the owner\'s routines are listed in the OWNER CONTEXT note of the user message — use those exact ids. None listed means the owner has none yet: run_automation actions may ship with automationId:null; the user connects one later in the editor)_';
+const AUTOMATIONS_IN_NOTE = '_(the owner\'s automations are listed in the OWNER CONTEXT note of the user message — use those exact ids. None listed means the owner has none yet: run_automation actions may ship with automationId:null; the user connects one later in the editor)_';
 const DOCUMENTS_IN_NOTE = '_(the owner\'s designed documents are listed in the OWNER CONTEXT note of the user message. None listed means a fill_document step cannot be built: if the ask needs an invoice or letter layout, say it has to be designed in Studio → Documents first; never export text as a substitute.)_';
-const ROUTINES_VIA_TOOLS = '_(call `app_list_automations` for the owner\'s routines and use those exact ids. An empty list means the owner has none yet: run_automation actions may ship with automationId:null; the user connects one later in the editor)_';
+const AUTOMATIONS_VIA_TOOLS = '_(call `app_list_automations` for the owner\'s automations and use those exact ids. An empty list means the owner has none yet: run_automation actions may ship with automationId:null; the user connects one later in the editor)_';
 const DOCUMENTS_VIA_TOOLS = '_(call `app_search_documents` for the owner\'s designed documents and `app_read_document` before filling one. None found means a fill_document step cannot be built: if the ask needs an invoice or letter layout, say it has to be designed in Studio → Documents first; never export text as a substitute.)_';
 
 // ---------------------------------------------------------------------------
@@ -50,10 +50,10 @@ const DOCUMENTS_VIA_TOOLS = '_(call `app_search_documents` for the owner\'s desi
  * @param {'full'|'core'} [opts.toolset]     — which tool menu the model sees; 'core' delegates to corePrompt.js
  * @param {'full'|'filtered'} [opts.catalogMode] — 'filtered' = the compact catalog (the small band's profile value)
  * @param {string}        [opts.catalogText] — a catalog text (injectable for tests; overrides catalogMode)
- * @param {'note'|'tools'} [opts.ownerContext] — where the full prompt says the owner's routines and
+ * @param {'note'|'tools'} [opts.ownerContext] — where the full prompt says the owner's automations and
  *   documents are: 'note' = the OWNER CONTEXT machine note the route folds into every user
  *   message; 'tools' (default) = the list tools, for a caller that sends no such note (the MCP guide)
- * @param {string}        [opts.automationsText] — legacy: an owner's-routines list rendered INTO the prompt.
+ * @param {string}        [opts.automationsText] — legacy: an owner's-automations list rendered INTO the prompt.
  *   The route no longer passes it (the list rides the OWNER CONTEXT note); when
  *   given it is honoured, byte for byte as before.
  * @param {string}        [opts.documentsText] — legacy, same as automationsText
@@ -61,13 +61,13 @@ const DOCUMENTS_VIA_TOOLS = '_(call `app_search_documents` for the owner\'s desi
 function buildSystemPrompt({ toolset = 'full', catalogMode = 'full', catalogText = null, ownerContext = 'tools', automationsText = '', documentsText = '' } = {}) {
     const catalog = catalogText || (catalogMode === 'filtered' ? renderCompactCatalogText() : renderCatalogText());
     if (toolset === 'core') return buildCoreSystemPrompt({ catalog });
-    // One sentence on WHERE the routines are, true for the caller: rendered
+    // One sentence on WHERE the automations are, true for the caller: rendered
     // into the prompt (legacy list), in the per-turn note, or behind a tool.
-    const detail = 'Call `app_list_automations` / `app_inspect_automation` when you need fresh detail (e.g. an agent_call routine\'s exact input parameter names) before writing an inputMapping; call `app_get_draft` to re-read the current tree.';
-    const discovery = automationsText ? `- The owner's routines are listed below. ${detail}`
-        : ownerContext === 'note' ? `- The owner's routines ride the OWNER CONTEXT note of the user message. ${detail}`
-            : '- The owner\'s routines are not in this prompt: call `app_list_automations` for the list and `app_inspect_automation` for detail (e.g. an agent_call routine\'s exact input parameter names) before writing an inputMapping; call `app_get_draft` to re-read the current tree.';
-    const routinesSection = automationsText || (ownerContext === 'note' ? ROUTINES_IN_NOTE : ROUTINES_VIA_TOOLS);
+    const detail = 'Call `app_list_automations` / `app_inspect_automation` when you need fresh detail (e.g. an agent_call automation\'s exact input parameter names) before writing an inputMapping; call `app_get_draft` to re-read the current tree.';
+    const discovery = automationsText ? `- The owner's automations are listed below. ${detail}`
+        : ownerContext === 'note' ? `- The owner's automations ride the OWNER CONTEXT note of the user message. ${detail}`
+            : '- The owner\'s automations are not in this prompt: call `app_list_automations` for the list and `app_inspect_automation` for detail (e.g. an agent_call automation\'s exact input parameter names) before writing an inputMapping; call `app_get_draft` to re-read the current tree.';
+    const automationsSection = automationsText || (ownerContext === 'note' ? AUTOMATIONS_IN_NOTE : AUTOMATIONS_VIA_TOOLS);
     const documentsSection = documentsText || (ownerContext === 'note' ? DOCUMENTS_IN_NOTE : DOCUMENTS_VIA_TOOLS);
 
     // Data-backed apps — how to work data-first. The data tools ship
@@ -75,8 +75,8 @@ function buildSystemPrompt({ toolset = 'full', catalogMode = 'full', catalogText
     // text stays byte-stable as they land. Core (small-model) builds get the
     // shortened form.
     const dataStep = toolset === 'core'
-        ? '9. DATA — decide the table FIRST, before any component or action. (a) The ask names a table that already exists in Studio (one a routine fills, a Nextcloud table): app_link_datatable {name} FIRST. (b) The app needs its OWN records (a form that saves rows, a register): app_upsert_table {name, fields:[{key,type}]} FIRST, one call per table — the RESULT carries the real tbl_… id and field keys — then app_seed_records 5–10 realistic fictional rows so grids and tiles show something. Only then bind and act with THAT id. A tbl_ id you did not read from a tool result or the data block does not exist: never invent one, never write an action or an input_relation against a table whose create call has not returned. Bind directly: {kind:"records",tableId} for a data_grid/list, {kind:"aggregate",tableId,aggregates:[{fn:"sum",field,as}],pick:{row:"first",column:as}} for a stat, aggregate with groupBy [{field,bucket:"month",as}] for a chart, {kind:"record",tableId,filter} for record_detail, filter_bar + records filter values {kind:"formula",expr:"vars.filters.<key>"} for filtering. app_query_data shows five real rows when you are unsure of the values. A table marked linked in the data block is never seeded, re-fielded or given a dataset.'
-        : `9. DATA-BACKED apps (tables, live rows): if the ask names a table that ALREADY exists in Studio (one a routine fills, a Nextcloud Tables mirror), call app_link_datatable {name} first and bind to the returned tbl_ id and field keys — never recreate or seed it. Otherwise, when the ask needs NEW stored records and the data tools are in your tool menu, work data-first — define tables (app_upsert_table), seed 5–10 realistic fictional rows (app_seed_records, parents before children so relation fields get real rec_… ids), add datasets for aggregations (app_upsert_dataset), then bind components via records/record/dataset bindings; verify with app_get_data_model / app_query_data, and for ANY app with data bindings ALWAYS call app_dry_run and fix its findings (empty-table bindings, empty role views, bad sequence steps) before app_finalize. The current tables, fields and row counts are in the draft state's data block — use those exact tbl_… ids and field keys. Prefer access.default "app" for demo/shared tables — seeded rows are owner-created, so under "owner" scoping members would see an EMPTY app; use "owner" only when the ask genuinely wants per-user data. If the data tools are not in your menu, bind data from routines instead of inventing tables.
+        ? '9. DATA — decide the table FIRST, before any component or action. (a) The ask names a table that already exists in Studio (one an automation fills, a Nextcloud table): app_link_datatable {name} FIRST. (b) The app needs its OWN records (a form that saves rows, a register): app_upsert_table {name, fields:[{key,type}]} FIRST, one call per table — the RESULT carries the real tbl_… id and field keys — then app_seed_records 5–10 realistic fictional rows so grids and tiles show something. Only then bind and act with THAT id. A tbl_ id you did not read from a tool result or the data block does not exist: never invent one, never write an action or an input_relation against a table whose create call has not returned. Bind directly: {kind:"records",tableId} for a data_grid/list, {kind:"aggregate",tableId,aggregates:[{fn:"sum",field,as}],pick:{row:"first",column:as}} for a stat, aggregate with groupBy [{field,bucket:"month",as}] for a chart, {kind:"record",tableId,filter} for record_detail, filter_bar + records filter values {kind:"formula",expr:"vars.filters.<key>"} for filtering. app_query_data shows five real rows when you are unsure of the values. A table marked linked in the data block is never seeded, re-fielded or given a dataset.'
+        : `9. DATA-BACKED apps (tables, live rows): if the ask names a table that ALREADY exists in Studio (one an automation fills, a Nextcloud Tables mirror), call app_link_datatable {name} first and bind to the returned tbl_ id and field keys — never recreate or seed it. Otherwise, when the ask needs NEW stored records and the data tools are in your tool menu, work data-first — define tables (app_upsert_table), seed 5–10 realistic fictional rows (app_seed_records, parents before children so relation fields get real rec_… ids), add datasets for aggregations (app_upsert_dataset), then bind components via records/record/dataset bindings; verify with app_get_data_model / app_query_data, and for ANY app with data bindings ALWAYS call app_dry_run and fix its findings (empty-table bindings, empty role views, bad sequence steps) before app_finalize. The current tables, fields and row counts are in the draft state's data block — use those exact tbl_… ids and field keys. Prefer access.default "app" for demo/shared tables — seeded rows are owner-created, so under "owner" scoping members would see an EMPTY app; use "owner" only when the ask genuinely wants per-user data. If the data tools are not in your menu, bind data from automations instead of inventing tables.
 10. KANBAN boards: bind the kanban's source to records of the table and set groupByField to a select field. Dragging a card fires its onCardMove event with form values { item: <the dragged row>, value: <the target column's value> } — wire it (app_bind_action { event:"onCardMove" }) to a sequence action whose update_record step uses recordId {kind:"formula",expr:"form.item.id"} and values { <groupByField>: {kind:"formula",expr:"form.value"} }, followed by a refresh step so the board reloads.`;
 
     // The troubleshooting section names a TOOL, so it has to follow the tool
@@ -121,7 +121,7 @@ function buildSystemPrompt({ toolset = 'full', catalogMode = 'full', catalogText
         : `\n- VARIABLES are the app's shared named values (definition.variables), declared with app_set_variables as {name,label,type,default,description}. Formulas READ them as vars.<name>; set_variable steps and a server step's resultVar WRITE them; a filter_bar owns the reserved vars.filters.<field>. A declared default is seeded before anything runs, so a list filtered on vars.<name> filters on the first paint instead of showing everything until something sets it. Declare a variable BEFORE the formula that reads it.`;
     const connectorsLine = toolset === 'core'
         ? ''
-        : `\n- CONNECTORS are external data sources (a platform tool, a routine, or an allow-listed REST endpoint) that the app OWNER authors — you can WIRE an existing one into a component's data prop with {kind:"connector",connectorId,params?} (each param is a literal or {kind:"formula",expr}), but you NEVER create connectors and NEVER author credentials. Call app_list_connectors to see the available conn_… ids, kinds and declared params; they also appear in the draft state's data block. If the app has no connector for what the ask needs, tell the user to add it in the Connectors tab.`;
+        : `\n- CONNECTORS are external data sources (a platform tool, an automation, or an allow-listed REST endpoint) that the app OWNER authors — you can WIRE an existing one into a component's data prop with {kind:"connector",connectorId,params?} (each param is a literal or {kind:"formula",expr}), but you NEVER create connectors and NEVER author credentials. Call app_list_connectors to see the available conn_… ids, kinds and declared params; they also appear in the draft state's data block. If the app has no connector for what the ask needs, tell the user to add it in the Connectors tab.`;
     const homeScreenHow = toolset === 'core'
         ? 'build into it (app_add_components into its section)'
         : 'build into it (app_update_screen to rename + app_add_components into its section)';
@@ -133,7 +133,7 @@ function buildSystemPrompt({ toolset = 'full', catalogMode = 'full', catalogText
 
 - PLAN FIRST for big asks: when the request implies a NEW app with two or more screens OR any data model, call app_propose_plan (only that tool, then stop) with the tables, roles, screens, datasets, actions and the ordered phases you will build in. The turn ends there — the user reviews/edits the plan in the chat and approves it, and only THEN do you build. Small asks (a single screen, an edit, a fix) skip planning and build directly. If a machine message states a PLAN POLICY, honour it (e.g. build directly when told not to plan).
 - TEMPLATES: app_list_templates lists data-backed starter templates. When one matches the ask, set the plan's baseTemplateId to its id; on approval, app_apply_template it FIRST — valid ONLY on a fresh, untouched draft, it deep-copies the template's screens and creates its tables, sample rows and datasets in one step — then customise from there with the normal tools.
-- SAVING ONE: app_save_as_template captures the CURRENT app as a template the whole organisation can start from — the inverse of app_apply_template, and it appears in app_list_templates alongside the built-ins. Offer it when the user says they want to reuse this app, roll it out to another team or department, or "make a template of this". Routine ids are cleared and file values and personal columns are stripped, so pass seedTables ONLY for tables holding vocabulary the app needs to work (option lists, material lists, column maps) — NEVER a table holding customer records, e-mail or anything personal, because those rows are copied into every app installed from it. Pass the same templateId again to publish a new VERSION over one you made earlier.
+- SAVING ONE: app_save_as_template captures the CURRENT app as a template the whole organisation can start from — the inverse of app_apply_template, and it appears in app_list_templates alongside the built-ins. Offer it when the user says they want to reuse this app, roll it out to another team or department, or "make a template of this". Automation ids are cleared and file values and personal columns are stripped, so pass seedTables ONLY for tables holding vocabulary the app needs to work (option lists, material lists, column maps) — NEVER a table holding customer records, e-mail or anything personal, because those rows are copied into every app installed from it. Pass the same templateId again to publish a new VERSION over one you made earlier.
 - Once a plan is approved, build it phase by phase and call app_mark_phase at the START of each phase — it reports progress to the user and saves a checkpoint they can revert to.
 
 `;
@@ -161,8 +161,8 @@ function buildSystemPrompt({ toolset = 'full', catalogMode = 'full', catalogText
 - NEVER put a fixed px WIDTH on anything that holds text (heading, text, table, a card of copy): text has to reflow, and a width that fits your sentence clips someone else's longer translation — use pct or a span there. Heights are safer: px/vh scroll rather than clip. A "pct" HEIGHT is rejected unless its parent has a real height (sm/md/lg/xl/fill, or px/vh) and is never legal on a section — say "vh" when you mean a share of the screen.
 - Containers (card, form) hold children on their OWN 12-column grid. Maximum depth: section → container → container → leaf.
 - ACTIONS are named entities in definition.actions — the map key IS the action id. Components trigger them only via events: a button's onClick, a form's onSubmit (wire with app_bind_action). Effects (onSuccess/onError) exist on run_automation only and are bounded — a toast and/or a navigate, never chains. SAVE A FORM: app_set_action {action:{kind:"sequence", steps:[{kind:"create_record", tableId, values:{<fieldKey>:{kind:"formula",expr:"form.<inputName>"}}}, {kind:"refresh", tableId}, {kind:"toast", message}]}} then app_bind_action {nodeId:<the form's cmp id>, event:"onSubmit", actionId}. A create/update step reads the submitted inputs as form.<inputName> and nothing else — forms.…, screen.… and actions.… are EMPTY on the server and write NULL; {kind:"field"} exists ONLY inside run_automation inputMapping, never in values.
-- Data flows through BINDINGS only. Seven kinds exist (exact shapes in the catalog): {kind:"static",value} for fixed copy; {kind:"actionResult",actionId,path} for a routine's output; {kind:"formula",expr} for values derived from live scope; {kind:"record",tableId,…} / {kind:"records",tableId,filter?,sort?,limit?} for live rows from the app's own data tables; {kind:"dataset",datasetId} for saved aggregations; {kind:"connector",connectorId,params?} for live rows from an owner-authored EXTERNAL source. Filter values may be literals or {kind:"formula",expr} (resolved client-side — e.g. filter created_by eq currentUser.id); a formula reading vars.<name> needs that variable DECLARED first${declareVarsWith}, or it resolves to nothing and the whole filter entry is dropped, showing every row. run_automation inputMapping values accept {kind:"static",value} or {kind:"field",name,formId?} ("field" reads the input component with that props.name from the submitting form).${variablesLine}${connectorsLine}
-- LINKED TABLES: a table line in the data block marked \`linked=nextcloud|studio mode=read|readwrite rows=N\` keeps its rows OUTSIDE the app — in a Studio table (often a Nextcloud table a routine fills) — and the app reads them LIVE. Rules: never app_seed_records it, never rewrite its fields with app_upsert_table, never put a saved dataset on it; bind with records/record/aggregate exactly like an own table, using the field keys as listed (a column title "Excl. btw" is the key excl_btw). \`mode=read\` means no create/update/delete steps on it. When the ask names a table that already exists (\"my table Facturen\"), call app_link_datatable {name} FIRST — it resolves the title, links the table and returns the id and keys to bind — instead of guessing an id or creating a copy. Totals = a stat with {kind:"aggregate", tableId, aggregates:[{fn:"sum", field, as}], pick:{row:"first", column:as}}; per-month = aggregate with groupBy [{field:"datum", bucket:"month", as}]; detail = record_detail on a screen reached by a navigate with params; filters = filter_bar + records.filter values {kind:"formula", expr:"vars.filters.<key>"}.
+- Data flows through BINDINGS only. Seven kinds exist (exact shapes in the catalog): {kind:"static",value} for fixed copy; {kind:"actionResult",actionId,path} for an automation's output; {kind:"formula",expr} for values derived from live scope; {kind:"record",tableId,…} / {kind:"records",tableId,filter?,sort?,limit?} for live rows from the app's own data tables; {kind:"dataset",datasetId} for saved aggregations; {kind:"connector",connectorId,params?} for live rows from an owner-authored EXTERNAL source. Filter values may be literals or {kind:"formula",expr} (resolved client-side — e.g. filter created_by eq currentUser.id); a formula reading vars.<name> needs that variable DECLARED first${declareVarsWith}, or it resolves to nothing and the whole filter entry is dropped, showing every row. run_automation inputMapping values accept {kind:"static",value} or {kind:"field",name,formId?} ("field" reads the input component with that props.name from the submitting form).${variablesLine}${connectorsLine}
+- LINKED TABLES: a table line in the data block marked \`linked=nextcloud|studio mode=read|readwrite rows=N\` keeps its rows OUTSIDE the app — in a Studio table (often a Nextcloud table an automation fills) — and the app reads them LIVE. Rules: never app_seed_records it, never rewrite its fields with app_upsert_table, never put a saved dataset on it; bind with records/record/aggregate exactly like an own table, using the field keys as listed (a column title "Excl. btw" is the key excl_btw). \`mode=read\` means no create/update/delete steps on it. When the ask names a table that already exists (\"my table Facturen\"), call app_link_datatable {name} FIRST — it resolves the title, links the table and returns the id and keys to bind — instead of guessing an id or creating a copy. Totals = a stat with {kind:"aggregate", tableId, aggregates:[{fn:"sum", field, as}], pick:{row:"first", column:as}}; per-month = aggregate with groupBy [{field:"datum", bucket:"month", as}]; detail = record_detail on a screen reached by a navigate with params; filters = filter_bar + records.filter values {kind:"formula", expr:"vars.filters.<key>"}.
 - ANY PROP CAN BE LIVE — \`node.computed\`. Bindings only reach props the catalog types as bindings, and most component types have NONE: heading, text, button, callout, card, container, page_header, input_number, input_checkbox, tabs, modal all take plain strings. \`computed\` is the escape hatch and it works on EVERY type and EVERY prop: alongside \`props\` and \`style\` on the same component, pass \`computed: { "<propKey>": {kind:"formula",expr} }\` and that prop is recomputed every render (the authored props value stays as the fallback). A heading CAN show a running total; a button CAN relabel itself. Set it on the app_add_components entry or with app_update_component. If you ever conclude a value "cannot be live" on a component, you have forgotten computed — it is not a limit of the platform.
 - Same place, same call: \`visibleWhen\` / \`enabledWhen\` / \`readOnly\` (true, false, or a formula), \`visibleToRoles\` (role keys), and \`validations\` on form inputs ([{type:"required"|"format"|"minLength"|"formula", …}]). These are node fields, NOT props — nesting them inside props drops them.
 - Forms render EXACTLY ONE built-in submit button (props.submitLabel) — never add your own submit button component inside a form. Inputs only submit when they live inside a form, and each input's props.name must be unique within its form (it keys the submit payload — and the inputMapping "field" names).
@@ -221,9 +221,9 @@ ${toolset === 'core'
 8. Keep replies short. Once the app is built and finalized, tell the user in a sentence or two what they got and how to use it.
 ${dataStep}${screenshotStep}
 
-## Routines (the app owner's automations — wire via run_automation)
+## Automations (the app owner's automations — wire via run_automation)
 
-${routinesSection}
+${automationsSection}
 
 ## Documents (the owner's designs — fill via a fill_document step)
 
@@ -368,12 +368,12 @@ Begin now.`;
 }
 
 // ---------------------------------------------------------------------------
-// Owner's routines — compact, per-user-stable list for the static prompt
+// Owner's automations — compact, per-user-stable list for the static prompt
 // ---------------------------------------------------------------------------
 
 /**
  * Render the automation rows from app_list_automations' mapper into prompt
- * text. Sorted by id so the text is stable for a given set of routines.
+ * text. Sorted by id so the text is stable for a given set of automations.
  */
 function renderAutomationsText(rows) {
     if (!Array.isArray(rows) || rows.length === 0) return '';
@@ -394,7 +394,7 @@ function renderAutomationsText(rows) {
 /**
  * The owner's designed documents, one line each, with the placeholders they
  * carry. Rendered into the system prompt rather than left behind
- * app_search_documents and app_read_document for the same reason the routines list is: a small model's
+ * app_search_documents and app_read_document for the same reason the automations list is: a small model's
  * menu has no read tools at all, and a document it cannot discover is a
  * document it invents an id for. Sorted by id so the text is stable for a
  * given set of documents (the prompt is the front of the prompt cache).
@@ -417,28 +417,28 @@ function renderDocumentsText(rows) {
 }
 
 /**
- * The owner's routines and documents as ONE machine note for the folded user
+ * The owner's automations and documents as ONE machine note for the folded user
  * message. Out of the system prompt on purpose: Gemma's chat template renders
  * the tools AFTER the system content, so a per-user list there moved every
  * byte of the tool block and the few-shots for every user and every session
  * — the whole ~7k-token prefix re-read on the box's only slot. Here it is the
  * last thing before the user's words, where a turn's variable bytes belong.
  *
- * `maxRoutines` caps the list: a small model reads 40 lines of ids fine and
+ * `maxAutomations` caps the list: a small model reads 40 lines of ids fine and
  * 100 badly; the tail says how to get the rest.
  */
-function renderOwnerContextNote(automationRows, documentRows, { maxRoutines = 40 } = {}) {
+function renderOwnerContextNote(automationRows, documentRows, { maxAutomations = 40 } = {}) {
     const rows = Array.isArray(automationRows) ? automationRows : [];
-    const shown = rows.length > maxRoutines
-        ? rows.slice().sort((a, b) => String(a.id).localeCompare(String(b.id))).slice(0, maxRoutines)
+    const shown = rows.length > maxAutomations
+        ? rows.slice().sort((a, b) => String(a.id).localeCompare(String(b.id))).slice(0, maxAutomations)
         : rows;
-    const routines = shown.length
-        ? renderAutomationsText(shown) + (rows.length > shown.length ? `\n(${rows.length - shown.length} more — name the routine you mean and I will find it)` : '')
-        : '(none — the owner has no routines yet; a run_automation action may ship with automationId:null and be connected later)';
+    const automations = shown.length
+        ? renderAutomationsText(shown) + (rows.length > shown.length ? `\n(${rows.length - shown.length} more — name the automation you mean and I will find it)` : '')
+        : '(none — the owner has no automations yet; a run_automation action may ship with automationId:null and be connected later)';
     const docs = Array.isArray(documentRows) && documentRows.length
         ? renderDocumentsText(documentRows)
         : '(none — the owner has no designed documents, so a fill_document step cannot be built)';
-    return `${OWNER_CONTEXT_PREFIX}\nRoutines (wire via run_automation with these exact ids):\n${routines}\n\nDocuments (fill via a fill_document step):\n${docs}`;
+    return `${OWNER_CONTEXT_PREFIX}\nAutomations (wire via run_automation with these exact ids):\n${automations}\n\nDocuments (fill via a fill_document step):\n${docs}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -716,9 +716,9 @@ function summariseApp(def, extras = {}) {
     };
     for (const s of screens) for (const sec of s.sections || []) count(sec.children);
     const actions = Object.values(def.actions || {});
-    const routines = actions.filter((a) => a && a.kind === 'run_automation').length;
+    const automations = actions.filter((a) => a && a.kind === 'run_automation').length;
     const screenNames = screens.map((s) => s.name).filter(Boolean).slice(0, 4).join(', ');
-    let summary = `${screens.length} screen${screens.length === 1 ? '' : 's'}${screenNames ? ` (${screenNames})` : ''}, ${components} component${components === 1 ? '' : 's'}, ${actions.length} action${actions.length === 1 ? '' : 's'}${routines ? ` (${routines} routine-backed)` : ''}`;
+    let summary = `${screens.length} screen${screens.length === 1 ? '' : 's'}${screenNames ? ` (${screenNames})` : ''}, ${components} component${components === 1 ? '' : 's'}, ${actions.length} action${actions.length === 1 ? '' : 's'}${automations ? ` (${automations} automation-backed)` : ''}`;
     // Data footprint — only when the caller loaded the data model (extras
     // absent keeps the line byte-identical for old callers).
     const tables = extras && extras.dataModel && Array.isArray(extras.dataModel.tables) ? extras.dataModel.tables.length : 0;

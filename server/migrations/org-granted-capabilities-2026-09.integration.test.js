@@ -90,7 +90,8 @@ before(async () => {
     `);
     // org-a toggled component_designer OFF on purpose; org-b holds the default
     // trio; org-c/org-d are the '[]'/NULL shapes the schema backfill still owes
-    // a seed (stores run before this migration in every real ladder).
+    // a seed (stores run before this migration in every real ladder); only
+    // NULL is still pending, '[]' is a deliberate choice schema.js leaves alone.
     await pg.query(`INSERT INTO organizations (id, "org_granted_capabilities") VALUES
         ('org-a', '["notebooks","projects"]'),
         ('org-b', '["notebooks","projects","component_designer"]'),
@@ -126,8 +127,9 @@ test('an existing org keeps exactly what it had, plus the new id', async () => {
         // The deliberate toggle-off of component_designer is NOT resurrected.
         ['org-a', ['notebooks', 'projects', NEW_ID]],
         ['org-b', [...TRIO, NEW_ID]],
-        // '[]'/NULL rows keep their pending trio seed alongside the new id.
-        ['org-c', [...TRIO, NEW_ID]],
+        // A NULL row keeps its pending trio seed alongside the new id; '[]' is an
+        // admin's deliberate "all off" and only gets the new id.
+        ['org-c', [NEW_ID]],
         ['org-d', [...TRIO, NEW_ID]],
     ]);
     assert.deepStrictEqual(await markers(), [`${MARKER_PREFIX}${NEW_ID}`]);

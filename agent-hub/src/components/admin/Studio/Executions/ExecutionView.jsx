@@ -4,6 +4,7 @@ import RunProblemBanner from './RunProblemBanner';
 import RunStepTimeline from './RunStepTimeline';
 import useRunStream from './useRunStream';
 import useAutomationApi from '../../../../hooks/useAutomationApi';
+import { useTranslation } from '../../../../hooks/useTranslation';
 import ApprovalActionBar from '../../../automation/Builder/approvals/ApprovalActionBar';
 import RunExecutionView from '../../../automation/Builder/RunExecutionView';
 
@@ -26,6 +27,7 @@ export default function ExecutionView({
     initialStepId = null, onSelectStep = null,
     onBack, onOpenEditor, onOpenAnotherRun = null,
 }) {
+    const { t } = useTranslation();
     const api = useAutomationApi();
     const [run, setRun] = useState(seed && seed.id === runId ? seed : null);
     const [steps, setSteps] = useState([]);
@@ -122,9 +124,9 @@ export default function ExecutionView({
         // approve-step answers a step-level awaiting_approval. approve-step
         // returns the CHILD run that continues — open it.
         // The run-level gate TAKES the decision word too: approving promotes
-        // the routine to live, rejecting closes this run as cancelled and
+        // the automation to live, rejecting closes this run as cancelled and
         // leaves the first-run gate on. Dropping the word here (it used to be
-        // thrown away) made Reject run the routine and strip the gate.
+        // thrown away) made Reject run the automation and strip the gate.
         if (run?.status === 'awaiting_confirm') {
             await api.approveRun(runId, decision === 'reject' ? 'reject' : 'approve');
             await Promise.all([loadRun(), fetchSteps()]);
@@ -156,21 +158,21 @@ export default function ExecutionView({
     if (loadError && !run) {
         return (
             <div className="flex flex-col h-full min-h-0 items-center justify-center gap-2 px-6 text-center">
-                <div className="text-sm text-[var(--text-primary)]">We couldn't load this run.</div>
+                <div className="text-sm text-[var(--text-primary)]">{t('studio_misc.runview.load_failed', "We couldn't load this run.")}</div>
                 <div className="flex items-center gap-2">
                     <button
                         type="button"
                         onClick={() => { setLoadError(null); setLoading(true); Promise.all([loadRun(), fetchSteps()]).finally(() => setLoading(false)); }}
                         className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition"
                     >
-                        Try again
+                        {t('studio_misc.runview.try_again', 'Try again')}
                     </button>
                     <button
                         type="button"
                         onClick={onBack}
                         className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] transition"
                     >
-                        Back to Runs
+                        {t('studio_misc.runview.back_to_runs', 'Back to Runs')}
                     </button>
                 </div>
             </div>
@@ -236,7 +238,7 @@ export default function ExecutionView({
                         steps={steps}
                         selectedStepId={selectedStepId}
                         onSelectStep={selectStep}
-                        emptyDefinitionMessage={loading ? 'Loading the run…' : 'Definition unavailable for this run.'}
+                        emptyDefinitionMessage={loading ? t('studio_misc.runview.loading', 'Loading the run…') : t('studio_misc.runview.definition_unavailable', 'Definition unavailable for this run.')}
                     />
                 </div>
             </div>

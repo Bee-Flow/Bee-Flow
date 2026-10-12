@@ -6,7 +6,8 @@
  */
 
 const notificationStore = require('../../stores/notificationStore');
-const { resolveInputs, interpolateTemplate } = require('../../automation/bind');
+const { resolveInputs, interpolateTemplate, interpolateJsonBody } = require('../../automation/bind');
+const { withStepQuery, parseStepUrl, shieldPart, joinShieldedUrl } = require('./httpQuery');
 const { safeFetch, isPrivateAddressError } = require('../../utils/ssrfGuard');
 const sandbox = require('../../automation/codeSandbox');
 const { prepareCodeRun } = require('./codeStepGuard');
@@ -15,7 +16,8 @@ const { MASK_VALUES, resolveHttpAuthHeaders, evictToken } = require('./httpAuth'
 // "Ask this web service only once" — every rule about reusing an http_request
 // answer lives there, so this file gains call sites and no policy.
 const httpCache = require('./httpCache');
-const { HTTP_RESPONSE_CAP } = require('../../automation/httpResponseLimits');
+const { fetchFollowingSameHost } = require('./sameHostFetch');
+const { HTTP_RESPONSE_CAP, readBodyBounded } = require('../../automation/httpResponseLimits');
 // Every secret this run can see, for the one refusal the visible cache tier
 // adds: a credential must never become a permanent row (execDatatable's own
 // refusal #4, and a key can sit in a URL PATH segment as well as in a query).
@@ -182,7 +184,7 @@ const HTTP_PARSE_MODES = new Set(['auto', 'never', 'always']);
  *
  *  - NEVER THROWS. A malformed body is a bad answer from someone else's
  *    server; turning that into a failed run would replace "output I cannot
- *    use" with "routine that stops", which is strictly worse.
+ *    use" with "automation that stops", which is strictly worse.
  *  - Never parses a TRUNCATED body. A response clipped at 1 MiB is invalid
  *    JSON by construction, and a half-parsed document that silently loses its
  *    tail is worse than the text we already have.
@@ -220,14 +222,19 @@ function parseHttpBody(text, contentType, mode, truncated) {
  * are synthesized so a preview can never cause a real external side effect.
  */
 async function execHttpRequest(step, ctx, runState, mode) {
-    const url = interpolateTemplate(step.url || '', runState);
+    // A request carries DATA, not prose: lists stay JSON here (listAs 'json').
+    const asData = { listAs: 'json' };
+    const url = withStepQuery(interpolateTemplate(step.url || '', runState, { ...asData, field: 'url' }), step.query, runState);
     const method = (step.method || 'GET').toUpperCase();
     const headers = {};
     for (const [k, v] of Object.entries(step.headers || {})) {
-        headers[k] = interpolateTemplate(typeof v === 'string' ? v : '', runState);
+        headers[k] = interpolateTemplate(typeof v === 'string' ? v : '', runState, { ...asData, field: `headers.${k}` });
     }
     const isWrite = HTTP_REQUEST_WRITE_METHODS.has(method);
-    const body = isWrite && step.body ? interpolateTemplate(step.body, runState) : undefined;
+    // A JSON body stays JSON whatever the mapped values hold (bind.js
+    // interpolateJsonBody); a form or text body keeps the plain templating.
+    const contentType = Object.entries(headers).find(([k]) => k.toLowerCase() === 'content-type')?.[1];
+    const body = isWrite && step.body ? interpolateJsonBody(step.body, runState, { contentType, field: 'body' }) : undefined;
     // Feature C — optional saved-credential reference. Absent/null auth keeps
     // the pre-existing path byte-for-byte (no store call, no decryption).
     const authConnectionId = (step.auth && typeof step.auth === 'object'
@@ -244,9 +251,7 @@ async function execHttpRequest(step, ctx, runState, mode) {
         };
     }
 
-    let parsedUrl;
-    try { parsedUrl = new URL(url); }
-    catch (e) { throw new Error(`http_request: invalid URL "${url}" — ${e.message}`); }
+    const parsedUrl = parseStepUrl(url);
     if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
         throw new Error(`http_request: unsupported URL scheme "${parsedUrl.protocol}" — only http/https are allowed.`);
     }
@@ -261,7 +266,7 @@ async function execHttpRequest(step, ctx, runState, mode) {
     let credentialFingerprint = null;
     let credentialGrantId = null;
     if (authConnectionId) {
-        const auth = await resolveHttpAuthHeaders({ connectionId: authConnectionId, blockPrivateTargets }, ctx);
+        const auth = await resolveHttpAuthHeaders({ connectionId: authConnectionId, blockPrivateTargets, auth: step.auth, url: parsedUrl.href }, ctx);
         credentialFingerprint = auth.fingerprint || null;
         credentialGrantId = auth.grantId || null;
         for (const [name, value] of Object.entries(auth.headers)) {
@@ -300,7 +305,7 @@ async function execHttpRequest(step, ctx, runState, mode) {
     }
     const guardedHttp = await guardOutbound(step, ctx, mode, {
         toolName: 'http_request',
-        payload: { url, body, headers: guardableHeaders },
+        payload: { url: shieldPart(url), body, headers: guardableHeaders },
         destination,
         integMeta: httpMeta,
     });
@@ -321,7 +326,7 @@ async function execHttpRequest(step, ctx, runState, mode) {
             dryRunFallback: 'guardrail_block',
         };
     }
-    const sendUrl = typeof guardedHttp.payload.url === 'string' ? guardedHttp.payload.url : url;
+    const sendUrl = joinShieldedUrl(url, guardedHttp.payload.url);
     const sendBody = body === undefined ? undefined : guardedHttp.payload.body;
     for (const [k, v] of Object.entries(guardedHttp.payload.headers || {})) {
         if (typeof v === 'string') headers[k] = v;
@@ -386,12 +391,19 @@ async function execHttpRequest(step, ctx, runState, mode) {
         // Sent AND read inside the capture context: the peer (the address the
         // socket really reached, redirects included) comes from this call.
         const call = await captured(async () => {
-            const r = await fetchImpl(sendUrl, { method, headers, body: sendBody, signal: ac.signal });
-            return { resp: r, text: await r.text() };
+            // A stored credential must never follow a redirect to another
+            // host (the allowed-hosts binding is checked on the first URL only,
+            // and a custom auth header survives a cross-origin hop): follow
+            // same-host hops by hand and refuse the rest.
+            const r = authInjectedHeaders.size > 0
+                ? await fetchFollowingSameHost(fetchImpl, sendUrl, { method, headers, body: sendBody, signal: ac.signal })
+                : await fetchImpl(sendUrl, { method, headers, body: sendBody, signal: ac.signal });
+            const bounded = await readBodyBounded(r, { charCap: HTTP_REQUEST_RESPONSE_CAP, stopOnOversizeHeader: true });
+            return { resp: r, text: bounded.text, bodyTruncated: bounded.truncated };
         });
         httpProbe = call.probe;
         if (!call.ok) throw call.error;
-        const { resp, text } = call.value;
+        const { resp, text, bodyTruncated } = call.value;
         if (authConnectionId && resp.status === 401) {
             // Target rejected the credential: drop any cached oauth2_cc token
             // so a retry refetches a fresh one. Deliberately NOT flagging the
@@ -413,7 +425,7 @@ async function execHttpRequest(step, ctx, runState, mode) {
         // this call, which is what actually egress-logs it (one row, not
         // two) and is what adds that exact prefix via its generic
         // `http_request: ${e.message}` fallback.
-        if (text.length > HTTP_REQUEST_RESPONSE_CAP) {
+        if (bodyTruncated || text.length > HTTP_REQUEST_RESPONSE_CAP) {
             throw new Error('response body exceeded the 1 MiB limit and was clipped mid-document — this call cannot be completed safely. Reduce the response size (pagination, a narrower query) or contact support if you need a higher limit.');
         }
         await safety.logEgress({
@@ -446,7 +458,7 @@ async function execHttpRequest(step, ctx, runState, mode) {
         if (cache && !(resp.status === 304 && cache.revalidate)) await httpCache.store(cache, out);
         // `data` — the SAME body, parsed, when it is JSON.
         //
-        // `body` deliberately stays a string forever: every saved routine, every
+        // `body` deliberately stays a string forever: every saved automation, every
         // {{template}} and every {kind:'ref'} binding already reads it as text,
         // and changing its type would rewrite the meaning of those silently.
         // The parsed copy is additive, so a JSON API is finally usable as a
@@ -541,7 +553,7 @@ async function execCode(step, ctx, runState, mode) {
 
     // The code's own rules: BLOCK findings stop it, declared parameters get
     // their defaults and types, ctx.http keeps to the host list (codeStepGuard.js).
-    const guard = prepareCodeRun(step, resolveInputs(step.inputs || {}, runState, { allowSecrets: false }));
+    const guard = prepareCodeRun(step, resolveInputs(step.inputs || {}, runState, { allowSecrets: false, listAs: 'json' }));
     if (guard.refusal) {
         if (rehearsal) return codeStepSkipped(guard.refusal);
         throw new Error(guard.refusal);
@@ -590,13 +602,13 @@ async function execCode(step, ctx, runState, mode) {
         try {
             const { getIntegrationTools } = require('../integrations/integrationTools');
             const lendPolicy = (ctx.resourceOwnerUserId && ctx.resourceOwnerUserId !== ctx.userId)
-                ? { ownerUserId: ctx.resourceOwnerUserId, resourceType: 'routine', resourceId: ctx.automationId || null }
+                ? { ownerUserId: ctx.resourceOwnerUserId, resourceType: 'automation', resourceId: ctx.automationId || null }
                 : null;
             const r = await getIntegrationTools({
                 userId: ctx.userId,
                 session: ctx.session,
                 isAdmin: !!ctx.session?.isAdmin || ctx.session?.user?.role === 'admin',
-                routineStep: true,
+                automationStep: true,
                 connectionPolicy: lendPolicy,
             });
             ctx.allowedToolNames = new Set((r.tools || []).map(t => t?.function?.name).filter(Boolean));
@@ -698,30 +710,31 @@ async function execCode(step, ctx, runState, mode) {
                     ? rawHeaders : undefined;
                 const guardedFetch = await guardOutbound(step, ctx, mode, {
                     toolName: 'code_fetch_http',
-                    payload: { url: String(url), body: options && options.body, headers: guardableHeaders },
+                    payload: { url: shieldPart(String(url)), body: options && options.body, headers: guardableHeaders },
                     destination: isPrivateHost(host) ? 'internal' : 'external',
                     integMeta: meta,
                 });
+                const sendUrl = joinShieldedUrl(String(url), guardedFetch.payload.url);
                 const t0 = Date.now();
                 // What travels is built FROM THE GUARDED RESULT, never from the
                 // caller's object — that is the whole point of the guard.
                 const sendOptions = { ...(options || {}) };
                 if (guardedFetch.payload.body !== undefined) sendOptions.body = guardedFetch.payload.body;
                 if (guardableHeaders) sendOptions.headers = guardedFetch.payload.headers || {};
-                const call = await captured(() => sandbox.defaultFetchHttp(guardedFetch.payload.url, sendOptions));
+                const call = await captured(() => sandbox.defaultFetchHttp(sendUrl, sendOptions));
                 let res;
                 try {
                     if (!call.ok) throw call.error;
                     res = call.value;
                     await safety.logEgress({
-                        toolName: 'code_fetch_http', toolArgs: { url: guardedFetch.payload.url },
+                        toolName: 'code_fetch_http', toolArgs: { url: sendUrl },
                         result: { ok: true }, probe: call.probe, policy: guardedFetch.policy,
                         auditBase: guardedFetch.auditBase, mode, integMeta: meta,
                         durationMs: Date.now() - t0,
                     });
                 } catch (err) {
                     await safety.logEgress({
-                        toolName: 'code_fetch_http', toolArgs: { url: guardedFetch.payload.url }, error: err,
+                        toolName: 'code_fetch_http', toolArgs: { url: sendUrl }, error: err,
                         probe: call.probe, policy: guardedFetch.policy, auditBase: guardedFetch.auditBase, mode,
                         integMeta: meta, durationMs: Date.now() - t0,
                     });

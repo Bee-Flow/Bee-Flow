@@ -190,7 +190,7 @@ async function execApproval(step, ctx, runState, mode) {
         const { hasCapability } = require('../entitlements/entitlements');
         const licensed = await hasCapability('approvals', { userId: ctx.userId, orgId: ctx.orgId, session: ctx.session });
         if (!licensed) {
-            const err = new Error('Approvals are an Enterprise feature — this routine cannot ask for one on the current plan.');
+            const err = new Error('Approvals are an Enterprise feature — this automation cannot ask for one on the current plan.');
             err.errorClass = 'license_required';
             throw err;
         }

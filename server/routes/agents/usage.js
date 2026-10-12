@@ -8,7 +8,7 @@
  * The knowledge-base version of this tab is deliberately open to anyone who
  * may READ the base: its population is the same one that already sees it in a
  * picker. An agent's Used-by tab is not that. It lives inside the editor, its
- * only other caller is the delete confirmation, and its rows name routines,
+ * only other caller is the delete confirmation, and its rows name automations,
  * apps and pages — so it asks for the right the editor already needs. Anyone
  * who may not even read the agent gets the same 404 `GET /:id` gives them; an
  * agent they may chat with but not edit gets the editor's 403.
@@ -154,7 +154,7 @@ async function gatherUsage(agent, askerId) {
     }
     // BEWUST NIET in `unchecked`. Die lijst is wat de verwijdergarantie leest
     // als "in gebruik", en dat is daar terecht: een onleesbare scan kan
-    // andermans routine of pagina verbergen. Een testgesprek kan dat per
+    // andermans automatisering of pagina verbergen. Een testgesprek kan dat per
     // definitie niet — het schreef nooit een rij, dus er gaat bij verwijderen
     // niets verloren. Een teller die het niet wist zou dan een agent
     // onverwijderbaar maken om een getal dat nergens over gaat. `testChats:

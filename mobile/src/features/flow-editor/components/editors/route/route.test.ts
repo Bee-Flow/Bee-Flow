@@ -13,8 +13,9 @@ import { buildPatch, extractFormState } from '@/features/flow-editor/formState';
 import type { Route } from '@/features/flow-editor/model';
 
 import { configuredRules, losingWires, sampleRowsFor } from './assistModel';
-import { canUseVisual, conditionState, fieldAsExpression, fieldFromExpression, hasWildcard, isTrivialValue, withoutRow } from './conditionState';
+import { canUseVisual, conditionState, fieldAsExpression, fieldFromExpression, isTrivialValue, readsListAsValue, withoutRow } from './conditionState';
 import { itemFieldOptions, itemScope, upstreamFieldOptions } from './fieldOptions';
+import { otherwiseSentence, outputCount } from './OutputsChooser';
 import {
     addRule,
     applySuggestion,
@@ -22,13 +23,17 @@ import {
     chooseSeveral,
     collapseToOne,
     convertToConditions,
+    keepRestPatch,
     losingOutputs,
-    outputLetter,
     removeRule,
     updateRule,
     wiredCaseNames,
     type RoutePatch,
 } from './routeEdits';
+
+/** The O3 names as the editor makes them: "Output 1", "Output 2", … */
+const outputName = (n: number) => `Output ${n}`;
+const T = (_key: string, en: string, vars: Record<string, unknown> = {}) => en.replace(/\{(\w+)\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m));
 
 function edit(step: Record<string, unknown>, change: (route: Route) => RoutePatch | null) {
     const draft = extractFormState(step as FlowNode);
@@ -51,18 +56,19 @@ const router = {
 };
 
 describe('the number of outputs', () => {
-    it('grows a condition to a two-output router that fans out', () => {
-        const patch = edit(condition, chooseSeveral);
+    it('grows a condition to a two-output router that fans out, its outputs named "Output 1", "Output 2" (O3)', () => {
+        const patch = edit(condition, (r) => chooseSeveral(r, outputName));
         expect(patch.type).toBe('switch');
         expect(patch.cases).toEqual([
-            { name: 'rule1', expr: 'trigger.output.amount > 10' },
-            { name: 'rule2', expr: '' },
+            { name: 'Output 1', expr: 'trigger.output.amount > 10' },
+            { name: 'Output 2', expr: '' },
         ]);
         expect(patch.matchMode).toBe('all');
     });
 
-    it('does nothing when there already are several', () => {
-        expect(chooseSeveral({ rules: router.cases.map((c) => ({ ...c, value: '' })) })).toBeNull();
+    it('keeps a name the author chose when growing, and does nothing when there already are several', () => {
+        expect(chooseSeveral({ rules: [{ name: 'urgent', expr: 'x', value: '' }] }, outputName)?.rules?.map((r) => r.name)).toEqual(['urgent', 'Output 2']);
+        expect(chooseSeveral({ rules: router.cases.map((c) => ({ ...c, value: '' })) }, outputName)).toBeNull();
     });
 
     it('collapses a router back to a condition, first-match, with no default', () => {
@@ -74,17 +80,48 @@ describe('the number of outputs', () => {
 
     it('names the wired outputs collapsing would cost', () => {
         const route = extractFormState(router as unknown as FlowNode).route as Route;
-        expect(losingOutputs(route, new Set(['invoice', 'nope']))).toEqual([{ letter: 'B', name: 'invoice' }]);
-        expect(outputLetter(0)).toBe('A');
-        expect(outputLetter(26)).toBe('27');
+        expect(losingOutputs(route, new Set(['invoice', 'nope']))).toEqual(['invoice']);
+    });
+});
+
+describe('sending what does not match to Otherwise (BFSF-485 F2)', () => {
+    const filter = { id: 'f1', type: 'filter', arrayRef: 'steps.s.output.rows', expr: 'item.total > 5' };
+
+    it('saves one output with the box ticked as a list switch with one case, and unticked as a filter again', () => {
+        const on = edit(filter, (r) => keepRestPatch(r, true, outputName));
+        expect({ ...filter, ...on }).toMatchObject({ type: 'switch', arrayRef: 'steps.s.output.rows', routeStyle: 'rules', cases: [{ name: 'Output 1', expr: 'item.total > 5' }] });
+        const reopened = extractFormState({ ...filter, ...on } as unknown as FlowNode).route as Route;
+        expect(reopened).toMatchObject({ mode: 'items', keepRest: true });
+        expect(reopened.rules).toHaveLength(1);
+        expect(edit({ ...filter, ...on }, (r) => keepRestPatch(r, false, outputName))).toMatchObject({ type: 'filter', expr: 'item.total > 5' });
+    });
+
+    it('drops the box when the node grows to several outputs or collapses back', () => {
+        expect(chooseSeveral({ rules: [{ name: 'keep', expr: 'x', value: '' }], keepRest: true }, outputName)).toMatchObject({ keepRest: false });
+        expect(collapseToOne({ rules: [] })).toMatchObject({ keepRest: false });
+    });
+
+    it('says what happens to the rest, and counts “Otherwise” where it is live (web routeEditorsOutputs)', () => {
+        const one = { several: false, fanOut: false, keepRest: false };
+        expect(otherwiseSentence(T, { ...one, items: true })).toBe('What matches continues; the rest stops here.');
+        expect(otherwiseSentence(T, { ...one, keepRest: true, items: true })).toContain('goes to “Otherwise”');
+        // A whole-run Condition decides once: then or else, never "the rest stops here".
+        expect(otherwiseSentence(T, { ...one, items: false })).toContain('the run goes to “Otherwise”');
+        expect(outputCount(T, 1, false)).toBe('This node has 1 output.');
+        expect(outputCount(T, 1, true)).toBe('This node has 1 output plus “Otherwise”.');
+        expect(outputCount(T, 3, true)).toBe('This node has 3 outputs.');
     });
 });
 
 describe('the outputs', () => {
     it('adds an output; the first crossing to several fans out', () => {
-        expect(addRule({ rules: [{ name: 'rule1', expr: '', value: '' }] })).toMatchObject({ matchMode: 'all' });
-        const patch = edit(router, addRule);
+        expect(addRule({ rules: [{ name: 'rule1', expr: '', value: '' }] }, outputName)).toMatchObject({
+            matchMode: 'all',
+            rules: [{ name: 'Output 1' }, { name: 'Output 2' }],
+        });
+        const patch = edit(router, (r) => addRule(r, outputName));
         expect(patch.cases).toHaveLength(3);
+        expect((patch.cases as { name: string }[])[2]?.name).toBe('Output 3');
         expect(patch.matchMode).toBeUndefined();
     });
 
@@ -128,7 +165,8 @@ describe('the outputs', () => {
 describe('the condition builder', () => {
     it('opens a fresh `true` as one blank row, and grammar the rows lack as raw text', () => {
         expect(isTrivialValue(' true ')).toBe(true);
-        expect(conditionState('true')).toMatchObject({ raw: false, join: '&&', rows: [{ op: 'eq' }] });
+        // A new row's operator is "is" (R6).
+        expect(conditionState('true')).toMatchObject({ raw: false, join: '&&', rows: [{ op: 'is' }] });
         const parsed = conditionState('trigger.output.a > 1 || trigger.output.b == "x"');
         expect(parsed).toMatchObject({ raw: false, join: '||' });
         expect(parsed.rows).toHaveLength(2);
@@ -136,10 +174,11 @@ describe('the condition builder', () => {
         expect(canUseVisual('')).toBe(true);
     });
 
-    it('warns on a whole list compared, and never leaves no row', () => {
-        const rows = [{ field: { kind: 'ref' as const, path: 'trigger.output.rows[*].a' }, op: 'eq', value: { kind: 'literal' as const, value: 1 } }];
-        expect(hasWildcard(rows)).toBe(true);
-        expect(hasWildcard([{ ...rows[0], op: 'truthy' }] as typeof rows)).toBe(false);
+    it('notes a whole list compared as one value — not with a quantifier — and never leaves no row', () => {
+        const rows = [{ field: { kind: 'ref' as const, path: 'item.rows[*].a' }, op: 'eq', value: { kind: 'literal' as const, value: 1 } }];
+        expect(readsListAsValue(rows[0]!)).toBe(true);
+        expect(readsListAsValue({ ...rows[0]!, op: 'truthy' })).toBe(false);
+        expect(readsListAsValue({ ...rows[0]!, quantifier: 'any' })).toBe(false);
         expect(withoutRow(rows, 0)).toHaveLength(1);
     });
 
@@ -168,10 +207,10 @@ describe('the condition builder', () => {
 
 describe('the fields a rule is built from', () => {
     it('lists an item’s fields one level deep, and every upstream field by step', () => {
-        expect(itemFieldOptions({ subject: 'Hi', from: { email: 'a@b' } }, 'Fields').map((o) => [o.path, o.label])).toEqual([
-            ['item.subject', 'Subject'],
-            ['item.from', 'From'],
-            ['item.from.email', 'From · Email'],
+        expect(itemFieldOptions({ subject: 'Hi', from: { email: 'a@b' } }, 'message', T).map((o) => [o.path, o.label, o.group])).toEqual([
+            ['item.subject', 'Subject', 'Fields of each message'],
+            ['item.from', 'From', 'Fields of each message'],
+            ['item.from.email', 'From · Email', 'Fields of each message'],
         ]);
         const groups = [{ id: 'g', label: 'Search', kind: 'step', basePath: 'steps.g.output', sample: {}, fields: [{ key: 'total', path: 'steps.g.output.total', sample: 3 }] }];
         expect(upstreamFieldOptions(groups)).toEqual([{ path: 'steps.g.output.total', label: 'Total', sample: 3, group: 'Search' }]);
@@ -179,6 +218,29 @@ describe('the fields a rule is built from', () => {
         expect(scope?.groups[0]).toMatchObject({ basePath: 'item', label: 'Current item' });
         expect(scope?.sampleRoot).toEqual({ steps: {}, item: { a: 1 } });
         expect(itemScope(null, { groups, sampleRoot: null }, 'x')).toBeNull();
+    });
+
+    it('names a Condition output by its own label, never matchesByCase', () => {
+        const fields = [
+            { key: 'matchesByCase.pdf', path: 'steps.sw.output.matchesByCase.pdf', sample: [], label: 'pdf', children: [{ key: 'size', path: 'steps.sw.output.matchesByCase.pdf[*].size', sample: 1 }] },
+            { key: 'matchesByCase.default', path: 'steps.sw.output.matchesByCase.default', sample: [], label: 'Otherwise', labelKey: 'condition_node.otherwise.label' },
+        ];
+        const groups = [{ id: 'sw', label: 'Sort', kind: 'switch', basePath: 'steps.sw.output', sample: {}, fields }];
+        expect(upstreamFieldOptions(groups).map((o) => o.label)).toEqual(['pdf', 'pdf · Size', 'Otherwise']);
+    });
+
+    it('offers a list of records once, and its columns only in their own group with File type first (R1)', () => {
+        const mail = { subject: 'Invoice', attachments: [{ filename: 'a.pdf', mimeType: 'application/pdf' }] };
+        const options = itemFieldOptions(mail, 'message', T);
+        expect(options.map((o) => [o.path, o.group, o.kind ?? null, o.quantified ?? null])).toEqual([
+            ['item.subject', 'Fields of each message', null, null],
+            ['item.attachments', 'Fields of each message', 'records', null],
+            ['fileType(item.attachments[*])', 'Attachments of each message', 'fileType', true],
+            ['item.attachments[*].filename', 'Attachments of each message', null, true],
+            ['item.attachments[*].mimeType', 'Attachments of each message', null, true],
+        ]);
+        // An attachment itself is a file: File type comes first.
+        expect(itemFieldOptions({ filename: 'a.pdf', mimeType: 'application/pdf' }, 'attachment', T)[0]).toMatchObject({ path: 'fileType(item)', label: 'File type' });
     });
 });
 
@@ -207,6 +269,8 @@ describe('accepting "Suggest outputs"', () => {
         const root = { trigger: { output: { rows: [1, 2] } } };
         expect(sampleRowsFor({ mode: 'items', source: 'trigger.output.rows' } as Route, root)).toEqual([1, 2]);
         expect(sampleRowsFor({ mode: 'records', source: 'trigger.output.rows' } as unknown as Route, root)).toBeNull();
+        // Read like the run reads it: a list held as JSON text counts too (R10).
+        expect(sampleRowsFor({ mode: 'items', source: 'trigger.output.json' } as Route, { trigger: { output: { json: '[{"a":1},{"a":2}]' } } })).toEqual([{ a: 1 }, { a: 2 }]);
         expect(losingWires(['a', 'b'], [{ name: 'b' }])).toEqual(['a']);
         expect(configuredRules({ rules: [{ name: 'a', expr: ' ' }, { name: 'b', expr: 'x' }] } as unknown as Route)).toBe(1);
     });

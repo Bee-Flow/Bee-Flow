@@ -3,7 +3,7 @@ import React, { createContext, useContext } from 'react';
 /**
  * The builder's one confirmation dialog, reachable from anywhere in the tree.
  *
- * The routines builder asks for confirmation from half a dozen places —
+ * The automations builder asks for confirmation from half a dozen places —
  * replacing a trigger, deleting a flowlet, rotating a webhook secret or a
  * form link, restoring a version — and every one of them used `window.confirm`.
  * That renders as a browser box titled "localhost:5176 says": unstyled, unable

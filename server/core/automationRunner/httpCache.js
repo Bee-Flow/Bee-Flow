@@ -64,7 +64,7 @@
  * `askOnce` is the INVISIBLE tier: a run memo, plus an optional AES-GCM row
  * with an hour's ceiling that nothing but the runner ever reads.
  * `cacheInto` is the VISIBLE one: an ordinary row in an ordinary datatable,
- * browsable, correctable, exportable, readable by another routine's find_rows,
+ * browsable, correctable, exportable, readable by another automation's find_rows,
  * and expired by the ordinary retention sweeper instead of by a hidden TTL.
  * They are independent ticks and either can be on alone.
  *
@@ -276,7 +276,7 @@ function validatorsOf(out) {
 // The same answer, kept somewhere a PERSON can look at it. `askOnce` stores an
 // AES-GCM blob under a hashed key with a one-hour ceiling and no reader but the
 // runner; `cacheInto` writes an ordinary row into an ordinary datatable, which
-// the author can browse, correct, export and read from another routine — and
+// the author can browse, correct, export and read from another automation — and
 // which the ordinary retention sweeper expires. One mechanism, two features:
 // the table's `retention_days` IS the expiry.
 //
@@ -305,7 +305,7 @@ function validatorsOf(out) {
  * `maxAgeDays` is clamped rather than refused: the validator is where an author
  * finds out that 4000 is not a number of days, and by the time the runner has
  * the step in its hands, refusing the whole call over it would only turn a
- * cache setting into a broken routine.
+ * cache setting into a broken automation.
  */
 function readCacheInto(step) {
     const c = step && step.cacheInto;
@@ -400,7 +400,7 @@ async function readInto(into, key) {
  * @param {object} storedValue   the POST-guard response — what is actually written
  * @param {object} [opts]
  * @param {string[]} [opts.secretValues]  every secret this run can see
- * @returns {Promise<{stored: boolean, reason?: string, message?: string}|null>}
+ * @returns {Promise<{stored: boolean, reason?: string, errorClass?: string, message?: string}|null>}
  *
  * A refusal here is NEVER a failed step. The call succeeded and the answer is
  * in hand; a full table or an over-large body means the next run asks again,
@@ -449,6 +449,13 @@ async function storeInto(plan, out, storedValue, { secretValues = [] } = {}) {
     const datatableDbStore = require('../../stores/datatableDbStore');
     const datatableStore = require('../../stores/datatableStore');
     const { assertDatatableQuota } = require('../dataEngine/datatableLimits');
+
+    // A Solution stage's reference table: its rows are the release's and the
+    // upsert below would be refused (RowsLockedError). Named as such, never as
+    // a quota or a write failure, and still not a failed step.
+    try { queryCompiler.assertRowsWritable(into.tableMeta); } catch (e) {
+        return { stored: false, reason: 'managed_part', errorClass: e.errorClass, message: e.message };
+    }
 
     // Is this a refresh or a new answer? Asked with compileKeyIndex, which is
     // exactly the (key → id) probe it exists for. Only the COUNTER and the
@@ -504,7 +511,7 @@ async function storeInto(plan, out, storedValue, { secretValues = [] } = {}) {
  * which means "this call was never eligible" and is NOT a miss.
  *
  * `null` and a plan with `served: null` are deliberately different: only the
- * second one counts a miss, so a routine nobody ticked never reports reuse
+ * second one counts a miss, so an automation nobody ticked never reports reuse
  * doing nothing.
  */
 async function lookup({
@@ -620,7 +627,7 @@ async function lookup({
 
     // The VISIBLE tier is opened whether or not it will SERVE, because the
     // write needs it too — a miss here is the reason the table gets filled at
-    // all. Opening it can THROW (a table this routine may not write to), and
+    // all. Opening it can THROW (a table this automation may not write to), and
     // that throw is deliberate: see openInto.
     //
     // Below the memo peek, not above it, because the motivating shape is a

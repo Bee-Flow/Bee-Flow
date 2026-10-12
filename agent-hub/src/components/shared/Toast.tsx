@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Check, AlertCircle, Info, X } from 'lucide-react';
+import useTranslation from '../../hooks/useTranslation';
 
 /**
  * Toast — minimal local toast system. Event-based so any module can call
@@ -11,7 +12,7 @@ import { Check, AlertCircle, Info, X } from 'lucide-react';
  * swap this out for Sonner. The public API (toast.success / toast.error /
  * toast.info / toast.dismiss) is compatible enough to make that drop-in.
  *
- * Repeats COLLAPSE. A caller in a retry loop — the routines builder re-saves a
+ * Repeats COLLAPSE. A caller in a retry loop — the automations builder re-saves a
  * debounced draft ~every 500ms, and a definition the server rejects fails every
  * time — used to paint a fresh toast per attempt, so a single invalid step
  * buried the screen under a dozen identical 6-second errors (BFSF-348). An
@@ -31,6 +32,8 @@ interface ToastItem {
     duration: number;
     /** How many times this exact message has arrived; 1 = shown once. */
     count?: number;
+    /** Set on an undoable toast: the label of its Undo button. */
+    undoLabel?: string;
 }
 
 interface ToastEventDetail {
@@ -51,12 +54,53 @@ function push(kind: ToastKind, message: string, duration?: number): number {
     return id;
 }
 
+interface Pending { onUndo: () => void; onExpire: () => void; timer: number }
+/** Undoable toasts waiting for an answer. Module-level, so the real action still
+ *  happens when the toast's owner has unmounted or no Toaster is mounted. */
+const pending = new Map<number, Pending>();
+
+function settle(id: number, how: 'undo' | 'expire'): boolean {
+    const entry = pending.get(id);
+    if (!entry) return false;
+    pending.delete(id);
+    window.clearTimeout(entry.timer);
+    window.dispatchEvent(new CustomEvent('beeflow:toast:dismiss', { detail: { id } }));
+    if (how === 'undo') entry.onUndo(); else entry.onExpire();
+    return true;
+}
+
+function settleAll(): void {
+    for (const id of [...pending.keys()]) settle(id, 'expire');
+}
+
+if (typeof window !== 'undefined') window.addEventListener('pagehide', settleAll);
+
+interface UndoableOptions {
+    message: string;
+    undoLabel: string;
+    onUndo: () => void;
+    /** Runs once when the toast times out or is dismissed without Undo. */
+    onExpire: () => void;
+    ms?: number;
+}
+
 export const toast = {
     success: (message: string, duration?: number) => push('success', message, duration),
     error: (message: string, duration?: number) => push('error', message, duration),
     info: (message: string, duration?: number) => push('info', message, duration),
+    /** One toast with an Undo button. Exactly one of onUndo / onExpire runs, once. */
+    undoable: ({ message, undoLabel, onUndo, onExpire, ms = 8000 }: UndoableOptions): number => {
+        const id = nextId++;
+        const timer = window.setTimeout(() => settle(id, 'expire'), ms);
+        pending.set(id, { onUndo, onExpire, timer });
+        // duration 0: the owner above runs the countdown, so it does not depend on a Toaster.
+        emit({ id, kind: 'info', message, duration: 0, undoLabel });
+        return id;
+    },
+    undo: (id: number) => { settle(id, 'undo'); },
     dismiss: (id?: number) => {
         if (typeof window === 'undefined') return;
+        if (id == null) settleAll(); else if (settle(id, 'expire')) return;
         window.dispatchEvent(new CustomEvent('beeflow:toast:dismiss', { detail: { id } }));
     },
 };
@@ -68,6 +112,7 @@ const KIND_STYLES: Record<ToastKind, { bg: string; color: string; icon: React.Co
 };
 
 export function Toaster() {
+    const { t } = useTranslation();
     const [items, setItems] = useState<ToastItem[]>([]);
     // The list is mutated from DOM event handlers that need to READ it to decide
     // whether an arriving message is a repeat, so the ref — not the state — is
@@ -97,7 +142,7 @@ export function Toaster() {
             const incoming = (e as CustomEvent<ToastEventDetail>).detail?.item;
             if (!incoming) return;
             const cur = itemsRef.current;
-            const at = cur.findIndex((t) => t.kind === incoming.kind && t.message === incoming.message);
+            const at = incoming.undoLabel ? -1 : cur.findIndex((t) => t.kind === incoming.kind && t.message === incoming.message);
             if (at >= 0) {
                 const next = cur.slice();
                 next[at] = { ...cur[at], count: (cur[at].count || 1) + 1 };
@@ -108,7 +153,7 @@ export function Toaster() {
             const next = [...cur, { ...incoming, count: 1 }];
             while (next.length > MAX_TOASTS) {
                 const dropped = next.shift();
-                if (dropped) clearTimer(dropped.id);
+                if (dropped) { clearTimer(dropped.id); settle(dropped.id, 'expire'); }
             }
             commit(next);
             arm(incoming.id, incoming.duration);
@@ -165,17 +210,27 @@ export function Toaster() {
                         <span className="text-sm flex-1 min-w-0">{item.message}</span>
                         {(item.count || 1) > 1 && (
                             <span
-                                title={`This happened ${item.count} times`}
+                                title={t('common.toast_repeat_times', 'This happened {count} times', { count: item.count })}
                                 className="shrink-0 self-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums"
                                 style={{ background: s.bg, color: s.color }}
                             >
                                 ×{item.count}
                             </span>
                         )}
+                        {item.undoLabel && (
+                            <button
+                                type="button"
+                                onClick={() => toast.undo(item.id)}
+                                data-testid="toast-undo"
+                                className="shrink-0 self-center rounded px-2 py-0.5 text-xs font-semibold text-[var(--accent-primary,var(--text-primary))] hover:bg-[var(--bg-tertiary)]"
+                            >
+                                {item.undoLabel}
+                            </button>
+                        )}
                         <button
                             type="button"
                             onClick={() => toast.dismiss(item.id)}
-                            aria-label="Dismiss"
+                            aria-label={t('common.dismiss', 'Dismiss')}
                             className="shrink-0 rounded p-0.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
                         >
                             <X className="w-3 h-3" />

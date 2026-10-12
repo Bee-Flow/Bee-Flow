@@ -138,7 +138,7 @@ after(async () => { await pg.close(); });
 
 // ── The column and the CHECK ────────────────────────────────────────────────
 
-test('a pre-existing index gains consumer_kind, and every old row reads as a routine\'s', async () => {
+test('a pre-existing index gains consumer_kind, and every old row reads as an automation\'s', async () => {
     const col = await one(
         `SELECT is_nullable, column_default FROM information_schema.columns
           WHERE table_name = 'automation_datatable_usage' AND column_name = 'consumer_kind'`);
@@ -149,7 +149,7 @@ test('a pre-existing index gains consumer_kind, and every old row reads as a rou
     assert.strictEqual(legacy.consumer_kind, 'automation', 'the default IS the backfill');
 });
 
-test('an INSERT that does not know the column — an old replica\'s — still lands as a routine\'s', async () => {
+test('an INSERT that does not know the column — an old replica\'s — still lands as an automation\'s', async () => {
     await rawQuery(`INSERT INTO automation_datatable_usage
         (scope_kind, scope_id, organization_id, datatable_id, automation_id, step_id, mode)
         VALUES ('org', $1, $1, $2, 'auto_old_replica', 's1', 'write')`, [ORG, tableId]);
@@ -210,7 +210,7 @@ test('an unknown consumer kind is refused loudly, and a bad mode falls back to r
 
 test('a reconcile of one kind never touches another kind\'s rows, even for the same id', async () => {
     // Ids never collide in practice (all UUIDs), so this is the guard for the
-    // case that should not happen: an app and a routine sharing an id.
+    // case that should not happen: an app and an automation sharing an id.
     const shared = 'id-shared-across-kinds';
     await datatableStore.reconcileUsageFor('automation', shared, SC, [{ datatableId: tableId, stepId: 's1', mode: 'read' }]);
     await datatableStore.reconcileUsageFor('app', shared, SC, [{ datatableId: tableId, stepId: 'tbl_x', mode: 'readwrite' }]);
@@ -256,7 +256,7 @@ test('before the app and webpage tables exist, listUsage still answers — with 
     assert.strictEqual(row.mode, 'readwrite');
 });
 
-test('each kind is named from its own table, and a routine step carries its position, type and last run', async () => {
+test('each kind is named from its own table, and an automation step carries its position, type and last run', async () => {
     await pg.exec('CREATE TABLE studio_apps (id TEXT PRIMARY KEY, user_id TEXT, name TEXT)');
     await pg.exec('CREATE TABLE webpages (id TEXT PRIMARY KEY, user_id TEXT, name TEXT)');
     await rawQuery(`INSERT INTO automations (id, user_id, title, definition_json, last_run_at)

@@ -51,7 +51,7 @@ function cleanApprovalQuestions(v, path, push) {
 // The stage chain on a request_approval step. An ordered list of up to five
 // named steps, each with its own approvers and its own rule — the shared
 // rulebook in automation/approvalStages.js owns the caps, so the app path and
-// the routine path cannot drift. Names and descriptions may be plain strings
+// the automation path cannot drift. Names and descriptions may be plain strings
 // or bindings (App Studio's own idiom for a dynamic value); both survive here
 // and the executor resolves a binding just before the request goes out.
 const { MAX_APPROVAL_STAGES, MAX_SEATS_PER_STAGE, MAX_TOTAL_SEATS,

@@ -7,6 +7,8 @@
 // into it.
 export const ALWAYS_AVAILABLE = new Set(['agent-search']);
 
+const OUTLOOK_IDS = new Set(['outlook', 'outlook-readonly']);
+
 /**
  * Filter the integration catalog against the caller's integration status
  * (the raw `GET /ai/user-settings` payload). A null/undefined status means
@@ -21,6 +23,14 @@ export function filterAvailableIntegrations(catalog, integrationStatus) {
         const orgEnabled = status.orgEnabledIntegrations;
         if (orgEnabled && !orgEnabled.includes(item.id)) return false;
         if (item.group === 'google') return !!status.isGoogleUser;
+        // Microsoft apps borrow the Microsoft login just like Google's. Outlook
+        // also runs off a Microsoft 365 connection made in Settings next to a
+        // Google/Nextcloud login (the server lifts only the Outlook tools off
+        // that vault credential), hence `hasMicrosoftConnection` for those two.
+        if (item.group === 'microsoft') {
+            if (OUTLOOK_IDS.has(item.id)) return !!status.isMicrosoftUser || !!status.hasMicrosoftConnection;
+            return !!status.isMicrosoftUser;
+        }
         if (item.id === 'fireflies') return !!status.hasFirefliesKey;
         if (item.id === 'youtrack') return !!status.hasYouTrackConfig;
         if (item.id === 'gamma') return !!status.hasGammaKey;

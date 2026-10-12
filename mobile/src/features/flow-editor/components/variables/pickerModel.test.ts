@@ -1,7 +1,7 @@
 import { computeUpstreamGroups, type VariableGroup } from '@/features/flow-editor/bindings';
 import { CATALOG, chainDefinition } from '@/features/flow-editor/bindings/testing/fixture';
 
-import { fieldPreview, listRows, pickerRows, toggleExpanded } from './pickerModel';
+import { fieldName, fieldPreview, listRows, pickerRows, toggleExpanded } from './pickerModel';
 
 const GROUPS: VariableGroup[] = [
     {
@@ -101,5 +101,14 @@ describe('fieldPreview', () => {
         expect(fieldPreview({ path: 'trigger.output.subject', sample: 'Hi' }, root)).toBe('Real subject');
         expect(fieldPreview({ path: 'trigger.output.missing', sample: 'Hi' }, root)).toBe('Hi');
         expect(fieldPreview({ path: 'x', sample: undefined })).toBe('—');
+    });
+});
+
+describe('fieldName', () => {
+    it('reads a field by its own label where the key is internal, else by its key', () => {
+        const nl = (key: string, en: string) => (key === 'condition_node.otherwise.label' ? 'Anders' : en);
+        expect(fieldName({ key: 'matchesByCase.default', label: 'Otherwise', labelKey: 'condition_node.otherwise.label' }, nl)).toBe('Anders');
+        expect(fieldName({ key: 'matchesByCase.pdf', label: 'pdf' }, nl)).toBe('pdf');
+        expect(fieldName({ key: 'subject' }, nl)).toBe('subject');
     });
 });

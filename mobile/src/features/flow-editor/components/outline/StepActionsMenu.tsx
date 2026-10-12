@@ -25,9 +25,9 @@ const WORDS: Record<StepActionId, Words> = {
     addTrigger: {
         icon: 'Plus',
         label: (t) => t('mobile.flow.action.add_trigger', 'Add another trigger'),
-        hint: (t) => t('mobile.flow.action.add_trigger_hint', 'Another way for this routine to start'),
+        hint: (t) => t('mobile.flow.action.add_trigger_hint', 'Another way for this automation to start'),
     },
-    openFlowlet: { icon: 'Layers', label: (t) => t('mobile.flow.action.open_flowlet', 'Open flowlet') },
+    openFlowlet: { icon: 'Layers', label: (t) => t('automations.call_flowlet_node.open_flowlet', 'Open flowlet') },
     test: {
         icon: 'Play',
         label: (t) => t('mobile.flow.action.test', 'Test this step'),
@@ -45,11 +45,11 @@ const WORDS: Record<StepActionId, Words> = {
     },
     duplicate: {
         icon: 'Copy',
-        label: (t) => t('routines.ndv.duplicate', 'Duplicate'),
+        label: (t) => t('automations.ndv.duplicate', 'Duplicate'),
         hint: (t) => t('mobile.flow.action.duplicate_hint', 'Copies this step and its settings'),
     },
-    moveUp: { icon: 'ArrowUp', label: (t) => t('mobile.flow.action.move_up', 'Move up') },
-    moveDown: { icon: 'ArrowDown', label: (t) => t('mobile.flow.action.move_down', 'Move down') },
+    moveUp: { icon: 'ArrowUp', label: (t) => t('automations.loop_body_editor.move_up', 'Move up') },
+    moveDown: { icon: 'ArrowDown', label: (t) => t('automations.loop_body_editor.move_down', 'Move down') },
     pin: {
         icon: 'Pin',
         label: (t) => t('mobile.flow.action.pin', 'Pin output'),
@@ -62,17 +62,17 @@ const WORDS: Record<StepActionId, Words> = {
     },
     disable: {
         icon: 'Power',
-        label: (t) => t('routines.ndv.disable', 'Disable'),
-        hint: (t) => t('routines.ndv.disable_title', 'Disable this node (skipped during execution)'),
+        label: (t) => t('automations.ndv.disable', 'Disable'),
+        hint: (t) => t('automations.ndv.disable_title', 'Disable this node (skipped during execution)'),
     },
     enable: {
         icon: 'Power',
         label: (t) => t('mobile.flow.action.enable', 'Enable'),
-        hint: (t) => t('routines.ndv.reenable_title', 'Re-enable this node'),
+        hint: (t) => t('automations.ndv.reenable_title', 'Re-enable this node'),
     },
     detach: {
         icon: 'Unlink',
-        label: (t) => t('mobile.flow.action.detach', 'Disconnect'),
+        label: (t) => t('automations.node_context_menu.disconnect', 'Disconnect'),
         hint: (t) => t('mobile.flow.action.detach_hint', 'Takes this step out of the flow; its neighbours reconnect'),
     },
     delete: {

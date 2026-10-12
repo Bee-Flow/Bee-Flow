@@ -19,7 +19,7 @@ import type { SseFrame } from '@/core/api/sse';
 import { resetTestRunStores } from '../components/run';
 import type { FlowDefinition } from '../model';
 import { peekDraftStore } from '../state';
-import { MAIL_SORTER as DEF, MAIL_SORTER_ROW as row, releaseDrafts, renderBuild as mount, serveRoutine } from './testing';
+import { MAIL_SORTER as DEF, MAIL_SORTER_ROW as row, releaseDrafts, renderBuild as mount, serveAutomation } from './testing';
 
 jest.setTimeout(30_000);
 
@@ -51,7 +51,7 @@ function frames(list: SseFrame[], { hold }: { hold: boolean }) {
 }
 
 beforeEach(() => {
-    serveRoutine(row);
+    serveAutomation(row);
     mockStreamSse.mockImplementation(frames([], { hold: true }));
 });
 
@@ -147,7 +147,7 @@ describe('the run menu', () => {
         await fireEvent.press(await screen.findByRole('menuitem', { name: 'Start from Web hook' }));
         await fireEvent.press(screen.getByTestId('run-more'));
         await fireEvent.press(await screen.findByRole('menuitem', { name: 'Run live' }));
-        expect(await screen.findByText('Run this routine for real?')).toBeTruthy();
+        expect(await screen.findByText('Run this automation for real?')).toBeTruthy();
         expect(api.post).not.toHaveBeenCalled();
         await fireEvent.press(screen.getByLabelText('Run it'));
         await waitFor(() =>
@@ -224,8 +224,8 @@ describe('Ask AI', () => {
         const store = peekDraftStore('a1');
 
         await fireEvent.press(screen.getByLabelText('Ask AI'));
-        await fireEvent.press(await screen.findByText('Search my inbox and summarise the results'));
-        expect(screen.getByTestId('ai-input').props.value).toBe('Search my inbox and summarise the results');
+        await fireEvent.press(await screen.findByText('Process each item with AI'));
+        expect(screen.getByTestId('ai-input').props.value).toBe('Process each item with AI');
         await fireEvent.press(screen.getByTestId('ai-send'));
 
         await waitFor(() => expect(store?.getState().definition).toEqual(AI_DRAFT));

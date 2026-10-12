@@ -12,7 +12,7 @@ import useTranslation from '../../../../hooks/useTranslation';
 import { projectErrorText } from '../projectErrorText';
 import { toast } from '../../../shared/Toast';
 import useConfirm from '../../../shared/useConfirm';
-import { SecondaryButton, SectionCard, SectionError } from './contentUi';
+import { Card, GhostButton, Notice, SecondaryButton } from '../workspaceUi';
 import { formatFileSize } from './labels';
 import useFileUploads, { type UploadRow } from './useFileUploads';
 
@@ -41,8 +41,8 @@ function RedactedBadge() {
     );
 }
 
-function FileRow({ file, uploader, canDelete, deleting, onDelete }: {
-    file: ProjectFile; uploader: string; canDelete: boolean; deleting: boolean; onDelete: () => void;
+function FileRow({ file, uploader, canDelete, deleting, onDelete, onOpen }: {
+    file: ProjectFile; uploader: string; canDelete: boolean; deleting: boolean; onDelete: () => void; onOpen?: () => void;
 }) {
     const { t, locale } = useTranslation();
     const rel = useRelativeTime();
@@ -54,7 +54,7 @@ function FileRow({ file, uploader, canDelete, deleting, onDelete }: {
         <li className="flex items-center gap-2.5 px-2 py-2 border-b border-[var(--border-subtle)] last:border-b-0" data-testid={`project-file-${file.id}`}>
             <FileIcon className="w-4 h-4 shrink-0 text-[var(--kind-kb)]" aria-hidden="true" />
             <div className="flex-1 min-w-0">
-                <div className="text-[13px] font-medium text-[var(--text-primary)] truncate">{file.name}</div>
+                <button type="button" onClick={onOpen} className="block max-w-full text-left text-[13px] font-medium text-[var(--text-primary)] truncate hover:underline">{file.name}</button>
                 {meta && <div className="text-[11px] text-[var(--text-tertiary)] truncate">{meta}</div>}
                 {reason && <div className="text-[11px] text-[var(--error)]" data-testid={`project-file-reason-${file.id}`}>{reason}</div>}
             </div>
@@ -144,13 +144,13 @@ function FileList({ status, files, emptyText, onRetry, row }: {
 }) {
     const { t } = useTranslation();
     if (status === 'loading') return <p role="status" className="px-2 py-3 text-sm text-[var(--text-tertiary)]">{t('project_content.files_loading', 'Loading files…')}</p>;
-    if (status === 'error') return <SectionError message={t('project_content.files_error', 'The files of this project could not be loaded.')} onRetry={onRetry} />;
+    if (status === 'error') return <Notice tone="error" role="alert" icon={AlertTriangle} action={onRetry && <GhostButton onClick={onRetry}>{t('project_content.retry', 'Try again')}</GhostButton>}>{t('project_content.files_error', 'The files of this project could not be loaded.')}</Notice>;
     if (!files.length) return <p className="px-2 py-4 text-center text-sm text-[var(--text-tertiary)]">{emptyText}</p>;
     return <ul data-testid="project-files-list">{files.map(row)}</ul>;
 }
 
-export default function FilesSection({ projectId, canEdit, uploaderName, openPicker = false }: {
-    projectId: string; canEdit: boolean; uploaderName: (userId: string | null | undefined) => string; openPicker?: boolean;
+export default function FilesSection({ projectId, canEdit, uploaderName, openPicker = false, onOpen }: {
+    projectId: string; canEdit: boolean; uploaderName: (userId: string | null | undefined) => string; openPicker?: boolean; onOpen?: (id: string) => void;
 }) {
     const { t } = useTranslation();
     const query = useProjectFilesQuery(projectId);
@@ -177,10 +177,10 @@ export default function FilesSection({ projectId, canEdit, uploaderName, openPic
     ) : null;
 
     return (
-        <SectionCard
+        <Card as="h3"
             title={t('project_content.files_title', 'Files')}
             description={t('project_content.files_desc', 'Files every member can use: chats in this project answer from them. Up to 20 MB each.')}
-            actions={actions}
+            action={actions}
             testId="project-files-section"
         >
             <UploadRows rows={uploads.rows} onDismiss={uploads.dismiss} />
@@ -191,12 +191,12 @@ export default function FilesSection({ projectId, canEdit, uploaderName, openPic
                         ? t('project_content.files_empty_editor', 'No files yet. Drop files here or use Upload files.')
                         : t('project_content.files_empty', 'No files yet.')}
                     row={(file) => (
-                        <FileRow key={file.id} file={file} uploader={uploaderName(file.uploadedBy)} canDelete={canEdit}
+                        <FileRow onOpen={() => onOpen?.(file.id)} key={file.id} file={file} uploader={uploaderName(file.uploadedBy)} canDelete={canEdit}
                             deleting={removal.deletingId === file.id} onDelete={() => removal.run(file)} />
                     )}
                 />
             </DropZone>
             {removal.confirmDialog}
-        </SectionCard>
+        </Card>
     );
 }

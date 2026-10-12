@@ -470,7 +470,7 @@ router.put('/:orgId', requireAuth, validate({ body: OrgShieldBody }), async (req
         webSearchGuardPiiCategories: [..._builtInPart(webSearchGuardPiiCategories), ...custom.lists.webSearch],
         toolPiiPolicy: sanitizedToolPiiPolicy,
         monitorIntegrations: !!monitorIntegrations,
-        // Whether the shield also guards automation/routine runs.
+        // Whether the shield also guards automation runs.
         // Default TRUE (an omitted field never silently disables guarding).
         applyToAutomations: applyToAutomations !== false,
         // `!== false` for the same reason as piiAllowPublicOrgs below: the

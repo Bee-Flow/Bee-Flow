@@ -8,6 +8,9 @@
  */
 
 const { isSideEffect } = require('./sideEffectMap');
+const { flattenSentenceParts } = require('./expr');
+const { agentCallParams } = require('./agentCallContract');
+const { declaredTriggerFields } = require('./builderTools/triggerCatalog');
 
 function describeTrigger(trigger) {
     if (!trigger) return 'When triggered';
@@ -21,7 +24,8 @@ function describeTrigger(trigger) {
         case 'webhook': return 'When the webhook URL is called';
         case 'agent_call': {
             const name = trigger.toolName || `automation_${trigger.id || ''}`;
-            return `When an AI agent calls it (\`${name}\`)`;
+            const args = agentCallParams(trigger).map(p => (p.required ? p.name : `${p.name}?`));
+            return `When an AI agent calls it (\`${name}\`${args.length ? `, arguments: ${args.join(', ')}` : ''})`;
         }
         case 'app_event': {
             const provider = trigger.appEvent?.provider || 'app';
@@ -149,6 +153,10 @@ function describeStep(step, idx) {
                 : ' (a new document each run)';
             return `${n} Save${title || ' text'} into a knowledge base${repeats}.`;
         }
+        case 'flatten': {
+            const sentence = flattenSentence(step);
+            return `${n} ${sentence ? `Make ${sentence}` : 'Flatten a list (the list inside each item is not picked yet)'}.`;
+        }
         default:
             return `${n} ${step.type} step (${step.id}).`;
     }
@@ -174,7 +182,7 @@ function summariseDefinition(def) {
     lines.push('**Steps:**');
 
     let hasSideEffects = false;
-    // Notes (BFSF-411) are canvas annotations, not steps the routine runs —
+    // Notes (BFSF-411) are canvas annotations, not steps the automation runs —
     // numbering them alongside real steps would misreport what step 4 in the
     // list actually does, and describeStep has no case for 'note' anyway (it
     // would fall through to the raw-type default line).
@@ -188,7 +196,7 @@ function summariseDefinition(def) {
             if (s.type === 'code') hasSideEffects = true;
             if (s.type === 'notification') hasSideEffects = true;
             // It writes a real file that persists past the run and can be
-            // downloaded by whoever the routine hands it to. Cheaper than an
+            // downloaded by whoever the automation hands it to. Cheaper than an
             // email, but not nothing — the author should be told a live run
             // will actually produce it.
             if (s.type === 'generate_document') hasSideEffects = true;
@@ -198,7 +206,7 @@ function summariseDefinition(def) {
             // And for a deck — a real file kept past the run. A slide is an
             // object in the run state, nothing outlives it.
             if (s.type === 'presentation') hasSideEffects = true;
-            // A datatable WRITE outlives the run and other routines read it, so
+            // A datatable WRITE outlives the run and other automations read it, so
             // the author must be told a live run will really change it. Decided
             // per FIELD rather than per type — the same shape integration_action
             // already uses above, where isSideEffect(s.tool) makes the call.
@@ -235,7 +243,7 @@ function bindingMap(map) {
 // model saw a code step as "(N chars)" and had to guess what to bind.
 //
 // Loaded on first use and remembered per code text: the draft state is
-// rebuilt every turn and a routine rarely changes its code between turns.
+// rebuilt every turn and an automation rarely changes its code between turns.
 // Never throws: a summary line is not worth a failed turn, and without the
 // analyser the line keeps only the size, as before.
 const CODE_PARAMS_CACHE_MAX = 64;
@@ -319,6 +327,7 @@ function renderStepState(step, opts = {}) {
         case 'knowledge_write':    detail = ` → kb \`${step.knowledgeBaseId || 'not picked'}\` from \`${step.content || ''}\`${step.sourceUri ? ` src=\`${step.sourceUri}\`` : ' (no sourceUri — a new document each run)'}`; break;
         case 'filter': case 'limit': case 'dedupe': case 'aggregate': case 'summarize':
             detail = ` over \`${step.arrayRef || ''}\`${step.field ? ` field=${step.field}` : ''}${step.op ? ` op=${step.op}` : ''}`; break;
+        case 'flatten':            detail = describeFlatten(step); break;
         // A canvas annotation — never runs, never wired. Shown so the agent
         // can see (and edit) it without mistaking it for a step it could
         // chain something after.
@@ -331,6 +340,21 @@ function renderStepState(step, opts = {}) {
     return `  - ${id} ${step.type}${detail}${label}${fe}${inLine}`;
 }
 
+/** "one row per attachment of messages (copies from, to, subject, date)", or null before the inner list is picked. */
+function flattenSentence(step) {
+    const parts = flattenSentenceParts({}, step);
+    if (!parts.child) return null;
+    const copies = (Array.isArray(step.parents) ? step.parents : []).slice().reverse()
+        .flatMap(p => (Array.isArray(p?.fields) ? p.fields : []).filter(f => f && f.mode === 'copy').map(f => f.to));
+    const keep = step.keepEmpty ? ', keeps items without one' : '';
+    return `one row per ${parts.child} of ${parts.parents} (copies ${copies.length ? copies.join(', ') : 'nothing yet'}${keep})`;
+}
+
+function describeFlatten(step) {
+    const sentence = flattenSentence(step);
+    return sentence ? ` ${sentence} over \`${step.arrayRef}\`` : ` over \`${step.arrayRef || ''}\` (the list inside each item is not picked yet)`;
+}
+
 function renderGraphState(graph, out, opts = {}) {
     const t = graph.trigger;
     if (t) {
@@ -338,7 +362,13 @@ function renderGraphState(graph, out, opts = {}) {
             const params = (t.params || []).map(p => (typeof p === 'string' ? p : p.name)).filter(Boolean);
             out.push(`  - \`${t.id || 'trg'}\` trigger:layer_input  inputs: ${params.join(', ') || '(none)'}  (bind inside as trigger.output.<name>)`);
         } else {
-            out.push(`  - \`${t.id || 'trg'}\` trigger:${t.kind || 'manual'}`);
+            // The inputs an author declared are the only place their names are
+            // written down: list them with the path the steps bind, or the
+            // model has to guess (and invent) what trigger.output holds.
+            const declared = declaredTriggerFields(t).map(f => f.name);
+            const tool = t.kind === 'agent_call' && t.toolName ? `  tool: ${t.toolName}` : '';
+            const inputs = declared.length ? `  inputs: ${declared.join(', ')}  (bind as trigger.output.<name>)` : '';
+            out.push(`  - \`${t.id || 'trg'}\` trigger:${t.kind || 'manual'}${tool}${inputs}`);
         }
     }
     for (const x of (Array.isArray(graph.triggers) ? graph.triggers : [])) {

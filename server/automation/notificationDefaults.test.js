@@ -52,7 +52,7 @@ test('old shape: levels become urgency, channel names are mapped, recipients are
     assert.deepEqual(s.onError, {
         enabled: true, channels: ['bell'], recipients: [{ type: 'owner' }],
         urgency: 'urgent', throttle: { maxPerHour: null }, delivery: 'direct',
-    }, 'an old routine gets no email and no throttle it did not have');
+    }, 'an old automation gets no email and no throttle it did not have');
     assert.deepEqual(s.onApproval.channels, ['bell', 'email', 'talk']);
     assert.deepEqual(s.onApproval.recipients, [{ type: 'approver' }]);
     assert.equal(s.onApproval.urgency, 'normal');

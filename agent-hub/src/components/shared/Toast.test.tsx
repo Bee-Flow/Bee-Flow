@@ -4,7 +4,7 @@ import { Toaster, toast } from './Toast';
 
 /**
  * The behaviour that matters here is what happens when the SAME message keeps
- * arriving. The routines builder re-saves a debounced draft roughly every
+ * arriving. The automations builder re-saves a debounced draft roughly every
  * 500ms, and a definition the server rejects fails every single time — at a
  * 6-second error duration that used to stack a dozen identical toasts over the
  * canvas (BFSF-348).
@@ -82,5 +82,50 @@ describe('Toaster — repeats collapse', () => {
         push(() => toast.info('Done'));
         act(() => { vi.advanceTimersByTime(2000); });
         expect(toasts()).toHaveLength(1);
+    });
+});
+
+describe('toast.undoable', () => {
+    beforeEach(() => { vi.useFakeTimers(); });
+    afterEach(() => { cleanup(); vi.useRealTimers(); });
+    const make = () => ({ onUndo: vi.fn(), onExpire: vi.fn() });
+
+    it('Undo runs onUndo and never onExpire', () => {
+        const fns = make();
+        render(<Toaster />);
+        act(() => { toast.undoable({ message: 'Deleted', undoLabel: 'Undo', ...fns }); });
+        act(() => { screen.getByText('Undo').click(); });
+        act(() => { vi.advanceTimersByTime(9000); });
+        expect(fns.onUndo).toHaveBeenCalledTimes(1);
+        expect(fns.onExpire).not.toHaveBeenCalled();
+        expect(screen.queryByText('Deleted')).toBeNull();
+    });
+
+    it('expires once after the time and removes the toast', () => {
+        const fns = make();
+        render(<Toaster />);
+        act(() => { toast.undoable({ message: 'Deleted', undoLabel: 'Undo', ms: 5000, ...fns }); });
+        act(() => { vi.advanceTimersByTime(4900); });
+        expect(fns.onExpire).not.toHaveBeenCalled();
+        act(() => { vi.advanceTimersByTime(200); });
+        expect(fns.onExpire).toHaveBeenCalledTimes(1);
+        expect(fns.onUndo).not.toHaveBeenCalled();
+        expect(screen.queryByText('Deleted')).toBeNull();
+    });
+
+    it('dismissing without Undo counts as expiry, and expires only once', () => {
+        const fns = make();
+        render(<Toaster />);
+        act(() => { toast.undoable({ message: 'Deleted', undoLabel: 'Undo', ...fns }); });
+        act(() => { screen.getByLabelText('Dismiss').click(); });
+        act(() => { vi.advanceTimersByTime(9000); });
+        expect(fns.onExpire).toHaveBeenCalledTimes(1);
+    });
+
+    it('still expires when no Toaster is mounted', () => {
+        const fns = make();
+        act(() => { toast.undoable({ message: 'Deleted', undoLabel: 'Undo', ...fns }); });
+        act(() => { vi.advanceTimersByTime(8100); });
+        expect(fns.onExpire).toHaveBeenCalledTimes(1);
     });
 });

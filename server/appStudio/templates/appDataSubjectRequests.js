@@ -91,7 +91,7 @@
  * accountability record whose transitions were inferred is worth less than one
  * whose transitions were chosen.
  *
- * No routine (`run_automation`) for deadline reminders. It would install
+ * No automation (`run_automation`) for deadline reminders. It would install
  * unwired, and a button that cannot succeed until someone configures it is
  * worse than no button: the clock is on the first screen instead, where it is
  * true without anyone wiring anything.

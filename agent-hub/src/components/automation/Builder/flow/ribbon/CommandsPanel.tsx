@@ -2,14 +2,14 @@ import { Layers } from 'lucide-react';
 import { stepDragProps } from '../stepDrag';
 import { CmdButton } from './jsComponents';
 import useTranslation from '../../../../../hooks/useTranslation';
-import { DRAG_HINT, DRAG_HINT_KEY } from './AppCommands';
+import { DRAG_HINT, DRAG_HINT_KEY, nativeAppPills } from './AppCommands';
 import type { OpenState } from './AppCommands';
 import PillRow from './PillRow';
 import type { RowPill } from './PillRow';
 import { DropdownPill } from './MenuPanel';
 import { FamilyIcon, itemRow } from './menuRows';
 import { FAMILY_TEXT } from './ribbonCategories';
-import type { PaletteItem, StepPayload } from './ribbonCategories';
+import type { PaletteItem, RibbonApp, StepPayload } from './ribbonCategories';
 import type { MenuPillPlan, SegmentPlan } from './ribbonRows';
 
 type AddFn = (payload: StepPayload) => void;
@@ -47,11 +47,11 @@ function MenuPill({ plan, onAdd, openKey, setOpenKey }: OpenState & { plan: Menu
             label={plan.title}
             glyph={<Icon size={14} className={(plan.family && FAMILY_TEXT[plan.family]) || 'text-[var(--text-secondary)]'} />}
             desc={`${plan.items.map(it => it.label).join(', ')}.`}
-            tipFooter={t('routines.ribbon.n_steps_pick', '{n} steps. Pick one.', { n: plan.items.length })}
+            tipFooter={t('automations.ribbon.n_steps_pick', '{n} steps. Pick one.', { n: plan.items.length })}
             origin={plan.origin}
             title={plan.title}
             sections={[{ key: plan.key, title: plan.title, rows: plan.items.map(itemRow) }]}
-            filterLabel={(n) => t('routines.ribbon.filter_steps', 'Filter {n} steps…', { n })}
+            filterLabel={(n) => t('automations.ribbon.filter_steps', 'Filter {n} steps…', { n })}
             onAdd={onAdd}
             openKey={openKey}
             setOpenKey={setOpenKey}
@@ -83,18 +83,25 @@ interface Props extends OpenState {
     segments: SegmentPlan[];
     /** The tab's name: the heading of its folded steps in "More". */
     title: string;
+    /** Bee Flow's own tools that live on this tab, after its steps. */
+    apps?: RibbonApp[];
     testId: string;
     enabled: boolean;
     empty?: string | null;
     onAdd: AddFn;
 }
 
-/** A step tab (Logic, People, Data & documents, My building blocks) as one row of pills. */
-export default function CommandsPanel({ segments, title, testId, enabled, empty = null, onAdd, openKey, setOpenKey }: Props) {
+/**
+ * A step tab (Logic, People, Data & documents, My building blocks) as one row
+ * of pills, with the Bee Flow tools that do the same job as its last segment.
+ */
+export default function CommandsPanel({ segments, title, apps = [], testId, enabled, empty = null, onAdd, openKey, setOpenKey }: Props) {
+    const { t } = useTranslation();
     const open = { openKey, setOpenKey };
+    const tools = nativeAppPills(apps, title, { onAdd, t, ...open });
     return (
         <PillRow
-            segments={planPills(segments, title, onAdd, open)}
+            segments={[...planPills(segments, title, onAdd, open), ...(tools.length > 0 ? [tools] : [])]}
             testId={testId}
             enabled={enabled}
             empty={empty}

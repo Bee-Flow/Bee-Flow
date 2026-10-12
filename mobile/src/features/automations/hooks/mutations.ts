@@ -53,7 +53,7 @@ export function useRunRefresh(automationId: string, runId: string): () => void {
 }
 
 /**
- * The cross-routine run lists, for the tab hub's live feed. Step events never
+ * The cross-automation run lists, for the tab hub's live feed. Step events never
  * reach this: a busy loop would invalidate twice a second for lists that only
  * show run-level state.
  */
@@ -66,9 +66,9 @@ export function useRunListsRefresh(): () => void {
 }
 
 /**
- * The routines list, once a run has ended: each row shows its routine's last
+ * The automations list, once a run has ended: each row shows its automation's last
  * status and when it last ran, and the "Last run failed" filter reads them.
- * Only a run's end reaches the list (isSettledRunEvent), so a busy routine's
+ * Only a run's end reaches the list (isSettledRunEvent), so a busy automation's
  * steps never re-read it. The list screen and a detail screen above it both
  * hear the same event, so a read already on its way is joined, not restarted.
  */
@@ -83,7 +83,7 @@ export function useSettledRunRefresh(): (event: RunEvent) => void {
     );
 }
 
-/** A routine's own row and the list it sits in. */
+/** An automation's own row and the list it sits in. */
 function useAutomationRowRefresh(id: string): () => void {
     const queryClient = useQueryClient();
     return useCallback(() => {

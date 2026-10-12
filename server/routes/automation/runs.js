@@ -11,7 +11,9 @@ const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { validate } = require('../../core/http/validate');
 const { z, worded, orEmpty } = require('../../core/http/schemaParts');
 const { HttpError } = require('../../core/http/errors');
-// Handoff 5 sharing: who may start, test and read the runs of a routine.
+const { isManagedAutomation } = require('../../core/automationRunner/stageVars');
+const { automationForRun } = require('../../core/automationRunner/definitionForRun');
+// Handoff 5 sharing: who may start, test and read the runs of an automation.
 const { makeAutomationAccess } = require('../../automation/access');
 const automationAccess = makeAutomationAccess({ store: automationStore });
 
@@ -31,7 +33,7 @@ const list = (name) => worded(`${name} is a comma-separated list.`).trim().optio
 const whole = (name) => z.coerce.number({ invalid_type_error: `${name} must be a number.` })
     .int(`${name} must be a whole number.`).optional();
 
-const STEP_TEXT = 'triggerStepId is the id of a trigger on this routine.';
+const STEP_TEXT = 'triggerStepId is the id of a trigger on this automation.';
 const RUN_SHAPE = {
     // What the run ENTERS with — a form submission, an inbound message. The
     // runner reads it; this route only carries it.
@@ -61,8 +63,8 @@ const RunsQuery = z.object({
     triggerKind: list('triggerKind'),
     trigger: list('trigger'),
     mode: list('mode'),
-    automationId: one('automationId', 'the id of a routine'),
-    kind: one('kind', 'a routine kind'),
+    automationId: one('automationId', 'the id of an automation'),
+    kind: one('kind', 'an automation kind'),
     since: one('since', 'an ISO timestamp'),
     until: one('until', 'an ISO timestamp'),
     cursor: one('cursor', 'the value a previous page returned as nextCursor'),
@@ -77,13 +79,13 @@ const RunsQuery = z.object({
 
 const FacetsQuery = z.object({
     range: whole('range'),
-    automationId: one('automationId', 'the id of a routine'),
-    kind: one('kind', 'a routine kind'),
+    automationId: one('automationId', 'the id of an automation'),
+    kind: one('kind', 'an automation kind'),
     mode: list('mode'),
 }).strict();
 
 const StreamQuery = z.object({
-    automationId: one('automationId', 'the id of a routine'),
+    automationId: one('automationId', 'the id of an automation'),
 }).strict();
 
 const CRON_TEXT = 'A cron expression is required — the schedule to preview.';
@@ -107,12 +109,23 @@ const SchedulePreviewBody = z.object({
 // that a stuck client or a script can't flood the runner. Tunable via env.
 /**
  * Resolve an optional `triggerStepId` (the entry point a test run should use)
- * against the routine's triggers — the primary `definition.trigger` and every
+ * against the automation's triggers — the primary `definition.trigger` and every
  * `definition.triggers[]` entry. Returns the trigger node and the `rootStepId`
- * to hand the runner (null for the primary, so a routine without additional
+ * to hand the runner (null for the primary, so an automation without additional
  * triggers behaves exactly as before). A wrong id is a 400, never a silent
  * fall-back to the primary: the caller asked to test a specific root.
  */
+/**
+ * The definition a run of this automation enters: for an automation a Solution stage
+ * manages that is the LIVE copy (test runs included), so a trigger that exists
+ * only in the working copy is not offered. Throws managed_part_not_deployed
+ * (409) when it has no live copy.
+ */
+async function entryDefinitionOf(a) {
+    if (!await isManagedAutomation(a)) return a.definition;
+    return automationForRun(a, { mode: 'live', managed: true }).definition;
+}
+
 function resolveTriggerStepId(def, triggerStepId) {
     const known = [def?.trigger, ...(Array.isArray(def?.triggers) ? def.triggers : [])].filter(t => t && t.id);
     if (!triggerStepId) {
@@ -120,7 +133,7 @@ function resolveTriggerStepId(def, triggerStepId) {
     }
     const hit = known.find(t => t.id === triggerStepId);
     if (!hit) {
-        return { error: `Unknown triggerStepId "${triggerStepId}". This routine's triggers: ${known.map(t => `${t.id} (${t.kind})`).join(', ') || '(none)'}.` };
+        return { error: `Unknown triggerStepId "${triggerStepId}". This automation's triggers: ${known.map(t => `${t.id} (${t.kind})`).join(', ') || '(none)'}.` };
     }
     return { trigger: hit, rootStepId: hit.id === def?.trigger?.id ? null : hit.id };
 }
@@ -166,7 +179,7 @@ router.post('/:id/run', runTriggerLimiter, validate({ body: RunBody }), async (r
         // Which entry point to test: the primary unless the caller names one of
         // the ADDITIONAL triggers (definition.triggers[]). The payload synthesis
         // below and the run itself both follow that trigger.
-        const entered = resolveTriggerStepId(a.definition, req.body.triggerStepId);
+        const entered = resolveTriggerStepId(await entryDefinitionOf(a), req.body.triggerStepId);
         if (entered.error) return res.status(400).json({ error: entered.error });
         const trig = entered.trigger;
         const isGmailTrig = trig?.kind === 'app_event'
@@ -213,7 +226,13 @@ router.post('/:id/run', runTriggerLimiter, validate({ body: RunBody }), async (r
             rootStepId: entered.rootStepId,
             isTest,
             startedByUserId: userId,
-        }).catch(e => { log.error('[automation/run] error:', e.message); return null; });
+        }).catch(e => {
+            // A refusal the caller must see (a managed automation with no live
+            // copy answers 409) is not a "still running" 202.
+            if (e instanceof HttpError || e?.errorClass === 'managed_part_not_deployed') throw e;
+            log.error('[automation/run] error:', e.message);
+            return null;
+        });
 
         const run = await Promise.race([runPromise, guard]);
 
@@ -246,7 +265,7 @@ router.post('/:id/dry-run', runTriggerLimiter, validate({ body: RunBody }), asyn
     // A dry run previews the WORKING copy: an editor's tool, like a Test.
     if (!await automationAccess.guard(req, res, a, 'edit')) return;
     const runner = require('../../core/automationRunner');
-    const entered = resolveTriggerStepId(a.definition, req.body.triggerStepId);
+    const entered = resolveTriggerStepId(await entryDefinitionOf(a), req.body.triggerStepId);
     if (entered.error) return res.status(400).json({ error: entered.error });
     const run = await runner.executeAutomation(a, { triggerKind: 'dry_run', triggerPayload: req.body.triggerPayload || null, mode: 'dry_run', rootStepId: entered.rootStepId, startedByUserId: userId });
     const steps = await automationStore.getRunSteps(run.id);
@@ -269,10 +288,10 @@ router.post('/:id/steps/:stepId/run', runTriggerLimiter, validate({ body: Partia
     const userId = req.session.user.id;
     const a = await automationStore.getAutomation(req.params.id);
     if (!a) return res.status(404).json({ error: 'Not found' });
-    // Executing one step is an editor's tool, not a way to start the routine.
+    // Executing one step is an editor's tool, not a way to start the automation.
     if (!await automationAccess.guard(req, res, a, 'edit')) return;
     const runner = require('../../core/automationRunner');
-    const entered = resolveTriggerStepId(a.definition, req.body.triggerStepId);
+    const entered = resolveTriggerStepId(await entryDefinitionOf(a), req.body.triggerStepId);
     if (entered.error) return res.status(400).json({ error: entered.error });
     const run = await runner.runPartial(a, req.params.stepId, {
         mode: req.body.mode,
@@ -388,8 +407,8 @@ router.get('/:id/runs', validate({ query: RunsQuery }), async (req, res) => {
     if (!a) return res.status(404).json({ error: 'Not found' });
     const access = await automationAccess.guard(req, res, a, 'run');
     if (!access) return;
-    // Scoped by the ROUTINE (handoff 5), not by who owned it at run time, so
-    // a routine handed to a new owner keeps its history. `view` and up read
+    // Scoped by the AUTOMATION (handoff 5), not by who owned it at run time, so
+    // an automation handed to a new owner keeps its history. `view` and up read
     // every run; `run` reads only the runs they started. The same
     // cursor/filter machinery as the global list narrows it further.
     const filters = {
@@ -521,7 +540,7 @@ function refuseOrgScope(viewer) {
 }
 
 /**
- * Every run of every routine in the caller's organisation, newest first.
+ * Every run of every automation in the caller's organisation, newest first.
  *
  * Same cursor/filter machinery as /_runs/recent — the filters NARROW the org
  * scope, they never replace it (stores/automationStore/runs.js) — but a
@@ -549,13 +568,13 @@ router.get('/_runs/org', validate({ query: RunsQuery }), async (req, res) => {
 });
 
 /**
- * The org-scope twin of /_runs/facets — the chips' counts and the per-routine
+ * The org-scope twin of /_runs/facets — the chips' counts and the per-automation
  * rollup the "Now running · last 24 hours" strip draws.
  *
  * The check is repeated here rather than derived from the list call: two
  * endpoints, two proofs. A facets route that trusted "the list must have been
  * allowed" would hand a refused caller the shape of the organisation's
- * activity — which routines exist, how often they run, what breaks.
+ * activity — which automations exist, how often they run, what breaks.
  */
 router.get('/_runs/org/facets', validate({ query: FacetsQuery }), async (req, res) => {
     const viewer = await resolveOrgRunViewer(req);

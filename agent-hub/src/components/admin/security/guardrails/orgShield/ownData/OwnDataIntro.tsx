@@ -7,23 +7,23 @@ import type { TranslateFn } from '../../../../../../hooks/useTranslation';
  * list and the locked view), so the card reads the same whichever one the
  * admin lands on.
  *
- * Routines are only named when the shield also runs on them: an admin who
+ * Automations are only named when the shield also runs on them: an admin who
  * switched that off should not read that their own data is hidden there.
  */
 export function OwnDataIntro({
-    routines = true, action, children, t,
+    automations = true, action, children, t,
 }: {
-    /** Whether the shield also runs on routines; see above. */
-    routines?: boolean;
+    /** Whether the shield also runs on automations; see above. */
+    automations?: boolean;
     /** Sits to the right of the heading, e.g. "Add a type". */
     action?: React.ReactNode;
     /** Replaces the description, e.g. with the licence notice. */
     children?: React.ReactNode;
     t: TranslateFn;
 }) {
-    const desc = routines
-        ? t('shield_data.landing_desc', 'Project code names, customer numbers, internal names. Add a type and the shield hides it just like names and email addresses, in chat, agents and routines.')
-        : t('shield_data.landing_desc_no_routines', 'Project code names, customer numbers, internal names. Add a type and the shield hides it just like names and email addresses, in chat and agents.');
+    const desc = automations
+        ? t('shield_data.landing_desc', 'Project code names, customer numbers, internal names. Add a type and the shield hides it just like names and email addresses, in chat, agents and automations.')
+        : t('shield_data.landing_desc_no_automations', 'Project code names, customer numbers, internal names. Add a type and the shield hides it just like names and email addresses, in chat and agents.');
     return (
         <div className="flex items-start gap-4 flex-wrap">
             <div className="min-w-0 flex-1 flex flex-col gap-1">

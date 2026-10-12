@@ -34,7 +34,7 @@ function pinAction(def: FlowDefinition, address: string, run: RunRow | null): St
     return pinnable ? { id: 'pin', enabled: true } : null;
 }
 
-/** A call_layer whose flowlet is in the routine: its card opens the flowlet (the web node's "Open flowlet"). */
+/** A call_layer whose flowlet is in the automation: its card opens the flowlet (the web node's "Open flowlet"). */
 function callsFlowlet(def: FlowDefinition, address: string): boolean {
     const step = findAtAddress(def, address);
     const key = step?.type === 'call_layer' ? step.layerKey : null;

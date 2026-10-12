@@ -488,7 +488,11 @@ test('the validation types in the catalog are the ones the tool surface declares
 // 2026-09-17, 50_760 chars). A deliberate catalog change updates it here:
 // 2026-09-18, the generate_presentation step kind joined STEP_SPECS, with
 // its look fields (preset/accent/font/coverStyle/tableStyle) — 51_434 chars.
-const FULL_CATALOG_SHA256_BEFORE_REFACTOR = 'e9c087f302cc658fb1fa778dffcc0cd72f98d846549b581431fd268ec595d07b';
+// 2026-10-04, "routine" became "automation" throughout the catalog — 51_818 chars.
+// 2026-10-05, actionResult paths take the shared grammar ([0], ["key"]) — 51_824 chars.
+// 2026-10-06, the Condition node's rule functions joined the engine (equals,
+// fileType, anyOf, everyOf, noneOf) — 51_935 chars.
+const FULL_CATALOG_SHA256_BEFORE_REFACTOR = 'eb25663c9caeb88a5794592d332db81a0ab917fdfa88803d3c07001d75810d66';
 
 test('renderCatalogText is byte-identical after the section refactor (stored digest)', () => {
     const text = renderCatalogText();

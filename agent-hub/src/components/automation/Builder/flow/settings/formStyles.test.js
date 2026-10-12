@@ -77,9 +77,10 @@ describe('form style vocabulary', () => {
         expect(cardClass()).toContain('border');
     });
 
-    it('the band and rail use tokens nothing else in the panel claims', () => {
-        expect(bandClass()).toContain('bg-[var(--bg-tertiary)]');
-        expect(railClass()).toContain('border-l');
+    it('the band is a hairline under the title (no filled bar), the group itself has no line beside it', () => {
+        expect(bandClass()).toContain('border-b');
+        expect(bandClass()).not.toContain('bg-[');
+        expect(railClass()).not.toContain('border-l');
     });
 
     it('required markers follow the theme error token, not a raw Tailwind red', () => {

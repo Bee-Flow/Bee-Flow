@@ -5,7 +5,7 @@
  * The endpoint exists to turn a hand-written prompt back into fields, which
  * means its input is a model completion: untrusted, like any request body. The
  * tests below pin the three things that follow from that — the enum narrows,
- * the routine id never survives, and the parse never writes — plus the editor
+ * the automation id never survives, and the parse never writes — plus the editor
  * gate, because the endpoint reads the agent's own concept prompt when the
  * caller sends no text.
  *
@@ -137,7 +137,7 @@ test('a stored free text wins over the generated prompt as the thing to parse', 
     assert.match(fx.chatCalls[0].messages[1].content, /the text the editor is showing/);
 });
 
-test('THE MODEL DOES NOT GET TO WIDEN: enum, mode and routine id are all overridden', async () => {
+test('THE MODEL DOES NOT GET TO WIDEN: enum, mode and automation id are all overridden', async () => {
     fx.structured = {
         who: 'x',
         does: ['a'],
@@ -149,7 +149,7 @@ test('THE MODEL DOES NOT GET TO WIDEN: enum, mode and routine id are all overrid
     const res = await dispatch({ text: 'anything' });
     const p = res.body.persona;
     assert.strictEqual(p.unknown.automationId, null,
-        'no model knows this installation\'s routine ids — anything there is a guess, and a guess there is a grant request');
+        'no model knows this installation\'s automation ids — anything there is a guess, and a guess there is a grant request');
     assert.strictEqual(p.mode, 'fields', 'a parse always lands in fields mode: that is the button the user pressed');
     assert.strictEqual(p.freeText, '');
     assert.strictEqual(p.language, null, 'a language nobody can name never becomes a prompt line');

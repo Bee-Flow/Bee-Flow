@@ -11,12 +11,12 @@
  *    the minute-walk ever comes back.
  * 2. DST fall-back (W1/FIX3). On the switch day the ambiguous wall time
  *    happens twice; the old code returned the LATER instant, so a 02:30
- *    routine ran at 03:30 wall clock — and in zones that switch at midnight
+ *    automation ran at 03:30 wall clock — and in zones that switch at midnight
  *    it could return an instant in the PAST, which the scheduler claims
  *    immediately. We now always return the FIRST occurrence.
  *
  * The plain-cron expectations were captured from the pre-rewrite
- * implementation and must not drift: next_run_at for every scheduled routine
+ * implementation and must not drift: next_run_at for every scheduled automation
  * in the product comes from this function.
  *
  * Run: node --test automation/cron.test.js
@@ -125,7 +125,7 @@ test('spring forward: a schedule inside the missing hour skips that day', () => 
 test('fall back: fires at the FIRST occurrence, not an hour late', () => {
     // 2026-10-25 Amsterdam: 03:00 CEST → 02:00 CET, so 02:30 happens at
     // 00:30Z (CEST) and again at 01:30Z (CET). Old behaviour returned
-    // 01:30Z — the routine ran an hour late every autumn.
+    // 01:30Z — the automation ran an hour late every autumn.
     assert.strictEqual(
         nextRunAt('30 2 * * *', 'Europe/Amsterdam', at('2026-10-24T20:00:00Z')),
         '2026-10-25T00:30:00.000Z');

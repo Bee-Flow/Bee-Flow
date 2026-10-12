@@ -7,7 +7,7 @@ import { findAtAddress, inlineList } from './nested';
 const pairs = (def: FlowDefinition) => def.edges.map((e) => `${e.from}>${e.to}${e.label ? `:${e.label}` : ''}`);
 
 describe('insertStep', () => {
-    it('keeps the drawn layout of a routine nobody placed: the new step lands by its source, nothing else moves', () => {
+    it('keeps the drawn layout of an automation nobody placed: the new step lands by its source, nothing else moves', () => {
         const def = clone(chain);
         def.steps = def.steps.map(({ position: _p, ...s }) => s);
         if (def.trigger) delete def.trigger.position;

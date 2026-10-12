@@ -298,7 +298,10 @@ function Build-One {
         "agent-hub" {
             $extra += @("--build-arg", "VITE_BUILD_SHA=$(Get-GitSha)")
             $extra += @("--build-arg", "BUILDKIT_INLINE_CACHE=1")
-            if ($env:FAST_DEV -eq "1") { $extra += @("--build-arg", "BUILD_EMBED=false") }
+            if ($env:FAST_DEV -eq "1") {
+                if ($Env -eq "prd") { throw "FAST_DEV=1 skips the Nextcloud embed build; refusing to produce a prd agent-hub image. Unset FAST_DEV and rebuild." }
+                $extra += @("--build-arg", "BUILD_EMBED=false")
+            }
         }
         "reranker" {
             if (-not $env:HF_TOKEN) {

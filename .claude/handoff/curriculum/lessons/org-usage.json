@@ -14,7 +14,7 @@
       "id": "what-counts",
       "icon": "📇",
       "title": "One row per model call",
-      "bodyMd": "Sooner or later someone asks you what the AI is costing, and the answer has to be better than a total. This report is where you get it.\n\nEvery time Bee Flow asks a model something, it writes **one usage row**: who asked, which agent, which model, which part of the product, how many tokens, how long it took, and what it cost.\n\nChat, agents, routines, Studio apps, forms, web pages, datatable drafts, Cowork and knowledge embeddings all write rows into the same log.\n\nOne exclusion matters: rows created by a **tool call** are left out of every total on this page. So a tool-level count will never add up to the totals you see here — by design, not by bug."
+      "bodyMd": "Sooner or later someone asks you what the AI is costing, and the answer has to be better than a total. This report is where you get it.\n\nEvery time Bee Flow asks a model something, it writes **one usage row**: who asked, which agent, which model, which part of the product, how many tokens, how long it took, and what it cost.\n\nChat, agents, automations, Studio apps, forms, web pages, datatable drafts, Cowork and knowledge embeddings all write rows into the same log.\n\nOne exclusion matters: rows created by a **tool call** are left out of every total on this page. So a tool-level count will never add up to the totals you see here — by design, not by bug."
     },
     {
       "type": "tour",
@@ -128,14 +128,14 @@
       "id": "panels",
       "icon": "🧭",
       "title": "Three questions, three lists",
-      "bodyMd": "Under the hero, the Overview tab answers \"where did it go\" from three angles — one list each, and reading them in this order gets you a cause instead of an opinion.\n\n**Who?** **Top Users** / **Top users by cost** — the eight heaviest people over the range you picked.\n\n**Which part of the product?** **By app area** — chat, an agent, a routine, a Studio app, a form.\n\n**Which model?** **By Model** / **By tier**, with **Models per Agent** underneath in the full view: expand an agent and you get its model split, input and output cost per model.\n\nOne panel is a table rather than a list. **Model Usage by User** gives one row per person per model, twenty rows at a time behind **Show more events**. That is where you go once you know *who*, and want to know what they were running.\n\nSome app areas show a raw name and a generic icon rather than a friendly label. Cosmetic, not missing data."
+      "bodyMd": "Under the hero, the Overview tab answers \"where did it go\" from three angles — one list each, and reading them in this order gets you a cause instead of an opinion.\n\n**Who?** **Top Users** / **Top users by cost** — the eight heaviest people over the range you picked.\n\n**Which part of the product?** **By app area** — chat, an agent, an automation, a Studio app, a form.\n\n**Which model?** **By Model** / **By tier**, with **Models per Agent** underneath in the full view: expand an agent and you get its model split, input and output cost per model.\n\nOne panel is a table rather than a list. **Model Usage by User** gives one row per person per model, twenty rows at a time behind **Show more events**. That is where you go once you know *who*, and want to know what they were running.\n\nSome app areas show a raw name and a generic icon rather than a friendly label. Cosmetic, not missing data."
     },
     {
       "type": "slide",
       "id": "filtering",
       "icon": "🎚️",
       "title": "Click a row, and the whole page follows",
-      "bodyMd": "The panels are not only lists. In the full view, clicking a row in **Top Users**, **By Model** or **By app area** fills the matching filter pill — **All Users**, **All Agents**, **All Models**, **All Sources** — and every other panel re-queries against it. That is how you get from \"routines are expensive\" to \"this agent, on this model, for this person\" without typing a thing.\n\n**Clear** appears as soon as a filter is set, and puts the whole organisation back.\n\nIn the customer view those lists are read-only, so you set the pills by hand instead — and there is no **All Models** pill there at all, because that view never shows model names in the first place.\n\nRANGE and the pills are independent controls: changing one never resets the other."
+      "bodyMd": "The panels are not only lists. In the full view, clicking a row in **Top Users**, **By Model** or **By app area** fills the matching filter pill — **All Users**, **All Agents**, **All Models**, **All Sources** — and every other panel re-queries against it. That is how you get from \"automations are expensive\" to \"this agent, on this model, for this person\" without typing a thing.\n\n**Clear** appears as soon as a filter is set, and puts the whole organisation back.\n\nIn the customer view those lists are read-only, so you set the pills by hand instead — and there is no **All Models** pill there at all, because that view never shows model names in the first place.\n\nRANGE and the pills are independent controls: changing one never resets the other."
     },
     {
       "type": "sim",
@@ -154,7 +154,7 @@
           },
           {
             "id": "where",
-            "left": "\"Is this the chat, a routine, or one of our Studio apps?\"",
+            "left": "\"Is this the chat, an automation, or one of our Studio apps?\"",
             "right": "By app area",
             "note": "Every usage row carries the part of the product that made the call, and By app area sums them up."
           },
@@ -174,7 +174,7 @@
             "id": "ceiling",
             "left": "\"What is our cost cap, and is each person on their own slice of it?\"",
             "right": "License & Usage",
-            "note": "Not this report — it only reads. The plan, the cost cap and the pooled-versus-per-user budget toggle all live on License & Usage, one row up in the same Organisation group."
+            "note": "Not this report — it only reads. On Bee Flow Cloud the plan, the cost cap and the pooled-versus-per-user budget toggle all live on License & Usage, the first row of the same Organisation group."
           }
         ]
       }
@@ -191,7 +191,7 @@
       "id": "limits",
       "icon": "🚧",
       "title": "What this report will not do",
-      "bodyMd": "Three things admins expect here and do not get.\n\n**There is no export button.** No panel offers a download — not the lists, not the **Model Usage by User** table. So whatever the screen declines to print, such as the cached, cache-creation and reasoning counts, cannot be dug out here either. If a figure has to reach a board pack, you copy or screenshot what is on show, and you promise finance no monthly file.\n\n**It changes nothing.** The page only reads. Every control that moves money — the plan, the cost cap, the pooled-budget toggle — sits on **License & Usage**, the first entry of the same Organisation group in the settings sidebar.\n\n**Two tabs may not be there at all.** **Feedback** and **Terminations** sit beside Overview, but they need the advanced usage monitoring capability, which comes with Enterprise. Without it only Overview renders, and a deep link to either tab quietly lands you back on Overview. Those two tabs, and the cap, belong to the next lesson. This one stays on Overview — the part every plan and every deployment gets."
+      "bodyMd": "Three things admins expect here and do not get.\n\n**There is no export button.** No panel offers a download — not the lists, not the **Model Usage by User** table. So whatever the screen declines to print, such as the cached, cache-creation and reasoning counts, cannot be dug out here either. If a figure has to reach a board pack, you copy or screenshot what is on show, and you promise finance no monthly file.\n\n**It changes nothing.** The page only reads. Every control that moves money — the plan, the cost cap, the pooled-budget toggle — sits on **License & Usage**, the first entry of the same Organisation group in the settings sidebar on Bee Flow Cloud. A self-hosted install has no such row: its tier comes from a server-wide licence.\n\n**Two tabs may not be there at all.** **Feedback** and **Terminations** sit beside Overview, but they need the advanced usage monitoring capability, which comes with Enterprise. Without it only Overview renders, and a deep link to either tab quietly lands you back on Overview. Those two tabs, and the cap, belong to the next lesson. This one stays on Overview — the part every plan and every deployment gets."
     },
     {
       "type": "quiz",
@@ -218,7 +218,7 @@
         },
         {
           "id": "d",
-          "label": "Re-run the month's routines so the log fills up again.",
+          "label": "Re-run the month's automations so the log fills up again.",
           "correct": false,
           "feedback": "That would spend real money to test a display problem. Confirm the data path first: widen the range, then check whether the tab you are on needs a licence you do not have."
         }
@@ -232,7 +232,7 @@
       "exerciseId": "ex-org-usage-drivers",
       "title": "Your turn: name the three drivers",
       "instruction": "Open Usage & Monitoring, set RANGE to 30d, and write a short note to your own management. Name your organisation's three biggest cost drivers over those thirty days — each one identified by name, not by guess: which app area, which model or tier, and which person or agent. For each driver say what you will do about it, and say which panel you read it from. If your hero reads AI usage this period, you are in the customer view: say which numbers are redacted there and what you reasoned from instead.",
-      "placeholder": "e.g. \"1. Routines, 46% of spend (By app area). The supplier-PDF agent runs on Deep Thinking (Models per Agent) — I'll move its AI step to Fast and re-check on 30d next week. 2. ...\"",
+      "placeholder": "e.g. \"1. Automations, 46% of spend (By app area). The supplier-PDF agent runs on Deep Thinking (Models per Agent) — I'll move its AI step to Fast and re-check on 30d next week. 2. ...\"",
       "passScore": 70,
       "maxAttempts": 4
     },
@@ -241,7 +241,7 @@
       "id": "recap",
       "icon": "✅",
       "title": "Four moves, on one real spike",
-      "bodyMd": "Van Dijk Groep's spend jumps from around 40 to 180 in the first week of the quarter. Nobody touches a cap. The admin does this:\n\n1. **Set the range.** RANGE → **7d**, so the spike is not diluted by three quiet weeks.\n2. **Read By app area.** The routine source dominates. It is not the chat.\n3. **Narrow it.** Click that row (full view) or set the **All Agents** pill (customer view) to the supplier-PDF extraction agent.\n4. **Open the detail.** **Models per Agent** / **By tier** shows Deep Thinking taking nearly all of it.\n\nThe fix lives in the routine, not in the report: move that step to the **Fast** tier and re-check next week.\n\nThat is the lesson. One row per model call with tool rows excluded, opening on the last 30 days; five token counts recorded per call, of which the screen prints only input, output and total and lets none of them out as a file; a hero that tells you which of the two views you are reading; four moves from a total to a cause; and nothing on this page you can click to change the bill."
+      "bodyMd": "Van Dijk Groep's spend jumps from around 40 to 180 in the first week of the quarter. Nobody touches a cap. The admin does this:\n\n1. **Set the range.** RANGE → **7d**, so the spike is not diluted by three quiet weeks.\n2. **Read By app area.** The automation source dominates. It is not the chat.\n3. **Narrow it.** Click that row (full view) or set the **All Agents** pill (customer view) to the supplier-PDF extraction agent.\n4. **Open the detail.** **Models per Agent** / **By tier** shows Deep Thinking taking nearly all of it.\n\nThe fix lives in the automation, not in the report: move that step to the **Fast** tier and re-check next week.\n\nThat is the lesson. One row per model call with tool rows excluded, opening on the last 30 days; five token counts recorded per call, of which the screen prints only input, output and total and lets none of them out as a file; a hero that tells you which of the two views you are reading; four moves from a total to a cause; and nothing on this page you can click to change the bill."
     }
   ],
   "rubrics": {
@@ -251,7 +251,7 @@
       "criteria": [
         "Names three distinct drivers, each pinned to something concrete — an app area, a model or tier, and/or a person or agent — rather than a vague 'chat is expensive'.",
         "Attributes each finding to the panel that produced it (By app area, By Model or By tier, Top Users, Models per Agent, Model Usage by User) and states the range used.",
-        "Proposes a specific, proportionate action per driver (change a routine's tier, split a large attachment, fix an agent's instructions, discuss with a person, revisit the plan) instead of jumping straight to lowering the cap.",
+        "Proposes a specific, proportionate action per driver (change an automation's tier, split a large attachment, fix an agent's instructions, discuss with a person, revisit the plan) instead of jumping straight to lowering the cap.",
         "Shows awareness of which of the two views they were reading: in the customer view, acknowledges that tokens and call counts are redacted and reasons from cost share or tier instead."
       ],
       "passScore": 70,

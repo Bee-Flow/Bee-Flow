@@ -66,7 +66,7 @@ function register(router) {
             res.json(result);
         } catch (err) {
             log.error('[Webpages] DB schema failed:', err);
-            res.status(500).json({ error: `Schema lookup failed: ${err.message}` });
+            res.status(500).json({ error: 'Schema lookup failed' });
         }
     });
 

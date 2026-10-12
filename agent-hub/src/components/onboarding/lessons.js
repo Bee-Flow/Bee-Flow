@@ -322,7 +322,7 @@ const MEMORY_STEPS = [
     },
 ];
 
-/* ── Lesson 9: Automations & routines (rich) ─────────────────────────────── */
+/* ── Lesson 9: Automations & automations (rich) ─────────────────────────────── */
 const AUTOMATIONS_STEPS = [
     {
         type: STEP_TYPES.SLIDE, id: 'auto-intro', icon: '⏱️',
@@ -331,7 +331,7 @@ const AUTOMATIONS_STEPS = [
         bodyMdFallback: 'An **automation** is a workflow that runs on its own: a **trigger** (a schedule, a webhook, an app event…) starts it, **steps** on a visual canvas do the work — integration actions, AI steps, conditions — and the result lands where you point it.\n\nYou don’t have to draw it yourself: **Build with AI** turns a plain-English description into a wired-up flow, shows you the diagram, and dry-runs it before anything goes live.',
     },
     {
-        id: 'auto-create', navigateTo: 'studio/routines', target: '[data-tour="routine-create"]',
+        id: 'auto-create', navigateTo: 'studio/automations', target: '[data-tour="automation-create"]',
         placement: 'bottom', optional: true, timeoutMs: 6000, icon: '🗓️',
         titleKey: 'learn.automations.create.title', titleFallback: 'This is where automations live',
         bodyKey: 'learn.automations.create.body',
@@ -685,14 +685,14 @@ const AUTOMATION_BUILDER_TOUR_STEPS = [
         bodyMdFallback: 'Concepts are done — time to see where the work happens. We’ll step into **Studio → Automations** and point at the real controls, so when you build one you already know the room.\n\nNothing in this walkthrough creates or changes anything.',
     },
     {
-        id: 'abt-tabs', navigateTo: 'studio/routines', target: '[data-tour="automation-start-tabs"]',
+        id: 'abt-tabs', navigateTo: 'studio/automations', target: '[data-tour="automation-start-tabs"]',
         placement: 'bottom', requiresStudio: true, optional: true, timeoutMs: 8000, icon: '🚪',
         titleKey: 'learn.automation-builder-tour.tabs.title', titleFallback: 'Four ways in',
         bodyKey: 'learn.automation-builder-tour.tabs.body',
         bodyFallback: 'The start screen: All automations (your building blocks sit in the list beside it), Find repeating work (Bee Flow scans for candidates), Templates (pre-wired flows), and Runs (everything that happened). To describe one in plain language, press + and tell the builder’s assistant.',
     },
     {
-        id: 'abt-create', target: '[data-tour="routine-create"]',
+        id: 'abt-create', target: '[data-tour="automation-create"]',
         placement: 'bottom', requiresStudio: true, optional: true, timeoutMs: 6000, icon: '➕',
         titleKey: 'learn.automation-builder-tour.create.title', titleFallback: 'Or start from a blank canvas',
         bodyKey: 'learn.automation-builder-tour.create.body',
@@ -855,7 +855,7 @@ const AUTOMATION_HANDS_ON_STEPS = [
         titleKey: 'learn.automation-hands-on.do.title', titleFallback: 'Build it — we’ll verify it',
         instructionKey: 'learn.automation-hands-on.do.instruction',
         instructionFallback: 'Open the Automations studio and build your flow. Use the minimize button (–) up top to tuck this lesson away while you work — it keeps checking in the corner.',
-        launch: { navigateTo: 'studio/routines', labelFallback: 'Open Automations' },
+        launch: { navigateTo: 'studio/automations', labelFallback: 'Open Automations' },
     },
     {
         type: STEP_TYPES.SLIDE, id: 'aho-next', icon: '🚀',
@@ -872,7 +872,7 @@ const AUTOMATION_HANDS_ON_STEPS = [
             { id: 'b', labelFallback: 'Nothing — changes to live automations are final.', feedbackFallback: 'Every save is kept: Saved versions lets you compare and restore earlier designs.', correct: false },
             { id: 'c', labelFallback: 'Delete it and rebuild from memory.', feedbackFallback: 'No need — Saved versions keeps the history so you can go back instead of rebuilding.', correct: false },
         ],
-        explanationFallback: 'Saved versions is the undo across sessions: earlier versions of the routine you can inspect and restore.',
+        explanationFallback: 'Saved versions is the undo across sessions: earlier versions of the automation you can inspect and restore.',
     },
 ];
 
@@ -1153,7 +1153,7 @@ const HIVE_MASTER_STEPS = [
         titleKey: 'learn.hive-master.do.title', titleFallback: 'Prove it',
         instructionKey: 'learn.hive-master.do.instruction',
         instructionFallback: 'The checklist verifies your real workspace and updates as you build. Dock or minimize this lesson and go make things exist.',
-        launch: { navigateTo: 'studio/routines', labelFallback: 'Open Automations' },
+        launch: { navigateTo: 'studio/automations', labelFallback: 'Open Automations' },
     },
     {
         type: STEP_TYPES.SLIDE, id: 'hm-done', icon: '🐝',
@@ -1278,7 +1278,7 @@ const HAND_WRITTEN_LESSONS = [
     },
     {
         id: 'automations', group: 'power', icon: '⏱️', estMinutes: 3,
-        titleKey: 'learn.automations.title', titleFallback: 'Automations & routines',
+        titleKey: 'learn.automations.title', titleFallback: 'Automations & automations',
         descKey: 'learn.automations.desc',
         descFallback: 'Run agents on a schedule — briefings, reports, and more.',
         gate: { feature: 'automations' },
@@ -1328,7 +1328,7 @@ const HAND_WRITTEN_LESSONS = [
         id: 'automation-practice', group: 'power', icon: '📝', estMinutes: 8,
         titleKey: 'learn.automation-practice.title', titleFallback: 'Design your own automation',
         descKey: 'learn.automation-practice.desc',
-        descFallback: 'Brief an automation worth building, and drill the debugging routine.',
+        descFallback: 'Brief an automation worth building, and drill the debugging automation.',
         gate: { feature: 'automations' },
         steps: AUTOMATION_PRACTICE_STEPS,
     },

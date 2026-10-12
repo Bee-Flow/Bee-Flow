@@ -6,7 +6,7 @@ import { CheckCard } from './CheckCard';
 import type { ChecksFields, ChecksLicence, TranslateFn } from './checksTypes';
 
 /**
- * Check ①: what happens to EVERY message in which personal data is found,
+ * Step 3: what happens to EVERY message in which personal data is found,
  * whichever AI it is going to — plus the places the same check also runs.
  */
 
@@ -63,7 +63,7 @@ export function EveryMessageCard({
     const placeholders = f.piiAction === 'tokenize';
     return (
         <CheckCard
-            n={1}
+            n={3}
             title={t('shield_checks.every_title', 'On every message')}
             subtitle={t('shield_checks.every_sub', 'always on · runs for every AI, inside or outside')}
         >
@@ -107,8 +107,8 @@ export function EveryMessageCard({
                 disabled={readOnly}
             />
             <ToggleCard
-                title={t('admin.shield_apply_automations', 'Also protect routines')}
-                description={t('shield_checks.automations_desc', 'Routines run on their own with nobody watching. Their data and AI steps are checked the same way as chat.')}
+                title={t('admin.shield_apply_automations', 'Also protect automations')}
+                description={t('shield_checks.automations_desc', 'Automations run on their own with nobody watching. Their data and AI steps are checked the same way as chat.')}
                 checked={f.applyToAutomations}
                 onChange={f.setApplyToAutomations}
                 disabled={readOnly}

@@ -49,7 +49,7 @@ describe('actionDestinations — the allow-list', () => {
      * THE BITE. Every payload is built field by field from ACTION_FIELD_IDS.
      * Rewrite any of the three builders as `{ ...item }` — one character
      * shorter, and the obvious thing to reach for — and a field nobody
-     * reviewed rides into a routine's payload, a shared table and a knowledge
+     * reviewed rides into an automation's payload, a shared table and a knowledge
      * base an agent answers from. This is the assertion that stops it.
      */
     it('never lets a field outside the list reach ANY destination', () => {
@@ -176,7 +176,7 @@ describe('actionDestinations — the destination record', () => {
 
     it('records the destination WITHOUT an itemRef when the run had no id yet', () => {
         // 202 {pending:true}: the run started, there is simply nothing to
-        // link to. "Sent to this routine" is true; a made-up run id is not.
+        // link to. "Sent to this automation" is true; a made-up run id is not.
         const record = destinationRecord('automation', { ref: 'auto-1', label: 'Nightly digest' });
         expect(record).not.toHaveProperty('itemRef');
         expect(record.ref).toBe('auto-1');

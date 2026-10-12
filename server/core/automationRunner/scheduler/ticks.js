@@ -99,7 +99,7 @@ async function processDueAutomations() {
     if (stopping) return;
     await processDuePrimarySchedules();
     await processDueSchedules().catch(e => log.error('[AutomationRunner] processDueSchedules error:', e.message));
-    // Routine-evolution canaries: judge the ones that have seen enough runs.
+    // Automation-evolution canaries: judge the ones that have seen enough runs.
     // Lazy-required and fully caught so a store hiccup never touches scheduling.
     try {
         await require('../../../automation/evolution').evaluateCanaries();
@@ -278,6 +278,34 @@ async function processGmeetAutoImport() {
     }
 }
 
+// Microsoft Teams auto-import: same two-phase shape as Google Meet above, with
+// its own lock key so the two discoveries never wait on each other.
+const TEAMS_IMPORT_LOCK_KEY = 0xBEEF113; // 0xBEEF105–0xBEEF112 are all taken
+
+async function processTeamsAutoImport() {
+    const teamsAutoImport = require('../../meetingNotes/teamsAutoImport');
+    let acquired = false;
+    let client;
+    try {
+        client = await pool.connect();
+        const lockRes = await client.query('SELECT pg_try_advisory_lock($1) AS locked', [TEAMS_IMPORT_LOCK_KEY]);
+        acquired = !!lockRes.rows[0]?.locked;
+        if (acquired) await teamsAutoImport.discover();
+    } catch (e) {
+        log.error('[AutomationRunner] teams auto-import discovery error:', e.message);
+    } finally {
+        if (client) {
+            try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [TEAMS_IMPORT_LOCK_KEY]); } catch (_) { /* best-effort */ }
+            client.release();
+        }
+    }
+    try {
+        await teamsAutoImport.processDue();
+    } catch (e) {
+        log.error('[AutomationRunner] teams auto-import ingest error:', e.message);
+    }
+}
+
 // §WS3.1 — run-history retention sweep. Advisory-locked so only one pod drains
 // the backlog per tick (the DELETE is safe concurrently, but one pod is enough).
 const RETENTION_LOCK_KEY = 0xBEEF107;
@@ -291,7 +319,7 @@ async function processRunRetention() {
         acquired = !!lockRes.rows[0]?.locked;
         if (!acquired) return; // another pod owns this tick
         await require('../../../jobs/runRetention').runRetentionPass();
-        // Routines in the trash past their 30 days (handoff 5). Same shape of
+        // Automations in the trash past their 30 days (handoff 5). Same shape of
         // work as the pass above — bounded, idempotent, one pod — so it
         // shares this tick and its lock. Never lets a failure end the tick.
         try {
@@ -358,7 +386,7 @@ async function processDatatableRetention() {
     }
 }
 
-// Routine notifications that wait: throttled messages bundled into one
+// Automation notifications that wait: throttled messages bundled into one
 // "n more", and the daily summary (jobs/automationDigest.js, handoff 5).
 // Five minutes keeps a 17:00 summary within minutes of 17:00. One pod.
 const NOTIFICATION_DIGEST_LOCK_KEY = 0xBEEF112;
@@ -457,6 +485,7 @@ async function start() {
     const reapTick = nonOverlapping(moduleGatedTick('automation', reapStuckAutomations, 'reapStuckAutomations'), 'reapStuckAutomations');
     const talkTick = nonOverlapping(moduleGatedTick('meetingNotes', processTalkAutoRecord, 'processTalkAutoRecord'), 'processTalkAutoRecord');
     const gmeetTick = nonOverlapping(moduleGatedTick('meetingNotes', processGmeetAutoImport, 'processGmeetAutoImport'), 'processGmeetAutoImport');
+    const teamsTick = nonOverlapping(moduleGatedTick('meetingNotes', processTeamsAutoImport, 'processTeamsAutoImport'), 'processTeamsAutoImport');
     const retentionTick = nonOverlapping(moduleGatedTick('automation', processRunRetention, 'processRunRetention'), 'processRunRetention');
     const transcriptionTick = nonOverlapping(moduleGatedTick('meetingNotes', reapStuckTranscriptions, 'reapStuckTranscriptions'), 'reapStuckTranscriptions');
     const datatableRetentionTick = nonOverlapping(processDatatableRetention, 'processDatatableRetention');
@@ -466,6 +495,7 @@ async function start() {
     _tickHandles.push(setInterval(reapTick, REAPER_INTERVAL_MS).unref());
     _tickHandles.push(setInterval(talkTick, RUNNER_INTERVAL_MS).unref());
     _tickHandles.push(setInterval(gmeetTick, 120_000).unref());
+    _tickHandles.push(setInterval(teamsTick, 120_000).unref());
     // §WS3.1 — run-history retention. Hourly is plenty (it batch-drains a
     // platform-wide age window); the job no-ops when retention is disabled.
     _tickHandles.push(setInterval(retentionTick, RETENTION_INTERVAL_MS).unref());
@@ -490,7 +520,7 @@ async function start() {
         t.unref?.();
         _tickHandles.push(t);
     }
-    log.info(`[AutomationRunner] started (instance=${INSTANCE_ID}, 60s schedule, 30s polling, 60s reaper, 60s talk-autorecord, 120s gmeet-import, ${Math.round(RETENTION_INTERVAL_MS / 60000)}m retention)`);
+    log.info(`[AutomationRunner] started (instance=${INSTANCE_ID}, 60s schedule, 30s polling, 60s reaper, 60s talk-autorecord, 120s gmeet-import, 120s teams-import, ${Math.round(RETENTION_INTERVAL_MS / 60000)}m retention)`);
 }
 
 /**

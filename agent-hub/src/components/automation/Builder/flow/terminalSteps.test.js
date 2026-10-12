@@ -5,7 +5,7 @@
 //
 // Een `end`-familie betekent dat een stuk of tien plekken weten dat er na deze
 // stap geen rand meer mag komen. Mis je er één, dan is dezelfde graaf op de ene
-// plek geldig en op de andere niet, en dat merkt iemand pas als een routine
+// plek geldig en op de andere niet, en dat merkt iemand pas als een automatisering
 // halverwege stopt of de editor een rand accepteert die de validator weigert.
 //
 // Dit bestand faalt op DRIE manieren, en dat zijn precies de drie manieren

@@ -1,7 +1,7 @@
 /**
  * POST /topic-preview: score the Condition editor's sample rows for its
  * "is about" rules, so "Check the sample rows" can show how many rows each
- * output would catch before the routine runs.
+ * output would catch before the automation runs.
  *
  * Body: { texts: string[] (≤25), labels: string[] (≤ MAX_TOPIC_LABELS) }
  * Returns: { texts, labels, scores: [{ label: score }], defaultThreshold }

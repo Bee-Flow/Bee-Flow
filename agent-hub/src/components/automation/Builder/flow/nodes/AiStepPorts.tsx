@@ -53,25 +53,25 @@ export default function AiStepPorts({ agentId, agentName, skillIds, knowledgeBas
     return (
         <>
             {agentId ? (
-                <PortLink section="agents" id={agentId} title={t('routines.card.open_agent', 'Open the agent in Studio')}>
+                <PortLink section="agents" id={agentId} title={t('automations.card.open_agent', 'Open the agent in Studio')}>
                     <Bot size={10} aria-hidden="true" className="shrink-0" />
-                    <span className="truncate">{agentName || t('routines.card.port_agent', 'agent')}</span>
+                    <span className="truncate">{agentName || t('automations.card.port_agent', 'agent')}</span>
                 </PortLink>
             ) : null}
             {skills > 0 ? (
-                <PortLink section="skills" id={skillIds[0]} title={t('routines.card.open_skill', 'Open the skill in Studio')}>
+                <PortLink section="skills" id={skillIds[0]} title={t('automations.card.open_skill', 'Open the skill in Studio')}>
                     <Zap size={10} aria-hidden="true" className="shrink-0" />
                     <span className="truncate">
                         {skills === 1
-                            ? t('routines.card.port_skills', '{count} skill', { count: skills })
-                            : t('routines.card.port_skills_plural', '{count} skills', { count: skills })}
+                            ? t('automations.card.port_skills', '{count} skill', { count: skills })
+                            : t('automations.card.port_skills_plural', '{count} skills', { count: skills })}
                     </span>
                 </PortLink>
             ) : null}
             {kbs > 0 ? (
-                <PortLink section="knowledge" id={knowledgeBaseIds[0]} title={t('routines.card.open_knowledge', 'Open the knowledge base in Studio')}>
+                <PortLink section="knowledge" id={knowledgeBaseIds[0]} title={t('automations.card.open_knowledge', 'Open the knowledge base in Studio')}>
                     <BookOpen size={10} aria-hidden="true" className="shrink-0" />
-                    <span className="truncate">{t('routines.card.port_knowledge', '{count} knowledge', { count: kbs })}</span>
+                    <span className="truncate">{t('automations.card.port_knowledge', '{count} knowledge', { count: kbs })}</span>
                 </PortLink>
             ) : null}
         </>

@@ -111,14 +111,14 @@ test.beforeEach(() => {
     fx.sandboxThrows = false;
 });
 
-test('a test run loses the sending tool and the routine, and says which', async () => {
+test('a test run loses the sending tool and the automation, and says which', async () => {
     const out = await assemble({ testSandbox: true });
     assert.ok(names(out.tools).includes('gmail_search'));
     assert.ok(!names(out.tools).includes('gmail_compose'), 'a test run must never be handed a send');
     assert.ok(!names(out.tools).includes('file_the_ticket'));
     const byName = Object.fromEntries(out.sandboxWithheld.map(w => [w.name, w.reason]));
     assert.strictEqual(byName.gmail_compose, 'sends');
-    assert.strictEqual(byName.file_the_ticket, 'routine');
+    assert.strictEqual(byName.file_the_ticket, 'automation');
 });
 
 test('without the flag nothing is withheld — ordinary chat is untouched', async () => {
@@ -154,4 +154,25 @@ test('chatStream forwards the withheld list to the run', () => {
         .map(f => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n');
     assert.match(src, /sandboxWithheld/, 'chatStream must destructure the withheld list');
     assert.match(src, /onEvent\?\.\('test_sandbox'/, 'chatStream must emit it as test_sandbox');
+});
+
+test('the integration catalog is asked for THIS agent, so only the automations bound to it can be offered', async () => {
+    // The agent id is what scopes agent_call automations to their bindings
+    // (automation/agentBinding.js); a call that dropped it would offer none, one
+    // that took it from anywhere else could offer someone else's.
+    const integrationTools = require('../integrations/integrationTools');
+    const real = integrationTools.getIntegrationTools;
+    const asked = [];
+    integrationTools.getIntegrationTools = async (opts) => { asked.push(opts); return { tools: [], n8nOrgId: null }; };
+    try {
+        await assembleToolStack({
+            agent: { id: 'a1', owner_id: 'me', config: {} }, agentId: 'a1', userId: 'me',
+            userAuth: { session: {} }, messageMetadata: {},
+        });
+    } finally {
+        integrationTools.getIntegrationTools = real;
+    }
+    assert.strictEqual(asked.length, 1);
+    assert.strictEqual(asked[0].agentId, 'a1');
+    assert.strictEqual(asked[0].userId, 'me');
 });

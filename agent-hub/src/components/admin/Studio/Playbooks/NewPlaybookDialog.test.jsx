@@ -15,13 +15,13 @@ const BUILTIN = {
     id: 'invoice_tracker', title: 'Facturen bijhouden', description: 'Read invoices.', source: 'builtin',
     table: { fields: [{ key: 'datum', name: 'Datum', type: 'date' }] },
     inputs: [{ key: 'folderPath', label: 'Nextcloud folder with the invoices', kind: 'folder', default: '/Invoices' }],
-    phases: [{ key: 'table', kind: 'table', label: 'Tabel' }, { key: 'routine', kind: 'routine', label: 'Routine' }, { key: 'fill', kind: 'fill', label: 'Eerste rijen' }, { key: 'app', kind: 'app', label: 'App' }, { key: 'approvals', kind: 'app_turn', label: 'Goedkeuringsflow', requires: 'approvals' }],
+    phases: [{ key: 'table', kind: 'table', label: 'Tabel' }, { key: 'automation', kind: 'automation', label: 'Automation' }, { key: 'fill', kind: 'fill', label: 'Eerste rijen' }, { key: 'app', kind: 'app', label: 'App' }, { key: 'approvals', kind: 'app_turn', label: 'Goedkeuringsflow', requires: 'approvals' }],
 };
 const COMPOSED = {
     id: 'custom_contracten', title: 'Contracten bewaken', description: 'Reads contracts.', source: 'ai',
     table: { fields: [{ key: 'leverancier', name: 'Leverancier', type: 'text' }, { key: 'einddatum', name: 'Einddatum', type: 'date' }] },
     inputs: [{ key: 'folderPath', label: 'Map met contracten', kind: 'folder', default: '/Contracten' }, { key: 'horizon', label: 'Dagen vooruit', kind: 'text', default: '90' }],
-    phases: [{ key: 'table', kind: 'table', label: 'Tabel' }, { key: 'inlezen', kind: 'routine', label: 'Contracten inlezen', brief: 'b' }, { key: 'fill', kind: 'fill', label: 'Eerste rijen' }, { key: 'app', kind: 'app', label: 'Bewakings-app', brief: 'b' }],
+    phases: [{ key: 'table', kind: 'table', label: 'Tabel' }, { key: 'inlezen', kind: 'automation', label: 'Contracten inlezen', brief: 'b' }, { key: 'fill', kind: 'fill', label: 'Eerste rijen' }, { key: 'app', kind: 'app', label: 'Bewakings-app', brief: 'b' }],
 };
 
 beforeEach(() => {

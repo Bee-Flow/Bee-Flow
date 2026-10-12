@@ -26,10 +26,10 @@ const PARAM_TYPES = Object.freeze(['string', 'number', 'boolean', 'array', 'obje
 // are spread into the same flat triggerPayload as the inputs.
 const PARAM_NAME_RE = /^[A-Za-z][A-Za-z0-9_]{0,59}$/;
 
-// ── appRef: WHICH button in WHICH screen of WHICH app opened this routine ──
+// ── appRef: WHICH button in WHICH screen of WHICH app opened this automation ──
 //
 // `definition.trigger.appRef = { appId, screenId, nodeId }` is a BACK-pointer,
-// written when a routine is made from a button in App Studio. It is a label,
+// written when an automation is made from a button in App Studio. It is a label,
 // never an authorisation: the run-time gate stays owner-equality in
 // appStudio/actionExecutor/automationBridge.js, and nothing here is allowed to
 // widen it. Storing it lets the builder say what it is for ("Button in an
@@ -39,7 +39,7 @@ const PARAM_NAME_RE = /^[A-Za-z][A-Za-z0-9_]{0,59}$/;
 // Only the SHAPE is checked here. Whether the ids still point at anything —
 // and whether the person looking is allowed to be told the names — is decided
 // per viewer in appStudio/appRefLookup.js, because both answers change without
-// the routine changing.
+// the automation changing.
 //
 // A studio app id is a crypto.randomUUID(); screen and node ids are App
 // Studio's own `(scr|sec|cmp|act)_<6-12 chars>` (componentSpecs/ids.js ID_RE).
@@ -143,7 +143,7 @@ function appTriggerRef(definition) {
  * Validate the back-pointer's SHAPE — used at save time, same issue-record
  * shape as validateAppTriggerParams.
  *
- * Absent is legal: an app_trigger routine that was written by hand, or made
+ * Absent is legal: an app_trigger automation that was written by hand, or made
  * before this existed, has no ref and is not broken. A PRESENT ref must be
  * complete: two thirds of a pointer names nothing, and a card that renders
  * "<app> · " with an empty screen is the bug this rejects at the door.
@@ -154,7 +154,7 @@ function validateAppTriggerRef(appRef) {
 
     if (appRef === undefined || appRef === null) return issues; // no back-pointer is legal
     if (!isPlainObject(appRef)) {
-        push('ref_shape', 'appRef', 'trigger.appRef must be an object { appId, screenId, nodeId }.', 'Remove it, or point it at the button this routine belongs to.');
+        push('ref_shape', 'appRef', 'trigger.appRef must be an object { appId, screenId, nodeId }.', 'Remove it, or point it at the button this automation belongs to.');
         return issues;
     }
     const check = (key, re, what) => {

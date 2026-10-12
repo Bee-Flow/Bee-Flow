@@ -93,7 +93,7 @@ stub('../stores/userStore', { getUser: async () => null, getOrganization: async 
 stub('../stores/configStore', { getConfig: async () => null, setConfig: async () => {} });
 stub('../stores/notificationStore', { createNotification: async () => {} });
 
-process.env.ROUTINE_AUTH_LEGACY = '0';
+process.env.AUTOMATION_AUTH_LEGACY = '0';
 process.env.NODE_ENV = 'test';
 
 const runner = require('./automationRunner');

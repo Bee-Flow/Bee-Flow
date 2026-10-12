@@ -103,7 +103,7 @@ async function getAllUsers() {
                "avatarType", role, groups, "orgRole", "organizationId",
                "ssoEncryptionSetup", "passwordResetRequired",
                "dekUnwrapFailures", "dekLockoutUntil", "kdfMode", "createdAt",
-               status, "activeIconPackId", "azureUserId",
+               status, "activeIconPackId", "azureUserId", "azureTenantId",
                "nc_uid", "provider", "auto_provisioned",
                mfa_enabled, last_seen_at
         FROM users
@@ -236,8 +236,8 @@ async function createUser(userData) {
     try {
         const mwDek = userData.masterWrappedDEK ? (typeof userData.masterWrappedDEK === 'string' ? userData.masterWrappedDEK : JSON.stringify(userData.masterWrappedDEK)) : null;
         const wDek = userData.wrappedDEK ? (typeof userData.wrappedDEK === 'string' ? userData.wrappedDEK : JSON.stringify(userData.wrappedDEK)) : null;
-        await run(`INSERT INTO users (id, username, "displayName", "firstName", "lastName", email, phone, avatar, "avatarType", "passwordHash", role, groups, "masterWrappedDEK", "wrappedDEK", "orgRole", "organizationId", "createdAt", status, "azureUserId", "nc_uid", "provider", "auto_provisioned", password_changed_at)
-            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)`,
+        await run(`INSERT INTO users (id, username, "displayName", "firstName", "lastName", email, phone, avatar, "avatarType", "passwordHash", role, groups, "masterWrappedDEK", "wrappedDEK", "orgRole", "organizationId", "createdAt", status, "azureUserId", "nc_uid", "provider", "auto_provisioned", password_changed_at, "azureTenantId")
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)`,
             [id, username, displayName || username, firstName || null, lastName || null, email || null, phone || null,
                 avatar || null, avatarType || null, passwordHash, role || 'user',
                 JSON.stringify(groups || []), mwDek, wDek, orgRole || '', organizationId || '',
@@ -247,7 +247,7 @@ async function createUser(userData) {
                 // now; one provisioned without one (SSO) keeps NULL = unknown.
                 // "createdAt" cannot stand in for this — it is a date-only TEXT
                 // column and it never moves when the password later changes.
-                isNewCredential(userData) ? new Date() : null]);
+                isNewCredential(userData) ? new Date() : null, userData.azureTenantId || null]);
         return true;
     } catch (e) { log.error(e); return false; }
 }
@@ -317,8 +317,100 @@ async function oldestOrgAdmin(organizationId, excludeUserId) {
     }
 }
 
+/**
+ * Art. 17 for "Find repeating work": the user's rows in suggestion_scan_cache
+ * and automation_suggestion_feedback, through each store's purgeForUser (which
+ * also catches legacy org-scoped rows by user_id). Best-effort per store, like
+ * the rest of deleteUser. `stores` is the test seam.
+ * @param {string} userId
+ * @param {{ stores?: Array<{ purgeForUser: (id: string) => Promise<number> }> }} [opts]
+ */
+async function eraseSuggestionTraces(userId, { stores } = {}) {
+    const list = stores || [require('../suggestionScanCache'), require('../suggestionFeedbackStore')];
+    let erased = 0;
+    for (const store of list) {
+        try { erased += (await store.purgeForUser(userId)) || 0; } catch (e) {
+            log.warn('[UserStore] Suggestion erasure failed:', e.message);
+        }
+    }
+    return erased;
+}
+
+// ── Solution stages: the run-as wall (design 3.1, 3.4) ─────────────
+//
+// A Solution's UAT and PRD stages run as one account (`run_as_user_id`, in
+// v1 the Solution owner), which owns every part deployed there: cross-owner
+// edges refuse at run time. Deleting that account would drop the stage
+// tables with it (the private-table rule below), and moving it out of the
+// organisation strands every part. So both are refused (409 stage_run_as)
+// while the account runs or owns a stage; an org admin can detach or remove
+// the stages first.
+
+/**
+ * The stages `userId` runs or owns, optionally only those of one organisation.
+ *
+ * An install whose stage table was never created has no stage, and asking
+ * the stage store would create its schema from an account write, so the
+ * table's existence is checked first.
+ *
+ * @param {string} userId
+ * @param {{ organizationId?: string|null }} [opts]
+ * @returns {Promise<Array<{ projectId: string, solutionId: string, stage: string, organizationId: string }>>}
+ */
+async function stagesRunBy(userId, opts = {}) {
+    if (!userId) return [];
+    const table = await getOne(`SELECT to_regclass('solution_stages') IS NOT NULL AS present`);
+    if (!table?.present) return [];
+    const stages = await require('../solutionStageStore').runAsStagesFor(userId);
+    if (!Object.prototype.hasOwnProperty.call(opts, 'organizationId')) return stages;
+    return stages.filter((st) => (st.organizationId || '') === (opts.organizationId || ''));
+}
+
+/** 409 stage_run_as, naming the stages (ids only). */
+function stageRunAsError(stages) {
+    const { storeError } = require('../lib/managedParts');
+    return storeError(409, 'stage_run_as',
+        'This account runs a Solution stage. An org admin can detach or remove the stages first.',
+        { stages: stages.map((st) => ({ solutionId: st.solutionId, stage: st.stage, projectId: st.projectId })) });
+}
+
+/**
+ * Refuse with 409 stage_run_as when `userId` runs or owns a stage (of
+ * `organizationId`, when given).
+ * @param {string} userId
+ * @param {{ organizationId?: string|null }} [opts]
+ */
+async function assertNotStageRunAs(userId, opts = {}) {
+    const stages = await stagesRunBy(userId, opts);
+    if (stages.length > 0) throw stageRunAsError(stages);
+}
+
+/**
+ * CMS MCP upload tickets are config rows `cms_mcp_upload_<id>` holding plain
+ * JSON that names the user. They are few and short-lived, so no timer sweeps
+ * them; a user deletion just removes the ones that name that user. The prefix
+ * mirrors cms/mcp/uploadTickets.js KEY_PREFIX (stores/ may not require a feature).
+ *
+ * @param {string} userId
+ * @param {{ listKeysWithPrefix: Function, getConfigFresh: Function, deleteConfig: Function }} [configStore]
+ * @returns {Promise<number>} rows removed
+ */
+async function eraseCmsUploadTickets(userId, configStore = require('../configStore')) {
+    let removed = 0;
+    for (const key of await configStore.listKeysWithPrefix('cms_mcp_upload_')) {
+        const ticket = await configStore.getConfigFresh(key);
+        if (ticket && typeof ticket === 'object' && ticket.userId === userId) {
+            await configStore.deleteConfig(key);
+            removed++;
+        }
+    }
+    return removed;
+}
+
 async function deleteUser(userId) {
     await initDB();
+    // Before anything is dropped: an account that runs a Solution stage stays.
+    await assertNotStageRunAs(userId);
     // Capture the org before DELETE so we can sync Stripe seat quantity
     // afterwards. NULL orgId users (consumer accounts) skip the sync.
     let orgIdForSeatSync = null;
@@ -356,9 +448,20 @@ async function deleteUser(userId) {
             `learning_progress_user_${userId}`, `learning_exercises_user_${userId}`,
             `learning_certificate_user_${userId}`, `learning_intro_migrated_user_${userId}`,
             `has_seen_intro_tour_user_${userId}`,
+            // Legacy MCP server token and its revocation marker.
+            `mcp_server_token_user_${userId}`, `mcp_server_token_user_${userId}_revoked`,
         ];
         for (const key of configKeys) await configStore.deleteConfig(key);
     } catch (e) { log.error('[UserStore] Failed to clean user config keys:', e.message); }
+
+    // Named MCP tokens. No FK to users, so they go explicitly.
+    try {
+        await run('DELETE FROM mcp_tokens WHERE user_id = $1', [userId]);
+    } catch (e) { log.error('[UserStore] Failed to delete MCP tokens:', e.message); }
+
+    try {
+        await eraseCmsUploadTickets(userId);
+    } catch (e) { log.error('[UserStore] Failed to delete CMS upload tickets:', e.message); }
 
     // Notebooks. These were missed entirely: deleting a user left their
     // notebooks, sources, version snapshots, uploaded file blobs, derived
@@ -398,15 +501,20 @@ async function deleteUser(userId) {
     // Art. 17 request and the answer turns out to be untrue.
     try { await run('DELETE FROM message_feedback WHERE user_id = $1', [userId]); } catch (e) { /* table may not exist */ }
     try { await run('DELETE FROM ai_usage_log WHERE user_id = $1', [userId]); } catch (e) { /* table may not exist */ }
-    // OAuth refresh tokens for long-running routines. If we leave these
+    // Their "Don't count my chat turns" choice (chat signals, Art. 21).
+    try { await run('DELETE FROM chat_signal_objections WHERE user_id = $1', [userId]); } catch (e) { /* table may not exist */ }
+    // "Find repeating work": scans derived from this person's own mail, files
+    // and ledger, and their feedback on them.
+    await eraseSuggestionTraces(userId);
+    // OAuth refresh tokens for long-running automations. If we leave these
     // behind, the encrypted secret is still in the DB after user delete,
     // and a future user with the same id (rare but possible) could inherit
     // it. App passwords live on the users row itself and are dropped by
     // the DELETE FROM users above.
-    try { await run('DELETE FROM routine_credentials WHERE user_id = $1', [userId]); } catch (e) { /* table may not exist */ }
+    try { await run('DELETE FROM automation_credentials WHERE user_id = $1', [userId]); } catch (e) { /* table may not exist */ }
     // Cached integration answers. Fetched with THIS person's credentials and
     // about the things they could see, so they go with the account for the same
-    // reason routine_credentials and the PII vault do — and an id reused later
+    // reason automation_credentials and the PII vault do — and an id reused later
     // must never inherit somebody else's mail.
     //
     // Through the store rather than a DELETE here: purgeForUser also drops the
@@ -542,6 +650,12 @@ async function updateUser(userId, updates) {
     const existing = await getOne('SELECT * FROM users WHERE id = $1', [userId]);
     if (!existing) return false;
 
+    // Every path that moves a member out of (or between) organisations ends
+    // here: an account that runs a stage of its organisation stays put.
+    if (updates.organizationId !== undefined && (updates.organizationId || '') !== (existing.organizationId || '')) {
+        await assertNotStageRunAs(userId, { organizationId: existing.organizationId || '' });
+    }
+
     // Same choke point as createUser — see the note there. Only the name
     // fields, and only when the caller actually supplied them, so a partial
     // update (a token write, a DEK rewrap) is untouched.
@@ -574,7 +688,7 @@ async function updateUser(userId, updates) {
         recoveryUnwrapFailures: 'recoveryUnwrapFailures', recoveryLockoutUntil: 'recoveryLockoutUntil',
         orgWrappedDEK: 'orgWrappedDEK',
         opaqueRecord: 'opaqueRecord', kdfMode: 'kdfMode',
-        status: 'status', activeIconPackId: 'activeIconPackId', azureUserId: 'azureUserId',
+        status: 'status', activeIconPackId: 'activeIconPackId', azureUserId: 'azureUserId', azureTenantId: 'azureTenantId',
         ncUid: 'nc_uid', provider: 'provider', autoProvisioned: 'auto_provisioned',
         // MFA (TOTP) + self-service password reset
         mfaEnabled: 'mfa_enabled', mfaSecret: 'mfa_secret', mfaEnrolledAt: 'mfa_enrolled_at',
@@ -723,7 +837,7 @@ async function createUserWithSeatCheck(userData, { strict = true } = {}) {
             userData.azureUserId || null, userData.ncUid || null,
             userData.provider || null, userData.autoProvisioned ? true : false,
             // Same rule as createUser — see the note there.
-            isNewCredential(userData) ? new Date() : null,
+            isNewCredential(userData) ? new Date() : null, userData.azureTenantId || null,
         ];
     })();
 
@@ -762,8 +876,8 @@ async function createUserWithSeatCheck(userData, { strict = true } = {}) {
             }
 
             await client.query(
-                `INSERT INTO users (id, username, "displayName", "firstName", "lastName", email, phone, avatar, "avatarType", "passwordHash", role, groups, "masterWrappedDEK", "wrappedDEK", "orgRole", "organizationId", "createdAt", status, "azureUserId", "nc_uid", "provider", "auto_provisioned", password_changed_at)
-                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)`,
+                `INSERT INTO users (id, username, "displayName", "firstName", "lastName", email, phone, avatar, "avatarType", "passwordHash", role, groups, "masterWrappedDEK", "wrappedDEK", "orgRole", "organizationId", "createdAt", status, "azureUserId", "nc_uid", "provider", "auto_provisioned", password_changed_at, "azureTenantId")
+                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)`,
                 insertParams
             );
             await client.query('COMMIT');
@@ -796,7 +910,8 @@ async function createUserWithSeatCheck(userData, { strict = true } = {}) {
 module.exports = {
     getAllUsers, getAllUserAvatars, getUserAvatarsByIds, getOrgMembersForDirectory,
     getUser, getUserByEmail, getUserByPasswordResetToken, getUserByEmailVerificationToken,
-    createUser, updateUser, deleteUser, getUserByNcUid, findOrgMemberIdByEmail,
+    createUser, updateUser, deleteUser, eraseSuggestionTraces, eraseCmsUploadTickets, getUserByNcUid, findOrgMemberIdByEmail,
+    stagesRunBy, assertNotStageRunAs,
     createUserWithSeatCheck, SeatCapExceededError,
     touchLastSeen, isNewCredential,
 };

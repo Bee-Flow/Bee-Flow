@@ -32,7 +32,7 @@ The AI builds it end to end:
 - **Screens & components** — forms, tables, data grids, charts, kanban boards,
   calendars, record-detail views, stats, and more, wired to your data.
 - **Actions** — buttons and forms that create/update records, run one of your
-  [Routines](../features/automations.md), navigate, or call an external connector.
+  [Automations](../features/automations.md), navigate, or call an external connector.
 - **Roles & access** — it can set up roles (e.g. *admin*, *member*) and row-level
   rules (e.g. members see only rows they created).
 
@@ -62,7 +62,7 @@ Anything the AI builds, you can refine by hand:
   live preview and a variable picker (`currentUser`, form fields, `screen.params`,
   datasets, …).
 - **Data bindings** — point a component at a table (with filters + sort), a saved
-  dataset/query, a formula, a routine result, or an external connector. Filters can
+  dataset/query, a formula, an automation result, or an external connector. Filters can
   use formulas (e.g. show rows where `assignee == currentUser.id`).
 - **Preview / view-as-role** — switch to Preview to use the app live, and view it as
   any role to check what that role sees. (Row security is always enforced by the
@@ -88,7 +88,7 @@ member can never see or change rows a rule hides, regardless of what the screen 
 An app can read from external sources through **connectors** (Data → Connectors):
 
 - **Integration tool** — call one of your connected integrations.
-- **Routine** — run one of your Routines and use its output.
+- **Automation** — run one of your Automations and use its output.
 - **REST** — an HTTPS endpoint with a declared parameter list.
 
 Connectors run **as the app owner** on the server (never with viewer-supplied
@@ -134,6 +134,22 @@ Things to know:
   (that's the connector's normal user-sync) and the org needs the
   `app_studio` entitlement.
 
+## Managed by a Solution stage
+
+An app in a **UAT or Production stage** of a [Solution](solutions.md#stages-and-deployments)
+is a copy that arrives by deployment, so it is **read-only**: the editor shows a *Managed by
+a Solution stage* banner with a link to open the app in Dev and one to the stage settings,
+and a save, a rename or a delete answers `409 managed_part`. What a stage keeps is its
+**audience**: *Publish* only moves who the app reaches (everyone, groups, or nobody); it
+never freezes a new definition, because the published copy is the deployed release. An app
+that has not been deployed yet has nothing to publish (`managed_part_not_deployed`).
+
+The app's own data is the stage's own: a deployment never copies rows from Dev. Its data
+model can **grow** with a release (new tables and columns, applied additively); a change
+that would drop or retype something is blocked in the deployment plan. In an App Studio
+action, a step that writes to a managed part reports `managed_part` instead of failing
+silently.
+
 ## Limits & quotas
 
 App Studio enforces generous per-app limits. Writes are blocked with a clear message
@@ -170,5 +186,5 @@ builder with a prompt prefilled, so you can adapt it by describing the changes.
 
 ## Where to next
 
-- [Automations](../features/automations.md) — the Routines your app's actions can run.
+- [Automations](../features/automations.md) — the Automations your app's actions can run.
 - [Licensing → Tiers](../licensing/tiers.md) — where App Studio sits in the tier matrix.

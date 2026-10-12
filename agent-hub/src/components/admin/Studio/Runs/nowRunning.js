@@ -2,14 +2,14 @@
  * nowRunning — the model behind the "Now running · last 24 hours" strip
  * (Studio.dc.html 1a, Track H2).
  *
- * One line per routine that ran in the window: a coloured dot, the routine's
+ * One line per automation that ran in the window: a coloured dot, the automation's
  * name, one phrase saying where it stands, and how long ago that was. It is
  * drawn from the run FACETS, not from the runs table below it, because the
  * table shows one page and the strip is a claim about the whole window.
  *
  * The facets carry an `automations` rollup — `{ automationId, title, kind,
  * total, status: {status→count}, lastRunAt, lastErrorAt, lastErrorClass }` per
- * routine — which the server builds in the same scan that fills the chips
+ * automation — which the server builds in the same scan that fills the chips
  * (stores/automationStore/runs.js).
  *
  * ── The rule this file exists to hold ────────────────────────────────────
@@ -40,7 +40,7 @@ const ERROR_ONLY = new Set(['error']);
 const WAITING = new Set(['awaiting_approval', 'awaiting_confirm', 'awaiting_form']);
 
 /**
- * The four states a routine's window can be in, most urgent first. The index
+ * The four states an automation's window can be in, most urgent first. The index
  * IS the sort rank, so "what needs attention" rises to the top of the strip.
  */
 export const NOW_RUNNING_TONES = Object.freeze(['error', 'waiting', 'running', 'done']);
@@ -73,11 +73,11 @@ export function readRollups(facets) {
  * One rollup → one strip line.
  *
  * The tone is the most urgent thing that happened in the window, not the most
- * recent: a routine that failed twice this morning and succeeded since is
- * still a routine somebody should look at, and burying that under "done · 38
+ * recent: an automation that failed twice this morning and succeeded since is
+ * still an automation somebody should look at, and burying that under "done · 38
  * runs" is how a strip like this stops being read.
  */
-/** A routine with no usable title reads as nameless, never as "Untitled". */
+/** An automation with no usable title reads as nameless, never as "Untitled". */
 function titleOf(rollup) {
     return typeof rollup?.title === 'string' && rollup.title.trim() ? rollup.title : null;
 }
@@ -113,8 +113,8 @@ export function toLine(rollup) {
 
 /**
  * The strip: `{ lines, total, hidden }`, or null when the rollup could not be
- * read (see readRollups). `hidden` is how many routines did not fit — never
- * dropped silently, because "3 routines" and "3 of 40 routines" are different
+ * read (see readRollups). `hidden` is how many automations did not fit — never
+ * dropped silently, because "3 automations" and "3 of 40 automations" are different
  * statements about the same organisation.
  */
 export function nowRunningLines(facets, { limit = NOW_RUNNING_LIMIT } = {}) {
@@ -126,7 +126,7 @@ export function nowRunningLines(facets, { limit = NOW_RUNNING_LIMIT } = {}) {
         return String(b.at || '').localeCompare(String(a.at || ''));
     });
     // `automationsTotal` is the server's own count BEFORE its cap, so a busy
-    // organisation's "and n more" counts the routines the strip never
+    // organisation's "and n more" counts the automations the strip never
     // received, not just the ones it chose not to draw.
     const serverTotal = Number(facets?.automationsTotal);
     const total = Number.isFinite(serverTotal) && serverTotal >= lines.length ? serverTotal : lines.length;

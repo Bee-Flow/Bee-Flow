@@ -1,16 +1,19 @@
 import { ChevronDown, ChevronRight, Database, Zap, Sparkles, GitBranch, Repeat, Code, Bell, Workflow, GripVertical, Globe, ClipboardList, FileText, FileSignature, ShieldCheck, Table2, BookOpen, ScanText, RectangleHorizontal, Presentation } from 'lucide-react';
 import React, { useState } from 'react';
 import { startPathDrag } from './bindingDnd';
-import { pathInUse } from './boundPaths';
+import { fieldInUse } from './fieldInUse';
 import FieldKindIcon from './FieldKindIcon';
 import { describeField } from './fieldKinds';
+import { jsonTextValue } from './upstream/fieldTree';
+import { fieldLabelText } from './upstream/routeFieldLabel';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { previewValue, walkPath } from '../../../../utils/bindingHelpers';
 import { humanizeFieldKey } from '../flow/displayHelpers';
 
 // Resolve the value to SHOW for a path: prefer the real last-run / pinned
 // value (from previewSample) so the user sees actual data, falling back to the
-// typed sample placeholder when there's no run yet.
+// typed sample placeholder when there's no run yet. walkPath reads the
+// runtime's grammar, so what a row shows is what the run will read.
 function shownValue(path, sample, previewSample) {
     if (previewSample) {
         const v = walkPath(path, previewSample);
@@ -47,12 +50,13 @@ export { startPathDrag };
  *                     which field the insert will target
  */
 export default function VariableTree({ groups = [], onInsert, activeFieldLabel = null, previewSample = null }) {
+    const { t } = useTranslation();
     if (!groups || groups.length === 0) {
         return (
             <div className="h-full flex flex-col">
                 <TreeHeader activeFieldLabel={activeFieldLabel} />
                 <div className="flex-1 px-4 py-6 text-xs text-[var(--text-tertiary)] italic">
-                    No upstream data yet. Connect this step to a previous one to see its output here.
+                    {t('automations.variable_tree.no_upstream_data_yet_connect_this', 'No upstream data yet. Connect this step to a previous one to see its output here.')}
                 </div>
             </div>
         );
@@ -66,21 +70,22 @@ export default function VariableTree({ groups = [], onInsert, activeFieldLabel =
                 ))}
             </div>
             <div className="px-3 py-2 border-t border-[var(--border-default)] text-[10px] text-[var(--text-tertiary)]">
-                Click a value to insert it, or drag it into a field. Drag a step's row to use its whole output.
+                {t('automations.variable_tree.click_a_value_to_insert_it', 'Click a value to insert it, or drag it into a field. Drag a step\'s row to use its whole output.')}
             </div>
         </div>
     );
 }
 
 function TreeHeader({ activeFieldLabel }) {
+    const { t } = useTranslation();
     return (
         <div className="px-3 py-2 border-b border-[var(--border-default)]">
             <div className="text-[10px] uppercase tracking-wide font-semibold text-[var(--text-tertiary)]">
-                Variables
+                {t('automations.variable_tree.variables', 'Variables')}
             </div>
             {activeFieldLabel && (
                 <div className="mt-0.5 text-[11px] text-[var(--text-secondary)] truncate">
-                    insert into <span className="font-mono">{activeFieldLabel}</span>
+                    {t('automations.variable_tree.insert_into', 'insert into')} <span className="font-mono">{activeFieldLabel}</span>
                 </div>
             )}
         </div>
@@ -138,6 +143,7 @@ export function friendlyBasePath(basePath, label = '') {
 }
 
 function GroupNode({ group, onInsert, previewSample }) {
+    const { t } = useTranslation();
     const [open, setOpen] = useState(true);
     const Icon = KIND_ICON[group.kind] ? KIND_ICON[group.kind](group) : <Workflow size={12} />;
     const caption = friendlyBasePath(group.basePath, group.label);
@@ -171,7 +177,7 @@ function GroupNode({ group, onInsert, previewSample }) {
                         <FieldRow key={f.path} field={f} onInsert={onInsert} depth={1} previewSample={previewSample} />
                     ))}
                     {(group.fields || []).length === 0 && (
-                        <div className="px-6 py-1 text-[11px] text-[var(--text-tertiary)] italic">No fields</div>
+                        <div className="px-6 py-1 text-[11px] text-[var(--text-tertiary)] italic">{t('automations.variable_tree.no_fields', 'No fields')}</div>
                     )}
                 </div>
             )}
@@ -181,15 +187,26 @@ function GroupNode({ group, onInsert, previewSample }) {
 
 function valueLabel(desc, value) {
     switch (desc.kind) {
-        case 'text': return `“${previewValue(value, 40)}”`;
+        // JSON text is described ("JSON with 3 fields"), not quoted raw.
+        case 'text': return jsonTextValue(value) !== undefined ? '' : `“${previewValue(value, 40)}”`;
         case 'list': {
             const scalars = Array.isArray(value) ? value.filter(v => v != null && typeof v !== 'object') : [];
-            if (!scalars.length) return '';
+            // JSON texts are described ("list of 2 · JSON"), not quoted raw.
+            if (!scalars.length || scalars.some(v => jsonTextValue(v) !== undefined)) return '';
             return scalars.slice(0, 3).map(v => previewValue(v, 16)).join(' · ') + (scalars.length > 3 ? ' · …' : '');
         }
         case 'table': case 'group': case 'file': return '';
         default: return previewValue(value, 40);
     }
+}
+
+/**
+ * The short value a field row shows after its name ("a · b · c" for a
+ * column, “text” for text, nothing for a group): the tree's own wording, for
+ * the {} picker to show the same thing.
+ */
+export function fieldValueLabel(field, previewSample, t) {
+    return valueLabel(describeField(field, previewSample, t), shownValue(field.path, field.sample, previewSample));
 }
 
 /**
@@ -219,7 +236,11 @@ export function FieldRow({ field, onInsert, depth, previewSample, inUse = null, 
     // Say what a value IS before it is picked — "list of 3 · text", "table ·
     // 14 rows · 4 columns" — in words, never in type names (fieldKinds.js).
     const desc = describeField(field, previewSample, t);
-    const used = inUse ? pathInUse(field.path, inUse) : false;
+    // Marked at every level the step reads, `[*]` rows included (fieldInUse).
+    const used = inUse ? fieldInUse(field.path, inUse) : false;
+    // A field the runner files under its own key carries the name a person
+    // gave it ("Otherwise" for `matchesByCase.default`): that name wins.
+    const name = fieldLabelText(field, t) ?? (human ? (humanizeFieldKey(field.key) || field.key) : field.key);
 
     return (
         <div>
@@ -229,6 +250,11 @@ export function FieldRow({ field, onInsert, depth, previewSample, inUse = null, 
                 onClick={onClick}
                 role="button"
                 tabIndex={0}
+                data-field-path={field.path}
+                // The accessible name is the field's name alone: with none, the
+                // button read its whole row (kind, sample value, "used", grip).
+                // The kind and value stay on screen and in the title.
+                aria-label={name}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onInsert?.(field.path, { raw: e.altKey }); } }}
                 className={`group flex items-center gap-2 py-[5px] text-[11px] cursor-grab active:cursor-grabbing select-none hover:bg-[var(--bg-secondary)] focus:bg-[var(--bg-secondary)] focus:outline-none${used && human ? ' bg-[color-mix(in_srgb,var(--type-trigger)_7%,transparent)]' : ''}`}
                 style={{ paddingLeft: indent, paddingRight: 8 }}
@@ -249,8 +275,8 @@ export function FieldRow({ field, onInsert, depth, previewSample, inUse = null, 
                 <FieldKindIcon kind={desc.kind} size={11} className="shrink-0 text-[var(--text-tertiary)]" />
                 {/* `human` (the Comes-in column, round 4): the name a person
                     reads, "Added by" for `added_by`; the key stays in the title. */}
-                <span className="text-[var(--text-primary)] font-medium truncate min-w-[64px] max-w-[50%]" title={human ? field.key : undefined}>
-                    {human ? (humanizeFieldKey(field.key) || field.key) : field.key}
+                <span className="text-[var(--text-primary)] font-medium truncate min-w-[64px] max-w-[50%]" title={name !== field.key ? field.key : undefined}>
+                    {name}
                 </span>
                 {desc.kind !== 'unknown' && (
                     <span className="min-w-0 text-[10px] text-[var(--text-tertiary)] truncate" data-testid="field-kind" title={desc.detail ? `${desc.word} ${desc.detail}` : desc.word}>
@@ -258,12 +284,12 @@ export function FieldRow({ field, onInsert, depth, previewSample, inUse = null, 
                     </span>
                 )}
                 {used && (human ? (
-                    <span className="shrink-0 px-1.5 rounded-full text-[10px] leading-4 font-semibold bg-[color-mix(in_srgb,var(--type-trigger)_16%,transparent)] text-[var(--type-trigger)]" title={t('routines.mapping.in_use_title', 'This step already uses this field')} data-testid="field-used-pill">
-                        {t('routines.mapping.used_pill', 'used')}
+                    <span className="shrink-0 px-1.5 rounded-full text-[10px] leading-4 font-semibold bg-[color-mix(in_srgb,var(--type-trigger)_16%,transparent)] text-[var(--type-trigger)]" title={t('automations.mapping.in_use_title', 'This step already uses this field')} data-testid="field-used-pill">
+                        {t('automations.mapping.used_pill', 'used')}
                     </span>
                 ) : (
-                    <span className="shrink-0 text-[9px] text-[var(--text-tertiary)]" title={t('routines.mapping.in_use_title', 'This step already uses this field')}>
-                        {t('routines.mapping.in_use_tag', 'in use')}
+                    <span className="shrink-0 text-[9px] text-[var(--text-tertiary)]" title={t('automations.mapping.in_use_title', 'This step already uses this field')}>
+                        {t('automations.mapping.in_use_tag', 'in use')}
                     </span>
                 ))}
                 {hasChildren && desc.kind === 'group' && (
@@ -272,12 +298,12 @@ export function FieldRow({ field, onInsert, depth, previewSample, inUse = null, 
                         onClick={(e) => { e.stopPropagation(); onInsert?.(field.path); }}
                         className="shrink-0 text-[10px] underline text-[var(--text-tertiary)] hover:text-[var(--text-primary)] opacity-0 group-hover:opacity-100 focus:opacity-100"
                     >
-                        {t('routines.mapping.use_whole_group', 'use the whole group')}
+                        {t('automations.mapping.use_whole_group', 'use the whole group')}
                     </button>
                 )}
                 <span className="ml-auto shrink-0 text-[10px] text-[var(--text-tertiary)] truncate max-w-[40%] text-right">
                     {desc.kind === 'unknown'
-                        ? <span className="italic" title={t('routines.kind.unknown_hint', 'not seen yet — run the step above')}>{t('routines.kind.unknown_short', 'not seen yet')}</span>
+                        ? <span className="italic" title={t('automations.kind.unknown_hint', 'not seen yet — run the step above')}>{t('automations.kind.unknown_short', 'not seen yet')}</span>
                         : valueLabel(desc, value)}
                 </span>
                 <GripVertical size={11} className="shrink-0 text-[var(--text-tertiary)] opacity-40 group-hover:opacity-100" />

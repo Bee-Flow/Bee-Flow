@@ -31,11 +31,11 @@ describe('describeToolCall', () => {
     it('gives a past-tense verb to tools that create no step', () => {
         expect(describeToolCall(call('builder_finalize', {}, { ok: true })).title).toBe('Finished and saved');
         expect(describeToolCall(call('builder_propose_trigger', {}, { ok: true })).title).toBe('Set the trigger');
-        expect(describeToolCall(call('builder_request_dry_run', {}, { run: {} })).title).toBe('Tested the routine');
+        expect(describeToolCall(call('builder_request_dry_run', {}, { run: {} })).title).toBe('Tested the automation');
     });
 
     it('uses the translator when one is supplied, and its key', () => {
-        const t = (key, en) => (key === 'routines.builder.act.finalize' ? 'Afgerond en opgeslagen' : en);
+        const t = (key, en) => (key === 'automations.builder.act.finalize' ? 'Afgerond en opgeslagen' : en);
         expect(describeToolCall(call('builder_finalize', {}, {}), t).title).toBe('Afgerond en opgeslagen');
     });
 
@@ -136,8 +136,8 @@ describe('describeToolCall — a builder_add_steps batch', () => {
 
     it('uses the translator\'s keys, with the count interpolated', () => {
         const t = (key, en, params) => {
-            if (key === 'routines.builder.act.add_steps') return `${params.n} stappen toegevoegd`;
-            if (key === 'routines.builder.act.add_step_one') return '1 stap toegevoegd';
+            if (key === 'automations.builder.act.add_steps') return `${params.n} stappen toegevoegd`;
+            if (key === 'automations.builder.act.add_step_one') return '1 stap toegevoegd';
             return en;
         };
         expect(describeToolCall(batch(six), t).title).toBe('6 stappen toegevoegd');
@@ -187,7 +187,7 @@ describe('detailPayload', () => {
 describe('describeLiveRun', () => {
     it('names the step the run is on and how far it is', () => {
         const d = describeLiveRun({ label: 'Read file content', done: 1, total: 4 });
-        expect(d.title).toBe('Testing the routine…');
+        expect(d.title).toBe('Testing the automation…');
         expect(d.detail).toBe('Read file content · 1/4');
         expect(d.status).toBe('running');
         expect(d.error).toBeNull();
@@ -205,7 +205,42 @@ describe('describeLiveRun', () => {
     });
 
     it('translates through t', () => {
-        const t = (k, d) => (k === 'routines.builder.act.dry_run_live' ? 'Routine wordt getest…' : d);
-        expect(describeLiveRun({ label: 'x', done: 0, total: 1 }, t).title).toBe('Routine wordt getest…');
+        const t = (k, d) => (k === 'automations.builder.act.dry_run_live' ? 'Automation wordt getest…' : d);
+        expect(describeLiveRun({ label: 'x', done: 0, total: 1 }, t).title).toBe('Automation wordt getest…');
+    });
+});
+
+describe('describeToolCall: a flatten array op', () => {
+    it('names the op while no step names it yet, and the step once it does', () => {
+        const pending = { name: 'builder_add_array_op', arguments: { op: 'flatten', arrayRef: 'steps.g.output.messages', childField: 'attachments' } };
+        expect(describeToolCall(pending).title).toBe('Flattening a list');
+        const seen = [];
+        describeToolCall(pending, (k, d) => { seen.push(k); return d; });
+        expect(seen).toContain('flatten_node.activity');
+        const done = { ...pending, result: { added: { id: 'f1', type: 'flatten', label: 'One row per attachment' } } };
+        expect(describeToolCall(done).title).toBe('Flatten a list');
+        expect(describeToolCall(done).detail).toBe('One row per attachment');
+    });
+});
+
+describe('web research rows', () => {
+    it('name the search and what was searched, or the page that was read', () => {
+        const s = describeToolCall(call('agent_search', { query: 'Inserve API tickets' }, { ok: true, text: '...' }));
+        expect(s.title).toBe('Searched the web');
+        expect(s.detail).toBe('Inserve API tickets');
+        expect(s.status).toBe('done');
+        const r = describeToolCall(call('read_url', { url: 'https://docs.example.test/api' }, { error: 'Web search failed: boom' }));
+        expect(r.title).toBe('Read a web page');
+        expect(r.detail).toBe('https://docs.example.test/api');
+        expect(r.status).toBe('failed');
+    });
+});
+
+describe('a staged table', () => {
+    it('reads as proposed, created on Apply', () => {
+        const tc = { name: 'builder_create_datatable', arguments: { name: 'Facturen' }, result: { staged: true, ref: 'pending:1' } };
+        const d = describeToolCall(tc);
+        expect(d.title).toBe('Proposed new table "Facturen" (created on Apply)');
+        expect(d.status).toBe('done');
     });
 });

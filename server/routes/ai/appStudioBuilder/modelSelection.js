@@ -36,7 +36,7 @@ async function resolveBuilderModel({ userOrgForTiers, userId, session = null, co
     let tier = {};
     let cfg;
     // The map this person picks from: EU-aware base tiers plus the global and
-    // org custom tiers -- the same one the builder's dropdown and the routine
+    // org custom tiers -- the same one the builder's dropdown and the automation
     // builder read. It was the base tiers alone, so a custom tier the gate
     // allowed had no model here and ran on the global default below.
     const tiers = await getUserTierMap({ userOrgId: userOrgForTiers, userId });

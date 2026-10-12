@@ -2,7 +2,7 @@
  * App Studio connectors — the OWNER SESSION build.
  *
  * This is the function that produced the "connect Gmail" message for a user
- * whose Gmail was connected. It talks to userStore / configStore / routineAuth,
+ * whose Gmail was connected. It talks to userStore / configStore / automationAuth,
  * so unlike the other connector tests it stubs those through the require cache
  * rather than the `_deps` seam (the session builder is a default dep, not an
  * injected one).
@@ -33,7 +33,7 @@ stub('../stores/userStore', {
 });
 stub('../stores/configStore', { getConfig: async (k) => (k in configs ? configs[k] : null) });
 stub('../db', { pool: { query: async () => ({ rows: legacySessionRows }) } });
-stub('../auth/routineAuth', {
+stub('../auth/automationAuth', {
     providersForIntegrations: (ids) => {
         const map = { gmail: 'google', 'google-calendar': 'google', 'google-drive': 'google', outlook: 'microsoft' };
         return [...new Set((ids || []).map((i) => map[i]).filter(Boolean))];
@@ -47,7 +47,7 @@ stub('../auth/routineAuth', {
         // The real shortcut that caused the bug: asked for no providers, answer
         // with a TRUTHY object whose accessToken is null.
         if (required.length === 0) {
-            return { userId, accessToken: null, refreshToken: null, oauthProvider: null, routineProviders: {} };
+            return { userId, accessToken: null, refreshToken: null, oauthProvider: null, automationProviders: {} };
         }
         const ok = required.filter((p) => vault[p]);
         if (!ok.length) return null;
@@ -56,7 +56,7 @@ stub('../auth/routineAuth', {
         return {
             userId, oauthProvider: primary,
             accessToken: vault[primary].accessToken, refreshToken: vault[primary].refreshToken,
-            routineProviders: Object.fromEntries(ok.map((p) => [p, vault[p]])),
+            automationProviders: Object.fromEntries(ok.map((p) => [p, vault[p]])),
         };
     },
 });
@@ -149,8 +149,8 @@ test('no credential at all → "connect it", the message the owner can act on', 
 test('credential present but the session lost it → says THAT, not "connect it"', async () => {
     // The exact state that sent a connected user to Settings in a circle: the
     // vault has an active Google credential, but the session carried no token.
-    const original = require('../auth/routineAuth').buildUserAuth;
-    require('../auth/routineAuth').buildUserAuth = async () => ({ userId: 'tomsmit', accessToken: null, routineProviders: {} });
+    const original = require('../auth/automationAuth').buildUserAuth;
+    require('../auth/automationAuth').buildUserAuth = async () => ({ userId: 'tomsmit', accessToken: null, automationProviders: {} });
     try {
         await assert.rejects(() => runGmail(), (err) => {
             assert.strictEqual(err.status, 409);
@@ -159,7 +159,7 @@ test('credential present but the session lost it → says THAT, not "connect it"
             assert.doesNotMatch(err.message, /must log in/i, 'must not tell them to connect what is connected');
             return true;
         });
-    } finally { require('../auth/routineAuth').buildUserAuth = original; }
+    } finally { require('../auth/automationAuth').buildUserAuth = original; }
 });
 
 // ── the legacy fallback the other bridges already had ───────────────

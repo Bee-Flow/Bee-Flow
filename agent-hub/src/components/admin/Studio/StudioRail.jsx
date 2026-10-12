@@ -121,6 +121,9 @@ export default function StudioRail({
     // a member act) — so it never arrives in `sections`. It travels as its own
     // pair of props from the same sidebar state the top-level row reads.
     canBrowseApprovals = false, pendingApprovalCount = 0,
+    // The Start row: a builder's dashboard. Someone who has Studio for the
+    // sections their role opens (not a builder) gets just those sections.
+    showStart = true,
 }) {
     const { t, locale } = useTranslation();
     const [searchOpen, setSearchOpen] = useState(false);
@@ -137,7 +140,7 @@ export default function StudioRail({
        WHICH one is the part that took a second pass. Taking the chord
        unconditionally made the builder's quick switcher unreachable on
        /app/studio/automations, and Studio's search does not list what is
-       inside an open routine — so the chord stopped answering the question
+       inside an open automation — so the chord stopped answering the question
        of the person standing there. A surface that owns the chord for its
        own content says so with `data-quick-open-owner`; while one is on
        screen the rail keeps its hands off entirely (no preventDefault, no
@@ -220,15 +223,17 @@ export default function StudioRail({
                 label() where a built-in carries an i18n key. This file used
                 to answer that question itself, which is how the rail and the
                 flyout could end up calling one section two things. */}
-            <nav aria-label="Studio navigation" data-testid="studio-rail-nav" className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-2 pb-2 flex flex-col gap-0.5">
-                <RailRow
-                    label={t(STUDIO_START.labelKey, STUDIO_START.labelFallback)}
-                    Icon={STUDIO_START.Icon}
-                    iconColor="var(--text-secondary)"
-                    active={activeSection === STUDIO_START.id}
-                    onClick={() => onNavigate?.(`studio/${STUDIO_START.urlSegment}`)}
-                    testId={`rail-${STUDIO_START.id}`}
-                />
+            <nav aria-label={t('studio_misc.rail.nav', 'Studio navigation')} data-testid="studio-rail-nav" className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-2 pb-2 flex flex-col gap-0.5">
+                {showStart && (
+                    <RailRow
+                        label={t(STUDIO_START.labelKey, STUDIO_START.labelFallback)}
+                        Icon={STUDIO_START.Icon}
+                        iconColor="var(--text-secondary)"
+                        active={activeSection === STUDIO_START.id}
+                        onClick={() => onNavigate?.(`studio/${STUDIO_START.urlSegment}`)}
+                        testId={`rail-${STUDIO_START.id}`}
+                    />
+                )}
                 {groupStudioApps(sections).map(({ category, apps }) => (
                     <div key={category.id} className="mt-3">
                         <div className="px-2.5 pb-1 text-[11px] font-semibold uppercase tracking-[0.05em] text-[var(--text-tertiary)]">

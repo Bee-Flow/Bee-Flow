@@ -60,8 +60,8 @@ import { useTranslation } from '../../../hooks/useTranslation';
  * ÉÉN paneel op dit scherm, niet twee. De AI-regel van het "Nieuw"-menu krijgt
  * daarom een eigen `onAi` die naar DIT paneel brengt (in beeld, cursor in het
  * veld) in plaats van een tweede exemplaar in een dialoog te openen. Dat is
- * meteen wat die regel van de Routines-terugval verlost: met een eigen `onAi`
- * volgt hij deze kop en is hij niet langer gelockt precies wanneer Routines
+ * meteen wat die regel van de Automations-terugval verlost: met een eigen `onAi`
+ * volgt hij deze kop en is hij niet langer gelockt precies wanneer Automatiseringen
  * dat zijn (zie AI_FALLBACK_SECTION in NewMenu.jsx).
  *
  * Wat het paneel NIET doet — meerdere soorten in één keer aanmaken — staat in

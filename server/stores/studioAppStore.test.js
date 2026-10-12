@@ -813,7 +813,7 @@ test('setTemplateStamp moves version + hash, owner-scoped', async () => {
 // neemt — kon eruit zonder dat er iets rood werd. De gevolgen in productie zijn
 // stil en permanent: `reconcileAutomationUsage` is delete-then-insert, dus
 // zonder de aanroep blijven de rijen van de VÓRIGE definitie staan en houdt een
-// actie die haar routine kwijtraakt de capsule voor altijd in de lucht.
+// actie die haar automatisering kwijtraakt de capsule voor altijd in de lucht.
 //
 // Vandaar deze vier: de echte store, de echte wrappers, de reconciler
 // vervangen door een teller.
@@ -869,7 +869,7 @@ test('een MISLUKTE saveDefinition herindexeert niet — er is niets veranderd', 
     });
 });
 
-test('restoreVersion herindexeert — een teruggezette versie noemt andere routines', async () => {
+test('restoreVersion herindexeert — een teruggezette versie noemt andere automations', async () => {
     resetTables();
     await withReindexSpy(async (seen) => {
         const app = await store.createStudioApp({ userId: 'alice', name: 'A', definition: DEF_WITH_BUTTON });

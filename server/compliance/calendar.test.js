@@ -66,7 +66,10 @@ test('default list = relevant + uncertain milestones, sorted by date with undate
     const dated = rows.filter(m => m.date).map(m => m.date);
     assert.deepEqual(dated, [...dated].sort(), 'dated ascending');
     assert.equal(rows[rows.length - 1].date, null, 'undated last');
-    assert.equal(rows[rows.length - 1].expected, '2026-Q4');
+    // Undated rows sort by their expected quarter: the Digital Omnibus data
+    // part (2027-Q2) after the Dutch AI Act implementation act (2026-Q4).
+    assert.equal(rows[rows.length - 1].id, 'omnibus_data_part');
+    assert.equal(rows[rows.length - 1].expected, '2027-Q2');
     for (const m of rows) {
         assert.deepEqual(Object.keys(m).sort(), ['affects', 'affects_kind', 'date', 'detail_key', 'expected', 'framework_id', 'id', 'kind', 'label_key', 'relevant'].sort());
         assert.equal(m.label_key, `compliance.cal_ms_${m.id}_label`);
@@ -81,7 +84,7 @@ test('all:true returns every milestone with a relevant flag; not_relevant → fa
     assert.equal(rows.find(m => m.id === 'dora_in_force').affects, null);
 });
 
-test('affects: marking milestones count generating routines + published agents; EAA counts webpages + forms; others null', async () => {
+test('affects: marking milestones count generating automations + published agents; EAA counts webpages + forms; others null', async () => {
     const rows = await calendar.list('org1', { all: true, deps: deps() });
     const marking = rows.find(m => m.id === 'aia_marking_transition_end');
     assert.deepEqual(marking.affects, { automations: 3, agents: 4, webpages: null, forms: null });

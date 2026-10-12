@@ -1,7 +1,7 @@
 /**
  * Deleting a table.
  *
- * The same question a column drop asks, one level up — the routines in the
+ * The same question a column drop asks, one level up — the automations in the
  * usage index stop working the moment this table is gone, so it is asked once.
  * Metadata and rows go together or not at all, and a mirror is UNLINKED rather
  * than deleted at the source.
@@ -32,13 +32,13 @@ function register(router) {
         validate({ body: DeleteBody, query: ConfirmBreakingQuery }),
         async (req, res) => {
             try {
-                // Same question as a column drop, one level up: the routines in the
+                // Same question as a column drop, one level up: the automations in the
                 // usage index stop working the moment this table is gone. Ask once.
                 if (!confirmedBreaking(req)) {
                     const usage = await datatableStore.listUsage(req.datatable.id);
                     if (usage.length) {
                         return res.status(409).json({
-                            error: 'Routines still use this datatable',
+                            error: 'Automations still use this datatable',
                             code: 'in_use',
                             usage,
                         });

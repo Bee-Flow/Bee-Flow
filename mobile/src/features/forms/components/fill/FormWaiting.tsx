@@ -1,11 +1,11 @@
 /**
- * The screen a person sits on while the routine works — the web's
+ * The screen a person sits on while the automation works — the web's
  * FormWaitingView. The stretch between two pages is whatever the author put
  * there (a web search, a model call, a document being written), regularly a
  * minute or more, and a bare spinner reads as "this broke". So it says WHERE
- * the routine is: the step it is on as the headline, the flowlets above it
+ * the automation is: the step it is on as the headline, the flowlets above it
  * as context, and the running flowlet's own description when it has one.
- * Indeterminate on purpose — the routine cannot say how far along it is.
+ * Indeterminate on purpose — the automation cannot say how far along it is.
  */
 
 import React from 'react';

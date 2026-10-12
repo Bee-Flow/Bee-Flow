@@ -187,13 +187,10 @@ test('streamed turns report real token counts instead of billing as zero', async
     );
 
     const done = events.find(([type]) => type === 'done');
-    assert.deepStrictEqual(done[1], {
-        prompt_tokens: 11,
-        completion_tokens: 4,
-        total_tokens: 15,
-        cached_tokens: 8,
-        reasoning_tokens: 0,
-    });
+    // The normalised usage (usageNormalizer.js) carries more than these counts.
+    assert.deepStrictEqual(
+        Object.fromEntries(['prompt_tokens', 'completion_tokens', 'total_tokens', 'cached_tokens', 'reasoning_tokens'].map((k) => [k, done[1][k]])),
+        { prompt_tokens: 11, completion_tokens: 4, total_tokens: 15, cached_tokens: 8, reasoning_tokens: 0 });
     assert.deepStrictEqual(events.find(([type]) => type === 'text')[1], { text: 'Bonjour' });
 });
 

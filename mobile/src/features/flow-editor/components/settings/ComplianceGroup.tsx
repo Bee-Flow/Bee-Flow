@@ -1,5 +1,5 @@
 /**
- * The routine's AI Act declaration — the web Settings tab's Compliance block
+ * The automation's AI Act declaration — the web Settings tab's Compliance block
  * (ComplianceBlock.jsx): the saved outcome, the signals the checks see, and
  * "Assess…", which opens the three-question ladder (Art. 5, Art. 50,
  * Annex III) in a sheet; recording it stamps the declaration on the server.

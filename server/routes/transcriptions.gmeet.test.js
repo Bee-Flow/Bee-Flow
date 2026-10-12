@@ -22,8 +22,8 @@ const Module = require('module');
 
 // ── Mutable fixtures ─────────────────────────────────────────────────────────
 const fx = {
-    cred: null,                 // routineCredentialStore.getCredential
-    providerAuth: null,         // routineAuth.getProviderAuth (vault shim source)
+    cred: null,                 // automationCredentialStore.getCredential
+    providerAuth: null,         // automationAuth.getProviderAuth (vault shim source)
     settings: {},               // resolveGmeetNotesSettings result
     prefs: {},                  // 'kind:id' → true|false (meeting_prefs)
     orgPrefs: {},               // ORG-brede rijen: alleen zichtbaar mét orgId
@@ -169,8 +169,8 @@ stub('../stores/meetingPrefsStore', {
         };
     },
 });
-stub('../auth/routineAuth', { getProviderAuth: async () => fx.providerAuth });
-stub('../stores/routineCredentialStore', { getCredential: async () => fx.cred });
+stub('../auth/automationAuth', { getProviderAuth: async () => fx.providerAuth });
+stub('../stores/automationCredentialStore', { getCredential: async () => fx.cred });
 stub('../core/meetingNotes/gmeetCalendar', {
     extractMeetCode: (v) => {
         const s = String(v || '').trim().toLowerCase();

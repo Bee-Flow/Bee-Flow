@@ -64,6 +64,10 @@ export interface UseProjectStreamOptions {
     /** Every (re)connection's `ready` frame. */
     onReady?: (ready: ProjectStreamReady) => void;
     onStatus?: (status: ProjectStreamStatus) => void;
+    /** After every successful poll of the activity feed while degraded. The feed
+     *  logs only some changes (not task edits or chat messages), so the caller
+     *  re-reads what it shows here. */
+    onPoll?: () => void;
     /** Poll the activity feed while the stream is down (default true). A
      *  document subscription turns it off: activity says nothing about content. */
     pollActivity?: boolean;
@@ -80,7 +84,7 @@ const SEEN_POLLED_CAP = 500;
 interface ActivityItem { id?: string | number; action?: string; details?: unknown; [key: string]: unknown }
 
 /** Parse one SSE frame into its id, event name and JSON payload. */
-function parseFrame(frame: string): { id: string | null; kind: string; payload: unknown } | null {
+export function parseFrame(frame: string): { id: string | null; kind: string; payload: unknown } | null {
     let id: string | null = null;
     let kind = 'message';
     const dataLines: string[] = [];
@@ -118,7 +122,7 @@ function polledEvents(items: ActivityItem[], seen: Set<string>): Array<[string, 
  * tail is held until the next read completes it. Resolves true when the body
  * ended, false when the reader asked to stop.
  */
-async function readFrames(body: ReadableStream<Uint8Array>, onFrame: (frame: string) => boolean, stopped: () => boolean): Promise<boolean> {
+export async function readFrames(body: ReadableStream<Uint8Array>, onFrame: (frame: string) => boolean, stopped: () => boolean): Promise<boolean> {
     const reader = body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
@@ -136,7 +140,7 @@ async function readFrames(body: ReadableStream<Uint8Array>, onFrame: (frame: str
 }
 
 export default function useProjectStream({
-    projectId, enabled = true, onEvent, doc = null, docSince, onReady, onStatus, pollActivity = true, reconnectKey = 0,
+    projectId, enabled = true, onEvent, doc = null, docSince, onReady, onStatus, onPoll, pollActivity = true, reconnectKey = 0,
 }: UseProjectStreamOptions): void {
     const onEventRef = useRef(onEvent);
     onEventRef.current = onEvent;
@@ -144,6 +148,8 @@ export default function useProjectStream({
     onReadyRef.current = onReady;
     const onStatusRef = useRef(onStatus);
     onStatusRef.current = onStatus;
+    const onPollRef = useRef(onPoll);
+    onPollRef.current = onPoll;
     const docSinceRef = useRef(docSince);
     docSinceRef.current = docSince;
 
@@ -201,6 +207,7 @@ export default function useProjectStream({
                 const data = await res.json();
                 const items: ActivityItem[] = Array.isArray(data?.items) ? data.items : [];
                 for (const [kind, event] of polledEvents(items, seenPolled)) emit(kind, event);
+                if (!stopped) { try { onPollRef.current?.(); } catch { /* caller's problem */ } }
             } catch { /* keep polling */ }
         };
         const pollTick = async () => {

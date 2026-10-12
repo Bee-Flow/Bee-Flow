@@ -45,6 +45,8 @@
 
 'use strict';
 
+const log = require('../telemetry/log');
+
 /**
  * @param {string} userId
  * @param {object|null} session  Live request session, or the offline session
@@ -60,17 +62,22 @@ async function buildCatalogForUser(userId, session) {
 
         // The authoritative per-user answer: org ∩ group ∩ toggle ∩ entitlement
         // ∩ CREDENTIALS, plus the four classes no static registry can know
-        // (MCP servers, org custom integrations, agent-callable routines, Step
+        // (MCP servers, org custom integrations, agent-callable automations, Step
         // tools). A failure here is not "the user has nothing" — it is "we do
         // not know", and the two must not look the same to the model.
         const userToolNames = new Set();
+        // The resolved tool DEFINITIONS, kept beside the names for the
+        // auto-derived app_event providers (builderPickerCatalog.js). Attached
+        // below as a non-enumerable property: only that one reader wants them.
+        let userToolDefs = [];
         try {
-            // `routineStep: true` because design time must equal run time: it is
+            // `automationStep: true` because design time must equal run time: it is
             // what execAi passes when it resolves the same set to authorise a
             // step, and without it a tool the runner will happily execute is
             // missing from the builder (and now, refused by it).
-            const r = await getIntegrationTools({ userId, session, isAdmin: !!session?.isAdmin, routineStep: true });
-            for (const t of (r.tools || [])) if (t?.function?.name) userToolNames.add(t.function.name);
+            const r = await getIntegrationTools({ userId, session, isAdmin: !!session?.isAdmin, automationStep: true });
+            userToolDefs = Array.isArray(r.tools) ? r.tools : [];
+            for (const t of userToolDefs) if (t?.function?.name) userToolNames.add(t.function.name);
         } catch (e) {
             const err = new Error(`Could not resolve which integrations you can use: ${e.message}`);
             err.code = 'catalog_unresolved';
@@ -114,7 +121,7 @@ async function buildCatalogForUser(userId, session) {
             // same lie one level down.
             const runnable = actions.filter(a => userToolNames.has(a.name));
             const connected = runnable.length > 0;
-            // getUserPermittedApps no longer throws for a routine config-lookup
+            // getUserPermittedApps no longer throws for an automation config-lookup
             // hiccup, so `permittedSet === null` should only happen on a
             // genuinely unexpected error; failing closed here is the safe
             // default for that case.
@@ -132,16 +139,24 @@ async function buildCatalogForUser(userId, session) {
         // `toolNames` is deliberately WIDER than anything in `apps`: it is the
         // raw resolved set, so it carries the four classes no registry entry
         // owns — MCP server tools, org custom integrations, agent-callable
-        // routines and Step tools — plus inline ones like browse_web. The
+        // automations and Step tools — plus inline ones like browse_web. The
         // add-time gate must authorise against THIS, not against `apps`, or it
         // would refuse a tool the user genuinely has purely because
         // TOOL_REGISTRY has no home for it.
-        return { apps, toolNames: userToolNames, triggerOutputs: buildTriggerOutputsCatalog() };
+        const result = { apps, toolNames: userToolNames, triggerOutputs: buildTriggerOutputsCatalog() };
+        Object.defineProperty(result, 'toolDefs', { value: userToolDefs, enumerable: false });
+        return result;
     } catch (e) {
         // A resolver failure must reach the caller: returning an empty catalog
         // here is what made "we could not tell" look like "you have nothing".
         if (e && e.code === 'catalog_unresolved') throw e;
-        return { apps: [], triggerOutputs: {} };
+        // The same sentence for the one failure that does NOT throw (the
+        // registry itself would not load): the catalog is empty because we
+        // could not read it, and the prompt must not say "no integrations
+        // connected". `catalogError` is the marker the renderers look for;
+        // `toolNames` stays absent, so the add-time gate stays permissive.
+        log.warn('[builderCatalog] catalog could not be built:', e && e.message);
+        return { apps: [], triggerOutputs: {}, catalogError: (e && e.message) || 'catalog unavailable' };
     }
 }
 

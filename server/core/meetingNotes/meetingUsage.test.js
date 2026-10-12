@@ -8,7 +8,7 @@
  * permission to delete a meeting three things still use.
  *
  * The second class of failure is subtler and just as bad: a list that
- * disagrees with the dispatcher. A routine shown as "runs on this meeting"
+ * disagrees with the dispatcher. An automation shown as "runs on this meeting"
  * that never fires is a promise the product does not keep, so the filter
  * decision here goes through the REAL matcher and these tests pin that it
  * still does.
@@ -127,9 +127,9 @@ test('a table this install does not have is partial, never zero', async () => {
     assert.ok(!partial.includes('automation'));
 });
 
-test('a meeting with no owner cannot be scoped, so routines are partial rather than none', async () => {
+test('a meeting with no owner cannot be scoped, so automations are partial rather than none', async () => {
     // The fan-out is owner-only. With no owner there is nothing to scope to,
-    // and an unscoped read would put every routine in the install in one
+    // and an unscoped read would put every automation in the install in one
     // person's list — so the answer is "I do not know".
     const d = db({ automations: [automationRow()] });
     const { rows, partial } = await usageForMeeting({ ...MEETING, ownerId: null }, { db: d });
@@ -228,14 +228,14 @@ test('the filter decision runs through the REAL dispatch matcher', async () => {
     assert.strictEqual(triggerFires(trig({ expr: 'contains(trigger.tags,"inkoop")' }), payload), false);
 });
 
-test('a routine whose filter does not fire is left out of the list', async () => {
+test('an automation whose filter does not fire is left out of the list', async () => {
     const d = db({ automations: [automationRow({ definition_json: { trigger: trig({ tags: ['inkoop'] }) } })] });
     const { rows, partial } = await usageForMeeting(MEETING, { db: d });
     assert.deepStrictEqual(rows.filter(r => r.kind === 'automation'), []);
     assert.ok(!partial.includes('automation'), 'a decided "no" is an answer, not a gap');
 });
 
-test('a routine whose tag filter DOES fire is listed, and says which tag', async () => {
+test('an automation whose tag filter DOES fire is listed, and says which tag', async () => {
     // The row that used to be invisible: before M5 a tag filter never matched,
     // so Used-by and the 409 on DELETE both stayed silent about it.
     const d = db({ automations: [automationRow({ definition_json: { trigger: trig({ tags: ['sales'] }) } })] });
@@ -284,15 +284,15 @@ test('only the meeting provider counts, and the id is the hyphenated one', async
     assert.deepStrictEqual(meetingTriggersOf(def).map(t => t.id), ['trg2']);
 });
 
-test('two meeting triggers on one routine are one row, not two', async () => {
+test('two meeting triggers on one automation are one row, not two', async () => {
     const d = db({ automations: [automationRow({ definition_json: { trigger: trig(null, 'a'), triggers: [trig(null, 'b')] } })] });
     const { rows } = await usageForMeeting(MEETING, { db: d });
     assert.strictEqual(rows.filter(r => r.kind === 'automation').length, 1);
 });
 
-test('the routine scan reads definitions, so a deactivated routine still guards the delete', async () => {
-    // Subscription rows exist only while a routine is ACTIVE. Deleting a
-    // meeting out from under a paused routine breaks it just the same.
+test('the automation scan reads definitions, so a deactivated automation still guards the delete', async () => {
+    // Subscription rows exist only while an automation is ACTIVE. Deleting a
+    // meeting out from under a paused automation breaks it just the same.
     const d = db({ automations: [automationRow()] });
     await usageForMeeting(MEETING, { db: d });
     const q = d.sqlFor('FROM automations');

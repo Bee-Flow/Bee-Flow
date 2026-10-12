@@ -36,6 +36,12 @@ mock('../tools/skillInjection', {
     }),
 });
 mock('../../stores/houseStyleStore', { getDefaultForOrg: async () => null });
+// The open-document block reads through the store (readable for u1 only).
+mock('../../stores/documentStore', {
+    getDocument: async (id, userId) => (id === 'doc1' && userId === 'u1'
+        ? { id: 'doc1', name: 'Offerte', docType: 'quote', bodyHtml: '<h1>Titel</h1><p>Inhoud <b>hier</b></p>' }
+        : null),
+});
 
 const { buildSystemPrompt } = require('./contextBuilder');
 const { systemPrefixFingerprint } = require('../llm/promptCacheStability');
@@ -94,4 +100,27 @@ test('per-turn notebook selection stays out of the cached half', async () => {
 test('strict-knowledge mode still prepends its constraint to the cached half', async () => {
     const { stable } = await build({ isStrictKnowledge: true });
     assert.match(stable, /^⚠️ CRITICAL OPERATIONAL CONSTRAINT/);
+});
+
+test('agent chat carries the reply-language rule in the cached half, whatever the agent prompt says (BFSF-387)', async () => {
+    const { stable } = await build({ memoryContext: '[MEMORY]\n- language: Dutch' });
+    assert.match(stable, /## Reply language/);
+    assert.match(stable, /Active Memory never overrides the language of the user's latest message/);
+});
+
+test('an open side-panel document is injected read-only, as plain text, in the volatile half', async () => {
+    const { stable, volatile } = await build({ messageMetadata: { timezone: 'UTC', sidePanelDocument: { id: 'doc1', name: 'client hint' } } });
+    assert.match(volatile, /\[DOCUMENT OPEN: Offerte\]/);
+    assert.match(volatile, /Titel\nInhoud hier/);
+    assert.ok(!volatile.includes('<h1>'));
+    assert.ok(!stable.includes('DOCUMENT OPEN'), 'never in the cached half');
+});
+
+test('no document block without sidePanelDocument, for an unreadable one, or a malformed one', async () => {
+    for (const meta of [{}, { sidePanelDocument: { id: 'nope' } }, { sidePanelDocument: { id: 7 } }, { sidePanelDocument: 'doc1' }]) {
+        const { stable, volatile } = await build({ messageMetadata: { timezone: 'UTC', ...meta } });
+        assert.ok(!stable.includes('DOCUMENT OPEN') && !volatile.includes('DOCUMENT OPEN'), JSON.stringify(meta));
+    }
+    const other = await build({ userId: 'u2', messageMetadata: { timezone: 'UTC', sidePanelDocument: { id: 'doc1' } } });
+    assert.ok(!other.volatile.includes('DOCUMENT OPEN'), 'another user cannot read it');
 });

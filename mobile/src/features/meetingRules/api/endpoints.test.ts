@@ -13,7 +13,7 @@ const post = api.post as jest.Mock;
 beforeEach(() => jest.clearAllMocks());
 
 describe('the rules calls', () => {
-    it('lists the reader’s meeting-notes routines, dropping id-less rows', async () => {
+    it('lists the reader’s meeting-notes automations, dropping id-less rows', async () => {
         get.mockResolvedValue({ automations: [{ id: 'r1', title: 'A', isActive: 1, definition: 'x' }, { title: 'no id' }] });
         const rules = await listMeetingRules();
         expect(rules).toEqual([{ id: 'r1', title: 'A', userId: null, isActive: null, isDraft: null, definition: {} }]);

@@ -38,6 +38,7 @@ function Controlled({ initial, external = null, onForm }) {
             form={form}
             onChange={(next) => { setForm(next); onForm?.(next); }}
             bindingBase="trigger.output"
+            defaultExpanded
         />
     );
 }
@@ -154,7 +155,7 @@ describe('FormBuilderFields — choices, one per line', () => {
 
     it('renders a stored choice that carries stray whitespace', () => {
         // Nothing this editor writes has it, but an AI-authored or imported
-        // routine can. The resync compares both sides the way the write-back
+        // automation can. The resync compares both sides the way the write-back
         // normalises them, so such a value settles instead of re-triggering
         // itself every render ("Too many re-renders").
         render(<Controlled initial={selectForm(['Red ', 'Blue'])} />);

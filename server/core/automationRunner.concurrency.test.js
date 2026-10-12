@@ -93,7 +93,7 @@ const storeStub = {
     },
     touchRunHeartbeat: async () => {},
     requestCancelRun: async () => null,
-    // Only the resume tests need this: resumeFromStep re-loads the routine row.
+    // Only the resume tests need this: resumeFromStep re-loads the automation row.
     getAutomation: async (id) => (currentAutomation?.id === id ? currentAutomation : null),
 };
 let currentAutomation = null;
@@ -109,7 +109,7 @@ stub('../stores/userStore', { getUser: async () => null, getOrganization: async 
 stub('../stores/configStore', { getConfig: async () => null, setConfig: async () => {} });
 stub('../stores/notificationStore', { createNotification: async () => {} });
 
-process.env.ROUTINE_AUTH_LEGACY = '0';
+process.env.AUTOMATION_AUTH_LEGACY = '0';
 process.env.NODE_ENV = 'test';
 // A webhook- or event-started run WAITS for a held marker before it gives up
 // (execution.js: CONCURRENT_WAIT_MS, five minutes by default, polled on
@@ -264,7 +264,7 @@ test('§WS2.4 — a LIVE run DOES release the marker + write lastStatus (contras
 //
 // resumeFromStep re-enters executeAutomation with the ORIGINAL run's
 // triggerKind, so an approval decision was indistinguishable from a fresh
-// webhook at the guard above. Whenever another live run of the same routine
+// webhook at the guard above. Whenever another live run of the same automation
 // held the marker at that instant, the approved continuation was finalised
 // 'cancelled' having dispatched nothing — while the approve endpoint had
 // already consumed the single-use token and stamped the parent 'success'. No
@@ -297,7 +297,7 @@ test('§WS2.4 — a RESUME with markRunning=false still runs the approved contin
     const paused = await runner.executeAutomation(currentAutomation, { triggerKind: 'webhook', mode: 'live' });
     assert.strictEqual(paused.status, 'awaiting_approval', `run 1 paused (got ${paused.status})`);
 
-    // A second live run of the same routine now holds the marker.
+    // A second live run of the same automation now holds the marker.
     spies.markRunningResult = false;
     const releasesBeforeResume = spies.releaseAutomation;
     const lastStatusBeforeResume = spies.updateAutomationLastStatus;

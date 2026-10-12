@@ -3,7 +3,7 @@
  *
  * The twin of documentRenderer.renderDocument for presentations, and the ONE
  * function every surface calls: the chat tool, the Nextcloud tool, the
- * routine `presentation` step and the App Studio step all hand their input
+ * automation `presentation` step and the App Studio step all hand their input
  * here and get the same file back for the same deck. What lives here is
  * everything a renderer needs that the pure builders must not know:
  *

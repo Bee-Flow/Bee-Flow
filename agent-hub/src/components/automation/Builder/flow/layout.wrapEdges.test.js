@@ -6,9 +6,9 @@ import { ROW_GAP } from './rowBands';
 /**
  * Rows by default (builder redesign, artboard 1a).
  *
- * A routine with no saved positions is laid out in rows of DEFAULT_COLUMNS,
+ * An automation with no saved positions is laid out in rows of DEFAULT_COLUMNS,
  * the connection from the end of one row to the start of the next is flagged
- * as a wrap (drawn dashed, with a "→ row 2 · step n" chip), and a routine
+ * as a wrap (drawn dashed, with a "→ row 2 · step n" chip), and an automation
  * that already carries positions is left exactly as it is.
  */
 const trigger = () => ({ id: 'trg', type: 'trigger', kind: 'manual' });
@@ -49,7 +49,7 @@ describe('buildLayout — rows by default', () => {
         expect(edges.some(e => e.data?.wrap)).toBe(false);
     });
 
-    it('leaves a routine with saved positions exactly where it was', () => {
+    it('leaves an automation with saved positions exactly where it was', () => {
         const def = chain(8);
         const all = [def.trigger, ...def.steps];
         all.forEach((s, i) => { s.position = { x: i * 300, y: 40 }; });
@@ -59,9 +59,9 @@ describe('buildLayout — rows by default', () => {
     });
 });
 
-describe('seedPositions — a routine grows into rows', () => {
+describe('seedPositions — an automation grows into rows', () => {
     it('places a new step where the wrapped layout of the whole graph puts it', () => {
-        // Build the routine step by step, seeding after every add, the way
+        // Build the automation step by step, seeding after every add, the way
         // the canvas does. The sixth step must land on row two.
         let def = seedPositions(chain(0));
         for (let i = 0; i < 8; i += 1) {

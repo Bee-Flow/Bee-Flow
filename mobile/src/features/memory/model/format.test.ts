@@ -45,13 +45,13 @@ describe('countsByType and typeChips', () => {
     });
 
     it('offers the known types that have rows, then any type this build does not know', () => {
-        const chips = typeChips(stats(['person', 'routine_note', 'fact', 'project'], [2, 1, 4, 0]));
+        const chips = typeChips(stats(['person', 'automation_note', 'fact', 'project'], [2, 1, 4, 0]));
         expect(chips.map((c) => [c.id, c.count])).toEqual([
             ['person', 2],
             ['fact', 4],
-            ['routine_note', 1],
+            ['automation_note', 1],
         ]);
-        expect(chips[2]?.label).toBe('Routine note');
+        expect(chips[2]?.label).toBe('Automation note');
     });
 });
 

@@ -40,7 +40,7 @@
       "id": "where-to-change",
       "icon": "🎛️",
       "title": "The report shows, License & Usage decides",
-      "bodyMd": "Nothing on Usage & Monitoring changes behaviour. The two controls that do sit at the top of the same Organisation group, on **Settings → Organisation → License & Usage**:\n\n- the **plan card**, with the plan limits — users, agents and knowledge sources — and the **monthly cost cap** with its own percentage-used figure;\n- the section **AI usage sharing**, with the toggle **Share AI usage across the organisation** and the caption **Pooled across the organisation** or **Each user has their own budget**.\n\nThat section only appears when the organisation has a subscription with a real cost budget. Both changes are reversible — the toggle can go back the same afternoon, and the gauge simply re-reads the new cap."
+      "bodyMd": "Nothing on Usage & Monitoring changes behaviour. The two controls that do sit at the top of the same Organisation group, on **Settings → Organisation → License & Usage**:\n\n- the **plan card**, with the plan limits — users, agents and knowledge sources — and the **monthly cost cap** with its own percentage-used figure;\n- the section **AI usage sharing**, with the toggle **Share AI usage across the organisation** and the caption **Pooled across the organisation** or **Each user has their own budget**.\n\nThat section only appears when the organisation has a subscription with a real cost budget. On a self-hosted install neither control is here: there is no License & Usage row and no subscription, so this lesson's cap applies to Bee Flow Cloud. Both changes are reversible — the toggle can go back the same afternoon, and the gauge simply re-reads the new cap."
     },
     {
       "type": "sim",
@@ -69,7 +69,7 @@
           },
           {
             "id": "decide",
-            "label": "Decide: change the plan, split the budget, or fix the routine that is spending"
+            "label": "Decide: change the plan, split the budget, or fix the automation that is spending"
           }
         ],
         "solution": [
@@ -206,7 +206,7 @@
     {
       "type": "quiz",
       "id": "which-tab",
-      "question": "Pieter's procurement routine at Van Dijk Groep dies halfway through its supplier PDFs, most days. Which tab explains why?",
+      "question": "Pieter's procurement automation at Van Dijk Groep dies halfway through its supplier PDFs, most days. Which tab explains why?",
       "multi": false,
       "choices": [
         {
@@ -216,9 +216,9 @@
         },
         {
           "id": "b",
-          "label": "Feedback — a failed routine shows up there as a negative rating.",
+          "label": "Feedback — a failed automation shows up there as a negative rating.",
           "correct": false,
-          "feedback": "Feedback only holds ratings a person deliberately left on an answer. A routine running overnight has nobody there to press a thumb."
+          "feedback": "Feedback only holds ratings a person deliberately left on an answer. An automation running overnight has nobody there to press a thumb."
         },
         {
           "id": "c",
@@ -228,12 +228,12 @@
         },
         {
           "id": "d",
-          "label": "None of them — the routine's own run history is the only place a stop is recorded.",
+          "label": "None of them — the automation's own run history is the only place a stop is recorded.",
           "correct": false,
           "feedback": "The run history tells you that it stopped; Terminations tells you the kind of stop, on which model, after how many iterations, and with which error code — which is what you need to fix it."
         }
       ],
-      "explanation": "Terminations is the organisation-wide view of early stops. Filter the type to Max tokens, or type the routine's name into Search agent / model / error...; the row itself carries the iteration count and the duration, and opening it adds the error class and the attachment size."
+      "explanation": "Terminations is the organisation-wide view of early stops. Filter the type to Max tokens, or type the automation's name into Search agent / model / error...; the row itself carries the iteration count and the duration, and opening it adds the error class and the attachment size."
     },
     {
       "type": "quiz",
@@ -272,8 +272,8 @@
       "icon": "✍️",
       "exerciseId": "ex-usage-caps-note",
       "title": "Your turn: write the note to the heaviest user",
-      "instruction": "You are Marieke, the organisation admin at Van Dijk Groep. The gauge is at 86% with eleven days left in the billing period. Top users by cost shows Sanne in sales at roughly a third of the total, By tier shows nearly all of it on a Deep Thinking tier, and By app area points at the proposal routine. Write the short message you would send Sanne (4-6 sentences). A strong note names what you saw and where you saw it, says plainly what happens at 100% and who it hits, proposes one concrete change to the routine rather than a vague 'use it less', and offers the per-user split as the fallback if nothing changes. Keep the tone collegial: she is doing her job, the routine is the problem.",
-      "placeholder": "e.g. Hi Sanne — quick heads-up on our AI budget. We're at 86% of this period's cap with eleven days to go, and the usage report shows the proposal routine...",
+      "instruction": "You are Marieke, the organisation admin at Van Dijk Groep. The gauge is at 86% with eleven days left in the billing period. Top users by cost shows Sanne in sales at roughly a third of the total, By tier shows nearly all of it on a Deep Thinking tier, and By app area points at the proposal automation. Write the short message you would send Sanne (4-6 sentences). A strong note names what you saw and where you saw it, says plainly what happens at 100% and who it hits, proposes one concrete change to the automation rather than a vague 'use it less', and offers the per-user split as the fallback if nothing changes. Keep the tone collegial: she is doing her job, the automation is the problem.",
+      "placeholder": "e.g. Hi Sanne — quick heads-up on our AI budget. We're at 86% of this period's cap with eleven days to go, and the usage report shows the proposal automation...",
       "passScore": 70,
       "maxAttempts": 4
     },
@@ -288,13 +288,13 @@
   "rubrics": {
     "ex-usage-caps-note": {
       "title": "A note that turns a percentage into a decision",
-      "task": "Write a short collegial message from Marieke, the organisation admin, to Sanne in sales — the heaviest AI user at Van Dijk Groep — after the cap gauge hit 86% with eleven days left in the billing period, the usage report attributed about a third of the spend to her, almost all of it on a Deep Thinking tier, from the proposal routine.",
+      "task": "Write a short collegial message from Marieke, the organisation admin, to Sanne in sales — the heaviest AI user at Van Dijk Groep — after the cap gauge hit 86% with eleven days left in the billing period, the usage report attributed about a third of the spend to her, almost all of it on a Deep Thinking tier, from the proposal automation.",
       "criteria": [
         "Names the evidence and where it came from: the cap gauge percentage plus at least one of Top users by cost, By tier or By app area — not a vague 'you are using a lot'.",
         "States the consequence correctly: at 100% of the cap AI calls are blocked until the next billing period, and in pooled mode that hits the whole team, not just her.",
-        "Proposes one concrete, specific change to the routine — for example moving that step off the Deep Thinking tier, or sending less input per proposal — rather than 'use it less'.",
+        "Proposes one concrete, specific change to the automation — for example moving that step off the Deep Thinking tier, or sending less input per proposal — rather than 'use it less'.",
         "Mentions the per-user split (AI usage sharing on License & Usage) as a fallback, and frames it as splitting the same cap rather than as a punishment or a saving.",
-        "Stays collegial and factual: the routine's configuration is the problem, not the person's work."
+        "Stays collegial and factual: the automation's configuration is the problem, not the person's work."
       ],
       "passScore": 70,
       "guidance": "Do not pass a note that only says 'please cut back' with no evidence and no proposed change. Do not pass a note claiming the per-user split lowers the bill, that the cap controls answer length, or that usage was inspected in a place that does not exist (there is no export or download on this report). Do not pass a note that threatens to remove her access, or that reports token or call counts — a cloud organisation admin never sees those. Partial credit is fine when the tone and the evidence are right but the fallback is missing."

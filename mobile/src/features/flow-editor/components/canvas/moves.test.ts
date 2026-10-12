@@ -6,7 +6,7 @@ import { buildScene } from './scene';
 import { bigFlow } from './testing';
 
 describe('moving a node', () => {
-    it('writes its stored position plus the move, and nothing else, on a placed routine', () => {
+    it('writes its stored position plus the move, and nothing else, on a placed automation', () => {
         const def = clone(switchy);
         const next = moveNode(def, 'g', { dx: 10.4, dy: -20.6 });
         const was = def.steps.find((s) => s.id === 'g')?.position;
@@ -15,7 +15,7 @@ describe('moving a node', () => {
         expect(next.trigger).toBe(def.trigger);
     });
 
-    it('pins every drawn position on a routine the fallback layout drew, so nothing jumps', () => {
+    it('pins every drawn position on an automation the fallback layout drew, so nothing jumps', () => {
         const def = bigFlow(20);
         const drawn = buildScene(def);
         const next = moveNode(def, 's3', { dx: 50, dy: 0 });

@@ -202,11 +202,14 @@ async function listProjectKnowledgeBases(projectId) {
  * @param {string} kbId
  * @param {string} userId       the caller, for the audit trail the route writes
  * @param {string|null} projectId  the TARGET — null means "take it out"
- * @param {{req?: object, projectId?: string}} [ctx]
+ * @param {{req?: object, projectId?: string, managedWrite?: { deploymentId?: string }|null}} [ctx]
  *        `ctx.projectId` is the project being edited, and it is required in
  *        BOTH directions: unlike every other kind, the link is not on the
  *        resource, so "remove" has to say remove from WHERE. `ctx.req` is the
- *        request the access check is made against.
+ *        request the access check is made against. `ctx.managedWrite` is a
+ *        deployment's capability: a Solution stage's list changes only through
+ *        a deploy (the registry's stage gate checks it first, and
+ *        projectStore.updateProject again on its own write).
  * @returns {Promise<boolean>} false when the move was refused — the route turns
  *          that into "not found, or not yours to move".
  */
@@ -270,7 +273,8 @@ async function setKnowledgeBaseProject(kbId, userId, projectId, ctx = {}) {
         }
 
         const result = await projectStore.updateProject(
-            target, { knowledgeBaseIds: next }, { expectedVersion: Number(project.version) },
+            target, { knowledgeBaseIds: next },
+            { expectedVersion: Number(project.version), ...(ctx.managedWrite ? { managedWrite: ctx.managedWrite } : {}) },
         );
         if (!result) return false;                 // the project went away underneath us
         if (result.conflict) continue;             // somebody else wrote: re-read and re-apply

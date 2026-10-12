@@ -36,7 +36,7 @@ export function RecorderProvider({ children }) {
     const [settings, setSettings] = useState(DEFAULT_SETTINGS);
     const [uploading, setUploading] = useState(false);
     const [uploadStage, setUploadStage] = useState('');
-    const [uploadError, setUploadError] = useState(null);
+    const [uploadError, setUploadError] = useState(/** @type {(Error & { code?: string }) | null} */ (null));
     const [lastResultId, setLastResultId] = useState(null);
     const [lastResultMeta, setLastResultMeta] = useState(null);
     const [lastFailedFile, setLastFailedFile] = useState(null);
@@ -155,6 +155,32 @@ export function RecorderProvider({ children }) {
         }
     }, [settings.language, settings.contextTerms]);
 
+    const importFromTeams = useCallback(async (item, { language, contextTerms } = {}) => {
+        setUploading(true);
+        setUploadError(null);
+        setUploadStage(STAGES[0]);
+        try {
+            const result = await api.importTeamsMeeting({
+                eventId: item.eventId,
+                language: language || settings.language,
+                contextTerms: contextTerms ?? settings.contextTerms,
+            });
+            // 202: Teams is still processing the recording; the background
+            // import picks it up, so this is not an error and not a note yet.
+            if (result && result.jobId && !result.id) return { ok: false, pending: true, result };
+            setLastResultId(result.id);
+            setLastResultMeta({ providerFallback: result.providerFallback || null });
+            setVersion((v) => v + 1);
+            return { ok: true, result };
+        } catch (err) {
+            setUploadError(err);
+            return { ok: false, error: err };
+        } finally {
+            setUploading(false);
+            setUploadStage('');
+        }
+    }, [settings.language, settings.contextTerms]);
+
     const consumeLastResult = useCallback(() => {
         const id = lastResultId;
         const meta = lastResultMeta;
@@ -176,6 +202,7 @@ export function RecorderProvider({ children }) {
         uploadFile,
         uploadFromNextcloud,
         importFromGoogleMeet,
+        importFromTeams,
         retryWithProvider,
         // Nothing to retry when the bytes never reached the API: the same file
         // over the same proxy limit fails identically, and switching engine
@@ -184,7 +211,7 @@ export function RecorderProvider({ children }) {
         canRetry: !!lastFailedFile && uploadError?.code !== 'payload_too_large',
         version,
         clearError: () => { setUploadError(null); setLastFailedFile(null); },
-    }), [recorder, settings, uploading, uploadStage, uploadError, lastResultId, lastResultMeta, consumeLastResult, uploadFile, uploadFromNextcloud, importFromGoogleMeet, retryWithProvider, lastFailedFile, version]);
+    }), [recorder, settings, uploading, uploadStage, uploadError, lastResultId, lastResultMeta, consumeLastResult, uploadFile, uploadFromNextcloud, importFromGoogleMeet, importFromTeams, retryWithProvider, lastFailedFile, version]);
 
     return <RecorderContext.Provider value={value}>{children}</RecorderContext.Provider>;
 }
@@ -204,13 +231,14 @@ export function useRecorder() {
             setSettings: /** @type {React.Dispatch<React.SetStateAction<CaptureSettings>>} */ (() => {}),
             uploading: false,
             uploadStage: '',
-            uploadError: null,
+            uploadError: /** @type {(Error & { code?: string }) | null} */ (null),
             lastResultId: null,
             lastResultMeta: null,
             consumeLastResult: () => ({ id: null, meta: null }),
             uploadFile: async () => ({ ok: false }),
             uploadFromNextcloud: async () => ({ ok: false }),
             importFromGoogleMeet: async () => ({ ok: false }),
+            importFromTeams: /** @type {(item: { eventId: string }, opts?: { language?: string, contextTerms?: string }) => Promise<{ ok: boolean, pending?: boolean }>} */ (async () => ({ ok: false })),
             retryWithProvider: async () => ({ ok: false }),
             canRetry: false,
             version: 0,

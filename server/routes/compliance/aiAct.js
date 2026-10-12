@@ -12,14 +12,14 @@
  * live in compliance/aiAct/signals.js so the route and the checks agree).
  *
  * The org is resolved STRICTLY: an account without an organisation gets a 403,
- * never the 'default' bucket (that would let it attest another org's routines).
+ * never the 'default' bucket (that would let it attest another org's automations).
  *
  * The evidence row is built from an explicit allow-list — target kind/id,
  * outcome, actor id, attested_at. No prompts, no answers, no titles, no names
  * (BFSF-441): the register row itself holds the answers; the chain only proves
  * that an attestation happened. The writing lives in compliance/aiAct/attest.js,
  * shared with the automation's own AI Act check (routes/automation/aiAct.js,
- * the routine's owner and editors), so both places record the same thing.
+ * the automation's owner and editors), so both places record the same thing.
  */
 
 const express = require('express');

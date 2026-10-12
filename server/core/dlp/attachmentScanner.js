@@ -223,7 +223,7 @@ function _resolveFailureMode(orgShield) {
 // header of this file has always claimed it meant.
 //
 // An explicit org value still wins; absent one we follow the same failure-mode
-// axis as chat and routines (piiFailureMode → dlpFailureMode → fail_closed).
+// axis as chat and automations (piiFailureMode → dlpFailureMode → fail_closed).
 // Note that fail_open no longer passes the unscanned tail either — it truncates
 // at the scanned boundary. Neither branch can leak now; they differ in whether
 // the user gets a partial document or a block.

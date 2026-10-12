@@ -101,6 +101,9 @@ const EXPECTED = [
     // BFSF-419 Track 1's generic fallback: the closing page's OWN TEXT (no
     // generate_document step, so no fileId to key off), into a new notebook.
     'POST /form/:token/s/:sid/notebook',
+    // BFSF-419: the same result as a Word/PDF download, and as a new webpage.
+    'GET /form/:token/s/:sid/export/:format',
+    'POST /form/:token/s/:sid/webpage',
     'POST /form/:token/s/:sid',
     'USE:requireAuth',
     'USE:anonymous',
@@ -144,10 +147,10 @@ const EXPECTED = [
     'PUT /folders/:folderId',
     'DELETE /folders/:folderId',
     // Org-wide published forms — likewise before `/:id`, and NOT to be confused
-    // with '/:id/forms' further down, which is one routine's own pages.
+    // with '/:id/forms' further down, which is one automation's own pages.
     'GET /forms',
     // The Form page (Studio → Forms → a form) and its "make the answers
-    // table" action — keyed by the routine id, never the page token.
+    // table" action — keyed by the automation id, never the page token.
     // Draft or revise a form's questions from a brief; nothing is stored.
     'POST /forms/ai/draft',
     'GET /forms/:automationId',
@@ -161,7 +164,7 @@ const EXPECTED = [
     // Handoff 5: the caller's trash. A literal, so it must precede GET /:id.
     'GET /_trash',
     'GET /:id',
-    // Added by the routine-editor work (routes/automation/crud.js): the
+    // Added by the automation-editor work (routes/automation/crud.js): the
     // "used by" capsule. Owner-only — a non-owner gets 403 and an unreadable
     // app yields canOpen:false, so an unknown narrows to no link. Verified
     // before adding it here rather than blessed because the test was red.
@@ -221,7 +224,7 @@ const EXPECTED = [
     // no anonymous path; formPublic stays the only public form surface.
     'GET /runs/:runId/form',
     'POST /runs/:runId/form',
-    // The app picker while the routine is still a draft — the public page's
+    // The app picker while the automation is still a draft — the public page's
     // own picker needs a token and 404s a draft, so the builder has its own.
     'POST /:id/form-pick',
     'POST /runs/:runId/cancel',
@@ -233,6 +236,10 @@ const EXPECTED = [
     'PUT /:id/shares',
     'POST /:id/transfer-owner',
     'GET /:id/principals',
+    // Which agents may call an agent_call automation (routes/automation/agentBindings.js).
+    'GET /:id/agent-bindings',
+    'GET /by-agent/:agentId/automation-ids',
+    'PUT /:id/agent-bindings',
     // Handoff 5, notification settings read (routes/automation/notifications.js).
     'GET /:id/notifications',
     // Handoff 5, the AI Act check and the readiness checklist

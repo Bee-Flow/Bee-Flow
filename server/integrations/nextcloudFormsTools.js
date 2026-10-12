@@ -13,7 +13,7 @@
  * generic failure.
  *
  * Answer shape. A submission's answers are keyed by numeric question id, which
- * is meaningless to an agent or to a routine binding. `nextcloud_forms_get_submissions`
+ * is meaningless to an agent or to an automation binding. `nextcloud_forms_get_submissions`
  * joins them against the form's questions and returns answers keyed by question
  * TEXT, so `{{trigger.output.answers.Department}}` works in the builder.
  */
@@ -90,7 +90,7 @@ const NEXTCLOUD_FORMS_TOOLS = [
         type: 'function',
         function: {
             name: 'nextcloud_forms_get_submissions',
-            description: 'Read the responses to a form. Answers are returned keyed by QUESTION TEXT so they can be read and bound directly in a routine.',
+            description: 'Read the responses to a form. Answers are returned keyed by QUESTION TEXT so they can be read and bound directly in an automation.',
             parameters: {
                 type: 'object',
                 properties: {

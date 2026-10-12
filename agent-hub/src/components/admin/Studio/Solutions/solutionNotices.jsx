@@ -1,4 +1,5 @@
 import React from 'react';
+import Notice from './Notice';
 
 /**
  * The two things every Solution screen needs when the server could not read
@@ -21,15 +22,10 @@ import React from 'react';
  * is worth.
  */
 export function Strip({ tone, icon, children, testId }) {
-    const Icon = icon;
-    return (
-        <p className="flex items-start gap-2 px-3 py-2.5 rounded-lg text-sm"
-           data-testid={testId}
-           style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
-            <Icon className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: tone }} aria-hidden="true" />
-            <span>{children}</span>
-        </p>
-    );
+    // Callers still pass the colour variable they always did; it picks the tone.
+    const raw = String(tone || '');
+    const kind = raw.includes('error') ? 'error' : raw.includes('warning') ? 'warning' : raw.includes('success') ? 'success' : 'info';
+    return <Notice tone={kind} icon={icon} testId={testId}>{children}</Notice>;
 }
 
 /**
@@ -44,18 +40,20 @@ export function Strip({ tone, icon, children, testId }) {
  */
 const SECTION_LABEL = {
     apps: ['solutions.section_apps', 'apps'],
-    automations: ['solutions.section_automations', 'routines'],
+    automations: ['solutions.section_automations', 'automations'],
     webpages: ['solutions.section_webpages', 'pages'],
     datatables: ['solutions.section_datatables', 'tables'],
     agents: ['solutions.section_agents', 'agents'],
     knowledgeBases: ['solutions.section_knowledge_bases', 'knowledge bases'],
     knowledgeSources: ['solutions.section_knowledge_sources', 'knowledge sources'],
-    routineExistence: ['solutions.section_routine_existence', 'the check on which routines still exist'],
+    automationExistence: ['solutions.section_automation_existence', 'the check on which automations still exist'],
     all: ['solutions.section_all', 'everything in this Solution'],
     // The overview names five more, because a card tallies things a detail page
     // does not: GET /api/projects/summary reports each of these separately so a
     // gap can be pointed at rather than flattened into "something failed".
     notebooks: ['solutions.section_notebooks', 'notebooks'],
+    skills: ['solutions.section_skills', 'skills'],
+    documentTemplates: ['solutions.section_document_templates', 'templates'],
     runs: ['solutions.section_runs', 'how often things ran'],
     completeness: ['solutions.section_completeness', 'the checks'],
     update: ['solutions.section_update', 'whether a newer version exists'],

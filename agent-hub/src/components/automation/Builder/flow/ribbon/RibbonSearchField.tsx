@@ -105,9 +105,9 @@ export default function RibbonSearchField({ query, onQueryChange, results, onAdd
                     aria-controls={listId}
                     aria-autocomplete="list"
                     aria-activedescendant={showList && results[active] ? `${listId}-${active}` : undefined}
-                    aria-label={t('routines.ribbon.search_label', 'Add a step')}
+                    aria-label={t('automations.ribbon.search_label', 'Add a step')}
                     value={query}
-                    placeholder={t('routines.ribbon.search_placeholder', 'Add a step…')}
+                    placeholder={t('automations.ribbon.search_placeholder', 'Add a step…')}
                     onChange={(e) => { onQueryChange(e.target.value); setOpen(true); }}
                     onFocus={() => setOpen(true)}
                     onKeyDown={onKeyDown}
@@ -119,12 +119,12 @@ export default function RibbonSearchField({ query, onQueryChange, results, onAdd
                 <div
                     id={listId}
                     role="listbox"
-                    aria-label={t('routines.ribbon.search_results', 'Steps')}
+                    aria-label={t('automations.ribbon.search_results', 'Steps')}
                     className="absolute left-0 top-full mt-1 w-[340px] max-h-[60vh] overflow-y-auto custom-scrollbar z-[60] rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] shadow-xl py-1"
                 >
                     {results.length === 0 ? (
                         <div className="px-3 py-2 text-[12px] text-[var(--text-tertiary)]">
-                            {t('routines.ribbon.search_none', 'Nothing matches “{q}”.', { q: query.trim() })}
+                            {t('automations.ribbon.search_none', 'Nothing matches “{q}”.', { q: query.trim() })}
                         </div>
                     ) : results.map((r, i) => (
                         <ResultRow

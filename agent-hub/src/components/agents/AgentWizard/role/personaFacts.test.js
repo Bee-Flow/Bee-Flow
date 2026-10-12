@@ -184,17 +184,17 @@ describe('bullets — de server gooit stil weg, wij niet', () => {
     });
 });
 
-describe('de hand-off-routine', () => {
+describe('de hand-off-automation', () => {
     const CALLABLE = { id: 'a1', title: 'Pass the question on', isActive: true, definition: { trigger: { kind: 'agent_call' } } };
     const SCHEDULED = { id: 'a2', title: 'Nightly report', isActive: true, definition: { trigger: { kind: 'schedule' } } };
     const OFF = { id: 'a3', title: 'Old handover', isActive: false, triggerKind: 'agent_call' };
 
-    it('laat alleen agent_call-routines door', () => {
+    it('laat alleen agent_call-automations door', () => {
         const { rows } = handoffChoices({ automations: [CALLABLE, SCHEDULED, OFF] });
         expect(rows.map(r => r.id)).toEqual(['a1', 'a3']);
     });
 
-    it('markeert een uitgeschakelde routine in plaats van hem te verzwijgen', () => {
+    it('markeert een uitgeschakelde automatisering in plaats van hem te verzwijgen', () => {
         const { rows } = handoffChoices({ automations: [CALLABLE, OFF] });
         expect(rows.find(r => r.id === 'a3').active).toBe(false);
         expect(rows.find(r => r.id === 'a1').active).toBe(true);
@@ -207,13 +207,13 @@ describe('de hand-off-routine', () => {
         expect(handoffChoices({ automations: [CALLABLE], state: READ.LOADING }).state).toBe(READ.LOADING);
     });
 
-    it('OK met iets dat GEEN lijst is, is onleesbaar — niet "geen routines"', () => {
+    it('OK met iets dat GEEN lijst is, is onleesbaar — niet "geen automations"', () => {
         // Dit is precies de invoer die de standaardwaarden van de kaarten
         // opleveren (`automations = null, automationsState = READ.OK`), en
         // `selectedHandoff` hieronder én `toolGrants.automationRows` lazen hem
         // al als onleesbaar. Zonder deze versmalling zette één kaart twee
-        // tegenstrijdige zinnen onder elkaar: "geen enkele routine kan door een
-        // agent gestart worden" én "deze routine kon hier niet gelezen worden".
+        // tegenstrijdige zinnen onder elkaar: "geen enkele automatisering kan door een
+        // agent gestart worden" én "deze automatisering kon hier niet gelezen worden".
         for (const junk of [null, undefined, 'nope', { 0: CALLABLE }]) {
             expect(handoffChoices({ automations: junk, state: READ.OK }))
                 .toEqual({ rows: [], state: READ.ERROR });
@@ -230,18 +230,18 @@ describe('de hand-off-routine', () => {
         expect(handoffBlockedBecause({})).toBe('unknown_owner');
     });
 
-    it('houdt een gekozen routine zichtbaar als de lijst niet gelezen kon worden', () => {
+    it('houdt een gekozen automatisering zichtbaar als de lijst niet gelezen kon worden', () => {
         const chosen = selectedHandoff({ automations: null, state: READ.ERROR, automationId: 'a1' });
         expect(chosen).toEqual({ id: 'a1', title: null, readable: false, active: null, callable: null });
     });
 
-    it('meldt een gekozen routine die de lijst niet kent als onleesbaar, niet als afwezig', () => {
+    it('meldt een gekozen automatisering die de lijst niet kent als onleesbaar, niet als afwezig', () => {
         const chosen = selectedHandoff({ automations: [SCHEDULED], automationId: 'a1' });
         expect(chosen.readable).toBe(false);
         expect(chosen.id).toBe('a1');
     });
 
-    it('geeft naam, aan/uit en aanroepbaarheid van de gekozen routine', () => {
+    it('geeft naam, aan/uit en aanroepbaarheid van de gekozen automation', () => {
         expect(selectedHandoff({ automations: [CALLABLE], automationId: 'a1' }))
             .toEqual({ id: 'a1', title: 'Pass the question on', readable: true, active: true, callable: true });
         expect(selectedHandoff({ automations: [SCHEDULED], automationId: 'a2' }).callable).toBe(false);

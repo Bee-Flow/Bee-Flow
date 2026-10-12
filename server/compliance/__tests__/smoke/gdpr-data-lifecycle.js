@@ -40,7 +40,7 @@ module.exports = async function gdprDataLifecycle() {
     });
     await t('warn when open requests approach the deadline', async () => {
         resetState();
-        _state.dsrStats.access = { total: 3, open: 1, overdue: 0, fulfilled: 2, avg_days_to_fulfil: 27 };
+        _state.dsrStats.access = { total: 3, open: 1, overdue: 0, nearing: 1, fulfilled: 2, avg_days_to_fulfil: 10 };
         assertStatus(await checks.dsrAccess.evaluate('x'), 'warn', 'open slow');
     });
     await t('fail when a request is overdue', async () => {

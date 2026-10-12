@@ -29,7 +29,7 @@
       "id": "who-resolves",
       "icon": "🧭",
       "title": "A skill is looked up per asker",
-      "bodyMd": "This is the rule worth learning by heart, because it explains every surprise in this chapter.\n\n**In chat**, the skills attached to an agent are resolved for **the person typing**. An attached skill that person may not see is left out of that turn — the agent simply answers from its own instructions. The answer is thinner, not broken, and nobody is told.\n\n**In a routine**, the asker is the **routine's owner**. A personal skill belonging to somebody else, named on an AI step, falls away in exactly the same way when the routine runs.\n\nSo sharing here is not publishing to a catalogue — there is no skills marketplace, nothing is installed or forked. Sharing means only this: the people who need the method can see it, so it can reach their prompt. What they get is the same single skill you keep editing, not a copy."
+      "bodyMd": "This is the rule worth learning by heart, because it explains every surprise in this chapter.\n\n**In chat**, the skills attached to an agent are resolved for **the person typing**. An attached skill that person may not see is left out of that turn — the agent simply answers from its own instructions. The answer is thinner, not broken, and nobody is told.\n\n**In an automation**, the asker is the **automation's owner**. A personal skill belonging to somebody else, named on an AI step, falls away in exactly the same way when the automation runs.\n\nSo sharing here is not publishing to a catalogue — there is no skills marketplace, nothing is installed or forked. Sharing means only this: the people who need the method can see it, so it can reach their prompt. What they get is the same single skill you keep editing, not a copy."
     },
     {
       "type": "quiz",
@@ -124,14 +124,14 @@
       "id": "narrow-back",
       "icon": "↩️",
       "title": "Taking it back, and what that costs",
-      "bodyMd": "An audience is fully reversible. Set the capsule back to **Personal** and it applies immediately: the next turn a colleague takes no longer carries the method. Again, nothing errors and nothing is deleted — their agent quietly goes back to answering from its own instructions.\n\nThat is why the **Used by** tab is worth a look before you narrow. It lists the agents that attach the skill and the routine AI steps that apply it, so you can see who is standing on the method you are about to pull back.\n\nRead it carefully: when a kind could not be scanned the tab says so — *\"Not everything could be checked, so this list may be short.\"* Anywhere in this section, a blank or an em dash means **not counted**, never zero."
+      "bodyMd": "An audience is fully reversible. Set the capsule back to **Personal** and it applies immediately: the next turn a colleague takes no longer carries the method. Again, nothing errors and nothing is deleted — their agent quietly goes back to answering from its own instructions.\n\nThat is why the **Used by** tab is worth a look before you narrow. It lists the agents that attach the skill and the automation AI steps that apply it, so you can see who is standing on the method you are about to pull back.\n\nRead it carefully: when a kind could not be scanned the tab says so — *\"Not everything could be checked, so this list may be short.\"* Anywhere in this section, a blank or an em dash means **not counted**, never zero."
     },
     {
       "type": "slide",
       "id": "gate-admin",
       "icon": "🔑",
       "title": "Two switches that are not yours",
-      "bodyMd": "Your capsule decides who sees one skill. Two things around it belong to an administrator.\n\n**Whether the organisation has Skills at all.** It is part of the Community feature set and still a beta, so both have to be on. When they are not, the Studio row is disabled with the hint *\"Not switched on for your organisation — ask an admin\"*; where the plan does not carry it, the hint is *\"Available on a higher plan\"*. An administrator grants it under **Admin → Access & permissions**, in **Grants** (all members, or per group), within what the **Ceiling** allows under the heading **Beta features**.\n\n**Who may write skills at all** — the `manage_skills` permission, granted by role.\n\nSo sharing with the entire organisation makes a skill usable by everyone who has the feature. It hands out no edit rights, and it cannot give the feature to someone whose organisation never got it."
+      "bodyMd": "Your capsule decides who sees one skill. Two things around it belong to an administrator.\n\n**Whether the organisation has Skills at all.** It is part of the Community feature set and generally available, so it is on for every organisation without anyone opting in. Where the plan does not carry it, the Studio row is disabled with the hint *\"Available on a higher plan\"*; where it has been switched off, the hint is *\"Not switched on for your organisation — ask an admin\"*. An administrator manages it under **Admin → Access & permissions**, in **Grants** (all members, or per group), within what the **Ceiling** allows under the heading **Beta features**.\n\n**Who may write skills at all** — the `manage_skills` permission, granted by role.\n\nSo sharing with the entire organisation makes a skill usable by everyone who has the feature. It hands out no edit rights, and it cannot give the feature to someone whose organisation never got it."
     },
     {
       "type": "quiz",
@@ -171,7 +171,7 @@
       "icon": "🎯",
       "exerciseId": "ex-skills-audience-decision",
       "title": "Your turn: decide one audience",
-      "instruction": "Take one skill you own, or the one you are about to write, and decide its audience in three or four sentences. Say which of the three settings you pick and why that is the right circle of people; name one concrete colleague, agent or routine that would silently lose the method while it stays Personal; and finish with one thing that stays with you even after you share it. Use the settings' exact names.",
+      "instruction": "Take one skill you own, or the one you are about to write, and decide its audience in three or four sentences. Say which of the three settings you pick and why that is the right circle of people; name one concrete colleague, agent or automation that would silently lose the method while it stays Personal; and finish with one thing that stays with you even after you share it. Use the settings' exact names.",
       "placeholder": "e.g. Offerte beoordelen goes to Or specific groups — the group Inkoop — rather than Entire organisation, because …",
       "passScore": 70,
       "maxAttempts": 4
@@ -193,16 +193,16 @@
       "id": "recap",
       "icon": "✅",
       "title": "What you can do now",
-      "bodyMd": "- **Set an audience on purpose.** The capsule in the skill header, titled **\"Publish to…\"**, offers **Personal** (*\"Only you can access\"*), **Entire organisation** (*\"All members can access\"*) and **Or specific groups**. New skills start Personal, and leaving Personal asks **\"Share more widely?\"** first.\n- **Predict who gets the method.** A skill is looked up for the person asking — the one typing in chat, the owner of a routine when it runs. Anyone who may not see it gets a thinner answer and no warning.\n- **Tell the two problems apart.** \"I cannot find it\" is an audience problem, fixed in the capsule. \"I can see it but not change it\" is the `manage_skills` permission, fixed by an administrator — and it is the price of everyone reading the one skill you keep improving."
+      "bodyMd": "- **Set an audience on purpose.** The capsule in the skill header, titled **\"Publish to…\"**, offers **Personal** (*\"Only you can access\"*), **Entire organisation** (*\"All members can access\"*) and **Or specific groups**. New skills start Personal, and leaving Personal asks **\"Share more widely?\"** first.\n- **Predict who gets the method.** A skill is looked up for the person asking — the one typing in chat, the owner of an automation when it runs. Anyone who may not see it gets a thinner answer and no warning.\n- **Tell the two problems apart.** \"I cannot find it\" is an audience problem, fixed in the capsule. \"I can see it but not change it\" is the `manage_skills` permission, fixed by an administrator — and it is the price of everyone reading the one skill you keep improving."
     }
   ],
   "rubrics": {
     "ex-skills-audience-decision": {
       "title": "An audience decision with a reason",
-      "task": "The learner picks one skill of their own and writes three or four sentences: which audience setting they choose and why that circle of people is the right one, which concrete colleague, agent or routine would silently lose the method while the skill stays Personal, and one thing sharing does not hand over.",
+      "task": "The learner picks one skill of their own and writes three or four sentences: which audience setting they choose and why that circle of people is the right one, which concrete colleague, agent or automation would silently lose the method while the skill stays Personal, and one thing sharing does not hand over.",
       "criteria": [
         "Names one of the three real settings — Personal, Entire organisation, or Or specific groups (with the group named) — and ties the choice to who actually needs the method.",
-        "Shows they understand that a skill is resolved for the person asking: names a specific colleague, agent or routine that would get a thinner answer while the skill stays Personal.",
+        "Shows they understand that a skill is resolved for the person asking: names a specific colleague, agent or automation that would get a thinner answer while the skill stays Personal.",
         "States that sharing grants seeing and using but not editing, which stays with the manage_skills permission and the skill's owner.",
         "Is concrete about a real skill of theirs — a named method and a real team — not a generic sentence about sharing."
       ],
@@ -218,7 +218,7 @@
       "The visibility capsule in the skill header is titled \"Publish to…\" and offers Personal, Entire organisation and Or specific groups.",
       "Leaving Personal, or going from groups to the whole organisation, asks \"Share more widely?\" with the buttons \"Share\" and \"Keep as is\"; narrowing is one click and asks nothing.",
       "Sharing switched on with no groups ticked means the whole organisation, so the capsule refuses to untick the last group and hints \"Choose Personal to stop sharing\".",
-      "A skill is looked up for the person asking — whoever is typing in chat, or the routine's owner when a routine runs — and one they may not see is left out of that turn with no warning.",
+      "A skill is looked up for the person asking — whoever is typing in chat, or the automation's owner when an automation runs — and one they may not see is left out of that turn with no warning.",
       "Seeing is not editing: changing a skill needs the manage_skills permission, carried by Organisation Admin, Agent Admin and Agent Editor; others get the read-only banner and no test history.",
       "When the group list cannot be read the capsule says so rather than dropping the section, because a failed read must not look like an organisation without groups."
     ]

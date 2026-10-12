@@ -39,7 +39,7 @@ describe('ActionItemsList — destination pill', () => {
     /**
      * THE BITE.
      *
-     * A destination names a routine, a table or a knowledge base that lives in
+     * A destination names an automation, a table or a knowledge base that lives in
      * the OWNER's workspace. A published meeting note is read by colleagues who
      * may hold nothing in any of the three — and "Row in table Salarissen" is
      * the whole leak, whether or not the pill is clickable. So a reader who

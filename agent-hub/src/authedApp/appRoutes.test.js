@@ -35,12 +35,16 @@ import {
     pageFromPath,
     isApprovalsPageArg,
     isApprovalsStudioPath,
-    parseAITasksUrl,
     parseCoworkUrl,
+    parseDocumentUrl,
+    documentRoutePath,
     parseAgentUrl,
     parseDirectChatUrl,
+    parseAdminPath,
     usesStudioRail,
+    usesProjectRail,
 } from './appRoutes';
+import { parseStudioUrl } from '../components/admin/Studio/studioRoutes';
 
 const MOVE_HINT = 'Moving a route = ONE commit across PAGE_ROUTES + a pageFromPath alias '
     + 'for the old path + MOBILE_ALLOWED_PAGES/guards + mobile route.ts + this freeze. '
@@ -58,10 +62,10 @@ describe('PAGE_ROUTES is frozen', () => {
             agentDesignerAdvanced: '/app/agent-designer-advanced',
             agentWizard: '/app/agent-wizard',
             studio: '/app/studio',
-            aiTasks: '/app/routines',
             cowork: '/app/cowork',
             apps: '/app/apps',
             forms: '/app/forms',
+            documents: '/app/documents',
             reports: '/app/reports',
             components: '/app/components',
             meetingNotes: '/app/meeting-notes',
@@ -110,6 +114,40 @@ describe('PAGE_ROUTES is frozen', () => {
     });
 });
 
+describe('member documents routing', () => {
+    it('keeps member links in the ordinary workspace and Studio links in Studio', () => {
+        expect(pageFromPath('/app/documents/d1')).toBe('documents');
+        expect(pageFromPath('/app/documents/notebook/n1')).toBe('documents');
+        expect(usesStudioRail('documents')).toBe(false);
+        expect(pageFromPath('/app/studio/documents/d1')).toBe('studio');
+        expect(pageFromPath('/app/notebooks/n1')).toBe('studio');
+    });
+
+    it('round-trips document and notebook references, including URL escaping', () => {
+        expect(documentRoutePath()).toBe('/app/documents');
+        expect(parseDocumentUrl('/app/documents')).toBeNull();
+        for (const ref of ['d1', 'notebook/n1', 'notebook/name with spaces', 'doc#1']) {
+            expect(parseDocumentUrl(documentRoutePath(ref))).toBe(ref);
+        }
+        expect(parseDocumentUrl('/app/documents/%invalid')).toBeNull();
+        expect(parseDocumentUrl('/app/studio/documents/d1')).toBeNull();
+    });
+});
+
+describe('usesProjectRail — the project rail flag', () => {
+    it('is true on the projects page with a project open', () => {
+        expect(usesProjectRail('projects', '1a4834b9')).toBe(true);
+    });
+    it('is false on the list, the create form and other pages', () => {
+        expect(usesProjectRail('projects', null)).toBe(false);
+        expect(usesProjectRail('projects', undefined)).toBe(false);
+        expect(usesProjectRail('projects', '')).toBe(false);
+        expect(usesProjectRail('projects', 'new')).toBe(false);
+        expect(usesProjectRail('agents', 'x')).toBe(false);
+        expect(usesProjectRail('projects/1a4834b9', '1a4834b9')).toBe(false);
+    });
+});
+
 describe('usesStudioRail — the rail flag (H1)', () => {
     it('is true for Studio and nothing else', () => {
         // A FLAG, not a route: it answers a chrome question about a page key
@@ -153,7 +191,7 @@ const FROZEN_LEGACY = [
     ['/app/settings/learning', 'settings', 'jobs/learningNudge.js'],
     ['/app/settings/account/license?checkout=success', 'settings', 'Stripe checkout return (BFSF-244)'],
     ['/app/settings/organisation/license?checkout=cancelled', 'settings', 'Stripe checkout return (BFSF-244)'],
-    ['/app/settings?tab=license', 'settings', 'Stripe portal return'],
+    ['/app/settings?tab=license', 'settings', 'legacy Stripe portal return (minted before the portal returned to /settings/*/license)'],
     ['/app/admin/security/users', 'admin', 'auth/connectorJwt.js pending-user bell'],
     ['/app/admin/support/th1', 'admin', 'issueEgress (BFSF-441 ticket ref), supportIssueSync'],
     ['/app/admin?tab=support&thread=t1', 'admin', 'routes/support/shared.js staff email'],
@@ -185,9 +223,10 @@ describe('FROZEN_LEGACY: paths the server has minted into mailboxes and tickets'
         // the branch that parses it is never dead code.
         const aliases = [
             ['/', 'agents'],
-            ['/app/ai-tasks', 'aiTasks'], // pre-Aug-2026 slug of /app/routines
-            ['/app/ai-tasks/t1', 'aiTasks'],
-            ['/app/routines/t1', 'aiTasks'],
+            ['/app/ai-tasks', 'studio'], // the old standalone automations page, under three names
+            ['/app/ai-tasks/t1', 'studio'],
+            ['/app/routines/t1', 'studio'],
+            ['/app/automations/t1', 'studio'],
             ['/app/work', 'cowork'], // Cowork's previous name
             ['/app/work/w1', 'cowork'],
             ['/app/studio/cowork', 'cowork'], // Cowork's previous life as a Studio tab
@@ -207,7 +246,7 @@ describe('FROZEN_LEGACY: paths the server has minted into mailboxes and tickets'
             ['/app/apps/app-1', 'appRun'],
             ['/app/forms', 'forms'],
             ['/app/forms/tok3n', 'formView'],
-            ['/app/notebooks/n1', 'notebooks'],
+            ['/app/notebooks/n1', 'studio'], // a notebook opens in Studio → Documents now
             ['/app/projects/p1', 'projects'],
             ['/app/projects/p1/chats/c1', 'projects'],
             ['/app/projects/new', 'projects'],
@@ -224,8 +263,10 @@ describe('FROZEN_LEGACY: paths the server has minted into mailboxes and tickets'
     it('keeps the deep-link ids of the renamed pages parseable', () => {
         // The alias landing on the right PAGE is not enough — the id must
         // survive too, or the page opens empty.
-        expect(parseAITasksUrl('/app/ai-tasks/t1')).toBe('t1');
-        expect(parseAITasksUrl('/app/routines/t1')).toBe('t1');
+        // The old standalone automations page opens Studio → Automations, on the same automation.
+        for (const path of ['/app/ai-tasks/t1', '/app/routines/t1', '/app/automations/t1']) {
+            expect(parseStudioUrl(path)).toMatchObject({ section: 'aiTasks', id: 't1' });
+        }
         expect(parseCoworkUrl('/app/studio/cowork/c1')).toBe('c1');
         expect(parseCoworkUrl('/app/work/w1')).toBe('w1');
         expect(parseCoworkUrl('/app/cowork/c1')).toBe('c1');
@@ -274,7 +315,7 @@ describe('FROZEN_LEGACY: paths the server has minted into mailboxes and tickets'
 describe('mobile allow-list is frozen', () => {
     it('matches the frozen set exactly', () => {
         expect([...MOBILE_ALLOWED_PAGES].sort(), MOVE_HINT).toEqual(
-            ['agents', 'approvals', 'appRun', 'apps', 'cowork', 'formView', 'forms', 'settings'].sort(),
+            ['agents', 'approvals', 'appRun', 'apps', 'cowork', 'formView', 'forms', 'projects', 'settings'].sort(),
         );
     });
 
@@ -288,12 +329,12 @@ describe('mobile allow-list is frozen', () => {
         expect(MOBILE_ALLOWED_PAGES.has('studio')).toBe(false);
     });
 
-    it('keeps every projects page off the phone, down to one item in a workspace', () => {
+    it('allows responsive projects pages on phones, including item routes', () => {
         // navigateToPage speaks project pages as 'projects/<id>/<tab>/<sub>';
-        // the workspace is a desktop layout, so none of them may slip past.
+        // the workspace now has a labelled mobile section selector.
         expect(mobilePageKey('projects')).toBe('projects');
         expect(mobilePageKey('projects/p1/chats/c1')).toBe('projects');
-        expect(MOBILE_ALLOWED_PAGES.has('projects')).toBe(false);
+        expect(MOBILE_ALLOWED_PAGES.has('projects')).toBe(true);
     });
 
     it('reads the approvals slice from ONE predicate, in both of its shapes', () => {
@@ -317,5 +358,16 @@ describe('mobile allow-list is frozen', () => {
         expect(mobilePageKey('studio/approvals/apr_1')).toBe(
             isApprovalsStudioPath('/app/studio/approvals/apr_1') ? 'approvals' : 'studio',
         );
+    });
+});
+
+describe('parseAdminPath — the query is never a segment', () => {
+    it('reads the segments of an admin path with or without a query', () => {
+        expect(parseAdminPath('/app/admin/compliance/incidents/i1')).toEqual({ seg1: 'compliance', seg2: 'incidents', seg3: 'i1' });
+        // In-app navigation hands over the page string with the hub's header tab.
+        expect(parseAdminPath('/app/admin/compliance/frameworks?tab=calendar')).toEqual({ seg1: 'compliance', seg2: 'frameworks', seg3: '' });
+        expect(parseAdminPath('/app/admin/compliance/gdpr/GDPR-Art30?tab=checks#x')).toEqual({ seg1: 'compliance', seg2: 'gdpr', seg3: 'GDPR-Art30' });
+        expect(parseAdminPath('/app/admin?tab=support')).toEqual({ seg1: '', seg2: '', seg3: '' });
+        expect(parseAdminPath('/app/agents')).toEqual({ seg1: '', seg2: '', seg3: '' });
     });
 });

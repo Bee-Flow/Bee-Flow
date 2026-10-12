@@ -1,24 +1,24 @@
 /**
  * FORM ANSWERS — provisioning: the datatable that follows a form.
  *
- * Called on EVERY save of a routine (routes/automation/crud.js, right after
+ * Called on EVERY save of an automation (routes/automation/crud.js, right after
  * ensureFormPages) and never allowed to fail that save: a table that could
  * not be made is reported back (`answers.error`) and tried again on the next
  * save or on the explicit "make the table" route.
  *
- * ── ONE TABLE PER ROUTINE, FOUND BY LOOKUP ──────────────────────────
+ * ── ONE TABLE PER AUTOMATION, FOUND BY LOOKUP ──────────────────────────
  * The definition says only WHETHER to collect (`trigger.form.collect`); the
  * table says WHOSE answers it holds (`source.automationId`). So the table is
  * found by lookup on every save, never remembered in the definition — a
- * duplicated routine gets a fresh table, and turning collection off and on
- * again re-adopts the table the routine already had (`linked` flips, the
+ * duplicated automation gets a fresh table, and turning collection off and on
+ * again re-adopts the table the automation already had (`linked` flips, the
  * rows stay). Nothing here ever deletes a row or drops a column: a question
  * that is gone is RETIRED, and the owner drops its column by hand
  * (deleteRetiredColumn), on purpose, from the table.
  *
  * ── SCOPE AND OWNER ────────────────────────────────────────────────
- * The routine's organisation, else the owner's personal scope; the owner is
- * the routine's owner. That is who the form runs as, so it is who the
+ * The automation's organisation, else the owner's personal scope; the owner is
+ * the automation's owner. That is who the form runs as, so it is who the
  * answers belong to — Bee Flow's grant ladder on the table then decides who
  * else may read them.
  */
@@ -40,7 +40,7 @@ const log = require('../../telemetry/log');
 const KIND = derive.KIND;
 const TAG = '[form answers]';
 
-/** The datatable scope a routine's tables live in. */
+/** The datatable scope an automation's tables live in. */
 function scopeForAutomation(automation) {
     if (!automation) return null;
     if (automation.organizationId) return datatableStore.orgScope(automation.organizationId);
@@ -53,8 +53,8 @@ function sameScope(table, scope) {
 }
 
 /**
- * The routine's answers table in this scope: the linked one, else the newest
- * one that once was. Null when the routine never collected.
+ * The automation's answers table in this scope: the linked one, else the newest
+ * one that once was. Null when the automation never collected.
  */
 async function tableFor(automationId, scope) {
     if (!automationId || !scope) return null;
@@ -127,8 +127,8 @@ async function createTable(automation, definition, scope, derived, now) {
 }
 
 /**
- * Make the routine's answers table match its form. Returns
- *   `{ table, created, changed, warnings }` — or `null` when the routine does
+ * Make the automation's answers table match its form. Returns
+ *   `{ table, created, changed, warnings }` — or `null` when the automation does
  *   not collect (any table it had is unlinked, kept), or `{ table: null,
  *   error: { code, message } }` when the table could not be made.
  */
@@ -136,7 +136,7 @@ async function ensureAnswersTable(automation, definition, { scope = null } = {})
     const sc = scope || scopeForAutomation(automation);
     if (!automation || !sc) return null;
     // Not a form at all: nothing to make and nothing to unlink — the common
-    // case for every routine save, and it must cost no query.
+    // case for every automation save, and it must cost no query.
     if (!definition || definition.trigger?.kind !== 'form') return null;
     const now = new Date().toISOString();
     let existing = null;
@@ -187,7 +187,7 @@ async function ensureAnswersTable(automation, definition, { scope = null } = {})
 }
 
 /**
- * Turn every answers table of a routine that is being deleted into an
+ * Turn every answers table of an automation that is being deleted into an
  * ordinary table: rows, columns and sharing stay, the contract goes.
  */
 async function releaseAnswersTables(automation) {

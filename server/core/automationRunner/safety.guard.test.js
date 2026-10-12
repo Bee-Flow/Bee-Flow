@@ -1,5 +1,5 @@
 /**
- * The routine guard: what it detects, what it tokenizes, and what actually
+ * The automation guard: what it detects, what it tokenizes, and what actually
  * leaves the platform.
  *
  * Hermetic: `detectPii` is stubbed (a tiny fixture matcher) so the tests are
@@ -94,7 +94,7 @@ function policy(over = {}) {
         ...over,
     };
 }
-const audit = () => ({ organization_id: 'org1', user_id: 'u1', step_id: 's1', source: 'routine' });
+const audit = () => ({ organization_id: 'org1', user_id: 'u1', step_id: 's1', source: 'automation' });
 const freshCtx = () => ({ tokenVault: createTokenVault({}) });
 
 function reset() {
@@ -354,7 +354,7 @@ test('no detector installed is treated as a scan failure, not as clean', async (
     }
 });
 
-// ── org allowlist + own sensitive terms (inert on routines before) ─────────
+// ── org allowlist + own sensitive terms (inert on automations before) ─────────
 
 test('the never-redact allowlist keeps the org own name out of the tokenizer', async () => {
     reset();
@@ -405,7 +405,7 @@ test('a regex rule redacts in place and is audited as its own violation type', a
 //
 // A false positive on an id field does not protect anything (the provider issued
 // the id) and breaks the call it addresses. Live case: GLiNER reads a Gmail
-// message id as a phone number (16 hex chars, 8 of them digits), so a routine
+// message id as a phone number (16 hex chars, 8 of them digits), so an automation
 // reading each mail of a search result sent a placeholder to Gmail and failed
 // with "Invalid id value" on every one of its ten iterations.
 const GMAIL_ID = '19fdc22de311daf4';

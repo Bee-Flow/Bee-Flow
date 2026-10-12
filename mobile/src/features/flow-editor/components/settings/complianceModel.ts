@@ -42,7 +42,7 @@ export function outcomeWords(assessment: AiActAssessment | null, t: TranslateFn)
     return label ? t(label.key, label.en) : null;
 }
 
-/** The web's signalsLine for a routine: AI steps, who it faces, whether it generates content. */
+/** The web's signalsLine for an automation: AI steps, who it faces, whether it generates content. */
 export function signalsLine(assessment: AiActAssessment | null, t: TranslateFn): string | null {
     const s = assessment?.signals;
     if (!s) return null;

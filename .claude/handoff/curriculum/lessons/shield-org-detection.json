@@ -3,32 +3,32 @@
   "icon": "🔍",
   "estMinutes": 11,
   "title": "What we look for",
-  "desc": "Twenty-one categories, the backwards sensitivity dial, your own terms and the allowlist that leaks by design.",
+  "desc": "Twenty-one kinds in one table, the backwards sensitivity dial, your own kinds of data and the never-hidden list that leaks by design.",
   "gate": {
     "permission": "org_admin"
   },
-  "learningGoal": "After this lesson you can choose categories and a sensitivity level you are able to defend, and add a company term and an exception without opening a hole.",
+  "learningGoal": "After this lesson you can choose categories and a sensitivity level you are able to defend, add an exception without opening a hole, and say what Your own data adds on Enterprise.",
   "steps": [
     {
       "type": "slide",
       "id": "orient",
       "icon": "🧭",
       "title": "The shield can be on and still find nothing",
-      "bodyMd": "Van Dijk Groep is a sixty-person installation firm near Zwolle, and its shield is switched on — that was the previous chapter. On its own, that proves nothing. A shield asked the wrong questions reports itself as protecting you while every customer name sails straight past it.\n\nThis tab sets the questions. Open `Settings` → `Organisation` → `Privacy Shield` and pick **What we look for**. It settles three of them:\n\n- which kinds of personal data the detector is asked about\n- how sure it has to be before a finding counts\n- which words of your own are always hidden, and which are deliberately left visible\n\nAll four policy tabs save together, with one button at the bottom right: **Save All Changes**. Until you press it, nothing you do here is in force."
+      "bodyMd": "Van Dijk Groep is a sixty-person installation firm near Zwolle, and its shield is switched on — that was the previous chapter. On its own, that proves nothing. A shield asked the wrong questions reports itself as protecting you while every customer name sails straight past it.\n\nThe first two steps on the path set the questions. Open `Settings` → `Organisation` → `Privacy Shield`:\n\n- **1 What we look for** — which kinds of personal data the detector is asked about, and how sure it has to be before a finding counts\n- **2 Your own data** — the kinds of data only your organisation has, and the names that are deliberately left visible\n\nEvery step saves together, with one button in the bar at the bottom: **Save changes**. The bar names the steps that hold unsaved changes; until you press it, nothing you do here is in force."
     },
     {
       "type": "slide",
       "id": "categories",
       "icon": "🗂️",
-      "title": "An unticked category is never even asked about",
-      "bodyMd": "Under **Kinds of personal data** sit **21** checkboxes in two columns, with `All` and `None` buttons and a live count in the heading: `Kinds of personal data (7/21)`. Labels run from Person Names and Email Addresses to National ID numbers (BSN and equivalents).\n\nLeave a box unticked and that kind of data is never put to the detector. The question is never asked, so the answer always comes back clean — and nothing in your reports hints at the gap.\n\nEmptying the list is not a choice either. The **Overview** row `Kinds of data we look for` then warns in amber — \"Protection is on, but nothing is ticked — so nothing will ever be found.\" — while the scanner reads an empty list as \"never configured\" and scans all 21 anyway. Two parts of the product disagreeing is not a policy: tick what you mean."
+      "title": "An unticked kind is never even asked about",
+      "bodyMd": "Under **Kinds of personal data** sits one table: **21** kinds, one row each, grouped from Personal and Contact to EU / Netherlands. Labels run from Person Names and Email Addresses to National ID numbers (BSN and equivalents). The column that matters here is **Hide from AI** — its heading counts what you chose, `look for it · 7 of 21` — with `All` and `None` buttons above it. The two columns beside it decide what a tool may carry out; that is the next chapter.\n\nLeave a kind unticked and it is never put to the detector. The question is never asked, so the answer always comes back clean — and nothing in your reports hints at the gap.\n\nEmptying the list is not a choice either. Overview then lists *\"No kinds of data are selected\"* — \"Protection is on, but nothing is ticked — so nothing will ever be found.\" — while the scanner reads an empty list as \"never configured\" and scans all 21 anyway. Two parts of the product disagreeing is not a policy: tick what you mean."
     },
     {
       "type": "slide",
       "id": "strict",
       "icon": "🎚️",
       "title": "The dial runs backwards",
-      "bodyMd": "**How strict should we be?** offers three cards: `Low sensitivity`, `Balanced` (badged `Recommended`) and `High sensitivity`. Behind them is one number — how sure the detector must be before a finding counts — and it runs opposite to the names: Low sensitivity is **85%**, Balanced **70%**, High sensitivity **45%**. Lower number, more findings.\n\nBalanced is not a split-the-difference compromise. It is the calibrated anchor: every per-category level is tuned and measured at that position, so it is the only setting whose behaviour has actually been tested.\n\n`Advanced: set an exact percentage` reveals a slider from 10% to 100% in steps of 5, labelled \"Find more (10%)\" at one end and \"Find less (100%)\" at the other. Anything off-preset shows as `Custom · NN%` — a number you will have to justify."
+      "bodyMd": "**How strict** offers three levels side by side: `Low`, `Balanced` (marked `recommended`) and `High`. Under them the trade-off is written out: *misses more, fewer interruptions* at one end, *hides more, also ordinary words* at the other. Behind them is one number — how sure the detector must be before a finding counts — and it runs opposite to the names: Low sensitivity is **85%**, Balanced **70%**, High sensitivity **45%**. Lower number, more findings.\n\nBalanced is not a split-the-difference compromise. It is the calibrated anchor: every per-category level is tuned and measured at that position, so it is the only setting whose behaviour has actually been tested.\n\n`Advanced: exact percentage` reveals a slider from 10% to 100% in steps of 5, labelled \"finds more\" at one end and \"finds less\" at the other. Anything off-preset shows as `Custom · NN%` — a number you will have to justify."
     },
     {
       "type": "quiz",
@@ -57,29 +57,29 @@
           "id": "d",
           "label": "Nothing changes, because the slider only takes effect once the Balanced card is deselected.",
           "correct": false,
-          "feedback": "Moving the slider off a preset value is the deselection — the card stops being highlighted and a `Custom · 90%` chip appears instead."
+          "feedback": "Moving the slider off a preset value is the deselection — no level stays selected, and a `Custom · 90%` badge appears beside How strict instead."
         }
       ],
-      "explanation": "The dial is inverted, which is exactly why the three named cards exist. At 85% or above the page pushes back itself, in amber: \"At this setting almost nothing is hidden. Short messages usually score between 60% and 85%…\". `Balanced` (70%) is the answer you can defend, because that is the level everything was measured at."
+      "explanation": "The dial is inverted, which is exactly why the three named levels exist. At 85% or above the page pushes back itself, in amber: \"At this setting almost nothing is hidden. Short messages usually score between 60% and 85%…\". `Balanced` (70%) is the answer you can defend, because that is the level everything was measured at."
     },
     {
       "type": "slide",
       "id": "always-hide",
       "icon": "➕",
-      "title": "Always hide these: your own words",
-      "bodyMd": "Fold open **Your own words and exceptions**. The first panel, **Always hide these**, covers what the 21 categories cannot know about: project code names, contract-number formats, internal system names.\n\nType a name in `Give it a name`, press `Add`, then fill in `What to look for` and choose between `Exact text` and `Pattern (advanced)`; `Case sensitive` starts off. Van Dijk Groep adds one row: name `Inkoopcontractnummer`, pattern `VDG-INK-\\d{6}`, type `Pattern (advanced)`.\n\nTwo things make this panel worth the effort. Your terms are hidden **on top of** whatever the detector finds. And Bee Flow matches them itself, character for character: no model weighs them up, so the sensitivity setting does not apply — a pattern either matches or it does not."
+      "title": "Your own data: what only you have",
+      "bodyMd": "Step 2, **Your own data**, covers what the 21 kinds cannot know about: project code names, contract-number formats, internal system names. It is part of the Enterprise plan; on other plans the step still opens, with the note *\"Your own data is part of Enterprise.\"*, and the **Never hidden** panel beside it works as usual.\n\nStart from an example — *Customer or contract numbers*, *Project code names* — or describe your own and press `Create type`; once you have one, `Add a type` starts the next. A short wizard follows: **Describe**, **Test and tune**, **Where it applies**. Under *How should we recognise it?* you choose `A list of words`, `A fixed format` or `Recognised by AI`. Van Dijk Groep adds one: name `Inkoopcontractnummer`, `A fixed format`, with three real examples such as `VDG-INK-204118`, from which the page proposes the pattern `\\bVDG-INK-\\d{6}\\b`. `Add to the list`, then Save changes.\n\nEach type gets its own placeholder, and is hidden **on top of** whatever the detector finds. A list of words or a fixed format is matched by Bee Flow itself, character for character: no model weighs it up, so the sensitivity setting does not apply and it keeps working when the detection service is down."
     },
     {
       "type": "slide",
       "id": "never-hide",
       "icon": "⚠️",
-      "title": "Never hide these: exact, everywhere, forever",
-      "bodyMd": "The amber panel below does the opposite, and it is the one control on this page that makes the shield leak on purpose. Values under **Never hide these** are left visible to the AI, every time.\n\nThree properties to hold on to:\n\n- **Exact.** Matching is on the normalised value — case, spaces and punctuation ignored — and never a substring. Allowing \"Shell\" does not allow \"Shell Advies BV\"; each variant needs its own entry.\n- **Everywhere.** Your own entries apply in **every** category, not just company names.\n- **Forever.** There is no expiry. An entry stands until somebody deletes it.\n\nAbove the chips sits **Always allow well-known companies**, on by default: a shipped list of 221 large companies, brands and public bodies. That list applies to the `Company names` category only; yours are not limited that way."
+      "title": "Never hidden: exact, everywhere, forever",
+      "bodyMd": "Beside your own types sits the panel that does the opposite, and it is the one control on these pages that makes the shield leak on purpose. Values under **Never hidden** are left visible to the AI, every time.\n\nThree properties to hold on to:\n\n- **Exact.** Matching is on the normalised value — case, spaces and punctuation ignored — and never a substring. Allowing \"Shell\" does not allow \"Shell Advies BV\"; each variant needs its own entry.\n- **Everywhere.** **Your own exceptions** apply in **every** category, not just company names.\n- **Forever.** There is no expiry. An entry stands until somebody removes it.\n\nAbove them, the **Well-known companies** switch is on by default: a list of 221 large companies, brands and public bodies maintained by Bee Flow. That list applies to company names only; yours are not limited that way. The panel's own warning says it plainly: \"These reach the AI as written.\""
     },
     {
       "type": "quiz",
       "id": "q-allow",
-      "question": "To keep AI answers readable, the admin types \"Van Dijk\" into Never hide these. What did they just exempt?",
+      "question": "To keep AI answers readable, the admin adds \"Van Dijk\" to Your own exceptions under Never hidden. What did they just exempt?",
       "multi": false,
       "choices": [
         {
@@ -101,7 +101,7 @@
         },
         {
           "id": "d",
-          "label": "Nothing yet — allow terms only take effect once Always allow well-known companies is switched off.",
+          "label": "Nothing yet — your own exceptions only take effect once the Well-known companies switch is turned off.",
           "correct": false,
           "feedback": "The two sources are independent switches. Your own list works whether the built-in list is on or off."
         }
@@ -121,13 +121,13 @@
             "id": "inkoop",
             "left": "Inkoop pastes supplier quotations into chat to compare prices, contract numbers and payment details.",
             "right": "IBAN Numbers, Bank Account Numbers, Tax numbers (VAT / BTW / RSIN)",
-            "note": "Financial counterparty data. Company names belongs here too — but tick it and a redacted price comparison becomes unreadable, which is the exact itch that sends admins to Never hide these."
+            "note": "Financial counterparty data. Company names belongs here too — but tick it and a redacted price comparison becomes unreadable, which is the exact itch that sends admins to the Never hidden list."
           },
           {
             "id": "hr",
-            "left": "HR runs a nightly routine that summarises sick-leave and re-integration files.",
+            "left": "HR runs a nightly automation that summarises sick-leave and re-integration files.",
             "right": "National ID numbers (BSN and equivalents), Medical Conditions, Medications",
-            "note": "Special-category data plus the BSN. Nobody is watching a routine at night, so the categories are the only protection in the room."
+            "note": "Special-category data plus the BSN. Nobody is watching an automation at night, so the categories are the only protection in the room."
           },
           {
             "id": "support",
@@ -149,15 +149,15 @@
       "id": "rejected",
       "icon": "🟠",
       "title": "Read the save bar, not just the button",
-      "bodyMd": "The server compiles your patterns when you save. If one will not compile, the rest of the shield is stored anyway — the save is partial, not refused. So the only place you learn your pattern is not running is the message beside **Save All Changes**:\n\n- a green toast **\"Saved successfully!\"** — everything went in\n- amber **\"Saved, with notes — see the message below.\"**, and below it \"Saved, but 1 custom term(s) were rejected and are not in force.\" The offending row turns red with \"Not saved — \" and the engine's own complaint.\n- amber **\"Saved. Note: …\"** — a setting your plan does not cover was stored at the value it allows\n\nOne trap: reloading or closing the page warns you about unsaved changes; clicking to another screen inside the app does not — those edits are gone."
+      "bodyMd": "The server checks your own types again when you save. If one is refused, the rest of the shield is stored anyway — the save is partial, not refused. So the place you learn a type is not running is the save bar, not just the toast:\n\n- the toast **\"Saved successfully!\"**, and **\"Saved.\"** in the bar — everything went in\n- the toast **\"Saved, with notes — see the message below.\"**, and in the bar \"Saved, with notes. 1 of your own types were refused and are not in force. They are marked under Your own data.\" The row itself reads \"Not saved: \" and the reason.\n- **\"Saved, with notes. Your plan does not include: …\"** — a setting your plan does not cover was stored at the value it allows\n\nOne trap: reloading or closing the page warns you about unsaved changes; clicking to another screen inside the app does not — those edits are gone."
     },
     {
       "type": "action",
       "id": "do",
       "icon": "🏗️",
       "checkId": "shield-terms",
-      "title": "Add one term and one exception — we will verify it",
-      "instruction": "Open the Privacy Shield, go to the tab What we look for and fold open Your own words and exceptions. Under Always hide these, add one term of your own — a contract-number pattern or an internal project name. Under Never hide these, add your organisation's full name, not the short one. Press Save All Changes and read the message beside the button: green means both rows are in force. You can delete either row again afterwards.",
+      "title": "Tick your kinds and add one exception — we will verify it",
+      "instruction": "Open the Privacy Shield. On step 1, What we look for, check the Hide from AI column: tick the kinds of personal data your work really contains, and leave How strict on Balanced unless you can defend another level. Then go to step 2, Your own data, and in the Never hidden panel add your organisation's full name, not the short one. Press Save changes and read the save bar: \"Saved.\" means both are in force. On Enterprise you can also add a type of your own there, but it is not needed for this check. You can remove the exception again afterwards.",
       "launch": {
         "navigateTo": "settings/organisation/privacy",
         "label": "Open Privacy Shield"
@@ -168,51 +168,51 @@
       "id": "recap",
       "icon": "✅",
       "title": "What you can do now",
-      "bodyMd": "- **Pick categories on purpose.** An unticked one is never asked about; the grid heading and the **Overview** row `Kinds of data we look for` both count what you chose, and zero means nothing will ever be found.\n- **Defend the level, not the word.** Balanced (70%) is the measured setting; a higher percentage finds less, not more, whatever \"strict\" suggests.\n- **Use both exception lists with your eyes open.** Always hide these widens the net with text and patterns Bee Flow matches itself; Never hide these is exact, applies in every category and never expires — so write the full name, never the short one.\n\nNext chapter: what actually happens to a message once something is found, and what may still leave your organisation."
+      "bodyMd": "- **Pick categories on purpose.** An unticked kind is never asked about; the Hide from AI column and Overview's **Kinds of data** both count what you chose, and zero is flagged as nothing ever being found.\n- **Defend the level, not the word.** Balanced (70%) is the measured setting; a higher percentage finds less, not more, whatever \"strict\" suggests.\n- **Use both lists on Your own data with your eyes open.** Your own types widen the net, and lists of words and fixed formats are matched by Bee Flow itself; Never hidden is exact, applies in every category and never expires — so write the full name, never the short one.\n\nNext chapter: what actually happens to a message once something is found, and what may still leave your organisation."
     }
   ],
   "practiceTopic": {
     "title": "Privacy Shield detection settings",
-    "summary": "How an organisation admin chooses categories, sensitivity and exception lists on the What we look for tab.",
+    "summary": "How an organisation admin chooses categories, sensitivity and exception lists on the What we look for and Your own data steps.",
     "facts": [
-      "The Kinds of personal data grid holds 21 checkboxes in two columns with All and None buttons and a live count in its heading, for example 'Kinds of personal data (7/21)'.",
-      "Sensitivity cards map to confidence thresholds that run backwards: Low sensitivity 85%, Balanced 70% (badged Recommended), High sensitivity 45%; lower finds more.",
-      "Balanced is the calibrated anchor — every per-category level is tuned and measured at that position — and the advanced slider runs 10% to 100% in steps of 5.",
-      "Always hide these takes a name plus either Exact text or Pattern (advanced), with a Case sensitive toggle, and redacts on top of whatever the detector finds.",
-      "Never hide these matches exactly on the normalised value (case, spaces and punctuation ignored), applies in every category and never expires; Always allow well-known companies covers 221 shipped names in the Company names category only.",
-      "The Overview tab shows the row 'Kinds of data we look for' as '{n} of 21' and warns in amber at zero: 'Protection is on, but nothing is ticked — so nothing will ever be found.'",
-      "Saving is one button, Save All Changes; success toasts 'Saved successfully!', while a rejected pattern still saves everything else and reports 'Saved, with notes' plus 'Saved, but N custom term(s) were rejected and are not in force.'"
+      "The Kinds of personal data table holds 21 kinds, one row each, in groups; its Hide from AI column has All and None buttons and a live count in its heading, for example 'look for it · 7 of 21'.",
+      "The How strict levels map to confidence thresholds that run backwards: Low sensitivity 85%, Balanced 70% (marked recommended), High sensitivity 45%; lower finds more.",
+      "Balanced is the calibrated anchor — every per-category level is tuned and measured at that position — and the advanced slider runs 10% to 100% in steps of 5, from 'finds more' to 'finds less'.",
+      "Your own data (Enterprise) adds types through a wizard — Describe, Test and tune, Where it applies — recognised as A list of words, A fixed format or Recognised by AI; types are hidden on top of whatever the detector finds.",
+      "Never hidden matches exactly on the normalised value (case, spaces and punctuation ignored); Your own exceptions apply in every category and never expire, while the Well-known companies list of 221 names covers company names only.",
+      "Overview shows the row Kinds of data as '{n} of 21' and, at zero, lists 'No kinds of data are selected': 'Protection is on, but nothing is ticked — so nothing will ever be found.'",
+      "Saving is one button, Save changes; success toasts 'Saved successfully!', while a refused type still saves everything else and reports 'Saved, with notes' in the save bar."
     ]
   },
   "actionChecks": [
     {
       "checkId": "shield-terms",
       "existing": false,
-      "label": "Add a company term and an exception",
-      "hint": "Settings → Organisation → Privacy Shield → What we look for → Your own words and exceptions, then Save All Changes.",
+      "label": "Tick your kinds of data and add an exception",
+      "hint": "Settings → Organisation → Privacy Shield: tick kinds under Hide from AI on What we look for, add a Never hidden exception on Your own data, then Save changes.",
       "endpoints": [
         {
           "method": "GET",
           "path": "/api/org-privacy-shield/:orgid",
-          "returns": "the saved shield config object for the learner’s own organisation (membership is enough to read it); customSensitiveTerms[] holds the Always hide these rows ({id,label,pattern,type,caseSensitive}) and piiAllowTerms[] the Never hide these values as plain strings"
+          "returns": "the saved shield config object for the learner’s own organisation (membership is enough to read it); piiDetectionCategories[] holds the kinds ticked under Hide from AI on What we look for, and piiAllowTerms[] the Never hidden exceptions as plain strings. Neither field is limited by plan."
         }
       ],
       "criteria": [
         {
-          "id": "custom-term",
-          "label": "One term of your own is saved under Always hide these",
-          "hint": "Add a row under Always hide these (name plus text or pattern) and press Save All Changes — a rejected pattern is not stored.",
+          "id": "kinds",
+          "label": "At least one kind of data is ticked under Hide from AI",
+          "hint": "On What we look for, tick the kinds your work contains in the Hide from AI column and press Save changes.",
           "endpoint": "/api/org-privacy-shield/:orgid",
           "expect": {
             "kind": "nonEmpty",
-            "field": "customSensitiveTerms"
+            "field": "piiDetectionCategories"
           },
-          "rule": "GET the org shield config; customSensitiveTerms is a non-empty array (default config has none)"
+          "rule": "GET the org shield config; piiDetectionCategories is a non-empty array (an org that never saved the shield can read a list seeded from the global AI settings)"
         },
         {
           "id": "allow-term",
-          "label": "One exception is saved under Never hide these",
-          "hint": "Add your organisation’s full name under Never hide these and press Save All Changes.",
+          "label": "One exception is saved under Never hidden",
+          "hint": "Add your organisation’s full name under Never hidden and press Save changes.",
           "endpoint": "/api/org-privacy-shield/:orgid",
           "expect": {
             "kind": "nonEmpty",

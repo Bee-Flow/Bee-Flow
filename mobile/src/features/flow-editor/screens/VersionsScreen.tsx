@@ -1,7 +1,7 @@
 /**
- * A routine's version history — the web builder's Versions tab (handoff 5):
+ * An automation's version history — the web builder's Versions tab (handoff 5):
  * every save, newest first, grouped into Not live yet / Live / Earlier; tap
- * one to see what changed (against the routine as it is saved now, or
+ * one to see what changed (against the automation as it is saved now, or
  * another save), and restore it after a confirmation.
  *
  * A restore is a save: the draft is saved first (so what is on screen
@@ -24,7 +24,7 @@ import { VersionList } from '../components/versions/VersionList';
 import { useDraftState, useFlowDraft, useFlowId, useVersions } from '../hooks';
 
 export interface VersionsScreenProps {
-    /** The routine id (or an open new routine's draft key). */
+    /** The automation id (or an open new automation's draft key). */
     automationId: string;
 }
 
@@ -45,7 +45,7 @@ export function VersionsScreen({ automationId }: VersionsScreenProps) {
     if (!id) body = <EmptyState icon="History" title={t('mobile.flow.versions.not_saved', 'Nothing saved yet')} />;
     else if (versions.isLoading) body = <ListSkeleton />;
     else if (versions.isError) body = <ErrorState error={versions.error} onRetry={() => void versions.refetch()} />;
-    else if (!list.length) body = <EmptyState icon="History" title={t('routines.versions.empty', 'No saved versions yet.')} />;
+    else if (!list.length) body = <EmptyState icon="History" title={t('automations.versions.empty', 'No saved versions yet.')} />;
     else {
         body = (
             <VersionList
@@ -62,7 +62,7 @@ export function VersionsScreen({ automationId }: VersionsScreenProps) {
 
     return (
         <Screen edges={['top']}>
-            <ScreenHeader title={t('routine_editor.version_history', 'Version history')} subtitle={flow.automation?.title || undefined} />
+            <ScreenHeader title={t('automation_editor.version_history', 'Version history')} subtitle={flow.automation?.title || undefined} />
             {body}
             {open && id ? (
                 <VersionDiffSheet

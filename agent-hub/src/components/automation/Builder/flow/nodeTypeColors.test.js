@@ -60,6 +60,10 @@ describe('nodeTypeColors — every step type has a family', () => {
         expect(TYPE_GROUPS).toBe(NODE_FAMILIES);
     });
 
+    it('the list steps are data, Flatten a list included', () => {
+        for (const type of ['limit', 'dedupe', 'aggregate', 'summarize', 'flatten']) expect(stepFamily(type), type).toBe('data');
+    });
+
     it('the families the design draws are the families the code knows', () => {
         // Editor.dc.html TYPES + the ribbon in artboard 1f.
         expect([...NODE_FAMILIES].sort()).toEqual(['ai', 'app', 'branch', 'data', 'end', 'guard', 'loop', 'pause', 'trigger']);
@@ -171,7 +175,7 @@ describe('nodeTypeColors — status beats type', () => {
     it('badges exist for every visible status and carry an i18n key', () => {
         for (const s of Object.keys(STATUS_VAR).filter(s => STATUS_VAR[s])) {
             expect(STATUS_BADGE[s], `no badge for ${s}`).toBeTruthy();
-            expect(STATUS_BADGE[s].key).toMatch(/^routines\.card\.badge_/);
+            expect(STATUS_BADGE[s].key).toMatch(/^automations\.card\.badge_/);
         }
     });
 

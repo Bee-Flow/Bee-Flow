@@ -1,7 +1,8 @@
 /**
  * Azure OpenAI (web: integrations/azure/OpenAISection.jsx): the resource
- * endpoint, its API key, the API version and the deployed model names — the
- * list the chat tiers then pick from.
+ * endpoint, its API key and the deployed model names — the list the chat
+ * tiers then pick from. There is no API version: the server always uses
+ * Azure's v1 GA API.
  */
 
 import React from 'react';
@@ -17,13 +18,11 @@ import { useAzureSectionForm } from '../hooks/useAzureSectionForm';
 import { deployedModels, validEndpoint } from '../model/azure';
 
 /** Example values, as the web's fields show them. */
-const VERSION_EXAMPLE = '2024-04-01-preview';
 const MODELS_EXAMPLE = 'gpt-4.1, gpt-5-mini, gpt-5.4';
 
 interface OpenAiDraft {
     azureEndpoint: string;
     azureApiKey: string;
-    azureApiVersion: string;
     azureModels: string;
 }
 
@@ -33,12 +32,11 @@ export function AzureOpenAiScreen() {
     const config = azure.query.data;
     const { form, saving, save } = useAzureSectionForm<OpenAiDraft>(
         azure.orgId,
-        config ? { azureEndpoint: config.azureEndpoint, azureApiKey: '', azureApiVersion: config.azureApiVersion, azureModels: config.azureModels } : null,
+        config ? { azureEndpoint: config.azureEndpoint, azureApiKey: '', azureModels: config.azureModels } : null,
         (d) => ({
             section: 'openai',
             azureEndpoint: d.azureEndpoint.trim(),
             ...(d.azureApiKey.trim() ? { azureApiKey: d.azureApiKey.trim() } : {}),
-            azureApiVersion: d.azureApiVersion.trim(),
             azureModels: d.azureModels.trim(),
         }),
     );
@@ -102,19 +100,10 @@ export function AzureOpenAiScreen() {
                                 onChangeText={(v) => form.set('azureApiKey', v)}
                             />
                             <TextField
-                                testID="azure-api-version"
-                                label={t('azure.api_version', 'API Version')}
-                                placeholder={VERSION_EXAMPLE}
-                                hint={t('azure.api_version_help', 'Azure OpenAI API version string')}
-                                autoCapitalize="none"
-                                value={d.azureApiVersion}
-                                onChangeText={(v) => form.set('azureApiVersion', v)}
-                            />
-                            <TextField
                                 testID="azure-models"
                                 label={t('azure.deployed_models', 'Deployed Model Names')}
                                 placeholder={MODELS_EXAMPLE}
-                                hint={t('azure.deployed_models_help', 'Comma-separated list of your Azure-deployed model names (deployment IDs)')}
+                                hint={t('azure.deployed_models_help', 'Comma-separated list of your Azure deployment names. Use name=model when a deployment is not named after its model (e.g. prod-chat=gpt-6-astra)')}
                                 autoCapitalize="none"
                                 value={d.azureModels}
                                 onChangeText={(v) => form.set('azureModels', v)}

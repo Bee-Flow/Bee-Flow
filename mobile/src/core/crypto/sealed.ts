@@ -6,7 +6,7 @@
  * and the server holds the rest. A phone loses its connection far more often
  * than a desk does, and the app can be killed at any moment, so an edit that
  * has not reached the server yet is written here instead of being lost. What
- * goes here is the person's own content (a routine's prompts, say), so it is
+ * goes here is the person's own content (an automation's prompts, say), so it is
  * sealed the way the web seals the data encryption key: AES-256-GCM, a fresh
  * 12-byte IV per write, and additional data that binds each value to its owner
  * and its slot, so a value copied to another slot or another account does not

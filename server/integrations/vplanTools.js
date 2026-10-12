@@ -621,10 +621,10 @@ async function getVplanCredentials(userId) {
  */
 function assertValidCredentials(creds) {
     if (!API_KEY_RE.test(creds.apiKey)) {
-        throw new Error('The stored vPlan API key has an invalid format. Re-enter it in Settings → Integrations.');
+        throw new Error('The stored vPlan API key has an invalid format. Re-enter it in Settings → Connections.');
     }
     if (!API_ENV_RE.test(creds.apiEnv)) {
-        throw new Error('The stored vPlan environment has an invalid format. Re-enter it in Settings → Integrations.');
+        throw new Error('The stored vPlan environment has an invalid format. Re-enter it in Settings → Connections.');
     }
 }
 
@@ -854,7 +854,7 @@ async function executeVplanTool(toolName, args, userId) {
 
     const creds = await getVplanCredentials(userId);
     if (!creds) {
-        return { error: 'vPlan not configured. Add your API key and environment in Settings → Integrations.' };
+        return { error: 'vPlan not configured. Add your API key and environment in Settings → Connections.' };
     }
 
     try {

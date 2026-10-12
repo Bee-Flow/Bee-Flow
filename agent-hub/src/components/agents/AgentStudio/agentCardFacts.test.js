@@ -64,10 +64,10 @@ describe('countsOf', () => {
         expect(counts).toEqual({ readable: true, knowledge: 2, skills: 1, tools: 5, toolsAtLeast: false });
     });
 
-    it('zonder routine-curatie is het getal een ONDERGRENS, geen totaal', () => {
+    it('zonder automation-curatie is het getal een ONDERGRENS, geen totaal', () => {
         // core/integrations/integrationTools.js cureert alleen als
         // `config.tools` de sleutel `automations` DRAAGT; ontbreekt hij, dan
-        // krijgt de agent élke agent-callable routine van de vrager plus elke
+        // krijgt de agent élke agent-callable automatisering van de vrager plus elke
         // in de chat gepubliceerde Step. "1 tool" was daar het omgekeerde van
         // de waarheid.
         const counts = countsOf({ config: { enabledIntegrations: ['gmail'] } });
@@ -75,9 +75,9 @@ describe('countsOf', () => {
         expect(counts.toolsAtLeast).toBe(true);
     });
 
-    it('een LEGE routine-sectie is wél curatie — de aanwezigheid van de sleutel is de keuze', () => {
+    it('een LEGE automation-sectie is wél curatie — de aanwezigheid van de sleutel is de keuze', () => {
         // Spiegel van `_curatedAutomations`: `hasOwnProperty('automations')`,
-        // niet de inhoud. "Alles uitgevinkt" levert geen enkele routine op.
+        // niet de inhoud. "Alles uitgevinkt" levert geen enkele automatisering op.
         const counts = countsOf({ config: { enabledIntegrations: ['gmail'], tools: { automations: {} } } });
         expect(counts.tools).toBe(1);
         expect(counts.toolsAtLeast).toBe(false);

@@ -1,5 +1,5 @@
 /**
- * The build screen's Canvas tab: the routine as the web's DiagramPane draws
+ * The build screen's Canvas tab: the automation as the web's DiagramPane draws
  * it, for a finger. Pan with one finger (a flick glides on), pinch to zoom
  * (25%–200%, around the fingers), double-tap to zoom in; one small bar in the
  * top right holds the zoom (tap it to fit), Add, Connect and ⋯.
@@ -13,7 +13,7 @@
  *   edits     tap opens a step, hold opens its menu, hold and drag moves it;
  *             connect mode draws a line by tapping its two ends and removes
  *             one with its "×"; Arrange re-lays everything out — each one
- *             undoable edit on the routine's draft
+ *             undoable edit on the automation's draft
  *
  * Everything the canvas computes is pure (scene.ts, viewport.ts, connect.ts,
  * moves.ts); this file wires the draft, the camera and the layers together.
@@ -45,7 +45,7 @@ import { worldFrame } from './viewport';
 import type { CardContext } from '../outline/cardModel';
 
 export interface CanvasViewProps {
-    /** The open routine's draft (FlowDraft.store). */
+    /** The open automation's draft (FlowDraft.store). */
     store: DraftStore;
     /** Open a step's editor, by its address. */
     onOpenStep: (address: string) => void;
@@ -67,8 +67,8 @@ export function CanvasView({ store, onOpenStep, card, onMenu, onAdd, catalog = n
         return (
             <EmptyState
                 icon="Workflow"
-                title={t('routines.canvas.empty_title', 'What does this routine start with?')}
-                message={t('routines.canvas.empty_static', 'Start with a trigger.')}
+                title={t('automations.canvas.empty_title', 'What does this automation start with?')}
+                message={t('automations.canvas.empty_static', 'Start with a trigger.')}
                 actionLabel={t('mobile.flow.add_trigger', 'Add a trigger')}
                 onAction={() => onAdd?.({ kind: 'root' })}
             />

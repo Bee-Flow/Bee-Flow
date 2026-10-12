@@ -71,7 +71,7 @@ const ExpiryBody = bodyOf({
 //
 // De implementatie staat sinds W3 stap 4 in core/webpages/webpageShareReconciler:
 // een eigenaar-save is niet meer de enige aanleiding. Een rij die uit een
-// gebonden tabel verdwijnt (retentie, DSR, een routine) moet ook publiek
+// gebonden tabel verdwijnt (retentie, DSR, een automatisering) moet ook publiek
 // verdwijnen, en die tap hangt aan datatableStore. Eén implementatie, twee
 // aanleidingen — twee kopieën zouden vroeg of laat verschillend gaan denken
 // over ingetrokken shares.
@@ -183,7 +183,7 @@ function register(router) {
                 // a missing snapshot.
                 await publicShareStore.deleteShare(share.id, userId).catch(() => {});
                 log.error('[Webpages] Snapshot failed:', snapErr);
-                return res.status(500).json({ error: 'Failed to snapshot webpage: ' + snapErr.message });
+                return res.status(500).json({ error: 'Failed to snapshot webpage' });
             }
 
             res.json({

@@ -20,13 +20,13 @@ import type { FlowDefinition } from '@/features/flow-editor/model';
 export type FormMode = 'simple' | 'advanced';
 
 export interface StepEditorContext {
-    /** The routine id, or a new routine's draft key — what the flow-editor hooks take. */
+    /** The automation id, or a new automation's draft key — what the flow-editor hooks take. */
     flowKey: string;
     /** The whole definition as the editor holds it. */
     definition: FlowDefinition;
     /** Where the step sits: its id, or a held step's address (outline/nested.ts, `loop_1/b_set`). */
     stepAddress?: string;
-    /** The flowlet the step lives in (`definition` is then that flowlet's graph); null in the routine itself. */
+    /** The flowlet the step lives in (`definition` is then that flowlet's graph); null in the automation itself. */
     flowlet?: string | null;
     /** Null until it has loaded (and for good when it could not be). */
     catalog: FlowCatalog | null;
@@ -40,14 +40,28 @@ export interface StepEditorContext {
     /** The section the editor was opened AT (a finding's fix): opened first, never hidden. */
     focusSection?: string | null;
     mode: FormMode;
-    /** Nothing can be changed (the AI builder is working on this routine). */
+    /** Nothing can be changed (the AI builder is working on this automation). */
     disabled: boolean;
     /**
      * Rename a declared field's binding (`<base>.<from>` → `<base>.<to>`) across
-     * the whole routine, in one edit, and answer how many bindings moved — the
-     * web's `onRenameField`. Absent where the editor cannot see the routine.
+     * the whole automation, in one edit, and answer how many bindings moved — the
+     * web's `onRenameField`. Absent where the editor cannot see the automation.
      */
     renameField?: (base: string, from: string, to: string) => number | undefined;
+    /**
+     * Re-point the next steps of the list Condition `routeId` at what it keeps
+     * (the shared followSuccessors), as ONE draft-store edit — the web's
+     * `onFollowRoute`. Answers the rewrites made (for the toast), or undefined
+     * when nothing could change. Absent where the editor cannot see the automation.
+     */
+    followRoute?: (routeId: string, stepIds: readonly string[]) => readonly FollowedRef[] | undefined;
+}
+
+/** One rewrite "follow the route" made: in `stepId`, `from…` now reads `to…`. */
+export interface FollowedRef {
+    stepId: string;
+    from: string;
+    to: string;
 }
 
 export interface StepEditorProps {

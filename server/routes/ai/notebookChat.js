@@ -11,6 +11,7 @@ const express = require('express');
 const { formatLocalNow } = require('../../core/llm/clock');
 const log = require('../../telemetry/log');
 const router = express.Router();
+router.use(require('../../stores/lib/documentCrypto').withDocumentEncryptionSession);
 const {
     getAIConfig,
     getProviderForModel,
@@ -25,8 +26,11 @@ const { startSseHeartbeat } = require('../../core/http/sseHelpers');
 const { NOTEBOOK_DOC_TOOLS, NOTEBOOK_ADD_SOURCE_TOOL, executeNotebookDocTool } = require('../../integrations/notebookDocTools');
 const { htmlToMarkdown } = require('../../core/markdown');
 const { AGENT_SEARCH_TOOLS, isAgentSearchTool } = require('../../integrations/agentSearchTools');
+const { isReadUrlTool } = require('../../integrations/readUrlTools');
+// read_url ships with AGENT_SEARCH_TOOLS and is handled as a web tool here.
+const isWebTool = (name) => isAgentSearchTool(name) || isReadUrlTool(name);
 const { runAgentSearchWithEgress } = require('../../integrations/agentSearchEgress');
-const { searchNotebookKB, executeNotebookKBSearchTool, NOTEBOOK_KB_SEARCH_TOOL } = require('../../core/kb/notebookKnowledgeSearch');
+const { searchNotebookKB, findSourceForChunk, executeNotebookKBSearchTool, NOTEBOOK_KB_SEARCH_TOOL } = require('../../core/kb/notebookKnowledgeSearch');
 const { emitPhase, emitPhaseEnd, startPrivacyScanPhase, messageText } = require('../../core/agentRuntime/phaseEvents');
 const { checkSubscriptionLimits } = require('../../core/entitlements/limits');
 
@@ -63,6 +67,7 @@ const notebookCollab = require('../../agents/notebooks/notebookCollab');
 const { makeAiDocWriter, canonicalHtml } = require('../../agents/notebooks/aiDocWriter');
 const { makeNotebookFeed } = require('../../agents/notebooks/notebookFeed');
 const { hasNotebookRole } = require('../notebooksAccess');
+const { createToolRepeatGuard } = require('../../core/agentRuntime/toolRepeatGuard');
 
 /**
  * Collaborators a test swaps on this object (testUtils/swaps.js). The
@@ -172,7 +177,7 @@ router.post('/chat/notebook/stream', requireAuth, validate({ body: NotebookTurnB
     const apiKey = config.apiKey;
     const apiUrl = (config.url || '').replace(/\/+$/, '');
 
-    log.info(`[NotebookChat] Model: ${modelId} (tier: ${resolvedTier}${modelTier === 'auto' ? ', auto-selected' : ''}) for notebook: "${notebook.name}" (${readySources.length} sources)`);
+    log.info(`[NotebookChat] Model: ${modelId} (tier: ${resolvedTier}${modelTier === 'auto' ? ', auto-selected' : ''}) for notebook ${notebook.id} (${readySources.length} sources)`);
 
     // Set SSE headers
     res.writeHead(200, {
@@ -219,15 +224,17 @@ router.post('/chat/notebook/stream', requireAuth, validate({ body: NotebookTurnB
         // BEFORE any tokenization this turn, so doc/KB/message tokens reuse tokens
         // minted on earlier turns and survive a server restart. Idempotent.
         try { await dlpRunner.getConversationTokenMapAsync(notebookId); } catch (_) { /* best-effort */ }
-        // Resolve the org Privacy Shield ONCE — respect-the-shield: tokenization
-        // only runs when the admin has it enabled. Reused by the KB + doc scans.
-        const docShield = userOrgForTiers
-            ? await configStore.getConfig(`org_privacy_shield_${userOrgForTiers}`)
-            : null;
-        // The RESOLVED shield (the scans above read the stored document): the
-        // regex rules below, and the tool block lists on the injected
-        // passages and in the tool loop (BFSF-354).
+        // Resolve the Privacy Shield ONCE — respect-the-shield: tokenization
+        // only runs when it is enabled. The RESOLVED shape, never the stored
+        // org document: a personal account (no org) has only a user-level
+        // shield, which the stored-document read never saw, so its document,
+        // KB passages, attachments and typed message reached the model
+        // unscanned (the direct-chat equivalent was BFSF-290/291). The resolved
+        // shape also carries the tier clamps and the documented fail_closed
+        // default. Used by the KB, document, attachment and message scans, the
+        // regex rules below, and the tool block lists (BFSF-354).
         const orgShieldConfig = await resolveShieldFor({ orgId: userOrgForTiers, userId });
+        const docShield = orgShieldConfig;
         const toolPiiGate = require('../../core/privacy/toolPiiGate');
         // When the shield is on AND set to fail closed, a scan that throws must
         // abort the turn rather than silently sending raw PII to the model.
@@ -280,6 +287,9 @@ router.post('/chat/notebook/stream', requireAuth, validate({ body: NotebookTurnB
             res.end();
         };
 
+        // Per-turn guard: the same read-only call twice, or a passage already in
+        // the prompt, is not served again (see core/agentRuntime/toolRepeatGuard).
+        const repeatGuard = createToolRepeatGuard({ readOnlyTools: ['notebook_kb_search', 'notebook_doc_read'] });
         // Search notebook knowledge base for relevant context
         let kbContext = '';
         let citationSources = [];
@@ -303,24 +313,18 @@ router.post('/chat/notebook/stream', requireAuth, validate({ body: NotebookTurnB
                     // The tenant the notebook's chunks are stored under: its owner's.
                     userId: notebook.userId, kbIds, query: message,
                     options: { topK: 10, rerank: true, minScore: 0.2 },
+                    // Chunks carry the source id; the prompt and chips show its name.
+                    sources: readySources,
                 });
 
+                repeatGuard.seedChunks(kbResult.chunks);
                 if (kbResult.chunks.length > 0) {
-                    // Resolve source names for citation display
-                    const sourceNameMap = {};
-                    readySources.forEach(s => {
-                        sourceNameMap[s.name] = s.name;
-                        sourceNameMap[s.id] = s.name;
-                    });
+                    // searchNotebookKB already mapped each chunk to its source by id
+                    // (exact). What is left is a title that matched no source id, e.g.
+                    // a hit from a base attached by hand: fuzzy-match those only.
                     const resolveSourceName = (rawTitle) => {
                         if (!rawTitle) return 'Unknown Source';
-                        if (sourceNameMap[rawTitle]) return sourceNameMap[rawTitle];
-                        const basename = rawTitle.split('/').pop();
-                        if (sourceNameMap[basename]) return sourceNameMap[basename];
-                        for (const [key, name] of Object.entries(sourceNameMap)) {
-                            if (rawTitle.includes(key) || key.includes(rawTitle)) return name;
-                        }
-                        return rawTitle;
+                        return findSourceForChunk({ title: rawTitle }, readySources)?.name || rawTitle;
                     };
 
                     citationSources = kbResult.citations.map(c => ({
@@ -331,7 +335,7 @@ router.post('/chat/notebook/stream', requireAuth, validate({ body: NotebookTurnB
                     // list applies as it does to notebook_kb_search (BFSF-354),
                     // before the tokenisation below. The citations stay real.
                     kbContext = await toolPiiGate.stripInjectedText(kbResult.contextPrompt, { shield: orgShieldConfig, tag: 'NotebookChat' });
-                    log.info(`[NotebookChat] Injected ${kbResult.chunks.length} KB chunks for notebook "${notebook.name}"`);
+                    log.info(`[NotebookChat] Injected ${kbResult.chunks.length} KB chunks for notebook ${notebook.id}`);
 
                     // Tokenize the retrieved KB context BEFORE it enters the prompt.
                     // Embeddings + stored source text stay REAL (ingest untouched) —
@@ -340,7 +344,9 @@ router.post('/chat/notebook/stream', requireAuth, validate({ body: NotebookTurnB
                     // by a source and the document maps to one [person_1]. The
                     // citationSources previews (sent to the client below) stay REAL —
                     // they are the user's own sources.
-                    if (kbContext && docShield?.enabled) {
+                    // privacy_scan_knowledge_bases=false: the org does not want knowledge-base
+                    // content tokenised, at query time either (default: scan).
+                    if (kbContext && docShield?.enabled && docShield.privacy_scan_knowledge_bases !== false) {
                         try {
                             const kbScan = await _scanViaLedger(kbContext, 'kb-context');
                             if (kbScan.blocked) return _abortBlocked('kb-context');
@@ -511,7 +517,7 @@ ${sourceSummary}
 
 CRITICAL INSTRUCTIONS:
 1. ALWAYS ground your responses in the notebook's sources when relevant context is available.
-2. Use inline citations like [Source 1], [Source 2] when referencing specific information from the knowledge base.
+2. When you use specific information from the knowledge base, name the source it comes from (e.g. according to "Report.pdf"). The app shows the cited passages as source chips under your answer on its own. Never use numeric references such as [1] or [Source 1].
 3. If the user asks about something not covered in the sources, clearly state that and provide general knowledge with a disclaimer.
 4. Be comprehensive but concise. Synthesize information across multiple sources when applicable.
 5. If asked to summarize, compare, or analyze — draw from ALL relevant sources.
@@ -541,13 +547,15 @@ DOCUMENT RULES — FOLLOW STRICTLY:
 4. When asked to write, create, or draft something: write it via notebook_doc_write — don't just reply in chat.
 5. The user's message may include selected document text — pass it verbatim as find_text.
 6. After applying a change, briefly confirm what you did (e.g. "I've shortened that paragraph").
-7. For source citations use clickable [Source name](url) links — never [1]-style refs.
+7. In the document, cite a source by its name in plain text (or as a [Source name](url) link only when you really know its URL) — never [1]-style refs.
 8. STYLE CONSISTENCY: when replacing, match the original formatting — don't promote a paragraph to a heading unless asked.
 
 ${searchAvailable ? `[WEB SEARCH & SOURCES]
 - You can search the web using agent_search for current information and research
 - You can add search results or any text directly as a notebook source using notebook_add_source
 - When adding web search results as a source, pass the complete results text directly — no need to re-fetch
+` : ''}${kbContext ? `[KNOWLEDGE BASE]
+The passages below are already retrieved for this question. Call notebook_kb_search only to look up something different from what is below, and never repeat a search you have already done.
 ` : ''}${kbContext}${documentContext}${selectionContext}
 Now: ${formatLocalNow(timezone)}`;
         }
@@ -613,17 +621,30 @@ Now: ${formatLocalNow(timezone)}`;
             // Honors the org's chosen action and merges into the same notebook token
             // map so the streamed reply un-tokenises consistently. Reuses the same
             // scanner as direct chat + the KB/doc scans.
+            // Returns the verdict, not just text: `{ blocked }` when the shield
+            // blocks the attachment (or a fail-closed scan could not finish),
+            // `{ scanFailed }` when the scan threw under fail_closed, else
+            // `{ text }`. A block used to fall through to the ORIGINAL text, so
+            // the strictest setting sent the attachment to the provider; with
+            // an image in the turn the message gate below scans only the typed
+            // question, so nothing caught it afterwards. The caller aborts the
+            // turn (it cannot be thrown from here: the per-attachment
+            // try/catch would turn it into a "could not be read" note).
             const _scanAttBody = async (text, filename) => {
-                if (!text || !docShield?.enabled) return text;
+                if (!text || !docShield?.enabled) return { text };
                 try {
                     const { scanAttachmentText } = require('../../core/dlp/attachmentScanner');
                     const r = await scanAttachmentText({ text, filename: filename || 'attachment', orgShield: docShield, conversationId: notebookId });
+                    if (r?.action === 'block') return { blocked: true };
                     // Any scanner-produced text wins — on an incomplete scan it is
                     // the truncated document; keeping the original would re-add the
                     // pages nobody checked.
-                    if (r && typeof r.text === 'string') return r.text;
-                } catch (e) { log.warn('[NotebookChat] attachment PII scan failed:', e.message); }
-                return text;
+                    if (r && typeof r.text === 'string') return { text: r.text };
+                } catch (e) {
+                    log.warn('[NotebookChat] attachment PII scan failed:', e.message);
+                    if (_failClosed) return { scanFailed: true };
+                }
+                return { text };
             };
             for (const att of attachments) {
                 try {
@@ -632,7 +653,10 @@ Now: ${formatLocalNow(timezone)}`;
                     } else if (att.content && (isPdf(att) || isDocx(att) || isSpreadsheet(att))) {
                         const result = await extractAttachment(att, { modelSupportsVision: adapter.supportsVision?.(modelId) });
                         if (result.kind === 'text') {
-                            const _body = await _scanAttBody((result.text || '').slice(0, 20000), att.name);
+                            const _scan = await _scanAttBody((result.text || '').slice(0, 20000), att.name);
+                            if (_scan.blocked) return _abortBlocked('attachment');
+                            if (_scan.scanFailed) return _abortFailClosed('attachment');
+                            const _body = _scan.text;
                             contentParts.push({ type: 'text', text: `${formatTextHeader(att, result)}\n---\n${_body}\n---` });
                         } else if (result.kind === 'images' && Array.isArray(result.images)) {
                             contentParts.push({ type: 'text', text: formatImagesHeader(att, result) });
@@ -646,7 +670,10 @@ Now: ${formatLocalNow(timezone)}`;
                         // Plain-text / csv / code files — a UTF-8 decode is correct.
                         const textContent = att.content.startsWith('data:') ? Buffer.from(att.content.split(',')[1] || '', 'base64').toString('utf-8') : att.content;
                         if (textContent) {
-                            const _body = await _scanAttBody(textContent.slice(0, 8000), att.name);
+                            const _scan = await _scanAttBody(textContent.slice(0, 8000), att.name);
+                            if (_scan.blocked) return _abortBlocked('attachment');
+                            if (_scan.scanFailed) return _abortFailClosed('attachment');
+                            const _body = _scan.text;
                             contentParts.push({ type: 'text', text: `[File: ${att.name}]\n---\n${_body}\n---` });
                         }
                     }
@@ -700,7 +727,7 @@ Now: ${formatLocalNow(timezone)}`;
         let _userPiiCategories = [];
         let _showRawPayload = false;
         try {
-            const orgShield = userOrgForTiers ? await configStore.getConfig(`org_privacy_shield_${userOrgForTiers}`) : null;
+            const orgShield = docShield;
             const orgPiiEnabled = !!orgShield?.enabled;
             _showRawPayload = !!orgShield?.showRawPayload;
             // Hydrate the conversation-scoped token map (keyed on notebookId
@@ -793,18 +820,27 @@ Now: ${formatLocalNow(timezone)}`;
         // Resolve org-wide regex rules; mirrors directChat.js:2348-2393
         let regexConfig = mergeWithOrgShield(orgShieldConfig, null); // no notebook-local overrides
 
-        // Input regex check: block/redact before the model sees the message
+        // Input regex check: block/redact before the model sees the message.
+        // Match on the typed message, but redact the content the model will
+        // receive: the PII gate above may have tokenised it, and without an
+        // attachment image it also carries the attachment text. Redacting the
+        // raw `message` put the real values back and dropped the attachments.
+        const _rxLast = messages[messages.length - 1];
+        const _rxTextPart = Array.isArray(_rxLast?.content) ? _rxLast.content.find(p => p.type === 'text') : null;
         const inputRx = applyRegexGuardrails({
-            text: message, regexConfig, scope: 'userInput', emit: send, direction: 'input',
+            text: message,
+            redactBase: typeof _rxLast?.content === 'string' ? _rxLast.content : (_rxTextPart ? _rxTextPart.text : message),
+            regexConfig, scope: 'userInput', emit: send, direction: 'input',
             audit: { organization_id: userOrgForTiers || null, user_id: userId || null, conversation_id: notebookId || null, source: 'notebook' },
         });
         if (inputRx.action !== 'pass') {
             log.info(`[NotebookChat RegexGuard] User input violated rules: ${inputRx.ruleNames}, action: ${regexConfig.action}`);
         }
         if (inputRx.action === 'redact') {
-            const lastMsg = messages[messages.length - 1];
-            if (typeof lastMsg.content === 'string') {
-                lastMsg.content = inputRx.processedText;
+            if (typeof _rxLast.content === 'string') {
+                _rxLast.content = inputRx.processedText;
+            } else if (_rxTextPart) {
+                _rxTextPart.text = inputRx.processedText;
             }
         } else if (inputRx.action === 'block') {
             return res.end();
@@ -950,7 +986,7 @@ Now: ${formatLocalNow(timezone)}`;
             }
             if (toolName === 'notebook_add_source') {
                 if (!canWrite) return { error: VIEWER_WRITE_REFUSAL };
-                const { ingestTextSource } = require('../../agents/notebooks/sourceIngestion');
+                const { ingestTextSource, MAX_SOURCE_TEXT_CHARS, MAX_SOURCES_PER_NOTEBOOK } = require('../../agents/notebooks/sourceIngestion');
                 const sourceName = toolArgs.name || 'AI Research';
                 // The model may echo tokens (`[person_1]`) in the content it asks us
                 // to save as a new source. Restore to real values before ingest so the
@@ -961,6 +997,8 @@ Now: ${formatLocalNow(timezone)}`;
                 const sourceContent = restoreTokens(toolArgs.content || '', _srcMap);
                 const sourceMeta = toolArgs.metadata || {};
                 if (!sourceContent.trim()) return { error: 'Content is required to add a source.' };
+                if (sourceContent.length > MAX_SOURCE_TEXT_CHARS) return { error: `That text is too long to add as one source (over ${MAX_SOURCE_TEXT_CHARS.toLocaleString('en-US')} characters). Add it in smaller parts.` };
+                if (await notebookStore.countSources(notebookId) >= MAX_SOURCES_PER_NOTEBOOK) return { error: `This notebook already holds the maximum of ${MAX_SOURCES_PER_NOTEBOOK} sources. Ask the user to remove some first.` };
                 const source = await notebookStore.addSource({
                     notebookId, type: 'text', name: sourceName, metadata: sourceMeta,
                     wordCount: countWords(sourceContent),
@@ -973,9 +1011,9 @@ Now: ${formatLocalNow(timezone)}`;
                 return { success: true, message: `Source "${sourceName}" added and indexing.`, sourceId: source.id };
             }
             if (toolName === 'notebook_kb_search') {
-                return await executeNotebookKBSearchTool(toolArgs, notebook.userId, kbIds);
+                return await executeNotebookKBSearchTool(toolArgs, notebook.userId, kbIds, readySources);
             }
-            if (isAgentSearchTool(toolName)) {
+            if (isWebTool(toolName)) {
                 return await runAgentSearchWithEgress(toolName, toolArgs, {
                     source: 'notebook_chat',
                     ids: { organization_id: userOrgForTiers || null, user_id: userId || null, conversation_id: notebookId || null },
@@ -1093,7 +1131,7 @@ Now: ${formatLocalNow(timezone)}`;
                 // call carries: real ones for every tool the notebook restores
                 // (document writes, new sources), the tokens a web search keeps.
                 // The same split direct chat makes.
-                const refusal = await shieldGate.refuse(toolName, isAgentSearchTool(toolName)
+                const refusal = await shieldGate.refuse(toolName, isWebTool(toolName)
                     ? toolArgs : untokeniseToolArgs(toolArgs, dlpRunner.getConversationTokenMap(notebookId) || {}));
                 if (refusal) {
                     send('tool_end', { name: toolName, result: refusal.uiResult });
@@ -1101,15 +1139,35 @@ Now: ${formatLocalNow(timezone)}`;
                     continue;
                 }
                 let toolResult;
-                try { toolResult = await executeNotebookTool(toolName, toolArgs); }
-                catch (err) { toolResult = { error: err.message }; }
+                let skipScan = false;
+                if (repeatGuard.isRepeat(toolName, toolArgs)) {
+                    // Same read, same arguments, earlier in this answer: not run again.
+                    toolResult = { message: 'Already retrieved earlier in this answer — use that result instead of calling again.' };
+                    skipScan = true;
+                } else {
+                    try { toolResult = await executeNotebookTool(toolName, toolArgs); }
+                    catch (err) { toolResult = { error: err.message }; }
+                    if (toolName === 'notebook_doc_write' || toolName === 'notebook_doc_replace') repeatGuard.forget('notebook_doc_read');
+                    if (toolName === 'notebook_kb_search' && Array.isArray(toolResult?.results)) {
+                        const fresh = repeatGuard.filterNewChunks(toolResult.results);
+                        if (toolResult.results.length > 0 && fresh.length === 0) {
+                            toolResult = { message: 'No new passages beyond those already retrieved.' };
+                            skipScan = true;
+                        } else {
+                            toolResult = { ...toolResult, results: fresh, resultCount: fresh.length };
+                        }
+                    }
+                }
                 let resultStr = typeof toolResult === 'string' ? toolResult : JSON.stringify(toolResult);
                 // Tokenize source/web content returned by RETRIEVAL tools before the
                 // model sees it — Legal/Notebook SOURCES (notebook_kb_search) and web
                 // results would otherwise reach the LLM raw. Exclude notebook_doc_*
                 // (already token-space, B3) and the Dutch legal tools (public court
                 // data whose exact ECLI/CELEX identifiers citation-matching needs).
-                if (docShield?.enabled && resultStr && (toolName === 'notebook_kb_search' || isAgentSearchTool(toolName))) {
+                // A KB result is left alone when the org switched off knowledge-base
+                // scanning; web results are always scanned.
+                const _scanKbResult = toolName === 'notebook_kb_search' && docShield?.privacy_scan_knowledge_bases !== false;
+                if (!skipScan && docShield?.enabled && resultStr && (_scanKbResult || isWebTool(toolName))) {
                     try {
                         const { scanAttachmentText } = require('../../core/dlp/attachmentScanner');
                         const r = await scanAttachmentText({ text: resultStr, filename: `${toolName}-result`, orgShield: docShield, conversationId: notebookId });

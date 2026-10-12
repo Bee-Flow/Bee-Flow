@@ -52,7 +52,7 @@ describe('runLogSentence', () => {
     });
 
     it('phrases an older failure from the step\'s errorInfo, then from the error class', () => {
-        const info = { title: 'The Gmail sign-in has expired', titleKey: 'routines.step_error.auth_expired.title' };
+        const info = { title: 'The Gmail sign-in has expired', titleKey: 'automations.step_error.auth_expired.title' };
         expect(runLogSentence(t, run({ status: 'error', error: 'Gmail API 401: invalid_grant' }), info).text)
             .toBe('Stopped: The Gmail sign-in has expired');
         expect(runLogSentence(t, run({ status: 'error', error: 'HTTP 401', errorClass: 'auth' })).text)

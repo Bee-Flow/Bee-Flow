@@ -25,9 +25,21 @@ const DATA = require(path.join(__dirname, 'data', 'code-step-nl.json'));
  * data's hash is pinned here: every data change is a change to this file (the
  * test fails until it is updated).
  */
-const DATA_SHA256 = '5c52586d4e6fab9c112bab6bff9e3d57e456583592fb71693fe4b799665d13d8';
+const DATA_SHA256 = 'e2392fd3f266605a56be89306b6fd00333f0e36c264a7f8414c6f45d936704fe';
 
 const NL_TRANSLATIONS = Object.freeze({ ...DATA.translations });
+
+/**
+ * Dutch that was shipped and later reworded. Replaced only while a workspace
+ * still has the old shipped text, so its own wording is never overwritten.
+ */
+const NL_REWORDED = Object.freeze({
+    // The editor runtime is served by Bee Flow itself now, not fetched from the internet.
+    'code_step.editor.stalled': {
+        was: "De code-editor werd niet helemaal geladen, dus dit is het gewone tekstvak. Hij wordt de eerste keer van internet gehaald, dus een installatie zonder internet of achter een firewall krijgt hem nooit. Er gaat niets verloren: dit vak bewerkt en bewaart precies dezelfde code.",
+        now: NL_TRANSLATIONS['code_step.editor.stalled'],
+    },
+});
 
 /** Keys whose Dutch is the English text itself; deliberately not seeded. */
 const SAME_AS_ENGLISH = Object.freeze([...DATA.sameAsEnglish]);
@@ -38,6 +50,12 @@ function applyNl(merged) {
     for (const [key, value] of Object.entries(NL_TRANSLATIONS)) {
         if (!merged[key]) {
             merged[key] = value;
+            added++;
+        }
+    }
+    for (const [key, { was, now }] of Object.entries(NL_REWORDED)) {
+        if (merged[key] === was) {
+            merged[key] = now;
             added++;
         }
     }

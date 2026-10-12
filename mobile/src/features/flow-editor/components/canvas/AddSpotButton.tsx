@@ -18,7 +18,7 @@ export function AddSpotButton({ spot, frame }: { spot: AddSpot; frame: Rect }) {
     const t = useTranslation();
     return (
         <View style={[styles.abs, dotAt(frame, spot.x, spot.y, PLUS)]}>
-            <PlusButton target={spot.target} label={t('routines.ribbon.search_label', 'Add a step')} testID={`canvas-${spot.key}`} />
+            <PlusButton target={spot.target} label={t('automations.ribbon.search_label', 'Add a step')} testID={`canvas-${spot.key}`} />
         </View>
     );
 }

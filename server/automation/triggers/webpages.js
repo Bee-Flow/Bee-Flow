@@ -1,12 +1,12 @@
 /**
  * Webpage row-insert / row-update triggers (§20 scaffolding).
  *
- * Lets a routine fire when a webpage's SQLite DB receives an INSERT or
+ * Lets an automation fire when a webpage's SQLite DB receives an INSERT or
  * UPDATE on a specific table — the back-channel that turns a webpage
  * from a one-way data sink into a two-way integration.
  *
  * Architecture (Phase 2):
- *   1. On first activation by a routine, install AFTER INSERT /
+ *   1. On first activation by an automation, install AFTER INSERT /
  *      AFTER UPDATE triggers on the target table that write rowid +
  *      op + ts into a `__webpage_changefeed` table.
  *   2. A 10-second poller scans `__webpage_changefeed` for unprocessed

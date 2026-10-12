@@ -77,7 +77,7 @@ const ACCESS_MODES = Object.freeze(['app', 'owner', 'role', 'none']);
  *                           canonicaliseert byte-identiek en verandert nergens
  *                           van gedrag. Additief, dus.
  *   {kind:'datatable', …}   de rijen staan in een STUDIO-DATATABEL, buiten de
- *                           app, gedeeld met routines en andere apps.
+ *                           app, gedeeld met automatiseringen en andere apps.
  *
  * `datatableId` draagt hetzelfde `tbl_`-voorvoegsel als een modeltabel-id
  * (stores/datatableStore.newDatatableId mint 'tbl_' + 12 hex). De twee zijn
@@ -196,7 +196,7 @@ const MIN_SYNC_MINUTES = 15;
 /**
  * Per-kind floors below the global one.
  *
- * 15 minutes is right for a REST feed or a routine, and far too slow for an
+ * 15 minutes is right for a REST feed or an automation, and far too slow for an
  * inbox — a support desk that notices a customer e-mail a quarter of an hour
  * late is not a support desk. A mailbox pull is cheap (one list call per tick
  * when nothing changed), so 2 minutes stays well inside both providers' quotas.

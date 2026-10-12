@@ -155,7 +155,7 @@ test('the fresh read honours the kill switch and the no-org case', async () => {
 // Both operator switches read env through envFlagOn. The run memo's used bare
 // truthiness (`!process.env.AUTOMATION_ASK_ONCE_DISABLED`), so `=0` and
 // `=false` — the two things an operator types to mean "leave it on" — both
-// switched the feature OFF, and the only symptom was a routine quietly getting
+// switched the feature OFF, and the only symptom was an automation quietly getting
 // slower.
 
 test('envFlagOn reads the shapes an operator would actually type', () => {

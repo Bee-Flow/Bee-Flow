@@ -124,7 +124,7 @@ async function assertAttachmentQuota(app, addBytes = 0) {
  *
  * The datatable half was missing, which made this the org's "total storage" and
  * wrong: `datatable_models.size_bytes` is measured by the retention sweep and
- * was read by nobody, so a routine writing a million rows a month showed up
+ * was read by nobody, so an automation writing a million rows a month showed up
  * nowhere in the figure an admin is shown before being asked to buy more.
  */
 async function orgUsage(orgId) {

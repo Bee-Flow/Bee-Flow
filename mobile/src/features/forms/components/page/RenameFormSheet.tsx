@@ -1,6 +1,6 @@
 /**
  * Rename a form: its heading, the title a colleague sees at the top of the
- * page (`trigger.form.title`) — not the routine's name, which is the
+ * page (`trigger.form.title`) — not the automation's name, which is the
  * builder's. Saved into the form as it is saved, leaving any unsaved question
  * edits where they are.
  */
@@ -23,7 +23,7 @@ export function RenameFormSheet({
 }: {
     visible: boolean;
     title: string;
-    /** The AI builder holds the routine: a rename could not be written. */
+    /** The AI builder holds the automation: a rename could not be written. */
     locked?: boolean;
     /** Why the last save failed. */
     error?: unknown;

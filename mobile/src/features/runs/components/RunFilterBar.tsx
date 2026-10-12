@@ -1,7 +1,7 @@
 /**
  * The run log's filters — the web's ExecutionsFilterBar for a phone: status
  * pills with their counts from the facets, the date range, and three chips
- * that open a choice each (trigger, live or test, which routine). Under them,
+ * that open a choice each (trigger, live or test, which automation). Under them,
  * in one sentence, what is narrowing the list and a way to undo it all.
  *
  * Presentational: the screen owns the filters.
@@ -35,7 +35,7 @@ function statusWord(chip: StatusChip, t: TranslateFn): string {
     switch (chip) {
         case 'success': return t('common.success', 'Success');
         case 'error': return t('mobile.runs.filter.error', 'Failures');
-        case 'running': return t('mobile.runs.filter.running', 'Running');
+        case 'running': return t('automations.run_progress_banner.running', 'Running');
         case 'awaiting': return t('mobile.runs.filter.awaiting', 'Awaiting');
         case 'cancelled': return t('mobile.runs.filter.cancelled', 'Stopped');
         default: return t('common.all', 'All');
@@ -58,13 +58,13 @@ function triggerWord(kind: string | null, t: TranslateFn): string {
     return words ? t(words.key, words.en) : triggerLabel(kind);
 }
 
-/** The routines the facets name, titled from the rollup where it has one. */
+/** The automations the facets name, titled from the rollup where it has one. */
 function automationChoices(facets: RunFacets | null | undefined, t: TranslateFn): Choice[] {
     const titles = new Map((facets?.automations ?? []).map((r) => [r.automationId, r.title]));
     const ids = Object.keys(facets?.automationId ?? {});
     return [
         { value: '', label: t('mobile.runs.filter.all_automations', 'All automations') },
-        ...ids.map((id) => ({ value: id, label: titles.get(id) || t('runs.now.untitled', 'A routine without a name') })),
+        ...ids.map((id) => ({ value: id, label: titles.get(id) || t('runs.now.untitled', 'An automation without a name') })),
     ];
 }
 
@@ -72,14 +72,14 @@ export function RunFilterBar({
     filters,
     onChange,
     facets,
-    routines,
+    automationFacets,
 }: {
     filters: RunFilters;
     onChange: (next: RunFilters) => void;
-    /** Counts narrowed like the list, routine included. */
+    /** Counts narrowed like the list, automation included. */
     facets: RunFacets | null | undefined;
-    /** The same window not narrowed by routine: the picker's choices. */
-    routines: RunFacets | null | undefined;
+    /** The same window not narrowed by automation: the picker's choices. */
+    automationFacets: RunFacets | null | undefined;
 }) {
     const t = useTranslation();
     const styles = useThemedStyles(makeStyles);
@@ -90,7 +90,7 @@ export function RunFilterBar({
         ...Object.keys(facets?.triggerKind ?? {}).sort().map((kind) => ({ value: kind, label: triggerWord(kind, t) })),
     ];
     const modes: Choice[] = (['live', 'dry_run', 'both'] as const).map((m) => ({ value: m, label: modeWord(m, t) }));
-    const automations = automationChoices(routines ?? facets, t);
+    const automations = automationChoices(automationFacets ?? facets, t);
     const automationLabel = automations.find((c) => c.value === (filters.automationId ?? ''))?.label ?? automations[0]!.label;
     return (
         <View style={styles.bar}>

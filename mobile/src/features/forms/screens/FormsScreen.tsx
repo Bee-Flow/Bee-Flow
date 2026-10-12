@@ -2,7 +2,7 @@
  * Forms — every form your organisation has published (the web's Studio →
  * Forms and /app/forms in one list).
  *
- * A form is the front door of a routine: whoever fills it in starts it. The
+ * A form is the front door of an automation: whoever fills it in starts it. The
  * list is org-scoped on purpose — a form has an address, and an address
  * belongs to the organisation. Tapping a form opens its Form page when it is
  * yours (or its answers are shared with you), and otherwise opens it to fill
@@ -65,7 +65,7 @@ export function FormsScreen() {
                 noMatch={{
                     title: t('mobile.forms.no_match', 'No form matches that'),
                     message: t('mobile.forms.no_match_hint', 'Try another word.'),
-                    clearLabel: t('routines.mapping.clear_search', 'Clear search'),
+                    clearLabel: t('automations.mapping.clear_search', 'Clear search'),
                 }}
             />
         </Screen>

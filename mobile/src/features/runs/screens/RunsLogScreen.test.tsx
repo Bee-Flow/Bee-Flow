@@ -132,7 +132,7 @@ describe('RunsLogScreen', () => {
         expect(await screen.findByText('Finished — Filed 3 invoices')).toBeTruthy();
     });
 
-    it('counts the chips over the routine that was picked, and keeps offering the others', async () => {
+    it('counts the chips over the automation that was picked, and keeps offering the others', async () => {
         answer();
         await renderWithProviders(
             <ToastProvider>
@@ -145,7 +145,7 @@ describe('RunsLogScreen', () => {
         await screen.findByText('Failed — The mailbox refused');
         const facetAsks = get.mock.calls.filter((c) => c[0].endsWith('/_runs/facets')).map((c) => c[1].query);
         expect(facetAsks).toContainEqual(expect.objectContaining({ automationId: 'a1' }));
-        // The picker's choices come from the unnarrowed read: the routine is still offered.
+        // The picker's choices come from the unnarrowed read: the automation is still offered.
         await fireEvent.press(screen.getByTestId('runs-automation'));
         expect(await screen.findByTestId('choice-any')).toBeTruthy();
         expect(screen.getByTestId('choice-a1')).toBeTruthy();

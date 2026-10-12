@@ -751,6 +751,7 @@ module.exports = {
     getMaxSeatsForOrg,
     getServerLicenseTier,
     serverLicenseGovernsOrgs,
+    deploymentMode,
     getServerLicenseVersion,
     // mutation
     activateLicense,

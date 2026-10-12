@@ -6,7 +6,7 @@ import { authFetch } from '../utils/helpers';
 vi.mock('../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 
 /**
- * The composer's stop button, for the routine builder.
+ * The composer's stop button, for the automation builder.
  *
  * It has always been rendered (InputArea shows it whenever `isLoading`), and
  * its handler was an empty function: `() => { /* SSE abort happens

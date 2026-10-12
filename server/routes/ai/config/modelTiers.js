@@ -207,8 +207,8 @@ router.post('/config/memory-extraction-model', requireAuth, validate({ body: Mod
 });
 
 // ─── Data-extraction Model ───────────────────────────────────────
-// The model every routine `data_extraction` step runs on, whatever tier the
-// routine uses (core/automationRunner/dataExtractionModel.js). Extraction
+// The model every automation `data_extraction` step runs on, whatever tier the
+// automation uses (core/automationRunner/dataExtractionModel.js). Extraction
 // wants one small, fast, deterministic model with thinking off, not the 26B
 // chat model the tier happens to name — and on the single-slot local box the
 // tier's model is the one the builder itself runs on, so extracting through
@@ -249,7 +249,7 @@ router.post('/config/data-extraction-model', requireAuth, validate({ body: Model
 });
 
 // ─── AI step model (TEMPORARY override) ─────────────────────────
-// A routine's ai_step inherits the tier the builder wrote for it — `auto` or
+// An automation's ai_step inherits the tier the builder wrote for it — `auto` or
 // `fast` — which on the single-slot local box is the very model the builder
 // runs on: one dry run then evicts the builder's prompt cache and queues
 // several full prompt evaluations before the next round. With this key set,
@@ -764,7 +764,7 @@ router.get('/config/tiers-for-user', requireAuth, async (req, res) => {
             // v1 carve-out (C27): taskType 'automation' does not filter custom
             // tiers by allowedTaskTypes — existing custom tiers pre-date any
             // "Automations" checkbox, filtering would strip them from live
-            // routines. Mirrors core/userTiers.getPermittedTierKeys.
+            // automations. Mirrors core/userTiers.getPermittedTierKeys.
             if (taskType && taskType !== 'automation' && !(t.allowedTaskTypes || []).includes(taskType)) continue;
             if (!tierPermittedByGroups(t.id)) continue;
             result[t.id] = {

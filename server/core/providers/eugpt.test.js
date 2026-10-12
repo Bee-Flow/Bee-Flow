@@ -51,7 +51,7 @@ test('posts to /v1/responses, never /chat/completions', async (t) => {
         return new Response(JSON.stringify({ id: 'r1', status: 'completed', model: 'gpt-oss-120b', output: [], output_text: 'Hoi' }), { status: 200 });
     });
     const res = await eugpt.chat('eugpt_k', EUGPT_BASE_URL, EUGPT_MODEL_ID, [{ role: 'user', content: 'Hallo' }]);
-    assert.deepStrictEqual(urls, ['https://chat.eugpt.ai/v1/responses']);
+    assert.deepStrictEqual(urls, ['https://api.eugpt.ai/v1/responses']);
     assert.strictEqual(res.content, 'Hoi');
     assert.strictEqual(res.servedModel, 'gpt-oss-120b');
 });
@@ -208,7 +208,10 @@ test('no usage is reported rather than an invented count', () => {
 
 test('usage is read when EU GPT sends it', () => {
     const res = eugpt._parseNonStreamingResponse({ status: 'completed', output_text: 'x', usage: { input_tokens: 10, output_tokens: 3 } });
-    assert.deepStrictEqual(res.usage, { prompt_tokens: 10, completion_tokens: 3, total_tokens: 13, cached_tokens: 0, reasoning_tokens: 0 });
+    const USAGE_COUNTS = ['prompt_tokens', 'completion_tokens', 'total_tokens', 'cached_tokens', 'reasoning_tokens'];
+    // The normalised shape (usageNormalizer.js) carries more than the five counts.
+    assert.deepStrictEqual(Object.fromEntries(USAGE_COUNTS.map((k) => [k, res.usage[k]])),
+        { prompt_tokens: 10, completion_tokens: 3, total_tokens: 13, cached_tokens: 0, reasoning_tokens: 0 });
 });
 
 test('in-band <think> text is split off the answer', () => {
@@ -303,7 +306,7 @@ test('lists the routed model once the key checks out', async (t) => {
         return new Response(JSON.stringify({ object: 'list', data: [] }), { status: 200 });
     });
     const models = await eugpt.listModels('eugpt_abc', EUGPT_BASE_URL);
-    assert.deepStrictEqual(urls, [['https://chat.eugpt.ai/v1/files?limit=1', 'Bearer eugpt_abc']]);
+    assert.deepStrictEqual(urls, [['https://api.eugpt.ai/v1/files?limit=1', 'Bearer eugpt_abc']]);
     assert.deepStrictEqual(models, [describeEuGptModel()]);
     assert.strictEqual(models[0].id, 'eugpt-auto');
     assert.strictEqual(models[0].eugpt, true);

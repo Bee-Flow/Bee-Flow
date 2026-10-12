@@ -136,7 +136,7 @@ export function formNameOf(
 
 /**
  * Input fields of the form enclosing `node` (or of the form itself), with
- * their component type — typed input mapping (app_trigger routines) needs to
+ * their component type — typed input mapping (app_trigger automations) needs to
  * offer only file inputs for `file` params.
  */
 export function getFormFields(

@@ -23,7 +23,7 @@ export interface StickToBottom {
  * thing that grows is rarely a new MESSAGE: it is a tool-call row inside the
  * assistant turn that is already on screen, a plan card, the waiting card, or
  * markdown that lands 150 ms after the state did (MarkdownRenderer throttles
- * streaming content). The routine pane scrolled on `messages.length` and so
+ * streaming content). The automation pane scrolled on `messages.length` and so
  * never followed a build step at all; the App Studio pane jumped on every
  * `messages` identity change, which fired BEFORE the content it was trying to
  * scroll past had been laid out. Watching the content box instead catches all
@@ -69,7 +69,11 @@ export default function useStickToBottom(
         const contentNow = () => (contentRef && contentRef.current) || el.firstElementChild || el;
 
         const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(follow) : null;
-        if (ro) ro.observe(contentNow());
+        if (ro) { ro.observe(el); ro.observe(contentNow()); }
+        // The scroller's own box shrinks when something beside it grows (a
+        // composer taking a third line, a reply chip, a notice row, the
+        // on-screen keyboard): scrollTop stays, so the newest rows slide under
+        // whatever grew unless a pinned list re-pins.
         // A row that appears without changing the measured height (an image
         // swapped in, a <details> opening, markdown landing a beat late) still
         // moves the bottom — and this is what catches the node swap.

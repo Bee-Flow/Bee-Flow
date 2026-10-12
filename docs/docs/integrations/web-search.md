@@ -13,7 +13,7 @@ Bee Flow exposes a single agent tool — `agent_search` — backed by one of thr
 | **Azure Bing Web Search** | Azure Bing v7 API. Snippet-only — no page fetch / cleanup. | Azure Bing key | Compliance-driven deployments where Microsoft is the only allowed cloud |
 | **Disabled** | — | — | Lock down `agent_search` entirely |
 
-The agent always calls the same tool name, so swapping providers is invisible to skills, agents, and routines.
+The agent always calls the same tool name, so swapping providers is invisible to skills, agents, and automations.
 
 ## Setup — Cloud-only (recommended for self-hosted)
 

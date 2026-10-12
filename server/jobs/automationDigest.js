@@ -1,26 +1,26 @@
 /**
- * Routine notifications that do not go out the moment they happen
+ * Automation notifications that do not go out the moment they happen
  * (Studio → Automations handoff 5):
  *
  *   bundles  messages the throttle held back (runNotifications.js): once the
- *            recipient is under the routine's maxPerHour again, ONE message
- *            says "n more" for the lot. When the routine has a daily summary,
+ *            recipient is under the automation's maxPerHour again, ONE message
+ *            says "n more" for the lot. When the automation has a daily summary,
  *            the held messages wait for it instead.
- *   digest   the daily summary: per person, at the routine's configured time
+ *   digest   the daily summary: per person, at the automation's configured time
  *            (its schedule timezone, Europe/Amsterdam by default), one message
  *            with how many runs there were, how many failed and what is still
- *            waiting, over every routine that has the summary on and names
+ *            waiting, over every automation that has the summary on and names
  *            that person (owner, or a user/group recipient of an enabled event).
  *            Nothing happened and nothing waits: no message.
  *
  * Delivery reuses runNotifications' bell (Nextcloud or Bee Flow) and e-mail;
  * a summary goes to a person, so it never goes to a Talk conversation. The
- * Nextcloud text is totals only; routine names and counts go to the Bee Flow
+ * Nextcloud text is totals only; automation names and counts go to the Bee Flow
  * bell and the e-mail.
  *
  * Runs every five minutes from core/automationRunner/scheduler/ticks.js under
  * an advisory lock (one pod). Idempotent: a summary is due when the person's
- * last one for those routines is older than today's slot; a bundle is marked
+ * last one for those automations is older than today's slot; a bundle is marked
  * reported in the same pass that sends it.
  *
  * Everything is injected (defaultDeps) so the tests run without a database.
@@ -85,7 +85,7 @@ function latestSlot(time, tz, now, nextSlot) {
     return ts;
 }
 
-/** A lazy Nextcloud identity per routine owner, shared across one pass. */
+/** A lazy Nextcloud identity per automation owner, shared across one pass. */
 function ncCache(deps) {
     const cache = new Map();
     return (ownerId) => ({
@@ -179,8 +179,8 @@ async function flushBundles(deps, now, nc) {
 }
 
 /**
- * Who gets a summary now, and over which routines: Map recipient →
- * [{ automation, settings, slot }], only the routines whose slot is due.
+ * Who gets a summary now, and over which automations: Map recipient →
+ * [{ automation, settings, slot }], only the automations whose slot is due.
  */
 async function dueDigests(deps, now) {
     const automations = await deps.events.listDigestAutomations();
@@ -255,7 +255,7 @@ async function sendDigest(deps, now, nc, recipient, entries) {
         try {
             const r = await deps.sendDigestEmail({
                 userId: recipient, subject: digest.subject,
-                text: `${digest.text}${url ? `\n\n${url}` : ''}\n\nYour daily summary from Bee Flow. Switch it off in a routine's Settings, under Notifications.`,
+                text: `${digest.text}${url ? `\n\n${url}` : ''}\n\nYour daily summary from Bee Flow. Switch it off in an automation's Settings, under Notifications.`,
             });
             mailOk = !!r?.sent;
         } catch (e) { log.warn(`[automationDigest] e-mail failed for ${recipient}: ${e.message}`); }

@@ -1,5 +1,5 @@
 /**
- * A form trigger — the web's FormTriggerFields: page one of the routine's
+ * A form trigger — the web's FormTriggerFields: page one of the automation's
  * public form, edited with the same page editor as every later page
  * (form/FormPageEditor). A trigger that has just been switched to `form` has
  * no page yet; it is seeded on a tap, not by opening the editor, so nothing
@@ -51,14 +51,14 @@ export function FormTriggerFields({ step, draft, set, ctx }: StepEditorProps) {
             <>
                 <Note>
                     {t(
-                        'mobile.flow.trigger.form_intro',
-                        'A form trigger publishes a page for the colleagues it is shared with — who that is, you set under Studio → Forms → Share. Every submission runs this routine once.',
+                        'automations.form_trigger_fields.a_form_trigger_publishes_a_page',
+                        'A form trigger publishes a page for the colleagues it is shared with — who that is, you set under Studio → Forms → Share. Every submission runs this automation once.',
                     )}
                 </Note>
                 <Button
                     size="sm"
                     iconName="Plus"
-                    label={t('mobile.flow.trigger.create_form', 'Create the form')}
+                    label={t('automations.form_trigger_fields.create_the_form', 'Create the form')}
                     onPress={() => set('form', defaultFormDeclaration())}
                     disabled={ctx.disabled}
                     testID="form-create"

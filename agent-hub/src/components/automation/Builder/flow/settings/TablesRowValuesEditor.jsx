@@ -156,7 +156,7 @@ export default function TablesRowValuesEditor({
 
             {fetched && columns.length === 0 && (
                 <p className={`${hintTextClass()} italic`}>
-                    {t('routines.ndv.tables_row.no_columns', 'This table has no columns yet — add some in Nextcloud first.')}
+                    {t('automations.ndv.tables_row.no_columns', 'This table has no columns yet — add some in Nextcloud first.')}
                 </p>
             )}
 
@@ -193,23 +193,23 @@ function ModeNote({ t, literalId, cols }) {
     if (literalId == null) {
         return (
             <SectionNote>
-                {t('routines.ndv.tables_row.table_bound', 'The table is chosen while the routine runs, so its columns cannot be listed here. Type the column titles exactly as they appear in Nextcloud.')}
+                {t('automations.ndv.tables_row.table_bound', 'The table is chosen while the automation runs, so its columns cannot be listed here. Type the column titles exactly as they appear in Nextcloud.')}
             </SectionNote>
         );
     }
     if (cols.status === 'loading') {
-        return <p className={hintTextClass()}>{t('routines.ndv.tables_row.loading', 'Reading the columns of table {id}…', { id: literalId })}</p>;
+        return <p className={hintTextClass()}>{t('automations.ndv.tables_row.loading', 'Reading the columns of table {id}…', { id: literalId })}</p>;
     }
     if (cols.status === 'error') {
         return (
             <SectionNote tone="warn">
                 <span>
-                    {t('routines.ndv.tables_row.load_failed', 'Could not read the columns of table {id} ({error}). Type the column titles exactly as they appear in Nextcloud, or try again.', { id: literalId, error: cols.error || '?' })}
+                    {t('automations.ndv.tables_row.load_failed', 'Could not read the columns of table {id} ({error}). Type the column titles exactly as they appear in Nextcloud, or try again.', { id: literalId, error: cols.error || '?' })}
                 </span>
                 {' '}
                 <button type="button" onClick={cols.retry} className={`inline-flex items-center gap-1 ${INLINE_LINK}`}>
                     <RefreshCw size={10} aria-hidden="true" />
-                    {t('routines.ndv.tables_row.retry', 'Try again')}
+                    {t('automations.ndv.tables_row.retry', 'Try again')}
                 </button>
             </SectionNote>
         );
@@ -253,12 +253,12 @@ function AutoMap({ t, step, upstream, columns, map, cellBinding, emit }) {
             <div className="flex items-center gap-2 flex-wrap">
                 {sources.length > 1 && (
                     <label className="flex items-center gap-1 min-w-0">
-                        <span className={subLabelClass()}>{t('routines.ndv.tables_row.map_from', 'Map from')}</span>
+                        <span className={subLabelClass()}>{t('automations.ndv.tables_row.map_from', 'Map from')}</span>
                         <select
                             className={denseInputClass('max-w-[14rem]')}
                             value={source?.id || ''}
                             onChange={(e) => setSourceId(e.target.value)}
-                            aria-label={t('routines.ndv.tables_row.map_from', 'Map from')}
+                            aria-label={t('automations.ndv.tables_row.map_from', 'Map from')}
                         >
                             {sources.map(g => <option key={g.id} value={g.id}>{g.label || g.id}</option>)}
                         </select>
@@ -269,18 +269,18 @@ function AutoMap({ t, step, upstream, columns, map, cellBinding, emit }) {
                     onClick={run}
                     disabled={!source || !columns.length}
                     className={`${actionButtonClass()} ml-auto disabled:opacity-50`}
-                    title={t('routines.ndv.tables_row.automap_title', 'Fill empty columns from {source} — only names that match once spelling differences are ignored', { source: source?.label || '…' })}
+                    title={t('automations.ndv.tables_row.automap_title', 'Fill empty columns from {source} — only names that match once spelling differences are ignored', { source: source?.label || '…' })}
                 >
-                    <Sparkles size={12} aria-hidden="true" /> {t('routines.ndv.tables_row.automap', 'Auto-map')}
+                    <Sparkles size={12} aria-hidden="true" /> {t('automations.ndv.tables_row.automap', 'Auto-map')}
                 </button>
             </div>
             {note && (
                 <p className={hintTextClass()} data-testid="tables-row-automap-note">
-                    {t('routines.ndv.tables_row.automap_mapped', '{n} columns filled.', { n: note.mapped })}
+                    {t('automations.ndv.tables_row.automap_mapped', '{n} columns filled.', { n: note.mapped })}
                     {note.unmatched.length > 0 && (
                         <>
                             {' '}
-                            {t('routines.ndv.tables_row.automap_unmatched', 'No column with that name: {fields}.', { fields: note.unmatched.join(', ') })}
+                            {t('automations.ndv.tables_row.automap_unmatched', 'No column with that name: {fields}.', { fields: note.unmatched.join(', ') })}
                         </>
                     )}
                 </p>
@@ -307,7 +307,7 @@ function ColumnRow({ t, col, typed, required, value, onChange, onFocusField, pre
         <div className={cardClass()} data-testid="tables-row-column">
             <div className="flex items-center gap-1.5 min-w-0">
                 <span className={`${fieldLabelClass()} truncate`}>{col.title}</span>
-                {required && <span className={requiredChipClass()}>{t('routines.ndv.tables_row.required', 'Required')}</span>}
+                {required && <span className={requiredChipClass()}>{t('automations.ndv.tables_row.required', 'Required')}</span>}
                 {typed && <TypeBadge t={t} col={col} />}
                 <FieldHint title={col.title}>{col.description || null}</FieldHint>
             </div>
@@ -316,7 +316,7 @@ function ColumnRow({ t, col, typed, required, value, onChange, onFocusField, pre
                 onChange={onChange}
                 label={col.title}
                 required={required}
-                placeholder={t('routines.ndv.tables_row.leave_empty', 'leave empty to skip {column}', { column: col.title })}
+                placeholder={t('automations.ndv.tables_row.leave_empty', 'leave empty to skip {column}', { column: col.title })}
                 onFocusField={onFocusField}
                 previewSample={previewSample}
                 allowRaw={allowRaw}
@@ -343,12 +343,12 @@ function ManualTitles({ t, onAdd }) {
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add(); } }}
-                placeholder={t('routines.ndv.tables_row.titles_placeholder', 'Column titles, comma-separated — e.g. Bedrijf, Excl. btw')}
-                aria-label={t('routines.ndv.tables_row.titles_label', 'Column titles')}
+                placeholder={t('automations.ndv.tables_row.titles_placeholder', 'Column titles, comma-separated — e.g. Bedrijf, Excl. btw')}
+                aria-label={t('automations.ndv.tables_row.titles_label', 'Column titles')}
                 className={denseInputClass('flex-1 min-w-0')}
             />
             <button type="button" onClick={add} className={actionButtonClass()}>
-                {t('routines.ndv.tables_row.add_columns', 'Add columns')}
+                {t('automations.ndv.tables_row.add_columns', 'Add columns')}
             </button>
         </div>
     );
@@ -359,7 +359,7 @@ function StrayKeys({ t, keys, map, onRemove, onChange, onFocusField, previewSamp
     return (
         <div className="pt-2 border-t border-[var(--border-default)] space-y-2" data-testid="tables-row-stray">
             <div className={subLabelClass()}>
-                {t('routines.ndv.tables_row.not_a_column', 'Not a column in this table — the row will fail until these are removed or renamed')}
+                {t('automations.ndv.tables_row.not_a_column', 'Not a column in this table — the row will fail until these are removed or renamed')}
             </div>
             {keys.map((key) => (
                 <div key={key} className={cardClass()}>
@@ -368,8 +368,8 @@ function StrayKeys({ t, keys, map, onRemove, onChange, onFocusField, previewSamp
                         <button
                             type="button"
                             onClick={() => onRemove(key)}
-                            title={t('routines.ndv.tables_row.remove_key', 'Remove {key}', { key })}
-                            aria-label={t('routines.ndv.tables_row.remove_key', 'Remove {key}', { key })}
+                            title={t('automations.ndv.tables_row.remove_key', 'Remove {key}', { key })}
+                            aria-label={t('automations.ndv.tables_row.remove_key', 'Remove {key}', { key })}
                             className="ml-auto shrink-0 p-1 rounded text-[var(--text-tertiary)] hover:text-red-500 hover:bg-[var(--bg-secondary)]"
                         >
                             <Trash2 size={12} />
@@ -398,12 +398,12 @@ function WholeRowSlot({ t, value, onChange, onFocusField, previewSample, allowRa
     return (
         <div className="space-y-1.5" data-testid="tables-row-whole">
             <SectionNote>
-                {t('routines.ndv.tables_row.whole_bound', 'The whole row comes from one earlier value — it must already be a map of column title to value.')}
+                {t('automations.ndv.tables_row.whole_bound', 'The whole row comes from one earlier value — it must already be a map of column title to value.')}
             </SectionNote>
             <ValueBuilder
                 value={value}
                 onChange={onChange}
-                label={t('routines.ndv.tables_row.whole_label', 'Row values')}
+                label={t('automations.ndv.tables_row.whole_label', 'Row values')}
                 showChrome
                 expectKind="group"
                 onFocusField={onFocusField}
@@ -411,7 +411,7 @@ function WholeRowSlot({ t, value, onChange, onFocusField, previewSample, allowRa
                 allowRaw={allowRaw}
             />
             <button type="button" onClick={onSplit} className={`text-[10px] ${INLINE_LINK}`}>
-                {t('routines.ndv.tables_row.split', 'Fill in the columns one by one instead')}
+                {t('automations.ndv.tables_row.split', 'Fill in the columns one by one instead')}
             </button>
         </div>
     );

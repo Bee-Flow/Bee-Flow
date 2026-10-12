@@ -4,6 +4,7 @@
 import { impliedListMode } from '../datetimeTarget';
 import { ROUTE_STEP_TYPES, readRoute, writeRoute } from '../routeModel';
 import { PRIVACY_STEP_TYPES, readPrivacy, writePrivacy } from '../privacyModel';
+import { flattenDraft, flattenPatch } from './flattenEditorModel';
 import { defaultTriggerLabel } from '../triggerLabels';
 import { paramsToSchema, schemaToParams } from '../triggerSchemaUtils';
 
@@ -97,7 +98,7 @@ export function newStageKey(stages) {
  * A stage nobody sits in is DROPPED rather than persisted: validate.js treats
  * `approval.stages_invalid` as an integrity problem (it is not in
  * COMPLETENESS_CODES), so a half-picked stage in the payload would 400 the
- * whole routine's save. The editor says so on the row instead of letting the
+ * whole automation's save. The editor says so on the row instead of letting the
  * save fail. Author keys are preserved verbatim — only an absent or colliding
  * key is replaced.
  */
@@ -329,6 +330,8 @@ function extractTypeFormState(step) {
         method: step.method || 'GET',
         headers: step.headers && typeof step.headers === 'object' ? step.headers : {},
         body: step.body || '',
+        // Structured query parameters; null = the section is off.
+        query: step.query && typeof step.query === 'object' ? step.query : null,
         timeoutMs: typeof step.timeoutMs === 'number' ? step.timeoutMs : 10_000,
         blockPrivateTargets: step.blockPrivateTargets !== false,
         parseResponse: step.parseResponse || 'auto',
@@ -567,6 +570,7 @@ function extractTypeFormState(step) {
     const maxItems = typeof step.maxItems === 'number' ? step.maxItems : '';
     if (step.type === 'limit')        return { ...base, arrayRef: step.arrayRef || '', count: typeof step.count === 'number' ? step.count : 10, mode: step.mode || 'first', maxItems };
     if (step.type === 'dedupe')       return { ...base, arrayRef: step.arrayRef || '', keyField: step.keyField || '', maxItems };
+    if (step.type === 'flatten')      return { ...base, ...flattenDraft(step), maxItems };
     if (step.type === 'aggregate')    return { ...base, arrayRef: step.arrayRef || '', field: step.field || '', maxItems };
     if (step.type === 'summarize')    return { ...base, arrayRef: step.arrayRef || '', field: step.field || '', op: step.op || 'sum', maxItems };
     // `where` and `values` are cloned, not shared: the editor edits the draft in
@@ -775,6 +779,8 @@ export function buildPatch(step, draft) {
         patch.method = (draft.method || 'GET').toUpperCase();
         patch.headers = draft.headers && typeof draft.headers === 'object' ? draft.headers : {};
         patch.body = draft.body || '';
+        // Off (null) is stored as absence, so a step without parameters stays as it was.
+        patch.query = draft.query && typeof draft.query === 'object' ? draft.query : undefined;
         patch.timeoutMs = clamp(Number(draft.timeoutMs) || 10_000, 1000, 60_000);
         // Optional per-step security toggle (default true = blocked) — not
         // mandatory, but always persisted explicitly so the definition
@@ -1076,6 +1082,10 @@ export function buildPatch(step, draft) {
         patch.keyField = draft.keyField?.trim() ? draft.keyField.trim() : undefined;
         applyMaxItemsPatch(patch, draft);
     }
+    if (step.type === 'flatten') {
+        Object.assign(patch, flattenPatch(draft));
+        applyMaxItemsPatch(patch, draft);
+    }
     if (step.type === 'aggregate') {
         patch.arrayRef = draft.arrayRef || '';
         patch.field = draft.field || '';
@@ -1153,16 +1163,30 @@ export const FOREACH_FORM_TYPES = new Set([
     'data_extraction',
 ]);
 
+/** The well-formed `{ itemVar, overRef }` entries of a forEach's `parents`. */
+function forEachParents(parents) {
+    if (!Array.isArray(parents)) return [];
+    return parents
+        .filter(p => p && typeof p.itemVar === 'string' && p.itemVar && typeof p.overRef === 'string' && p.overRef)
+        .map(p => ({ itemVar: p.itemVar, overRef: p.overRef }));
+}
+
 /**
  * One shared forEach persist rule: normalize when enabled, explicit null to
  * clear an existing one when the user toggles it off.
  */
 function applyForEachPatch(patch, step, draft) {
     if (draft.forEach) {
+        // `parents`: the outer lists a step over a list inside a list keeps
+        // (mapping/deepenForEach.ts; the runner binds each item's outer item
+        // under that name). Dropping them here unbound every field that still
+        // reads the outer item, the moment the form saved.
+        const parents = forEachParents(draft.forEach.parents);
         patch.forEach = {
             overRef: draft.forEach.overRef || '',
             itemVar: draft.forEach.itemVar || 'item',
             maxIterations: clamp(Number(draft.forEach.maxIterations) || 100, 1, 1000),
+            ...(parents.length ? { parents } : {}),
         };
     } else if (step.forEach) {
         patch.forEach = null;

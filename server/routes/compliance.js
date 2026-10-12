@@ -34,6 +34,7 @@ router.use('/', require('./compliance/accessAudit'));
 router.use('/', require('./compliance/overview'));
 router.use('/', require('./compliance/checks'));
 router.use('/', require('./compliance/settings'));
+router.use('/', require('./compliance/chatMonitoring'));
 router.use('/', require('./compliance/orgUsers'));
 router.use('/', require('./compliance/isoSoa'));
 router.use('/', require('./compliance/isoConnectors'));

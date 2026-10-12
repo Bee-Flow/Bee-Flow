@@ -35,7 +35,7 @@ function ChoicesInput({ options, onChange, disabled }: { options: unknown; onCha
                 setText(v);
                 onChange(splitChoices(v).map((x) => ({ value: x, label: x })));
             }}
-            placeholder={t('mobile.flow.approval.choices', 'Choices, comma-separated')}
+            placeholder={t('automations.approval_editors.choices_comma_separated', 'Choices, comma-separated')}
             editable={!disabled}
         />
     );
@@ -47,9 +47,9 @@ function QuestionRow({ q, i, questions, onChange, disabled }: { q: Question; i: 
     const name = storedQuestionName(q) || approvalQuestionName(q, i, questions);
     return (
         <RowCard
-            title={q.label || t('mobile.flow.approval.question_label', 'Question label')}
+            title={q.label || t('automations.approval_editors.question_label', 'Question label')}
             onRemove={() => onChange(removeAt(questions, i))}
-            removeLabel={t('mobile.flow.approval.remove_question', 'Remove question')}
+            removeLabel={t('automations.approval_editors.remove_question', 'Remove question')}
             disabled={disabled}
             testID={`approval-question-${i + 1}`}
         >
@@ -60,19 +60,19 @@ function QuestionRow({ q, i, questions, onChange, disabled }: { q: Question; i: 
                     const minted = approvalQuestionName(q, i, questions);
                     if (minted !== q.name) patch({ name: minted });
                 }}
-                placeholder={t('mobile.flow.approval.question_label', 'Question label')}
+                placeholder={t('automations.approval_editors.question_label', 'Question label')}
                 editable={!disabled}
                 testID={`approval-question-${i + 1}-label`}
             />
             <SelectField
-                label={t('mobile.flow.approval.answer_type', 'Answer type')}
+                label={t('automations.approval_editors.answer_type', 'Answer type')}
                 value={q.type || 'text'}
                 options={ANSWER_TYPES.map((o) => ({ value: o.value, label: say(t, o.label) }))}
                 onChange={(type) => patch({ type })}
                 disabled={disabled}
             />
             {q.type === 'select' ? <ChoicesInput options={q.options} onChange={(options) => patch({ options })} disabled={disabled} /> : null}
-            <ToggleField label={t('mobile.flow.approval.required', 'required')} value={!!q.required} onChange={(required) => patch({ required })} disabled={disabled} />
+            <ToggleField label={t('automations.approval_editors.required', 'required')} value={!!q.required} onChange={(required) => patch({ required })} disabled={disabled} />
             <Note>{t('mobile.flow.approval.reads_answer', 'Later steps read this answer as {path}', { path: `output.answers.${name}` })}</Note>
         </RowCard>
     );
@@ -82,13 +82,13 @@ export function ApprovalQuestions({ questions, onChange, disabled }: { questions
     const t = useTranslation();
     return (
         <FieldRow
-            label={t('mobile.flow.approval.questions', 'Questions for the approver')}
+            label={t('automations.approval_editors.questions_for_the_approver', 'Questions for the approver')}
             hint={t('mobile.flow.approval.questions_hint', "Extra answers collected with the decision — later steps can use them as this step's output.answers. Up to 20.")}
         >
             {questions.map((q, i) => (
                 <QuestionRow key={i} q={q} i={i} questions={questions} onChange={onChange} disabled={disabled} />
             ))}
-            {questions.length < MAX_QUESTIONS ? <AddButton label={t('mobile.flow.approval.add_question', 'Add a question')} onPress={() => onChange(addQuestion(questions))} disabled={disabled} testID="approval-question-add" /> : null}
+            {questions.length < MAX_QUESTIONS ? <AddButton label={t('automations.approval_editors.add_a_question', 'Add a question')} onPress={() => onChange(addQuestion(questions))} disabled={disabled} testID="approval-question-add" /> : null}
         </FieldRow>
     );
 }

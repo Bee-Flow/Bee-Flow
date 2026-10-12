@@ -55,7 +55,7 @@ const docs = {
         if (userId !== 'owner') throw Object.assign(new Error('Only the owner of this document can delete versions of it.'), { status: 403, errorClass: 'document_owner_only' });
         // As the store does: the pins the route hands in are looked up and refused.
         const pins = typeof options.referencedIds === 'function' ? await options.referencedIds() : (options.referencedIds || []);
-        if (new Set(pins).has(ref)) throw Object.assign(new Error('A routine or an app uses this version of the document, so it stays.'), { status: 409, errorClass: 'version_in_use' });
+        if (new Set(pins).has(ref)) throw Object.assign(new Error('An automation or an app uses this version of the document, so it stays.'), { status: 409, errorClass: 'version_in_use' });
         return ref === 'v1' || ref === 'v9';
     },
     async recordVersion(id, input) { calls.push(['record', id, input.source, input.restoredFrom || null, input.html]); return { versionId: `rec-${input.source}`, seq: 9 }; },
@@ -211,9 +211,9 @@ test('only the owner deletes a version; others are told or not shown', async () 
     assert.strictEqual((await api.call('DELETE', `${base}/v8`, { user: as('owner') })).status, 404);
 });
 
-test('a version a routine or an app pins is not deleted: 409 version_in_use', async () => {
+test('a version an automation or an app pins is not deleted: 409 version_in_use', async () => {
     const res = await api.call('DELETE', `${base}/v9`, { user: as('owner') });
     assert.strictEqual(res.status, 409, res.text);
     assert.strictEqual(res.body.code, 'version_in_use');
-    assert.match(res.body.error, /routine or an app/);
+    assert.match(res.body.error, /automation or an app/);
 });

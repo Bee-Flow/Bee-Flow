@@ -28,7 +28,7 @@ describe('BulletsCard — "Doet niet" is een belofte die niemand afdwingt', () =
         expect(note.textContent).toMatch(/nothing here blocks the action/i);
     });
 
-    it('wijst naar wat wél hard is: de app, tabel of routine weghalen of laten bevestigen', () => {
+    it('wijst naar wat wél hard is: de app, tabel of automatisering weghalen of laten bevestigen', () => {
         render(<BulletsCard t={t} variant="doesNot" items={['Promise a discount']} readOnly />);
         const note = screen.getByTestId('agent-role-does-not-note').textContent;
         expect(note).toMatch(/Can use/);
@@ -38,7 +38,7 @@ describe('BulletsCard — "Doet niet" is een belofte die niemand afdwingt', () =
     it('zegt bij "Doet wel" dat een regel geen toegang uitdeelt', () => {
         render(<BulletsCard t={t} variant="does" items={['Start a new quote']} readOnly />);
         expect(screen.getByTestId('agent-role-does-note').textContent)
-            .toMatch(/does not hand it the app, table or routine/i);
+            .toMatch(/does not hand it the app, table or automation/i);
         expect(screen.queryByTestId('agent-role-does-not-note')).toBeNull();
     });
 

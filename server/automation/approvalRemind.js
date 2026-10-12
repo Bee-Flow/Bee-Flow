@@ -5,9 +5,9 @@
  * POST /api/automation/approvals/:id/remind.
  *
  * Who may press it: the people on the ASKING side of the approval.
- *   - the approval's owner (whose routine asked),
+ *   - the approval's owner (whose automation asked),
  *   - an org admin of the approval's organisation,
- *   - anyone who may read every run of the routine (role view and up), and
+ *   - anyone who may read every run of the automation (role view and up), and
  *   - a run-only member for a run they started themselves.
  * An assignee who only DECIDES has nothing to remind anyone of: they get 403.
  * Anybody who cannot see the approval at all gets the same 404 as a missing

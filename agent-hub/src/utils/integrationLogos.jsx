@@ -1,3 +1,4 @@
+import { BookOpen, Brain, Compass, Globe, ListChecks, Music, Presentation } from 'lucide-react';
 import React from 'react';
 
 /**
@@ -268,6 +269,16 @@ const VplanLogo = (p) => (
     </Wrap>
 );
 
+const ScalewayBillingLogo = (p) => (
+    <Wrap {...p} viewBox="0 0 24 24">
+        <rect x="2" y="2" width="20" height="20" rx="4" fill="#4F0599" />
+        <path d="M7 5.5h10v13l-1.7-1.2-1.6 1.2-1.7-1.2-1.7 1.2-1.6-1.2L7 18.5v-13z" fill="#fff" fillOpacity="0.95" />
+        <rect x="9" y="8.5" width="6" height="1.4" rx="0.7" fill="#4F0599" />
+        <rect x="9" y="11.3" width="6" height="1.4" rx="0.7" fill="#4F0599" fillOpacity="0.7" />
+        <rect x="9" y="14.1" width="3.5" height="1.4" rx="0.7" fill="#4F0599" fillOpacity="0.5" />
+    </Wrap>
+);
+
 const LinkedInLogo = (p) => (
     <Wrap {...p} viewBox="0 0 24 24">
         <rect width="24" height="24" rx="3" fill="#0A66C2" />
@@ -317,19 +328,6 @@ const KbSearchLogo = (p) => (
     </Wrap>
 );
 
-const WebpagesLogo = (p) => (
-    <Wrap {...p} viewBox="0 0 24 24">
-        <rect width="24" height="24" rx="4" fill="#0EA5E9" />
-        <rect x="4" y="6" width="16" height="12" rx="1.5" fill="#fff" />
-        <rect x="4" y="6" width="16" height="3" rx="1.5" fill="#0284C7" />
-        <circle cx="6" cy="7.5" r="0.6" fill="#fff" />
-        <circle cx="8" cy="7.5" r="0.6" fill="#fff" />
-        <rect x="6" y="11" width="12" height="1" rx="0.5" fill="#0EA5E9" />
-        <rect x="6" y="13" width="9" height="1" rx="0.5" fill="#0EA5E9" />
-        <rect x="6" y="15" width="6" height="1" rx="0.5" fill="#0EA5E9" />
-    </Wrap>
-);
-
 const ImageGenLogo = (p) => (
     <Wrap {...p} viewBox="0 0 24 24">
         <defs>
@@ -360,6 +358,46 @@ const ElevenLabsLogo = (p) => (
         <path d="M5 18.5h14" stroke="#fff" strokeWidth="0.8" />
     </Wrap>
 );
+
+/**
+ * A Bee Flow tool's tile: the tool's own lucide glyph in white on a rounded
+ * square of its colour, the same shape as the Knowledge Base, Webpages and
+ * Transcription marks. For first-party tools that have no outside brand to
+ * borrow a mark from, so none of them falls back to a letter or a puzzle
+ * piece.
+ */
+function toolTile(Icon, fill) {
+    const Tile = (p) => (
+        <Wrap {...p} viewBox="0 0 24 24">
+            <rect width="24" height="24" rx="4" fill={fill} />
+            <Icon x={4} y={4} size={16} color="#fff" strokeWidth={2.25} aria-hidden="true" />
+        </Wrap>
+    );
+    return Tile;
+}
+
+const MemoryLogo = toolTile(Brain, '#8B5CF6');
+
+/**
+ * Plain, monochrome: the Studio sidebar's own icon in the surrounding text
+ * colour, like Note / Code / Privacy Shield in the ribbon. These three are
+ * the Studio sections (Webpages, Knowledge, Automations), not brands.
+ */
+function studioGlyph(Icon) {
+    const Glyph = ({ size = 18, className }) => (
+        <Icon size={size} className={className || 'text-[var(--text-secondary)]'} aria-hidden="true" />
+    );
+    return Glyph;
+}
+// Must stay the Studio sidebar's icons; studioApps.test.jsx pins them to
+// STUDIO_ICONS (studioApps cannot be imported here: it is not node-safe).
+export const STUDIO_GLYPH_ICONS = { webpages: Globe, knowledge: BookOpen, aiTasks: ListChecks };
+const WebpagesLogo = studioGlyph(Globe);
+const KbIngestLogo = studioGlyph(BookOpen);
+const AutomationEvolutionLogo = studioGlyph(ListChecks);
+const BrowseWebLogo = toolTile(Compass, '#0EA5E9');
+const MusicGenLogo = toolTile(Music, '#0EA5E9');
+const PresentationsLogo = toolTile(Presentation, '#EA580C');
 
 const TranscriptionLogo = (p) => (
     <Wrap {...p} viewBox="0 0 24 24">
@@ -510,12 +548,22 @@ export const INTEGRATION_LOGOS = {
     afas_profit: AfasLogo,
     nmbrs: NmbrsLogo,
     vplan: VplanLogo,
+    scaleway_billing: ScalewayBillingLogo,
     linkedin: LinkedInLogo,
     github: GitHubLogo,
     signrequest: SignRequestLogo,
     n8n: N8nLogo,
     kb_search: KbSearchLogo,
     webpages: WebpagesLogo,
+
+    // Bee Flow's own tools (toolTile)
+    memory: MemoryLogo,
+    kb_ingest: KbIngestLogo,
+    automation_evolution: AutomationEvolutionLogo,
+    browser_fetch: BrowseWebLogo,
+    music_gen: MusicGenLogo,
+    presentations: PresentationsLogo,
+    presentation_builder: PresentationsLogo,
 
     // Service management
     jira: JiraLogo,

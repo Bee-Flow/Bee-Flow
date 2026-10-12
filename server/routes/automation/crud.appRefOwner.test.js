@@ -8,11 +8,11 @@
  * die de app-rij LAADT en de uitspraak toepast — inclusief de vraag welke
  * eigenaar er uiteindelijk in de kolom `automations.user_id` belandt.
  *
- * Waarom dat de moeite is: een routine gemaakt vanuit een app-knop wordt door
+ * Waarom dat de moeite is: een automatisering gemaakt vanuit een app-knop wordt door
  * die knop ALS DE APP-EIGENAAR gedraaid (automationBridge weigert bij ongelijke
  * eigenaars). Zet de route hem stilzwijgend onder de klikker, dan is de knop
  * stuk vanaf de eerste klik; zet ze hem onder de app-eigenaar terwijl iemand
- * anders klikt, dan draait er straks andermans routine met de rechten van de
+ * anders klikt, dan draait er straks andermans automatisering met de rechten van de
  * eigenaar. Vandaar: alleen doorgaan als die twee dezelfde persoon zijn, en
  * "ik kon het niet nagaan" is een weigering, geen gok.
  *
@@ -116,7 +116,7 @@ async function post(userId, definition) {
     const res = makeRes();
     await create({
         session: { user: { id: userId } },
-        body: { title: 'New routine for this app', description: '', triggerType: 'manual', definition },
+        body: { title: 'New automation for this app', description: '', triggerType: 'manual', definition },
     }, res);
     return res;
 }
@@ -133,15 +133,15 @@ test('de app-eigenaar maakt hem, en de rij landt onder de app-eigenaar', async (
     const res = await post(OWNER, DEF(REF));
 
     assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
-    assert.strictEqual(CREATED.length, 1, 'er hoort precies één routine gemaakt te zijn');
+    assert.strictEqual(CREATED.length, 1, 'er hoort precies één automatisering gemaakt te zijn');
     assert.strictEqual(CREATED[0].userId, OWNER);
     assert.deepStrictEqual(appLookups, [APP_ID], 'de app-rij is echt gelezen, niet aangenomen');
 });
 
 test('een ANDER dan de app-eigenaar krijgt een weigering, en er wordt niets gemaakt', async () => {
-    // Dit is het geval dat P4 moet dichtzetten: de knop maakte de routine onder
+    // Dit is het geval dat P4 moet dichtzetten: de knop maakte de automatisering onder
     // `req.session.user.id`. Zodra sessie en app-eigenaar uit elkaar lopen — een
-    // geïnstalleerde of overgedragen Oplossing — draait die routine straks met
+    // geïnstalleerde of overgedragen Oplossing — draait die automatisering straks met
     // andermans rechten, of hij weigert bij de eerste klik.
     reset();
     const res = await post(OTHER, DEF(REF));
@@ -158,7 +158,7 @@ test('een COLLEGA MET BEWERKRECHT is ook een ander — bewerkrecht is geen eigen
     // de persoon met wiens rechten de knop straks draait: automationBridge
     // weigert op `automation.userId !== app.userId`, dus onder de collega
     // gemaakt is de knop stuk vanaf de eerste klik, en onder de eigenaar
-    // gemaakt heeft de collega een routine geschreven die met andermans
+    // gemaakt heeft de collega een automatisering geschreven die met andermans
     // rechten draait. De poort kijkt daarom naar `app.userId` en naar niets
     // anders — geen canWrite, geen gedeelde groep.
     reset();
@@ -171,10 +171,10 @@ test('een COLLEGA MET BEWERKRECHT is ook een ander — bewerkrecht is geen eigen
 
     assert.strictEqual(res.statusCode, 403, JSON.stringify(res.body));
     assert.strictEqual(res.body.code, 'owner_mismatch');
-    assert.strictEqual(CREATED.length, 0, 'bewerkrecht mag geen routine onder andermans naam opleveren');
+    assert.strictEqual(CREATED.length, 0, 'bewerkrecht mag geen automatisering onder andermans naam opleveren');
 });
 
-test('een app die niet bestaat is een weigering, geen routine zonder herkomst', async () => {
+test('een app die niet bestaat is een weigering, geen automatisering zonder herkomst', async () => {
     reset();
     APPS = {};
     const res = await post(OWNER, DEF(REF));
@@ -206,8 +206,8 @@ test('een app-rij zonder eigenaar weigert, en wijst hem niet aan de klikker toe'
     assert.strictEqual(CREATED.length, 0);
 });
 
-test('een routine ZONDER back-pointer verandert niet: hij hoort bij wie hem maakt', async () => {
-    // De poort mag geen tol heffen op elke andere manier om een routine te
+test('een automatisering ZONDER back-pointer verandert niet: hij hoort bij wie hem maakt', async () => {
+    // De poort mag geen tol heffen op elke andere manier om een automatisering te
     // maken. Geen appRef → geen app-lees, en de eigenaar is de sessie.
     reset();
     const res = await post(OTHER, DEF(null));
@@ -220,7 +220,7 @@ test('een routine ZONDER back-pointer verandert niet: hij hoort bij wie hem maak
 test('een HALVE back-pointer komt er niet doorheen via de achterdeur', async () => {
     // `appTriggerRef` geeft null terug voor een half geschreven ref, dus de
     // eigendomspoort slaat hem over — maar de validator weigert hem alsnog.
-    // Netto: geen routine, en zeker geen routine met een half adres.
+    // Netto: geen automatisering, en zeker geen automatisering met een half adres.
     reset();
     const res = await post(OTHER, DEF({ appId: APP_ID, screenId: 'scr_dash01' }));
 

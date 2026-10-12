@@ -1,7 +1,7 @@
 /**
  * resolveIntegration precedence + the hardened output scanner.
  *
- * The scanner half is the important one: routine rows feed the same
+ * The scanner half is the important one: automation rows feed the same
  * sovereignty dashboards as GLiNER-scanned chat rows, and the old shape-only
  * patterns reported any 9-digit number as a BSN and almost any digit run as
  * a phone number — inflating the org's "PII left the building" figures.
@@ -18,6 +18,24 @@ const { resolveIntegration, scanOutputForPii } = require('./integrationToolMap')
 test('internal tools resolve to null (never logged as egress)', () => {
     assert.strictEqual(resolveIntegration('set_reminder', {}), null);
     assert.strictEqual(resolveIntegration('notebook_search', {}), null);
+});
+
+test('document builders: local in Bee Flow storage, external (the Nextcloud URL) with nextcloudPath', () => {
+    const ctx = { nextcloudUrl: 'https://cloud.example' };
+    for (const tool of ['create_word_document', 'create_presentation']) {
+        const kept = resolveIntegration(tool, { title: 'x' }, ctx);
+        assert.strictEqual(kept.isLocal, true, tool);
+        assert.strictEqual(kept.server, null, tool);
+        assert.strictEqual(kept.direction, 'received', tool);
+
+        const nc = resolveIntegration(tool, { title: 'x', nextcloudPath: '/Documents' }, ctx);
+        assert.strictEqual(nc.isLocal, false, `${tool} into Nextcloud is egress, like nextcloud_create_document`);
+        assert.strictEqual(nc.server, 'https://cloud.example', tool);
+        assert.strictEqual(nc.direction, 'sent', tool);
+
+        assert.strictEqual(resolveIntegration(tool, { nextcloudPath: '  ' }, ctx).isLocal, true, 'a blank path is no destination');
+        assert.strictEqual(resolveIntegration(tool, { nextcloudPath: true }, ctx).isLocal, true, 'only a string is a path');
+    }
 });
 
 test('cint_: a custom integration resolves with its base URL, but only for a caller that looked it up', () => {

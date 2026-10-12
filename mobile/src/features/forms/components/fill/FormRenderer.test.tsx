@@ -134,7 +134,7 @@ it('searches the app a question names and picks a record', async () => {
     expect((onSubmit.mock.calls[0] as unknown as [Answers])[0].call).toEqual({ kind: 'app_pick', source: 'fireflies', recordId: 'r1', title: 'Kick-off call' });
 });
 
-it('hands over a file the routine made', async () => {
+it('hands over a file the automation made', async () => {
     const shareFile = jest.fn(async () => undefined);
     await draw(form([field({ name: 'doc', type: 'download', label: 'Your document', fileId: 'g1', filename: 'report.pdf', size: 3 * 1024 * 1024 })]), jest.fn(), { shareFile });
     expect(screen.getByText('PDF · 3.0 MB')).toBeTruthy();

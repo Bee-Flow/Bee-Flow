@@ -165,9 +165,9 @@
         },
         {
           "id": "d",
-          "label": "kb_search plus any routine the skill lists under May use.",
+          "label": "kb_search plus any automation the skill lists under May use.",
           "correct": false,
-          "feedback": "Routines granted under May use are callable in a real turn, not in a test. Nothing is sent, written or called out while you are testing."
+          "feedback": "Automations granted under May use are callable in a real turn, not in a test. Nothing is sent, written or called out while you are testing."
         }
       ],
       "explanation": "The test sandbox holds exactly one tool, and it only searches knowledge bases you yourself may read. If some of the skill's bases fall away, the run says how many of how many were searched instead of answering as if they had been.",
@@ -178,7 +178,7 @@
       "id": "verdicts",
       "icon": "🧾",
       "title": "The answer first, the grading second",
-      "bodyMd": "**What the agent answered** arrives first — the whole reply, streaming, before any grading starts — so you read it before a grader tells you what to think of it.\n\nThen **Per step** gives one verdict per step, each with a sentence of evidence:\n\n- **ok** — the answer shows this step happened\n- **warning** — partly, or it cannot be told from the answer alone\n- **error** — the step was skipped or done wrong\n\nBeside a step sits **Open what this step uses**, for the knowledge base, routine or table that step references."
+      "bodyMd": "**What the agent answered** arrives first — the whole reply, streaming, before any grading starts — so you read it before a grader tells you what to think of it.\n\nThen **Per step** gives one verdict per step, each with a sentence of evidence:\n\n- **ok** — the answer shows this step happened\n- **warning** — partly, or it cannot be told from the answer alone\n- **error** — the step was skipped or done wrong\n\nBeside a step sits **Open what this step uses**, for the knowledge base, automation or table that step references."
     },
     {
       "type": "slide",

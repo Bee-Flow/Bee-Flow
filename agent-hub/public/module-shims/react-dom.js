@@ -4,6 +4,7 @@
 const m = (typeof window !== 'undefined' && window.__BEEFLOW_SHARED__ && window.__BEEFLOW_SHARED__["react-dom"]) || {};
 export default ('default' in m) ? m.default : m;
 export const __DOM_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE = m["__DOM_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE"];
+export const browser = m["browser"];
 export const createPortal = m["createPortal"];
 export const flushSync = m["flushSync"];
 export const preconnect = m["preconnect"];

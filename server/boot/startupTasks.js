@@ -468,6 +468,21 @@ function runStartupTasks() {
     // the daily statutory-deadline notifier (72h incidents / 30d DSRs / DPIA
     // expiries).
     require('../jobs/memoryRetentionEnforcer').start();
+    // Memory search indexes: fills the tsvector and pgvector columns of rows
+    // that predate them and re-embeds rows left on another embedding
+    // dimension. Resumable and idempotent; first pass 90 s after boot.
+    try {
+        require('../jobs/memoryEmbeddingBackfill').start();
+    } catch (err) {
+        log.warn('[Server] Memory embedding backfill load failed:', err.message);
+    }
+    // Memory consolidation: merges near-duplicates and archives stale,
+    // low-importance rows. Same fail-soft load as the backfill.
+    try {
+        require('../jobs/memoryConsolidation').start();
+    } catch (err) {
+        log.warn('[Server] Memory consolidation load failed:', err.message);
+    }
     // Monitoring-ledger retention and the PII scan-ledger prune. NOT gated on
     // a module: chat and DLP fill those tables on every install, including
     // one without Automations, whose runner these passes used to ride.
@@ -587,13 +602,8 @@ function runStartupTasks() {
     } catch (err) {
         log.warn('[Server] MCP manager load failed:', err.message);
     }
-    // Initialize AI Task background runner (non-blocking)
-    try {
-        require('../core/aiTaskRunner');
-    } catch (err) {
-        log.warn('[Server] AI Task runner load failed:', err.message);
-    }
-    // Cowork runner — own tick, shares aiTaskRunner's execution engine
+    // Cowork runner — the one scheduler tick; aiTaskRunner is its execution
+    // engine (and arms the coverage prune when it loads).
     try {
         require('../core/cowork/coworkRunner');
     } catch (err) {
@@ -698,6 +708,7 @@ function runStartupTasks() {
     }
     // Project task reminders: a daily tick for open tasks due tomorrow, today or late.
     try { require('../jobs/projectTaskDueNotifier').start(); } catch (err) { log.warn('[Server] Project task due notifier load failed:', err.message); }
+    if (isModuleAvailable('projects')) try { require('../jobs/solutionDeployRunner').start(); } catch (err) { log.warn('[Server] Solution deploy runner load failed:', err.message); }
     // Learning Center review nudge — daily tick that reminds lapsed learners
     // (started, unfinished, quiet 7-60d) to do a short review. Max one nudge
     // per user per 14d via configStore marker; advisory-locked across pods.
@@ -738,6 +749,15 @@ function runStartupTasks() {
         require('../jobs/kbSourceRefresh').start();
     } catch (err) {
         log.warn('[Server] KB source refresh load failed:', err.message);
+    }
+
+    // Learning Center videos: install the pack this release pins into
+    // LEARN_MEDIA_DIR, ~15 s after boot and never blocking it. Off in tests and
+    // with LEARN_MEDIA_AUTO=off; a build without a pin skips quietly.
+    try {
+        require('../learning/learnMediaSync').startLearnMediaSync();
+    } catch (err) {
+        log.warn('[Server] Learn media sync load failed:', err.message);
     }
 
     // Org-health retention — daily prune of timeline events (90d), resolved

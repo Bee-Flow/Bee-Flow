@@ -1,14 +1,14 @@
 // @typecheck
 /**
- * "May this person WRITE into this knowledge base?" — asked when a routine
+ * "May this person WRITE into this knowledge base?" — asked when an automation
  * ingests, not only when somebody clicks.
  *
  * ── THE HOLE THIS CLOSES ────────────────────────────────────────────
  * `executeKbIngestTool` checked one thing: that the knowledge base belonged to
- * the same organisation as the run. Nothing else. So any author of any routine
+ * the same organisation as the run. Nothing else. So any author of any automation
  * in an organisation could write documents into ANY of that organisation's
  * knowledge bases — including one shared with a group they are not in, and one
- * they have no `manage_knowledge` right over. A routine is a program somebody
+ * they have no `manage_knowledge` right over. An automation is a program somebody
  * else may run, so that is a write nobody reviewed reaching a base nobody
  * agreed to.
  *
@@ -17,11 +17,11 @@
  * in it: content in a knowledge base is content an agent will state as fact.
  *
  * ── THE SAME PREDICATE, AT BOTH ENDS ────────────────────────────────
- * Checked when a routine is SAVED and ACTIVATED, so the author is told at the
+ * Checked when an automation is SAVED and ACTIVATED, so the author is told at the
  * moment they can still do something about it — and again at RUN TIME, keyed
  * on the identity the run actually has. The second is not redundant:
  *
- *   • a routine is saved once and runs for months, and the author's rights
+ *   • an automation is saved once and runs for months, and the author's rights
  *     can be taken away in between;
  *   • the base's own sharing can narrow after the link was made;
  *   • the definition is data. An import, a restored version, or an MCP patch
@@ -43,7 +43,7 @@ const REASONS = Object.freeze({
     NO_MANAGE: 'no_manage',
     // The check could not run. Refuses like the rest — a write is never let
     // through on a question nobody answered — but it is NOT an authorisation
-    // verdict, and saying "not available to this routine" about a database
+    // verdict, and saying "not available to this automation" about a database
     // blip sends the author to re-check permissions that were never wrong.
     UNAVAILABLE: 'unavailable',
 });
@@ -68,7 +68,7 @@ async function canWriteToKb(kbId, { userId, orgIds, canManage = false, deps = {}
     if (!kb) return { ok: false, reason: REASONS.UNKNOWN };
 
     // A system base is reference text the product ships. Nothing writes into
-    // it, including a routine whose author happens to be an administrator.
+    // it, including an automation whose author happens to be an administrator.
     if (kb.tenant_id === 'system' || (typeof store.isSystemKB === 'function' && store.isSystemKB(kb))) {
         return { ok: false, reason: REASONS.SYSTEM, kb };
     }
@@ -89,9 +89,9 @@ async function canWriteToKb(kbId, { userId, orgIds, canManage = false, deps = {}
 }
 
 /**
- * The same question for a routine's owner, resolving their context for them.
+ * The same question for an automation's owner, resolving their context for them.
  *
- * A routine runs as its OWNER, not as whoever triggered it — that is the
+ * An automation runs as its OWNER, not as whoever triggered it — that is the
  * product's rule everywhere else, and a write is the place it matters most: a
  * trigger anyone can fire must not become a way to write as the owner into
  * something the owner could not.
@@ -109,7 +109,7 @@ async function canOwnerWriteToKb(kbId, ownerId, { deps = {} } = {}) {
         // A failed resolve still REFUSES — an empty set is the safe direction
         // for a write — but it is reported as what it is. Silently folding it
         // into `personal`/`other_org` produced "that knowledge base is not
-        // available to this routine" for a transient outage, which reads as a
+        // available to this automation" for a transient outage, which reads as a
         // permission change and sends somebody to audit sharing that never
         // moved. The datatable sibling makes the same distinction.
         log.warn('[kbWriteAccess] could not resolve the owner context:', e.message);
@@ -142,7 +142,7 @@ function messageFor(reason, kbName = null) {
         default:
             // One answer for "no such base" and "not yours": telling them
             // apart is a way to discover which knowledge bases exist.
-            return 'That knowledge base is not available to this routine.';
+            return 'That knowledge base is not available to this automation.';
     }
 }
 

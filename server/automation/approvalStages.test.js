@@ -3,7 +3,7 @@
  *
  * What must hold:
  *   • the three legacy shapes desugar into exactly what they meant before,
- *     so a routine authored last release behaves identically this release;
+ *     so an automation authored last release behaves identically this release;
  *   • legacy rows keep the keys 'panel'/'final' — the literals the votes
  *     table already carries, which is what makes the migration free;
  *   • conditions decide membership ONCE and are recorded, never silently

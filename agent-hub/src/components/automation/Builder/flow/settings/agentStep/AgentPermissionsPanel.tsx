@@ -66,12 +66,12 @@ function ToolChips({ preview, apps, t }: { preview: AgentStepPreview; apps: Cata
     if (preview.error) {
         return (
             <SectionNote tone="warn">
-                {t('routine_editor.agent_capsule_list_unreadable', 'The tools of this agent could not be listed just now, so they are not shown. That is not the same as this agent having none — try again in a moment.')}
+                {t('automation_editor.agent_capsule_list_unreadable', 'The tools of this agent could not be listed just now, so they are not shown. That is not the same as this agent having none — try again in a moment.')}
             </SectionNote>
         );
     }
     if (groups.length === 0) {
-        return <p className={hintTextClass()}>{t('routine_editor.agent_capsule_no_tools', 'No tools — the agent answers with its role, its knowledge and its skills.')}</p>;
+        return <p className={hintTextClass()}>{t('automation_editor.agent_capsule_no_tools', 'No tools — the agent answers with its role, its knowledge and its skills.')}</p>;
     }
     return (
         <div className="flex flex-wrap gap-1 pl-[34px]">
@@ -103,35 +103,35 @@ function AgentNotes({ preview, apps, t }: { preview: AgentStepPreview | null; ap
         <>
             {preview?.runtimeSource === 'live' ? (
                 <p className={hintTextClass()}>
-                    {t('routine_editor.agent_capsule_draft', 'This agent has never been published, so the step runs its draft. Publishing it is what freezes what this routine gets.')}
+                    {t('automation_editor.agent_capsule_draft', 'This agent has never been published, so the step runs its draft. Publishing it is what freezes what this automation gets.')}
                 </p>
             ) : null}
             {permissionCount > 0 ? (
                 <p className={hintTextClass()}>
-                    {nOf(t, 'routine_editor.agent_capsule_permission', permissionCount,
+                    {nOf(t, 'automation_editor.agent_capsule_permission', permissionCount,
                         '{count} tool is left out by the permissions above — turn the matching one on to let the agent use it.',
                         '{count} tools are left out by the permissions above — turn the matching one on to let the agent use them.')}
                 </p>
             ) : null}
             {confirmNames.length > 0 ? (
                 <SectionNote tone="warn">
-                    {nOf(t, 'routine_editor.agent_capsule_withheld', confirmNames.length,
-                        '{count} tool is left out because someone would have to approve it first: {tools}. A routine runs unattended, so there is nobody to ask. Put an approval step after this one if the routine has to do this anyway.',
-                        '{count} tools are left out because someone would have to approve them first: {tools}. A routine runs unattended, so there is nobody to ask. Put an approval step after this one if the routine has to do this anyway.',
+                    {nOf(t, 'automation_editor.agent_capsule_withheld', confirmNames.length,
+                        '{count} tool is left out because someone would have to approve it first: {tools}. An automation runs unattended, so there is nobody to ask. Put an approval step after this one if the automation has to do this anyway.',
+                        '{count} tools are left out because someone would have to approve them first: {tools}. An automation runs unattended, so there is nobody to ask. Put an approval step after this one if the automation has to do this anyway.',
                         { tools: withheldLabels })}
                 </SectionNote>
             ) : (
                 <p className={hintTextClass()}>
-                    {t('routines.agent_step.note_confirm', 'Tools that ask to "confirm first" are off in an automation: there is nobody to confirm. Need one anyway? Put an approval step after this one.')}
+                    {t('automations.agent_step.note_confirm', 'Tools that ask to "confirm first" are off in an automation: there is nobody to confirm. Need one anyway? Put an approval step after this one.')}
                 </p>
             )}
             {preview?.degraded ? (
                 <SectionNote tone="warn">
-                    {t('routine_editor.agent_capsule_degraded', 'The tool list could not be checked against the app registry, so this step is given no app tools at all. It is a server-side problem, not a setting here.')}
+                    {t('automation_editor.agent_capsule_degraded', 'The tool list could not be checked against the app registry, so this step is given no app tools at all. It is a server-side problem, not a setting here.')}
                 </SectionNote>
             ) : null}
             <p className={hintTextClass()}>
-                {t('routines.agent_step.note_not_a_chat', 'In an automation the agent is a step, not a conversation partner: it asks nothing back and confirms nothing. When in doubt, it fills in "Points of attention".')}
+                {t('automations.agent_step.note_not_a_chat', 'In an automation the agent is a step, not a conversation partner: it asks nothing back and confirms nothing. When in doubt, it fills in "Points of attention".')}
             </p>
         </>
     );
@@ -141,34 +141,34 @@ export default function AgentPermissionsPanel({ permissions, onChange, preview, 
     const kbNames = (preview?.knowledgeBases || []).map((k) => k.name).join(', ');
 
     return (
-        <section className="flex flex-col gap-2" aria-label={t('routine_editor.agent_permissions_label', 'What the agent may do here')}>
+        <section className="flex flex-col gap-2" aria-label={t('automation_editor.agent_permissions_label', 'What the agent may do here')}>
             <div className="flex items-center gap-1.5 text-[12px] font-semibold text-[var(--text-primary)]">
                 <ShieldCheck size={13} aria-hidden="true" />
-                {t('routine_editor.agent_permissions_label', 'What the agent may do here')}
+                {t('automation_editor.agent_permissions_label', 'What the agent may do here')}
             </div>
             <div className="flex flex-col divide-y divide-[var(--border-default)] rounded-[10px] border border-[var(--border-default)] bg-[var(--bg-card)]">
                 <PermissionRow
                     on={permissions.startAutomations}
-                    label={t('routines.agent_step.perm_start', 'Start automations itself')}
-                    sub={permissions.startAutomations ? null : t('routines.agent_step.perm_start_off', 'off · only answers')}
+                    label={t('automations.agent_step.perm_start', 'Start automations itself')}
+                    sub={permissions.startAutomations ? null : t('automations.agent_step.perm_start_off', 'off · only answers')}
                     onChange={(on) => onChange('startAutomations', on)}
                 />
                 <PermissionRow
                     on={permissions.useKnowledge}
-                    label={t('routines.agent_step.perm_knowledge', 'Consult knowledge bases')}
+                    label={t('automations.agent_step.perm_knowledge', 'Consult knowledge bases')}
                     sub={kbNames || null}
                     onChange={(on) => onChange('useKnowledge', on)}
                 />
                 <PermissionRow
                     on={permissions.useTools}
-                    label={t('routines.agent_step.perm_tools', 'The agent\'s tools')}
+                    label={t('automations.agent_step.perm_tools', 'The agent\'s tools')}
                     onChange={(on) => onChange('useTools', on)}
                 >
                     {status === 'loading' ? (
-                        <p className={`pl-[34px] ${hintTextClass()}`}>{t('routine_editor.agent_capsule_checking', 'Checking what this agent may do here…')}</p>
+                        <p className={`pl-[34px] ${hintTextClass()}`}>{t('automation_editor.agent_capsule_checking', 'Checking what this agent may do here…')}</p>
                     ) : status === 'error' ? (
                         <SectionNote tone="warn">
-                            {t('routine_editor.agent_capsule_unreadable', 'Could not check what this agent brings to this step. Nothing is wrong with the step — this panel just has nothing to show you right now.')}
+                            {t('automation_editor.agent_capsule_unreadable', 'Could not check what this agent brings to this step. Nothing is wrong with the step — this panel just has nothing to show you right now.')}
                         </SectionNote>
                     ) : preview ? <ToolChips preview={preview} apps={apps} t={t} /> : null}
                 </PermissionRow>

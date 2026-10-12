@@ -36,7 +36,7 @@ export function StepBasics({ form, step, locked, nameRef }: { form: StepFormStat
                     onPress={() => setPicking(true)}
                     disabled={locked}
                     accessibilityRole="button"
-                    accessibilityLabel={t('mobile.flow.ndv.symbol_title', 'Choose a symbol for this step')}
+                    accessibilityLabel={t('automations.settings_form.choose_a_symbol_for_this_step', 'Choose a symbol for this step')}
                     testID="step-symbol"
                 >
                     <Icon name={stepIconName({ ...step, icon: icon || null } as AnyNode)} size={20} color={icon ? styles.set.color : styles.unset.color} />
@@ -55,8 +55,8 @@ export function StepBasics({ form, step, locked, nameRef }: { form: StepFormStat
             </View>
             {runs ? (
                 <ToggleField
-                    label={t('routines.ndv.disabled', 'Disabled')}
-                    description={t('routines.ndv.disable_title', 'Disable this node (skipped during execution)')}
+                    label={t('automations.ndv.disabled', 'Disabled')}
+                    description={t('automations.ndv.disable_title', 'Disable this node (skipped during execution)')}
                     value={isDisabled(step)}
                     onChange={(off) => form.patchStep({ disabled: off })}
                     disabled={locked}

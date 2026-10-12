@@ -214,6 +214,52 @@ export async function importGoogleMeetRecording({ eventId, meetingCode, meetLink
     return jsonOrThrow(res);
 }
 
+/**
+ * The user's upcoming Microsoft Teams meetings (from their Outlook calendar).
+ * Returns `{ connection: { microsoftConnected, teamsScopesGranted,
+ *    hasMeetingWriteScope, hasTranscriptScope, needsReauth }, autoImport,
+ *    autoRecordConfig, meetings: [{ eventId, seriesMasterId, title, start, end,
+ *    organizerSelf, attendees, joinUrl, excluded, recordReason, status }] }`.
+ * `status` is 'organizer_only' | 'excluded' | 'will_import' | 'upcoming'.
+ */
+export async function listTeamsMeetings() {
+    const res = await authFetch(`${API_BASE}/api/transcriptions/teams-meetings`);
+    return jsonOrThrow(res);
+}
+
+/** Record/skip one Teams meeting (by calendar event id); `applyToSeries` covers the series. */
+export async function setTeamsMeetingRecord(eventId, record, { seriesMasterId, applyToSeries } = {}) {
+    const res = await authFetch(`${API_BASE}/api/transcriptions/teams-meetings/${encodeURIComponent(eventId)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ record, seriesMasterId, applyToSeries }),
+    });
+    return jsonOrThrow(res);
+}
+
+/**
+ * Recently ended Teams meetings the user organised, for the manual import
+ * panel. Returns `{ connection, items: [{ eventId, title, start, end,
+ * recordingState: 'available'|'transcript_only'|'none', importedNoteId }] }`.
+ */
+export async function listTeamsRecordings() {
+    const res = await authFetch(`${API_BASE}/api/transcriptions/teams-recordings`);
+    return jsonOrThrow(res);
+}
+
+/**
+ * Import one finished Teams meeting (recording, else its transcript). May
+ * answer 202 `{ jobId, status }` while Teams is still processing it.
+ */
+export async function importTeamsMeeting({ eventId, language, contextTerms }) {
+    const res = await authFetch(`${API_BASE}/api/transcriptions/from-teams`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event_id: eventId, language, context_terms: contextTerms }),
+    });
+    return jsonOrThrow(res);
+}
+
 export async function patchTranscription(id, patch) {
     const res = await authFetch(`${API_BASE}/api/transcriptions/${id}`, {
         method: 'PATCH',

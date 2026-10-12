@@ -1,6 +1,6 @@
 /**
  * The trigger's editor — the web's TriggerFields (triggerEditors.jsx): what
- * starts the routine, then that kind's own settings. A flowlet's trigger
+ * starts the automation, then that kind's own settings. A flowlet's trigger
  * (`layer_input`) declares its inputs instead and has no kind to switch; an
  * ADDITIONAL trigger may only be a webhook, an app event or a schedule.
  */
@@ -37,7 +37,7 @@ export function TriggerEditor(editor: StepEditorProps) {
     const kind = typeof draft.kind === 'string' && draft.kind ? draft.kind : 'manual';
     if (kind === 'layer_input') {
         return (
-            <Band editor={editor} sectionKey="inputs" title={t('mobile.flow.section.inputs', 'Inputs')} defaultOpen>
+            <Band editor={editor} sectionKey="inputs" title={t('automations.ai_step_editors.inputs', 'Inputs')} defaultOpen>
                 <LayerInputFields {...editor} />
             </Band>
         );
@@ -47,7 +47,7 @@ export function TriggerEditor(editor: StepEditorProps) {
     return (
         <>
             <SelectField
-                label={t('mobile.flow.trigger.kind', 'Trigger kind')}
+                label={t('automations.trigger_editors.trigger_kind', 'Trigger kind')}
                 hint={
                     secondary
                         ? t(

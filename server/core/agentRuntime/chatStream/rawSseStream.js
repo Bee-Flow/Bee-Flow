@@ -13,6 +13,7 @@
  * the stream ends; the turn's counters and stop reason are the caller's.
  */
 const usageStore = require('../../../stores/usageStore');
+const { usageLogFields } = require('../../providers/usageNormalizer');
 const testChatMod = require('../testChat');
 const { sanitizeMessages } = require('../../../utils/messageUtils');
 const { applyTokenMapToOutbound } = require('../../dlp/applyTokenMapToOutbound');
@@ -243,12 +244,9 @@ async function streamRawSseRound({
                 agent_name: agent.name,
                 agent_type: 'chat',
                 model: modelToUse,
-                prompt_tokens: _sseStreamUsage.prompt_tokens || 0,
-                completion_tokens: _sseStreamUsage.completion_tokens || 0,
-                total_tokens: _sseStreamUsage.total_tokens || 0,
-                cached_tokens: _sseStreamUsage.prompt_tokens_details?.cached_tokens || _sseStreamUsage.cached_tokens || 0,
-                cache_creation_tokens: _sseStreamUsage.cache_creation_input_tokens || 0,
-                reasoning_tokens: _sseStreamUsage.completion_tokens_details?.reasoning_tokens || 0,
+                // Raw OpenAI-compatible usage frame: the normaliser reads
+                // prompt_tokens_details / cache_creation_input_tokens / the rest.
+                ...usageLogFields(_sseStreamUsage),
                 stop_reason: _sseFinishReason,
                 parent_call_id: messageMetadata.parentCallId || null,
                 source: testChatMod.usageSourceFor(messageMetadata, 'agent_stream'),

@@ -13,12 +13,12 @@ const { installResolveStub } = require('../../../../testUtils/stubRequire');
 
 const world = { vault: null, vaultRow: null, session: null, upserts: [], user: { id: 'u1', organizationId: 'org_1' } };
 const restore = installResolveStub({
-    '../../../../auth/routineAuth': {
+    '../../../../auth/automationAuth': {
         getProviderAuth: async (userId, provider) => (world.vault && world.vault.provider === provider ? world.vault : null),
         vaultOrgIdFor: (u) => u?.organizationId || `user:${u?.id}`,
     },
     '../../../automationRunner/sessionResolution': { resolveUserSession: async () => world.session },
-    '../../../../stores/routineCredentialStore': {
+    '../../../../stores/automationCredentialStore': {
         upsertCredential: async (row) => { world.upserts.push(row); },
         getCredential: async (userId, provider) => (world.vaultRow && world.vaultRow.provider === provider ? world.vaultRow : null),
     },
@@ -43,10 +43,10 @@ test('the vault answers first, and the shim carries its tokens under the provide
     assert.equal(world.upserts.length, 0, 'a vault hit is not re-written');
 });
 
-test('session fallback takes the primary tokens ONLY when oauthProvider matches, else routineProviders[provider]', async () => {
-    world.session = { oauthProvider: 'microsoft', accessToken: 'ms_at', refreshToken: 'ms_rt', routineProviders: { google: { accessToken: 'g_at2', refreshToken: 'g_rt2', expiresAt: 5 } } };
+test('session fallback takes the primary tokens ONLY when oauthProvider matches, else automationProviders[provider]', async () => {
+    world.session = { oauthProvider: 'microsoft', accessToken: 'ms_at', refreshToken: 'ms_rt', automationProviders: { google: { accessToken: 'g_at2', refreshToken: 'g_rt2', expiresAt: 5 } } };
     const g = await credentials.resolveProviderCredential('u1', 'google', { session: world.session });
-    assert.equal(g.accessToken, 'g_at2', 'google came from routineProviders, never the Microsoft primary');
+    assert.equal(g.accessToken, 'g_at2', 'google came from automationProviders, never the Microsoft primary');
     credentials._memo.clear();
     const m = await credentials.resolveProviderCredential('u1', 'microsoft', { session: world.session });
     assert.equal(m.accessToken, 'ms_at');
@@ -76,7 +76,7 @@ test('an org member\'s copy lands under the org scope', async () => {
 });
 
 test('without a caller session the runner\'s rebuilt session is the source', async () => {
-    world.session = { oauthProvider: 'google', accessToken: 'g_at', routineProviders: {} };
+    world.session = { oauthProvider: 'google', accessToken: 'g_at', automationProviders: {} };
     const shim = await credentials.resolveProviderCredential('u1', 'google');
     assert.equal(shim.accessToken, 'g_at');
 });
@@ -104,7 +104,7 @@ test('save() persists rotated tokens (what the Google tokens event and the Graph
 test('save() never throws into the SDK event handler', async () => {
     world.vault = { provider: 'google', userId: 'u1', orgId: 'org_1', accessToken: 'a', refreshToken: 'r', expiresAt: Date.now() + 3600e3 };
     const shim = await credentials.resolveProviderCredential('u1', 'google');
-    const store = require('../../../../stores/routineCredentialStore');
+    const store = require('../../../../stores/automationCredentialStore');
     const original = store.upsertCredential;
     store.upsertCredential = async () => { throw new Error('db down'); };
     try {

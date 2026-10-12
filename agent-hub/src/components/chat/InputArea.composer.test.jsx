@@ -125,7 +125,7 @@ describe('InputArea — what is on the toolbar', () => {
                 availableKBs={[{ id: 'kb1', name: 'Handbook' }]}
                 selectedKBIds={['kb1']}
                 onChangeKBIds={vi.fn()}
-                user={{ id: 1, name: 'Tester', betaFeatures: ['skills', 'knowledge_bases_beta'] }}
+                user={{ id: 1, name: 'Tester', betaFeatures: ['skills'] }}
             />,
         );
         await screen.findByTestId('composer-tools-button');

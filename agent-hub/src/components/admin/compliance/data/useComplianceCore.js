@@ -101,12 +101,14 @@ export default function useComplianceCore({ onChanged = null } = {}) {
         return r;
     }, [refresh]);
 
-    // Audit trail per check — status timeline + hashed evidence rows. Fetched
-    // on demand when a row's "History & evidence" column opens.
-    const loadTrail = useCallback(async (checkId) => {
+    // Audit trail per row — status timeline + hashed evidence rows. Fetched
+    // on demand when a row's "History & evidence" column opens. A per-subject
+    // row asks for its own subject's history only (`scope_id`).
+    const loadTrail = useCallback(async (checkId, scopeId = null) => {
         const enc = encodeURIComponent(checkId);
+        const scope = scopeId ? `?scope_id=${encodeURIComponent(scopeId)}` : '';
         const [history, evidence] = await Promise.all([
-            fetchJson(`${API}/checks/${enc}/history`).catch(() => []),
+            fetchJson(`${API}/checks/${enc}/history${scope}`).catch(() => []),
             fetchJson(`${API}/evidence/${enc}`).catch(() => []),
         ]);
         return { history, evidence };

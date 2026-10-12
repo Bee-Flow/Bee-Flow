@@ -28,7 +28,7 @@ function Row({ row, state, setState, onPick }: { row: PickRow; state: PickState;
     if (row.kind === 'empty' || row.kind === 'more') {
         return (
             <Text variant="caption" tone="tertiary" style={indent}>
-                {row.kind === 'empty' ? t('mobile.flow.set.empty_list', 'empty list') : t('mobile.flow.set.n_more', '… {n} more', { n: row.n })}
+                {row.kind === 'empty' ? t('automations.json_tree_picker.empty_list', 'empty list') : t('mobile.flow.set.n_more', '… {n} more', { n: row.n })}
             </Text>
         );
     }
@@ -88,7 +88,7 @@ function JsonPanel({ candidates, customSource, setCustomSource, sampleRoot, onPi
                 <Text variant="caption" tone="secondary" numberOfLines={1} style={styles.grow}>
                     {t('mobile.flow.set.json_from', 'From {source}', { source: sourceLabel })}
                 </Text>
-                <Button size="sm" variant="ghost" label={changing ? t('mobile.flow.set.done', 'done') : t('routines.builder.change_word', 'change')} onPress={() => setChanging((c) => !c)} />
+                <Button size="sm" variant="ghost" label={changing ? t('mobile.flow.set.done', 'done') : t('automations.builder.change_word', 'change')} onPress={() => setChanging((c) => !c)} />
                 <Button size="sm" variant="ghost" label={t('mobile.flow.set.hide', 'hide')} onPress={onHide} />
             </View>
             {changing ? <BindingInput mode="path" value={sourcePath} onChange={(v) => setCustomSource(String(v))} prompt={t('mobile.flow.set.json_source_prompt', 'Tap Insert data to pick the text that holds the JSON')} /> : null}
@@ -100,7 +100,7 @@ function JsonPanel({ candidates, customSource, setCustomSource, sampleRoot, onPi
                     <Note>{t('mobile.flow.set.json_pick_hint', 'Tap a value to add it as a field. Extraction is exact and free — no AI involved.')}</Note>
                 </>
             ) : (
-                <Note>{t('mobile.flow.set.not_json', 'This doesn’t look like JSON text — pick another source.')}</Note>
+                <Note>{t('automations.set_editors.this_doesn_t_look_like_json', 'This doesn’t look like JSON text — pick another source.')}</Note>
             )}
         </View>
     );
@@ -133,7 +133,7 @@ export function JsonExtract({
         return (
             <View style={styles.closed}>
                 <Note>{t('mobile.flow.set.json_text', 'Some of this data is JSON text')}</Note>
-                <Button size="sm" variant="ghost" label={t('mobile.flow.set.json_pick', 'Pick fields from it')} onPress={() => setOpen(true)} />
+                <Button size="sm" variant="ghost" label={t('automations.set_editors.pick_fields_from_it', 'Pick fields from it')} onPress={() => setOpen(true)} />
             </View>
         );
     }
@@ -143,7 +143,7 @@ export function JsonExtract({
             customSource={customSource}
             setCustomSource={setCustomSource}
             sampleRoot={sampleRoot}
-            onPick={(source, rel) => onFields(addJsonField(fields, source, rel))}
+            onPick={(source, rel) => onFields(addJsonField(fields, source, rel, sampleRoot ? walkPath(source, sampleRoot) : undefined))}
             onHide={() => setOpen(false)}
         />
     );

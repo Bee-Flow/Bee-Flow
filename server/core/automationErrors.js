@@ -136,12 +136,12 @@ const ALL_CODES = [
  * this is the generic fallback by class.
  */
 const REMEDIATION_BY_CODE = {
-    PermissionError: 'Reconnect the integration in Settings → Integrations, then re-run.',
+    PermissionError: 'Reconnect the integration in Settings → Connections, then re-run.',
     TimeoutError: 'This looks transient — retry; if it persists the connector or service may be down.',
     TransientError: 'A temporary upstream issue — retry in a moment.',
     ValidationError: 'A required field is empty or malformed — open the step and fill the highlighted input.',
     IntegrationError: 'Check the target exists (room token / board id / file path) and that the app is enabled.',
-    ApprovalExpired: 'The approval window elapsed — re-run the routine to request approval again.',
+    ApprovalExpired: 'The approval window elapsed — re-run the automation to request approval again.',
     UserCanceledError: 'The run was canceled — start it again if that was unintended.',
 };
 

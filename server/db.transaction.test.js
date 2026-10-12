@@ -162,7 +162,7 @@ test('makeStoreInit clears the memo on failure so the next call retries', async 
 // Shape pg gives a server-sent error: SQLSTATE plus the parsed ErrorResponse
 // fields. `severity` is the half that libuv errors can never have.
 const dbError = (code) => Object.assign(new Error('nope'), {
-    code, severity: 'ERROR', file: 'extension.c', routine: 'CreateExtension',
+    code, severity: 'ERROR', file: 'extension.c', automation: 'CreateExtension',
 });
 
 test('isSqlStateError: true for a Postgres SQLSTATE rejection', () => {

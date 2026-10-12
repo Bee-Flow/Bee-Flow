@@ -187,7 +187,7 @@ const PENDING_KEYS = new Map([
     // LEEG, en dat is de bedoeling. Track Z heeft alle 34 posten ingelost: de 24
     // startsuggesties uit utils/prompts.js, de vijf notebooks-sleutels van de
     // mkTt-shim, de drie dlp.blocked_attachment_*-teksten uit sseEvents.js,
-    // routines.kind.choice en compliance.audit_toast_failed. Alle 34 staan nu in
+    // automations.kind.choice en compliance.audit_toast_failed. Alle 34 staan nu in
     // BEIDE woordenboeken; "the ledgers and registers do not rot" hieronder viel
     // rood zodra ze landden, en dat is precies hoe deze lijst hoort te werken.
     //
@@ -233,6 +233,10 @@ const CARRIERS = [
     'phKey', 'hintKey', 'shortKey', 'explainKey', 'badgeKey', 'actionHintKey',
     'objectiveKey', 'remediationKey', 'descriptionKey', 'bodyMdKey',
     'questionKey', 'instructionKey', 'i18nKey',
+    // Lesson content (BFSF-474): quiz choice feedback and explanation, sim
+    // pair sides and note, sim scenario brief — the generator emits these
+    // beside their English fallbacks in onboarding/generated/lessons.js.
+    'feedbackKey', 'explanationKey', 'leftKey', 'rightKey', 'noteKey', 'briefKey',
 ];
 
 /**
@@ -396,11 +400,18 @@ const KEY_TABLE_FILES = [
     // NC_STATUS, NC_SEVERITY, NC_SOURCE, OBJ_STATUS) — de opvolger van de
     // { key, en }-tabellen uit de oude AuditPage.jsx.
     'components/admin/compliance/pages/audits/auditForms.js',
-    // Zeven gebeurtenislabels in ACTION_META. Diezelfde { key, en }-vorm is nu
-    // vier keer langs de guard geglipt (labelKey in O4 en W5, de
-    // studio.ai.err_*-tabel in H4, en de grafiekmodal van Notebooks); een nieuw
-    // bestand met die vorm hoort meteen op deze lijst.
-    'components/admin/compliance/pages/AccessAuditPage.jsx',
+    // The access log's event labels (ACTION_META), moved out of
+    // AccessAuditPage.jsx. The same { key, en } shape has slipped past the
+    // guard four times (labelKey in O4 and W5, the studio.ai.err_* table in
+    // H4, and the Notebooks chart modal); a new file with that shape belongs
+    // on this list straight away.
+    'components/admin/compliance/pages/accessAuditLabels.ts',
+    // The Overview's deadline kinds and empty-register lines (KIND_LABEL in
+    // DeadlinesCard, EMPTY_LINE in deadlineRows) and the phone's home tabs
+    // (HOME_TABS in ComplianceMobile).
+    'components/admin/compliance/pages/overview/DeadlinesCard.jsx',
+    'components/admin/compliance/pages/overview/deadlineRows.ts',
+    'components/admin/compliance/ComplianceMobile.jsx',
     // OBLIGATION_KINDS — de soorten opleidingsverplichting.
     'components/admin/compliance/pages/TrainingPage.jsx',
     // LEGAL_BASES, RESIDENCY, NIS2_ENTITY_CLASSES, CRA_ROLES,
@@ -414,6 +425,8 @@ const KEY_TABLE_FILES = [
     // andere controle hier ziet ze.
     'components/chat/AnswerTracePanel.jsx',
     'components/automation/Builder/mapping/fieldKinds.js',
+    // The automations launcher's tab labels (TABS).
+    'components/admin/Studio/AutomationsStudio/AutomationsLauncher.jsx',
     'components/skills/SkillFormModal.jsx',
     // De vier filterkoppen van de skills-grid (`{ id, key, en }`, gerenderd als
     // `{t(f.key, f.en)}`). Precies de bewaakte vorm, en tot nu toe niet op deze
@@ -458,9 +471,7 @@ const TEXT_HELPERS = [
     // dictionary turn. Only the pure modules need a t-taking variant.
     { rel: 'components/cowork/coworkFormat.js', pending: 'CW — relativeTime/formatDuration/fullTimestamp, plus the browser locale' },
     { rel: 'components/projects/relativeTime.js', pending: 'PRJ — the same five sentences, copied' },
-    { rel: 'components/admin/Studio/RoutinesStudio/historyUtils.js', pending: 'RUN — times, durations, expiry and the day buckets' },
-    // Clean since its formatRelative() went (2026-09-28): the scan's "Scanned 2h ago" reads useRelativeTime.
-    { rel: 'components/admin/Studio/RoutinesStudio/suggestionState.js' },
+    { rel: 'components/admin/Studio/AutomationsStudio/historyUtils.js', pending: 'RUN — times, durations, expiry and the day buckets' },
     { rel: 'components/automation/taskFormatters.js', pending: 'ROU — timeAgo/formatNextRun, plus the hard REPEAT_OPTIONS table' },
     { rel: 'pages/meeting-notes/lib/format.js', pending: 'MTG — the same ladder again' },
     { rel: 'utils/helpers.js', pending: 'shared — "Just now" (capital J: the copy that drifted) and the demo notices' },
@@ -476,10 +487,8 @@ const TEXT_HELPERS = [
     { rel: 'components/admin/security/guardrails/orgShield/activity/activityLabels.js' },
     // Label tables: value → English, no key anywhere. Same shape as the two in
     // runLanguage.js that this register was built around.
-    { rel: 'components/admin/Studio/Executions/runLanguage.js', pending: 'RUN — TRIGGER_LABELS and ERROR_CLASS_LABELS carry no key at all' },
     { rel: 'components/automation/Builder/flow/triggerLabels.js', pending: 'BLD — TRIGGER_TYPE_LABEL/TRIGGER_NAME/APP_EVENT_TYPE_LABEL, read by four Builder files' },
-    { rel: 'components/admin/Studio/AppStudio/inspector/styleKnobMeta.js', pending: 'APPS — knob labels and their hints' },
-    { rel: 'components/admin/Studio/AppStudio/rbac/rowRuleModel.js', pending: 'APPS — row-rule fields and operators' },
+    { rel: 'components/admin/Studio/AppStudio/rbac/rowRuleModel.js' },
     { rel: 'components/admin/Studio/Datatables/datatableDisplay.js', pending: 'DT — visibility sentences and GRADE_LABEL' },
     { rel: 'components/admin/Studio/SupportStudio/auditMeta.js', pending: 'SUP — ACTION_LABEL, the whole ticket audit trail' },
     { rel: 'components/admin/ai-config/ProviderCards/local/localRuntimeApi.js', pending: 'A1 — TIER_LABELS plus the runtime error messages' },
@@ -754,7 +763,7 @@ describe('i18n guard', () => {
 // neither callback outgrows the function-size cap.
 describe('i18n guard — keys carried as data', () => {
     it('every *Key: property names a real key — and none in the field-selector zone does', () => {
-        // The gap that let eleven `routines.mismatch.*` keys ship without an
+        // The gap that let eleven `automations.mismatch.*` keys ship without an
         // English entry: a component that stores its keys as data
         // (`labelKey: 'x.y', labelEn: 'Fallback'`) and calls t() with a
         // variable never matches the literal-call check above. The EN fallback
@@ -880,7 +889,7 @@ describe('i18n guard — helpers that compose text', () => {
 describe('i18n guard — dictionary pairing and the debt ledgers', () => {
     it('the broken `alias(key) || fallback` idiom is not used either', () => {
         // Same bug as the `t(key) || fallback` ban above, one alias further
-        // out: `_t('routines.overdue') || 'Overdue'` reads as a safe fallback,
+        // out: `_t('automations.overdue') || 'Overdue'` reads as a safe fallback,
         // but `_t` IS t() — it returns the truthy raw key when the key is
         // missing, so the `||` never fires and the screen prints the key.
         const RX = new RegExp(`(?:${ALIAS_CALL})\\s*(['"])[^'"]+?\\2\\s*\\)\\s*\\|\\|`, 'gm');

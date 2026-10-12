@@ -27,7 +27,7 @@ describe('UsedByTab — the navigation rule', () => {
         const onNavigate = vi.fn();
         render(<UsedByTab rows={[ROW()]} currentUserId="u1" onNavigate={onNavigate} />);
         fireEvent.click(screen.getByRole('button', { name: 'Nightly sync' }));
-        expect(onNavigate).toHaveBeenCalledWith('studio/routines/a1');
+        expect(onNavigate).toHaveBeenCalledWith('studio/automations/a1');
     });
 
     it("renders a colleague's item as plain text — usage is org-wide, the item is not", () => {
@@ -88,8 +88,8 @@ describe('UsedByTab — loading and empty', () => {
     });
 
     it('emptyText replaces the default sentence', () => {
-        render(<UsedByTab rows={[]} emptyText="No routine reads this table yet." />);
-        expect(screen.getByText('No routine reads this table yet.')).toBeInTheDocument();
+        render(<UsedByTab rows={[]} emptyText="No automation reads this table yet." />);
+        expect(screen.getByText('No automation reads this table yet.')).toBeInTheDocument();
     });
 
     it('an error is shown above the list, never instead of it', () => {
@@ -135,8 +135,8 @@ describe('UsedByTab — kinds that could not be checked', () => {
     });
 
     it('an explicit emptyText still wins — that caller has already thought about it', () => {
-        render(<UsedByTab rows={[]} unchecked={['agent']} emptyText="No routine reads this table yet." />);
-        expect(screen.getByText('No routine reads this table yet.')).toBeInTheDocument();
+        render(<UsedByTab rows={[]} unchecked={['agent']} emptyText="No automation reads this table yet." />);
+        expect(screen.getByText('No automation reads this table yet.')).toBeInTheDocument();
     });
 });
 
@@ -209,7 +209,7 @@ describe('UsedByTab — adapt (legacy datatables shape)', () => {
         const onNavigate = vi.fn();
         const { rerender } = render(<UsedByTab rows={[LEGACY]} adapt={adaptDatatableUsageRow} currentUserId="u1" onNavigate={onNavigate} />);
         fireEvent.click(screen.getByRole('button', { name: 'Nightly sync' }));
-        expect(onNavigate).toHaveBeenCalledWith('studio/routines/a1');
+        expect(onNavigate).toHaveBeenCalledWith('studio/automations/a1');
         rerender(<UsedByTab rows={[{ ...LEGACY, automationOwner: 'u9' }]} adapt={adaptDatatableUsageRow} currentUserId="u1" onNavigate={onNavigate} />);
         expect(screen.queryByRole('button', { name: 'Nightly sync' })).toBeNull();
         expect(screen.getByText(/someone else/i)).toBeInTheDocument();
@@ -223,7 +223,7 @@ describe('UsedByTab — adapt (legacy datatables shape)', () => {
 
 describe('UsedByTab — helpers', () => {
     it('usageKind folds aliases and knows the non-Studio kinds', () => {
-        expect(usageKind({ kind: 'routines' })).toBe('automation');
+        expect(usageKind({ kind: 'automations' })).toBe('automation');
         expect(usageKind({ kind: 'chat' })).toBe('chat');
         expect(usageKind({ kind: 'Project' })).toBe('project');
         expect(usageKind({})).toBeNull();

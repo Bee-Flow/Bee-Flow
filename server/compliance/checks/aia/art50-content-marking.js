@@ -2,7 +2,7 @@
  * EU AI Act Art. 50(2) — AI-generated content is marked in a machine-readable
  * format and detectable as artificially generated.
  *
- * Per-source: one subject per routine whose document step (generate_document,
+ * Per-source: one subject per automation whose document step (generate_document,
  * fill_document or presentation) draws on a model (an ai_step /
  * data_extraction / ai_tool upstream — summarize is an aggregate, not AI).
  * The graph reading is automation/automationGraph.js, the same one the AI-Act
@@ -10,7 +10,7 @@
  * what execDocument / execPresentation mark.
  *
  * The verdict is the org's switch: compliance_settings.ai_content_marking_enabled.
- * When it is on, every listed routine passes — documentRenderer prints the
+ * When it is on, every listed automation passes — documentRenderer prints the
  * footer and writes the PDF/DOCX metadata for all of them. When it is off the
  * status follows the calendar: Art. 50 applies since 2 Aug 2026, but content
  * from systems that predate it enjoys a transition until 2 Dec 2026
@@ -70,9 +70,21 @@ module.exports = {
     remediationKey: 'compliance.check_aia_art50_marking_fix',
     remediationLink: 'admin/compliance/settings',
 
-    /** [{ id: <automationId>, label, generating: [...], aiStepIds, is_active, is_draft }] — titles only, no owner data. */
+    // listGeneratingAutomations is every generating automation of the org and
+    // throws on a failed read, so an automation that was trashed or no longer
+    // turns model output into a document is retired instead of keeping its
+    // last warn/fail in the table, the rail and the score for good.
+    retiresVanished: true,
+    retiredDetails: 'This automation no longer turns model output into a document, or it was deleted.',
+
+    /**
+     * [{ id: <automationId>, label, generating: [...], aiStepIds, is_active, is_draft }] — titles only, no owner data.
+     * Past SUBJECT_LIMIT every subject carries `capped: true`: the list is then
+     * a window, and the runner must not retire what fell outside it.
+     */
     async listSubjects(orgId) {
         const rows = await _signals().listGeneratingAutomations(orgId);
+        const capped = rows.length > SUBJECT_LIMIT;
         return rows.slice(0, SUBJECT_LIMIT).map(r => ({
             id: String(r.id),
             label: r.title || String(r.id),
@@ -80,6 +92,7 @@ module.exports = {
             is_draft: !!r.is_draft,
             aiStepIds: r.aiStepIds,
             generating: r.generating,
+            ...(capped ? { capped: true } : {}),
         }));
     },
 
@@ -100,20 +113,20 @@ module.exports = {
             return {
                 status: 'pass',
                 evidence,
-                details: `AI content marking is on: documents this routine generates carry the visible line and the machine-readable metadata (EU AI Act Art. 50(2)).`,
+                details: `AI content marking is on: documents this automation generates carry the visible line and the machine-readable metadata (EU AI Act Art. 50(2)).`,
             };
         }
         if (days > 0) {
             return {
                 status: 'warn',
                 evidence,
-                details: `AI content marking is off: required from ${formatDeadline(due)} (in ${days} day${days === 1 ? '' : 's'}). Switch it on under Compliance → Settings.`,
+                details: `AI content marking is off. Art. 50(2) has applied since 2 Aug 2026; the transition for systems already on the market before then ends on ${formatDeadline(due)} (in ${days} day${days === 1 ? '' : 's'}). Switch it on under Compliance → Settings.`,
             };
         }
         return {
             status: 'fail',
             evidence,
-            details: `AI content marking is off and required since ${formatDeadline(due)}: documents this routine generates from model output are not marked as AI-generated. Switch it on under Compliance → Settings.`,
+            details: `AI content marking is off and required since ${formatDeadline(due)}: documents this automation generates from model output are not marked as AI-generated. Switch it on under Compliance → Settings.`,
         };
     },
 

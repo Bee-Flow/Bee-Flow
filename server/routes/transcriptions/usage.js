@@ -21,7 +21,7 @@
  * population that already sees its tags, which is what most of this list is
  * derived from. What the answer does NOT do is name things the asker cannot
  * see for themselves: `redactForeign` keeps the kind and the role of somebody
- * else's routine or knowledge base and drops its name, so the tab cannot
+ * else's automation or knowledge base and drops its name, so the tab cannot
  * become a way to enumerate an organisation from one shared meeting.
  *
  * ── THE STORES ARE REQUIRED INSIDE THE HANDLER ──────────────────────

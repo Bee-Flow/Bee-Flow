@@ -5,7 +5,7 @@
  * types must conform to its table) and optional dataset descriptors.
  *
  * The only warnings allowed are the deliberate 'action.automation_unset' ones
- * (routine templates ship automationId: null so they install without routine
+ * (automation templates ship automationId: null so they install without automation
  * dependencies).
  *
  * Run: cd server && node --test appStudio/templates.test.js

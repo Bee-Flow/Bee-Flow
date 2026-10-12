@@ -1,8 +1,8 @@
 /**
- * Test data for the canvas: a routine as long as the canvas is asked to
+ * Test data for the canvas: an automation as long as the canvas is asked to
  * carry — 150 steps, with a Condition every fifteen whose two sides meet
  * again — unplaced (the fallback layout draws it) or placed (the positions
- * that layout gives it, as a saved routine would carry them). Test data
+ * that layout gives it, as a saved automation would carry them). Test data
  * only: nothing in the app imports this.
  */
 
@@ -30,7 +30,7 @@ export function bigFlow(n = 150): FlowDefinition {
     return { trigger: { id: 'trg', type: 'trigger', kind: 'manual' }, steps, edges };
 }
 
-/** The same routine with a position on every node. */
+/** The same automation with a position on every node. */
 export function placedBigFlow(n = 150): FlowDefinition {
     return seedPositions(bigFlow(n)) as FlowDefinition;
 }

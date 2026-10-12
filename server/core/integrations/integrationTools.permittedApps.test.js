@@ -95,7 +95,7 @@ test('the inline-registered integrations are granted, and invisible to the palet
     // `music-gen` appear in no public list at all, which is why they are
     // named here rather than discovered.
     const permitted = await getUserPermittedApps(USER);
-    for (const appId of ['browser-fetch', 'google-maps', 'music-gen', 'workspace', 'presentations', 'regex-generator']) {
+    for (const appId of ['browser-fetch', 'google-maps', 'music-gen', 'workspace', 'presentations', 'word-documents', 'regex-generator']) {
         assert.ok(!registryApps.has(appId), `${appId} joined TOOL_REGISTRY — the palette can offer it now`);
         assert.ok(!permitted.has(appId), `${appId} is suddenly in the palette result`);
         assert.strictEqual(
@@ -121,7 +121,7 @@ test('no app discoverable from a public list has quietly joined that gap', async
         if (permitted.has(appId) || registryApps.has(appId)) continue;
         if (await isIntegrationPermittedForUser({ userId: 'u1', appId, session: USER.session })) invisible.push(appId);
     }
-    assert.deepStrictEqual(invisible.sort(), ['browser-fetch', 'music-gen', 'presentations', 'regex-generator', 'workspace'],
+    assert.deepStrictEqual(invisible.sort(), ['browser-fetch', 'music-gen', 'presentations', 'regex-generator', 'word-documents', 'workspace'],
         'a change to this set is a change to which apps a palette can offer — deliberate, not incidental');
 });
 

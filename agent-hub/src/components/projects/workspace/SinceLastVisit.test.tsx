@@ -163,7 +163,7 @@ describe('SinceLastVisit — show changes', () => {
 describe('SinceLastVisit — edges', () => {
     it('says when nothing is new', async () => {
         renderSince();
-        expect(await screen.findByTestId('since-nothing')).toHaveTextContent('Nothing new');
+        expect(await screen.findByTestId('since-nothing')).toHaveTextContent('up to date');
         expect(screen.queryByTestId('since-mark-all')).toBeNull();
     });
 

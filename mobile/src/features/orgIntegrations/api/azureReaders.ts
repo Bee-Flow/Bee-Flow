@@ -32,7 +32,6 @@ export const readAzureSyncSettings: (raw: unknown) => AzureGroupSyncSettings = s
 export const readAzureConfig: (raw: unknown) => AzureConfig = shapeOf({
     azureEndpoint: field.str(''),
     hasAzureApiKey: field.bool(false),
-    azureApiVersion: field.str('2024-04-01-preview'),
     azureModels: field.str(''),
     chatModelTiers: readTiers,
     useAzureDocProcessing: field.bool(false),

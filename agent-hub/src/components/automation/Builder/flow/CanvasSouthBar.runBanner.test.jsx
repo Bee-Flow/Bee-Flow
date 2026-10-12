@@ -1,6 +1,7 @@
 import { render, screen, cleanup } from '@testing-library/react';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import CanvasSouthBar from './CanvasSouthBar';
 
 /**
@@ -42,26 +43,38 @@ describe('CanvasSouthBar — the run banner', () => {
         expect(screen.getByTestId('canvas-run-banner').textContent).toContain('Run failed at');
     });
 
-    it('offers "Open the form" only when the run is parked on one AND a page exists', () => {
-        render(<CanvasSouthBar runFocus={focus({ awaitingForm: true })} formUrl="https://example.test/f/abc" />);
-        const link = screen.getByTestId('canvas-run-open-form');
-        expect(link.tagName).toBe('A');
-        expect(link.getAttribute('href')).toBe('https://example.test/f/abc');
-        // An anchor a viewer can middle-click, and one that cannot leak the
-        // opener to the form page.
-        expect(link.getAttribute('rel')).toContain('noopener');
+    it('offers "Open the form" as a button that opens the overlay, even without a public page', async () => {
+        const onOpenFormOverlay = vi.fn();
+        render(<CanvasSouthBar runFocus={focus({ awaitingForm: true })} formUrl={null} onOpenFormOverlay={onOpenFormOverlay} />);
+        const btn = screen.getByTestId('canvas-run-open-form');
+        expect(btn.tagName).toBe('BUTTON');
+        await userEvent.click(btn);
+        expect(onOpenFormOverlay).toHaveBeenCalledTimes(1);
+        expect(screen.queryByTestId('canvas-run-open-form-tab')).toBeNull();
         expect(screen.getByTestId('canvas-run-banner').textContent).toContain('waiting for the form');
     });
 
-    it('draws NO link when the routine is parked but has no form page provisioned', () => {
-        // Never a dead control: the refusal path this whole banner is judged on.
+    it('keeps the public page as a small secondary link that opens in a new tab', () => {
+        render(<CanvasSouthBar runFocus={focus({ awaitingForm: true })} formUrl="https://example.test/f/abc" onOpenFormOverlay={() => {}} />);
+        const link = screen.getByTestId('canvas-run-open-form-tab');
+        expect(link.tagName).toBe('A');
+        expect(link.getAttribute('href')).toBe('https://example.test/f/abc');
+        expect(link.getAttribute('aria-label')).toBe('Open in a new tab');
+        // One that cannot leak the opener to the form page.
+        expect(link.getAttribute('rel')).toContain('noopener');
+    });
+
+    it('draws NO form control when there is neither an overlay to open nor a page', () => {
+        // Never a dead control.
         render(<CanvasSouthBar runFocus={focus({ awaitingForm: true })} formUrl={null} />);
         expect(screen.queryByTestId('canvas-run-open-form')).toBeNull();
+        expect(screen.queryByTestId('canvas-run-open-form-tab')).toBeNull();
     });
 
     it('draws no link on an ordinary running step even with a form url around', () => {
-        render(<CanvasSouthBar runFocus={focus({ awaitingForm: false })} formUrl="https://example.test/f/abc" />);
+        render(<CanvasSouthBar runFocus={focus({ awaitingForm: false })} formUrl="https://example.test/f/abc" onOpenFormOverlay={() => {}} />);
         expect(screen.queryByTestId('canvas-run-open-form')).toBeNull();
+        expect(screen.queryByTestId('canvas-run-open-form-tab')).toBeNull();
     });
 
     it('renders nothing of the banner when there is no run at all', () => {

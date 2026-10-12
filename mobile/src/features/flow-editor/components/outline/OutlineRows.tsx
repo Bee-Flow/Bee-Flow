@@ -38,7 +38,7 @@ function GroupHeader({ row }: { row: Row<'group'> }) {
     const t = useTranslation();
     const { onToggleGroup } = useOutline();
     const words = rowWords(row.text, t);
-    const count = t('routines.canvas.summary_steps', '{n} steps', { n: row.count });
+    const count = t('automations.canvas.summary_steps', '{n} steps', { n: row.count });
     return (
         <Pressable
             onPress={() => onToggleGroup(row.key)}
@@ -62,7 +62,7 @@ function AddSlot({ row }: { row: Row<'add'> }) {
     const styles = useThemedStyles(makeOutlineStyles);
     const t = useTranslation();
     const { onAdd, locked } = useOutline();
-    const label = row.target.kind === 'root' ? t('mobile.flow.add_trigger', 'Add a trigger') : t('routines.ribbon.search_label', 'Add a step');
+    const label = row.target.kind === 'root' ? t('mobile.flow.add_trigger', 'Add a trigger') : t('automations.ribbon.search_label', 'Add a step');
     if (row.end) {
         return (
             <View style={indentFor(styles, row.depth)}>
@@ -89,7 +89,7 @@ function AddSlot({ row }: { row: Row<'add'> }) {
             onPress={() => onAdd(row.target)}
             disabled={locked}
             accessibilityRole="button"
-            accessibilityLabel={t('mobile.flow.insert_step', 'Insert a step here')}
+            accessibilityLabel={t('automations.edges.insert_a_step_here', 'Insert a step here')}
             accessibilityState={{ disabled: locked }}
             style={[indentFor(styles, row.depth), styles.add]}
         >

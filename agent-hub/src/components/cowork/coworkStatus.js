@@ -20,7 +20,7 @@ import { tokenFor } from '../shared/statusTokens';
 /**
  * `needs_reauth` is a cowork status the shared token table does not carry.
  *
- * The server writes it in two places — `routineAuth` switches a schedule off
+ * The server writes it in two places — `automationAuth` switches a schedule off
  * with `last_status = 'needs_reauth'`, and `markError` records it on the run
  * row — and both mean the same thing: this unattended work has STOPPED and
  * only the owner can start it again, by signing back in to the account it

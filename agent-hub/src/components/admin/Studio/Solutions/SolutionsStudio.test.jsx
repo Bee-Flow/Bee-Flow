@@ -1,4 +1,5 @@
 import { fireEvent, render, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 vi.mock('../../../../utils/helpers', () => ({
@@ -53,7 +54,7 @@ const RESOURCES = {
 /** A Solution whose checks ran and found nothing: the only publishable state. */
 const CLEAN = { findings: [], blocked: false, complete: true, unavailable: [], requires: { items: [], counts: {} } };
 
-function mockFetch({ projects = PROJECTS, summaryOk = true, completeness = CLEAN, blueprints = [] } = {}) {
+function mockFetch({ projects = PROJECTS, summaryOk = true, completeness = CLEAN, blueprints = [], operatedStages = undefined, pipeline = {} } = {}) {
     globalThis.__authFetch = vi.fn(async (url, init) => {
         const method = init?.method || 'GET';
         const ok = (body) => ({ ok: true, status: 200, json: async () => body });
@@ -61,12 +62,13 @@ function mockFetch({ projects = PROJECTS, summaryOk = true, completeness = CLEAN
             // The route's 500 carries the SAME empty list a healthy empty
             // workspace does. That is the shape the seam has to survive.
             return summaryOk
-                ? ok({ projects, unavailable: [], hasMore: false, checkedCount: projects.length })
+                ? ok({ projects, unavailable: [], hasMore: false, checkedCount: projects.length, ...(operatedStages ? { operatedStages } : {}) })
                 : { ok: false, status: 500, json: async () => ({ error: 'Request failed', projects: [], unavailable: ['all'], hasMore: false }) };
         }
         if (url.endsWith('/api/projects') && method === 'POST') {
             return ok({ id: 'p_new', name: JSON.parse(init.body).name, permission: 'owner' });
         }
+        if (url.endsWith('/pipeline')) return ok(pipeline);
         if (url.includes('/package/blueprints')) return ok({ blueprints });
         if (url.includes('/completeness')) {
             return completeness === null
@@ -213,12 +215,16 @@ describe('the detail view', () => {
             return ok({});
         });
 
-        const { findAllByTestId, findByTestId, findByText, container } = render(<SolutionsStudio />);
+        const { findAllByTestId, findByTestId, findByLabelText } = render(<SolutionsStudio />);
         fireEvent.click((await findAllByTestId('solutions-card'))[0]);
         await waitFor(async () => expect((await findByTestId('solution-publish')).disabled).toBe(false));
 
-        fireEvent.change(container.querySelector('#solution-add-kind'), { target: { value: 'app' } });
-        fireEvent.click(await findByText('Second desk'));
+        // The panel opens on the first kind that has something to add: the app.
+        await userEvent.click(await findByTestId('add-parts-open'));
+        await userEvent.click(await findByLabelText('Second desk'));
+        // Adding waits for the check of what else the app needs.
+        await waitFor(async () => expect((await findByTestId('add-parts-submit')).disabled).toBe(false));
+        await userEvent.click(await findByTestId('add-parts-submit'));
 
         await waitFor(() => expect(completenessCalls).toBeGreaterThan(1));
         expect((await findByTestId('solution-publish')).disabled).toBe(true);
@@ -231,7 +237,7 @@ describe('the detail view', () => {
                 findings: [{
                     code: 'cross_owner', severity: 'error', kind: 'app',
                     targetRef: { kind: 'app', id: 'a1', title: 'Desk' },
-                    message: 'Desk runs a routine owned by someone else.',
+                    message: 'Desk runs an automation owned by someone else.',
                     deepLink: '/app/studio/apps/a1',
                 }],
             },
@@ -239,7 +245,7 @@ describe('the detail view', () => {
         const { findAllByTestId, findByText } = render(<SolutionsStudio />);
         fireEvent.click((await findAllByTestId('solutions-card'))[0]);
         fireEvent.click(await findByText('Check'));
-        expect(await findByText('Desk runs a routine owned by someone else.')).toBeTruthy();
+        expect(await findByText('Desk runs an automation owned by someone else.')).toBeTruthy();
         expect(await findByText('Has to be fixed first')).toBeTruthy();
     });
 
@@ -295,5 +301,94 @@ describe('arriving straight at one Solution', () => {
         fireEvent.click(await findByTestId('studio-section-back'));
         await waitFor(() => expect(container.querySelectorAll('[data-testid="solutions-card"]').length).toBe(2));
         expect(onNavigate).toHaveBeenCalledWith('studio/solutions');
+    });
+});
+
+describe('studio/solutions/new (F16)', () => {
+    it('is the create flow, not the id of a Solution', async () => {
+        const { findAllByTestId, getByPlaceholderText, queryByTestId } = render(<SolutionsStudio initialSolutionId="new" />);
+        expect(await findAllByTestId('solutions-card')).toHaveLength(2);
+        expect(queryByTestId('studio-section-header')).toBeNull();
+        await waitFor(() => expect(document.activeElement).toBe(getByPlaceholderText('Name the Solution…')));
+        // Nothing was asked of the server about a Solution called "new".
+        expect(globalThis.__authFetch.mock.calls.some(([u]) => String(u).includes('/new'))).toBe(false);
+        expect(globalThis.__authFetch.mock.calls.some(([u]) => String(u).includes('ids=new'))).toBe(false);
+    });
+
+    it('creating from there lands you inside the new Solution', async () => {
+        const user = userEvent.setup();
+        const onNavigate = vi.fn();
+        const { findAllByTestId, getByPlaceholderText, getByTestId } = render(<SolutionsStudio initialSolutionId="new" onNavigate={onNavigate} />);
+        await findAllByTestId('solutions-card');
+        await user.type(getByPlaceholderText('Name the Solution…'), 'Fresh');
+        await user.click(getByTestId('solutions-create'));
+        await waitFor(() => expect(onNavigate).toHaveBeenCalledWith('studio/solutions/p_new'));
+    });
+});
+
+describe('stages on the cards', () => {
+    const withStages = [
+        {
+            ...PROJECTS[0],
+            stages: [
+                { stage: 'uat', projectId: 'u1', currentReleaseSeq: 7, lastDeploymentStatus: 'succeeded', pending: null },
+                { stage: 'prd', projectId: 'u2', currentReleaseSeq: 6, lastDeploymentStatus: 'failed', pending: null },
+            ],
+        },
+        PROJECTS[1],
+    ];
+
+    it('draws Dev · UAT R7 · PRD R6 with a dot per stage, from the summary alone', async () => {
+        mockFetch({ projects: withStages });
+        const { findAllByTestId, getAllByTestId } = render(<SolutionsStudio />);
+        await findAllByTestId('solutions-card');
+        const strips = getAllByTestId('solution-card-stages');
+        expect(strips).toHaveLength(1);
+        expect(strips[0].textContent).toContain('Dev');
+        expect(strips[0].textContent).toContain('UAT R7');
+        expect(strips[0].textContent).toContain('PRD R6');
+        const tones = getAllByTestId('solution-card-stage').map(e => e.getAttribute('data-tone'));
+        expect(tones).toEqual(['ok', 'error']);
+        // No per-card fetch: only the summary was read.
+        expect(globalThis.__authFetch.mock.calls.filter(([u]) => String(u).includes('/pipeline'))).toHaveLength(0);
+    });
+
+    it('a Solution without stages gets no strip', async () => {
+        const { findAllByTestId, queryByTestId } = render(<SolutionsStudio />);
+        await findAllByTestId('solutions-card');
+        expect(queryByTestId('solution-card-stages')).toBeNull();
+    });
+});
+
+describe('operated stages', () => {
+    const operated = [{ solutionId: 'sol_x', solutionName: 'Quotes', stage: 'uat', projectId: 'p_uat', role: 'editor' }];
+    const pipeline = {
+        dev: null,
+        stages: [{
+            stage: 'uat', projectId: 'p_uat', currentRelease: { id: 'rel_3', seq: 3 }, lastDeployment: null, pending: null,
+            bindingsPending: false, enabled: true, role: 'editor',
+        }],
+        releases: null,
+    };
+
+    it('lists stages whose Dev the caller cannot see, and opens that stage', async () => {
+        mockFetch({ operatedStages: operated, pipeline });
+        const user = userEvent.setup();
+        const onNavigate = vi.fn();
+        const { findByTestId, findAllByTestId } = render(<SolutionsStudio onNavigate={onNavigate} />);
+        await findAllByTestId('solutions-card');
+        const entry = await findByTestId('solutions-operated-stage');
+        expect(entry.textContent).toMatch(/Quotes/);
+        expect(entry.textContent).toMatch(/UAT · editor/);
+        await user.click(entry);
+        expect(onNavigate).toHaveBeenCalledWith('studio/solutions/sol_x');
+        expect(await findByTestId('stage-status')).toBeTruthy();
+        expect((await findByTestId('studio-section-title')).textContent).toBe('Quotes');
+    });
+
+    it('shows no group when nothing is operated', async () => {
+        const { findAllByTestId, queryByTestId } = render(<SolutionsStudio />);
+        await findAllByTestId('solutions-card');
+        expect(queryByTestId('solutions-operated-stages')).toBeNull();
     });
 });

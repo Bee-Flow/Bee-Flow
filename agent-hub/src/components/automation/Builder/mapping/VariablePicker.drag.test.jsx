@@ -5,7 +5,7 @@ import VariablePicker from './VariablePicker';
 /**
  * The picker's leaves are the ONLY drag source both builders share.
  *
- * Every field editor in the routine builder and in App Studio already accepts an
+ * Every field editor in the automation builder and in App Studio already accepts an
  * `application/x-binding-path` drop, but the sole element that ever produced one
  * was VariableTree's row — a panel App Studio never renders. Its drop handlers
  * (FormulaField, BindingField, TemplateField, PathField) were therefore dead

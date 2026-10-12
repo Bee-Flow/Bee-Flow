@@ -7,8 +7,9 @@ const crypto = require('crypto');
 const { run, getOne, getAll } = require('../../db');
 const storageStore = require('../storageStore');
 const { initDB } = require('./schema');
-const { VERSIONED_SLOTS, keyFor } = require('./shared');
+const { SLOTS, VERSIONED_SLOTS, CONTENT_TYPES, keyFor, sha256 } = require('./shared');
 const { readAllSlots, copySlotToVersion } = require('./storage');
+const { assertWebpageWrite } = require('./bridgeGrants');
 
 // ── Version Control ─────────────────────────────────────────────────
 
@@ -201,6 +202,57 @@ async function createVersion(userId, webpageId, summary = 'Auto-save', hashes = 
 }
 
 /**
+ * Write a `webpage_versions` snapshot from the given files, WITHOUT touching
+ * the page's `current/` objects (design D16): a deploy's prepare phase writes
+ * the incoming release here, the commit then pins it (setPublishedVersion),
+ * and converge writes `current/` last. Same object layout as createVersion
+ * (`versions/{vid}/<slot>`), so every reader of a snapshot reads it unchanged.
+ *
+ * On a managed page this needs the deploy's capability (`managedWrite`).
+ *
+ * @param {string} webpageId
+ * @param {string} ownerId   the page's owner: the objects live under their prefix
+ * @param {{ html?: string, css?: string, js?: string, db?: Buffer|null }} files
+ *        a missing or empty slot writes no object (an empty slot reads as '')
+ * @param {{ managedWrite?: { deploymentId?: string }|null, summary?: string,
+ *           source?: string, actorUserId?: string|null }} [opts]
+ *        `source` defaults to 'published': the snapshot a release pins is never pruned
+ */
+async function createVersionSnapshotFromFiles(webpageId, ownerId, files = {}, opts = {}) {
+    await initDB();
+    await assertWebpageWrite(webpageId, ['files'], { managedWrite: opts.managedWrite || null });
+    if (!storageStore.isAvailable()) {
+        throw new Error('RustFS not configured — cannot persist webpage files');
+    }
+    const id = crypto.randomUUID();
+    const f = files && typeof files === 'object' ? files : {};
+    const shas = {};
+    let contentLength = 0;
+    for (const slot of SLOTS) {
+        const text = typeof f[slot] === 'string' ? f[slot] : '';
+        shas[slot] = text ? sha256(text) : '';
+        if (!text) continue;
+        const buf = Buffer.from(text, 'utf8');
+        contentLength += buf.length;
+        await storageStore.uploadFile(keyFor(ownerId, webpageId, slot, id), buf, CONTENT_TYPES[slot]);
+    }
+    if (Buffer.isBuffer(f.db) && f.db.length > 0) {
+        await storageStore.uploadFile(keyFor(ownerId, webpageId, 'db', id), f.db, CONTENT_TYPES.db);
+    }
+    const kind = normalizeSource(opts.source || 'published');
+    const actorUserId = opts.actorUserId === undefined ? (ownerId || null) : (opts.actorUserId || null);
+    const seq = await _insertVersionRow([
+        id, webpageId, String(opts.summary || 'Release'), shas.html, shas.css, shas.js,
+        contentLength, kind, actorUserId, null,
+    ]);
+    return {
+        id, webpageId, seq, summary: String(opts.summary || 'Release'),
+        htmlSha: shas.html, cssSha: shas.css, jsSha: shas.js,
+        contentLength, source: kind, actorUserId,
+    };
+}
+
+/**
  * De W4-velden van één rij, met de "onbekend is niet nul"-regel op één plek.
  *
  * `seq` en `line_delta` komen als NULL terug op elke rij van vóór hun kolom
@@ -315,12 +367,18 @@ async function getVersion(userId, versionId) {
 // to that webpage so a caller can't remove another tenant's version by guessing
 // its id (defense in depth behind the route's ownership check). The RustFS
 // objects are keyed by (userId, webpageId, slot, versionId).
-async function deleteVersion(userId, versionId, webpageId = null) {
+async function deleteVersion(userId, versionId, webpageId = null, { managedWrite = null } = {}) {
     await initDB();
     const r = webpageId
         ? await getOne('SELECT * FROM webpage_versions WHERE id = $1 AND webpage_id = $2', [versionId, webpageId])
         : await getOne('SELECT * FROM webpage_versions WHERE id = $1', [versionId]);
     if (!r) return false;
+    // The snapshot a managed page's audience reads is the deploy's (it pinned
+    // it); deleting it would leave the stage serving nothing.
+    const page = await getOne('SELECT published_version_id FROM webpages WHERE id = $1', [r.webpage_id]);
+    if (page && page.published_version_id === r.id) {
+        await assertWebpageWrite(r.webpage_id, ['publishedVersionId'], { managedWrite });
+    }
     await run('DELETE FROM webpage_versions WHERE id = $1', [r.id]);
     // Delete the version's RustFS objects (text slots + the snapshotted DB)
     for (const slot of VERSIONED_SLOTS) {
@@ -365,6 +423,7 @@ async function shouldAutoVersion(webpageId, source = null) {
 
 module.exports = {
     createVersion,
+    createVersionSnapshotFromFiles,
     getVersions,
     getVersion,
     getVersionMeta,

@@ -1,6 +1,6 @@
 /**
  * The list body: skeleton, error, an empty state that says how to start, or
- * the routines — each opening on a tap and offering its menu on a hold. The
+ * the automations — each opening on a tap and offering its menu on a hold. The
  * rows' renderItem is declared at module level (ARCHITECTURE, Performance)
  * and reads the running set and the menu handler from RowContext.
  */
@@ -74,15 +74,15 @@ export function AutomationsList({
                 icon="Zap"
                 title={t('mobile.automations.no_match', 'Nothing matches that')}
                 message={t('mobile.automations.no_match_hint', 'Try another word, or clear the filter.')}
-                actionLabel={t('routines.overview.clearFilters', 'Clear filters')}
+                actionLabel={t('automations.overview.clearFilters', 'Clear filters')}
                 onAction={onClearFilters}
             />
         ) : (
             <EmptyState
                 icon="Zap"
-                title={t('routines.empty', 'No routines yet')}
+                title={t('automations.empty', 'No automations yet')}
                 message={t('mobile.automations.empty_hint', 'Build one step by step, or start from a template.')}
-                actionLabel={t('routines.new', 'New routine')}
+                actionLabel={t('automations.new', 'New automation')}
                 onAction={onNew}
             />
         );

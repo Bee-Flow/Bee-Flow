@@ -7,10 +7,16 @@
  * a model. What this pins:
  *
  *   - anything but a list of app ids is a 400, before the stream opens;
- *   - `[]` still means "all apps" (the meeting-notes panel sends it on purpose);
+ *   - `[]` still means "all apps" in ideas mode (the meeting-notes panel sends
+ *     it on purpose);
  *   - a focus is no longer cut at 280 characters;
- *   - the feedback body is checked, and the scan's own suggestion object —
- *     with keys this route never reads — is still accepted.
+ *   - `mode` and `sources` are checked as well;
+ *   - the feedback body is checked, the scan's own suggestion object — with
+ *     keys this route never reads — is still accepted, and what is stored is
+ *     an allow-list that never includes the build prompt.
+ *
+ * Collaborators are injected through createSuggestionsRouter; the ideas scan
+ * itself is the real one with its model stubbed.
  *
  * Run: cd server && node --test routes/ai/automationBuilder/suggestions.validation.test.js
  */
@@ -21,176 +27,149 @@ process.env.NODE_ENV = 'test';
 
 const test = require('node:test');
 const assert = require('node:assert');
-const Module = require('module');
-
-const events = [];     // SSE events the scan sent
-const saved = [];      // feedback rows written
-let prompts = [];      // system prompts the scan built
-let betaOn = true;
-const pass = (req, res, next) => next();
-
-const MOCKS = {
-    '../../../stores/automationStore': { getAutomationsForUser: async () => [] },
-    '../../../core/llm/modelResolver': {
-        isEUModeActive: async () => ({ isEU: false }),
-        resolveModelForTierName: async () => 'fast-model',
-    },
-    '../../../core/llm/llmClient': {
-        chatForcedTool: async () => ({ structured: null, content: '' }),
-    },
-    '../../../auth/permissions': { requireAuth: pass },
-    './rateLimits': { suggestRateLimit: pass, feedbackRateLimit: pass },
-    '../../../core/entitlements/betaFeatures': { userHasBetaFeature: async () => betaOn },
-    '../../../core/http/sseHelpers': {
-        setupSSE: () => ({ sendEvent: (e, d) => events.push([e, d]), abortController: new AbortController(), markEnded() {} }),
-        startSseHeartbeat: () => () => {},
-    },
-    '../../../automation/suggestions': {
-        buildScanSystemPrompt: (opts) => { prompts.push(opts); return 'sys'; },
-        buildScanDigest: () => '',
-        parseSuggestionsJson: () => [],
-        extractSuggestionsFromToolCall: () => [],
-        normaliseSuggestions: () => [],
-        buildActivityIndex: () => null,
-        computeScanCacheKey: () => 'k',
-        resolveActivityFilter: () => ({}),
-        fingerprintTitle: (title) => `fp:${title}`,
-        SUGGESTIONS_TOOL: {},
-    },
-    '../../../stores/suggestionScanCache': {
-        deriveScopeKey: () => 'scope',
-        getCachedScan: async () => null,
-        upsertScan: async () => {},
-        removeSuggestionsFromScope: async () => {},
-    },
-    '../../../stores/suggestionFeedbackStore': {
-        VALID_ACTIONS: ['dismissed', 'built', 'asked'],
-        getRecentSuppressedTitles: async () => [],
-        saveSuggestionFeedback: async (row) => { saved.push(row); },
-    },
-    '../../../stores/integrationActivityStore': { getIntegrationByTool: async () => [] },
-    // Only write tools are available, so a scan is one ideation call.
-    '../../../core/integrations/integrationTools': {
-        getIntegrationTools: async () => ({ tools: [{ function: { name: 'gmail_send' } }, { function: { name: 'drive_upload' } }] }),
-    },
-    '../../../automation/sideEffectMap': { isSideEffect: () => true },
-    '../../../core/integrations/integrationToolMap': { resolveIntegration: (name) => ({ integration: name.split('_')[0] }) },
-    '../../../core/tools/toolDispatcher': { executeTool: async () => ({}) },
-    '../../../core/automationRunner/safety': {
-        resolveAutomationPolicy: async () => ({}),
-        buildAuditBase: () => ({}),
-    },
-};
-
-const MOCK_IDS = {};
-for (const [request, exportsObj] of Object.entries(MOCKS)) {
-    const mockId = `mock:suggestions-validation:${request}`;
-    MOCK_IDS[request] = mockId;
-    require.cache[mockId] = { id: mockId, filename: mockId, loaded: true, exports: exportsObj };
-}
-const originalResolve = Module._resolveFilename;
-Module._resolveFilename = function (request, parent, ...rest) {
-    if (parent && /automationBuilder[\\/]suggestions\.js$/.test(parent.filename)
-        && Object.prototype.hasOwnProperty.call(MOCK_IDS, request)) {
-        return MOCK_IDS[request];
-    }
-    return originalResolve.call(this, request, parent, ...rest);
-};
-
-const router = require('./suggestions');
-test.after(() => { Module._resolveFilename = originalResolve; });
-
-// A schema refusal travels as an error to the terminal handler, so the
-// harness has to answer one the way index.js does.
+const { createSuggestionsRouter } = require('./suggestions');
+const { runIdeasScan } = require('../../../automation/patterns/ideation');
+const { mountSuggestions, framesOf, pass } = require('../../../testUtils/suggestionsRouteHarness');
 const { terminalErrorHandler } = require('../../../core/http/terminalErrorHandler');
 
-function post(url, body) {
-    return new Promise((resolve, reject) => {
-        const req = {
-            method: 'POST', url, originalUrl: url, path: url, body, query: {}, headers: {},
-            session: { user: { id: 'u1', organizationId: 'orgA' } }, get() { return undefined; },
-        };
-        const res = {
-            statusCode: 200, headersSent: false,
-            status(c) { this.statusCode = c; return this; },
-            json(b) { this.body = b; this.headersSent = true; resolve(this); return this; },
-            send(b) { this.body = b; this.headersSent = true; resolve(this); return this; },
-            end() { this.headersSent = true; resolve(this); return this; },
-        };
-        router(req, res, (err) => {
-            if (!err) return reject(new Error(`fell through: POST ${url}`));
-            terminalErrorHandler(err, req, res, (e) => reject(e));
-        });
-    });
-}
+const saved = [];      // feedback rows written
+const calls = [];      // model calls: [modelId, messages]
+let betaOn = true;
 
-test.beforeEach(() => { events.length = 0; saved.length = 0; prompts = []; betaOn = true; });
+const resolveIntegration = (name) => ({ integration: name.split('_')[0] });
+const llmClient = {
+    chatForcedTool: async (modelId, messages) => { calls.push([modelId, messages]); return { structured: { suggestions: [] }, content: '' }; },
+};
+
+const router = createSuggestionsRouter({
+    requireAuth: pass, suggestRateLimit: pass, feedbackRateLimit: pass,
+    userHasBetaFeature: async () => betaOn,
+    // Only write tools are available, so an ideas scan is one ideation call.
+    getIntegrationTools: async () => ({ tools: [{ function: { name: 'gmail_send' } }, { function: { name: 'drive_upload' } }] }),
+    resolveIntegration,
+    isEUModeActive: async () => ({ isEU: false }),
+    resolveModelForTierName: async () => 'fast-model',
+    llmClient,
+    safety: {
+        resolveAutomationPolicy: async () => ({ shield: null }),
+        buildAuditBase: (_ctx, _step, opts) => ({ source: opts.source }),
+        guardAiInput: async () => ({ blocked: false }),
+    },
+    scanCache: {
+        deriveScopeKey: ({ userId }) => `user:${userId}`,
+        getCachedScan: async () => null,
+        upsertScan: async () => {},
+        removeSuggestionsFromScope: async () => 0,
+    },
+    feedbackStore: { saveSuggestionFeedback: async (row) => { saved.push(row); } },
+    makeScanReader: () => ({ read: async () => ({ ok: true, value: {} }), gate: { forModel: async (c) => c } }),
+    runIdeasScan: (input) => runIdeasScan(input, {
+        llmClient,
+        isSideEffect: () => true,
+        resolveIntegration,
+        getIntegrationByTool: async () => [],
+        getAutomations: async () => [],
+        getRecentSuppressedTitles: async () => [],
+        guardAiInput: async () => ({ blocked: false }),
+    }),
+    suppressIdeas: async (s) => s,
+    logUsage: async () => {},
+});
+
+const srv = mountSuggestions(test, router, { errorHandler: terminalErrorHandler });
+const systemPrompt = (i) => calls[i][1][0].content;
+
+test.beforeEach(() => { saved.length = 0; calls.length = 0; betaOn = true; });
 
 test('one app sent as text is refused, instead of scanning EVERY connected app', async () => {
     for (const integrationIds of ['gmail', [' '], [42]]) {
-        const res = await post('/suggest', { integrationIds });
-        assert.strictEqual(res.statusCode, 400, JSON.stringify(integrationIds));
+        const res = await srv.post('/suggest', { mode: 'ideas', integrationIds });
+        assert.strictEqual(res.status, 400, JSON.stringify(integrationIds));
         assert.ok(res.body.details.some((d) => d.path.startsWith('body.integrationIds')));
+        assert.deepStrictEqual(res.frames, [], 'the stream never opened');
     }
-    assert.deepStrictEqual(events, [], 'the stream never opened');
-    assert.deepStrictEqual(prompts, []);
+    assert.deepStrictEqual(calls, []);
 });
 
 test('a misspelled key is refused rather than read as "no selection"', async () => {
-    const res = await post('/suggest', { integrationIDs: ['gmail'] });
-    assert.strictEqual(res.statusCode, 400);
-    assert.deepStrictEqual(prompts, []);
+    const res = await srv.post('/suggest', { integrationIDs: ['gmail'] });
+    assert.strictEqual(res.status, 400);
+    assert.deepStrictEqual(calls, []);
 });
 
-test('a picked app narrows the scan; [] still means all of them', async () => {
-    await post('/suggest', { integrationIds: ['Gmail'] });
-    assert.deepStrictEqual(prompts[0].selectedIntegrations, ['gmail']);
-    await post('/suggest', { integrationIds: [] });
-    assert.deepStrictEqual(prompts[1].selectedIntegrations.sort(), ['drive', 'gmail']);
+test('an unknown mode, or sources that are not a list, is a 400 that says so', async () => {
+    let res = await srv.post('/suggest', { mode: 'magic' });
+    assert.strictEqual(res.status, 400);
+    assert.match(res.body.error, /mode is patterns or ideas/);
+    res = await srv.post('/suggest', { sources: 'mail' });
+    assert.strictEqual(res.status, 400);
+    assert.match(res.body.error, /sources is a list of source ids/);
 });
 
-test('a focus past 280 characters reaches the model whole', async () => {
+test('ideas mode: a picked app narrows the scan; [] still means all of them', async () => {
+    await srv.post('/suggest', { mode: 'ideas', integrationIds: ['Gmail'] });
+    assert.match(systemPrompt(0), /tools for these integrations: gmail\./);
+    await srv.post('/suggest', { mode: 'ideas', integrationIds: [], force: true });
+    assert.match(systemPrompt(1), /tools for these integrations: (gmail, drive|drive, gmail)\./);
+});
+
+test('ideas mode: a focus past 280 characters reaches the model whole', async () => {
     const focus = `${'Rules that run on a finished meeting note. '.repeat(6)}Wanted: file the notes in the Sales KB`;
     assert.ok(focus.length > 280);
-    const res = await post('/suggest', { integrationIds: [], focus, force: 'true' });
-    assert.strictEqual(res.statusCode, 200);
-    assert.ok(prompts[0].focus.endsWith('Wanted: file the notes in the Sales KB'));
+    const res = await srv.post('/suggest', { mode: 'ideas', integrationIds: [], focus, force: 'true' });
+    assert.strictEqual(res.status, 200);
+    assert.ok(systemPrompt(0).includes('Wanted: file the notes in the Sales KB'));
+    assert.strictEqual(framesOf(res.frames, 'done')[0].mode, 'ideas');
 });
 
 test('a focus past the cap is a 400 that says the cap', async () => {
-    const res = await post('/suggest', { focus: 'x'.repeat(2001) });
-    assert.strictEqual(res.statusCode, 400);
+    const res = await srv.post('/suggest', { focus: 'x'.repeat(2001) });
+    assert.strictEqual(res.status, 400);
     assert.match(res.body.error, /at most 2000 characters/);
 });
 
 test('the beta gate answers before the schema: a 403 stays a 403', async () => {
     betaOn = false;
-    const res = await post('/suggest', { integrationIds: 'gmail' });
-    assert.strictEqual(res.statusCode, 403);
+    const res = await srv.post('/suggest', { integrationIds: 'gmail' });
+    assert.strictEqual(res.status, 403);
 });
 
-test('feedback on the scan\'s own suggestion object is accepted, and stores five named fields', async () => {
+test('feedback on the scan\'s own suggestion object is accepted, and stores an allow-list without the build prompt', async () => {
     const suggestion = {
-        id: 'sug_1', title: 'Weekly digest', buildPrompt: 'Build a digest', complexity: 'quick',
+        id: 'pat_1', title: 'Weekly digest', buildPrompt: 'Mail someone@example.test every Monday', complexity: 'quick',
         requiredIntegrations: ['gmail'], groundedIn: 'activity',
         description: 'x', triggerKind: 'schedule', evidence: { hits: 3 }, value: { score: 2 },
+        pattern: { kind: 'mail_template', signature: 'abcdef0123456789', apps: ['gmail'], template: 'Digest <date>', draft: { x: 1 } },
     };
-    const res = await post('/feedback', { action: 'built', suggestion });
-    assert.strictEqual(res.statusCode, 200);
-    assert.deepStrictEqual(Object.keys(saved[0].suggestion).sort(), ['buildPrompt', 'complexity', 'groundedIn', 'requiredIntegrations', 'title']);
+    const res = await srv.post('/feedback', { action: 'dismissed', signature: 'abcdef0123456789', reasonCode: 'do_myself', suggestion });
+    assert.strictEqual(res.status, 200);
+    assert.deepStrictEqual(Object.keys(saved[0].suggestion).sort(), ['apps', 'kind', 'signature', 'template', 'title']);
+    assert.ok(!JSON.stringify(saved[0].suggestion).includes('example.test'));
+    assert.strictEqual(saved[0].signature, 'abcdef0123456789');
+    assert.strictEqual(saved[0].reasonCode, 'do_myself');
+    assert.strictEqual(saved[0].userId, 'u1');
 });
 
-test('feedback with no suggestion, an unknown action or a reason that is not text is refused', async () => {
+test('feedback with no suggestion, an unknown action, a bad reason code or signature, or a reason that is not text is refused', async () => {
     const cases = [
         [{ action: 'built' }, /suggestion.title is required/],
-        [{ action: 'liked', suggestion: { title: 'T' } }, /dismissed, built or asked/],
+        [{ action: 'liked', suggestion: { title: 'T' } }, /dismissed, built, asked, snoozed or opened/],
+        [{ action: 'dismissed', suggestion: { title: 'T' }, reasonCode: 'boring' }, /reasonCode is wrong_grouping/],
+        [{ action: 'snoozed', suggestion: { title: 'T' }, signature: 'x y' }, /pattern signature the scan returned/],
         [{ action: 'dismissed', suggestion: { title: 'T' }, reason: 42 }, /reason must be text/],
         [{ action: 'dismissed', suggestion: { title: 'T' }, reasn: 'typo' }, /Unrecognized key/],
     ];
     for (const [body, message] of cases) {
-        const res = await post('/feedback', body);
-        assert.strictEqual(res.statusCode, 400, JSON.stringify(body));
+        const res = await srv.post('/feedback', body);
+        assert.strictEqual(res.status, 400, JSON.stringify(body));
         assert.match(res.body.error, message);
     }
+    assert.deepStrictEqual(saved, []);
+});
+
+test('a reason code goes with a dismiss only: anything else is a 400 with its own code', async () => {
+    const res = await srv.post('/feedback', { action: 'snoozed', reasonCode: 'privacy', signature: 'abcdef0123456789', suggestion: { title: 'T' } });
+    assert.strictEqual(res.status, 400);
+    assert.strictEqual(res.body.code, 'reason_code_needs_dismiss');
     assert.deepStrictEqual(saved, []);
 });

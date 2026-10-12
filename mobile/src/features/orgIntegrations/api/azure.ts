@@ -24,7 +24,7 @@ const path = (orgId: string) => `/api/org-azure-config/${seg(orgId)}`;
 
 /** One section's save; the body carries `section` and that section's keys only. */
 export type AzureSectionBody =
-    | { section: 'openai'; azureEndpoint: string; azureApiKey?: string; azureApiVersion: string; azureModels: string }
+    | { section: 'openai'; azureEndpoint: string; azureApiKey?: string; azureModels: string }
     | { section: 'chatModels'; chatModelTiers: Record<string, Record<string, unknown>> }
     | {
           section: 'docProcessing';

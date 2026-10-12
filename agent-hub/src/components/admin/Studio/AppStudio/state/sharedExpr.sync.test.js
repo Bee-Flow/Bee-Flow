@@ -13,7 +13,7 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const FE_DIR = path.resolve(HERE, '../../../../../shared/expr');
 const SERVER_DIR = path.resolve(HERE, '../../../../../../../server/shared/expr');
 
-const SHARED_FILES = ['functions.mjs', 'engine.mjs', 'index.mjs', 'corpus.mjs', 'topics.mjs'];
+const SHARED_FILES = ['functions.mjs', 'engine.mjs', 'index.mjs', 'corpus.mjs', 'topics.mjs', 'sheet.mjs', 'sheetFill.mjs'];
 
 describe('shared expr engine — FE copy stays byte-identical to the server copy', () => {
     for (const file of SHARED_FILES) {

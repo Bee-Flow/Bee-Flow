@@ -1,5 +1,5 @@
 /**
- * A routine's saved versions (routes/automation/versions.js). None of these
+ * An automation's saved versions (routes/automation/versions.js). None of these
  * routes reads a query, and the restore reads no body: the version is in the
  * path and nothing else about it is negotiable.
  *

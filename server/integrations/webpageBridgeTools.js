@@ -62,7 +62,7 @@ const WEBPAGE_BRIDGE_TOOLS = [
         type: 'function',
         function: {
             name: 'webpage_list_my_automations',
-            description: 'List the page author\'s own automations (studio routines). Call before granting one to a page.',
+            description: 'List the page author\'s own automations (studio automations). Call before granting one to a page.',
             parameters: { type: 'object', properties: {} },
         },
     },

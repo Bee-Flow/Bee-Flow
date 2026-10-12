@@ -2,7 +2,7 @@
 // reset the timer; the wrapped call fires `ms` milliseconds after the
 // last invocation.
 //
-// Replaces the inline debounce-ref pattern in RoutineEditor, PreviewFrame,
+// Replaces the inline debounce-ref pattern in AutomationEditor, PreviewFrame,
 // WebpagePickerPopover, MemoryPanel, MarkdownRenderer, etc.
 //
 //   const saveDraft = useDebouncedCallback((draft) => persist(draft), 500);

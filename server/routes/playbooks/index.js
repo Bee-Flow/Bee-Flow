@@ -2,11 +2,11 @@
  * Studio Playbooks — phased AI builds the user watches and consents to.
  *
  * Mounted at /api/playbooks (index.js). The CLIENT drives the two AI builders
- * (routine, app) by mounting them; THIS router owns the entity, composes every
+ * (automation, app) by mounting them; THIS router owns the entity, composes every
  * phase's brief from the recipe with real artifacts, runs the two phases no
  * model touches (`table`, `fill`), pre-creates the app for the `app` phase,
  * and checks every transition. Owner-only: a playbook's artifacts are the
- * owner's routine and app; another user gets 404, never 403 on existence.
+ * owner's automation and app; another user gets 404, never 403 on existence.
  *
  *   GET    /recipes                         { recipes, approvalsAllowed }
  *   GET    /                                { playbooks:[…] }
@@ -33,7 +33,7 @@
  * compose, create and every model call a phase makes run on a tier the
  * caller's groups allow), 404, 409
  * (version_conflict {currentVersion, playbook}, illegal_transition {from,to},
- * routine_not_finalized, capability_missing, artifacts_missing, phase_not_ready,
+ * automation_not_finalized, capability_missing, artifacts_missing, phase_not_ready,
  * key_taken), 422 (table_unusable {missing}, table_read_only, trigger_not_manual).
  *
  * The handlers live in routes/playbooks/ per resource group; this file is the

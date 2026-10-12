@@ -1,18 +1,25 @@
 // The unified Condition editor (If / Switch / Filter), extracted verbatim
 // from SettingsForm.jsx.
-import { Plus, Trash2 } from 'lucide-react';
+import { getList } from '@shared/expr/path.mjs';
+import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { walkPath } from '../../../../../utils/bindingHelpers';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 import ConditionBuilder from '../../mapping/ConditionBuilder';
 import PathField from '../../mapping/PathField';
-import { sampleToFields } from '../../mapping/upstream';
+import { resolveElementSample, sampleToFields } from '../../mapping/upstream';
 import { VariablePickerProvider, useVariablePickerContext } from '../../mapping/VariablePickerContext';
 import AccordionSection from '../AccordionSection';
 import { humanizeFieldKey } from '../displayHelpers';
 import { readRoute, uniqueRuleName } from '../routeModel';
 import { SourceSummaryRow, CollectionArrayRefField, useElementSample } from './collectionEditors';
 import { cardClass, FormRow, inputClass, rowInputClass } from './formPrimitives';
+import { INLINE_LINK } from './formStyles';
 import RouteAssist from './RouteAssist';
+import {
+    fieldNameOf, itemNameOf, listUnitOf, ruleFieldMenu, rulesForSource, withNamedFirst, withoutRowsReading, workThroughListPatch,
+} from './routeEditorsModel';
+import { OutputsChooser } from './routeEditorsOutputs';
+import { NoticeFixAnchor, StaleSuccessorsNotice, UnfitRulesNotice, useNoticeFix, WholeListNotice } from './SourceNotices';
 
 /**
  * The unified "Condition" editor — one form for what used to be four palette
@@ -56,7 +63,14 @@ function RouteFields({
     // `{ available, reason }`: offers "is about" in the conditions (the topic
     // classifier); null when the server does not say. See SettingsForm.
     topics = null,
+    // `{ stale, follow }`: next steps that still read the list this node
+    // filters, and the fix (useNodeDetailData; W7). null when none apply.
+    routeFollow = null,
+    // `{ lists, loops }`: a whole-run Condition that reads a list as a whole,
+    // and the loops after it (useNodeDetailData; BFSF-485). null otherwise.
+    wholeRun = null,
 }) {
+    const { t } = useTranslation();
     const pickerCtx = useVariablePickerContext();
     const route = draft.route || readRoute(step);
     const setRoute = (patch) => set('route', { ...route, ...patch });
@@ -74,6 +88,11 @@ function RouteFields({
     // Which outputs would lose a canvas connection if the node collapsed back
     // to one — held in state so the click ASKS before it destroys wiring.
     const [collapseAsk, setCollapseAsk] = useState(null);
+    // The rules a list change left reading fields the new item lacks (R11).
+    const [unfit, setUnfit] = useState(null);
+    const itemName = useMemo(() => itemNameOf(route.source), [route.source]);
+    // A notice's fix removes the notice: focus goes here instead of <body>.
+    const noticeFix = useNoticeFix();
 
     // Scope the per-item rules to the CURRENT ITEM: an `item` group + sample
     // root so `item.<field>` resolves, datatypes infer, and drag-to-map works.
@@ -99,20 +118,40 @@ function RouteFields({
     // one item ("Subject", "From"); otherwise everything the upstream steps
     // produce, grouped by step. Paths stay internal — see FieldPicker.
     const fieldOptions = useMemo(
-        () => (items ? itemFieldOptions(elementSample) : upstreamFieldOptions(pickerCtx.groups)),
-        [items, elementSample, pickerCtx.groups],
+        () => (items ? ruleFieldMenu(elementSample, itemName, t) : upstreamFieldOptions(pickerCtx.groups)),
+        [items, elementSample, itemName, t, pickerCtx.groups],
     );
 
     // The sample rows "Suggest outputs" counts against. They are the rows the
     // editor ALREADY has — whatever the step above last produced, resolved
     // through the same path the rules will be evaluated against — never
     // anything invented for the preview. In whole-run mode there is no list to
-    // count, and the box says so rather than reporting "1 of 1".
-    const sampleRows = useMemo(() => {
-        if (!items || !route.source) return null;
-        const value = walkPath(route.source, previewSample);
-        return Array.isArray(value) ? value : null;
-    }, [items, route.source, previewSample]);
+    // count, and the box says so rather than reporting "1 of 1". Read with
+    // the run's own list reader, so a list held as JSON text counts too (R10).
+    const sampleRows = useMemo(
+        () => (items && route.source && previewSample ? getList(previewSample, route.source) : null),
+        [items, route.source, previewSample],
+    );
+
+    // A new list (R11): rules over the inner list move onto its entry, and
+    // rules the new item cannot read are named, never dropped silently.
+    const changeSource = (next) => {
+        const element = resolveElementSample(next, previewSample);
+        const r = rulesForSource(rules, route.source || '', next || '', element);
+        setRoute({ source: next, rules: r.rules });
+        setUnfit(r.unfit.length ? { paths: r.unfit, itemName: itemNameOf(next) } : null);
+    };
+    const removeUnfit = () => {
+        setRoute({ rules: withoutRowsReading(rules, unfit?.paths || []) });
+        setUnfit(null);
+    };
+    // "Check each item instead": false when no rule reads an item of the list.
+    const workThroughList = (list) => {
+        const patch = workThroughListPatch(rules, list);
+        if (!patch) return false;
+        setRoute(patch);
+        return true;
+    };
 
     /**
      * Accept a suggestion.
@@ -168,8 +207,12 @@ function RouteFields({
         // A rename must carry the "when nothing matches" pick with it.
         ...(patch.name && route.defaultBranch === rules[i]?.name ? { defaultBranch: patch.name } : null),
     });
+    // O3: outputs are "Output 1", "Output 2", …; the first one gets its
+    // name when it becomes a labelled port.
+    const outputName = (i) => t('condition_node.default_output_name', 'Output {n}', { n: i + 1 });
+    const withFirstName = (list) => (list.length === 1 ? withNamedFirst(list, outputName(0)) : list);
     const addRule = () => setRoute({
-        rules: [...rules, { name: uniqueRuleName(rules, `rule${rules.length + 1}`), expr: '', value: '' }],
+        rules: [...withFirstName(rules), { name: uniqueRuleName(withFirstName(rules), outputName(rules.length)), expr: '', value: '' }],
         // The 1 → several crossing is the ONLY place fan-out is switched on: a
         // node that gains its second output here is a new router, and "every
         // output is a filter with its own destination, none of them consumes
@@ -179,13 +222,22 @@ function RouteFields({
         // already had behave (routeModel.js, readMatchMode).
         ...(rules.length <= 1 ? { matchMode: 'all' } : null),
     });
+    // BFSF-406: reorder the outputs. Only the order of `cases` changes; edges
+    // are keyed by case NAME, so each connection stays on its own output (the
+    // canvas ports follow the array order).
+    const moveRule = (i, dir) => {
+        const j = i + dir;
+        if (j < 0 || j >= rules.length) return;
+        const next = rules.slice();
+        [next[i], next[j]] = [next[j], next[i]];
+        setRoute({ rules: next });
+    };
     const removeRule = (i) => setRoute({
         rules: rules.filter((_, j) => j !== i),
         ...(route.defaultBranch === rules[i]?.name ? { defaultBranch: '' } : null),
     });
 
     // ── The up-front output-count choice ─────────────────────────────────
-    const outputName = (i) => (i < 26 ? `Output ${String.fromCharCode(65 + i)}` : `Output ${i + 1}`);
     const collapseToOne = () => {
         setCollapseAsk(null);
         setRoute({
@@ -212,12 +264,14 @@ function RouteFields({
     // control of this section. Grow to two in one step instead.
     const chooseSeveral = () => {
         if (several) return;
-        const grown = [...rules];
+        const grown = [...withFirstName(rules)];
         while (grown.length < 2) {
-            grown.push({ name: uniqueRuleName(grown, `rule${grown.length + 1}`), expr: '', value: '' });
+            grown.push({ name: uniqueRuleName(grown, outputName(grown.length)), expr: '', value: '' });
         }
-        setRoute({ rules: grown, matchMode: 'all' });
+        setRoute({ rules: grown, matchMode: 'all', keepRest: false });
     };
+    // BFSF-485 F2: one output in list mode can send the rest to Otherwise.
+    const setKeepRest = (on) => setRoute(on ? { keepRest: true, rules: withFirstName(rules) } : { keepRest: false });
 
     // Legacy switches match ONE value against per-case values. They stay
     // editable as-is, and convert to full conditions in one click (lossless:
@@ -261,15 +315,28 @@ function RouteFields({
         <>
             {items && (
                 <SourceSummaryRow
-                    hint="Detected from the step above. Each item is checked against the rules below."
+                    hint={t('automations.route_editors.detected_from_the_step_above_each', 'Detected from the step above. Each item is checked against the rules below.')}
                     source={route.source}
                     maxItems={route.maxItems}
-                    onPatch={(p) => setRoute('source' in p ? { source: p.source } : { maxItems: p.maxItems })}
+                    onPatch={(p) => ('source' in p ? changeSource(p.source) : setRoute({ maxItems: p.maxItems }))}
                     groups={groups}
                     onFocusField={onFocusField}
                     previewSample={previewSample}
                 />
             )}
+            {items && <StaleSuccessorsNotice routeFollow={routeFollow} onFixed={noticeFix.done} />}
+            {items && unfit && (
+                <UnfitRulesNotice
+                    unfit={unfit.paths.map(p => fieldNameOf(p, t))}
+                    itemName={unfit.itemName}
+                    onRemove={removeUnfit}
+                    onFixed={noticeFix.done}
+                />
+            )}
+            {!items && !valueStyle && (
+                <WholeListNotice wholeRun={wholeRun} onConvert={workThroughList} onFixed={noticeFix.done} />
+            )}
+            <NoticeFixAnchor fix={noticeFix} />
 
             {/* No `|| errorSections.has('source')` here any more: the taxonomy
                 used to route a bad Source list to a section called 'source'
@@ -282,81 +349,18 @@ function RouteFields({
                     things it can be are chosen here, out loud, before anything
                     else. "+ Add rule" used to flip the node into an
                     undocumented routing mode with no explanation anywhere. */}
-                <FormRow
-                    label="How many outputs does this node have?"
-                    hint="One output filters: what matches continues, the rest stops here. Several outputs route."
-                >
-                    <div className="space-y-1.5">
-                        <div className="flex gap-1" role="group" aria-label="Number of outputs">
-                            {[
-                                { key: 'one', label: 'One output', active: !several, onClick: chooseOne },
-                                { key: 'several', label: 'Several outputs', active: several, onClick: chooseSeveral },
-                            ].map(opt => (
-                                <button
-                                    key={opt.key}
-                                    type="button"
-                                    aria-pressed={opt.active}
-                                    onClick={opt.onClick}
-                                    className={`px-2 py-1 text-[11px] rounded border transition ${opt.active
-                                        ? 'border-[var(--accent)] text-[var(--accent)] bg-[var(--accent)]/10'
-                                        : 'border-[var(--border-default)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'}`}
-                                >
-                                    {opt.label}
-                                </button>
-                            ))}
-                        </div>
-                        <div className="text-[11px] text-[var(--text-secondary)]">
-                            {/* An unconfigured node has no rules yet but still routes
-                                everything down one path, so "0 outputs" next to a
-                                pressed "One output" contradicts itself. */}
-                            This node has {Math.max(1, rules.length)} {rules.length > 1 ? 'outputs' : 'output'}.
-                        </div>
-                        {/* There is no documentation for this node anywhere, so
-                            the editor is the only place the shape can be
-                            learned. */}
-                        <div className="text-[10px] text-[var(--text-tertiary)]">
-                            Each output is a filter with its own destination — for example Output A: Subject contains urgent,
-                            Output B: Subject contains invoice.
-                        </div>
-                        {several && (
-                            <div className="text-[10px] text-[var(--text-tertiary)]">
-                                {fanOut
-                                    ? `Every output is checked on its own, so ${items ? 'an item' : 'a record'} that matches two outputs travels both paths. Whatever matches no output at all is dropped here — it stays counted as rejected.`
-                                    : `Each ${items ? 'item' : 'record'} takes the FIRST output it matches and no other. Whatever matches no output at all is dropped here. Change this under Advanced.`}
-                            </div>
-                        )}
-                        {several && (
-                            <div className="text-[10px] text-[var(--text-tertiary)]">
-                                On the canvas: an output that keeps its name keeps its connection, an output that
-                                disappears takes its connection with it.
-                            </div>
-                        )}
-                        {collapseAsk && (
-                            <div className="rounded border border-amber-500/40 bg-amber-500/10 p-2 space-y-1.5">
-                                <div className="text-[10px] text-[var(--text-primary)]">
-                                    Going back to one output removes {collapseAsk.join(', ')} — {collapseAsk.length === 1 ? 'that output is' : 'those outputs are'} wired
-                                    on the canvas, so {collapseAsk.length === 1 ? 'its connection goes' : 'their connections go'} too.
-                                </div>
-                                <div className="flex gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={collapseToOne}
-                                        className="text-[10px] text-red-500 hover:underline"
-                                    >
-                                        Remove them anyway
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setCollapseAsk(null)}
-                                        className="text-[10px] text-[var(--text-tertiary)] hover:underline"
-                                    >
-                                        Keep several outputs
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </FormRow>
+                <OutputsChooser
+                    ruleCount={rules.length}
+                    fanOut={fanOut}
+                    items={items}
+                    keepRest={!!route.keepRest}
+                    canKeepRest={!valueStyle}
+                    onChoose={(next) => (next === 'several' ? chooseSeveral() : chooseOne())}
+                    onKeepRest={setKeepRest}
+                    collapseAsk={collapseAsk}
+                    onConfirmCollapse={collapseToOne}
+                    onCancelCollapse={() => setCollapseAsk(null)}
+                />
 
                 {/* Describe-it-in-words, INSIDE the Outputs section rather
                     than in one of its own. A section is not a local decision:
@@ -376,8 +380,16 @@ function RouteFields({
                         fields={fieldOptions}
                         topics={topics}
                         sampleRows={sampleRows}
+                        /* After an accept: does a row matching several outputs
+                           go down each (applySuggestion's matchMode rule), and
+                           do unmatched rows go to Otherwise (keep-rest)? */
+                        fanOut={fanOut || rules.length <= 1}
+                        keepRest={items && !!route.keepRest}
+                        itemSample={items ? elementSample : null}
+                        onWorkThroughList={items ? changeSource : null}
                         sampleRoot={itemScope ? itemScope.previewSample : previewSample}
-                        unit={items ? 'items' : 'records'}
+                        unit={items ? listUnitOf(route.source) : 'records'}
+                        perItem={items}
                         existingRuleCount={rules.filter(r => String(r?.expr || '').trim()).length}
                         /* The outputs that are WIRED on the canvas right now.
                            An accept renames every output at once, and this
@@ -410,7 +422,7 @@ function RouteFields({
                 )}
 
                 {valueStyle && (
-                    <FormRow label="Value to check" hint="Picked once; matched against each rule's value below.">
+                    <FormRow label={t('automations.route_editors.value_to_check', 'Value to check')} hint={t('automations.route_editors.picked_once_matched_against_each_rule', 'Picked once; matched against each rule\'s value below.')}>
                         <div className="space-y-1">
                             <PathField
                                 value={route.matchOn || ''}
@@ -422,9 +434,9 @@ function RouteFields({
                             <button
                                 type="button"
                                 onClick={convertToConditions}
-                                className="text-[10px] text-[var(--accent)] hover:underline"
+                                className={`text-[10px] ${INLINE_LINK}`}
                             >
-                                Use full conditions instead
+                                {t('automations.route_editors.use_full_conditions_instead', 'Use full conditions instead')}
                             </button>
                         </div>
                     </FormRow>
@@ -437,12 +449,14 @@ function RouteFields({
                             ? `Each output has its own condition set and is checked independently — ${items ? 'an item' : 'a record'} can match several.`
                             : `Each output has its own condition set, checked in order — the first match wins.`)
                         : (items
-                            ? 'Every item is checked against this condition. Items that do not match stop here.'
+                            ? (route.keepRest
+                                ? t('condition_node.otherwise.one_keep', 'What matches continues; what doesn\'t goes to “Otherwise”; leave “Otherwise” unconnected to drop it.')
+                                : 'Every item is checked against this condition. Items that do not match stop here.')
                             : 'The run continues when this is true.')}
                 >
                     <div className="space-y-2">
                         {rules.length === 0 && (
-                            <div className="text-[11px] text-[var(--text-tertiary)] italic">No outputs yet — add one.</div>
+                            <div className="text-[11px] text-[var(--text-tertiary)] italic">{t('automations.route_editors.no_outputs_yet_add_one', 'No outputs yet — add one.')}</div>
                         )}
                         {rules.map((r, i) => (
                             <div key={i} className={namesMatter ? cardClass() : ''}>
@@ -460,6 +474,26 @@ function RouteFields({
                                         />
                                         <button
                                             type="button"
+                                            onClick={() => moveRule(i, -1)}
+                                            disabled={i === 0}
+                                            aria-label={t('automations.route_editors.move_output_up', 'Move output up')}
+                                            title={t('automations.route_editors.move_output_up', 'Move output up')}
+                                            className="p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-30 disabled:hover:bg-transparent"
+                                        >
+                                            <ArrowUp size={12} />
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => moveRule(i, 1)}
+                                            disabled={i === rules.length - 1}
+                                            aria-label={t('automations.route_editors.move_output_down', 'Move output down')}
+                                            title={t('automations.route_editors.move_output_down', 'Move output down')}
+                                            className="p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-30 disabled:hover:bg-transparent"
+                                        >
+                                            <ArrowDown size={12} />
+                                        </button>
+                                        <button
+                                            type="button"
                                             onClick={() => removeRule(i)}
                                             className="p-1 rounded text-[var(--text-tertiary)] hover:text-red-500 hover:bg-red-500/10"
                                             title={wiredCaseNames?.has?.(r.name)
@@ -472,7 +506,7 @@ function RouteFields({
                                 )}
                                 {namesMatter && wiredCaseNames?.has?.(r.name) && (
                                     <div className="text-[10px] text-[var(--text-tertiary)]">
-                                        Wired on the canvas — renaming keeps the connection; removing drops it.
+                                        {t('automations.route_editors.wired_on_the_canvas_renaming_keeps', 'Wired on the canvas — renaming keeps the connection; removing drops it.')}
                                     </div>
                                 )}
                                 {valueStyle
@@ -483,33 +517,33 @@ function RouteFields({
                         <button
                             type="button"
                             onClick={addRule}
-                            title="Each output gets its own condition set and its own port on the node"
+                            title={t('automations.route_editors.each_output_gets_its_own_condition', 'Each output gets its own condition set and its own port on the node')}
                             className="flex items-center gap-1 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] px-2 py-1 rounded transition"
                         >
-                            <Plus size={12} /> Add output
+                            <Plus size={12} /> {t('automations.route_editors.add_output', 'Add output')}
                         </button>
                         <div className="text-[10px] text-[var(--text-tertiary)]">
-                            Text comparisons ignore upper/lower case.
+                            {t('automations.route_editors.text_comparisons_ignore_upper_lower_case', 'Text comparisons ignore upper/lower case.')}
                         </div>
                     </div>
                 </FormRow>
             </AccordionSection>
 
-            <AccordionSection stepType={step.type} sectionKey="advanced" title="Advanced" forceOpen={errorSections.has('advanced')}>
-                <FormRow label="Deciding about" hint="Detected from the step above — override it here if the guess is wrong.">
+            <AccordionSection stepType={step.type} sectionKey="advanced" title={t('automations.route_editors.advanced', 'Advanced')} forceOpen={errorSections.has('advanced')}>
+                <FormRow label={t('automations.route_editors.deciding_about', 'Deciding about')} hint={t('automations.route_editors.detected_from_the_step_above_override', 'Detected from the step above — override it here if the guess is wrong.')}>
                     <select
                         value={items ? 'items' : 'branch'}
                         onChange={(e) => setRoute(e.target.value === 'items' ? { mode: 'items' } : { mode: 'branch' })}
                         className={inputClass()}
                     >
-                        <option value="items">Each item of a list</option>
-                        <option value="branch">The whole run</option>
+                        <option value="items">{t('automations.route_editors.each_item_of_a_list', 'Each item of a list')}</option>
+                        <option value="branch">{t('automations.route_editors.the_whole_run', 'The whole run')}</option>
                     </select>
                 </FormRow>
                 {items && (
                     <CollectionArrayRefField
                         draft={{ arrayRef: route.source || '', maxItems: route.maxItems }}
-                        set={(k, v) => setRoute(k === 'arrayRef' ? { source: v } : { maxItems: v })}
+                        set={(k, v) => (k === 'arrayRef' ? changeSource(v) : setRoute({ maxItems: v }))}
                         groups={groups}
                         onFocusField={onFocusField}
                         previewSample={previewSample}
@@ -523,27 +557,27 @@ function RouteFields({
                     persists 'all' and CLEARS the key for 'first'). */}
                 {several && (
                     <FormRow
-                        label="When several outputs match"
-                        hint="Routines built before this existed keep sending each record down the first match only, until you change it here."
+                        label={t('automations.route_editors.when_several_outputs_match', 'When several outputs match')}
+                        hint={t('automations.route_editors.automations_built_before_this_existed_keep', 'Automations built before this existed keep sending each record down the first match only, until you change it here.')}
                     >
                         <select
                             value={fanOut ? 'all' : 'first'}
                             onChange={(e) => setRoute({ matchMode: e.target.value === 'all' ? 'all' : 'first' })}
                             className={inputClass()}
                         >
-                            <option value="all">Send it to every matching output</option>
-                            <option value="first">Send it to the first matching output only</option>
+                            <option value="all">{t('automations.route_editors.send_it_to_every_matching_output', 'Send it to every matching output')}</option>
+                            <option value="first">{t('automations.route_editors.send_it_to_the_first_matching', 'Send it to the first matching output only')}</option>
                         </select>
                     </FormRow>
                 )}
                 {rules.length > 1 && (
-                    <FormRow label="When nothing matches" hint="Send unmatched values to one of your rules, or use the node's otherwise output.">
+                    <FormRow label={t('automations.route_editors.when_nothing_matches', 'When nothing matches')} hint={t('automations.route_editors.send_unmatched_values_to_one_of', 'Send unmatched values to one of your rules, or use the node\'s otherwise output.')}>
                         <select
                             value={route.defaultBranch || ''}
                             onChange={(e) => setRoute({ defaultBranch: e.target.value })}
                             className={inputClass()}
                         >
-                            <option value="">Use the otherwise output</option>
+                            <option value="">{t('condition_node.otherwise.use', 'Use the Otherwise output')}</option>
                             {rules.filter(r => r.name).map(r => (
                                 <option key={r.name} value={r.name}>{r.name}</option>
                             ))}
@@ -551,7 +585,7 @@ function RouteFields({
                     </FormRow>
                 )}
                 {expressions.length > 0 && (
-                    <FormRow label="Expression" hint="What the rules above compile to. Read-only — edit the rules to change it.">
+                    <FormRow label={t('automations.route_editors.expression', 'Expression')} hint={t('automations.route_editors.what_the_rules_above_compile_to', 'What the rules above compile to. Read-only — edit the rules to change it.')}>
                         <div className="space-y-1">
                             {expressions.map((e, i) => (
                                 <div key={i} className="text-[10px] font-mono text-[var(--text-tertiary)] break-all">{e}</div>
@@ -562,27 +596,6 @@ function RouteFields({
             </AccordionSection>
         </>
     );
-}
-
-/**
- * Named fields of ONE item of the source list, one nesting level deep — the
- * options the rule rows offer in list mode ("Subject", "From · email").
- */
-function itemFieldOptions(elementSample) {
-    if (elementSample == null || typeof elementSample !== 'object' || Array.isArray(elementSample)) return [];
-    const out = [];
-    for (const f of sampleToFields(elementSample, 'item')) {
-        out.push({ path: f.path, label: humanizeFieldKey(f.key), sample: f.sample, group: 'Fields of each item' });
-        for (const c of (f.children || [])) {
-            out.push({
-                path: c.path,
-                label: `${humanizeFieldKey(f.key)} · ${humanizeFieldKey(c.key)}`,
-                sample: c.sample,
-                group: 'Fields of each item',
-            });
-        }
-    }
-    return out;
 }
 
 /** Named fields of every upstream step — the options in whole-run mode. */
@@ -620,13 +633,14 @@ function upstreamFieldOptions(groups) {
  * path through this node, now that the mode override, the source path and the
  * compiled expression have all moved under Advanced. "Case" and "port" are
  * words from the runtime step types (routeModel.js keeps them because every
- * saved routine speaks them); nobody typing "invoices" here has met either,
+ * saved automation speaks them); nobody typing "invoices" here has met either,
  * and the monospace face said "this is code" about a field that takes plain
  * words. The name still becomes the port label — that is explained in the
  * lines beside the field, in the section that says what happens to a wired
  * output when it is renamed.
  */
 function CaseNameInput({ name, siblingNames = [], onCommit }) {
+    const { t } = useTranslation();
     const [text, setText] = useState(name);
     const [error, setError] = useState(null);
     // Resync when the committed name changes underneath us (AI patch / undo).
@@ -656,7 +670,7 @@ function CaseNameInput({ name, siblingNames = [], onCommit }) {
                 onChange={(e) => { setText(e.target.value); if (error) setError(null); }}
                 onBlur={commit}
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); } }}
-                placeholder="Name this output — for example invoices"
+                placeholder={t('automations.route_editors.name_this_output_for_example_invoices', 'Name this output — for example invoices')}
                 aria-invalid={!!error}
                 className={rowInputClass('w-full', { invalid: !!error })}
             />
@@ -672,13 +686,14 @@ function CaseNameInput({ name, siblingNames = [], onCommit }) {
  * runtime's loose-equality match is unchanged.
  */
 function CaseValueInput({ type, value, onChange }) {
+    const { t } = useTranslation();
     if (type === 'number') {
         return (
             <input
                 type="number"
                 value={value == null || value === '' ? '' : value}
                 onChange={(e) => onChange(e.target.value === '' ? '' : Number(e.target.value))}
-                placeholder="number to match"
+                placeholder={t('automations.route_editors.number_to_match', 'number to match')}
                 className={rowInputClass('w-full')}
             />
         );
@@ -690,9 +705,9 @@ function CaseValueInput({ type, value, onChange }) {
                 onChange={(e) => onChange(e.target.value === '' ? '' : e.target.value === 'true')}
                 className={rowInputClass('w-full')}
             >
-                <option value="">(choose)</option>
-                <option value="true">true</option>
-                <option value="false">false</option>
+                <option value="">{t('automations.route_editors.choose', '(choose)')}</option>
+                <option value="true">{t('automations.route_editors.true', 'true')}</option>
+                <option value="false">{t('automations.route_editors.false', 'false')}</option>
             </select>
         );
     }
@@ -701,7 +716,7 @@ function CaseValueInput({ type, value, onChange }) {
             type="text"
             value={typeof value === 'string' ? value : (value == null ? '' : String(value))}
             onChange={(e) => onChange(e.target.value)}
-            placeholder="value to match"
+            placeholder={t('automations.route_editors.value_to_match', 'value to match')}
             className={rowInputClass('w-full')}
         />
     );

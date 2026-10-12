@@ -227,7 +227,7 @@ describe('StudioRail — a surface that owns ⌘K for its own content', () => {
     /**
      * The capture-phase takeover above is right about the DOUBLE opening and
      * wrong about which one should win on /app/studio/automations: the
-     * builder's quick switcher lists the routines and steps of the thing on
+     * builder's quick switcher lists the automations and steps of the thing on
      * screen, and Studio's search does not. Taking the chord there did not
      * disambiguate it, it removed the only answer to the question the person
      * standing in the builder was asking.

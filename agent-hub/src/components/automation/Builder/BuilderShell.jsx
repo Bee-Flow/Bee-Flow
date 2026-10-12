@@ -4,7 +4,10 @@ import UsedByButtonsCapsule from './UsedByButtonsCapsule';
 import ExecutionsPanel from '../../admin/Studio/Executions/ExecutionsPanel';
 import { BuilderConfirmProvider } from './BuilderConfirmContext';
 import BuilderHeader from './BuilderHeader';
-import InputArea from '../../chat/InputArea';
+import { deepEqual } from '../../../utils/deepEqual';
+import { reviewedProposal } from './chat/proposalChanges';
+import { hasPendingDatatableRefs } from './chat/pendingTables';
+import useTranslation from '../../../hooks/useTranslation';
 import { toast } from '../../shared/Toast';
 import BuildTab from './BuildTab';
 import { triggerAppRef } from './flow/appRefLabel';
@@ -14,9 +17,10 @@ import {
 } from './flow/flowletScope';
 import { normalizeDefinitionShape, isBlankDefinition } from './flow/normalizeDefinition';
 import { densityForOpen } from './flow/settings/formDensity';
+import { shouldAutoOpenFormOverlay, awaitingFormStepId, dismissKey } from './flow/formOverlayAutoOpen';
 import useFormModePreference from './flow/settings/useFormModePreference';
 import { triggerTypeLabel } from './flow/triggerLabels';
-import useRoutineDraftHistory from './flow/useRoutineDraftHistory';
+import useAutomationDraftHistory from './flow/useAutomationDraftHistory';
 import RunsTab from './runs/RunsTab';
 import AiActQuestionsDialog from './settings/AiActQuestionsDialog';
 import SettingsTab from './SettingsTab';
@@ -58,6 +62,7 @@ import useBuilderHotkeys from './useBuilderHotkeys';
 import useBuilderHydration from './useBuilderHydration';
 import useBuilderTabUrl from './useBuilderTabUrl';
 import useFlowletScope from './useFlowletScope';
+import usePatternOrigin from './usePatternOrigin';
 import VersionsTab from './versions/VersionsTab';
 import { publishAutomation, isAiActRefusal } from '../../../api/queries/automation/meta';
 import { readinessStamp } from '../../../api/queries/automation/readiness';
@@ -66,9 +71,12 @@ import useAutomationBuilderStream from '../../../hooks/useAutomationBuilderStrea
 import useFlowletAgentStream from '../../../hooks/useFlowletAgentStream';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import scopedStorage from '../../../utils/scopedStorage';
+import { declaresManaged, managedOf, managedRefusalOf } from '../../shared/managedPart';
+import ManagedPartBanner from '../../shared/ManagedPartBanner';
 import useConfirm from '../../shared/useConfirm';
+import { followUpPlanId } from './chat/planBuild';
 
-export default function BuilderShell({ automationId, onBack, onOpenList = null, user, initialChatInput = '', autoSendInput = null, onAutomationIdResolved = null, initialScopeKey = null, onScopeChange = null, mode = 'automation', onPublished = null, initialTab = null, initialRunId = null, initialRunStepId = null, onBuilderStateChange = null, initialAppRef = null,
+export default function BuilderShell({ automationId, onBack, onOpenList = null, onExportJson = null, user, initialChatInput = '', autoSendInput = null, onAutomationIdResolved = null, initialScopeKey = null, onScopeChange = null, mode = 'automation', onPublished = null, initialTab = null, initialRunId = null, initialRunStepId = null, onBuilderStateChange = null, initialAppRef = null,
     // Hosting hooks for a page that DRIVES the builder (Studio Playbooks):
     //   onTurnEnd({ finalized, aborted, error, automationId, messageCount })
     //     fires once per turn when the stream stops — the only way a host can
@@ -78,7 +86,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
     //     written to the user's remembered preference.
     //   backLabel — the header's back destination in the host's words.
     //   forceAssistantOpen — the host is about to auto-send a brief, so the
-    //     chat must be visible: `routinesAssistantOpen` is a per-user
+    //     chat must be visible: `automationsAssistantOpen` is a per-user
     //     preference and defaults to CLOSED, which meant a playbook could fire
     //     its brief into a pane nobody could see and the room watched a static
     //     canvas. The person may still close it; only the initial state is
@@ -87,7 +95,10 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
     //     draft the first send CREATES (the playbook stage reads `Title "…"`
     //     off its brief). Sent with every send; the server honours it only
     //     when that send creates the draft, so a re-send cannot rename.
-    onTurnEnd = null, forcedTier = null, backLabel = null, forceAssistantOpen = false, seedMetadata = null }) {
+    //   patternOrigin — the "Find repeating work" pattern this new build
+    //     was opened from ({ signature?, suggestion }); usePatternOrigin
+    //     records `built` for it once the build is done.
+    onTurnEnd = null, forcedTier = null, backLabel = null, forceAssistantOpen = false, seedMetadata = null, patternOrigin = null }) {
     const api = useAutomationApi();
     // Step mode (kind='block'): same builder, but persistence targets the
     // /api/step router, the root is an input/output contract (no real trigger),
@@ -96,11 +107,44 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
     const apiGetOne = isStep ? api.getStep : api.getAutomation;
     const apiCreateOne = isStep ? api.createStep : api.createAutomation;
     const apiUpdateOne = isStep ? api.updateStep : api.updateAutomation;
-    const unwrapRow = (r) => (r && (r.automation || r.step)) || r;
-    const { state, send, stop: stopBuild, hydrate, hydrateLastRun, setDraft, markServerConfirmed, acceptExternalDraft, dismissExternalDraft, executeStep, retryFromStep, stopRun, pollRunProgress, setRunResult, watchActiveRun, clearDryRun, clearError, setValidation, settleRun } = useAutomationBuilderStream({ automationId });
+    // `managed` sits BESIDE the row in a GET answer ({ automation, summary,
+    // managed }); it is carried onto the row so the header and the read-only
+    // switch below see it wherever they read the automation from.
+    const unwrapRow = (r) => {
+        const row = (r && (r.automation || r.step)) || r;
+        return row && r && r.automation && r.managed !== undefined ? { ...row, managed: r.managed } : row;
+    };
+    const { state, send, stop: stopBuild, hydrate, hydrateLastRun, setDraft, markServerConfirmed, acceptExternalDraft, dismissExternalDraft, dismissProposal, dismissPlan, executeStep, retryFromStep, stopRun, pollRunProgress, setRunResult, watchActiveRun, clearDryRun, clearError, setValidation, settleRun } = useAutomationBuilderStream({ automationId });
     const { serverAutomation, setServerAutomation } = useBuilderHydration({
         state, automationId, apiGetOne, unwrapRow, isStep, hydrate, hydrateLastRun, onAutomationIdResolved,
     });
+    // `built` for a pattern-born build: on finalize, activate or publish, never on the first draft save.
+    const markPatternBuilt = usePatternOrigin(isStep ? null : patternOrigin);
+
+    // ── Managed by a Solution stage (design 9) ────────────────────────────
+    // What the server said on the GET (`managed`), kept across the answers of
+    // a save or an activate that do not repeat it, and whatever a refused
+    // write or run said (409 managed_part[_not_deployed]) for a tab that was
+    // opened before the stage took the automation over. A managed automation is
+    // read-only for real: the canvas gets `readOnly`, the draft never changes,
+    // nothing is saved and the AI builder cannot be entered. On/Off and Run
+    // stay (the live state and the stage decide those).
+    const [managedSeen, setManagedSeen] = useState(null);
+    const [managedRefusal, setManagedRefusal] = useState(null);
+    useEffect(() => {
+        if (declaresManaged(serverAutomation)) setManagedSeen(managedOf(serverAutomation));
+    }, [serverAutomation]);
+    const managedPart = isStep ? null : (managedSeen ?? managedRefusal?.managed ?? null);
+    const managedNotDeployed = !isStep && managedRefusal?.reason === 'not_deployed';
+    const readOnly = !isStep && (!!managedPart || managedRefusal != null);
+    const readOnlyRef = useRef(false);
+    readOnlyRef.current = readOnly;
+    /** True when `e` was the stage's refusal; the banner then speaks for it. */
+    const noteManagedRefusal = useCallback((e) => {
+        const info = managedRefusalOf(e);
+        if (info) setManagedRefusal(info);
+        return !!info;
+    }, []);
     // One in-app confirm for the whole builder — published through
     // BuilderConfirmContext so panels and hooks alike can ask a question
     // without falling back to the browser's own dialog.
@@ -134,6 +178,10 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
     }, [setNdvDensity]);
     const closeNdv = useCallback(() => setNdvStepId(null), []);
     const [busy, setBusy] = useState(false);
+    // An Apply in flight (it may be creating tables): blocks a second Apply and the composer.
+    const [applyingProposal, setApplyingProposal] = useState(false);
+    // Bumped after Apply created tables, so the canvas refetches the catalog and names them.
+    const [catalogNonce, setCatalogNonce] = useState(0);
     const [error, setError] = useState(null);
 
     // Executing a step does NOT open its editor. Hitting ▶ on the canvas is a
@@ -167,10 +215,10 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
     const bareFormTriggerIdRef = useRef(null);
     const formDeclRef = useRef(null);
     // definition.triggers[] — the additional entry points of a multi-trigger
-    // routine, each with its own pinnedOutput. Same ref-in-render pattern.
+    // automation, each with its own pinnedOutput. Same ref-in-render pattern.
     const secondaryTriggersRef = useRef([]);
     // The body every whole-flow run is POSTed with. `{}` when there is no
-    // sample, so an untouched routine keeps sending exactly what it always did.
+    // sample, so an untouched automation keeps sending exactly what it always did.
     // A run started FROM a secondary trigger (the header's "Start from"
     // choice) carries that trigger's own sample and names it, so the server
     // seeds the DAG from that node. Anything that is not a trigger id — the
@@ -188,7 +236,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
     }, []);
 
     // Every run the editor starts carries the TRIGGER's saved sample as its
-    // `triggerPayload` (BFSF-408). Without it a routine that cannot be fired
+    // `triggerPayload` (BFSF-408). Without it an automation that cannot be fired
     // for real yet — a form nobody has submitted, an app_event with no matching
     // message — entered with `trigger.output === {}`, so every downstream step
     // mapping off the trigger resolved to undefined and could be neither built
@@ -210,6 +258,13 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
     // all-optional form — and that must always execute for real.
     const handleExecuteStep = useCallback(
         (stepId, opts) => {
+            // "Test this form" in the trigger's panel asks for the page
+            // explicitly (openForm), so it opens the overlay even when a
+            // sample is pinned and Execute alone would replay that sample.
+            if (opts?.openForm && formDeclRef.current?.triggerStepId === stepId) {
+                setFormTest(formDeclRef.current);
+                return Promise.resolve();
+            }
             if (!opts?.triggerPayload && bareFormTriggerIdRef.current && bareFormTriggerIdRef.current === stepId) {
                 // A form trigger has nothing to run WITH until somebody fills
                 // the page in, so Execute opens that page over the canvas and
@@ -250,6 +305,30 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
         onMessagesScroll,
     } = useBuilderChatPanel({ forceAssistantOpen, initialChatInput, forcedTier, running: state.running });
 
+    const { t } = useTranslation();
+    const modeStorageKey = `automationWorkMode:${automationId || 'new'}`;
+    const [workMode, setWorkMode] = useState(() => {
+        if (autoSendInput || forcedTier) return 'build';
+        const saved = scopedStorage.getItem(modeStorageKey);
+        return ['discuss', 'approve', 'plan', 'build'].includes(saved) ? saved : 'approve';
+    });
+    useEffect(() => { scopedStorage.setItem(`automationWorkMode:${state.automationId || automationId || 'new'}`, workMode); }, [workMode, state.automationId, automationId]);
+    const [alwaysPlanLarge, setAlwaysPlanLarge] = useState(() => scopedStorage.getItem(`automationLargePlan:${automationId || 'new'}`) !== 'false');
+    useEffect(() => { scopedStorage.setItem(`automationLargePlan:${state.automationId || automationId || 'new'}`, String(alwaysPlanLarge)); }, [alwaysPlanLarge, state.automationId, automationId]);
+    const [assistantContext, setAssistantContext] = useState(null);
+    const askAssistant = useCallback((stepId = null, field = null) => {
+        // The AI builder writes the definition: not on a managed automation.
+        if (readOnlyRef.current) return;
+        setTab('build');
+        setAssistantOpen(true);
+        const step = stepByIdForAssistant.current?.(stepId || ndvStepId);
+        if (step) setAssistantContext({ id: step.id, label: step.label || step.type || step.kind });
+        if (field) setChatInput(t('automations.assistant.map_prompt', 'Help me map the field "{field}". It expects {kind}. Current binding: {binding}.', {
+            field: field.label || '', kind: field.expectKind || 'a value', binding: JSON.stringify(field.value ?? null),
+        }));
+    }, [ndvStepId, setTab, setAssistantOpen, setChatInput, t]);
+    const stepByIdForAssistant = useRef(null);
+
     // Inline-rename saving state. Three transitions:
     //   idle → saving → saved → idle (after 1.5s)
     //   idle → saving → error
@@ -268,7 +347,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
         setSettingsSection(section || null);
         setTab('settings');
     }, [setTab]);
-    // The AI Act gate on Activate / Make live. Bee checks the routine itself
+    // The AI Act gate on Activate / Make live. Bee checks the automation itself
     // and the server refuses only with the questions it could not answer:
     // those open in a dialog (AiActQuestionsDialog) whose "Save and make
     // live" retries the same call. A prohibited practice, or a second refusal
@@ -282,7 +361,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
             return true;
         }
         openSettingsAt('ai-act');
-        toast.info(e.message || 'Complete the AI Act check before this routine goes live.');
+        toast.info(e.message || 'Complete the AI Act check before this automation goes live.');
         return true;
     };
 
@@ -312,29 +391,29 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
     // input + output contract already on the canvas (there is no trigger
     // picker step for Steps).
     const blockSeed = useMemo(() => (isStep ? makeBlockSkeleton() : null), [isStep]);
-    // `isBlankDefinition` rather than a truthiness check: a routine whose row
+    // `isBlankDefinition` rather than a truthiness check: an automation whose row
     // was poisoned with `{}` (see BFSF-318) would otherwise be adopted as a
     // real definition and defeat the seed, leaving the canvas unable to
     // produce a well-formed graph. Treating it as absent lets the normal seed
     // path win, and the next save writes a valid definition — so affected
-    // routines self-heal on open.
+    // automations self-heal on open.
     const effectiveDef = !isBlankDefinition(state.draft) ? state.draft
         : !isBlankDefinition(serverAutomation?.definition) ? serverAutomation.definition
         : blockSeed;
 
     // The button in an app this builder belongs to. Two sources, and the URL
     // wins: `?from=` is where the person came from RIGHT NOW, while the
-    // trigger's stored back-pointer is where the routine was made from. They
+    // trigger's stored back-pointer is where the automation was made from. They
     // are normally the same; when they differ, the trail that got you here is
     // the one that has to lead back.
     const appRef = initialAppRef || triggerAppRef(effectiveDef);
 
     // Het id dat de SERVER kent. De usage-capsule vraagt de index om deze
-    // routine, en die index bestaat pas als de routine bestaat — een builder
+    // automatisering, en die index bestaat pas als de automatisering bestaat — een builder
     // die nog aan het maken is heeft niets te vragen.
     const persistedAutomationId = state.automationId || automationId || serverAutomation?.id || null;
 
-    // What the routine ENTERS with when you press Run / Dry-run / ▶ Execute:
+    // What the automation ENTERS with when you press Run / Dry-run / ▶ Execute:
     // the primary trigger's own pinned output. That pin is either a captured
     // run or a payload the author typed into the trigger's Output → Edit sheet
     // (BFSF-408), and it is the ONE hand-authored payload slot — the old
@@ -368,15 +447,37 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
     const stepById = useCallback((id) => allSteps.find(s => s.id === id) || null, [allSteps]);
     const runStepById = useCallback((id) => (state.steps || []).find(s => s.stepId === id && !s.parentStepId) || null, [state.steps]);
 
+    stepByIdForAssistant.current = stepById;
+
     // InputArea calls onSendMessage(text, attachments, parentId).
     // We read webSearchEnabled / disabledMedia from scopedStorage so the
     // toggles in the input UI are picked up automatically.
-    const onSend = (text, attachments) => {
+    const turnBaseRef = useRef(null);
+    const onSend = async (text, attachments, options = {}) => {
+        if (readOnlyRef.current) return;
+        try {
+        const pendingSave = forceSaveNow();
+        if (pendingSave) await pendingSave;
+        const targetAutomationId = state.automationId || serverAutomation?.id || (!isBlankDefinition(effectiveDef) ? await ensureAutomationCreated(effectiveDef) : null);
         setError(null);
         const webSearchEnabled = scopedStorage.getItem('webSearchEnabled') !== 'false';
         const disabledMedia = scopedStorage.getJSON('disabledMedia', {}) || {};
+        // Until the approved plan is done every message continues it ("continue",
+        // "fix X", the answer to a question the build asked); only then does the
+        // user's own work mode apply to the next request again.
+        const approvedPlanId = options.approvedPlanId || followUpPlanId({ plan: state.reviewPlan, questionsPlanId: state.reviewQuestionsPlanId, answering: !!options.answers });
+        turnBaseRef.current = workMode === 'build' || approvedPlanId ? structuredClone(effectiveDef || normalizeDefinitionShape(null)) : null;
         send({
             message: text,
+            // Set when the text answers the builder's questions: the chat shows
+            // the structured list, the model gets the text.
+            answers: options.answers || null,
+            targetAutomationId,
+            workMode: approvedPlanId ? 'plan' : workMode,
+            approvedPlanId,
+            alwaysPlanLarge: !!alwaysPlanLarge && !autoSendInput && !forcedTier,
+            pauseAfterStep: options.pauseAfterStep ?? (!!approvedPlanId && !!state.reviewPlan?.pauseAfterStep),
+            selectedStepId: assistantContext?.id || ndvStepId || null,
             modelTier: tierForSend,
             attachments: attachments || [],
             webSearchEnabled,
@@ -386,6 +487,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
             canvasScope: scopeKey,
             seedMetadata: seedMetadata || null,
         });
+        } catch (error) { setError(error.message || String(error)); }
     };
 
     // "Build it directly" — when the parent opens a fresh builder with an
@@ -409,6 +511,9 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
     // an abort, or an HTTP/stream error. Fires once per turn.
     const wasRunningRef = useRef(false);
     const reportTurnEnd = useEffectEvent(() => {
+        if (turnBaseRef.current) draftHistory.checkpoint(turnBaseRef.current);
+        turnBaseRef.current = null;
+        if (state.lastDone?.finalized) markPatternBuilt();
         onTurnEnd?.({
             finalized: !!(state.lastDone && state.lastDone.finalized),
             aborted: !!state.aborted,
@@ -431,8 +536,9 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
             if (!aid) { setError('Add a trigger and at least one step before activating.'); return; }
             const r = await api.activate(aid);
             setServerAutomation(r.automation);
+            markPatternBuilt();
         }
-        catch (e) { if (!openAiActOnRefusal(e, 'activate')) setError(e.message); }
+        catch (e) { noteManagedRefusal(e); if (!openAiActOnRefusal(e, 'activate')) setError(e.message); }
         aiActRetryRef.current = false;
         setBusy(false);
     };
@@ -440,13 +546,15 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
     // the person saw travels along; the server refuses (409) if it moved on.
     const onPublish = async () => {
         const aid = serverAutomation?.id;
-        if (!aid) return;
+        // A stage's deploy is the only way a managed automation gets a new live version.
+        if (!aid || readOnlyRef.current) return;
         setBusy(true);
         try {
             const r = await publishAutomation(aid, serverAutomation?.version ?? null);
             if (r?.automation) setServerAutomation(r.automation);
+            markPatternBuilt();
         }
-        catch (e) { if (!openAiActOnRefusal(e, 'publish')) setError(e.message); }
+        catch (e) { noteManagedRefusal(e); if (!openAiActOnRefusal(e, 'publish')) setError(e.message); }
         aiActRetryRef.current = false;
         setBusy(false);
     };
@@ -465,11 +573,12 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
             const r = await api.deactivate(aid);
             setServerAutomation(r.automation);
         }
-        catch (e) { setError(e.message); }
+        catch (e) { noteManagedRefusal(e); setError(e.message); }
         setBusy(false);
     };
     const onDryRun = async (fromTrigger = null) => {
         setBusy(true); setError(null);
+        liveFromBuilderRef.current = false;
         let stopWatch = () => {};
         try {
             const aid = await ensureAutomationCreated();
@@ -484,7 +593,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
         // no run record is coming. Left running, `liveRunInFlight` stays true
         // and every ▶ Execute button is disabled for the rest of the session —
         // one of the mechanisms behind BFSF-360 ("Execute does nothing").
-        catch (e) { setError(e.message); settleRun(); }
+        catch (e) { noteManagedRefusal(e); setError(e.message); settleRun(); }
         finally { stopWatch(); setBusy(false); }
     };
 
@@ -502,6 +611,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
      */
     const startLiveRun = async (body) => {
         setBusy(true); setError(null);
+        liveFromBuilderRef.current = true;
         let stopWatch = () => {};
         try {
             const aid = await ensureAutomationCreated();
@@ -509,7 +619,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
             stopWatch = watchActiveRun(aid); // live progress while it runs
             // `test: true`: the editor runs what is on the canvas (the working
             // copy). Without it the server runs the LIVE version, which on a
-            // routine with changes not yet live is not what the author sees.
+            // automation with changes not yet live is not what the author sees.
             const r = await api.run(aid, { ...body, test: true });
             if (r?.skipped) {
                 clearDryRun();
@@ -522,7 +632,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
             } else {
                 setRunResult(r.run, r.steps);
                 // A form journey is not over when the request returns — the
-                // routine may be paused on its next page, and the overlay is
+                // automation may be paused on its next page, and the overlay is
                 // about to say so. Only claim completion when nothing is.
                 if (r?.run?.status !== 'awaiting_form') toast.success('Live run complete — open a step to see its output.');
             }
@@ -530,7 +640,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
         }
         // Same as onDryRun: settle the live progress stub so a failed run-start
         // can't strand the builder in "running" forever (BFSF-360).
-        catch (e) { setError(e.message); settleRun(); throw e; }
+        catch (e) { noteManagedRefusal(e); setError(e.message); settleRun(); throw e; }
         finally { stopWatch(); setBusy(false); }
     };
 
@@ -548,13 +658,34 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
         return (t?.kind === 'form' && t?.form) ? { form: t.form, triggerStepId: t.id } : null;
     };
 
-    const closeFormTest = useCallback(() => setFormTest(null), []);
+    // Live-run form pages: a live run started from THIS builder that parks on a
+    // `form_page` opens the overlay attached to that run. Dry runs never do.
+    // Closing remembers `${runId}:${stepId}` so the same page does not pop up
+    // again straight away.
+    const liveFromBuilderRef = useRef(false);
+    const dismissedFormPagesRef = useRef(new Set());
+    const awaitingStepNow = awaitingFormStepId(state.steps);
+    const currentRunId = state.dryRun?.id || null;
+    const closeFormTest = () => {
+        if (currentRunId && awaitingStepNow) dismissedFormPagesRef.current.add(dismissKey(currentRunId, awaitingStepNow));
+        setFormTest(null);
+    };
+    const openFormOverlay = (runId) => { if (runId) setFormTest({ runId }); };
+    useEffect(() => {
+        if (shouldAutoOpenFormOverlay({
+            liveFromBuilder: liveFromBuilderRef.current,
+            runId: currentRunId,
+            awaitingStepId: awaitingStepNow,
+            overlayOpen: !!formTest,
+            dismissed: dismissedFormPagesRef.current,
+        })) setFormTest({ runId: currentRunId });
+    }, [currentRunId, awaitingStepNow, formTest]);
 
     /**
      * Start the run the overlay's Submit asked for.
      *
      * The answers ARE the trigger payload — the same thing a real submission
-     * hands the routine — so nothing else about the run differs from pressing
+     * hands the automation — so nothing else about the run differs from pressing
      * Run on any other trigger.
      */
     const onFormTestRun = async (answers) => {
@@ -567,7 +698,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
 
     const onRunLive = async (fromTrigger = null) => {
         const ok = await confirm({
-            title: 'Run this routine for real?',
+            title: 'Run this automation for real?',
             description: 'Every step performs its action — sending messages, writing data, and anything else in the flow.',
             confirmLabel: 'Run it',
             destructive: true,
@@ -661,7 +792,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
      * save of a definition gets the server's own verdict back, so adopt it
      * (BFSF-58): the warnings of a successful PUT, or the blocking records of
      * a 400. Otherwise a manual edit left the builder's last pass on screen
-     * (fixed problems stayed, new ones never showed) and a routine built by
+     * (fixed problems stayed, new ones never showed) and an automation built by
      * hand never showed any. A response without `warnings` (the Steps route
      * sends none) changes nothing. The automation route answers `warnings: []`
      * even to a PUT that carried no definition, so only call this for a save
@@ -681,6 +812,8 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
      *        (see BuildTab's onSaveStepFlat / flow/inlineFlowlets.js)
      */
     const onSaveStep = async (nextGraph, layerPatches = null) => {
+        // A definition write: refused here, before the draft or the server see it.
+        if (readOnlyRef.current) throw Object.assign(new Error(t('managed_part.save_refused', 'This part is managed by a Solution stage. Change it in Dev and deploy.')), { status: 409, code: 'managed_part' });
         // The inspector edits the SCOPED graph — wrap it back into the
         // whole document before persisting so the server always receives
         // a complete definition.
@@ -712,7 +845,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
         if (!aid) throw new Error('Could not create automation. Refresh and try again.');
         let r;
         try { r = await apiUpdateOne(aid, { definition: nextDef }); }
-        catch (e) { adoptSaveRejection(e); throw e; }
+        catch (e) { noteManagedRefusal(e); adoptSaveRejection(e); throw e; }
         adoptSaveValidation(r);
         const persisted = unwrapRow(r);
         setServerAutomation(persisted);
@@ -797,11 +930,12 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
             savedTimer.current = setTimeout(() => setSavingState('idle'), 1500);
         } catch (e) {
             console.warn('[BuilderShell] visual save failed:', e.message);
+            noteManagedRefusal(e);
             adoptSaveRejection(e);
             setSavingState('error');
             toast.error(`Save failed — your edits are still on the canvas. ${e.message || ''}`.trim());
         }
-    }, [api, ensureAutomationCreated, markServerConfirmed, adoptSaveValidation, adoptSaveRejection]);
+    }, [api, ensureAutomationCreated, markServerConfirmed, adoptSaveValidation, adoptSaveRejection, noteManagedRefusal]);
     const performVisualSave = useCallback(async (nextDef) => {
         if (saveInFlightRef.current) { queuedSaveRef.current = nextDef; return; }
         saveInFlightRef.current = true;
@@ -831,6 +965,9 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
         // the server, which stored it as `{}` and wedged the builder
         // (BFSF-318).
         if (!nextDef) return;
+        // Read-only: the canvas hands nothing through, but undo/redo, the
+        // flowlet agent and a stale scheduled edit all land here too.
+        if (readOnlyRef.current) return;
         setDraft(nextDef);
         // History-only apply: the committing caller writes this same definition
         // to the server itself, so don't schedule a second (and, for Steps,
@@ -845,7 +982,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
         }, 500);
     }, [setDraft, performVisualSave]);
 
-    const draftHistory = useRoutineDraftHistory({
+    const draftHistory = useAutomationDraftHistory({
         currentDraft: effectiveDef,
         apply: applyVisualDraft,
     });
@@ -871,7 +1008,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
     // the AI and raised the accept-or-keep-mine banner, on a canvas the user
     // could not touch. The builder names its own steps anyway; anything it
     // leaves blank is picked up by the pass that runs once the turn ends.
-    useAutoLabelSteps({ def: effectiveDef, api, apply: onVisualEditRoot, enabled: !state.running });
+    useAutoLabelSteps({ def: effectiveDef, api, apply: onVisualEditRoot, enabled: !state.running && !readOnly });
 
     // ── AI flowlet builder (separate from chat) ─────────────────────────────
     // Drives the Flowlets panel's "Build a flowlet with AI" / "Refine with AI".
@@ -881,7 +1018,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
     // panel can collapse its composer.
     const layerAgent = useFlowletAgentStream();
     const onBuildLayer = useCallback(async (instruction) => {
-        if (!instruction || !instruction.trim()) return false;
+        if (!instruction || !instruction.trim() || readOnlyRef.current) return false;
         const aid = await ensureAutomationCreated();
         if (!aid) { toast.error('Could not save the automation. Try again.'); return false; }
         const r = await layerAgent.send({ automationId: aid, instruction, mode: 'create' });
@@ -896,7 +1033,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
     }, [ensureAutomationCreated, layerAgent, onVisualEditRoot]);
 
     const onRefineLayer = useCallback(async (layerKey, instruction) => {
-        if (!layerKey || !instruction || !instruction.trim()) return false;
+        if (!layerKey || !instruction || !instruction.trim() || readOnlyRef.current) return false;
         const aid = await ensureAutomationCreated();
         if (!aid) { toast.error('Could not save the automation. Try again.'); return false; }
         const r = await layerAgent.send({ automationId: aid, instruction, mode: 'refine', layerKey });
@@ -942,7 +1079,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
         clearTimeout(visualSaveTimer.current);
         visualSaveTimer.current = null;
         pendingSaveRef.current.def = null; // flushing now — nothing left pending
-        if (effectiveDef) performVisualSave(effectiveDef);
+        if (effectiveDef) return performVisualSave(effectiveDef);
     }, [effectiveDef, performVisualSave]);
 
     /**
@@ -963,6 +1100,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
         onSave: forceSaveNow,
         onDryRun,
         onEscape,
+        onAssistant: () => askAssistant(),
     });
 
     useEffect(() => () => {
@@ -1014,6 +1152,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
             setSavingState('saved');
             savedTimer.current = setTimeout(() => setSavingState('idle'), 1500);
         } catch (e) {
+            noteManagedRefusal(e);
             if (patch?.definition) adoptSaveRejection(e);
             setSavingState('error');
             throw e;
@@ -1123,6 +1262,62 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
             ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
             : 'bg-amber-500/15 text-amber-600 dark:text-amber-400';
 
+    // Records the review action on the server. Returns the parsed answer (the
+    // Apply of a proposal with new tables carries the definition with the real
+    // table ids, `createdDatatables`; a Discard `keptDatatables`), or null when
+    // it was refused: then the server's message is shown and nothing is dismissed.
+    const clearReview = async (action, revisionId) => {
+        try {
+        const aid = state.automationId || serverAutomation?.id;
+        let body = { ok: true };
+        if (aid && revisionId) {
+            const response = await authFetch(`${API_BASE}/api/automation/builder/session/${encodeURIComponent(aid)}/review`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, revisionId }),
+            });
+            body = await response.json().catch(() => ({}));
+            if (!response.ok) { toast.error(body?.message || body?.error || t('automations.assistant.review_changed', 'The saved review has changed. Reload the latest revision.')); return null; }
+        }
+        if (action === 'rejectPlan') dismissPlan(); else dismissProposal();
+        const kept = Array.isArray(body?.keptDatatables) ? body.keptDatatables : [];
+        if (kept.length) toast.info(t('automations.assistant.tables_kept', 'Already created and kept in Studio → Datatables: {names}', { names: kept.map(k => k.name).join(', ') }));
+        return body || { ok: true };
+        } catch (error) { toast.error(error.message || String(error)); return null; }
+    };
+
+    // `excluded` is the Set of fields the user unticked on the proposal card.
+    // They are reverted on the definition the SERVER answers with: when the
+    // proposal creates tables, only that one points at the real table ids.
+    const applyProposal = async (excluded) => {
+        const proposal = state.proposal;
+        if (!proposal || state.running || applyingProposal) return;
+        if (!deepEqual(effectiveDef, proposal.baseDefinition) && !(isBlankDefinition(effectiveDef) && isBlankDefinition(proposal.baseDefinition))) {
+            toast.error(t('automations.assistant.stale_proposal', 'The flow has changed since this proposal. Ask the assistant for an updated proposal.'));
+            return;
+        }
+        setApplyingProposal(true);
+        let res;
+        try { res = await clearReview('applyProposal', proposal.id); }
+        finally { setApplyingProposal(false); }
+        if (!res) return;
+        const definition = reviewedProposal({ ...proposal, definition: res.definition ?? proposal.definition }, excluded instanceof Set ? excluded : new Set());
+        if (hasPendingDatatableRefs(definition)) {
+            toast.error(t('automations.assistant.apply_failed', 'The proposal could not be applied. Nothing was changed.'));
+            return;
+        }
+        onVisualEditRoot(definition);
+        if (proposal.title || proposal.description != null) await onSaveAutomation({ title: proposal.title || serverAutomation?.title, description: proposal.description || '' });
+        const created = Array.isArray(res.createdDatatables) ? res.createdDatatables : [];
+        if (created.length) {
+            const names = created.map(c => `"${c.name}"`).join(', ');
+            toast.success(created.length > 1
+                ? t('automations.assistant.applied_tables_plural', 'Proposal applied and tables {names} created. Undo reverts the flow changes; the tables stay in Studio → Datatables.', { names })
+                : t('automations.assistant.applied_tables', 'Proposal applied and table {names} created. Undo reverts the flow changes; the table stays in Studio → Datatables.', { names }));
+            setCatalogNonce(n => n + 1);
+        } else {
+            toast.success(t('automations.assistant.applied', 'Proposal applied. Undo reverts the flow changes.'));
+        }
+    };
+
     const triggerKind = effectiveDef?.trigger?.kind || serverAutomation?.triggerType;
     const aidForHistory = state.automationId || automationId;
 
@@ -1149,13 +1344,16 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
     // both cases. The view's id stays `build`; only its label reads "Editor".
     const headerProps = {
         title, triggerKind, isActive, isDraft, statusLabel, statusBadgeClass, canActivate,
-        canDiagnose: isAppEventTrigger, busy, onBack, backLabel, onOpenList, onActivate, onDeactivate,
+        canDiagnose: isAppEventTrigger, busy, onBack, backLabel, onOpenList, onExportJson: isStep ? null : onExportJson, onActivate, onDeactivate,
         onDryRun, onRunLive, onDiagnose, onRename, mode,
+        onAssistant: isStep || readOnly ? null : () => askAssistant(), assistantOpen: assistantOpen && !readOnly,
         triggers: secondaryTriggerOptions, primaryTriggerLabel,
         step: isStep ? serverAutomation : null, orgGroups, onPublishStep,
         onSetStepSharing, onSetStepExpose, onSetStepIcon, onSetStepCategory, scope, onExitScope,
         onDeleteLayer, diagnoseAnchorRef, savingState, tab, onTabChange: setTab,
-        automation: isStep ? null : serverAutomation, onPublish,
+        // `managed` rides on the row the header derives its live state from.
+        automation: isStep ? null : (readOnly && serverAutomation ? { ...serverAutomation, managed: managedPart || {} } : serverAutomation),
+        onPublish,
         // Undo/redo act on the CANVAS draft — pressing them from Settings or
         // Runs used to mutate a definition the user could not see. Jump to
         // the Editor first, so the change lands in view.
@@ -1168,13 +1366,14 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
         // Twee stroken, en ze beantwoorden verschillende vragen: de kruimel
         // zegt "hier kwam je vandaan" (één knop, uit de URL of uit de trigger),
         // de capsule zegt "hier wordt dit door gedraaid" (élke app-knop, uit de
-        // index). Een routine die je via een link opende hoort allebei te
+        // index). Een automatisering die je via een link opende hoort allebei te
         // tonen; eentje die je uit de lijst opende alleen de tweede.
         //
-        // Niet voor een herbruikbare Step: die wordt door ROUTINES aangeroepen,
+        // Niet voor een herbruikbare Step: die wordt door AUTOMATISERINGEN aangeroepen,
         // niet door app-knoppen, en `automation_usage` gaat daar niet over.
-        breadcrumbSlot: (appRef || (!isStep && persistedAutomationId)) ? (
+        breadcrumbSlot: (appRef || (!isStep && persistedAutomationId) || readOnly) ? (
             <>
+                {readOnly ? <ManagedPartBanner managed={managedPart} notDeployed={managedNotDeployed} /> : null}
                 {appRef ? <AppRefBreadcrumb appRef={appRef} /> : null}
                 {!isStep && persistedAutomationId
                     ? <UsedByButtonsCapsule automationId={persistedAutomationId} />
@@ -1219,13 +1418,18 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
                     <BuildTab
                         headerProps={headerProps}
                         mode={mode}
-                        assistantOpen={assistantOpen}
-                        setAssistantOpen={setAssistantOpen}
+                        // A managed automation's canvas is read-only for real (the
+                        // draft never changes, nothing is saved) and the AI
+                        // builder cannot be opened from it.
+                        readOnly={readOnly}
+                        assistantOpen={assistantOpen && !readOnly}
+                        setAssistantOpen={readOnly ? noop : setAssistantOpen}
                         chatWidth={chatWidth}
                         onChatResizeStart={onChatResizeStart}
                         formTest={formTest}
                         onFormTestRun={onFormTestRun}
                         onCloseFormTest={closeFormTest}
+                        onOpenFormOverlay={openFormOverlay}
                         state={state}
                         // The persisted row — the webhook trigger's node panel
                         // needs its id to list/create webhook URLs (BFSF-320).
@@ -1242,6 +1446,19 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
                         setSelectedTier={setTierForPicker}
                         user={user}
                         onSend={onSend}
+                        workMode={workMode}
+                        setWorkMode={setWorkMode}
+                        alwaysPlanLarge={alwaysPlanLarge}
+                        setAlwaysPlanLarge={setAlwaysPlanLarge}
+                        assistantContext={assistantContext}
+                        onClearAssistantContext={() => setAssistantContext(null)}
+                        onAskAssistant={readOnly ? null : askAssistant}
+                        onApplyProposal={applyProposal}
+                        applyingProposal={applyingProposal}
+                        catalogNonce={catalogNonce}
+                        onDiscardProposal={() => clearReview('discardProposal', state.proposal?.id)}
+                        onRejectPlan={() => clearReview('rejectPlan', state.reviewPlan?.id)}
+                        onApprovePlan={(pauseAfterStep) => onSend(t('automations.assistant.approved_prompt', 'I approve this plan. Build it and report any deviations.'), [], { approvedPlanId: state.reviewPlan?.id, pauseAfterStep })}
                         onStopBuild={stopBuild}
                         messagesContainerRef={messagesContainerRef}
                         messagesBodyRef={messagesBodyRef}
@@ -1277,6 +1494,8 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
                         automation={serverAutomation}
                         onSave={onSaveAutomation}
                         initialSection={settingsSection}
+                        workMode={workMode}
+                        onWorkModeChange={isStep ? undefined : setWorkMode}
                         onOpenTab={setTab}
                         onAutomationChange={setServerAutomation}
                     />
@@ -1317,14 +1536,14 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
                         // that has no server row yet.
                         tab === 'history' && (
                             <div className="h-full flex flex-col items-center justify-center gap-2 px-6 text-center">
-                                <div className="text-sm text-[var(--text-primary)] font-medium">This routine hasn't run yet.</div>
-                                <div className="text-xs text-[var(--text-secondary)]">Run a test to see what happens, step by step.</div>
+                                <div className="text-sm text-[var(--text-primary)] font-medium">{t('automations.builder_shell.this_automation_hasn_t_run_yet', 'This automation hasn\'t run yet.')}</div>
+                                <div className="text-xs text-[var(--text-secondary)]">{t('automations.builder_shell.run_a_test_to_see_what', 'Run a test to see what happens, step by step.')}</div>
                                 <button
                                     type="button"
                                     onClick={() => { setTab('build'); onDryRun?.(); }}
                                     className="mt-1 inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition"
                                 >
-                                    Run a test
+                                    {t('automations.builder_shell.run_a_test', 'Run a test')}
                                 </button>
                             </div>
                         )
@@ -1350,3 +1569,5 @@ function deepEqualDef(a, b) {
     if (!a || !b) return false;
     try { return JSON.stringify(a) === JSON.stringify(b); } catch { return false; }
 }
+
+function noop() { /* the AI builder has no way in on a managed automation */ }

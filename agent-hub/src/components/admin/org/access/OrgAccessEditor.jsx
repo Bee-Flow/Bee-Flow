@@ -1,7 +1,8 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Loader2, Check, AlertTriangle, Lock, Layers, Sparkles, Settings, ListChecks } from 'lucide-react';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getIntegrationIcon } from '../../../../config/integrationIcons';
+import { useTranslation } from '../../../../hooks/useTranslation';
+import { API_BASE, authFetch } from '../../../../utils/helpers';
 
 /**
  * OrgAccessEditor — the super-admin "Organisation access" menu: which
@@ -15,15 +16,16 @@ import { getIntegrationIcon } from '../../../../config/integrationIcons';
 
 // MCP servers are integrations now — they appear under Integrations.
 const KIND_SECTIONS = [
-    { kind: 'core', label: 'Features', icon: Layers },
-    { kind: 'beta', label: 'Beta features', icon: Sparkles },
-    { kind: 'integration', label: 'Integrations', icon: Settings },
+    { kind: 'core', labelKey: 'admin_org.access_matrix_features', label: 'Features', icon: Layers },
+    { kind: 'beta', labelKey: 'admin_org.access_matrix_beta_features', label: 'Beta features', icon: Sparkles },
+    { kind: 'integration', labelKey: 'admin_org.access_matrix_integrations', label: 'Integrations', icon: Settings },
 ];
 const EMERALD = '#10b981';
 const BLUE = '#3b82f6';
 const SAVE_DEBOUNCE_MS = 450;
 
 export default function OrgAccessEditor({ orgId, onChanged }) {
+    const { t } = useTranslation();
     const [loading, setLoading] = useState(true);
     const [data, setData] = useState(null);
     const [available, setAvailable] = useState(() => new Set());
@@ -37,18 +39,18 @@ export default function OrgAccessEditor({ orgId, onChanged }) {
         setLoading(true);
         try {
             const res = await authFetch(path);
-            if (!res.ok) { setMessage({ type: 'error', text: `Failed to load (${res.status})` }); return; }
+            if (!res.ok) { setMessage({ type: 'error', text: t('admin_org.access_matrix_failed_load_status', 'Failed to load ({status})', { status: res.status }) }); return; }
             const j = await res.json();
             setData(j);
             setUnrestricted(!!j.unrestricted);
             setAvailable(new Set(j.unrestricted ? (j.ceiling || []) : (j.available || [])));
         } catch (e) {
-            setMessage({ type: 'error', text: e.message || 'Failed to load' });
+            setMessage({ type: 'error', text: e.message || t('admin_org.access_matrix_failed_load', 'Failed to load') });
         } finally { setLoading(false); }
-    }, [path]);
+    }, [path, t]);
 
     useEffect(() => { load(); }, [load]);
-    useEffect(() => { if (!message) return; const t = setTimeout(() => setMessage(null), 3000); return () => clearTimeout(t); }, [message]);
+    useEffect(() => { if (!message) return; const timer = setTimeout(() => setMessage(null), 3000); return () => clearTimeout(timer); }, [message]);
     useEffect(() => () => { if (saveTimer.current) clearTimeout(saveTimer.current); }, []);
 
     const ceiling = useMemo(() => (data?.ceiling || []), [data]);
@@ -67,10 +69,10 @@ export default function OrgAccessEditor({ orgId, onChanged }) {
         saveTimer.current = setTimeout(async () => {
             try {
                 const res = await authFetch(path, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                if (!res.ok) throw new Error('Save failed');
-                setMessage({ type: 'ok', text: 'Saved' });
+                if (!res.ok) throw new Error(t('admin_org.access_matrix_save_failed', 'Save failed'));
+                setMessage({ type: 'ok', text: t('admin_org.access_matrix_saved', 'Saved') });
                 onChanged?.();
-            } catch (e) { setMessage({ type: 'error', text: e.message || 'Save failed' }); load(); }
+            } catch (e) { setMessage({ type: 'error', text: e.message || t('admin_org.access_matrix_save_failed', 'Save failed') }); load(); }
         }, SAVE_DEBOUNCE_MS);
     };
 
@@ -106,7 +108,7 @@ export default function OrgAccessEditor({ orgId, onChanged }) {
             <header className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2">
                     <ListChecks className="w-5 h-5" style={{ color: EMERALD }} />
-                    <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>Organisation access</h2>
+                    <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{t('admin_org.ceiling_org_access_title', 'Organisation access')}</h2>
                 </div>
                 {message ? (
                     <span className="inline-flex items-center gap-1.5 text-xs" style={{ color: message.type === 'ok' ? EMERALD : '#dc2626' }}>
@@ -115,8 +117,7 @@ export default function OrgAccessEditor({ orgId, onChanged }) {
                 ) : null}
             </header>
             <p className="text-sm mb-4" style={{ color: 'var(--text-muted)', maxWidth: 760 }}>
-                Which capabilities this organisation may use, within your {data.mode === 'cloud' ? 'subscription plan' : 'licence'}.
-                Org-admins can only distribute what's allowed here — everything else is locked for them.
+                {t('admin_org.ceiling_org_access_intro', "Which capabilities this organisation may use, within your {ceiling}. Org-admins can only distribute what's allowed here: everything else is locked for them.", { ceiling: data.mode === 'cloud' ? t('admin_org.ceiling_word_plan_long', 'subscription plan') : t('admin_org.ceiling_word_licence', 'licence') })}
             </p>
 
             {/* Unrestricted master toggle */}
@@ -127,8 +128,8 @@ export default function OrgAccessEditor({ orgId, onChanged }) {
                     <span className="absolute top-[2px] left-[2px] bg-white rounded-full h-4 w-4 shadow-sm transition-transform" style={{ transform: unrestricted ? 'translateX(16px)' : 'none' }} />
                 </span>
                 <div>
-                    <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Allow everything the {data.mode === 'cloud' ? 'plan' : 'licence'} permits</p>
-                    <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Turn off to restrict this organisation to a subset.</p>
+                    <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{t('admin_org.ceiling_allow_all', 'Allow everything the {ceiling} permits', { ceiling: data.mode === 'cloud' ? t('admin_org.ceiling_word_plan', 'plan') : t('admin_org.ceiling_word_licence', 'licence') })}</p>
+                    <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{t('admin_org.ceiling_allow_all_hint', 'Turn off to restrict this organisation to a subset.')}</p>
                 </div>
             </label>
 
@@ -139,7 +140,7 @@ export default function OrgAccessEditor({ orgId, onChanged }) {
                 return (
                     <div key={section.kind} className="mb-5" style={{ opacity: unrestricted ? 0.6 : 1 }}>
                         <div className="flex items-center gap-1.5 mb-2 text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
-                            <SectionIcon className="w-3.5 h-3.5" /> {section.label}
+                            <SectionIcon className="w-3.5 h-3.5" /> {t(section.labelKey, section.label)}
                         </div>
                         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
                             {caps.map(cap => {

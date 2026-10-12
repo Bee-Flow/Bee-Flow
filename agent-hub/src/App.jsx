@@ -224,6 +224,16 @@ function resolveInitialLocale() {
     }
 }
 
+/** Blog URLs ask /api/cms/site for the blog payload; ?tag= and ?page= ride along. */
+function blogQuery(parsed, params) {
+    if (!parsed.blog) return '';
+    const out = new URLSearchParams({ blog: parsed.blog.view });
+    if (parsed.blog.postSlug) out.set('post', parsed.blog.postSlug);
+    if (params.get('tag')) out.set('tag', params.get('tag'));
+    if (params.get('page')) out.set('page', params.get('page'));
+    return `&${out.toString()}`;
+}
+
 function RootPathGate() {
     const isPreview = new URLSearchParams(window.location.search).has('preview');
     // null = still fetching, false = disabled (redirect happening),
@@ -281,7 +291,8 @@ function RootPathGate() {
         }
 
         const qs = `locale=${encodeURIComponent(locale)}` +
-                   (slug ? `&slug=${encodeURIComponent(slug)}` : '');
+                   (slug && !parsed.blog ? `&slug=${encodeURIComponent(slug)}` : '') +
+                   blogQuery(parsed, params);
         /* When the server already inlined the page, this request exists only
            to pick up the analytics envelope — nothing about it is
            paint-relevant, and firing it on mount made it compete with the

@@ -20,14 +20,14 @@ const REQUEST_TIMEOUT_MS = 20000;
  * Nextcloud is the primary OAuth provider or a secondary one.
  *
  * Two cases:
- *   1. Browser session / Nextcloud-only routine: tokens live at session.accessToken
+ *   1. Browser session / Nextcloud-only automation: tokens live at session.accessToken
  *      / session.refreshToken / session.nextcloudUid (legacy shape).
- *   2. Multi-integration routine: routineAuth.buildUserAuth() may have picked
+ *   2. Multi-integration automation: automationAuth.buildUserAuth() may have picked
  *      a different primary (Google/Microsoft), with Nextcloud's tokens placed
- *      under session.routineProviders.nextcloud.
+ *      under session.automationProviders.nextcloud.
  *
  * Returns the same object both readers and the refresh path can mutate, so a
- * mid-routine token refresh propagates to subsequent calls in the same fire.
+ * mid-automation token refresh propagates to subsequent calls in the same fire.
  * Returns null when no Nextcloud creds are present in either slot.
  */
 function getNextcloudCredsRef(session) {
@@ -46,7 +46,7 @@ function getNextcloudCredsRef(session) {
             persist: () => session.save?.(),
         };
     }
-    const sub = session.routineProviders?.nextcloud;
+    const sub = session.automationProviders?.nextcloud;
     if (sub && sub.accessToken) {
         return {
             get accessToken() { return sub.accessToken; },
@@ -57,8 +57,8 @@ function getNextcloudCredsRef(session) {
             set expiresAt(v) { sub.expiresAt = v; },
             get uid() { return sub.nextcloudUid; },
             set uid(v) { sub.nextcloudUid = v; },
-            // routineProviders is in-memory only — no persist hook, but
-            // routineAuth refreshes from the encrypted vault next fire anyway.
+            // automationProviders is in-memory only — no persist hook, but
+            // automationAuth refreshes from the encrypted vault next fire anyway.
             persist: () => {},
         };
     }
@@ -101,7 +101,7 @@ function webdavRoot(baseUrl, uid) {
  * In-flight refreshes, keyed by the session object itself.
  *
  * Nextcloud rotates refresh tokens: the first successful `grant_type=refresh_token`
- * invalidates the token it was called with. A routine that fans out several
+ * invalidates the token it was called with. An automation that fans out several
  * Nextcloud tool calls in parallel hits 401 on all of them at once, and without
  * this guard each one races to redeem the same (now single-use) refresh token —
  * one wins, the rest fail, and the last writer persists a dead token, logging
@@ -113,7 +113,7 @@ const _refreshInFlight = new WeakMap();
 /**
  * Refresh the Nextcloud OAuth access token using the refresh token. Writes
  * back to whichever slot held the original credentials (primary OR
- * routineProviders.nextcloud) so subsequent calls in the same fire pick up
+ * automationProviders.nextcloud) so subsequent calls in the same fire pick up
  * the new token.
  *
  * Concurrent calls for the same session share a single network round-trip.
@@ -184,8 +184,8 @@ async function _doRefreshAccessToken(session) {
 /**
  * Process-level uid cache, keyed by Bee Flow user id.
  *
- * The `routineProviders.nextcloud` credential slot is rebuilt in memory on
- * every routine fire and its `persist` is a no-op, so a uid written back there
+ * The `automationProviders.nextcloud` credential slot is rebuilt in memory on
+ * every automation fire and its `persist` is a no-op, so a uid written back there
  * is discarded — meaning every unattended fire paid an extra OCS round-trip to
  * `/cloud/user` before it could touch WebDAV. A Nextcloud uid does not change
  * for a given Bee Flow user, so caching it here is safe; the TTL only bounds
@@ -246,15 +246,9 @@ async function resolveUid(session, baseUrl) {
     return uid;
 }
 
-// Parse Retry-After per RFC 7231: integer seconds, or HTTP-date. Returns ms.
-function parseRetryAfter(headerValue) {
-    if (!headerValue) return null;
-    const seconds = Number(headerValue);
-    if (Number.isFinite(seconds)) return Math.max(0, seconds * 1000);
-    const dateMs = Date.parse(headerValue);
-    if (!Number.isNaN(dateMs)) return Math.max(0, dateMs - Date.now());
-    return null;
-}
+// Retry-After (integer seconds or HTTP-date) as ms, and whether a body can be
+// sent again: the same rules for every client (core/http/retryAfter.js).
+const { parseRetryAfter, isReplayableBody } = require('../core/http/retryAfter');
 
 const RETRY_STATUS = new Set([429, 503]);
 const MAX_RETRIES = 2;
@@ -274,7 +268,7 @@ const MAX_BACKOFF_MS = 30_000;
 // so retrying would silently send an empty payload — return the throttle
 // response instead and let the caller surface it.
 async function retryOnThrottle(initialResponse, doFetch, options = {}) {
-    if (isUnreplayableBody(options.body)) return initialResponse;
+    if (!isReplayableBody(options.body)) return initialResponse;
     let response = initialResponse;
     let attempt = 0;
     while (RETRY_STATUS.has(response.status) && attempt < MAX_RETRIES) {
@@ -290,13 +284,6 @@ async function retryOnThrottle(initialResponse, doFetch, options = {}) {
     return response;
 }
 
-function isUnreplayableBody(body) {
-    if (body == null) return false;
-    if (typeof body === 'string' || Buffer.isBuffer(body) || ArrayBuffer.isView(body)) return false;
-    if (body instanceof ArrayBuffer) return false;
-    // ReadableStream, Node stream, FormData with a stream part, …
-    return typeof body === 'object';
-}
 
 /**
  * Fetch wrapper: injects Bearer auth, retries once on 401 after refreshing,
@@ -363,7 +350,7 @@ async function ncFetch(url, session, options = {}) {
  *
  * ncUid is read snake_case FIRST: userStore.getUser returns the raw row and
  * the column is nc_uid. `ncUid` has been the recurring dead-fallback bug in
- * this codebase (routes/automation/crud.js:802, NC-ROUTINES WS-8B/WS-11);
+ * this codebase (routes/automation/crud.js:802, NC-AUTOMATIONS WS-8B/WS-11);
  * both spellings are read so neither storage shape can regress silently.
  *
  * Security: this widens nothing. The uid comes only from the caller's own
@@ -578,7 +565,7 @@ async function resolveAuth(session, userId) {
         username: creds.username,
         password: creds.password,
         fetch: basicFetch,
-        authError: 'Nextcloud rejected credentials. Re-save your app password in Settings → Integrations.',
+        authError: 'Nextcloud rejected credentials. Re-save your app password in Settings → Connections.',
     };
 }
 
@@ -616,11 +603,11 @@ async function resolveBasicAuthOrNull(userId) {
         username: creds.username,
         password: creds.password,
         fetch: basicFetch,
-        authError: 'Nextcloud rejected credentials. Re-save your app password in Settings → Integrations.',
+        authError: 'Nextcloud rejected credentials. Re-save your app password in Settings → Connections.',
     };
 }
 
-const CORS_AUTH_ERROR = 'Nextcloud\'s Notes/Deck APIs use CORS protection that requires HTTP Basic auth — your OAuth login alone won\'t work for these. Please add a Nextcloud app password in Settings → Integrations.';
+const CORS_AUTH_ERROR = 'Nextcloud\'s Notes/Deck APIs use CORS protection that requires HTTP Basic auth — your OAuth login alone won\'t work for these. Please add a Nextcloud app password in Settings → Connections.';
 
 /**
  * Stream a binary file from Nextcloud Files (WebDAV) to disk.

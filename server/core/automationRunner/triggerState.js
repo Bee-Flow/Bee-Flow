@@ -1,8 +1,8 @@
 /**
  * The `trigger` slot of runState: the payload PLUS the facts about WHICH
- * trigger fired and HOW (multi-trigger routines, 2026-09).
+ * trigger fired and HOW (multi-trigger automations, 2026-09).
  *
- * A routine may declare several entry points (`definition.trigger` +
+ * An automation may declare several entry points (`definition.trigger` +
  * `definition.triggers[]`). Until now a run could only see `trigger.output`,
  * so a step reachable from two roots had no way to tell a Gmail event from the
  * Monday-morning schedule. The metadata lives BESIDE `output`, never inside it:
@@ -15,7 +15,7 @@
  *
  * `kind` vs `source`: `kind` is what the DEFINITION says (the trigger node the
  * run entered through), `source` is how THIS run was actually started. A manual
- * test of the Gmail branch has kind 'app_event' and source 'manual'; a routine
+ * test of the Gmail branch has kind 'app_event' and source 'manual'; an automation
  * branches on `kind`, and can tell a test run apart on `source`.
  *
  * Pure and dependency-free so tests (and the builder catalog) can use it without

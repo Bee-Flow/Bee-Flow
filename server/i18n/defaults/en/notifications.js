@@ -8,4 +8,11 @@ module.exports = {
     'notifications.mark_all_read': 'Mark All as Read',
     'notifications.no_notifications': 'No notifications',
     'notifications.reminder': 'Reminder',
+    // Hardcoded literals converted (2026-10)
+    'notifications.mark_all_read_title': 'Mark all as read',
+    'notifications.loading': 'Loading notifications...',
+    'notifications.open': 'Open',
+    'notifications.reconnect_provider': 'Reconnect {provider}',
+    'notifications.open_result_in_chat': 'Open result in chat',
+    'notifications.discuss_in_chat': '💬 Discuss in Chat',
 };

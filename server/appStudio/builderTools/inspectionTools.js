@@ -1,7 +1,7 @@
 /**
  * App Studio builder tools — read-only inspection: app_dry_run, the
  * app_screenshot visual check, draft reads (app_get_draft, app_find_nodes),
- * the owner's routines (app_list_automations / app_inspect_automation) and
+ * the owner's automations (app_list_automations / app_inspect_automation) and
  * the catalog on demand (app_inspect_catalog). None of these mutate the draft.
  */
 
@@ -397,14 +397,14 @@ async function applyListAutomations(draftWrap) {
     try {
         rows = await automationStore.getAutomationsForUser(draftWrap.userId);
     } catch (e) {
-        return { error: `Could not list the owner's routines: ${e.message}` };
+        return { error: `Could not list the owner's automations: ${e.message}` };
     }
     const automations = (rows || []).slice(0, 100).map(automationSummaryRow);
     return {
         automations,
         note: automations.length
             ? 'Wire one via app_set_action { action: { kind:"run_automation", automationId:"<id>", inputMapping:{…} } }. `params` are the input names to map.'
-            : 'The owner has no routines yet — run_automation actions can ship with automationId:null and be connected later.',
+            : 'The owner has no automations yet — run_automation actions can ship with automationId:null and be connected later.',
     };
 }
 
@@ -416,10 +416,10 @@ async function applyInspectAutomation(draftWrap, args) {
     try {
         a = await automationStore.getAutomation(automationId);
     } catch (e) {
-        return { error: `Could not inspect the routine: ${e.message}` };
+        return { error: `Could not inspect the automation: ${e.message}` };
     }
     if (!a || a.userId !== draftWrap.userId) {
-        return { error: `No routine "${automationId}" found for the app owner. Call app_list_automations for the real ids.` };
+        return { error: `No automation "${automationId}" found for the app owner. Call app_list_automations for the real ids.` };
     }
     const row = automationSummaryRow(a);
     const trigger = a?.definition?.trigger || {};

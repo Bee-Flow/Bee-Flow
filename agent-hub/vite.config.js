@@ -1,9 +1,14 @@
 import { execSync } from 'child_process'
-import { readFileSync } from 'fs'
+import { cpSync, createReadStream, existsSync, readFileSync, statSync } from 'fs'
 import path from 'path'
 import react from '@vitejs/plugin-react'
 import { visualizer } from 'rollup-plugin-visualizer'
 import { defineConfig, loadEnv } from 'vite'
+
+// Loaded only for a CI shard, so `vite build` and local test runs never import vitest/node.
+const ShardListSequencer = process.env.VITEST_FILE_LIST
+    ? (await import('./vitest.shardSequencer.mjs')).default
+    : undefined
 
 // Resolve a version string for the running build. Precedence:
 //   1. VITE_BUILD_SHA env var (set by CI — `${{ github.sha }}` from the workflow).
@@ -16,6 +21,41 @@ function resolveBuildSha(envSha) {
             .toString().trim();
     } catch (_) {
         return 'dev';
+    }
+}
+
+/**
+ * The code step's editor runtime (Monaco), served by this app instead of
+ * cdn.jsdelivr.net. @monaco-editor/react fetches it from the CDN unless told
+ * otherwise, which sent every author's IP address to a third party and left an
+ * offline or firewalled self-host with no editor at all (only the plain-text
+ * fallback, after an eight-second wait). The files are the same version
+ * (`monaco-editor/min/vs`); the code step points the loader at
+ * `<base>monaco/vs` (src/.../codeStep/monaco.tsx). Build: copied next to
+ * dist/assets (outside the bundle budget on purpose: it is fetched only when a
+ * code step's editor opens, exactly as the CDN copy was). Dev: served from
+ * node_modules.
+ */
+const MONACO_VS = path.resolve(__dirname, 'node_modules/monaco-editor/min/vs')
+const MONACO_TYPES = { '.js': 'application/javascript', '.css': 'text/css', '.ttf': 'font/ttf', '.json': 'application/json' }
+function monacoSelfHost() {
+    let outDir = null
+    return {
+        name: 'beeflow-monaco-self-host',
+        configResolved(config) { outDir = path.resolve(config.root, config.build.outDir) },
+        configureServer(server) {
+            server.middlewares.use(`${server.config.base}monaco/vs`, (req, res, next) => {
+                const rel = decodeURIComponent(String(req.url || '').split('?')[0])
+                const file = path.join(MONACO_VS, rel)
+                if (!file.startsWith(MONACO_VS + path.sep) || !existsSync(file) || !statSync(file).isFile()) return next()
+                res.setHeader('Content-Type', MONACO_TYPES[path.extname(file)] || 'application/octet-stream')
+                createReadStream(file).pipe(res)
+            })
+        },
+        closeBundle() {
+            if (!outDir || !existsSync(MONACO_VS)) return
+            cpSync(MONACO_VS, path.join(outDir, 'monaco', 'vs'), { recursive: true })
+        },
     }
 }
 
@@ -109,6 +149,7 @@ export default defineConfig(({ mode }) => {
     return {
         plugins: [
             react(),
+            monacoSelfHost(),
             ...(enableAnalyzer ? [visualizer({
                 filename: 'dist/stats.html',
                 template: 'treemap',
@@ -217,6 +258,13 @@ export default defineConfig(({ mode }) => {
             // / 234 DOM-requiring across 15+ directories) — and
             // environmentMatchGlobs no longer exists in vitest 4.
             environment: 'jsdom',
+            // CI shards run `--shard i/n` with an explicit file list
+            // (scripts/frontend-shards.mjs writes it; VITEST_FILE_LIST is a
+            // JSON array of paths relative to this directory). The sequencer
+            // picks the shard's files from that list; see its header for why
+            // this is not a narrowed `include`. Unset (local runs), vitest's
+            // own sequencer applies and everything runs.
+            ...(ShardListSequencer ? { sequence: { sequencer: ShardListSequencer } } : {}),
             setupFiles: ['./src/test/setup.js'],
             css: false,
             // 'forks' (vitest's default) launches worker processes whose IPC

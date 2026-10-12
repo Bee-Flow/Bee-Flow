@@ -101,8 +101,8 @@ const ACTIONS = [
         order: 11,
     },
     {
-        name: 'beeflow_routine',
-        displayName: 'Run a Bee Flow routine…',
+        name: 'beeflow_automation',
+        displayName: 'Run a Bee Flow automation…',
         actionHandler: HANDLER_PATH.replace(/^\//, ''),
         icon: 'img/app.svg',
         mime: 'file',

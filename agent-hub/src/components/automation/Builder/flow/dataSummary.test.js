@@ -171,3 +171,48 @@ describe('summariseEdgeData', () => {
         expect(summariseEdgeData(plain, stub, { from: 'a', to: 'b' })).toMatchObject({ label: '2 records' });
     });
 });
+
+describe('a Code step\'s { result, logs, httpCalls } envelope', () => {
+    const code = { id: 'c', type: 'code' };
+    const edge = { from: 'c', to: 'n' };
+    const run = (result) => ({ status: 'success', output: { result, logs: [], httpCalls: 0 } });
+
+    it('never reports the console lines as the step\'s list', () => {
+        expect(summariseData({ logs: ['a', 'b'] })).toMatchObject({ label: '1 record' });
+        expect(summariseData({ logs: [], httpCalls: 0 })).toMatchObject({ label: '1 record' });
+    });
+
+    it('counts what the code returned on the connection', () => {
+        expect(summariseEdgeData(code, run({ total: 3, name: 'x' }), edge)).toMatchObject({ label: '1 record' });
+        expect(summariseEdgeData(code, run([1, 2, 3]), edge)).toMatchObject({ label: '3 items' });
+        expect(summariseEdgeData(code, run([{ a: 1 }, { a: 2 }]), edge)).toMatchObject({ label: '2 records' });
+        expect(summariseEdgeData(code, run('hello'), edge)).toMatchObject({ kind: 'text' });
+    });
+
+    it('says nothing when the code returned nothing, instead of "0 items"', () => {
+        const nothing = { status: 'success', output: { logs: ['x'], httpCalls: 0 } };
+        expect(summariseEdgeData(code, nothing, edge)).toBeNull();
+    });
+
+    it('a step of unknown type still ignores a lone `logs` array', () => {
+        const other = { id: 'o', type: 'http_request' };
+        expect(summariseEdgeData(other, run({ a: 1 }), edge)).toMatchObject({ label: '1 record' });
+    });
+});
+
+describe('summariseEdgeData: a list split (Condition with several outputs)', () => {
+    it('a list split that also reports its routing (counts, total, branches) still counts per output', () => {
+        const step = { id: 'ms_split', type: 'switch', arrayRef: 'steps.ms_read_many.output.messages[*].attachments' };
+        const files = (n) => Array.from({ length: n }, (_, i) => ({ filename: `f${i}.pdf` }));
+        const run = {
+            status: 'success',
+            output: {
+                mode: 'collection', matchesByCase: { pdf: files(4), word: files(2), powerpoint: files(1), default: files(4) },
+                counts: { pdf: 4, word: 2, powerpoint: 1, default: 4 }, total: 11,
+                branches: ['case:pdf', 'case:word', 'case:powerpoint', 'case:default'], branch: 'case:pdf', matched: 'pdf',
+            },
+        };
+        expect(summariseEdgeData(step, run, { label: 'case:pdf' })).toMatchObject({ label: '4 records' });
+        expect(summariseEdgeData(step, run, { label: 'case:default' })).toMatchObject({ label: '4 records' });
+    });
+});

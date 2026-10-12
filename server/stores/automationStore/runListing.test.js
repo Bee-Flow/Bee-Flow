@@ -122,7 +122,7 @@ test('getJourneyStepStatuses: every leg\'s rows, under the journey root, attempt
     assert.strictEqual((await getJourneyStepStatuses([], { query })).size, 0);
 });
 
-test('getVersionDefinitions: the newest snapshot per (routine, version)', async () => {
+test('getVersionDefinitions: the newest snapshot per (automation, version)', async () => {
     const map = await getVersionDefinitions([{ automationId: 'a1', version: 3 }, { automationId: 'a1', version: 3 }, { automationId: 'a1', version: 9 }], { query });
     assert.deepStrictEqual(map.get('a1@3'), { steps: [{ id: 's1' }] });
     assert.strictEqual(map.has('a1@9'), false);

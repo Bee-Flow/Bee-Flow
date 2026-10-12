@@ -97,9 +97,9 @@ function makeDeps(overrides = {}) {
             availableIntegrations: [{ id: 'gmail' }, { id: 'slack' }],
             tiers: {},
             queueSave: () => calls.push('queueSave'),
-            routinesAllowed: false,
+            schedulesAllowed: false,
             agent: { id: 'agent-1' },
-            refreshAgentRoutines: async () => {},
+            refreshAgentSchedules: async () => {},
             currentPersona: undefined,
             // De standaardopstelling is "er is nog geen rij" — de verse agent
             // die de wizard net aanmaakte. Zonder deze vlag betekent een

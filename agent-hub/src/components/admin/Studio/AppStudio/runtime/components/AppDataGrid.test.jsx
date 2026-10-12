@@ -949,7 +949,7 @@ describe('AppDataGrid — add-row footer', () => {
         const withLabel = withRuntime(<AppDataGrid node={addNode({ addRowLabel: 'Nieuwe projectregel' })} />);
         expect(withLabel.container.querySelector('[data-app-grid-addrow]').textContent).toContain('Nieuwe projectregel');
         const bare = withRuntime(<AppDataGrid node={addNode()} />);
-        expect(bare.container.querySelector('[data-app-grid-addrow]').textContent).toContain('Regel toevoegen');
+        expect(bare.container.querySelector('[data-app-grid-addrow]').textContent).toContain('Add row');
     });
 
     it('still offers itself when the table is empty — that is when it matters most', () => {

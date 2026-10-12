@@ -14,6 +14,7 @@
 
 const usageStore = require('../../../stores/usageStore');
 const log = require('../../../telemetry/log');
+const { usageTotalsLogFields } = require('../../../core/providers/usageNormalizer');
 
 function makeTurnUsageLogger({ userId, draftWrap, modelId, resolvedTier, usageTotals, turnStartedAt, turn }) {
     let usageLogged = false;
@@ -46,9 +47,7 @@ function makeTurnUsageLogger({ userId, draftWrap, modelId, resolvedTier, usageTo
             agent_name: `App builder: ${(draftWrap.def && draftWrap.def.meta && draftWrap.def.meta.name) || 'Untitled app'}`,
             agent_type: 'studio_app_builder',
             model: modelId,
-            prompt_tokens: usageTotals.inputTokens,
-            completion_tokens: usageTotals.outputTokens,
-            total_tokens: usageTotals.inputTokens + usageTotals.outputTokens,
+            ...usageTotalsLogFields(usageTotals),
             duration_ms: durationMs,
             source: 'studio_app_builder',
             conversation_id: draftWrap.builderSessionId || draftWrap.appId || null,

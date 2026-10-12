@@ -1,7 +1,7 @@
 /**
- * The live split on the build screen (handoff 5): a live routine whose working
+ * The live split on the build screen (handoff 5): a live automation whose working
  * copy is ahead says so and offers Make vN live, which publishes the version
- * on screen; a save says its change is not live yet; a routine saved
+ * on screen; a save says its change is not live yet; an automation saved
  * elsewhere in the meantime is read again; a refusal reads like Go live's;
  * and a server without the split gets the screen it always had.
  */
@@ -9,7 +9,7 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 
 import { ApiError, api } from '@/core/api/client';
-import { MAIL_SORTER_ROW, releaseDrafts, renderBuild as mount, serveRoutine } from '@/features/flow-editor/screens/testing';
+import { MAIL_SORTER_ROW, releaseDrafts, renderBuild as mount, serveAutomation } from '@/features/flow-editor/screens/testing';
 import { peekDraftStore } from '@/features/flow-editor/state';
 
 jest.setTimeout(30_000);
@@ -44,7 +44,7 @@ async function editAndSave(): Promise<void> {
 
 describe('PublishBanner', () => {
     it('says what is not live yet, and makes the version on screen live', async () => {
-        serveRoutine(AHEAD);
+        serveAutomation(AHEAD);
         post.mockResolvedValue({ automation: { ...AHEAD, liveVersion: 5, pendingChanges: 0 }, warnings: [] });
         await mount();
         expect(await screen.findByText('editing v5 · 2 changes not live yet')).toBeTruthy();
@@ -58,8 +58,8 @@ describe('PublishBanner', () => {
         expect(countsReads()).toBe(0);
     });
 
-    it('after a save on a live routine, reads the pending count the answer leaves out', async () => {
-        serveRoutine({ ...AHEAD, version: 3, pendingChanges: 0 }, { '/api/automation/a1/counts': { runs7d: 0, pendingChanges: 1 } });
+    it('after a save on a live automation, reads the pending count the answer leaves out', async () => {
+        serveAutomation({ ...AHEAD, version: 3, pendingChanges: 0 }, { '/api/automation/a1/counts': { runs7d: 0, pendingChanges: 1 } });
         (api.put as jest.Mock).mockImplementation(async (_path: string, body: { definition: unknown }) => {
             const { pendingChanges: _omitted, ...saved } = AHEAD;
             return { automation: { ...saved, definition: body.definition, version: 4 }, warnings: [] };
@@ -74,7 +74,7 @@ describe('PublishBanner', () => {
     });
 
     it('waits for the autosave before it makes anything live', async () => {
-        serveRoutine(AHEAD);
+        serveAutomation(AHEAD);
         await mount();
         await screen.findByText('Make v5 live');
         await edit('Sort');
@@ -83,8 +83,8 @@ describe('PublishBanner', () => {
         expect(post).not.toHaveBeenCalled();
     });
 
-    it('reads the routine again when it moved on since, and says so', async () => {
-        serveRoutine(AHEAD);
+    it('reads the automation again when it moved on since, and says so', async () => {
+        serveAutomation(AHEAD);
         post.mockRejectedValueOnce(new ApiError('Version 5 is no longer the latest', { status: 409, body: { error: 'Version 5 is no longer the latest', code: 'version_changed', version: 6 } }));
         await mount();
         await fireEvent.press(await screen.findByText('Make v5 live'));
@@ -93,7 +93,7 @@ describe('PublishBanner', () => {
     });
 
     it('tells a refusal the way Go live does, findings and all', async () => {
-        serveRoutine(AHEAD);
+        serveAutomation(AHEAD);
         post.mockRejectedValueOnce(new ApiError('Invalid definition', {
             status: 400,
             body: { error: 'Invalid definition', details: [{ code: 'tool.unknown', severity: 'error', path: 'steps[b]', message: 'This tool is not available to the owner.' }] },
@@ -104,8 +104,8 @@ describe('PublishBanner', () => {
         expect((await screen.findAllByText('This tool is not available to the owner.')).length).toBeGreaterThan(0);
     });
 
-    it('on a paused routine says what is pending, and leaves going live to Go live', async () => {
-        serveRoutine({ ...AHEAD, isActive: false });
+    it('on a paused automation says what is pending, and leaves going live to Go live', async () => {
+        serveAutomation({ ...AHEAD, isActive: false });
         await mount();
         expect(await screen.findByText('editing v5 · 2 changes not live yet')).toBeTruthy();
         expect(screen.queryByTestId('publish-live')).toBeNull();
@@ -113,7 +113,7 @@ describe('PublishBanner', () => {
     });
 
     it('on a server without the live split, shows the screen it always had', async () => {
-        serveRoutine({ ...MAIL_SORTER_ROW, isActive: true, isDraft: false });
+        serveAutomation({ ...MAIL_SORTER_ROW, isActive: true, isDraft: false });
         await mount();
         await screen.findByText('Mail sorter');
         // "Live" under the name and on the switch-off button, no version beside it.

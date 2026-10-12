@@ -1,7 +1,7 @@
 /**
  * What the background poll puts on the lock screen.
  *
- * Two things it got wrong: a routine whose credentials lapsed announced
+ * Two things it got wrong: an automation whose credentials lapsed announced
  * itself as "routinereauth:google Your Google access has expired…" (the token
  * went through the markdown stripper, which ate its underscore, before it was
  * split off), and the summary after the first three was always English —
@@ -60,7 +60,7 @@ beforeEach(async () => {
 describe('pollForNewNotifications', () => {
     it('never puts the reauth token on the lock screen', async () => {
         (listNotifications as jest.Mock).mockResolvedValue([
-            note('n1', 'routine_reauth:google\n\nYour Google access has expired or been revoked.'),
+            note('n1', 'automation_reauth:google\n\nYour Google access has expired or been revoked.'),
         ]);
         await pollForNewNotifications();
         expect(scheduled()).toEqual(['Your Google access has expired or been revoked.']);

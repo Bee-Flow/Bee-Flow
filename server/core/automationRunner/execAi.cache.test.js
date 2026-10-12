@@ -4,7 +4,7 @@
  *
  * This file exists because that composition had no test at all. The stores and
  * the policy each have their own suite, but the properties that actually keep
- * one organisation's mail out of another's routine are not in either of them —
+ * one organisation's mail out of another's automation are not in either of them —
  * they are in the ORDER and the CONDITIONS here:
  *
  *   - the key is built AFTER the lending identity swap, so a borrowed
@@ -217,7 +217,7 @@ test('the operator kill switch closes both tiers, and reads =0 as "leave it on"'
     assert.deepStrictEqual(durablePuts, []);
 
     // `=0` is a non-empty string: bare truthiness read the operator's "leave
-    // it on" as "switch it off", and the only symptom was a slower routine.
+    // it on" as "switch it off", and the only symptom was a slower automation.
     process.env.AUTOMATION_ASK_ONCE_DISABLED = '0';
     dispatches.length = 0;
     const ctx2 = makeCtx();

@@ -19,14 +19,14 @@ export type GetDraft = StoreApi<DraftState>['getState'];
 export interface DraftContext {
     deps: DraftDeps;
     now: () => number;
-    /** The new row's title, when the routine is created lazily. */
+    /** The new row's title, when the automation is created lazily. */
     title: string;
     scheduler: SaveScheduler | null;
     /** The one create in flight, shared by everyone who needs the row. */
     createInFlight: Promise<{ result: SaveResult; sent: FlowDefinition }> | null;
     /**
      * A create failed with no answer (offline, a timeout, a 5xx): it may have
-     * landed, and another POST would be a second routine. While set, the
+     * landed, and another POST would be a second automation. While set, the
      * autosave does not create; only an explicit retry (or ensureCreated, which
      * a person's action calls) sends the create again.
      */

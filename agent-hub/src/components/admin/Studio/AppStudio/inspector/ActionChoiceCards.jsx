@@ -77,8 +77,8 @@ export default function ActionChoiceCards({
                         // is an option for it below whatever it is. The old code
                         // fell back to 'run_automation' for anything it did not
                         // list, so a kind from a newer build displayed as "Run
-                        // routine" and the first change replaced the whole
-                        // action. Claiming something is a routine is worse than
+                        // automation" and the first change replaced the whole
+                        // action. Claiming something is an automation is worse than
                         // showing a name the reader does not recognise.
                         value={kind || 'run_automation'}
                         onChange={(e) => onPickKind(e.target.value)}

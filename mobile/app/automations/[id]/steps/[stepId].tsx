@@ -1,6 +1,6 @@
 /**
- * One step of a routine, edited: Input | Settings | Output. Pushed from the
- * build screen; `id` is the routine id (or a new routine's draft key),
+ * One step of an automation, edited: Input | Settings | Output. Pushed from the
+ * build screen; `id` is the automation id (or a new automation's draft key),
  * `stepId` the step's id or a held step's address, `section` the settings
  * section a finding points at, `flowlet` the flowlet the step lives in. See
  * features/flow-editor NodeEditorScreen.

@@ -1,6 +1,6 @@
 /**
  * One Annex III question — the web's AnnexQuestions row: the question, the
- * point of the annex it cites (and whether the routine's own wording
+ * point of the annex it cites (and whether the automation's own wording
  * mentions it), and a No/Yes pair that starts on neither. Pressing the
  * answer already given takes it back to open.
  */
@@ -36,7 +36,7 @@ export function LadderAnnexQuestion({
                 <Text variant="caption">{text}</Text>
                 <Text variant="label" tone="tertiary">
                     {ANNEX_III_ARTICLES[question.id]}
-                    {hinted ? ` · ${t('compliance.ladder_annex_mentioned', 'this routine’s wording mentions it')}` : ''}
+                    {hinted ? ` · ${t('compliance.ladder_annex_mentioned', 'this automation’s wording mentions it')}` : ''}
                 </Text>
             </View>
             <View style={styles.pair} accessibilityRole="radiogroup" accessibilityLabel={text}>

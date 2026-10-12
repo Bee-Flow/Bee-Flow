@@ -5,6 +5,23 @@
 // The content tabs of the collaborative project workspace: documents, notebooks, meetings and
 // knowledge (files, linked knowledge bases, project memory).
 module.exports = {
+    "project_content.remove_from_project": "Remove from project",
+
+    "project_content.source_text": "Text available to AI",
+    "project_content.download_text": "Download text",
+    "project_content.close": "Close",
+    "project_content.source_unavailable": "No processed text is available for this file yet.",
+    "project_content.shared_memory": "Shared project memory",
+    "project_content.memory_select": "Select",
+    "project_content.memory_add": "Add memory",
+    "project_content.memory_search": "Search memories…",
+    "project_content.memory_empty": "No memories yet",
+    "project_content.memory_auto": "Useful project facts can be saved from chats. All project members can read them.",
+    "project_content.memory_manual": "Automatic memory is off. Editors can add shared project facts here.",
+    "project_content.notebooks_search": "Search notebooks",
+    "project_content.meetings_search": "Search meetings",
+    "project_content.open_saved_meeting": "Open saved meeting",
+    "project_content.capture_busy": "Finish or dismiss the current recording before starting another.",
     // ── Shared ──────────────────────────────────────────────────────
     'project_content.add_existing': 'Add existing',
     'project_content.cancel': 'Cancel',

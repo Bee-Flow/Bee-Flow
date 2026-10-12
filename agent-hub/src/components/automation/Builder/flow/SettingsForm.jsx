@@ -11,20 +11,23 @@ import {
     findActionAndSiblings,
 } from './settings/actionEditors';
 import { emptySlotsIn } from '../mapping/boundPaths';
+import { listAsForStepType, SlotListAsContext } from '../mapping/slotListAs';
 import { AiStepFields } from './settings/aiStepEditors';
-import ReturnToAppFields from './settings/returnToAppEditor';
 import { ApprovalFields } from './settings/approvalEditors';
 import {
     DateTimeFields, WaitFields, LimitFields, DedupeFields, AggregateFields, SummarizeFields,
 } from './settings/collectionEditors';
 import DatatableFields from './settings/datatableEditors';
-import KnowledgeWriteFields from './settings/knowledgeWriteEditors';
+import { sampleFromRunOf } from './settings/flattenEditorModel';
+import FlattenFields from './settings/FlattenFields';
 import { useFormDensity, useFormMode } from './settings/formDensity';
 import { inputClass, controlSurfaceClass, hintTextClass, FormRow, ValidationLine } from './settings/formPrimitives';
 import { defaultLabelPlaceholder, extractFormState, buildPatch, deepEqual, carryPendingRows } from './settings/formState';
-import NodePurpose from './settings/NodePurpose';
+import JsonConfigSection from './settings/JsonConfigEditor';
+import KnowledgeWriteFields from './settings/knowledgeWriteEditors';
 import ParseJsonFields from './settings/ParseJsonFields';
 import { PrivacyShieldFields } from './settings/privacyEditors';
+import ReturnToAppFields from './settings/returnToAppEditor';
 import { RouteFields } from './settings/routeEditors';
 import { SetFields } from './settings/setEditors';
 import { TriggerFields, FormPageFields } from './settings/triggerEditors';
@@ -70,7 +73,7 @@ export default function SettingsForm({
     rootDefinition = null,
     // The persisted automation row. Only the webhook trigger uses it, to show
     // that node's inbound URL inline instead of burying it in Settings
-    // (BFSF-320). Null until the routine has been saved once.
+    // (BFSF-320). Null until the automation has been saved once.
     automation = null,
     // Published Steps catalog [{id,title,params,outputFields}] — CallStepFields
     // derives an external Step's contract from this (the Step lives in another
@@ -97,12 +100,21 @@ export default function SettingsForm({
     // Renaming a form question's binding name rewrites the whole definition, so
     // it is handed down from the shell that owns it — see FormBuilderFields.
     onRenameField = null,
+    // { pages, savePage, onTestForm } — the whole automation's form pages, for the full-screen form editor (null where the shell cannot supply it).
+    formEditor = null,
     // (step) => boolean|undefined — insert a step BEFORE this one and re-point
     // the connections. Same shape and same reason as onRenameField above: it
     // rewrites the graph, so it comes from the shell that owns the definition,
     // and the control that offers it is simply not rendered when it is null
     // (Condition node → RouteFields → RouteAssist's semantic handoff).
     onInsertUpstreamStep = null,
+    // A Condition working through a list: the next steps that still read that
+    // list, and the fix that re-points them (useNodeDetailData's routeFollow;
+    // null everywhere else). Same reason as above: the fix rewrites the graph.
+    routeFollow = null,
+    // A Condition deciding once for the whole run that reads a list as a
+    // whole: the lists and the loops after it (useNodeDetailData's wholeRun).
+    wholeRun = null,
     // Optional host content for the left of the action bar. The quick NDV puts
     // its "In … → Out …" summary here so the dialog ends in one footer instead
     // of stacking a second chrome bar underneath this one. Null everywhere
@@ -198,7 +210,9 @@ export default function SettingsForm({
         if (!userHasEdits) setDraft(carryPendingRows(incoming, draftRef.current));
     }, [step]);
 
-    const set = (k, v) => setDraft(d => ({ ...d, [k]: v }));
+    // A function value is an updater on the current value (and the whole
+    // draft), for edits that must land after another one in the same event.
+    const set = (k, v) => setDraft(d => ({ ...d, [k]: typeof v === 'function' ? v(d[k], d) : v }));
     const setNested = (parent, k, v) => setDraft(d => ({ ...d, [parent]: { ...(d[parent] || {}), [k]: v } }));
 
     const flushNow = () => {
@@ -259,7 +273,11 @@ export default function SettingsForm({
     useEffect(() => () => { flushNow(); }, []);  
 
     // `@container/ndvset`: the footer fits itself to the settings column, not the window.
+    // SlotListAsContext: how THIS step's run writes a list into its inputs'
+    // text (JSON for tool, AI, code, table and HTTP steps), so every value
+    // editor below previews what the step will actually receive.
     return (
+        <SlotListAsContext.Provider value={listAsForStepType(step?.type)}>
         <div className="@container/ndvset flex-1 min-h-0 flex flex-col">
             {(stepIssues.errors.length > 0 || stepIssues.warnings.length > 0) && (
                 <div className="flex-shrink-0 px-3 py-2 border-b border-[var(--border-default)]">
@@ -268,13 +286,13 @@ export default function SettingsForm({
                         apart from their hue. */}
                     {stepIssues.errors.length > 0 && (
                         <div className="text-[11px] font-semibold text-red-600 dark:text-red-400 mb-0.5">
-                            {t('routines.builder.fix_before_run', 'Fix this before the routine can run:')}
+                            {t('automations.builder.fix_before_run', 'Fix this before the automation can run:')}
                         </div>
                     )}
                     {stepIssues.errors.map((e, i) => <ValidationLine key={`e-${i}`} record={e} />)}
                     {stepIssues.warnings.length > 0 && (
                         <div className="text-[11px] font-semibold text-amber-600 dark:text-amber-400 mb-0.5 mt-1 first:mt-0">
-                            {t('routines.builder.worth_checking', 'Worth checking:')}
+                            {t('automations.builder.worth_checking', 'Worth checking:')}
                         </div>
                     )}
                     {stepIssues.warnings.map((w, i) => <ValidationLine key={`w-${i}`} record={w} />)}
@@ -286,33 +304,28 @@ export default function SettingsForm({
                 surface tokens are too close together to carry on their own.
                 On a wide screen the form keeps a readable measure, centred,
                 instead of stretching every field across it. */}
-            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-3 space-y-4 [&>*]:max-w-[1040px] [&>*]:mx-auto">
-                {/* Above the name field on purpose: "what is this step" comes
-                    before "what shall I call it". Shown at BOTH densities —
-                    the quick view is where a first-time author lands, and it
-                    is the one place in the builder that can afford to say. */}
-                <NodePurpose step={step} />
-
-                <FormRow label="Label" hint="A name and an optional symbol for this step, shown on its node.">
-                    <div className="flex items-center gap-2">
-                        <IconPicker
-                            value={draft.icon || ''}
-                            onChange={(name) => set('icon', name)}
-                            title="Choose a symbol for this step"
-                        />
-                        <input
-                            type="text"
-                            value={draft.label || ''}
-                            onChange={(e) => set('label', e.target.value)}
-                            placeholder={defaultLabelPlaceholder(step)}
-                            aria-label="Step name"
-                            className={inputClass() + ' flex-1'}
-                        />
-                    </div>
-                </FormRow>
+            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-3 space-y-3 [&>*]:max-w-[1040px] [&>*]:mx-auto">
+                {/* The step's name and symbol on ONE line, without a heading of
+                    its own: the panel header already names the step, and the
+                    field says what it is (its placeholder and accessible name). */}
+                <div className="flex items-center gap-2" title={t('automations.settings_form.a_name_and_an_optional_symbol', 'A name and an optional symbol for this step, shown on its node.')}>
+                    <IconPicker
+                        value={draft.icon || ''}
+                        onChange={(name) => set('icon', name)}
+                        title={t('automations.settings_form.choose_a_symbol_for_this_step', 'Choose a symbol for this step')}
+                    />
+                    <input
+                        type="text"
+                        value={draft.label || ''}
+                        onChange={(e) => set('label', e.target.value)}
+                        placeholder={defaultLabelPlaceholder(step)}
+                        aria-label={t('automations.settings_form.step_name', 'Step name')}
+                        className={inputClass() + ' flex-1'}
+                    />
+                </div>
 
                 {step.type === 'trigger' && (
-                    <TriggerFields draft={draft} set={set} setNested={setNested} errorSections={errorSections} catalog={catalog} automation={automation} stepId={step.id} isSecondaryTrigger={isSecondaryTrigger} onTestSubmit={onTestSubmit} onRenameField={onRenameField} />
+                    <TriggerFields draft={draft} set={set} setNested={setNested} errorSections={errorSections} catalog={catalog} automation={automation} stepId={step.id} isSecondaryTrigger={isSecondaryTrigger} onTestSubmit={onTestSubmit} onRenameField={onRenameField} formEditor={formEditor} />
                 )}
 
                 {step.type === 'ai_step' && (
@@ -341,6 +354,7 @@ export default function SettingsForm({
                         onFocusField={onFocusField} previewSample={previewSample}
                         errorSections={errorSections} wiredCaseNames={wiredCaseNames}
                         onInsertUpstreamStep={onInsertUpstreamStep}
+                        routeFollow={routeFollow} wholeRun={wholeRun}
                         topics={topicsCapability(catalog)}
                     />
                 )}
@@ -456,13 +470,16 @@ export default function SettingsForm({
                     <ReturnToAppFields draft={draft} set={set} onFocusField={onFocusField} previewSample={previewSample} errorSections={errorSections} />
                 )}
                 {step.type === 'form_page' && (
-                    <FormPageFields draft={draft} set={set} stepId={step.id} onFocusField={onFocusField} previewSample={previewSample} errorSections={errorSections} onRenameField={onRenameField} />
+                    <FormPageFields draft={draft} set={set} stepId={step.id} onFocusField={onFocusField} previewSample={previewSample} errorSections={errorSections} onRenameField={onRenameField} formEditor={formEditor} />
                 )}
                 {step.type === 'limit' && (
                     <LimitFields draft={draft} set={set} groups={groups} onFocusField={onFocusField} previewSample={previewSample} errorSections={errorSections} />
                 )}
                 {step.type === 'dedupe' && (
                     <DedupeFields draft={draft} set={set} groups={groups} onFocusField={onFocusField} previewSample={previewSample} errorSections={errorSections} />
+                )}
+                {step.type === 'flatten' && (
+                    <FlattenFields draft={draft} set={set} groups={groups} onFocusField={onFocusField} previewSample={previewSample} sampleFromRun={sampleFromRunOf(groups, draft.arrayRef)} errorSections={errorSections} />
                 )}
                 {step.type === 'datatable' && (
                     <DatatableFields
@@ -484,12 +501,11 @@ export default function SettingsForm({
                 )}
 
                 {/* Not in Simple mode: that view's whole point is that it
-                    doesn't talk about JSON. The mode toggle is the way
-                    deeper. */}
+                    doesn't talk about JSON. BFSF-481: the sentence used to be
+                    dead text naming a view that did not exist; now it IS the
+                    control. */}
                 {formMode !== 'simple' && (
-                    <div className="text-[11px] text-[var(--text-tertiary)]">
-                        Advanced options are available in the JSON view.
-                    </div>
+                    <JsonConfigSection draft={draft} onApply={setDraft} />
                 )}
             </div>
 
@@ -515,10 +531,10 @@ export default function SettingsForm({
                     <span
                         className="shrink-0 px-[7px] rounded-full border font-semibold leading-[18px]"
                         style={{ borderColor: 'var(--warning)', color: 'var(--warning-ink)' }}
-                        title={t('routines.builder.fields_unknown_hint', 'This step\u2019s tool details could not be loaded, so its required fields cannot be checked. Reload the page to try again.')}
+                        title={t('automations.builder.fields_unknown_hint', 'This step\u2019s tool details could not be loaded, so its required fields cannot be checked. Reload the page to try again.')}
                         data-testid="settings-empty-slots-unknown"
                     >
-                        {t('routines.builder.fields_unknown', 'Cannot check the fields')}
+                        {t('automations.builder.fields_unknown', 'Cannot check the fields')}
                     </span>
                 ) : emptySlots.empty > 0 && (
                     <span
@@ -528,8 +544,8 @@ export default function SettingsForm({
                         data-testid="settings-empty-slots"
                     >
                         {emptySlots.empty === 1
-                            ? t('routines.builder.one_field_empty', '1 field still empty')
-                            : t('routines.builder.n_fields_empty', '{n} fields still empty', { n: emptySlots.empty })}
+                            ? t('automations.builder.one_field_empty', '1 field still empty')
+                            : t('automations.builder.n_fields_empty', '{n} fields still empty', { n: emptySlots.empty })}
                     </span>
                 )}
                 <div className="ml-auto shrink-0 flex items-center gap-2">
@@ -541,7 +557,7 @@ export default function SettingsForm({
                         the header's save chip says the same. */}
                     {!compactFooter && (
                         <span className={`${hintTextClass()} text-[var(--text-tertiary)] @max-[720px]/ndvset:hidden`}>
-                            {t('routines.builder.autosave_note', 'Changes save automatically.')}
+                            {t('automations.builder.autosave_note', 'Changes save automatically.')}
                         </span>
                     )}
                     <button
@@ -549,7 +565,7 @@ export default function SettingsForm({
                         disabled={!dirty || saving}
                         className="flex items-center gap-1.5 px-3 py-1 text-xs rounded text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-40 transition"
                     >
-                        <RotateCcw size={12} /> {t('routines.builder.undo_changes', 'Undo changes')}
+                        <RotateCcw size={12} /> <span className="@max-[480px]/ndvset:sr-only">{t('automations.builder.undo_changes', 'Undo changes')}</span>
                     </button>
                     <button
                         onClick={onSave}
@@ -561,6 +577,7 @@ export default function SettingsForm({
                 </div>
             </div>
         </div>
+        </SlotListAsContext.Provider>
     );
 }
 

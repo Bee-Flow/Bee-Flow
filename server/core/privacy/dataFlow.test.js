@@ -4,8 +4,8 @@
  *
  * What these tests hold in place is mostly the difference between claims that
  * look alike and are not: "no personal data leaves here", "nobody established
- * what this routine handles", and "a Privacy Shield exists somewhere in this
- * routine" — which is not at all the same as "a Privacy Shield stands in front
+ * what this automation handles", and "a Privacy Shield exists somewhere in this
+ * automation" — which is not at all the same as "a Privacy Shield stands in front
  * of the thing it is supposed to protect".
  *
  * Run: node --test --test-force-exit core/privacy/dataFlow.test.js
@@ -53,8 +53,8 @@ test('the destination is the recipient, not the step type', () => {
 test('a shield counts only in front of what it precedes', () => {
     // THE BUG THIS MODULE EXISTS FOR. The review's finding is titled "a model
     // reads the data with no privacy check IN FRONT OF IT", and it was
-    // suppressed by "is there a privacy step anywhere in this routine" — so a
-    // shield dropped at the end of the routine, where it protects nothing that
+    // suppressed by "is there a privacy step anywhere in this automation" — so a
+    // shield dropped at the end of the automation, where it protects nothing that
     // already ran, silenced it.
     const late = F.analyseFlow({ steps: [step('ai_step'), step('integration_action', 'gmail_compose'), step('guard')], personal: PERSONAL });
     assert.equal(late.shields.length, 1, 'the shield is still seen');
@@ -75,16 +75,38 @@ test('a shield counts only in front of what it precedes', () => {
     assert.equal(between.verdict, 'guarded');
 });
 
-test('all three of the Privacy Shield\'s runtime shapes count as a shield', () => {
-    for (const shape of ['guard', 'tokenize', 'untokenize']) {
+test('the hiding shapes guard what follows; a reveal does not', () => {
+    for (const shape of ['guard', 'tokenize']) {
         const flow = F.analyseFlow({ steps: [step(shape), step('integration_action', 'gmail_compose')], personal: PERSONAL });
         assert.equal(flow.exits[0].shielded, true, shape);
     }
+    // An untokenize is still a shield STEP (it is seen and counted), but it puts
+    // the real values back: a send behind it sends them.
+    const reveal = F.analyseFlow({ steps: [step('untokenize'), step('integration_action', 'gmail_compose')], personal: PERSONAL });
+    assert.equal(reveal.shields.length, 1);
+    assert.equal(reveal.exits[0].shielded, false);
+    assert.equal(reveal.verdict, 'unguarded');
+});
+
+test('a reveal after the hide re-exposes every later step, until the next hide', () => {
+    const steps = [
+        step('tokenize'),
+        step('ai_step'),
+        step('untokenize'),
+        step('integration_action', 'gmail_compose'),
+        step('tokenize'),
+        step('http_request'),
+    ];
+    const flow = F.analyseFlow({ steps, personal: PERSONAL });
+    assert.equal(flow.models[0].shielded, true, 'the model read tokens');
+    assert.equal(flow.exits[0].shielded, false, 'the mail went out after the reveal');
+    assert.equal(flow.exits[1].shielded, true, 'the HTTP call follows a fresh hide');
+    assert.equal(flow.verdict, 'unguarded');
 });
 
 test('"nothing personal leaves" and "nobody looked" stay different answers', () => {
     const steps = [step('datatable'), step('integration_action', 'gmail_compose')];
-    // null in, null out — a caller that never established what the routine
+    // null in, null out — a caller that never established what the automation
     // handles has not established that it handles nothing. A flow that reports
     // "no personal data goes out" precisely when it could not look is the one
     // thing this module must never do.
@@ -94,9 +116,9 @@ test('"nothing personal leaves" and "nobody looked" stay different answers', () 
     const clean = F.analyseFlow({ steps, personal: [] });
     assert.deepEqual(clean.carries, []);
     assert.equal(clean.verdict, 'no_personal_data');
-    // And a routine with no exit at all is neither: nothing leaves it.
+    // And an automation with no exit at all is neither: nothing leaves it.
     assert.equal(F.analyseFlow({ steps: [step('datatable')], personal: PERSONAL }).verdict, 'contained');
-    // Steps that could not be read are not a clean routine either.
+    // Steps that could not be read are not a clean automation either.
     assert.equal(F.analyseFlow({ steps: null, personal: PERSONAL }).verdict, 'unknown');
     assert.equal(F.analyseFlow({ steps: [], personal: PERSONAL }).verdict, 'unknown');
 });
@@ -177,7 +199,7 @@ test('the stored record is built from an allow-list, so a ledger row cannot leak
     const record = F.flowRecord(F.mergeObserved(F.analyseFlow({
         steps: [step('datatable'), step('integration_action', 'gmail_compose')], personal: PERSONAL,
     }), seen));
-    // The flow carries whole step objects and a step object is the routine's
+    // The flow carries whole step objects and a step object is the automation's
     // own configuration — sooner or later one holds a recipient address or a
     // bound value. None of them is in the record.
     assert.deepEqual(Object.keys(record).sort(), [...F.FLOW_FIELDS].sort());
@@ -211,7 +233,7 @@ test('"a model reads this" is automationGraph\'s list, not a fourth copy of it',
     // The copy this replaces said ['ai_step','data_extraction','summarize','fill_document'],
     // carried forward from the playbook review, and was wrong both ways:
     // `summarize` is a sum over a collection (execSummarize.js) and calls no
-    // model at all, while `ai_tool` — which does — was missing, so a routine
+    // model at all, while `ai_tool` — which does — was missing, so an automation
     // whose only model call was an ai_tool read as having no model in it.
     const { AI_STEP_TYPES } = require('../../automation/automationGraph');
     assert.deepStrictEqual([...F.MODEL_TYPES].sort(), [...AI_STEP_TYPES].sort());

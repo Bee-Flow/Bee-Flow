@@ -402,6 +402,20 @@ const now = Math.floor(Date.now() / 1000);
         'self-hosted: beta allow-list must not leak into the licence gate');
     if (prevMode === undefined) delete process.env.DEPLOYMENT_MODE; else process.env.DEPLOYMENT_MODE = prevMode;
 
+    // deploymentMode() is part of the module's surface: routes/orgAzureConfig.js
+    // gates the platform Azure panel on it, and while it was not exported every
+    // GET and PUT there threw "deploymentMode is not a function" (a 500), so
+    // the panel showed empty tiers on every self-hosted install.
+    assert.strictEqual(typeof license.deploymentMode, 'function', 'deploymentMode is exported');
+    const modeBefore = process.env.DEPLOYMENT_MODE;
+    delete process.env.DEPLOYMENT_MODE;
+    assert.strictEqual(license.deploymentMode(), 'cloud', 'default deployment mode is cloud');
+    process.env.DEPLOYMENT_MODE = 'self-hosted';
+    assert.strictEqual(license.deploymentMode(), 'self-hosted');
+    process.env.DEPLOYMENT_MODE = 'private-cloud';
+    assert.strictEqual(license.deploymentMode(), 'self-hosted', 'retired private-cloud reads as self-hosted');
+    if (modeBefore === undefined) delete process.env.DEPLOYMENT_MODE; else process.env.DEPLOYMENT_MODE = modeBefore;
+
     console.log('✓ license/index.test.js — all assertions passed');
 })().catch(err => {
     console.error('✗ license/index.test.js FAILED:', err);

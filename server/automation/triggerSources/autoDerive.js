@@ -8,7 +8,7 @@
  * as a watchable source — "when the result of this changes".
  *
  * Listing is free. Nothing is polled until someone actually builds and activates
- * a routine on one of these, so offering a candidate costs no API quota.
+ * an automation on one of these, so offering a candidate costs no API quota.
  *
  * Two properties make this work without user context at poll time:
  *   - the event id encodes the tool (`auto.<tool>.changed`), so a subscription
@@ -142,7 +142,7 @@ function autoSource(tool, capability) {
  * We genuinely do not know the item's shape before the first poll, and saying
  * otherwise would fill the variable picker with fields that resolve to nothing.
  * So the whole item is exposed under `item` and the builder's real-run overlay
- * fills in the detail once the routine has been tested once.
+ * fills in the detail once the automation has been tested once.
  */
 function autoEventDef(tool, capability) {
     return {

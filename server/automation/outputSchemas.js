@@ -108,6 +108,42 @@ const OUTPUT_SCHEMAS = {
         shape: { messageId: 'string', trashed: 'boolean', labelIds: 'array of string' },
         sample: { messageId: 'msg-1', trashed: true, labelIds: ['TRASH'] },
     },
+    gmail_read_many: {
+        // `messages` is the first array: it is the list a "for each" binds to.
+        shape: {
+            messages: 'array of { id, threadId, from, to, subject, date, body, attachments } (each exactly as gmail_read returns it; body cut at 20,000 characters)',
+            count: 'integer (messages read)',
+            notFound: 'array of string (ids Gmail does not know)',
+            failed: 'array of { id, error }',
+            truncated: 'boolean (only when more than 100 ids were given; the first 100 were read)',
+            error: 'string (only when not one message could be read)',
+        },
+        sample: {
+            messages: [
+                {
+                    id: 'msg-1', threadId: 'th-1', from: 'sender@example.com', to: 'me@example.com',
+                    subject: 'Sample invoice', date: 'Mon, 06 Apr 2026 08:23:19 -0700',
+                    body: 'Beste klant,\n\nHierbij ontvangt u onze factuur met nummer 2026-001.',
+                    attachments: [
+                        { attachmentId: 'attach-1', filename: 'invoice_2026-001.pdf', mimeType: 'application/pdf', size: 45678, canOCR: true, messageId: 'msg-1', threadId: 'th-1' },
+                    ],
+                },
+            ],
+            count: 1,
+            notFound: [],
+            failed: [],
+        },
+    },
+    gmail_bulk_modify: {
+        shape: {
+            modified: 'integer (messages changed)',
+            messageIds: 'array of string',
+            addLabelIds: 'array of string (label ids added)',
+            removeLabelIds: 'array of string (label ids removed; UNREAD = marked read, INBOX = archived)',
+            message: 'string (only when there was nothing to change)',
+        },
+        sample: { modified: 2, messageIds: ['msg-1', 'msg-2'], addLabelIds: ['Label_3'], removeLabelIds: ['UNREAD'] },
+    },
     gmail_create_draft: {
         shape: { draftId: 'string', messageId: 'string', threadId: 'string', to: 'string', subject: 'string', message: 'string' },
         sample: { draftId: 'draft-1', messageId: 'msg-draft-1', threadId: 'th-1', to: 'recipient@example.com', subject: 'Re: Sample subject', message: 'Draft saved.' },
@@ -168,9 +204,38 @@ const OUTPUT_SCHEMAS = {
         shape: { results: 'array of { id, from, subject, preview, receivedDateTime, hasAttachments }' },
         sample: { results: [{ id: 'msg-1', from: 'sender@example.com', subject: 'Sample', preview: '…', receivedDateTime: new Date().toISOString(), hasAttachments: false }] },
     },
+    // What integrations/outlookTools.js shapeOutlookMessage returns: `date`,
+    // not `receivedDateTime`, and `attachments` only when the email has any.
     outlook_read: {
-        shape: { id: 'string', from: 'string', subject: 'string', body: 'string', receivedDateTime: 'string' },
-        sample: { id: 'msg-1', from: 'sender@example.com', subject: 'Sample', body: 'Email body…', receivedDateTime: new Date().toISOString() },
+        shape: {
+            id: 'string', from: 'string', to: 'string', cc: 'string', subject: 'string',
+            date: 'string', body: 'string (plain text)', conversationId: 'string', hasAttachments: 'boolean',
+            attachments: 'array of { id, filename, mimeType, size, canOCR } (only when hasAttachments)',
+        },
+        sample: {
+            id: 'msg-1', from: 'Sender <sender@example.com>', to: 'Me <me@example.com>', cc: '', subject: 'Sample',
+            date: new Date().toISOString(), body: 'Email body…', conversationId: 'conv-1', hasAttachments: true,
+            attachments: [{ id: 'att-1', filename: 'offerte-q4.pdf', mimeType: 'application/pdf', size: 48213, canOCR: true }],
+        },
+    },
+    outlook_read_many: {
+        // `messages` is the first array: it is the list a "for each" binds to.
+        shape: {
+            messages: 'array of { id, from, to, cc, subject, date, body, conversationId, hasAttachments, attachments: array of { id, filename, mimeType, size, canOCR } } (each exactly as outlook_read returns it; body cut at 20,000 characters; attachments only when the email has any)',
+            count: 'integer (messages read)',
+            notFound: 'array of string (ids Outlook does not know)',
+            failed: 'array of { id, error }',
+            truncated: 'boolean (only when more than 100 ids were given; the first 100 were read)',
+            error: 'string (only when not one message could be read)',
+        },
+        sample: {
+            messages: [{
+                id: 'msg-1', from: 'Sender <sender@example.com>', to: 'Me <me@example.com>', cc: '', subject: 'Sample',
+                date: new Date().toISOString(), body: 'Email body…', conversationId: 'conv-1', hasAttachments: true,
+                attachments: [{ id: 'att-1', filename: 'offerte-q4.pdf', mimeType: 'application/pdf', size: 48213, canOCR: true }],
+            }],
+            count: 1, notFound: [], failed: [],
+        },
     },
 
     // ── Microsoft Calendar ────────────────────────────────────────
@@ -209,13 +274,16 @@ const OUTPUT_SCHEMAS = {
     },
 
     // ── Outlook / Microsoft 365 ───────────────────────────────────
-    outlook_send: {
-        shape: { sent: 'boolean', messageId: 'string', conversationId: 'string', message: 'string' },
-        sample: { sent: true, messageId: 'msg-sent-1', conversationId: 'conv-1', message: 'Email sent via Outlook.' },
-    },
+    // There is no `outlook_send` tool: sending is outlook_compose with the
+    // runtime's autoSend. Graph's sendMail/reply answer 202 without a body,
+    // so unlike gmail_compose there is no messageId to hand on; the
+    // conversationId is only known for a reply.
     outlook_compose: {
-        shape: { sent: 'boolean', messageId: 'string', message: 'string' },
-        sample: { sent: true, messageId: 'msg-sent-1', message: 'Email sent.' },
+        shape: {
+            sent: 'boolean', to: 'string', subject: 'string',
+            replyToMessageId: 'string|null', conversationId: 'string|null', message: 'string',
+        },
+        sample: { sent: true, to: 'recipient@example.com', subject: 'Sample subject', replyToMessageId: null, conversationId: null, message: 'Email sent to recipient@example.com.' },
     },
     ms_calendar_create_event: {
         shape: { id: 'string', subject: 'string', start: 'string', end: 'string', webLink: 'string' },
@@ -349,6 +417,13 @@ const OUTPUT_SCHEMAS = {
         shape: { success: 'boolean', downloadUrl: 'string', filename: 'string', size: 'integer', slideCount: 'integer', houseStyle: 'boolean', warnings: 'string[]' },
         sample: { success: true, downloadUrl: '/api/storage/file/users/u1/presentations/1700000000_ab12cd_q3-review.pptx', filename: 'q3-review.pptx', size: 61440, slideCount: 7, houseStyle: true, warnings: [] },
     },
+    create_word_document: {
+        // Kept in storage: downloadUrl + size. With nextcloudPath (and Nextcloud
+        // reachable) the upload fields + webUrl instead. `houseStyle` is the
+        // name of the Word house style applied, or false.
+        shape: { success: 'boolean', downloadUrl: 'string|undefined', filename: 'string', size: 'integer|undefined', path: 'string|undefined', webUrl: 'string|null|undefined', houseStyle: 'string|boolean' },
+        sample: { success: true, downloadUrl: '/api/storage/file/users/u1/documents/1700000000_ab12cd_offerte-acme.docx', filename: 'offerte-acme.docx', size: 12288, houseStyle: 'Kantoorstijl' },
+    },
     nextcloud_deck_create_card: {
         // Returns the raw Deck card JSON (POST .../cards). Demo write tool.
         shape: { id: 'integer', title: 'string', description: 'string', stackId: 'integer', type: 'string', order: 'integer', archived: 'boolean', duedate: 'string|null', createdAt: 'integer', lastModified: 'integer' },
@@ -433,6 +508,38 @@ const OUTPUT_SCHEMAS = {
     github_create_repo: {
         shape: { id: 'integer', name: 'string', fullName: 'string', htmlUrl: 'string', private: 'boolean' },
         sample: { id: 1, name: 'new-repo', fullName: 'org/new-repo', htmlUrl: 'https://github.com/org/new-repo', private: false },
+    },
+
+    // ── Scaleway Billing (read-only) ──────────────────────────────
+    // integrations/scalewayBillingTools.js. The list is under `invoices`, so
+    // a forEach binds overRef: "steps.<id>.output.invoices". The download
+    // keeps the PDF for the run and hands on a generated_file handle, the
+    // same one generate_document produces.
+    scaleway_list_invoices: {
+        shape: {
+            invoices: 'array of { id, number, billingPeriod (YYYY-MM), issuedDate, dueDate, type (periodic|purchase|credit_note), state, currency, totalExclVat, totalVat, totalInclVat, fileName }',
+            count: 'integer (invoices returned)',
+            total: 'integer (invoices matching the period window)',
+        },
+        sample: {
+            invoices: [
+                { id: '3f2a9c1e-5b7d-4e8f-9a0b-1c2d3e4f5a6b', number: 1234567, billingPeriod: '2026-09', issuedDate: '2026-10-01', dueDate: '2026-10-31', type: 'periodic', state: 'paid', currency: 'EUR', totalExclVat: 123.45, totalVat: 25.92, totalInclVat: 149.37, fileName: 'Scaleway-2026-09-1234567.pdf' },
+            ],
+            count: 1,
+            total: 1,
+        },
+    },
+    scaleway_download_invoice: {
+        shape: {
+            fileId: 'string', filename: 'string', mimeType: 'string (application/pdf)', size: 'integer (bytes)',
+            invoiceNumber: 'integer', billingPeriod: 'string (YYYY-MM)',
+            sourceHandle: 'opaque { kind: "generated_file", fileId } — pass to drive_upload_file / nextcloud_upload_file to save the PDF',
+        },
+        sample: {
+            fileId: 'gen-file-1', filename: 'Scaleway-2026-09-1234567.pdf', mimeType: 'application/pdf', size: 48213,
+            invoiceNumber: 1234567, billingPeriod: '2026-09',
+            sourceHandle: { kind: 'generated_file', fileId: 'gen-file-1' },
+        },
     },
 
     // ── Notification (built-in step) ──────────────────────────────

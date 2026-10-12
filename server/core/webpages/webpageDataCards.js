@@ -4,11 +4,11 @@
  * Vier soorten kaarten, drie ervan komen hiervandaan:
  *   TABEL        per gebonden datatable — naam, rijen, kolomchips, en of de
  *                pagina hem in haar eigen code noemt ("niet gebruikt").
- *   AUTOMATION   per routine die zo'n gebonden tabel VOEDT — afgeleid uit de
+ *   AUTOMATION   per automatisering die zo'n gebonden tabel VOEDT — afgeleid uit de
  *                usage-index (`automation_datatable_usage`), niet uit een
  *                tweede lijst die iemand moet bijhouden: welke kolommen hij
  *                aanraakt, in welke modus, en wanneer hij voor het laatst liep.
- *   WAARSCHUWING een routine die RECHTSTREEKS in een gebonden tabel schrijft.
+ *   WAARSCHUWING een automatisering die RECHTSTREEKS in een gebonden tabel schrijft.
  *                Dat is geen foutmelding maar een mededeling: wie de pagina
  *                bewerkt moet weten dat er ook een ander proces aan die rijen
  *                zit, met een deeplink naar het deelscherm van die tabel.
@@ -72,7 +72,7 @@ async function scanCodeForTables(userId, webpageId, datatableIds) {
     return out;
 }
 
-/** Eén rij per routine: de ruimste modus wint, de kolommen worden samengevoegd. */
+/** Eén rij per automatisering: de ruimste modus wint, de kolommen worden samengevoegd. */
 function foldAutomations(usageRows, { datatableId, tableName }) {
     const byId = new Map();
     for (const u of usageRows) {
@@ -80,7 +80,7 @@ function foldAutomations(usageRows, { datatableId, tableName }) {
         const prev = byId.get(u.automationId);
         const columns = new Set([...(prev?.columns || []), ...(Array.isArray(u.columns) ? u.columns : [])]);
         const writes = (prev?.writes === true) || WRITING_MODES.has(u.mode);
-        // De laatste run hoort bij de ROUTINE, niet bij de stap; ze zijn per
+        // De laatste run hoort bij de AUTOMATISERING, niet bij de stap; ze zijn per
         // rij gelijk, maar een null in de ene rij mag een datum in de andere
         // niet wissen.
         const lastRunAt = prev?.lastRunAt || u.lastRunAt || null;

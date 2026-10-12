@@ -64,6 +64,13 @@ export const INTEGRATION_META = {
     elevenlabs:             { label: 'ElevenLabs',           color: '#0EA5E9', mark: 'EL' },
     mcp:                    { label: 'MCP',                  color: '#10B981', mark: 'MC' },
     webpages:               { label: 'Webpages',             color: '#0EA5E9', mark: 'Wp' },
+    memory:                 { label: 'Memory',               color: '#8B5CF6', mark: 'Me' },
+    kb_ingest:              { label: 'Knowledge Base Ingest', color: '#10B981', mark: 'KI' },
+    automation_evolution:   { label: 'Automation evolution', color: '#F59E0B', mark: 'Ev' },
+    browser_fetch:          { label: 'Browse Web',           color: '#0EA5E9', mark: 'BW' },
+    music_gen:              { label: 'Music Generation',     color: '#0EA5E9', mark: 'Mu' },
+    presentations:          { label: 'Presentations',        color: '#EA580C', mark: 'Pr' },
+    presentation_builder:   { label: 'Presentations',        color: '#EA580C', mark: 'Pr' },
 };
 
 /**
@@ -108,12 +115,21 @@ const PREFIX_TO_INTEGRATION = [
     ['generate_', 'media_gen'],
     ['maps_', 'maps'],
     ['transcribe_', 'transcription'],
+    ['memory_', 'memory'],
+    ['webpage_', 'webpages'],
+    ['webpages_', 'webpages'],
 ].sort((a, b) => b[0].length - a[0].length);
 
 const STATIC_TOOL_TO_INTEGRATION = {
     agent_search: 'web_search',
     web_search: 'web_search',
     kb_search: 'kb_search',
+    kb_fetch: 'kb_search',
+    knowledge_base_ingest: 'kb_ingest',
+    automation_runs_summary: 'automation_evolution',
+    automation_propose_evolution: 'automation_evolution',
+    automation_apply_evolution: 'automation_evolution',
+    create_presentation: 'presentation_builder',
     send_email: 'email',
     read_emails: 'email',
     search_emails: 'email',

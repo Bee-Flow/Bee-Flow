@@ -16,7 +16,7 @@
  *
  *   1 usesAi          "Does this automation use AI?"
  *                     -> signals.contains_ai. The platform's detection stands:
- *                     a "no" never narrows a routine that has an AI step, a
+ *                     a "no" never narrows an automation that has an AI step, a
  *                     "yes" widens one where Bee saw none (a model called from a
  *                     code step, a building block). Same rule assess.js applies
  *                     to Art. 50: the admin may widen, never narrow.
@@ -39,8 +39,8 @@
  *
  * VALIDITY. An attestation from this page expires after 12 months, also a
  * "not applicable" one, and a "not applicable" check stops counting the moment
- * the routine gains an AI step (status 'outdated'), so a check done on a
- * routine without AI cannot wave through one that has it.
+ * the automation gains an AI step (status 'outdated'), so a check done on a
+ * automation without AI cannot wave through one that has it.
  *
  * Everything in here is pure except `makeAiActState`, whose IO is injected.
  */
@@ -341,7 +341,7 @@ function publicState(state) {
 }
 
 /**
- * The refusal for a state, or null when the routine may go live.
+ * The refusal for a state, or null when the automation may go live.
  * `{ status: 409, code, message, details: { aiAct, questions? } }`.
  *
  * `state.pendingQuestions` (automation/aiActAuto.js) are the questions Bee
@@ -377,8 +377,8 @@ function gateRefusal(state) {
 
 /**
  * The default IO for makeAiActState, required lazily: the licence
- * (`compliance_hub_gdpr` in the routine's organisation, module active), the
- * register, and the routine's organisation (automation/access.js).
+ * (`compliance_hub_gdpr` in the automation's organisation, module active), the
+ * register, and the automation's organisation (automation/access.js).
  */
 function defaultAiActState() {
     return makeAiActState({

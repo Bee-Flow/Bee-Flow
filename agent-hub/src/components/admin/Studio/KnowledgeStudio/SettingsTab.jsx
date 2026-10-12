@@ -18,7 +18,7 @@ import { kindColorVar } from '../../../shared/kindColors';
  *
  *   WHERE  is a set of SURFACES (`usage_contexts`) — which pickers offer this
  *          base. Ticking `ai_step` off does not hide anything from anybody; it
- *          stops the base appearing in the routine editor's picker.
+ *          stops the base appearing in the automation editor's picker.
  *   WHO    is the AUDIENCE (`is_published` + `shared_groups`) — the thing the
  *          server enforces at retrieval, on every surface, per person.
  *
@@ -337,7 +337,7 @@ export default function SettingsTab({
                                 /* The list below is INCOMPLETE, and saying so
                                    is the whole point: presenting a partial
                                    answer as a complete one is how somebody
-                                   deletes a base three routines were using. */
+                                   deletes a base three automations were using. */
                                 <p className="text-xs" data-testid="kb-delete-unchecked" style={{ color: 'var(--warning-ink, var(--warning))' }}>
                                     {t('knowledge.settings.delete_unchecked', 'This list may be incomplete — {kinds} could not be checked.', {
                                         kinds: unchecked.map(k => t(`usage.kind_${k}_plural`, k)).join(', '),
@@ -402,7 +402,7 @@ function SurfaceCard({ id, active, disabled, attached, onToggle, t }) {
     const LABELS = {
         agent: t('knowledge.settings.surface_agent', 'Agents'),
         direct_chat: t('knowledge.settings.surface_direct_chat', 'Chat'),
-        ai_step: t('knowledge.settings.surface_ai_step', 'Routines'),
+        ai_step: t('knowledge.settings.surface_ai_step', 'Automations'),
     };
     return (
         <button

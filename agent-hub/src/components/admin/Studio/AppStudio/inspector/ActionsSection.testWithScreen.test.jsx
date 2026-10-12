@@ -5,7 +5,7 @@ import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../../../../hooks/useAutomationApi', () => ({
-    default: () => ({ listAutomations: vi.fn(async () => ({ automations: [ROUTINE] })) }),
+    default: () => ({ listAutomations: vi.fn(async () => ({ automations: [AUTOMATION] })) }),
     safeText: vi.fn(async () => ''),
 }));
 
@@ -19,10 +19,10 @@ import ActionsSection from './ActionsSection';
 import { ScreenValuesContext } from '../editor/ScreenValuesContext';
 
 /**
- * "Testen met scherm-invoer" — de testknop naast een Routine-actie.
+ * "Testen met scherm-invoer" — de testknop naast een Automation-actie.
  *
  * Hij POSTte alleen de STATISCHE waarden uit de mapping. Alles wat aan een
- * formulierveld hing kwam als `undefined` aan, viel uit de JSON, en de routine
+ * formulierveld hing kwam als `undefined` aan, viel uit de JSON, en de automatisering
  * begon met een lege `trigger.output` — waarna de run er uitzag als een kapotte
  * stap. Twee dingen moeten nu kloppen, en het tweede is niet minder belangrijk
  * dan het eerste:
@@ -30,7 +30,7 @@ import { ScreenValuesContext } from '../editor/ScreenValuesContext';
  *   1. de payload draagt wat er OP DIT MOMENT in het formulier staat;
  *   2. wat niet meegaat — bestandsvelden voorop — staat op het scherm, vóór en
  *      na de klik. Wie test met de helft van de invoer en dat niet weet, trekt
- *      de verkeerde conclusie over de routine.
+ *      de verkeerde conclusie over de automation.
  *
  * En de uitslag is niet een blok JSON om zelf te ontcijferen: de run gaat open
  * in de builder.
@@ -39,7 +39,7 @@ import { ScreenValuesContext } from '../editor/ScreenValuesContext';
 const authFetch = vi.fn();
 const ok = (body, status = 200) => ({ ok: true, status, json: async () => body, text: async () => JSON.stringify(body) });
 
-const ROUTINE = {
+const AUTOMATION = {
     id: 'auto-app',
     title: 'Process invoice',
     isActive: true,
@@ -121,7 +121,7 @@ async function pressTest() {
 /** The triggerPayload of the run POST, parsed. */
 function sentPayload() {
     const call = authFetch.mock.calls.find(([url, init]) => init?.method === 'POST' && String(url).includes('/run'));
-    expect(call, 'the routine was never run').toBeTruthy();
+    expect(call, 'the automation was never run').toBeTruthy();
     return JSON.parse(call[1].body).triggerPayload;
 }
 
@@ -215,7 +215,7 @@ describe('de uitslag gaat open in de builder', () => {
             : ok({})));
         const { container } = renderActions({ values: { title: 'x' } });
         await pressTest();
-        await waitFor(() => expect(screen.getByText(/Open this routine’s runs in the builder/)).toBeTruthy());
+        await waitFor(() => expect(screen.getByText(/Open this automation’s runs in the builder/)).toBeTruthy());
         expect(container.querySelector('a[href*="run="]')).toBeNull();
     });
 });

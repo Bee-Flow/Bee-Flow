@@ -70,7 +70,7 @@ describe('BuilderShell — onTurnEnd / forcedTier / backLabel (the Playbook hook
     });
     afterEach(() => { cleanup(); });
 
-    it('a finalized build ends the turn with finalized:true and the routine id; the pinned tier rides the send and stays out of the preference', async () => {
+    it('a finalized build ends the turn with finalized:true and the automation id; the pinned tier rides the send and stays out of the preference', async () => {
         const onTurnEnd = vi.fn();
         const resolved = vi.fn();
         nextStream = [
@@ -79,9 +79,9 @@ describe('BuilderShell — onTurnEnd / forcedTier / backLabel (the Playbook hook
             sse('finalized', { automationId: 'a9' }),
             sse('done', { automationId: 'a9', finalized: true, iterations: 3 }),
         ];
-        render(<BuilderShell automationId={null} autoSendInput="Build the invoice routine" forcedTier="fast" backLabel="Back to playbook" onAutomationIdResolved={resolved} onTurnEnd={onTurnEnd} onBack={() => {}} user={{ id: 'u1' }} />);
+        render(<BuilderShell automationId={null} autoSendInput="Build the invoice automation" forcedTier="fast" backLabel="Back to playbook" onAutomationIdResolved={resolved} onTurnEnd={onTurnEnd} onBack={() => {}} user={{ id: 'u1' }} />);
         await waitFor(() => expect(streamBodies.length).toBe(1));
-        expect(streamBodies[0].message).toBe('Build the invoice routine');
+        expect(streamBodies[0].message).toBe('Build the invoice automation');
         expect(streamBodies[0].modelTier).toBe('fast');
         await waitFor(() => expect(onTurnEnd).toHaveBeenCalledTimes(1));
         expect(onTurnEnd.mock.calls[0][0]).toMatchObject({ finalized: true, aborted: false, error: null, automationId: 'a9' });
@@ -127,11 +127,51 @@ describe('BuilderShell — onTurnEnd / forcedTier / backLabel (the Playbook hook
         expect(typeof onTurnEnd.mock.calls[0][0].error).toBe('string');
     });
 
-    it('without a host: the header keeps "Back to Routines" and the picker persists as before', async () => {
+    it('without a host: the header keeps "Back to Automations" and the picker persists as before', async () => {
         render(<BuilderShell automationId={null} onBack={() => {}} user={{ id: 'u1' }} />);
         await waitFor(() => expect(buildTab).toBeTruthy());
         expect(header.backLabel).toBeNull();
         act(() => { buildTab.setSelectedTier('fast'); });
         expect(scopedStorage.getItem('automationBuilderTier')).toBe('fast');
+    });
+});
+
+// A build opened from "Find repeating work" (index.jsx hands the pattern in as
+// `patternOrigin`): usePatternOrigin records `built` when it is really done.
+describe('BuilderShell — patternOrigin', () => {
+    beforeEach(() => {
+        buildTab = null; header = null; streamBodies = []; nextStream = []; streamHttp = null;
+        setCurrentUser('u1');
+        mockFetch();
+    });
+    afterEach(() => { cleanup(); });
+
+    it('a build opened from a "Find repeating work" pattern records `built` once it is finalized, not before', async () => {
+        const feedbackBodies = () => authFetch.mock.calls
+            .filter(([url, opts]) => url === '/api/automation/builder/feedback' && opts?.method === 'POST')
+            .map(([, opts]) => JSON.parse(opts.body));
+        const patternOrigin = { signature: 'sig-1', suggestion: { id: 's1', title: 'Log invoices' } };
+
+        nextStream = [
+            sse('builder_session', { builderSessionId: 'bs4', automationId: 'a9' }),
+            sse('message', { content: 'Which sheet?' }),
+            sse('done', { automationId: 'a9', finalized: false }),
+        ];
+        const onAsk = vi.fn();
+        render(<BuilderShell automationId={null} autoSendInput="Build it" patternOrigin={patternOrigin} onTurnEnd={onAsk} onBack={() => {}} user={{ id: 'u1' }} />);
+        await waitFor(() => expect(onAsk).toHaveBeenCalledTimes(1));
+        // The draft exists now, but nothing is built yet.
+        expect(feedbackBodies()).toEqual([]);
+        cleanup();
+
+        nextStream = [
+            sse('builder_session', { builderSessionId: 'bs5', automationId: 'a9' }),
+            sse('finalized', { automationId: 'a9' }),
+            sse('done', { automationId: 'a9', finalized: true }),
+        ];
+        const onDone = vi.fn();
+        render(<BuilderShell automationId={null} autoSendInput="Build it" patternOrigin={patternOrigin} onTurnEnd={onDone} onBack={() => {}} user={{ id: 'u1' }} />);
+        await waitFor(() => expect(feedbackBodies()).toHaveLength(1));
+        expect(feedbackBodies()[0]).toEqual({ action: 'built', signature: 'sig-1', suggestion: { id: 's1', title: 'Log invoices' } });
     });
 });

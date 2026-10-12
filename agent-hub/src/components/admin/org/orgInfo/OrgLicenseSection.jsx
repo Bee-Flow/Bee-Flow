@@ -1,20 +1,20 @@
 import { AlertTriangle, CreditCard, BarChart3, Zap, DollarSign, Users, Bot, Database, Shield, Info, Plus, ExternalLink, Loader2, ArrowRight, Sparkles, Clock } from 'lucide-react';
-import { useId } from 'react';
+import { useEffect, useId, useRef } from 'react';
 import { currencySym, UsageBar } from './orgInfoShared';
 import { hasPaidBillingRelationship } from '../../../../utils/billing';
 import { cloudFetch } from '../../../../utils/cloudFetch';
+import { formatDate } from '../../../../utils/dateFormatters';
 import { API_BASE } from '../../../../utils/helpers';
 import InvoicesPanel from '../../../billing/InvoicesPanel';
-import LicenseKeyActivation from '../../../licensing/LicenseKeyActivation';
 import Modal from '../../../shared/Modal';
 
 // ── License & Usage section — extracted verbatim from OrgInfoPanel. All state
 // stays on the parent fiber; everything arrives via props.
 const OrgLicenseSection = ({
     t,
+    locale,
     licenseCtx,
     hasActiveLicenseKey,
-    showLicenseActivation,
     isCloud,
     deploymentMode,
     orgData,
@@ -60,41 +60,71 @@ const OrgLicenseSection = ({
         ? Math.min(100, Math.round(((usage.cost || 0) / limits.max_cost_per_month) * 100))
         : 0;
     const showOrgUpgradeCta = orgCostPct >= 80;
+    // The in-page plan picker exists only for a Stripe-managed subscription
+    // with a plan to move to, and not while a cancel or downgrade is pending.
+    const canChangePlan = !!(isCloud && sub?.stripe_subscription_id && Array.isArray(sub.changeable_plans)
+        && sub.changeable_plans.length > 0 && !sub.cancel_at_period_end && !sub.pending_plan_id);
+    // The near-cap banner's "Upgrade plan" opens that picker, so it needs an
+    // actual upgrade in it.
+    const canUpgradePlan = canChangePlan && sub.changeable_plans.some(p => p.direction !== 'downgrade');
+    // Per-seat subscriptions carry "Add user" and the seat hint in the billing
+    // card; the plan-limits card repeats them only when that card is absent.
+    const billingCardHasSeats = !!(sub?.billing && Number(sub.billing.subscription_total) > 0 && sub.billing.per_seat);
+    // Dates in the UI language, not a fixed one.
+    const fmtDate = (d) => formatDate(d, { locale });
+    // The API sends 'monthly' | 'yearly'; show the translated period.
+    const intervalLabel = (iv) => (iv === 'yearly' ? t('org.year', 'year') : t('org.month', 'month'));
     // The two confirmations below are labelled by their headings.
     const dialogIds = useId();
+    // The picker opens above the banner that asks for it, so bring it into view.
+    const changePlanRef = useRef(null);
+    useEffect(() => {
+        if (showChangePlan) changePlanRef.current?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
+    }, [showChangePlan]);
+
+    // The recurring-billing (automatische incasso) disclosure, shown above
+    // every list of plans that leads to a Stripe checkout (BFSF-243).
+    const recurringNotice = (
+        <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2">
+            <CreditCard className="w-4 h-4 mt-0.5 shrink-0 text-amber-500" />
+            <p className="text-[11px] leading-snug text-[var(--text-secondary)]">
+                {t('billing.recurring_notice', 'This is a recurring subscription. Your selected payment method is charged automatically at the start of each billing period (automatische incasso) until you cancel.')}
+            </p>
+        </div>
+    );
 
     return (
-                    <div className="max-w-xl mx-auto space-y-6 animate-fadeIn">
+                    <div className="max-w-3xl space-y-6 animate-fadeIn">
                         <div>
                             {/* Heading reflects whether this org is on a real paid subscription:
                                 "Subscription & Usage" when it is, "License & Usage" otherwise. */}
-                            <h2 className="text-lg font-bold text-[var(--text-primary)]">
+                            <h2 className="text-lg font-semibold text-[var(--text-primary)]">
                                 {(sub?.stripe_subscription_id || (sub?.billing?.subscription_total || 0) > 0)
                                     ? t('org.subscription_usage', 'Subscription & Usage')
                                     : t('org.license_usage')}
                             </h2>
-                            <p className="text-sm text-[var(--text-muted)] mt-0.5">{t('org.license_subtitle')}</p>
+                            <p className="mt-1 text-sm text-[var(--text-muted)]">{t('org.license_subtitle')}</p>
                         </div>
 
-                        {/* Subscription action result (upgrade/downgrade/cancel/checkout) —
-                            rendered inline here, never in the org-info save bar. */}
+                        {/* Subscription action result (upgrade/downgrade/cancel/checkout, and
+                            the Stripe checkout return) — rendered inline here, never in the
+                            org-info save bar, and kept until dismissed. */}
                         {subMessage && (
-                            <div className={`rounded-xl px-4 py-2.5 text-[12.5px] font-medium flex items-center gap-2 ${subMessage.type === 'success' ? 'bg-green-500/10 text-green-600 border border-green-500/30' : 'bg-red-500/10 text-red-500 border border-red-500/30'}`}>
-                                <span>{subMessage.type === 'success' ? '✓' : '⚠'}</span>
+                            <div
+                                role={subMessage.type === 'success' ? 'status' : 'alert'}
+                                className={`rounded-xl px-4 py-2.5 text-[12.5px] font-medium flex items-center gap-2 ${subMessage.type === 'success' ? 'bg-green-500/10 text-[var(--success-ink)] border border-green-500/30' : 'bg-red-500/10 text-[var(--error-ink)] border border-red-500/30'}`}
+                            >
+                                <span aria-hidden="true">{subMessage.type === 'success' ? '✓' : '⚠'}</span>
                                 <span className="flex-1">{subMessage.text}</span>
-                                <button onClick={() => setSubMessage(null)} className="opacity-60 hover:opacity-100">✕</button>
+                                <button type="button" onClick={() => setSubMessage(null)} aria-label={t('common.dismiss', 'Dismiss')} className="opacity-60 hover:opacity-100">✕</button>
                             </div>
                         )}
-
-                        {/* License key activation (self-hosted; or cloud Full-tier internal orgs) */}
-                        {showLicenseActivation && <LicenseKeyActivation />}
 
                         {/* Server-wide licence in effect: the whole install runs at the
                             licence tier, so this org needs no Stripe subscription. Hide the
                             cloud subscription/usage/plans dashboard entirely and show a
-                            read-only note instead. Suppressed when LicenseKeyActivation is
-                            already rendering its own server-override banner (self-hosted). */}
-                        {licenseCtx?.serverOverride && !showLicenseActivation && (
+                            read-only note instead. */}
+                        {licenseCtx?.serverOverride && (
                             <div className="rounded-2xl border px-5 py-4 flex items-start gap-3"
                                 style={{ borderColor: 'rgba(59,130,246,0.3)', background: 'rgba(59,130,246,0.06)' }}>
                                 <Shield className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'rgb(59,130,246)' }} />
@@ -135,9 +165,9 @@ const OrgLicenseSection = ({
                                 <div className="h-40 rounded-2xl bg-[var(--bg-tertiary)]" />
                             </div>
                         ) : !sub && hasActiveLicenseKey ? (
-                            // License-key activation already shown above; the legacy
-                            // Stripe "No subscription" placeholder would just confuse
-                            // self-hosted users who paid via license key.
+                            // The org runs on a licence key (managed under Admin → Server
+                            // licence / License keys), so the Stripe "No subscription"
+                            // placeholder and plan list would only confuse it.
                             null
                         ) : !sub ? (
                             <div className="space-y-5">
@@ -154,6 +184,7 @@ const OrgLicenseSection = ({
                                             <Zap className="w-4 h-4" style={{ color: '#3b82f6' }} />
                                             {t('org.choose_plan', 'Choose a Plan')}
                                         </h3>
+                                        <div className="mb-3">{recurringNotice}</div>
                                         <div className="grid gap-3">
                                             {availablePlans.map(plan => {
                                                 const currencySymbol = (plan.currency || 'eur').toUpperCase() === 'EUR' ? '€' : (plan.currency || 'eur').toUpperCase() === 'GBP' ? '£' : '$';
@@ -165,21 +196,21 @@ const OrgLicenseSection = ({
                                                                     <h4 className="text-sm font-bold text-[var(--text-primary)]">{plan.name}</h4>
                                                                     {plan.trial_days > 0 && (
                                                                         <span className="text-[9px] px-1.5 py-0.5 rounded font-semibold bg-green-500/15 text-green-500">
-                                                                            {plan.trial_days}d free trial
+                                                                            {t('admin_org.license_free_trial_days', '{days}d free trial', { days: plan.trial_days })}
                                                                         </span>
                                                                     )}
                                                                 </div>
                                                                 {plan.description && <p className="text-[11px] text-[var(--text-muted)] mb-2">{plan.description}</p>}
                                                                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-[var(--text-muted)]">
-                                                                    {plan.max_users && plan.max_users !== -1 && <span>{plan.max_users} users</span>}
-                                                                    {plan.max_agents && plan.max_agents !== -1 && <span>{plan.max_agents} agents</span>}
-                                                                    {plan.max_knowledge_sources && plan.max_knowledge_sources !== -1 && <span>{plan.max_knowledge_sources} KB sources</span>}
+                                                                    {plan.max_users && plan.max_users !== -1 && <span>{t('admin_org.license_max_users', '{n} users', { n: plan.max_users })}</span>}
+                                                                    {plan.max_agents && plan.max_agents !== -1 && <span>{t('admin_org.license_max_agents', '{n} agents', { n: plan.max_agents })}</span>}
+                                                                    {plan.max_knowledge_sources && plan.max_knowledge_sources !== -1 && <span>{t('admin_org.license_max_kb', '{n} KB sources', { n: plan.max_knowledge_sources })}</span>}
                                                                 </div>
                                                             </div>
                                                             <div className="flex items-center gap-3 ml-4">
                                                                 <div className="text-right">
                                                                     <div className="text-lg font-bold text-[var(--text-primary)]">{currencySymbol}{plan.price.toFixed(2)}</div>
-                                                                    <div className="text-[9px] text-[var(--text-muted)] uppercase tracking-wider">/ {plan.billing_interval || 'month'}</div>
+                                                                    <div className="text-[9px] text-[var(--text-muted)] uppercase tracking-wider">/ {intervalLabel(plan.billing_interval)}</div>
                                                                 </div>
                                                                 <button
                                                                     onClick={() => handleCheckout(plan.id)}
@@ -221,7 +252,7 @@ const OrgLicenseSection = ({
                                             </div>
                                             <div>
                                                 <div className="flex items-center gap-2">
-                                                    <h3 className="text-lg font-bold text-[var(--text-primary)]">{sub.plan_name || 'Custom'}</h3>
+                                                    <h3 className="text-lg font-bold text-[var(--text-primary)]">{sub.plan_name || t('org.custom_plan', 'Custom')}</h3>
                                                     <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider ${sub.status === 'active' ? 'bg-green-500/15 text-green-500'
                                                         : sub.status === 'suspended' ? 'bg-red-500/15 text-red-500'
                                                             : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)]'
@@ -230,15 +261,17 @@ const OrgLicenseSection = ({
                                                     </span>
                                                 </div>
                                                 <p className="text-xs text-[var(--text-muted)] mt-0.5">
-                                                    {t('org.billing_started').replace('{date}', sub.billing_cycle_start ? new Date(sub.billing_cycle_start).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A')}
+                                                    {t('org.billing_started', 'Billing cycle started {date}', { date: sub.billing_cycle_start ? fmtDate(sub.billing_cycle_start) : '—' })}
                                                 </p>
                                             </div>
                                         </div>
                                         {/* Change plan / Manage Billing actions. The toggle shows when the
                                             sub is Stripe-managed, the server offers a changeable plan (up or
                                             down), and we're not mid-cancellation. */}
-                                        {isCloud && sub.stripe_subscription_id && Array.isArray(sub.changeable_plans) && sub.changeable_plans.length > 0 && !sub.cancel_at_period_end && !sub.pending_plan_id && (
+                                        {canChangePlan && (
                                             <button
+                                                type="button"
+                                                aria-expanded={showChangePlan}
                                                 onClick={() => setShowChangePlan(v => !v)}
                                                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-all hover:opacity-80"
                                                 style={{ borderColor: 'rgba(59,130,246,0.3)', color: '#3b82f6', background: 'rgba(59,130,246,0.05)' }}
@@ -272,22 +305,8 @@ const OrgLicenseSection = ({
                                             </div>
                                         )}
                                     </div>
-
-                                    {/* Quick stats — AI usage shown as % of the cost cap (the actual
-                                        € amount is intentionally hidden for fixed-plan customers; the
-                                        cap itself and the subscription price remain in € below). */}
-                                    <div className="border-t border-[var(--border-subtle)]">
-                                        <div className="p-4 text-center">
-                                            <div className="text-2xl font-bold text-[var(--text-primary)]">
-                                                {(limits.max_cost_per_month && limits.max_cost_per_month !== -1) ? `${orgCostPct}%` : '—'}
-                                            </div>
-                                            <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider mt-0.5">
-                                                {(limits.max_cost_per_month && limits.max_cost_per_month !== -1)
-                                                    ? t('org.ai_usage_of_cap', 'AI usage of cap this period')
-                                                    : t('org.ai_usage_this_period', 'AI usage this period')}
-                                            </div>
-                                        </div>
-                                    </div>
+                                    {/* AI usage is read out once, in "Usage this period" below
+                                        (as % of the cost cap, with the warning colours). */}
                                 </div>
 
                                 {/* Invoices — in-app list with Stripe PDF downloads */}
@@ -295,7 +314,7 @@ const OrgLicenseSection = ({
                                     <InvoicesPanel
                                         fetcher={async () => {
                                             const res = await cloudFetch(deploymentMode, `${API_BASE}/api/stripe/invoices`);
-                                            if (!res.ok) throw new Error('Failed to load invoices');
+                                            if (!res.ok) throw new Error(t('billing.invoices_load_failed', 'Failed to load invoices'));
                                             const data = await res.json();
                                             return data.invoices || [];
                                         }}
@@ -307,8 +326,8 @@ const OrgLicenseSection = ({
                                     — no new Stripe Checkout session. Server provides changeable_plans
                                     (both directions, same scope + interval). Selecting one opens a
                                     confirmation modal with the prorated cost preview. */}
-                                {showChangePlan && isCloud && sub.stripe_subscription_id && Array.isArray(sub.changeable_plans) && sub.changeable_plans.length > 0 && !sub.cancel_at_period_end && !sub.pending_plan_id && (
-                                    <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] p-5 space-y-3">
+                                {showChangePlan && canChangePlan && (
+                                    <div ref={changePlanRef} className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] p-5 space-y-3">
                                         <div className="flex items-center gap-2 mb-1">
                                             <Zap className="w-4 h-4" style={{ color: '#3b82f6' }} />
                                             <h3 className="text-sm font-semibold text-[var(--text-primary)]">{t('org.change_plan', 'Change plan')}</h3>
@@ -332,15 +351,15 @@ const OrgLicenseSection = ({
                                                                 </div>
                                                                 {plan.description && <p className="text-[11px] text-[var(--text-muted)] mb-2">{plan.description}</p>}
                                                                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-[var(--text-muted)]">
-                                                                    {plan.max_users && plan.max_users !== -1 && <span>{plan.max_users} users</span>}
-                                                                    {plan.max_agents && plan.max_agents !== -1 && <span>{plan.max_agents} agents</span>}
-                                                                    {plan.max_knowledge_sources && plan.max_knowledge_sources !== -1 && <span>{plan.max_knowledge_sources} KB sources</span>}
+                                                                    {plan.max_users && plan.max_users !== -1 && <span>{t('admin_org.license_max_users', '{n} users', { n: plan.max_users })}</span>}
+                                                                    {plan.max_agents && plan.max_agents !== -1 && <span>{t('admin_org.license_max_agents', '{n} agents', { n: plan.max_agents })}</span>}
+                                                                    {plan.max_knowledge_sources && plan.max_knowledge_sources !== -1 && <span>{t('admin_org.license_max_kb', '{n} KB sources', { n: plan.max_knowledge_sources })}</span>}
                                                                 </div>
                                                             </div>
                                                             <div className="flex items-center gap-3 ml-4">
                                                                 <div className="text-right">
                                                                     <div className="text-lg font-bold text-[var(--text-primary)]">{sym}{Number(plan.price).toFixed(2)}</div>
-                                                                    <div className="text-[9px] text-[var(--text-muted)] uppercase tracking-wider">/ {plan.billing_interval || 'month'}</div>
+                                                                    <div className="text-[9px] text-[var(--text-muted)] uppercase tracking-wider">/ {intervalLabel(plan.billing_interval)}</div>
                                                                 </div>
                                                                 <button
                                                                     onClick={() => handleSelectChange(plan)}
@@ -375,7 +394,7 @@ const OrgLicenseSection = ({
                                         <Clock className="w-4 h-4 shrink-0" style={{ color: '#64748b' }} />
                                         <div className="flex-1 min-w-0">
                                             <p className="text-[13px] font-semibold text-[var(--text-primary)]">
-                                                {t('org.downgrade_scheduled', 'Downgrade to')} {sub.pending_plan_name || t('org.a_lower_plan', 'a lower plan')} {t('org.downgrade_scheduled_on', 'on')} {sub.pending_plan_effective ? new Date(sub.pending_plan_effective).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' }) : t('org.period_end', 'the end of this period')}.
+                                                {t('org.downgrade_scheduled', 'Downgrade to')} {sub.pending_plan_name || t('org.a_lower_plan', 'a lower plan')} {t('org.downgrade_scheduled_on', 'on')} {sub.pending_plan_effective ? fmtDate(sub.pending_plan_effective) : t('org.period_end', 'the end of this period')}.
                                             </p>
                                             <p className="text-[11.5px] text-[var(--text-muted)]">
                                                 {t('org.downgrade_keeps_access', 'You keep your current plan until then.')}
@@ -413,12 +432,7 @@ const OrgLicenseSection = ({
                                             {t('org.upgrade_to_paid_hint', "You're on a free plan. Subscribe to unlock higher usage and more features — you'll be taken to secure Stripe checkout.")}
                                         </p>
                                         {/* BFSF-243: recurring-billing (automatische incasso) disclosure */}
-                                        <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2">
-                                            <CreditCard className="w-4 h-4 mt-0.5 shrink-0 text-amber-500" />
-                                            <p className="text-[11px] leading-snug text-[var(--text-secondary)]">
-                                                {t('billing.recurring_notice', 'This is a recurring subscription. Your selected payment method is charged automatically at the start of each billing period (automatische incasso) until you cancel.')}
-                                            </p>
-                                        </div>
+                                        {recurringNotice}
                                         <div className="grid gap-3">
                                             {availablePlans.map(plan => {
                                                 const sym = (plan.currency || 'eur').toUpperCase() === 'EUR' ? '€' : (plan.currency || 'eur').toUpperCase() === 'GBP' ? '£' : '$';
@@ -429,7 +443,7 @@ const OrgLicenseSection = ({
                                                                 <div className="flex items-center gap-2 mb-1">
                                                                     <h4 className="text-sm font-bold text-[var(--text-primary)]">{plan.name}</h4>
                                                                     {plan.trial_days > 0 && (
-                                                                        <span className="text-[9px] px-1.5 py-0.5 rounded font-semibold bg-green-500/15 text-green-500">{plan.trial_days}d free trial</span>
+                                                                        <span className="text-[9px] px-1.5 py-0.5 rounded font-semibold bg-green-500/15 text-green-500">{t('admin_org.license_free_trial_days', '{days}d free trial', { days: plan.trial_days })}</span>
                                                                     )}
                                                                 </div>
                                                                 {plan.description && <p className="text-[11px] text-[var(--text-muted)] mb-2">{plan.description}</p>}
@@ -437,7 +451,7 @@ const OrgLicenseSection = ({
                                                             <div className="flex items-center gap-3 ml-4">
                                                                 <div className="text-right">
                                                                     <div className="text-lg font-bold text-[var(--text-primary)]">{sym}{Number(plan.price).toFixed(2)}</div>
-                                                                    <div className="text-[9px] text-[var(--text-muted)] uppercase tracking-wider">/ {plan.billing_interval || 'month'}{plan.per_seat ? ` ${t('org.per_seat', '/ seat')}` : ''}</div>
+                                                                    <div className="text-[9px] text-[var(--text-muted)] uppercase tracking-wider">/ {intervalLabel(plan.billing_interval)}{plan.per_seat ? ` ${t('org.per_seat', '/ seat')}` : ''}</div>
                                                                 </div>
                                                                 <div className="flex flex-col items-end gap-1">
                                                                     <button
@@ -474,7 +488,7 @@ const OrgLicenseSection = ({
                                         <AlertTriangle className="w-4 h-4 shrink-0" style={{ color: '#3b82f6' }} />
                                         <div className="flex-1 min-w-0">
                                             <p className="text-[13px] font-semibold text-[var(--text-primary)]">
-                                                {t('org.cancel_scheduled', 'Subscription cancels on')} {sub.cancel_at ? new Date(sub.cancel_at).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' }) : 'the end of this period'}.
+                                                {t('org.cancel_scheduled', 'Subscription cancels on')} {sub.cancel_at ? fmtDate(sub.cancel_at) : t('org.period_end', 'the end of this period')}.
                                             </p>
                                             <p className="text-[11.5px] text-[var(--text-muted)]">
                                                 {t('org.cancel_keeps_access', 'You keep access until that date.')}
@@ -558,16 +572,25 @@ const OrgLicenseSection = ({
                                         <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
                                         <div className="flex-1 min-w-0">
                                             <p className="text-[13px] font-semibold text-[var(--text-primary)]">
-                                                You've used {orgCostPct}% of your AI usage budget this period.
+                                                {t('admin_org.license_budget_used', "You've used {pct}% of your AI usage budget this period.", { pct: orgCostPct })}
                                             </p>
-                                            <p className="text-[11.5px] text-[var(--text-muted)]">Upgrade to a higher plan for more AI usage.</p>
+                                            <p className="text-[11.5px] text-[var(--text-muted)]">{t('admin_org.license_upgrade_hint', 'Upgrade to a higher plan for more AI usage.')}</p>
                                         </div>
-                                        <a
-                                            href="/app/admin/subscriptions"
-                                            className="shrink-0 px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-blue-600 hover:bg-blue-500 text-white transition-colors"
-                                        >
-                                            Upgrade plan
-                                        </a>
+                                        {/* Opens the plan picker on this page; there is no other place
+                                            an org admin can change plan, so without one there is no button. */}
+                                        {canUpgradePlan && (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setShowChangePlan(true);
+                                                    // Already open: the effect will not run again, so scroll here too.
+                                                    changePlanRef.current?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
+                                                }}
+                                                className="shrink-0 px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-[var(--accent-primary)] text-[var(--accent-primary-fg)] hover:opacity-90 transition-opacity"
+                                            >
+                                                {t('admin_org.license_upgrade_plan', 'Upgrade plan')}
+                                            </button>
+                                        )}
                                     </div>
                                 )}
 
@@ -620,8 +643,9 @@ const OrgLicenseSection = ({
                                                                     </div>
                                                                     <div className="text-[10px] text-[var(--text-muted)]">{item.label}</div>
                                                                 </div>
-                                                                {/* BFSF-251: direct seat/user add from the Gebruikers card */}
-                                                                {item.key === 'users' && (
+                                                                {/* BFSF-251: direct seat/user add from the Users card —
+                                                                    unless the billing card above already offers it. */}
+                                                                {item.key === 'users' && !billingCardHasSeats && (
                                                                     <button
                                                                         type="button"
                                                                         onClick={goToUsersPanel}
@@ -638,7 +662,7 @@ const OrgLicenseSection = ({
                                             )}
                                             {/* BFSF-251: per-seat plans bill each invited user; surface how the
                                                 proration works so adding a seat isn't a surprise on the invoice. */}
-                                            {sub.billing?.per_seat && (
+                                            {sub.billing?.per_seat && !billingCardHasSeats && (
                                                 <div className="mt-3 flex items-start gap-2 text-[11px] text-[var(--text-muted)]">
                                                     <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
                                                     <span>{t('org.add_user_hint', 'Inviting a user adds a seat to your plan. Extra seats are billed per user per month and prorated for the current period.')} {t('org.seats_proration_note', 'Stripe prorates the difference on your next invoice.')}</span>
@@ -722,7 +746,7 @@ const OrgLicenseSection = ({
                                         const sym = (changePreview.currency || 'EUR').toUpperCase() === 'EUR' ? '€' : (changePreview.currency || 'EUR').toUpperCase() === 'GBP' ? '£' : '$';
                                         const renewal = `${sym}${Number(changePreview.next_renewal_total || 0).toFixed(2)} / ${(changeTarget.billing_interval === 'yearly' ? t('org.year', 'year') : t('org.month', 'month'))}`;
                                         if (changePreview.direction === 'downgrade') {
-                                            const date = changePreview.effective ? new Date(changePreview.effective).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' }) : t('org.period_end', 'the end of this period');
+                                            const date = changePreview.effective ? fmtDate(changePreview.effective) : t('org.period_end', 'the end of this period');
                                             return (
                                                 <div className="rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-subtle)] p-4 space-y-2 text-[13px]">
                                                     <div className="flex justify-between"><span className="text-[var(--text-muted)]">{t('org.takes_effect', 'Takes effect')}</span><span className="font-semibold text-[var(--text-primary)]">{date}</span></div>

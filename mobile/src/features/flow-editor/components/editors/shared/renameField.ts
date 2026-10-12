@@ -154,7 +154,7 @@ export function isValidFieldName(name: unknown): name is string {
 
 export interface RenameOutcome<D> {
     definition: D;
-    /** How many BINDINGS moved — so the author can be told what happened to the rest of the routine. */
+    /** How many BINDINGS moved — so the author can be told what happened to the rest of the automation. */
     rewritten: number;
     ok: boolean;
     error?: string;
@@ -162,7 +162,7 @@ export interface RenameOutcome<D> {
 
 /** Rename one declared field across a whole (root) definition. */
 export function renameFormField<D>(definition: D, { base, from, to }: { base?: string; from?: string; to?: string } = {}): RenameOutcome<D> {
-    if (!definition || typeof definition !== 'object') return { definition, rewritten: 0, ok: false, error: 'No routine to edit.' };
+    if (!definition || typeof definition !== 'object') return { definition, rewritten: 0, ok: false, error: 'No automation to edit.' };
     if (!base || !from || !to) return { definition, rewritten: 0, ok: false, error: 'Nothing to rename.' };
     if (from === to) return { definition, rewritten: 0, ok: true };
     if (!isValidFieldName(to)) {

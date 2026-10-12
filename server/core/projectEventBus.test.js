@@ -108,3 +108,20 @@ test('one Redis subscription per project, dropped with the last listener', () =>
     b();
     assert.deepStrictEqual([...r.subscriber.channels], []);
 });
+
+test('channels: any id string works, locally and over Redis (doc:<id> channel)', async () => {
+    const r = fakeRedis();
+    bus._setRedis({ getRedis: () => r.client, redisHealthy: () => true });
+    const got = [];
+    const off = bus.subscribeChannel('doc:d1', (ev) => got.push(ev));
+    assert.ok(r.subscriber.channels.has('bf:project:doc:d1'));
+    await bus.publishChannel('doc:d1', { kind: 'document.presence' });
+    await bus.publishChannel('doc:other', { kind: 'document.presence' });
+    assert.deepStrictEqual(got, [{ kind: 'document.presence', transient: true }]);
+    assert.strictEqual(r.published[0].channel, 'bf:project:doc:d1');
+    // Another replica's publish arrives through the subscriber.
+    r.subscriber.emit('message', 'bf:project:doc:d1', JSON.stringify({ kind: 'x', transient: true, _origin: 'elsewhere' }));
+    assert.strictEqual(got.length, 2);
+    off();
+    assert.ok(!r.subscriber.channels.has('bf:project:doc:d1'));
+});

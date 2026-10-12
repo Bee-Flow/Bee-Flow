@@ -82,7 +82,7 @@ export const MAP_BLOCKS = Object.freeze([
     Object.freeze({ id: 'app', kind: 'app', lane: 'build', x: 28, y: 162 }),
     Object.freeze({ id: 'automation', kind: 'automation', lane: 'build', x: 262, y: 100 }),
     Object.freeze({ id: 'datatable', kind: 'datatable', lane: 'build', x: 496, y: 38 }),
-    // Kolom c, middelste rij: de routine in het midden waaiert naar rechts
+    // Kolom c, middelste rij: de automatisering in het midden waaiert naar rechts
     // uit naar tabel (boven), document (recht) en goedkeuring (onder). De
     // vrije plek in kolom b lag in het pad van app→goedkeuring — de
     // meetkundetest in studioMap.test.js ving dat.
@@ -99,7 +99,7 @@ export const MAP_BLOCKS = Object.freeze([
  * De laatste doos, en de enige die géén bouwsteen is.
  *
  * Twee van de twaalf randen wijzen naar een goedkeuring, en een goedkeuring is
- * niets wat je MAAKT: ze bestaat pas op het moment dat een app of een routine
+ * niets wat je MAAKT: ze bestaat pas op het moment dat een app of een automatisering
  * erom vraagt. server/projects/graph.js tekent haar om dezelfde reden als een
  * SYNTHETISCHE knoop (graph.js:32-40). Weglaten zou de kaart twee randen
  * armer maken en de belangrijkste eigenschap van beide verzwijgen: dat er een
@@ -127,7 +127,7 @@ export function mapNode(id) {
 
 /**
  * De negen werkwoorden die over de twaalf randen lopen. Eén rand draagt er twee
- * (een routine LEEST en SCHRIJFT een tabel): dat zijn twee verschillende
+ * (een automatisering LEEST en SCHRIJFT een tabel): dat zijn twee verschillende
  * risico's op dezelfde verbinding, en graph.js houdt ze om die reden ook
  * apart binnen één paar.
  */
@@ -162,7 +162,7 @@ export const MAP_EDGES = Object.freeze([
     Object.freeze({
         id: 'app-runs-automation', from: 'app', to: 'automation', verbs: ['runs'],
         labelKey: 'studio.map.edge_app_runs_automation',
-        labelFallback: 'An app runs a routine.',
+        labelFallback: 'An app runs an automation.',
         route: Object.freeze({ type: 'curve', fromSide: 'right', toSide: 'left', fromOff: -8 }),
     }),
     Object.freeze({
@@ -174,20 +174,20 @@ export const MAP_EDGES = Object.freeze([
     Object.freeze({
         id: 'automation-asks-approval', from: 'automation', to: 'approval', verbs: ['asks'],
         labelKey: 'studio.map.edge_automation_asks_approval',
-        labelFallback: 'A routine asks a person to approve.',
+        labelFallback: 'An automation asks a person to approve.',
         route: Object.freeze({ type: 'curve', fromSide: 'right', toSide: 'left', fromOff: 8 }),
     }),
     Object.freeze({
         id: 'automation-calls-automation', from: 'automation', to: 'automation', verbs: ['calls'],
         labelKey: 'studio.map.edge_automation_calls_automation',
-        labelFallback: 'A routine calls another routine.',
+        labelFallback: 'An automation calls another automation.',
         route: Object.freeze({ type: 'self' }),
         labelAt: Object.freeze({ x: 342, y: 60 }),
     }),
     Object.freeze({
         id: 'webpage-runs-automation', from: 'webpage', to: 'automation', verbs: ['runs'],
         labelKey: 'studio.map.edge_webpage_runs_automation',
-        labelFallback: 'A web page runs a routine.',
+        labelFallback: 'A web page runs an automation.',
         route: Object.freeze({ type: 'curve', fromSide: 'right', toSide: 'left' }),
     }),
     Object.freeze({
@@ -195,13 +195,13 @@ export const MAP_EDGES = Object.freeze([
         // risico, en de kaart mag ze niet tot "gebruikt" samenvatten.
         id: 'automation-datatable', from: 'automation', to: 'datatable', verbs: ['reads', 'writes'],
         labelKey: 'studio.map.edge_automation_datatable',
-        labelFallback: 'A routine reads and writes a table.',
+        labelFallback: 'An automation reads and writes a table.',
         route: Object.freeze({ type: 'curve', fromSide: 'right', toSide: 'left', fromOff: -8 }),
     }),
     Object.freeze({
         id: 'automation-writes-document', from: 'automation', to: 'document', verbs: ['writes'],
         labelKey: 'studio.map.edge_automation_writes_document',
-        labelFallback: 'A routine writes a document.',
+        labelFallback: 'An automation writes a document.',
         route: Object.freeze({ type: 'curve', fromSide: 'right', toSide: 'left' }),
     }),
     Object.freeze({
@@ -213,7 +213,7 @@ export const MAP_EDGES = Object.freeze([
         // Flow-tabblad gaat terugzoeken vindt daar niets.
         noteKey: 'studio.map.edge_app_uses_datatable_note',
         noteFallback: 'Not recorded anywhere yet, so no solution shows it.',
-        // Om de routine heen: onderlangs en dan door de kolomgang omhoog.
+        // Om de automatisering heen: onderlangs en dan door de kolomgang omhoog.
         route: Object.freeze({
             type: 'elbow', fromSide: 'bottom', toSide: 'left',
             via: Object.freeze([Object.freeze({ y: 224 }), Object.freeze({ x: 459 })]),
@@ -241,7 +241,7 @@ export const MAP_EDGES = Object.freeze([
     Object.freeze({
         id: 'form-triggers-automation', from: 'form', to: 'automation', verbs: ['triggers'],
         labelKey: 'studio.map.edge_form_triggers_automation',
-        labelFallback: 'A form triggers a routine.',
+        labelFallback: 'A form triggers an automation.',
         route: Object.freeze({ type: 'curve', fromSide: 'right', toSide: 'left' }),
     }),
 ]);
@@ -544,7 +544,7 @@ export function countState(node, counts, { failed = false } = {}) {
  * geen scope-parameter — een strip die 'org' doorgeeft verandert de getallen
  * dus niet, alleen de zin eronder. Zonder deze lijst zou die zin omklappen
  * naar een org-brede bewering over een getal dat de bron niet kan dragen: "9 ·
- * Counting everything in the organisation" onder de eigen negen routines van
+ * Counting everything in the organisation" onder de eigen negen automatiseringen van
  * één bouwer.
  */
 export const ORG_WIDE_COUNT_KEYS = Object.freeze(['agents']);

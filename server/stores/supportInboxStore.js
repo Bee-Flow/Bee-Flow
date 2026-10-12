@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS support_inboxes (
     active BOOLEAN DEFAULT false,                     -- true after OAuth completes
     kb_ingest_enabled BOOLEAN DEFAULT false,          -- distil resolved tickets into a KB
     kb_ingest_kb_id UUID,                             -- target knowledge base for ingestion
-    kb_ingest_routine_id UUID,                        -- the auto-provisioned routine (one per inbox)
+    kb_ingest_automation_id UUID,                        -- the auto-provisioned automation (one per inbox)
     shared_groups JSONB NOT NULL DEFAULT '[]'::jsonb, -- org groups allowed to work this inbox; [] = open to all org support staff
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
@@ -70,12 +70,23 @@ const initDB = makeStoreInit('SupportInboxStore', _initDB);
 async function _initDB() {
     try {
         await pool.query(INIT_SQL);
+        // The column was kb_ingest_routine_id until 2026-10 (Automations is the
+        // product name): renamed in place, once, before the ADD below.
+        await pool.query(`
+            DO $$ BEGIN
+                IF EXISTS (SELECT 1 FROM information_schema.columns
+                            WHERE table_schema = current_schema() AND table_name = 'support_inboxes' AND column_name = 'kb_ingest_routine_id')
+                   AND NOT EXISTS (SELECT 1 FROM information_schema.columns
+                            WHERE table_schema = current_schema() AND table_name = 'support_inboxes' AND column_name = 'kb_ingest_automation_id') THEN
+                    ALTER TABLE support_inboxes RENAME COLUMN kb_ingest_routine_id TO kb_ingest_automation_id;
+                END IF;
+            END $$`);
         // Additive migrations for existing installs (CREATE TABLE IF NOT EXISTS
         // won't add columns to a pre-existing table). Tolerate failure.
         for (const sql of [
             `ALTER TABLE support_inboxes ADD COLUMN IF NOT EXISTS kb_ingest_enabled BOOLEAN DEFAULT false`,
             `ALTER TABLE support_inboxes ADD COLUMN IF NOT EXISTS kb_ingest_kb_id UUID`,
-            `ALTER TABLE support_inboxes ADD COLUMN IF NOT EXISTS kb_ingest_routine_id UUID`,
+            `ALTER TABLE support_inboxes ADD COLUMN IF NOT EXISTS kb_ingest_automation_id UUID`,
             // Per-inbox enabled-tools set (supersedes the single tools_enabled
             // checkbox): tokens like 'builtin:read','builtin:action','integration:<id>'.
             `ALTER TABLE support_inboxes ADD COLUMN IF NOT EXISTS enabled_tool_ids JSONB DEFAULT '[]'::jsonb`,
@@ -131,7 +142,7 @@ const decryptTokens = (encryptedStr) => _tokenBox.decrypt(encryptedStr);
 const PUBLIC_COLS = `id, organization_id, created_by, provider, email_address, display_name,
     auth_method, provider_config, default_agent_id, kb_ids, reply_mode, autoresolve_threshold,
     tools_enabled, enabled_tool_ids, operator_user_id, signature, folder_filter, sync_interval_minutes, sync_status, sync_error,
-    last_sync_at, active, kb_ingest_enabled, kb_ingest_kb_id, kb_ingest_routine_id,
+    last_sync_at, active, kb_ingest_enabled, kb_ingest_kb_id, kb_ingest_automation_id,
     classify_non_support_enabled, classify_sensitivity, classify_suppress_autoreply, known_good_senders,
     scan_status, scan_progress, scan_result, scan_after, shared_groups,
     created_at, updated_at,
@@ -240,27 +251,27 @@ async function updateInbox(id, updates = {}, organizationId = null) {
 }
 
 /**
- * Set the KB-ingestion config (enable flag, target KB, provisioned routine id)
+ * Set the KB-ingestion config (enable flag, target KB, provisioned automation id)
  * for an inbox. Kept off the public PATCH allowlist so clients can only change
- * it via the dedicated /kb-automation endpoint (which provisions the routine).
- * Only provided keys are written; pass null to clear kbId / routineId.
+ * it via the dedicated /kb-automation endpoint (which provisions the automation).
+ * Only provided keys are written; pass null to clear kbId / automationId.
  */
 const KB_AUTOMATION_COLUMNS = {
     enabled: { col: 'kb_ingest_enabled', transform: (v) => !!v },
     kbId: 'kb_ingest_kb_id',
-    routineId: 'kb_ingest_routine_id',
+    automationId: 'kb_ingest_automation_id',
 };
 
 /**
  * @param id
- * @param {{ enabled?: boolean, kbId?: string, routineId?: string }} [opts]
+ * @param {{ enabled?: boolean, kbId?: string, automationId?: string }} [opts]
  * @param [organizationId]
  */
-async function setKbAutomation(id, { enabled, kbId, routineId } = {}, organizationId = null) {
+async function setKbAutomation(id, { enabled, kbId, automationId } = {}, organizationId = null) {
     await initDB();
     const built = buildUpdate({
         table: 'support_inboxes',
-        updates: { enabled, kbId, routineId },
+        updates: { enabled, kbId, automationId },
         columnMap: KB_AUTOMATION_COLUMNS,
         extraSet: ['updated_at = now()'],
         where: [{ col: 'id', value: id }, ...(organizationId ? [{ col: 'organization_id', value: organizationId }] : [])],

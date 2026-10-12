@@ -72,6 +72,10 @@ function freshCtx(overrides = {}) {
     };
 }
 function reset() { auditCalls.length = 0; applyRedactionChoiceCalls.length = 0; setPrefCalls.length = 0; scanCalls.length = 0; }
+// The decision part of a verdict. Every return also carries what the scan saw
+// (scanStatus, categories, tooShort, override) for chat signals; those fields
+// are pinned on their own in dlpPreflight.report.test.js.
+function verdict({ scanStatus, categories, tooShort, override, ...decision }) { return decision; }
 function names(events) { return events.map(e => e.type); }
 
 // ── T1: block never throws; emits dlp_blocked + audits blocked ─────────────
@@ -80,7 +84,7 @@ test('block: returns {blocked, reason:policy_block}, emits dlp_blocked, audits b
     const { base, events, messages } = freshCtx();
     scanResult = { action: 'block', reason: 'policy_block', provider: { displayName: 'OpenAI' }, findings: [{ label: 'name', category: 'pii', source: 'user', text: 'Alice' }], summary: { name: 1 } };
     const r = await runDlpPreflight(base);
-    assert.deepEqual(r, { outcome: 'blocked', blocked: true, reason: 'policy_block' });
+    assert.deepEqual(verdict(r), { outcome: 'blocked', blocked: true, reason: 'policy_block' });
     assert.deepEqual(names(events), ['dlp_blocked']);
     assert.equal(events[0].data.reason, 'policy_block');
     assert.equal(auditCalls.length, 1);
@@ -150,7 +154,7 @@ test('ask→block: emits dlp_preview + dlp_blocked(user_blocked), returns blocke
     scanResult = { action: 'ask', provider: { displayName: 'OpenAI' }, findings: [], summary: {} };
     registerImpl = () => ({ decisionId: 'd2', promise: Promise.resolve({ choice: 'block' }) });
     const r = await runDlpPreflight(base);
-    assert.deepEqual(r, { outcome: 'blocked', blocked: true, reason: 'user_blocked' });
+    assert.deepEqual(verdict(r), { outcome: 'blocked', blocked: true, reason: 'user_blocked' });
     assert.deepEqual(names(events), ['dlp_preview', 'dlp_blocked']);
     assert.equal(events[1].data.reason, 'user_blocked');
     assert.equal(auditCalls[0].action_taken, 'blocked');
@@ -164,7 +168,7 @@ test('ask→timeout: emits dlp_blocked(timeout), returns blocked reason ask_time
     const timeoutErr = new Error('to'); timeoutErr.code = 'DLP_TIMEOUT';
     registerImpl = () => ({ decisionId: 'd3', promise: Promise.reject(timeoutErr) });
     const r = await runDlpPreflight(base);
-    assert.deepEqual(r, { outcome: 'blocked', blocked: true, reason: 'ask_timeout' });
+    assert.deepEqual(verdict(r), { outcome: 'blocked', blocked: true, reason: 'ask_timeout' });
     assert.equal(events[1].type, 'dlp_blocked');
     assert.equal(events[1].data.reason, 'timeout');
 });
@@ -176,7 +180,7 @@ test('ask→allow: emits dlp_resolved(allow), audits allowed, returns allow, mes
     scanResult = { action: 'ask', provider: { displayName: 'OpenAI' }, findings: [], summary: { name: 1 } };
     registerImpl = () => ({ decisionId: 'd4', promise: Promise.resolve({ choice: 'allow', rememberForConversation: true }) });
     const r = await runDlpPreflight(base);
-    assert.deepEqual(r, { outcome: 'allow', blocked: false });
+    assert.deepEqual(verdict(r), { outcome: 'allow', blocked: false });
     assert.deepEqual(names(events), ['dlp_preview', 'dlp_resolved']);
     assert.equal(events[1].data.appliedChoice, 'allow');
     assert.equal(auditCalls[0].action_taken, 'allowed');
@@ -191,7 +195,7 @@ test('allow (auto): no events, no audit, returns allow', async () => {
     const { base, events } = freshCtx();
     scanResult = { action: 'allow', provider: { displayName: 'OpenAI' }, findings: [], summary: {} };
     const r = await runDlpPreflight(base);
-    assert.deepEqual(r, { outcome: 'allow', blocked: false });
+    assert.deepEqual(verdict(r), { outcome: 'allow', blocked: false });
     assert.equal(events.length, 0);
     assert.equal(auditCalls.length, 0);
 });
@@ -202,7 +206,7 @@ test('scan_failed: audits scan_failed, returns scan_failed, no user-facing event
     const { base, events } = freshCtx();
     scanResult = { action: 'allow', scanStatus: 'failed', provider: null, findings: [], summary: {} };
     const r = await runDlpPreflight(base);
-    assert.deepEqual(r, { outcome: 'scan_failed', blocked: false });
+    assert.deepEqual(verdict(r), { outcome: 'scan_failed', blocked: false });
     assert.equal(events.length, 0);
     assert.equal(auditCalls[0].action_taken, 'scan_failed');
     assert.equal(auditCalls[0].violation_categories, 'scan_failed');

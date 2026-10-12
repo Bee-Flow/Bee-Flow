@@ -4,7 +4,7 @@ import React from 'react';
 import { currentThought, renderThinking } from './thinkingMarkdown';
 
 /** Lines lifted verbatim from a real local-model build of the ticket brief. */
-const REAL = `The user wants a routine that runs every weekday at 08:00.
+const REAL = `The user wants an automation that runs every weekday at 08:00.
 1. Fetch JSON from \`https://example.org/api/tickets\`.
 2. Filter tickets with \`priority === "high"\`.
 3. Count them.

@@ -66,7 +66,7 @@ describe('LoopItemNode', () => {
         const src = String(LoopItemNode);
         // Cheap and blunt on purpose: the failure it catches is a literal
         // creeping back in beside the translated one.
-        expect(src).toContain('routines.canvas.loop_each_item');
-        expect(src).toContain('routines.canvas.loop_each_batch');
+        expect(src).toContain('automations.canvas.loop_each_item');
+        expect(src).toContain('automations.canvas.loop_each_batch');
     });
 });

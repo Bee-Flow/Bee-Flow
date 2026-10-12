@@ -214,6 +214,16 @@ test('oversized bodies get a generic 413', () => {
     assert.ok(!JSON.stringify(res.body).includes('20971520'), 'do not disclose the configured limit');
 });
 
+test('a 413 the route raised on purpose keeps its message and code', () => {
+    const { api } = build();
+    const { HttpError } = require('./core/http/errors');
+    const res = mockRes();
+    api.terminalErrorHandler(new HttpError(413, 'source_text_too_large', 'This text is too long.'), REQ, res, () => assert.fail('next() must not be called'));
+    assert.equal(res.statusCode, 413);
+    assert.equal(res.body.code, 'source_text_too_large');
+    assert.equal(res.body.error, 'This text is too long.');
+});
+
 test('an HttpError below 500 exposes its message, code and details', () => {
     const { api } = build();
     const { HttpError } = require('./core/http/errors');

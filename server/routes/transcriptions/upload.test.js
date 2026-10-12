@@ -112,6 +112,11 @@ stub('../../projects/meetingFiling', {
     announce: async (projectId, actorId, meetingId) => { target.announced.push({ projectId, actorId, meetingId }); },
 });
 
+const emitted = [];
+stub('../../core/meetingNotes/ingestRecordingCore', {
+    emitMeetingProcessed: (payload) => { emitted.push(payload); },
+});
+
 const router = require('./upload');
 
 function dispatch({ body = {}, file = true, user = 'owner-1' } = {}) {
@@ -158,6 +163,7 @@ test.beforeEach(() => {
     fs.writeFileSync(AUDIO_PATH, 'fake-audio-bytes');
     creates.length = 0;
     updates.length = 0;
+    emitted.length = 0;
     target.asked.length = 0;
     target.announced.length = 0;
     target.answer = { ok: true, projectId: 'p1' };
@@ -277,4 +283,14 @@ test('a project access check that cannot be answered is a refusal, never a blind
     assert.strictEqual(res.body.code, 'project_check_unavailable');
     assert.ok(!JSON.stringify(res.body).includes('projects table'), 'no internal detail');
     assert.strictEqual(creates.length, 0);
+});
+
+test('a finished upload announces meeting.processed once, after the note is complete', async () => {
+    await dispatch();
+    await waitFor(() => emitted.length > 0);
+    assert.ok(completion(), 'the note was completed before the announcement');
+    assert.strictEqual(emitted.length, 1);
+    assert.deepStrictEqual(emitted[0].tags, ['planning']);
+    assert.strictEqual(emitted[0].userId, 'owner-1');
+    assert.strictEqual(emitted[0].reprocessed, undefined);
 });

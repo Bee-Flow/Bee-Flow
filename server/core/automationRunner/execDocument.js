@@ -27,7 +27,7 @@ const log = require('../../telemetry/log');
 
 const EXECUTED_STATUSES = new Set(['success', 'pinned']);
 
-/** The routine definition for this run: ctx carries it; a bare ctx loads it once. */
+/** The automation definition for this run: ctx carries it; a bare ctx loads it once. */
 async function definitionFor(ctx) {
     if (ctx && ctx.definition && typeof ctx.definition === 'object') return ctx.definition;
     if (ctx && ctx._markingDefinition) return ctx._markingDefinition;

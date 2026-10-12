@@ -1,5 +1,5 @@
 /**
- * The datatables ONE user may use, in the shape the routine builder reads.
+ * The datatables ONE user may use, in the shape the automation builder reads.
  *
  * WHY THIS IS ITS OWN MODULE
  * --------------------------
@@ -61,7 +61,7 @@ async function buildDatatableCatalogForUser(userId, { principal = null } = {}) {
 
     const datatables = [];
     // BOTH tenancies: the organisation's tables and this account's own.
-    // A routine owned by an org-less account can only ever name the
+    // An automation owned by an org-less account can only ever name the
     // second kind, and this list is the only place it can pick one.
     for (const scope of datatableScopesFor(who)) {
         const [all, model] = await Promise.all([

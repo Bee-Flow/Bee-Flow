@@ -435,7 +435,7 @@ anywhere on `/auth/users`, `/auth/groups`, `/auth/roles` or `/auth/invitations`,
   custom tiers come from `/ai/config/custom-tiers-list` and the `customTiers` sub-screen.
 - **Compliance Center** — the `dpo` and `isms_auditor` roles exist purely to open Compliance and
   Usage & Monitoring without full admin.
-- **Datatables / Studio apps / routines** — `use_datatables` vs `manage_datatables` come straight
+- **Datatables / Studio apps / automations** — `use_datatables` vs `manage_datatables` come straight
   from the org role, so "who may create a table" is decided here.
 - **Nextcloud-bound orgs** — identity is delegated to Nextcloud: the Sign-in Method row disappears
   and an extra **Nextcloud Sync** tab appears inside Users & Groups.

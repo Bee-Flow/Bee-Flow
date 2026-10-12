@@ -48,8 +48,8 @@ export interface ArrangeChoice {
 
 /** The Arrange menu, in the web's order: rows that fit this screen, one tight line, roomy. */
 export const ARRANGE_CHOICES: readonly ArrangeChoice[] = [
-    { mode: 'serpentine', key: 'routines.canvas.arrange_rows', fallback: 'Rows that fit the screen' },
-    { mode: 'compact', key: 'routines.canvas.arrange_compact', fallback: 'One tight line' },
+    { mode: 'serpentine', key: 'automations.canvas.arrange_rows', fallback: 'Rows that fit the screen' },
+    { mode: 'compact', key: 'automations.canvas.arrange_compact', fallback: 'One tight line' },
     { mode: 'roomy', key: 'mobile.flow.canvas.arrange_roomy', fallback: 'Roomy' },
 ];
 

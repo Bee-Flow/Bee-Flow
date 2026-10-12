@@ -3,7 +3,7 @@
 // ── The rules are not restated here ─────────────────────────────────────────
 //
 // The six sources (an app with validation problems, a published agent with no
-// knowledge base, an empty knowledge base something reads, a routine failing
+// knowledge base, an empty knowledge base something reads, an automation failing
 // in a row, a blocked Solution, a knowledge source that could not refresh)
 // live in server/routes/studio/attention.js + attentionChecks.js, each behind
 // the same gate and the same scoping as its own list route. This module does
@@ -128,7 +128,7 @@ export const SOURCE_LABELS = Object.freeze({
     appValidation: { kind: 'app', key: 'studio.attention.src_app_validation', fallback: 'App has validation problems' },
     agentNoKb: { kind: 'agent', key: 'studio.attention.src_agent_no_kb', fallback: 'Agent has no knowledge base' },
     kbEmptyInUse: { kind: 'kb', key: 'studio.attention.src_kb_empty_in_use', fallback: 'Knowledge base is used but holds no documents' },
-    automationFailing: { kind: 'automation', key: 'studio.attention.src_automation_failing', fallback: 'Routine failed several times in a row' },
+    automationFailing: { kind: 'automation', key: 'studio.attention.src_automation_failing', fallback: 'Automation failed several times in a row' },
     solutionBlocked: { kind: 'solution', key: 'studio.attention.src_solution_blocked', fallback: 'Solution has blocking findings' },
     kbSourceError: { kind: 'kb', key: 'studio.attention.src_kb_source_error', fallback: 'Knowledge source could not refresh' },
 });

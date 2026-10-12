@@ -102,7 +102,7 @@ stub('./aiAgent', { getProviderForModel: async () => null });
 stub('./providers', { getAdapter: () => ({}) });
 stub('../automation/codeSandbox', { run: async () => ({}) });
 
-process.env.ROUTINE_AUTH_LEGACY = '0';
+process.env.AUTOMATION_AUTH_LEGACY = '0';
 process.env.NODE_ENV = 'test';
 
 const runner = require('./automationRunner');

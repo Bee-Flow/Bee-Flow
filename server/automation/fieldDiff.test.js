@@ -140,12 +140,12 @@ test('the trigger: a new schedule is trigger_changed with the cron readable', ()
     assert.deepStrictEqual(describeChange(changes).entries, [{ code: 'trigger_changed', params: { step: 'On a schedule' } }]);
 });
 
-test('routine settings and the description sit outside the steps', () => {
+test('automation settings and the description sit outside the steps', () => {
     const next = clone(BASE);
     next.runPolicy = { retry: { max: 2, then: 'stop_notify' } };
     next.description = 'Reads invoices.';
     const changes = fieldDiff(BASE, next);
-    assert.ok(changes.every((c) => c.stepId === null && c.stepLabel === 'Routine'));
+    assert.ok(changes.every((c) => c.stepId === null && c.stepLabel === 'Automation'));
     assert.deepStrictEqual(changes.map((c) => c.path).sort(), ['description', 'runPolicy.retry.max', 'runPolicy.retry.then']);
     const d = describeChange(changes);
     assert.deepStrictEqual(d.entries, [
@@ -227,4 +227,18 @@ test('garbage in: nulls and non-objects never throw', () => {
     assert.deepStrictEqual(fieldDiff(null, undefined), []);
     assert.strictEqual(isLayoutOnlyChange(null, {}), true);
     assert.doesNotThrow(() => describeVersion({ steps: 'nope', edges: 5 }, { steps: [null, 3, { id: 'a', type: 'code' }] }));
+});
+
+test('a binding reads its step whatever the spelling: bracket head, quoted keys, a `}` inside a key', () => {
+    const next = clone(BASE);
+    next.steps[1].inputs = {
+        a: { kind: 'ref', path: 'steps["read"].output.files[0]["content-type"]' },
+        b: { kind: 'template', value: 'Id {{ steps.read.output["a}b"] }}' },
+        c: { kind: 'ref', path: 'steps.read.output.payload.headers[name="Subject"].value' },
+    };
+    const byPath = Object.fromEntries(fieldDiff(BASE, next).map((c) => [c.path, c]));
+    // The part after the step is shown as written; the step by its name.
+    assert.strictEqual(byPath['inputs.a'].after, 'Read invoice › files[0]["content-type"]');
+    assert.strictEqual(byPath['inputs.b'].after, 'Id ‹Read invoice › ["a}b"]›');
+    assert.strictEqual(byPath['inputs.c'].after, 'Read invoice › payload.headers[name="Subject"].value');
 });

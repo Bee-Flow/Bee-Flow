@@ -19,9 +19,14 @@
  * Docs: https://eugpt.ai/api
  */
 
-// The documented base URL (API reference, SDK guide). api.eugpt.ai serves the
-// same backend; either host is recognised by the URL pattern in ./index.js.
-const EUGPT_BASE_URL = 'https://chat.eugpt.ai/v1';
+// The API host. chat.eugpt.ai is only the chat web app (where API keys are
+// made): a POST to chat.eugpt.ai/v1/responses lands on the site's storage
+// bucket and comes back as a 412 PreconditionFailed in XML.
+const EUGPT_BASE_URL = 'https://api.eugpt.ai/v1';
+
+// The base URL this adapter used to seed. providerConfig moves a provider
+// still saved with it over to EUGPT_BASE_URL.
+const EUGPT_LEGACY_BASE_URL = 'https://chat.eugpt.ai/v1';
 
 const EUGPT_MODEL_ID = 'eugpt-auto';
 
@@ -59,6 +64,7 @@ function describeEuGptModel(modelId = EUGPT_MODEL_ID) {
 
 module.exports = {
     EUGPT_BASE_URL,
+    EUGPT_LEGACY_BASE_URL,
     EUGPT_MODEL_ID,
     EUGPT_WIRE_MODEL,
     describeEuGptModel,

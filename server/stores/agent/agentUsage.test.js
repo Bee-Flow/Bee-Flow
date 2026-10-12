@@ -6,7 +6,7 @@
  * The failure that matters here is the one where NOT KNOWING is reported as
  * NOTHING. A consumer table this install has not got, a scan that errored —
  * either would otherwise make the delete confirmation say "nothing uses this"
- * about an agent two routines run every night, and the person would believe
+ * about an agent two automations run every night, and the person would believe
  * it, because they asked.
  *
  * The queries themselves are proved against real Postgres in
@@ -61,7 +61,7 @@ test('a consumer comes back in the Used-by row shape', async () => {
     assert.deepStrictEqual(partial, []);
     assert.deepStrictEqual(rows, [{
         kind: 'task', id: 'task-1', title: 'Nightly report',
-        role: 'routine', ownerId: 'u1', lastAt: '2026-09-01T00:00:00Z',
+        role: 'automation', ownerId: 'u1', lastAt: '2026-09-01T00:00:00Z',
     }]);
     assert.ok(!('agentId' in rows[0]), 'with one agent asked, echoing it back is noise');
 });
@@ -220,7 +220,7 @@ test('a row the asker does not own is counted but not named', async () => {
 });
 
 test('a foreign row loses its id and its owner too, not only its title', async () => {
-    // A routine id the asker cannot open is of no use to them, and `ownerId`
+    // An automation id the asker cannot open is of no use to them, and `ownerId`
     // names the colleague who built it. "Who in this organisation automates
     // against this agent" is not a question this tab was asked.
     const rows = [{ kind: 'automation', id: 'au1', title: 'Payroll export', role: 'ai_step', ownerId: 'u2', lastAt: '2026-09-01T00:00:00Z' }];

@@ -44,7 +44,7 @@ it('says nothing before any test', () => {
 
 it('says where a going run is, how far and how long', () => {
     const going = { ...beginRun(IDLE_TEST_RUN, { kind: 'dry', now: T0 }), rows: [row('a', 'success'), row('b', 'running')] };
-    expect(model(going, true)).toEqual({ tone: 'info', text: 'Testing the routine… · Tell me · 1/4 · 12s', stepId: 'b', live: true });
+    expect(model(going, true)).toEqual({ tone: 'info', text: 'Testing the automation… · Tell me · 1/4 · 12s', stepId: 'b', live: true });
     const stepRun = beginRun(IDLE_TEST_RUN, { kind: 'step', stepId: 'a', mode: 'only', now: T0 });
     expect(model(stepRun, true)?.text).toBe('Testing… · 12s');
 });

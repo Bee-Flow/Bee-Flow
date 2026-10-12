@@ -48,3 +48,14 @@ it('discards without calling anything', async () => {
     expect(screen.getByText('EMAIL DISCARDED')).toBeTruthy();
     expect(mockSend).not.toHaveBeenCalled();
 });
+
+it('offers Save as Draft on a Gmail draft', async () => {
+    await renderScreen(<EmailDraftCard draft={DRAFT} draftKey="m1:email:3" />);
+    expect(screen.getByText('Save as Draft')).toBeTruthy();
+});
+
+it('has no Save as Draft on an Outlook draft (Mail.ReadWrite is never requested)', async () => {
+    await renderScreen(<EmailDraftCard draft={{ ...DRAFT, _provider: 'microsoft' }} draftKey="m1:email:4" />);
+    expect(screen.getByText('Send Email')).toBeTruthy();
+    expect(screen.queryByText('Save as Draft')).toBeNull();
+});

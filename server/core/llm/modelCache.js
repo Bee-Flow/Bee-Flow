@@ -7,6 +7,17 @@
  * lists are cached: in Redis when there is one (shared across instances and
  * surviving a restart), else in this process for MODEL_CACHE_TTL seconds.
  *
+ * Nothing on the chat path waits for a network call it can avoid:
+ *   - an expired list is served as is and refreshed in the background
+ *     (stale-while-revalidate, at most MODEL_CACHE_STALE_MAX_MS old, one
+ *     refresh per provider in flight);
+ *   - a provider that answered with no models, or failed, is remembered for
+ *     EMPTY_CACHE_TTL_MS, so an unreachable endpoint is not probed (with its
+ *     multi-second discovery timeout) on every turn;
+ *   - getProviderForModel looks at the providers whose cached list already
+ *     holds the model first.
+ * invalidateModelCache drops all of it.
+ *
  * Every return path also stamps the cost registries (self-hosted → €0,
  * Scaleway → Scaleway's tariff, EU-resident OpenAI → the uplift), because
  * those registries are per process while the Redis cache is not: a freshly
@@ -25,7 +36,15 @@ const { getProviders, getAIConfig } = require('./providerConfig');
 const { resolveModelId } = require('./modelNames');
 
 const MODEL_CACHE_TTL = 60; // seconds
+/** How old a list may get before a caller has to wait for a fresh one. */
+const MODEL_CACHE_STALE_MAX_MS = 6 * 60 * 60 * 1000;
+/** How long "no models" (or a failed discovery) is believed. */
+const EMPTY_CACHE_TTL_MS = 30 * 1000;
 const _modelCache = new Map(); // in-memory fallback: providerId → { models: [], timestamp }
+/** @type {Map<string, number>} providerId → until when it counts as empty */
+const _emptyUntil = new Map();
+/** @type {Map<string, Promise<any>>} providerId → the refresh in flight */
+const _refreshing = new Map();
 
 /**
  * Get models for a provider, using cache with 60s TTL.
@@ -83,6 +102,11 @@ async function getModelsForProvider(providerId, forceRefresh = false) {
         return models;
     };
 
+    if (!provider) {
+        log.warn(`[ModelCache] Provider ${providerId} not found`);
+        return [];
+    }
+
     // Try Redis first, then in-memory fallback
     if (!forceRefresh) {
         const r = getRedis();
@@ -95,32 +119,58 @@ async function getModelsForProvider(providerId, forceRefresh = false) {
                     return registerIfLocal(models);
                 }
             } catch (_) { /* fall through */ }
-        } else {
-            const cached = _modelCache.get(providerId);
-            if (cached && (now - cached.timestamp) < MODEL_CACHE_TTL * 1000) {
-                return registerIfLocal(cached.models);
-            }
         }
+        const cached = _modelCache.get(providerId);
+        // Fresh: only without Redis (with Redis, the shared entry above is the
+        // source of truth and its absence means it expired or was dropped).
+        if (!r && cached && (now - cached.timestamp) < MODEL_CACHE_TTL * 1000) {
+            return registerIfLocal(cached.models);
+        }
+        if (cached && (now - cached.timestamp) < MODEL_CACHE_STALE_MAX_MS) {
+            _refreshInBackground(provider);
+            return registerIfLocal(cached.models);
+        }
+        if ((_emptyUntil.get(providerId) || 0) > now) return [];
     }
 
-    if (!provider) {
-        log.warn(`[ModelCache] Provider ${providerId} not found`);
-        return [];
-    }
+    return registerIfLocal(await _discover(provider));
+}
 
+/** Refresh one provider's list off the request path; one at a time each. */
+function _refreshInBackground(provider) {
+    if (_refreshing.has(provider.id)) return;
+    const p = _discover(provider)
+        .catch((e) => log.warn(`[ModelCache] Background refresh failed for ${provider.name}: ${e.message}`))
+        .finally(() => _refreshing.delete(provider.id));
+    _refreshing.set(provider.id, p);
+}
+
+/**
+ * Ask the provider for its models and store the answer: a list in the cache,
+ * nothing (or a failure) as a short-lived "empty".
+ */
+async function _discover(provider) {
+    const providerId = provider.id;
+    const now = Date.now();
     const { getAdapter } = require('../providers');
     const adapter = getAdapter(provider.type, provider.url);
     const baseUrl = (provider.url || '').replace(/\/+$/, '');
 
-    log.info(`[ModelCache] Fetching models for ${provider.name} (cache ${forceRefresh ? 'forced' : 'miss'})`);
-    const models = await adapter.listModels(provider.apiKey, baseUrl, {
-        project: provider.project,
-        location: provider.location,
-        serviceAccountKey: provider.serviceAccountKey,
-        apiVersion: provider.apiVersion,
-    });
+    log.info(`[ModelCache] Fetching models for ${provider.name}`);
+    let models;
+    try {
+        models = await adapter.listModels(provider.apiKey, baseUrl, {
+            project: provider.project,
+            location: provider.location,
+            serviceAccountKey: provider.serviceAccountKey,
+        });
+    } catch (e) {
+        _emptyUntil.set(providerId, Date.now() + EMPTY_CACHE_TTL_MS);
+        throw e;
+    }
 
     if (models.length > 0) {
+        _emptyUntil.delete(providerId);
         _modelCache.set(providerId, { models, timestamp: now });
         const r = getRedis();
         if (r) {
@@ -128,9 +178,10 @@ async function getModelsForProvider(providerId, forceRefresh = false) {
         }
         log.info(`[ModelCache] Cached ${models.length} models for ${provider.name}`);
     } else {
-        log.info(`[ModelCache] Skipping cache for ${provider.name} (0 models)`);
+        _emptyUntil.set(providerId, Date.now() + EMPTY_CACHE_TTL_MS);
+        log.info(`[ModelCache] ${provider.name} has no models; not asking again for ${EMPTY_CACHE_TTL_MS / 1000}s`);
     }
-    return registerIfLocal(models);
+    return models;
 }
 
 /**
@@ -141,6 +192,7 @@ function invalidateModelCache(providerId) {
     const r = getRedis();
     if (providerId) {
         _modelCache.delete(providerId);
+        _emptyUntil.delete(providerId);
         if (r) { r.del(`bf:mcache:${providerId}`).catch(() => { }); }
     } else {
         // Clear all model cache keys
@@ -150,6 +202,7 @@ function invalidateModelCache(providerId) {
             }).catch(() => { });
         }
         _modelCache.clear();
+        _emptyUntil.clear();
     }
 }
 
@@ -195,8 +248,12 @@ async function getProviderForModel(modelId) {
         return getAIConfig(); // Fallback to default config
     }
 
-    // Try to find the model in each provider's model list
-    for (const provider of providerData.providers) {
+    // Try to find the model in each provider's model list. Providers whose
+    // cached list already holds it go first, so the usual turn needs no
+    // network call at all; the rest keep their configured order.
+    const holds = (p) => !!_modelCache.get(p.id)?.models?.some((m) => m?.id === modelId);
+    const ordered = [...providerData.providers.filter(holds), ...providerData.providers.filter((p) => !holds(p))];
+    for (const provider of ordered) {
         try {
             const models = await getModelsForProvider(provider.id);
             const modelIds = models.map(m => m.id);
@@ -216,6 +273,11 @@ async function getProviderForModel(modelId) {
                 if (provider.type === 'scaleway') registerScalewayModel(modelId);
                 // Mistral: its own price, plus the regional uplift when the
                 // provider points at api.eu / api.us (and not when it moves back).
+                // Azure: which model sits behind a custom-named deployment, for
+                // pricing, the context window and the reasoning defaults.
+                if (provider.type === 'azure') {
+                    await require('../providers/azureDeployments').refreshAzureDeployments();
+                }
                 if (provider.type === 'mistral') {
                     registerMistralModel(modelId);
                     setMistralRegionalModel(modelId, isMistralRegionalUrl(provider.url));
@@ -239,7 +301,6 @@ async function getProviderForModel(modelId) {
                     project: provider.project || null,
                     location: provider.location || null,
                     serviceAccountKey: provider.serviceAccountKey || null,
-                    apiVersion: provider.apiVersion || null,
                 };
             }
         } catch (e) {

@@ -79,11 +79,9 @@ export interface BuilderValidation {
 }
 
 /**
- * The live turn record the waiting card reads. Both builders open the same
- * shape, so BuilderWaitingCard and timeToFirstToken serve either one:
- * sentAt/sessionAt/pings/modelId for the milestones,
- * roundStartedAt/promptChars/progress for the reading bar, and firstEventAt —
- * set ONCE — for what recordTtft() measures against sentAt.
+ * The live turn record of a build. Both builders open the same shape:
+ * sentAt/sessionAt/pings/modelId, roundStartedAt/promptChars/progress, and
+ * firstEventAt — set ONCE — which ends the "Thinking…" wait in the chat column.
  */
 export interface BuilderTurn {
     sentAt: number;
@@ -184,6 +182,7 @@ export interface BuilderStreamData {
     parentId?: string;
     hasSideEffects?: boolean;
     inspect?: unknown;
+    questions?: unknown[];
 
     // what the build produced
     definition?: unknown;
@@ -205,7 +204,7 @@ export interface BuilderStreamData {
     index?: number;
     todos?: BuilderTodo[];
 
-    // runs (the routine builder's dry runs)
+    // runs (the automation builder's dry runs)
     run?: DryRun;
     runId?: string;
     steps?: Array<Record<string, unknown>>;
@@ -217,6 +216,10 @@ export interface BuilderStreamData {
     caption?: string;
     mimeType?: string;
     data?: unknown;
+
+    // web_search: whether the composer's Web search toggle reached the model
+    requested?: boolean;
+    available?: boolean;
 
     // failures
     error?: string;

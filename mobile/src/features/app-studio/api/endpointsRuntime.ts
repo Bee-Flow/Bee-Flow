@@ -37,7 +37,7 @@ export async function getRuntime(
 /**
  * Run a `run_automation` action. 200 = the final answer; 202 = `{ runId,
  * status: 'pending' }` past the server's wait (poll with pollRun);
- * `status: 'skipped'` = the routine was already running. Inputs resolve
+ * `status: 'skipped'` = the automation was already running. Inputs resolve
  * server-side from the action's own inputMapping — formValues only feed
  * `field` mappings. Never retried: a run that timed out may still be running.
  */

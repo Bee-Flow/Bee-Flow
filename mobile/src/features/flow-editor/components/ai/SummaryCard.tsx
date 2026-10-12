@@ -1,5 +1,5 @@
 /**
- * The AI-written summary of what the routine does, over the builder
+ * The AI-written summary of what the automation does, over the builder
  * conversation — the web header's AutomationSummary, folded to a line until
  * opened.
  */
@@ -23,7 +23,7 @@ export function SummaryCard({ summary }: { summary: string }) {
         <Pressable style={styles.card} onPress={() => setOpen((v) => !v)} accessibilityRole="button" accessibilityState={{ expanded: open }}>
             <View style={styles.head}>
                 <Icon name="Info" size={14} color={styles.open.color} />
-                <Text variant="label" tone="tertiary">{t('mobile.flow.ai.summary', 'What this routine does').toUpperCase()}</Text>
+                <Text variant="label" tone="tertiary">{t('mobile.flow.ai.summary', 'What this automation does').toUpperCase()}</Text>
             </View>
             {open ? <Markdown value={summary} /> : <Text variant="caption" tone="secondary" numberOfLines={2}>{summary}</Text>}
         </Pressable>

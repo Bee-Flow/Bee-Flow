@@ -1,9 +1,10 @@
 import React, { useMemo, useRef, useState } from 'react';
+import useCmsBuilderStream from '../../../../hooks/useCmsBuilderStream';
+import useModelTierSelection from '../../../../hooks/useModelTierSelection';
+import { useTranslation } from '../../../../hooks/useTranslation';
+import { MessageBubble } from '../../../automation/Builder/chat/index';
 import AppIcon from '../../../icons/AppIcon';
 import ModelTierSelector from '../../../licensing/ModelTierSelector';
-import useModelTierSelection from '../../../../hooks/useModelTierSelection';
-import useCmsBuilderStream from '../../../../hooks/useCmsBuilderStream';
-import { MessageBubble } from '../../../automation/Builder/chat/index';
 import { HEADER_VIRTUAL_ID, DESIGN_VIRTUAL_ID } from '../sentinels';
 
 // Site-level tools whose success should surface a "What changed" chip even
@@ -13,8 +14,8 @@ import { HEADER_VIRTUAL_ID, DESIGN_VIRTUAL_ID } from '../sentinels';
 // is a map (not a boolean) and each touched surface gets its own chip
 // pointing at the entry that actually edits it.
 const SITE_TOUCH_SURFACES = {
-    cms_update_header_nav: { id: HEADER_VIRTUAL_ID, label: 'Header menu' },
-    cms_update_design: { id: DESIGN_VIRTUAL_ID, label: 'Design' },
+    cms_update_header_nav: { id: HEADER_VIRTUAL_ID, labelKey: 'cms_site.site.assistant.surface_header', labelDefault: 'Header menu' },
+    cms_update_design: { id: DESIGN_VIRTUAL_ID, labelKey: 'cms_site.site.assistant.surface_design', labelDefault: 'Design' },
 };
 
 /**
@@ -37,20 +38,21 @@ const SITE_TOUCH_SURFACES = {
  * (rehydrated from the builder session snapshot).
  */
 
+// [key, English default] pairs: resolved with t() at render.
 const ERROR_COPY = {
-    subscription_limit: 'The AI limit for your plan has been reached. The builder will work again once the limit resets.',
-    rate_limited: 'Too many builder requests in a row — give it a few seconds and try again.',
-    model_unavailable: 'No AI model is available right now. Check the AI configuration, then try again.',
-    transient_upstream: 'The AI provider had a hiccup. Nothing was lost — try again.',
-    budget_exhausted: 'The builder hit its per-turn limit. Everything it finished is already saved — send a follow-up message to continue.',
-    internal: 'Something went wrong in the builder. Try again; if it keeps failing, check the server logs.',
+    subscription_limit: ['cms_site.site.assistant.err_subscription_limit', 'The AI limit for your plan has been reached. The builder will work again once the limit resets.'],
+    rate_limited: ['cms_site.site.assistant.err_rate_limited', 'Too many builder requests in a row — give it a few seconds and try again.'],
+    model_unavailable: ['cms_site.site.assistant.err_model_unavailable', 'No AI model is available right now. Check the AI configuration, then try again.'],
+    transient_upstream: ['cms_site.site.assistant.err_transient_upstream', 'The AI provider had a hiccup. Nothing was lost — try again.'],
+    budget_exhausted: ['cms_site.site.assistant.err_budget_exhausted', 'The builder hit its per-turn limit. Everything it finished is already saved — send a follow-up message to continue.'],
+    internal: ['cms_site.site.assistant.err_internal', 'Something went wrong in the builder. Try again; if it keeps failing, check the server logs.'],
 };
 
 const QUICK_ACTIONS = [
-    'Add a pricing page with a hero and a 3-tier pricing section',
-    'Rewrite the hero headline to be punchier',
-    'Add a features section with 4 items',
-    'Fill in SEO titles and descriptions for every page',
+    ['cms_site.site.assistant.quick_pricing', 'Add a pricing page with a hero and a 3-tier pricing section'],
+    ['cms_site.site.assistant.quick_headline', 'Rewrite the hero headline to be punchier'],
+    ['cms_site.site.assistant.quick_features', 'Add a features section with 4 items'],
+    ['cms_site.site.assistant.quick_seo', 'Fill in SEO titles and descriptions for every page'],
 ];
 
 function ToolChip({ item }) {
@@ -67,7 +69,9 @@ function ToolChip({ item }) {
 }
 
 function ErrorItem({ item, onRetry }) {
-    const copy = ERROR_COPY[item.code] || item.message || ERROR_COPY.internal;
+    const { t } = useTranslation();
+    const [errKey, errDefault] = ERROR_COPY[item.code] || ERROR_COPY.internal;
+    const copy = ERROR_COPY[item.code] ? t(errKey, errDefault) : (item.message || t(errKey, errDefault));
     return (
         <div className="my-2 px-3 py-2 rounded-md border border-red-500/30 bg-red-500/10 text-xs text-red-300">
             <p>{copy}</p>
@@ -77,7 +81,7 @@ function ErrorItem({ item, onRetry }) {
                     onClick={onRetry}
                     className="mt-1.5 px-2 py-1 rounded border border-red-400/40 text-red-200 hover:bg-red-500/20 text-[11px]"
                 >
-                    Try again
+                    {t('cms_site.site.assistant.try_again', 'Try again')}
                 </button>
             )}
         </div>
@@ -89,10 +93,11 @@ export default function CmsAssistantPane({
     bridge,
     pages = [],            // site index [{id, slug, title}] — chip labels
     translationMode = false,
-    defaultLocaleName = 'the default language',
+    defaultLocaleName,
     canUndoTurn = false,
     onClose,
 }) {
+    const { t } = useTranslation();
     const [input, setInput] = useState('');
     const [lastTurn, setLastTurn] = useState(null);   // { createdPageIds, touchedPageIds, siteSurfaces }
     const lastTurnRef = useRef(null);                 // { text, options } for Retry
@@ -106,8 +111,8 @@ export default function CmsAssistantPane({
     const stream = useCmsBuilderStream({
         siteId,
         onDraft: (evt) => bridgeRef.current?.applyExternalDraft(evt),
-        onToolCall: (t) => {
-            if (t?.ok && SITE_TOUCH_SURFACES[t.name]) siteTouchedRef.current.add(t.name);
+        onToolCall: (call) => {
+            if (call?.ok && SITE_TOUCH_SURFACES[call.name]) siteTouchedRef.current.add(call.name);
         },
         onDone: (info) => {
             bridgeRef.current?.endTurn(info);
@@ -154,7 +159,7 @@ export default function CmsAssistantPane({
 
     const chips = lastTurn
         ? [
-            ...(lastTurn.siteSurfaces || []).map(s => ({ id: s.id, kind: 'site', label: s.label })),
+            ...(lastTurn.siteSurfaces || []).map(s => ({ id: s.id, kind: 'site', label: t(s.labelKey, s.labelDefault) })),
             ...(lastTurn.createdPageIds || []).map(id => ({ id, kind: 'created' })),
             ...(lastTurn.touchedPageIds || []).filter(id => !(lastTurn.createdPageIds || []).includes(id)).map(id => ({ id, kind: 'edited' })),
         ]
@@ -165,16 +170,16 @@ export default function CmsAssistantPane({
             {/* header */}
             <div className="h-10 shrink-0 flex items-center gap-2 px-3 border-b border-[var(--border-subtle)]">
                 <AppIcon name="Sparkles" className="w-4 h-4 text-[var(--accent-primary)]" />
-                <span className="text-sm font-semibold text-[var(--text-primary)]">Assistant</span>
-                <span className="text-[10px] text-[var(--text-muted)]" title="The conversation is stored per site and visible to every admin of this site.">
-                    Shared with site admins
+                <span className="text-sm font-semibold text-[var(--text-primary)]">{t('cms_site.site.assistant.title', 'Assistant')}</span>
+                <span className="text-[10px] text-[var(--text-muted)]" title={t('cms_site.site.assistant.shared_title', 'The conversation is stored per site and visible to every admin of this site.')}>
+                    {t('cms_site.site.assistant.shared', 'Shared with site admins')}
                 </span>
                 {onClose && (
                     <button
                         type="button"
                         onClick={onClose}
                         className="ml-auto p-1 rounded text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
-                        title="Close assistant"
+                        title={t('cms_site.site.assistant.close', 'Close assistant')}
                     >
                         <AppIcon name="X" className="w-3.5 h-3.5" />
                     </button>
@@ -187,23 +192,25 @@ export default function CmsAssistantPane({
                     <div className="pt-6 text-center">
                         <AppIcon name="Sparkles" className="w-7 h-7 mx-auto mb-2 text-[var(--text-muted)]" />
                         <p className="text-xs text-[var(--text-secondary)] mb-1 font-medium">
-                            Build pages by describing them
+                            {t('cms_site.site.assistant.empty_title', 'Build pages by describing them')}
                         </p>
                         <p className="text-[11px] text-[var(--text-muted)] mb-4 px-2">
-                            The assistant creates and edits pages, blocks and SEO on this site.
-                            Publishing always stays in your hands.
+                            {t('cms_site.site.assistant.empty_body', 'The assistant creates and edits pages, blocks and SEO on this site. Publishing always stays in your hands.')}
                         </p>
                         <div className="flex flex-col gap-1.5 px-1">
-                            {QUICK_ACTIONS.map(q => (
+                            {QUICK_ACTIONS.map(([qKey, qDefault]) => {
+                                const q = t(qKey, qDefault);
+                                return (
                                 <button
-                                    key={q}
+                                    key={qKey}
                                     type="button"
                                     onClick={() => setInput(q)}
                                     className="px-2.5 py-1.5 rounded-md border border-[var(--border-subtle)] text-[11px] text-left text-[var(--text-secondary)] hover:border-[var(--accent-primary)]/50 hover:text-[var(--text-primary)]"
                                 >
                                     {q}
                                 </button>
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
                 ) : stream.messages.map((m, i) => {
@@ -218,15 +225,15 @@ export default function CmsAssistantPane({
                 {lastTurn && !stream.running && chips.length > 0 && (
                     <div className="mt-2 p-2.5 rounded-md border border-[var(--border-subtle)] bg-[var(--bg-tertiary)]/50">
                         <div className="flex items-center justify-between mb-1.5">
-                            <span className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">What changed</span>
+                            <span className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">{t('cms_site.site.assistant.what_changed', 'What changed')}</span>
                             {canUndoTurn && (
                                 <button
                                     type="button"
                                     onClick={() => bridgeRef.current?.undoTurn()}
                                     className="text-[10px] text-[var(--text-muted)] hover:text-red-400"
-                                    title="Revert everything this turn changed (deletes pages it created)"
+                                    title={t('cms_site.site.assistant.undo_title', 'Revert everything this turn changed (deletes pages it created)')}
                                 >
-                                    Undo turn
+                                    {t('cms_site.site.assistant.undo', 'Undo turn')}
                                 </button>
                             )}
                         </div>
@@ -237,7 +244,7 @@ export default function CmsAssistantPane({
                                     type="button"
                                     onClick={() => bridgeRef.current?.selectPage(c.id)}
                                     className="px-2 py-0.5 rounded-full text-[10px] border border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--accent-primary)]/60"
-                                    title="Show in the editor"
+                                    title={t('cms_site.site.assistant.show_editor', 'Show in the editor')}
                                 >
                                     {c.kind === 'created' ? '+ ' : '✎ '}
                                     {c.label || pageById.get(c.id)?.title || pageById.get(c.id)?.slug || c.id}
@@ -250,7 +257,7 @@ export default function CmsAssistantPane({
                 {/* validation strip */}
                 {stream.lastValidation?.errors?.length > 0 && !stream.running && (
                     <div className="mt-2 p-2.5 rounded-md border border-amber-500/30 bg-amber-500/10">
-                        <p className="text-[10px] uppercase tracking-wider text-amber-500 mb-1">Needs attention</p>
+                        <p className="text-[10px] uppercase tracking-wider text-amber-500 mb-1">{t('cms_site.site.assistant.needs_attention', 'Needs attention')}</p>
                         {stream.lastValidation.errors.slice(0, 5).map((issue, i) => (
                             <div key={i} className="flex items-center gap-2 py-0.5">
                                 <span className="flex-1 text-[11px] text-[var(--text-secondary)]">{issue.message}</span>
@@ -259,7 +266,7 @@ export default function CmsAssistantPane({
                                     onClick={() => startTurn(`Fix: ${issue.message}`)}
                                     className="shrink-0 text-[10px] px-1.5 py-0.5 rounded border border-amber-500/40 text-amber-500 hover:bg-amber-500/15"
                                 >
-                                    Fix
+                                    {t('cms_site.site.assistant.fix', 'Fix')}
                                 </button>
                             </div>
                         ))}
@@ -271,8 +278,7 @@ export default function CmsAssistantPane({
             <div className="shrink-0 border-t border-[var(--border-subtle)] p-2">
                 {translationMode ? (
                     <p className="text-[11px] text-[var(--text-muted)] px-1 py-2">
-                        The assistant edits the source language. Switch back to {defaultLocaleName} to
-                        build — use AI translate for translations.
+                        {t('cms_site.site.assistant.translation_mode', 'The assistant edits the source language. Switch back to {language} to build — use AI translate for translations.', { language: defaultLocaleName || t('cms_site.site.assistant.default_language', 'the default language') })}
                     </p>
                 ) : (
                     <>
@@ -286,7 +292,7 @@ export default function CmsAssistantPane({
                                     startTurn(input);
                                 }
                             }}
-                            placeholder='Describe what to build… e.g. "Add an About page with a team section"'
+                            placeholder={t('cms_site.site.assistant.placeholder', 'Describe what to build… e.g. "Add an About page with a team section"')}
                             disabled={stream.running}
                             className="w-full px-2.5 py-2 rounded-md text-xs border bg-[var(--bg-tertiary)] border-[var(--border-default)] text-[var(--text-primary)] focus:border-[var(--accent-primary)] outline-none resize-none disabled:opacity-60"
                         />
@@ -306,7 +312,7 @@ export default function CmsAssistantPane({
                                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border border-red-400/50 text-red-400 hover:bg-red-500/10"
                                 >
                                     <AppIcon name="Square" className="w-3 h-3" />
-                                    Stop
+                                    {t('cms_site.site.assistant.stop', 'Stop')}
                                 </button>
                             ) : (
                                 <button
@@ -316,7 +322,7 @@ export default function CmsAssistantPane({
                                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-[var(--accent-primary)] text-white hover:bg-[var(--accent-primary)]/90 disabled:opacity-40"
                                 >
                                     <AppIcon name="Send" className="w-3 h-3" />
-                                    Send
+                                    {t('cms_site.site.assistant.send', 'Send')}
                                 </button>
                             )}
                         </div>

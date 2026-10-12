@@ -49,7 +49,10 @@ function createTerminalErrorHandler({ log = defaultLog, now = Date.now } = {}) {
             noteRejectedBody('parse', req);
             return res.status(400).json({ error: 'Invalid JSON body' });
         }
-        if (err?.type === 'entity.too.large' || err?.status === 413 || err?.statusCode === 413) {
+        // The body parser's own refusal. A 413 the application raised on purpose
+        // (an HttpError, `expose`) carries its own message and code and goes
+        // through the general path below.
+        if (err?.type === 'entity.too.large' || (err?.expose !== true && (err?.status === 413 || err?.statusCode === 413))) {
             noteRejectedBody('too-large', req);
             return res.status(413).json({ error: 'Request body too large' });
         }

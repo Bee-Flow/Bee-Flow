@@ -99,3 +99,29 @@ describe('VariablePicker — names, not keys', () => {
         expect(screen.getByText('Klant id').getAttribute('title')).toBe('klant_id');
     });
 });
+
+describe('VariablePicker — a Condition output reads as its name (field label contract)', () => {
+    beforeEach(cleanup);
+
+    it('shows "pdf" and "Otherwise", not "Matches by case …"', () => {
+        const base = 'steps.split.output';
+        render(
+            <VariablePicker
+                open
+                anchorEl={document.body}
+                groups={[{
+                    id: 'split', label: 'By type', kind: 'switch', basePath: base,
+                    fields: [
+                        { key: 'matchesByCase.pdf', path: `${base}.matchesByCase.pdf`, sample: [], label: 'pdf' },
+                        { key: 'matchesByCase.default', path: `${base}.matchesByCase.default`, sample: [], label: 'Otherwise', labelKey: 'condition_node.otherwise.label' },
+                    ],
+                }]}
+                onPick={() => {}}
+                onClose={() => {}}
+            />,
+        );
+        expect(screen.getByText('pdf')).toBeTruthy();
+        expect(screen.getByText('Otherwise')).toBeTruthy();
+        expect(screen.queryByText(/Matches by case/)).toBeNull();
+    });
+});

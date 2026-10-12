@@ -1,7 +1,7 @@
 /**
  * guardClient.httpPost — the keep-alive retry (BFSF-373).
  *
- * A routine step failed with "guard_unreachable: socket hang up" because a
+ * An automation step failed with "guard_unreachable: socket hang up" because a
  * pooled keep-alive socket was reused at the moment the guard closed it. The
  * client now retries exactly once when a request dies on a REUSED socket
  * before any response, and never otherwise: a reset on a fresh socket means

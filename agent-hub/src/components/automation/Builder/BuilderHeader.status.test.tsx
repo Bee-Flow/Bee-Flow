@@ -13,7 +13,7 @@ vi.mock('../../../utils/helpers', async (importOriginal) => ({
 
 /**
  * The status in plain language and the ONE primary action per state
- * (handoff 5, artboards 5a/5d). Autosave on an active routine is not live
+ * (handoff 5, artboards 5a/5d). Autosave on an active automation is not live
  * until "Make vN live".
  */
 type Row = NonNullable<BuilderHeaderProps['automation']>;
@@ -38,14 +38,14 @@ beforeEach(() => {
 });
 
 describe('BuilderHeader: status wording', () => {
-    it('a routine that never went live reads "Draft · never live"', () => {
+    it('an automation that never went live reads "Draft · never live"', () => {
         setup(NEVER);
         expect(screen.getByTestId('live-status').textContent).toBe('Draft · never live');
         expect(screen.getByTestId('live-status').dataset.kind).toBe('never');
         expect(screen.queryByTestId('live-pending')).toBeNull();
     });
 
-    it('a live routine names its live version, in the success tint', () => {
+    it('a live automation names its live version, in the success tint', () => {
         setup(LIVE);
         const pill = screen.getByTestId('live-status');
         expect(pill.textContent).toBe('Live · v3');
@@ -72,7 +72,16 @@ describe('BuilderHeader: status wording', () => {
         expect(screen.getByTestId('live-status').hasAttribute('title')).toBe(false);
     });
 
-    it('a paused routine reads "Paused"', () => {
+    it('a phone-width bar folds the status to its dot and the primary to its icon, keeping both names', () => {
+        // Under 640px the words ran under the view menu (390px screenshot).
+        setup(NEVER);
+        expect(screen.getByText('Draft · never live').className).toContain('@max-[640px]/bar:sr-only');
+        const activate = screen.getByRole('button', { name: /Activate/ });
+        expect(activate.querySelector('span')?.className).toContain('@max-[640px]/bar:sr-only');
+        expect(screen.getByTestId('trigger-tile').className).toContain('@max-[640px]/bar:hidden');
+    });
+
+    it('a paused automation reads "Paused"', () => {
         setup(PAUSED);
         expect(screen.getByTestId('live-status').textContent).toBe('Paused');
     });
@@ -129,7 +138,7 @@ describe('BuilderHeader: the primary action per state', () => {
         expect(p.onActivate).toHaveBeenCalledTimes(1);
     });
 
-    it('an incomplete routine cannot be activated', () => {
+    it('an incomplete automation cannot be activated', () => {
         setup(NEVER, { canActivate: false });
         expect((screen.getByRole('button', { name: /^Activate$/ }) as HTMLButtonElement).disabled).toBe(true);
     });
@@ -141,5 +150,22 @@ describe('BuilderHeader: the primary action per state', () => {
         setup(rowWithoutPending);
         expect(await screen.findByRole('button', { name: 'Make v5 live' })).toBeTruthy();
         expect(screen.getByTestId('live-pending').textContent).toBe('editing v5 · 1 change not live yet');
+    });
+});
+
+describe('BuilderHeader: workflow actions menu (BFSF-405)', () => {
+    it('exports the open workflow from the editor header', async () => {
+        const onExportJson = vi.fn();
+        setup(LIVE, { onExportJson });
+        const user = userEvent.setup();
+        await user.click(screen.getByRole('button', { name: 'Workflow actions' }));
+        await user.click(screen.getByRole('menuitem', { name: 'Export JSON' }));
+        expect(onExportJson).toHaveBeenCalledTimes(1);
+        expect(screen.queryByRole('menu')).toBeNull();
+    });
+
+    it('shows no menu when the host offers no export', () => {
+        setup(LIVE);
+        expect(screen.queryByRole('button', { name: 'Workflow actions' })).toBeNull();
     });
 });

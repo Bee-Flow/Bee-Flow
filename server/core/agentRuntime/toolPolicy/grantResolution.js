@@ -155,13 +155,13 @@ function _appAllowsTool(appId, name, toolsConfig) {
  *
  * Counting either as "someone has been through the picker" flips the agent
  * into the confirmation regime by accident, and an unattended run then drops
- * its send tools entirely: a mailing routine that silently stops mailing, with
+ * its send tools entirely: a mailing automation that silently stops mailing, with
  * nothing in the picker to explain why. One bad PUT — or one MCP/restore patch
  * — is enough to reach it, so the question is asked of the CONTENTS.
  *
  * And only of the contents that GATE something. A reserved section counts when
  * it grants something AND something enforces it: `automations` narrows the
- * routines an agent is offered, and `datatables` narrows which tables
+ * automations an agent is offered, and `datatables` narrows which tables
  * `datatable_query` reads, whose rows and which columns.
  *
  * `datatables` was NOT on that list until A1c, and the reason is worth keeping:

@@ -1,14 +1,12 @@
-import { AlertTriangle, Info, Loader2, Plus } from 'lucide-react';
-import React, { useMemo, useState } from 'react';
+import { Loader2, Plus } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import InstallBlueprintButton from './InstallBlueprintButton';
 import InstallBlueprintModal from './InstallBlueprintModal';
-import SolutionCard from './SolutionCard';
-import { Strip, sectionNames } from './solutionNotices';
-import { partitionSolutions } from './solutionOverviewModel';
-import useRemote from './useRemote';
+import { operatedStagesOf } from './pipeline/stagesApi';
+import { filterSolutions, partitionSolutions } from './solutionOverviewModel';
+import { CatalogueTab, EmptyOurs, GridSkeleton, OperatedStages, OverviewFilters, OverviewNotices, SolutionGrid } from './SolutionsOverviewParts';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
-import { kindTileStyle } from '../../../shared/kindColors';
 import SegmentedControl from '../../../shared/SegmentedControl';
 
 /**
@@ -38,9 +36,13 @@ import SegmentedControl from '../../../shared/SegmentedControl';
  * read.
  */
 
-function NewSolutionForm({ onCreated }) {
+function NewSolutionForm({ onCreated, focus = false }) {
     const { t } = useTranslation();
     const [name, setName] = useState('');
+    const inputRef = useRef(null);
+    // `studio/solutions/new` (the Studio's "+ New → Solution") lands here with
+    // the name field ready, instead of being read as the id of a Solution.
+    useEffect(() => { if (focus) inputRef.current?.focus(); }, [focus]);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
 
@@ -70,179 +72,64 @@ function NewSolutionForm({ onCreated }) {
     return (
         <div className="flex flex-wrap items-center gap-2">
             <input
+                ref={inputRef}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') create(); }}
                 placeholder={t('solutions.name_placeholder', 'Name the Solution…')}
-                className="px-3 py-2 rounded-lg text-sm border min-w-[200px]"
-                style={{ borderColor: 'var(--border-default)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
+                aria-label={t('solutions.name_placeholder', 'Name the Solution…')}
+                className="px-3 py-2 min-h-[40px] rounded-[var(--radius-sm)] text-sm border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-primary)] min-w-0 flex-1 sm:flex-none sm:w-56 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
             />
             <button
                 onClick={create}
                 disabled={busy || !name.trim()}
-                className="px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 text-white disabled:opacity-50"
-                style={{ background: 'var(--accent-primary)' }}
+                className="px-3 py-2 min-h-[40px] rounded-[var(--radius-sm)] text-sm font-medium flex items-center gap-1.5 bg-[var(--accent-primary)] text-[var(--accent-primary-fg,#fff)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2"
                 data-testid="solutions-create"
             >
-                {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+                {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                 {t('solutions.new', 'New Solution')}
             </button>
-            {error && <span className="text-xs" style={{ color: 'var(--warning)' }}>{error}</span>}
+            {error && <span role="alert" className="text-xs text-[var(--warning-ink,var(--warning))]">{error}</span>}
         </div>
     );
 }
 
-/**
- * Cards, or the one true reason there are none.
- *
- * The empty sentence arrives already TRANSLATED rather than as a key to look
- * up. A key handed over in a prop is a key i18nGuard cannot see — it scans for
- * literal `t('…')` calls and for a fixed list of carrier properties, and a
- * home-made `emptyKey=` is neither. It would go missing from the dictionaries
- * one day and nothing would go red.
- */
-function SolutionGrid({ rows, empty, onOpen }) {
-    if (rows.length === 0) {
-        return (
-            <p className="px-3 py-2.5 rounded-lg text-sm" data-testid="solutions-empty"
-               style={{ background: 'var(--bg-secondary)', color: 'var(--text-tertiary)' }}>
-                {empty}
-            </p>
-        );
-    }
-    return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {rows.map(row => <SolutionCard key={row.id} row={row} onOpen={onOpen} />)}
-        </div>
-    );
-}
-
-/**
- * The Blueprints kept on this instance.
- *
- * Loaded when the tab opens rather than with the screen: most visits never come
- * here, and the list is org-wide. An empty catalogue and one that could not be
- * listed get different sentences — the second is the same sentence the install
- * button's own gallery uses, because it is the same failure.
- */
-function CatalogueTab({ onInstall }) {
+function OverviewHeader({ createRef, onCreated, onInstalled, focusCreate }) {
     const { t } = useTranslation();
-    const catalogue = useRemote(`${API_BASE}/api/projects/package/blueprints`, true);
-    const blueprints = catalogue.data?.blueprints || [];
-
-    if (catalogue.status === 'loading' || catalogue.status === 'idle') {
-        return (
-            <div className="flex items-center justify-center py-12" style={{ color: 'var(--text-tertiary)' }}>
-                <Loader2 className="w-5 h-5 animate-spin" />
-            </div>
-        );
-    }
-    if (catalogue.status === 'error') {
-        return (
-            <Strip tone="var(--warning)" icon={AlertTriangle} testId="solutions-catalogue-unavailable">
-                {t('solutions.install_gallery_failed',
-                    'The Blueprints kept on this instance could not be listed, so this is not "there are none". Installing from a file still works.')}
-            </Strip>
-        );
-    }
-    if (blueprints.length === 0) {
-        return (
-            <p className="px-3 py-2.5 rounded-lg text-sm" data-testid="solutions-catalogue-empty"
-               style={{ background: 'var(--bg-secondary)', color: 'var(--text-tertiary)' }}>
-                {t('solutions.catalogue_empty',
-                    'No Blueprints are kept on this instance yet. Publish a Solution and it appears here for colleagues to install.')}
-            </p>
-        );
-    }
     return (
-        <div className="space-y-3">
-            <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                {t('solutions.catalogue_intro',
-                    'Installing one of these creates a new Solution. Everything arrives as a draft.')}
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {blueprints.map(b => {
-                    const tile = kindTileStyle('solution', 36);
-                    return (
-                        <div key={b.id} className="flex flex-col gap-2.5 p-3.5 rounded-xl border"
-                             data-testid="solutions-catalogue-card"
-                             style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)' }}>
-                            <div className="flex items-start gap-2.5">
-                                <span style={tile.tile} aria-hidden="true">
-                                    <span className="text-lg leading-none">{b.icon || '📦'}</span>
-                                </span>
-                                <div className="flex-1 min-w-0">
-                                    <span className="block text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
-                                        {b.name}
-                                    </span>
-                                    <span className="block text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
-                                        {t('solutions.blueprint_version', 'Blueprint v{version}', { version: b.version })}
-                                    </span>
-                                </div>
-                            </div>
-                            {b.description && (
-                                <p className="text-xs line-clamp-2" style={{ color: 'var(--text-secondary)' }}>{b.description}</p>
-                            )}
-                            <button
-                                type="button"
-                                onClick={() => onInstall(b.id)}
-                                className="mt-auto self-start px-3 py-1.5 rounded-lg text-xs font-medium border"
-                                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
-                                data-testid="solutions-catalogue-install"
-                            >
-                                {t('solutions.install_confirm', 'Install')}
-                            </button>
-                        </div>
-                    );
-                })}
+        <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
+            <div className="min-w-0 flex-1 basis-64">
+                <h2 className="text-xl font-semibold text-[var(--text-primary)]">
+                    {t('solutions.title', 'Solutions')}
+                </h2>
+                <p className="text-[13px] mt-1 text-[var(--text-secondary)]">
+                    {t('solutions.intro', 'A Solution bundles automations, apps and webpages that work together — and packages as a Blueprint you can install elsewhere.')}
+                </p>
+            </div>
+            <div ref={createRef} className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                <NewSolutionForm onCreated={onCreated} focus={focusCreate} />
+                {/* The Catalogue tab is the gallery now, so the button keeps
+                    only the half a tab cannot do: reading a file. */}
+                <InstallBlueprintButton onInstalled={onInstalled} showGallery={false} />
             </div>
         </div>
     );
 }
 
-/**
- * What the overview could not tell you, above the cards it could.
- *
- * `unavailable` names the gaps that hit every card at once, so they are said
- * once here instead of twenty times below; a gap that belongs to a single
- * Solution stays on that Solution's card.
- */
-function OverviewNotices({ summary }) {
-    const { t } = useTranslation();
-    const gaps = sectionNames(summary.unavailable, t);
-    return (
-        <>
-            {summary.status === 'error' && (
-                <Strip tone="var(--error)" icon={AlertTriangle} testId="solutions-overview-unavailable">
-                    {t('solutions.overview_failed',
-                        'The overview could not be loaded, so this is not "you have no Solutions". Try again shortly.')}
-                </Strip>
-            )}
-            {summary.status === 'ok' && gaps.length > 0 && (
-                <Strip tone="var(--warning)" icon={AlertTriangle} testId="solutions-overview-partial">
-                    {t('solutions.overview_partial',
-                        'Not all of this could be read: {sections}. What is missing is left blank on the cards rather than shown as nothing.',
-                        { sections: gaps.join(', ') })}
-                </Strip>
-            )}
-            {summary.status === 'ok' && summary.hasMore && (
-                <Strip tone="var(--text-tertiary)" icon={Info} testId="solutions-overview-more">
-                    {t('solutions.overview_more',
-                        'Only the {count} most recently changed Solutions are shown here.',
-                        { count: summary.rows.length })}
-                </Strip>
-            )}
-        </>
-    );
-}
-
-export default function SolutionsOverview({ summary, onOpen, onCreated, onInstalled }) {
+export default function SolutionsOverview({ summary, onOpen, onCreated, onInstalled, onOpenStage, onRetry, focusCreate = false }) {
     const { t } = useTranslation();
     const [tab, setTab] = useState('ours');
     const [source, setSource] = useState(null);
+    const [query, setQuery] = useState('');
+    const [scope, setScope] = useState('all');
+    const createRef = useRef(null);
 
     const { ours, installed } = useMemo(() => partitionSolutions(summary.rows), [summary.rows]);
     const loading = summary.status === 'loading';
+    const operated = useMemo(() => operatedStagesOf(summary.operatedStages), [summary.operatedStages]);
+    const filtering = query.trim() !== '' || scope !== 'all';
+    const shownOurs = useMemo(() => filterSolutions(ours, { query, scope }), [ours, query, scope]);
+    const shownInstalled = useMemo(() => filterSolutions(installed, { query, scope }), [installed, query, scope]);
 
     const options = [
         { value: 'ours', label: t('solutions.tab_ours', 'From us') },
@@ -255,57 +142,50 @@ export default function SolutionsOverview({ summary, onOpen, onCreated, onInstal
         },
         { value: 'catalogue', label: t('solutions.tab_catalogue', 'Catalogue') },
     ];
+    const noMatch = t('solutions.filter_no_match', 'No Solution matches this search or filter.');
+
+    const emptyOurs = filtering
+        ? noMatch
+        : <EmptyOurs onCreate={() => createRef.current?.querySelector('input')?.focus()} onInstall={() => setTab('catalogue')} />;
 
     return (
         <div className="h-full overflow-y-auto">
-            <div className="max-w-5xl mx-auto px-6 py-6 space-y-5">
-                <div>
-                    <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
-                        {t('solutions.title', 'Solutions')}
-                    </h2>
-                    <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
-                        {t('solutions.intro', 'A Solution bundles routines, apps and webpages that work together — and packages as a Blueprint you can install elsewhere.')}
-                    </p>
-                </div>
+            <div className="max-w-6xl mx-auto px-4 md:px-6 py-6 space-y-6">
+                <OverviewHeader createRef={createRef} onCreated={onCreated} onInstalled={onInstalled} focusCreate={focusCreate} />
 
-                <div className="flex flex-wrap items-center gap-2">
-                    <NewSolutionForm onCreated={onCreated} />
-                    {/* The Catalogue tab is the gallery now, so the button keeps
-                        only the half a tab cannot do: reading a file. */}
-                    <InstallBlueprintButton onInstalled={onInstalled} showGallery={false} />
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+                    <SegmentedControl
+                        value={tab}
+                        onChange={setTab}
+                        options={options}
+                        size="sm"
+                        ariaLabel={t('solutions.title', 'Solutions')}
+                    />
+                    {tab !== 'catalogue' && (
+                        <OverviewFilters query={query} onQuery={setQuery} scope={scope} onScope={setScope} />
+                    )}
                 </div>
-
-                <SegmentedControl
-                    value={tab}
-                    onChange={setTab}
-                    options={options}
-                    size="sm"
-                    ariaLabel={t('solutions.title', 'Solutions')}
-                />
 
                 {tab === 'catalogue' ? (
                     <CatalogueTab onInstall={(id) => setSource({ blueprintId: id })} />
                 ) : (
                     <>
-                        <OverviewNotices summary={summary} />
+                        <OverviewNotices summary={summary} onRetry={onRetry} />
                         {loading ? (
-                            <div className="flex items-center justify-center py-12" style={{ color: 'var(--text-tertiary)' }}>
-                                <Loader2 className="w-5 h-5 animate-spin" />
-                            </div>
+                            <GridSkeleton />
                         ) : summary.status === 'error' ? null : tab === 'installed' ? (
                             <SolutionGrid
-                                rows={installed}
-                                empty={t('solutions.installed_empty',
+                                rows={shownInstalled}
+                                filtered={filtering}
+                                empty={filtering ? noMatch : t('solutions.installed_empty',
                                     'Nothing here came from a Blueprint yet. Install one from the Catalogue, or from a file.')}
                                 onOpen={onOpen}
                             />
                         ) : (
-                            <SolutionGrid
-                                rows={ours}
-                                empty={t('solutions.empty',
-                                    'Nothing here yet. Create a Solution, or install a Blueprint someone handed you.')}
-                                onOpen={onOpen}
-                            />
+                            <>
+                                <SolutionGrid rows={shownOurs} filtered={filtering} empty={emptyOurs} onOpen={onOpen} />
+                                {summary.status === 'ok' && <OperatedStages stages={operated} onOpenStage={onOpenStage} />}
+                            </>
                         )}
                     </>
                 )}

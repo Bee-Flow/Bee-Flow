@@ -94,11 +94,11 @@ export function toolGroupsOf(preview: AgentStepPreview | null | undefined, apps:
 export function withheldReasonText(t: TranslateFn, reason: string | null): string {
     switch (reason) {
         case 'confirm':
-            return t('routines.agent_step.withheld_confirm', 'Off here: it would ask someone to confirm first.');
+            return t('automations.agent_step.withheld_confirm', 'Off here: it would ask someone to confirm first.');
         case 'permission':
-            return t('routines.agent_step.withheld_permission', 'Off here: switched off above.');
+            return t('automations.agent_step.withheld_permission', 'Off here: switched off above.');
         default:
-            return t('routines.agent_step.withheld_unavailable', 'Not available to this step.');
+            return t('automations.agent_step.withheld_unavailable', 'Not available to this step.');
     }
 }
 
@@ -106,15 +106,15 @@ export function withheldReasonText(t: TranslateFn, reason: string | null): strin
 export function agentMetaLine(t: TranslateFn, preview: AgentStepPreview | null | undefined, skillCount: number): string {
     if (!preview) return '';
     const parts: string[] = [];
-    if (preview.version != null) parts.push(t('routines.agent_step.meta_version', 'v{n}', { n: preview.version }));
-    if (preview.scope === 'org') parts.push(t('routines.agent_step.meta_scope_org', 'organisation'));
-    if (preview.scope === 'personal') parts.push(t('routines.agent_step.meta_scope_personal', 'personal'));
+    if (preview.version != null) parts.push(t('automations.agent_step.meta_version', 'v{n}', { n: preview.version }));
+    if (preview.scope === 'org') parts.push(t('automations.agent_step.meta_scope_org', 'organisation'));
+    if (preview.scope === 'personal') parts.push(t('automations.agent_step.meta_scope_personal', 'personal'));
     const kbs = preview.knowledgeBases || [];
-    if (kbs.length > 0) parts.push(t('routines.agent_step.meta_knows', 'knows {names}', { names: kbs.map((k) => k.name).join(', ') }));
+    if (kbs.length > 0) parts.push(t('automations.agent_step.meta_knows', 'knows {names}', { names: kbs.map((k) => k.name).join(', ') }));
     if (skillCount > 0) {
         parts.push(skillCount === 1
-            ? t('routines.agent_step.meta_skills', '{count} skill', { count: skillCount })
-            : t('routines.agent_step.meta_skills_plural', '{count} skills', { count: skillCount }));
+            ? t('automations.agent_step.meta_skills', '{count} skill', { count: skillCount })
+            : t('automations.agent_step.meta_skills_plural', '{count} skills', { count: skillCount }));
     }
     return parts.join(' · ');
 }
@@ -122,11 +122,11 @@ export function agentMetaLine(t: TranslateFn, preview: AgentStepPreview | null |
 /** The type word under a "Continues as" field. */
 export function fieldTypeWord(t: TranslateFn, type: string): string {
     switch (type) {
-        case 'number': return t('routines.agent_step.type_number', 'number');
-        case 'boolean': return t('routines.agent_step.type_boolean', 'yes or no');
-        case 'datetime': return t('routines.agent_step.type_datetime', 'date');
-        case 'array': return t('routines.agent_step.type_array', 'list');
-        case 'object': return t('routines.agent_step.type_object', 'group of fields');
-        default: return t('routines.agent_step.type_string', 'text');
+        case 'number': return t('automations.agent_step.type_number', 'number');
+        case 'boolean': return t('automations.agent_step.type_boolean', 'yes or no');
+        case 'datetime': return t('automations.agent_step.type_datetime', 'date');
+        case 'array': return t('automations.agent_step.type_array', 'list');
+        case 'object': return t('automations.agent_step.type_object', 'group of fields');
+        default: return t('automations.agent_step.type_string', 'text');
     }
 }

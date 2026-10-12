@@ -108,7 +108,7 @@ test('a slot on a public holiday is skipped when the live schedule says so', asy
     dueSchedules = [{ automation: { ...AUTO, definition: def }, schedule: { ...ROW, nextRunAt: '2026-04-27T05:00:00.000Z' } }];
     await ticks.processDueAutomations();
     assert.strictEqual(calls.exec.length, 0, 'not run on a holiday');
-    assert.deepStrictEqual(calls.release, ['auto-1'], 'the routine is released');
+    assert.deepStrictEqual(calls.release, ['auto-1'], 'the automation is released');
     assert.deepStrictEqual(calls.advance, [{ id: 'sch_1', nextRunAt: NEXT, lastStatus: 'skipped' }]);
 });
 

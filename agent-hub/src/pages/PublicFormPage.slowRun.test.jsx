@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import React from 'react';
 
 /**
- * The stretch between two pages of a form: the routine is running and the
+ * The stretch between two pages of a form: the automation is running and the
  * visitor is looking at a page that can only poll.
  *
  * Characterisation only (FRM-0). Three things are pinned here that the
@@ -46,7 +46,7 @@ async function submitPageOne() {
     fireEvent.click(screen.getByRole('button', { name: 'Send it' }));
 }
 
-describe('PublicFormPage — while the routine works', () => {
+describe('PublicFormPage — while the automation works', () => {
     beforeEach(() => {
         cleanup();
         document.documentElement.removeAttribute('data-theme');
@@ -70,7 +70,7 @@ describe('PublicFormPage — while the routine works', () => {
         expect(screen.queryByRole('button', { name: 'Send it' })).toBeNull();
     });
 
-    it('names the step the routine is on, with the flowlet above it as context', async () => {
+    it('names the step the automation is on, with the flowlet above it as context', async () => {
         vi.stubGlobal('fetch', mockFetch({
             ...load,
             ...accept,

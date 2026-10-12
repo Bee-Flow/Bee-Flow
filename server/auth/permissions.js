@@ -17,7 +17,7 @@
  *     would widen the audience while the person thought they narrowed it.
  *
  * Notes:
- *   - Routines (automations) are intentionally user-private and do not have
+ *   - Automations (automations) are intentionally user-private and do not have
  *     `is_published` / `shared_groups` columns.
  *   - The legacy `knowledge_metadata` table (per-agent) is NOT the studio KB
  *     path. Studio KBs live in `knowledge_bases` and use the same
@@ -91,8 +91,8 @@ const Permissions = Object.freeze({
     MANAGE_KNOWLEDGE: 'manage_knowledge',
     MANAGE_APPS: 'manage_apps',
     // Org-level: read the WHOLE organisation's automation runs (Studio →
-    // Runs & log, scope=org). Routines themselves stay user-private —
-    // this grants a read of the run LOG, not access to anyone's routine.
+    // Runs & log, scope=org). Automations themselves stay user-private —
+    // this grants a read of the run LOG, not access to anyone's automation.
     MANAGE_AUTOMATIONS: 'manage_automations',
     // Org-level: tenant customer-support inbox (Studio → Support). Distinct
     // from the super-admin ADMIN_SUPPORT (Bee Flow's own company inbox).
@@ -140,10 +140,10 @@ const SYSTEM_PERMISSIONS = [
     { id: 'manage_components', name: 'Manage Components', description: 'Create and edit workflow components', group: 'actions' },
     { id: 'manage_knowledge', name: 'Manage Knowledge', description: 'Create, edit, delete, and ingest knowledge bases', group: 'actions' },
     { id: 'manage_apps', name: 'Manage Apps', description: 'Create and publish apps', group: 'actions' },
-    { id: 'manage_automations', name: 'Manage Automations', description: "Org: see every routine's runs in the organisation's run log (Studio → Runs & log). Does not grant access to the routines themselves — those stay private to their owner.", group: 'actions' },
+    { id: 'manage_automations', name: 'Manage Automations', description: "Org: see every automation's runs in the organisation's run log (Studio → Runs & log). Does not grant access to the automations themselves — those stay private to their owner.", group: 'actions' },
     { id: 'support_inbox', name: 'Support Inbox', description: 'Org: connect a support mailbox and triage, reply to, and resolve customer tickets in the Studio Support tab', group: 'actions' },
     { id: 'use_notebooks', name: 'Use Notebooks', description: 'Create, edit, and delete personal notebooks', group: 'actions' },
-    { id: 'use_datatables', name: 'Use Datatables', description: 'Read and write rows in datatables shared with you, and run routine steps that use them', group: 'actions' },
+    { id: 'use_datatables', name: 'Use Datatables', description: 'Read and write rows in datatables shared with you, and run automation steps that use them', group: 'actions' },
     { id: 'manage_datatables', name: 'Manage Datatables', description: 'Create, change, share and delete datatables', group: 'actions' },
 
     // ── Studio ──
@@ -162,17 +162,98 @@ const SYSTEM_PERMISSIONS = [
     // "which of its people may publish a public page" — and the id has been in
     // the registry (and in existing role configs) the whole time.
     { id: 'use_webpages', name: 'Use Webpages', description: 'Design and publish public webpages in Studio', group: 'studio' },
-    { id: 'use_automations', name: 'Use Automations', description: 'Build and run multi-step routines in the Automations builder', group: 'studio' },
+    { id: 'use_automations', name: 'Use Automations', description: 'Build and run multi-step automations in the Automations builder', group: 'studio' },
     { id: 'use_approvals', name: 'Use Approvals', description: 'See the approvals waiting on you and the decisions you were part of', group: 'studio' },
     { id: 'use_apps', name: 'Use Apps', description: 'Open the internal apps published to you', group: 'studio' },
     { id: 'use_forms', name: 'Use Forms', description: 'See the forms published in the organisation and their public links', group: 'studio' },
-    { id: 'use_solutions', name: 'Use Solutions', description: 'Bundle routines, apps and webpages into installable Solutions', group: 'studio' },
+    { id: 'use_solutions', name: 'Use Solutions', description: 'Bundle automations, apps and webpages into installable Solutions', group: 'studio' },
     { id: 'use_meeting_notes', name: 'Use Meeting Notes', description: 'Record and read meeting transcripts, speakers and actions', group: 'studio' },
 
     // ── n8n Integration ──
     { id: 'use_n8n_tools', name: 'Use n8n Tools', description: 'Run n8n webhook workflows and inspect workflow definitions via AI', group: 'actions' },
     { id: 'modify_n8n_workflows', name: 'Modify n8n Workflows', description: 'Allow AI to create, edit, delete, activate, and execute n8n workflows on behalf of the user', group: 'actions' },
 ];
+
+/**
+ * Capability grants that carry a UI permission with them.
+ *
+ * A group-scoped beta (betaFeatures.js `groupScoped`) is meant to be rolled
+ * out per group from the Access matrix. Its Studio section is ALSO gated on a
+ * role permission (studioApps.jsx, mobile studio registry), and the default
+ * `member` role does not carry that permission — so a group grant alone left
+ * the members it was meant for staring at a hidden section. Granting the
+ * capability to a group therefore grants the matching permission to that
+ * group's members.
+ *
+ * The org-wide "All members" grant of the same beta implies it too (see
+ * orgWideGrantImpliedPermissions below): an admin who switched Meeting Notes
+ * on for everyone was otherwise left with members who still could not see it.
+ *
+ * Every key MUST be a group-scoped beta (betaFeatures.js `groupScoped`): the
+ * org-wide variant reads the org's everyone-list (org_beta_everyone), which
+ * only exists for those.
+ */
+const GROUP_GRANT_IMPLIED_PERMISSIONS = Object.freeze({
+    meeting_notes: Object.freeze(['use_meeting_notes']),
+});
+
+/**
+ * The permissions the org's "All members" grants imply for one member.
+ *
+ * PRECEDENCE, most specific first:
+ *   1. a GROUP grant of the capability always implies its permission (the
+ *      admin named that group; see the loop in getUserPermissions);
+ *   2. the org's Roles screen, once it has stored a choice for the member's
+ *      role: that stored list is the org's full answer for the role, so an
+ *      unticked use_meeting_notes there WITHDRAWS it even while "All members"
+ *      is on. That is how an org keeps Meeting Notes for one group only;
+ *   3. the "All members" grant fills the permission in for a role the org
+ *      never edited (this function);
+ *   4. the shipped default (config/orgRoles.json).
+ * GET /org-roles shows rule 3 for unedited roles (orgRoleImpliedFill), so the
+ * Roles screen ticks the box members actually get and saving the role keeps
+ * it unless the admin unticks it.
+ *
+ * "All members" means the org's everyone-list holds the capability, or the
+ * org never chose (null = every group-scoped beta for everyone, exactly as
+ * buildOrgGrant in core/entitlements reads it). The licence and the org's
+ * access menu are NOT checked here: like every role permission this is only
+ * the "may this person" layer, and the capability gate stays in force on both
+ * the server routes and the Studio row. A read failure implies nothing.
+ *
+ * @param {string|null|undefined} orgId
+ * @returns {Promise<string[]>}
+ */
+async function orgWideGrantImpliedPermissions(orgId) {
+    if (!orgId || typeof userStore.getOrgBetaEveryone !== 'function') return [];
+    let everyone;
+    try { everyone = await userStore.getOrgBetaEveryone(orgId); } catch (_) { return []; }
+    const out = [];
+    for (const [capId, perms] of Object.entries(GROUP_GRANT_IMPLIED_PERMISSIONS)) {
+        if (everyone == null || (Array.isArray(everyone) && everyone.includes(capId))) out.push(...perms);
+    }
+    return out;
+}
+
+/**
+ * Rule 3 above applied to a whole role mapping, for the Roles screen: every
+ * role the org has no stored choice for gains the org-wide implied
+ * permissions. Pure.
+ *
+ * @param {Record<string, string[]>} mapping   resolveOrgRolePermissions output
+ * @param {Record<string, string[]>} overrides getOrgRoleOverrides output
+ * @param {string[]} implied                   orgWideGrantImpliedPermissions output
+ * @returns {Record<string, string[]>}
+ */
+function orgRoleImpliedFill(mapping, overrides, implied) {
+    /** @type {Record<string, string[]>} */
+    const out = {};
+    for (const [role, perms] of Object.entries(mapping || {})) {
+        const edited = !!overrides && Object.prototype.hasOwnProperty.call(overrides, role);
+        out[role] = edited ? [...(perms || [])] : [...new Set([...(perms || []), ...(implied || [])])];
+    }
+    return out;
+}
 
 // ── Load org role → permissions mapping from config file ──
 let _orgRolePermissions = null;
@@ -198,7 +279,7 @@ function getOrgRolePermissions() {
  * The Microsoft scope set, in ONE place.
  *
  * It used to be a string literal copied into three files (this one, the vault
- * refresh in auth/routineAuth.js and the session refresh in
+ * refresh in auth/automationAuth.js and the session refresh in
  * integrations/msGraphClient.js). A refresh that re-requests fewer scopes than
  * were granted silently downgrades the token, so every copy that fell out of
  * date was a grant quietly losing capabilities on its next refresh.
@@ -207,7 +288,10 @@ const MICROSOFT_SCOPES = Object.freeze([
     'openid', 'email', 'profile', 'User.Read',
     'Mail.Read', 'Mail.Send',
     'Calendars.ReadWrite', 'Files.ReadWrite', 'Contacts.ReadWrite',
-    'OnlineMeetings.Read', 'OnlineMeetingTranscript.Read.All', 'OnlineMeetingArtifact.Read.All',
+    // Teams meeting notes: ReadWrite to switch on recordAutomatically for a
+    // meeting the user organizes, Recording to download the MP4 we transcribe.
+    'OnlineMeetings.ReadWrite', 'OnlineMeetingTranscript.Read.All', 'OnlineMeetingArtifact.Read.All',
+    'OnlineMeetingRecording.Read.All',
     'offline_access',
 ]);
 
@@ -249,7 +333,7 @@ const OAUTH_PROVIDERS = {
     // is no /auth/login/withings branch and no user is ever created from it.
     // The entry lives here so the connector route
     // (routes/integrations/withings.js) and the vault refresher
-    // (auth/routineAuth.js refreshWithings) read one set of endpoints. The
+    // (auth/automationAuth.js refreshWithings) read one set of endpoints. The
     // client id/secret are admin-global secrets in configStore
     // (`withings_client_id` / `withings_client_secret`, the LinkedIn pattern),
     // NOT config.providers — that object drives the SSO login screen.
@@ -270,40 +354,11 @@ const OAUTH_PROVIDERS = {
 
 // Load config from persistent storage
 async function loadConfig() {
-    try {
-        const configStore = require('../stores/configStore');
-        const admin = await configStore.getConfig('admin') || { username: 'admin', passwordHash: '' };
-        const oauth = await configStore.getConfig('oauth') || { nextcloudUrl: '', clientId: '', clientSecret: '' };
-        const providers = await configStore.getConfig('providers') || {
-            google: { clientId: '', clientSecret: '', enabled: false },
-            microsoft: { clientId: '', clientSecret: '', tenantId: 'common', enabled: false }
-        };
-        return { admin, oauth, providers };
-    } catch (err) {
-        log.error('Error loading config:', err);
-    }
-    return {
-        admin: { username: 'admin', passwordHash: '' },
-        oauth: { nextcloudUrl: '', clientId: '', clientSecret: '' },
-        providers: {
-            google: { clientId: '', clientSecret: '', enabled: false },
-            microsoft: { clientId: '', clientSecret: '', tenantId: 'common', enabled: false }
-        }
-    };
+    return require('../stores/authConfigStore').load();
 }
 
-// Save config to persistent storage
-function saveConfig(config) {
-    try {
-        const configStore = require('../stores/configStore');
-        if (config.admin) configStore.setConfig('admin', config.admin);
-        if (config.oauth) configStore.setConfig('oauth', config.oauth);
-        if (config.providers) configStore.setConfig('providers', config.providers);
-        return true;
-    } catch (err) {
-        log.error('Error saving config:', err);
-        return false;
-    }
+async function saveConfig(config) {
+    return require('../stores/authConfigStore').save(config);
 }
 
 // Middleware to check authentication
@@ -465,6 +520,10 @@ const requireAuth = async (req, res, next) => {
         return res.status(401).json({ error: 'Not authenticated' });
     }
 
+    let microsoftSessionAccepted = false;
+    await require('./microsoftSession').validateMicrosoftSession(req, res, () => { microsoftSessionAccepted = true; });
+    if (!microsoftSessionAccepted) return;
+
     // Verify user still exists in DB (cached for 5s to avoid DB spam)
     const userId = req.session.user?.id;
     if (userId) {
@@ -620,6 +679,12 @@ async function getUserPermissions(userId, session = null) {
             // Add group-level permissions
             for (const p of (group.permissions || [])) permSet.add(p);
 
+            // …and the permissions a capability grant to this group implies.
+            const granted = Array.isArray(group.granted_capabilities) ? group.granted_capabilities : [];
+            for (const capId of granted) {
+                for (const p of (GROUP_GRANT_IMPLIED_PERMISSIONS[capId] || [])) permSet.add(p);
+            }
+
             // Resolve roles attached to the group
             for (const rid of (group.roles || [])) {
                 const role = roleMap[rid];
@@ -667,6 +732,18 @@ async function getUserPermissions(userId, session = null) {
         if (userOrgRole) {
             const granted = await permsForRoleInOrg(userOrgRole, user.organizationId);
             if (granted) for (const p of granted) permSet.add(p);
+        }
+
+        // The org's "All members" grants of a group-scoped beta — only where
+        // the org's Roles screen has not decided this role (precedence: see
+        // orgWideGrantImpliedPermissions).
+        if (user.organizationId) {
+            const { getOrgRoleOverrides } = require('./orgRolePolicy');
+            const overrides = await getOrgRoleOverrides(user.organizationId);
+            const roleDecided = !!userOrgRole && Object.prototype.hasOwnProperty.call(overrides, userOrgRole);
+            if (!roleDecided) {
+                for (const p of await orgWideGrantImpliedPermissions(user.organizationId)) permSet.add(p);
+            }
         }
 
         // Apply group-level orgRoles (a group can grant a role to all its members).
@@ -1110,6 +1187,15 @@ function isSuperAdmin(req) {
 }
 
 /**
+ * The same operator test for a user record without a session (an MCP token's
+ * user), used by the CMS MCP analytics tools. Keep it in step with the role
+ * half of isSuperAdmin above, whose line mobile/src/core/access mirrors.
+ */
+function isSuperAdminUser(user) {
+    return user?.role === 'admin';
+}
+
+/**
  * Platform-operator gate — the middleware form of isSuperAdmin().
  *
  * WHY THIS EXISTS SEPARATELY FROM requireAdmin: requireAdmin (:657) passes on
@@ -1296,6 +1382,7 @@ module.exports = {
     resolveUserOrgIds,
     resolvePrimaryOrgId,
     isSuperAdmin,
+    isSuperAdminUser,
     isOrgAdminForOrg,
     _evalOrgAdmin,
     requireOrgAdmin,
@@ -1305,6 +1392,9 @@ module.exports = {
     invalidatePermissionCache,
     invalidateAllPermissionCaches,
     invalidateUserExistenceCache,
+    GROUP_GRANT_IMPLIED_PERMISSIONS,
+    orgWideGrantImpliedPermissions,
+    orgRoleImpliedFill,
     OrgRoles,
     SystemRoles,
     Permissions,

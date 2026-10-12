@@ -56,5 +56,10 @@ test('the volatile block is placed behind the history on the adapter branch', ()
 });
 
 test('cached_tokens is read from both spellings in the usage log', () => {
-    assert.match(SRC, /_adapterStreamUsage\?\.cached_tokens\s*\|\|\s*_adapterStreamUsage\?\.prompt_tokens_details\?\.cached_tokens/);
+    // The turn logs `usageLogFields(_adapterStreamUsage)`; the one normaliser reads
+    // the adapter spelling and the OpenAI-shaped one (usageNormalizer.test.js has the rest).
+    assert.match(SRC, /\.\.\.usageLogFields\(_adapterStreamUsage\)/);
+    const { usageLogFields } = require('../providers/usageNormalizer');
+    assert.strictEqual(usageLogFields({ prompt_tokens: 10, cached_tokens: 7 }).cached_tokens, 7);
+    assert.strictEqual(usageLogFields({ prompt_tokens: 10, prompt_tokens_details: { cached_tokens: 5 } }).cached_tokens, 5);
 });

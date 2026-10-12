@@ -43,7 +43,7 @@ mock('../../stores/userStore', { getUser: async () => ({ email: ownerEmail }) })
 const { execNotification } = require('./engine');
 
 const state = { trigger: { output: {} }, steps: {}, vars: {}, secrets: {}, loop: {}, _templateWarnings: [] };
-const ctx = { userId: 'user1', automationTitle: 'My routine' };
+const ctx = { userId: 'user1', automationTitle: 'My automation' };
 
 test('channels [email] sends email and does NOT create a bell notification', async () => {
     bellCalls = []; emailCalls = [];

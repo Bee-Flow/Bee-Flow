@@ -2,7 +2,7 @@
  * The phone's copy of unsaved edits (state/diskDraft.ts), wired to the app:
  * sealed storage for the signed-in person, one keeper per draft store, and
  * one restore per store once the server's copy is loaded. A restore that
- * needs the person's say (the routine changed elsewhere) is held here until
+ * needs the person's say (the automation changed elsewhere) is held here until
  * LocalDraftBanner answers it.
  */
 
@@ -47,7 +47,7 @@ export function writeDiskNow(store: DraftStore): void {
 }
 
 export interface LocalDraft {
-    /** The phone's copy, when the routine changed elsewhere since it was made. */
+    /** The phone's copy, when the automation changed elsewhere since it was made. */
     conflict: DiskDraft | null;
     /** Keep the phone's edits (on top of the server's copy, one undo away), or drop them. */
     resolve: (keepPhone: boolean) => void;

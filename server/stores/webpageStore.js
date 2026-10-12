@@ -49,13 +49,15 @@ const {
     addSource, getSources, getSource, updateSource, deleteSource, timeoutStuckSources,
 } = require('./webpage/sources');
 const {
-    createVersion, getVersions, getVersion, getVersionMeta, deleteVersion, shouldAutoVersion,
-    VERSION_SOURCES,
+    createVersion, createVersionSnapshotFromFiles, getVersions, getVersion, getVersionMeta, deleteVersion,
+    shouldAutoVersion, VERSION_SOURCES,
 } = require('./webpage/versions');
 const {
     getBridgeGrants, updateBridgeGrants, upsertBridgeGrantEntry,
-    removeBridgeGrantEntry, checkGrant, normalizeBridgeGrants,
+    removeBridgeGrantEntry, checkGrant, normalizeBridgeGrants, assertWebpageWrite,
 } = require('./webpage/bridgeGrants');
+const managedParts = require('./lib/managedParts');
+const log = require('../telemetry/log');
 
 /**
  * ── DE DEPENDENTS-INDEX HANGT AAN DE SCHRIJVER, NIET AAN DE ROUTE ────
@@ -70,9 +72,9 @@ const {
  *
  * Die reconcile heeft eerst in de ROUTES gewoond, en daar bleef elke nieuwe
  * schrijver een nieuw gat: de gewone assistent-chat (`routes/ai/directChat/
- * toolExec.js`), een agent of routine via de tooldispatcher
+ * toolExec.js`), een agent of automatisering via de tooldispatcher
  * (`core/tools/toolDispatcher.js` → `integrations/webpageAutomationTools.js`),
- * de routine-bouwerchat (`routes/ai/automationBuilder/chatStream.js`) en het
+ * de automation-bouwerchat (`routes/ai/automationBuilder/chatStream.js`) en het
  * upgrade-pad van een Oplossing (`projects/packaging/upgrade.js`) schrijven
  * alle vier paginacode zonder ooit langs een webpagina-route te komen.
  *
@@ -96,28 +98,78 @@ function reindex(webpageId) {
     }
 }
 
-async function writeSlotIndexed(userId, webpageId, slot, content) {
+/*
+ * ── MANAGED PAGES (Solution stages) ─────────────────────────────────
+ *
+ * The file writers below are guarded HERE, before any byte reaches object
+ * storage: a page filed into a stage project is managed
+ * (stores/lib/managedParts.js), and its files change only through a deploy,
+ * which passes `{ managedWrite: { deploymentId } }` as the last argument
+ * (inside the args object for the extra-file writers). Extra files are not
+ * carried by a release in v1, so a managed page refuses them outright unless
+ * a deploy writes them. The row writers (metadata, pointer, grants, chat,
+ * delete) guard themselves in ./webpage/*.
+ */
+
+async function writeSlotIndexed(userId, webpageId, slot, content, opts = {}) {
+    await assertWebpageWrite(webpageId, ['files'], opts);
     const out = await writeSlot(userId, webpageId, slot, content);
     reindex(webpageId);
     return out;
 }
 
 async function upsertExtraFileIndexed(args) {
+    await assertWebpageWrite(args && args.webpageId, ['extraFiles'], { managedWrite: args && args.managedWrite });
     const out = await upsertExtraFile(args);
     reindex(args && args.webpageId);
     return out;
 }
 
+async function upsertBinaryExtraFileGuarded(args) {
+    await assertWebpageWrite(args && args.webpageId, ['extraFiles'], { managedWrite: args && args.managedWrite });
+    return upsertBinaryExtraFile(args);
+}
+
 async function deleteExtraFileIndexed(args) {
+    await assertWebpageWrite(args && args.webpageId, ['extraFiles'], { managedWrite: args && args.managedWrite });
     const out = await deleteExtraFile(args);
     reindex(args && args.webpageId);
     return out;
 }
 
-async function restoreSlotFromVersionIndexed(userId, webpageId, versionId, slot) {
+async function restoreSlotFromVersionIndexed(userId, webpageId, versionId, slot, opts = {}) {
+    await assertWebpageWrite(webpageId, ['files'], opts);
     const out = await restoreSlotFromVersion(userId, webpageId, versionId, slot);
     reindex(webpageId);
     return out;
+}
+
+/**
+ * The stage that manages this page, or null (cached, see managedParts).
+ *
+ * @param {{ projectId?: string|null }|null} webpage
+ */
+async function managedInfoOf(webpage) {
+    return managedParts.managedInfo(webpage && webpage.projectId ? webpage.projectId : '');
+}
+
+/**
+ * What a webpage GET adds as `managed` (design 5.3): null, or
+ * `{solutionId, solutionName, stage, releaseSeq, devRef}`. A failed lookup
+ * answers null and is logged; a GET never fails on it.
+ *
+ * @param {{ id: string, projectId?: string|null }|null} webpage
+ */
+async function managedPayloadOf(webpage) {
+    if (!webpage || !webpage.projectId) return null;
+    try {
+        return await require('./solutionStageStore').managedPayloadFor({
+            projectId: webpage.projectId, kind: 'webpage', entityId: webpage.id,
+        });
+    } catch (err) {
+        log.warn(`[WebpageStore] managed lookup for ${webpage.id} failed: ${err.message}`);
+        return null;
+    }
 }
 
 module.exports = {
@@ -168,7 +220,7 @@ module.exports = {
     getExtraFile,
     readExtraFile,
     upsertExtraFile: upsertExtraFileIndexed,
-    upsertBinaryExtraFile,
+    upsertBinaryExtraFile: upsertBinaryExtraFileGuarded,
     deleteExtraFile: deleteExtraFileIndexed,
     validateExtraPath,
     isTextFile,
@@ -180,6 +232,10 @@ module.exports = {
     removeBridgeGrantEntry,
     checkGrant,
     normalizeBridgeGrants, // exported for unit tests (pure)
+    // Managed pages (Solution stages)
+    assertWebpageWrite,
+    managedInfoOf,
+    managedPayloadOf,
     // Sources
     addSource,
     getSources,
@@ -190,6 +246,7 @@ module.exports = {
     // Versions
     VERSION_SOURCES,
     createVersion,
+    createVersionSnapshotFromFiles,
     getVersions,
     getVersion,
     getVersionMeta,

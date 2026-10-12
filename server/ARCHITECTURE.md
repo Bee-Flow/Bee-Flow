@@ -193,7 +193,7 @@ halves of features, not a layer of their own.
 
 ---
 
-**Routine builder tools** (`automation/builderTools/`) have their own doctrine in
+**Automation builder tools** (`automation/builderTools/`) have their own doctrine in
 `automation/builderTools/README.md`: server-side repair over rejection, prefix-apply batches,
 a replay corpus of recorded model batches, and the live-run gate on the local model.
 

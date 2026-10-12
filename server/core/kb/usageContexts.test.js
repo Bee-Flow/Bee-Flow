@@ -38,7 +38,7 @@ test('a value that was never expressed means EVERYWHERE, not nowhere', () => {
 test('a value that will not parse also means everywhere', () => {
     // The safe direction for a SURFACE question is permissive: kbVisibility is
     // what stands between a person and the content, and a parse failure here
-    // must not silently unlink a base from every routine that uses it.
+    // must not silently unlink a base from every automation that uses it.
     assert.strictEqual(kbUsableIn({ usage_contexts: 'not json' }, 'agent'), true);
     assert.strictEqual(kbUsableIn({ usage_contexts: '{"agent":true}' }, 'agent'), true);
     assert.strictEqual(kbUsableIn({ usage_contexts: 42 }, 'agent'), true);

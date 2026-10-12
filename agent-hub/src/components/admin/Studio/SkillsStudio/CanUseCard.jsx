@@ -20,10 +20,10 @@ import { readListStatus } from './useSkillPickerData';
  *               available while the skill is active (unchanged behaviour,
  *               same catalog filter the agent builder uses, so an app the
  *               org has not connected is not offered);
- *   routines    `allowed_automation_ids` — offered as CALLABLE TOOLS, which
- *               is why only an `agent_call`-trigger routine can be picked:
+ *   automations   `allowed_automation_ids` — offered as CALLABLE TOOLS, which
+ *               is why only an `agent_call`-trigger automation can be picked:
  *               the runtime dispatches nothing else (S1 §5), so listing a
- *               scheduled routine here would be a promise nothing keeps;
+ *               scheduled automation here would be a promise nothing keeps;
  *   knowledge   `knowledge_base_ids` — joined into the agent's search
  *               allowlist while the skill is active.
  *
@@ -41,7 +41,7 @@ import { readListStatus } from './useSkillPickerData';
  *
  * The legacy scalar `automation_id` is explained in the same place rather
  * than removed: a skill that has one behaves completely differently (the
- * routine REPLACES the skill body), and a field with that much power must
+ * automation REPLACES the skill body), and a field with that much power must
  * not be invisible just because it is old.
  *
  * ── A LIST THAT COULD NOT BE READ IS NOT AN EMPTY LIST ──────────────
@@ -56,7 +56,7 @@ import { readListStatus } from './useSkillPickerData';
  *     `filterAvailableIntegrations` treats an unknown status as "no org gate
  *     to apply", which would offer more apps than the org actually has;
  *     unknown must never widen a grant, and "not yet" is unknown;
- *   - the pills keep their "Routine {id}" fallback when the routines list is
+ *   - the pills keep their "Automation {id}" fallback when the automations list is
  *     missing, and the note explains why a name is missing rather than
  *     leaving it looking deleted.
  */
@@ -103,7 +103,7 @@ export default function CanUseCard({
     const gapNames = namesOfGaps(t, appsUnavailable, unreadLists);
 
     const apps = Array.isArray(enabledIntegrations) ? enabledIntegrations : [];
-    const routines = Array.isArray(allowedAutomationIds) ? allowedAutomationIds : [];
+    const allowedIds = Array.isArray(allowedAutomationIds) ? allowedAutomationIds : [];
     const kbs = Array.isArray(knowledgeBaseIds) ? knowledgeBaseIds : [];
 
     const toggleIn = (field, current, id) => {
@@ -118,7 +118,7 @@ export default function CanUseCard({
 
     const pickable = [
         ...automations
-            .filter(a => !routines.includes(String(a.id)))
+            .filter(a => !allowedIds.includes(String(a.id)))
             .map(a => ({ group: 'automation', id: String(a.id), label: a.title || a.name || a.id })),
         ...knowledgeBases
             .filter(k => !kbs.includes(String(k.id)))
@@ -152,15 +152,15 @@ export default function CanUseCard({
                         />
                     );
                 })}
-                {routines.map((id) => (
+                {allowedIds.map((id) => (
                     <Pill
                         key={`aut:${id}`}
                         testid="skill-grant"
                         kind="automation"
                         Icon={Workflow}
                         color={kindColorVar('automation')}
-                        label={nameOf(automations, id, 'skills_studio.canuse.unknown_routine', 'Routine {id}')}
-                        onRemove={readOnly ? null : () => toggleIn('allowedAutomationIds', routines, id)}
+                        label={nameOf(automations, id, 'skills_studio.canuse.unknown_automation', 'Automation {id}')}
+                        onRemove={readOnly ? null : () => toggleIn('allowedAutomationIds', allowedIds, id)}
                         t={t}
                     />
                 ))}
@@ -225,7 +225,7 @@ export default function CanUseCard({
                                     role="menuitem"
                                     onClick={() => {
                                         setMenuOpen(false);
-                                        if (row.group === 'automation') toggleIn('allowedAutomationIds', routines, row.id);
+                                        if (row.group === 'automation') toggleIn('allowedAutomationIds', allowedIds, row.id);
                                         else toggleIn('knowledgeBaseIds', kbs, row.id);
                                     }}
                                     className="w-full text-left px-3 py-1.5 text-sm flex items-center gap-2 text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition"
@@ -302,7 +302,7 @@ export default function CanUseCard({
                         <p className="text-xs m-0 text-[var(--text-secondary)]" data-testid="skill-legacy-automation">
                             {t(
                                 'skills_studio.options.legacy_automation',
-                                'This skill runs routine {id} instead of its own steps. Steps, rules and examples are ignored while that is set.',
+                                'This skill runs automation {id} instead of its own steps. Steps, rules and examples are ignored while that is set.',
                                 { id: legacyAutomationId },
                             )}
                         </p>
@@ -336,7 +336,7 @@ export default function CanUseCard({
 function namesOfGaps(t, appsUnavailable, unreadLists) {
     const names = [];
     if (appsUnavailable) names.push(t('skills_studio.canuse.gap.apps', 'apps'));
-    if (unreadLists.includes('automations')) names.push(t('skills_studio.canuse.gap.routines', 'routines'));
+    if (unreadLists.includes('automations')) names.push(t('skills_studio.canuse.gap.automations', 'automations'));
     if (unreadLists.includes('kbs')) names.push(t('skills_studio.canuse.gap.kbs', 'knowledge bases'));
     return names;
 }
@@ -364,7 +364,7 @@ function MenuStatus({ t, loaded, gap, empty }) {
     if (!empty) return null;
     return (
         <p className="px-3 py-2 m-0 text-xs text-[var(--text-tertiary)]" data-testid="skill-grant-none">
-            {t('skills_studio.canuse.nothing', 'Nothing else to link. A routine appears here once its trigger is “an agent calls it”.')}
+            {t('skills_studio.canuse.nothing', 'Nothing else to link. An automation appears here once its trigger is “an agent calls it”.')}
         </p>
     );
 }

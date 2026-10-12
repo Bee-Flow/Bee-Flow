@@ -5,7 +5,7 @@
  */
 
 const { newId, appendAfter } = require('../draftGraph');
-const { validateAndFixBindings, sanitizeForEach, unboundLoopVarError } = require('../bindings');
+const { validateAndFixBindings, sanitizeForEach, unboundLoopVarError, checkTextPlaceholders, checkLoopBindings } = require('../bindings');
 const { AI_STEP_AGENT_PERMISSION_KEYS, MAX_AI_STEP_SKILL_IDS } = require('../../validate/constants');
 // Pure module, no I/O at load: the runner and the builder share one sanitiser.
 const { sanitizeDisabledAgentSkillIds } = require('../../../core/automationRunner/aiStepSkills');
@@ -36,12 +36,12 @@ function modelTierGateError(modelTier, draftWrap) {
 // exactly like `knowledgeBaseIds`: the runner then never has to tell "not set"
 // from "cleared", and no reader can invent a meaning for an absent key.
 //
-// The identity questions — does this agent exist, is it in the routine
+// The identity questions — does this agent exist, is it in the automation
 // owner's organisation, is it published — are DATABASE questions and are not
 // answered here. validate/stepRules.js asks them against the catalog its
 // caller injects (automation/agentCatalog.js builds it), and
 // core/automationRunner/aiStepAgent.js asks them AGAIN at run time, which is
-// the only one that can see the world as it is when the routine fires.
+// the only one that can see the world as it is when the automation fires.
 
 /** An agent/skill id as it is stored: a trimmed string, or null. */
 function sanitizeAgentId(v) {
@@ -107,7 +107,7 @@ function sanitizeAgentPermissions(v) {
  * the block anyway put an `{all false}` object on every plain AI step the
  * builder made — which the validator then flagged, correctly and forever, as
  * `ai_step.agent_permissions_orphan`: "sets agent permissions but names no
- * agent, so nothing reads them". Every AI-built routine carried that warning,
+ * agent, so nothing reads them". Every AI-built automation carried that warning,
  * and no user action cleared it, because the user never set the field.
  *
  * Absent means all three false (validate/constants.js R2), so omitting the
@@ -122,7 +122,7 @@ function agentPermissionsBlock(rawPermissions, agentId, { hasSkills = false } = 
     const granted = AI_STEP_AGENT_PERMISSION_KEYS.filter(k => rawPermissions
         && typeof rawPermissions === 'object' && rawPermissions[k] === true);
     // Handoff 5: a step that applies skills WITHOUT an agent reads the same
-    // switches (a skill can bring knowledge bases, and can run a routine), so
+    // switches (a skill can bring knowledge bases, and can run an automation), so
     // there the block is kept as soon as anything is granted.
     if (hasSkills && granted.length) return { permissions: sanitizeAgentPermissions(rawPermissions) };
     // Turning a permission ON without naming an agent is a real mistake, not
@@ -131,7 +131,7 @@ function agentPermissionsBlock(rawPermissions, agentId, { hasSkills = false } = 
     if (granted.length) {
         return {
             error: `agentPermissions ${granted.map(k => `"${k}"`).join(', ')} was set but the step names no agent, so nothing would read it. `
-                + 'Set agentId to an agent the user has actually shown you, or drop agentPermissions — a step without an agent runs on its own prompt and needs none.',
+                + 'Set agentId to an agent from the "Agents you may use" block (or one the user named), or drop agentPermissions — a step without an agent runs on its own prompt and needs none.',
             _fixHint: 'Either pass agentId together with agentPermissions, or omit agentPermissions entirely.',
         };
     }
@@ -143,12 +143,23 @@ function agentPermissionsBlock(rawPermissions, agentId, { hasSkills = false } = 
 function applyAddAi(draft, args, draftWrap) {
     const tierErr = modelTierGateError(args.modelTier, draftWrap);
     if (tierErr) return tierErr;
-    const { inputs, error } = validateAndFixBindings(args.inputs || {}, draft);
-    if (error) return { error };
-    const { forEach, error: feErr } = sanitizeForEach(args.forEach, draft);
+    const bound = validateAndFixBindings(args.inputs || {}, draft, { draftWrap });
+    if (bound.error) return { error: bound.error, ...(bound._suggestedPatch ? { _suggestedPatch: bound._suggestedPatch } : {}) };
+    const { forEach, error: feErr, notes: feNotes } = sanitizeForEach(args.forEach, draft, draftWrap);
     if (feErr) return { error: feErr };
-    const loopErr = unboundLoopVarError(inputs, forEach);
+    const loopErr = unboundLoopVarError(bound.inputs, forEach);
     if (loopErr) return loopErr;
+    // The prompt is a template the run interpolates: its {{…}} paths get the
+    // same check as an input; loop.<var> paths, in both, are checked against
+    // what the forEach iterates.
+    const prompt = checkTextPlaceholders(args.prompt, draft, { draftWrap, label: 'prompt' });
+    if (prompt.error) return { error: prompt.error };
+    const loopInputs = checkLoopBindings(bound.inputs, draft, forEach, draftWrap);
+    if (loopInputs.error) return { error: loopInputs.error };
+    const loopPrompt = checkLoopBindings(prompt.text, draft, forEach, draftWrap, { label: 'prompt' });
+    if (loopPrompt.error) return { error: loopPrompt.error };
+    const inputs = loopInputs.value;
+    const warnings = [...(bound.notes || []), ...(feNotes || []), ...prompt.notes, ...loopInputs.notes, ...loopPrompt.notes];
     const agentId = sanitizeAgentId(args.agentId);
     const skillIds = sanitizeSkillIds(args.skillIds);
     const permBlock = agentPermissionsBlock(args.agentPermissions, agentId, { hasSkills: skillIds.length > 0 });
@@ -159,7 +170,7 @@ function applyAddAi(draft, args, draftWrap) {
     const step = {
         id: newId('ai'),
         type: 'ai_step',
-        prompt: args.prompt,
+        prompt: loopPrompt.value,
         // Optional override of the runner's default system prompt. When
         // omitted we use the safe baseline ("You are a step inside a
         // no-code automation..."). The user can edit this from the
@@ -185,7 +196,7 @@ function applyAddAi(draft, args, draftWrap) {
             ? args.knowledgeBaseIds.filter(id => typeof id === 'string' && id).slice(0, 10)
             : [],
         // Personal memory grounding (2026-09-04): when on, the runner searches
-        // the ROUTINE OWNER's user_memories with this step's prompt and adds
+        // the AUTOMATION OWNER's user_memories with this step's prompt and adds
         // the hits to the system prompt — the same block chat agents get.
         // Off by default: most steps transform data and must not drift with
         // whatever the owner said in chat last week.
@@ -200,7 +211,7 @@ function applyAddAi(draft, args, draftWrap) {
         ...(forEach ? { forEach } : {}),
     };
     appendAfter(draft, args.afterStepId, step, { branch: args.branch, caseName: args.caseName, splice: args.splice === true });
-    return { added: step };
+    return { added: step, ...(warnings.length ? { _warnings: warnings } : {}) };
 }
 
 module.exports = {

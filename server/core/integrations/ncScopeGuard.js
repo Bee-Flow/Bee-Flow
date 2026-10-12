@@ -359,7 +359,7 @@ const RESULT_CONTAINER_KEYS = ['calendars', 'addressbooks', 'boards', 'rooms', '
     'lists', 'accounts', 'tables', 'forms', 'results', 'files', 'items', 'shares', 'trash', 'tree', 'matches',
     'messages'];
 
-const SETTINGS_HINT = 'You can change this under Settings → Integrations → Nextcloud → “What Bee Flow may access”.';
+const SETTINGS_HINT = 'You can change this under Settings → Connections → Nextcloud → “What Bee Flow may access”.';
 
 function deniedError(label, detail) {
     return {
@@ -503,7 +503,7 @@ function _remembers(key, kind, value) {
 // The session fallbacks above only work for a session that carries connector
 // fields or a `user` object — and the background callers are exactly the ones
 // that carry neither: triggerBus.loadSession returns
-// {accessToken, refreshToken, oauthProvider, routineProviders, _source} on its
+// {accessToken, refreshToken, oauthProvider, automationProviders, _source} on its
 // two non-connector paths. With org null, resolveNcScope skips the org layer
 // entirely (it reads the org doc only `orgId ? ... : null`), so an org that had
 // switched an integration off had that decision silently dropped for every

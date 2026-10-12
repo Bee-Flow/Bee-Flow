@@ -95,14 +95,14 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
 describe('BuilderShell bouwt de kruimelstrook van de header', () => {
-    it('een routine die je uit de lijst opent toont alleen de "gebruikt door"-capsule', async () => {
+    it('een automatisering die je uit de lijst opent toont alleen de "gebruikt door"-capsule', async () => {
         await mount();
         render(<div>{header.breadcrumbSlot}</div>);
         expect(screen.queryByTestId('breadcrumb')).toBeNull();
         expect(screen.getByTestId('capsule').textContent).toBe('a1');
     });
 
-    it('een routine die je via ?from=app:… opent toont ALLEBEI, kruimel eerst', async () => {
+    it('een automation die je via ?from=app:… opent toont ALLEBEI, kruimel eerst', async () => {
         // Dit is de `initialAppRef`-draad: index.jsx leest hem uit de URL en
         // geeft hem hier binnen. Hij was nergens getest.
         await mount({ initialAppRef: APP_REF });
@@ -113,7 +113,7 @@ describe('BuilderShell bouwt de kruimelstrook van de header', () => {
         expect(order).toEqual(['breadcrumb', 'capsule']);
     });
 
-    it('een herbruikbare Step krijgt GEEN capsule — die wordt door routines aangeroepen, niet door knoppen', async () => {
+    it('een herbruikbare Step krijgt GEEN capsule — die wordt door automatiseringen aangeroepen, niet door knoppen', async () => {
         await mount({ mode: 'step' });
         render(<div>{header.breadcrumbSlot ?? null}</div>);
         expect(screen.queryByTestId('capsule')).toBeNull();

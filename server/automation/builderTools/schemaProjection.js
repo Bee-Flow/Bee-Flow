@@ -66,6 +66,19 @@ const LEAN_BATCH_TYPES = Object.freeze([
     'http_request', 'datatable', 'approval', 'array_op',
 ]);
 
+/**
+ * The batch type enum of the lean menu. `code` joins it ONLY when code steps are
+ * enabled: the lean prompt then teaches "a `code` entry" (builderPrompt.js,
+ * codeStepRule) and, with no builder_add_code_step on this menu, the batch entry
+ * is the only way to make one. Before this the prompt promised an entry the
+ * enum did not contain, and grammar-constrained decoding cannot emit a value
+ * outside the enum. With the flag off the enum is the plain LEAN_BATCH_TYPES, so
+ * the bytes of the common case are unchanged.
+ */
+function leanBatchTypes({ codeStepEnabled = false } = {}) {
+    return codeStepEnabled ? [...LEAN_BATCH_TYPES, 'code'] : [...LEAN_BATCH_TYPES];
+}
+
 // JSON-schema keywords the Gemma 4 template does not render (only
 // description|type|enum|items|properties|required|nullable reach the model).
 // Stripped at SCHEMA NODES — a property called `maxItems` (form.fields[])
@@ -103,7 +116,7 @@ const SHARED_PARAMS = Object.freeze({
 // The one sentence on builder_set_metadata is the same on BOTH variants (the
 // full text lives in schemas.js); it is repeated here so the projection is
 // self-contained and a test can pin the two against each other.
-const SET_METADATA_DESCRIPTION = 'Name the routine. REQUIRED once per new draft — in your FIRST reply, bundled with the trigger call: title ≤ 60 chars, in the user\'s language, saying what the routine does ("Facturen uit /Invoices naar tabel Facturen"); description = one sentence. When the request states a title, use it verbatim. Call again to rename.';
+const SET_METADATA_DESCRIPTION = 'Name the automation. REQUIRED once per new draft — in your FIRST reply, bundled with the trigger call: title ≤ 60 chars, in the user\'s language, saying what the automation does ("Facturen uit /Invoices naar tabel Facturen"); description = one sentence. When the request states a title, use it verbatim. Call again to rename.';
 
 /**
  * Per-tool description and property overrides. `props` entries merge into
@@ -115,17 +128,18 @@ const SET_METADATA_DESCRIPTION = 'Name the routine. REQUIRED once per new draft 
  */
 const LEAN = Object.freeze({
     builder_propose_trigger: {
-        description: 'Set the trigger. The FIRST call of a new draft; calling it again REPLACES the trigger. kind: manual (the user clicks Run) | schedule (cron + tz) | form (form.fields → trigger.output.<name>) | webhook (trigger.output = the POSTed JSON) | app_event (appProvider + appEvent + optional filter — the events, their filter keys and payload fields are listed under "## Triggers" in the system prompt). Bind the payload as trigger.output.<field>; never add a search step for data already in the payload.',
+        description: 'Set the trigger. The FIRST call of a new draft; calling it again REPLACES the trigger. kind: manual | schedule (cron + tz) | form (form.fields) | webhook (trigger.output = the POSTed JSON) | app_event (appProvider + appEvent + optional filter, all listed under "## Triggers") | agent_call (an AI agent calls it as a tool: toolName + description + params) | app_trigger (a Studio App action starts it: params). Bind the payload as trigger.output.<field>; never add a search step for data already in the payload.',
         props: {
-            kind: { enum: ['schedule', 'manual', 'webhook', 'form', 'app_event'] },
+            kind: { enum: ['schedule', 'manual', 'webhook', 'form', 'app_event', 'agent_call', 'app_trigger'] },
             cron: { description: '5-field cron, e.g. "0 9 * * 1-5" (schedule only).' },
             tz: { description: 'IANA timezone, default Europe/Amsterdam.' },
             appProvider: { description: 'app_event: provider id from ## Triggers.' },
             appEvent: { description: 'app_event: event id from ## Triggers.' },
             filter: { description: 'app_event: only the filter keys ## Triggers lists for that event. Omitted = every event.' },
-            toolName: null,
+            toolName: { description: 'agent_call: tool name, e.g. "lookup_warranty".' },
+            description: { description: 'agent_call: when an agent should call it.' },
+            params: { description: 'agent_call / app_trigger inputs, bound as trigger.output.<name>.' },
             parametersSchema: null,
-            params: null,
         },
     },
     builder_add_action: {
@@ -148,13 +162,13 @@ const LEAN = Object.freeze({
             useMemory: null,
             agentPermissions: null,
             disabledAgentSkillIds: null,
-            agentId: { description: 'Only an id the user showed you; never invent one.' },
+            agentId: { description: 'Only an id from "Agents you may use" (or one the user named); never invent one.' },
             skillIds: { description: 'Only ids the user showed you; never invent one.' },
-            knowledgeBaseIds: { description: 'Only ids the user showed you; never invent one.' },
+            knowledgeBaseIds: { description: 'Only ids from "Knowledge bases you may use" (or ones the user named); never invent one.' },
         },
     },
     builder_add_condition: {
-        description: 'Append an if/else. expr is a restricted JS expression over trigger/steps/loop (comparisons, &&, ||, ?:, contains(), lower(), len(), isEmpty()). EXAMPLE: contains(lower(trigger.output.subject), "invoice"). Grow the branches by adding steps with afterStepId = this id and branch:"then" | "else".',
+        description: 'Append an if/else that decides ONCE for the whole run. expr reads trigger/steps/loop values: comparisons, && / ||, contains(), equals(), startsWith(), isEmpty(), len(). Text helpers ignore upper/lower case: never lower()/upper(). EXAMPLE: contains(trigger.output.subject, "invoice"). It does not filter a list: to keep the matching items use builder_add_array_op op:"filter" and read its output.items. Grow the branches by adding steps with afterStepId = this id and branch:"then" | "else".',
         props: {
             expr: { description: 'The expression; true takes the "then" branch.' },
             thenStepId: { description: 'Wire an EXISTING step onto the "then" branch.' },
@@ -176,6 +190,7 @@ const LEAN = Object.freeze({
             method: { description: 'Default GET; POST for most webhooks.' },
             headers: { description: 'Header name → template string, e.g. {"Content-Type":"application/json"}. No secrets.' },
             body: { description: 'Request body (raw text or JSON), template string. POST/PUT/PATCH only.' },
+            query: { description: 'Query parameters as data: {mode:"json", json:\'{"builder":[{"paginate":{{steps.a.output.n}}}]}\'} or {mode:"fields", items:[{key,value}]}; arrayFormat indices|brackets|repeat|comma. PREFER over a hand-encoded ?query in url; bind dynamic parts with {{…}}.' },
             timeoutMs: { description: '1000..60000, default 10000.' },
             parseResponse: { description: 'How to fill output.data: auto (JSON content-type), never, always.' },
             blockPrivateTargets: { description: 'Default true. false ONLY for an internal address the user explicitly asked for.' },
@@ -205,9 +220,9 @@ const LEAN = Object.freeze({
         },
     },
     builder_add_datatable: {
-        description: 'Append a step that reads or writes ROWS of a datatable (rows outlive the run). op: add_row (values) | save_row (values + matchColumn, which must also be in values) | find_rows (where?, sort?, limit? → {rows, returned, hasMore}) | count_rows (→ {count}) | update_rows (values + where) | delete_rows (where). datatableId AND datatableKey EXACTLY as the "Datatables you may use" block shows them; a missing table is created first with builder_create_datatable. values keys are the column KEYS; each value is a binding object. where = [{field, op: eq|neq|gt|gte|lt|lte|contains|startsWith|in|between|isNull|isNotNull, value}]. EXAMPLE: {op:"add_row",datatableId:"tbl_x",datatableKey:"facturen",values:{datum:{kind:"ref",path:"loop.x.output.datum"}},forEach:{overRef:"steps.ex1.output.results",itemVar:"x"}}.',
+        description: 'Append a step that reads or writes ROWS of a datatable. op: add_row (values) | save_row (values + matchColumn, also in values) | find_rows (where?, sort?, limit? → {rows, hasMore}) | count_rows (→ {count}) | update_rows (values + where) | delete_rows (where). datatableId AND datatableKey EXACTLY as the Datatables block shows them; a missing table is created first with builder_create_datatable. values: column KEY → binding object. where = [{field, op: eq|neq|gt|gte|lt|lte|contains|startsWith|in|between|isNull|isNotNull, value}]. EXAMPLE: {op:"add_row",datatableId:"tbl_x",datatableKey:"facturen",values:{datum:{kind:"ref",path:"loop.x.output.datum"}},forEach:{overRef:"steps.ex1.output.results",itemVar:"x"}}',
         props: {
-            datatableId: { description: 'From the Datatables block, or what builder_create_datatable returned.' },
+            datatableId: { description: 'From the Datatables block or builder_create_datatable (pending:<n> in a preview). A table the user did not name: ask first, builder_ask_questions {datatableIds}.' },
             datatableKey: { description: 'That table\'s key, exactly as shown beside the id.' },
             where: {
                 description: 'Conditions [{field, op, value}]; in/between take an array.',
@@ -232,7 +247,7 @@ const LEAN = Object.freeze({
         },
     },
     builder_create_datatable: {
-        description: 'Create a NEW datatable now, at design time (not a step) — only when the "Datatables you may use" block has no fitting table. fields = the columns [{name, type: text|number|date|datetime|bool|select (+options)|multiselect|file}]; keys are derived from names ("Excl. btw" → excl_btw). Returns datatableId, datatableKey and the column keys the add_row step uses. The same name twice returns the existing table.',
+        description: 'Create a NEW datatable now, at design time (not a step) — only when the "Datatables you may use" block has no fitting table. fields = the columns [{name, type: text|number|date|datetime|bool|select (+options)|multiselect|file}]; keys are derived from names ("Excl. btw" → excl_btw). Returns datatableId, datatableKey and the column keys the add_row step uses. Built directly it exists when this answers; in a preview it is STAGED as "pending:<n>" (bind steps to it) and created when the user presses Apply. A same-named existing table is only reused once the user chose it.',
         props: {
             name: { description: 'The table\'s title as the person sees it, e.g. "Facturen".' },
             description: { description: 'One sentence: what the rows are.' },
@@ -259,7 +274,7 @@ const LEAN = Object.freeze({
         },
     },
     builder_add_array_op: {
-        description: 'Append a list operation over an upstream array (arrayRef is a path string, not a binding). op: filter (expr over `item`) | limit (count, mode) | dedupe (keyField?) | aggregate (field → {values}) | summarize (field + fn sum|count|avg|min|max → {result}). Output {items, count}. Drop failed forEach items with {op:"filter",arrayRef:"steps.<prev>.output.results",expr:"item.status === \'success\'"}.',
+        description: 'Append a list operation over an upstream array (arrayRef is a path string, not a binding). op: filter (expr over `item`) | limit (count, mode) | dedupe (keyField?) | aggregate (field → {values}) | summarize (field + fn sum|count|avg|min|max → {result}) | flatten (childField: one row per item of that inner list, outer fields copied on). Output {items, count}. filter rules: contains(item.subject, "invoice"), equals(item.status, "open"), item.amount > 1000, anyOf(item.attachments[*].filename, "endsWith", ".pdf"); never lower()/upper(). Drop failed forEach items with {op:"filter",arrayRef:"steps.<prev>.output.results",expr:"equals(item.status, \\"success\\")"}.',
         props: {
             arrayRef: { description: 'Path to the upstream array, e.g. "steps.s1.output.results".' },
             expr: { description: 'filter only: expression over item.<field>.' },
@@ -268,6 +283,9 @@ const LEAN = Object.freeze({
             keyField: { description: 'dedupe only: field to dedupe by.' },
             field: { description: 'aggregate/summarize: field name on each item.' },
             fn: { description: 'summarize only.' },
+            childField: { description: 'flatten only: the list inside each item, e.g. "attachments".' },
+            keepFields: { description: 'flatten only: outer fields to copy.' },
+            keepEmpty: { description: 'flatten only.' },
         },
     },
     builder_add_steps: {
@@ -276,10 +294,10 @@ const LEAN = Object.freeze({
         // applied by projectAddSteps below — they sit two levels down.
     },
     builder_update_step: {
-        description: 'Change an EXISTING step in place — keeps its id and wiring. patch = only the fields to change, in the shape the add tool takes (a refusal lists the allowed fields). Move a step with patch:{afterStepId, branch?}. inputs/values merge per key (null deletes a key; inputsMode:"replace" overwrites). Dry-run repair: ONE builder_update_step per failing step, all in the SAME reply as the next builder_request_dry_run.',
+        description: 'Change an EXISTING step in place — keeps its id and wiring. patch = only the fields to change, in the shape the add tool takes (a refusal lists the allowed fields). Move a step with patch:{afterStepId, branch?}. inputs/values merge per key (null deletes a key; inputsMode:"replace" overwrites). Type change: patch {type:"datatable", op, datatableId, datatableKey, values} (or tool:"<step type>" on an action) — same id, same wiring. Dry-run repair: ONE builder_update_step per failing step, all in the SAME reply as the next builder_request_dry_run.',
         props: {
             stepId: { description: 'The step\'s real id (from the echo or the draft state).' },
-            patch: { description: 'Only the fields to change, in the add tool\'s shape: e.g. {inputs:{path:{kind:"ref",path:"loop.f.path"}}}, {source:{kind:"ref",path:"loop.r.output.content"}}, {values:{datum:{kind:"ref",path:"loop.x.output.datum"}}}, {afterStepId:"<id>",branch:"else"}. Never type or id.' },
+            patch: { description: 'Only the fields to change, in the add tool\'s shape: e.g. {inputs:{path:{kind:"ref",path:"loop.f.path"}}}, {source:{kind:"ref",path:"loop.r.output.content"}}, {values:{datum:{kind:"ref",path:"loop.x.output.datum"}}}, {afterStepId:"<id>",branch:"else"}. Never id.' },
             inputsMode: { description: '"merge" (default, per key) or "replace" (whole map).' },
         },
     },
@@ -315,12 +333,12 @@ const LEAN = Object.freeze({
         },
     },
     builder_finalize: {
-        description: 'Save the routine as finished (still inactive until the user activates it). Only after a clean dry run, and only when builder_set_metadata has named it.',
+        description: 'Save the automation as finished (still inactive until the user activates it). Only after a clean dry run, and only when builder_set_metadata has named it.',
     },
     builder_set_metadata: {
         description: SET_METADATA_DESCRIPTION,
         props: {
-            title: { description: '≤ 60 chars, the user\'s language, what the routine does.' },
+            title: { description: '≤ 60 chars, the user\'s language, what the automation does.' },
             description: { description: 'One sentence.' },
         },
     },
@@ -363,14 +381,14 @@ function projectTriggerForm(properties) {
 }
 
 /** builder_add_steps.steps.items — tempId text, the type enum, the spec text. */
-function projectAddSteps(properties) {
+function projectAddSteps(properties, { codeStepEnabled = false } = {}) {
     const items = properties && properties.steps && properties.steps.items;
     if (!items || !items.properties) return;
     if (items.properties.tempId) {
         items.properties.tempId.description = 'Handle for this step, fresh per step ([A-Za-z][A-Za-z0-9_]*). Later entries use steps.$<tempId>.output.<field> or "$<tempId>" — the $ is required.';
     }
     if (items.properties.type) {
-        items.properties.type.enum = [...LEAN_BATCH_TYPES];
+        items.properties.type.enum = leanBatchTypes({ codeStepEnabled });
     }
     if (items.properties.spec) {
         items.properties.spec.description = 'EXACTLY the fields of the matching builder_add_<type> tool (tool+inputs · prompt+inputs+outputSchema · source+fields · op+datatableId+datatableKey+values · expr · title+body · url+method+body · op+arrayRef · prompt+assignee) plus the shared ones: afterStepId, branch ("then"|"else"|"error"), label, forEach:{overRef,itemVar}. Put EVERY step field inside spec, never beside it. Per-item work is forEach on the step; chain the next entry\'s forEach over steps.$<prev>.output.results and bind loop.<v>.output.<field>. Prefer {kind:"ref"} bindings over {{templates}} inside a batch.';
@@ -394,7 +412,7 @@ function stripUnrenderedKeywords(node) {
 }
 
 /** One cloned tool → its lean form. */
-function projectOne(tool) {
+function projectOne(tool, opts = {}) {
     const fn = tool.function;
     const params = fn.parameters || { type: 'object', properties: {} };
     const props = params.properties || {};
@@ -407,7 +425,7 @@ function projectOne(tool) {
         if (lean.props) applyPropOverrides(props, lean.props);
     }
     if (fn.name === 'builder_propose_trigger') projectTriggerForm(props);
-    if (fn.name === 'builder_add_steps') projectAddSteps(props);
+    if (fn.name === 'builder_add_steps') projectAddSteps(props, opts);
     // 3. What the template cannot render anyway.
     stripUnrenderedKeywords(params);
     return tool;
@@ -416,21 +434,22 @@ function projectOne(tool) {
 /**
  * @param {Array} tools   OpenAI-shape tool definitions (the menu after the
  *                        feature-flag and toolset filters in chatStream.js)
- * @param {{variant?: 'full'|'lean'}} opts
+ * @param {{variant?: 'full'|'lean', codeStepEnabled?: boolean}} opts
  * @returns {Array}       `full`: the same array; `lean`: new objects
  */
-function projectToolSchemas(tools, { variant = 'full' } = {}) {
+function projectToolSchemas(tools, { variant = 'full', codeStepEnabled = false } = {}) {
     if (variant !== 'lean') return tools;
     if (!Array.isArray(tools)) return tools;
     return tools
         .filter(t => t && t.function && !DROP_TOOLS_SMALL.includes(t.function.name))
-        .map(t => projectOne(structuredClone(t)));
+        .map(t => projectOne(structuredClone(t), { codeStepEnabled }));
 }
 
 module.exports = {
     projectToolSchemas,
     DROP_TOOLS_SMALL,
     LEAN_BATCH_TYPES,
+    leanBatchTypes,
     SET_METADATA_DESCRIPTION,
     UNRENDERED_KEYWORDS,
     // For tests: the walk must never touch a property NAME.

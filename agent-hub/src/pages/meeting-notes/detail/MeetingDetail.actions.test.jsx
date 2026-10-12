@@ -267,7 +267,7 @@ describe('MeetingDetail — writing a destination', () => {
         expect(onChanged).toHaveBeenCalledWith('m-1', { actionsTotal: 2, actionsOpen: 1 });
     });
 
-    it('says so when the note could not be saved after the routine already ran', async () => {
+    it('says so when the note could not be saved after the automation already ran', async () => {
         const { toast } = await import('../../../components/shared/Toast');
         H.patchTranscription.mockRejectedValue(new Error('offline'));
         render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);

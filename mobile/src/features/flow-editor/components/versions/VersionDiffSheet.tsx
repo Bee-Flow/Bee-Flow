@@ -1,6 +1,6 @@
 /**
  * One saved version, compared — the web panel's DiffModal as a tall sheet.
- * By default against the routine as it is saved now; "Compare with" picks
+ * By default against the automation as it is saved now; "Compare with" picks
  * another saved version instead (then the server's diff route answers, with
  * its list of steps by name). The plain-language summary comes first; "Raw
  * JSON" swaps it for the changed lines. Restore is offered unless this IS
@@ -72,7 +72,7 @@ export interface VersionDiffSheetProps {
     version: FlowVersionSummary;
     versions: readonly FlowVersionSummary[];
     currentVersion: number | null;
-    /** The routine as the server holds it now. */
+    /** The automation as the server holds it now. */
     currentDefinition: FlowDefinition | null;
     restoring: boolean;
     onRestore: (version: FlowVersionSummary) => void;
@@ -151,7 +151,7 @@ export function VersionDiffSheet(props: VersionDiffSheetProps) {
                 onClose={() => setPicking(false)}
                 title={t('mobile.flow.versions.compare_title', 'Compare with')}
                 items={[
-                    { id: 'current', label: t('mobile.flow.versions.current_word', 'Current'), selected: !compareWith, onPress: () => setCompareWith(null) },
+                    { id: 'current', label: t('automations.flowlets_panel.current', 'Current'), selected: !compareWith, onPress: () => setCompareWith(null) },
                     ...versions.filter((v) => v.id !== version.id).slice(0, COMPARE_CHOICES).map((v) => ({
                         id: v.id, label: `v${v.version}`, selected: compareWith?.id === v.id, onPress: () => setCompareWith(v),
                     })),

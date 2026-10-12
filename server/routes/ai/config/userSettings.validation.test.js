@@ -53,15 +53,22 @@ const MOCKS = {
             : { map: input, dropped: [], error: null }),
         mergeLearningProgress: (a, b) => ({ ...a, ...b }),
     },
+    '../../../stores/memoryQueries': {
+        deleteSensitiveForUser: async (userId) => { touched.push({ what: 'deleteSensitive', key: userId }); return 0; },
+    },
     '../../../learning/certificates': { readServerProgress: async () => ({}) },
     '../../../auth/permissions': { requireAuth: pass },
     '../../../auth/orgScope': { orgScope: async () => ({ orgId: null, homeOrgId: null }) },
     '../../../core/memory/memoryPolicy': {
         memoryEnabledKey: (userId) => `memory_enabled_user_${userId}`,
+        memorySensitiveOptInKey: (userId) => `memory_sensitive_opt_in_user_${userId}`,
         isMemoryEnabledForUser: async () => true,
+        getOrgMemorySettings: async () => ({ enabled: true, sensitiveOptInAllowed: orgAllowsSensitive, maxPerUser: 1000 }),
+        ORG_DEFAULTS: { enabled: true, sensitiveOptInAllowed: false, maxPerUser: 1000 },
     },
 };
 
+let orgAllowsSensitive = false;
 const MOCK_IDS = {};
 for (const [request, exportsObj] of Object.entries(MOCKS)) {
     const mockId = `mock:user-settings-validation:${request}`;
@@ -107,7 +114,7 @@ function post(body) {
 
 const written = (key) => touched.find((t) => t.key === key);
 
-test.beforeEach(() => { touched.length = 0; });
+test.beforeEach(() => { touched.length = 0; orgAllowsSensitive = false; });
 
 test('memory switched off as the text "false" is refused, not stored as ON', async () => {
     const res = await post({ memoryEnabled: 'false' });
@@ -120,6 +127,34 @@ test('memory switched off as a boolean is stored as off', async () => {
     const res = await post({ memoryEnabled: false });
     assert.strictEqual(res.statusCode, 200);
     assert.strictEqual(written('memory_enabled_user_u1').value, false);
+});
+
+test('sensitive opt-in is refused with 403 when the organisation does not allow it', async () => {
+    const res = await post({ memorySensitiveOptIn: true });
+    assert.strictEqual(res.statusCode, 403);
+    assert.strictEqual(res.body.code, 'sensitive_not_allowed');
+    assert.deepStrictEqual(touched, []);
+});
+
+test('sensitive opt-in as the text "true" is refused', async () => {
+    const res = await post({ memorySensitiveOptIn: 'true' });
+    assert.strictEqual(res.statusCode, 400);
+    assert.deepStrictEqual(touched, []);
+});
+
+test('sensitive opt-in on is stored when the organisation allows it, and deletes nothing', async () => {
+    orgAllowsSensitive = true;
+    const res = await post({ memorySensitiveOptIn: true });
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(written('memory_sensitive_opt_in_user_u1').value, true);
+    assert.ok(!touched.some((t) => t.what === 'deleteSensitive'));
+});
+
+test('sensitive opt-in OFF is stored and hard-deletes the sensitive memories', async () => {
+    const res = await post({ memorySensitiveOptIn: false });
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(written('memory_sensitive_opt_in_user_u1').value, false);
+    assert.ok(touched.some((t) => t.what === 'deleteSensitive' && t.key === 'u1'));
 });
 
 test('a refused NMBRS token leaves the API mode as it was — nothing is half-saved', async () => {

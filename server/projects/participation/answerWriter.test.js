@@ -20,6 +20,11 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const { makeAnswerWriter } = require('./answerWriter');
 const { PrivacyBlocked } = require('../chatShield');
+const { realClaudeAdapter, realGeminiAdapter, assertClaudeEntry, assertGeminiEntry } = require('../../core/providers/usageHarness');
+
+/** The usage an adapter really hands back (non-streaming), for the cache tests. */
+const claudeUsage = async () => (await realClaudeAdapter().chat('k', null, 'claude-sonnet-4-6', [{ role: 'user', content: 'x' }])).usage;
+const geminiUsage = async () => (await realGeminiAdapter().chat('k', null, 'gemini-3-flash-preview', [{ role: 'user', content: 'x' }])).usage;
 
 const MESSAGES = [
     { id: 'c1', seq: 1, authorKind: 'user', authorUserId: 'ann', text: 'Is this number still right for Q3?', createdAt: '2026-09-29T10:00:00Z' },
@@ -50,7 +55,7 @@ function world(over = {}) {
             restore: (t) => t,
             release: (id) => { log.releasedScopes.push(id); },
         }),
-        llmChat: over.llmChat || (async (modelId, messages, options) => { log.llm.push({ modelId, messages, options }); return { content: over.answer ?? 'The restated figure is 1.3M.', usage: { total_tokens: 90 } }; }),
+        llmChat: over.llmChat || (async (modelId, messages, options) => { log.llm.push({ modelId, messages, options }); return { content: over.answer ?? 'The restated figure is 1.3M.', usage: over.usage ?? { total_tokens: 90 } }; }),
         logUsage: async (e) => { log.usage.push(e); },
         timeoutMs: 1000,
     });
@@ -107,5 +112,14 @@ test('nothing is stored for [[SKIP]], a stale thread, a busy turn, no model, a b
         assert.deepStrictEqual(await w.writer.write(w.job), expected, JSON.stringify(expected));
         assert.deepStrictEqual(w.log.posted, [], 'nothing stored');
         if (!over.busy && !over.resolveModel) assert.strictEqual(w.log.released.length, 1, 'the turn is released');
+    }
+});
+
+test('the usage row carries the cache read/write of a Claude or Gemini call, not zeros', async () => {
+    for (const [usage, assertEntry] of [[await claudeUsage(), assertClaudeEntry], [await geminiUsage(), assertGeminiEntry]]) {
+        const w = world({ usage });
+        await w.writer.write(w.job);
+        assert.strictEqual(w.log.usage.length, 1);
+        assertEntry(w.log.usage[0]);
     }
 });

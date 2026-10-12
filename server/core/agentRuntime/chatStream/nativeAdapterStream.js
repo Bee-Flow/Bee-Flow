@@ -14,6 +14,7 @@
  * reason are the caller's, and it accumulates them from what comes back.
  */
 const usageStore = require('../../../stores/usageStore');
+const { usageLogFields } = require('../../providers/usageNormalizer');
 const testChatMod = require('../testChat');
 const { placeVolatileBlock } = require('../../llm/promptLayout');
 const { sanitizeMessages } = require('../../../utils/messageUtils');
@@ -97,8 +98,6 @@ async function streamNativeAdapterRound({
         // GPT-5 output-length control. Per-turn override → tier setting → tier default.
         // Only forwarded to GPT-5 models by the adapter; ignored elsewhere.
         verbosity: messageMetadata?.verbosity || tierSettings.verbosity || tierDefaults.verbosity || undefined,
-        // Azure-specific: needed for Responses API version check
-        apiVersion: config.apiVersion || undefined,
     };
 
     // Conversation-stable prompt-cache routing hint. A per-conversation
@@ -293,16 +292,9 @@ async function streamNativeAdapterRound({
             agent_name: agent.name,
             agent_type: 'chat',
             model: modelToUse,
-            prompt_tokens: _adapterStreamUsage?.prompt_tokens || 0,
-            completion_tokens: _adapterStreamUsage?.completion_tokens || 0,
-            total_tokens: _adapterStreamUsage?.total_tokens || 0,
-            // Adapters normalise to `cached_tokens`; an OpenAI-shaped
-            // payload that still carries prompt_tokens_details is read too.
-            cached_tokens: _adapterStreamUsage?.cached_tokens
-                || _adapterStreamUsage?.prompt_tokens_details?.cached_tokens || 0,
-            cache_creation_tokens: _adapterStreamUsage?.cache_creation_tokens || 0,
-            reasoning_tokens: _adapterStreamUsage?.reasoning_tokens || 0,
-            cache_ttl: _adapterStreamUsage?.cache_ttl || null,
+            // Adapters emit the normalised shape (providers/usageNormalizer.js)
+            // on `done`; an OpenAI-shaped payload is read too.
+            ...usageLogFields(_adapterStreamUsage),
             stop_reason: _adapterStreamUsage?.stop_reason || null,
             parent_call_id: messageMetadata.parentCallId || null,
             source: testChatMod.usageSourceFor(messageMetadata, 'agent_stream'),

@@ -42,7 +42,7 @@ function ModeCard({ selected, icon, title, description, onSelect }: ModeCardProp
 }
 
 export default function ThinkingModeCards({ mode, onChange, t }: { mode: ThinkingMode; onChange: (m: ThinkingMode) => void; t: TranslateFn }) {
-    const label = t('routine_editor.agent_section_title', 'Who does the thinking');
+    const label = t('automation_editor.agent_section_title', 'Who does the thinking');
     return (
         <div className="flex flex-col gap-1.5">
             <div className="text-[11px] font-semibold uppercase tracking-[.06em] text-[var(--text-tertiary)]">{label}</div>
@@ -50,15 +50,15 @@ export default function ThinkingModeCards({ mode, onChange, t }: { mode: Thinkin
                 <ModeCard
                     selected={mode === 'instruction'}
                     icon={<Sparkles size={13} className="text-[var(--type-ai)]" aria-hidden="true" />}
-                    title={t('routines.agent_step.mode_instruction', 'Loose instruction')}
-                    description={t('routines.agent_step.mode_instruction_desc', 'You write here what the AI should do. Only for this step.')}
+                    title={t('automations.agent_step.mode_instruction', 'Loose instruction')}
+                    description={t('automations.agent_step.mode_instruction_desc', 'You write here what the AI should do. Only for this step.')}
                     onSelect={() => onChange('instruction')}
                 />
                 <ModeCard
                     selected={mode === 'agent'}
                     icon={<Bot size={13} className="text-[var(--type-ai)]" aria-hidden="true" />}
-                    title={t('routines.agent_step.mode_agent', 'Use an agent')}
-                    description={t('routines.agent_step.mode_agent_desc', 'An agent from Studio, with its role, knowledge and skills. One place to maintain.')}
+                    title={t('automations.agent_step.mode_agent', 'Use an agent')}
+                    description={t('automations.agent_step.mode_agent_desc', 'An agent from Studio, with its role, knowledge and skills. One place to maintain.')}
                     onSelect={() => onChange('agent')}
                 />
             </div>

@@ -1,5 +1,5 @@
 {
-  "brief": "Bouw een facturen-dashboard op mijn Studio-tabel \"Facturen\" (alleen lezen; die vult mijn routine vanuit factuur-PDF's). Eén scherm: bovenaan vier tegels — aantal facturen, totaal excl. btw, totaal btw en totaal incl. btw — daaronder een grafiek met het totaal per maand op datum, en een tabel met datum, leverancier, factuurnummer, excl. btw, btw en totaal, met een filterbalk op leverancier en datum.",
+  "brief": "Bouw een facturen-dashboard op mijn Studio-tabel \"Facturen\" (alleen lezen; die vult mijn automation vanuit factuur-PDF's). Eén scherm: bovenaan vier tegels — aantal facturen, totaal excl. btw, totaal btw en totaal incl. btw — daaronder een grafiek met het totaal per maand op datum, en een tabel met datum, leverancier, factuurnummer, excl. btw, btw en totaal, met een filterbalk op leverancier en datum.",
   "tier": "fast",
   "planMode": "never",
   "expect": {

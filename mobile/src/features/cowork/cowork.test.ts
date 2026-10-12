@@ -137,11 +137,10 @@ describe('routing a Cowork notification', () => {
         expect(translateWebLink('/app/cowork')?.href).toBe('/cowork');
     });
 
-    it('still sends an ai_task to the tasks list', () => {
-        // The two stores stay apart.
+    it('sends an older ai_task to its Cowork item: the task moved there under the same id', () => {
         expect(
             targetForNotification({ category: 'ai_task', task_id: 't1' } as never).href,
-        ).toBe('/tasks');
+        ).toBe('/cowork/t1');
     });
 
     it('sends a cowork result to its own item when there is no link', () => {

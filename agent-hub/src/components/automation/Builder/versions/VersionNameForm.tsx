@@ -13,7 +13,7 @@ interface Props {
 export default function VersionNameForm({ initial, busy, error, onSave, onCancel }: Props) {
     const { t } = useTranslation();
     const [value, setValue] = useState(initial);
-    const label = t('routines.versions.nameLabel', 'Milestone name');
+    const label = t('automations.versions.nameLabel', 'Milestone name');
     return (
         <form
             className="flex flex-wrap items-center gap-2 text-[12px]"
@@ -21,7 +21,7 @@ export default function VersionNameForm({ initial, busy, error, onSave, onCancel
         >
             <input
                 aria-label={label}
-                placeholder={t('routines.versions.namePlaceholder', 'For example: Approval above 1,000')}
+                placeholder={t('automations.versions.namePlaceholder', 'For example: Approval above 1,000')}
                 value={value}
                 maxLength={80}
                 autoFocus
@@ -34,7 +34,7 @@ export default function VersionNameForm({ initial, busy, error, onSave, onCancel
                 disabled={busy}
                 className="px-3 py-1.5 rounded-lg bg-[var(--accent-primary)] text-[var(--accent-primary-fg)] font-semibold disabled:opacity-60"
             >
-                {t('routines.versions.saveName', 'Save name')}
+                {t('automations.versions.saveName', 'Save name')}
             </button>
             {initial && (
                 <button
@@ -43,7 +43,7 @@ export default function VersionNameForm({ initial, busy, error, onSave, onCancel
                     onClick={() => onSave(null)}
                     className="px-3 py-1.5 rounded-lg border border-[var(--border-default)] text-[var(--text-secondary)] disabled:opacity-60"
                 >
-                    {t('routines.versions.removeName', 'Remove milestone')}
+                    {t('automations.versions.removeName', 'Remove milestone')}
                 </button>
             )}
             <button type="button" onClick={onCancel} className="px-2 py-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)]">

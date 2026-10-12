@@ -615,11 +615,11 @@ test('nothing in the app requires Nextcloud or a connector', () => {
 
 /**
  * The single tolerated warning. It is here because the app genuinely wants a
- * routine — chasing the owners of overdue reviews — and cannot know which one.
+ * automation — chasing the owners of overdue reviews — and cannot know which one.
  * It must stay the ONLY one, and the UI must say so rather than failing quietly
  * when it is pressed.
  */
-test('the one unwired routine is deliberate and admitted in the interface', () => {
+test('the one unwired automation is deliberate and admitted in the interface', () => {
     const unset = [];
     for (const [actionId, action] of Object.entries(definition.actions)) {
         for (const step of flatSteps(action)) {
@@ -629,7 +629,7 @@ test('the one unwired routine is deliberate and admitted in the interface', () =
     assert.equal(unset.length, 1, 'exactly one run_automation, or the template ships warnings nobody chose');
     assert.deepEqual(unset[0], ['act_regremind', null]);
     const toast = flatSteps(definition.actions.act_regremind).find((s) => s.kind === 'toast');
-    assert.match(toast.message, /routine/i, 'the button has to tell the user it needs wiring');
+    assert.match(toast.message, /automation/i, 'the button has to tell the user it needs wiring');
     assert.equal(nodeById('cmp_regrem').onClick, 'act_regremind');
 });
 

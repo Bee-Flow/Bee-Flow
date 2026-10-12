@@ -2,7 +2,7 @@
  * CW-10 — per-org flag: privacy shield on the NON-AGENT run path.
  *
  * Today only the agent runtime (chatWithAgent/chatStream) applies the org
- * privacy shield. The plain Cowork/Routines path — aiTaskRunner.executeTask
+ * privacy shield. The plain Cowork/Automations path — aiTaskRunner.executeTask
  * for tasks without an agent — calls the model adapter directly, unshielded,
  * while the UI is about to grow a "Privacy shield on" pill next to those very
  * runs. This flag is the org-level opt-in that lets the runner make that
@@ -12,7 +12,7 @@
  *
  *   - stored under `org_cowork_shield_<orgId>` in configStore;
  *   - MISSING or malformed normalises to OFF. Default-off is load-bearing:
- *     the path is shared with existing Routines, so an existing org's
+ *     the path is shared with existing Automations, so an existing org's
  *     scheduled runs must keep doing exactly what they do today, and after a
  *     rollback there is no admin-visible "shield on" that old code silently
  *     stops enforcing. Existing orgs are additionally stamped explicitly off

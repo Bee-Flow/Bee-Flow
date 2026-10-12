@@ -1,10 +1,10 @@
 /**
  * Nextcloud Sync (web: OrganisationSection.jsx "Nextcloud Sync", the page
- * with OrgNcPairingPanel, NextcloudSyncPanel, MeetingNotesAdminPanel and
- * GoogleMeetAdminPanel). The phone keeps the sync on this screen and opens
- * the other three from its first group: pairing a new Nextcloud (an NC-bound
- * org, or the platform operator) and the Talk and Google Meet meeting-notes
- * settings (the Meeting Notes licence).
+ * with NextcloudSyncPanel, OrgNcPairingPanel and MeetingNotesAdminPanel).
+ * The phone keeps the sync on this screen and opens the other two from its
+ * first group: pairing a new Nextcloud (an NC-bound org, or the platform
+ * operator) and the Talk meeting-notes settings (the Meeting Notes licence).
+ * Google Meet's settings open from Meeting templates, as on the web.
  */
 
 import React from 'react';

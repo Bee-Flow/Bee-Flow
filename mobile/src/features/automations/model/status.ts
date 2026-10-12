@@ -58,7 +58,7 @@ const TOKENS: Record<string, StatusToken> = {
     awaiting_approval: { labelKey: 'run_status.awaiting_approval', labelEn: 'Waiting for approval', tone: 'warning', icon: 'ShieldQuestionMark', live: true },
     awaiting_form: { labelKey: 'run_status.awaiting_form', labelEn: 'Waiting for a form', tone: 'warning', icon: 'ClipboardList', live: true },
     // A step that never ran because it is switched off — a setting, not an
-    // outcome, and never a reason to colour a routine.
+    // outcome, and never a reason to colour an automation.
     skipped: { labelKey: 'run_status.skipped', labelEn: 'Skipped', tone: 'neutral', icon: 'CircleMinus', live: false },
     // A step that DID run and found nothing to do. The one skip worth amber.
     nothing_to_do: { labelKey: 'run_status.nothing_to_do', labelEn: 'Nothing to do', tone: 'warning', icon: 'TriangleAlert', live: false },
@@ -118,7 +118,7 @@ export function isLiveStatus(status: RunStatus | null | undefined): boolean {
  * SKIP_REASONS, and pinned against it.
  *
  *   configured  the step never ran because it is switched off. Grey, always:
- *               amber here puts every routine with one disabled node
+ *               amber here puts every automation with one disabled node
  *               permanently on amber, and a warning that is always on is not
  *               a warning.
  *   no_work     the step ran and had nothing to do — an empty summary, a
@@ -134,6 +134,7 @@ export const SKIP_REASONS: Readonly<Record<string, SkipGroup>> = Object.freeze({
     overref_unresolved: 'no_work',
     aggregate_field_absent: 'no_work',
     summarize_field_absent: 'no_work',
+    flatten_no_match: 'no_work',
     datetime_unresolved_input: 'no_work',
     datatable_column_unknown: 'no_work',
     datatable_filter_unresolved: 'no_work',

@@ -94,33 +94,9 @@ Module._resolveFilename = function (request, parent, ...rest) {
 const router = require('./incidents');
 test.after(() => { Module._resolveFilename = originalResolve; });
 
-// A schema refusal travels as an error to the terminal handler, so the
-// harness has to answer one the way index.js does.
-const { terminalErrorHandler } = require('../../core/http/terminalErrorHandler');
+const { dispatcher } = require('../../core/http/routeHarness');
 
-function dispatch({ method, url, body = {} }) {
-    return new Promise((resolve, reject) => {
-        const [pathname, search = ''] = String(url).split('?');
-        const query = {};
-        for (const [k, v] of new URLSearchParams(search)) query[k] = v;
-        const req = {
-            method, url, originalUrl: url, path: pathname, query, body, headers: {},
-            session: { user: { id: 'u1' } }, get() { return undefined; },
-        };
-        const res = {
-            statusCode: 200, headersSent: false,
-            set() { return this; }, setHeader() {},
-            status(c) { this.statusCode = c; return this; },
-            json(b) { this.body = b; this.headersSent = true; resolve(this); return this; },
-            send(b) { this.body = b; this.headersSent = true; resolve(this); return this; },
-            end() { this.headersSent = true; resolve(this); return this; },
-        };
-        router(req, res, (err) => {
-            if (!err) return reject(new Error(`fell through: ${method} ${url}`));
-            terminalErrorHandler(err, req, res, (e) => reject(e));
-        });
-    });
-}
+const dispatch = dispatcher(router);
 
 test.beforeEach(() => { touched.length = 0; });
 
@@ -230,6 +206,28 @@ test('an unreadable occurred_at is refused instead of reaching the column as a b
 test('the datetime-local value the form posts is a date, and is accepted', async () => {
     const res = await dispatch({ method: 'POST', url: '/incidents', body: { title: 'x', occurred_at: '2026-09-22T13:45' } });
     assert.strictEqual(res.statusCode, 201);
+});
+
+test('a detected_at in the future is refused: the 72-hour clock runs from awareness and cannot start tomorrow', async () => {
+    const tomorrow = new Date(Date.now() + 24 * 3600 * 1000).toISOString();
+    const res = await refuses({ method: 'POST', url: '/incidents', body: { title: 'x', detected_at: tomorrow } }, 'body.detected_at');
+    assert.strictEqual(res.body.error, 'detected_at cannot be in the future.');
+});
+
+test('the awareness moment the form sends (now, or yesterday) reaches the store; a browser a minute ahead is fine', async () => {
+    const yesterday = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+    const res = await dispatch({ method: 'POST', url: '/incidents', body: { kind: 'breach', title: 'Found yesterday', detected_at: yesterday } });
+    assert.strictEqual(res.statusCode, 201);
+    assert.strictEqual(touched.find((t) => t.what === 'createIncident').args[0].detected_at, yesterday);
+    touched.length = 0;
+    const aheadByAMinute = new Date(Date.now() + 60 * 1000).toISOString();
+    const ahead = await dispatch({ method: 'POST', url: '/incidents', body: { title: 'x', detected_at: aheadByAMinute } });
+    assert.strictEqual(ahead.statusCode, 201);
+});
+
+test('an unreadable detected_at is refused once, as not a date', async () => {
+    const res = await refuses({ method: 'POST', url: '/incidents', body: { title: 'x', detected_at: 'yesterday' } }, 'body.detected_at');
+    assert.strictEqual(res.body.error, 'detected_at must be a date.');
 });
 
 test('a misspelled create key is refused rather than dropped from the row', async () => {

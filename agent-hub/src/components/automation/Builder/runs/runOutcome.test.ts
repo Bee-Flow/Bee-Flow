@@ -36,7 +36,7 @@ describe('runSentence', () => {
     });
     it('says why a run was skipped', () => {
         expect(runSentence(t, run({ status: 'cancelled', outcome: { code: 'cancelled', params: { reasonCode: 'already_running' } } })))
-            .toBe('Skipped because the routine was already running');
+            .toBe('Skipped because the automation was already running');
     });
     it('names who a waiting run waits on', () => {
         expect(runSentence(t, run({ status: 'awaiting_approval', outcome: { code: 'waiting_approval', params: { who: 'S. de Boer' } } })))
@@ -121,5 +121,17 @@ describe('runIo', () => {
         expect(mainList({ a: [1], b: [1, 2] })?.key).toBe('b');
         expect(stepResult(t, { stepId: 's', output: { files: [1, 2] } })).toBe('2 files');
         expect(stepResult(t, { stepId: 's', error: 'No access' })).toBe('No access');
+    });
+    it('never takes a code step\'s console lines for its list', () => {
+        const out = { result: { total: 2 }, logs: ['a', 'b', 'c'], httpCalls: 0 };
+        expect(mainList(out)).toBeNull();
+        expect(mainList(out, 'code')).toBeNull();
+        expect(stepResult(t, { stepId: 's', stepType: 'code', output: out })).toBe('1 fields');
+    });
+    it('reads the list inside what a code step returned', () => {
+        expect(mainList({ result: [1, 2], logs: ['a', 'b', 'c'] }, 'code')).toEqual({ key: '', rows: [1, 2] });
+        expect(mainList({ result: { lines: [1, 2] }, logs: ['a', 'b', 'c'] }, 'code')).toEqual({ key: 'lines', rows: [1, 2] });
+        expect(stepResult(t, { stepId: 's', stepType: 'code', output: { result: [1, 2, 3], logs: [] } })).toBe('3 items');
+        expect(stepResult(t, { stepId: 's', stepType: 'code', output: { result: 'ok', logs: ['x'] } })).toBe('ok');
     });
 });

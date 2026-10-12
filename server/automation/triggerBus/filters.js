@@ -381,6 +381,27 @@ function matchNextcloudUserStatusFilter(payload, filter) {
 }
 
 /**
+ * google-sheets.spreadsheet.changed / spreadsheet.new — Filter:
+ * { spreadsheetId?, nameContains? }.
+ *
+ * The narrow case is mostly decided BEFORE dispatch: a subscription that picks
+ * a spreadsheet polls its contents directly (the declaration's contentWatch
+ * variant), and sheet/range narrowing happens in that call. This matcher is
+ * the backstop — file-level subscriptions still filter on the file id, and a
+ * content payload echoes its spreadsheetId, so both shapes land here.
+ */
+function matchSheetsChangedFilter(payload, filter) {
+    if (!filter || typeof filter !== 'object') return true;
+    if (!payload) return false;
+    if (filter.spreadsheetId) {
+        const id = payload.spreadsheetId || payload.id;
+        if (String(id || '') !== String(filter.spreadsheetId)) return false;
+    }
+    if (filter.nameContains && !containsCI(payload.name || '', filter.nameContains)) return false;
+    return true;
+}
+
+/**
  * Picks the right matcher for a (provider, event) pair. Falls back to the
  * shallow `matchFilter` for anything we haven't taught explicit semantics
  * — keeps webhook providers (msgraph, github) working unchanged.
@@ -506,7 +527,7 @@ function matchMeetingProcessedFilter(payload, filter) {
     // "elke afgeronde vergadernotitie": leeg-is-alles plus genegeerde
     // sleutels is samen fail-open. Vóór deze matcher deed de ondiepe
     // `matchFilter` het omgekeerde (zulke filters vuurden nooit), dus zonder
-    // dit klapt een al opgeslagen routine stil van "nooit" naar "altijd".
+    // dit klapt een al opgeslagen automatisering stil van "nooit" naar "altijd".
     // Ook de spiegelkant telt: in `none: [{ tagIncludes: 'geheim' }]` moet de
     // submatcher NEE kunnen zeggen, anders sluit die clausule alles uit.
     const rest = {};
@@ -530,6 +551,8 @@ function pickMatcher(provider, event) {
     if (provider === 'google-calendar' && event === 'event.changed')  return matchCalendarChangedFilter;
     if (provider === 'google-calendar' && event === 'event.upcoming') return matchCalendarUpcomingFilter;
     if (provider === 'google-drive' && event === 'file.new')          return matchDriveFileNewFilter;
+    if (provider === 'google-sheets'
+        && (event === 'spreadsheet.changed' || event === 'spreadsheet.new')) return matchSheetsChangedFilter;
     if (provider === 'nextcloud') {
         // File family — share semantics same shape but slightly different fields.
         if (event === 'file.new' || event === 'file.changed' || event === 'file.deleted' || event === 'file.renamed') return matchNextcloudFileFilter;
@@ -566,4 +589,4 @@ function pickMatcher(provider, event) {
     return matchFilter;
 }
 
-module.exports = { matchGmailMailFilter, matchGmailLabelFilter, matchCalendarChangedFilter, matchCalendarUpcomingFilter, matchDriveFileNewFilter, matchNextcloudFileFilter, matchNextcloudShareFilter, matchNextcloudShareGenericFilter, matchNextcloudActivityFilter, matchNextcloudNotificationFilter, matchNextcloudCommentFilter, matchNextcloudTagFilter, matchNextcloudFormsSubmittedFilter, matchNextcloudTablesRowFilter, matchSupportTicketResolvedFilter, matchMeetingProcessedFilter, matchNextcloudCalendarFilter, matchNextcloudCalendarUpcomingFilter, matchNextcloudDeckCardFilter, matchNextcloudDeckCardMovedFilter, matchNextcloudTalkMessageFilter, matchNextcloudTalkReactionFilter, matchNextcloudTaskFilter, matchNextcloudUserStatusFilter, containsCI, pickMatcher };
+module.exports = { matchGmailMailFilter, matchGmailLabelFilter, matchCalendarChangedFilter, matchCalendarUpcomingFilter, matchDriveFileNewFilter, matchSheetsChangedFilter, matchNextcloudFileFilter, matchNextcloudShareFilter, matchNextcloudShareGenericFilter, matchNextcloudActivityFilter, matchNextcloudNotificationFilter, matchNextcloudCommentFilter, matchNextcloudTagFilter, matchNextcloudFormsSubmittedFilter, matchNextcloudTablesRowFilter, matchSupportTicketResolvedFilter, matchMeetingProcessedFilter, matchNextcloudCalendarFilter, matchNextcloudCalendarUpcomingFilter, matchNextcloudDeckCardFilter, matchNextcloudDeckCardMovedFilter, matchNextcloudTalkMessageFilter, matchNextcloudTalkReactionFilter, matchNextcloudTaskFilter, matchNextcloudUserStatusFilter, containsCI, pickMatcher };

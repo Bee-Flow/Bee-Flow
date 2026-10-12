@@ -6,7 +6,7 @@
  *   - EVERY way of not being allowed to use an agent gives the SAME answer.
  *     A deleted id, an id from another organisation, an unpublished agent and
  *     one that is simply not shared all produce one code, one severity, one
- *     path and one message. Anything less and the routine editor is an
+ *     path and one message. Anything less and the automation editor is an
  *     existence oracle for every other workspace on the install: type an id,
  *     read off the error whether it is real somewhere.
  *
@@ -17,7 +17,7 @@
  *     so the exception has nothing to stand on.
  *
  *   - the identity rule runs at SAVE and at ACTIVATE, and the run happens
- *     later. So it is completeness-listed (a routine whose agent vanished
+ *     later. So it is completeness-listed (an automation whose agent vanished
  *     stays openable and fixable, and cannot go live), and the real gate is
  *     `resolveStepAgent` in core/automationRunner/aiStepAgent.js, which FAILS
  *     the step rather than running it without the agent it names. The last
@@ -32,7 +32,7 @@ const assert = require('node:assert');
 const { validateDefinition } = require('./validate');
 const { COMPLETENESS_CODES } = require('./validate/completenessCodes');
 const { AI_STEP_AGENT_PERMISSION_KEYS, MAX_AI_STEP_SKILL_IDS } = require('./validate/constants');
-const { mayRoutineUseAgent, collectAgentIds, agentCatalogFor, servesPublishedConfig } = require('./agentCatalog');
+const { mayAutomationUseAgent, collectAgentIds, agentCatalogFor, servesPublishedConfig } = require('./agentCatalog');
 
 const TRIGGER = { id: 'trg', kind: 'manual' };
 const OFF = { startAutomations: false, useKnowledge: false, useTools: false };
@@ -82,7 +82,7 @@ test('an agent outside the catalog is refused, and the refusal says nothing abou
 });
 
 test('"belongs to someone else" and "does not exist" are the SAME record', () => {
-    // The whole rule, in one assertion: if these two ever differ, a routine
+    // The whole rule, in one assertion: if these two ever differ, an automation
     // editor becomes a way to enumerate other workspaces' agents.
     const catalog = new Set(['agt_mine']);
     const only = (id) => {
@@ -101,12 +101,12 @@ test('no catalog means no identity check — the pure pass stays pure', () => {
 });
 
 test('an agent that vanished blocks ACTIVATION but never a save', () => {
-    // The routine has to stay openable and fixable — an import arrives with an
+    // The automation has to stay openable and fixable — an import arrives with an
     // id from wherever it was built, and an agent can be deleted the day after
-    // the routine was written.
+    // the automation was written.
     const d = def({ agentId: 'agt_gone', agentPermissions: OFF });
     const opts = { availableAgents: new Set() };
-    assert.deepStrictEqual(errorCodes(d, 'draft', opts), [], 'a stranded routine must stay saveable');
+    assert.deepStrictEqual(errorCodes(d, 'draft', opts), [], 'a stranded automation must stay saveable');
     assert.ok(warnCodes(d, 'draft', opts).includes('ai_step.agent_unavailable'));
     assert.deepStrictEqual(errorCodes(d, 'activate', opts), ['ai_step.agent_unavailable']);
     assert.ok(COMPLETENESS_CODES.has('ai_step.agent_unavailable'), 'the ladder is not an accident');
@@ -132,7 +132,7 @@ test('an agent step with NO permissions is told what that means, and still saves
     const rec = run(d, 'activate').warnings.find(w => w.code === 'ai_step.agent_permissions_missing');
     assert.ok(rec, 'the default is stated rather than assumed');
     assert.match(rec.message, /no knowledge bases, no tools/i);
-    assert.match(rec.message, /cannot start other routines/i);
+    assert.match(rec.message, /cannot start other automations/i);
 });
 
 test('an unreadable permissions object blocks activation but stays saveable', () => {
@@ -228,7 +228,7 @@ test('the catalog looks up only the agents the definition names — including ne
     assert.deepStrictEqual(collectAgentIds(d).sort(), ['agt_a', 'agt_b', 'agt_c']);
 });
 
-test('a routine with no agent step gets an EMPTY catalog, not "could not check"', () => {
+test('an automation with no agent step gets an EMPTY catalog, not "could not check"', () => {
     // The difference matters: null turns the rule off, and "there was nothing
     // to look up" is not "the lookup failed".
     return agentCatalogFor(def({}), { userId: 'u1' }).then((set) => {
@@ -258,7 +258,7 @@ test('a lookup that fails yields NO catalog — never a partial one', () => {
         .then((set) => assert.strictEqual(set, null));
 });
 
-test('the catalog holds only the agents this routine may use', () => {
+test('the catalog holds only the agents this automation may use', () => {
     const rows = {
         agt_mine: { id: 'agt_mine', owner_id: 'u1', is_published: false, organization_id: 'org1', shared_groups: [] },
         agt_org: { id: 'agt_org', owner_id: 'u2', is_published: true, published_version: 2, organization_id: 'org1', shared_groups: [] },
@@ -266,7 +266,7 @@ test('the catalog holds only the agents this routine may use', () => {
         agt_draft: { id: 'agt_draft', owner_id: 'u2', is_published: false, organization_id: 'org1', shared_groups: [] },
         // Shared but never versioned: the library switch is on, no version was
         // ever published, so `getForRuntime` still serves the owner's LIVE
-        // draft. Not a routine's to run — see servesPublishedConfig.
+        // draft. Not an automation's to run — see servesPublishedConfig.
         agt_shared_unversioned: { id: 'agt_shared_unversioned', owner_id: 'u2', is_published: true, published_version: 0, organization_id: 'org1', shared_groups: [] },
     };
     const agentStore = { getForRuntime: async (id) => rows[id] || null };
@@ -294,12 +294,12 @@ test('the permission names are the ones the runtime reads', () => {
     assert.deepStrictEqual([...AI_STEP_AGENT_PERMISSION_KEYS], [...AGENT_PERMISSION_KEYS]);
 });
 
-test('save-time and run-time agree on WHICH agents a routine may use', () => {
-    // Two implementations of one rule — agentCatalog.mayRoutineUseAgent at save
+test('save-time and run-time agree on WHICH agents an automation may use', () => {
+    // Two implementations of one rule — agentCatalog.mayAutomationUseAgent at save
     // and aiStepAgent's own predicate at run time. They cannot be one function
     // (one takes a request-shaped principal, the other a run context), so they
     // are held to the same table instead. A disagreement here is either a
-    // routine that activates and then fails every night, or one that is refused
+    // automation that activates and then fails every night, or one that is refused
     // for an agent it could have used.
     const { resolveStepAgent } = require('../core/automationRunner/aiStepAgent');
     const base = { id: 'agt_1', name: 'A', config: {}, system_prompt: '' };
@@ -327,7 +327,7 @@ test('save-time and run-time agree on WHICH agents a routine may use', () => {
     const step = { id: 's1', type: 'ai_step', agentId: 'agt_1' };
     return Promise.all(cases.map(async ([label, row, principal, expected]) => {
         const agent = { ...base, ...row };
-        const saveTime = mayRoutineUseAgent(agent, principal);
+        const saveTime = mayAutomationUseAgent(agent, principal);
         const ctx = { userId: principal.userId, orgId: principal.orgId, userGroupIds: principal.groups };
         let runTime = true;
         try {
@@ -344,7 +344,7 @@ test('shared is not published: only a serving VERSION opens the door for someone
     // independently — publishing to the library never touches the version, and
     // the backfill deliberately does not run at boot — so `is_published: true`
     // with `published_version: 0` is an ordinary state in which getForRuntime
-    // serves the owner's LIVE draft. Someone else's unattended routine running
+    // serves the owner's LIVE draft. Someone else's unattended automation running
     // on that draft means every autosave in the agent editor changes what fires
     // tonight, with no version and no review.
     assert.strictEqual(servesPublishedConfig({ is_published: true, published_version: 3 }), true);
@@ -377,11 +377,11 @@ test('an identity that could not be read is not a yes', () => {
     ]);
 });
 
-test('the org boundary is the owner\'s membership, not the stamp on the routine row', () => {
+test('the org boundary is the owner\'s membership, not the stamp on the automation row', () => {
     // `ctx.orgId` is runOrgFor(automation, session) — the automations column,
     // which does NOT move when an admin transfers the owner to another
     // organisation. `ctx.userHomeOrgId` is read fresh from `users` in the same
-    // place `orgRole` is. A routine stamped org1 whose owner now lives in org2
+    // place `orgRole` is. An automation stamped org1 whose owner now lives in org2
     // must resolve org2's agents, or it keeps running on his old workspace's
     // toolgrants and knowledge bases forever.
     const { resolveStepAgent } = require('../core/automationRunner/aiStepAgent');
@@ -394,14 +394,14 @@ test('the org boundary is the owner\'s membership, not the stamp on the routine 
         assert.rejects(
             () => resolveStepAgent(step, ctx, { agentStore: { getForRuntime: async () => agentIn('org1') } }),
             (e) => e.errorClass === 'agent_unavailable',
-            'the stale stamp on the routine row does not open a door',
+            'the stale stamp on the automation row does not open a door',
         ),
     ]);
 });
 
 test('the run refuses an agent it cannot use rather than running the step without one', () => {
     // The half no validation can cover: the agent is deleted the day after the
-    // routine went live. Running the step bare would look, from outside, like a
+    // automation went live. Running the step bare would look, from outside, like a
     // successful run with a thin answer.
     const { resolveStepAgent } = require('../core/automationRunner/aiStepAgent');
     const step = { id: 's1', type: 'ai_step', agentId: 'agt_gone' };

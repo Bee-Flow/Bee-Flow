@@ -181,7 +181,7 @@ function _stringifyPayload(toolArgs, result) {
  * @param {boolean} [o.blocked]       Marks the row status 'blocked' (guardrail refusal).
  * @param {object}  [o.probe]         outboundProbe snapshot: `peers` plus the legacy
  *                                    single-destination fields (see outboundProbe.js).
- * @param {string}  o.source          'agent_stream' | 'direct_chat' | 'routine'.
+ * @param {string}  o.source          'agent_stream' | 'direct_chat' | 'automation'.
  * @param {string}  [o.model]
  * @param {number}  [o.durationMs]    Wall-clock around the tool dispatch.
  * @param {object}  o.ids             organization_id, user_id, agent_id, agent_name,

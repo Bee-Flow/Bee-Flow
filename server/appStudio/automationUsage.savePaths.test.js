@@ -5,7 +5,7 @@
  * `reconcileAutomationUsage` is delete-then-insert op (consumer_kind,
  * consumer_id). Een schrijfpad dat de reconcile overslaat voegt dus niet
  * gewoon niets toe: het laat de rijen van de VÓRIGE definitie staan. Een actie
- * die haar routine kwijtraakt houdt de capsule "Gebruikt door 1 knop" in de
+ * die haar automatisering kwijtraakt houdt de capsule "Gebruikt door 1 knop" in de
  * lucht, en een die er een krijgt komt er nooit in — en het scherm waarop je
  * dat zou zien is precies het scherm dat op die index leunt.
  *
@@ -164,14 +164,14 @@ test('elke storefunctie die de definitie schrijft, wordt via haar herindexerende
     for (const fn of writers.keys()) {
         const body = bodyOf(src, `${fn}Indexed`);
         assert.ok(body, `${STORE}: de body van ${fn}Indexed is niet te vinden`);
-        assert.match(body, /reindexRoutineUsage\(|reconcileAppAutomationUsageDetached\(/,
+        assert.match(body, /reindexAutomationUsage\(|reconcileAppAutomationUsageDetached\(/,
             `${STORE}: ${fn}Indexed herindexeert niet — zonder die aanroep blijven de rijen van de VORIGE `
-            + 'definitie staan (de reconcile is delete-then-insert), en houdt een actie die haar routine '
+            + 'definitie staan (de reconcile is delete-then-insert), en houdt een actie die haar automatisering '
             + 'kwijtraakt de capsule voor altijd in de lucht');
     }
     // De reconciler wordt door één helper aangeroepen, niet tien keer los.
     assert.match(src, /reconcileAppAutomationUsageDetached\(/,
-        `${STORE}: de wrappers horen de routine-usage-reconciler aan te roepen`);
+        `${STORE}: de wrappers horen de automation-usage-reconciler aan te roepen`);
 });
 
 /**
@@ -190,7 +190,7 @@ test('de publish-schrijver gaat ook door een herindexerende wrapper', () => {
         `${STORE}: setStudioAppPublished hoort als zijn herindexerende wrapper geexporteerd te worden`);
     const body = bodyOf(src, 'setStudioAppPublishedIndexed');
     assert.ok(body, `${STORE}: setStudioAppPublishedIndexed bestaat niet`);
-    assert.match(body, /reindexRoutineUsage\(/,
+    assert.match(body, /reindexAutomationUsage\(/,
         `${STORE}: setStudioAppPublishedIndexed herindexeert niet — dan blijft de index de draft-stand houden `
         + 'terwijl de LIVE app een andere definitie draait');
 });
@@ -216,7 +216,7 @@ test('de gedragstesten van de wrappers bestaan', () => {
 test('beide kanten van de ontbrekende FK worden opgeruimd', () => {
     // Er is geen FK naar `studio_apps` en geen naar `automations`, dus geen van
     // beide verwijderingen ruimt zichzelf op. Blijft een rij staan, dan claimt
-    // hij namens een knop of een routine die niet meer bestaat.
+    // hij namens een knop of een automatisering die niet meer bestaat.
     // Bewust brontekst, zelfde reden als hierboven — twee bestanden, geen van
     // beide een test die dit gedrag al aandrijft.
     assert.match(read(STORE), /purgeAppAutomationUsage\(/,
@@ -225,10 +225,10 @@ test('beide kanten van de ontbrekende FK worden opgeruimd', () => {
         `${STORE}: de delete hoort door haar opruimende wrapper te gaan`);
     assert.match(read(STORE), /\bdeleteStudioApp:\s*deleteStudioAppIndexed\b/,
         `${STORE}: en die wrapper hoort de geexporteerde te zijn`);
-    // Handoff 5: DELETE moves a routine into the trash; the final delete, and
+    // Handoff 5: DELETE moves an automation into the trash; the final delete, and
     // this cleanup with it, is the trash purge.
     assert.match(read('jobs/automationTrashPurge.js'), /purgeUsageOfAutomation\(/,
-        'jobs/automationTrashPurge.js: a purged routine takes its rows with it');
+        'jobs/automationTrashPurge.js: a purged automation takes its rows with it');
 });
 
 /** Elke .js-bron onder server/, minus dependencies, tests en vendored code. */
@@ -254,7 +254,7 @@ const RECONCILER_CALLERS = [
     'stores/studioAppStore.js',
 ];
 const AUTOMATION_PURGE_CALLERS = [
-    'jobs/automationTrashPurge.js',   // a routine leaves the trash for good (handoff 5)
+    'jobs/automationTrashPurge.js',   // an automation leaves the trash for good (handoff 5)
 ];
 
 test('niets anders roept de app-reconciler aan zonder hier te staan', () => {
@@ -271,7 +271,7 @@ test('niets anders roept de app-reconciler aan zonder hier te staan', () => {
     }
 });
 
-test('niets anders ruimt de routine-kant op zonder hier te staan', () => {
+test('niets anders ruimt de automation-kant op zonder hier te staan', () => {
     const self = ['stores/automationUsageStore.js'];     // de definitie, geen aanroeper
     for (const file of sources(SERVER)) {
         const rel = path.relative(SERVER, file).split(path.sep).join('/');

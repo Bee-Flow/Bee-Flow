@@ -25,7 +25,7 @@ const fx = {
     clientId: 'wid',
     clientSecret: 'wsecret',
     user: { id: 'u1', organizationId: 'orgA' },
-    upserts: [],            // routineCredentialStore.upsertCredential spy
+    upserts: [],            // automationCredentialStore.upsertCredential spy
     cred: null,             // getCredential fixture
     configSets: [],         // configStore.setConfig spy
     configDeletes: [],      // configStore.deleteConfig spy
@@ -45,11 +45,11 @@ const MOCKS = {
         getConfig: async (k) => (k.startsWith('withings_userid_user_') ? '99887' : null),
         deleteConfig: async (k) => { fx.configDeletes.push(k); },
     },
-    '../../stores/routineCredentialStore': {
+    '../../stores/automationCredentialStore': {
         upsertCredential: async (row) => { fx.upserts.push(row); },
         getCredential: async () => fx.cred,
     },
-    '../../auth/routineAuth': {
+    '../../auth/automationAuth': {
         withingsClientConfig: async () => ({ clientId: fx.clientId, clientSecret: fx.clientSecret }),
         // The real unwrapper, condensed to what these routes rely on.
         readWithingsBody: (data, label) => {

@@ -29,7 +29,7 @@ const { keyFromTitle } = require('../../core/dataEngine/sources/mirror/keys');
 
 /**
  * The refusal every data tool gives for a LINKED table (source: datatable).
- * Its rows live in a Studio table — a Nextcloud mirror a routine fills, an
+ * Its rows live in a Studio table — a Nextcloud mirror an automation fills, an
  * org table — and are read live. Seeding it would write fictional rows into
  * the real table (readwrite) or fail per row (read); evolving its fields here
  * would drift the copy from the source; a saved dataset cannot read it yet.

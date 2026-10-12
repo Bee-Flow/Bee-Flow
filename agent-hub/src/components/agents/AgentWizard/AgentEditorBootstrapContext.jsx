@@ -15,7 +15,7 @@ const EMPTY = {
     allSkills: null,
     integrationStatus: null,
     categories: [],
-    // Dezelfde regel als voor de routines hieronder: een `[]` uit een MISLUKTE
+    // Dezelfde regel als voor de automatiseringen hieronder: een `[]` uit een MISLUKTE
     // lezing is niet "deze org heeft geen categorieën". Zonder dat verschil
     // verdween de categorietag van een agent DIE er een heeft zodra
     // /agents/categories 403'de, en kreeg een agent zonder er een keuzelijst
@@ -27,7 +27,7 @@ const EMPTY = {
     automations: [],
     // "Kon de routinelijst gelezen worden?" — apart van de lijst zelf, want
     // `/api/automation` hangt achter de automations-module en kan 403'en of
-    // omvallen, en dan is `[]` niet "deze gebruiker heeft geen routines".
+    // omvallen, en dan is `[]` niet "deze gebruiker heeft geen automations".
     // Alleen deze toestand mag beslissen of een scherm "geen" durft te zeggen.
     automationsState: READ.LOADING,
     loaded: false,

@@ -117,7 +117,7 @@
  * counts on every screen are aggregates evaluated at read time.
  *
  * It does not run the personal-data scan itself. The scan button fires a
- * routine the customer wires up (Bee Flow's guard-service is the intended one),
+ * automation the customer wires up (Bee Flow's guard-service is the intended one),
  * and the screen says so in plain words rather than pretending the findings
  * appear by magic. A source admitted with `scanned_on` empty is not an error —
  * it is the gap, and the Review queue puts it next to the approve button.
@@ -932,7 +932,7 @@ const SCREEN_SOURCES = {
                             { key: 'review_state', label: 'State', format: 'badge', width: 130, sortable: true, filterable: true, editable: false },
                             { key: 'index_state', label: 'Index', format: 'badge', width: 140, sortable: true, filterable: true, editable: true },
                             { key: 'review_due', label: 'Review due', format: 'date', width: 130, sortable: true, filterable: false, editable: true },
-                            // Editable, and it has to be: the scan is a routine
+                            // Editable, and it has to be: the scan is an automation
                             // the customer wires up, so until they do, "we
                             // looked and found nothing" has nowhere else to be
                             // recorded and every "never scanned" count on every
@@ -1307,7 +1307,7 @@ const SCREEN_SOURCE = {
                 },
             ],
         },
-        // Recording a finding by hand. The scan is a routine the customer wires
+        // Recording a finding by hand. The scan is an automation the customer wires
         // up, and it ships unset — so without this the findings table can only
         // ever be read, and the Personal-data screen's promise that "findings
         // are entered by hand until then" would be a promise no control keeps.
@@ -1818,7 +1818,7 @@ const SCREEN_PII = {
                     id: 'cmp_pinote',
                     type: 'callout',
                     props: {
-                        title: 'The scan is a routine you wire up',
+                        title: 'The scan is an automation you wire up',
                         text: 'This app records findings; it does not detect them. **Run the scan** fires an automation which is not connected yet — point it at your PII detection service (Bee Flow ships one) in Automations, and its results land in this table. Until then, open a source and record findings by hand at the bottom of its screen; the "never scanned" number above is the honest picture, and the Scanned date is yours to set on the Sources screen.',
                         tone: 'info',
                     },
@@ -2901,7 +2901,7 @@ const actions = {
         steps: [
             { kind: 'run_automation', automationId: null, resultVar: 'scanResult' },
             { kind: 'refresh', tableId: 'tbl_finds01' },
-            { kind: 'toast', message: 'Scan requested. If nothing appears, connect the routine in Automations first.', tone: 'info' },
+            { kind: 'toast', message: 'Scan requested. If nothing appears, connect the automation in Automations first.', tone: 'info' },
         ],
     },
 
@@ -2932,7 +2932,7 @@ const actions = {
 
     /**
      * Recording a finding by hand, from the Source screen — the degradation
-     * path for a scan routine nobody has wired up yet.
+     * path for a scan automation nobody has wired up yet.
      *
      * The two branches exist for one reason: `is_special_category` is not a
      * preference. Health and biometric material IS Art. 9 whether or not the
@@ -3303,7 +3303,7 @@ const definition = {
     variables: [
         { name: 'base', label: 'Selected knowledge base', type: 'record', default: null, description: 'Optional facet. When null every screen shows the whole register; picking one narrows the numbers and the lists to that base.' },
         { name: 'source', label: 'Open source', type: 'record', default: null, description: 'Carries the id of the source being reviewed. The Source screen re-reads the row itself rather than trusting this snapshot.' },
-        { name: 'scanResult', label: 'Last scan result', type: 'any', default: null, description: 'What the personal-data scan routine returned, if one is wired up.' },
+        { name: 'scanResult', label: 'Last scan result', type: 'any', default: null, description: 'What the personal-data scan automation returned, if one is wired up.' },
     ],
     homeScreenId: 'scr_register',
     screens: [

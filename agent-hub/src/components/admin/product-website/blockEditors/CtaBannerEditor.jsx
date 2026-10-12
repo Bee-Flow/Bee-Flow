@@ -8,10 +8,12 @@ import {
     BackgroundVariantSelect,
 } from '../primitives';
 import { set, CtaButtonField } from './shared';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 // ── CTA Banner ───────────────────────────────────────────────────────
 
 export function CtaBannerEditor({ data = {}, pages = [], onChange }) {
+    const { t } = useTranslation();
     const setField = (key, value) => onChange(set(data, key, value));
     const primary  = data.primaryCta || { label: '', link: { kind: 'external', url: '' } };
     const showSecondary = !!data.secondaryCta;
@@ -21,81 +23,81 @@ export function CtaBannerEditor({ data = {}, pages = [], onChange }) {
 
     return (
         <>
-            <InlineHint>Click heading and subheading in the preview to edit inline.</InlineHint>
+            <InlineHint>{t('cms_site.blocks.cta_banner.click_heading_and_subheading_in_the', 'Click heading and subheading in the preview to edit inline.')}</InlineHint>
 
-            <CollapsibleCard title="Text" defaultOpen={true} persistKey="blk.cta-banner.text">
+            <CollapsibleCard title={t('cms_site.blocks.cta_banner.text', 'Text')} defaultOpen={true} persistKey="blk.cta-banner.text">
                 <TextField
-                    label="Heading"
+                    label={t('cms_site.blocks.cta_banner.heading', 'Heading')}
                     value={data.heading || ''}
                     onChange={v => setField('heading', v)}
-                    placeholder="Heading"
+                    placeholder={t('cms_site.blocks.cta_banner.heading', 'Heading')}
                     align={data.headingAlign || data.align || 'left'}
                     onAlignChange={v => setField('headingAlign', v)}
                 />
                 <TextField
-                    label="Subheading"
+                    label={t('cms_site.blocks.cta_banner.subheading', 'Subheading')}
                     value={data.subheading || ''}
                     onChange={v => setField('subheading', v)}
-                    placeholder="Subheading"
+                    placeholder={t('cms_site.blocks.cta_banner.subheading', 'Subheading')}
                     align={data.subheadingAlign || data.align || 'left'}
                     onAlignChange={v => setField('subheadingAlign', v)}
                 />
             </CollapsibleCard>
 
             <FieldSelect
-                label="Layout"
+                label={t('cms_site.blocks.cta_banner.layout', 'Layout')}
                 value={data.layout || 'centered'}
                 options={[
-                    { value: 'centered', label: 'Centered' },
-                    { value: 'split',    label: 'Split (heading left, CTAs right)' },
+                    { value: 'centered', label: t('cms_site.blocks.cta_banner.layout_centered', 'Centered') },
+                    { value: 'split',    label: t('cms_site.blocks.cta_banner.layout_split', 'Split (heading left, CTAs right)') },
                 ]}
                 onChange={v => setField('layout', v)}
             />
 
             <BackgroundVariantSelect
-                label="Background"
+                label={t('cms_site.blocks.cta_banner.background', 'Background')}
                 value={data.backgroundVariant || 'primary'}
                 onChange={v => setField('backgroundVariant', v)}
             />
 
-            <CollapsibleCard title="Primary CTA" persistKey="blk.cta-banner.primary-cta">
+            <CollapsibleCard title={t('cms_site.blocks.cta_banner.primary_cta', 'Primary CTA')} persistKey="blk.cta-banner.primary-cta">
                 <CtaButtonField
                     value={primary}
                     pages={pages}
                     onChange={v => setField('primaryCta', v)}
-                    label="Primary CTA"
+                    label={t('cms_site.blocks.cta_banner.primary_cta', 'Primary CTA')}
                 />
             </CollapsibleCard>
 
-            <Toggle label="Show secondary CTA" value={showSecondary} onChange={toggleSecondary} />
+            <Toggle label={t('cms_site.blocks.cta_banner.show_secondary_cta', 'Show secondary CTA')} value={showSecondary} onChange={toggleSecondary} />
 
             {showSecondary ? (
-                <CollapsibleCard title="Secondary CTA" persistKey="blk.cta-banner.secondary-cta">
+                <CollapsibleCard title={t('cms_site.blocks.cta_banner.secondary_cta', 'Secondary CTA')} persistKey="blk.cta-banner.secondary-cta">
                     <CtaButtonField
                         value={data.secondaryCta || {}}
                         pages={pages}
                         onChange={v => setField('secondaryCta', v)}
-                        label="Secondary CTA"
+                        label={t('cms_site.blocks.cta_banner.secondary_cta', 'Secondary CTA')}
                     />
                 </CollapsibleCard>
             ) : null}
 
             {/* Text styles — heading + subheading only (CTA Banner has
                 no body paragraph; its text is just headline + tagline). */}
-            <CollapsibleCard title="Text styles" defaultOpen={false} persistKey="blk.cta-banner.text-styles">
+            <CollapsibleCard title={t('cms_site.blocks.cta_banner.text_styles', 'Text styles')} defaultOpen={false} persistKey="blk.cta-banner.text-styles">
                 <StyleTriplet
-                    label="Heading"
+                    label={t('cms_site.blocks.cta_banner.heading', 'Heading')}
                     value={data.headingStyle}
                     onChange={v => setField('headingStyle', v)}
-                    sample={data.heading || 'Heading preview'}
+                    sample={data.heading || t('cms_site.blocks.cta_banner.heading_preview', 'Heading preview')}
                     weight={700}
                     min={12} max={96}
                 />
                 <StyleTriplet
-                    label="Subheading"
+                    label={t('cms_site.blocks.cta_banner.subheading', 'Subheading')}
                     value={data.subheadingStyle}
                     onChange={v => setField('subheadingStyle', v)}
-                    sample={data.subheading || 'Subheading preview'}
+                    sample={data.subheading || t('cms_site.blocks.cta_banner.subheading_preview', 'Subheading preview')}
                     weight={500}
                     min={10} max={48}
                 />

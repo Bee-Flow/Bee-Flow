@@ -12,8 +12,8 @@
  *                            while the catalogue looks complete.
  *
  * SCOPE, stated because a claim is never wider than its scan: this reads the
- * three files the overview is MADE of — the screen, the card, and the shared
- * counted-phrase module — and no further. It does not claim the whole
+ * files the overview is MADE of — the screen, the card (each with its Parts
+ * file), and the shared counted-phrase module — and no further. It does not claim the whole
  * `solutions.*` namespace is translated, and it is not: the section names,
  * bands and Check-tab copy that O2 added have no Dutch catalogue at all, and
  * `sectionNames` can put those on a card. That gap belongs to the stage that
@@ -33,10 +33,12 @@ const { GUI_DEFAULTS } = require('../i18n/defaults/en');
 const MIGRATIONS_DIR = __dirname;
 const HUB = path.join(__dirname, '..', '..', 'agent-hub', 'src', 'components');
 
-/** The three files the overview is made of. */
+/** The files the overview is made of (the screen and the card each split into a Parts file). */
 const SCREEN_FILES = [
     path.join(HUB, 'admin', 'Studio', 'Solutions', 'SolutionsOverview.jsx'),
+    path.join(HUB, 'admin', 'Studio', 'Solutions', 'SolutionsOverviewParts.tsx'),
     path.join(HUB, 'admin', 'Studio', 'Solutions', 'SolutionCard.jsx'),
+    path.join(HUB, 'admin', 'Studio', 'Solutions', 'SolutionCardParts.tsx'),
     path.join(HUB, 'admin', 'Studio', 'Solutions', 'solutionCounts.js'),
 ];
 

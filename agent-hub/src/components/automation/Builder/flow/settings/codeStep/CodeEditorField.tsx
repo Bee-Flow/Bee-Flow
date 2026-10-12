@@ -68,7 +68,7 @@ function FailureNote({ failure }: { failure: Failure }) {
         return <SectionNote tone="warn">{t('code_step.editor.chunk_failed', 'The code editor could not be loaded, so this is the plain text box. Nothing is lost: it edits and saves exactly the same code.')}</SectionNote>;
     }
     if (failure === 'stalled') {
-        return <SectionNote tone="warn">{t('code_step.editor.stalled', 'The code editor did not finish loading, so this is the plain text box. It is fetched from the internet the first time you open it, so an offline or firewalled install never gets it. Nothing is lost: this box edits and saves exactly the same code.')}</SectionNote>;
+        return <SectionNote tone="warn">{t('code_step.editor.stalled', 'The code editor did not finish loading, so this is the plain text box. Reload the page to try again. Nothing is lost: this box edits and saves exactly the same code.')}</SectionNote>;
     }
     return null;
 }

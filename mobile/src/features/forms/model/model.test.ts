@@ -37,7 +37,7 @@ const summary = (patch: Partial<FormSummary>): FormSummary => ({
 });
 
 describe('the Form page route', () => {
-    it('keeps the token out of the route: a token resolves to its routine, a routine id is taken as it is', () => {
+    it('keeps the token out of the route: a token resolves to its automation, an automation id is taken as it is', () => {
         const forms = [summary({})];
         expect(resolveFormRef('3f2b6c1e-0000-4000-8000-000000000001', undefined)).toEqual({ automationId: '3f2b6c1e-0000-4000-8000-000000000001', redirect: false });
         expect(resolveFormRef(TOKEN, undefined)).toBeNull();

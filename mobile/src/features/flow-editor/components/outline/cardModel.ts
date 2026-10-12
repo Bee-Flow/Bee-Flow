@@ -6,7 +6,7 @@
  */
 
 import {
-    nodeTypeLabel, stepFamily, type AnyNode, type FlowDefinition, type NodeFamily, type StepIssues, type Translate,
+    buildStepTypeMap, nodeTypeLabel, stepFamily, type AnyNode, type FlowDefinition, type NodeFamily, type StepIssues, type Translate,
 } from '@/features/flow-editor/model';
 import { findNode, type RunRow } from '@/features/flow-editor/model/outline';
 import type { IconName } from '@/shared/ui';
@@ -52,9 +52,15 @@ export interface CardModel {
 
 function kickerFor(node: AnyNode, number: number | string | undefined, t: Translate): string {
     const kind = node.type === 'trigger' && node.kind === 'app_trigger'
-        ? t('routines.trigger.app_button', 'Button in an app')
-        : nodeTypeLabel(node.type, t) || t('routines.builder.node_generic', 'Step');
+        ? t('automations.trigger.app_button', 'Button in an app')
+        : nodeTypeLabel(node.type, t) || t('automations.builder.node_generic', 'Step');
     return number != null ? `${kind} · ${number}` : kind;
+}
+
+/** The context with the step names and types filled in from the definition where it brings none. */
+function withNames(def: FlowDefinition, given: CardContext): CardContext {
+    const named = given.stepLabelById ? given : { ...given, stepLabelById: cardLabelMap(def, given.t) };
+    return named.stepTypeById ? named : { ...named, stepTypeById: buildStepTypeMap(def) };
 }
 
 /**
@@ -65,7 +71,7 @@ function kickerFor(node: AnyNode, number: number | string | undefined, t: Transl
 export function cardModel(def: FlowDefinition, address: string, given: CardContext): CardModel | null {
     const node = findNode(def, address);
     if (!node) return null;
-    const ctx = given.stepLabelById ? given : { ...given, stepLabelById: cardLabelMap(def, given.t) };
+    const ctx = withNames(def, given);
     const run = ctx.runByStep?.get(node.id) ?? null;
     const issues = ctx.issuesByStep?.get(node.id);
     const { text, muted } = summaryText(stepSummary(node, ctx));
@@ -79,7 +85,7 @@ export function cardModel(def: FlowDefinition, address: string, given: CardConte
         name: stepName(node, ctx),
         sub: text,
         subMuted: muted,
-        list: node.type === 'loop' ? readablePath(node.overRef, ctx.stepLabelById, ctx.t) : null,
+        list: node.type === 'loop' ? readablePath(node.overRef, ctx.stepLabelById, ctx.t, { stepTypeById: ctx.stepTypeById }) : null,
         status: run?.status ?? null,
         result: describeStepResult(run, ctx.t),
         pinned,

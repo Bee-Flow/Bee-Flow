@@ -38,7 +38,7 @@ const BY_COURSE = Object.freeze({
     'course-agent-knowledge': BookOpen,   // studioApps: knowledge
     'course-skills-automation': Sparkles, // studioApps: skills
     'course-automations-mastery': Workflow,
-    'course-routines-production': History,// studioApps: runs
+    'course-automations-production': History,// studioApps: runs
     'course-data-and-forms': Table2,      // studioApps: datatables
     'course-apps': LayoutGrid,            // studioApps: apps
     'course-playbooks-solutions': Boxes,  // studioApps: solutions

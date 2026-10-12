@@ -15,7 +15,7 @@ export const GENERATED_PATH_ORDER = {
         "course-agent-knowledge",
         "course-skills-automation",
         "course-automations-mastery",
-        "course-routines-production",
+        "course-automations-production",
         "course-data-and-forms",
         "course-apps",
         "course-playbooks-solutions",

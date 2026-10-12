@@ -9,7 +9,7 @@
  * (`attachRun`) and finished (`markCompleted`).
  *
  * ── AS WHOM ────────────────────────────────────────────────────────
- * The table is resolved AS THE ROUTINE'S OWNER through the same resolver a
+ * The table is resolved AS THE AUTOMATION'S OWNER through the same resolver a
  * datatable step uses (resolveDatatableForStep), so a table the owner lost
  * the right to write — transferred, un-granted — refuses here exactly as it
  * would refuse a step. The row's `created_by` is the SUBMITTER, though: it
@@ -20,6 +20,10 @@
  * gone, a refused grade — the submission is still accepted and the run still
  * starts. What went wrong is written to `source.lastWriteError` where the
  * owner sees it on the Form page and on the table.
+ *
+ * A Solution stage's reference table refuses every row write in the compiler
+ * (RowsLockedError); it is recorded like any other refusal, under its class
+ * `managed_part`, never rewrapped.
  */
 
 'use strict';
@@ -38,7 +42,7 @@ const log = require('../../telemetry/log');
 const PG = { dialect: 'pg' };
 const TAG = '[form answers]';
 
-/** The run-context shape the datatable resolver reads, for the routine's owner. */
+/** The run-context shape the datatable resolver reads, for the automation's owner. */
 async function principalCtxFor(automation) {
     const p = await resolveDatatablePrincipalForUser(automation.userId);
     return {
@@ -97,6 +101,8 @@ async function recordSubmission({ automation, definition, values, submitterId = 
     try {
         r = await resolveAnswers(automation);
         if (!r) return null;
+        // Before the quota: a locked table is refused for that, not as full.
+        queryCompiler.assertRowsWritable(r.tableMeta);
         await assertDatatableQuota(r.scope, { table: r.table, addRows: 1 });
         const row = derive.rowValuesFor(r.columnMap, null, values);
         if (derive.inputPagesOf(definition).length === 0) row.completed_at = new Date().toISOString();
@@ -122,7 +128,9 @@ async function recordPageAnswers({ automation, datatableId, rowId, pageStepId, v
         if (!r) return false;
         const row = derive.rowValuesFor(r.columnMap, pageStepId, values);
         if (!Object.keys(row).length) return false;
-        return patchRow(r, rowId, row);
+        // `await`, not a bare return: the catch below must see patchRow's
+        // refusal (a locked table, a failed write), or it escapes unrecorded.
+        return await patchRow(r, rowId, row);
     } catch (e) {
         await noteWriteError(automation, r && r.table, r && r.scope, e);
         return false;
@@ -135,7 +143,7 @@ async function attachRun({ automation, datatableId, rowId, run }) {
     try {
         const r = await resolveAnswers(automation, { datatableId });
         if (!r) return false;
-        return patchRow(r, rowId, { run_id: String(run.rootRunId || run.id) });
+        return await patchRow(r, rowId, { run_id: String(run.rootRunId || run.id) });
     } catch (e) {
         log.warn(`${TAG} attachRun: ${e.message}`);
         return false;
@@ -148,7 +156,7 @@ async function markCompleted({ automation, datatableId, rowId }) {
     try {
         const r = await resolveAnswers(automation, { datatableId });
         if (!r) return false;
-        return patchRow(r, rowId, { completed_at: new Date().toISOString() });
+        return await patchRow(r, rowId, { completed_at: new Date().toISOString() });
     } catch (e) {
         log.warn(`${TAG} markCompleted: ${e.message}`);
         return false;

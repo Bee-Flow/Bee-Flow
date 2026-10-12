@@ -12,12 +12,12 @@ import { API_BASE, authFetch } from '../../utils/helpers';
  *
  *   TABEL         per gebonden datatable — rijen, kolomchips, en gestippeld
  *                 "niet gebruikt" als de pagina hem in haar eigen code niet noemt.
- *   ROUTINE       per routine die zo'n tabel voedt (uit de usage-index): welke
+ *   AUTOMATION       per automatisering die zo'n tabel voedt (uit de usage-index): welke
  *                 kolommen hij aanraakt en wanneer hij liep.
  *   KENNISBRONNEN de webpage_auto-KB. Die bestaat al en het ontwerp tekent hem
  *                 niet, maar hij hoort bij "wat voedt deze pagina" en telt dus
  *                 mee in de n. Hij komt uit `sources`, die de tab toch al heeft.
- *   WAARSCHUWING  een routine die RECHTSTREEKS in een gebonden tabel schrijft.
+ *   WAARSCHUWING  een automatisering die RECHTSTREEKS in een gebonden tabel schrijft.
  *
  * ── DRIE DINGEN DIE DIT SCHERM NIET MAG BEWEREN ─────────────────────
  *
@@ -157,21 +157,21 @@ function AutomationCard({ t, automation }) {
             <div className="flex items-center gap-2 flex-wrap">
                 <Workflow size={14} style={{ color: 'var(--type-trigger)' }} />
                 <span className="text-sm font-medium">
-                    {automation.title || t('webpages.data.routine_untitled', 'Untitled routine')}
+                    {automation.title || t('webpages.data.automation_untitled', 'Untitled automation')}
                 </span>
                 <Chip
                     label={automation.writes
-                        ? t('webpages.data.routine_writes', 'Writes')
-                        : t('webpages.data.routine_reads', 'Reads')}
+                        ? t('webpages.data.automation_writes', 'Writes')
+                        : t('webpages.data.automation_reads', 'Reads')}
                     tone="muted"
                 />
             </div>
             <div className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
-                {t('webpages.data.routine_feeds', 'Feeds {table}', { table: automation.tableName || automation.datatableId })}
+                {t('webpages.data.automation_feeds', 'Feeds {table}', { table: automation.tableName || automation.datatableId })}
                 {' · '}
                 {automation.lastRunAt
-                    ? t('webpages.data.routine_last_run', 'last run {when}', { when: formatRelativeTime(automation.lastRunAt) })
-                    : t('webpages.data.routine_never_ran', 'never ran')}
+                    ? t('webpages.data.automation_last_run', 'last run {when}', { when: formatRelativeTime(automation.lastRunAt) })
+                    : t('webpages.data.automation_never_ran', 'never ran')}
             </div>
             {automation.columns?.length > 0 && (
                 <div className="flex flex-wrap gap-1">
@@ -204,9 +204,9 @@ function WarningCard({ t, warning, onNavigate }) {
                 <div className="flex-1">
                     <p className="text-sm">
                         {t('webpages.data.warn_writes_directly',
-                            '{routine} writes straight into table {table}.',
+                            '{automation} writes straight into table {table}.',
                             {
-                                routine: warning.automationTitle || t('webpages.data.routine_untitled', 'Untitled routine'),
+                                automation: warning.automationTitle || t('webpages.data.automation_untitled', 'Untitled automation'),
                                 table: warning.tableName || warning.datatableId,
                             })}
                     </p>
@@ -327,7 +327,7 @@ export default function WebpageDataCards({ webpageId, sources = [], onNavigate =
 }
 
 /**
- * Wat de tab-badge telt: tabellen + voedende routines + de ene
+ * Wat de tab-badge telt: tabellen + voedende automatiseringen + de ene
  * Kennisbronnen-kaart. Geëxporteerd zodat de tab dezelfde som maakt als het
  * scherm, in plaats van hem een tweede keer op te schrijven.
  *

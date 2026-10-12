@@ -87,7 +87,7 @@ describe('a server answer', () => {
 /**
  * Retrying is only safe when sending the request twice is harmless. A 503 or a
  * timeout does not say whether the first attempt landed, so a retried POST can
- * create a second skill or toggle a routine straight back off. Reads keep the
+ * create a second skill or toggle an automation straight back off. Reads keep the
  * backoff that saves a cold start on a radio that has not associated yet.
  */
 describe('retries', () => {

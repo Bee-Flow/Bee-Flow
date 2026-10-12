@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
@@ -45,6 +46,7 @@ vi.mock('./AvatarPicker', () => ({
 }));
 vi.mock('./MeetingNotesSection', () => ({ default: () => <div data-testid="meeting-notes" /> }));
 vi.mock('./GoogleMeetNotesSection', () => ({ default: () => <div data-testid="google-meet-notes" /> }));
+vi.mock('./TeamsMeetingNotesSection', () => ({ default: () => <div data-testid="teams-meeting-notes" /> }));
 vi.mock('./SummaryTemplatesSection', () => ({ default: () => <div data-testid="summary-templates" /> }));
 vi.mock('./VoiceprintSection', () => ({ default: () => <div data-testid="voiceprint" /> }));
 vi.mock('./AiParticipationSection', () => ({ default: ({ enabled }) => <div data-testid="ai-participation" data-enabled={String(enabled)} /> }));
@@ -95,6 +97,13 @@ beforeEach(() => {
     serveLocales([]);
 });
 
+describe('PreferencesSection — page title', () => {
+    it('names the page with an h2, like the other settings pages', () => {
+        mount();
+        expect(screen.getByRole('heading', { level: 2, name: 'Preferences' })).toBeInTheDocument();
+    });
+});
+
 describe('PreferencesSection — profile strip', () => {
     it('shows display name, mapped role label and email', async () => {
         mount();
@@ -112,24 +121,31 @@ describe('PreferencesSection — profile strip', () => {
         expect(screen.getByText('User')).toBeInTheDocument();
     });
 
-    it('shows an unmapped role as the raw role name, prettified (wart)', () => {
-        // ROLE_LABELS is a hand-kept table; anything outside it — a custom
-        // role, a DPO — is rendered by de-underscoring the stored identifier.
-        // Whatever the server calls the role is what the user reads.
-        mount({ user: { ...USER, orgRole: 'data_protection_officer' } });
+    it('names the org roles as the role pickers do (ORG_ROLES), not as prettified ids', () => {
+        const { unmount } = mount({ user: { ...USER, orgRole: 'dpo' } });
         expect(screen.getByText('Data Protection Officer')).toBeInTheDocument();
+        expect(screen.queryByText('Dpo')).toBeNull();
+        unmount();
+        mount({ user: { ...USER, orgRole: 'isms_auditor' } });
+        expect(screen.getByText('ISMS Internal Auditor')).toBeInTheDocument();
+        expect(screen.queryByText('Isms Auditor')).toBeNull();
     });
 
-    it('prefers orgRole over role, and paints only admin roles green', () => {
+    it('shows a role outside ORG_ROLES as the raw role name, prettified', () => {
+        mount({ user: { ...USER, orgRole: 'team_lead' } });
+        expect(screen.getByText('Team Lead')).toBeInTheDocument();
+    });
+
+    it('prefers orgRole over role, and paints only admin roles in the success colour', () => {
         const { unmount } = mount({ user: { ...USER, orgRole: 'member', role: 'admin' } });
         const member = screen.getByText('Member');
         expect(member).toBeInTheDocument();
-        expect(member.style.color).toBe('var(--text-muted)');
+        expect(member).toHaveClass('text-[var(--text-muted)]');
         unmount();
 
         mount({ user: { username: 'tom', role: 'admin' } });
         const admin = screen.getByText('Admin');
-        expect(admin.style.color).toBe('rgb(5, 150, 105)');
+        expect(admin).toHaveClass('text-[var(--success-ink)]');
     });
 
     it('omits the badge when the account carries no role at all', () => {
@@ -209,6 +225,37 @@ describe('PreferencesSection — interface language row', () => {
         mount();
         await waitFor(() => expect(authFetch).toHaveBeenCalled());
         expect(screen.queryByText('Interface Language')).toBeNull();
+    });
+});
+
+describe('PreferencesSection — dropdown semantics', () => {
+    it('announces a listbox popup, its state and the row it belongs to', async () => {
+        const user = userEvent.setup();
+        mount();
+        const trigger = rowTrigger('Chat History');
+        expect(trigger).toHaveAttribute('aria-haspopup', 'listbox');
+        expect(trigger).toHaveAttribute('aria-expanded', 'false');
+        expect(trigger).toHaveAccessibleName('Chat History: Per Agent');
+
+        await user.click(trigger);
+        expect(trigger).toHaveAttribute('aria-expanded', 'true');
+        const listbox = screen.getByRole('listbox', { name: 'Chat History' });
+        expect(listbox).toBeInTheDocument();
+        expect(screen.getByRole('option', { name: 'Per Agent' })).toHaveAttribute('aria-selected', 'true');
+        expect(screen.getByRole('option', { name: 'All Chats' })).toHaveAttribute('aria-selected', 'false');
+    });
+
+    it('closes on Escape and returns focus to the trigger', async () => {
+        const user = userEvent.setup();
+        mount();
+        const trigger = rowTrigger('Startup');
+        await user.click(trigger);
+        expect(screen.getByRole('listbox')).toBeInTheDocument();
+
+        await user.keyboard('{Escape}');
+        expect(screen.queryByRole('listbox')).toBeNull();
+        expect(trigger).toHaveAttribute('aria-expanded', 'false');
+        expect(trigger).toHaveFocus();
     });
 });
 
@@ -293,6 +340,8 @@ describe('PreferencesSection — Simple Mode', () => {
         mount();
         expect(screen.getByText('Enable Simple Mode')).toBeInTheDocument();
         expect(toggle()).toHaveAttribute('aria-pressed', 'false');
+        // The switch carries the row title as its name.
+        expect(screen.getByRole('button', { name: 'Enable Simple Mode', pressed: false })).toBe(toggle());
         expect(screen.getByText(/Show only New Chat, Search, Agents/).textContent)
             .not.toContain('Always on for small screens.');
     });
@@ -375,14 +424,15 @@ describe('PreferencesSection — Simple Mode', () => {
 });
 
 describe('PreferencesSection — sign out and sub-sections', () => {
-    it('renders the sign-out button only when a handler is passed', () => {
+    it('renders the sign-out button only when a handler is passed', async () => {
         const { unmount } = mount();
-        expect(screen.queryByText('Sign out')).toBeNull();
+        expect(screen.queryByRole('button', { name: 'Sign Out' })).toBeNull();
         unmount();
 
         const onLogout = vi.fn();
         mount({ onLogout });
-        fireEvent.click(screen.getByText('Sign out'));
+        // The same words (sidebar.sign_out) as the profile menu's sign-out.
+        await userEvent.setup().click(screen.getByRole('button', { name: 'Sign Out' }));
         expect(onLogout).toHaveBeenCalledTimes(1);
     });
 

@@ -1,7 +1,8 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import SideDrawer, { DrawerId, DrawerSection } from './SideDrawer';
+import SideDrawer, { DrawerFooter, DrawerId, DrawerSection } from './SideDrawer';
 
 /**
  * The register pages' 380px editing lade (artboards 1c/1d). What must hold:
@@ -10,7 +11,8 @@ import SideDrawer, { DrawerId, DrawerSection } from './SideDrawer';
  *   - Escape closes it, the X closes it, in overlay mode the scrim closes it;
  *   - focus goes to the header on open and BACK to the opener on close;
  *   - the visual recipe (rounded-xl, hairline, popover shadow, header row,
- *     scrolling body, footer sunk to the bottom) is the artboard's.
+ *     scrolling body, footer sunk to the bottom) is the artboard's;
+ *   - DrawerFooter: secondaries left, ONE primary right, "Save" by default.
  */
 
 vi.mock('../../hooks/useTranslation', () => {
@@ -99,50 +101,56 @@ describe('SideDrawer', () => {
         expect(screen.queryByTestId('d-footer')).toBeNull();
     });
 
-    it('Escape closes while open — from the window, not only from inside the card', () => {
+    it('Escape closes while open — from the window, not only from inside the card', async () => {
+        const user = userEvent.setup();
         const onClose = vi.fn();
         render(<Host onClose={onClose} />);
-        fireEvent.keyDown(window, { key: 'Escape' });
+        await user.keyboard('{Escape}');
         expect(onClose).toHaveBeenCalledTimes(1);
         expect(screen.queryByTestId('d')).toBeNull();
         // Closed: Escape does nothing more.
-        fireEvent.keyDown(window, { key: 'Escape' });
+        await user.keyboard('{Escape}');
         expect(onClose).toHaveBeenCalledTimes(1);
     });
 
-    it('the X closes', () => {
+    it('the X closes, and its focus ring is the theme\'s focus token', async () => {
+        const user = userEvent.setup();
         const onClose = vi.fn();
         render(<Host onClose={onClose} />);
-        fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+        const close = screen.getByRole('button', { name: 'Close' });
+        expect(close.className).toContain('focus-visible:ring-[var(--focus-ring)]');
+        expect(screen.getByTestId('d-header').className).toContain('focus-visible:ring-[var(--focus-ring)]');
+        await user.click(close);
         expect(onClose).toHaveBeenCalledTimes(1);
     });
 
-    it('moves focus to the header on open and back to the opener on close', () => {
+    it('moves focus to the header on open and back to the opener on close', async () => {
+        const user = userEvent.setup();
         render(<Host open={false} />);
         const opener = screen.getByTestId('opener');
-        opener.focus();
-        expect(document.activeElement).toBe(opener);
-        fireEvent.click(opener);
+        await user.click(opener);
         const header = screen.getByTestId('d-header');
         expect(document.activeElement).toBe(header);
         expect(header.getAttribute('tabindex')).toBe('-1');
-        fireEvent.keyDown(window, { key: 'Escape' });
+        await user.keyboard('{Escape}');
         expect(screen.queryByTestId('d')).toBeNull();
         expect(document.activeElement).toBe(opener);
     });
 
-    it('does not fight over focus when nothing had it (body) on open', () => {
+    it('does not fight over focus when nothing had it (body) on open', async () => {
+        const user = userEvent.setup();
         // Mounted open with nothing focused: the header takes focus, and on
         // close there is no opener to hand it back to — the body keeps it.
         expect(document.activeElement).toBe(document.body);
         render(<Host open />);
         expect(document.activeElement).toBe(screen.getByTestId('d-header'));
-        fireEvent.keyDown(window, { key: 'Escape' });
+        await user.keyboard('{Escape}');
         expect(screen.queryByTestId('d')).toBeNull();
         expect(document.activeElement).toBe(document.body);
     });
 
-    it('overlay: the same card floats absolute inset-y-3 right-3 z-30 behind a scrim that closes on click', () => {
+    it('overlay: the same card floats absolute inset-y-3 right-3 z-30 behind a scrim that closes on click', async () => {
+        const user = userEvent.setup();
         const onClose = vi.fn();
         render(<Host mode="overlay" onClose={onClose} />);
         const card = screen.getByTestId('d');
@@ -153,8 +161,19 @@ describe('SideDrawer', () => {
         expect(scrim.className).toMatch(/\babsolute inset-0\b/);
         expect(scrim.style.background).toBe('rgba(0, 0, 0, 0.25)');
         expect(scrim.getAttribute('aria-hidden')).toBe('true');
-        fireEvent.click(scrim);
+        await user.click(scrim);
         expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it('overlay: the scrim closes and focus goes back to the row that opened it', async () => {
+        const user = userEvent.setup();
+        render(<Host mode="overlay" open={false} />);
+        const opener = screen.getByTestId('opener');
+        await user.click(opener);
+        expect(document.activeElement).toBe(screen.getByTestId('d-header'));
+        await user.click(screen.getByTestId('d-scrim'));
+        expect(screen.queryByTestId('d')).toBeNull();
+        expect(document.activeElement).toBe(opener);
     });
 
     it('inline has no scrim', () => {
@@ -182,22 +201,24 @@ describe('SideDrawer', () => {
         expect(screen.queryByTestId('d-scrim')).toBeNull();
     });
 
-    it('modal: header, X and footer keep their slots', () => {
+    it('modal: header, X and footer keep their slots', async () => {
+        const user = userEvent.setup();
         const onClose = vi.fn();
         render(<Host mode="modal" onClose={onClose} footer={<button type="button">Fulfil</button>} />);
         expect(screen.getByTestId('d-header').textContent).toBe('Header');
         const footer = screen.getByTestId('d-footer');
         expect(footer.className).toMatch(/\bmt-auto\b/);
         expect(footer.contains(screen.getByRole('button', { name: 'Fulfil' }))).toBe(true);
-        fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+        await user.click(screen.getByRole('button', { name: 'Close' }));
         expect(onClose).toHaveBeenCalledTimes(1);
         expect(document.body.querySelector('[role="dialog"]')).toBeNull();
     });
 
-    it('modal: Escape closes exactly once (the Modal owns it, the window listener does not double-fire)', () => {
+    it('modal: Escape closes exactly once (the Modal owns it, the window listener does not double-fire)', async () => {
+        const user = userEvent.setup();
         const onClose = vi.fn();
         render(<Host mode="modal" onClose={onClose} />);
-        fireEvent.keyDown(document, { key: 'Escape' });
+        await user.keyboard('{Escape}');
         expect(onClose).toHaveBeenCalledTimes(1);
         expect(screen.queryByTestId('d')).toBeNull();
     });
@@ -239,5 +260,58 @@ describe('DrawerSection / DrawerId', () => {
         expect(id.className).toMatch(/\bfont-mono\b/);
         expect(id.className).toMatch(/text-\[11px\]/);
         expect(id.className).toMatch(/text-\[var\(--text-secondary\)\]/);
+    });
+});
+
+describe('DrawerFooter', () => {
+    it('secondary actions on the left, ONE primary on the right, labelled Save with the Save glyph by default', async () => {
+        const user = userEvent.setup();
+        const onPrimary = vi.fn();
+        render(
+            <DrawerFooter onPrimary={onPrimary} testId="f">
+                <button type="button">Reject</button>
+                <button type="button">Extend</button>
+            </DrawerFooter>,
+        );
+        const footer = screen.getByTestId('f');
+        expect(footer.className).toMatch(/\bflex items-center gap-2\b/);
+        expect(footer.className).toMatch(/border-t border-\[var\(--border-default\)\]/);
+        const secondary = screen.getByTestId('f-secondary');
+        expect(footer.firstElementChild).toBe(secondary);
+        expect(secondary.textContent).toBe('RejectExtend');
+        const primary = screen.getByRole('button', { name: 'Save' });
+        expect(primary).toBe(screen.getByTestId('f-primary'));
+        expect(primary.parentElement.className).toMatch(/\bml-auto\b/);
+        expect(footer.lastElementChild).toBe(primary.parentElement);
+        expect(primary.querySelector('svg')).not.toBeNull();
+        expect(primary.className).toContain('bg-[var(--accent-primary)]');
+        expect(primary.className).toContain('focus-visible:ring-[var(--focus-ring)]');
+        await user.click(primary);
+        expect(onPrimary).toHaveBeenCalledTimes(1);
+    });
+
+    it('takes another primary label, icon or a ready element; a disabled primary does not fire', async () => {
+        const user = userEvent.setup();
+        const onPrimary = vi.fn();
+        const { rerender } = render(<DrawerFooter onPrimary={onPrimary} primaryLabel="Fulfil" primaryIcon={null} primaryDisabled testId="f" />);
+        const primary = screen.getByRole('button', { name: 'Fulfil' });
+        expect(primary.querySelector('svg')).toBeNull();
+        expect(primary).toBeDisabled();
+        await user.click(primary);
+        expect(onPrimary).not.toHaveBeenCalled();
+        rerender(<DrawerFooter primary={<button type="button">Publish</button>} testId="f" />);
+        expect(screen.getByRole('button', { name: 'Publish' })).toBeInTheDocument();
+        expect(screen.queryByTestId('f-primary')).toBeNull();
+    });
+
+    it('no primary at all renders only the secondaries', () => {
+        render(<DrawerFooter testId="f"><button type="button">Close request</button></DrawerFooter>);
+        expect(screen.getAllByRole('button').map((b) => b.textContent)).toEqual(['Close request']);
+        expect(screen.getByTestId('f').children.length).toBe(1);
+    });
+
+    it('sits in the drawer footer slot', () => {
+        render(<SideDrawer open onClose={() => {}} header="H" footer={<DrawerFooter onPrimary={() => {}} testId="f" />} testId="d">x</SideDrawer>);
+        expect(screen.getByTestId('d-footer').contains(screen.getByTestId('f'))).toBe(true);
     });
 });

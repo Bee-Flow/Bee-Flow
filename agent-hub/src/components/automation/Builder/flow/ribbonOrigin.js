@@ -1,5 +1,6 @@
 import { nodeTypeLabel } from './nodeDefs';
 import { typeGroupOf } from './nodeTypeColors';
+import { nativeHomeOrigin } from './ribbon/ribbonCategories';
 import { AI_STEP, buildStepGroups, orderedAppCategories } from './stepPalette';
 import { resolveIntegrationFromTool } from '../../../../utils/integrationIcons';
 
@@ -120,7 +121,9 @@ function integrationIdOf(step) {
  * category's "n more" or collapsed the whole category into a pill, that
  * command is not on screen and the ladder lands on the fold or the pill
  * instead — both are offered whenever the catalog knows the category, and
- * `resolveOrigin` takes the first one that is really rendered.
+ * `resolveOrigin` takes the first one that is really rendered. A Bee Flow
+ * tool (web search, memory, knowledge base, ...) lives on the tab of its job,
+ * not in an app category, so its ladder goes to that tab's stamp instead.
  */
 export function originKeysFor(step, catalog = null) {
     const type = step?.type;
@@ -128,7 +131,9 @@ export function originKeysFor(step, catalog = null) {
     if (type === 'integration_action') {
         const id = integrationIdOf(step);
         const keys = idVariants(id).map(v => `app:${v}`);
-        const category = categoryOf(id, catalog);
+        const home = nativeHomeOrigin(id);
+        const category = home ? null : categoryOf(id, catalog);
+        if (home) keys.push(home);
         if (category) keys.push(`more:${category}`, `cat:${category}`);
         return [...keys, 'tabs', 'ribbon'];
     }

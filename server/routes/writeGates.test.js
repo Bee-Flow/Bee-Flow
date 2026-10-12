@@ -94,7 +94,7 @@ test('every App Studio write and publish route requires manage_apps', () => {
     }
 });
 
-// Playbooks create a routine, a table and an app on the caller's behalf —
+// Playbooks create an automation, a table and an app on the caller's behalf —
 // the same authoring permission gates every write (2026-09-13).
 // A folder since the router was split per resource group; readRouter reads
 // every part, so a route moving between them cannot slip past this gate.

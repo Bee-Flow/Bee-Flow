@@ -246,3 +246,23 @@ test('catalog.datatables survives ranking and replay untouched', async () => {
     assert.strictEqual((await rankAppsForMessage({ ...CATALOG, datatables: null }, 'x', { steps: [] })).datatables, null);
     assert.ok(!('datatables' in applyCatalogOrder(CATALOG, [])), 'no key in → no key out');
 });
+
+// ── The cap is announced, not silent ────────────────────────────────────
+
+const bigCatalog = (n) => ({ apps: Array.from({ length: n }, (_, i) => app(`app${i}`, [`app${i}_do`])) });
+
+test('apps beyond APP_CAP are counted on the catalogue, for the renderer to say', async () => {
+    const out = await rankAppsForMessage(bigCatalog(APP_CAP + 3), '', {});
+    assert.strictEqual(out.apps.length, APP_CAP);
+    assert.strictEqual(out.appsOmitted, 3);
+    const replayed = applyCatalogOrder(bigCatalog(APP_CAP + 3), []);
+    assert.strictEqual(replayed.apps.length, APP_CAP);
+    assert.strictEqual(replayed.appsOmitted, 3, 'the stored-order path says it too');
+});
+
+test('a catalogue under the cap carries no marker at all', async () => {
+    const out = await rankAppsForMessage(bigCatalog(APP_CAP), '', {});
+    assert.strictEqual(out.apps.length, APP_CAP);
+    assert.ok(!('appsOmitted' in out));
+    assert.ok(!('appsOmitted' in applyCatalogOrder(bigCatalog(5), [])));
+});

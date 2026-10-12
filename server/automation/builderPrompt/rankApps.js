@@ -7,11 +7,11 @@
  * ("the", "use") match something in almost every action description, so the
  * filter matched ALL 17 apps and the `.slice(0, 8)` then kept whichever eight
  * came first in registry order. Measured on the demo org, that was
- * memory / routine-evolution / kb-ingest / nextcloud / calendar / contacts /
+ * memory / automation-evolution / kb-ingest / nextcloud / calendar / contacts /
  * deck / talk — and `nextcloud-notifications` was dropped even when the brief
  * said "send a notification in Nextcloud". The prompt presents that list as
  * "the ONLY tools you may propose", so the model dutifully built invoice
- * routines out of Calendar. It was obeying us, not hallucinating.
+ * automations out of Calendar. It was obeying us, not hallucinating.
  *
  * THE RULE THIS MODULE EXISTS TO ENFORCE: ranking ORDERS, it never GATES.
  * Everything the user is permitted to run stays in the catalogue; relevance
@@ -84,7 +84,7 @@ function isPinned(app, toolNames, triggerProvider) {
  *
  * @param {object} catalog      from buildCatalogForUser
  * @param {string} userMessage  this turn's message
- * @param {object} draft        the routine being built (its apps get pinned)
+ * @param {object} draft        the automation being built (its apps get pinned)
  * @returns {Promise<object>}   the catalogue with `apps` reordered (never filtered
  *                              by relevance), unavailable apps removed
  */
@@ -127,8 +127,20 @@ async function rankAppsForMessage(catalog, userMessage, draft) {
         }
     }
 
-    const apps = [...pinned, ...ordered].slice(0, APP_CAP);
-    return { ...catalog, apps };
+    return capApps(catalog, [...pinned, ...ordered]);
+}
+
+/**
+ * Cut the ordered apps at APP_CAP and SAY so: `appsOmitted` rides on the
+ * catalogue and the renderers print an "and N more" line, the log gets a
+ * warning. A cut that looks like a complete list is how a model concludes an app
+ * the user has does not exist. A catalogue under the cap carries no extra key.
+ */
+function capApps(catalog, ordered) {
+    const apps = ordered.slice(0, APP_CAP);
+    const omitted = ordered.length - apps.length;
+    if (omitted > 0) log.warn(`[BuilderCatalog] ${omitted} app(s) beyond the cap of ${APP_CAP} are not shown to the model`);
+    return omitted > 0 ? { ...catalog, apps, appsOmitted: omitted } : { ...catalog, apps };
 }
 
 /**
@@ -169,7 +181,7 @@ function applyCatalogOrder(catalog, order) {
         if (app && !seen.has(id)) { head.push(app); seen.add(id); }
     }
     const tail = usable.filter(a => !seen.has(a.id));
-    return { ...catalog, apps: [...head, ...tail].slice(0, APP_CAP) };
+    return capApps(catalog, [...head, ...tail]);
 }
 
 module.exports = { rankAppsForMessage, applyCatalogOrder, catalogOrderOf, APP_CAP, _internals: { appDocument, isPinned, pinnedAppIds } };

@@ -149,6 +149,8 @@ function invalidateContextPolicy(orgId) {
  * Fable/Mythos 5; 200k on Haiku 4.5, Sonnet 4.5, Opus 4.5 and the 3.x family.
  */
 function contextWindowFor(modelId) {
+    // An Azure deployment answers with the window of the model behind it.
+    modelId = require('../providers/azureDeployments').azureModelFor(modelId);
     const m = String(modelId || '').toLowerCase();
     if (!m) return 128_000;
 

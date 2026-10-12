@@ -1,6 +1,6 @@
 /**
  * The Parameters tab (the web's workspace panel of the same name): the
- * document's instructions, its typed parameters — what a routine, an app or a
+ * document's instructions, its typed parameters — what an automation, an app or a
  * person fills per customer — and where it lives in the library.
  */
 

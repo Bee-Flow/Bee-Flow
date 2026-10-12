@@ -10,9 +10,9 @@ import { byCount, countPhrase, COUNTED_SECTIONS, sectionNames } from './words';
 
 describe('sectionNames', () => {
     it('names the sections the server reported, and passes an unknown one through as itself', () => {
-        expect(sectionNames(['apps', 'routineExistence', 'all', 'runs', 'newThing', ''], translate)).toEqual([
+        expect(sectionNames(['apps', 'automationExistence', 'all', 'runs', 'newThing', ''], translate)).toEqual([
             'apps',
-            'the check on which routines still exist',
+            'the check on which automations still exist',
             'everything in this Solution',
             'how often things ran',
             'newThing',
@@ -28,7 +28,7 @@ describe('countPhrase', () => {
             expect(countPhrase(section, 1, translate)).toMatch(/^1 \S/);
             expect(countPhrase(section, 3, translate)).toMatch(/^3 .+s$/);
         }
-        expect(countPhrase('automations', 1, translate)).toBe('1 routine');
+        expect(countPhrase('automations', 1, translate)).toBe('1 automation');
         expect(countPhrase('approvals', 2, translate)).toBeNull();
     });
 

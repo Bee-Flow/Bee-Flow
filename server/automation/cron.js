@@ -141,7 +141,7 @@ function dayMatches(fields, parts) {
  *     skips that day. Semantics preserved.
  *   - fall back: the wall time happens TWICE. tzWallClockToUtc's drift search
  *     lands on whichever occurrence its guess converges to — usually the
- *     LATER one, which made the routine fire an hour late on the switch day,
+ *     LATER one, which made the automation fire an hour late on the switch day,
  *     and in zones that switch at midnight (America/Santiago) it could even
  *     return an instant in the PAST, i.e. a next_run_at the scheduler claims
  *     immediately. We normalise to the EARLIER occurrence, so the rule is

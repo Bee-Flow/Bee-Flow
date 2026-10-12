@@ -50,7 +50,7 @@
  *   - `null` with a reason → the row explains where the thing lives instead of
  *                            offering a tap that does nothing
  * Guessing a "close enough" screen that does NOT lead to the thing is worse
- * than saying so: a user sent to the routine list when they expected an
+ * than saying so: a user sent to the automation list when they expected an
  * approval concludes the approval is lost.
  */
 
@@ -90,14 +90,12 @@ export function targetForNotification(notification: AppNotification): Notificati
     // No usable link. A run notification still knows which run it was, and
     // `task_id` is the one column that survives every category.
     if (notification.task_id) {
-        // Two different stores, and they must not be conflated: `cowork` rows
-        // live in cowork_schedules and `ai_task` rows in ai_tasks. Sending both
-        // to /tasks — which reads ai_tasks and reminders — meant every Cowork
-        // result opened a list that could never contain it.
-        if (notification.category === 'cowork') {
+        // Every scheduled item is a Cowork schedule: an older `ai_task`
+        // notification's task moved there under the same id (server
+        // migrations prompt-tasks-to-cowork-2026-08 and agent-tasks-to-cowork-2026-10).
+        if (notification.category === 'cowork' || notification.category === 'ai_task') {
             return { href: `/cowork/${notification.task_id}` };
         }
-        if (notification.category === 'ai_task') return { href: '/tasks' };
     }
 
     return { href: null };
@@ -140,7 +138,7 @@ const TOP_SECTIONS = new Map<string, ListOrDetail>([
     // The consumer directories (the web Sidebar's Apps and Forms rows):
     // /app/apps/<appId> runs an app, /app/forms/<token> opens a form to FILL
     // IN by its page token — which on the phone is /forms/fill/<token>, the
-    // one route the token may travel in (a Form page is keyed by its routine).
+    // one route the token may travel in (a Form page is keyed by its automation).
     ['apps', { href: '/apps', detail: (ref) => `/apps/${ref}` }],
     ['forms', { href: '/forms', detail: (ref) => `/forms/fill/${ref}` }],
     ['notebooks', { href: '/notebooks', detail: (ref) => `/notebooks/${ref}` }],

@@ -1,11 +1,11 @@
 /**
- * core/automationRunner/runNotifications: a run event through the routine's
+ * core/automationRunner/runNotifications: a run event through the automation's
  * notification policy. Everything is injected through makeRunNotifier; no
  * module mocking, no database.
  *
  * Proven:
  *   - defaults: an error rings the owner's bell and mails them; nothing to Talk
- *   - Nextcloud bell for people with a Nextcloud account, carrying the routine
+ *   - Nextcloud bell for people with a Nextcloud account, carrying the automation
  *     name, the event and a link only; the Bee Flow bell when that fails
  *   - recipients: users and groups inside the organisation, approvers
  *   - throttle: over maxPerHour the message is held as bundled, not sent
@@ -58,7 +58,7 @@ function env(opts = {}) {
     return { notifier: makeRunNotifier(deps), rec };
 }
 
-function routine(notificationSettings) {
+function automation(notificationSettings) {
     return { id: 'a1', userId: 'owner', organizationId: 'org1', title: 'Invoices', definition: { notificationSettings } };
 }
 
@@ -66,7 +66,7 @@ const ERROR_PAYLOAD = { title: '⚠️ Automation failed: Invoices', message: 'H
 
 test('defaults: an error rings the owner and mails them, and nothing goes to Talk', async () => {
     const { notifier, rec } = env();
-    const report = await notifier.notifyRunEvent(routine(undefined), 'onError', ERROR_PAYLOAD);
+    const report = await notifier.notifyRunEvent(automation(undefined), 'onError', ERROR_PAYLOAD);
     assert.deepEqual(report.recipients, ['owner']);
     assert.equal(rec.bells.length, 1);
     assert.equal(rec.bells[0].userId, 'owner');
@@ -86,7 +86,7 @@ test('defaults: an error rings the owner and mails them, and nothing goes to Tal
 
 test('a Nextcloud user gets the Nextcloud bell with the name, the event and a link only', async () => {
     const { notifier, rec } = env();
-    await notifier.notifyRunEvent(routine({ onError: { enabled: true, channels: ['bell'], recipients: [{ type: 'user', id: 'ann' }], urgency: 'urgent' } }), 'onError', ERROR_PAYLOAD);
+    await notifier.notifyRunEvent(automation({ onError: { enabled: true, channels: ['bell'], recipients: [{ type: 'user', id: 'ann' }], urgency: 'urgent' } }), 'onError', ERROR_PAYLOAD);
     assert.equal(rec.bells.length, 0);
     assert.equal(rec.nc.length, 1);
     assert.equal(rec.nc[0].ncUid, 'ann-nc');
@@ -98,7 +98,7 @@ test('a Nextcloud user gets the Nextcloud bell with the name, the event and a li
 
 test('when the Nextcloud bell fails the Bee Flow bell rings instead', async () => {
     const { notifier, rec } = env({ ncOk: false });
-    const report = await notifier.notifyRunEvent(routine({ onError: { enabled: true, channels: ['bell'], recipients: [{ type: 'user', id: 'ann' }], urgency: 'normal' } }), 'onError', ERROR_PAYLOAD);
+    const report = await notifier.notifyRunEvent(automation({ onError: { enabled: true, channels: ['bell'], recipients: [{ type: 'user', id: 'ann' }], urgency: 'normal' } }), 'onError', ERROR_PAYLOAD);
     assert.equal(rec.nc.length, 1);
     assert.equal(rec.bells.length, 1);
     assert.equal(report.delivered[0].via, 'inapp');
@@ -106,18 +106,18 @@ test('when the Nextcloud bell fails the Bee Flow bell rings instead', async () =
 
 test('groups resolve inside the organisation; people without an address get no mail', async () => {
     const { notifier, rec } = env();
-    const report = await notifier.notifyRunEvent(routine({ onError: {
+    const report = await notifier.notifyRunEvent(automation({ onError: {
         enabled: true, channels: ['email'], recipients: [{ type: 'group', id: 'g-fin' }, { type: 'user', id: 'eve' }], urgency: 'urgent',
     } }), 'onError', ERROR_PAYLOAD);
     assert.deepEqual(report.recipients, ['ann', 'bob'], 'eve is in another organisation');
     assert.deepEqual(rec.mails.map(m => m.to), ['ann@example.com']);
     assert.deepEqual(rec.rows.map(r => [r.recipient, r.delivered]), [['ann', true], ['bob', false]]);
-    assert.match(rec.mails[0].text, /the Bee Flow automation/, 'a non-owner is not told it is their routine');
+    assert.match(rec.mails[0].text, /the Bee Flow automation/, 'a non-owner is not told it is their automation');
 });
 
 test('throttle: at the cap the message is held as bundled on every channel', async () => {
     const { notifier, rec } = env({ recent: 1 });
-    const report = await notifier.notifyRunEvent(routine(undefined), 'onError', ERROR_PAYLOAD);
+    const report = await notifier.notifyRunEvent(automation(undefined), 'onError', ERROR_PAYLOAD);
     assert.equal(rec.bells.length, 0);
     assert.equal(rec.mails.length, 0);
     assert.equal(report.bundled, 1);
@@ -128,23 +128,23 @@ test('throttle: at the cap the message is held as bundled on every channel', asy
 
 test('throttle: under the cap it is sent; no cap means no ledger lookup', async () => {
     const under = env({ recent: 1 });
-    await under.notifier.notifyRunEvent(routine({ onError: { enabled: true, channels: ['bell'], urgency: 'urgent', throttle: { maxPerHour: 2 } } }), 'onError', ERROR_PAYLOAD);
+    await under.notifier.notifyRunEvent(automation({ onError: { enabled: true, channels: ['bell'], urgency: 'urgent', throttle: { maxPerHour: 2 } } }), 'onError', ERROR_PAYLOAD);
     assert.equal(under.rec.bells.length, 1);
     const none = env({ recent: 99 });
-    await none.notifier.notifyRunEvent(routine({ onError: { enabled: true, channels: ['bell'], urgency: 'urgent', throttle: { maxPerHour: null } } }), 'onError', ERROR_PAYLOAD);
+    await none.notifier.notifyRunEvent(automation({ onError: { enabled: true, channels: ['bell'], urgency: 'urgent', throttle: { maxPerHour: null } } }), 'onError', ERROR_PAYLOAD);
     assert.equal(none.rec.bells.length, 1);
     assert.equal(none.rec.counts.length, 0);
 });
 
 test('a ledger that cannot be read never silences a notification', async () => {
     const { notifier, rec } = env({ recent: () => { throw new Error('db down'); } });
-    await notifier.notifyRunEvent(routine(undefined), 'onError', ERROR_PAYLOAD);
+    await notifier.notifyRunEvent(automation(undefined), 'onError', ERROR_PAYLOAD);
     assert.equal(rec.bells.length, 1);
 });
 
 test('summary mode: a success is recorded for the digest and sent nowhere', async () => {
     const { notifier, rec } = env();
-    const report = await notifier.notifyRunEvent(routine({
+    const report = await notifier.notifyRunEvent(automation({
         onSuccess: { enabled: true, channels: ['bell', 'email'], urgency: 'silent', delivery: 'digest' },
         digest: { enabled: true, time: '17:00' },
     }), 'onSuccess', { title: 'Invoices', message: 'done', runId: 'r2' });
@@ -155,14 +155,14 @@ test('summary mode: a success is recorded for the digest and sent nowhere', asyn
 
 test('summary mode without a summary switched on is delivered directly', async () => {
     const { notifier, rec } = env();
-    await notifier.notifyRunEvent(routine({ onSuccess: { enabled: true, channels: ['bell'], urgency: 'silent', delivery: 'digest' } }), 'onSuccess', { title: 'Invoices', runId: 'r2' });
+    await notifier.notifyRunEvent(automation({ onSuccess: { enabled: true, channels: ['bell'], urgency: 'silent', delivery: 'digest' } }), 'onSuccess', { title: 'Invoices', runId: 'r2' });
     assert.equal(rec.bells.length, 1);
     assert.equal(rec.bells[0].category, 'info');
 });
 
 test('Talk: one message into the conversation, the line and the link, silent when silent', async () => {
     const { notifier, rec } = env();
-    await notifier.notifyRunEvent(routine({ onError: {
+    await notifier.notifyRunEvent(automation({ onError: {
         enabled: true, channels: ['talk'], recipients: [{ type: 'group', id: 'g-fin' }], urgency: 'silent', talkRoom: 'room42',
     } }), 'onError', ERROR_PAYLOAD);
     assert.equal(rec.talk.length, 1, 'not once per person');
@@ -175,7 +175,7 @@ test('Talk: one message into the conversation, the line and the link, silent whe
 
 test('Talk without a conversation is recorded as not delivered', async () => {
     const { notifier, rec } = env({ room: null });
-    const report = await notifier.notifyRunEvent(routine({ onError: { enabled: true, channels: ['talk'], urgency: 'urgent' } }), 'onError', ERROR_PAYLOAD);
+    const report = await notifier.notifyRunEvent(automation({ onError: { enabled: true, channels: ['talk'], urgency: 'urgent' } }), 'onError', ERROR_PAYLOAD);
     assert.equal(rec.talk.length, 0);
     assert.deepEqual(rec.rows.map(r => [r.recipient, r.delivered]), [['talk:unconfigured', false]]);
     assert.equal(report.delivered[0].via, 'no_room');
@@ -184,7 +184,7 @@ test('Talk without a conversation is recorded as not delivered', async () => {
 test('an approval: bells to every approver, ONE reactable card with them attached', async () => {
     const { notifier, rec } = env();
     const approval = { id: 'apr_1', prompt: 'Pay Jansen €1200?' };
-    await notifier.notifyRunEvent(routine(undefined), 'onApproval', {
+    await notifier.notifyRunEvent(automation(undefined), 'onApproval', {
         title: '🛂 Approval needed: Invoices', message: 'Pay Jansen €1200? — open it', link: '/app/studio/approvals/apr_1',
         runId: 'r3', approverIds: ['bob', 'owner'], approval,
     });
@@ -198,21 +198,21 @@ test('an approval: bells to every approver, ONE reactable card with them attache
 });
 
 test('the working copy decides, also for a run of the live copy', async () => {
-    const live = { ...routine({ onError: { enabled: false, channels: ['bell'], urgency: 'urgent' } }), runsLiveVersion: true };
-    const stored = routine({ onError: { enabled: true, channels: ['bell'], urgency: 'urgent' } });
+    const live = { ...automation({ onError: { enabled: false, channels: ['bell'], urgency: 'urgent' } }), runsLiveVersion: true };
+    const stored = automation({ onError: { enabled: true, channels: ['bell'], urgency: 'urgent' } });
     const on = env({ stored });
     await on.notifier.notifyRunEvent(live, 'onError', ERROR_PAYLOAD);
     assert.equal(on.rec.bells.length, 1);
 
-    const off = env({ stored: routine({ onError: { enabled: false, channels: ['bell'], urgency: 'urgent' } }) });
-    const report = await off.notifier.notifyRunEvent({ ...routine(undefined), runsLiveVersion: true }, 'onError', ERROR_PAYLOAD);
+    const off = env({ stored: automation({ onError: { enabled: false, channels: ['bell'], urgency: 'urgent' } }) });
+    const report = await off.notifier.notifyRunEvent({ ...automation(undefined), runsLiveVersion: true }, 'onError', ERROR_PAYLOAD);
     assert.equal(report.skipped, 'disabled');
     assert.equal(off.rec.rows.length, 0);
 });
 
 test('a failing bell is recorded, never thrown', async () => {
     const { notifier, rec } = env({ bellThrows: true });
-    const report = await notifier.notifyRunEvent(routine(undefined), 'onError', ERROR_PAYLOAD);
+    const report = await notifier.notifyRunEvent(automation(undefined), 'onError', ERROR_PAYLOAD);
     assert.equal(rec.mails.length, 1, 'the other channel still goes');
     assert.deepEqual(rec.rows.map(r => [r.channel, r.delivered]), [['bell', false], ['email', true]]);
     assert.equal(report.delivered[0].ok, false);
@@ -220,23 +220,23 @@ test('a failing bell is recorded, never thrown', async () => {
 
 test('no service mailbox: the mail is recorded as not delivered', async () => {
     const { notifier, rec } = env({ email: false });
-    const report = await notifier.notifyRunEvent(routine(undefined), 'onError', ERROR_PAYLOAD);
+    const report = await notifier.notifyRunEvent(automation(undefined), 'onError', ERROR_PAYLOAD);
     assert.equal(rec.mails.length, 0);
     assert.deepEqual(report.delivered.find(d => d.channel === 'email'), { recipient: 'owner', channel: 'email', ok: false, via: 'email:no_service_email' });
 });
 
 test('compat: dispatchRunNotification with an old-shape policy and one addressee', async () => {
     const { notifier, rec } = env();
-    await notifier.dispatchRunNotification(routine(undefined), { enabled: true, level: 'heads_up', channels: ['inapp'] }, { title: 'T', message: 'M', userId: 'bob' });
+    await notifier.dispatchRunNotification(automation(undefined), { enabled: true, level: 'heads_up', channels: ['inapp'] }, { title: 'T', message: 'M', userId: 'bob' });
     assert.deepEqual(rec.bells.map(b => [b.userId, b.category]), [['bob', 'heads_up']]);
     assert.equal(rec.mails.length, 0);
     const none = env();
-    assert.equal(await none.notifier.dispatchRunNotification(routine(undefined), { enabled: false, channels: ['inapp'] }, { title: 'T' }), null);
+    assert.equal(await none.notifier.dispatchRunNotification(automation(undefined), { enabled: false, channels: ['inapp'] }, { title: 'T' }), null);
 });
 
 test('compat: a tagged policy follows the stored settings for its event', async () => {
     const { notifier, rec } = env();
-    const a = routine(undefined);
+    const a = automation(undefined);
     await notifier.dispatchRunNotification(a, notifier.resolveNotificationPolicy(a, 'onError'), { title: 'T', message: 'M' });
     assert.equal(rec.bells.length, 1);
     assert.equal(rec.mails.length, 1);
@@ -245,9 +245,9 @@ test('compat: a tagged policy follows the stored settings for its event', async 
 
 test('sendRunEmail reports why nothing was sent', async () => {
     const noMailbox = env({ email: false });
-    assert.deepEqual(await noMailbox.notifier.sendRunEmail(routine(undefined), { subject: 's', message: 'm' }), { sent: false, reason: 'no_service_email' });
+    assert.deepEqual(await noMailbox.notifier.sendRunEmail(automation(undefined), { subject: 's', message: 'm' }), { sent: false, reason: 'no_service_email' });
     const noAddress = env();
-    assert.deepEqual(await noAddress.notifier.sendRunEmail(routine(undefined), { subject: 's', message: 'm', userId: 'bob' }), { sent: false, reason: 'no_owner_email' });
+    assert.deepEqual(await noAddress.notifier.sendRunEmail(automation(undefined), { subject: 's', message: 'm', userId: 'bob' }), { sent: false, reason: 'no_owner_email' });
     assert.equal(emailSkipOf({ sent: false, reason: 'no_service_email' }).reason, 'no_service_email');
     assert.equal(emailSkipOf({ sent: true }), null);
 });

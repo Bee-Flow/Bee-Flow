@@ -16,7 +16,7 @@
  * assertDatatableQuota. Two copies of the arithmetic is two things that can
  * disagree about whether a table is full, and the copy that says "no" is the
  * one nobody notices is missing: the row cap was enforced only on the manual
- * HTTP add, so a nightly routine wrote past it for as long as it liked.
+ * HTTP add, so a nightly automation wrote past it for as long as it liked.
  *
  * ── WHAT IS MEASURED, AND HOW FRESH IT IS ───────────────────────────
  * Rows come from `datatables.row_count` — maintained by arithmetic
@@ -46,7 +46,7 @@ const DATATABLE_LIMITS = Object.freeze({
 
 // Log an ops line from here on up, so a tenant that is about to be refused is
 // visible BEFORE the refusal lands in somebody's nightly run. A cap that first
-// speaks by breaking a working routine is a cap nobody could plan around.
+// speaks by breaking a working automation is a cap nobody could plan around.
 const WARN_FRACTION = 0.9;
 
 /**

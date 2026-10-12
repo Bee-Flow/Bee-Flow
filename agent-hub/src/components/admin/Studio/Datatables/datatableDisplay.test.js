@@ -411,7 +411,7 @@ describe('a column is called what a person would call it, not what the database 
      * `c.name || c.key` is fine for a column somebody typed a name for and
      * wrong for every column that arrived without one — an imported CSV, a
      * Nextcloud or spreadsheet mirror, a form-answers table, a column a
-     * routine created. Those carry a key and no name, so the studio showed
+     * automation created. Those carry a key and no name, so the studio showed
      * people `contact_email` and `created_at`: the database's spelling, in
      * the one screen whose job is to make a table readable to someone who
      * does not think in databases.

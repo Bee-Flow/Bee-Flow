@@ -79,6 +79,8 @@ test('mapRow parses settings from an object or a string; a list row carries no s
     const row = mapListRow({ ...base, html_size: '2048', updated_by: 'u2' });
     assert.strictEqual(row.htmlSize, 2048);
     assert.strictEqual(row.updatedBy, 'u2');
+    assert.strictEqual(row.solutionProjectId, null);
+    assert.strictEqual(mapListRow({ ...base, solution_project_id: 'sol1' }).solutionProjectId, 'sol1');
     assert.ok(!('bodyHtml' in row) && !('css' in row));
 });
 
@@ -309,9 +311,9 @@ test('only the owner deletes a version, and never the current or the first one',
     assert.strictEqual(await store.deleteVersion(doc.id, 'ann', edited.versionId), false);
 });
 
-test('a version a routine pins is not deleted: the routine would fail on its next run', async () => {
+test('a version an automation pins is not deleted: the automation would fail on its next run', async () => {
     // The pins as the versions route reads them: the retention job's own
-    // lookup over the routine and app definitions.
+    // lookup over the automation and app definitions.
     const { listPinnedVersionIds } = require('../jobs/documentVersionRetention');
     await pg.exec('CREATE TABLE IF NOT EXISTS automations (id TEXT PRIMARY KEY, definition_json JSONB)');
     const doc = await make('ann', { projectId: null });
@@ -322,8 +324,8 @@ test('a version a routine pins is not deleted: the routine would fail on its nex
     const referencedIds = () => listPinnedVersionIds(pg);
 
     await assert.rejects(store.deleteVersion(doc.id, 'ann', pinned.versionId, { referencedIds }),
-        (e) => e.status === 409 && e.errorClass === 'version_in_use' && /routine or an app/.test(e.message));
-    assert.strictEqual((await store.getDocumentVersion(doc.id, 'ann', pinned.versionId)).bodyHtml, '<p>2</p>', 'the routine still prints it');
+        (e) => e.status === 409 && e.errorClass === 'version_in_use' && /automation or an app/.test(e.message));
+    assert.strictEqual((await store.getDocumentVersion(doc.id, 'ann', pinned.versionId)).bodyHtml, '<p>2</p>', 'the automation still prints it');
     assert.strictEqual(await store.deleteVersion(doc.id, 'ann', loose.versionId, { referencedIds }), true, 'an unpinned one still goes');
     let asked = 0;
     assert.strictEqual(await store.deleteVersion(doc.id, 'ben', pinned.versionId, { referencedIds: async () => { asked += 1; return []; } }), null);
@@ -458,12 +460,12 @@ test('retention thins old versions by the policy handed in, and never touches wh
     }
     // All four in the same hour, three weeks ago: one per day survives, and the current one.
     await pg.query(`UPDATE studio_document_versions SET created_at = date_trunc('day', NOW()) - INTERVAL '21 days' + seq * INTERVAL '1 minute' WHERE document_id = $1`, [doc.id]);
-    const pinnedByRoutine = ids[0];
-    const removed = await store.pruneVersions(doc.id, { selectPrunable, referencedIds: [pinnedByRoutine] });
+    const pinnedByAutomation = ids[0];
+    const removed = await store.pruneVersions(doc.id, { selectPrunable, referencedIds: [pinnedByAutomation] });
     assert.strictEqual(removed, 1, 'of the two free versions of that day, the newer one is kept');
     const left = (await rows(doc.id)).map(r => r.id);
     assert.ok(left.includes(doc.versionId), 'the first revision stays');
     assert.ok(left.includes(versionId), 'the current revision stays');
-    assert.ok(left.includes(pinnedByRoutine), 'a revision a routine pins stays');
+    assert.ok(left.includes(pinnedByAutomation), 'a revision an automation pins stays');
     assert.strictEqual(await store.pruneVersions(doc.id, {}), 0, 'no policy, nothing pruned');
 });

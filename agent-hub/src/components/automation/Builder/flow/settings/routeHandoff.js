@@ -27,7 +27,7 @@
  *
  * WHAT IT DELIBERATELY DOES NOT DO
  *  - It does not call anything. This is the one part of "Suggest outputs"
- *    that adds a step to the routine, and it is still LOCAL: nothing leaves
+ *    that adds a step to the automation, and it is still LOCAL: nothing leaves
  *    the page, so there is no payload here to get wrong (CLAUDE.md, BFSF-441).
  *  - It does not mint its own slug vocabulary. The field name comes from
  *    `slugifyFieldName` — the form builder's own minting function, already
@@ -35,7 +35,8 @@
  *    names from `slugName`, the one the rest of this box already uses. Two
  *    slugifiers is two answers to "what is this field called".
  *  - It does not write an expression shape of its own. Every rule is a plain
- *    `<path> == "<word>"`, which is exactly what utils/conditionModel.js
+ *    `equals(<path>, "<word>")` (text "is": upper/lower case and surrounding
+ *    spaces do not matter), which is exactly what utils/conditionModel.js
  *    parses back into a clickable row, so `describeRuleExpr` reads it as a
  *    sentence like every other suggestion and the author checks words rather
  *    than syntax.
@@ -120,7 +121,7 @@ function refuse(problem) {
  *
  * Every one of these is a REFUSAL rather than a best effort, and kept here
  * together so the reasons can be read as a list. An author who accepts a plan
- * gets a step added to their routine and their outputs rewritten, so
+ * gets a step added to their automation and their outputs rewritten, so
  * "roughly right" is not a state this module may return.
  */
 function handoffProblem({ sentence, names, perItem, list }) {
@@ -219,7 +220,7 @@ function classifierStep({ id, sentence, names, field, perItem, itemVar, list }) 
  * already said out loud — the sentence is theirs and the answers are theirs.
  * A request this module cannot honour comes back as a `problem` sentence with
  * a null `step`, never as a plan with a guess in it: an author who accepts a
- * plan gets a step added to their routine, so "roughly right" is not a state
+ * plan gets a step added to their automation, so "roughly right" is not a state
  * this may return.
  *
  * @param {object}   args
@@ -267,7 +268,7 @@ export function planRouteHandoff({
             // Exactly the shape utils/conditionModel.js parses back into a
             // clickable row, so the preview reads it as a sentence and the
             // Advanced expression is the same text the runner sees.
-            expr: `${fieldPath} == ${JSON.stringify(name)}`,
+            expr: `equals(${fieldPath}, ${JSON.stringify(name)})`,
         });
     }
 
@@ -305,7 +306,7 @@ function canInsert(definition, steps, idx, newStep) {
  * new step points at the target. Add the node without moving the incoming
  * edges and it dangles with nothing above it, so the Condition reads a step
  * that never ran. Move them without adding the edge back and the Condition is
- * ORPHANED: no path from the trigger, never runs, and the routine still
+ * ORPHANED: no path from the trigger, never runs, and the automation still
  * validates, still saves, and quietly stops doing half of what it did.
  *
  * Incoming edges are COPIED rather than rebuilt, so a branch label and a

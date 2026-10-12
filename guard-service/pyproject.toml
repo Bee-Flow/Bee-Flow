@@ -8,7 +8,7 @@ name = "beeflow-guard-service"
 version = "0.1.0"
 requires-python = ">=3.12,<3.13"
 dependencies = [
-  "fastapi>=0.110.0,<1.0.0",
+  "fastapi>=0.142.2,<1.0.0",
   "uvicorn[standard]>=0.54.0,<1.0.0",
   "pydantic>=2.7.0,<3.0.0",
   "pydantic-settings>=2.2.0,<3.0.0",
@@ -32,13 +32,13 @@ dependencies = [
   "huggingface_hub==1.33.0",
   # ONNX runtime for fp32 CPU inference (much faster than fp32 PyTorch; we do
   # NOT INT8-quantize — that collapsed person-name recall, BFSF-269)
-  "onnx>=1.16.0,<2.0.0",
+  "onnx>=1.23.1,<2.0.0",
   "onnxruntime>=1.18.0,<2.0.0",
   # Declared even though nothing here imports it directly: gliner requires it,
   # and leaving it implicit means the resolver picks the default PyPI build
   # (CUDA, ~2.5 GB of nvidia-* wheels) for a service that runs CPU-only.
   # Same version the Dockerfile pins; the index below supplies the +cpu build.
-  "torch==2.14.0",
+  "torch==2.14.1",
 ]
 
 [dependency-groups]

@@ -39,8 +39,8 @@ export default function NdvStepMenu({
                 onClick={() => setOpen(o => !o)}
                 aria-haspopup="menu"
                 aria-expanded={open}
-                aria-label={t('routines.ndv.more_actions', 'More step actions')}
-                title={t('routines.ndv.more_actions', 'More step actions')}
+                aria-label={t('automations.ndv.more_actions', 'More step actions')}
+                title={t('automations.ndv.more_actions', 'More step actions')}
                 data-testid="ndv-more-menu"
                 className="w-[30px] h-[30px] shrink-0 grid place-items-center rounded-lg border border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition"
             >
@@ -65,7 +65,7 @@ export default function NdvStepMenu({
                         className={`${item} ${pinned ? 'text-[var(--pinned)]' : 'text-[var(--text-primary)]'} hover:bg-[var(--bg-tertiary)]`}
                     >
                         {pinned ? <PinOff size={13} /> : <Pin size={13} />}
-                        {pinned ? t('routines.ndv.pinned', 'Pinned') : t('routines.ndv.pin', 'Pin')}
+                        {pinned ? t('automations.ndv.pinned', 'Pinned') : t('automations.ndv.pin', 'Pin')}
                     </button>
                 )}
                 {onDuplicate && (
@@ -73,10 +73,10 @@ export default function NdvStepMenu({
                         type="button"
                         role="menuitem"
                         onClick={run(onDuplicate)}
-                        title={t('routines.ndv.duplicate_title', 'Duplicate this step and its settings')}
+                        title={t('automations.ndv.duplicate_title', 'Duplicate this step and its settings')}
                         className={`${item} text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]`}
                     >
-                        <CopyIcon size={13} /> {t('routines.ndv.duplicate', 'Duplicate')}
+                        <CopyIcon size={13} /> {t('automations.ndv.duplicate', 'Duplicate')}
                     </button>
                 )}
                 {onToggleDisabled && (
@@ -85,12 +85,12 @@ export default function NdvStepMenu({
                         role="menuitem"
                         onClick={run(onToggleDisabled)}
                         title={disabled
-                            ? t('routines.ndv.reenable_title', 'Re-enable this node')
-                            : t('routines.ndv.disable_title', 'Disable this node (skipped during execution)')}
+                            ? t('automations.ndv.reenable_title', 'Re-enable this node')
+                            : t('automations.ndv.disable_title', 'Disable this node (skipped during execution)')}
                         className={`${item} ${disabled ? 'text-[var(--warning)]' : 'text-[var(--text-primary)]'} hover:bg-[var(--bg-tertiary)]`}
                     >
                         <Power size={13} />
-                        {disabled ? t('routines.ndv.disabled', 'Disabled') : t('routines.ndv.disable', 'Disable')}
+                        {disabled ? t('automations.ndv.disabled', 'Disabled') : t('automations.ndv.disable', 'Disable')}
                     </button>
                 )}
                 {onDelete && (
@@ -98,7 +98,7 @@ export default function NdvStepMenu({
                         type="button"
                         role="menuitem"
                         onClick={run(onDelete)}
-                        title={t('routines.ndv.delete_title', 'Delete this step (reconnects its neighbours)')}
+                        title={t('automations.ndv.delete_title', 'Delete this step (reconnects its neighbours)')}
                         className={`${item} text-[var(--error)] hover:bg-[color-mix(in_srgb,var(--error)_10%,transparent)]`}
                     >
                         <Trash2 size={13} /> {t('common.delete', 'Delete')}

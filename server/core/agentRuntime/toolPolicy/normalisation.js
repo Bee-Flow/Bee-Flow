@@ -194,14 +194,14 @@ function normaliseToolsConfig(config, opts = {}) {
                 const g = raw.automations[id];
                 let confirm = _plainObject(g) && CONFIRM_MODES.includes(g.confirm) ? g.confirm : undefined;
                 // A confirm nobody can read is NOT "no confirm". An empty grant
-                // means `direct` — the routine fires the moment the model asks
+                // means `direct` — the automation fires the moment the model asks
                 // for it — so letting `'Ask'`, `true` or a grant that is not an
                 // object at all fall through to `{}` turns a typo into "sends
                 // without asking", silently. Same rule as the `actions` branch
                 // above: unreadable is the NARROW reading, said out loud.
                 //
                 // The grant itself survives: the ID is the half that IS
-                // readable, and dropping it would take a routine its owner
+                // readable, and dropping it would take an automation its owner
                 // deliberately picked out of the agent without saying so.
                 // Only the unreadable half — the confirm — is decided against
                 // the caller, exactly like `actAs: 'owner'` a few lines up.
@@ -215,7 +215,7 @@ function normaliseToolsConfig(config, opts = {}) {
                 autos[id] = confirm ? { confirm } : {};
                 if (!_sameEntry(g, autos[id])) changed = true;
             }
-            // Een LEGE sectie overleeft bewust. "Ik heb alle routines
+            // Een LEGE sectie overleeft bewust. "Ik heb alle automations
             // uitgevinkt" is een keuze, en hem hier weggooien maakt hem
             // ononderscheidbaar van "de eigenaar heeft nooit gekozen" —
             // waarna de lezer de volledige lijst van de vrager aanbiedt.

@@ -17,12 +17,12 @@
 const test = require('node:test');
 const assert = require('node:assert');
 
-// ── Vault state the hydration helpers read through routineAuth ──────
+// ── Vault state the hydration helpers read through automationAuth ──────
 
 const vault = { google: null, microsoft: null };
 const hydrationCalls = [];
 
-const mockRoutineAuth = {
+const mockAutomationAuth = {
     async getProviderAuth(userId, provider) {
         hydrationCalls.push({ userId, provider });
         return vault[provider];
@@ -31,8 +31,8 @@ const mockRoutineAuth = {
 
 const Module = require('module');
 const MOCKS = {
-    './routineAuth': mockRoutineAuth,
-    '../auth/routineAuth': mockRoutineAuth,
+    './automationAuth': mockAutomationAuth,
+    '../auth/automationAuth': mockAutomationAuth,
 };
 const MOCK_IDS = {};
 for (const [request, exportsObj] of Object.entries(MOCKS)) {
@@ -138,13 +138,13 @@ test('Google wins when both are vaulted, matching getIntegrationTools precedence
 test('a vault failure degrades to false instead of 500ing the settings call', async () => {
     reset();
     const session = { user: { id: 'u1' } };
-    const original = mockRoutineAuth.getProviderAuth;
-    mockRoutineAuth.getProviderAuth = async () => { throw new Error('vault unreachable'); };
+    const original = mockAutomationAuth.getProviderAuth;
+    mockAutomationAuth.getProviderAuth = async () => { throw new Error('vault unreachable'); };
     try {
         const flags = await resolveFlags(session);
         assert.deepStrictEqual(flags, { isGoogleUser: false, isMicrosoftUser: false });
     } finally {
-        mockRoutineAuth.getProviderAuth = original;
+        mockAutomationAuth.getProviderAuth = original;
     }
 });
 

@@ -1,11 +1,11 @@
 /**
  * The catalog again when the author comes back to a step. It is not re-read
- * while a routine is edited (useCatalog) because it is slow to build, but a
+ * while an automation is edited (useCatalog) because it is slow to build, but a
  * datatable editor with no tables says "make one in Studio → Datatables … it
  * appears in this list as soon as it exists". Leaving the step editor for a
  * screen pushed over it (Datatables, Knowledge, Agents) and coming back reads
  * it anew; opening a step does not. Going the other way — out of the editor to
- * the Studio tab and back in — remounts the routine's screen, whose
+ * the Studio tab and back in — remounts the automation's screen, whose
  * `freshOnMount` read covers it.
  */
 

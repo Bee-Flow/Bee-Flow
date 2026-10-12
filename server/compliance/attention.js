@@ -123,6 +123,8 @@ function baseItem(def, row, d, sectionOf) {
         severity: def.severity || row.severity || 'medium',
         status: row.status,
         title: scrubEmails(checkTitle(def, d.titles)),
+        // the title above is English (the server's own defaults); the client renders the reader's language from this key
+        ...(def?.titleKey ? { titleKey: def.titleKey } : {}),
         meta: {
             frameworks: (def.frameworks || []).map(f => ({ regulation: f.regulation, ref: f.ref })),
             severity: def.severity || row.severity || 'medium',
@@ -248,7 +250,9 @@ async function dsrFindings(orgId, d, nowMs) {
             out.push(registerItem({
                 ...common, id: `dsr:${r.id}:overdue`, code: 'dsr_overdue', severity: 'critical', status: 'fail',
                 title: `DSR #${r.id} (${type}) is overdue`,
-                detail: days > 0 ? `The 30-day response window closed ${days} day(s) ago.` : 'The 30-day response window has closed.',
+                // Art. 12(3): one calendar month from receipt, or the extended
+                // deadline — `due_at` is whichever applies.
+                detail: days > 0 ? `The response deadline (one month from receipt, or the extended deadline) passed ${days} day(s) ago.` : 'The response deadline (one month from receipt, or the extended deadline) has passed.',
             }));
             continue;
         }
@@ -257,7 +261,7 @@ async function dsrFindings(orgId, d, nowMs) {
             out.push(registerItem({
                 ...common, id: `dsr:${r.id}:due_soon`, code: 'dsr_due_soon', severity: 'high', status: 'warn',
                 title: `DSR #${r.id} (${type}) is due in ${days} day(s)`,
-                detail: 'Fulfil or extend (once, +60 days with a reason) before the window closes.',
+                detail: 'Fulfil or extend (once, by two further months, with a reason) before the deadline.',
             }));
         }
         const created = toMs(r.created_at);
@@ -270,6 +274,27 @@ async function dsrFindings(orgId, d, nowMs) {
         }
     }
     return out;
+}
+
+/**
+ * The CRA early warning a row owes, by kind. An actively exploited
+ * vulnerability's is Art. 14(2)(a); a severe incident having an impact on the
+ * security of the product has its own early warning in Art. 14(4)(a). The
+ * split follows stores/incidentClocks.js (_isCraSevereIncident): a row with a
+ * kind other than 'vulnerability' is a severe incident, and a row without a
+ * kind runs the vulnerability clock.
+ */
+function _craEarlyWarning(kind) {
+    if (kind && kind !== 'vulnerability') {
+        return {
+            ref: 'Art. 14(4)(a)',
+            detail: 'Report the severe incident affecting the security of the product to the CSIRT and ENISA within 24 hours of becoming aware of it (Art. 14(4)(a)).',
+        };
+    }
+    return {
+        ref: 'Art. 14(2)(a)',
+        detail: 'Report the actively exploited vulnerability to ENISA / the CSIRT within 24 hours of awareness (Art. 14(2)(a)).',
+    };
 }
 
 async function incidentFindings(orgId, d, nowMs) {
@@ -296,13 +321,14 @@ async function incidentFindings(orgId, d, nowMs) {
         const earlyDue = toMs(r.early_warning_due_at);
         if (isCra && earlyDue != null && !r.early_warning_sent_at && earlyDue - nowMs <= 6 * HOUR) {
             const overdue = earlyDue <= nowMs;
+            const early = _craEarlyWarning(r.kind);
             out.push(registerItem({
                 id: `incident:${r.id}:cra_early_warning`, code: 'cra_early_warning_due', severity: 'critical', status: overdue ? 'fail' : 'warn',
                 title: overdue
                     ? `INC-${r.id}: CRA early warning is overdue`
                     : `INC-${r.id}: CRA early warning due within ${Math.max(1, Math.ceil((earlyDue - nowMs) / HOUR))} h`,
-                detail: 'Report the actively exploited vulnerability to ENISA / the CSIRT within 24 hours of awareness (Art. 14(2)(a)).',
-                section: 'vulnerabilities', target, regulation: 'CRA', ref: 'Art. 14(2)(a)', at,
+                detail: early.detail,
+                section: 'vulnerabilities', target, regulation: 'CRA', ref: early.ref, at,
             }));
         }
     }
@@ -328,10 +354,22 @@ async function obligationFindings(orgId, d, nowMs) {
             id: `obligation:${r.id}`, code: 'obligation_overdue', severity: 'high', status: 'fail',
             title: `Overdue: ${String(r.title || r.kind || 'ISMS obligation').slice(0, 100)}`,
             detail: `Due ${new Date(r.due_at).toISOString().slice(0, 10)}.`,
-            section: 'audits', target: `${complianceSectionPath('audits')}?tab=obligations`,
+            // The ISMS obligations live on Training & competence; the client
+            // still aliases the old `audits?tab=obligations` for stored rows.
+            section: 'training', target: complianceSectionPath('training'),
             regulation: 'ISO27001', ref: 'cl. 9', at: toMs(r.due_at),
         }));
 }
+
+/**
+ * The article an expired AI Act self-assessment points at: the classification
+ * its recorded outcome rests on (Art. 5 prohibited practices, Art. 6 with
+ * Annex III high risk, Art. 50 transparency). A minimal or not-applicable
+ * outcome is an Art. 6 "not high-risk" classification. The 12-month expiry
+ * itself is Bee Flow's review interval (assess.VALID_MONTHS), not a
+ * statutory clock.
+ */
+const ATTESTATION_REF = Object.freeze({ prohibited: 'Art. 5', high_risk: 'Art. 6', transparency: 'Art. 50' });
 
 async function attestationFindings(orgId, d, nowMs) {
     const rows = await d.aiActAssessmentStore.listForOrg(orgId);
@@ -339,10 +377,10 @@ async function attestationFindings(orgId, d, nowMs) {
         .filter(r => toMs(r.expires_at) != null && toMs(r.expires_at) < nowMs)
         .map(r => registerItem({
             id: `ai_act:${r.target_kind}:${r.target_id}`, code: 'ai_act_attestation_expired', severity: 'medium', status: 'warn',
-            title: `AI Act self-assessment expired (${r.target_kind === 'agent' ? 'agent' : 'routine'})`,
+            title: `AI Act self-assessment expired (${r.target_kind === 'agent' ? 'agent' : 'automation'})`,
             detail: `Recorded outcome "${r.outcome || 'unknown'}" expired ${new Date(r.expires_at).toISOString().slice(0, 10)} — reassess.`,
             section: 'frameworks', target: `${complianceSectionPath('frameworks')}?tab=per_automation`,
-            regulation: 'AIA', ref: 'Art. 53', at: toMs(r.expires_at),
+            regulation: 'AIA', ref: ATTESTATION_REF[r.outcome] || 'Art. 6', at: toMs(r.expires_at),
         }));
 }
 

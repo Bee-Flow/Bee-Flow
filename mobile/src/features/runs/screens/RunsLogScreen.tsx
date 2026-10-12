@@ -1,5 +1,5 @@
 /**
- * Studio → Runs & log (the web's RunsStudio): every time a routine fired, what
+ * Studio → Runs & log (the web's RunsStudio): every time an automation fired, what
  * started it, what it did and what went wrong. The scope switch sits above a
  * virtualised, paged list whose header carries the "Now running" card and the
  * filters; a row opens the run on the automation's own run screen.
@@ -22,7 +22,7 @@ import { Banner, Button, Screen, ScreenHeader, Segmented, Text } from '@/shared/
 import { NowRunningStrip } from '../components/NowRunningStrip';
 import { RunFilterBar } from '../components/RunFilterBar';
 import { RunLogList } from '../components/RunLogList';
-import { useNowRunning, useRunFacets, useRunLog, useRunLogLive, useRunRoutines } from '../hooks/queries';
+import { useNowRunning, useRunFacets, useRunLog, useRunLogLive, useRunAutomations } from '../hooks/queries';
 import { DEFAULT_FILTERS, type RunFilters } from '../model/filters';
 import type { RunScope } from '../model/types';
 
@@ -33,7 +33,7 @@ function ScopeBlock({ scope, onScope, refused }: { scope: RunScope; onScope: (s:
     return (
         <View style={styles.top}>
             <Text variant="caption" tone="secondary">
-                {t('runs.intro', 'Every time a routine fired: what started it, what it did, and what went wrong. Opening a run shows it step by step.')}
+                {t('runs.intro', 'Every time an automation fired: what started it, what it did, and what went wrong. Opening a run shows it step by step.')}
             </Text>
             <Segmented
                 fullWidth
@@ -70,7 +70,7 @@ export function RunsLogScreen() {
     const [filters, setFilters] = useState<RunFilters>(DEFAULT_FILTERS);
     const list = useRunLog(scope, filters);
     const facets = useRunFacets(scope, filters);
-    const routines = useRunRoutines(scope, filters);
+    const automations = useRunAutomations(scope, filters);
     const strip = useNowRunning(scope);
     useRunLogLive(scope, filters);
     const refused = scope === 'org' && (list.isError || strip.isError) ? (list.error ?? strip.error) : null;
@@ -82,7 +82,7 @@ export function RunsLogScreen() {
                 failed={strip.isError}
                 onOpen={scope === 'mine' ? (id) => router.push(`/automations/${encodeURIComponent(id)}`) : null}
             />
-            <RunFilterBar filters={filters} onChange={setFilters} facets={facets.data} routines={routines.data} />
+            <RunFilterBar filters={filters} onChange={setFilters} facets={facets.data} automationFacets={automations.data} />
         </View>
     );
     return (
@@ -94,7 +94,7 @@ export function RunsLogScreen() {
                     scope={scope}
                     list={list}
                     header={header}
-                    onRefresh={() => Promise.all([list.refetch(), facets.refetch(), routines.refetch(), strip.refetch()])}
+                    onRefresh={() => Promise.all([list.refetch(), facets.refetch(), automations.refetch(), strip.refetch()])}
                 />
             )}
         </Screen>

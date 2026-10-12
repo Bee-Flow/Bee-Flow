@@ -9,7 +9,7 @@
  *
  * executeAutomation therefore builds the memo with `startSlept: isResume`.
  * `isResume` is `!!skipUntilStepId`, and resumeFromStep is the only thing that
- * passes it — so a routine that pauses three times stays shut for all three
+ * passes it — so an automation that pauses three times stays shut for all three
  * later legs without anything having to be remembered on the run row.
  *
  * Run: node --test --test-force-exit core/automationRunner/execution.resumeSlept.test.js
@@ -90,7 +90,7 @@ stub('../aiAgent', { getProviderForModel: async () => null });
 stub('../providers', { getAdapter: () => ({}) });
 stub('../../automation/codeSandbox', { run: async () => ({}) });
 
-process.env.ROUTINE_AUTH_LEGACY = '0';
+process.env.AUTOMATION_AUTH_LEGACY = '0';
 process.env.NODE_ENV = 'test';
 
 // The seam. execution.js DESTRUCTURES createToolMemo at load time, so the wrap

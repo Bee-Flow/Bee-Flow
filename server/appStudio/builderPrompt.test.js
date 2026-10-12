@@ -800,29 +800,29 @@ test('the core prompt teaches naming in the first call group (NAME IT NOW)', () 
     assert.match(meta.function.description, /2–4 words, ≤ 40 chars/);
 });
 
-test('the owner context note renders routines and documents, their empty states, and caps the routine list', () => {
-    const routines = [
+test('the owner context note renders automations and documents, their empty states, and caps the automation list', () => {
+    const automations = [
         { id: 'auto_b', title: 'Send invoice', isActive: true, trigger: 'agent_call', params: ['customer', 'amount'], description: 'Mails it' },
         { id: 'auto_a', title: 'Nightly sync', isActive: false, trigger: 'schedule' },
     ];
     const docs = [{ documentId: 'doc_1', name: 'Invoice', docType: 'invoice', placeholders: [{ key: 'lines', kind: 'list', fields: ['qty', 'desc'] }, { key: 'note', kind: 'condition' }] }];
-    const note = renderOwnerContextNote(routines, docs);
+    const note = renderOwnerContextNote(automations, docs);
     assert.ok(note.startsWith(`${OWNER_CONTEXT_PREFIX}\n`), 'framed as machine-generated');
-    assert.match(note, /Routines \(wire via run_automation with these exact ids\):\n- auto_a — "Nightly sync" \[inactive\] trigger:schedule\n- auto_b — "Send invoice" \[active\] trigger:agent_call params: customer, amount — Mails it/, 'sorted by id, one line each');
+    assert.match(note, /Automations \(wire via run_automation with these exact ids\):\n- auto_a — "Nightly sync" \[inactive\] trigger:schedule\n- auto_b — "Send invoice" \[active\] trigger:agent_call params: customer, amount — Mails it/, 'sorted by id, one line each');
     assert.match(note, /Documents \(fill via a fill_document step\):\n.*\n- doc_1 — "Invoice" \[invoice\] fills: lines \(list of qty, desc\), note \(only if set\)/);
     // Empty states say what that means for the build.
     const empty = renderOwnerContextNote([], []);
-    assert.match(empty, /\(none — the owner has no routines yet; a run_automation action may ship with automationId:null/);
+    assert.match(empty, /\(none — the owner has no automations yet; a run_automation action may ship with automationId:null/);
     assert.match(empty, /\(none — the owner has no designed documents, so a fill_document step cannot be built\)/);
     // The cap: 40 lines, then a tail that says how to get the rest.
     const many = Array.from({ length: 45 }, (_, i) => ({ id: `auto_${String(i).padStart(2, '0')}`, title: `R${i}`, isActive: true, trigger: 'manual' }));
     const capped = renderOwnerContextNote(many, []);
     assert.equal((capped.match(/^- auto_/gm) || []).length, 40);
-    assert.match(capped, /\(5 more — name the routine you mean and I will find it\)/);
-    assert.ok(renderOwnerContextNote(many, [], { maxRoutines: 45 }).includes('- auto_44'));
+    assert.match(capped, /\(5 more — name the automation you mean and I will find it\)/);
+    assert.ok(renderOwnerContextNote(many, [], { maxAutomations: 45 }).includes('- auto_44'));
 });
 
-test('the system prompt is identical for two users with different routines — the difference rides the note', () => {
+test('the system prompt is identical for two users with different automations — the difference rides the note', () => {
     const a = [{ id: 'auto_1', title: 'Alpha', isActive: true, trigger: 'manual' }];
     const b = [{ id: 'auto_2', title: 'Beta', isActive: true, trigger: 'webhook' }];
     assert.notEqual(renderOwnerContextNote(a, []), renderOwnerContextNote(b, []));
@@ -834,23 +834,23 @@ test('the system prompt is identical for two users with different routines — t
     // passes a list is honoured, and the prompt never says "listed below"
     // while pointing at the note.
     const full = buildSystemPrompt({ toolset: 'full', catalogText: 'CATALOG', ownerContext: 'note' });
-    assert.match(full, /## Routines \(the app owner's automations — wire via run_automation\)\n\n_\(the owner's routines are listed in the OWNER CONTEXT note of the user message/);
+    assert.match(full, /## Automations \(the app owner's automations — wire via run_automation\)\n\n_\(the owner's automations are listed in the OWNER CONTEXT note of the user message/);
     assert.match(full, /## Documents \(the owner's designs — fill via a fill_document step\)/);
     assert.match(full, /_\(the owner's designed documents are listed in the OWNER CONTEXT note/);
-    assert.match(full, /^- The owner's routines ride the OWNER CONTEXT note of the user message\. Call `app_list_automations`/m);
+    assert.match(full, /^- The owner's automations ride the OWNER CONTEXT note of the user message\. Call `app_list_automations`/m);
     assert.ok(!full.includes('listed below'), 'no "below" when nothing is below');
     const legacy = buildSystemPrompt({ toolset: 'full', catalogText: 'CATALOG', automationsText: '- auto_1 — "Alpha" [active] trigger:manual' });
     assert.ok(legacy.includes('- auto_1 — "Alpha" [active] trigger:manual'));
-    assert.match(legacy, /^- The owner's routines are listed below\. Call `app_list_automations`/m);
+    assert.match(legacy, /^- The owner's automations are listed below\. Call `app_list_automations`/m);
     assert.ok(!legacy.includes('OWNER CONTEXT'));
     // A caller that sends no note (the default — the MCP guide, read by an
     // agent that has the list tools) is told to call them, and never hears
     // of a note it will not receive.
     const viaTools = buildSystemPrompt({ toolset: 'full', catalogText: 'CATALOG' });
     assert.ok(!viaTools.includes('OWNER CONTEXT'), 'no note pointer without a note');
-    assert.match(viaTools, /## Routines \(the app owner's automations — wire via run_automation\)\n\n_\(call `app_list_automations` for the owner's routines/);
+    assert.match(viaTools, /## Automations \(the app owner's automations — wire via run_automation\)\n\n_\(call `app_list_automations` for the owner's automations/);
     assert.match(viaTools, /_\(call `app_search_documents` for the owner's designed documents and `app_read_document` before filling one/);
-    assert.match(viaTools, /^- The owner's routines are not in this prompt: call `app_list_automations` for the list/m);
+    assert.match(viaTools, /^- The owner's automations are not in this prompt: call `app_list_automations` for the list/m);
     assert.notEqual(viaTools, full);
     // The core prompt ignores the legacy lists entirely.
     assert.equal(buildSystemPrompt({ toolset: 'core', catalogText: 'CATALOG', automationsText: 'x' }), buildSystemPrompt({ toolset: 'core', catalogText: 'CATALOG' }));

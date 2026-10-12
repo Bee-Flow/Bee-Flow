@@ -9,7 +9,7 @@ export { AutomationDetailScreen } from './screens/AutomationDetailScreen';
 export { AutomationsScreen } from './screens/AutomationsScreen';
 export { RunsScreen } from './screens/RunsScreen';
 
-export { DeleteRoutineSheet } from './components/DeleteRoutineSheet';
+export { DeleteAutomationSheet } from './components/DeleteAutomationSheet';
 export { RunRow } from './components/RunRow';
 export { StatusIcon } from './components/StatusPill';
 export { RawToggle } from './components/RawToggle';

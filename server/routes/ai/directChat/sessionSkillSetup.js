@@ -63,7 +63,7 @@ async function setupSessionSkills({ req, send, userId, convId, config, clientHis
                     }
                     // Check DB messages for past file uploads (disableSearchOnUpload policy)
                     if (disableSearchOnUpload && existingConv.messages?.some(m => m.attachments && m.attachments.length > 0)) {
-                        directChatTools = directChatTools.filter(t => t.function.name !== 'agent_search');
+                        directChatTools = directChatTools.filter(t => t.function.name !== 'agent_search' && t.function.name !== 'read_url');
                         log.info('[DirectChat] Web search disabled — files found in conversation history DB (org policy)');
                     }
                     if (Array.isArray(existingConv.sessionSkills)) {
@@ -105,14 +105,12 @@ async function setupSessionSkills({ req, send, userId, convId, config, clientHis
             let bootstrapAdapter = adapter;
             let bootstrapApiKey = apiKey;
             let bootstrapApiUrl = apiUrl;
-            let bootstrapApiVersion = config.apiVersion || undefined;
             if (tier.bootstrapModelId && tier.bootstrapModelId !== modelId) {
                 try {
                     const bConfig = await getProviderForModel(tier.bootstrapModelId);
                     bootstrapAdapter = getAdapter(bConfig.providerType, (bConfig.url || '').replace(/\/+$/, ''));
                     bootstrapApiKey = bConfig.apiKey;
                     bootstrapApiUrl = (bConfig.url || '').replace(/\/+$/, '');
-                    bootstrapApiVersion = bConfig.apiVersion || undefined;
                     bootstrapModelId = tier.bootstrapModelId;
                     log.info(`[DirectChat] Bootstrap using cheap model: ${bootstrapModelId} (main tier: ${modelId})`);
                 } catch (bErr) {
@@ -151,7 +149,6 @@ async function setupSessionSkills({ req, send, userId, convId, config, clientHis
                     modelId: bootstrapModelId,
                     message: message || '[No text message provided]',
                     timezone: timezone || 'UTC',
-                    apiVersion: bootstrapApiVersion,
                     userContext,
                 });
                 // Auto-activate step-1 skills so their full bodies land in the

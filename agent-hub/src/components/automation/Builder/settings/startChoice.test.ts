@@ -93,6 +93,6 @@ describe('describeCron', () => {
 
     it('translates through t with the sentence parameters', () => {
         const t = (key: string, fallback: string, params?: Record<string, unknown>) => `${key}|${fallback}|${JSON.stringify(params || {})}`;
-        expect(describeCron('0 7 * * *', { t })).toBe('routines.schedule.every_day_at|Every day at {time}|{"time":"07:00"}');
+        expect(describeCron('0 7 * * *', { t })).toBe('automations.schedule.every_day_at|Every day at {time}|{"time":"07:00"}');
     });
 });

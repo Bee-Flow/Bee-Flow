@@ -69,7 +69,7 @@ function OverviewRow({ event, value, digestOn, ownerName, names, disabled, onCha
                         selected={value.enabled && value.channels.includes(c)}
                         onPress={() => onChange(toggleChannel(value, c))}
                         disabled={disabled}
-                        accessibilityHint={t('routines.notify.cell_label', '{event} via {channel}', { event: title, channel: channelLabel(c, t) })}
+                        accessibilityHint={t('automations.notify.cell_label', '{event} via {channel}', { event: title, channel: channelLabel(c, t) })}
                         testID={`notify-${event}-${c}`}
                     />
                 ))}
@@ -86,16 +86,16 @@ function DigestRow({ settings, disabled, onChange }: { settings: NotificationSet
         <View style={[styles.digest, styles.divided]}>
             <Icon name="Newspaper" size={14} color={styles.glyph.color} />
             <View style={styles.digestWords}>
-                <Text variant="body">{t('routines.notify.digest', 'Daily summary')}</Text>
+                <Text variant="body">{t('automations.notify.digest', 'Daily summary')}</Text>
                 <Text variant="caption" tone="tertiary">
-                    {t('routines.notify.digest_hint', 'At {time} one message: how many runs, what failed, what is still waiting', { time })}
+                    {t('automations.notify.digest_hint', 'At {time} one message: how many runs, what failed, what is still waiting', { time })}
                 </Text>
             </View>
             <Switch
                 value={enabled}
                 onValueChange={(next) => onChange({ ...settings, digest: { ...settings.digest, enabled: next } })}
                 disabled={disabled}
-                accessibilityLabel={t('routines.notify.digest', 'Daily summary')}
+                accessibilityLabel={t('automations.notify.digest', 'Daily summary')}
                 testID="notify-digest"
             />
         </View>
@@ -114,12 +114,12 @@ export function NotificationsGroup({ store, title, automationId, ownerId }: {
     const directory = usePrincipals(automationId).data ?? null;
     const settings = normalizeNotificationSettings(stored);
     const names = directoryNames(directory);
-    const ownerName = directory?.members.find((m) => m.id === ownerId)?.name || t('routines.notify.owner_fallback', 'Owner');
-    const routineTitle = title.trim() || t('routines.notify.this_routine', 'This automation');
+    const ownerName = directory?.members.find((m) => m.id === ownerId)?.name || t('automations.notify.owner_fallback', 'Owner');
+    const automationTitle = title.trim() || t('automations.notify.this_automation', 'This automation');
     const commit = (next: NotificationSettings) => store.getState().applyOp((def) => withNotificationSettings(def, next));
     const setEvent = (event: NotificationEvent, value: EventSettings) => commit({ ...settings, [event]: value });
     return (
-        <Group title={t('routines.notify.title', 'Notifications')} footer={t('routines.notify.default_note', 'default: only on errors and approvals, so your bell stays quiet')}>
+        <Group title={t('automations.notify.title', 'Notifications')} footer={t('automations.notify.default_note', 'default: only on errors and approvals, so your bell stays quiet')}>
             {EVENTS.map((event) => (
                 <OverviewRow
                     key={event}
@@ -135,7 +135,7 @@ export function NotificationsGroup({ store, title, automationId, ownerId }: {
             <Pressable onPress={() => setDetails((d) => !d)} accessibilityRole="button" accessibilityState={{ expanded: details }} style={[styles.toggle, styles.divided]} testID="notify-details">
                 <Icon name={details ? 'ChevronDown' : 'ChevronRight'} size={14} color={styles.glyph.color} />
                 <Text variant="caption" tone="tertiary" style={styles.toggleWords}>
-                    {t('routines.notify.details_toggle', 'How urgent (silent · normal · urgent) and a daily summary instead of separate notifications')}
+                    {t('automations.notify.details_toggle', 'How urgent (silent · normal · urgent) and a daily summary instead of separate notifications')}
                 </Text>
             </Pressable>
             {details ? EVENTS.map((event) => (
@@ -147,7 +147,7 @@ export function NotificationsGroup({ store, title, automationId, ownerId }: {
                     disabled={locked}
                     open={openEvent === event}
                     onToggle={() => setOpenEvent((o) => (o === event ? null : event))}
-                    automationTitle={routineTitle}
+                    automationTitle={automationTitle}
                     ownerName={ownerName}
                     names={names}
                     directory={directory}

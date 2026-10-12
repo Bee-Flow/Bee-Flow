@@ -171,7 +171,7 @@ export function cronFromPreset(preset) {
 export function describeCron(cron, { t = null, tz = null } = {}) {
     const tr = (key, fallback, params) => (typeof t === 'function' ? t(key, fallback, params) : fillParams(fallback, params));
     const sentence = describeCronSentence(presetFromCron(cron), tr);
-    return tz ? tr('routines.schedule.with_tz', '{sentence} · {tz}', { sentence, tz }) : sentence;
+    return tz ? tr('automations.schedule.with_tz', '{sentence} · {tz}', { sentence, tz }) : sentence;
 }
 
 const WEEKDAY_IDS = [1, 2, 3, 4, 5];
@@ -181,31 +181,31 @@ function describeCronSentence(preset, tr) {
     switch (preset.mode) {
         case 'minute':
             return preset.everyN === 1
-                ? tr('routines.schedule.every_minute', 'Every minute')
-                : tr('routines.schedule.every_n_minutes', 'Every {n} minutes', { n: preset.everyN });
+                ? tr('automations.schedule.every_minute', 'Every minute')
+                : tr('automations.schedule.every_n_minutes', 'Every {n} minutes', { n: preset.everyN });
         case 'hourly':
             return preset.minute === 0
-                ? tr('routines.schedule.every_hour', 'Every hour, on the hour')
-                : tr('routines.schedule.every_hour_at', 'Every hour at :{minute}', { minute: pad2(preset.minute) });
+                ? tr('automations.schedule.every_hour', 'Every hour, on the hour')
+                : tr('automations.schedule.every_hour_at', 'Every hour at :{minute}', { minute: pad2(preset.minute) });
         case 'daily':
-            return tr('routines.schedule.every_day_at', 'Every day at {time}', { time: time() });
+            return tr('automations.schedule.every_day_at', 'Every day at {time}', { time: time() });
         case 'weekly': {
             if (preset.days.length === WEEKDAY_IDS.length && WEEKDAY_IDS.every(d => preset.days.includes(d))) {
-                return tr('routines.schedule.every_weekday_at', 'Every weekday at {time}', { time: time() });
+                return tr('automations.schedule.every_weekday_at', 'Every weekday at {time}', { time: time() });
             }
             const labels = preset.days
                 .map(d => WEEKDAYS.find(w => w.id === d))
-                .map(w => (w ? tr(`routines.schedule.day_${w.label.toLowerCase()}`, w.label) : ''))
+                .map(w => (w ? tr(`automations.schedule.day_${w.label.toLowerCase()}`, w.label) : ''))
                 .filter(Boolean)
                 .join(', ');
-            return tr('routines.schedule.weekly_on', 'Weekly on {days} at {time}', { days: labels, time: time() });
+            return tr('automations.schedule.weekly_on', 'Weekly on {days} at {time}', { days: labels, time: time() });
         }
         case 'monthly':
-            return tr('routines.schedule.monthly_on', 'Monthly on day {day} at {time}', { day: preset.day, time: time() });
+            return tr('automations.schedule.monthly_on', 'Monthly on day {day} at {time}', { day: preset.day, time: time() });
         case 'custom':
         default:
             // Never "cron" — see ScheduleBuilder's Advanced field.
-            return tr('routines.schedule.custom', 'Custom schedule');
+            return tr('automations.schedule.custom', 'Custom schedule');
     }
 }
 

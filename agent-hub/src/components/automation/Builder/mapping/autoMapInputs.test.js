@@ -43,6 +43,40 @@ describe('small helpers', () => {
     it('nearestArrayRef prefers the nearest array field', () => {
         expect(nearestArrayRef(groups)).toBe('steps.s1.output.results');
     });
+    describe('after a Code step ({ result, logs, httpCalls })', () => {
+        const codeGroup = (result) => ({
+            id: 'c1', label: 'Code', kind: 'code', basePath: 'steps.c1.output',
+            fields: [
+                { key: 'result', path: 'steps.c1.output.result', sample: result, children: result && typeof result === 'object' && !Array.isArray(result)
+                    ? Object.entries(result).map(([k, v]) => ({ key: k, path: `steps.c1.output.result.${k}`, sample: v })) : undefined },
+                { key: 'logs', path: 'steps.c1.output.logs', sample: [] },
+                { key: 'httpCalls', path: 'steps.c1.output.httpCalls', sample: 0 },
+            ],
+        });
+        it('never picks the console lines', () => {
+            expect(nearestArrayRef([codeGroup({ total: 3 })])).toBeNull();
+            expect(nearestArrayRef([codeGroup('text')])).toBeNull();
+        });
+        it('falls through to an earlier group rather than binding to logs', () => {
+            expect(nearestArrayRef([groups[1], codeGroup(null)])).toBe('steps.s1.output.results');
+        });
+        it('picks the list the code returned', () => {
+            expect(nearestArrayRef([codeGroup([{ a: 1 }])])).toBe('steps.c1.output.result');
+            expect(nearestArrayRef([codeGroup({ total: 2, lines: [{ a: 1 }] })])).toBe('steps.c1.output.result.lines');
+        });
+        it('does not auto-bind a pristine Edit data step to the logs', () => {
+            const def = {
+                trigger: { id: 'trg', type: 'trigger', kind: 'manual' },
+                steps: [{ id: 'c1', type: 'code', code: 'return 1' }, { id: 'e1', type: 'set', fields: {} }],
+                edges: [{ from: 'trg', to: 'c1' }, { from: 'c1', to: 'e1' }],
+            };
+            const cat = { apps: [], triggerOutputs: { __manual: { fields: [], sample: {} } } };
+            const ran = (result) => ({ realOutputById: new Map([['c1', { result, logs: ['a'], httpCalls: 0 }]]) });
+            const step = { id: 'e1', type: 'set', fields: {} };
+            expect(autoMapStep(step, def, cat, ran({ total: 1 })).step.arrayRef).toBeUndefined();
+            expect(autoMapStep(step, def, cat, ran({ lines: [{ a: 1 }] })).step.arrayRef).toBe('steps.c1.output.result.lines');
+        });
+    });
 });
 
 describe('autoMapInputs (conservative)', () => {
@@ -551,10 +585,15 @@ describe('auto-map with real run/pinned data', () => {
             apps: [{ actions: [{ name: 'read_message', inputSchema: { properties: { messageId: { type: 'number' } }, required: ['messageId'] } }] }],
             triggerOutputs: {},
         };
-        const { step, forEachEnabled } = autoMapStep(def.steps[1], def, cat, { realOutputById });
+        // Real mails: a subject and a sender say each row IS a message, so its
+        // id is the messageId (autoMapEntity.ts). `{ id, subject }` alone could
+        // be a ticket's id, and is not guessed.
+        const mails = new Map([['s1', { results: [{ id: 7, subject: 'hi', from: 'a@b.nl' }] }]]);
+        const { step, forEachEnabled } = autoMapStep(def.steps[1], def, cat, { realOutputById: mails });
         expect(forEachEnabled).toBe(true);
         expect(step.forEach.overRef).toBe('steps.s1.output.results');
         expect(step.inputs.messageId).toEqual({ kind: 'ref', path: 'loop.result.id' });
+        expect(autoMapStep(def.steps[1], def, cat, { realOutputById }).forEachEnabled).toBeFalsy();
     });
 
     it('applyAutoMapToStep forwards realOutputById through opts', () => {

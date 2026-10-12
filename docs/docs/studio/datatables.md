@@ -139,6 +139,23 @@ Your relationship to a table is a **grade**, shown as a chip in the header: *You
 this table*, *You can read and change rows*, or *You can read rows*. Editing a table's
 shape needs the owner grade (plus `manage_datatables` on an organisation table).
 
+## Managed by a Solution stage
+
+A table that belongs to a **UAT or Production stage** of a [Solution](solutions.md#stages-and-deployments)
+is **managed**: its shape (columns, keys, relations) arrives by deployment and the schema editor
+is read-only, with a *Managed by a Solution stage* banner that links to the table in Dev and
+to the stage settings. The table's key in the organisation is `<key>__uat` or `<key>__prd`,
+so the stages never share a table. Governance (lawful basis, retention, subject column) and
+who may read or change rows stay the stage's own, and **rows are never carried** from Dev
+or from another stage. A column the release drops is **retired**, not dropped, so no data is
+lost and it can come back.
+
+**Reference tables.** Mark a table in Dev as a *reference table* to carry its rows with the
+release (a tax-rate list, a list of countries). On a stage, a reference table is locked for
+row writes too, because the deployment is the only writer: a row edit answers
+`409 managed_part`. A reference table must not hold personal data: a release whose reference rows do is
+refused, not acknowledged.
+
 ## Where to next
 
 - [Features → Automations](../features/automations.md) — the **Datatable** step that

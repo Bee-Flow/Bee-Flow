@@ -109,7 +109,7 @@ describe('skillModel ↔ the web skillModel.js', () => {
         for (const [from, to] of [[0, 2], [2, 0], [0, 9], [-1, 1], [1, 1]]) same('moveItem', ['a', 'b', 'c'], from, to);
     });
 
-    it('builds the same save payload and agrees on callable routines', () => {
+    it('builds the same save payload and agrees on callable automations', () => {
         same('buildSavePayload', port.draftOf(FULL));
         for (const a of [
             { definition: { trigger: { kind: 'agent_call' } }, triggerType: 'manual' },

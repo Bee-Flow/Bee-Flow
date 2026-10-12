@@ -105,7 +105,7 @@ async function resolveUncached(d, source, userId, orgId, fresh) {
     const name = STORAGE_NAME[source.provider] || 'the storage';
 
     // Off the request path the session is rebuilt the way the runner rebuilds
-    // one for a scheduled routine: vault tokens plus, for a connector-bound
+    // one for a scheduled automation: vault tokens plus, for a connector-bound
     // user, the instance binding resolveAuth routes on.
     const session = await d.resolveUserSession(userId).catch(() => null);
 

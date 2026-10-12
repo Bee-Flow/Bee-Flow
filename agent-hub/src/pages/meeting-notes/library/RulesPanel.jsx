@@ -22,13 +22,13 @@ import {
  * "Rules" (Regels) — de automations die op een AFGERONDE vergadernotitie
  * draaien, als leesbare zinnen (M5, deel D).
  *
- * Eén kaart per routine met een `app_event`-trigger op provider
+ * Eén kaart per automatisering met een `app_event`-trigger op provider
  * `meeting-notes`: "Als <tagfilter> is afgerond → <consequenties>". Wat waar
  * is staat in ../lib/meetingRules.js; dit bestand maakt er zinnen van.
  *
  * De bron is `GET /api/automation?triggerProvider=meeting-notes` (M2,
  * routes/automation/crud.js) — een lijst die per contract ALLEEN de eigen
- * routines van de lezer bevat (`getAutomationsForUser` is `WHERE user_id =
+ * automatiseringen van de lezer bevat (`getAutomationsForUser` is `WHERE user_id =
  * $1`). Dat staat ook op het scherm: een collega die dezelfde vergadering
  * opent ziet niet dezelfde regels, en "geen regels" zou anders een leugen zijn.
  *
@@ -51,7 +51,7 @@ import {
  *
  * En: een MISLUKTE facetten-lees toont NIETS — geen 0. Nul en onleesbaar zijn
  * verschillende antwoorden; het paneel zegt één keer bovenaan dat de tellingen
- * niet gelezen konden worden. Is de lees WEL gelukt en staat deze routine er
+ * niet gelezen konden worden. Is de lees WEL gelukt en staat deze automatisering er
  * niet in, dan is dat een echte nul over een echt bereik, en die zin is
  * expliciet over allebei ("no runs of yours in the last 24 hours").
  *
@@ -169,7 +169,7 @@ export function consequenceParts(consequences, t) {
  *
  * NULL bij een mislukte of nog lopende lees — nooit een 0, want die zou een
  * bewering zijn over runs die we niet hebben kunnen tellen. Is de lees gelukt
- * en staat de routine niet in de facetten, dan is dat een echte nul over een
+ * en staat de automatisering niet in de facetten, dan is dat een echte nul over een
  * echt bereik en zegt de zin dat óók met zoveel woorden.
  */
 export function runLabel({ facets, facetsError, automationId, hours }, t) {
@@ -483,7 +483,9 @@ export default function RulesPanel({
             await api.suggestAutomationsStream(
                 // Geen integratiekeuze: leeg betekent server-side "alles wat
                 // deze gebruiker heeft", en de scope zit in de seed.
-                { integrationIds: [], focus: composerSeed(composerText) },
+                // Ideas mode: the model proposes rules; the default pattern
+                // scan only reports work the user already repeats.
+                { mode: 'ideas', integrationIds: [], focus: composerSeed(composerText) },
                 (event, data) => {
                     if (event === 'done') done = data;
                     else if (event === 'error') setIdeas(s => ({ ...s, error: data?.error || null }));

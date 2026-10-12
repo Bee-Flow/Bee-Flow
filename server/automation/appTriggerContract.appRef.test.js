@@ -26,8 +26,8 @@ const codes = (issues) => issues.map((i) => i.code);
 describe('validateAppTriggerRef — shape only', () => {
     test('a complete ref is valid, and an absent one is legal', () => {
         assert.deepEqual(validateAppTriggerRef(REF), []);
-        // A routine written by hand, or made before the back-pointer existed,
-        // simply has none. That is not a broken routine.
+        // An automation written by hand, or made before the back-pointer existed,
+        // simply has none. That is not a broken automation.
         assert.deepEqual(validateAppTriggerRef(undefined), []);
         assert.deepEqual(validateAppTriggerRef(null), []);
     });
@@ -120,7 +120,7 @@ describe('a back-pointer never leaves the installation it names', () => {
     test('export strips it, and says why', () => {
         // It names an app, a screen and a component of ONE install. Carried
         // across, it resolves to nothing — and the trigger card is built to
-        // announce that out loud, so an imported routine would arrive claiming
+        // announce that out loud, so an imported automation would arrive claiming
         // a deletion that never happened.
         const { envelope, warnings } = buildExport({
             title: 'Process claim',
@@ -142,7 +142,7 @@ describe('a back-pointer never leaves the installation it names', () => {
         assert.deepEqual(definition.trigger.appRef, REF);
     });
 
-    test('a routine without one exports exactly as before — no phantom warning', () => {
+    test('an automation without one exports exactly as before — no phantom warning', () => {
         const { warnings } = buildExport({
             title: 'x',
             definition: { trigger: { id: 'trg', type: 'trigger', kind: 'manual' }, steps: [], edges: [] },

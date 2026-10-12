@@ -4,13 +4,13 @@ import { useTranslation } from '../../../../../hooks/useTranslation';
 import SegmentedControl from '../../../../shared/SegmentedControl';
 
 /**
- * The Simple / All-options switch, in its two presentations:
+ * The Simple / Advanced switch, in its two presentations:
  *
  *   'segmented' — the standing control in the step editor's header. Wraps
  *                 shared/SegmentedControl (radiogroup/radio + aria-checked;
  *                 note the prop is `ariaLabel`, not `aria-label`).
  *   'link'      — the one-line text button in the quick dialog's footer:
- *                 "Show all options (N)" / "Show fewer options". Same state,
+ *                 "Show advanced options (N)" / "Show fewer options". Same state,
  *                 different clothes — both drive the SAME persisted mode.
  *
  * The caller passes the RESOLVED mode (formDensity.resolveMode) — this
@@ -29,9 +29,9 @@ export default function FormModeToggle({
         const toAdvanced = mode !== 'advanced';
         const label = toAdvanced
             ? (hiddenCount > 0
-                ? t('routines.builder.show_all_options_n', 'Show all options ({count})', { count: hiddenCount })
-                : t('routines.builder.show_all_options', 'Show all options'))
-            : t('routines.builder.show_fewer_options', 'Show fewer options');
+                ? t('automations.builder.show_advanced_n', 'Show advanced options ({count})', { count: hiddenCount })
+                : t('automations.builder.show_advanced', 'Show advanced options'))
+            : t('automations.builder.show_fewer_options', 'Show fewer options');
         return (
             <button
                 type="button"
@@ -48,10 +48,10 @@ export default function FormModeToggle({
             value={mode}
             onChange={(next) => onChange?.(next)}
             size={size}
-            ariaLabel={t('routines.builder.mode_toggle_label', 'How much of this step to show')}
+            ariaLabel={t('automations.builder.mode_toggle_label', 'How much of this step to show')}
             options={[
-                { value: 'simple', label: t('routines.builder.mode_simple', 'Simple') },
-                { value: 'advanced', label: t('routines.builder.mode_all_options', 'All options') },
+                { value: 'simple', label: t('automations.builder.mode_simple', 'Simple') },
+                { value: 'advanced', label: t('automations.builder.mode_advanced', 'Advanced') },
             ]}
         />
     );

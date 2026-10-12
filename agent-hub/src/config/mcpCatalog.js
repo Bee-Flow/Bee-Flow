@@ -1,10 +1,12 @@
 /**
- * mcpCatalog.js — Curated "Featured" MCP server registry for the admin
- * MCP Server Marketplace (agent-hub → Integrations → MCP).
+ * mcpCatalog.js — Curated MCP server registry for SERVER-WIDE installs:
+ * Settings → Organisation → MCP library → "Server-wide" tab, shown to server
+ * administrators (components/mcpLibrary/server/ServerInstallModal.tsx).
  *
- * Extracted out of McpMarketplace.jsx so the catalog can grow without
- * touching the component, and so the live "Browse all" registry tab can
- * sit beside it.
+ * These may run on the Bee Flow host (stdio), which is why only a server
+ * administrator installs them. What ORGANISATION admins may install is the
+ * remote-only catalogue on the server (server/core/customIntegrations/
+ * mcpLibrary/catalog.js), never this list.
  *
  * Entry shape (only id/name/description/category/transport are required —
  * everything else is optional and degrades gracefully):

@@ -26,7 +26,7 @@
 // When in doubt the meeting stays where it is, private to its owner, who can
 // still add it to the project by hand.
 
-import { useEffect, useEffectEvent, useRef, useState } from 'react';
+import { createContext, useContext, useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useAttachResource } from '../../../../api/queries/projects';
 import useTranslation from '../../../../hooks/useTranslation';
 import { projectErrorText } from '../projectErrorText';
@@ -83,9 +83,11 @@ export interface ProjectMeetingCapture {
     filing: boolean;
     error: string | null;
     dismissError: () => void;
+    retry?: () => void;
+    savedId?: string | null;
 }
 
-export default function useProjectMeetingCapture(projectId: string, onFiled: (meetingId: string) => void): ProjectMeetingCapture {
+export function useCaptureWorker(projectId: string, onFiled: (meetingId: string) => void, disabled = false): ProjectMeetingCapture {
     const { t } = useTranslation();
     const { open: captureOpen, openCapture, session: captureSession = 0 } = useCapture();
     const recorder = useRecorder();
@@ -93,6 +95,7 @@ export default function useProjectMeetingCapture(projectId: string, onFiled: (me
     const [, rerender] = useState(0);
     const [filing, setFiling] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [savedId, setSavedId] = useState<string | null>(null);
     const wasOpen = useRef(captureOpen);
     const mine = arm?.projectId === projectId;
 
@@ -104,7 +107,20 @@ export default function useProjectMeetingCapture(projectId: string, onFiled: (me
         rerender(n => n + 1);
     };
 
+    const file = async (id: string) => {
+        setFiling(true);
+        setError(null);
+        try {
+            await attach.mutateAsync({ kind: 'meeting', id, attach: true });
+            setSavedId(null);
+            onFiled(id);
+        } catch (e) {
+            setSavedId(id);
+            setError(projectErrorText(t, e, t('project_content.meeting_file_failed', 'The meeting was saved, but it could not be added to this project.')));
+        } finally { setFiling(false); }
+    };
     const claim = useEffectEvent(async () => {
+        if (disabled) return;
         const state = { version: recorder.version, lastResultId: recorder.lastResultId, session: captureSession };
         const decision = decideClaim(arm, projectId, state, Date.now());
         if (decision === 'ignore' || decision === 'wait') return;
@@ -113,15 +129,7 @@ export default function useProjectMeetingCapture(projectId: string, onFiled: (me
         if (decision === 'disarm') return;
         const { id } = recorder.consumeLastResult();
         if (!id) return;
-        setFiling(true);
-        try {
-            await attach.mutateAsync({ kind: 'meeting', id, attach: true });
-            onFiled(id);
-        } catch (e) {
-            setError(projectErrorText(t, e, t('project_content.meeting_file_failed', 'The meeting was saved, but it could not be added to this project.')));
-        } finally {
-            setFiling(false);
-        }
+        await file(id);
     });
 
     useEffect(() => { claim(); }, [recorder.version, recorder.lastResultId, captureSession]);
@@ -129,7 +137,7 @@ export default function useProjectMeetingCapture(projectId: string, onFiled: (me
     // Closing the modal with nothing recorded, uploading or finished is a cancel.
     const onModalClosed = useEffectEvent(() => {
         const idle = recorder.recorder?.state === 'idle' && !recorder.uploading;
-        if (arm?.projectId === projectId && idle && recorder.version === arm.version) {
+        if (!disabled && arm?.projectId === projectId && idle && recorder.version === arm.version) {
             arm = null;
             rerender(n => n + 1);
         }
@@ -146,6 +154,30 @@ export default function useProjectMeetingCapture(projectId: string, onFiled: (me
         uploading: mine && !!recorder.uploading,
         filing,
         error,
-        dismissError: () => setError(null),
+        dismissError: () => { setError(null); setSavedId(null); },
+        savedId,
+        retry: () => { if (savedId) void file(savedId); },
     };
+}
+
+export interface CaptureCoordinator {
+    projectId: string;
+    capture: ProjectMeetingCapture;
+    start: (projectId: string) => void;
+    subscribe: (projectId: string, callback: (id: string) => void) => () => void;
+}
+export const ProjectCaptureContext = createContext<CaptureCoordinator | null>(null);
+
+export default function useProjectMeetingCapture(projectId: string, onFiled: (id: string) => void): ProjectMeetingCapture {
+    const shared = useContext(ProjectCaptureContext);
+    // Isolated hosts/tests may omit the app provider. Only one worker ever claims a result.
+    const local = useCaptureWorker(projectId, onFiled, !!shared);
+    const callback = useEffectEvent(onFiled);
+    useEffect(() => shared?.subscribe(projectId, id => callback(id)), [shared?.subscribe, projectId]);
+    if (!shared) return local;
+    const mine = shared.projectId === projectId;
+    return { ...shared.capture, start: () => shared.start(projectId),
+        pending: mine && shared.capture.pending, uploading: mine && shared.capture.uploading,
+        filing: mine && shared.capture.filing, error: mine ? shared.capture.error : null,
+        savedId: mine ? shared.capture.savedId : null };
 }

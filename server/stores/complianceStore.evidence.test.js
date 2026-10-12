@@ -301,3 +301,15 @@ test('recordCheckResult passes framework_code through (null when absent); getLat
         assert.match(c.sql, /organization_id = \$1/);
     }
 });
+
+test('getCheckHistory narrows to one subject slot when a scope is given, and reads every slot without one', async () => {
+    await store.getCheckHistory('orgA', 'GDPR-Art35-dpia-high-risk', 100, { scopeId: 'agent_claims' });
+    await store.getCheckHistory('orgA', 'GDPR-Art35-dpia-high-risk', 100);
+    await store.getCheckHistory('orgA', 'GDPR-Art35-dpia-high-risk', 100, { scopeId: '' });
+    const [scoped, all, blank] = mock.calls.getAll;
+    assert.match(scoped.sql, /scope_id IS NOT DISTINCT FROM \$4/);
+    assert.deepStrictEqual(scoped.params, ['orgA', 'GDPR-Art35-dpia-high-risk', 100, 'agent_claims']);
+    assert.doesNotMatch(all.sql, /scope_id IS NOT DISTINCT FROM/);
+    assert.deepStrictEqual(all.params, ['orgA', 'GDPR-Art35-dpia-high-risk', 100]);
+    assert.doesNotMatch(blank.sql, /scope_id IS NOT DISTINCT FROM/, 'an empty scope is no filter');
+});

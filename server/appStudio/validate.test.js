@@ -279,9 +279,13 @@ test('binding checks', () => {
     assert.ok(has(broken((d) => { kids(d)[7].props.value = 'bare'; }).errors, 'binding.invalid'));
     assert.ok(has(broken((d) => { kids(d)[7].props.value = { kind: 'magic' }; }).errors, 'binding.kind_invalid'));
     assert.ok(has(broken((d) => { kids(d)[7].props.value.actionId = 'act_none99'; }).errors, 'binding.action_unresolved'));
-    assert.ok(has(broken((d) => { kids(d)[7].props.value.path = 'rows[0].x'; }).errors, 'binding.path_invalid'));
-    // numeric indices as plain dot segments are the supported spelling
+    // One path grammar with the app's resolver and the automation runtime:
+    // a path neither can read is refused…
+    assert.ok(has(broken((d) => { kids(d)[7].props.value.path = 'rows[0'; }).errors, 'binding.path_invalid'));
+    // …and both spellings of a list position are accepted (the bracket one
+    // used to be refused here while the preview resolved it).
     assert.ok(!has(broken((d) => { kids(d)[7].props.value.path = 'rows.0.x'; }).errors, 'binding.path_invalid'));
+    assert.ok(!has(broken((d) => { kids(d)[7].props.value.path = 'rows[0].x'; }).errors, 'binding.path_invalid'));
 });
 
 test('children only on containers', () => {
@@ -523,7 +527,7 @@ test('action sequence: kinds, refs, loop bounds, depth, count, partition', () =>
     let deep = [{ kind: 'toast', message: 'leaf' }];
     for (let i = 0; i < LIMITS.MAX_ACTION_DEPTH + 1; i++) deep = [{ kind: 'condition', expr: 'form.x', then: deep, else: [] }];
     assert.ok(has(brokenV2(steps(deep)).errors, 'action.step_too_deep'));
-    // a run_automation step with an unset routine warns (mirrors the top-level)
+    // a run_automation step with an unset automation warns (mirrors the top-level)
     assert.ok(has(brokenV2(steps([{ kind: 'run_automation', automationId: null }])).warnings, 'action.automation_unset'));
 });
 

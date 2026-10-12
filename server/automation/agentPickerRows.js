@@ -3,11 +3,11 @@
  * staat erbij als er eentje niet gekozen kan worden? (R2, deel C)
  *
  * ── WAAROM DIT NIET automation/agentCatalog.js IS ───────────────────
- * Die module beantwoordt de VALIDATIE-vraag: mag deze routine dit ene id
+ * Die module beantwoordt de VALIDATIE-vraag: mag deze automatisering dit ene id
  * gebruiken, ja of nee. Hij zegt met opzet nooit waarom niet — een id komt daar
  * uit een definitie die iemand ook met de hand kan hebben getypt, en een
  * uitgesplitst antwoord ("bestaat niet" vs. "andere organisatie") maakt de
- * routine-editor tot een bestaans-orakel voor elke andere workspace op deze
+ * automation-editor tot een bestaans-orakel voor elke andere workspace op deze
  * installatie.
  *
  * Hier ligt dat anders, en precies daarom is het een aparte module. Deze lijst
@@ -22,7 +22,7 @@
  * al zichtbaar heeft gemaakt. Nooit voor een id dat iemand invulde.
  *
  * ── ÉÉN OORDEEL, EN DE REDEN BESLIST NIET ───────────────────────────
- * `canUse` komt uit `mayRoutineUseAgent` — dezelfde functie die de save-check
+ * `canUse` komt uit `mayAutomationUseAgent` — dezelfde functie die de save-check
  * gebruikt en die `aiStepAgent._mayUseAgent` bij elke run naast zich heeft
  * staan. De reden hieronder is UITLEG en geen tweede oordeel: hij wordt pas
  * berekend als het oordeel al "nee" is, en kan dat "nee" dus niet omzetten in
@@ -32,7 +32,7 @@
 
 'use strict';
 
-const { mayRoutineUseAgent, servesPublishedConfig } = require('./agentCatalog');
+const { mayAutomationUseAgent, servesPublishedConfig } = require('./agentCatalog');
 
 /**
  * De redenen die de kiezer toont. Alleen deze vier; een geval dat er niet in
@@ -58,8 +58,8 @@ function _isSystemAgent(agent) {
 /**
  * Waarom mag deze vrager deze agent niet inzetten?
  *
- * Wordt UITSLUITEND aangeroepen als `mayRoutineUseAgent` al nee heeft gezegd —
- * zie de kop. De volgorde is die van `mayRoutineUseAgent` zelf, zodat de zin
+ * Wordt UITSLUITEND aangeroepen als `mayAutomationUseAgent` al nee heeft gezegd —
+ * zie de kop. De volgorde is die van `mayAutomationUseAgent` zelf, zodat de zin
  * de eerste hindernis noemt en niet een latere.
  */
 function explainRefusal(agent, { userId: _userId = null, orgId = null, groups = [] } = {}) {
@@ -67,7 +67,7 @@ function explainRefusal(agent, { userId: _userId = null, orgId = null, groups = 
     // Beide publicatie-hindernissen geven dezelfde zin, want de handeling is
     // dezelfde: publiceren. De deel-schakelaar aanzetten zonder ooit een versie
     // te publiceren laat de agent op zijn LIVE concept draaien, en daar mag een
-    // routine van een ander niet op bouwen — zie `servesPublishedConfig`.
+    // automatisering van een ander niet op bouwen — zie `servesPublishedConfig`.
     if (!agent.is_published || !servesPublishedConfig(agent)) return 'not_published';
     if (orgId) {
         if (!agent.organization_id || agent.organization_id !== orgId) return 'other_org';
@@ -91,7 +91,7 @@ function explainRefusal(agent, { userId: _userId = null, orgId = null, groups = 
  *   ontdubbeld op id, waarbij de EERSTE wint — de eigen-agents-lijst hoort dus
  *   vooraan te staan, want die draagt de conceptstand van een rij die in beide
  *   lijsten voorkomt.
- * @param {object} viewer  `{ userId, orgId, groups }` van de ROUTINE-EIGENAAR
+ * @param {object} viewer  `{ userId, orgId, groups }` van de AUTOMATION-EIGENAAR
  * @returns {Array<{id,name,description,scope,canUse,reason}>} op naam gesorteerd
  */
 function agentPickerRows(rows, viewer = {}) {
@@ -106,7 +106,7 @@ function agentPickerRows(rows, viewer = {}) {
         // niemand kan opvolgen.
         if (_isSystemAgent(agent)) continue;
         seen.add(id);
-        const canUse = mayRoutineUseAgent(agent, viewer) === true;
+        const canUse = mayAutomationUseAgent(agent, viewer) === true;
         out.push({
             id,
             name: typeof agent.name === 'string' && agent.name ? agent.name : id,

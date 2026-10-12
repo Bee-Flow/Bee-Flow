@@ -76,7 +76,7 @@ export function WebpagesScreen({ startCreating = false }: { startCreating?: bool
                 noMatch={{
                     title: t('mobile.webpages.no_match', 'No page matches that'),
                     message: t('mobile.webpages.no_match_hint', 'Try another word.'),
-                    clearLabel: t('routines.mapping.clear_search', 'Clear search'),
+                    clearLabel: t('automations.mapping.clear_search', 'Clear search'),
                 }}
             />
             <NewWebpageSheet visible={creating} onClose={() => setCreating(false)} />

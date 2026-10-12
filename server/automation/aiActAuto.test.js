@@ -64,11 +64,11 @@ function world({ required = true, verdict = SURE_NO, rows = [], now = NOW } = {}
     return w;
 }
 
-const routine = (definition, extra = {}) => ({ id: 'r1', userId: 'u1', title: 'Invoices', description: 'Books invoices', definition, ...extra });
+const automation = (definition, extra = {}) => ({ id: 'r1', userId: 'u1', title: 'Invoices', description: 'Books invoices', definition, ...extra });
 
 test('Bee alone: every answer certain is recorded automatically, once', async () => {
     const w = world();
-    const r = await w.auto.check(routine(INTERNAL), INTERNAL);
+    const r = await w.auto.check(automation(INTERNAL), INTERNAL);
     assert.strictEqual(r.recorded, true);
     assert.deepStrictEqual(r.pending, []);
     assert.strictEqual(r.state.status, 'valid');
@@ -83,7 +83,7 @@ test('Bee alone: every answer certain is recorded automatically, once', async ()
     assert.strictEqual(rec.answers.art5.answer, 'no');
     assert.strictEqual(rec.answers.annex_iii.answer, 'no');
 
-    const again = await w.auto.check(routine(INTERNAL), INTERNAL);
+    const again = await w.auto.check(automation(INTERNAL), INTERNAL);
     assert.strictEqual(again.recorded, false);
     assert.strictEqual(w.attests.length, 1);
     assert.strictEqual(w.classifyCalls, 1, 'the stored verdict is reused for the same text');
@@ -92,7 +92,7 @@ test('Bee alone: every answer certain is recorded automatically, once', async ()
 test('no AI: "not applicable", certain, without asking the model', async () => {
     const w = world();
     const def = flow([{ id: 'w', type: 'wait', seconds: 1 }]);
-    const r = await w.auto.check(routine(def), def);
+    const r = await w.auto.check(automation(def), def);
     assert.strictEqual(r.state.outcome, 'not_applicable');
     assert.strictEqual(r.applicable, false);
     assert.strictEqual(w.classifyCalls, 0);
@@ -101,9 +101,9 @@ test('no AI: "not applicable", certain, without asking the model', async () => {
 
 test('a certain detection that differs from the stored assessment updates it', async () => {
     const w = world();
-    await w.auto.check(routine(INTERNAL), INTERNAL);
+    await w.auto.check(automation(INTERNAL), INTERNAL);
     const published = flow([AI, { id: 'p', type: 'integration_action', tool: 'webpage_file_write', label: 'Publish', inputs: { content: '{{steps.a.output.text}}' } }]);
-    const r = await w.auto.check(routine(published), published);
+    const r = await w.auto.check(automation(published), published);
     assert.strictEqual(r.recorded, true);
     assert.strictEqual(w.attests.length, 2);
     assert.strictEqual(w.attests[1].answers.art50.interacts, 'yes');
@@ -113,11 +113,11 @@ test('a certain detection that differs from the stored assessment updates it', a
 
 test('previously certain, now unknown: only that question is asked, nothing is recorded', async () => {
     const w = world();
-    await w.auto.check(routine(INTERNAL), INTERNAL);
+    await w.auto.check(automation(INTERNAL), INTERNAL);
     // The prompt changes (new text for the model) and the model is unreachable now.
     w.verdict = { available: false };
     const changed = flow([{ ...AI, prompt: 'Read the invoice and the supplier rating' }, INTERNAL.steps[1]]);
-    const r = await w.auto.check(routine(changed), changed);
+    const r = await w.auto.check(automation(changed), changed);
     assert.strictEqual(r.recorded, false);
     assert.deepStrictEqual(r.pending.map(q => q.id), ['sensitiveUse', 'prohibitedUse']);
     assert.strictEqual(r.state.status, 'outdated');
@@ -128,33 +128,33 @@ test('previously certain, now unknown: only that question is asked, nothing is r
 test('a person answers the open questions; the answer stands until what Bee found changes', async () => {
     const w = world();
     const dyn = flow([AI, { id: 'm', type: 'integration_action', tool: 'gmail_compose', label: 'Reply', inputs: { to: '{{trigger.output.from}}', body: '{{steps.a.output.text}}' } }]);
-    const first = await w.auto.check(routine(dyn), dyn);
+    const first = await w.auto.check(automation(dyn), dyn);
     assert.deepStrictEqual(first.pending.map(q => [q.id, q.confidence, q.suggested]), [['externalOutput', 'likely', 'yes']]);
 
-    const answered = await w.auto.check(routine(dyn), dyn, { actorId: 'u2', answers: { externalOutput: 'yes' } });
+    const answered = await w.auto.check(automation(dyn), dyn, { actorId: 'u2', answers: { externalOutput: 'yes' } });
     assert.strictEqual(answered.recorded, true);
     assert.strictEqual(answered.state.source, 'mixed');
     assert.strictEqual(answered.state.attestedBy, 'u2');
     assert.strictEqual(answered.state.outcome, 'transparency');
 
     // Publishing again (Bee alone, record allowed): nothing to ask, nothing new.
-    const gate = await w.auto.gateState(routine(dyn), dyn);
+    const gate = await w.auto.gateState(automation(dyn), dyn);
     assert.strictEqual(gate.status, 'valid');
     assert.deepStrictEqual(gate.pendingQuestions, []);
     assert.strictEqual(w.attests.length, 1);
 
     // A year later the row lapses; the person's answer goes with it.
     w.now = Date.parse('2027-10-01T00:00:00Z');
-    const lapsed = await w.auto.check(routine(dyn), dyn);
+    const lapsed = await w.auto.check(automation(dyn), dyn);
     assert.deepStrictEqual(lapsed.pending.map(q => q.id), ['externalOutput']);
     assert.strictEqual(lapsed.state.status, 'expired');
 });
 
 test('a lapsed automatic check renews itself', async () => {
     const w = world();
-    await w.auto.check(routine(INTERNAL), INTERNAL);
+    await w.auto.check(automation(INTERNAL), INTERNAL);
     w.now = Date.parse('2027-10-01T00:00:00Z');
-    const r = await w.auto.check(routine(INTERNAL), INTERNAL);
+    const r = await w.auto.check(automation(INTERNAL), INTERNAL);
     assert.strictEqual(r.recorded, true);
     assert.strictEqual(r.state.status, 'valid');
     assert.strictEqual(r.state.expiresAt, '2028-10-01T00:00:00.000Z');
@@ -162,22 +162,22 @@ test('a lapsed automatic check renews itself', async () => {
 
 test('a model "yes" is put to a person, never recorded by Bee', async () => {
     const w = world({ verdict: { ...SURE_NO, prohibited: { answer: 'yes', confidence: 'high', practices: ['social_scoring'] } } });
-    const r = await w.auto.check(routine(INTERNAL), INTERNAL);
+    const r = await w.auto.check(automation(INTERNAL), INTERNAL);
     assert.deepStrictEqual(r.pending.map(q => [q.id, q.confidence, q.suggested, q.practices]), [['prohibitedUse', 'likely', 'yes', ['social_scoring']]]);
     assert.strictEqual(w.attests.length, 0);
-    const no = await w.auto.check(routine(INTERNAL), INTERNAL, { actorId: 'u1', answers: { prohibitedUse: 'no' } });
+    const no = await w.auto.check(automation(INTERNAL), INTERNAL, { actorId: 'u1', answers: { prohibitedUse: 'no' } });
     assert.strictEqual(no.state.outcome, 'minimal');
 });
 
 test('a hub attestation stands while valid; a viewer (record: false) never writes', async () => {
     const hubRow = { signals: { contains_ai: true }, answers: {}, outcome: 'minimal', attested_by: 'officer', attested_at: '2026-06-01T00:00:00Z', expires_at: '2027-06-01T00:00:00Z' };
     const w = world({ rows: [hubRow] });
-    const r = await w.auto.check(routine(INTERNAL), INTERNAL);
+    const r = await w.auto.check(automation(INTERNAL), INTERNAL);
     assert.strictEqual(r.state.attestedBy, 'officer');
     assert.strictEqual(w.classifyCalls, 0);
 
     const v = world();
-    const seen = await v.auto.check(routine(INTERNAL), INTERNAL, { record: false });
+    const seen = await v.auto.check(automation(INTERNAL), INTERNAL, { record: false });
     assert.strictEqual(seen.recorded, false);
     assert.strictEqual(seen.state.status, 'missing');
     assert.strictEqual(v.attests.length, 0);
@@ -186,16 +186,16 @@ test('a hub attestation stands while valid; a viewer (record: false) never write
 
 test('without the licence nothing is detected or recorded', async () => {
     const w = world({ required: false });
-    const r = await w.auto.check(routine(INTERNAL), INTERNAL);
+    const r = await w.auto.check(automation(INTERNAL), INTERNAL);
     assert.strictEqual(r.state.required, false);
     assert.strictEqual(w.classifyCalls, 0);
-    const gate = await w.auto.gateState(routine(INTERNAL), INTERNAL);
+    const gate = await w.auto.gateState(automation(INTERNAL), INTERNAL);
     assert.deepStrictEqual(gate.pendingQuestions, []);
 });
 
 test('"uses AI: no" from a person does not narrow AI Bee is certain of', async () => {
     const w = world();
-    const r = await w.auto.check(routine(INTERNAL), INTERNAL, { actorId: 'u1', answers: { usesAi: 'no' } });
+    const r = await w.auto.check(automation(INTERNAL), INTERNAL, { actorId: 'u1', answers: { usesAi: 'no' } });
     assert.strictEqual(r.state.outcome, 'minimal');
     assert.strictEqual(w.attests[0].evidence.questions.usesAi.by, 'bee');
 });

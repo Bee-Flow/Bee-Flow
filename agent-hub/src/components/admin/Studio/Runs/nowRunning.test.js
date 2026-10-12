@@ -33,7 +33,7 @@ describe('readRollups — an unreadable rollup is not an empty one', () => {
 });
 
 describe('toLine — the most urgent thing in the window wins', () => {
-    it('a routine that failed reads as failed even if it succeeded since', () => {
+    it('an automation that failed reads as failed even if it succeeded since', () => {
         // Burying this morning's two failures under "done · 38 runs" is how a
         // strip like this stops being read at all.
         const line = toLine(roll({ total: 38, status: { success: 36, error: 2 }, lastErrorAt: '2026-09-07T08:00:00.000Z', lastErrorClass: 'timeout' }));
@@ -106,9 +106,9 @@ describe('nowRunningLines — order, cap and the honest total', () => {
         expect(out.hidden).toBe(6);
     });
 
-    it('counts the routines the server capped away, not just the ones it did not draw', () => {
+    it('counts the automations the server capped away, not just the ones it did not draw', () => {
         // The server caps its rollup too. "and 34 more" must mean the
-        // organisation's 40 routines, not the 40 minus what arrived.
+        // organisation's 40 automations, not the 40 minus what arrived.
         const arrived = Array.from({ length: 6 }, (_, i) => roll({ automationId: `a${i}` }));
         const out = nowRunningLines(facets(arrived, { automationsTotal: 40 }), { limit: 6 });
         expect(out.lines).toHaveLength(6);

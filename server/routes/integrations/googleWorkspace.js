@@ -9,7 +9,7 @@
  * routes/integrations/linkedin.js) that is decoupled from authentication:
  *
  *   GET  /auth-url    — start OAuth (state + PKCE, offline access)
- *   GET  /callback    — token exchange → encrypted vault (routine_credentials)
+ *   GET  /callback    — token exchange → encrypted vault (automation_credentials)
  *   GET  /status      — { configured, connected, email, needsReauth }
  *   POST /disconnect  — provider-side revoke + vault delete + session clear
  *
@@ -20,8 +20,8 @@
  * there is the timing-safe state comparison plus the PKCE verifier, not a
  * shape. The other three read nothing but the session.
  *
- * Tokens land in the same routineCredentialStore vault the SSO login feeds
- * (_vaultUpsertSafe), so routines AND the session-hydration layer
+ * Tokens land in the same automationCredentialStore vault the SSO login feeds
+ * (_vaultUpsertSafe), so automations AND the session-hydration layer
  * (auth/googleSessionHydration.js) work identically for both acquisition
  * paths. The live session is hydrated immediately (tagged
  * oauthTokenSource:'connector') so chat tools light up without a re-login —
@@ -34,7 +34,7 @@ const crypto = require('crypto');
 const log = require('../../telemetry/log');
 const router = express.Router();
 const configStore = require('../../stores/configStore');
-const routineCredentialStore = require('../../stores/routineCredentialStore');
+const automationCredentialStore = require('../../stores/automationCredentialStore');
 
 // Same OAuth client + scope set as SSO login (permissions.js OAUTH_PROVIDERS)
 // so a connector consent never conflicts with an SSO consent for the same app.
@@ -56,11 +56,11 @@ function buildRedirectUri(req) {
 }
 
 // Encryption scope for the vault row — the shared rule lives in
-// auth/routineAuth.vaultOrgIdFor (org key, else a per-user scope) so every
-// writer of routine_credentials derives it identically. Lazily required: the
+// auth/automationAuth.vaultOrgIdFor (org key, else a per-user scope) so every
+// writer of automation_credentials derives it identically. Lazily required: the
 // route's own test stubs the store this module loads at boot.
 function resolveVaultOrgId(user) {
-    return require('../../auth/routineAuth').vaultOrgIdFor(user);
+    return require('../../auth/automationAuth').vaultOrgIdFor(user);
 }
 
 // Constant-time CSRF-state comparison, matching the legacy SSO callback in
@@ -190,7 +190,7 @@ router.get('/callback', async (req, res) => {
         const userStore = require('../../stores/userStore');
         const user = await userStore.getUser(userId).catch(() => null);
         const orgId = resolveVaultOrgId({ ...user, id: userId });
-        await routineCredentialStore.upsertCredential({
+        await automationCredentialStore.upsertCredential({
             userId,
             orgId,
             provider: 'google',
@@ -201,15 +201,13 @@ router.get('/callback', async (req, res) => {
         });
         await configStore.setConfig(`google_workspace_email_user_${userId}`, email);
 
-        // Resume routines and cowork that were paused for needs_reauth.
+        // Resume automations and cowork that were paused for needs_reauth.
         try {
-            const aiTaskStore = require('../../stores/aiTaskStore');
             const coworkStore = require('../../stores/coworkStore');
-            const resumed = await aiTaskStore.resumeNeedsReauthForUser(userId)
-                + await coworkStore.resumeNeedsReauthForUser(userId);
-            if (resumed > 0) log.info(`[GoogleConnector] resumed ${resumed} routine(s) for user ${userId}`);
+            const resumed = await coworkStore.resumeNeedsReauthForUser(userId);
+            if (resumed > 0) log.info(`[GoogleConnector] resumed ${resumed} automation(s) for user ${userId}`);
         } catch (e) {
-            log.warn(`[GoogleConnector] resume-routines failed: ${e.message}`);
+            log.warn(`[GoogleConnector] resume-automations failed: ${e.message}`);
         }
 
         // Metadata row in the named-connections layer — without it the
@@ -254,7 +252,7 @@ router.get('/status', requireAuth, async (req, res) => {
     const { clientId, clientSecret } = await getGoogleClientConfig();
     const configured = !!(clientId && clientSecret);
 
-    const cred = await routineCredentialStore.getCredential(userId, 'google').catch(() => null);
+    const cred = await automationCredentialStore.getCredential(userId, 'google').catch(() => null);
     // Session fallback: Google-SSO consumers without an org have no vault
     // row (historic sessions) but ARE connected for this session.
     const sessionConnected = req.session?.oauthProvider === 'google' && !!req.session?.accessToken;

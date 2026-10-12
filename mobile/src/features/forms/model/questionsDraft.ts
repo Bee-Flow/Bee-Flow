@@ -1,6 +1,6 @@
 /**
  * The Questions tab edits ONE thing: the trigger's form. It holds a draft of
- * that declaration and saves it back into the routine's definition — the
+ * that declaration and saves it back into the automation's definition — the
  * whole definition, through the flow editor's draft store and its PUT, so
  * there is one validation pipeline, one version history, and the answers
  * table follows on that same save (the web's useFormDetail).
@@ -8,7 +8,7 @@
 
 import type { FlowDefinition, FormDeclaration } from '@/features/flow-editor';
 
-/** The trigger's form of a definition, or null when the routine does not start with a form. */
+/** The trigger's form of a definition, or null when the automation does not start with a form. */
 export function triggerFormOf(definition: FlowDefinition | null | undefined): FormDeclaration | null {
     const trigger = definition?.trigger as { kind?: unknown; form?: unknown } | null | undefined;
     if (!trigger || trigger.kind !== 'form') return null;

@@ -69,7 +69,7 @@ export default function SuggestedPanel({ anchor, cards, frequent, onAdd }: {
             {showFits && (
                 <>
                     <div className="flex flex-col gap-1.5 min-w-0" data-testid="ribbon-fits-after">
-                        <div className={CAPTION}>{t('routines.ribbon.fits_after', 'Fits after “{step}”', { step: anchor?.label || '' })}</div>
+                        <div className={CAPTION}>{t('automations.ribbon.fits_after', 'Fits after “{step}”', { step: anchor?.label || '' })}</div>
                         <div className="flex gap-1.5">
                             {cards.map(card => <FitCardButton key={card.id} card={card} onAdd={onAdd} />)}
                         </div>
@@ -80,8 +80,8 @@ export default function SuggestedPanel({ anchor, cards, frequent, onAdd }: {
             <div className="flex flex-col gap-1.5 flex-1 min-w-0" data-testid="ribbon-frequent">
                 <div className={CAPTION}>
                     {showFits
-                        ? t('routines.ribbon.frequently_used', 'Frequently used')
-                        : t('routines.ribbon.frequently_used_org', 'Frequently used in your organisation')}
+                        ? t('automations.ribbon.frequently_used', 'Frequently used')
+                        : t('automations.ribbon.frequently_used_org', 'Frequently used in your organisation')}
                 </div>
                 {frequent.length > 0 ? (
                     <div className="grid grid-cols-4 gap-x-2 gap-y-1">
@@ -89,7 +89,7 @@ export default function SuggestedPanel({ anchor, cards, frequent, onAdd }: {
                     </div>
                 ) : (
                     <div className="text-[12px] text-[var(--text-tertiary)] py-1">
-                        {t('routines.ribbon.frequent_empty', 'Nothing yet. The steps you and your colleagues add most will show up here.')}
+                        {t('automations.ribbon.frequent_empty', 'Nothing yet. The steps you and your colleagues add most will show up here.')}
                     </div>
                 )}
             </div>

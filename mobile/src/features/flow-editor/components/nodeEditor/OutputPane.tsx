@@ -83,7 +83,7 @@ function RunStatus({ runStep, state }: { runStep: AutomationRunStep | null; stat
         // last test is still worth a line, but it is not what you are reading.
         return (
             <View style={styles.statusStack}>
-                <Badge tone="pinned" icon="Pin" label={state.edited ? t('routines.ndv.edited', 'Edited') : t('routines.ndv.pinned', 'Pinned')} />
+                <Badge tone="pinned" icon="Pin" label={state.edited ? t('automations.ndv.edited', 'Edited') : t('automations.ndv.pinned', 'Pinned')} />
                 {runStep ? <LastRun runStep={runStep} secondary /> : null}
             </View>
         );
@@ -91,7 +91,7 @@ function RunStatus({ runStep, state }: { runStep: AutomationRunStep | null; stat
     if (runStep) return <LastRun runStep={runStep} secondary={false} />;
     return (
         <Text variant="caption" tone="tertiary">
-            {t('routines.ndv.not_run_yet', 'not run yet')}
+            {t('automations.ndv.not_run_yet', 'not run yet')}
         </Text>
     );
 }
@@ -110,13 +110,13 @@ function OutputActions({ runStep, onTest, testing, canTest, patchStep, disabled,
     const styles = useThemedStyles(makeStyles);
     return (
         <View style={styles.actions}>
-            {canTest ? <Button size="sm" iconName="Play" label={t('routines.ndv.test_step', 'Test step')} onPress={onTest} loading={testing} disabled={disabled} testID="output-test" /> : null}
+            {canTest ? <Button size="sm" iconName="Play" label={t('automations.ndv.test_step', 'Test step')} onPress={onTest} loading={testing} disabled={disabled} testID="output-test" /> : null}
             {state.pinned ? (
-                <Button size="sm" variant="secondary" iconName="PinOff" label={t('routines.ndv.clear', 'Clear')} onPress={() => patchStep(unpinPatch())} disabled={disabled} accessibilityHint={t('routines.ndv.unpin_title', 'Unpin output (re-enable live execution)')} testID="output-clear" />
+                <Button size="sm" variant="secondary" iconName="PinOff" label={t('automations.ndv.clear', 'Clear')} onPress={() => patchStep(unpinPatch())} disabled={disabled} accessibilityHint={t('automations.ndv.unpin_title', 'Unpin output (re-enable live execution)')} testID="output-clear" />
             ) : (
-                <Button size="sm" variant="secondary" iconName="Pin" label={t('routines.ndv.pin', 'Pin')} onPress={() => patchStep(pinPatch(runStep?.output))} disabled={disabled || !state.canPin} accessibilityHint={t('routines.ndv.pin_title', 'Pin this output (skip live execution; reuse the latest output)')} testID="output-pin" />
+                <Button size="sm" variant="secondary" iconName="Pin" label={t('automations.ndv.pin', 'Pin')} onPress={() => patchStep(pinPatch(runStep?.output))} disabled={disabled || !state.canPin} accessibilityHint={t('automations.ndv.pin_title', 'Pin this output (skip live execution; reuse the latest output)')} testID="output-pin" />
             )}
-            <Button size="sm" variant="ghost" iconName="Pencil" label={t('routines.ndv.edit', 'Edit')} onPress={() => setEditing(true)} disabled={disabled} accessibilityHint={t('routines.ndv.edit_output_hint', 'Write this step\'s output by hand, so the steps after it can be built and tested before this one has ever run')} testID="output-edit" />
+            <Button size="sm" variant="ghost" iconName="Pencil" label={t('automations.ndv.edit', 'Edit')} onPress={() => setEditing(true)} disabled={disabled} accessibilityHint={t('automations.ndv.edit_output_hint', 'Write this step\'s output by hand, so the steps after it can be built and tested before this one has ever run')} testID="output-edit" />
         </View>
     );
 }
@@ -151,7 +151,7 @@ function Head(props: HeadProps) {
                     <OutputActions {...props} state={state} />
                     {view.canToggle ? (
                         <View style={styles.toggle}>
-                            <RawToggle value={value} raw={raw} onToggle={onToggleRaw} subject={t('routines.ndv.output', 'Output')} testID="output-raw" />
+                            <RawToggle value={value} raw={raw} onToggle={onToggleRaw} subject={t('automations.ndv.output', 'Output')} testID="output-raw" />
                         </View>
                     ) : null}
                     {view.body === 'preview' ? <ValuePreview value={value} bare /> : null}

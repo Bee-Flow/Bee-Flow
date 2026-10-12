@@ -1,0 +1,32 @@
+// English GUI defaults — namespace "suggestions": every key whose part before the first "." is "suggestions".
+// Merged into GUI_DEFAULTS by ./index.js. The frontend copy (agent-hub/src/i18n/en-defaults.js)
+// is GENERATED from these files: after an edit, run `node scripts/gen-i18n-defaults.mjs`.
+module.exports = {
+    'suggestions.accept': 'Accept',
+    'suggestions.accept_all': 'Accept all',
+    'suggestions.accept_one': 'Accept this suggestion',
+    'suggestions.ai_badge': 'AI',
+    'suggestions.batch_label': 'Suggested by the AI, {time}',
+    'suggestions.batch_label_user': 'Suggested, {time}',
+    'suggestions.empty': 'No suggestions. When the AI proposes changes to this page, they wait here for you to accept or reject them.',
+    'suggestions.error_load': 'Could not load the suggestions.',
+    'suggestions.error_resolve': 'Could not apply that. Try again.',
+    'suggestions.insert_label': 'New text',
+    'suggestions.keyboard_hint': 'J and K move between suggestions, A accepts, R rejects.',
+    'suggestions.list_label': 'Suggestions',
+    'suggestions.nothing_applied': 'Nothing could be applied: the text changed since these suggestions were made.',
+    'suggestions.open_count': 'Suggestions ({count})',
+    'suggestions.reject': 'Reject',
+    'suggestions.reject_all': 'Reject all',
+    'suggestions.reject_one': 'Reject this suggestion',
+    'suggestions.remove_label': 'Removed text',
+    'suggestions.resolved_accepted': 'Accepted',
+    'suggestions.resolved_rejected': 'Rejected',
+    'suggestions.resolved_section': 'Handled ({count})',
+    'suggestions.resolved_stale': 'No longer fits',
+    'suggestions.some_stale': '{count} suggestion(s) no longer fit and were skipped.',
+    'suggestions.stale': 'The text changed since; this suggestion no longer fits.',
+    'suggestions.title': 'Suggestions',
+    'suggestions.toggle': 'Suggestions',
+    'suggestions.viewer_hint': 'You can read these suggestions. Only people who can edit the page can accept or reject them.',
+};

@@ -1,8 +1,8 @@
 /**
- * "Ask AI" for an open routine: the AI builder's streamed turn, wired into the
- * routine's draft store.
+ * "Ask AI" for an open automation: the AI builder's streamed turn, wired into the
+ * automation's draft store.
  *
- *   - Before a turn the draft is saved: the builder loads the STORED routine,
+ *   - Before a turn the draft is saved: the builder loads the STORED automation,
  *     builds on it, and its drafts then replace the one on screen — so an
  *     unsaved edit would first be ignored and then overwritten. A save that
  *     fails refuses the turn (UnsavedDraftError).
@@ -10,7 +10,7 @@
  *     every `draft` frame replaces the definition — already persisted by the
  *     server — as ONE undo entry for the whole turn.
  *   - `validation_errors` become the store's builder findings.
- *   - A turn on a routine that does not exist yet creates it server-side; the
+ *   - A turn on an automation that does not exist yet creates it server-side; the
  *     store adopts the id from `builder_session`.
  *
  * The transcript starts from the persisted session and grows by each turn.
@@ -24,7 +24,7 @@ import { useStore } from 'zustand';
 
 import { useTurnStream, type TurnSource } from '@/shared/stream';
 
-import { refreshRoutineViews } from './cacheSync';
+import { refreshAutomationViews } from './cacheSync';
 import { useBuilderSession } from './queries';
 import type { FlowDraft } from './useFlowDraft';
 import { BUILDER_STREAM_PATH, builderTurnBody, type BuilderMessage } from '../api/builder';
@@ -49,9 +49,9 @@ export interface BuilderStream {
 }
 
 /**
- * The frames about the routine, applied to its draft store. A turn that
- * created the routine hands its id over here; useFlowDraft then announces it
- * (FlowDraftOptions.onCreated), exactly as for a routine created by a save.
+ * The frames about the automation, applied to its draft store. A turn that
+ * created the automation hands its id over here; useFlowDraft then announces it
+ * (FlowDraftOptions.onCreated), exactly as for an automation created by a save.
  */
 function useFrameCallbacks(draft: FlowDraft, sessionId: { current: string | null }) {
     const queryClient = useQueryClient();
@@ -65,7 +65,7 @@ function useFrameCallbacks(draft: FlowDraft, sessionId: { current: string | null
             },
             onDraft: (definition) => state().replaceDefinition(definition, { persisted: true }),
             onValidation: (validation) => state().setIssues('builder', validation),
-            onMetadata: () => refreshRoutineViews(queryClient, state().automationId),
+            onMetadata: () => refreshAutomationViews(queryClient, state().automationId),
         };
     });
     return latest;

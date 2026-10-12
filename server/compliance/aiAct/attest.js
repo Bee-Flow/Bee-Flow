@@ -4,7 +4,7 @@
  *
  * Shared by the hub's register (routes/compliance/aiAct.js, admin_compliance)
  * and by the automation's own settings page (routes/automation/aiAct.js, the
- * routine's owner and editors), so an attestation made from either place is
+ * automation's owner and editors), so an attestation made from either place is
  * the same row, the same evidence and the same event.
  *
  * The evidence row is built from an explicit allow-list: target kind/id,
@@ -20,12 +20,16 @@
 
 const log = require('../../telemetry/log');
 
+// Storage key only (evidence chain continuity), not a claim that the
+// classification is an Art. 53 duty: the chain is append-only and keyed by
+// check_id, so renaming it would cut new attestations off from every earlier
+// row. The self-assessment is the Art. 5 / 6 / 50 classification.
 const EVIDENCE_CHECK_ID = 'AIA-Art53-model-inventory';
 
 /**
  * `validMonths`, when given, sets the expiry for every outcome (the register's
  * own rule leaves a "not applicable" verdict without one). `source` and
- * `evidence` (the routine's own check, automation/aiActAuto.js) go into the
+ * `evidence` (the automation's own check, automation/aiActAuto.js) go into the
  * register row only, never into the evidence chain.
  *
  * @param {{ orgId: string, kind: 'automation'|'agent', id: string, signals: object, answers: object, actorId: string|null, validMonths?: number, source?: string|null, evidence?: object|null }} input

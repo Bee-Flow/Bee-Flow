@@ -16,7 +16,7 @@
  *        database. The automations row is reaped on a window that cannot exceed
  *        ~61 minutes while a Wait runs to 24 hours, so a long wait had the row
  *        reaped mid-sleep, the concurrency marker cleared, and the scheduler
- *        free to start a SECOND run of the same routine.
+ *        free to start a SECOND run of the same automation.
  *
  * Run: node --test core/automationRunner.pauseResume.test.js
  */
@@ -98,7 +98,7 @@ stub('./aiAgent', { getProviderForModel: async () => null });
 stub('./providers', { getAdapter: () => ({}) });
 stub('../automation/codeSandbox', { run: async () => ({}) });
 
-process.env.ROUTINE_AUTH_LEGACY = '0';
+process.env.AUTOMATION_AUTH_LEGACY = '0';
 process.env.NODE_ENV = 'test';
 
 // Approvals are gated on the Enterprise `approvals` capability, checked in
@@ -242,7 +242,7 @@ test('a Wait refreshes the automations-row running marker, not just the in-proce
     assert.strictEqual(result.status, 'success', `run status (got ${result.status}: ${result.error})`);
     assert.ok(markerTouches.length > 0,
         'the deadline extension must also push the automations row forward — otherwise the reaper clears the '
-        + 'concurrency marker mid-sleep and the scheduler starts a second run of the same routine');
+        + 'concurrency marker mid-sleep and the scheduler starts a second run of the same automation');
     assert.strictEqual(markerTouches[0][0], 'auto-1');
     assert.strictEqual(markerTouches[0][1], runner.INSTANCE_ID);
 });

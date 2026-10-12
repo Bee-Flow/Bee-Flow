@@ -1,7 +1,7 @@
 /**
  * The vendored expression engine is the web's, byte for byte.
  *
- * agent-hub/src/shared/expr and server/shared/expr are the same three files;
+ * agent-hub/src/shared/expr and server/shared/expr are the same engine files;
  * the server runs automations with them and the web builder checks conditions
  * with them. The phone's copy in vendor/ has to be a third identical copy, or
  * a condition the phone accepts is one the server rejects (or evaluates
@@ -16,7 +16,22 @@ import path from 'node:path';
 
 const REPO = path.resolve(__dirname, '../../../..');
 const VENDOR = path.join(__dirname, 'vendor');
-const ENGINE_FILES = ['engine.mjs', 'functions.mjs', 'index.mjs', 'topics.mjs'];
+const ENGINE_FILES = [
+    'engine.mjs',
+    'fileTypes.mjs',
+    'flatten.mjs',
+    'functions.mjs',
+    'index.mjs',
+    'nested.mjs',
+    'path.mjs',
+    'pathLabel.mjs',
+    'routeFollow.mjs',
+    'ruleFields.mjs',
+    'rules.mjs',
+    'templateText.mjs',
+    'topics.mjs',
+    'wholeRun.mjs',
+];
 const ORIGINALS = ['agent-hub/src/shared/expr', 'server/shared/expr'];
 
 const bytes = (file: string) => fs.readFileSync(file);
@@ -44,8 +59,8 @@ describe('vendor/ is a verbatim copy of the shared engine', () => {
             .filter(Boolean)
             .sort();
         const decl = fs.readFileSync(path.join(VENDOR, 'index.d.mts'), 'utf8');
-        const declared = [...decl.matchAll(/export declare (?:class|function|const) (\w+)/g)]
-            .map((m) => m[1] as string)
+        // An overloaded function is declared once per signature: count its name once.
+        const declared = [...new Set([...decl.matchAll(/export declare (?:class|function|const) (\w+)/g)].map((m) => m[1] as string))]
             .sort();
         expect(exported.length).toBeGreaterThan(5);
         expect(declared).toEqual(exported);

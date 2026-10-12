@@ -29,8 +29,11 @@ const {
 } = require('./suggestions');
 
 // ── resolveActivityFilter ──────────────────────────────────────────────
-test('resolveActivityFilter scopes to org when present', () => {
-    assert.deepStrictEqual(resolveActivityFilter({ organizationId: 'org1', userId: 'u1' }), { organizationId: 'org1' });
+test('resolveActivityFilter scopes to the user even inside an org', () => {
+    assert.deepStrictEqual(resolveActivityFilter({ organizationId: 'org1', userId: 'u1' }), { userId: 'u1' });
+});
+test('resolveActivityFilter never widens to the org without a user', () => {
+    assert.deepStrictEqual(resolveActivityFilter({ organizationId: 'org1' }), {});
 });
 test('resolveActivityFilter falls back to userId for consumer (null org)', () => {
     assert.deepStrictEqual(resolveActivityFilter({ organizationId: null, userId: 'u1' }), { userId: 'u1' });
