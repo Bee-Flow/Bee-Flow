@@ -97,6 +97,21 @@ test('applyNl adds missing keys, replaces old shipped Dutch, and keeps a workspa
     assert.strictEqual(again.reworded, 0);
 });
 
+test('the personal page is "Koppelingen", also where a workspace still has the older "Verbindingen"', () => {
+    // The copy that points at the page says "Instellingen → Koppelingen"; a
+    // workspace from before the public history still named the page itself
+    // "Verbindingen" (add-nl-connections-translations' header), so menu and
+    // copy disagreed. Anything else stays the workspace's own wording.
+    assert.deepStrictEqual(NL_REWORDED['settings.connections'], { was: ['Verbindingen'], now: 'Koppelingen' });
+    assert.strictEqual(applyNl({ 'settings.connections': 'Verbindingen' }).merged['settings.connections'], 'Koppelingen');
+    assert.strictEqual(applyNl({ 'settings.connections': 'Mijn koppelingen' }).merged['settings.connections'], 'Mijn koppelingen');
+    for (const [k, { now }] of Object.entries(NL_REWORDED)) {
+        if (now.includes('Instellingen →') && GUI_DEFAULTS[k].includes('Settings → Connections')) {
+            assert.ok(now.includes(`Instellingen → ${NL_REWORDED['settings.connections'].now}`), `${k}: names another page than the menu`);
+        }
+    }
+});
+
 test('every variant an earlier catalogue shipped is matched', () => {
     const { was, now } = NL_REWORDED['solutions.install_grant_not_connected'];
     assert.strictEqual(was.length, 2);
