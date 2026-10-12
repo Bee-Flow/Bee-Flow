@@ -17,7 +17,7 @@ const { MASK_VALUES, resolveHttpAuthHeaders, evictToken } = require('./httpAuth'
 // answer lives there, so this file gains call sites and no policy.
 const httpCache = require('./httpCache');
 const { fetchFollowingSameHost } = require('./sameHostFetch');
-const { HTTP_RESPONSE_CAP } = require('../../automation/httpResponseLimits');
+const { HTTP_RESPONSE_CAP, readBodyBounded } = require('../../automation/httpResponseLimits');
 // Every secret this run can see, for the one refusal the visible cache tier
 // adds: a credential must never become a permanent row (execDatatable's own
 // refusal #4, and a key can sit in a URL PATH segment as well as in a query).
@@ -398,11 +398,12 @@ async function execHttpRequest(step, ctx, runState, mode) {
             const r = authInjectedHeaders.size > 0
                 ? await fetchFollowingSameHost(fetchImpl, sendUrl, { method, headers, body: sendBody, signal: ac.signal })
                 : await fetchImpl(sendUrl, { method, headers, body: sendBody, signal: ac.signal });
-            return { resp: r, text: await r.text() };
+            const bounded = await readBodyBounded(r, { charCap: HTTP_REQUEST_RESPONSE_CAP, stopOnOversizeHeader: true });
+            return { resp: r, text: bounded.text, bodyTruncated: bounded.truncated };
         });
         httpProbe = call.probe;
         if (!call.ok) throw call.error;
-        const { resp, text } = call.value;
+        const { resp, text, bodyTruncated } = call.value;
         if (authConnectionId && resp.status === 401) {
             // Target rejected the credential: drop any cached oauth2_cc token
             // so a retry refetches a fresh one. Deliberately NOT flagging the
@@ -424,7 +425,7 @@ async function execHttpRequest(step, ctx, runState, mode) {
         // this call, which is what actually egress-logs it (one row, not
         // two) and is what adds that exact prefix via its generic
         // `http_request: ${e.message}` fallback.
-        if (text.length > HTTP_REQUEST_RESPONSE_CAP) {
+        if (bodyTruncated || text.length > HTTP_REQUEST_RESPONSE_CAP) {
             throw new Error('response body exceeded the 1 MiB limit and was clipped mid-document — this call cannot be completed safely. Reduce the response size (pagination, a narrower query) or contact support if you need a higher limit.');
         }
         await safety.logEgress({

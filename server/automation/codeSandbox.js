@@ -45,7 +45,7 @@
  */
 
 const { isPrivateHostname, safeFetch, isPrivateAddressError } = require('../utils/ssrfGuard');
-const { HTTP_RESPONSE_CAP } = require('./httpResponseLimits');
+const { HTTP_RESPONSE_CAP, readBodyBounded } = require('./httpResponseLimits');
 const { acquireSlot } = require('./codeSandboxSlots');
 const log = require('../telemetry/log');
 
@@ -529,13 +529,13 @@ async function defaultFetchHttp(url, opts = {}, { responseCap = HTTP_RESPONSE_CA
             body: opts.body !== undefined ? (typeof opts.body === 'string' ? opts.body : JSON.stringify(opts.body)) : undefined,
             signal: ac.signal,
         });
-        const text = await resp.text();
-        const truncated = text.length > responseCap ? text.slice(0, responseCap) : text;
+        // Bounded read (BFSF-460): never buffers more than the cap's byte budget.
+        const { text: body, truncated } = await readBodyBounded(resp, { charCap: responseCap });
         return {
             status: resp.status,
             headers: Object.fromEntries(resp.headers.entries()),
-            body: truncated,
-            truncated: text.length > responseCap,
+            body,
+            truncated,
         };
     } catch (e) {
         if (isPrivateAddressError(e)) {
