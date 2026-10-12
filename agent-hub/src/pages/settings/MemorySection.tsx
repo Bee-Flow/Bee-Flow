@@ -49,7 +49,8 @@ interface MemorySectionProps {
 }
 
 const ROW = 'border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)]';
-const CARD = 'overflow-hidden rounded-xl border border-[var(--border-subtle)]';
+// Every row draws its own bottom border; the last one would double the card's.
+const CARD = 'overflow-hidden rounded-xl border border-[var(--border-subtle)] [&>*:last-child]:border-b-0';
 const HEADING = 'mb-2 px-1 text-[11px] font-semibold uppercase tracking-widest text-[var(--text-tertiary)]';
 const ROW_BUTTON = 'flex w-full items-center gap-3 px-5 py-3.5 text-left transition-colors hover:bg-[var(--bg-tertiary)] disabled:opacity-50';
 
@@ -214,8 +215,8 @@ export default function MemorySection({
 
     return (
         <div className="space-y-6">
+            <h2 className="text-lg font-semibold text-[var(--text-primary)]">{t('settings.memory', 'Memory')}</h2>
             <div className="space-y-1.5">
-                <p className={HEADING}>{t('settings.memory_title', 'Memory')}</p>
                 {orgOff && (
                     <div role="status" data-testid="memory-org-off" className="mb-2 flex items-start gap-2 rounded-xl border border-[var(--border-default)] bg-[var(--bg-tertiary)] px-4 py-3 text-[13px] text-[var(--text-primary)]">
                         <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-[var(--warning)]" aria-hidden="true" />
@@ -329,8 +330,8 @@ export default function MemorySection({
                             <Download className="h-4 w-4" aria-hidden="true" />
                         </div>
                         <div className="flex-1">
-                            <p className="text-[13px] font-medium text-[var(--text-primary)]">{t('settings.memory_import_title', 'Import memory from other AI providers')}</p>
-                            <p className="text-[11px] text-[var(--text-tertiary)]">
+                            {/* The group heading above already says "Import memory from other AI providers". */}
+                            <p className="text-[12px] text-[var(--text-secondary)]">
                                 {t('settings.memory_import_desc', "Bring relevant context and data from another AI provider. We'll provide a prompt you can use from your other account.")}
                             </p>
                             {!orgOff && !enabled && (

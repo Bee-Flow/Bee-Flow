@@ -1,7 +1,7 @@
 /**
  * Which apps this chat may reach (the web's AppsPicker in the composer): the
  * tools the organisation allows, each with its switch. It is the same
- * per-person allow-list as Settings → Integrations (`enabledApps`), and it
+ * per-person allow-list as Settings → Connections (`enabledApps`), and it
  * decides whether the model is offered a tool at all — switching one on does
  * not connect anything.
  */

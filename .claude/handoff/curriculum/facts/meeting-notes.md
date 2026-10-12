@@ -83,7 +83,7 @@ record/import toggle.
   **"Upcoming"**.
 - Banners: *"The Nextcloud Talk recording backend isn't configured, so auto-record is unavailable.
   You can still import finished recordings."*; *"Connect Google Workspace to see your Meet meetings
-  here — Settings → Integrations"*; *"Your Google connection doesn't include Meet permissions yet —
+  here — Settings → Connections"*; *"Your Google connection doesn't include Meet permissions yet —
   reconnect to enable auto-import."* with **"Reconnect"**.
 - Empty: **"No upcoming meetings"** / *"Meetings in your calendar with a Nextcloud Talk conversation
   or a Google Meet link show up here."*

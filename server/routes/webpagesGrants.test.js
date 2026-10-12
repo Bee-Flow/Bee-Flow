@@ -101,7 +101,7 @@ test('POST /:id/grants/integrations maps connection_required to 409 + provider',
     await withPatches([
         [webpageStore, 'getWebpage', async () => ({ id: 'wp1', userId: OWNER.id })],
         [webpageGrants, 'grantIntegration', async () => {
-            throw webpageGrants.grantError(409, 'Connect YouTrack first (Settings → Integrations).', 'connection_required', 'youtrack');
+            throw webpageGrants.grantError(409, 'Connect YouTrack first (Settings → Connections).', 'connection_required', 'youtrack');
         }],
     ], () => withServer(test, async (base) => {
         const res = await fetch(`${base}/wp1/grants/integrations`, {

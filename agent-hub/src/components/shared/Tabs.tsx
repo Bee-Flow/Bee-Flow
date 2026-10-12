@@ -71,6 +71,12 @@ export default function Tabs<TId extends string = string>({
     }, [items, onChange]);
 
     const padding = size === 'sm' ? 'px-3 py-1.5 text-xs' : 'px-4 py-2 text-sm';
+    // Roving tabindex: the selected tab is the bar's one tab stop. When the
+    // value matches no tab (a URL-only section such as a sub-page without its
+    // own tab), the first enabled tab takes that stop, or keyboard users could
+    // not reach the bar at all.
+    const hasSelected = items.some((it) => it.id === value);
+    const firstEnabledId = items.find((it) => !it.disabled)?.id;
 
     return (
         <div
@@ -91,7 +97,7 @@ export default function Tabs<TId extends string = string>({
                         type="button"
                         aria-selected={selected}
                         aria-controls={panelId}
-                        tabIndex={selected ? 0 : -1}
+                        tabIndex={selected || (!hasSelected && item.id === firstEnabledId) ? 0 : -1}
                         disabled={item.disabled}
                         onClick={() => onChange(item.id)}
                         onKeyDown={(e) => handleKeyDown(e, idx)}

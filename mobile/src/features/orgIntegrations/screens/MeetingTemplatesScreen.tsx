@@ -4,8 +4,14 @@
  * them from Regenerate; a default is applied to new meetings. The editor and
  * rows are features/meetingTemplates' own; a new template starts on the
  * organisation, as the web's panel does. Org admins with Meeting Notes.
+ *
+ * Like the web's Meeting Templates page (GoogleMeetAdminPanel under the
+ * templates), it also opens the org's Google Meet meeting-notes settings:
+ * Meet needs no Nextcloud, so they do not belong under Nextcloud Sync, which
+ * only NC-bound orgs see. The route stays /org/nextcloud/meet for old links.
  */
 
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
@@ -14,23 +20,24 @@ import { useTheme } from '@/core/theme/ThemeProvider';
 import { sortTemplates, TemplateEditorSheet, TemplateRow, useOrgTemplates, useSummaryTemplates, type SummaryTemplate } from '@/features/meetingTemplates';
 import { OrgLockedScreen } from '@/features/org';
 import { QueryList } from '@/shared/patterns';
-import { Icon, IconButton, Screen, ScreenHeader, Text } from '@/shared/ui';
+import { Group, Icon, IconButton, ListRow, Screen, ScreenHeader, Text } from '@/shared/ui';
 
 import { useIntegrationAccess } from '../hooks/useIntegrationAccess';
 
-const styles = StyleSheet.create({ intro: { paddingHorizontal: 16, paddingBottom: 12 } });
+const styles = StyleSheet.create({ band: { paddingHorizontal: 16, paddingBottom: 12 } });
 
 const keyOf = (template: SummaryTemplate) => template.id;
 
 export function MeetingTemplatesScreen() {
     const t = useTranslation();
     const theme = useTheme();
+    const router = useRouter();
     const { meetingNotes, admin } = useIntegrationAccess();
     const org = useOrgTemplates(meetingNotes);
     const builtins = useSummaryTemplates(meetingNotes).data?.builtins ?? [];
     // `undefined` is closed; `null` inside is a new template.
     const [editing, setEditing] = useState<{ template: SummaryTemplate | null } | undefined>(undefined);
-    const title = t('settings.meeting_templates', 'Meeting templates');
+    const title = t('settings.meeting_templates', 'Meeting Templates');
     // An admin without the licence is not "not an admin": say what is missing.
     if (!meetingNotes)
         return (
@@ -64,12 +71,23 @@ export function MeetingTemplatesScreen() {
                     />
                 }
             />
+            {/* Above the list, not its footer: QueryList drops header and footer while empty or loading. Gated with the screen (meetingNotes). */}
+            <View style={styles.band}>
+                <Group>
+                    <ListRow
+                        testID="meet-notes-link"
+                        title={t('mobile.orgIntegrations.meet_title', 'Google Meet Meeting Notes')}
+                        chevron
+                        onPress={() => router.push('/org/nextcloud/meet')}
+                    />
+                </Group>
+            </View>
             <QueryList
                 query={rows}
                 keyExtractor={keyOf}
                 renderItem={({ item }) => <TemplateRow template={item} groups={groups} onPress={() => setEditing({ template: item })} />}
                 ListHeaderComponent={
-                    <View style={styles.intro}>
+                    <View style={styles.band}>
                         <Text variant="caption" tone="tertiary">
                             {t(
                                 'meeting_notes.template_org_desc',

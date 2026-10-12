@@ -234,7 +234,7 @@ const UNCONVERTED = new Map<string, number>([
     ['src/features/cowork', 17],
     ['src/features/coworkHub', 20],
     ['src/features/documents', 10],
-    ['src/features/integrations', 135],
+    ['src/features/integrations', 134],
     // 54 -> 49: the add sheet's link door (AddUrlForm) went through t() when
     // it learned to add https:// itself.
     // 49 -> 45: the scanner's camera-off screen went through t() when it

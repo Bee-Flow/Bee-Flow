@@ -1,13 +1,13 @@
-import React from 'react';
-import { useTranslation } from '../hooks/useTranslation';
 import { ArrowLeft, ShieldOff } from 'lucide-react';
-import AgentDesigner from '../components/agents/AgentDesigner/index';
+import React from 'react';
+import OrganisationSection from './settings/OrganisationSection';
 import OrgUsersPanel from '../components/admin/org/OrgUsersPanel';
-import OrgInfoPanel from '../components/admin/org/OrgInfoPanel';
-import SystemKnowledgeBasesPanel from '../components/knowledge/SystemKnowledgeBasesPanel';
+import AgentDesigner from '../components/agents/AgentDesigner/index';
 import GitHubSyncPanel from '../components/integrations/github/GitHubSyncPanel';
 import NextcloudSyncPanel from '../components/integrations/nextcloud/NextcloudSyncPanel';
+import SystemKnowledgeBasesPanel from '../components/knowledge/SystemKnowledgeBasesPanel';
 import { AGENT_MANAGEMENT_ROLES, USER_MANAGEMENT_ROLES } from '../config/orgRoles';
+import { useTranslation } from '../hooks/useTranslation';
 
 const OrgSettings = ({ user, onBack, orgSettingsPath = {}, onNavigate }) => {
     const { t } = useTranslation();
@@ -31,20 +31,26 @@ const OrgSettings = ({ user, onBack, orgSettingsPath = {}, onNavigate }) => {
         || hasPermission('manage_users');
 
     const canManageKnowledge = isSuperAdmin || hasPermission('manage_knowledge');
+    // The Organisation tab is the Organisation Info editor, so it follows that
+    // editor's own gate (Settings → Organisation shows it to org admins only,
+    // and the server refuses the save to anyone else). Open to every visitor,
+    // it put a form an agent editor could fill in but never save.
+    const canEditOrgInfo = isSuperAdmin || orgRole === 'org_admin' || orgRole === 'admin'
+        || hasPermission('org_admin');
 
     const tabs = [
-        { id: 'organisation', label: 'Organisation', allowed: canAccessOrgSettings },
-        { id: 'agents', label: 'Agents', allowed: canManageAgents },
-        { id: 'knowledge-bases', label: 'Knowledge Bases', allowed: canManageKnowledge },
-        { id: 'github-sync', label: 'GitHub Sync', allowed: canManageAgents },
-        { id: 'nextcloud-sync', label: 'Nextcloud Sync', allowed: canManageUsers },
-        { id: 'users', label: 'Users', allowed: canManageUsers },
+        { id: 'organisation', label: t('settings.organisation', 'Organisation'), allowed: canEditOrgInfo },
+        { id: 'agents', label: t('settings.agents', 'Agents'), allowed: canManageAgents },
+        { id: 'knowledge-bases', label: t('sidebar.knowledge_bases', 'Knowledge Bases'), allowed: canManageKnowledge },
+        { id: 'github-sync', label: t('settings.github_sync', 'GitHub Sync'), allowed: canManageAgents },
+        { id: 'nextcloud-sync', label: t('settings.nextcloud_sync', 'Nextcloud Sync'), allowed: canManageUsers },
+        { id: 'users', label: t('admin.users_tab_users', 'Users'), allowed: canManageUsers },
     ];
 
     const allowedTabs = tabs.filter(tab => tab.allowed);
     const activeTab = allowedTabs.some(tab => tab.id === orgSettingsPath.seg1)
         ? orgSettingsPath.seg1
-        : (allowedTabs[0]?.id || 'organisation');
+        : (allowedTabs[0]?.id || null);
 
     const handleTabClick = (tabId) => {
         if (onNavigate) {
@@ -82,7 +88,7 @@ const OrgSettings = ({ user, onBack, orgSettingsPath = {}, onNavigate }) => {
                             <ArrowLeft className="w-5 h-5" />
                         </button>
                     )}
-                    <h2 className="text-lg font-semibold text-primary">
+                    <h2 className="text-lg font-semibold text-[var(--text-primary)]">
                         {t('org.settings_title', 'Organisation Settings')}
                     </h2>
                 </div>
@@ -91,10 +97,12 @@ const OrgSettings = ({ user, onBack, orgSettingsPath = {}, onNavigate }) => {
                     {allowedTabs.map((tab) => (
                         <button
                             key={tab.id}
+                            type="button"
                             onClick={() => handleTabClick(tab.id)}
+                            aria-current={activeTab === tab.id ? 'page' : undefined}
                             className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${activeTab === tab.id
-                                ? 'bg-[var(--accent-primary)] text-white shadow-sm'
-                                : 'text-muted hover:text-primary hover:bg-white/5'
+                                ? 'bg-[var(--accent-primary)] text-[var(--accent-primary-fg)] shadow-sm'
+                                : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--item-hover-bg)]'
                                 }`}
                         >
                             {tab.label}
@@ -108,12 +116,20 @@ const OrgSettings = ({ user, onBack, orgSettingsPath = {}, onNavigate }) => {
             {/* Main Content Area */}
             <div className="flex-1 overflow-hidden relative">
                 {activeTab === 'organisation' ? (
-                    <div className="absolute inset-0 overflow-auto">
-                        <OrgInfoPanel user={user} />
+                    <div className="absolute inset-0 overflow-y-auto p-6">
+                        {/* The Organisation Info editor with its save bar, as
+                            in Settings → Organisation → Organisation Info. A bare
+                            OrgInfoPanel draws only the section it is told to, and
+                            this tab never told it one: the page was empty. */}
+                        <div className="max-w-3xl mx-auto">
+                            <OrganisationSection user={user} activeSection="info" />
+                        </div>
                     </div>
                 ) : activeTab === 'users' ? (
                     <div className="absolute inset-0 overflow-auto p-6">
-                        <OrgUsersPanel user={user} initialSection={orgSettingsPath.seg2 || null} />
+                        <div className="max-w-4xl mx-auto">
+                            <OrgUsersPanel user={user} initialSection={orgSettingsPath.seg2 || null} />
+                        </div>
                     </div>
                 ) : activeTab === 'agents' ? (
                     <div className="absolute inset-0">

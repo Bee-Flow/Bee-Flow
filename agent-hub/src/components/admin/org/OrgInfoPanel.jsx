@@ -19,19 +19,19 @@ import OrgEncryptionEditor from '../security/encryption/OrgEncryptionEditor';
 import OrgShieldEditor from '../security/guardrails/orgShield/OrgShieldEditor';
 
 const OrgInfoPanel = ({ user, activeSection, onSave: parentOnSave, onStateChange }) => {
-    const { t } = useTranslation();
+    const { t, resolvedLocale } = useTranslation();
     const licenseCtx = useLicenseContext();
+    // An org running on a licence key (e.g. a Full-tier internal org on cloud)
+    // has no Stripe subscription, and must not be offered one as if it had
+    // nothing: the licence page then shows neither placeholder nor plans.
     const hasActiveLicenseKey = licenseCtx?.source === 'license_key';
     // Settings that act only inside projects are shown where Projects can be used.
     const projectsOn = projectsAvailable(user, (name) => !!licenseCtx?.hasFeature?.(name));
+    // Licence-key management belongs to the admin dashboard (Admin → Server
+    // licence), never to per-org settings. The per-org License & Usage page is
+    // the Stripe subscription page: on self-hosted the settings shell hides
+    // it and bounces a deep link away from it.
     const { isCloud, isSelfHosted } = useDeploymentMode();
-    // Licence-key management belongs to the admin dashboard, not to per-org
-    // settings. On cloud, org settings shows the Stripe subscription ONLY —
-    // never a licence-key card (even for Full-tier internal/operator orgs;
-    // they manage their key under Admin → Server licence / License keys). On
-    // self-hosted there are no subscriptions, so licence keys ARE the org's
-    // paid-access mechanism and stay visible here.
-    const showLicenseActivation = isSelfHosted;
     const deploymentMode = user?.featureFlags?.deploymentMode || 'cloud';
     const ncOrg = user?.ncOrg || null;
     const isNcOrg = !!ncOrg?.instanceId;
@@ -56,6 +56,9 @@ const OrgInfoPanel = ({ user, activeSection, onSave: parentOnSave, onStateChange
     // Subscription actions (upgrade/downgrade/cancel/checkout/portal) surface
     // their result HERE — kept separate from `message` so they never appear in
     // the org-info save bar (which only handles form saves + the usage toggle).
+    // The Stripe checkout return (?checkout=…) reports here too: it lands on
+    // the licence page, and a payment result must stay on screen until it is
+    // read, not vanish with the save bar's 3-second message.
     const [subMessage, setSubMessage] = useState(null);
     // Change-plan confirmation flow: the selected target plan + the prorated
     // cost preview fetched from /preview-change before we commit the switch.
@@ -70,6 +73,10 @@ const OrgInfoPanel = ({ user, activeSection, onSave: parentOnSave, onStateChange
     // so the user never sees stale "no subscription" copy after paying.
     const [checkoutSettling, setCheckoutSettling] = useState(false);
     const originalDataRef = useRef(null);
+    const orgDataRef = useRef(null);
+    // The sign-in method as STORED. It locks once saved; a card merely picked
+    // in the form is still "Selected" and can be changed until Save.
+    const [savedAuthMethod, setSavedAuthMethod] = useState(null);
 
     const fetchData = useCallback(async () => {
         setLoading(true);
@@ -150,6 +157,7 @@ const OrgInfoPanel = ({ user, activeSection, onSave: parentOnSave, onStateChange
                     allowedDomains: Array.isArray(myOrg.allowedDomains) ? myOrg.allowedDomains : [],
                 };
                 setOrgData(data);
+                setSavedAuthMethod(data.authMethod);
                 originalDataRef.current = JSON.stringify(data);
                 setHasChanges(false);
             }
@@ -222,7 +230,7 @@ const OrgInfoPanel = ({ user, activeSection, onSave: parentOnSave, onStateChange
         const params = new URLSearchParams(window.location.search);
         const status = params.get('checkout');
         if (status === 'cancelled') {
-            setMessage({ type: 'error', text: 'Checkout was cancelled. No changes were made.' });
+            setSubMessage({ type: 'error', text: t('org.checkout_cancelled', 'Checkout was cancelled. No changes were made.') });
             window.history.replaceState({}, '', window.location.pathname);
             return;
         }
@@ -248,7 +256,7 @@ const OrgInfoPanel = ({ user, activeSection, onSave: parentOnSave, onStateChange
                             if (cancelled) return;
                             setSubscription(fresh);
                             setCheckoutSettling(false);
-                            setMessage({ type: 'success', text: '🎉 Subscription activated!' });
+                            setSubMessage({ type: 'success', text: t('org.subscription_activated', 'Subscription activated!') });
                             window.history.replaceState({}, '', window.location.pathname);
                             return;
                         }
@@ -257,9 +265,9 @@ const OrgInfoPanel = ({ user, activeSection, onSave: parentOnSave, onStateChange
             }
             if (!cancelled) {
                 setCheckoutSettling(false);
-                setMessage({
+                setSubMessage({
                     type: 'error',
-                    text: 'Payment received, but activation is taking longer than expected. Refresh in a minute or email info@beeflow.nl.'
+                    text: t('org.activation_delayed', 'Payment received, but activation is taking longer than expected. Refresh in a minute or email info@beeflow.nl.'),
                 });
                 window.history.replaceState({}, '', window.location.pathname);
             }
@@ -279,10 +287,10 @@ const OrgInfoPanel = ({ user, activeSection, onSave: parentOnSave, onStateChange
             if (res.ok && data.url) {
                 window.location.href = data.url;
             } else {
-                setSubMessage({ type: 'error', text: data.error || 'Failed to start checkout' });
+                setSubMessage({ type: 'error', text: data.error || t('org.checkout_failed', 'Failed to start checkout') });
             }
         } catch {
-            setSubMessage({ type: 'error', text: 'Failed to connect to payment service' });
+            setSubMessage({ type: 'error', text: t('org.payment_service_unreachable', 'Failed to connect to payment service') });
         } finally {
             setCheckoutLoading(null);
         }
@@ -302,7 +310,7 @@ const OrgInfoPanel = ({ user, activeSection, onSave: parentOnSave, onStateChange
                 body: JSON.stringify({ planId: plan.id }),
             });
             const data = await res.json().catch(() => ({}));
-            if (!res.ok) throw new Error(data.message || data.error || 'Could not preview this change');
+            if (!res.ok) throw new Error(data.message || data.error || t('org.change_preview_failed', 'Could not preview this change'));
             setChangePreview(data);
         } catch (e) {
             setSubMessage({ type: 'error', text: e.message });
@@ -327,11 +335,11 @@ const OrgInfoPanel = ({ user, activeSection, onSave: parentOnSave, onStateChange
             if (!res.ok) {
                 const friendly = data.message
                     || ({
-                        payment_required: 'Your card was declined. Update your payment method via "Manage Billing".',
-                        interval_mismatch: 'Switching between monthly and yearly billing is not available here. Contact info@beeflow.nl.',
+                        payment_required: t('org.change_card_declined', 'Your card was declined. Update your payment method via "Manage Billing".'),
+                        interval_mismatch: t('org.change_interval_mismatch', 'Switching between monthly and yearly billing is not available here. Contact info@beeflow.nl.'),
                     }[data.error])
                     || data.error
-                    || 'Plan change failed';
+                    || t('org.change_failed', 'Plan change failed');
                 throw new Error(friendly);
             }
             setSubscription(data);
@@ -355,7 +363,7 @@ const OrgInfoPanel = ({ user, activeSection, onSave: parentOnSave, onStateChange
         try {
             const res = await cloudFetch(deploymentMode, `${API_BASE}/api/subscriptions/orgs/${orgData.id}/cancel-downgrade`, { method: 'POST' });
             const data = await res.json().catch(() => ({}));
-            if (!res.ok) throw new Error(data.message || data.error || 'Could not cancel the scheduled change');
+            if (!res.ok) throw new Error(data.message || data.error || t('org.cancel_downgrade_failed', 'Could not cancel the scheduled change'));
             setSubscription(data);
             setSubMessage({ type: 'success', text: t('org.downgrade_cancelled_msg', 'Scheduled downgrade cancelled — you stay on your current plan.') });
         } catch (e) {
@@ -374,7 +382,7 @@ const OrgInfoPanel = ({ user, activeSection, onSave: parentOnSave, onStateChange
         try {
             const res = await cloudFetch(deploymentMode, `${API_BASE}/api/subscriptions/orgs/${orgData.id}/cancel`, { method: 'POST' });
             const data = await res.json().catch(() => ({}));
-            if (!res.ok) throw new Error(data.message || data.error || 'Cancel failed');
+            if (!res.ok) throw new Error(data.message || data.error || t('org.cancel_failed', 'Cancel failed'));
             setSubscription(data);
             setSubMessage({ type: 'success', text: t('org.cancel_scheduled_msg', 'Cancellation scheduled.') });
         } catch (e) {
@@ -391,9 +399,9 @@ const OrgInfoPanel = ({ user, activeSection, onSave: parentOnSave, onStateChange
         try {
             const res = await cloudFetch(deploymentMode, `${API_BASE}/api/subscriptions/orgs/${orgData.id}/reactivate`, { method: 'POST' });
             const data = await res.json().catch(() => ({}));
-            if (!res.ok) throw new Error(data.message || data.error || 'Reactivate failed');
+            if (!res.ok) throw new Error(data.message || data.error || t('org.reactivate_failed', 'Reactivate failed'));
             setSubscription(data);
-            setSubMessage({ type: 'success', text: 'Subscription will continue.' });
+            setSubMessage({ type: 'success', text: t('org.reactivated_msg', 'Subscription will continue.') });
         } catch (e) {
             setSubMessage({ type: 'error', text: e.message });
         } finally {
@@ -413,10 +421,10 @@ const OrgInfoPanel = ({ user, activeSection, onSave: parentOnSave, onStateChange
             if (res.ok && data.url) {
                 window.location.href = data.url;
             } else {
-                setSubMessage({ type: 'error', text: data.error || 'Failed to open billing portal' });
+                setSubMessage({ type: 'error', text: data.error || t('org.billing_portal_failed', 'Failed to open billing portal') });
             }
         } catch {
-            setSubMessage({ type: 'error', text: 'Failed to connect to billing portal' });
+            setSubMessage({ type: 'error', text: t('org.billing_portal_unreachable', 'Failed to connect to billing portal') });
         } finally {
             setPortalLoading(false);
         }
@@ -437,6 +445,9 @@ const OrgInfoPanel = ({ user, activeSection, onSave: parentOnSave, onStateChange
     };
 
     useEffect(() => {
+        // handleSave reads the form from here: the copy the parent's save bar
+        // holds is only refreshed when hasChanges/saving/message change.
+        orgDataRef.current = orgData;
         if (orgData && originalDataRef.current) {
             setHasChanges(JSON.stringify(orgData) !== originalDataRef.current);
         }
@@ -450,27 +461,36 @@ const OrgInfoPanel = ({ user, activeSection, onSave: parentOnSave, onStateChange
     }, [message]);
 
     const handleSave = async () => {
-        if (!orgData?.id) return;
+        const current = orgDataRef.current;
+        if (!current?.id) return;
         setSaving(true);
         try {
             // The id is the URL; the route refuses any key it does not update ("Unsupported field(s): id").
-            const { id, ...fields } = orgData;
+            const { id, ...fields } = current;
             const res = await authFetch(`${API_BASE}/auth/organizations/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(fields),
             });
             if (res.ok) {
-                setMessage({ type: 'success', text: 'Changes saved' });
-                originalDataRef.current = JSON.stringify(orgData);
-                setHasChanges(false);
+                setMessage({ type: 'success', text: t('common.saved', 'Saved') });
+                originalDataRef.current = JSON.stringify(current);
+                setSavedAuthMethod(current.authMethod);
+                // The sign-in method is set once: the server keeps the one it
+                // stored, so the form shows that one rather than a later pick.
+                if (current.authMethod) {
+                    setOrgData(p => (p && p.authMethod !== current.authMethod ? { ...p, authMethod: current.authMethod } : p));
+                }
+                // An edit made while the PUT was in flight is still unsaved.
+                setHasChanges(JSON.stringify(orgDataRef.current) !== originalDataRef.current);
                 if (parentOnSave) parentOnSave();
             } else {
-                const data = await res.json();
-                setMessage({ type: 'error', text: data.error || 'Failed to save' });
+                // A non-JSON error page is still a refused save, not a dropped connection.
+                const data = await res.json().catch(() => ({}));
+                setMessage({ type: 'error', text: data.error || t('common.save_failed', 'Save failed') });
             }
-        } catch (err) {
-            setMessage({ type: 'error', text: 'Connection error' });
+        } catch {
+            setMessage({ type: 'error', text: t('error.network', 'Network error. Please check your connection.') });
         } finally {
             setSaving(false);
         }
@@ -481,8 +501,18 @@ const OrgInfoPanel = ({ user, activeSection, onSave: parentOnSave, onStateChange
         if (onStateChange) onStateChange({ hasChanges, saving, message, handleSave });
     }, [hasChanges, saving, message]);
 
+    // The logo endpoints store the change themselves, so the saved snapshot
+    // takes the new logo too — otherwise the bar would call an upload that
+    // already happened an unsaved change.
+    const markLogoSaved = (logo) => {
+        if (!originalDataRef.current) return;
+        originalDataRef.current = JSON.stringify({ ...JSON.parse(originalDataRef.current), logo });
+    };
+
     const handleLogoUpload = async (e) => {
         const file = e.target.files[0];
+        // Clear the picker so choosing the same file again (a retry) fires onChange.
+        e.target.value = '';
         if (!file || !orgData?.id) return;
         const formData = new FormData();
         formData.append('logo', file);
@@ -491,28 +521,36 @@ const OrgInfoPanel = ({ user, activeSection, onSave: parentOnSave, onStateChange
                 method: 'POST',
                 body: formData,
             });
-            if (res.ok) {
-                const data = await res.json();
-                setOrgData(p => ({ ...p, logo: data.logo }));
-                setMessage({ type: 'success', text: 'Logo uploaded' });
+            if (!res.ok) {
+                setMessage({ type: 'error', text: t('org.logo_upload_failed', 'Logo upload failed') });
+                return;
             }
-        } catch (err) {
-            setMessage({ type: 'error', text: 'Upload failed' });
+            const data = await res.json();
+            markLogoSaved(data.logo);
+            setOrgData(p => ({ ...p, logo: data.logo }));
+            setMessage({ type: 'success', text: t('org.logo_uploaded', 'Logo uploaded') });
+        } catch {
+            setMessage({ type: 'error', text: t('org.logo_upload_failed', 'Logo upload failed') });
         }
     };
 
     const handleLogoRemove = async () => {
         if (!orgData?.id) return;
         try {
-            await authFetch(`${API_BASE}/auth/organizations/${orgData.id}/logo`, { method: 'DELETE' });
+            const res = await authFetch(`${API_BASE}/auth/organizations/${orgData.id}/logo`, { method: 'DELETE' });
+            if (!res.ok) {
+                setMessage({ type: 'error', text: t('org.logo_remove_failed', 'Failed to remove logo') });
+                return;
+            }
+            markLogoSaved('');
             setOrgData(p => ({ ...p, logo: '' }));
-            setMessage({ type: 'success', text: 'Logo removed' });
-        } catch (err) {
-            setMessage({ type: 'error', text: 'Failed to remove logo' });
+            setMessage({ type: 'success', text: t('org.logo_removed', 'Logo removed') });
+        } catch {
+            setMessage({ type: 'error', text: t('org.logo_remove_failed', 'Failed to remove logo') });
         }
     };
 
-    const isAuthLocked = !!orgData?.authMethod;
+    const isAuthLocked = !!savedAuthMethod;
 
     if (loading) return <Skeleton />;
 
@@ -529,14 +567,14 @@ const OrgInfoPanel = ({ user, activeSection, onSave: parentOnSave, onStateChange
     }
 
     // The Privacy Shield owns its whole viewport: its own header, its own
-    // scrolling pane and a save bar pinned to the bottom. This panel's default
-    // `overflow-y-auto p-6` would give it a second scrollbar, 24px it does not
-    // want, and no height to fill — so the save bar would float under the last
-    // card instead of sitting at the foot of the screen.
+    // scrolling pane and a save bar pinned to the bottom, so it gets a flex
+    // column with a height to fill. Every other section sits in the settings
+    // shell's frame as it is: the shell already scrolls and pads the content,
+    // and a second scroll container or padding here would double both.
     const sectionOwnsViewport = activeSection === 'privacy';
 
     return (
-        <div className={sectionOwnsViewport ? 'flex-1 min-h-0 flex flex-col' : 'flex-1 overflow-y-auto p-6'}>
+        <div className={sectionOwnsViewport ? 'flex-1 min-h-0 flex flex-col' : undefined}>
 
                 {/* ── License & Usage ── */}
                 {activeSection === 'license' && (
@@ -544,8 +582,8 @@ const OrgInfoPanel = ({ user, activeSection, onSave: parentOnSave, onStateChange
                         t={t}
                         licenseCtx={licenseCtx}
                         hasActiveLicenseKey={hasActiveLicenseKey}
-                        showLicenseActivation={showLicenseActivation}
                         isCloud={isCloud}
+                        locale={resolvedLocale || 'en'}
                         deploymentMode={deploymentMode}
                         orgData={orgData}
                         setOrgData={setOrgData}
@@ -585,6 +623,7 @@ const OrgInfoPanel = ({ user, activeSection, onSave: parentOnSave, onStateChange
                     <OrgAuthSection
                         t={t}
                         isAuthLocked={isAuthLocked}
+                        isSaving={saving}
                         orgData={orgData}
                         setOrgData={setOrgData}
                         isSelfHosted={isSelfHosted}

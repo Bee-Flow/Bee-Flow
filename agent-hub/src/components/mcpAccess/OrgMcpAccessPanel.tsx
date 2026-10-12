@@ -220,15 +220,15 @@ export default function OrgMcpAccessPanel() {
 
     return (
         <section aria-labelledby="mcp-access-title" className="flex flex-col gap-5 max-w-3xl">
-            <div className="flex items-start gap-3">
-                <ShieldCheck className="w-5 h-5 mt-0.5 text-[var(--accent-primary)] shrink-0" aria-hidden="true" />
-                <div>
-                    <h3 id="mcp-access-title" className="m-0 text-sm font-semibold text-[var(--text-primary)]">{t('mcp_access.org.title', 'MCP access')}</h3>
-                    <p className="m-0 mt-1 text-xs text-[var(--text-secondary)]">
-                        {t('mcp_access.org.intro', 'Control how external MCP clients such as Claude Code reach this organisation. These rules apply to MCP only, not to the web app.')}
-                    </p>
-                </div>
-            </div>
+            <header>
+                <h2 id="mcp-access-title" className="m-0 flex items-center gap-2 text-lg font-semibold text-[var(--text-primary)]">
+                    <ShieldCheck className="w-5 h-5 text-[var(--accent-primary)] shrink-0" aria-hidden="true" />
+                    {t('mcp_access.org.title', 'MCP Access')}
+                </h2>
+                <p className="m-0 mt-1 text-sm text-[var(--text-muted)]">
+                    {t('mcp_access.org.intro', 'Control how external MCP clients such as Claude Code reach this organisation. These rules apply to MCP only, not to the web app.')}
+                </p>
+            </header>
             {query.isPending && (
                 <div role="status" className="flex items-center gap-2 text-[12px] text-[var(--text-tertiary)]">
                     <Loader2 size={13} className="animate-spin" aria-hidden="true" />

@@ -275,10 +275,10 @@ test('a Playwright TimeoutError from the renderer is a 504 pdf_render_timeout', 
 });
 
 test('SignRequest that is not set up is a 400 that says where to set it up', async () => {
-    signFailure = Object.assign(new Error('SignRequest not configured. Add your SignRequest subdomain and API token in Settings → Integrations.'),
+    signFailure = Object.assign(new Error('SignRequest not configured. Add your SignRequest subdomain and API token in Settings → Connections.'),
         { code: 'signrequest_not_configured' });
     const res = await dispatch({ url: '/nb-1/export/signrequest', body: { content: '<p>x</p>', signers: [{ email: 'anna@example.nl' }] } });
     assert.strictEqual(res.statusCode, 400);
     assert.strictEqual(res.body.code, 'signrequest_not_configured');
-    assert.match(res.body.error, /Settings → Integrations/);
+    assert.match(res.body.error, /Settings → Connections/);
 });

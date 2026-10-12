@@ -135,7 +135,8 @@ export default function OverviewTab({
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: TOKENS.pagePad }}>
-            <TabHeader icon={BarChart3} iconColor="#0ea5e9" title={t('usage.tab_overview')} description={t('usage.subtitle')} />
+            {/* No description: it repeated the page subtitle (usage.subtitle) word for word. */}
+            <TabHeader icon={BarChart3} iconColor="#0ea5e9" title={t('usage.tab_overview')} />
 
             {isCustomerView ? renderCustomerView() : renderFullView()}
         </div>

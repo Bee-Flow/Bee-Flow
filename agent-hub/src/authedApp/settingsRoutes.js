@@ -84,11 +84,18 @@ const ACCOUNT_URL_TO_ID = Object.fromEntries(
 );
 
 /* ── Organisation sub-tabs: /app/settings/organisation/<sub> ─────────────── */
+// Every org sub-tab the sidebar can draw has a segment here: a row without one
+// pushed the bare /app/settings, so a reload or Back opened Preferences (that
+// was ai_context and integration_cache). AdvancedSettings derives its set of
+// org tab ids from these keys, and the phone's routeOrg.lockstep.test.ts holds
+// its section list to them, so a new row without an address goes red there.
 export const SETTINGS_ORG_ID_TO_URL = {
     license: 'license',
     auth: 'auth',
     privacy: 'privacy',
     encryption: 'encryption',
+    ai_context: 'ai-context',
+    integration_cache: 'integration-cache',
     info: 'info',
     org_usage: 'usage',
     org_compliance: 'compliance',

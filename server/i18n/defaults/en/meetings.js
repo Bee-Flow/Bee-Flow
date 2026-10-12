@@ -227,7 +227,7 @@ module.exports = {
     'meetings.upcoming_record_in_meet': 'Record in Meet',
     'meetings.upcoming_recording': 'Recording',
     'meetings.upcoming_refresh': 'Refresh',
-    'meetings.upcoming_settings_integrations': 'Settings → Integrations',
+    'meetings.upcoming_settings_integrations': 'Settings → Connections',
     'meetings.upcoming_skip': 'Skip',
     'meetings.upcoming_talk_backend': 'The Nextcloud Talk recording backend isn\'t configured, so auto-record is unavailable. You can still import finished recordings.',
     'meetings.upcoming_talk_failed': 'Couldn\'t load Nextcloud Talk meetings',

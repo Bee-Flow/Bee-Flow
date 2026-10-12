@@ -42,8 +42,8 @@ export function ConnectorActions({
         return (
             <Text variant="caption" tone="tertiary" testID="connect-elsewhere">
                 {state.needsReauth
-                    ? t('mobile.integrations.reconnect_elsewhere', 'Reconnect {name} from Bee Flow on a computer, under Settings → Integrations. It works here again as soon as it is reconnected.', { name: label })
-                    : t('mobile.integrations.connect_elsewhere', 'Connect {name} from Bee Flow on a computer, under Settings → Integrations. Once it is connected, your agents use it here too.', { name: label })}
+                    ? t('mobile.integrations.reconnect_elsewhere', 'Reconnect {name} from Bee Flow on a computer, under Settings → Connections. It works here again as soon as it is reconnected.', { name: label })
+                    : t('mobile.integrations.connect_elsewhere', 'Connect {name} from Bee Flow on a computer, under Settings → Connections. Once it is connected, your agents use it here too.', { name: label })}
             </Text>
         );
     }

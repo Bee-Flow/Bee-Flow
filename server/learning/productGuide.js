@@ -44,7 +44,7 @@ COWORK (sidebar, under New Chat)
 MEMORY (Settings → Memory)
 - Bee Flow remembers facts and preferences mentioned in chat, across conversations. Everything is reviewable, editable, removable.
 
-INTEGRATIONS (Settings → Integrations)
+INTEGRATIONS (Settings → Connections)
 - Connect email, calendar, drive and more. After connecting, an agent also needs the matching TOOL switched on before it can act on the service.
 
 ADMIN (Settings → Organisation)

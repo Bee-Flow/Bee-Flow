@@ -270,7 +270,7 @@ describe('AppInputRelation — a candidate query that failed', () => {
         const binding = { kind: 'records', tableId: 't1', limit: CANDIDATE_LIMIT };
         const key = dataCacheKey(binding);
         const dataState = {
-            [key]: { status: 'error', error: 'Connect Gmail in Settings → Integrations to load this.', tableId: 't1' },
+            [key]: { status: 'error', error: 'Connect Gmail in Settings → Connections to load this.', tableId: 't1' },
         };
         const node = {
             id: 'cmp_rel', type: 'input_relation', visible: true, style: { span: 6 },
@@ -287,7 +287,7 @@ describe('AppInputRelation — a candidate query that failed', () => {
             </RuntimeProvider>,
         );
         fireEvent.focus(screen.getByLabelText('Search Owner'));
-        expect(screen.getByText('Connect Gmail in Settings → Integrations to load this.')).toBeTruthy();
+        expect(screen.getByText('Connect Gmail in Settings → Connections to load this.')).toBeTruthy();
         expect(screen.queryByText('No matching records.')).toBeNull();
     });
 });

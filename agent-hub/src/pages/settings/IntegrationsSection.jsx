@@ -1,9 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import ConnectionsManager from './ConnectionsManager';
 import { Microsoft365Group } from './Microsoft365Integration';
-import N8nSection from './N8nSection';
 import ScalewayBillingIntegration from './ScalewayBillingIntegration';
 import SimpleApiKeyIntegration from './SimpleApiKeyIntegration';
+import { toast } from '../../components/shared/Toast';
 import { getIntegrationIcon } from '../../config/integrationIcons';
 import { useEntitlements } from '../../components/licensing/EntitlementsContext';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -12,10 +12,6 @@ import { openGoogleOAuthPopup } from '../../lib/googleOAuthPopup';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import NcScopeSection from '../../components/integrations/nextcloud/NcScopeSection';
 import OrgMcpConnections from './OrgMcpConnections';
-
-// Named connections + lending UI — re-enabled for reusable HTTP credentials
-// (the http_request step's Authentication settings reference these).
-const SHOW_NAMED_CONNECTIONS = true;
 
 // ── Shared UI helpers ─────────────────────────────────────────────────────────
 // Pull translations from the hook directly so parents don't have to thread `t`
@@ -32,7 +28,7 @@ const ConnectedBadge = () => {
 };
 
 const GroupLabel = ({ children }) => (
-    <p className="text-[11px] font-semibold uppercase tracking-widest px-1 mb-2" style={{ color: 'var(--text-muted)' }}>
+    <p className="text-[11px] font-semibold uppercase tracking-widest px-1 mb-2 text-[var(--text-muted)]">
         {children}
     </p>
 );
@@ -46,17 +42,16 @@ export const IntegrationRow = ({ icon, name, description, connected, badge, chil
     return (
         <div data-tour="integration-card" style={{ borderBottom: last ? 'none' : '1px solid var(--border-subtle)' }}>
             <button
-                className="w-full flex items-center gap-3 px-5 py-3.5 text-left transition-colors"
-                style={{ background: 'var(--bg-secondary)' }}
+                type="button"
+                aria-expanded={expanded}
+                className="w-full flex items-center gap-3 px-5 py-3.5 text-left transition-colors bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)]"
                 onClick={() => setExpanded(v => !v)}
-                onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-tertiary)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-secondary)'}
             >
                 <div className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0 overflow-hidden">
                     {icon}
                 </div>
                 <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-medium text-black">{name}</p>
+                    <p className="text-[13px] font-medium text-[var(--text-primary)]">{name}</p>
                     <p className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>{description}</p>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
@@ -83,47 +78,57 @@ export const IntegrationRow = ({ icon, name, description, connected, badge, chil
 };
 
 // ── Field helpers ─────────────────────────────────────────────────────────────
-export const ApiKeyField = ({ placeholder, value, onChange, onSave, saving, hint, t, canSave }) => (
-    <div>
-        <div className="flex gap-2">
-            <input
-                type="password"
-                value={value}
-                onChange={onChange}
-                placeholder={placeholder}
-                aria-label={placeholder}
-                // These are API tokens, not account passwords — without this the
-                // browser's password manager offers to save them.
-                autoComplete="off"
-                data-1p-ignore
-                data-lpignore="true"
-                className="flex-1 px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors"
-                style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
-                onKeyDown={e => e.key === 'Enter' && (canSave ?? value.trim()) && onSave()}
-            />
-            <button
-                onClick={onSave}
-                disabled={saving || !(canSave ?? value.trim())}
-                className="px-4 py-2 rounded-lg text-[13px] font-medium text-white disabled:opacity-40 transition-opacity"
-                style={{ background: 'var(--accent-primary)' }}
-            >
-                {saving ? '…' : (t ? t('settings.save') : 'Save')}
-            </button>
+// The Save / Disconnect labels come from the hook, not from a `t` prop: most
+// rows never passed one, so their button read "Save" in every language.
+export const ApiKeyField = ({ placeholder, value, onChange, onSave, saving, hint, canSave }) => {
+    const { t } = useTranslation();
+    return (
+        <div>
+            <div className="flex gap-2">
+                <input
+                    type="password"
+                    value={value}
+                    onChange={onChange}
+                    placeholder={placeholder}
+                    aria-label={placeholder}
+                    // These are API tokens, not account passwords — without this the
+                    // browser's password manager offers to save them.
+                    autoComplete="off"
+                    data-1p-ignore
+                    data-lpignore="true"
+                    className="flex-1 px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors"
+                    style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                    onKeyDown={e => e.key === 'Enter' && (canSave ?? value.trim()) && onSave()}
+                />
+                <button
+                    type="button"
+                    onClick={onSave}
+                    disabled={saving || !(canSave ?? value.trim())}
+                    className="px-4 py-2 rounded-lg text-[13px] font-medium text-white disabled:opacity-40 transition-opacity"
+                    style={{ background: 'var(--accent-primary)' }}
+                >
+                    {saving ? '…' : t('settings.save', 'Save')}
+                </button>
+            </div>
+            {hint && <p className="text-[11px] mt-1.5" style={{ color: 'var(--text-muted)' }}>{hint}</p>}
         </div>
-        {hint && <p className="text-[11px] mt-1.5" style={{ color: 'var(--text-muted)' }}>{hint}</p>}
-    </div>
-);
+    );
+};
 
-export const DisconnectButton = ({ onDisconnect, disconnecting, t }) => (
-    <button
-        onClick={onDisconnect}
-        disabled={disconnecting}
-        className="px-4 py-2 rounded-lg text-[13px] font-medium transition-opacity disabled:opacity-50"
-        style={{ background: 'var(--bg-primary)', color: 'var(--text-muted)', border: '1px solid var(--border-default)' }}
-    >
-        {disconnecting ? '…' : (t ? t('settings.disconnect') : 'Disconnect')}
-    </button>
-);
+export const DisconnectButton = ({ onDisconnect, disconnecting }) => {
+    const { t } = useTranslation();
+    return (
+        <button
+            type="button"
+            onClick={onDisconnect}
+            disabled={disconnecting}
+            className="px-4 py-2 rounded-lg text-[13px] font-medium transition-opacity disabled:opacity-50"
+            style={{ background: 'var(--bg-primary)', color: 'var(--text-muted)', border: '1px solid var(--border-default)' }}
+        >
+            {disconnecting ? '…' : t('settings.disconnect', 'Disconnect')}
+        </button>
+    );
+};
 
 // ── Fireflies ─────────────────────────────────────────────────────────────────
 // Single-key integration — all save/disconnect/error logic lives in
@@ -175,7 +180,7 @@ const YouTrackIntegration = ({ hasYouTrackConfig, onSaved, last }) => {
                     className="w-full px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors"
                     style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }} />
                 <ApiKeyField
-                    placeholder={hasYouTrackConfig ? '••••••••••••••••' : 'Permanent token'}
+                    placeholder={hasYouTrackConfig ? '••••••••••••••••' : t('connections.field_permanent_token', 'Permanent token')}
                     value={token} onChange={e => setToken(e.target.value)} onSave={handleSave} saving={saving}
                     hint={<>{t('settings.integrations.token_from', 'Token from')} <a href="https://www.jetbrains.com/help/youtrack/server/manage-permanent-token.html" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)' }} className="underline">{t('settings.integrations.youtrack_path', 'YouTrack → Profile → Authentication')}</a></>}
                 />
@@ -211,11 +216,11 @@ const SignRequestIntegration = ({ hasSignRequestConfig, onSaved, last }) => {
         >
             <div className="space-y-2">
                 <input type="text" value={subdomain} onChange={e => setSubdomain(e.target.value)}
-                    placeholder={hasSignRequestConfig ? '••••••••••••••••' : 'your-team (team subdomain)'}
+                    placeholder={hasSignRequestConfig ? '••••••••••••••••' : t('settings.integrations.signrequest_subdomain_placeholder', 'your-team (team subdomain)')}
                     className="w-full px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors"
                     style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }} />
                 <ApiKeyField
-                    placeholder={hasSignRequestConfig ? '••••••••••••••••' : 'API Token'}
+                    placeholder={hasSignRequestConfig ? '••••••••••••••••' : t('connections.field_api_token', 'API token')}
                     value={token} onChange={e => setToken(e.target.value)} onSave={handleSave} saving={saving}
                     hint={<>{t('settings.integrations.get_token_from', 'Get your token from')} <a href="https://signrequest.com/api/v1/api-docs/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)' }} className="underline">{t('settings.integrations.signrequest_path', 'SignRequest → API Settings')}</a>{t('settings.integrations.signrequest_sandbox', '. Use your sandbox team subdomain for testing.')}</>}
                 />
@@ -311,7 +316,7 @@ const AFASIntegration = ({ hasAfasConfig, onSaved, last }) => {
                     placeholder={hasAfasConfig ? '••••••••••••••••' : t('integ.afas_token_placeholder')}
                     value={token} onChange={e => setToken(e.target.value)} onSave={handleSave} saving={saving}
                     canSave={!!(token.trim() || memberNumber.trim() || envTouched)}
-                    hint={<>{t('settings.integrations.afas_help', 'AFAS Help:')} <a href="https://help.afas.nl/help/NL/SE/App_Cnr_Rest_Token.htm" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)' }} className="underline">{t('settings.integrations.afas_link', 'App connector & token aanmaken')}</a></>}
+                    hint={<>{t('settings.integrations.afas_help', 'AFAS Help:')} <a href="https://help.afas.nl/help/NL/SE/App_Cnr_Rest_Token.htm" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)' }} className="underline">{t('settings.integrations.afas_link', 'Create an app connector & token')}</a></>}
                 />
                 {error && <p className="text-[11px]" style={{ color: '#dc2626' }}>{error}</p>}
                 {hasAfasConfig && <DisconnectButton onDisconnect={handleDisconnect} disconnecting={disconnecting} />}
@@ -449,7 +454,7 @@ const NMBRSIntegration = ({ hasNmbrsConfig, apiMode: initialMode, subdomain: ini
                     placeholder={hasNmbrsConfig ? '••••••••••••••••' : t('integ.nmbrs_token_placeholder')}
                     value={token} onChange={e => setToken(e.target.value)} onSave={handleSave} saving={saving}
                     canSave={!!(token.trim() || subdomain.trim() || email.trim())}
-                    hint={<>{t('settings.integrations.nmbrs_help', 'NMBRS Help:')} <a href="https://support.nmbrs.nl/hc/nl/articles/360010686800-Connect-Nmbrs-with-an-API-token" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)' }} className="underline">{t('settings.integrations.nmbrs_link', 'API-token aanmaken')}</a></>}
+                    hint={<>{t('settings.integrations.nmbrs_help', 'NMBRS Help:')} <a href="https://support.nmbrs.nl/hc/nl/articles/360010686800-Connect-Nmbrs-with-an-API-token" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)' }} className="underline">{t('settings.integrations.nmbrs_link', 'Create an API token')}</a></>}
                 />
                 {error && <p className="text-[11px]" style={{ color: '#dc2626' }}>{error}</p>}
                 {hasNmbrsConfig && <DisconnectButton onDisconnect={handleDisconnect} disconnecting={disconnecting} />}
@@ -520,7 +525,7 @@ const GoogleWorkspaceIntegration = ({ onSaved, last }) => {
             last={last}
             connected={connected}
             badge={needsMeetReconsent ? (
-                <span className="text-[10px] px-1.5 py-0.5 rounded font-medium flex-shrink-0" style={{ background: 'rgba(217,119,6,0.12)', color: '#d97706' }}>
+                <span className="text-[10px] px-1.5 py-0.5 rounded font-medium flex-shrink-0 bg-[color-mix(in_srgb,var(--warning)_12%,transparent)] text-[var(--warning-ink)]">
                     {t('integ.google_update_needed', 'Update needed')}
                 </span>
             ) : null}
@@ -541,15 +546,15 @@ const GoogleWorkspaceIntegration = ({ onSaved, last }) => {
             ) : connected ? (
                 <div className="space-y-2">
                     {needsMeetReconsent && (
-                        <div className="rounded-lg px-3 py-2.5" style={{ background: 'rgba(217,119,6,0.08)', border: '1px solid rgba(217,119,6,0.35)' }}>
-                            <p className="text-[11px]" style={{ color: '#b45309' }}>
+                        <div className="rounded-lg px-3 py-2.5 border bg-[color-mix(in_srgb,var(--warning)_8%,transparent)] border-[color-mix(in_srgb,var(--warning)_35%,transparent)]">
+                            <p className="text-[11px] text-[var(--warning-ink)]">
                                 {t('integ.google_meet_scope_missing', 'Meeting Notes needs extra Google Meet permissions to import your meeting recordings — re-authorize to grant them. Your existing Gmail, Calendar and Drive access is kept.')}
                             </p>
                             <button
+                                type="button"
                                 onClick={handleConnect}
                                 disabled={connecting}
-                                className="mt-2 px-4 py-2 rounded-lg text-[13px] font-medium text-white disabled:opacity-50"
-                                style={{ background: '#d97706' }}
+                                className="mt-2 px-4 py-2 rounded-lg text-[13px] font-medium disabled:opacity-50 bg-[var(--warning)] text-[var(--accent-primary-fg)]"
                             >
                                 {connecting ? t('integ.google_opening', 'Opening Google…') : t('integ.google_reauthorize', 'Re-authorize Google')}
                             </button>
@@ -883,7 +888,6 @@ const NextcloudIntegration = ({ hasNextcloudAppPassword, isNextcloudUser, isConn
                     onSave={handleSave}
                     saving={saving}
                     hint={t('integ.nextcloud_hint', 'Generate at Nextcloud → Settings → Security → Devices & sessions.')}
-                    t={t}
                 />
                 {isNextcloudUser && (
                     <button
@@ -899,7 +903,7 @@ const NextcloudIntegration = ({ hasNextcloudAppPassword, isNextcloudUser, isConn
                 {notice && (
                     <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{notice}</p>
                 )}
-                {hasNextcloudAppPassword && <DisconnectButton onDisconnect={handleDisconnect} disconnecting={disconnecting} t={t} />}
+                {hasNextcloudAppPassword && <DisconnectButton onDisconnect={handleDisconnect} disconnecting={disconnecting} />}
                 {hasNextcloudAppPassword && (
                     <div className="pt-3" style={{ borderTop: '1px solid var(--border-subtle)' }}>
                         <NcScopeSection />
@@ -911,20 +915,24 @@ const NextcloudIntegration = ({ hasNextcloudAppPassword, isNextcloudUser, isConn
 };
 
 // ── MCP Servers ───────────────────────────────────────────────────────────────
-const McpCredentialsSection = ({ onSaved }) => {
-    const { t } = useTranslation();
-    const [mcpServers, setMcpServers] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [credValues, setCredValues] = useState({});
-    const [saving, setSaving] = useState(null);
-    React.useEffect(() => { loadMcpServers(); }, []);
-    const loadMcpServers = async () => {
+// The page loads the list, not the rows: the Developer group has to know
+// whether it has anything to show before it draws its heading and frame.
+const useMcpCredentialServers = (enabled) => {
+    const [servers, setServers] = useState([]);
+    const load = React.useCallback(async () => {
         try {
             const res = await authFetch(`${API_BASE}/ai/mcp-servers/user-credentials`);
-            if (res.ok) { const data = await res.json(); setMcpServers(data.servers || []); }
+            if (res.ok) { const data = await res.json(); setServers(data.servers || []); }
         } catch { /* ignore */ }
-        setLoading(false);
-    };
+    }, []);
+    React.useEffect(() => { if (enabled) load(); }, [enabled, load]);
+    return { servers: enabled ? servers : [], reload: load };
+};
+
+const McpCredentialRows = ({ servers, reload, onSaved, last }) => {
+    const { t } = useTranslation();
+    const [credValues, setCredValues] = useState({});
+    const [saving, setSaving] = useState(null);
     const saveCred = async (serverId, credKey) => {
         const stateKey = `${serverId}:${credKey}`;
         const value = credValues[stateKey];
@@ -935,17 +943,20 @@ const McpCredentialsSection = ({ onSaved }) => {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ serverId, credKey, value: value.trim() }),
             });
-            if (res.ok) { setCredValues(prev => ({ ...prev, [stateKey]: '' })); loadMcpServers(); onSaved?.(); }
-        } catch (e) { console.error(e); }
+            if (res.ok) { setCredValues(prev => ({ ...prev, [stateKey]: '' })); reload(); onSaved?.(); }
+            else toast.error(t('common.save_failed', 'Save failed'));
+        } catch {
+            // The typed value stays in the field, so the user can retry.
+            toast.error(t('common.save_failed', 'Save failed'));
+        }
         setSaving(null);
     };
-    if (loading || mcpServers.length === 0) return null;
     return (
         <>
-            {mcpServers.map((server, si) => (
+            {servers.map((server, si) => (
                 <IntegrationRow
                     key={server.id}
-                    last={si === mcpServers.length - 1}
+                    last={last && si === servers.length - 1}
                     connected={server.allConfigured}
                     name={server.name}
                     description={server.allConfigured ? t('integ.mcp_connected', { toolCount: server.toolCount }) : t('integ.mcp_desc', { toolCount: server.toolCount })}
@@ -962,9 +973,8 @@ const McpCredentialsSection = ({ onSaved }) => {
                                         onChange={e => setCredValues(prev => ({ ...prev, [stateKey]: e.target.value }))}
                                         onSave={() => saveCred(server.id, cred.key)}
                                         saving={saving === stateKey}
-                                        t={t}
                                     />
-                                    {cred.configured && <p className="text-[10px] mt-0.5" style={{ color: '#4ade80' }}>{t('integ.mcp_configured', '✓ Configured')}{cred.description ? ` — ${cred.description}` : ''}</p>}
+                                    {cred.configured && <p className="text-[10px] mt-0.5 text-[var(--success-ink)]">{t('integ.mcp_configured', '✓ Configured')}{cred.description ? ` — ${cred.description}` : ''}</p>}
                                 </div>
                             );
                         })}
@@ -975,8 +985,29 @@ const McpCredentialsSection = ({ onSaved }) => {
     );
 };
 
+// ── Group frame ───────────────────────────────────────────────────────────────
+// `rows` is a list of [key, render] pairs with falsy entries for rows that are
+// not shown; render(last) draws one row, so the last-row flag follows from the
+// list instead of being spelled out per row. No rows, no heading.
+const IntegrationGroup = ({ label, rows }) => {
+    const shown = rows.filter(Boolean);
+    if (shown.length === 0) return null;
+    return (
+        <div className="space-y-1.5">
+            <GroupLabel>{label}</GroupLabel>
+            <div className="rounded-xl overflow-hidden border border-[var(--border-subtle)]">
+                {shown.map(([key, render], i) => <React.Fragment key={key}>{render(i === shown.length - 1)}</React.Fragment>)}
+            </div>
+        </div>
+    );
+};
+
 // ── IntegrationsSection ───────────────────────────────────────────────────────
-const IntegrationsSection = ({ statuses, onSaved, isOrgAdmin, user, showOrgIntegrations = false }) => {
+// Settings → Connections: the user's own credentials. Groups follow the
+// integration catalogue's CATEGORY_ORDER (config/integrationCatalog.js), the
+// order the consumer Integrations page and the organisation's access matrix
+// use, and every integration sits under its catalogue category.
+const IntegrationsSection = ({ statuses, onSaved, user }) => {
     const { t } = useTranslation();
     // Only list integrations the user's organisation actually has access to: the
     // plan-trimmed EFFECTIVE entitlement set (subscription-included AND granted in
@@ -990,17 +1021,6 @@ const IntegrationsSection = ({ statuses, onSaved, isOrgAdmin, user, showOrgInteg
     // BFSF-255: show the Google Workspace connect tile whenever at least one
     // Google integration is in the org's effective entitlement set.
     const showGoogle = ['gmail', 'google-calendar', 'google-drive'].some(isEnabled);
-    const showFireflies = isEnabled('fireflies');
-    const showYouTrack = isEnabled('youtrack');
-    const showSignRequest = isEnabled('signrequest');
-    const showGamma = isEnabled('gamma');
-    const showAfas = isEnabled('afas-profit');
-    const showVplan = isEnabled('vplan');
-    const showScalewayBilling = isEnabled('scaleway-billing');
-    const showNmbrs = isEnabled('nmbrs');
-    const showLinkedIn = isEnabled('linkedin');
-    const showWithings = isEnabled('withings');
-    const showGitHub = isEnabled('github');
     // Nextcloud-bound users always see the card so they can manage their link.
     // `provider` (login payload) covers connector + OAuth NC users synchronously,
     // so the card never depends on the async app-password-status fetch, which can
@@ -1016,106 +1036,59 @@ const IntegrationsSection = ({ statuses, onSaved, isOrgAdmin, user, showOrgInteg
     const orgEnabledIntegrations = user?.enabledIntegrations;
     const orgEnablesNextcloud = !Array.isArray(orgEnabledIntegrations) || orgEnabledIntegrations.includes('nextcloud');
     const showNextcloud = isNcUser || orgEnablesNextcloud;
-    // MCP servers are opt-in per plan; show the per-server credentials section
-    // only when the effective set includes at least one installed server.
+    // MCP servers are opt-in per plan; load the per-server credentials only
+    // when the effective set includes at least one installed server.
     const showMcp = loading || error || (effective?.integration || []).some(id => id.startsWith('mcp:'));
-
-    const productivityItems = [showFireflies, showYouTrack, showSignRequest, showGamma, showAfas, showVplan, showScalewayBilling, showNmbrs, showNextcloud].filter(Boolean).length;
-    const socialItems = [showLinkedIn].filter(Boolean).length;
-    const healthItems = [showWithings].filter(Boolean).length;
-    const devItems = [showGitHub].filter(Boolean).length;
+    const { servers: mcpServers, reload: reloadMcp } = useMcpCredentialServers(!!showMcp);
 
     return (
         <div className="space-y-6">
-            {/* Named connections + sharing (bring-your-own vs lend) — hidden for now */}
-            {SHOW_NAMED_CONNECTIONS && <ConnectionsManager />}
+            <h2 className="text-lg font-semibold text-[var(--text-primary)]">{t('settings.connections', 'Connections')}</h2>
+
+            {/* Named connections + sharing (bring-your-own vs lend). Reusable
+                HTTP credentials for the http_request step live here too. */}
+            <ConnectionsManager />
 
             {/* Google Workspace (BFSF-255) */}
-            {showGoogle && (
-                <div className="space-y-1.5">
-                    <GroupLabel>{t('settings.integrations_google_workspace', 'Google Workspace')}</GroupLabel>
-                    <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-subtle)' }}>
-                        <GoogleWorkspaceIntegration onSaved={() => onSaved('google')} last />
-                    </div>
-                </div>
-            )}
+            <IntegrationGroup label={t('settings.integrations_google_workspace', 'Google Workspace')} rows={[
+                showGoogle && ['google', last => <GoogleWorkspaceIntegration onSaved={() => onSaved('google')} last={last} />],
+            ]} />
 
             {/* Microsoft 365: shown when a Microsoft app is in the effective set */}
             <Microsoft365Group isEnabled={isEnabled} onSaved={() => onSaved('microsoft')} />
 
-            {/* Productivity */}
-            {productivityItems > 0 && (
-                <div className="space-y-1.5">
-                    <GroupLabel>{t('settings.integrations_productivity')}</GroupLabel>
-                    <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-subtle)' }}>
-                        {showFireflies && <FirefliesIntegration hasFirefliesKey={statuses.hasFirefliesKey} onSaved={() => onSaved('fireflies')} last={!showYouTrack && !showSignRequest && !showGamma && !showAfas && !showVplan && !showScalewayBilling && !showNmbrs && !showNextcloud} />}
-                        {showYouTrack && <YouTrackIntegration hasYouTrackConfig={statuses.hasYouTrackConfig} onSaved={() => onSaved('youtrack')} last={!showSignRequest && !showGamma && !showAfas && !showVplan && !showScalewayBilling && !showNmbrs && !showNextcloud} />}
-                        {showSignRequest && <SignRequestIntegration hasSignRequestConfig={statuses.hasSignRequestConfig} onSaved={() => onSaved('signrequest')} last={!showGamma && !showAfas && !showVplan && !showScalewayBilling && !showNmbrs && !showNextcloud} />}
-                        {showGamma && <GammaIntegration hasGammaKey={statuses.hasGammaKey} onSaved={() => onSaved('gamma')} last={!showAfas && !showVplan && !showScalewayBilling && !showNmbrs && !showNextcloud} />}
-                        {showAfas && <AFASIntegration hasAfasConfig={statuses.hasAfasConfig} onSaved={() => onSaved('afas-profit')} last={!showVplan && !showScalewayBilling && !showNmbrs && !showNextcloud} />}
-                        {showVplan && <VplanIntegration hasVplanConfig={statuses.hasVplanConfig} onSaved={() => onSaved('vplan')} last={!showScalewayBilling && !showNmbrs && !showNextcloud} />}
-                        {showScalewayBilling && <ScalewayBillingIntegration hasScalewayBillingConfig={!!statuses.hasScalewayBillingConfig} onSaved={() => onSaved('scaleway-billing')} last={!showNmbrs && !showNextcloud} />}
-                        {showNmbrs && <NMBRSIntegration hasNmbrsConfig={statuses.hasNmbrsConfig} apiMode={statuses.nmbrsApiMode} subdomain={statuses.nmbrsSubdomain} email={statuses.nmbrsEmail} env={statuses.nmbrsEnv} onSaved={() => onSaved('nmbrs')} last={!showNextcloud} />}
-                        {showNextcloud && <NextcloudIntegration hasNextcloudAppPassword={statuses.hasNextcloudAppPassword} isNextcloudUser={statuses.isNextcloudUser} isConnectorUser={user?.provider === 'nextcloud_connector'} nextcloudUrl={statuses.nextcloudUrl} onSaved={() => onSaved('nextcloud')} last />}
-                    </div>
-                </div>
-            )}
+            <IntegrationGroup label={t('settings.integrations_nextcloud', 'Nextcloud')} rows={[
+                showNextcloud && ['nextcloud', last => <NextcloudIntegration hasNextcloudAppPassword={statuses.hasNextcloudAppPassword} isNextcloudUser={statuses.isNextcloudUser} isConnectorUser={user?.provider === 'nextcloud_connector'} nextcloudUrl={statuses.nextcloudUrl} onSaved={() => onSaved('nextcloud')} last={last} />],
+            ]} />
+
+            {/* Developer, then the keys for the MCP servers the organisation
+                added (MCP library), so the two MCP key lists sit together. */}
+            <IntegrationGroup label={t('settings.integrations_developer')} rows={[
+                isEnabled('youtrack') && ['youtrack', last => <YouTrackIntegration hasYouTrackConfig={statuses.hasYouTrackConfig} onSaved={() => onSaved('youtrack')} last={last} />],
+                isEnabled('github') && ['github', last => <GitHubIntegration onSaved={() => onSaved('github')} last={last} />],
+                mcpServers.length > 0 && ['mcp', last => <McpCredentialRows servers={mcpServers} reload={reloadMcp} onSaved={() => onSaved('mcp')} last={last} />],
+            ]} />
+            <OrgMcpConnections />
+
+            <IntegrationGroup label={t('settings.integrations_productivity')} rows={[
+                isEnabled('fireflies') && ['fireflies', last => <FirefliesIntegration hasFirefliesKey={statuses.hasFirefliesKey} onSaved={() => onSaved('fireflies')} last={last} />],
+                isEnabled('signrequest') && ['signrequest', last => <SignRequestIntegration hasSignRequestConfig={statuses.hasSignRequestConfig} onSaved={() => onSaved('signrequest')} last={last} />],
+                isEnabled('gamma') && ['gamma', last => <GammaIntegration hasGammaKey={statuses.hasGammaKey} onSaved={() => onSaved('gamma')} last={last} />],
+                isEnabled('afas-profit') && ['afas-profit', last => <AFASIntegration hasAfasConfig={statuses.hasAfasConfig} onSaved={() => onSaved('afas-profit')} last={last} />],
+                isEnabled('vplan') && ['vplan', last => <VplanIntegration hasVplanConfig={statuses.hasVplanConfig} onSaved={() => onSaved('vplan')} last={last} />],
+                isEnabled('scaleway-billing') && ['scaleway-billing', last => <ScalewayBillingIntegration hasScalewayBillingConfig={!!statuses.hasScalewayBillingConfig} onSaved={() => onSaved('scaleway-billing')} last={last} />],
+                isEnabled('nmbrs') && ['nmbrs', last => <NMBRSIntegration hasNmbrsConfig={statuses.hasNmbrsConfig} apiMode={statuses.nmbrsApiMode} subdomain={statuses.nmbrsSubdomain} email={statuses.nmbrsEmail} env={statuses.nmbrsEnv} onSaved={() => onSaved('nmbrs')} last={last} />],
+            ]} />
 
             {/* Health — special-category data, so it gets its own group rather
                 than hiding among Productivity tiles. */}
-            {healthItems > 0 && (
-                <div className="space-y-1.5">
-                    <GroupLabel>{t('settings.integrations_health', 'Health')}</GroupLabel>
-                    <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-subtle)' }}>
-                        {showWithings && <WithingsIntegration onSaved={() => onSaved('withings')} last />}
-                    </div>
-                </div>
-            )}
+            <IntegrationGroup label={t('settings.integrations_health', 'Health')} rows={[
+                isEnabled('withings') && ['withings', last => <WithingsIntegration onSaved={() => onSaved('withings')} last={last} />],
+            ]} />
 
-            {/* Social */}
-            {socialItems > 0 && (
-                <div className="space-y-1.5">
-                    <GroupLabel>{t('settings.integrations_social')}</GroupLabel>
-                    <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-subtle)' }}>
-                        {showLinkedIn && <LinkedInIntegration connected={statuses.linkedInConnected} linkedInName={statuses.linkedInName} hasLinkedInConfig={statuses.hasLinkedInConfig} onSaved={() => onSaved('linkedin')} last />}
-                    </div>
-                </div>
-            )}
-
-            {/* Developer */}
-            {(devItems > 0 || showMcp) && (
-                <div className="space-y-1.5">
-                    <GroupLabel>{t('settings.integrations_developer')}</GroupLabel>
-                    <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-subtle)' }}>
-                        {showGitHub && <GitHubIntegration onSaved={() => onSaved('github')} last={!showMcp} />}
-                        {showMcp && <McpCredentialsSection onSaved={() => onSaved('mcp')} />}
-                    </div>
-                </div>
-            )}
-
-            {/* Keys for the MCP servers the organisation added (MCP library) */}
-            <OrgMcpConnections />
-
-            {/* Organisation Integrations — merged for consumer accounts */}
-            {showOrgIntegrations && (
-                <div className="space-y-1.5">
-                    <GroupLabel>{t('settings.integrations_org_tools')}</GroupLabel>
-                    <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-subtle)' }}>
-                        <div style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                            <div className="flex items-center gap-3 px-5 py-3.5" style={{ background: 'var(--bg-secondary)' }}>
-                                <img src="/n8n-color.png" alt="n8n" style={{ width: '20px', height: '20px', objectFit: 'contain', flexShrink: 0 }} />
-                                <div className="flex-1">
-                                    <p className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>n8n</p>
-                                    <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{t('integ.n8n_desc')}</p>
-                                </div>
-                            </div>
-                            <div className="px-5 pb-4" style={{ background: 'var(--bg-secondary)' }}>
-                                <N8nSection />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <IntegrationGroup label={t('settings.integrations_social')} rows={[
+                isEnabled('linkedin') && ['linkedin', last => <LinkedInIntegration connected={statuses.linkedInConnected} linkedInName={statuses.linkedInName} hasLinkedInConfig={statuses.hasLinkedInConfig} onSaved={() => onSaved('linkedin')} last={last} />],
+            ]} />
         </div>
     );
 };

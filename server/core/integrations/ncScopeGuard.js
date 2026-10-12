@@ -359,7 +359,7 @@ const RESULT_CONTAINER_KEYS = ['calendars', 'addressbooks', 'boards', 'rooms', '
     'lists', 'accounts', 'tables', 'forms', 'results', 'files', 'items', 'shares', 'trash', 'tree', 'matches',
     'messages'];
 
-const SETTINGS_HINT = 'You can change this under Settings → Integrations → Nextcloud → “What Bee Flow may access”.';
+const SETTINGS_HINT = 'You can change this under Settings → Connections → Nextcloud → “What Bee Flow may access”.';
 
 function deniedError(label, detail) {
     return {

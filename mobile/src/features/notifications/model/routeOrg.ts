@@ -26,6 +26,8 @@ export const ORG_SETTINGS_SEGMENTS: Readonly<Record<string, string>> = {
     auth: '/org/sign-in',
     privacy: '/org/shield',
     encryption: '/org/encryption',
+    'ai-context': '/org/ai-context',
+    'integration-cache': '/org/integration-cache',
     info: '/org/info',
     usage: '/org/usage',
     compliance: '/org/compliance',

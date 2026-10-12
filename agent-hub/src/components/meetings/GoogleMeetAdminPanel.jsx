@@ -47,40 +47,37 @@ export default function GoogleMeetAdminPanel({ user }) {
         <div className="mt-6">
             <div className="flex items-center gap-2 mb-2">
                 <Video className="w-4 h-4" style={{ color: MEET_GREEN }} />
-                <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">
                     {t('meetings.admin_meet.title', 'Google Meet Meeting Notes')}
                 </p>
             </div>
-            <p className="text-[12px] mb-3" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-[12px] mb-3 text-[var(--text-muted)]">
                 {t('meetings.admin_meet.intro', 'Turn recorded Google Meet meetings into Meeting Notes — transcript, summary and action items, transcribed by your organisation\'s configured transcription engine. These org settings override each member\'s personal settings.')}
             </p>
 
             {loading ? (
-                <div className="flex items-center gap-2 px-5 py-4 rounded-xl" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}>
-                    <Loader2 className="w-4 h-4 animate-spin" style={{ color: MEET_GREEN }} />
-                    <span className="text-[13px]" style={{ color: 'var(--text-muted)' }}>{t('common.loading_ellipsis', 'Loading…')}</span>
+                <div className="flex items-center gap-2 px-5 py-4 rounded-xl border bg-[var(--bg-secondary)] border-[var(--border-subtle)]">
+                    <Loader2 className="w-4 h-4 animate-spin text-[var(--accent-primary)]" />
+                    <span className="text-[13px] text-[var(--text-muted)]">{t('common.loading_ellipsis', 'Loading…')}</span>
                 </div>
             ) : (
                 <>
-                    <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-subtle)' }}>
+                    <div className="rounded-xl overflow-hidden border border-[var(--border-subtle)] divide-y divide-[var(--border-subtle)]">
                         <Row title={t('meetings.admin_meet.auto_import', 'Auto-import recorded Meet meetings')} desc={t('meetings.admin_meet.auto_import_desc', 'When a recording of a member\'s Google Meet call appears in Drive, create a Meeting Note automatically. Recording must be started in Meet — requires Google Workspace Business Standard or higher.')}>
-                            <Toggle on={cfg.autoImport} onClick={() => setCfg(c => ({ ...c, autoImport: !c.autoImport }))} disabled={saving} />
+                            <Toggle ariaLabel={t('meetings.admin_meet.auto_import', 'Auto-import recorded Meet meetings')} on={cfg.autoImport} onClick={() => setCfg(c => ({ ...c, autoImport: !c.autoImport }))} disabled={saving} />
                         </Row>
-                        <div style={{ height: 1, background: 'var(--border-subtle)' }} />
                         <Row title={t('meetings.admin_meet.auto_record', 'Pre-enable auto-recording for meetings members organize')} desc={t('meetings.admin_meet.auto_record_desc', 'Configure Meet to start recording automatically for meetings members organize, so nothing is missed.')}>
-                            <Toggle on={cfg.autoRecordConfig} onClick={() => setCfg(c => ({ ...c, autoRecordConfig: !c.autoRecordConfig }))} disabled={saving} />
+                            <Toggle ariaLabel={t('meetings.admin_meet.auto_record', 'Pre-enable auto-recording for meetings members organize')} on={cfg.autoRecordConfig} onClick={() => setCfg(c => ({ ...c, autoRecordConfig: !c.autoRecordConfig }))} disabled={saving} />
                         </Row>
-                        <div style={{ height: 1, background: 'var(--border-subtle)' }} />
                         <Row title={t('meetings.admin_meet.which', 'Which meetings')} desc={t('meetings.admin_meet.which_desc', 'Import only meetings members organize, or every Meet meeting on their calendars.')}>
-                            <Select value={cfg.importScope} disabled={saving} onChange={e => setCfg(c => ({ ...c, importScope: e.target.value }))}
+                            <Select ariaLabel={t('meetings.admin_meet.which', 'Which meetings')} value={cfg.importScope} disabled={saving} onChange={e => setCfg(c => ({ ...c, importScope: e.target.value }))}
                                 options={[{ value: 'organizer', label: t('meetings.admin_meet.scope_organizer', 'Meetings they organize') }, { value: 'calendar', label: t('meetings.admin_meet.scope_calendar', 'All calendar meetings') }]} />
                         </Row>
-                        <div style={{ height: 1, background: 'var(--border-subtle)' }} />
                         <Row title={t('meetings.admin_meet.language', 'Default language')} desc={t('meetings.admin_meet.language_desc', 'Language used when transcribing Meet recordings.')}>
                             <select
+                                aria-label={t('meetings.admin_meet.language', 'Default language')}
                                 value={cfg.language} onChange={e => setCfg(c => ({ ...c, language: e.target.value }))} disabled={saving}
-                                className="w-40 px-3 py-1.5 rounded-lg border outline-none text-[13px]"
-                                style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                className="w-40 px-3 py-1.5 rounded-lg border outline-none text-[13px] bg-[var(--bg-primary)] border-[var(--border-default)] text-[var(--text-primary)]"
                             >
                                 {LANGS.map(l => <option key={l.code} value={l.code}>{l.label}</option>)}
                             </select>
@@ -90,13 +87,12 @@ export default function GoogleMeetAdminPanel({ user }) {
                     <div className="flex items-center gap-3 mt-3">
                         <button
                             onClick={save} disabled={saving}
-                            className="px-4 py-1.5 rounded-lg text-[13px] font-medium text-white disabled:opacity-40"
-                            style={{ background: MEET_GREEN }}
+                            className="px-4 py-1.5 rounded-lg text-[13px] font-medium disabled:opacity-40 bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]"
                         >
                             {saving ? t('common.saving', 'Saving…') : t('common.save', 'Save')}
                         </button>
                         {message && (
-                            <span className={`text-[12px] font-medium ${message.type === 'success' ? 'text-green-600' : 'text-red-500'}`}>
+                            <span className={`text-[12px] font-medium ${message.type === 'success' ? 'text-[var(--success-ink)]' : 'text-[var(--error-ink)]'}`}>
                                 {message.type === 'success' ? '✓' : '⚠'} {message.text}
                             </span>
                         )}

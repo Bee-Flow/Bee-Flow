@@ -102,8 +102,8 @@ const OrgNcPairingPanel = () => {
     return (
         <div className="rounded-xl p-5 mb-4" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}>
             <div className="flex items-start gap-3 mb-4">
-                <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(245, 158, 11, 0.12)' }}>
-                    <ServerCog className="w-5 h-5" style={{ color: '#d97706' }} />
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 bg-[color-mix(in_srgb,var(--warning)_12%,transparent)]">
+                    <ServerCog className="w-5 h-5 text-[var(--warning-ink)]" />
                 </div>
                 <div className="flex-1 min-w-0">
                     <h3 className="text-[14px] font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
@@ -116,7 +116,7 @@ const OrgNcPairingPanel = () => {
             </div>
 
             {error && (
-                <div className="mb-3 px-3 py-2 rounded-lg text-[12px]" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#dc2626' }}>
+                <div className="mb-3 px-3 py-2 rounded-lg text-[12px] bg-[color-mix(in_srgb,var(--error)_10%,transparent)] text-[var(--error-ink)]" role="alert">
                     {error}
                 </div>
             )}

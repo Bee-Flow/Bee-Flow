@@ -110,7 +110,7 @@ module.exports = {
     'solutions.install_grant_tool': 'Let "{page}" use {tool}',
     'solutions.install_grant_connected': 'Connected to your account',
     'solutions.install_grant_status_unknown': 'Whether this app is connected could not be checked, so it cannot be handed over here — grant it on the page afterwards.',
-    'solutions.install_grant_not_connected': 'Not connected to your account — connect it in Settings → Integrations, then grant it on the page.',
+    'solutions.install_grant_not_connected': 'Not connected to your account — connect it in Settings → Connections, then grant it on the page.',
     'solutions.install_grant_public_ai': '"{page}" asks to let anonymous visitors spend your AI budget.',
     'solutions.install_grant_public_ai_cap': 'It asks for up to ${cap} a day. Installing never switches this on — open the page and decide there.',
     'solutions.install_grant_public_ai_off': 'Installing never switches this on — open the page and decide there.',

@@ -8,7 +8,7 @@ module.exports = {
     'connections.field_scaleway_billing_org': 'Organization ID',
 
     // ── Settings → Connections (named credentials + lending) ────
-    'connections.title': 'Connections',
+    'connections.title': 'Named connections',
     'connections.description': 'Keep multiple named credentials per integration and lend a specific one to teammates. Recipients without a lent connection bring their own.',
     'connections.loading': 'Loading…',
     'connections.empty': 'No named connections yet.',
@@ -86,5 +86,5 @@ module.exports = {
     'connections.lending_hint': 'Recipients use their own credentials by default. Lend one of your connections to let them run as you (full delegation).',
     'connections.lending_byo': 'Bring-your-own (default)',
     'connections.required_connect_in': 'Connect {providers} in',
-    'connections.required_settings_link': 'Settings → Integrations',
+    'connections.required_settings_link': 'Settings → Connections',
 };

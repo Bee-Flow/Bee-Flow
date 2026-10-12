@@ -58,7 +58,7 @@ function classifyMailboxError(err, connector) {
     if (status === 403) {
         if (isShared) {
             return mailboxError(403,
-                `No access to the shared mailbox ${connector.address}. Your Microsoft administrator must grant you Full Access, and the connection needs the Mail.Read.Shared permission — reconnect Microsoft in Settings → Integrations.`,
+                `No access to the shared mailbox ${connector.address}. Your Microsoft administrator must grant you Full Access, and the connection needs the Mail.Read.Shared permission — reconnect Microsoft in Settings → Connections.`,
                 'shared_mailbox_denied');
         }
         return mailboxError(403, 'This mailbox refused the request.', 'mailbox_denied');
@@ -72,7 +72,7 @@ function classifyMailboxError(err, connector) {
         return e;
     }
     if (status === 401 || /invalid_grant|reconnect the mailbox|no valid .* tokens/i.test(String(err?.message || ''))) {
-        const e = mailboxError(409, 'The mailbox connection expired — reconnect it in Settings → Integrations.', 'connection_required');
+        const e = mailboxError(409, 'The mailbox connection expired — reconnect it in Settings → Connections.', 'connection_required');
         e.provider = connector?.provider === 'gmail' ? 'gmail' : 'outlook';
         return e;
     }

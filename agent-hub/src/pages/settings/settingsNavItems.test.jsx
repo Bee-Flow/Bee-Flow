@@ -24,6 +24,7 @@ import {
     NAV_ITEMS,
     SETTINGS_DESKTOP_ONLY_TABS,
     SETTINGS_NAV_ROW_IDS,
+    SETTINGS_RESOURCE_TABS,
 } from './settingsNavItems';
 import { useTranslation } from '../../hooks/useTranslation';
 
@@ -101,6 +102,15 @@ describe('settingsNavItems — the label a row shows', () => {
             expect(MOBILE_VISIBLE_TOP_TABS).not.toContain(id);
             expect(SETTINGS_NAV_ROW_IDS).not.toContain(id);
         }
+    });
+
+    /* The sidebar draws a rule above the first visible resource row. That only
+     * reads right while the resources are the tail of the nav: a settings row
+     * added after them would land below the rule. */
+    it('keeps the resource rows (Learning Center, Help & Support) at the end of the nav', () => {
+        expect(SETTINGS_RESOURCE_TABS).toEqual(['learning', 'help_support']);
+        const ids = NAV_ITEMS.map(i => i.id);
+        expect(ids.slice(-SETTINGS_RESOURCE_TABS.length)).toEqual(SETTINGS_RESOURCE_TABS);
     });
 });
 

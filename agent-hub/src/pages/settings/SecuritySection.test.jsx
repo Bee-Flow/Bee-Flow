@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
@@ -113,19 +114,23 @@ describe('SecuritySection — status probe', () => {
         expect(screen.getByRole('button', { name: 'Disable' })).toBeInTheDocument();
     });
 
-    it('SECURITY: a failing status probe renders "off" — the screen states a fact it does not know', async () => {
-        // loadStatus only assigns on res.ok, so a 500 leaves the optimistic
-        // initial state {enabled:false} standing. No banner, no retry: an
-        // account WITH 2FA is told 2FA is off, and offered "Enable".
+    it('SECURITY: a failing status probe says it failed, never "off" with an Enable button', async () => {
+        // An account WITH 2FA must not be told 2FA is off because a read failed.
         await mount({ status: jsonRes({ error: 'Failed to load MFA status' }, 500) });
 
-        expect(screen.getByText('Two-factor authentication is off')).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Enable' })).toBeInTheDocument();
-        expect(screen.queryByText(/Request failed/)).toBeNull();
-        expect(screen.queryByText(/could not/i)).toBeNull();
+        const card = screen.getByTestId('mfa-status-error');
+        expect(card).toHaveTextContent('Two-factor authentication');
+        expect(card).toHaveTextContent('Request failed. Please try again.');
+        expect(screen.queryByText('Two-factor authentication is off')).toBeNull();
+        expect(screen.queryByRole('button', { name: 'Enable' })).toBeNull();
+        // The security-keys card would also state an unknown 2FA status.
+        expect(screen.queryByTestId('security-keys-stub')).toBeNull();
+        // The rest of the screen does not depend on the 2FA status.
+        expect(screen.getByTestId('token-vault-stub')).toBeInTheDocument();
+        expect(screen.getByTestId('mcp-tokens-stub')).toBeInTheDocument();
     });
 
-    it('SECURITY: a thrown status probe renders "off" as well, and hides the password form', async () => {
+    it('SECURITY: a thrown status probe shows the same error, and hides the password form', async () => {
         authFetch.mockImplementation(async (url) => {
             if (String(url).includes('/auth/mfa/status')) throw new Error('offline');
             return jsonRes({}, 402);
@@ -133,9 +138,23 @@ describe('SecuritySection — status probe', () => {
         render(<SecuritySection />);
         await screen.findByRole('heading', { name: 'Security' });
 
-        expect(screen.getByText('Two-factor authentication is off')).toBeInTheDocument();
-        // hasPassword is unknown, so the change-password card silently vanishes.
+        expect(screen.getByTestId('mfa-status-error')).toBeInTheDocument();
+        expect(screen.queryByText('Two-factor authentication is off')).toBeNull();
+        // hasPassword is unknown, so the change-password card is not offered.
         expect(screen.queryByText('Change password')).toBeNull();
+    });
+
+    it('"Try again" re-reads the status and shows the real state once it loads', async () => {
+        const user = userEvent.setup();
+        await mount({ status: jsonRes({ error: 'Failed to load MFA status' }, 500) });
+
+        serve({ status: jsonRes(ENABLED) });
+        await user.click(screen.getByRole('button', { name: 'Try again' }));
+
+        expect(await screen.findByText('Two-factor authentication is on')).toBeInTheDocument();
+        expect(screen.queryByTestId('mfa-status-error')).toBeNull();
+        expect(screen.getByTestId('security-keys-stub')).toBeInTheDocument();
+        expect(screen.getByText('Change password')).toBeInTheDocument();
     });
 
     it('WART: MFA on with an unknown code count prints "undefined" and suppresses the low-codes warning', async () => {
@@ -410,18 +429,12 @@ describe('SecuritySection — change password', () => {
         expect(screen.getByText('Change password')).toBeInTheDocument();
     });
 
-    it('WART: the three password fields have labels that are not tied to any input', async () => {
+    it('ties each of the three password labels to its input', async () => {
         const { container } = await mount({ status: jsonRes(ENABLED) });
-        // All three labels: visible text, but no htmlFor / id / aria-label, so
-        // none of them resolves as an accessible name.
-        for (const text of ['Current password', 'New password', 'Confirm new password']) {
-            expect(screen.getByText(text)).toBeInTheDocument();
-            expect(() => screen.getByLabelText(text)).toThrow();
-        }
         const f = pwInputs(container);
-        expect(f.current).toBeTruthy();
-        expect(f.next).toBeTruthy();
-        expect(f.confirm).toBeTruthy();
+        expect(screen.getByLabelText('Current password')).toBe(f.current);
+        expect(screen.getByLabelText('New password')).toBe(f.next);
+        expect(screen.getByLabelText('Confirm new password')).toBe(f.confirm);
     });
 
     it('rejects a short password in the browser without contacting the server', async () => {

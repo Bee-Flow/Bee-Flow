@@ -114,7 +114,7 @@ function readConfig(env = process.env) {
 function requireCredentials(config) {
     if (!config.accessId || !config.accessSecret) {
         throw new Error(
-            'Tuya credentials are not configured. Add your Tuya Access ID and Access Secret under Settings → Integrations.'
+            'Tuya credentials are not configured. Add your Tuya Access ID and Access Secret under Settings → Connections.'
         );
     }
     return config;

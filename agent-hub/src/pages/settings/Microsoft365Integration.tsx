@@ -67,7 +67,7 @@ function TileBody({ status, connecting, disconnecting, onConnect, onDisconnect, 
                 <p className="text-[11px] text-[var(--text-muted)]">
                     {t('integ.microsoft_disconnect_note', 'Disconnecting pauses automations that use Outlook until you reconnect. You stay signed in.')}
                 </p>
-                <DisconnectButton onDisconnect={onDisconnect} disconnecting={disconnecting} t={t} />
+                <DisconnectButton onDisconnect={onDisconnect} disconnecting={disconnecting} />
             </div>
         );
     }
@@ -88,7 +88,7 @@ function TileBody({ status, connecting, disconnecting, onConnect, onDisconnect, 
 }
 
 /**
- * Settings → Integrations → Microsoft 365: connect Outlook through
+ * Settings → Connections → Microsoft 365: connect Outlook through
  * /api/integrations/microsoft (the vault connector), for users who did not log
  * in with Microsoft. That is how a Google-SSO or password user gets Outlook
  * into chat and scheduled agent runs: the server lifts the Outlook tools off the
@@ -165,7 +165,7 @@ export default function Microsoft365Integration({ onSaved, last = false }: { onS
 const MICROSOFT_APP_IDS = ['outlook', 'outlook-readonly', 'ms-calendar', 'onedrive', 'ms-contacts'];
 
 /**
- * The Microsoft 365 group on the Integrations page: shown whenever at least
+ * The Microsoft 365 group on the Connections page: shown whenever at least
  * one Microsoft app is in the organisation's effective entitlement set, the
  * same rule the Google Workspace group follows.
  */

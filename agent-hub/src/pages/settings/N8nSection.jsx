@@ -1,21 +1,24 @@
-import React, { useState, useEffect, useEffectEvent, useMemo } from 'react';
-import { API_BASE, authFetch } from '../../utils/helpers';
 import {
     Loader2, RefreshCw, Plus, Trash2, ChevronDown, ChevronRight, Check, X,
     Link2, Workflow, ShieldCheck, Search, CircleCheck, CircleX, Info, ExternalLink,
     Crown,
 } from 'lucide-react';
+import React, { useState, useEffect, useEffectEvent, useMemo } from 'react';
+import { settingsPathForTab } from '../../authedApp/settingsRoutes';
+import Tabs from '../../components/shared/Tabs';
 import { useTranslation } from '../../hooks/useTranslation';
+import { API_BASE, authFetch } from '../../utils/helpers';
 
 const INPUT_TYPES = ['string', 'number', 'file', 'json'];
 
 const TABS = [
-    { id: 'connection', label: 'Connection', Icon: Link2 },
-    { id: 'workflows', label: 'Workflows', Icon: Workflow },
-    { id: 'permissions', label: 'Permissions', Icon: ShieldCheck },
+    { id: 'connection', labelKey: 'settings.n8n.tab_connection', label: 'Connection', Icon: Link2 },
+    { id: 'workflows', labelKey: 'settings.n8n.tab_workflows', label: 'Workflows', Icon: Workflow },
+    { id: 'permissions', labelKey: 'settings.n8n.tab_permissions', label: 'Permissions', Icon: ShieldCheck },
 ];
 
 export default function N8nSection() {
+    const { t } = useTranslation();
     const [tab, setTab] = useState('connection');
 
     // Connection state
@@ -360,7 +363,7 @@ export default function N8nSection() {
     if (loading) {
         return (
             <div className="flex items-center justify-center py-4" style={{ color: 'var(--text-muted)' }}>
-                <Loader2 className="w-4 h-4 animate-spin mr-2" /> Loading...
+                <Loader2 className="w-4 h-4 animate-spin mr-2" /> {t('common.loading', 'Loading...')}
             </div>
         );
     }
@@ -378,26 +381,13 @@ export default function N8nSection() {
             </div>
 
             {/* Tabs */}
-            <div className="flex items-center gap-1 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
-                {TABS.map(({ id, label, Icon }) => {
-                    const active = tab === id;
-                    return (
-                        <button
-                            key={id}
-                            onClick={() => setTab(id)}
-                            className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors relative"
-                            style={{
-                                color: active ? 'var(--accent-primary)' : 'var(--text-secondary)',
-                                borderBottom: active ? '2px solid var(--accent-primary)' : '2px solid transparent',
-                                marginBottom: '-1px',
-                            }}
-                        >
-                            <Icon className="w-3.5 h-3.5" />
-                            {label}
-                        </button>
-                    );
-                })}
-            </div>
+            <Tabs
+                value={tab}
+                onChange={setTab}
+                size="sm"
+                ariaLabel="n8n"
+                items={TABS.map(({ id, labelKey, label, Icon }) => ({ id, label: t(labelKey, label), icon: <Icon className="w-3.5 h-3.5" /> }))}
+            />
 
             {/* Tab content */}
             {tab === 'connection' && (
@@ -449,20 +439,24 @@ export default function N8nSection() {
 // ─── Status pill ─────────────────────────────────────────────
 
 function StatusPill({ configured, testResult }) {
+    const { t } = useTranslation();
     let label, bg, color, Icon;
     if (testResult?.ok) {
-        label = testResult.activeWebhookCount != null
-            ? `Connected · ${testResult.activeWebhookCount} active webhook workflow${testResult.activeWebhookCount === 1 ? '' : 's'}`
-            : 'Connected';
+        const count = testResult.activeWebhookCount;
+        label = count == null
+            ? t('settings.connected', 'Connected')
+            : count === 1
+                ? t('settings.n8n.status_connected_one', 'Connected · 1 active webhook workflow')
+                : t('settings.n8n.status_connected_many', 'Connected · {count} active webhook workflows', { count });
         bg = 'rgba(16,185,129,0.12)'; color = '#10b981'; Icon = CircleCheck;
     } else if (testResult && !testResult.ok) {
-        label = `Connection failed${testResult.error ? ` — ${String(testResult.error).slice(0, 80)}` : ''}`;
+        label = `${t('settings.n8n.status_failed', 'Connection failed')}${testResult.error ? ` — ${String(testResult.error).slice(0, 80)}` : ''}`;
         bg = 'rgba(239,68,68,0.12)'; color = '#ef4444'; Icon = CircleX;
     } else if (configured) {
-        label = 'Configured — click Test to verify';
+        label = t('settings.n8n.status_configured', 'Configured — click Test to verify');
         bg = 'var(--bg-tertiary)'; color = 'var(--text-secondary)'; Icon = Info;
     } else {
-        label = 'Not configured';
+        label = t('settings.n8n.status_not_configured', 'Not configured');
         bg = 'var(--bg-tertiary)'; color = 'var(--text-muted)'; Icon = Info;
     }
     return (
@@ -640,14 +634,14 @@ function ConnectionTab({
                     className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50"
                     style={{ background: 'var(--accent-primary)', color: 'white' }}
                 >
-                    {saving ? 'Saving...' : 'Save Connection'}
+                    {saving ? t('settings.n8n.saving', 'Saving...') : t('settings.n8n.save_connection', 'Save Connection')}
                 </button>
                 <button
                     onClick={onTest} disabled={testing || !n8nUrl || (!apiKey && !hasApiKey)}
                     className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 border"
                     style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', background: 'transparent' }}
                 >
-                    {testing ? <><Loader2 className="w-3.5 h-3.5 animate-spin inline mr-1.5" />Testing...</> : 'Test Connection'}
+                    {testing ? <><Loader2 className="w-3.5 h-3.5 animate-spin inline mr-1.5" />{t('settings.n8n.testing', 'Testing...')}</> : t('settings.n8n.test_connection', 'Test Connection')}
                 </button>
             </div>
             {testResult && !testResult.ok && (
@@ -895,6 +889,12 @@ function PermissionsTab({ loading, summary, onReload, onMutate, onCreateAndGrant
         );
     }
 
+    // The server's editUrl used to be a bare /settings path, which the app
+    // does not route; only an /app address is followed, else the canonical one.
+    const usersHref = typeof summary.editUrl === 'string' && summary.editUrl.startsWith('/app/')
+        ? summary.editUrl
+        : settingsPathForTab('org_users');
+
     // Only show the modify bucket — use_n8n_tools is implicit (auto-on for every
     // member when the org has n8n configured).
     const buckets = [
@@ -913,7 +913,7 @@ function PermissionsTab({ loading, summary, onReload, onMutate, onCreateAndGrant
                 <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                 <span>
                     {t('settings.n8n.perm_intro', 'Running n8n workflows from chat works for every member automatically once n8n is configured. The panel below controls')} <b>{t('settings.n8n.perm_modify', 'modify')}</b> {t('settings.n8n.perm_intro_after', 'access — who can let the AI create, edit, delete, or execute workflows. Alternative: use the full group editor in')}{' '}
-                    <a href={summary.editUrl || '/settings/organisation/users'} className="underline font-medium inline-flex items-center gap-0.5" style={{ color: 'var(--accent-primary)' }}>
+                    <a href={usersHref} className="underline font-medium inline-flex items-center gap-0.5" style={{ color: 'var(--accent-primary)' }}>
                         {t('settings.n8n.users_groups', 'Users & Groups')} <ExternalLink className="w-3 h-3" />
                     </a>.
                 </span>

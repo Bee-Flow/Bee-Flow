@@ -93,6 +93,14 @@ export const MOBILE_VISIBLE_TOP_TABS = SETTINGS_TOP_LEVEL_TAB_IDS
  */
 export const MOBILE_EXTRA_TABS = ['org_compliance'];
 
+/**
+ * The rows that are resources, not settings: courses and the support inbox.
+ * They stay at the end of SETTINGS_TOP_LEVEL_TAB_IDS (order and addresses are
+ * frozen there); the sidebar only draws a thin rule above the first of them
+ * that is visible, so they do not read as two more settings pages.
+ */
+export const SETTINGS_RESOURCE_TABS = ['learning', 'help_support'];
+
 // An addressable segment with no presentation row is the mirror image of G1:
 // the URL resolves and the way in is missing. It renders as a visibly wrong
 // row (and shouts in the console) instead of throwing at import time, which

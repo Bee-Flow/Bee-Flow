@@ -34,7 +34,7 @@ export default function ServicesSection({
                             {hasLinkedInConfig && <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-500">{t('integ.services_configured', 'Configured')}</span>}
                         </h3>
                         <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                            {t('integ.services_set_linkedin_api_credentials_users_can', 'Set LinkedIn API credentials. Users can then connect their LinkedIn accounts from Settings → Integrations.')}
+                            {t('integ.services_set_linkedin_api_credentials_users_can', 'Set LinkedIn API credentials. Users can then connect their LinkedIn accounts from Settings → Connections.')}
                         </p>
                     </div>
                     <div className="p-6 space-y-3">
@@ -100,7 +100,7 @@ export default function ServicesSection({
                             {hasWithingsConfig && <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-500">{t('integ.services_configured', 'Configured')}</span>}
                         </h3>
                         <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                            {t('integ.services_set_withings_api_credentials_users_can', 'Set Withings API credentials. Users can then connect their Health Mate accounts from Settings → Integrations.')}
+                            {t('integ.services_set_withings_api_credentials_users_can', 'Set Withings API credentials. Users can then connect their Health Mate accounts from Settings → Connections.')}
                         </p>
                     </div>
                     <div className="p-6 space-y-3">

@@ -24,6 +24,8 @@ const IntegrationTile = ({ entry, enabled, onToggle }) => {
         : <span style={{ fontSize: 18 }}>🔌</span>;
     return (
         <button
+            type="button"
+            aria-pressed={!!enabled}
             onClick={() => onToggle(entry.id)}
             className="flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all"
             style={{
@@ -38,10 +40,12 @@ const IntegrationTile = ({ entry, enabled, onToggle }) => {
                 <p className="text-[13px] font-medium truncate" style={{ color: 'var(--text-primary)' }}>{entry.label}</p>
                 <p className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>{entry.description}</p>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" checked={enabled} readOnly className="sr-only peer" />
-                <div className="w-9 h-5 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
-            </label>
+            {/* The switch is a picture of the tile's state, not a control of
+                its own: a label + checkbox inside the button re-dispatched the
+                click, so the tile toggled twice and the switch looked dead. */}
+            <span aria-hidden="true" className={`relative inline-flex shrink-0 w-9 h-5 rounded-full transition-colors ${enabled ? 'bg-emerald-500' : 'bg-[var(--border-default)]'}`}>
+                <span className={`absolute top-[2px] left-[2px] h-4 w-4 rounded-full bg-white border transition-transform ${enabled ? 'translate-x-4 border-white' : 'border-gray-300'}`} />
+            </span>
         </button>
     );
 };
@@ -140,7 +144,7 @@ const ConsumerIntegrationsSection = () => {
         <div className="space-y-5 animate-fadeIn">
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-lg font-bold text-[var(--text-primary)]">
+                    <h2 className="text-lg font-semibold text-[var(--text-primary)]">
                         {t('settings.integrations', 'Integrations')}
                     </h2>
                     <p className="text-sm text-[var(--text-muted)] mt-1">

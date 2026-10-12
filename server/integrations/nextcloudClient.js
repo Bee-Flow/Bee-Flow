@@ -565,7 +565,7 @@ async function resolveAuth(session, userId) {
         username: creds.username,
         password: creds.password,
         fetch: basicFetch,
-        authError: 'Nextcloud rejected credentials. Re-save your app password in Settings → Integrations.',
+        authError: 'Nextcloud rejected credentials. Re-save your app password in Settings → Connections.',
     };
 }
 
@@ -603,11 +603,11 @@ async function resolveBasicAuthOrNull(userId) {
         username: creds.username,
         password: creds.password,
         fetch: basicFetch,
-        authError: 'Nextcloud rejected credentials. Re-save your app password in Settings → Integrations.',
+        authError: 'Nextcloud rejected credentials. Re-save your app password in Settings → Connections.',
     };
 }
 
-const CORS_AUTH_ERROR = 'Nextcloud\'s Notes/Deck APIs use CORS protection that requires HTTP Basic auth — your OAuth login alone won\'t work for these. Please add a Nextcloud app password in Settings → Integrations.';
+const CORS_AUTH_ERROR = 'Nextcloud\'s Notes/Deck APIs use CORS protection that requires HTTP Basic auth — your OAuth login alone won\'t work for these. Please add a Nextcloud app password in Settings → Connections.';
 
 /**
  * Stream a binary file from Nextcloud Files (WebDAV) to disk.

@@ -247,7 +247,7 @@ const ConsumerLicenseSection = ({ user }) => {
 
             {/* Header */}
             <div>
-                <h2 className="text-lg font-bold text-[var(--text-primary)]">
+                <h2 className="text-lg font-semibold text-[var(--text-primary)]">
                     {t('settings.license_usage', 'License & Usage')}
                 </h2>
                 <p className="text-sm text-[var(--text-muted)] mt-1">
@@ -282,7 +282,7 @@ const ConsumerLicenseSection = ({ user }) => {
             {/* Plan Card */}
             <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] overflow-hidden">
                 <div className="p-5">
-                    <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{
                                 background: hasActiveSub ? '#10b981' : '#3b82f6'
@@ -319,14 +319,8 @@ const ConsumerLicenseSection = ({ user }) => {
                         )}
                     </div>
                 </div>
-
-                {/* Quick Stats — AI usage as % of cap (absolute € intentionally hidden). */}
-                <div className="border-t border-[var(--border-subtle)]">
-                    <div className="p-4 text-center">
-                        <div className="text-2xl font-bold text-[var(--text-primary)]">{costCap ? `${costPct}%` : '—'}</div>
-                        <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider mt-0.5">{costCap ? 'AI usage of cap this period' : 'AI usage this period'}</div>
-                    </div>
-                </div>
+                {/* The AI-usage percentage is shown once, as the "Usage This
+                    Period" bar below (absolute € intentionally hidden). */}
             </div>
 
             {/* Upgrade CTA — surfaces when AI usage cost approaches the plan cap */}
@@ -368,7 +362,7 @@ const ConsumerLicenseSection = ({ user }) => {
                     <h3 className="text-sm font-semibold text-[var(--text-primary)]">{t('settings.consumer_license.usage_this_period', 'Usage This Period')}</h3>
                 </div>
 
-                <UsageBar label="AI usage" icon={DollarSign} used={billedCost} limit={limits?.max_cost_per_month} color="#10b981" percentOnly />
+                <UsageBar label={t('org.ai_usage', 'AI usage')} icon={DollarSign} used={billedCost} limit={limits?.max_cost_per_month} color="#10b981" percentOnly />
             </div>
 
             {/* Plan Limits Grid */}

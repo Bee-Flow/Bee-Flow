@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import ConnectionsManager from './ConnectionsManager';
 import { authFetch } from '../../utils/helpers';
@@ -265,5 +266,37 @@ describe('ConnectionsManager — i18n', () => {
         expect(screen.getByText(/NL:connections.add/)).toBeTruthy();
         vi.doUnmock('../../hooks/useTranslation');
         vi.resetModules();
+    });
+});
+
+describe('ConnectionsManager — share toggle and offered providers', () => {
+    beforeEach(() => {
+        cleanup();
+        vi.clearAllMocks();
+        connections = [];
+        posts = [];
+        installFetchMock();
+    });
+
+    it('the share toggle says whether its panel is open', async () => {
+        connections = [
+            { id: 'c1', provider: 'fireflies', label: 'Work key', kind: 'api_key', isDefault: true, secretMeta: {} },
+        ];
+        const user = userEvent.setup();
+        render(<ConnectionsManager />);
+        await screen.findByText('Work key');
+        const toggle = screen.getByRole('button', { name: 'Share' });
+        expect(toggle).toHaveAttribute('aria-expanded', 'false');
+        await user.click(toggle);
+        expect(toggle).toHaveAttribute('aria-expanded', 'true');
+        expect(screen.getByText('Lend to teammate')).toBeInTheDocument();
+    });
+
+    it('offers every provider in the add form, whatever the page lists', async () => {
+        const user = userEvent.setup();
+        render(<ConnectionsManager />);
+        await user.click(await screen.findByText('Add a connection'));
+        const options = within(screen.getByRole('combobox', { name: 'Provider' })).getAllByRole('option');
+        expect(options.length).toBe(10);
     });
 });

@@ -309,7 +309,7 @@ export function GrantRows({ rows, catalog, ticked, onTick }) {
                        style={{ color: connected === true ? 'var(--success, #10b981)' : 'var(--text-tertiary)' }}>
                         {connected === true ? <CheckCircle2 className="w-3 h-3" /> : <HelpCircle className="w-3 h-3" />}
                         {connected === true && t('solutions.install_grant_connected', 'Connected to your account')}
-                        {connected === false && t('solutions.install_grant_not_connected', 'Not connected to your account — connect it in Settings → Integrations, then grant it on the page.')}
+                        {connected === false && t('solutions.install_grant_not_connected', 'Not connected to your account — connect it in Settings → Connections, then grant it on the page.')}
                         {connected === 'unknown' && t('solutions.install_grant_status_unknown', 'Whether this app is connected could not be checked, so it cannot be handed over here — grant it on the page afterwards.')}
                     </p>
                 </Row>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Bell, Check, CheckCheck, Info, AlertTriangle, AlertCircle, X, BellOff, Bot, Handshake, MessageSquare, GraduationCap } from 'lucide-react';
+import { settingsPathForTab } from '../../authedApp/settingsRoutes';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { useViewport } from '../../hooks/useViewport';
 import useTranslation from '../../hooks/useTranslation';
@@ -158,7 +159,9 @@ export default function NotificationCenter({ variant = 'row' } = {}) {
                     return;
                 }
             } catch (_) { /* fall through to the settings page below */ }
-            window.open('/app/settings?tab=integrations', '_blank', 'noopener');
+            // A path, not ?tab=: the settings router reads the pathname only,
+            // so the query form opened Preferences.
+            window.open(settingsPathForTab('integrations'), '_blank', 'noopener');
             return;
         }
         // Pop a fresh tab so the user keeps the notifications panel open.

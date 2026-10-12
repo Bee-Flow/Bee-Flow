@@ -180,7 +180,7 @@ module.exports = {
     "support.access.desc": "Restrict this mailbox to specific organisation groups, or leave it open to your whole support team.",
     "support.access.everyone": "Everyone with support access",
     "support.access.everyone_hint": "Any teammate who can use Support can work this inbox.",
-    "support.access.no_groups": "Your organisation has no groups yet. Create groups in Organisation Settings → Users.",
+    "support.access.no_groups": "Your organisation has no groups yet. Create groups in Settings → Organisation → Users & Groups.",
     "support.access.no_members": "No support-capable members match.",
     "support.access.people": "people",
     "support.access.read_only": "Only an organisation admin can change inbox access.",

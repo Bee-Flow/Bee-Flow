@@ -83,7 +83,7 @@ export function IntegrationsScreen() {
 
     return (
         <Screen edges={['top']} inset>
-            <ScreenHeader title="Integrations" subtitle="Accounts, and what your agents may use" />
+            <ScreenHeader title={t('settings.connections', 'Connections')} subtitle="Accounts, and what your agents may use" />
 
             <GroupedScroll refresh={refresh}>
                 {disconnect.isError ? (

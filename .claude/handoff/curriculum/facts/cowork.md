@@ -296,7 +296,7 @@ to execute: <reason>"* and a link back to `/app/cowork/<id>`.
 2. Read the top row in **What happened**: the outcome line is the first line of the error.
 3. Expand the row for the full error text.
 4. If the status word is **Needs sign-in**, reconnect the account in
-   Settings → Integrations; the schedule un-pauses itself on the next tick.
+   Settings → Connections; the schedule un-pauses itself on the next tick.
 5. Otherwise fix the brief under **Edit**, then **Run now** to test.
 
 ---

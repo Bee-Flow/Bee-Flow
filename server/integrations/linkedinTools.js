@@ -66,7 +66,7 @@ async function executeLinkedInAction(action, session) {
     const personId = await configStore.getConfig(`linkedin_person_id_user_${userId}`);
 
     if (!accessToken || !personId) {
-        throw new Error('Not connected to LinkedIn. Connect via Settings → Integrations.');
+        throw new Error('Not connected to LinkedIn. Connect via Settings → Connections.');
     }
 
     if (action.action === 'post') {

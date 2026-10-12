@@ -186,7 +186,7 @@ function shapeInvoice(inv) {
 /** Turn an HTTP failure into something an automation author can act on. */
 function describeError(err) {
     const status = err && err.status;
-    if (status === 401) return 'Scaleway rejected the secret key. Check the key in Settings → Integrations.';
+    if (status === 401) return 'Scaleway rejected the secret key. Check the key in Settings → Connections.';
     if (status === 403) return 'The Scaleway key has no access to billing. Give its IAM application the BillingReadOnly permission set at Organization level.';
     if (status === 404) return 'Scaleway does not know that invoice.';
     // jsonApiRequest already prefixes "Scaleway:"; the caller adds it once.
@@ -301,10 +301,10 @@ async function getScalewayBillingCredentials(userId) {
  */
 function assertValidCredentials(creds) {
     if (!SECRET_KEY_RE.test(creds.secretKey)) {
-        throw new Error('The stored Scaleway secret key has an invalid format. Re-enter it in Settings → Integrations.');
+        throw new Error('The stored Scaleway secret key has an invalid format. Re-enter it in Settings → Connections.');
     }
     if (creds.orgId && !ORG_ID_RE.test(creds.orgId)) {
-        throw new Error('The stored Scaleway organization id has an invalid format. Re-enter it in Settings → Integrations.');
+        throw new Error('The stored Scaleway organization id has an invalid format. Re-enter it in Settings → Connections.');
     }
 }
 
@@ -337,7 +337,7 @@ async function executeScalewayBillingTool(toolName, args, userId, ctx = {}) {
 
     const creds = await getScalewayBillingCredentials(userId);
     if (!creds) {
-        return { error: 'Scaleway billing not configured. Add your Scaleway secret key in Settings → Integrations.' };
+        return { error: 'Scaleway billing not configured. Add your Scaleway secret key in Settings → Connections.' };
     }
 
     try {

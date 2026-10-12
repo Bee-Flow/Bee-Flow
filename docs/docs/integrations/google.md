@@ -126,7 +126,7 @@ Meeting Notes adds two scopes to the Google connection:
 | `meetings.space.readonly` | Read conference records, recording metadata and the participant roster. Google classifies this scope as *sensitive*. |
 | `meetings.space.settings` | Pre-configure auto-recording on meetings you organize (`spaces.patch`). |
 
-**Connections made before this feature shipped don't have these scopes yet.** Affected users see an "Update needed" badge in **Settings → Integrations** and a reconnect banner in the Upcoming tab. One click on **Re-authorize** runs an incremental consent — existing Gmail / Calendar / Drive grants are kept, only the Meet scopes are added. Users who sign in *with* Google (SSO) re-consent automatically at their next login.
+**Connections made before this feature shipped don't have these scopes yet.** Affected users see an "Update needed" badge in **Settings → Connections** and a reconnect banner in the Upcoming tab. One click on **Re-authorize** runs an incremental consent — existing Gmail / Calendar / Drive grants are kept, only the Meet scopes are added. Users who sign in *with* Google (SSO) re-consent automatically at their next login.
 
 ### Upcoming tab & auto-recording
 
@@ -141,7 +141,7 @@ Stable codes shown in the Upcoming tab and import panel:
 
 | Code | Meaning | Fix |
 |---|---|---|
-| `not_connected` | No Google connection | Connect in Settings → Integrations. |
+| `not_connected` | No Google connection | Connect in Settings → Connections. |
 | `needs_meet_scopes` | Connection predates the Meet scopes | Re-authorize (one click, incremental consent). |
 | `needs_reauth` | Refresh token revoked / expired | Reconnect; pending imports resume automatically. |
 | `no_recording` | Meeting ended but was never recorded | Expected and quiet — nothing to import. |
@@ -175,7 +175,7 @@ All bodies retrieved from Gmail / Drive / Docs flow through the Privacy Shield. 
 
 | Error | Cause | Fix |
 |-------|-------|-----|
-| `invalid_grant` on refresh | Token revoked / user changed password | User reconnects in Settings → Integrations. |
+| `invalid_grant` on refresh | Token revoked / user changed password | User reconnects in Settings → Connections. |
 | `403 insufficient scope` | App requested fewer scopes than the tool needs | Add the scope and have the user reconnect. |
 | `429 quota exceeded` | Per-day API quota | Raise quota in Google Cloud Console or throttle. |
 | `Drive item too large` | Over the server's fixed 20 MB JSON body limit | Not tunable — skip the body and use metadata only, or split the file. |

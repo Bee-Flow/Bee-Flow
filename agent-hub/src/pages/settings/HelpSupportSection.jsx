@@ -15,8 +15,14 @@ import { useTranslation } from '../../hooks/useTranslation';
  * Reuses NewThreadForm and ThreadDetail from SupportDrawer.jsx (named
  * exports). The floating Help-drawer was retired; this section is the
  * canonical entry point for a logged-in user to talk to Bee Flow.
+ *
+ * `showLearningLink` hides the Learning Center button where that page cannot
+ * open (phones, plans without it); `onOpenLearning` lets the settings shell
+ * switch to it instead of the synthetic popstate below.
+ *
+ * @param {{ showLearningLink?: boolean, onOpenLearning?: () => void }} props
  */
-export default function HelpSupportSection({ user }) {
+export default function HelpSupportSection({ showLearningLink = true, onOpenLearning }) {
     const { t } = useTranslation();
     const [threads, setThreads] = useState([]);
     const [view, setView] = useState('list'); // 'list' | 'new' | 'detail'
@@ -59,31 +65,41 @@ export default function HelpSupportSection({ user }) {
         return () => window.removeEventListener('popstate', openFromUrl);
     }, []);
 
+    const openLearning = () => {
+        if (onOpenLearning) { onOpenLearning(); return; }
+        window.history.pushState({}, '', '/app/settings/learning');
+        window.dispatchEvent(new PopStateEvent('popstate'));
+    };
+
     return (
-        <div className="max-w-3xl mx-auto py-4">
+        <div>
             {/* Header — stacks on phones so the action buttons don't overflow. */}
             <div className="mb-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
                 <div>
                     <div className="flex items-center gap-2 mb-1">
                         <LifeBuoy className="w-5 h-5 flex-shrink-0" style={{ color: 'var(--accent-primary)' }} />
-                        <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{t('settings.help_support.title', 'Help & Support')}</h2>
+                        <h2 className="text-lg font-semibold text-[var(--text-primary)]">{t('settings.help_support.title', 'Help & Support')}</h2>
                     </div>
-                    <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                    <p className="text-sm text-[var(--text-muted)]">
                         {t('settings.help_support.subtitle', 'Ask Bee Flow anything. Our AI replies first; a human takes over if needed.')}
                     </p>
                 </div>
                 {view === 'list' && (
                     <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
                         {/* Self-serve first: hands-on courses often answer the question. */}
+                        {showLearningLink && (
+                            <button
+                                type="button"
+                                onClick={openLearning}
+                                className="px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-1.5 border hover:bg-[var(--bg-tertiary)] transition-colors"
+                                style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)', background: 'transparent' }}
+                                title={t('settings.help_support.learning_title', 'Hands-on courses in the Learning Center')}
+                            >
+                                <GraduationCap className="w-3.5 h-3.5" /> {t('settings.help_support.learning_center', 'Learning Center')}
+                            </button>
+                        )}
                         <button
-                            onClick={() => { window.history.pushState({}, '', '/app/settings/learning'); window.dispatchEvent(new PopStateEvent('popstate')); }}
-                            className="px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-1.5 border hover:bg-[var(--bg-tertiary)] transition-colors"
-                            style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)', background: 'transparent' }}
-                            title={t('settings.help_support.learning_title', 'Hands-on courses in the Learning Center')}
-                        >
-                            <GraduationCap className="w-3.5 h-3.5" /> {t('settings.help_support.learning_center', 'Learning Center')}
-                        </button>
-                        <button
+                            type="button"
                             onClick={() => setView('new')}
                             className="px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-1.5"
                             style={{ background: 'var(--accent-primary)', color: 'white' }}

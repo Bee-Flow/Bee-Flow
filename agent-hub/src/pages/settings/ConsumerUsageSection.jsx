@@ -141,7 +141,7 @@ const ConsumerUsageSection = () => {
             {/* Header + range picker */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-lg font-bold text-[var(--text-primary)]">
+                    <h2 className="text-lg font-semibold text-[var(--text-primary)]">
                         {t('settings.usage_monitoring', 'Usage & Monitoring')}
                     </h2>
                     <p className="text-sm text-[var(--text-muted)] mt-1">
@@ -152,6 +152,8 @@ const ConsumerUsageSection = () => {
                     {[7, 30, 90].map(d => (
                         <button
                             key={d}
+                            type="button"
+                            aria-pressed={days === d}
                             onClick={() => setDays(d)}
                             className="px-3 py-1.5 rounded-md text-xs font-medium transition-colors"
                             style={{
@@ -170,7 +172,7 @@ const ConsumerUsageSection = () => {
                 <div className="grid grid-cols-1 gap-3">
                     <StatCard
                         icon={DollarSign}
-                        label="AI usage this period"
+                        label={t('usage.ai_usage_this_period', 'AI usage this period')}
                         value={`€${totalCost.toFixed(2)}`}
                         color="#10b981"
                     />

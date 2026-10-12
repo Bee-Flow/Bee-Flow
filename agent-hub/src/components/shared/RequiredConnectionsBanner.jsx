@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { settingsPathForTab } from '../../authedApp/settingsRoutes';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { AlertCircle } from 'lucide-react';
 import useTranslation from '../../hooks/useTranslation';
@@ -43,7 +44,7 @@ const RequiredConnectionsBanner = ({ resourceType, resourceId, providers, purpos
             <AlertCircle size={14} style={{ color: '#d97706', flexShrink: 0, marginTop: 1 }} />
             <span>
                 {t('connections.required_connect_in', 'Connect {providers} in', { providers: required.map(r => r.provider).join(', ') })}{' '}
-                <a href="/settings?tab=integrations" className="underline" style={{ color: 'var(--accent-primary)' }}>{t('connections.required_settings_link', 'Settings → Integrations')}</a>{' '}
+                <a href={settingsPathForTab('integrations')} className="underline" style={{ color: 'var(--accent-primary)' }}>{t('connections.required_settings_link', 'Settings → Connections')}</a>{' '}
                 {purpose}.
             </span>
         </div>
