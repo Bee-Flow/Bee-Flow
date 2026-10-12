@@ -65,9 +65,9 @@ test('the real hook secret is never locked out by a flood of forged ones', async
     assert.ok(r.status < 500, `genuine delivery rejected with ${r.status}`);
 });
 
-test('a success clears the budget the forgeries consumed', async () => {
-    for (let i = 0; i < 30; i++) await post('not-the-secret');
-    await post(realSecret());               // succeed() forgets the counter
-    const r = await post('not-the-secret'); // back under budget → 401, not 429
-    assert.equal(r.status, 401, 'the counter should have been reset by the valid delivery');
+test('a success does NOT clear the budget the forgeries consumed (BFSF-382)', async () => {
+    for (let i = 0; i < 60; i++) await post('not-the-secret');
+    await post(realSecret());               // a valid delivery must not reset the penalty
+    const r = await post('not-the-secret');
+    assert.equal(r.status, 429, 'the attacker\'s penalty must survive legitimate traffic');
 });

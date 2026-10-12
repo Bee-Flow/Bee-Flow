@@ -12,7 +12,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 const crypto = require('node:crypto');
 
-const { _verifyHs256, _isOrgAdminRequester } = require('./connectorJwt');
+const { _verifyHs256, _isOrgAdminRequester, _resolveRequesterNcUid, _resolveSessionNcUid } = require('./connectorJwt');
 
 const KEY = 'test-tenant-key-32-bytes-minimum-please';
 const NOW = Math.floor(Date.now() / 1000);
@@ -122,4 +122,31 @@ test('admin carve-out: empty/blank requester uid → false (no empty-string matc
 
 test('admin carve-out: null org → false (defensive)', () => {
     assert.strictEqual(_isOrgAdminRequester(null, 'google-123'), false);
+});
+
+test('requester uid: signed sub wins over a mismatched header (BFSF-377)', () => {
+  const req = { headers: { 'x-beeflow-nc-uid': 'admin-uid' } };
+  assert.strictEqual(_resolveRequesterNcUid(req, { sub: 'alice' }), 'alice');
+  assert.strictEqual(_isOrgAdminRequester({ nc_admin_uid: 'admin-uid' }, _resolveRequesterNcUid(req, { sub: 'alice' })), false);
+});
+
+test('requester uid: header only used when sub is absent', () => {
+  assert.strictEqual(_resolveRequesterNcUid({ headers: { 'x-beeflow-nc-uid': ' bob ' } }, {}), 'bob');
+  assert.strictEqual(_resolveRequesterNcUid({ headers: {} }, {}), '');
+});
+
+test('session uid: signed sub wins over a mismatched header when nc_uid is empty (BFSF-377)', () => {
+  const req = { headers: { 'x-beeflow-nc-uid': 'admin-uid' } };
+  assert.strictEqual(_resolveSessionNcUid({ nc_uid: '' }, req, { sub: 'alice' }), 'alice');
+});
+
+test('session uid: user.nc_uid wins over sub and header', () => {
+  const req = { headers: { 'x-beeflow-nc-uid': 'admin-uid' } };
+  assert.strictEqual(_resolveSessionNcUid({ nc_uid: 'carol' }, req, { sub: 'alice' }), 'carol');
+});
+
+test('session uid: header only when sub is absent', () => {
+  const req = { headers: { 'x-beeflow-nc-uid': 'admin-uid' } };
+  assert.strictEqual(_resolveSessionNcUid({}, req, {}), 'admin-uid');
+  assert.strictEqual(_resolveSessionNcUid({}, { headers: {} }, {}), null);
 });
