@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const migration = require('./memory-origin-repair-2026-10');
+const { LOOSE_MIGRATIONS } = require('../boot/bootMigrations');
 
 test('relabels only explicit rows that have a memory_sources row', async () => {
     const calls = [];
@@ -13,4 +14,8 @@ test('relabels only explicit rows that have a memory_sources row', async () => {
 
 test('a database without the column is skipped, not a failure', async () => {
     await migration.up({ run: async () => { throw Object.assign(new Error('column "origin" does not exist'), { code: '42703' }); } });
+});
+
+test('the migration is registered, or it never runs', () => {
+    assert.ok(LOOSE_MIGRATIONS.includes('memory-origin-repair-2026-10'));
 });
