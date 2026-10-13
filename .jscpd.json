@@ -38,6 +38,7 @@
     "components/*/ssrfGuard.js",
     "components/website-sitemap-fetcher/safeGet.js",
     "deploy/**",
-    "docs_old/**"
+    "docs_old/**",
+    ".quality-round/**"
   ]
 }

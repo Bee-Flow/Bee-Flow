@@ -3,7 +3,7 @@
  * A file uploaded as a SOURCE of a notebook or a webpage: the source type its
  * extension names, and a copy in object storage when storage is configured.
  *
- * routes/notebooks.js and routes/webpages/sources.js carried this block word
+ * routes/notebooksSources.js and routes/webpages/sources.js carried this block word
  * for word (only the key prefix and the storage folder differ). One copy keeps
  * the two from quietly naming the same file two different source types, or
  * sanitising its storage name two different ways.

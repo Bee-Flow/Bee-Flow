@@ -13,7 +13,7 @@
  * it is invisible until someone publishes. Hence a dedicated test.
  *
  * The store runs REAL on an in-memory config table; only its Postgres edges
- * are mocked (same harness as routes/cms.public.test.js).
+ * are mocked (same harness as routes/cmsPublicSite.test.js).
  *
  * Run: node --test stores/cmsStore.announcement.test.js
  */

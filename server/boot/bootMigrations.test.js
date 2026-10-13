@@ -106,7 +106,7 @@ const COLUMN_LADDERS = [
     // (project_blueprints) wordt bij elke publicatie overschreven en is dus een
     // uitspraak over het heden; project_releases is wat er ooit is uitgegeven,
     // één onveranderlijke rij per publicatie met het manifest zoals gepubliceerd.
-    { table: 'project_releases', kind: 'table', into: 'stores/blueprintStore.js', tag: 'blueprintStore' },
+    { table: 'project_releases', kind: 'table', into: 'stores/blueprint/schema.js', tag: 'blueprintStore' },
     // M4 stap 3: met welk sjabloon (en welke versie ervan) een notitie
     // geschreven is. De versie staat bij de NOTITIE en niet alleen bij het
     // sjabloon, anders leest het scherm een uitspraak over het verleden af aan

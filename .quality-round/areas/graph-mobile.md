@@ -1,0 +1,64 @@
+# mobile/src: 2773 files, 11929 internal edges, 8 cycles (SCCs>1), 26 files in cycles
+## cycles (largest first, max 25)
+- [5] mobile/src/shared/markdown/renderers/page/PageTabs.tsx, mobile/src/shared/markdown/renderers/page/pageData.tsx, mobile/src/shared/markdown/renderers/page/PageButton.tsx, mobile/src/shared/markdown/renderers/page/PageAccordion.tsx, mobile/src/shared/markdown/renderers/page/pageElements.tsx
+- [5] mobile/src/features/webpages/model/links.ts, mobile/src/features/webpages/hooks/usePageActions.ts, mobile/src/features/webpages/components/PageHeader.tsx, mobile/src/features/webpages/screens/WebpageScreen.tsx, mobile/src/features/webpages/index.ts
+- [4] mobile/src/features/notifications/model/routeStudio.ts, mobile/src/features/notifications/model/routeCompliance.ts, mobile/src/features/notifications/model/routeOrg.ts, mobile/src/features/notifications/model/route.ts
+- [4] mobile/src/features/notebooks/components/LibraryChat.tsx, mobile/src/features/notebooks/components/NotebookChatTab.tsx, mobile/src/features/notebooks/screens/NotebookScreen.tsx, mobile/src/features/notebooks/index.ts
+- [2] mobile/src/shared/markdown/renderers/chart/chartLayout.ts, mobile/src/shared/markdown/renderers/chart/chartModel.ts
+- [2] mobile/src/features/flow-editor/bindings/upstream/describeNode.ts, mobile/src/features/flow-editor/bindings/upstream/loops.ts
+- [2] mobile/src/features/flow-editor/components/canvas/scene.ts, mobile/src/features/flow-editor/components/canvas/sceneEdges.ts
+- [2] mobile/src/features/voice/hooks/useTurnOutcome.ts, mobile/src/features/voice/hooks/useVoiceTurn.ts
+## top fan-in (most imported)
+- 1205 mobile/src/shared/ui/index.ts
+- 1117 mobile/src/core/i18n/index.ts
+- 815 mobile/src/core/theme/ThemeProvider.tsx
+- 234 mobile/src/shared/patterns/index.ts
+- 219 mobile/src/core/api/errors.ts
+- 152 mobile/src/core/api/client.ts
+- 119 mobile/src/features/flow-editor/model/index.ts
+- 115 mobile/src/core/api/contract.ts
+- 93 mobile/src/features/chat/model/types.ts
+- 60 mobile/src/features/flow-editor/bindings/index.ts
+- 59 mobile/src/features/flow-editor/api/index.ts
+- 58 mobile/src/core/auth/AuthProvider.tsx
+- 58 mobile/src/features/flow-editor/components/fields/index.ts
+- 55 mobile/src/core/access/index.ts
+- 49 mobile/src/features/datatables/model/types.ts
+- 48 mobile/src/features/automations/index.ts
+- 48 mobile/src/features/flow-editor/bindings/types.ts
+- 47 mobile/src/features/flow-editor/formState/index.ts
+- 45 mobile/src/features/flow-editor/model/types.ts
+- 45 mobile/src/features/flow-editor/components/editors/declarative/spec.ts
+- 42 mobile/src/features/flow-editor/components/editors/types.ts
+- 41 mobile/src/features/recording/model/types.ts
+- 40 mobile/src/core/api/server.ts
+- 39 mobile/src/shared/ui/Text.tsx
+- 38 mobile/src/features/automations/model/types.ts
+- 37 mobile/src/features/org/index.ts
+- 37 mobile/src/features/knowledge/index.ts
+- 36 mobile/src/features/flow-editor/components/editors/shared/Note.tsx
+- 33 mobile/src/features/knowledge/model/types.ts
+- 32 mobile/src/shared/lib/display.ts
+## top fan-out
+- 66 mobile/src/shared/ui/index.ts
+- 34 mobile/src/features/flow-editor/model/index.ts
+- 30 mobile/src/features/flow-editor/bindings/index.ts
+- 25 mobile/src/features/automations/index.ts
+- 20 mobile/src/features/flow-editor/components/editors/route/RouteEditor.tsx
+- 20 mobile/src/features/knowledge/screens/KnowledgeBaseScreen.tsx
+- 18 mobile/src/features/chat/index.ts
+- 18 mobile/src/features/flow-editor/components/canvas/CanvasView.tsx
+- 18 mobile/src/features/flow-editor/components/editors/declarative/renderers.tsx
+- 18 mobile/src/features/flow-editor/components/fields/index.ts
+- 18 mobile/src/features/flow-editor/formState/index.ts
+- 18 mobile/src/features/org/index.ts
+- 18 mobile/src/features/org/screens/OrgInfoScreen.tsx
+- 17 mobile/src/features/flow-editor/api/index.ts
+- 17 mobile/src/features/flow-editor/components/editors/http/HttpRequestEditor.tsx
+- 17 mobile/src/features/flow-editor/components/editors/registry.ts
+- 17 mobile/src/features/flow-editor/components/editors/set/SetEditor.tsx
+- 17 mobile/src/features/knowledge/index.ts
+- 17 mobile/src/features/skills/components/MethodTab.tsx
+- 17 mobile/src/features/skills/screens/SkillScreen.tsx
+## top-level folder edges (count)
+- 11929 src -> src

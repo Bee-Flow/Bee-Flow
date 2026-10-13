@@ -2,7 +2,7 @@
 
 /**
  * automation/formQueue.js: the lifecycle around the queue rather than the
- * routes (those are pinned in routes/automation/formPublic.test.js).
+ * routes (those are pinned in routes/automation/formPublic/*.test.js).
  *
  *   - shutdown takes nothing more off the queue and hands what is still waiting
  *     back with its lease lapsed, so another pod runs it at once;

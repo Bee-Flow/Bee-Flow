@@ -27,6 +27,7 @@
     "lint:authfetch-effect-ratchet": "node scripts/count-ratchet.mjs authfetch-effect agent-hub",
     "lint:module-mock-ratchet": "node scripts/count-ratchet.mjs module-mock server",
     "lint:status-5xx-ratchet": "node scripts/count-ratchet.mjs status-5xx server",
+    "lint:file-budget": "node scripts/file-budget.mjs server agent-hub desktop guard-service",
     "lint:big-file-ratchet": "node scripts/count-ratchet.mjs big-file agent-hub && node scripts/count-ratchet.mjs big-file server",
     "lint:line-ref-ratchet": "node scripts/count-ratchet.mjs line-ref agent-hub && node scripts/count-ratchet.mjs line-ref server && node scripts/count-ratchet.mjs line-ref mobile",
     "lint:dutch-comment-ratchet": "node scripts/count-ratchet.mjs dutch-comment agent-hub && node scripts/count-ratchet.mjs dutch-comment server",

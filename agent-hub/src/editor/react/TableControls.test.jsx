@@ -12,8 +12,8 @@
  */
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { TableControls } from './BeeEditor.jsx';
 import ChromeBoundary from './ChromeBoundary.jsx';
+import { TableControls } from './TableControls';
 
 const rect = (top, left, width, height) => ({
   top, left, width, height, right: left + width, bottom: top + height, x: left, y: top, toJSON() {},

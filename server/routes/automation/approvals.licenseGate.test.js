@@ -23,7 +23,7 @@
  *   2. That an unlicensed caller can still read, decide and withdraw a pending
  *      approval end-to-end.
  *
- * Harness: the formPublic.test.js family — every dependency mocked, handlers
+ * Harness: the formPublic/formPublic.testkit.js family — every dependency mocked, handlers
  * driven directly, no DB / network / timers.
  *
  * Run: cd server && node --test --test-force-exit routes/automation/approvals.licenseGate.test.js

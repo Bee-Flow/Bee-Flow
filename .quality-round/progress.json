@@ -1,0 +1,264 @@
+{
+ "items": {
+  "K5": {
+   "status": "partial",
+   "note": "Component processes started by executionEngine.runComponent (workflows, execute_component, agent tools) no longer get the server's process.env. They now get buildComponentEnv(), which is the MCP allow-list from core/mcpChildEnv.js (PATH, HOME, TMP, locale, proxy, NODE_ENV, NPM_CONFIG_*, TERM) plus N Open: Not done, as the scope says: (1) removing component_designer from the default org grant (stores/user/schema.js:266) and making /create-component admin-only are product decisions for the owner; (2) Part 2 is not started: "
+  },
+  "K1": {
+   "status": "done",
+   "note": "The bootstrap and diagnose checks still read the X-Beeflow-NC-Base-Url header. That header comes from an unauthenticated request. verifyNcInstance (server/auth/connectorBootstrap.js) now fetches it with nextcloudFetch from integrations/nextcloudTarget.js instead of the global fetch. This is the same Open: 1. Not done because they would change behaviour:"
+  },
+  "K3": {
+   "status": "done",
+   "note": "Users will notice one thing: when two people edit a site's pages at the same time (or one edits through a pod with a stale cache), a page created, renamed, reordered or deleted by one of them no longer silently disappears. Error messages ('Project not found', 'Page not found', 'Slug \"x\" is reserved' Open: - setProject (the editor's full-site save of header, footer, design and so on) still overwrites the whole site record, and the last save wins. That is deliberate, because the client sends the complete site. As a result, "
+  },
+  "K2": {
+   "status": "done",
+   "note": "Only people in a group with a non-empty allowedTiers list notice a change. If such a person's request names a tier their groups leave out (for example modelTier \"pro\" when the group allows only \"fast\"), direct, notebook, webpage and template chat now answer with JSON 403 {\"error\":\"Tier \\\"pro\\\" is no Open: 1) I measured only the group allowedTiers rule (new tierAccess.groupTierGateFor, built on a loadGroupTierRule extracted from userTiers.js with identical logic), not the full getPermittedTierKeys set the builders use. The"
+  },
+  "U1": {
+   "status": "done",
+   "note": "Before the fix, the Google Meet auto-import discovery and the ISO evidence collector both used advisory-lock key 0xBEEF10A. While one job held the lock, the other skipped its tick on every pod without logging anything. In ticks.js, the Meet discovery now takes a named lock through withNamedLock(pool Open: 1. The finding also asks for a test that checks every numeric lock key is unique. That isn't done. Many jobs keep their LOCK_KEY private (learningNudge, monitoringRetention, usageOpenObservePush, opsMetricsPush, platform"
+  },
+  "U5": {
+   "status": "done",
+   "note": "runComponent now kills a component child with SIGKILL after 10 minutes. It also kills it when stdout goes over 32 MB. In both cases the run rejects (\"Component timed out after N ms\" or \"Component output exceeded N bytes\"). executeWorkflow passes that error up the same way it passed an exit-code erro Open: The 10-minute limit and the 32 MB cap are hard-coded constants. Should a self-hoster be able to change them with an env var? The kill reaches only the direct node child: grandchildren that a component starts itself are n"
+  },
+  "H9": {
+   "status": "partial",
+   "note": "Support studio writes in supportInbox.js (POST/DELETE /tags, POST/PUT/DELETE /canned, PUT /sla-policies): Open: Parts of H9 I left alone because they are outside this lane:"
+  },
+  "H1": {
+   "status": "done",
+   "note": "Only the connector-to-server calls change. Users and the UI see nothing new. Open: 1. If Nextcloud fires the exact same event twice in the same second (for example two user.updated events for one ncUid from one profile save), both requests carry the same signature. The second one now gets a 401, which "
+  },
+  "H8": {
+   "status": "done",
+   "note": "userHasAnyWebpageAccess no longer reads an unordered `LIMIT 50` window and filters it in JS. It now runs one `SELECT 1 ... LIMIT 1` EXISTS that applies the group-share rule in SQL, over every published page of the org. Open: I did not do the second half of the fix in the record: removing userHasAnyStudioAppAccess (server/stores/studioAppStore.js:1066). It is outside this lane. It is also not fully dead: it is exported (studioAppStore.js:1568"
+  },
+  "K4": {
+   "status": "done",
+   "note": "Gmail label.added automations now fire for every labelled message. Before the fix, one poll read only the first history page and at most 20 messages, then moved the cursor to the newest historyId, so the rest were silently dropped. Now the poller reads every page. It still handles at most 20 message Open: If a message gets a label before the per-tick limit and another label in a record after it, it fires once in each tick. Each firing is a separate label event, which seems right. Separately, the isCursorStaleError helper "
+  },
+  "H10": {
+   "status": "partial",
+   "note": "POST /ai/chat/template/stream now sends the same keep-alive the webpage and notebook chats already send: a `: ping` comment plus a no-op `event: ping` every 10 s. The keep-alive stops when the turn ends. The agent-hub client (useChatEngine/sseEvents.ts) already ignores `ping`, so users see nothing n Open: 1) The legacy Component Designer stream, POST /ai/chat-stream in server/routes/ai/agentChat.js:133-158, is not fixed. That file is outside this lane and another lane is editing it right now (it has uncommitted changes). "
+  },
+  "U6": {
+   "status": "done",
+   "note": "An anonymous GET /agents/meta/components now returns only the file components. Before, it also returned the subworkflows of every organisation. Signed-in callers (the agent designer and the Android app send a session) get the file components plus the subworkflows whose owner is in their own org, so  Open: 1) Org scoping is done in agentTools.js (owner's organizationId compared to the caller's, one getUser per distinct subworkflow owner) because workflowStore.js is outside this lane. A SQL join (workflows JOIN users ON own"
+  },
+  "H2": {
+   "status": "done",
+   "note": "Every new code (resend, retarget, re-bootstrap) still resets the 5 guesses allowed per code. In addition, each pending verification row now has two lifetime budgets, counted per pendingId and not per IP: Open: 1. **Rows can still be cycled by an attacker.** An attacker who controls a fake Nextcloud can claim up to `MAX_VERIFICATIONS_PER_ORG` (5) distinct nc_instance_ids per org. Each of those rows gets 30 guesses, and a fresh "
+  },
+  "H12": {
+   "status": "done",
+   "note": "The 10 connector-backed ISO 27001 checks no longer catch store errors themselves. These are A.8.13, A.8.16, A.8.19, A.8.20, A.8.24 (TLS endpoints), A.8.28, A.8.32 (change management), A.8.32 (ticketed changes), A.8.4 and A.8.8. When isoEvidenceStore.getConfig or listLatestSnapshots throws (for examp Open: The audit also suggests a new shared helper, compliance/checks/lib/connectorSnapshots.js, for the config-then-snapshots preamble that these checks repeat. I did not add it. It is a refactor, not part of the fix, and it l"
+  },
+  "H22": {
+   "status": "done",
+   "note": "The token-refresh reply to the preview iframe now reaches it. The iframe is sandboxed without allow-same-origin, so `event.origin` is the string 'null'. Before the fix the reply went out with 'null' as targetOrigin, which throws a SyntaxError that the catch silently swallowed. The iframe's refresh t Open: One gap remains. If the preview iframe navigates to another page between sending the refresh request and receiving the reply, the new page in the frame receives the token. The old code had the same gap whenever the origi"
+  },
+  "H3": {
+   "status": "done",
+   "note": "searchWebpageKB's contextPrompt, the system-prompt block that webpageChat, webpagesPreview and webpageAiMessages inject, is now built by a new exported buildWebpageContextPrompt(). It uses fenceChunks plus DATA_NOT_INSTRUCTIONS from core/kb/sourceFencing.js, the same way the notebook search does. So Open: 1) The record's second step, merging the webpage and notebook searchers into core/kb/scopedKnowledgeSearch.js, is a refactor outside this lane and was not done. 2) The webpage_kb_search tool result from executeWebpageKBS"
+  },
+  "U7": {
+   "status": "done",
+   "note": "- **Owner recorded.** POST /ai/create-component now writes `owner: { orgId }` into component.json. The org comes from the creator's user row. A creator without an org gets `owner: { userId }` instead. The owner is taken from the session; an `owner` in the request body is ignored. Response shape and  Open: 1. **POST /components (studio, server/routes/components.js:164) writes no owner.** It also still defaults `agentEnabled` to true. Components created there stay global, the same as before. Scoping them needs the same owne"
+  },
+  "U3": {
+   "status": "done",
+   "note": "The responses the form sends do not change. POST /form/:token still answers 202 {accepted, sessionId}, the resume endpoint still answers 202 {accepted:true}, and the 503 busy body, the honeypot/duplicate 200s and the poll states are all the same. Before the 202, the server now does one extra DB UPDA Open: 1) Existing behaviour, left as is: when the queue is full (503) on a later-page answer, the route has already called stopServingPage, so the page is not served again and the visitor's poll stays on \"working\". Restoring t"
+  },
+  "H7": {
+   "status": "done",
+   "note": "I removed the local isPrivateAddress table. assertUrlIsPublic now judges each literal and each resolved address with the canonical core/http/ssrfGuard.isForbiddenAddress. The function's error texts, its return value (the parsed URL) and its call signature are unchanged. I added an optional second ar Open: 1) The finding's evidence is partly wrong. The canonical table (core/http/ssrfGuard.isForbiddenIPv4Int / isForbiddenIPv6Bytes) does not block 198.18.0.0/15, 224.0.0.0/4, 240.0.0.0/4 or NAT64 64:ff9b::/96 either, so movin"
+  },
+  "H26": {
+   "status": "done",
+   "note": "Only the operator CLI script server/scripts/cleanupAzureDuplicates.js changes; there is no change to the app, API or UI. The script used to check 4 hard-coded tables before deleting an orphan and counted any failed query as 0. It now builds the table list from the catalog once per run. It takes ever Open: 1) I did not change server/scripts/detachMisassignedFreeEmailUsers.js, which the record suggests should reuse the helper. It is outside this lane, and it only warns and never deletes users. It still has the same 4-table "
+  },
+  "DEPS": {
+   "status": "done",
+   "note": "None. docker-modem no longer appears in the server's direct dependencies, but it is still installed at 5.0.7 as a dependency of dockerode. No server source imports it. y-protocols 1.0.7 moved to devDependencies, and the lockfile now marks it \"dev\": true. At runtime only wire.js mentions it, and only Open: I wrote no colocated test because this is a manifest-only change and there is no behaviour to test. The proof is that the y-protocols tests still pass with it as a dev dependency, plus the drift and registry checks. Two "
+  },
+  "U4": {
+   "status": "done",
+   "note": "Both components now refuse private or internal targets. A URL whose host is loopback, RFC1918, link-local or metadata (localhost, metadata.google.internal, any numeric spelling), or a DNS name that resolves to such an address, now fails. The error is 'Refused: target resolves to a private/internal a Open: 1) Proxy mode has no protection against DNS rebinding: the proxy resolves the name again, and a name only the proxy can resolve (intranet names in NO_PROXY or proxy DNS) is not checked. Closing that would require refusin"
+  },
+  "H5": {
+   "status": "done",
+   "note": "none. The /auth mounts in auth/router.js are the same seven, in the same order, with the same paths and middleware. server/index.js mounts it at the same place (`const authRouter = require('./auth/router')`, and `app.use('/auth', authRouter)` is unchanged). au Open: 1. layering.test.js is now red: 'platform -> core/feature edges do not grow' reports 48 against a baseline of 46. It passed in my earlier run. The two new edges come from another lane's move of core/h"
+  },
+  "MOVES-1": {
+   "status": "done",
+   "note": "none. These are pure moves and re-exports, and the guard logic and the default instance's wiring are byte-for-byte the same. Open: 1) I edited server/layering.test.js outside my lane, one change: 'testUtils' is out of the PLATFORM set, with a 3-line reason. The moved routeHarness requires core/http/terminalErrorHandler twice, whi"
+  },
+  "H24": {
+   "status": "done",
+   "note": "Trusted senders see no change: our own shell pages can still call every channel, and the server page can still call every 'trusted' channel. The same senders as before are refused, but the refusal now happens in the gate before the handler body runs, and two t Open: The spec wanted CHANNEL_TRUST to map each channel to only 'shell' | 'trusted', so the table has no room for the action wording, and the gate's refusal text is generic (see behaviour_notes). If the per"
+  },
+  "U2": {
+   "status": "done",
+   "note": "none (only tests, a budget file, documentation and one root lint:* script changed; no runtime code was touched) Open: 1) Classification choices: boot/, boot-init.js and migrations/ are classified as `entry` (composition roots), not platform. As platform, boot/ alone would add about 60 upward edges because it starts j"
+  },
+  "H17": {
+   "status": "done",
+   "note": "None for users. Only the module layout changed: the same requests are sent with the same bodies, the same error text comes back, and the same routes, sections and gates apply. The only part that moved between chunks is createDraft.ts. handoff.js now imports it Open: 1) I did not use apiClient for createDraft.ts, against the item text, because it would change behaviour: (a) it retries a POST on 5xx, so one create could make two drafts; (b) it replaces the server's"
+  },
+  "SCC": {
+   "status": "done",
+   "note": "none. This adds a repo gate only: no runtime, API, route or UI change. The new root script is `lint:scc-ratchet`, which runs `node scripts/scc-ratchet.mjs server agent-hub mobile`. scripts/check-fast.mjs picks it up automatically, and so does ci.yml's fast-gat Open: 1. check:fast currently fails on lint:source-text, and the cause is not this item. scripts/source-text-tests.mjs lists test files with `git ls-files`. Another lane has deleted tracked tests from the w"
+  },
+  "ZONES": {
+   "status": "done",
+   "note": "none. This adds only a repository guard. No import, route, UI or behaviour changed. New metric `import-zones` in scripts/count-ratchet.mjs. It counts non-test files under agent-hub/src/api/** or src/hooks/** that import from src/components/** or src/pages/**,  Open: I left test files out of the count on purpose: a test that renders a page is not a product dependency. The audit's figure of \"39 files importing pages/\" plus the upward imports roughly matches the 49 "
+  },
+  "H13": {
+   "status": "done",
+   "note": "core/packaging/, install/refs.js en stages/journal.js: install<->upgrade en commit<->prepare importeren elkaar niet meer."
+  },
+  "MOVES-2": {
+   "status": "partial",
+   "note": "none. These are pure moves. The old paths integrations/officegen.js and services/documentRenderer.js still work as re-export shims and return the identical module objects, and every export name is unchanged. All importers and their test stubs and mocks now poi Open: 1) I did not move SUPPORT (services/support*.js -> server/support/). The move breaks the layering ratchet, and the only fix is to raise it. In those files, 13 non-comment requires would become new fea"
+  },
+  "AUTO-MODEL": {
+   "status": "done",
+   "note": "none. These are pure moves with re-export shims. Each shim returns the same module object as the new path (checked with ===), so in-place monkeypatching in tests still works. Routes, automation/ (builder, validate/, triggerSources) and scripts still use the ol Open: 1) lint:source-text fails in this working tree for a reason that has nothing to do with this item. The scanner lists tests with `git ls-files`, so it trips over every unstaged moved test (ENOENT on th"
+  },
+  "split:server/routes/projects.js": {
+   "status": "done",
+   "note": "1389 → 740 regels in het hoofdbestand. None. I split the code by moving it unchanged. routes/projects.js is now the composition root. It keeps list/create, summary, GET/PUT/DELETE /:id, archive/restore, PUT /:id/conversations, buildGraphFo"
+  },
+  "split:server/automation/triggerBus.js": {
+   "status": "done",
+   "note": "1387 → 396 regels in het hoofdbestand. None. Users and API clients see no change: the routes, the exported keys of server/automation/triggerBus.js (same order), the log lines, the notification text and the cursor handling are all identical"
+  },
+  "split:server/core/meetingNotes/summaryHelpers.js": {
+   "status": "done",
+   "note": "1267 → 71 regels in het hoofdbestand. None: no change a user or client could notice. All code moved verbatim. summaryHelpers.js is now a barrel that exports exactly the same keys from the same functions. The re-exported transcriptArtifact"
+  },
+  "split:desktop/src/main/app.ts": {
+   "status": "done",
+   "note": "1067 → 955 regels in het hoofdbestand. none. app.ts still only exports DesktopApp, and its public methods keep the same signatures (pairNextcloud now returns the named PairingResult type, which has the same shape as before). The pure decis"
+  },
+  "split:server/routes/cms.js": {
+   "status": "done",
+   "note": "1276 → 407 regels in het hoofdbestand. None. These are pure moves. Function bodies are verbatim; a line-by-line check shows every non-blank original line is present except the replaced require blocks, the two `router.get(..., async (req, r"
+  },
+  "split:agent-hub/src/components/automation/Builder/flow/settings/formState.js": {
+   "status": "done",
+   "note": "1726 → 60 regels in het hoofdbestand. None. The barrel exports exactly the same 43 keys, and importers still resolve './formState' with no edits, including the vi.doMock('../formState') in codeFields.test.jsx. The original if-chains becam"
+  },
+  "split:server/auth/connectorBootstrap.js": {
+   "status": "done",
+   "note": "1238 → 571 regels in het hoofdbestand. none. Routes, their order, limiters, status codes, bodies, log lines and orgHealth emissions are unchanged; the original path still exports the router plus `helpers` with exactly the same 14 keys in t"
+  },
+  "split:server/routes/notebooks.js": {
+   "status": "done",
+   "note": "1324 → 449 regels in het hoofdbestand. None that a user or client could notice. All code moved verbatim, and the only lines that differ from the original are the rewritten header comments."
+  },
+  "split:server/stores/blueprintStore.js": {
+   "status": "done",
+   "note": "1529 → 156 regels in het hoofdbestand. none. These are pure moves. blueprintStore.js now holds the header doc, initDB (built once via makeBlueprintInit(dbFacade) and still required through '../db', so the test stubs that intercept '../db' "
+  },
+  "split:server/routes/automation/formPublic.js": {
+   "status": "done",
+   "note": "1248 → 109 regels in het hoofdbestand. None. All 11 routes are registered on the same single router in the same order, with the same middleware and the same order inside each route; the requireAuth gate still comes first, and the routetabl"
+  },
+  "split:server/routes/automation/crud.js": {
+   "status": "done",
+   "note": "1362 → 751 regels in het hoofdbestand. none. crud.js still exports the same Express router. The new modules do not mount sub-routers. Each exports a register function: registerFolderRoutes, registerFormRoutes, registerTemplateAndImportRout"
+  },
+  "split:agent-hub/src/editor/react/BeeEditor.jsx": {
+   "status": "done",
+   "note": "1312 → 736 regels in het hoofdbestand. none. The code moved verbatim; the only additions are TypeScript type annotations and `as unknown as ComponentType<...>` casts for the JS primitives and node views, which is the existing pattern in th"
+  },
+  "H29": {
+   "status": "done",
+   "note": "This is a tooling-only change. The app does not change."
+  },
+  "split:agent-hub/src/components/admin/Studio/AppStudio/AppList.jsx": {
+   "status": "done",
+   "note": "1289 → 315 regels in het hoofdbestand. none. This is a pure move: the JSX, class strings, i18n keys, data-testids, effects and callbacks are unchanged, and AppList.jsx still has only the same default export. The only edits in moved code ar"
+  },
+  "split:agent-hub/src/hooks/useChatEngine/sseEvents.ts": {
+   "status": "done",
+   "note": "1295 → 6 regels in het hoofdbestand. none. The 78-case switch became family handler maps that a Map in sse/dispatch.ts looks up. The case bodies were moved by a script and only dedented. `break` became the end of the function, and the tw"
+  },
+  "H23": {
+   "status": "done",
+   "note": "desktop app.ts: beslislogica naar security/{reveal,permissions,sessionHeaders}.ts, server/unreachable.ts, nextcloud/pairing.ts met node --test; 443 tests."
+  }
+ },
+ "phases": {
+  "1": {
+   "status": "done",
+   "note": "21 items; 18 volledig, 3 bewust gedeeltelijk (K5 zonder permissiewijziging, H9 en H10 alleen binnen hun lane). check:fast 24/24, server-suite 28.244 groen (alleen de al falende csv.test.js), agent-hub 2.051 gerelateerde tests groen. Gecommit op de branch."
+  },
+  "2": {
+   "status": "done",
+   "note": "10 items; 9 volledig, services/support* bewust niet verhuisd (zou 13 nieuwe feature-naar-feature-edges geven). Nieuwe gates: lint:layering-ratchet (66 paren), lint:scc-ratchet, lint:import-zones-ratchet. Server-suite 28.253 groen, agent-hub 2.058 gerelateerde tests, desktop verify 403, scripts 406. Gecommit."
+  },
+  "3": {
+   "status": "done",
+   "note": "16 items (15 splitsingen + lint:file-budget), alle groen. SCC-budget server bewust 565 → 569 (vier modules uit summaryHelpers.js zitten in de bestaande cyclus). check:fast 28/28, desktop 443, server-suite en agent-hub related groen. Gecommit. Vanaf hier gaat de uitvoering verder op de laptop (.quality-round/HANDOVER.md)."
+  },
+  "4": {
+   "status": "todo",
+   "note": "Overgedragen: .quality-round/phase4.workflow.js (laptop)."
+  }
+ },
+ "scores_now": {
+  "structuur": 7,
+  "modulariteit": 5,
+  "duplicatie": 4,
+  "best_practices": 6,
+  "tests": 7,
+  "toelichting": "Na fase 3: 15 van de grootste codebestanden zijn opgedeeld (bijv. formState.js 1726 → 60, triggerBus.js 1387 → 396, blueprintStore.js 1529 → 156), het aantal codebestanden boven 1200 regels daalde van 45 naar 34 en lint:file-budget stopt verdere groei per bestand. Modulariteit 4 → 5; geen 6 omdat golf 2 en 3 (29 + 6 bestanden, waaronder de beveiligingskritieke functies van ~1000 regels) nog open staan. Duplicatie beweegt pas in fase 4."
+ },
+ "metrics_now": [
+  [
+   "Kritiek / urgent open",
+   "5 / 7",
+   "0 / 0"
+  ],
+  [
+   "Hoog open",
+   "29",
+   "15"
+  ],
+  [
+   "Grootste server-cyclus (bestanden)",
+   "603",
+   "569 (565 na fase 2; +4 door een pure splitsing binnen de cyclus)"
+  ],
+  [
+   "Grootste agent-hub-cyclus (bestanden)",
+   "68",
+   "68"
+  ],
+  [
+   "Gedupliceerde productieregels",
+   "21.775",
+   "21.775 (fase 4)"
+  ],
+  [
+   "Codebestanden > 1200 regels",
+   "45",
+   "34"
+  ],
+  [
+   "Laag-guard",
+   "11 features",
+   "alle mappen, 66 paren gebudgetteerd"
+  ],
+  [
+   "Per-bestand-groottebudget",
+   "—",
+   "lint:file-budget actief"
+  ]
+ ]
+}

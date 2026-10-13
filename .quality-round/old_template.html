@@ -1,0 +1,205 @@
+<title>Onderhoudsronde Bee Flow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a single reading column with a sticky section index; each finding is a collapsible record, severity on its left edge. */
+:root {
+  --bg: #f5f6f8; --surface: #ffffff; --fg: #1b1f24; --muted: #5a6370; --line: #dde1e6;
+  --accent: #a35f00; --accent-soft: #fbefd9;
+  --ok: #2f7d4f; --ok-soft: #e3f2e8; --warn: #9a6400; --warn-soft: #fbefd6; --bad: #b3372e; --bad-soft: #f9e2df;
+  --info-soft: #e7ecf3;
+  --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121418; --surface: #1a1d22; --fg: #e6e8eb; --muted: #9aa3ae; --line: #2b3038;
+  --accent: #f0a93b; --accent-soft: #3a2a12;
+  --ok: #6cc28f; --ok-soft: #1c3226; --warn: #e8b45a; --warn-soft: #3a2d14; --bad: #f08a80; --bad-soft: #3d1f1c;
+  --info-soft: #232a34; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #121418; --surface: #1a1d22; --fg: #e6e8eb; --muted: #9aa3ae; --line: #2b3038;
+  --accent: #f0a93b; --accent-soft: #3a2a12;
+  --ok: #6cc28f; --ok-soft: #1c3226; --warn: #e8b45a; --warn-soft: #3a2d14; --bad: #f08a80; --bad-soft: #3d1f1c;
+  --info-soft: #232a34; color-scheme: dark }
+
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--fg); font-family: var(--f-body); font-size: 16px; line-height: 1.55; padding-inline: 16px; padding-block: 0 64px }
+.wrap { max-width: 980px; margin: 0 auto }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; line-height: 1.15; margin: 0 }
+h1 { font-size: clamp(30px, 5vw, 44px); font-weight: 700; letter-spacing: -0.01em }
+h2 { font-size: 26px; font-weight: 700; margin-block: 8px 12px }
+h3 { font-size: 19px; font-weight: 500; margin-block: 28px 10px; display: flex; gap: 10px; align-items: baseline }
+p { margin: 0 0 12px; max-width: 70ch }
+code { font-family: var(--f-mono); font-size: 0.86em; background: var(--info-soft); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere }
+a { color: var(--accent) }
+.muted { color: var(--muted) }
+
+header.top { padding-block: 40px 20px; display: grid; gap: 14px }
+.eyebrow { font-family: var(--f-mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent) }
+.meta { font-family: var(--f-mono); font-size: 13px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px 18px }
+.lede { font-size: 18px; max-width: 68ch }
+
+.figures { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-block: 8px 4px }
+.fig { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; display: grid; gap: 2px }
+.fig b { font-family: var(--f-display); font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums }
+.fig span { color: var(--muted); font-size: 14px }
+
+nav.index { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line); margin-inline: -16px; padding: 10px 16px; overflow-x: auto }
+nav.index ol { list-style: none; display: flex; gap: 6px; margin: 0 auto; padding: 0; max-width: 980px; white-space: nowrap }
+nav.index a { display: inline-block; text-decoration: none; color: var(--fg); font-size: 14px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface) }
+nav.index a:hover, nav.index a:focus-visible { border-color: var(--accent); outline: none }
+
+section.block { padding-block: 36px 8px; scroll-margin-top: 64px }
+.secno { font-family: var(--f-mono); font-size: 13px; color: var(--accent) }
+
+details { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; margin-block: 8px }
+details > summary { cursor: pointer; padding: 12px 14px; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline; list-style: none }
+details > summary::-webkit-details-marker { display: none }
+details > summary::before { content: "▸"; color: var(--muted); font-size: 12px; transition: transform .15s }
+details[open] > summary::before { transform: rotate(90deg) }
+details > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 8px }
+details .title { font-weight: 600; flex: 1 1 320px; min-width: 0 }
+details dl { margin: 0; padding: 4px 16px 14px 34px; display: grid; grid-template-columns: minmax(120px, 170px) 1fr; gap: 8px 16px }
+details dt { color: var(--muted); font-size: 14px }
+details dd { margin: 0; min-width: 0 }
+details dd ul { margin: 0; padding-left: 18px }
+details .note { margin: 0 16px 8px 34px; padding: 8px 12px; background: var(--warn-soft); border-radius: 6px; font-size: 15px }
+.item.sev-large { border-left: 4px solid var(--bad) }
+.item.sev-medium { border-left: 4px solid var(--warn) }
+.item.sev-small { border-left: 4px solid var(--ok) }
+ul.files { font-size: 13px; columns: 2 260px }
+
+.pkg summary { align-items: center }
+.pkgname { font-family: var(--f-mono); font-weight: 500; min-width: 150px }
+.pkgrole { color: var(--muted); font-size: 14px; min-width: 150px }
+.pkgmaj { font-size: 14px; flex: 1 1 280px; min-width: 0 }
+
+.chip { font-family: var(--f-mono); font-size: 11.5px; padding: 2px 8px; border-radius: 999px; background: var(--info-soft); color: var(--fg); white-space: nowrap }
+.eff-small, .risk-low { background: var(--ok-soft); color: var(--ok) }
+.eff-medium, .risk-medium { background: var(--warn-soft); color: var(--warn) }
+.eff-large, .risk-high { background: var(--bad-soft); color: var(--bad) }
+.prod-no { background: var(--ok-soft); color: var(--ok) }
+.prod-indirectly { background: var(--warn-soft); color: var(--warn) }
+.gone { background: var(--info-soft); color: var(--muted); text-decoration: line-through }
+.partial { background: var(--warn-soft); color: var(--warn) }
+.where { background: var(--accent-soft); color: var(--accent) }
+.count { font-family: var(--f-mono); font-size: 13px; color: var(--muted) }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px 18px; margin-block: 12px }
+.panel ul { margin: 0; padding-left: 20px; display: grid; gap: 8px }
+.prdset { display: flex; flex-wrap: wrap; gap: 8px; margin-block: 8px 14px }
+.prdset span { font-family: var(--f-mono); font-size: 13px; padding: 4px 10px; border-radius: 6px; background: var(--ok-soft); color: var(--ok) }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px }
+.cols > * { min-width: 0 }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface) }
+table { border-collapse: collapse; width: 100%; font-size: 15px }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top }
+th { font-size: 13px; color: var(--muted); font-weight: 600 }
+td.num { font-family: var(--f-display); font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums }
+tr:last-child td { border-bottom: 0 }
+.phase { margin-block: 10px 22px }
+.goal { color: var(--muted) }
+.pending { padding: 18px; border: 1px dashed var(--accent); border-radius: 8px; background: var(--accent-soft) }
+ol.steps { padding-left: 22px; display: grid; gap: 6px }
+.ok-done { background: var(--ok-soft); color: var(--ok) }
+ul.checked { margin: 0; padding: 4px 16px 14px 50px; display: grid; gap: 6px }
+.verdict p + p { margin-top: 8px }
+
+@media (max-width: 560px) {
+  details dl { grid-template-columns: 1fr; padding-left: 16px }
+  details dt { margin-top: 6px }
+  .pkgname, .pkgrole { min-width: 0 }
+}
+@media (prefers-reduced-motion: reduce) { details > summary::before { transition: none } }
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Bee Flow · monorepo-onderhoud</div>
+  <h1>Onderhoudsronde Bee Flow</h1>
+  <div class="meta"><span>12 oktober 2026</span><span>branch <code>{{BRANCH}}</code></span><span>commit <code>{{COMMIT}}</code></span><span>één commit, geen PR</span></div>
+  <p class="lede">Alle libraries en SDK's zijn bijgewerkt waar dat veilig kon, alles wat niet in productie draait is opgeruimd, en de grote technical debt en een plan om de monorepo te verbeteren staan hieronder. Uitgangspunt: functionaliteit en gebruikerservaring blijven (vrijwel) gelijk.</p>
+  <div class="figures">
+    <div class="fig"><b>11</b><span>pakketten bijgewerkt</span></div>
+    <div class="fig"><b>±25.000</b><span>regels code, config en docs weggehaald (plus ±14.000 lockfile-regels)</span></div>
+    <div class="fig"><b>{{N_OPEN}}</b><span>open technical-debt-punten</span></div>
+    <div class="fig"><b>{{N_STEPS}}</b><span>stappen in de monorepo-roadmap</span></div>
+  </div>
+</header>
+
+<nav class="index" aria-label="Secties">
+  <ol>
+    <li><a href="#updates">1 · Updates</a></li>
+    <li><a href="#opgeruimd">2 · Opgeruimd</a></li>
+    <li><a href="#debt">3 · Technical debt</a></li>
+    <li><a href="#roadmap">4 · Monorepo-roadmap</a></li>
+    <li><a href="#vervolg">5 · Vervolg</a></li>
+    <li><a href="#fable">6 · Controle en plan</a></li>
+  </ol>
+</nav>
+
+<section class="block" id="updates">
+  <div class="secno">1</div>
+  <h2>Dependency-updates</h2>
+  <p>Per pakket: eerst een baseline van de eigen checks, dan updaten, dan opnieuw verifiëren. Majors zijn één voor één geprobeerd en teruggedraaid als ze zichtbaar gedrag veranderden of niet veilig te testen waren. Klik een pakket open voor de details.</p>
+  {{DEPS}}
+  <h3>Bewust tegengehouden</h3>
+  <div class="panel"><ul>{{HELD}}</ul></div>
+</section>
+
+<section class="block" id="opgeruimd">
+  <div class="secno">2</div>
+  <h2>Opgeruimd: wat niet in productie draait</h2>
+  <p>Uitgangspunt is de productie-deploy (<code>deploy-prd.yml</code> in <code>Bee-Flow-AI-internal</code>). Die rolt alleen deze images uit:</p>
+  <div class="prdset"><span>server</span><span>agent-hub</span><span>guard-service (guard)</span><span>bf-browser (pwt-runner)</span><span>classify-service (optioneel)</span><span>umami (derde partij)</span></div>
+  <p>Alles daarbuiten is weggehaald, inclusief CI-jobs, Dependabot-regels, release- en SBOM-scripts, compose-profielen, installers en documentatie. Self-hosting blijft bestaan met precies de productieset. De server-code die met een verwijderde sidecar kon praten (<code>SEARCH_SERVICE_URL</code>, <code>RERANKER_URL</code>, <code>WHISPERX_URL</code>) blijft staan, zodat een externe endpoint blijft werken; de compose-bestanden wijzen zoekfuncties nu naar de Node-variant in de server, net als productie.</p>
+  <h3>Weggehaald</h3>
+  {{REMOVED}}
+  <h3>Bewust behouden</h3>
+  <div class="panel"><ul>
+    <li><strong>desktop, mobile, docs, hub-module-sdk</strong>: losse producten, geen server-deployments; prd zegt niets over hun gebruik.</li>
+    {{KEPT}}
+  </ul></div>
+</section>
+
+<section class="block" id="debt">
+  <div class="secno">3</div>
+  <h2>Technical debt</h2>
+  <p>Vier scan-agents zochten per gebied; een tweede agent probeerde elke bevinding te weerleggen. {{TD_REFUTED}} bevindingen zijn weerlegd en weggelaten, {{N_GONE}} vervielen doordat het onderdeel is weggehaald, {{N_FIXED}} zijn in deze commit opgelost. De rest staat hieronder, per gebied, grootste eerst.</p>
+  <div class="cols">
+    <div class="panel"><h3 style="margin-top:0">Opgelost in deze commit</h3><ul>{{TD_FIXED}}
+      <li><strong>Session-cache zonder vervaltijd</strong> (gevonden tijdens de server-update)<br><span class="muted"><code>auth/sessionCache.js</code> gebruikte ioredis-syntax op een node-redis-client, dus sessies in Redis verliepen nooit. Nu <code>{ EX: ttl }</code>, met 6 nieuwe tests.</span></li></ul></div>
+    <div class="panel"><h3 style="margin-top:0">Vervallen door het opruimen</h3><ul>{{TD_GONE}}</ul></div>
+  </div>
+  <h3>Open punten</h3>
+  {{TD_OPEN}}
+</section>
+
+<section class="block" id="roadmap">
+  <div class="secno">4</div>
+  <h2>Monorepo-roadmap</h2>
+  <p>Drie Opus-agents brachten de repo in kaart (dependencies, build en Docker, CI en tooling); drie andere werkten elk een aanpak uit; een beoordelaar scoorde ze en maakte er één gefaseerd plan van. Voorwaarde: het blijft één repository. Het plan is gemaakt vóór het opruimen; stappen die verwijderde onderdelen raken zijn gemarkeerd. Het plan van aanpak in <a href="#fable">sectie 6</a> is leidend: daarin zijn vervallen stappen geschrapt en overlap met de technical debt samengevoegd.</p>
+  <div class="panel"><p style="margin:0">{{RM_SUMMARY}}</p></div>
+  <h3>Beoordeling van de aanpakken</h3>
+  <div class="tablewrap"><table><thead><tr><th>Aanpak</th><th>Score</th><th>Onderbouwing</th></tr></thead><tbody>{{SCORES}}</tbody></table></div>
+  {{PHASES}}
+  <h3>Afgeraden</h3>
+  <div class="panel"><ul>{{NOTREC}}</ul></div>
+  <h3>Open vragen voor de eigenaar</h3>
+  <div class="panel"><ul>{{QUESTIONS}}</ul></div>
+</section>
+
+<section class="block" id="vervolg">
+  <div class="secno">5</div>
+  <h2>Vervolgacties buiten deze commit</h2>
+  <div class="panel"><ul>{{FOLLOWUPS}}</ul></div>
+</section>
+
+<section class="block" id="fable">
+  <div class="secno">6</div>
+  <h2>Controle en plan van aanpak</h2>
+  {{FABLE}}
+</section>
+</div>

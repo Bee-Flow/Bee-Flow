@@ -47,6 +47,9 @@ const EXEMPT = new Map([
     // initDB doorgeeft, en STORE_MODULES noemt die facade — de ladder draait
     // dus wel degelijk de vier tabellen die dit bestand bezit.
     ['stores/datatableStore/schema.js', 'gedekt via de datatableStore-facade'],
+    // Idem: blueprintStore.js is sinds de opsplitsing (golf 1) een facade die
+    // blueprint/schema.js' initDB doorgeeft.
+    ['stores/blueprint/schema.js', 'gedekt via de blueprintStore-facade'],
     // Zelfde module, geen eigen schema: "CREATE TABLE" staat hier alleen in de
     // documentatie van createDatatable/deleteDatatable (de fysieke DDL wordt
     // door de aanroeper geïnjecteerd); de vier tabellen zelf staan in

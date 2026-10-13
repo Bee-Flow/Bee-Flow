@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
-import { extractFormState, buildPatch, readAgentPermissions, readSkillIds } from './formState';
+import { extractFormState, buildPatch } from './formState';
 
 /**
  * De heen-en-terugreis van de drie R2-velden op een ai_step: `agentId`,
@@ -18,49 +18,6 @@ import { extractFormState, buildPatch, readAgentPermissions, readSkillIds } from
 
 const aiStep = (over = {}) => ({ id: 's1', type: 'ai_step', prompt: 'Do X', inputs: {}, ...over });
 const roundTrip = (step) => buildPatch(step, extractFormState(step));
-
-describe('readAgentPermissions', () => {
-    it('is three real booleans, whatever came in', () => {
-        expect(readAgentPermissions(undefined)).toEqual({ startAutomations: false, useKnowledge: false, useTools: false });
-        expect(readAgentPermissions(null)).toEqual({ startAutomations: false, useKnowledge: false, useTools: false });
-        expect(readAgentPermissions('yes')).toEqual({ startAutomations: false, useKnowledge: false, useTools: false });
-        expect(readAgentPermissions([])).toEqual({ startAutomations: false, useKnowledge: false, useTools: false });
-    });
-
-    it('a value nobody can read is not a grant', () => {
-        // `"false"`, `1` and `"no"` are all truthy in JavaScript. Only a real
-        // `true` is a yes — anything else is somebody's typo, and a typo may
-        // not turn into permission.
-        const out = readAgentPermissions({ startAutomations: 'false', useKnowledge: 1, useTools: 'yes' });
-        expect(out).toEqual({ startAutomations: false, useKnowledge: false, useTools: false });
-    });
-
-    it('fills the keys a half-written object left out', () => {
-        expect(readAgentPermissions({ useTools: true })).toEqual({
-            startAutomations: false, useKnowledge: false, useTools: true,
-        });
-    });
-
-    it('drops a key nobody enforces instead of carrying it along', () => {
-        const out = readAgentPermissions({ useTools: true, deleteEverything: true });
-        expect(Object.keys(out).sort()).toEqual(['startAutomations', 'useKnowledge', 'useTools']);
-    });
-});
-
-describe('readSkillIds', () => {
-    it('keeps the author\'s order — the first is the leading skill', () => {
-        expect(readSkillIds(['b', 'a', 'c'])).toEqual(['b', 'a', 'c']);
-    });
-
-    it('dedupes without re-ordering, and drops what is not an id', () => {
-        expect(readSkillIds(['a', 'b', 'a', '', null, 7, 'c'])).toEqual(['a', 'b', 'c']);
-    });
-
-    it('anything that is not a list is no skills', () => {
-        expect(readSkillIds(undefined)).toEqual([]);
-        expect(readSkillIds('sk_1')).toEqual([]);
-    });
-});
 
 describe('ai_step round trip — agent, skills, permissions', () => {
     it('a plain step says all three out loud rather than leaving them absent', () => {

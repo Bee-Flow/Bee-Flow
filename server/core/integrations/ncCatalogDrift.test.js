@@ -45,11 +45,10 @@ test('AUTO_ENABLED_APPS covers every catalog id', () => {
 
 test('connectorBootstrap provisions every catalog id at bootstrap', () => {
     // Genuinely textual, same reason as AUTO_ENABLED_APPS above:
-    // NC_INTEGRATIONS is module-private, and connectorBootstrap.js pulls in
-    // userStore, configStore, planEntitlements, orgHealth and the email
-    // service just to be required — a unit test has no business paying that
-    // to read one array.
-    const src = fs.readFileSync(path.join(__dirname, '..', '..', 'auth', 'connectorBootstrap.js'), 'utf8');
+    // requiring auth/connector/provisioning.js (where NC_INTEGRATIONS lives)
+    // pulls in userStore, configStore, planEntitlements and orgHealth just to
+    // be required — a unit test has no business paying that to read one array.
+    const src = fs.readFileSync(path.join(__dirname, '..', '..', 'auth', 'connector', 'provisioning.js'), 'utf8');
     assert.match(src, /const NC_INTEGRATIONS = NC_INTEGRATION_IDS\.slice\(\)/,
         'bootstrap must take the catalog wholesale — the hand-maintained copy silently dropped mail/tables/forms/teams');
 });

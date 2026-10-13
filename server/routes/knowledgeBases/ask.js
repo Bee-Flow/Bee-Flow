@@ -17,7 +17,7 @@
  * passage is neutralised of markers that could impersonate our framing, fenced
  * in a `<source>` element, and preceded by the data-not-instructions rule
  * stated where the data appears — not the bare "here is some context"
- * concatenation that `routes/notebooks.js` uses for generation.
+ * concatenation that `routes/notebooksGenerate.js` uses for generation.
  *
  * ── THE ACCESS BOUNDARY IS THE ID LIST ──────────────────────────────
  * `quickKBSearch` does no tenant filtering of its own; the ids it is handed
@@ -54,7 +54,7 @@ const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
 // Module scope, deliberately: block-scoping this inside the handler is how
 // /ai-fill threw ReferenceError after its SSE headers had already gone out
-// (routes/notebooks.js:43 records the same lesson).
+// (routes/notebooksGenerate.js records the same lesson).
 const { TIER_DEFAULTS } = require('../../core/llm/modelResolver');
 const { toCitations } = require('../../core/kb/citation');
 

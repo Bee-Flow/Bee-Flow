@@ -1228,7 +1228,7 @@ jobs:
             automation/builderTools/triggerRegistry.golden.test.js \
             automation/triggerBus.dispatch.test.js \
             automation/triggerBus.dsl.test.js \
-            automation/triggerBus.ncfilenew.test.js \
+            automation/triggerBus/pollers/nextcloud.test.js \
             routes/mcpServer.test.js \
             routes/nextcloudTaskProcessing.agent.test.js \
             core/integrations/integrationToolMap.test.js \

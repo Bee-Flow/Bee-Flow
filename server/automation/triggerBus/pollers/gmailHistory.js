@@ -1,6 +1,6 @@
 /**
  * Paginated Gmail history walk shared by the gmail pollers (mail.new,
- * label.added) in ../../triggerBus.js.
+ * label.added) in ./gmail.js.
  *
  * A single history.list page is not "everything since the cursor": Gmail
  * splits the history into pages (`nextPageToken`), and the response's

@@ -31,11 +31,16 @@ const assert = require('node:assert');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const RAW = fs.readFileSync(path.join(__dirname, 'crud.js'), 'utf8');
+// crud.js and the route groups split out of it (folders, forms, templates/
+// import/export), with orgOf itself in crudContext.js: one surface, as when it
+// was one file.
+const FILES = ['crudContext.js', 'crud.js', 'folders.js', 'forms.js', 'importExport.js'];
 // Strip comments before asserting, the way routes/datatables.test.js does: the
 // header comment explains the bug by NAMING the session field it replaced, and
 // a naive scan reads that explanation as the bug itself.
-const CRUD = RAW.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
+const stripComments = (raw) => raw.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
+const SOURCES = FILES.map(file => ({ file, src: stripComments(fs.readFileSync(path.join(__dirname, file), 'utf8')) }));
+const CRUD = SOURCES.map(s => s.src).join('\n');
 
 test('orgOf resolves from the database, never from the session', () => {
     assert.match(CRUD, /const orgOf = async \(req\) =>/,
@@ -47,14 +52,14 @@ test('orgOf resolves from the database, never from the session', () => {
 });
 
 test('every orgOf call site awaits it', () => {
-    const calls = CRUD.split('\n')
-        .map((line, i) => ({ line, n: i + 1 }))
+    const calls = SOURCES.flatMap(({ file, src }) => src.split('\n')
+        .map((line, i) => ({ line, n: `${file}:${i + 1}` })))
         .filter(({ line }) => /\borgOf\(req\)/.test(line) && !/const orgOf =/.test(line));
 
     assert.ok(calls.length >= 5, `expected several call sites, found ${calls.length}`);
     for (const { line, n } of calls) {
         assert.match(line, /await orgOf\(req\)/,
-            `crud.js:${n} calls orgOf without await — that passes a Promise as an organisation id, `
+            `${n} calls orgOf without await — that passes a Promise as an organisation id, `
             + `which matches no row and is never reported:\n  ${line.trim()}`);
     }
 });

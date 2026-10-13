@@ -74,8 +74,16 @@ test('it is registered in the automationStore migration list', () => {
         'an unregistered migration never runs');
 });
 
+// The automation CRUD routes: crud.js and the route groups split out of it,
+// shared helpers (orgOf) first, so they read as the one file they used to be.
+function readCrudRoutes() {
+    return ['crudContext.js', 'crud.js', 'folders.js', 'forms.js', 'importExport.js']
+        .map(f => fs.readFileSync(path.join(__dirname, '..', 'routes', 'automation', f), 'utf8'))
+        .join('\n');
+}
+
 test('both create routes now stamp the organisation', () => {
-    const crud = fs.readFileSync(path.join(__dirname, '..', 'routes', 'automation', 'crud.js'), 'utf8');
+    const crud = readCrudRoutes();
     const parts = crud.split('automationStore.createAutomation({');
     const calls = parts.slice(1);
     assert.strictEqual(calls.length, 2, 'expected exactly two create call sites');
@@ -95,7 +103,7 @@ test('both create routes now stamp the organisation', () => {
 });
 
 test('orgOf is defined before the first handler that uses it', () => {
-    const crud = fs.readFileSync(path.join(__dirname, '..', 'routes', 'automation', 'crud.js'), 'utf8');
+    const crud = readCrudRoutes();
     const def = crud.indexOf('const orgOf =');
     const firstUse = crud.indexOf('await orgOf(req)');
     assert.ok(def > -1 && def < firstUse,
@@ -107,7 +115,7 @@ test('orgOf reads the organisation from the DB, never from the session', () => {
     // shapes auth/sessionShapes.contract.test.js freezes, so the old
     // session-derived orgOf stamped NULL for every returning member — and every
     // orgOf call site here is awaited, or it would stamp a Promise.
-    const crud = fs.readFileSync(path.join(__dirname, '..', 'routes', 'automation', 'crud.js'), 'utf8');
+    const crud = readCrudRoutes();
     assert.match(crud, /const orgOf = async \(req\) =>[\s\S]{0,80}resolveDatatablePrincipal\(req\)/);
     assert.doesNotMatch(crud, /const orgOf = \(req\) => req\.session/);
     const bare = crud.match(/(?<!await )orgOf\(req\)/g) || [];

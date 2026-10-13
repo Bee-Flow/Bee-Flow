@@ -70,10 +70,14 @@ test('agent_call and app_trigger are proposable from the lean band, with the bin
 
 // ── The sidecar promises only what the runtime reads ────────────────────────
 
+// The matchers, plus the pollers that read filter keys themselves
+// (event.upcoming's leadMinutes / calendarId / includeAllDay, ...).
 const MATCHER_SOURCES = [
-    fs.readFileSync(path.join(__dirname, '..', 'triggerBus', 'filters.js'), 'utf8'),
-    fs.readFileSync(path.join(__dirname, '..', 'triggerBus.js'), 'utf8'),
-].join('\n');
+    path.join('triggerBus', 'filters.js'),
+    'triggerBus.js',
+    path.join('triggerBus', 'pollers', 'googleCalendar.js'),
+    path.join('triggerBus', 'pollers', 'nextcloud.js'),
+].map(f => fs.readFileSync(path.join(__dirname, '..', f), 'utf8')).join('\n');
 
 /** The bare keys in a sidecar filter entry ("columnId + valueEquals" → two). */
 function bareKeys(entry) {

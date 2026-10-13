@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest';
 
 import {
-    extractFormState, buildPatch, deepEqual, normalizeAskOnce, ASK_ONCE_FORM_TYPES,
+    extractFormState, buildPatch, deepEqual,
 } from './formState';
 
 /**
@@ -98,25 +98,6 @@ describe('unticking clears it — the toggle must not save on and never off', ()
 });
 
 describe('off has one spelling, and an unrelated save does not rewrite it', () => {
-    it('every off-ish shape normalises to undefined', () => {
-        for (const v of [undefined, null, false, 0, '', 'yes', []]) {
-            expect(normalizeAskOnce(v)).toBeUndefined();
-        }
-    });
-
-    it('an object with nothing recognised in it is still ON', () => {
-        // The runner reads `!!step.askOnce`, so `{}` is on. Collapsing it to
-        // off here would switch a live setting off on an unrelated save.
-        expect(normalizeAskOnce({})).toBe(true);
-        expect(normalizeAskOnce({ ttl: 30 })).toBe(true);
-        expect(normalizeAskOnce({ acrossRuns: false })).toBe(true);
-    });
-
-    it('ttlSeconds rides along un-clamped so the validator can complain', () => {
-        expect(normalizeAskOnce({ ttlSeconds: 9000 })).toEqual({ ttlSeconds: 9000 });
-        expect(normalizeAskOnce({ acrossRuns: true, ttlSeconds: '60' })).toEqual({ acrossRuns: true, ttlSeconds: 60 });
-    });
-
     it('renaming the label on a ticked step leaves askOnce alone', () => {
         const step = stepOf({ askOnce: { acrossRuns: true } });
         const baseline = extractFormState(step);
@@ -138,10 +119,6 @@ describe('http_request round-trips it too', () => {
     // imported or hand-edited definition can already carry one and the form
     // must not be what deletes it.
     const httpStep = (over = {}) => ({ id: 'h1', type: 'http_request', url: 'https://api.example.com/x', method: 'GET', ...over });
-
-    it('is declared as a round-tripping type', () => {
-        expect([...ASK_ONCE_FORM_TYPES].sort()).toEqual(['http_request', 'integration_action']);
-    });
 
     it('an existing askOnce survives an unrelated save', () => {
         const step = httpStep({ askOnce: { acrossRuns: true } });

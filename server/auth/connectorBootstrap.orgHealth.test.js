@@ -1,20 +1,17 @@
 /**
  * Unit tests for the org-health additions to connectorBootstrap:
  *
- *   1. applyNcDefaultPlanIfConfigured — the Fase 1.1 fallback chain:
- *      nc_recommended plan → (existing subscription? keep) → default org plan
- *      → community fallback. Every applied plan writes an access-audit row and
- *      emits bootstrap.plan_applied + resolves; the nothing-could-be-applied
- *      path emits bootstrap.community_fallback; failures emit
- *      bootstrap.plan_apply_failed and NEVER throw out of bootstrap.
+ *   1. applyNcDefaultPlanIfConfigured: its tests live next to it, in
+ *      connector/provisioning.test.js. Here only that the router still
+ *      exports it.
  *
  *   2. POST /connector/status (phone-home) — tenant-JWT gated, strict body
  *      whitelist, 401s capture nothing (spam protection), ok-reports resolve
  *      connector problems, error-reports record connector.reported_error.
  *
  * Dependencies are stubbed via require-cache injection scoped to
- * connectorBootstrap.js (pattern: adminRoutes.users.authz.test.js) — no DB,
- * no fetch.
+ * connectorBootstrap.js and the connector/ modules it is built from
+ * (pattern: adminRoutes.users.authz.test.js) — no DB, no fetch.
  *
  * Run: cd server && node --test auth/connectorBootstrap.orgHealth.test.js
  */
@@ -22,6 +19,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const Module = require('module');
+const path = require('path');
 
 // ── Mutable fixtures ─────────────────────────────────────────────────
 const fx = {
@@ -92,10 +90,13 @@ const MOCKS = {
     },
 };
 
+// Keyed by the file a request resolves to, so one stub serves both
+// connectorBootstrap.js ('../stores/userStore') and the connector/ modules it
+// is split into ('../../stores/userStore').
 const MOCK_IDS = {};
 for (const [request, exportsObj] of Object.entries(MOCKS)) {
     const mockId = `mock:connectorbootstrap-orghealth:${request}`;
-    MOCK_IDS[request] = mockId;
+    MOCK_IDS[require.resolve(request.startsWith('.') ? path.join(__dirname, request) : request)] = mockId;
     require.cache[mockId] = { id: mockId, filename: mockId, loaded: true, exports: exportsObj };
 }
 
@@ -105,11 +106,12 @@ for (const [request, exportsObj] of Object.entries(MOCKS)) {
 // node --test runs each file in its own process anyway).
 const originalResolve = Module._resolveFilename;
 Module._resolveFilename = function (request, parent, ...rest) {
-    if (parent && /auth[\\/]connectorBootstrap\.js$/.test(parent.filename)
-        && Object.prototype.hasOwnProperty.call(MOCK_IDS, request)) {
-        return MOCK_IDS[request];
+    const resolved = originalResolve.call(this, request, parent, ...rest);
+    if (parent && /auth[\\/](connectorBootstrap|connector[\\/][A-Za-z]+)\.js$/.test(parent.filename)
+        && Object.prototype.hasOwnProperty.call(MOCK_IDS, resolved)) {
+        return MOCK_IDS[resolved];
     }
-    return originalResolve.call(this, request, parent, ...rest);
+    return resolved;
 };
 
 let router;
@@ -140,95 +142,6 @@ test('module loaded with its dependencies stubbed', () => {
     assert.equal(typeof helpers.applyNcDefaultPlanIfConfigured, 'function');
 });
 
-// ═══ applyNcDefaultPlanIfConfigured ══════════════════════════════════
-
-test('nc_recommended plan present → subscription + entitlements reset + audit + emits', async () => {
-    resetFx();
-    fx.ncPlan = { id: 'plan-nc', name: 'NC Enterprise' };
-    await helpers.applyNcDefaultPlanIfConfigured('org1', 'fresh_org');
-
-    assert.deepEqual(callsOf('setOrgSubscription')[0].slice(1), ['org1', { plan_id: 'plan-nc', status: 'active' }]);
-    assert.deepEqual(callsOf('applyPlanToOrg')[0].slice(1), ['org1', 'plan-nc', { mode: 'reset' }]);
-
-    const audit = callsOf('logAccessAudit')[0];
-    assert.equal(audit[1], 'nc_default_plan_applied');
-    assert.equal(audit[2], 'organization');
-    assert.equal(audit[3], 'org1');
-    assert.equal(audit[4], 'system:connector_bootstrap');
-    assert.deepEqual(audit[6], { plan_id: 'plan-nc', source: 'fresh_org', fallback: false });
-    assert.equal(audit[7], 'org1');
-
-    const ev = callsOf('event')[0];
-    assert.equal(ev[1], 'bootstrap.plan_applied');
-    assert.deepEqual(ev[2].meta, { planId: 'plan-nc', fallback: false });
-
-    const rs = callsOf('resolve')[0];
-    assert.equal(rs[1], 'org1');
-    assert.deepEqual(rs[2], ['bootstrap.community_fallback', 'chat.subscription_blocked']);
-
-    assert.equal(callsOf('problem').length, 0);
-});
-
-test('no nc plan + subscription already exists → no-op (no write, no audit, no emits)', async () => {
-    resetFx();
-    fx.existingSub = { plan_id: 'plan-existing', status: 'active' };
-    await helpers.applyNcDefaultPlanIfConfigured('org2', 'pairing_code');
-
-    assert.equal(callsOf('setOrgSubscription').length, 0);
-    assert.equal(callsOf('applyPlanToOrg').length, 0);
-    assert.equal(callsOf('logAccessAudit').length, 0);
-    assert.equal(callsOf('event').length, 0);
-    assert.equal(callsOf('problem').length, 0);
-});
-
-test('no nc plan + no subscription + default plan → fallback subscription WITHOUT applyPlanToOrg', async () => {
-    resetFx();
-    fx.defaultPlanId = 'plan-free';
-    await helpers.applyNcDefaultPlanIfConfigured('org3', 'email_verification');
-
-    assert.deepEqual(callsOf('setOrgSubscription')[0].slice(1), ['org3', { plan_id: 'plan-free', status: 'active' }]);
-    // Fallback path is plan-defaults only — entitlements must not be reset.
-    assert.equal(callsOf('applyPlanToOrg').length, 0);
-
-    const audit = callsOf('logAccessAudit')[0];
-    assert.equal(audit[1], 'nc_default_plan_applied');
-    assert.deepEqual(audit[6], { plan_id: 'plan-free', source: 'email_verification', fallback: true });
-
-    const ev = callsOf('event')[0];
-    assert.equal(ev[1], 'bootstrap.plan_applied');
-    assert.deepEqual(ev[2].meta, { planId: 'plan-free', fallback: true });
-    assert.deepEqual(callsOf('resolve')[0][2], ['bootstrap.community_fallback', 'chat.subscription_blocked']);
-    assert.equal(callsOf('problem').length, 0);
-});
-
-test('no nc plan, no subscription, no default → community_fallback problem, nothing applied', async () => {
-    resetFx();
-    await helpers.applyNcDefaultPlanIfConfigured('org4', 'fresh_org');
-
-    assert.equal(callsOf('setOrgSubscription').length, 0);
-    assert.equal(callsOf('logAccessAudit').length, 0);
-    assert.equal(callsOf('event').length, 0);
-
-    const p = callsOf('problem')[0];
-    assert.equal(p[1], 'bootstrap.community_fallback');
-    assert.equal(p[2].orgId, 'org4');
-    assert.deepEqual(p[2].meta, { source: 'fresh_org', reason: 'no_nc_recommended_plan_and_no_default' });
-});
-
-test('subscription write throws → never throws out of bootstrap, emits plan_apply_failed', async () => {
-    resetFx();
-    fx.ncPlan = { id: 'plan-nc', name: 'NC Enterprise' };
-    fx.setSubThrows = true;
-    await assert.doesNotReject(helpers.applyNcDefaultPlanIfConfigured('org5', 'fresh_org'));
-
-    const p = callsOf('problem')[0];
-    assert.equal(p[1], 'bootstrap.plan_apply_failed');
-    assert.equal(p[2].orgId, 'org5');
-    assert.equal(p[2].meta.source, 'fresh_org');
-    // No success artefacts on the failure path.
-    assert.equal(callsOf('logAccessAudit').length, 0);
-    assert.equal(callsOf('event').length, 0);
-});
 
 // ═══ POST /connector/status (phone-home) ═════════════════════════════
 

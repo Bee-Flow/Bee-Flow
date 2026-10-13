@@ -2,7 +2,7 @@
 
 /**
  * What a form journey's closing page can be turned into (BFSF-419). The
- * routes that use these are pinned in routes/automation/formPublic.test.js.
+ * routes that use these are pinned in routes/automation/formPublic/*.test.js.
  *
  * Run: node --test automation/formResult.test.js
  */

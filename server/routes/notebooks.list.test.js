@@ -1,7 +1,8 @@
 /**
  * Route tests for /api/notebooks (routes/notebooks.js) — Phase 2 surface:
- * the card-list projection (GET /), CAS updates (PUT /:id), the conversation
- * `locked` flag and the doc-only generate gate.
+ * the card-list projection (GET /), CAS updates (PUT /:id) and the
+ * conversation `locked` flag. The doc-only generate gate is tested next to
+ * its route, in routes/notebooksGenerate.test.js.
  *
  * Stores, auth and the AI/provider layer are mocked via the
  * Module._resolveFilename harness (same pattern as routes/studioApps.test.js)
@@ -108,31 +109,21 @@ const MOCKS = {
     },
     '../core/kb/notebookCascade': { cleanupSourceArtifacts: async () => {}, deleteNotebookCascade: async () => ({ deleted: true, sources: 0, kbs: 0 }) },
     '../core/dlp/dlpRunner': { getConversationTokenMapAsync: async () => null, clearConversationState: () => {} },
-    // /generate and /ai-fill go through the Privacy Shield on the notebook
-    // chat's path (tested on its own in agents/notebooks/notebookAiShield.test.js);
-    // here the shield is off, so the texts pass unchanged.
+    // /generate and /ai-fill (routes/notebooksGenerate.js) load the Privacy
+    // Shield when this router is required (tested on its own in
+    // agents/notebooks/notebookAiShield.test.js); here it is off.
     '../agents/notebooks/notebookAiShield': {
         shieldNotebookPrompt: async ({ sourceText, otherUnits = [] }) => ({
             ok: true, units: [sourceText, ...otherUnits], addendum: '', untokenise: { push: (t) => t, flush: () => '' },
         }),
     },
-    // Lazily required inside /generate — mocked so the doc-only test streams
-    // to completion without a KB, model tiers or a provider.
-    '../core/kb/notebookKnowledgeSearch': { gatherNotebookContent: async () => ({ content: 'Document body content' }) },
+    // Loaded by /generate (routes/notebooksGenerate.js, mounted by this
+    // router) for TIER_DEFAULTS — mocked so no model tiers load.
     '../core/llm/modelResolver': {
         TIER_DEFAULTS: { fast: { maxTokens: 512 }, balanced: { maxTokens: 512 } },
         resolveModelForTier: async () => 'test-model',
         getEUAwareTiers: async () => ({}),
         resolveEffectiveOrgId: async () => null,
-    },
-    '../core/aiAgent': {
-        getAIConfig: async () => ({ model: 'test-model' }),
-        getProviderForModel: async () => ({ apiKey: 'k', url: 'http://test.local', providerType: 'mock' }),
-    },
-    '../core/providers': {
-        getAdapter: () => ({
-            stream: async (_key, _url, _model, _messages, _opts, cb) => { cb('text', { text: 'GENERATED-OK' }); },
-        }),
     },
 };
 
@@ -299,23 +290,4 @@ test('GET /:id/conversation surfaces locked alongside messages', async () => {
     const r = await api('GET', '/nb1/conversation');
     assert.strictEqual(r.status, 200);
     assert.deepStrictEqual(r.json, { messages: [], locked: true });
-});
-
-// ── POST /:id/generate/:type — doc-only gate ────────────────────────
-
-test('generate with 0 sources and an empty doc → 400', async () => {
-    reset();
-    seedNotebook({ id: 'nb1', documentContent: '   ', documentMd: null });
-    const r = await api('POST', '/nb1/generate/summary', { body: {} });
-    assert.strictEqual(r.status, 400);
-    assert.strictEqual(r.json.error, 'Add a source or write something in the document first');
-});
-
-test('generate with 0 sources but a non-empty doc does NOT 400 — it streams', async () => {
-    reset();
-    seedNotebook({ id: 'nb1', documentContent: '<p>A real document body</p>' });
-    const r = await api('POST', '/nb1/generate/summary', { body: {} });
-    assert.strictEqual(r.status, 200);
-    assert.ok(r.text.includes('GENERATED-OK'), `expected streamed content, got: ${r.text.slice(0, 200)}`);
-    assert.ok(r.text.includes('event: done'));
 });

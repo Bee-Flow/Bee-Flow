@@ -16,16 +16,25 @@
  * chat, memory, notebook and automation paths use too — one implementation, so
  * the surfaces cannot drift.
  *
- * Members (members are project_shares; "owner" is implicit via projects.owner_id):
+ * Members (members are project_shares; "owner" is implicit via projects.owner_id),
+ * in routes/projects/members.js:
  * GET    /:id/members               → list owner + members          (viewer+)
  * PUT    /:id/members/:memberId     → change a member's role        (owner)
  * DELETE /:id/members/:memberId     → remove a member or self-leave (owner OR self; the owner cannot leave)
  * POST   /:id/transfer-owner        → hand the project to a member    (owner, or an org admin)
+ *
+ * Mute, activity feed, live stream and typing, in routes/projects/activity.js:
  * PUT    /:id/mute                  → mute this project's notifications for me   (viewer+)
  * DELETE /:id/mute                  → unmute                                     (viewer+)
- *
- * Activity feed:
  * GET    /:id/activity?limit=&offset=  (viewer+)
+ *
+ * Resources filed into the project, the graph and completeness, in
+ * routes/projects/resources.js.
+ *
+ * This file is the composition root: it builds the shared collaborators (the
+ * change feed, the filing service, the teardown, the role gate) over its own
+ * store handles, keeps the core CRUD, and mounts every sub-router in an order
+ * routes/projects.routetable.test.js freezes.
  *
  * Every body and query a handler reads is checked by a closed schema in
  * routes/projects/schemas.js (validate()), after the role gate.
@@ -47,7 +56,6 @@ const notificationPrefsStore = require('../stores/notificationPrefsStore');
 const { makeCollabNotifier } = require('../projects/collabNotify');
 const membership = require('../projects/membership');
 const { buildProjectGraph } = require('../projects/graph');
-const { findRelatedParts } = require('../projects/relatedParts');
 const { buildGraphForProject: buildGraphFor } = require('../projects/graphForProject');
 const userStore = require('../stores/userStore');
 const { resolveUserGroups } = require('../auth');
@@ -56,20 +64,9 @@ const { validate } = require('../core/http/validate');
 const { HttpError, notFound } = require('../core/http/errors');
 const S = require('./projects/schemas');
 const { orgScope } = require('../auth/orgScope');
-const { isOrgAdminForOrg } = require('../auth/admin/orgAdminGuards');
 
-// The bell for membership changes. Best effort: the change stands whether or not anyone is told.
+// The bell for membership changes (routes/projects/members.js tells it).
 const collabNotifier = makeCollabNotifier();
-async function tellCollab(what, send) {
-    try { await send(collabNotifier); } catch (err) {
-        log.warn(`[Projects] ${what} not notified: ${err && err.message}`);
-    }
-}
-
-// Single shared budget across all membership mutations (invite / role change /
-// removal / unshare). Keeps a runaway client or accidental spam loop from
-// flooding the activity log without rejecting reasonable interactive use.
-const memberMutationLimiter = perUserRateLimit({ windowMs: 60_000, max: 30 });
 
 // Length caps applied at the boundary so the DB stays tidy and the UI's
 // matching maxLength attributes give immediate feedback.
@@ -155,32 +152,6 @@ function getUserGroups(req) {
 const { SOLUTION_HOLDS_NO_CHATS } = require('./projects/threads');
 
 /**
- * The sections the resources listing shows for a project of this kind, or
- * null for "every section". The registry (projects/membership.js) decides
- * which kinds each container holds; an older registry without that answer
- * keeps the listing as it was.
- * @param {'workspace'|'solution'|null} containerKind
- * @returns {Set<string>|null}
- */
-function sectionsAllowedIn(containerKind) {
-    if (typeof membership.sectionsFor !== 'function') return null;
-    const sections = membership.sectionsFor(containerKind);
-    if (!Array.isArray(sections)) return null;
-    return new Set(sections
-        .map(entry => (typeof entry === 'string' ? entry : entry?.section))
-        .filter(Boolean));
-}
-
-/**
- * May a resource of `kind` be filed into a project of `containerKind`?
- * Same registry, same fallback.
- */
-function kindAllowedIn(kind, containerKind) {
-    if (typeof membership.isAllowedIn !== 'function') return true;
-    return membership.isAllowedIn(kind, containerKind) !== false;
-}
-
-/**
  * 409 for a delete that would orphan `count` shared conversations.
  *
  * Only a chat's OWN owner can unshare it (it is re-encrypted under their key;
@@ -204,80 +175,6 @@ async function sharedChatsRemain(projectId, count) {
         details);
 }
 
-/**
- * How a member's own avatar reaches the list: an emoji, a path or a url inline;
- * an uploaded picture (a data URL of up to hundreds of KB) NOT inline, since it
- * would ride along on every member list, but as a link to the avatar route
- * below, versioned by its content so a changed picture is fetched again.
- *
- * @returns {{ avatar: string, avatarType: 'emoji'|'image'|'url' }|null}
- */
-function memberAvatar(projectId, userId, user) {
-    const avatar = typeof user.avatar === 'string' ? user.avatar : '';
-    if (!avatar || !['emoji', 'image', 'url'].includes(user.avatarType)) return null;
-    if (avatar.startsWith('data:image/')) {
-        const v = require('crypto').createHash('sha256').update(avatar).digest('hex').slice(0, 10);
-        return { avatar: `/api/projects/${projectId}/avatars/${encodeURIComponent(userId)}?v=${v}`, avatarType: 'image' };
-    }
-    return avatar.length <= 2048 ? { avatar, avatarType: user.avatarType } : null;
-}
-
-/** The display name a member list shows for a user row (the same rule as the documents' people). */
-const { displayNameOf } = require('../core/documents/documentPeople');
-
-const { projectOrgOf, belongsToProjectOrg } = require('../projects/projectOrg');
-
-/**
- * Names for the owner and the member rows of one project.
- *
- * Only principals of the PROJECT'S organisation are described (org-less
- * projects: org-less principals only), from an explicit allow-list of fields:
- * a user is `{ name, avatar?, avatarType? }`, a group `{ name }`. Never an e-mail address: any
- * viewer may read this list, and the organisation's directory
- * (users.getOrgMembersForDirectory) gives a non-admin no addresses either; a
- * picker or a member list needs a label, not an address. A share row pointing across
- * a tenant boundary, which the share route refuses to create but older rows
- * may carry, stays an id without a name. A lookup that fails leaves that
- * principal unnamed rather than failing the member list.
- *
- * @returns {Promise<{ people: Record<string, {name?: string}>, groups: Record<string, {name?: string}> }>}
- */
-async function describeMembers(project, shares) {
-    const org = await projectOrgOf(project);
-    const userIds = new Set([project.ownerId]);
-    const groupIds = new Set();
-    for (const share of shares) {
-        if (share.sharedWithType === 'user') userIds.add(share.sharedWithId);
-        else if (share.sharedWithType === 'group') groupIds.add(share.sharedWithId);
-    }
-
-    const people = {};
-    await Promise.all([...userIds].filter(Boolean).map(async (id) => {
-        let user = null;
-        try { user = await userStore.getUser(id); } catch (err) {
-            log.warn('[Projects] member lookup failed:', err.message);
-        }
-        if (!user || !await belongsToProjectOrg(id, org).catch(() => false)) return;
-        const name = displayNameOf(user);
-        const entry = name ? { name } : {};
-        const picture = memberAvatar(project.id, id, user);
-        if (picture) Object.assign(entry, picture);
-        people[id] = entry;
-    }));
-
-    // One targeted read per group the project is shared with, never the whole
-    // groups table of the install: this list is read on every project page.
-    const groups = {};
-    await Promise.all([...groupIds].filter(Boolean).map(async (id) => {
-        let group = null;
-        try { group = await userStore.getGroup(id); } catch (err) {
-            log.warn('[Projects] group lookup failed:', err.message);
-        }
-        if (!group || group.id !== id || (group.organizationId || '') !== org) return;
-        groups[id] = typeof group.name === 'string' && group.name ? { name: group.name } : {};
-    }));
-    return { people, groups };
-}
 
 // ── Role middleware ──────────────────────────────────────
 // Lives in auth/projectAccess.js so the chat, memory, notebook and automation
@@ -650,558 +547,51 @@ router.delete('/:id', requireRole('owner', { allowArchived: true }), async (req,
     res.json({ success: ok });
 });
 
-// ── Shares (legacy) — kept for back-compat, aliased to /members semantics ──
-
-// POST /:id/share — share with user or group. The owner always; an editor only
-// while the project allows it (editorsCanInvite), only as viewer or editor, and
-// never over someone already on the project (that is a role change: owner only).
-router.post('/:id/share', memberMutationLimiter, requireRole('editor'), validate({ body: S.ShareBody }), async (req, res) => {
-    try {
-        const userId = getUserId(req);
-        const { sharedWithType, sharedWithId, permission } = req.body;
-        if (!sharedWithType || !sharedWithId) return res.status(400).json({ error: 'sharedWithType and sharedWithId required' });
-        if (!['user', 'group'].includes(sharedWithType)) return res.status(400).json({ error: 'sharedWithType must be user or group' });
-
-        const role = projectStore.normalizePermission(permission || 'viewer');
-        if (!['viewer', 'editor'].includes(role)) return res.status(400).json({ error: 'permission must be viewer or editor' });
-
-        // Cross-tenant guard: an owner could otherwise share their project
-        // with a foreign-org group/user ID and leak project content + KB IDs
-        // to members of another tenant. Match the target's org against the
-        // project's org before persisting.
-        // The guards used to be conditional on both org ids being truthy, which
-        // meant they never ran for an org-less project — and projects.organization_id
-        // DEFAULTS TO '' (self-host, consumer and admin-created projects all land
-        // there). An owner could then share with any user or group id in any tenant.
-        // Compare normalised values instead: '' is a real bucket, and only an
-        // equally org-less counterpart matches it.
-        const project = await projectStore.getProject(req.params.id);
-        if (!project) throw notFound();
-        if (req.projectRole !== 'owner') {
-            if (!project.editorsCanInvite) {
-                throw new HttpError(403, 'invite_not_allowed', 'The owner has not allowed editors to invite people.');
-            }
-            const existing = (await projectStore.getProjectShares(req.params.id))
-                .some(s => s.sharedWithType === sharedWithType && s.sharedWithId === sharedWithId);
-            if (existing) throw new HttpError(403, 'owner_only_role_change', 'Only the owner can change the role of someone already on the project.');
-        }
-        const projectOrg = await projectOrgOf(project);
-        if (sharedWithType === 'group') {
-            const targetGroup = await userStore.getGroup(sharedWithId);
-            if (!targetGroup || targetGroup.id !== sharedWithId) return res.status(400).json({ error: 'Unknown group' });
-            if ((targetGroup.organizationId || '') !== projectOrg) {
-                return res.status(400).json({ error: 'Group does not belong to this project\'s organisation' });
-            }
-        } else if (sharedWithType === 'user') {
-            const targetUser = await userStore.getUser(sharedWithId);
-            if (!targetUser) return res.status(400).json({ error: 'Unknown user' });
-            if (!await belongsToProjectOrg(targetUser.id, projectOrg)) {
-                return res.status(400).json({ error: 'User does not belong to this project\'s organisation' });
-            }
-        }
-
-        const shareId = await projectStore.shareProject(req.params.id, sharedWithType, sharedWithId, role, userId);
-        await recordProjectChange(req.params.id, userId, 'member_added', {
-            targetType: sharedWithType, targetId: sharedWithId, role,
-        });
-        signalProjectChanged(project, 'members');
-        await tellCollab('share', (n) => n.added({ project, actorId: userId, sharedWithType, sharedWithId, role }));
-        const shares = await projectStore.getProjectShares(req.params.id);
-        res.json({ shareId, shares });
-    } catch (err) {
-        if (err instanceof HttpError) throw err;
-        log.error('[Projects] Share error:', err.message);
-        // Raw err.message can carry SQL text, column names and constraint names.
-        // The console.error above keeps the detail for operators.
-        res.status(500).json({ error: 'Request failed' });
-    }
-});
-
-// DELETE /:id/share/:shareId — remove share (owner only)
-router.delete('/:id/share/:shareId', memberMutationLimiter, requireRole('owner'), async (req, res) => {
-    try {
-        const userId = getUserId(req);
-        const share = await projectStore.getShareById(req.params.shareId);
-        // Guard against IDOR: confirm the share actually belongs to this project,
-        // otherwise an owner of project A could delete shares from project B.
-        if (!share || share.projectId !== req.params.id) {
-            return res.status(404).json({ error: 'Member not found' });
-        }
-        const ok = await projectStore.unshareProject(req.params.shareId);
-        await recordProjectChange(req.params.id, userId, 'member_removed', {
-            targetType: share.sharedWithType, targetId: share.sharedWithId,
-        });
-        const projectNow = await projectStore.getProject(req.params.id);
-        if (ok) signalProjectChanged(projectNow, 'members');
-        if (ok && projectNow && share.sharedWithType === 'user') {
-            await tellCollab('removal', (n) => n.removed({ project: projectNow, actorId: userId, userId: share.sharedWithId }));
-        }
-        const shares = await projectStore.getProjectShares(req.params.id);
-        res.json({ success: ok, shares });
-    } catch (err) {
-        log.error('[Projects] Unshare error:', err.message);
-        // Raw err.message can carry SQL text, column names and constraint names.
-        // The console.error above keeps the detail for operators.
-        res.status(500).json({ error: 'Request failed' });
-    }
-});
-
-// ── Members API ──────────────────────────────────────────
-
-// GET /:id/members — owner + members list (viewer+), with names for the
-// people and groups of the project's own organisation (see describeMembers).
-router.get('/:id/members', requireRole('viewer'), async (req, res) => {
-    const project = await projectStore.getProject(req.params.id);
-    if (!project) throw notFound();
-    const shares = await projectStore.getProjectShares(req.params.id);
-    const { people, groups } = await describeMembers(project, shares);
-    // The colour the project gave each person (none: the client picks the automatic one).
-    try {
-        const colors = await require('../stores/projectMemberColorStore').listColors(project.id);
-        for (const [id, person] of Object.entries(people)) if (colors[id]) person.color = colors[id];
-    } catch (err) {
-        log.warn('[Projects] member colours unavailable:', err.message);
-    }
-    // The organisation the project belongs to ('' for none): only its own people and groups can be invited,
-    // so the invite picker offers no others (a platform admin's directory lists every organisation).
-    res.json({ ownerId: project.ownerId, organizationId: await projectOrgOf(project), members: shares, people, groups });
-});
-
-// GET /:id/principals — who can be invited (viewer+): people and groups of the project's own organisation,
-// `q` a case-insensitive part of the name (2+ characters). Id, name and avatar only, never an e-mail address
-// (the getOrgMembersForDirectory precedent, routes/automation/sharing.js). One-segment-deeper than `/:id`,
-// so nothing above can swallow it.
-const PRINCIPALS_MAX = 20;
-router.get('/:id/principals', requireRole('viewer'), validate({ query: S.PrincipalsQuery }), async (req, res) => {
-    const project = await projectStore.getProject(req.params.id);
-    if (!project) throw notFound();
-    const orgId = await projectOrgOf(project);
-    if (!orgId) return res.json({ users: [], groups: [] });
-    const needle = String(req.query.q || '').trim().toLowerCase();
-    const matches = (label) => !needle || String(label).toLowerCase().includes(needle);
-
-    const members = await Promise.resolve(userStore.getOrgMembersForDirectory(orgId)).catch((err) => {
-        log.warn('[Projects] principals: directory unavailable:', err.message);
-        return [];
-    });
-    const people = (members || [])
-        // The fallback chain ends in the username, which an SSO login makes an e-mail address: never let one out.
-        .map(u => { const label = displayNameOf(u); return { row: u, name: label && !String(label).includes('@') ? label : String(u.id) }; })
-        .filter(p => matches(p.name))
-        .slice(0, PRINCIPALS_MAX);
-
-    // The directory carries no picture itself: one batched read over the people on screen.
-    const pictures = new Map();
-    if (people.length && typeof userStore.getUserAvatarsByIds === 'function') {
-        try {
-            for (const r of await userStore.getUserAvatarsByIds(people.map(p => p.row.id))) pictures.set(String(r.id), r);
-        } catch (err) { log.warn('[Projects] principals: avatars unavailable:', err.message); }
-    }
-    const users = people.map(({ row, name }) => {
-        const picture = pictures.has(String(row.id)) ? memberAvatar(project.id, String(row.id), pictures.get(String(row.id))) : null;
-        return { id: String(row.id), name, avatar: picture ? { type: picture.avatarType, value: picture.avatar } : null };
-    });
-
-    const orgGroups = (await Promise.resolve(userStore.getAllGroups()).catch(() => []) || [])
-        .filter(g => String(g.organizationId || '') === orgId && matches(g.name || g.id))
-        .slice(0, PRINCIPALS_MAX);
-    let counts = new Map();
-    if (orgGroups.length) {
-        try { counts = await require('../stores/automationStore').countGroupMembers(orgId, orgGroups.map(g => String(g.id))); }
-        catch (err) { log.warn('[Projects] principals: member count failed:', err.message); }
-    }
-    res.json({
-        users,
-        groups: orgGroups.map(g => ({ id: String(g.id), name: g.name || String(g.id), memberCount: counts.get(String(g.id)) ?? 0 })),
-    });
-});
-
-// PUT /:id/members/:memberId — change role (owner only)
-router.put('/:id/members/:memberId', memberMutationLimiter, requireRole('owner'), validate({ body: S.MemberRoleBody }), async (req, res) => {
-    try {
-        const userId = getUserId(req);
-        const { role } = req.body;
-        const normalized = projectStore.normalizePermission(role);
-        if (!['viewer', 'editor'].includes(normalized)) return res.status(400).json({ error: 'role must be viewer or editor' });
-
-        const before = await projectStore.getShareById(req.params.memberId);
-        if (!before || before.projectId !== req.params.id) return res.status(404).json({ error: 'Member not found' });
-
-        const ok = await projectStore.updateMemberRole(req.params.memberId, normalized);
-        if (!ok) return res.status(404).json({ error: 'Member not found' });
-
-        await recordProjectChange(req.params.id, userId, 'member_role_changed', {
-            targetType: before.sharedWithType, targetId: before.sharedWithId,
-            from: before.permission, to: normalized,
-        });
-        const projectNow = await projectStore.getProject(req.params.id);
-        signalProjectChanged(projectNow, 'members');
-        if (projectNow && before.sharedWithType === 'user') {
-            await tellCollab('role change', (n) => n.roleChanged({ project: projectNow, actorId: userId, userId: before.sharedWithId, from: before.permission, to: normalized }));
-        }
-        res.json({ success: true });
-    } catch (err) {
-        log.error('[Projects] Update member error:', err.message);
-        // Raw err.message can carry SQL text, column names and constraint names.
-        // The console.error above keeps the detail for operators.
-        res.status(500).json({ error: 'Request failed' });
-    }
-});
-
-// POST /:id/transfer-owner — hand the project to another member. The owner chooses what they stay as
-// (keepMeAs, default editor). An org admin who is not the owner may do it too, to rescue a project whose
-// owner is gone; the absent owner then keeps no seat (keepFromAs forced to 'none'). The gate is viewer+, so
-// the rescue covers an admin who already has at least viewer access; an admin with no access at all gets the
-// gate's 404 (accepted for this wave). The store checks the owner inside the write: a stale expectedOwnerId
-// (or a concurrent transfer) is a 409 owner_changed and nothing is written.
-router.post('/:id/transfer-owner', memberMutationLimiter, requireRole('viewer'), validate({ body: S.TransferBody }), async (req, res) => {
-    const userId = getUserId(req);
-    if (!userId) return res.status(401).json({ error: 'Not authenticated' });
-    const project = await projectStore.getProject(req.params.id);
-    if (!project) throw notFound();
-
-    const projectOrg = await projectOrgOf(project);
-    const isOwner = project.ownerId === userId;
-    const byOrgAdmin = !isOwner;
-    if (byOrgAdmin && !(await isOrgAdminForOrg(req, projectOrg))) {
-        throw new HttpError(403, 'owner_only', 'Only the owner or an organisation admin can transfer this project.');
-    }
-
-    const { toUserId, keepMeAs, expectedOwnerId } = req.body;
-    if (expectedOwnerId && expectedOwnerId !== project.ownerId) {
-        throw new HttpError(409, 'owner_changed', 'The owner of this project changed in the meantime. Reload and try again.');
-    }
-    if (toUserId === project.ownerId) throw new HttpError(400, 'already_owner', 'That person already owns this project.');
-
-    const targetRole = await projectStore.getProjectRole(toUserId, project.id, await resolveUserGroups(toUserId));
-    if (!targetRole) throw new HttpError(400, 'not_a_member', 'Only a member of this project can become its owner. Add them first.');
-    if (!await belongsToProjectOrg(toUserId, projectOrg)) {
-        throw new HttpError(400, 'not_in_organisation', 'That person does not belong to this project\'s organisation.');
-    }
-
-    const fromUserId = project.ownerId;
-    const keepFromAs = byOrgAdmin ? 'none' : (keepMeAs || 'editor');
-    const moved = await projectStore.transferOwner({ projectId: project.id, fromUserId, toUserId, keepFromAs });
-    if (!moved.ok) {
-        throw new HttpError(409, 'owner_changed', 'The owner of this project changed in the meantime. Reload and try again.');
-    }
-
-    await recordProjectChange(project.id, userId, 'owner_changed', { from: fromUserId, to: toUserId, byOrgAdmin });
-    signalProjectChanged(project, 'members');
-    await tellCollab('owner change', (n) => n.ownerChanged({ project, actorId: userId, fromUserId, toUserId }));
-    res.json({ success: true, ownerId: toUserId, keptAs: keepFromAs });
-});
-
-// DELETE /:id/members/:memberId — owner removes OR member self-leaves
-router.delete('/:id/members/:memberId', memberMutationLimiter, async (req, res) => {
-    try {
-        const userId = getUserId(req);
-        if (!userId) return res.status(401).json({ error: 'Not authenticated' });
-
-        const project = await projectStore.getProject(req.params.id);
-        if (!project) return res.status(404).json({ error: 'Not found' });
-        const share = await projectStore.getShareById(req.params.memberId);
-        if (!share || share.projectId !== req.params.id) return res.status(404).json({ error: 'Member not found' });
-
-        const isOwner = project.ownerId === userId;
-        const isSelf = share.sharedWithType === 'user' && share.sharedWithId === userId;
-        if (!isOwner && !isSelf) return res.status(403).json({ error: 'Forbidden' });
-        // The owner cannot walk away from their own project: hand it over first.
-        if (isOwner && isSelf) {
-            throw new HttpError(409, 'transfer_first', 'Transfer the project to someone else before leaving it.');
-        }
-
-        const ok = await projectStore.unshareProject(req.params.memberId);
-        await recordProjectChange(req.params.id, userId, 'member_removed', {
-            targetType: share.sharedWithType, targetId: share.sharedWithId,
-            selfLeave: isSelf && !isOwner,
-        });
-        if (ok) signalProjectChanged(project, 'members');
-        if (ok && share.sharedWithType === 'user') {
-            await tellCollab(isSelf ? 'leave' : 'removal', (n) => (isSelf
-                ? n.left({ project, userId })
-                : n.removed({ project, actorId: userId, userId: share.sharedWithId })));
-            // Someone who left holds no tasks here any more; best-effort, the removal stands.
-            try { await require('../stores/projectMemberColorStore').clearFor(req.params.id, share.sharedWithId); } catch (err) {
-                log.warn('[Projects] could not clear a removed member\'s colour:', err.message);
-            }
-            try { await require('../stores/projectTaskStore').unassignUser(req.params.id, share.sharedWithId); } catch (err) {
-                log.warn('[Projects] could not unassign a removed member from tasks:', err.message);
-            }
-        }
-        res.json({ success: ok });
-    } catch (err) {
-        if (err instanceof HttpError) throw err;
-        log.error('[Projects] Remove member error:', err.message);
-        // Raw err.message can carry SQL text, column names and constraint names.
-        // The console.error above keeps the detail for operators.
-        res.status(500).json({ error: 'Request failed' });
-    }
-});
-
-// GET /:id/avatars/:userId — the picture an owner or member uploaded, as an image (viewer+). Only for a person
-// of this project, only the raster types, and served as the bytes it holds: nothing else is ever read from it.
-const AVATAR_DATA_URL = /^data:(image\/(?:png|jpeg|webp|gif));base64,([A-Za-z0-9+/=\s]+)$/;
-router.get('/:id/avatars/:userId', requireRole('viewer'), async (req, res) => {
-    // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss -- the response is decoded image bytes under a fixed image/* type with nosniff and a sandbox CSP; no request input is echoed
-    const project = await projectStore.getProject(req.params.id);
-    if (!project) throw notFound();
-    const shares = await projectStore.getProjectShares(project.id);
-    const isMember = project.ownerId === req.params.userId
-        || shares.some((s) => s.sharedWithType === 'user' && s.sharedWithId === req.params.userId);
-    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos, ajinabraham.njsscan.xss.xss_node.express_xss -- AVATAR_DATA_URL is anchored with one character-class repeat (linear); the bytes go out as an image, see above
-    const user = isMember ? await userStore.getUser(req.params.userId) : null;
-    const match = user && typeof user.avatar === 'string' && await belongsToProjectOrg(user.id, await projectOrgOf(project))
-        ? AVATAR_DATA_URL.exec(user.avatar) : null;
-    if (!match) throw notFound();
-    res.set({
-        'Content-Type': match[1],
-        'Cache-Control': 'private, max-age=86400',
-        'X-Content-Type-Options': 'nosniff',
-        'Content-Security-Policy': "default-src 'none'; sandbox",
-    });
-    res.send(Buffer.from(match[2].replace(/\s+/g, ''), 'base64'));
-});
-
-// ── Mute: stop the bell and the mail for this project (mine only) ─
-
-router.put('/:id/mute', requireRole('viewer'), validate({ body: S.MuteBody }), async (req, res) => {
-    await notificationPrefsStore.setMuted(getUserId(req), req.params.id, true);
-    res.json({ muted: true });
-});
-
-router.delete('/:id/mute', requireRole('viewer'), async (req, res) => {
-    await notificationPrefsStore.setMuted(getUserId(req), req.params.id, false);
-    res.json({ muted: false });
-});
-
-// ── Activity feed ────────────────────────────────────────
-
-router.get('/:id/activity', requireRole('viewer'), validate({ query: S.PageQuery }), async (req, res) => {
-    try {
-        const limit = Math.min(parseInt(req.query.limit, 10) || 50, 200);
-        const offset = parseInt(req.query.offset, 10) || 0;
-        // Fetch one extra row to cheaply detect "more available" without a
-        // second COUNT(*) query against the activity table.
-        const items = await projectStore.listActivity(req.params.id, limit + 1, offset);
-        const hasMore = items.length > limit;
-        const page = hasMore ? items.slice(0, limit) : items;
-        // File rows carry an id, never the name; it is read now, while the
-        // file is still in the project (projects/projectFiles.js). Without the
-        // project there is nothing to name from, and any stored name is dropped.
-        const project = await projectStore.getProject(req.params.id);
-        const named = await require('../projects/projectFiles').nameFileActivity(project || { id: req.params.id }, page);
-        res.json({ items: named, hasMore });
-    } catch (err) {
-        log.error('[Projects] Activity error:', err.message);
-        // Raw err.message can carry SQL text, column names and constraint names.
-        // The console.error above keeps the detail for operators.
-        res.status(500).json({ error: 'Request failed' });
-    }
-});
-
-// ── Live stream ──────────────────────────────────────────
-
-/**
- * GET /:id/stream — the project's live feed (cursor-based: every durable
- * frame carries `id: <seq>`, and a reconnect replays from Last-Event-ID or
- * ?since=), and with `?doc=&docSince=` one co-edited document on the same
- * connection. The handler and its delivery model live in
- * routes/projects/collabStream.js; the skeleton in core/http/cursorStream.js.
- */
-const CollabS = require('./projects/collabSchemas');
-const { makeProjectStreamHandler } = require('./projects/collabStream');
-
-router.get('/:id/stream', requireRole('viewer'), validate({ query: CollabS.StreamQuery }), makeProjectStreamHandler());
-
-// POST /:id/typing — transient presence. No row, no seq, no replay.
-// A composer sends at most one every few seconds; the limiter stops a loop
-// from turning presence into a flood on every open stream of the project.
-const typingLimiter = perUserRateLimit({
-    windowMs: 10_000, max: 20, name: 'project-typing',
-    keyFn: (req) => `${req.session?.user?.id || req.ip}:${req.params?.id || ''}`,
-});
-router.post('/:id/typing', requireRole('viewer'), typingLimiter, validate({ body: S.TypingBody }), async (req, res) => {
-    try {
-        const bus = require('../core/projectEventBus');
-        await bus.publishTransient(req.params.id, {
-            kind: 'presence.typing',
-            actorId: getUserId(req),
-            conversationId: req.body?.conversationId || null,
-        });
-        res.json({ ok: true });
-    } catch (err) {
-        // Presence is decoration. Never fail a request over it.
-        res.json({ ok: false });
-    }
-});
-
-// ── Project resources: notebooks, apps, automations, webpages, approvals ──
+// ── Members: shares, member list, invite picker, roles, transfer, avatars ──
 //
-// One project, one place to see everything in it. Each resource keeps working
-// standalone (project_id NULL); membership is additive, never a move that takes
-// something away from its owner.
+// routes/projects/members.js. Built over this router's own stores, role gate,
+// feed and bell, so the route tests' doubles see it.
+router.use('/', require('./projects/members').makeMembersRouter({
+    requireProjectRole: requireRole,
+    projectStore,
+    userStore,
+    getUserId,
+    resolveUserGroups,
+    recordProjectChange,
+    collabNotifier,
+    perUserRateLimit,
+}));
+
+// ── Mute, activity feed, live stream, typing ─────────────
 //
-// The set of kinds lives in projects/membership.js, not here: the listing, the
-// file-in/out switch below and the delete-time detacher all read from it, and
-// the last time those three were maintained by hand they drifted far enough
-// apart that a shipped column was never created at all.
+// routes/projects/activity.js. Same shape; what it loads on first use is
+// required from here, so the route tests' doubles see that too.
+router.use('/', require('./projects/activity').makeActivityRouter({
+    requireProjectRole: requireRole,
+    projectStore,
+    notificationPrefsStore,
+    getUserId,
+    perUserRateLimit,
+    projectFiles: () => require('../projects/projectFiles'),
+    projectEventBus: () => require('../core/projectEventBus'),
+}));
 
-// GET /:id/resources — everything filed into this project (viewer+)
-router.get('/:id/resources', requireRole('viewer'), async (req, res) => {
-    const projectId = req.params.id;
-    const project = await projectStore.getProject(projectId);
-    if (!project) throw notFound();
-    // Only the sections this kind of project holds: a Solution has no
-    // meetings, a collaborative project no automations. A legacy project
-    // (kind null) shows every section.
-    const allowed = sectionsAllowedIn(project.kind);
-    // Independently, so one unavailable store degrades that section rather than
-    // blanking the whole project page.
-    const load = async (label, fn) => {
-        try { return await fn(); } catch (err) {
-            log.warn(`[Projects] could not list ${label}:`, err.message);
-            return null;   // null = "unavailable", distinct from [] = "none"
-        }
-    };
+// ── Project resources, what comes along, graph, completeness ──
+//
+// routes/projects/resources.js. Built over this router's own registry, filing
+// service and graph loader (buildGraphForProject below).
+router.use('/', require('./projects/resources').makeResourcesRouter({
+    requireProjectRole: requireRole,
+    projectStore,
+    membership,
+    itemFiling,
+    buildGraphForProject,
+    completeness: () => require('../projects/completeness'),
+    getUserId,
+    getUserGroups,
+}));
 
-    // Approvals are listed against the caller, not the project — the registry
-    // header explains why they alone stay viewer-scoped.
-    const viewer = { userId: getUserId(req), groupIds: await getUserGroups(req) };
 
-    const kinds = membership.listKinds().filter(k => !allowed || allowed.has(k.section));
-    const sections = await Promise.all(
-        kinds.map(k => load(k.section, () => k.list(projectId, viewer))),
-    );
-
-    const body = { role: req.projectRole, kind: project.kind };
-    kinds.forEach((k, i) => { body[k.section] = sections[i]; });
-    res.json(body);
-});
-
-/**
- * PUT /:id/resources — file a resource into this project, or take it out.
- *
- * Body: { kind, id, attach: boolean } — kind being any registered MOVABLE kind
- * (see projects/membership.js). Approvals are not movable: they are stamped
- * with their project when they are created and never re-filed.
- *
- * Requires editor on the project AND ownership of the resource. Ownership is
- * enforced by the stores (each setter matches on user_id), so a member cannot
- * pull a colleague's notebook into a project, and cannot push one out either.
- */
-router.put('/:id/resources', requireRole('editor'), validate({ body: S.ResourceBody }), async (req, res) => {
-    try {
-        const userId = getUserId(req);
-        const { kind, id, attach = true } = req.body || {};
-        if (!kind || !id) return res.status(400).json({ error: 'kind and id are required' });
-
-        const entry = membership.getKind(kind);
-        // A kind with no setProject is not movable by design (approvals are
-        // stamped at INSERT and never re-filed), so it is rejected here rather
-        // than reaching a stub that throws.
-        if (!entry || typeof entry.setProject !== 'function') {
-            const movable = membership.movableKinds().map(k => k.kind).join(', ');
-            return res.status(400).json({ error: `kind must be one of: ${movable}` });
-        }
-
-        const project = await projectStore.getProject(req.params.id);
-        if (!project) return res.status(404).json({ error: 'Not found' });
-        // Filing IN must fit the container (no automations in a collaborative
-        // project, no documents in a Solution). Taking something OUT is always
-        // allowed: that is how a project classified after the fact is tidied.
-        if (attach && !kindAllowedIn(kind, project.kind)) {
-            // `kind` is a registered kind by now (checked above), never free text.
-            const label = kind.replace(/_/g, ' ');
-            return res.status(400).json({
-                error: project.kind === 'solution'
-                    ? `A Studio Solution does not hold items of kind "${label}"; they belong in a project.`
-                    : `A project does not hold items of kind "${label}"; they belong in a Studio Solution.`,
-                code: 'KIND_NOT_ALLOWED',
-            });
-        }
-
-        // The move itself, the feed entry of every project it touched, and
-        // the co-editing state, comment threads and compliance signal that
-        // belong to the project an item leaves (projects/itemFiling.js).
-        const ok = await itemFiling.fileItem({ entry, kind, id, userId, projectId: req.params.id, attach, req });
-        if (!ok) return res.status(404).json({ error: 'Not found, or not yours to move' });
-        res.json({ success: true });
-    } catch (err) {
-        // A refusal a kind states DELIBERATELY (a lost race on the project row,
-        // a cap it would exceed) carries its own status and a message written
-        // to be read. Anything else is a 500 with the detail kept in the log:
-        // a raw err.message can carry SQL text, column names and constraint
-        // names, which is why only errors that opted in are surfaced.
-        const status = Number(err?.status);
-        if (Number.isInteger(status) && status >= 400 && status < 500) {
-            return res.status(status).json({ error: err.message, code: err.code || undefined });
-        }
-        log.error('[Projects] Resource update error:', err.message);
-        res.status(500).json({ error: 'Request failed' });
-    }
-});
-
-/**
- * POST /:id/resources/related — what else comes along when these are added.
- *
- * Body: { items: [{ kind, id }] }, the parts about to be filed. Answers the
- * transitive set of parts they USE (projects/relatedParts.js), each with who
- * needs it and whether it can be filed here. A POST because the list can be
- * long; it changes nothing. Editor, like the PUT it prepares: the answer names
- * parts of the caller only, but it is only worth asking by someone who can add.
- */
-router.post('/:id/resources/related', requireRole('editor'), validate({ body: S.RelatedBody }), async (req, res) => {
-    const project = await projectStore.getProject(req.params.id);
-    if (!project) throw notFound();
-    for (const { kind } of req.body.items) {
-        const entry = membership.getKind(kind);
-        if (!entry || typeof entry.setProject !== 'function') {
-            const movable = membership.movableKinds().map(k => k.kind).join(', ');
-            throw new HttpError(400, 'INVALID_KIND', `kind must be one of: ${movable}`);
-        }
-        if (!kindAllowedIn(kind, project.kind)) {
-            throw new HttpError(400, 'KIND_NOT_ALLOWED', `A ${project.kind === 'solution' ? 'Studio Solution' : 'project'} does not hold items of kind "${kind.replace(/_/g, ' ')}".`);
-        }
-    }
-    res.json(await findRelatedParts({ project, userId: getUserId(req), req, items: req.body.items }));
-});
-
-/**
- * GET /:id/graph — how the pieces of this Solution are wired to each other.
- *
- * Viewer+, because it says nothing the Content tab does not already list — it
- * only draws the lines between those entries. The reading is done by
- * buildGraphForProject() just below (projects/graphForProject.js), which
- * GET /:id/completeness shares.
- *
- * Three loading decisions worth stating:
- *
- *  1. EVERY automation KIND, not just top-level ones. A `call_block` pointing
- *     at a reusable Step that IS in this project would otherwise be reported as
- *     an external dependency, purely because the listing query filters it out.
- *  2. FULL app definitions, one query each. listProjectApps returns meta only,
- *     and the wiring lives in the definition. N is a project's worth of apps.
- *  3. TWO PASSES, so "outside this project" can be told apart from "gone".
- *     The first pass names the references it could not place; only those ids
- *     are looked up, and the second pass says which exist. Reporting an automation
- *     as deleted when the truth is "I did not check" is the worse error, and
- *     the graph refuses to do it — see PROBLEM.UNRESOLVED.
- *  4. THE SECOND PASS IS FOR AUTOMATIONS ONLY, and deliberately so. A datatable
- *     is scope-addressed: answering "does this id exist anywhere" would mean
- *     naming a tenant to look in, and guessing one is worse than not knowing.
- *     A knowledge base could be looked up, and is not: the only thing the
- *     answer changes is whether the sentence says "gone" or "not in this
- *     project", and buying that wording with an existence oracle over another
- *     tenant's ids is a bad trade. A skill is never a project member at all.
- *     All three stay UNRESOLVED, which is the honest word for them and still
- *     counts as a dependency.
- *  5. AGENT CONFIGS ARE LOADED IN FULL, and never leave the server. The wiring
- *     (`knowledge_base_ids`, `attachedSkillIds`) lives in the config, which the
- *     Content-tab listing deliberately does not carry. Only the EDGES reach the
- *     client — ids the caller can already see in this project, never the
- *     agent's instructions or its tool grants.
- */
 /**
  * The loader itself lives in projects/graphForProject.js (the publish gate in
  * ./projects/packaging.js asks the same question, and a router is not where
@@ -1221,45 +611,6 @@ function buildGraphForProject(projectId) {
         buildProjectGraph,
     });
 }
-
-router.get('/:id/graph', requireRole('viewer'), async (req, res) => {
-    try {
-        const { graph } = await buildGraphForProject(req.params.id);
-        res.json({ ...graph, role: req.projectRole });
-    } catch (err) {
-        log.error('[Projects] Graph build error:', err.message);
-        res.status(500).json({ error: 'Request failed' });
-    }
-});
-
-/**
- * GET /:id/completeness — "Te controleren": everything in this Solution that
- * needs a person, and the one verdict the publish button reads.
- *
- * Viewer+, like the graph it is built on: it names the same objects the Content
- * listing already shows and adds the validators' own sentences about them.
- *
- * THE FAILURE PATH IS THE CONTRACT. A 500 here must be read by the client as
- * "blocked", never as "no findings" — an empty list is what a clean Solution
- * and an unreachable database look like from the outside, and only one of them
- * may publish. The 200 path says so explicitly (`blocked`, `complete`,
- * `unavailable`); the 500 path carries `blocked: true` for the same reason, so
- * a client that renders the body without checking the status still fails shut.
- */
-router.get('/:id/completeness', requireRole('viewer'), async (req, res) => {
-    try {
-        const { graph, members, unavailable } = await buildGraphForProject(req.params.id);
-        const { collectCompleteness } = require('../projects/completeness');
-        const result = await collectCompleteness({ graph, ...members, unavailable });
-        res.json({ ...result, role: req.projectRole });
-    } catch (err) {
-        log.error('[Projects] Completeness error:', err.message);
-        res.status(500).json({
-            error: 'Request failed',
-            blocked: true, complete: false, findings: [], unavailable: ['all'],
-        });
-    }
-});
 
 // ── Blueprint packaging ──────────────────────────────────
 //

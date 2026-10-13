@@ -446,4 +446,4 @@ Visitor-side (signed-in today, token-keyed): `GET /api/automation/form/:token`, 
 - `server/automation/formTriggerContract.js`, `server/automation/formAudience.js`, `server/automation/formAnswers/{derive,provision,write,summary}.js`
 - `server/stores/automationStore/forms.js` — the token row, audience defaults, sessions, upload ledger
 - `server/routes/datatables.js` (~line 2100) — `GET /:id/answers/summary`, `POST /:id/aggregate`, retired-column delete, "release"
-- Tests worth reading: `server/routes/automation/crud.forms.test.js`, `formPublic.test.js`, `formsAi.test.js`, `formAnswers.integration.test.js`, `agent-hub/src/components/admin/Studio/Forms/*.test.jsx`
+- Tests worth reading: `server/routes/automation/crud.forms.test.js`, `formPublic/*.test.js`, `formsAi.test.js`, `formAnswers.integration.test.js`, `agent-hub/src/components/admin/Studio/Forms/*.test.jsx`

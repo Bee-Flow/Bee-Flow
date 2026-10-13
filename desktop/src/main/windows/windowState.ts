@@ -8,6 +8,8 @@
  * against the displays that exist now.
  */
 
+import { promises as fs } from 'node:fs';
+
 export interface Bounds {
     x: number;
     y: number;
@@ -110,4 +112,43 @@ export function normaliseWindowState(raw: unknown): Partial<WindowState> {
     if (typeof input.maximised === 'boolean') state.maximised = input.maximised;
     if (typeof input.fullScreen === 'boolean') state.fullScreen = input.fullScreen;
     return state;
+}
+
+/** The parts of an Electron `BrowserWindow` the saved state is taken from. */
+export interface WindowLike {
+    isMaximized(): boolean;
+    isFullScreen(): boolean;
+    getBounds(): Bounds;
+    getNormalBounds(): Bounds;
+}
+
+/**
+ * The state to remember for a window.
+ *
+ * A maximised window reports the maximised bounds; storing those would
+ * mean un-maximising restores to full screen and the user can never get
+ * their old size back.
+ */
+export function windowStateOf(window: WindowLike): WindowState {
+    const bounds = window.isMaximized() || window.isFullScreen() ? window.getNormalBounds() : window.getBounds();
+    return { ...bounds, maximised: window.isMaximized(), fullScreen: window.isFullScreen() };
+}
+
+/** The file's contents for a state. */
+export function serialiseWindowState(state: WindowState): string {
+    return `${JSON.stringify(state, null, 4)}\n`;
+}
+
+/** Read the saved state; a missing or unreadable file is no state at all. */
+export async function readWindowState(file: string, readFile: (file: string) => Promise<string> = (name) => fs.readFile(name, 'utf8')): Promise<Partial<WindowState>> {
+    try {
+        return normaliseWindowState(JSON.parse(await readFile(file)));
+    } catch {
+        return {};
+    }
+}
+
+/** Write the state; failures are the caller's to log. */
+export async function writeWindowState(file: string, state: WindowState, writeFile: (file: string, contents: string) => Promise<void> = (name, contents) => fs.writeFile(name, contents, 'utf8')): Promise<void> {
+    await writeFile(file, serialiseWindowState(state));
 }
