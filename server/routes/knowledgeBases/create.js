@@ -12,7 +12,7 @@ const kbStore = require('../../stores/knowledgeBases');
 const { requireAuth, requirePermission, assertUserCanUseOrg } = require('../../auth');
 const { getUserId, canAccessKB, sanitizeUsageContexts } = require('./shared');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -23,7 +23,7 @@ const { z } = require('zod');
 // another kind should hear so rather than be quietly overruled.
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 const NAME_TEXT = 'A knowledge base needs a name.';
 const CreateKbBody = z.object({
@@ -35,7 +35,7 @@ const CreateKbBody = z.object({
     categoryId: worded('categoryId is the id of a category.').trim().min(1).nullish(),
     icon: worded('An icon must be text.').trim().max(64, 'An icon is at most 64 characters.').nullish(),
     usageContexts: z.array(worded('Each usage context must be text.'),
-        { invalid_type_error: 'usageContexts is a list of contexts.' }).nullish(),
+        { error: typeError({ invalid: 'usageContexts is a list of contexts.' }) }).nullish(),
 }).strict();
 
 const WITH_SOURCES = 'withSources is "1" to copy the sources too.';

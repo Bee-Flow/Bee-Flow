@@ -5,7 +5,7 @@ const express = require('express');
 const router = express.Router();
 const { executeKeepAction } = require('../../integrations/keepTools');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -24,27 +24,27 @@ const { z } = require('zod');
 // still read 401, not a 400 about its body.
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 const ACTION_TEXT = 'action is create or delete.';
 const TYPE_TEXT = 'type is text or list.';
 
 const KeepAction = z.object({
-    action: z.enum(['create', 'delete'], { errorMap: () => ({ message: ACTION_TEXT }) }),
-    type: z.enum(['text', 'list'], { errorMap: () => ({ message: TYPE_TEXT }) }).optional(),
+    action: z.enum(['create', 'delete'], { error: () => ACTION_TEXT }),
+    type: z.enum(['text', 'list'], { error: () => TYPE_TEXT }).optional(),
     title: worded('title must be text.').nullish(),
     content: worded('content must be text.').nullish(),
     listItems: z.array(z.object({
         text: worded('A list item needs text.'),
-        checked: z.boolean({ invalid_type_error: 'checked is true or false.' }).optional(),
+        checked: z.boolean({ error: typeError({ invalid: 'checked is true or false.' }) }).optional(),
     }).strict()).nullish(),
     noteId: worded('noteId must be text.').nullish(),
 }).strict().superRefine((v, ctx) => {
     if (v.action === 'delete' && !v.noteId) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['noteId'], message: 'noteId says which note to delete.' });
+        ctx.addIssue({ code: 'custom', path: ['noteId'], message: 'noteId says which note to delete.' });
     }
     if (v.type === 'list' && !v.listItems) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['listItems'], message: 'A checklist needs its items.' });
+        ctx.addIssue({ code: 'custom', path: ['listItems'], message: 'A checklist needs its items.' });
     }
 });
 

@@ -21,11 +21,11 @@
  * take the same engine's bag.
  */
 
-const { z, worded, orEmpty, flag } = require('../../../core/http/schemaParts');
+const { z, worded, orEmpty, flag, onUnknownKeys, typeError } = require('../../../core/http/schemaParts');
 
 const text = (name, max) => worded(`${name} is text.`).max(max, `${name} is at most ${max} characters.`);
-const list = (name) => z.array(z.unknown(), { invalid_type_error: `${name} is a list.` });
-const bag = (name) => z.record(z.unknown(), { invalid_type_error: `${name} is an object.` });
+const list = (name) => z.array(z.unknown(), { error: typeError({ invalid: `${name} is a list.` }) });
+const bag = (name) => z.record(z.string(), z.unknown(), { error: typeError({ invalid: `${name} is an object.` }) });
 const onOff = (name) => flag(`${name} is true or false.`);
 
 /** The keys every chat-engine turn shares, typed. */
@@ -65,7 +65,7 @@ const DirectTurnBody = orEmpty(z.object({
     // chat turns" switch. A turn without the marker is not counted.
     chatSignalsNotice: text('chatSignalsNotice', 120).nullish(),
     chatSignalsOptOut: onOff('chatSignalsOptOut').nullish(),
-}, { invalid_type_error: 'A chat turn is a JSON object.' }).passthrough());
+}, { error: typeError({ invalid: 'A chat turn is a JSON object.' }) }).passthrough());
 
 /**
  * The editor selection a bubble-menu action (Rewrite, Shorten, Expand, Ask)
@@ -74,16 +74,14 @@ const DirectTurnBody = orEmpty(z.object({
  * with a 400. Closed: it is one shape, written by one caller.
  */
 const SELECTION_TEXT = 'notebookSelection is { text, from?, to?, action? }.';
-const position = (name) => z.number({ invalid_type_error: `${name} is a position in the document.` })
+const position = (name) => z.number({ error: typeError({ invalid: `${name} is a position in the document.` }) })
     .int(`${name} is a position in the document.`).min(0, `${name} is a position in the document.`);
 const NotebookSelection = z.object({
     text: text('notebookSelection.text', 1_000_000),
     from: position('notebookSelection.from').nullish(),
     to: position('notebookSelection.to').nullish(),
-    action: z.enum(['rewrite', 'shorten', 'expand', 'ask'], {
-        errorMap: () => ({ message: 'notebookSelection.action is rewrite, shorten, expand or ask.' }),
-    }).nullish(),
-}, { invalid_type_error: SELECTION_TEXT }).strict(SELECTION_TEXT);
+    action: z.enum(['rewrite', 'shorten', 'expand', 'ask'], { error: () => 'notebookSelection.action is rewrite, shorten, expand or ask.' }).nullish(),
+}, { error: onUnknownKeys(SELECTION_TEXT, typeError({ invalid: SELECTION_TEXT })) }).strict();
 
 /** A turn about a notebook (routes/ai/notebookChat.js). */
 const NotebookTurnBody = orEmpty(z.object({
@@ -93,10 +91,10 @@ const NotebookTurnBody = orEmpty(z.object({
     notebookSelection: NotebookSelection.nullish(),
     // The document version the page has loaded: an AI edit is written only
     // over that version, never blindly over a newer save.
-    docVersion: z.number({ invalid_type_error: 'docVersion is the whole-number version you loaded.' })
+    docVersion: z.number({ error: typeError({ invalid: 'docVersion is the whole-number version you loaded.' }) })
         .int('docVersion is the whole-number version you loaded.')
         .min(0, 'docVersion is the whole-number version you loaded.').nullish(),
-}, { invalid_type_error: 'A chat turn is a JSON object.' }).passthrough());
+}, { error: typeError({ invalid: 'A chat turn is a JSON object.' }) }).passthrough());
 
 /**
  * A turn about a webpage (routes/ai/webpageChat.js). `chatMode` fell back to
@@ -109,9 +107,9 @@ const WebpageTurnBody = orEmpty(z.object({
     htmlContent: text('htmlContent', 10_000_000).nullish(),
     cssContent: text('cssContent', 10_000_000).nullish(),
     jsContent: text('jsContent', 10_000_000).nullish(),
-    webpageSelection: z.unknown(),
-    planExecution: z.unknown(),
-    chatMode: z.enum(['ask', 'auto', 'plan'], { errorMap: () => ({ message: 'chatMode is ask, auto or plan.' }) }).nullish(),
-}, { invalid_type_error: 'A chat turn is a JSON object.' }).passthrough());
+    webpageSelection: z.unknown().optional(),
+    planExecution: z.unknown().optional(),
+    chatMode: z.enum(['ask', 'auto', 'plan'], { error: () => 'chatMode is ask, auto or plan.' }).nullish(),
+}, { error: typeError({ invalid: 'A chat turn is a JSON object.' }) }).passthrough());
 
 module.exports = { TURN_SHAPE, DirectTurnBody, NotebookTurnBody, NotebookSelection, WebpageTurnBody };

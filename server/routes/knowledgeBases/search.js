@@ -30,7 +30,7 @@ const { requireAuth, resolveUserOrgIds } = require('../../auth');
 const { getServiceHeaders } = require('../../core/serviceAuth');
 const { validate } = require('../../core/http/validate');
 const { HttpError } = require('../../core/http/errors');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 const {
     SEARCH_SERVICE_URL,
     getUserId,
@@ -39,7 +39,7 @@ const {
 } = require('./shared');
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
@@ -58,13 +58,13 @@ const SearchBody = bodyOf({
         .max(MAX_QUERY_CHARS, `A search is at most ${MAX_QUERY_CHARS} characters.`),
     // A knowledge base id is a UUID column; anything else used to reach
     // Postgres as `$1::uuid[]` and come back as a 500.
-    kb_ids: z.array(worded(KB_ID_TEXT).uuid(KB_ID_TEXT), { invalid_type_error: KB_IDS_TEXT }).nullish(),
+    kb_ids: z.array(worded(KB_ID_TEXT).guid(KB_ID_TEXT), { error: typeError({ invalid: KB_IDS_TEXT }) }).nullish(),
     // "5" always worked — JavaScript multiplied it locally and pydantic's lax
     // mode took it remotely — so digits in a string still count; null is
     // still "the default". Only what never worked is refused.
     top_k: z.preprocess(
         (v) => (typeof v === 'string' && /^\s*\d+\s*$/.test(v) ? Number(v) : v),
-        z.number({ invalid_type_error: TOP_K_TEXT }).int(TOP_K_TEXT).min(1, TOP_K_TEXT).max(MAX_TOP_K, TOP_K_TEXT),
+        z.number({ error: typeError({ invalid: TOP_K_TEXT }) }).int(TOP_K_TEXT).min(1, TOP_K_TEXT).max(MAX_TOP_K, TOP_K_TEXT),
     ).nullish(),
 });
 

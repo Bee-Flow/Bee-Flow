@@ -15,7 +15,7 @@ const sources = require('../../core/dataEngine/sources');
 const { requireDatatableGrade, requireManageForOrgScope } = require('./grade');
 const { answerDatatableError, confirmedBreaking } = require('./refusals');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 const { bodyOf, ConfirmBreakingQuery, CONFIRM_TEXT } = require('./schemas');
 const log = require('../../telemetry/log');
 
@@ -23,7 +23,7 @@ const log = require('../../telemetry/log');
 // BOTH places because a DELETE is routinely sent without a body. Strict on
 // both: `?confirmbreaking=true` used to be dropped, which reads as "no" on the
 // one request where "no" costs the person a second trip through the dialog.
-const DeleteBody = bodyOf({ confirmBreaking: z.boolean({ invalid_type_error: CONFIRM_TEXT }).optional() });
+const DeleteBody = bodyOf({ confirmBreaking: z.boolean({ error: typeError({ invalid: CONFIRM_TEXT }) }).optional() });
 
 function register(router) {
     router.delete('/:id',

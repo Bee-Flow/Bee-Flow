@@ -44,7 +44,7 @@ const {
 } = require('../core/automationRunner/integrationCachePolicy');
 const integrationCacheStore = require('../stores/integrationCacheStore');
 const { validate } = require('../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../utils/zod');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -68,19 +68,19 @@ const { z } = require('zod');
 /** A body that also accepts no body: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
-    z.object(shape, { invalid_type_error: 'Send the setting as a JSON object.' }).strict(),
+    z.object(shape, { error: typeError({ invalid: 'Send the setting as a JSON object.' }) }).strict(),
 );
 
 const ENABLED_TEXT = 'Say whether answers may be kept: enabled is true or false.';
-const tick = (name) => z.boolean({ invalid_type_error: `${name} is true or false.` }).optional();
+const tick = (name) => z.boolean({ error: typeError({ invalid: `${name} is true or false.` }) }).optional();
 
 const PolicyBody = bodyOf({
-    enabled: z.boolean({ required_error: ENABLED_TEXT, invalid_type_error: ENABLED_TEXT }),
-    ttlSeconds: z.number({ invalid_type_error: 'ttlSeconds is a number of seconds.' }).optional(),
+    enabled: z.boolean({ error: ENABLED_TEXT }),
+    ttlSeconds: z.number({ error: typeError({ invalid: 'ttlSeconds is a number of seconds.' }) }).optional(),
     scopes: z.object({
         integration: tick('scopes.integration'),
         http: tick('scopes.http'),
-    }, { invalid_type_error: 'scopes is { integration, http }, each true or false.' }).strict().optional(),
+    }, { error: typeError({ invalid: 'scopes is { integration, http }, each true or false.' }) }).strict().optional(),
 });
 
 /**

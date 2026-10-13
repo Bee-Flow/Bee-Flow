@@ -4,8 +4,9 @@
  * the Studio header's action slot (NotebookWorkspace). Closes on an outside
  * press and on Escape.
  */
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { Download, FileDown, Loader2, ChevronDown, PenTool, FileType2 } from 'lucide-react';
+import useOutsideDismiss from '../../../hooks/useOutsideDismiss';
 import useTranslation from '../../../hooks/useTranslation';
 
 export default function ExportMenu({
@@ -22,18 +23,7 @@ export default function ExportMenu({
     const [open, setOpen] = useState(false);
     const ref = useRef(null);
 
-    useEffect(() => {
-        const handleOutside = (e) => {
-            if (ref.current && !ref.current.contains(e.target)) setOpen(false);
-        };
-        const handleKey = (e) => { if (e.key === 'Escape') setOpen(false); };
-        document.addEventListener('mousedown', handleOutside);
-        document.addEventListener('keydown', handleKey);
-        return () => {
-            document.removeEventListener('mousedown', handleOutside);
-            document.removeEventListener('keydown', handleKey);
-        };
-    }, []);
+    useOutsideDismiss(ref, () => setOpen(false), { defer: false });
 
     const isExporting = !!exporting;
     const select = (format) => { setOpen(false); onExport?.(format); };

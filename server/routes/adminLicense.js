@@ -37,7 +37,7 @@ const express = require('express');
 const log = require('../telemetry/log');
 const router = express.Router();
 const { validate } = require('../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../utils/zod');
 
 require('../license');
 const tiers = require('../license/tiers');
@@ -48,7 +48,7 @@ const userStore = require('../stores/userStore');
 const { sendServiceEmail, getServiceEmailConfig } = require('../utils/emailService');
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
@@ -61,7 +61,7 @@ const expiresAt = () => worded(EXPIRY_TEXT).trim().refine((v) => !Number.isNaN(D
 
 const ListQuery = z.object({
     organizationId: orgId().optional(),
-    includeInactive: z.enum(['true', 'false'], { errorMap: () => ({ message: 'includeInactive is true or false.' }) }).optional(),
+    includeInactive: z.enum(['true', 'false'], { error: () => 'includeInactive is true or false.' }).optional(),
 }).strict();
 
 const TIER_TEXT = `tier is one of: ${tiers.TIER_HIERARCHY.join(', ')}.`;
@@ -71,30 +71,30 @@ const LIMITS_TEXT = 'limitsOverride is an object of limits, like { "max_users": 
 const EMAIL_TEXT = 'deliverEmail is an e-mail address.';
 
 const GrantBody = z.object({
-    scope: z.enum(['organization', 'server'], { errorMap: () => ({ message: 'scope is "organization" or "server".' }) })
+    scope: z.enum(['organization', 'server'], { error: () => 'scope is "organization" or "server".' })
         .default('organization'),
     organizationId: orgId().nullish(),
     tier: worded(TIER_TEXT).trim().refine((t) => tiers.isValidTier(t), TIER_TEXT),
     expiresAt: expiresAt(),
-    billingInterval: z.enum(['monthly', 'yearly'], { errorMap: () => ({ message: 'billingInterval is "monthly" or "yearly".' }) })
+    billingInterval: z.enum(['monthly', 'yearly'], { error: () => 'billingInterval is "monthly" or "yearly".' })
         .optional(),
-    featuresOverride: z.array(worded(FEATURES_TEXT).trim().min(1, FEATURES_TEXT), { invalid_type_error: FEATURES_TEXT })
+    featuresOverride: z.array(worded(FEATURES_TEXT).trim().min(1, FEATURES_TEXT), { error: typeError({ invalid: FEATURES_TEXT }) })
         .nullish(),
     limitsOverride: z.record(
-        z.number({ invalid_type_error: LIMITS_TEXT }).int(LIMITS_TEXT).nullable(),
-        { invalid_type_error: LIMITS_TEXT },
+        z.string(), z.number({ error: typeError({ invalid: LIMITS_TEXT }) }).int(LIMITS_TEXT).nullable(),
+        { error: typeError({ invalid: LIMITS_TEXT }) },
     ).nullish(),
-    maxSeats: z.number({ invalid_type_error: SEATS_TEXT }).int(SEATS_TEXT).min(1, SEATS_TEXT).nullish(),
+    maxSeats: z.number({ error: typeError({ invalid: SEATS_TEXT }) }).int(SEATS_TEXT).min(1, SEATS_TEXT).nullish(),
     notes: worded('notes is text.').nullish(),
     // Empty is "do not send"; anything else has to be somewhere a mail can go.
     deliverEmail: z.preprocess(
         (v) => (v === '' ? undefined : v),
         worded(EMAIL_TEXT).trim().email(EMAIL_TEXT).optional(),
     ),
-}, { required_error: TIER_TEXT, invalid_type_error: TIER_TEXT }).strict().superRefine((b, ctx) => {
+}, { error: typeError({ required: TIER_TEXT, invalid: TIER_TEXT }) }).strict().superRefine((b, ctx) => {
     if (b.scope === 'organization' && !b.organizationId) {
         ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: 'custom',
             path: ['organizationId'],
             message: 'An organisation licence needs the organizationId it is for — or scope "server" for an unbound one.',
         });
@@ -103,14 +103,14 @@ const GrantBody = z.object({
 
 const RevokeBody = bodyOf({ reason: worded('reason is text.').trim().max(500, 'reason is at most 500 characters.').optional() });
 
-const ExtendBody = z.object({ expiresAt: expiresAt() }, { required_error: EXPIRY_TEXT, invalid_type_error: EXPIRY_TEXT }).strict();
+const ExtendBody = z.object({ expiresAt: expiresAt() }, { error: typeError({ required: EXPIRY_TEXT, invalid: EXPIRY_TEXT }) }).strict();
 
 const BLOB_TEXT = 'blob is the exported licence text, beginning with beeflow-admin-v1.';
 const ImportBody = z.object({
     blob: worded(BLOB_TEXT).trim().min(1, BLOB_TEXT),
     // Empty means "the organisation the blob names".
     organizationId: z.preprocess((v) => (v === '' ? null : v), orgId().nullish()),
-}, { required_error: BLOB_TEXT, invalid_type_error: BLOB_TEXT }).strict();
+}, { error: typeError({ required: BLOB_TEXT, invalid: BLOB_TEXT }) }).strict();
 
 router.use((req, res, next) => {
     if (!req.session?.isAuthenticated) return res.status(401).json({ error: 'Not authenticated' });

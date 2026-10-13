@@ -53,10 +53,10 @@ const webpageBindings = require('../core/webpages/webpageBindings');
 const webpageDataCards = require('../core/webpages/webpageDataCards');
 const { requireAuth } = require('../auth/permissions');
 const { validate } = require('../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../utils/zod');
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 const TOOL_TEXT = 'Name the integration action to grant (tool).';
 const FIXED_TEXT = 'fixedArgs is a JSON object of pinned arguments, e.g. { "channel": "#general" }.';
@@ -66,7 +66,7 @@ const LABEL_TEXT = 'A grant label must be text.';
 const IntegrationGrantBody = z.object({
     tool: worded(TOOL_TEXT).trim().min(1, TOOL_TEXT),
     // Its keys are the TOOL's own arguments, so the map itself stays open.
-    fixedArgs: z.record(z.unknown(), { required_error: FIXED_TEXT, invalid_type_error: FIXED_TEXT }).optional(),
+    fixedArgs: z.record(z.string(), z.unknown(), { error: typeError({ required: FIXED_TEXT, invalid: FIXED_TEXT }) }).optional(),
     label: worded(LABEL_TEXT).optional(),
 }).strict();
 

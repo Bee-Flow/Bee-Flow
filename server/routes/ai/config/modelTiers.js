@@ -10,7 +10,7 @@ const router = express.Router();
 const configStore = require('../../../stores/configStore');
 const { isAdminUser } = require('./shared');
 const { requireAuth } = require('../../../auth/permissions');
-const { z } = require('zod');
+const { z, typeError } = require('../../../utils/zod');
 const { validate } = require('../../../core/http/validate');
 
 // ── What a caller may send ────────────────────────────────────────────────
@@ -23,21 +23,21 @@ const { validate } = require('../../../core/http/validate');
 const MODEL_ID_TEXT = 'A model id must be text; send null to clear it.';
 /** Clearing the setting is what an empty or absent value means, as before. */
 const ModelIdBody = z.object({
-    modelId: z.string({ invalid_type_error: MODEL_ID_TEXT }).trim().nullish()
+    modelId: z.string({ error: typeError({ invalid: MODEL_ID_TEXT }) }).trim().nullish()
         .transform((v) => v || null),
 }).strict();
 
 const HIDDEN_MODELS_TEXT = 'modelIds must be an array';
 const HiddenModelsBody = z.object({
-    modelIds: z.array(z.string({ invalid_type_error: 'Each hidden model id must be text.' }).trim(),
-        { required_error: HIDDEN_MODELS_TEXT, invalid_type_error: HIDDEN_MODELS_TEXT })
+    modelIds: z.array(z.string({ error: typeError({ invalid: 'Each hidden model id must be text.' }) }).trim(),
+        { error: HIDDEN_MODELS_TEXT })
         // A blocklist is a set: blanks carry nothing and a repeat hides the
         // same model twice.
         .transform((ids) => [...new Set(ids.filter(Boolean))]),
 }).strict();
 
 const ClaudeSettingsBody = z.object({
-    autoRetryOnEmpty: z.boolean({ invalid_type_error: 'autoRetryOnEmpty is true or false.' }).default(true),
+    autoRetryOnEmpty: z.boolean({ error: typeError({ invalid: 'autoRetryOnEmpty is true or false.' }) }).default(true),
 }).strict();
 
 // ─── Model Tier Config ───────────────────────────────────────────

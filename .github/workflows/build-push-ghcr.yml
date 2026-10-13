@@ -327,7 +327,10 @@ jobs:
       # it to the repo root would wreck its layer cache and drag the whole
       # monorepo into every build — so the bundle is compiled HERE on the
       # runner and staged into server/vendor/app-runtime/ (gitignored), where
-      # the Dockerfile's `COPY . .` picks it up. Best-effort throughout: a
+      # the Dockerfile's `COPY . .` picks it up. The staging itself lives in
+      # scripts/stage-server-context.sh, the same script build-images.sh and
+      # build-images.ps1 run, so a local image carries what a CI one does.
+      # Best-effort throughout: a
       # broken frontend build must never block a deployable server image —
       # without the files the render service degrades to a plain
       # "screenshots unavailable" answer instead.
@@ -340,19 +343,7 @@ jobs:
       - name: Build App Studio runtime bundle
         id: runtime-bundle
         continue-on-error: ${{ needs.changes.outputs.release_prod != 'true' }}
-        working-directory: agent-hub
-        run: |
-          set -euo pipefail
-          npm ci --no-audit --no-fund --prefer-offline
-          npm run build:runtime
-          # The artefact contract is exactly these two files. Refuse to stage
-          # a partial bundle — a truncated .mjs would surface at render time
-          # as an opaque mount failure instead of a clean "unavailable".
-          test -s dist-runtime/app-runtime.mjs
-          test -s dist-runtime/app-runtime.css
-          mkdir -p ../server/vendor/app-runtime
-          cp dist-runtime/app-runtime.mjs dist-runtime/app-runtime.css ../server/vendor/app-runtime/
-          du -h ../server/vendor/app-runtime/*
+        run: bash scripts/stage-server-context.sh --install runtime-bundle
       - name: Note missing runtime bundle
         if: steps.runtime-bundle.outcome != 'success'
         run: |
@@ -390,39 +381,7 @@ jobs:
         env:
           BUILD_SHA: ${{ github.sha }}
           BUILD_REF: ${{ github.ref_name }}
-        run: |
-          set -euo pipefail
-          mkdir -p server/sbom
-          stamp() {
-            node - "$1" "$2" <<'NODE'
-          const fs = require('fs');
-          const [file, workspace] = process.argv.slice(2);
-          const bom = JSON.parse(fs.readFileSync(file, 'utf8'));
-          if (bom.bomFormat !== 'CycloneDX') throw new Error(`${file}: not a CycloneDX document`);
-          bom.metadata = bom.metadata || {};
-          bom.metadata.timestamp = bom.metadata.timestamp || new Date().toISOString();
-          const props = (bom.metadata.properties || []).filter(p => !/^beeflow:/.test(p.name));
-          props.push({ name: 'beeflow:build_sha', value: process.env.BUILD_SHA });
-          props.push({ name: 'beeflow:workspace', value: workspace });
-          if (process.env.BUILD_REF) props.push({ name: 'beeflow:build_ref', value: process.env.BUILD_REF });
-          bom.metadata.properties = props;
-          fs.writeFileSync(file, JSON.stringify(bom));
-          console.log(`${file}: ${(bom.components || []).length} components, build ${process.env.BUILD_SHA.slice(0, 12)}`);
-          NODE
-          }
-          for ws in server agent-hub nextcloud-connector; do
-            if [ ! -f "$ws/package-lock.json" ]; then
-              echo "::notice::$ws has no package-lock.json — no SBOM generated for it"
-              continue
-            fi
-            out="server/sbom/${ws}.cyclonedx.json"
-            (cd "$ws" && npm sbom --sbom-format=cyclonedx --package-lock-only --omit=dev) > "$out"
-            stamp "$out" "$ws"
-          done
-          # The image's own SBOM is the server workspace's document.
-          test -s server/sbom/server.cyclonedx.json
-          cp server/sbom/server.cyclonedx.json server/sbom/cyclonedx.json
-          du -h server/sbom/*
+        run: bash scripts/stage-server-context.sh sbom
       - name: Note missing SBOM
         if: steps.sbom.outcome != 'success'
         run: |

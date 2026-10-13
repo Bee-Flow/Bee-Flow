@@ -41,7 +41,7 @@ const { canModifyAgent, validateAgentConfigReferences, applyConfigValidation } =
 const publishable = require('../../agents/publishableConfig');
 const log = require('../../telemetry/log');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 
 /** No body at all (Express 5 leaves `req.body` undefined then) or an empty one. */
 const NoBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object({}).strict());

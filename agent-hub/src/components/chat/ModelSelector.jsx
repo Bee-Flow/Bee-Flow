@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import useOutsideDismiss from '../../hooks/useOutsideDismiss';
 import { MISTRAL_MODEL_META, CAT_COLORS, getModelMeta } from '../../utils/modelMeta.js';
 import useTranslation from '../../hooks/useTranslation';
 
@@ -34,13 +35,7 @@ export default function ModelSelector({ models, value, onChange, defaultLabel, c
     const panelRef = useRef(null);
 
     // Close on outside click
-    useEffect(() => {
-        const handler = (e) => {
-            if (ref.current && !ref.current.contains(e.target)) setOpen(false);
-        };
-        if (open) document.addEventListener('mousedown', handler);
-        return () => document.removeEventListener('mousedown', handler);
-    }, [open]);
+    useOutsideDismiss(ref, () => setOpen(false), { enabled: open, escape: false, defer: false });
 
     // Focus search on open
     useEffect(() => {

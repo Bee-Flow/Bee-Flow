@@ -7,6 +7,8 @@ the check depend on a header the caller controls.
 
 from __future__ import annotations
 
+import hmac
+
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 
@@ -14,12 +16,15 @@ from starlette.responses import JSONResponse
 class APIKeyMiddleware(BaseHTTPMiddleware):
     def __init__(self, app, api_key: str) -> None:
         super().__init__(app)
-        self._api_key = api_key
+        self._api_key = api_key.encode()
 
     async def dispatch(self, request, call_next):
         if request.url.path.startswith("/health"):
             return await call_next(request)
-        if request.headers.get("X-API-Key", "") != self._api_key:
+        # Constant-time compare on bytes: compare_digest raises TypeError on a
+        # non-ASCII str, and a header may carry any latin-1 character.
+        sent = request.headers.get("X-API-Key", "").encode()
+        if not hmac.compare_digest(sent, self._api_key):
             return JSONResponse(
                 {"error": "Invalid or missing API key"}, status_code=401
             )

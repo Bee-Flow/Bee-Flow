@@ -147,7 +147,7 @@ async function withListStats(agents, req, viewerId = null) {
 
 const router = express.Router();
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 
 // -- What a caller may send ------------------------------------------
 //
@@ -161,14 +161,14 @@ const { z } = require('zod');
 // published to a new group stayed shared with the old one under a 200.
 
 /** A string whose every refusal -- including "you left it out" -- is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
 const USAGE_TEXT = 'usage is "1" or "0".';
 const ListQuery = z.object({
-    usage: z.enum(['0', '1', 'true', 'false'], { errorMap: () => ({ message: USAGE_TEXT }) }).optional(),
+    usage: z.enum(['0', '1', 'true', 'false'], { error: () => USAGE_TEXT }).optional(),
     // The Agent Hub adds ?t=<Date.now()> to dodge caches; it means nothing here.
     // Refusing it answered every Hub load with a 400, which the Hub reads as
     // "no published agents" and shows only the user's own.
@@ -177,10 +177,10 @@ const ListQuery = z.object({
 
 const GROUPS_TEXT = 'sharedGroups is a list of group ids.';
 const PublishBody = bodyOf({
-    isPublished: z.boolean({ invalid_type_error: 'isPublished is true or false.' }).optional(),
+    isPublished: z.boolean({ error: typeError({ invalid: 'isPublished is true or false.' }) }).optional(),
     // Absent means "leave the sharing as it is"; `[]` means "share with
     // nobody". The two have to stay apart, so there is no default here.
-    sharedGroups: z.array(worded(GROUPS_TEXT), { invalid_type_error: GROUPS_TEXT }).nullish(),
+    sharedGroups: z.array(worded(GROUPS_TEXT), { error: typeError({ invalid: GROUPS_TEXT }) }).nullish(),
 });
 
 // ============ Published Agents (public access) ============

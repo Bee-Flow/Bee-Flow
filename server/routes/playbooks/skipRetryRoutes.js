@@ -10,7 +10,7 @@
 'use strict';
 
 const lifecycle = require('../../playbooks/lifecycle');
-const { z, sendErr, bodyOf, expectedVersion, check } = require('./contract');
+const { z, sendErr, bodyOf, expectedVersion, check, typeError } = require('./contract');
 
 // -- What a caller may send -------------------------------------------
 //
@@ -32,7 +32,7 @@ const lockedVersion = () => expectedVersion().unwrap();
 const SkipBody = bodyOf({ expectedVersion: lockedVersion() });
 const RetryBody = bodyOf({
     expectedVersion: lockedVersion(),
-    resetBrief: z.boolean({ invalid_type_error: 'resetBrief is true or false.' }).optional(),
+    resetBrief: z.boolean({ error: typeError({ invalid: 'resetBrief is true or false.' }) }).optional(),
 });
 const { kindOf } = require('./phaseList');
 const log = require('../../telemetry/log');

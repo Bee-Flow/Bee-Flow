@@ -13,7 +13,7 @@ const log = require('../../telemetry/log');
 const router = express.Router();
 const configStore = require('../../stores/configStore');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -26,7 +26,7 @@ const { z } = require('zod');
 // rather than the one it got.
 const TOKEN_TEXT = 'A GitHub personal access token is required.';
 const ConnectBody = z.object({
-    token: z.string({ required_error: TOKEN_TEXT, invalid_type_error: TOKEN_TEXT }).trim().min(1, TOKEN_TEXT),
+    token: z.string({ error: TOKEN_TEXT }).trim().min(1, TOKEN_TEXT),
 }).strict();
 
 // The session gate stays AHEAD of the schema: an unauthenticated caller must

@@ -16,7 +16,7 @@ const { requireAuth, isOrgAdminForOrg } = require('../../auth/permissions');
 const { tagGate } = require('../../auth/gateMeta');
 const orgHealth = require('../../services/orgHealth'); // fire-and-forget health capture
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -25,7 +25,7 @@ const { z } = require('zod');
 // saved" to that — for a setting that decides who gets an account at all.
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
@@ -37,7 +37,7 @@ const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {
  */
 const groupList = (name) => {
     const text = `${name} is a list of group names.`;
-    return z.array(worded(text).trim().min(1, text), { required_error: text, invalid_type_error: text });
+    return z.array(worded(text).trim().min(1, text), { error: text });
 };
 
 const MODE_TEXT = 'mode is "mirror_all", "selective_groups" or "manual".';
@@ -46,8 +46,8 @@ const STATUS_TEXT = 'newUserDefaultStatus is "active" or "pending".';
 const DEPLOY_TEXT = 'deploymentMode is "cloud" or "self-hosted".';
 const ACTION_TEXT = 'piiDetectionAction is "tokenize" or "block".';
 
-const syncModes = (message) => z.enum(['mirror_all', 'selective_groups', 'manual'], { errorMap: () => ({ message }) });
-const DefaultStatus = z.enum(['active', 'pending'], { errorMap: () => ({ message: STATUS_TEXT }) });
+const syncModes = (message) => z.enum(['mirror_all', 'selective_groups', 'manual'], { error: () => message });
+const DefaultStatus = z.enum(['active', 'pending'], { error: () => STATUS_TEXT });
 
 const NcSyncBody = bodyOf({
     mode: syncModes(MODE_TEXT).optional(),
@@ -64,11 +64,11 @@ const NcSyncBody = bodyOf({
  * difference between "those values never leave" and "they leave, disguised".
  */
 const PrivacyShield = z.object({
-    enabled: z.boolean({ invalid_type_error: 'privacyShield.enabled is true or false.' }).optional(),
-    piiDetectionAction: z.enum(['tokenize', 'block'], { errorMap: () => ({ message: ACTION_TEXT }) }).optional(),
+    enabled: z.boolean({ error: typeError({ invalid: 'privacyShield.enabled is true or false.' }) }).optional(),
+    piiDetectionAction: z.enum(['tokenize', 'block'], { error: () => ACTION_TEXT }).optional(),
     piiDetectionCategories: z.array(
         worded('piiDetectionCategories is a list of categories.').trim().min(1, 'piiDetectionCategories is a list of categories.'),
-        { invalid_type_error: 'piiDetectionCategories is a list of categories.' },
+        { error: typeError({ invalid: 'piiDetectionCategories is a list of categories.' }) },
     ).optional(),
 }).strict();
 
@@ -80,12 +80,12 @@ const OnboardingBody = z.preprocess(
         syncGroups: groupList('syncGroups').optional(),
         excludedGroups: groupList('excludedGroups').optional(),
         newUserDefaultStatus: DefaultStatus,
-        deploymentMode: z.enum(['cloud', 'self-hosted'], { errorMap: () => ({ message: DEPLOY_TEXT }) }).optional(),
+        deploymentMode: z.enum(['cloud', 'self-hosted'], { error: () => DEPLOY_TEXT }).optional(),
         selectedPlanId: worded(PLAN_TEXT).trim().nullish(),
         privacyShield: PrivacyShield.optional(),
     }).strict().superRefine((b, ctx) => {
         if (b.syncMode === 'selective_groups' && !(b.syncGroups && b.syncGroups.length)) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['syncGroups'], message: 'selective_groups needs at least one group.' });
+            ctx.addIssue({ code: 'custom', path: ['syncGroups'], message: 'selective_groups needs at least one group.' });
         }
     }),
 );

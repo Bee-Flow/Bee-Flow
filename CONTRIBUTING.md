@@ -62,9 +62,9 @@ wired in as a release gate. See [e2e/README.md](./e2e/README.md).
 
 ## What CI runs on a pull request
 
-One workflow, `.github/workflows/ci.yml`: a `changes` job filters by path,
+The main workflow is `.github/workflows/ci.yml`: a `changes` job filters by path,
 the per-tree jobs (server, frontend, mobile, Python lint and tests, guard,
-Nextcloud connector and server) run for what changed, and
+Nextcloud connector and server, the desktop client) run for what changed, and
 `checks-passed` aggregates them into one context. Two more run on every pull
 request and again on every push to `main`: `scan` (`secret-scan.yml`,
 gitleaks over the tree and over the commits the PR or push adds) and `audit`

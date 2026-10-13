@@ -2,7 +2,7 @@ const { getProviders, addProvider, updateProvider, deleteProvider, setDefaultPro
 const { getAdapter, baseAdapter } = require('../../core/providers');
 
 const router = require('express').Router();
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 const { validate } = require('../../core/http/validate');
 
 // Middleware
@@ -44,10 +44,10 @@ async function requireAdmin(req, res, next) {
 
 const isKnownProviderType = (type) => getAdapter(type) !== baseAdapter;
 const TYPE_TEXT = 'A provider type names the adapter that serves it — for example openai, claude, mistral, azure, google-vertex, ollama or openai-compatible.';
-const ProviderType = z.string({ required_error: `Pick a provider type. ${TYPE_TEXT}`, invalid_type_error: TYPE_TEXT })
-    .refine(isKnownProviderType, (t) => ({ message: `Unknown provider type '${String(t).slice(0, 40)}'. ${TYPE_TEXT}` }));
+const ProviderType = z.string({ error: typeError({ required: `Pick a provider type. ${TYPE_TEXT}`, invalid: TYPE_TEXT }) })
+    .refine(isKnownProviderType, { error: (iss) => `Unknown provider type '${String(iss.input).slice(0, 40)}'. ${TYPE_TEXT}` });
 
-const text = (what) => z.string({ invalid_type_error: `${what} must be text.` });
+const text = (what) => z.string({ error: typeError({ invalid: `${what} must be text.` }) });
 const NAME_TEXT = 'Name and URL are required';
 
 // GET hands every secret out masked ('••••1234', '••••(configured)'). Sent
@@ -79,13 +79,13 @@ const optional = (shape) => Object.fromEntries(Object.entries(shape).map(([k, s]
 const bodyOf = (schema) => z.preprocess((v) => (v === undefined || v === null ? {} : v), schema);
 
 const CreateProviderBody = bodyOf(z.object({
-    name: z.string({ required_error: NAME_TEXT, invalid_type_error: NAME_TEXT }).trim().min(1, NAME_TEXT),
+    name: z.string({ error: NAME_TEXT }).trim().min(1, NAME_TEXT),
     type: ProviderType,
     ...optional(providerFields),
 }).strict());
 
 const UpdateProviderBody = bodyOf(z.object({
-    name: z.string({ invalid_type_error: 'A provider name is text.' }).trim().min(1, 'A provider needs a name.').optional(),
+    name: z.string({ error: typeError({ invalid: 'A provider name is text.' }) }).trim().min(1, 'A provider needs a name.').optional(),
     type: ProviderType.optional(),
     ...optional(providerFields),
 }).strict());
@@ -94,12 +94,12 @@ const REGION_TEXT = "region must be 'eu' or 'default'";
 const RegionBody = bodyOf(z.object({
     // A closed pair on purpose: a typo in a free-text URL would fail open,
     // back to US processing.
-    region: z.enum(['eu', 'default'], { errorMap: () => ({ message: REGION_TEXT }) }),
+    region: z.enum(['eu', 'default'], { error: () => REGION_TEXT }),
 }).strict());
 
 const ModelsQuery = z.object({
     // `=== 'true'` read `?refresh=1` as "use the cache".
-    refresh: z.enum(['true', 'false'], { errorMap: () => ({ message: 'refresh is true or false.' }) }).optional(),
+    refresh: z.enum(['true', 'false'], { error: () => 'refresh is true or false.' }).optional(),
 }).strict();
 
 // GET /ai/providers

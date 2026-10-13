@@ -41,7 +41,7 @@ const log = require('../telemetry/log');
 const router = express.Router();
 const { validate } = require('../core/http/validate');
 const { HttpError } = require('../core/http/errors');
-const { z } = require('zod');
+const { z, typeError } = require('../utils/zod');
 
 const studioAppDataStore = require('../stores/studioAppDataStore');
 const rlsGateway = require('../appStudio/rlsGateway');
@@ -80,7 +80,7 @@ const DRAFT_TEXT = 'draft is "1" or "true" to run the draft, "0" or "false" (or 
 const BAG_TEXT = (name) => `${name} is an object of values, keyed by name.`;
 
 const BrowseQuery = partOf({
-    draft: z.enum(['1', 'true', '0', 'false'], { errorMap: () => ({ message: DRAFT_TEXT }) }).optional(),
+    draft: z.enum(['1', 'true', '0', 'false'], { error: () => DRAFT_TEXT }).optional(),
 });
 
 const BrowseBody = partOf({
@@ -90,16 +90,16 @@ const BrowseBody = partOf({
     stepIndex: z.union([
         z.number().int(STEP_TEXT).min(0, STEP_TEXT),
         z.string().regex(/^\d+$/, STEP_TEXT).transform(Number),
-    ], { errorMap: () => ({ message: STEP_TEXT }) }),
+    ], { error: () => STEP_TEXT }),
     // Their contents are sanitizeBag's to bound; the schema only asks for a map.
-    formValues: z.record(z.unknown(), { invalid_type_error: BAG_TEXT('formValues') }).nullish(),
-    vars: z.record(z.unknown(), { invalid_type_error: BAG_TEXT('vars') }).nullish(),
+    formValues: z.record(z.string(), z.unknown(), { error: typeError({ invalid: BAG_TEXT('formValues') }) }).nullish(),
+    vars: z.record(z.string(), z.unknown(), { error: typeError({ invalid: BAG_TEXT('vars') }) }).nullish(),
     // The loop's row, its position and the trigger's value: client-supplied
     // scope roots, bounded by the 64KB body cap like everything else here.
-    item: z.unknown(),
-    index: z.number({ invalid_type_error: 'index is the loop position (0, 1, 2, …).' })
+    item: z.unknown().optional(),
+    index: z.number({ error: typeError({ invalid: 'index is the loop position (0, 1, 2, …).' }) })
         .int('index is the loop position (0, 1, 2, …).').min(0, 'index is the loop position (0, 1, 2, …).').optional(),
-    value: z.unknown(),
+    value: z.unknown().optional(),
 });
 
 router.post('/:id/actions/:actionId/step/stream', requireAuth, jsonBody, validate({ query: BrowseQuery, body: BrowseBody }), async (req, res) => {

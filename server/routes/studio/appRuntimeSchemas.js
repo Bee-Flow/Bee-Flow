@@ -18,9 +18,9 @@
  *     every row the viewer may read, as if they were the filtered ones.
  */
 
-const { z, worded, bodyOf, queryOf, choice, wholeNumber } = require('../../core/http/schemaParts');
+const { z, worded, bodyOf, queryOf, choice, wholeNumber, typeError } = require('../../core/http/schemaParts');
 
-const bag = (name) => z.record(z.unknown(), { invalid_type_error: `${name} is an object of named values.` });
+const bag = (name) => z.record(z.string(), z.unknown(), { error: typeError({ invalid: `${name} is an object of named values.` }) });
 
 const DraftQuery = queryOf({
     draft: choice(['0', '1', 'true', 'false'], 'draft is 1 to run the saved draft.').optional(),
@@ -33,15 +33,15 @@ const StepBody = bodyOf({
     vars: bag('vars').nullish(),
     // The loop's current row and the trigger's value: client-supplied, bounded
     // by the body-size guard, read by the executor as scope roots.
-    item: z.unknown(),
+    item: z.unknown().optional(),
     index: wholeNumber('index is the loop position, 0 or more.').nullish(),
-    value: z.unknown(),
+    value: z.unknown().optional(),
 }, 'An action step');
 
 /** A whole action handed to its automation (…/actions/:actionId/run). */
 const RunBody = bodyOf({
     formValues: bag('formValues').nullish(),
-    wait: z.boolean({ invalid_type_error: 'wait is true or false.' }).optional(),
+    wait: z.boolean({ error: typeError({ invalid: 'wait is true or false.' }) }).optional(),
 }, 'An action run');
 
 /** A turn of an app's AI chat component (…/ai/chat). */
@@ -49,8 +49,8 @@ const ChatBody = bodyOf({
     nodeId: worded('nodeId is the id of the chat component.').max(200, 'nodeId is the id of the chat component.'),
     messages: z.array(z.object({
         role: worded('role is user or assistant.').max(20, 'role is user or assistant.').optional(),
-        content: z.unknown(),
-    }).passthrough(), { required_error: 'messages is the conversation so far.', invalid_type_error: 'messages is the conversation so far.' }),
+        content: z.unknown().optional(),
+    }).passthrough(), { error: 'messages is the conversation so far.' }),
 }, 'An AI chat turn');
 
 const JSON_TEXT = (name) => `${name} is JSON, as the app runtime sends it.`;

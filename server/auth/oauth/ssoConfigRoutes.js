@@ -25,10 +25,10 @@ const { tagGate } = require('../gateMeta');
 // org admin could read and repoint the installation's identity provider.
 const { validate } = require('../../core/http/validate');
 const { HttpError } = require('../../core/http/errors');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 const secret = (what) => worded(`A ${what} must be text.`).max(4096, `That ${what} is too long.`).optional();
 

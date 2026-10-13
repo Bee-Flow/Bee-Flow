@@ -67,7 +67,7 @@ const { startSseHeartbeat } = require('../../core/http/sseHelpers');
 // builder must never be reachable below the admin bar.
 const { requireAdmin, SITE_ID_RE } = require('../cmsShared');
 const { validate } = require('../../core/http/validate');
-const { z, worded, bodyOf, closedObject } = require('../../core/http/schemaParts');
+const { z, worded, bodyOf, closedObject, typeError } = require('../../core/http/schemaParts');
 
 // ── What a caller may send ───────────────────────────────────────────
 // The body keys the builder reads, and nothing else: a misspelled
@@ -85,7 +85,7 @@ const StreamBody = bodyOf({
     // Accepted for parity with the other builders; pages carry no time semantics.
     timezone: worded('timezone is a zone name, like Europe/Amsterdam.').max(100, 'timezone is at most 100 characters.').optional(),
     // Whitelisted and bounded further by sanitizeEditorContext.
-    context: z.record(z.unknown(), { invalid_type_error: "context is the editor's focus, an object." }).nullish(),
+    context: z.record(z.string(), z.unknown(), { error: typeError({ invalid: "context is the editor's focus, an object." }) }).nullish(),
 }, 'A builder turn');
 
 // Each builder turn is a multi-iteration LLM conversation chaining many tool

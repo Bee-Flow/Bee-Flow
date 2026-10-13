@@ -21,7 +21,7 @@ const { assertAgentToolsWrite, managedPayloadOfAgent } = require('../../stores/a
 const log = require('../../telemetry/log');
 
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 const { storedFlag, FLAG_DEFAULTS } = require('./storedFlag');
 const { makeAgentAccess } = require('../../agents/agentAccess');
 
@@ -34,7 +34,7 @@ const router = express.Router();
 // above POST /.
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 const CATEGORY_NAME = 'A category needs a name.';
 const CategoryBody = z.object({
@@ -59,7 +59,7 @@ const TransferBody = z.object({
 const ToolParamsBody = z.object({
     // A component declares its own params — endpoints, keys, whatever it
     // takes — so only the envelope around them is stated here.
-    params: z.record(z.unknown(), { invalid_type_error: 'params is an object of the tool\'s own settings.' }).nullish(),
+    params: z.record(z.string(), z.unknown(), { error: typeError({ invalid: 'params is an object of the tool\'s own settings.' }) }).nullish(),
 }).strict();
 
 /**
@@ -71,7 +71,7 @@ const setting = (name) => {
     const message = `${name} is true or false.`;
     return z.preprocess(
         (v) => (v === 1 ? true : v === 0 ? false : v),
-        z.boolean({ required_error: message, invalid_type_error: message }),
+        z.boolean({ error: message }),
     ).optional();
 };
 
@@ -115,8 +115,8 @@ const AgentUpdateBody = z.preprocess(
         model: worded('model is the name of a model or a tier.').nullish(),
         avatar: worded('avatar is text: an emoji or the address of an image.').nullish(),
         categoryId: worded('categoryId is the id of a category, or null for none.').nullish(),
-        starterPrompts: z.array(worded('starterPrompts is a list of prompts.'), { invalid_type_error: 'starterPrompts is a list of prompts.' }).optional(),
-        tools: z.array(worded('tools is a list of component ids.'), { invalid_type_error: 'tools is a list of component ids.' }).nullish(),
+        starterPrompts: z.array(worded('starterPrompts is a list of prompts.'), { error: typeError({ invalid: 'starterPrompts is a list of prompts.' }) }).optional(),
+        tools: z.array(worded('tools is a list of component ids.'), { error: typeError({ invalid: 'tools is a list of component ids.' }) }).nullish(),
         toolParams: asSent("toolParams is an object of each tool's own settings.").nullish(),
         config: asSent("config is an object of the agent's settings.").optional(),
         persona: asSent('persona is an object, or null to clear it.').nullish(),
@@ -124,18 +124,18 @@ const AgentUpdateBody = z.preprocess(
         copyEnabled: setting('copyEnabled'),
         workspaceEnabled: setting('workspaceEnabled'),
         embedEnabled: setting('embedEnabled'),
-        baseVersion: z.number({ invalid_type_error: 'baseVersion is the rev the editor loaded, a whole number.' })
+        baseVersion: z.number({ error: typeError({ invalid: 'baseVersion is the rev the editor loaded, a whole number.' }) })
             .int('baseVersion is the rev the editor loaded, a whole number.').nullish(),
         organizationId: z.unknown().optional(),
         sharedGroups: z.unknown().optional(),
     }, {
-        errorMap: (issue, ctx) => {
-            if (issue.code === 'unrecognized_keys') {
-                const names = issue.keys.map((k) => `'${k}'`).join(', ');
-                return { message: `An agent has no ${issue.keys.length === 1 ? 'setting' : 'settings'} called ${names}.` };
+        error: (iss) => {
+            if (iss.code === 'unrecognized_keys') {
+                const names = iss.keys.map((k) => `'${k}'`).join(', ');
+                return `An agent has no ${iss.keys.length === 1 ? 'setting' : 'settings'} called ${names}.`;
             }
-            if (issue.code === 'invalid_type') return { message: AGENT_BODY };
-            return { message: ctx.defaultError };
+            if (iss.code === 'invalid_type') return AGENT_BODY;
+            return undefined;
         },
     }).strict(),
 );

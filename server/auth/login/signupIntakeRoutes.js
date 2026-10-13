@@ -16,17 +16,17 @@ const loginThrottle = require('../loginThrottle');
 const signupCaptcha = require('../signupCaptcha');
 const { signupIpLimiter } = require('../authRateLimits');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 /**
  * An enum whose every refusal is a sentence. `invalid_type_error` alone is not
  * enough: zod reports a string that is not a member as `invalid_enum_value`,
  * whose default message quotes the whole option list back at the caller.
  */
-const wordedEnum = (values, message) => z.enum(values, { errorMap: () => ({ message }) });
+const wordedEnum = (values, message) => z.enum(values, { error: () => message });
 
 const AUTH_METHODS = ['password', 'google', 'microsoft'];
 const ORG_NAME_TEXT = 'Organization name is required';
@@ -53,8 +53,8 @@ const PendingSignupBody = z.object({
     signupType: wordedEnum(['consumer', 'org'], 'signupType is one of consumer, org.').optional(),
     authMethod: wordedEnum(AUTH_METHODS, `A sign-in method is one of ${AUTH_METHODS.join(', ')}.`).optional(),
     newOrgName: worded(ORG_NAME_TEXT).trim().min(1, ORG_NAME_TEXT).max(200, 'An organization name is at most 200 characters.').optional(),
-    orgDetails: z.record(z.unknown(), { invalid_type_error: 'orgDetails must be an object.' }).optional(),
-    privacyShield: z.record(z.unknown(), { invalid_type_error: 'privacyShield must be an object.' }).nullable().optional(),
+    orgDetails: z.record(z.string(), z.unknown(), { error: typeError({ invalid: 'orgDetails must be an object.' }) }).optional(),
+    privacyShield: z.record(z.string(), z.unknown(), { error: typeError({ invalid: 'privacyShield must be an object.' }) }).nullable().optional(),
     selectedPlanId: worded('A plan id must be text.').trim().max(200, 'That plan id is too long.').nullable().optional(),
     locale: worded('A locale must be text.').trim().max(32, 'That locale is too long.').nullable().optional(),
     captchaToken: worded('A challenge token must be text.').max(4096, 'That challenge token is too long.').optional(),

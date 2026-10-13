@@ -6,6 +6,7 @@ import FormPageEditor from './FormPageEditor';
 import useAutomationApi from '../../../../../hooks/useAutomationApi';
 import { useBuilderConfirm } from '../../BuilderConfirmContext';
 import { useTranslation } from '../../../../../hooks/useTranslation';
+import { copyText } from '../../../../../utils/copyText';
 
 /**
  * The authoring surface for a hosted form trigger (`kind: 'form'`) — page one
@@ -115,18 +116,7 @@ export function FormTriggerUrlPanel({ automation, stepId }) {
     const copy = async () => {
         if (!page?.url) return;
         try {
-            if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(page.url);
-            else {
-                const ta = document.createElement('textarea');
-                ta.value = page.url;
-                ta.style.position = 'fixed';
-                ta.style.opacity = '0';
-                document.body.appendChild(ta);
-                ta.select();
-                const ok = document.execCommand('copy');
-                document.body.removeChild(ta);
-                if (!ok) throw new Error('copy failed');
-            }
+            await copyText(page.url);
             setCopied(true);
             setTimeout(() => setCopied(false), 1500);
         } catch (e) {

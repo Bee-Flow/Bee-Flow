@@ -778,6 +778,31 @@ async function touchLastSeen(userId) {
     }
 }
 
+/**
+ * Replace a stored password hash with a re-encoding of the SAME password
+ * (auth/login/passwordRehash.js: bcrypt → argon2id after a successful sign-in).
+ *
+ * Not updateUser, for two reasons. The credential did not change, so
+ * `password_changed_at` must not move (updateUser would date it unless told
+ * otherwise). And the write is a compare-and-swap on the hash the sign-in just
+ * verified: if the password was changed or reset in the meantime, the newer
+ * hash wins and this write does nothing.
+ *
+ * @param {string} userId
+ * @param {string} expectedHash  the hash the password was verified against
+ * @param {string} newHash
+ * @returns {Promise<boolean>} whether the row was updated
+ */
+async function replacePasswordHash(userId, expectedHash, newHash) {
+    if (!userId || !expectedHash || !newHash) return false;
+    await initDB();
+    const { rowCount } = await run(
+        'UPDATE users SET "passwordHash" = $1 WHERE id = $2 AND "passwordHash" = $3',
+        [newHash, userId, expectedHash],
+    );
+    return rowCount > 0;
+}
+
 // ── Atomic seat-cap user creation ─────────────────────────────
 // Wraps createUser in a serializable transaction so that two concurrent
 // admin-add-user requests cannot both pass a "we have room" check and both
@@ -913,5 +938,5 @@ module.exports = {
     createUser, updateUser, deleteUser, eraseSuggestionTraces, eraseCmsUploadTickets, getUserByNcUid, findOrgMemberIdByEmail,
     stagesRunBy, assertNotStageRunAs,
     createUserWithSeatCheck, SeatCapExceededError,
-    touchLastSeen, isNewCredential,
+    touchLastSeen, isNewCredential, replacePasswordHash,
 };

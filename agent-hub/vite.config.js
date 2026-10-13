@@ -122,7 +122,7 @@ const VENDOR_CHUNKS = {
         // AppIcon fetches on a non-registry icon name. Pinning the
         // package again would weld all ~1,900 icons back into one
         // eagerly-loaded chunk — the exact 170 KB this change removed.
-        'vendor-misc': ['@tanstack/react-query', 'uuid'],
+        'vendor-misc': ['@tanstack/react-query'],
 };
 
 export default defineConfig(({ mode }) => {

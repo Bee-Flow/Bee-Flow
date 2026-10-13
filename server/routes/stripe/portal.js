@@ -11,7 +11,7 @@ const userStore = require('../../stores/userStore');
 const { requireCloud, requireAuth, resolveOrgIdForUser, getOrigin, stripeIpLimiter, stripeUserLimiter } = require('./shared');
 const { accountLicenseSettingsPath, orgLicenseSettingsPath } = require('../../utils/appPaths');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 
 const router = express.Router();
 
@@ -31,7 +31,7 @@ const ORIGIN_RE = /^https?:\/\/[^\s/?#]+$/;
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 const PortalBody = bodyOf({
-    origin: z.string({ invalid_type_error: ORIGIN_TEXT }).trim().regex(ORIGIN_RE, ORIGIN_TEXT).optional(),
+    origin: z.string({ error: typeError({ invalid: ORIGIN_TEXT }) }).trim().regex(ORIGIN_RE, ORIGIN_TEXT).optional(),
 });
 
 // ── POST /portal — Create a Stripe Customer Portal Session ───────────────────

@@ -40,7 +40,7 @@
 const express = require('express');
 const log = require('../../../telemetry/log');
 const { validate } = require('../../../core/http/validate');
-const { z, worded, bodyOf, closedObject, choice } = require('../../../core/http/schemaParts');
+const { z, worded, bodyOf, closedObject, choice, typeError } = require('../../../core/http/schemaParts');
 const { perUserRateLimit } = require('../../../utils/perUserRateLimit');
 const { startSseHeartbeat } = require('../../../core/http/sseHelpers');
 const { streamWithRetry } = require('../builderShared');
@@ -59,13 +59,13 @@ const MAX_UPSTREAM_FIELDS = 500;
 
 // ── What a turn may send ────────────────────────────────────────────
 const text = (message, max) => worded(message).max(max, message);
-const stringList = (message, maxItems, maxChars) => z.array(text(message, maxChars), { invalid_type_error: message }).max(maxItems, message);
+const stringList = (message, maxItems, maxChars) => z.array(text(message, maxChars), { error: typeError({ invalid: message }) }).max(maxItems, message);
 
 const CodeAssistBody = bodyOf({
     messages: z.array(closedObject({
         role: choice(['user', 'assistant'], 'A message role is "user" or "assistant".'),
         content: text(`A message is text of at most ${MAX_MESSAGE_CHARS.toLocaleString('en')} characters.`, MAX_MESSAGE_CHARS),
-    }, 'A message'), { required_error: 'messages is the conversation, ending with the new message.', invalid_type_error: 'messages is the conversation, ending with the new message.' })
+    }, 'A message'), { error: 'messages is the conversation, ending with the new message.' })
         .min(1, 'messages is the conversation, ending with the new message.')
         .max(MAX_MESSAGES, `At most ${MAX_MESSAGES} messages; start a new conversation.`),
     code: text(`code is the step's code, at most ${MAX_CODE_CHARS.toLocaleString('en')} characters.`, MAX_CODE_CHARS).nullish(),
@@ -75,9 +75,9 @@ const CodeAssistBody = bodyOf({
     // not read; only path, label and type are kept.
     upstreamFields: z.array(z.object({
         path: text('An upstream field has a path.', 500),
-        label: z.string({ invalid_type_error: 'An upstream field label is text.' }).max(300).nullish(),
-        type: z.string({ invalid_type_error: 'An upstream field type is text.' }).max(60).nullish(),
-    }), { invalid_type_error: 'upstreamFields is a list of { path, label, type }.' }).max(MAX_UPSTREAM_FIELDS).nullish(),
+        label: z.string({ error: typeError({ invalid: 'An upstream field label is text.' }) }).max(300).nullish(),
+        type: z.string({ error: typeError({ invalid: 'An upstream field type is text.' }) }).max(60).nullish(),
+    }), { error: typeError({ invalid: 'upstreamFields is a list of { path, label, type }.' }) }).max(MAX_UPSTREAM_FIELDS).nullish(),
     automationId: text('automationId is the id of the automation.', 200).nullish(),
     stepId: text('stepId is the id of the code step.', 200).nullish(),
     modelTier: text('modelTier is the name of a model tier.', 100).nullish(),

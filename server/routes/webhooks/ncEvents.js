@@ -42,7 +42,7 @@ const userStore = require('../../stores/userStore');
 const configStore = require('../../stores/configStore');
 const sync = require('../../services/ncUserGroupSync');
 const { badRequest } = require('../../core/http/errors');
-const { z } = require('zod');
+const { z, onUnknownKeys, typeError } = require('../../utils/zod');
 
 const EVENTS = ['user.created', 'user.updated', 'user.deleted', 'group.member_added', 'group.member_removed'];
 const EVENT_TEXT = `event is one of ${EVENTS.join(', ')}.`;
@@ -51,12 +51,12 @@ const GROUP_TEXT = 'groupId is the Nextcloud group id, as text.';
 const BODY_TEXT = 'A Nextcloud event is a JSON object with event, ncUid and groupId.';
 
 const NcEvent = z.object({
-    event: z.enum(EVENTS, { errorMap: () => ({ message: EVENT_TEXT }) }),
-    ncUid: z.string({ required_error: UID_TEXT, invalid_type_error: UID_TEXT }).min(1, UID_TEXT),
+    event: z.enum(EVENTS, { error: () => EVENT_TEXT }),
+    ncUid: z.string({ error: UID_TEXT }).min(1, UID_TEXT),
     // null for a user event. The sync re-reads the user's groups from
     // Nextcloud rather than trusting this, so it is only held to its type.
-    groupId: z.string({ invalid_type_error: GROUP_TEXT }).nullish(),
-}, { required_error: BODY_TEXT, invalid_type_error: BODY_TEXT }).strict(BODY_TEXT);
+    groupId: z.string({ error: typeError({ invalid: GROUP_TEXT }) }).nullish(),
+}, { error: onUnknownKeys(BODY_TEXT, typeError({ required: BODY_TEXT, invalid: BODY_TEXT })) }).strict();
 
 // We need the raw body bytes for HMAC verification, but downstream wants
 // the parsed JSON. express.json() with verify hook captures both.

@@ -38,7 +38,7 @@ const express = require('express');
 const log = require('../telemetry/log');
 const router = express.Router();
 const { validate } = require('../core/http/validate');
-const { z, worded, bodyOf, queryOf, choice, wholeNumber } = require('../core/http/schemaParts');
+const { z, worded, bodyOf, queryOf, choice, wholeNumber, typeError } = require('../core/http/schemaParts');
 
 // ── What the app-management routes accept ────────────────────────────
 // Closed bodies and queries. What they close: `isPublished: "false"` on
@@ -66,16 +66,16 @@ const UpdateAppBody = bodyOf({
     category: worded('category must be a string or null').nullish(),
 }, 'Updating an app');
 const DefinitionBody = bodyOf({
-    definition: z.record(z.unknown(), { required_error: 'definition (object) is required', invalid_type_error: 'definition (object) is required' }),
+    definition: z.record(z.string(), z.unknown(), { error: typeError({ required: 'definition (object) is required', invalid: 'definition (object) is required' }) }),
     baseVersion: wholeNumber('baseVersion is the version the editor loaded.'),
 }, 'Saving the draft');
 const GROUPS_TEXT = 'sharedGroups is a list of group ids; an empty list means the whole organisation.';
 const PublishBody = bodyOf({
-    isPublished: z.boolean({ required_error: 'isPublished is true or false.', invalid_type_error: 'isPublished is true or false.' }),
-    sharedGroups: z.array(appText(GROUPS_TEXT, 200), { invalid_type_error: GROUPS_TEXT }).optional(),
+    isPublished: z.boolean({ error: 'isPublished is true or false.' }),
+    sharedGroups: z.array(appText(GROUPS_TEXT, 200), { error: typeError({ invalid: GROUPS_TEXT }) }).optional(),
 }, 'Publishing an app');
 const NextcloudMenuBody = bodyOf({
-    enabled: z.boolean({ required_error: 'enabled is true or false.', invalid_type_error: 'enabled is true or false.' }),
+    enabled: z.boolean({ error: 'enabled is true or false.' }),
 }, 'The Nextcloud menu');
 const CheckBody = bodyOf({
     screenId: nullableText('screenId', 200),

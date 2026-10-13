@@ -6,7 +6,7 @@
  */
 
 const express = require('express');
-const bcrypt = require('bcryptjs');
+const passwords = require('../passwordHash');
 const log = require('../../telemetry/log');
 const router = express.Router();
 
@@ -16,10 +16,10 @@ const { loadConfig, saveConfig } = require('../permissions');
 const { MIN_PASSWORD_LENGTH, validatePasswordAsync } = require('../passwordPolicy');
 const signupCaptcha = require('../signupCaptcha');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 const PASSWORD_TEXT = 'Choose a password for the operator account.';
 // Only the password, and it must be a string: the policy check below reads
@@ -131,7 +131,7 @@ router.post('/setup', validate({ body: SetupBody }), async (req, res) => {
         return res.status(400).json({ error: 'Password must contain uppercase, lowercase, and a number' });
     }
 
-    config.admin.passwordHash = await bcrypt.hash(password, 12);
+    config.admin.passwordHash = await passwords.hash(password, { bcryptRounds: 12 });
     if (!await saveConfig({ admin: config.admin })) {
         return res.status(500).json({ error: 'Failed to save config' });
     }

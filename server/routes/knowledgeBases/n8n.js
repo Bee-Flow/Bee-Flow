@@ -15,14 +15,14 @@ const { requireAuth, requirePermission } = require('../../auth');
 const { ingestDocument } = require('../../core/kb/kbIngestionHelpers');
 const { getUserId, canAccessKB, blockIfSystemKB, ensureKbSource } = require('./shared');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 
 const WORKFLOW_TEXT = 'A workflow id is required — which n8n workflow to read.';
 const MODE_TEXT = 'mode is "data" (run the webhook) or "definition" (the flow itself).';
 const IngestN8nBody = z.object({
-    workflowId: z.string({ required_error: WORKFLOW_TEXT, invalid_type_error: WORKFLOW_TEXT })
+    workflowId: z.string({ error: WORKFLOW_TEXT })
         .trim().min(1, WORKFLOW_TEXT),
-    mode: z.enum(['data', 'definition'], { errorMap: () => ({ message: MODE_TEXT }) }).default('data'),
+    mode: z.enum(['data', 'definition'], { error: () => MODE_TEXT }).default('data'),
 }).strict();
 
 /**

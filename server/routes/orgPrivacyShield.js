@@ -29,7 +29,7 @@ require('../stores/userStore');
 const { resolveUserOrgIds } = require('../auth');
 const { validate } = require('../core/http/validate');
 const { badRequest } = require('../core/http/errors');
-const { z } = require('zod');
+const { z, typeError } = require('../utils/zod');
 const { isCustomTypeId } = require('../core/privacy/customTypes/ids');
 const { hasCustomDataFeature } = require('../core/privacy/customTypes/resolve');
 const customShieldDoc = require('../core/privacy/customTypes/shieldDoc');
@@ -64,21 +64,21 @@ const customTypeRegistry = require('../core/privacy/customTypes/registry');
 /** A body that also accepts no body: Express 5 leaves `req.body` undefined then. */
 const documentOf = (shape) => z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
-    z.object(shape, { invalid_type_error: 'Send the Privacy Shield settings as a JSON object.' }).passthrough(),
+    z.object(shape, { error: typeError({ invalid: 'Send the Privacy Shield settings as a JSON object.' }) }).passthrough(),
 );
-const flag = (name) => z.boolean({ invalid_type_error: `${name} is true or false.` }).optional();
-const choice = (values, message) => z.enum(values, { errorMap: () => ({ message }) }).optional();
+const flag = (name) => z.boolean({ error: typeError({ invalid: `${name} is true or false.` }) }).optional();
+const choice = (values, message) => z.enum(values, { error: () => message }).optional();
 const textList = (name, max) => {
     const message = `${name} is a list of text.`;
-    const list = z.array(z.string({ invalid_type_error: message }), { invalid_type_error: message });
+    const list = z.array(z.string({ error: typeError({ invalid: message }) }), { error: typeError({ invalid: message }) });
     return (max ? list.max(max, `${name} holds at most ${max} entries.`) : list).optional();
 };
 
 const SWITCH_TEXT = 'Say whether the Privacy Shield is on: enabled is true or false.';
 const THRESHOLD_TEXT = 'piiDetectionConfidenceThreshold is a number between 0.1 and 1 (0.7 is the tested setting).';
 const FAIL_TEXT = (name) => `${name} is fail_closed or fail_open.`;
-const masterSwitch = z.boolean({ required_error: SWITCH_TEXT, invalid_type_error: SWITCH_TEXT });
-const threshold = z.number({ invalid_type_error: THRESHOLD_TEXT })
+const masterSwitch = z.boolean({ error: SWITCH_TEXT });
+const threshold = z.number({ error: typeError({ invalid: THRESHOLD_TEXT }) })
     .min(0.1, THRESHOLD_TEXT).max(1, THRESHOLD_TEXT).optional();
 
 // `scope` was once stored verbatim, so an old row's scope can carry flags no
@@ -86,23 +86,23 @@ const threshold = z.number({ invalid_type_error: THRESHOLD_TEXT })
 // as the document's (refuseStrangers below). A flag left out reads as ON, the
 // way a scope left out always has — it used to read as OFF.
 const SCOPE_TEXT = 'scope says what is scanned: { userInput: true|false, agentOutput: true|false }.';
-const scopeFlag = z.boolean({ invalid_type_error: SCOPE_TEXT }).optional();
+const scopeFlag = z.boolean({ error: typeError({ invalid: SCOPE_TEXT }) }).optional();
 const SCOPE_SHAPE = { userInput: scopeFlag, agentOutput: scopeFlag };
-const Scope = z.object(SCOPE_SHAPE, { invalid_type_error: SCOPE_TEXT }).passthrough();
+const Scope = z.object(SCOPE_SHAPE, { error: typeError({ invalid: SCOPE_TEXT }) }).passthrough();
 
 const POLICY_TEXT = 'toolPiiPolicy is { external: { blockCategories: [...] }, internal: { blockCategories: [...] } }.';
-const BlockList = z.object({ blockCategories: textList('blockCategories') }, { invalid_type_error: POLICY_TEXT }).strict();
+const BlockList = z.object({ blockCategories: textList('blockCategories') }, { error: typeError({ invalid: POLICY_TEXT }) }).strict();
 const ToolPiiPolicy = z.object({
     external: BlockList.optional(),
     internal: BlockList.optional(),
-}, { invalid_type_error: POLICY_TEXT }).strict();
+}, { error: typeError({ invalid: POLICY_TEXT }) }).strict();
 
 const ALLOW_TEXT = 'piiAllowTerms is a list of terms (text) that are never treated as personal data.';
 const AllowTerm = z.union([
     z.string(),
     // The shape older rows hold; the reader (allowTerms.js) still accepts it.
     z.object({ term: z.string() }).passthrough(),
-], { errorMap: () => ({ message: ALLOW_TEXT }) });
+], { error: () => ALLOW_TEXT });
 
 const ORG_SHAPE = {
     enabled: masterSwitch,
@@ -128,10 +128,10 @@ const ORG_SHAPE = {
     dlpAlwaysReview: flag('dlpAlwaysReview'),
     dlpFailureMode: choice(['fail_closed', 'fail_open'], FAIL_TEXT('dlpFailureMode')),
     dlpAllowlistedHosts: textList('dlpAllowlistedHosts', 50),
-    customSensitiveTerms: z.array(z.unknown(), { invalid_type_error: 'customSensitiveTerms is a list of terms.' }).optional(),
-    customDataTypes: z.array(z.unknown(), { invalid_type_error: 'customDataTypes is a list of data types.' }).optional(),
-    customDataTests: z.object({}, { invalid_type_error: 'customDataTests is an object keyed by data type id.' }).passthrough().optional(),
-    piiAllowTerms: z.array(AllowTerm, { invalid_type_error: ALLOW_TEXT }).optional(),
+    customSensitiveTerms: z.array(z.unknown(), { error: typeError({ invalid: 'customSensitiveTerms is a list of terms.' }) }).optional(),
+    customDataTypes: z.array(z.unknown(), { error: typeError({ invalid: 'customDataTypes is a list of data types.' }) }).optional(),
+    customDataTests: z.object({}, { error: typeError({ invalid: 'customDataTests is an object keyed by data type id.' }) }).passthrough().optional(),
+    piiAllowTerms: z.array(AllowTerm, { error: typeError({ invalid: ALLOW_TEXT }) }).optional(),
     piiAllowPublicOrgs: flag('piiAllowPublicOrgs'),
     showRawPayload: flag('showRawPayload'),
 };

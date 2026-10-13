@@ -53,21 +53,21 @@ const { rerankCpu, CPU_RERANK_MODEL_ID } = require('../core/rerank/cpuCrossEncod
 const { ingestLocally, searchLocally, getDocumentContent, deleteChunksLocally } = require('../core/kb/localKBIngest');
 const configStore = require('../stores/configStore');
 const { validate } = require('../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../utils/zod');
 
 // ─── What a caller may send ─────────────────────────────────────
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
-const choice = (values, message) => z.enum(values, { errorMap: () => ({ message }) });
-const texts = (message) => z.array(worded(message), { required_error: message, invalid_type_error: message }).min(1, message);
+const choice = (values, message) => z.enum(values, { error: () => message });
+const texts = (message) => z.array(worded(message), { error: message }).min(1, message);
 const id = (message) => worded(message).min(1, message);
 // Coerced, like pydantic's lax mode: "5" is 5 on the Python side too.
-const count = (message) => z.coerce.number({ invalid_type_error: message }).int(message).min(1, message);
+const count = (message) => z.coerce.number({ error: typeError({ invalid: message }) }).int(message).min(1, message);
 /** Sent for the Python service, unused by this twin: declared, never policed. */
-const ignored = z.unknown();
+const ignored = z.unknown().optional();
 
 const QUERY_TEXT = 'query is the text to search for.';
 const TENANT_TEXT = 'tenant_id is the owner of the knowledge bases (a user id).';
@@ -87,10 +87,10 @@ const RerankBody = bodyOf({
 // search-service/app/models.py SimpleSearchRequest, plus what this twin reads.
 const KbSearchBody = bodyOf({
     tenant_id: id(TENANT_TEXT),
-    kb_ids: z.array(id(KB_IDS_TEXT), { required_error: KB_IDS_TEXT, invalid_type_error: KB_IDS_TEXT }).min(1, KB_IDS_TEXT),
+    kb_ids: z.array(id(KB_IDS_TEXT), { error: KB_IDS_TEXT }).min(1, KB_IDS_TEXT),
     query: id(QUERY_TEXT),
     // Capped at 50 below, as before: a caller asking topK + 2 is not wrong.
-    top_k: z.coerce.number({ invalid_type_error: 'top_k is a whole number of chunks.' })
+    top_k: z.coerce.number({ error: typeError({ invalid: 'top_k is a whole number of chunks.' }) })
         .int('top_k is a whole number of chunks.').min(1, 'top_k is at least 1.').nullish(),
     rerank: ignored,
     use_azure: ignored,
@@ -102,18 +102,18 @@ const KbSearchBody = bodyOf({
 
 const MODES = ['web', 'web_fast', 'kb', 'auto'];
 const MODE_TEXT = `mode is one of: ${MODES.join(', ')}.`;
-const kbIdList = z.array(id(KB_IDS_TEXT), { invalid_type_error: KB_IDS_TEXT });
+const kbIdList = z.array(id(KB_IDS_TEXT), { error: typeError({ invalid: KB_IDS_TEXT }) });
 
 // search-service/app/models.py SearchRequest, plus this twin's own flat scope.
 const SearchBody = bodyOf({
     query: id(QUERY_TEXT).max(2000, 'query is at most 2000 characters.'),
-    mode: choice(MODES, MODE_TEXT).default('auto'),
+    mode: choice(MODES, MODE_TEXT).prefault('auto'),
     web: z.object({
         max_results: count('web.max_results is a whole number of results, 1 to 20.')
             .max(20, 'web.max_results is a whole number of results, 1 to 20.').optional(),
         fetch_top_n: ignored,
         allow_js_fallback: ignored,
-    }, { invalid_type_error: 'web is an object of web-search options.' }).strict().optional(),
+    }, { error: typeError({ invalid: 'web is an object of web-search options.' }) }).strict().optional(),
     kb: z.object({
         top_k_final: count('kb.top_k_final is a whole number of chunks, 1 to 50.')
             .max(50, 'kb.top_k_final is a whole number of chunks, 1 to 50.').optional(),
@@ -123,11 +123,11 @@ const SearchBody = bodyOf({
         // This twin's older spelling of the scope, still read.
         tenant_id: id(TENANT_TEXT).optional(),
         kb_ids: kbIdList.optional(),
-    }, { invalid_type_error: 'kb is an object of knowledge-base options.' }).strict().optional(),
+    }, { error: typeError({ invalid: 'kb is an object of knowledge-base options.' }) }).strict().optional(),
     kb_scope: z.object({
         tenant_id: id(TENANT_TEXT),
         knowledge_base_ids: kbIdList.optional(),
-    }, { invalid_type_error: 'kb_scope is { tenant_id, knowledge_base_ids }.' }).strict().nullish(),
+    }, { error: typeError({ invalid: 'kb_scope is { tenant_id, knowledge_base_ids }.' }) }).strict().nullish(),
     response: ignored,
     tenant_id: id(TENANT_TEXT).optional(),
     kb_ids: kbIdList.optional(),

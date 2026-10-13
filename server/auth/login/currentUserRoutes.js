@@ -15,10 +15,10 @@ const { loadConfig } = require('../permissions');
 const consentGuards = require('../consentGuards');
 const { isEncryptionEnabledForUser, isSsoPinRequiredForUser } = require('../../stores/encryptionAvailability');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 const ID_TEXT = 'Name the consent you want to change.';
 const GRANTED_TEXT = 'Say whether the consent is given or withdrawn.';
@@ -29,7 +29,7 @@ const GRANTED_TEXT = 'Say whether the consent is given or withdrawn.';
 // for it is the one outcome this route must never produce by accident.
 const OptionalConsentBody = z.object({
     id: worded(ID_TEXT).trim().min(1, ID_TEXT).max(200, ID_TEXT),
-    granted: z.boolean({ required_error: GRANTED_TEXT, invalid_type_error: GRANTED_TEXT }),
+    granted: z.boolean({ error: GRANTED_TEXT }),
 }).strict();
 
 // Get current user info

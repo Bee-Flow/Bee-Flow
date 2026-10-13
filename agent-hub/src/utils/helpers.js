@@ -1,4 +1,3 @@
-import { v4 as uuidv4 } from 'uuid';
 import { isPublicMarketingPath } from './cmsPublicRouting';
 
 /** Anonymous marketing surface — a 401 there is the expected answer, not a
@@ -61,7 +60,16 @@ export const API_BASE = getApiBase();
  */
 export const isNextcloudEmbed = () => API_BASE.includes('/apps/app_api/proxy/') || API_BASE.includes('/exapps/');
 
-export const generateMessageId = () => uuidv4();
+// crypto.randomUUID only exists in secure contexts (HTTPS, localhost); a
+// self-hosted instance on plain HTTP still has getRandomValues, so build a v4 from that.
+export const generateMessageId = () => {
+    if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+    const b = crypto.getRandomValues(new Uint8Array(16));
+    b[6] = (b[6] & 0x0f) | 0x40;
+    b[8] = (b[8] & 0x3f) | 0x80;
+    const h = Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
+    return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+};
 
 // Embedded-iframe session token. When BeeFlow runs inside another origin (e.g.
 // Nextcloud), Chrome's storage partitioning keeps the session cookie set by the

@@ -27,7 +27,7 @@
  */
 
 const express = require('express');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 const { validate } = require('../../core/http/validate');
 const { HttpError } = require('../../core/http/errors');
 const { credentialJson } = require('./schemas');
@@ -38,12 +38,12 @@ const DEFAULT_NAME = 'Security key';
 const CODE_TEXT = 'Enter a code from your authenticator app, or a recovery code.';
 const NAME_TEXT = `A name is at most ${NAME_MAX} characters.`;
 
-const nameField = z.string({ invalid_type_error: NAME_TEXT }).trim().max(NAME_MAX, NAME_TEXT);
+const nameField = z.string({ error: typeError({ invalid: NAME_TEXT }) }).trim().max(NAME_MAX, NAME_TEXT);
 
 const OptionsBody = z.object({
     name: nameField.optional(),
     // Proof of an existing factor; only asked for while 2FA is on.
-    code: z.string({ invalid_type_error: CODE_TEXT }).trim().min(1, CODE_TEXT).max(64, CODE_TEXT).optional(),
+    code: z.string({ error: typeError({ invalid: CODE_TEXT }) }).trim().min(1, CODE_TEXT).max(64, CODE_TEXT).optional(),
     securityKey: credentialJson.optional(),
 }).strict();
 const VerifyBody = z.object({ response: credentialJson }).strict();

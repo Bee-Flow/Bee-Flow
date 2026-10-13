@@ -14,7 +14,7 @@ const transcriptionStore = require('../../stores/transcriptionStore');
 const { requireAuth } = require('../../auth/permissions');
 const { resolveAccessContext } = require('./shared');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 const { flag } = require('./schemas');
 
 // `?download=1` is de reddingsluik-parameter en de enige die deze route leest.

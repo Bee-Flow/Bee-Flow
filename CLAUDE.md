@@ -66,8 +66,27 @@ and `npm run lint:secrets`.
   you add it to the table with a reason.
 - `npm run lint:checks`: every required status context is produced by exactly one
   non-matrix, unfiltered, PR-triggered job. All test and lint jobs live in `ci.yml` (path
-  filters in its `changes` job); `checks-passed` is the aggregate.
+  filters in its `changes` job, the desktop client's `desktop` job included); `checks-passed`
+  is the aggregate.
 - `npm run lint:deps`: the audit ratchet (`npm audit` may not get worse than the recorded floor).
+- `npm run lint:package-registry`: every directory with a `package.json` or `requirements*.txt`
+  is in `scripts/packages.json` (role, lockfile type, Dependabot cadence) and has a matching
+  entry in `.github/dependabot.yml`, or `dependabot: "none"` with a reason. A new package
+  means a line in both files.
+- `npm run lint:version-drift`: the number of dependencies on different majors in 2+ npm
+  packages may only go down (`.version-drift-ratchet.json`, `--update` only lowers,
+  `--list` shows who is on what); yjs, y-protocols and lib0 must be identical in server and
+  agent-hub.
+- `npm run lint:editor-bundles`: `server/core/markdown/editorSerialization.cjs` and
+  `editorCollab.cjs` are generated from `agent-hub/src/editor/` (`cd server && npm run
+  build:editor-md` / `build:editor-collab`, with the esbuild the server locks). Each carries a
+  sha256 of its inputs in its banner; the check recomputes it and fails on a stale bundle.
+- `npm run lint:compose-drift`: the same third-party image has the same tag in every
+  `docker-compose*.yml`, and the profiles used there match `ALL_PROFILES` in `selfhost.sh`.
+- Local images = CI images: `scripts/stage-server-context.sh` stages the server image's
+  App Studio runtime bundle and SBOM; `build-push-ghcr.yml`, `build-images.sh` and
+  `build-images.ps1` all use it, and `build-images.test.mjs` asserts their service lists
+  match the workflow.
 - `npm run lint:budget`: the eslint warning ratchet for `agent-hub` and `server`
   (`scripts/eslint-budget.mjs`, budget in `<package>/.eslint-budget.json`; `--update` only
   lowers it). The server is at 0.
@@ -197,4 +216,4 @@ and `npm run lint:secrets`.
 
 ## Environment
 
-Node 22.12.x, npm 10.9. Paths may contain spaces: quote them.
+Node as pinned in `.nvmrc`, npm 10.9. Paths may contain spaces: quote them.

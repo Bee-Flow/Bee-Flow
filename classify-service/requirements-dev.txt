@@ -1,11 +1,13 @@
 # Test-only dependencies. Run from the repo root: pytest classify-service/tests
 # No model, no torch, no gliclass: the tests swap in a FakeClassifier
-# (tests/conftest.py). The service lines carry the same pins as
-# requirements.txt, so the tests import the versions the image ships.
+# (tests/conftest.py). The service packages are named here and PINNED by
+# requirements.txt (the pin of record) via the constraint below, so the tests
+# import the versions the image ships.
+-c requirements.txt
 pytest==9.1.1
 pytest-cov==7.1.0
-fastapi==0.143.0
-pydantic==2.14.1
-pydantic-settings==2.15.0
+fastapi
+pydantic
+pydantic-settings
 # TestClient's transport; not in the image.
-httpx==0.28.1
+httpx

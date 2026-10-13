@@ -25,7 +25,7 @@ const liveSideEffects = require('../../automation/liveSideEffects');
 const { agentsFor, wakeComplianceReview, ensureFormPages, ensureAnswersTable } = liveSideEffects;
 const { deactivateCore, editedPinRefusal, capturedPinWarnings } = require('../../automation/goLive');
 const automationStore = require('../../stores/automationStore');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 const { validate } = require('../../core/http/validate');
 const { HttpError } = require('../../core/http/errors');
 const { MAX_FOLDER_NAME_LEN } = require('../../stores/automationStore/folders');
@@ -186,7 +186,7 @@ function appEventTriggersOf(definition) {
 // fail to stick with nothing on screen to explain it.
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 const PROVIDER_TEXT = 'triggerProvider is the id of a trigger source.';
 const EVENT_TEXT = 'triggerEvent is the id of one of that provider\'s events.';
@@ -213,21 +213,21 @@ const TZ_TEXT = 'scheduleTz must be text — a time zone.';
  * reads every node and answers with a list of findings; all the schema says
  * is that a definition arrived and is an object.
  */
-const Definition = z.record(z.unknown(), { required_error: DEFINITION_TEXT, invalid_type_error: DEFINITION_TEXT });
+const Definition = z.record(z.string(), z.unknown(), { error: typeError({ required: DEFINITION_TEXT, invalid: DEFINITION_TEXT }) });
 
 const CreateAutomationBody = z.object({
     title: worded(TITLE_TEXT).trim().min(1, TITLE_TEXT),
     description: worded('A description must be text.').nullish(),
     definition: Definition,
-    triggerType: worded(TRIGGER_TYPE_TEXT).trim().min(1, TRIGGER_TYPE_TEXT).default('manual'),
+    triggerType: worded(TRIGGER_TYPE_TEXT).trim().min(1, TRIGGER_TYPE_TEXT).prefault('manual'),
     // Blank stays blank rather than being refused here: an empty cron on a
     // schedule trigger has its own, better-worded answer further down.
-    scheduleCron: worded(CRON_TEXT).trim().nullish().default(null),
-    scheduleTz: worded(TZ_TEXT).trim().min(1, TZ_TEXT).default('Europe/Amsterdam'),
-    createdFromChatId: worded('createdFromChatId must be text.').trim().min(1).nullish().default(null),
+    scheduleCron: worded(CRON_TEXT).trim().nullish().prefault(null),
+    scheduleTz: worded(TZ_TEXT).trim().min(1, TZ_TEXT).prefault('Europe/Amsterdam'),
+    createdFromChatId: worded('createdFromChatId must be text.').trim().min(1).nullish().prefault(null),
     // Handoff 5: the gallery template this automation starts from, so v1 reads
     // "Created from template ...". Unknown ids are ignored (plain "Created").
-    templateId: worded('templateId must be the id of a template.').trim().min(1).max(200).nullish().default(null),
+    templateId: worded('templateId must be the id of a template.').trim().min(1).max(200).nullish().prefault(null),
 }).strict();
 
 const FOLDER_TEXT = 'folderId is the id of a folder, or null to move it back to the top level.';
@@ -238,7 +238,7 @@ const UpdateAutomationBody = z.object({
     title: worded(TITLE_TEXT).trim().min(1, TITLE_TEXT).optional(),
     description: worded('A description must be text.').nullish(),
     definition: Definition.optional(),
-    isDraft: z.boolean({ invalid_type_error: 'isDraft is true or false.' }).optional(),
+    isDraft: z.boolean({ error: typeError({ invalid: 'isDraft is true or false.' }) }).optional(),
     triggerType: worded(TRIGGER_TYPE_TEXT).trim().min(1, TRIGGER_TYPE_TEXT).optional(),
     scheduleCron: worded(CRON_TEXT).trim().nullish(),
     scheduleTz: worded(TZ_TEXT).trim().nullish(),
@@ -248,14 +248,14 @@ const UpdateAutomationBody = z.object({
 const AUDIENCE_TEXT = `audience is one of: ${AUDIENCES.join(', ')}.`;
 const ID_IN_LIST = (what) => worded(`Each ${what} must be a non-empty id.`).trim().min(1, `Each ${what} must be a non-empty id.`);
 const AudienceBody = z.object({
-    audience: z.enum(AUDIENCES, { errorMap: () => ({ message: AUDIENCE_TEXT }) }),
-    sharedGroups: z.array(ID_IN_LIST('group'), { invalid_type_error: 'sharedGroups is a list of group ids.' })
+    audience: z.enum(AUDIENCES, { error: () => AUDIENCE_TEXT }),
+    sharedGroups: z.array(ID_IN_LIST('group'), { error: typeError({ invalid: 'sharedGroups is a list of group ids.' }) })
         .max(200, 'Too many people or groups on one form.').default([]),
     // The route asks the directory about each id, so the same id twice is the
     // same question twice.
-    sharedUserIds: z.array(ID_IN_LIST('person'), { invalid_type_error: 'sharedUserIds is a list of user ids.' })
+    sharedUserIds: z.array(ID_IN_LIST('person'), { error: typeError({ invalid: 'sharedUserIds is a list of user ids.' }) })
         .max(500, 'Too many people or groups on one form.')
-        .transform((ids) => [...new Set(ids)]).default([]),
+        .transform((ids) => [...new Set(ids)]).prefault([]),
 }).strict();
 
 /**
@@ -418,7 +418,7 @@ const FolderBody = z.object({
     // Both messages, because zod answers a MISSING field with required_error
     // and a blank one with the min() message, and the caller reads whichever
     // it gets: an unworded rule arrives as the word "Required".
-    name: z.string({ required_error: NAME_REQUIRED, invalid_type_error: NAME_REQUIRED })
+    name: z.string({ error: NAME_REQUIRED })
         .trim().min(1, NAME_REQUIRED)
         .max(MAX_FOLDER_NAME_LEN, `A folder name is at most ${MAX_FOLDER_NAME_LEN} characters.`),
     icon: z.string().trim().max(16).optional(),
@@ -1312,7 +1312,7 @@ router.post('/:id/activate', (req, res) =>
 // "Make vN live" (handoff 5): the working copy becomes the live version.
 // Body `{ version? }` — the version the person reviewed (409 if it moved on).
 const PublishBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object({
-    version: z.number({ invalid_type_error: 'version is the version number you reviewed.' })
+    version: z.number({ error: typeError({ invalid: 'version is the version number you reviewed.' }) })
         .int('version is a whole number.').positive('version is a whole number.').optional(),
 }).strict());
 router.post('/:id/publish', validate({ body: PublishBody }), (req, res) =>

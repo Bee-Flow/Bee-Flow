@@ -20,7 +20,7 @@ const {
 } = require('../../core/kb/kbIngestionHelpers');
 const { getUserId, canAccessKB, blockIfSystemKB, ensureKbSource } = require('./shared');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -29,7 +29,7 @@ const { z } = require('zod');
 // the person typed, with nothing on screen to say so.
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 const CONTENT_TEXT = 'A text snippet needs at least three characters of text.';
 const IngestTextBody = z.object({

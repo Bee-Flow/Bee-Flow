@@ -33,7 +33,7 @@ const configStore = require('../../../stores/configStore');
 const { isAdminUser } = require('./shared');
 const { requireAuth } = require('../../../auth/permissions');
 const { validate } = require('../../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../../utils/zod');
 
 async function requireAdmin(req, res, next) {
     if (!(await isAdminUser(req))) return res.status(403).json({ error: 'Admin access required' });
@@ -49,24 +49,24 @@ const PROMPT_TEXT = 'systemPrompt is the prompt text; send an empty string to us
 const SystemPromptBody = bodyOf(z.object({
     // `systemPrompt || ''` read a misspelled key as "clear it": the prompt
     // was wiped and the page said "saved".
-    systemPrompt: z.string({ required_error: PROMPT_TEXT, invalid_type_error: PROMPT_TEXT }),
+    systemPrompt: z.string({ error: PROMPT_TEXT }),
 }).strict());
 
 const TIER_TOOLS_TEXT = 'Each tier maps to a list of component ids.';
 /** { [tier]: componentId[] } — directChatToolStack reads `tierTools[tier].includes(id)`. */
 const TierToolsBody = bodyOf(z.record(
     z.string(),
-    z.array(z.string({ invalid_type_error: TIER_TOOLS_TEXT }), { invalid_type_error: TIER_TOOLS_TEXT }),
-    { invalid_type_error: 'The body maps each tier to its list of component ids.' },
+    z.array(z.string({ error: typeError({ invalid: TIER_TOOLS_TEXT }) }), { error: typeError({ invalid: TIER_TOOLS_TEXT }) }),
+    { error: typeError({ invalid: 'The body maps each tier to its list of component ids.' }) },
 ));
 
 const TOOL_PARAMS_TEXT = 'Each tool maps to an object of the parameters it is pinned to.';
 /** { [tier]: { [toolName]: { [param]: value } } } — spread over the tool's own arguments. */
 const TierToolParamsBody = bodyOf(z.record(
     z.string(),
-    z.record(z.string(), z.record(z.string(), z.unknown(), { invalid_type_error: TOOL_PARAMS_TEXT }),
-        { invalid_type_error: 'Each tier maps tool names to their pinned parameters.' }),
-    { invalid_type_error: 'The body maps each tier to its tools\' pinned parameters.' },
+    z.record(z.string(), z.record(z.string(), z.unknown(), { error: typeError({ invalid: TOOL_PARAMS_TEXT }) }),
+        { error: typeError({ invalid: 'Each tier maps tool names to their pinned parameters.' }) }),
+    { error: typeError({ invalid: 'The body maps each tier to its tools\' pinned parameters.' }) },
 ));
 
 // ─── Direct Chat System Prompt ───────────────────────────────────

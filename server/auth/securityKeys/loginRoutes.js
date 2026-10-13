@@ -19,7 +19,7 @@
  */
 
 const express = require('express');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 const { validate } = require('../../core/http/validate');
 const { HttpError } = require('../../core/http/errors');
 const { credentialJson } = require('./schemas');

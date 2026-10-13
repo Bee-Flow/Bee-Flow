@@ -40,7 +40,7 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 
 const { requireAuth } = require('../auth/permissions');
 const { validate } = require('../core/http/validate');
 const { contentDisposition, safeFileName } = require('../core/http/contentDisposition');
-const { z, worded, bodyOf, choice, idList } = require('../core/http/schemaParts');
+const { z, worded, bodyOf, choice, idList, typeError } = require('../core/http/schemaParts');
 const { badRequest } = require('../core/http/errors');
 const { usableKbIdsForRequest } = require('../support/kbAccess');
 
@@ -98,7 +98,7 @@ const UpdateBody = bodyOf({
 // used to reach the renderer and come back as a 500.
 const VALUES_TEXT = 'values is an object of placeholder values, like {"Name": "Ada"}.';
 const FillBody = bodyOf({
-    values: z.record(z.unknown(), { required_error: 'Values object required', invalid_type_error: VALUES_TEXT }),
+    values: z.record(z.string(), z.unknown(), { error: typeError({ required: 'Values object required', invalid: VALUES_TEXT }) }),
 }, 'Filling a template');
 
 /**

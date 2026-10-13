@@ -276,10 +276,10 @@ function readEnvelope(value) {
  * Step 1: Client starts registration, sends registrationRequest
  */
 const { validate } = require('../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../utils/zod');
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 /**
  * The OPAQUE protocol messages, and the key envelopes that ride with them.
@@ -294,7 +294,7 @@ const worded = (message) => z.string({ required_error: message, invalid_type_err
  * server drops is a key envelope the client believes it stored.
  */
 const blob = (name) => worded(`${name} must be text.`).min(1, `${name} required`).max(8192, `That ${name} is too long.`);
-const envelope = (name) => z.record(z.unknown(), { invalid_type_error: `${name} must be an encryption envelope.` });
+const envelope = (name) => z.record(z.string(), z.unknown(), { error: typeError({ invalid: `${name} must be an encryption envelope.` }) });
 
 // `username` is ACCEPTED AND IGNORED. The shipped web client sends it on both
 // registration steps, and the server deliberately takes the account from the
@@ -311,7 +311,7 @@ const RegisterFinishBody = z.object({
     wrappedDEK: envelope('wrappedDEK'),
     recoveryWrappedDEK: envelope('recoveryWrappedDEK').optional(),
     kekSalt: worded('kekSalt must be text.').max(512, 'That kekSalt is too long.').optional(),
-    confirmReplace: z.boolean({ invalid_type_error: 'confirmReplace must be true or false.' }).optional(),
+    confirmReplace: z.boolean({ error: typeError({ invalid: 'confirmReplace must be true or false.' }) }).optional(),
 }).strict();
 const LOGIN_START_TEXT = 'username and startLoginRequest required';
 const LoginStartBody = z.object({
@@ -331,7 +331,7 @@ const PinRegisterFinishBody = z.object({
     registrationRecord: blob('registrationRecord'),
     wrappedDEK: envelope('wrappedDEK'),
     recoveryWrappedDEK: envelope('recoveryWrappedDEK').optional(),
-    confirmReplace: z.boolean({ invalid_type_error: 'confirmReplace must be true or false.' }).optional(),
+    confirmReplace: z.boolean({ error: typeError({ invalid: 'confirmReplace must be true or false.' }) }).optional(),
 }).strict();
 const PinLoginStartBody = z.object({
     startLoginRequest: blob('startLoginRequest'),

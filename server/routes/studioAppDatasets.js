@@ -113,7 +113,7 @@
 
 const express = require('express');
 const crypto = require('crypto');
-const { z } = require('zod');
+const { z } = require('../utils/zod');
 const log = require('../telemetry/log');
 const { validate } = require('../core/http/validate');
 const router = express.Router();
@@ -146,7 +146,7 @@ const largeDatasets = requireFeature('large_datasets');
 
 // ── What a caller may send ────────────────────────────────────────────
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 /** An object that also accepts nothing at all: no body, or a test's bare req, reads as {}. */
 const partOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
@@ -157,7 +157,7 @@ const NAME_TEXT = 'A dataset needs a name; the file name will do.';
 const BYTES_TEXT = 'bytes is the size of the file in bytes: a whole number above 0.';
 
 const appIdParam = worded(APP_ID_TEXT).min(1, APP_ID_TEXT).max(200, APP_ID_TEXT);
-const datasetIdParam = worded(DATASET_ID_TEXT).uuid(DATASET_ID_TEXT);
+const datasetIdParam = worded(DATASET_ID_TEXT).guid(DATASET_ID_TEXT);
 
 const NoQuery = partOf({});
 const AppParams = z.object({ id: appIdParam }).strict();
@@ -172,9 +172,9 @@ const PartParams = z.object({
 
 const InitBody = partOf({
     name: worded(NAME_TEXT).trim().min(1, NAME_TEXT).max(255, 'A dataset name is at most 255 characters.'),
-    bytes: z.number({ required_error: BYTES_TEXT, invalid_type_error: BYTES_TEXT })
+    bytes: z.number({ error: BYTES_TEXT })
         .int(BYTES_TEXT).positive(BYTES_TEXT).max(Number.MAX_SAFE_INTEGER, BYTES_TEXT),
-    kind: z.enum(['vcf'], { errorMap: () => ({ message: 'kind is "vcf": that is the only kind of dataset so far.' }) }).optional(),
+    kind: z.enum(['vcf'], { error: () => 'kind is "vcf": that is the only kind of dataset so far.' }).optional(),
 });
 // The client sends `{}`; nothing in it is read, so nothing else may be in it.
 const CompleteBody = partOf({});

@@ -1,5 +1,6 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { toast } from '../../components/shared/Toast';
+import useOutsideDismiss from '../../hooks/useOutsideDismiss';
 import { useTranslation } from '../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { AvatarDisplay } from '../AdvancedSettings';
@@ -23,14 +24,7 @@ const AvatarPicker = ({ user, onSaved }) => {
     const fileRef = useRef();
     const popoverRef = useRef();
 
-    useEffect(() => {
-        if (!open) return;
-        const handler = (e) => {
-            if (popoverRef.current && !popoverRef.current.contains(e.target)) setOpen(false);
-        };
-        document.addEventListener('mousedown', handler);
-        return () => document.removeEventListener('mousedown', handler);
-    }, [open]);
+    useOutsideDismiss(popoverRef, () => setOpen(false), { enabled: open, escape: false, defer: false });
 
     // One save path for the three actions. The new avatar is applied (and the
     // picker closed) only once the server stored it; a refusal or a network

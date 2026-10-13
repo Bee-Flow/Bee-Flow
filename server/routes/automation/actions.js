@@ -23,7 +23,7 @@
 'use strict';
 
 const express = require('express');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 const { validate } = require('../../core/http/validate');
 const { HttpError } = require('../../core/http/errors');
 const { makeGuardedLoad } = require('./guardedLoad');
@@ -34,13 +34,13 @@ const NoBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.o
 const TEMPLATE_TITLE_TEXT = 'title is the template name (1 to 120 characters).';
 const TEMPLATE_DESCRIPTION_TEXT = 'description is at most 500 characters, or null.';
 const SaveAsTemplateBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object({
-    title: z.string({ invalid_type_error: TEMPLATE_TITLE_TEXT }).trim().min(1, TEMPLATE_TITLE_TEXT).max(120, TEMPLATE_TITLE_TEXT).optional(),
-    description: z.string({ invalid_type_error: TEMPLATE_DESCRIPTION_TEXT }).trim().max(500, TEMPLATE_DESCRIPTION_TEXT).nullish(),
+    title: z.string({ error: typeError({ invalid: TEMPLATE_TITLE_TEXT }) }).trim().min(1, TEMPLATE_TITLE_TEXT).max(120, TEMPLATE_TITLE_TEXT).optional(),
+    description: z.string({ error: typeError({ invalid: TEMPLATE_DESCRIPTION_TEXT }) }).trim().max(500, TEMPLATE_DESCRIPTION_TEXT).nullish(),
 }).strict());
 
 const LANGUAGE_TEXT = 'language is a language code such as "en" or "nl".';
 const SuggestBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object({
-    language: z.string({ invalid_type_error: LANGUAGE_TEXT }).trim().regex(/^[a-z]{2}(-[A-Za-z]{2})?$/, LANGUAGE_TEXT).optional(),
+    language: z.string({ error: typeError({ invalid: LANGUAGE_TEXT }) }).trim().regex(/^[a-z]{2}(-[A-Za-z]{2})?$/, LANGUAGE_TEXT).optional(),
 }).strict());
 
 const LANGUAGE_NAMES = { en: 'English', nl: 'Dutch', de: 'German', fr: 'French', es: 'Spanish', it: 'Italian' };

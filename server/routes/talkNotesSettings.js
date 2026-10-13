@@ -38,18 +38,18 @@ require('../stores/userStore');
 const { resolveUserOrgIds } = require('../auth');
 const talkNotes = require('../core/meetingNotes/talkNotesSettings');
 const { validate } = require('../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../utils/zod');
 
 /** A real boolean, never the text "false" — which is true. */
-const bool = (name) => z.boolean({ invalid_type_error: `${name} is true or false.` });
-const choice = (values, message) => z.enum(values, { errorMap: () => ({ message }) });
+const bool = (name) => z.boolean({ error: typeError({ invalid: `${name} is true or false.` }) });
+const choice = (values, message) => z.enum(values, { error: () => message });
 
 const SCOPE_TEXT = 'autoRecordScope is "calendar" (scheduled meetings) or "all" (any moderated call).';
 const MODE_TEXT = 'recordingMode is "audio" or "video".';
 const LANGUAGE_TEXT = 'language is a language code, e.g. "nl" or "en".';
 const FOLDER_TEXT = 'recordingFolder is a Nextcloud folder path, e.g. /Talk/Recording.';
 
-const language = z.string({ invalid_type_error: LANGUAGE_TEXT })
+const language = z.string({ error: typeError({ invalid: LANGUAGE_TEXT }) })
     .trim().regex(/^([a-z]{2,3}(-[a-z0-9]{2,8})?|auto)$/i, LANGUAGE_TEXT);
 
 /** The fields both scopes store. `nullable` is the org's "inherit". */
@@ -58,29 +58,29 @@ function settingsShape({ nullable }) {
     return {
         autoTranscribe: maybe(bool('autoTranscribe')),
         postSummaryBack: maybe(bool('postSummaryBack')),
-        recordingFolder: maybe(z.string({ invalid_type_error: FOLDER_TEXT }).max(1024, FOLDER_TEXT)),
+        recordingFolder: maybe(z.string({ error: typeError({ invalid: FOLDER_TEXT }) }).max(1024, FOLDER_TEXT)),
         language: maybe(language),
         autoRecord: maybe(bool('autoRecord')),
         autoRecordScope: maybe(choice(['calendar', 'all'], SCOPE_TEXT)),
         recordingMode: maybe(choice(['audio', 'video'], MODE_TEXT)),
         // LEGACY — round-tripped for a rollback, filtered by asStrArray.
-        excludedEventUids: z.array(z.unknown(), { invalid_type_error: 'excludedEventUids is a list.' }).optional(),
-        excludedRoomTokens: z.array(z.unknown(), { invalid_type_error: 'excludedRoomTokens is a list.' }).optional(),
+        excludedEventUids: z.array(z.unknown(), { error: typeError({ invalid: 'excludedEventUids is a list.' }) }).optional(),
+        excludedRoomTokens: z.array(z.unknown(), { error: typeError({ invalid: 'excludedRoomTokens is a list.' }) }).optional(),
         // Echoes of the GET, declared so a round-trip save is not refused.
-        updatedAt: z.unknown(),
-        updatedBy: z.unknown(),
+        updatedAt: z.unknown().optional(),
+        updatedBy: z.unknown().optional(),
     };
 }
 
 const UserSettingsBody = z.object({
     ...settingsShape({ nullable: false }),
-    nextcloudConnected: z.unknown(),
-    recordingEnabled: z.unknown(),
+    nextcloudConnected: z.unknown().optional(),
+    recordingEnabled: z.unknown().optional(),
 }).strict();
 
 const OrgSettingsBody = z.object({
     ...settingsShape({ nullable: true }),
-    defaultOwnerUserId: z.string({ invalid_type_error: 'defaultOwnerUserId is a user id.' }).nullish(),
+    defaultOwnerUserId: z.string({ error: typeError({ invalid: 'defaultOwnerUserId is a user id.' }) }).nullish(),
     insightsPerPersonStats: bool('insightsPerPersonStats').optional(),
 }).strict();
 

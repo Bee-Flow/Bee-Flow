@@ -100,6 +100,19 @@ Flow's latency or availability. The full knob list — including export timeouts
 and backfill behaviour — is in `server/.env.example`; see
 [Reference → Telemetry](../reference/telemetry.md) for the current state.
 
+## Webpage full-tier runtime (optional)
+
+The full-tier preview for webpage projects runs each project in a throwaway Docker container. It is **off by default** and starts only when `WEBPAGE_FULL_RUNTIME_ENABLED=1` and the server can reach a Docker daemon.
+
+The container image, `ghcr.io/bee-flow/webpage-runner`, is **built outside this repository**: this repo contains no Dockerfile for it. The server picks the image in this order:
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `WEBPAGE_RUNNER_IMAGE` | unset | Image to run. Wins over everything else; set it to use your own build or a private mirror. |
+| `WEBPAGE_RUNNER_REGISTRY_IMAGE` | `ghcr.io/bee-flow/webpage-runner:latest` | Image the server pulls when `WEBPAGE_RUNNER_IMAGE` is unset and no local `beeflow-webpage-runner:local` image exists. |
+
+If the image can neither be found nor pulled (for example on an air-gapped host), the preview does not start: the API answers `503 full_tier_unavailable` and the server log says `webpage-runner image unavailable. Set WEBPAGE_RUNNER_IMAGE.` Pull or load the image on the host first, then set `WEBPAGE_RUNNER_IMAGE`.
+
 ## Everything else
 
 Model-provider keys, OAuth client credentials, SMTP, licensing, retention

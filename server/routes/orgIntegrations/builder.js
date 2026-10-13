@@ -49,7 +49,7 @@
  */
 
 const express = require('express');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 const { validate } = require('../../core/http/validate');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { validateCustomIntegration, deriveOpenAiTools } = require('../../core/customIntegrations/validateCustomIntegration');
@@ -71,22 +71,22 @@ const MAX_TOOL_NAME_CHARS = 41;
 // ── Request schemas ─────────────────────────────────────────────────
 
 /** A string whose every refusal, including "you left it out", is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
 /** A JSON object (never an array); its contents are someone else's to judge. */
-const jsonObject = (message) => z.record(z.string(), z.unknown(), { required_error: message, invalid_type_error: message });
+const jsonObject = (message) => z.record(z.string(), z.unknown(), { error: typeError({ required: message, invalid: message }) });
 
-const flag = (name) => z.boolean({ invalid_type_error: `${name} is true or false.` });
+const flag = (name) => z.boolean({ error: typeError({ invalid: `${name} is true or false.` }) });
 
 const NAME_TEXT = 'An integration needs a name.';
 const DESCRIPTION_TEXT = 'A description must be text.';
 const CreateBody = z.object({
     name: worded(NAME_TEXT).trim().min(1, NAME_TEXT)
         .max(MAX_NAME_CHARS, `An integration name is at most ${MAX_NAME_CHARS} characters.`),
-    kind: z.enum([...KINDS], { errorMap: () => ({ message: "kind is 'rest' or 'mcp_remote'." }) })
+    kind: z.enum([...KINDS], { error: () => "kind is 'rest' or 'mcp_remote'." })
         .default('rest'),
     description: worded(DESCRIPTION_TEXT)
         .max(MAX_DESCRIPTION_CHARS, `A description is at most ${MAX_DESCRIPTION_CHARS} characters.`)
@@ -115,8 +115,8 @@ const TestCallBody = z.object({
 }).strict();
 
 const ActivateBody = bodyOf({
-    allowWrites: flag('allowWrites').default(false),
-    lendMode: z.enum(['org', 'byo'], { errorMap: () => ({ message: "lendMode is 'org' or 'byo'." }) }).default('byo'),
+    allowWrites: flag('allowWrites').prefault(false),
+    lendMode: z.enum(['org', 'byo'], { error: () => "lendMode is 'org' or 'byo'." }).default('byo'),
 });
 
 // deactivate / refresh-tools act on the row that is there, so they take

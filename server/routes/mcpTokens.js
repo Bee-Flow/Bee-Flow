@@ -22,7 +22,7 @@
  */
 
 const express = require('express');
-const { z } = require('zod');
+const { z, onUnknownKeys, typeError } = require('../utils/zod');
 const { validate } = require('../core/http/validate');
 const { notFound, unauthorized } = require('../core/http/errors');
 const { forbidden } = require('../shared/httpErrors');
@@ -37,16 +37,16 @@ const { resolveMcpOrgId } = require('../auth/mcpAccess/orgResolve');
 
 const router = express.Router();
 
-const NO_QUERY = z.object({}).strict('This route takes no query parameters.');
+const NO_QUERY = z.object({}, { error: onUnknownKeys('This route takes no query parameters.') }).strict();
 
 const CreateBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object({
-    name: z.string({ required_error: 'Give the token a name.', invalid_type_error: 'Give the token a name.' }).trim().min(1, 'Give the token a name.').max(80, 'A token name can be 80 characters at most.'),
+    name: z.string({ error: 'Give the token a name.' }).trim().min(1, 'Give the token a name.').max(80, 'A token name can be 80 characters at most.'),
     // The scope shape (servers, levels, tool lists) is checked by normalizeScopes,
     // which words its refusals for the person creating the token.
-    scopes: z.record(z.unknown(), { required_error: 'Choose what the token may access.', invalid_type_error: 'Choose what the token may access.' }),
-    ipAllowlist: z.array(z.string(), { invalid_type_error: 'The IP allow-list must be a list.' }).optional(),
-    expiresAt: z.string({ invalid_type_error: 'The expiry must be a date.' }).nullable().optional(),
-}).strict('Send only name, scopes, ipAllowlist and expiresAt.'));
+    scopes: z.record(z.string(), z.unknown(), { error: typeError({ required: 'Choose what the token may access.', invalid: 'Choose what the token may access.' }) }),
+    ipAllowlist: z.array(z.string(), { error: typeError({ invalid: 'The IP allow-list must be a list.' }) }).optional(),
+    expiresAt: z.string({ error: typeError({ invalid: 'The expiry must be a date.' }) }).nullable().optional(),
+}, { error: onUnknownKeys('Send only name, scopes, ipAllowlist and expiresAt.') }).strict());
 
 /**
  * The real per-server predicates: the very functions the three MCP routers
@@ -80,8 +80,8 @@ const eligibilityOf = (account) => (eligibilityOverride
 const IdParams = z.object({ id: z.string().min(1).max(64) });
 
 const PatchBody = z.object({
-    enabled: z.boolean({ required_error: 'Say whether the token is on or off.', invalid_type_error: 'Say whether the token is on or off.' }),
-}).strict('Send only enabled.');
+    enabled: z.boolean({ error: 'Say whether the token is on or off.' }),
+}, { error: onUnknownKeys('Send only enabled.') }).strict();
 
 const callerOf = (req) => {
     const user = req.session?.user;

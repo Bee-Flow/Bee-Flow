@@ -30,7 +30,7 @@ const userStore = require('../../stores/userStore');
 const { requirePrimaryOrgAdmin } = require('../../auth/permissions');
 const { getOrgOverview } = require('../../learning/orgOverview');
 const { validate } = require('../../core/http/validate');
-const { z, worded, bodyOf } = require('../../core/http/schemaParts');
+const { z, worded, bodyOf, typeError } = require('../../core/http/schemaParts');
 
 // ── What a learner's request may carry ───────────────────────────────
 // Closed bodies. What they close: `makePublic: "false"` issued a PUBLIC
@@ -43,10 +43,10 @@ const { z, worded, bodyOf } = require('../../core/http/schemaParts');
 const lText = (name, max) => worded(`${name} is text.`).max(max, `${name} is at most ${max} characters.`);
 const modelTier = lText('modelTier', 100).optional();
 const locale = lText('locale', 40).optional();
-const choiceIds = z.array(z.union([z.string(), z.number()]), { invalid_type_error: 'choiceIds is a list of answer ids.' }).optional();
+const choiceIds = z.array(z.union([z.string(), z.number()]), { error: typeError({ invalid: 'choiceIds is a list of answer ids.' }) }).optional();
 const CoachBody = bodyOf({
     exerciseId: lText('exerciseId', 300).optional(),
-    mode: z.enum(['grade', 'hint'], { errorMap: () => ({ message: 'mode is grade or hint.' }) }).optional(),
+    mode: z.enum(['grade', 'hint'], { error: () => 'mode is grade or hint.' }).optional(),
     submission: lText('submission', 200_000).optional(),
     modelTier, locale,
 }, 'A coach request');
@@ -58,8 +58,8 @@ const TutorBody = bodyOf({
     modelTier, locale,
 }, 'A tutor question');
 const PracticeBody = bodyOf({
-    lessonIds: z.array(z.union([z.string(), z.number()]), { invalid_type_error: 'lessonIds is a list of lesson ids.' }).optional(),
-    count: z.union([z.number(), z.string()], { invalid_type_error: 'count is a number.' }).optional(),
+    lessonIds: z.array(z.union([z.string(), z.number()]), { error: typeError({ invalid: 'lessonIds is a list of lesson ids.' }) }).optional(),
+    count: z.union([z.number(), z.string()], { error: typeError({ invalid: 'count is a number.' }) }).optional(),
     modelTier, locale,
 }, 'A practice set');
 const PracticeGradeBody = bodyOf({
@@ -74,10 +74,10 @@ const QuizGradeBody = bodyOf({
 }, 'A quiz answer');
 const CertificateBody = bodyOf({
     certificateId: lText('certificateId', 300).optional(),
-    makePublic: z.boolean({ invalid_type_error: 'makePublic is true or false.' }).optional(),
+    makePublic: z.boolean({ error: typeError({ invalid: 'makePublic is true or false.' }) }).optional(),
 }, 'A certificate request');
 const TrainingRulesBody = bodyOf({
-    areas: z.record(z.unknown(), { required_error: 'areas must be an object of { areaId: courseId }', invalid_type_error: 'areas must be an object of { areaId: courseId }' }),
+    areas: z.record(z.string(), z.unknown(), { error: typeError({ required: 'areas must be an object of { areaId: courseId }', invalid: 'areas must be an object of { areaId: courseId }' }) }),
 }, 'The training rules');
 const { hasCapability } = require('../../core/entitlements/entitlements');
 const learningContentStore = require('../../stores/learningContentStore');

@@ -58,7 +58,7 @@ services:
 
   # RustFS — S3-compatible Object Storage
   rustfs:
-    image: rustfs/rustfs:latest
+    image: rustfs/rustfs:1.0.0
     container_name: beeflow-rustfs
     environment:
       - RUSTFS_ROOT_USER=${RUSTFS_ACCESS_KEY:-beeflow}
@@ -309,7 +309,7 @@ services:
   # the database once with: docker compose exec postgres \
   #   psql -U $DB_USER -d $DB_NAME -c 'CREATE DATABASE umami;'
   umami:
-    image: ghcr.io/umami-software/umami:postgresql-latest
+    image: ghcr.io/umami-software/umami:3.4.0
     container_name: beeflow-umami
     profiles: [analytics]
     ports:

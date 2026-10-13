@@ -24,7 +24,7 @@ const { requireAuth } = require('../auth/permissions');
 const ncScope = require('../core/integrations/ncScope');
 const { NC_INTEGRATIONS } = require('../core/integrations/ncIntegrationCatalog');
 const { validate } = require('../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../utils/zod');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -56,28 +56,28 @@ const MAX_SELECTED = 200;
 const MAX_ID_LEN = 500;
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
-    z.object(shape, { invalid_type_error: 'Send the settings as a JSON object.' }).strict(),
+    z.object(shape, { error: typeError({ invalid: 'Send the settings as a JSON object.' }) }).strict(),
 );
 
 const MODE_TEXT = "mode is 'all', 'selected' or 'off'.";
 const Entry = z.object({
-    mode: z.enum(['all', 'selected', 'off'], { errorMap: () => ({ message: MODE_TEXT }) }),
+    mode: z.enum(['all', 'selected', 'off'], { error: () => MODE_TEXT }),
     selected: z.array(
-        z.union([z.string(), z.number()], { errorMap: () => ({ message: 'Each selection is an id or a folder path.' }) }),
-        { invalid_type_error: 'selected is a list.' },
+        z.union([z.string(), z.number()], { error: () => 'Each selection is an id or a folder path.' }),
+        { error: typeError({ invalid: 'selected is a list.' }) },
     ).optional(),
-}, { invalid_type_error: 'Each app is { mode, selected }, or null for everything.' }).strict().nullable();
+}, { error: typeError({ invalid: 'Each app is { mode, selected }, or null for everything.' }) }).strict().nullable();
 
 const INTEGRATIONS_TEXT = 'integrations maps a Nextcloud app to its access, like { "nextcloud-calendar": { "mode": "off" } }.';
 const ScopeBody = bodyOf({
     integrations: z.object(
         Object.fromEntries(NC_INTEGRATIONS.map(({ id }) => [id, Entry.optional()])),
-        { required_error: INTEGRATIONS_TEXT, invalid_type_error: INTEGRATIONS_TEXT },
+        { error: typeError({ required: INTEGRATIONS_TEXT, invalid: INTEGRATIONS_TEXT }) },
     ).strict().superRefine((integrations, ctx) => {
         for (const [id, entry] of Object.entries(integrations)) {
             if (!entry || entry.mode !== 'selected') continue;

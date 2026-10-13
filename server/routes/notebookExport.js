@@ -34,7 +34,7 @@
  */
 
 const express = require('express');
-const { z } = require('zod');
+const { z, typeError } = require('../utils/zod');
 const log = require('../telemetry/log');
 const router = express.Router();
 router.use(require('../stores/lib/documentCrypto').withDocumentEncryptionSession);
@@ -81,7 +81,7 @@ async function requireNotebookOwner(req, res, next) {
 // ── Request schemas (see the header) ────────────────────────────────
 
 /** A string whose every refusal, including "you left it out", is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 const CONTENT_TEXT = 'An export needs the notebook content as HTML.';
 const TITLE_TEXT = 'A title must be text.';
@@ -105,13 +105,13 @@ const Signer = z.object({
     email: worded(EMAIL_TEXT).trim().email(EMAIL_TEXT),
     first_name: worded('A first name must be text.').trim().max(100, 'A first name is at most 100 characters.').optional(),
     last_name: worded('A last name must be text.').trim().max(100, 'A last name is at most 100 characters.').optional(),
-    order: z.number({ invalid_type_error: 'A signing order is a whole number.' }).int('A signing order is a whole number.').min(0).optional(),
-}, { invalid_type_error: 'Each signer is an object with an email address.' }).strict();
+    order: z.number({ error: typeError({ invalid: 'A signing order is a whole number.' }) }).int('A signing order is a whole number.').min(0).optional(),
+}, { error: typeError({ invalid: 'Each signer is an object with an email address.' }) }).strict();
 
 const SIGNERS_TEXT = 'At least one signer is required.';
 const SignRequestBody = z.object({
     ...exportFields,
-    signers: z.array(Signer, { required_error: SIGNERS_TEXT, invalid_type_error: SIGNERS_TEXT }).min(1, SIGNERS_TEXT),
+    signers: z.array(Signer, { error: SIGNERS_TEXT }).min(1, SIGNERS_TEXT),
     // The web form sends '' for an untouched field; that means "SignRequest's default".
     subject: worded('An email subject must be text.').max(500, 'An email subject is at most 500 characters.').optional(),
     message: worded('A message must be text.').max(5000, 'A message is at most 5000 characters.').optional(),

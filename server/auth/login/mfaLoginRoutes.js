@@ -16,10 +16,10 @@ const { auditLoginFailure } = require('../loginAudit');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { finalizeLogin } = require('./finalizeLogin');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 const CODE_TEXT = 'Enter the code from your authenticator app, or one of your recovery codes.';
 // A body that names no code at all is a malformed request, not a wrong code.

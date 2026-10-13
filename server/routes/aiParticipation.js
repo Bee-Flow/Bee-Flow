@@ -21,14 +21,14 @@
 'use strict';
 
 const express = require('express');
-const { z } = require('zod');
+const { z, typeError } = require('../utils/zod');
 const { validate } = require('../core/http/validate');
 const { forbidden, unavailable } = require('../core/http/errors');
 const { bodyOf, flag, choice } = require('../core/http/schemaParts');
 
 const { SENSITIVITIES, RANGES } = require('../projects/participation/policy');
 
-const count = (name) => z.number({ invalid_type_error: `${name} is a number.` }).optional();
+const count = (name) => z.number({ error: typeError({ invalid: `${name} is a number.` }) }).optional();
 
 const OrgPolicyBody = bodyOf({
     autoAllowed: flag('autoAllowed is true or false: may the AI join conversations by itself?'),

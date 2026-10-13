@@ -25,8 +25,8 @@
  * (agent-hub/src/components/admin/Studio/AppStudio/state/sharedExpr.sync.test.js)
  * failed a quarter of an hour into CI. That test stays as the CI backstop;
  * this script's --check is `npm run lint:shared-mirror`, which
- * `npm run check:fast` runs in seconds, and the first step of ci.yml's
- * Frontend checks job. The mirror is also in the ignore list
+ * `npm run check:fast` runs in seconds, and ci.yml's fast-gates job (which
+ * runs check:fast). The mirror is also in the ignore list
  * of .jscpd.json: it is generated, not duplication anyone writes.
  *
  * Zero dependencies: node:* only.

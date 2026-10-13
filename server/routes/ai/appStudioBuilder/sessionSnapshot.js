@@ -20,7 +20,7 @@ const router = express.Router();
 const studioAppStore = require('../../../stores/studioAppStore');
 const { requireAuth } = require('../../../auth/permissions');
 const { validate } = require('../../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../../utils/zod');
 
 const NoQuery = z.object({}).strict();
 

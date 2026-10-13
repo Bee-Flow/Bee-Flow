@@ -15,7 +15,7 @@ const router = express.Router();
 require('googleapis');
 const { loadConfig, requireAuth } = require('../../auth/permissions');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -29,14 +29,14 @@ const { z } = require('zod');
 // query/pageToken/pageSize, which is why the key set is `.strict()`.
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 const FILE_ID_TEXT = 'That is not a Google Drive file id.';
 
 const FilesQuery = z.object({
     query: worded('query must be text.').optional(),
     pageToken: worded('pageToken must be text.').optional(),
-    pageSize: z.coerce.number({ invalid_type_error: 'pageSize must be a number.' })
+    pageSize: z.coerce.number({ error: typeError({ invalid: 'pageSize must be a number.' }) })
         .int('pageSize must be a whole number.')
         .min(1, 'pageSize must be at least 1.')
         .optional(),

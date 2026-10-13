@@ -26,7 +26,7 @@ const { requireAuth, requirePermission } = require('../../auth/permissions');
 const { requireCapability } = require('../../core/entitlements/entitlements');
 const { resolveOrgId } = require('./shared');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 
 const guard = [requireAuth, requirePermission('admin_compliance'), requireCapability('compliance_hub_machinery')];
 
@@ -38,7 +38,7 @@ const SUBJECT_RE = /^[a-z0-9_-]{1,40}:[A-Za-z0-9._:@-]{1,160}$/;
 const VALID_MONTHS = 12;
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 /** An uploaded evidence file, by its id or its hash — never a bare string. */
 const evidenceRef = z.object({
@@ -56,7 +56,7 @@ const AttestBody = z.preprocess((v) => (v === undefined || v === null ? {} : v),
     outcome: worded('outcome must be a classification.').optional(),
     classification: worded('classification must be a classification.').optional(),
     statement: worded('statement must be text.').max(4000, 'A statement is at most 4000 characters.').nullish(),
-    evidence_refs: z.array(evidenceRef, { invalid_type_error: 'evidence_refs is a list of evidence references.' })
+    evidence_refs: z.array(evidenceRef, { error: typeError({ invalid: 'evidence_refs is a list of evidence references.' }) })
         .max(50, 'At most 50 evidence references.').optional(),
 }).strict());
 

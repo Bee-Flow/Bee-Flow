@@ -8,15 +8,10 @@
 // defects; unused bindings warn and are counted under <pkg>/.eslint-budget.json
 // (scripts/eslint-budget.mjs). Prefix an intentionally unused one with `_`.
 
+const { hardErrorRules, serviceIgnores } = require('./eslint/base.cjs');
+
 const correctnessRules = {
-    'no-undef': 'error',
-    'no-dupe-keys': 'error',
-    'no-dupe-args': 'error',
-    'no-unreachable': 'error',
-    'no-const-assign': 'error',
-    'valid-typeof': 'error',
-    'use-isnan': 'error',
-    'no-self-assign': 'error',
+    ...hardErrorRules,
     // A 5xx never echoes err.message: it is an internal (pg, Stripe, fs).
     // Where a message is written for the person who triggered the request,
     // say so next to an eslint-disable line.
@@ -47,7 +42,7 @@ function serviceConfig(globals, { js = 'commonjs', ignores = [], extra = [] } = 
         globals: { ...globals.node },
     });
     return [
-        { ignores: ['**/node_modules/**', 'coverage/**', ...ignores] },
+        { ignores: [...serviceIgnores, ...ignores] },
         { files: ['**/*.js'], languageOptions: node(js), rules: correctnessRules },
         { files: ['**/*.cjs'], languageOptions: node('commonjs'), rules: correctnessRules },
         { files: ['**/*.mjs'], languageOptions: node('module'), rules: correctnessRules },

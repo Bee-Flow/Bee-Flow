@@ -14,8 +14,13 @@
  * is down, every method falls back transparently to the pgStore.
  *
  * Usage:
- *   const { wrapWithRedisCache } = require('./auth/sessionCache');
- *   sessionStore = wrapWithRedisCache(pgStore, redisClient);
+ *   const { installRedisCacheWhenReady } = require('./auth/sessionCache');
+ *   installRedisCacheWhenReady(sessionStore, pgStore, getRedis());
+ *
+ * The cache uses the shared ioredis client from db.js (one Redis connection
+ * for the whole server). That client fails commands at once while Redis is
+ * down (see db.js), so every method below degrades to the pgStore instead of
+ * waiting for a reconnect.
  */
 const log = require('../telemetry/log');
 
@@ -26,7 +31,7 @@ const CACHE_TTL_SECONDS = 15 * 60; // 15 min — same order as session prune int
  * Wrap a connect-pg-simple store with a Redis read-through cache.
  *
  * @param {object} pgStore    - Instance of connect-pg-simple
- * @param {object} redis      - node-redis client (already connected), as created in index.js
+ * @param {object} redis      - the shared ioredis client from db.js (getRedis())
  * @returns {object}          - A drop-in session store replacement
  */
 function wrapWithRedisCache(pgStore, redis) {
@@ -61,9 +66,9 @@ function wrapWithRedisCache(pgStore, redis) {
     async function cacheSet(sid, session, ttl) {
         try {
             const t = ttl || CACHE_TTL_SECONDS;
-            // node-redis form. The ioredis form ('EX', t) is silently ignored by
-            // node-redis, which left cached sessions without any TTL.
-            await redis.set(key(sid), JSON.stringify(session), { EX: t });
+            // ioredis form: positional 'EX', seconds. (An options object, the
+            // node-redis form, is not a TTL to ioredis.)
+            await redis.set(key(sid), JSON.stringify(session), 'EX', t);
         } catch (e) {
             log.warn('[SessionCache] Redis SET error:', e.message);
         }
@@ -151,6 +156,38 @@ function wrapWithRedisCache(pgStore, redis) {
 }
 
 /**
+ * Activate the Redis cache on the live session store once the shared ioredis
+ * client is connected. Until then (and for good when Redis never comes up at
+ * boot) the store stays PG-only.
+ *
+ * express-session holds a reference to the store object, so the wrapped
+ * methods are copied onto it in place. `liveStore` may be `pgStore` itself:
+ * the wrapper keeps bound copies of the original PG methods.
+ *
+ * ioredis emits 'ready' again after every reconnect; the cache is installed
+ * on the first one only.
+ *
+ * @param {any} liveStore - the store object handed to express-session
+ * @param {any} pgStore   - the connect-pg-simple store
+ * @param {any} redis     - the shared ioredis client, or null without Redis
+ * @returns {boolean} whether activation is pending or done
+ */
+function installRedisCacheWhenReady(liveStore, pgStore, redis) {
+    if (!redis) return false;
+    const activate = () => {
+        log.info('[Sessions] Redis connected — activating session read-through cache');
+        const cached = wrapWithRedisCache(pgStore, redis);
+        liveStore.get     = cached.get.bind(cached);
+        liveStore.set     = cached.set.bind(cached);
+        liveStore.touch   = cached.touch.bind(cached);
+        liveStore.destroy = cached.destroy.bind(cached);
+    };
+    if (redis.status === 'ready') activate();
+    else redis.once('ready', activate);
+    return true;
+}
+
+/**
  * Bust all live sessions for a given user. Used after the user's license is
  * revoked, their role is downgraded, or their account is deleted — without
  * this, the existing cookie still validates for up to 30 days.
@@ -220,4 +257,4 @@ async function bustSessionsForOrg(organizationId) {
     }
 }
 
-module.exports = { wrapWithRedisCache, bustSessionsForUser, bustSessionsForOrg };
+module.exports = { wrapWithRedisCache, installRedisCacheWhenReady, bustSessionsForUser, bustSessionsForOrg };

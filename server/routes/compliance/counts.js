@@ -40,11 +40,11 @@
 const express = require('express');
 const log = require('../../telemetry/log');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 
 /** The rail asks for a subset by name; a misspelled PARAMETER is a mistake. */
 const CountsQuery = z.object({
-    keys: z.string({ invalid_type_error: 'keys is a comma-separated list of count keys.' }).optional(),
+    keys: z.string({ error: typeError({ invalid: 'keys is a comma-separated list of count keys.' }) }).optional(),
 }).strict();
 
 const CACHE_TTL_MS = 60_000;

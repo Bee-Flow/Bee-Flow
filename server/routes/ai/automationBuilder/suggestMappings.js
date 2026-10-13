@@ -58,7 +58,7 @@
 'use strict';
 
 const express = require('express');
-const { z } = require('zod');
+const { z, typeError } = require('../../../utils/zod');
 const log = require('../../../telemetry/log');
 const { validate } = require('../../../core/http/validate');
 const { HttpError } = require('../../../core/http/errors');
@@ -112,43 +112,43 @@ const CONTROL_RE = /[\u0000-\u001f\u007f]/;
 
 // ── Request ─────────────────────────────────────────────────────────────────
 
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 const PARAM_TEXT = 'Each input is { key, type?, format?, title?, description?, required?, enum? }.';
 const SOURCE_TEXT = 'Each source is { root, label?, real?, sample }.';
 
 const Param = z.object({
     key: worded('An input key is its name, as text.').trim().min(1, 'An input key cannot be blank.').max(200, 'An input key is at most 200 characters.'),
-    type: z.union([z.string().max(40), z.array(z.string().max(40)).max(6)], { invalid_type_error: 'An input type is text, like "string".' }).nullable().optional(),
-    format: z.string({ invalid_type_error: 'An input format is text, like "email".' }).max(40).nullable().optional(),
-    title: z.string({ invalid_type_error: 'An input title is text.' }).max(300).nullable().optional(),
-    description: z.string({ invalid_type_error: 'An input description is text.' }).max(2000).nullable().optional(),
-    required: z.boolean({ invalid_type_error: 'required is true or false.' }).optional(),
-    enum: z.array(z.union([z.string().max(300), z.number(), z.boolean(), z.null()]), { invalid_type_error: 'enum is the list of allowed values.' }).max(100).nullable().optional(),
-    itemsType: z.string({ invalid_type_error: 'itemsType is text, like "string".' }).max(40).nullable().optional(),
-}, { invalid_type_error: PARAM_TEXT }).strict();
+    type: z.union([z.string().max(40), z.array(z.string().max(40)).max(6)], { error: typeError({ invalid: 'An input type is text, like "string".' }) }).nullable().optional(),
+    format: z.string({ error: typeError({ invalid: 'An input format is text, like "email".' }) }).max(40).nullable().optional(),
+    title: z.string({ error: typeError({ invalid: 'An input title is text.' }) }).max(300).nullable().optional(),
+    description: z.string({ error: typeError({ invalid: 'An input description is text.' }) }).max(2000).nullable().optional(),
+    required: z.boolean({ error: typeError({ invalid: 'required is true or false.' }) }).optional(),
+    enum: z.array(z.union([z.string().max(300), z.number(), z.boolean(), z.null()]), { error: typeError({ invalid: 'enum is the list of allowed values.' }) }).max(100).nullable().optional(),
+    itemsType: z.string({ error: typeError({ invalid: 'itemsType is text, like "string".' }) }).max(40).nullable().optional(),
+}, { error: typeError({ invalid: PARAM_TEXT }) }).strict();
 
 const Mapped = z.object({
     key: worded('A mapped input names its key, as text.').max(200),
-    kind: z.enum(['literal', 'ref', 'template', 'expr'], { errorMap: () => ({ message: 'A mapped input\'s kind is literal, ref, template or expr.' }) }),
-    paths: z.array(z.string().max(1000), { invalid_type_error: 'paths is the list of fields a mapped input reads.' }).max(10).optional(),
+    kind: z.enum(['literal', 'ref', 'template', 'expr'], { error: () => 'A mapped input\'s kind is literal, ref, template or expr.' }),
+    paths: z.array(z.string().max(1000), { error: typeError({ invalid: 'paths is the list of fields a mapped input reads.' }) }).max(10).optional(),
 }).strict();
 
 const Source = z.object({
     root: worded('A source root is a path such as steps.<id>.output, trigger.output or loop.<name>.').max(300),
-    label: z.string({ invalid_type_error: 'A source label is text.' }).max(200).optional(),
-    real: z.boolean({ invalid_type_error: 'real is true or false.' }).optional(),
-    sample: z.unknown(),
-}, { invalid_type_error: SOURCE_TEXT }).strict();
+    label: z.string({ error: typeError({ invalid: 'A source label is text.' }) }).max(200).optional(),
+    real: z.boolean({ error: typeError({ invalid: 'real is true or false.' }) }).optional(),
+    sample: z.unknown().optional(),
+}, { error: typeError({ invalid: SOURCE_TEXT }) }).strict();
 
 const SuggestMappingsBody = z.object({
     step: z.object({
-        label: z.string({ invalid_type_error: 'The step label is text.' }).max(200).optional(),
-        tool: z.string({ invalid_type_error: 'The step tool is text.' }).max(200).optional(),
+        label: z.string({ error: typeError({ invalid: 'The step label is text.' }) }).max(200).optional(),
+        tool: z.string({ error: typeError({ invalid: 'The step tool is text.' }) }).max(200).optional(),
     }).strict().optional(),
-    params: z.array(Param, { required_error: 'Send the inputs to fill.', invalid_type_error: PARAM_TEXT })
+    params: z.array(Param, { error: typeError({ required: 'Send the inputs to fill.', invalid: PARAM_TEXT }) })
         .min(1, 'Send at least one input to fill.').max(MAX_PARAMS, `At most ${MAX_PARAMS} inputs per request.`),
-    mapped: z.array(Mapped, { invalid_type_error: 'mapped is the list of inputs that already have a value.' }).max(MAX_MAPPED).optional(),
-    sources: z.array(Source, { required_error: 'Send the data of the steps above.', invalid_type_error: SOURCE_TEXT })
+    mapped: z.array(Mapped, { error: typeError({ invalid: 'mapped is the list of inputs that already have a value.' }) }).max(MAX_MAPPED).optional(),
+    sources: z.array(Source, { error: typeError({ required: 'Send the data of the steps above.', invalid: SOURCE_TEXT }) })
         .min(1, 'There is no data from earlier steps to map from yet.').max(MAX_SOURCES, `At most ${MAX_SOURCES} sources per request.`),
 }).strict();
 

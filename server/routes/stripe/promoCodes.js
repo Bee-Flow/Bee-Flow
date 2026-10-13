@@ -12,7 +12,7 @@ const stripeService = require('../../services/stripeService');
 const userStore = require('../../stores/userStore');
 const { requireCloud, stripeIpLimiter, stripeUserLimiter } = require('./shared');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 const log = require('../../telemetry/log');
 
 const router = express.Router();
@@ -38,19 +38,19 @@ const router = express.Router();
 // than at Stripe, which answered it with a raw API error.
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 const CODE_TEXT = 'A promo code needs a code, e.g. LAUNCH20.';
 const TYPE_TEXT = 'discountType must be "percent" or "fixed".';
 const DURATION_TEXT = 'duration is once, repeating or forever.';
 
-const count = (name) => z.coerce.number({ invalid_type_error: `${name} must be a number.` })
+const count = (name) => z.coerce.number({ error: typeError({ invalid: `${name} must be a number.` }) })
     .int(`${name} must be a whole number.`)
     .min(1, `${name} must be at least 1.`)
     .optional();
 
 const PromoCodeQuery = z.object({
-    limit: z.coerce.number({ invalid_type_error: 'limit must be a number.' })
+    limit: z.coerce.number({ error: typeError({ invalid: 'limit must be a number.' }) })
         .int('limit must be a whole number.')
         .min(1, 'limit must be at least 1.')
         .optional(),
@@ -58,31 +58,31 @@ const PromoCodeQuery = z.object({
 
 const PromoCodeBody = z.object({
     code: worded(CODE_TEXT).trim().min(1, CODE_TEXT).max(64, 'A promo code is at most 64 characters.'),
-    discountType: z.enum(['percent', 'fixed'], { errorMap: () => ({ message: TYPE_TEXT }) }),
-    discountValue: z.coerce.number({ invalid_type_error: 'discountValue must be a positive number.' })
+    discountType: z.enum(['percent', 'fixed'], { error: () => TYPE_TEXT }),
+    discountValue: z.coerce.number({ error: typeError({ invalid: 'discountValue must be a positive number.' }) })
         .positive('discountValue must be a positive number.'),
     // Stripe lower-cases this itself; the catalogue is open, so only the shape
     // is pinned.
     currency: worded('currency must be text, e.g. EUR.').trim().min(3, 'currency is a 3-letter code, e.g. EUR.').max(3, 'currency is a 3-letter code, e.g. EUR.').optional(),
-    duration: z.enum(['once', 'repeating', 'forever'], { errorMap: () => ({ message: DURATION_TEXT }) }).optional(),
+    duration: z.enum(['once', 'repeating', 'forever'], { error: () => DURATION_TEXT }).optional(),
     durationMonths: count('durationMonths'),
     maxRedemptions: count('maxRedemptions'),
     expiresAt: worded('expiresAt must be a date.').trim().min(1, 'expiresAt must be a date.').optional(),
-    firstTimeOnly: z.boolean({ invalid_type_error: 'firstTimeOnly is true or false.' }).optional(),
-    minAmount: z.coerce.number({ invalid_type_error: 'minAmount must be a number.' })
+    firstTimeOnly: z.boolean({ error: typeError({ invalid: 'firstTimeOnly is true or false.' }) }).optional(),
+    minAmount: z.coerce.number({ error: typeError({ invalid: 'minAmount must be a number.' }) })
         .int('minAmount is an amount in cents.')
         .min(0, 'minAmount cannot be negative.')
         .optional(),
     name: worded('name must be text.').trim().max(200, 'name is at most 200 characters.').optional(),
 }).strict().superRefine((v, ctx) => {
     if (v.discountType === 'percent' && v.discountValue > 100) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['discountValue'], message: 'A percentage discount cannot exceed 100%.' });
+        ctx.addIssue({ code: 'custom', path: ['discountValue'], message: 'A percentage discount cannot exceed 100%.' });
     }
     if (v.duration === 'repeating' && v.durationMonths === undefined) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['durationMonths'], message: 'A repeating discount needs durationMonths.' });
+        ctx.addIssue({ code: 'custom', path: ['durationMonths'], message: 'A repeating discount needs durationMonths.' });
     }
     if (v.expiresAt !== undefined && Number.isNaN(new Date(v.expiresAt).getTime())) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['expiresAt'], message: 'expiresAt must be a date.' });
+        ctx.addIssue({ code: 'custom', path: ['expiresAt'], message: 'expiresAt must be a date.' });
     }
 });
 

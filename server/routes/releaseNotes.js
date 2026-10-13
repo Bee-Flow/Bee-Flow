@@ -53,15 +53,15 @@ const { draftReleaseNotes } = require('../core/releaseNotesDrafter');
 const { coerceDraft, KIND_HEADINGS, MAX_TITLE_LEN, MAX_ITEMS } = require('../core/releaseNotesFormat');
 const { requireAdmin } = require('./cmsShared');
 const { validate } = require('../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../utils/zod');
 
-const text = (message) => z.string({ invalid_type_error: message });
+const text = (message) => z.string({ error: typeError({ invalid: message }) });
 /** git lines: one text the CI joins with newlines, or a list. normaliseLines reads both. */
 const lines = (name) => z.union([z.string(), z.array(z.string())],
-    { errorMap: () => ({ message: `${name} is the git lines, as one text or a list of texts.` }) }).nullish();
+    { error: () => `${name} is the git lines, as one text or a list of texts.` }).nullish();
 
 const IngestBody = z.object({
-    channel: z.enum(['dev', 'prod'], { errorMap: () => ({ message: 'channel must be "dev" or "prod"' }) }).default('dev'),
+    channel: z.enum(['dev', 'prod'], { error: () => 'channel must be "dev" or "prod"' }).default('dev'),
     // Required for prod — answered below, in the words this route always used.
     version: text('version is text, e.g. "prod-2026.09.22-1".').trim().nullish(),
     commitSubjects: lines('commitSubjects'),
@@ -70,23 +70,23 @@ const IngestBody = z.object({
     services: text('services is the built services, as one comma-separated text.').nullish(),
     fromSha: text('fromSha is a commit sha.').nullish(),
     toSha: text('toSha is a commit sha.').nullish(),
-    entry: z.record(z.unknown(), { invalid_type_error: 'entry is a drafted { title, lead, items } object.' }).nullish(),
+    entry: z.record(z.string(), z.unknown(), { error: typeError({ invalid: 'entry is a drafted { title, lead, items } object.' }) }).nullish(),
 }).strict();
 
 const KINDS = Object.keys(KIND_HEADINGS);
 const KIND_TEXT = `Each item's kind is one of: ${KINDS.join(', ')}.`;
 const Item = z.object({
-    kind: z.enum(KINDS, { errorMap: () => ({ message: KIND_TEXT }) }),
-    title: text('An item title must be text.').max(MAX_TITLE_LEN, `An item title is at most ${MAX_TITLE_LEN} characters.`).default(''),
-    body: text('An item body must be text.').default(''),
-}, { invalid_type_error: 'Each item is { kind, title, body }.' }).strict()
+    kind: z.enum(KINDS, { error: () => KIND_TEXT }),
+    title: text('An item title must be text.').max(MAX_TITLE_LEN, `An item title is at most ${MAX_TITLE_LEN} characters.`).prefault(''),
+    body: text('An item body must be text.').prefault(''),
+}, { error: typeError({ invalid: 'Each item is { kind, title, body }.' }) }).strict()
     .refine((it) => it.title.trim() || it.body.trim(), 'An item needs a title or a body.');
 
 const RENAME_TEXT = 'A version can be renamed, not emptied — the entry without one is the rolling draft the next dev build rewrites.';
 const EntryPatch = z.object({
     title: text('A title must be text.').optional(),
     lead: text('A lead must be text.').optional(),
-    items: z.array(Item, { invalid_type_error: 'items must be an array' })
+    items: z.array(Item, { error: typeError({ invalid: 'items must be an array' }) })
         .max(MAX_ITEMS, `An entry has at most ${MAX_ITEMS} items.`).optional(),
     version: text(RENAME_TEXT).trim().min(1, RENAME_TEXT).optional(),
 }).strict().refine((b) => Object.keys(b).length > 0, 'Say what to change: title, lead, items or version.');

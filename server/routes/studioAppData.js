@@ -43,7 +43,7 @@ const express = require('express');
 const log = require('../telemetry/log');
 const router = express.Router();
 const { validate } = require('../core/http/validate');
-const { z, worded, bodyOf, queryOf, choice, wholeNumber } = require('../core/http/schemaParts');
+const { z, worded, bodyOf, queryOf, choice, wholeNumber, typeError } = require('../core/http/schemaParts');
 // The runtime's own request shapes, shared with the public app routes.
 const R = require('./studio/appRuntimeSchemas');
 
@@ -59,18 +59,18 @@ const idText = (name) => worded(`${name} is an id.`).max(200, `${name} is an id.
 const RefreshQuery = queryOf({ refresh: choice(['0', '1', 'true', 'false'], 'refresh is 1 to bypass the cache.').optional() }, 'A data query');
 const BatchBody = bodyOf({
     // The handler answers a missing or non-list `reads` itself, with its cap.
-    reads: z.unknown(),
+    reads: z.unknown().optional(),
 }, 'A batch of reads');
 const datasetShape = {
     name: worded('name is text.').max(200, 'name is at most 200 characters.').optional(),
     tableId: idText('tableId').nullish(),
-    source: z.record(z.unknown(), { invalid_type_error: 'source is an object.' }).optional(),
-    descriptor: z.record(z.unknown(), { invalid_type_error: 'descriptor is an object.' }).optional(),
+    source: z.record(z.string(), z.unknown(), { error: typeError({ invalid: 'source is an object.' }) }).optional(),
+    descriptor: z.record(z.string(), z.unknown(), { error: typeError({ invalid: 'descriptor is an object.' }) }).optional(),
     cacheTtlSeconds: wholeNumber('cacheTtlSeconds is a whole number of seconds.').optional(),
 };
 const DatasetBody = bodyOf(datasetShape, 'A dataset');
 const SchemaBody = bodyOf({
-    model: z.record(z.unknown(), { required_error: 'model (object) is required', invalid_type_error: 'model (object) is required' }),
+    model: z.record(z.string(), z.unknown(), { error: typeError({ required: 'model (object) is required', invalid: 'model (object) is required' }) }),
     expectedVersion: wholeNumber('expectedVersion is the version you loaded.').nullish(),
 }, 'A data model');
 const MemberBody = bodyOf({

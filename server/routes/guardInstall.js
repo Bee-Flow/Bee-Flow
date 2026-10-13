@@ -12,7 +12,7 @@ const router = express.Router();
 const { requirePermission } = require('../auth/permissions');
 const installer = require('../services/guardInstaller');
 const { validate } = require('../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../utils/zod');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -27,12 +27,12 @@ const { z } = require('zod');
 //     the X-API-Key header as-is, where it can only fail later.
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
-    z.object(shape, { invalid_type_error: 'Send the request as a JSON object.' }).strict(),
+    z.object(shape, { error: typeError({ invalid: 'Send the request as a JSON object.' }) }).strict(),
 );
 
 const KEY_TEXT = 'apiKey is the key the guard service will require: text without spaces.';
@@ -42,7 +42,7 @@ const InstallBody = bodyOf({
     model: worded(MODEL_TEXT).trim().regex(/^\S+$/, MODEL_TEXT).max(200, MODEL_TEXT).optional(),
 });
 const UninstallBody = bodyOf({
-    removeVolume: z.boolean({ invalid_type_error: 'removeVolume is true or false.' }).optional(),
+    removeVolume: z.boolean({ error: typeError({ invalid: 'removeVolume is true or false.' }) }).optional(),
 });
 
 router.use(requirePermission('admin_security'));

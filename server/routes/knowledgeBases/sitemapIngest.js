@@ -26,7 +26,8 @@ const { requireAuth, requirePermission } = require('../../auth');
 const { ingestDocument } = require('../../core/kb/kbIngestionHelpers');
 const { getUserId, guardedFetch, canAccessKB, blockIfSystemKB, ensureKbSource } = require('./shared');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
+const { parseSitemap } = require('./sitemapParse');
 
 /** Upper bound on pages one sitemap ingest may walk (req.body.maxPages is clamped to it). */
 const MAX_SITEMAP_PAGES = 500;
@@ -35,7 +36,7 @@ const DEFAULT_SITEMAP_PAGES = 50;
 // ── What a caller may send ──────────────────────────────────────────
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 const URL_TEXT = 'An address is required — the site whose sitemap to read.';
 const MAX_PAGES_TEXT = 'maxPages is a whole number of pages, at least 1.';
@@ -45,7 +46,7 @@ const SitemapBody = z.preprocess((v) => (v === undefined || v === null ? {} : v)
     // A number, or the digits of one (a JSON client may quote it).
     maxPages: z.preprocess(
         (v) => (typeof v === 'string' && /^\s*\d+\s*$/.test(v) ? Number(v) : v),
-        z.number({ invalid_type_error: MAX_PAGES_TEXT }).int(MAX_PAGES_TEXT).min(1, MAX_PAGES_TEXT),
+        z.number({ error: typeError({ invalid: MAX_PAGES_TEXT }) }).int(MAX_PAGES_TEXT).min(1, MAX_PAGES_TEXT),
     ).optional(),
 }).strict());
 
@@ -107,35 +108,12 @@ router.post('/:id/ingest/sitemap', requireAuth, requirePermission('manage_knowle
         return { fetchUrl };
     })();
 
-    const { parseString } = require('xml2js');
-
-    async function parseSitemap(xml, sitemapBaseUrl) {
-        return new Promise((resolve, reject) => {
-            parseString(xml, (err, result) => {
-                if (err) return reject(err);
-                const urls = [];
-                const sitemaps = [];
-                if (result.urlset && Array.isArray(result.urlset.url)) {
-                    result.urlset.url.forEach(u => {
-                        if (u.loc && u.loc[0]) urls.push(new URL(u.loc[0], sitemapBaseUrl).href);
-                    });
-                }
-                if (result.sitemapindex && Array.isArray(result.sitemapindex.sitemap)) {
-                    result.sitemapindex.sitemap.forEach(sm => {
-                        if (sm.loc && sm.loc[0]) sitemaps.push(new URL(sm.loc[0], sitemapBaseUrl).href);
-                    });
-                }
-                resolve({ urls, sitemaps });
-            });
-        });
-    }
-
     async function processSitemap(sitemapUrl, allUrls, visitedSitemaps, limit) {
         if (visitedSitemaps.has(sitemapUrl) || allUrls.size >= limit) return;
         visitedSitemaps.add(sitemapUrl);
         try {
             const xml = await fetchSitemapUrl(sitemapUrl);
-            const { urls, sitemaps } = await parseSitemap(xml, sitemapUrl);
+            const { urls, sitemaps } = parseSitemap(xml, sitemapUrl);
             for (const u of urls) {
                 if (allUrls.size >= limit) return;
                 allUrls.add(u);

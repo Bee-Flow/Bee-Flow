@@ -13,7 +13,7 @@
 const express = require('express');
 const log = require('../../../telemetry/log');
 const router = express.Router();
-const { z } = require('zod');
+const { z, typeError } = require('../../../utils/zod');
 const { validate } = require('../../../core/http/validate');
 
 const { getUserTierMap } = require('../../../core/llm/modelResolver');
@@ -30,22 +30,22 @@ const SAVE_FIRST = 'Save the automation first, then build a flowlet.';
 const INSTRUCTION_TEXT = 'An instruction is required.';
 
 const LayerAgentBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object({
-    automationId: z.string({ required_error: SAVE_FIRST, invalid_type_error: 'automationId is the id of the saved automation.' })
+    automationId: z.string({ error: typeError({ required: SAVE_FIRST, invalid: 'automationId is the id of the saved automation.' }) })
         .trim().min(1, SAVE_FIRST),
-    instruction: z.string({ required_error: INSTRUCTION_TEXT, invalid_type_error: INSTRUCTION_TEXT })
+    instruction: z.string({ error: INSTRUCTION_TEXT })
         .trim().min(1, INSTRUCTION_TEXT),
-    mode: z.enum(['create', 'refine'], { errorMap: () => ({ message: "mode is 'create' or 'refine'." }) }).default('create'),
+    mode: z.enum(['create', 'refine'], { error: () => "mode is 'create' or 'refine'." }).default('create'),
     // The hook sends null for both when it has nothing to say.
-    layerKey: z.string({ invalid_type_error: 'layerKey is the key of the flowlet to refine.' }).trim().nullish(),
-    title: z.string({ invalid_type_error: 'A flowlet title is text.' }).trim().nullish(),
+    layerKey: z.string({ error: typeError({ invalid: 'layerKey is the key of the flowlet to refine.' }) }).trim().nullish(),
+    title: z.string({ error: typeError({ invalid: 'A flowlet title is text.' }) }).trim().nullish(),
 }).strict().superRefine((body, ctx) => {
     if (body.mode === 'refine' && !body.layerKey) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['layerKey'], message: 'Refining needs the layerKey of the flowlet to refine.' });
+        ctx.addIssue({ code: 'custom', path: ['layerKey'], message: 'Refining needs the layerKey of the flowlet to refine.' });
     }
     // A key without mode 'refine' is a refinement that lost its mode — and
     // create would have built a new flowlet beside the one it names.
     if (body.mode === 'create' && body.layerKey) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['mode'], message: "A layerKey names a flowlet to refine: send mode 'refine' with it. 'create' always builds a new one." });
+        ctx.addIssue({ code: 'custom', path: ['mode'], message: "A layerKey names a flowlet to refine: send mode 'refine' with it. 'create' always builds a new one." });
     }
 }));
 

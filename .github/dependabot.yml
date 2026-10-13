@@ -20,7 +20,7 @@
 # a week, which ends with everyone ignoring them — an alert nobody reads is
 # worse than no alert, because it looks like coverage.
 #
-# CADENCE: weekly for what ships to customers — server, agent-hub, mobile, and
+# CADENCE: weekly for what ships to customers — server, agent-hub, mobile, desktop, and
 # the PII detector (see the Python section) — monthly for the rest:
 # tooling, satellites, the other sidecars, the actions and the base images.
 # Every scheduled run can open, refresh or supersede PRs, and each of those is
@@ -207,6 +207,25 @@ updates:
         update-types: ["version-update:semver-major"]
     labels: [dependencies]
 
+  # The desktop client runs on the user's own machine (the audit ratchet counts
+  # its runtime dependencies). Electron majors move by hand: a major changes the
+  # Chromium and Node it embeds, and desktop/ is tested against one Electron
+  # line (see the engines field and the desktop job in ci.yml). Patches and minors come
+  # in one weekly PR.
+  - package-ecosystem: npm
+    directory: /desktop
+    schedule: { interval: weekly, day: wednesday, time: "05:00", timezone: Europe/Amsterdam }
+    open-pull-requests-limit: 3
+    rebase-strategy: disabled
+    groups:
+      desktop-patch-minor:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: electron
+        update-types: ["version-update:semver-major"]
+    labels: [dependencies]
+
   - package-ecosystem: npm
     directory: /nextcloud-connector
     schedule: { interval: monthly, time: "05:00", timezone: Europe/Amsterdam }
@@ -227,6 +246,38 @@ updates:
       docs-patch-minor:
         patterns: ["*"]
         update-types: [minor, patch]
+    labels: [dependencies]
+
+  # Satellites and tooling that had no entry: the module SDK, the e2e suite and
+  # the components. Monthly and grouped, one PR for all of them (a group spans
+  # the directories of one entry). scripts/packages.json lists every package;
+  # `npm run lint:package-registry` fails on a package without an entry here.
+  - package-ecosystem: npm
+    directories: ["/hub-module-sdk", "/e2e", "/components/*"]
+    schedule: { interval: monthly, time: "05:00", timezone: Europe/Amsterdam }
+    open-pull-requests-limit: 3
+    rebase-strategy: disabled
+    groups:
+      satellites-patch-minor:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    labels: [dependencies]
+
+  # The shared browser pod. Its playwright moves by hand with the server's and
+  # the base image of server/pwt-runner/Dockerfile (see the /server entry), so
+  # both names are ignored here, as there.
+  - package-ecosystem: npm
+    directory: /server/pwt-runner
+    schedule: { interval: monthly, time: "05:00", timezone: Europe/Amsterdam }
+    open-pull-requests-limit: 2
+    rebase-strategy: disabled
+    groups:
+      pwt-runner-patch-minor:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: playwright
+      - dependency-name: "@playwright/test"
     labels: [dependencies]
 
   # ── Python sidecars ───────────────────────────────────────────────
@@ -283,7 +334,9 @@ updates:
   # (nextcloud-connector/.github/workflows, mirrored to Bee-Flow/connector) are
   # not scanned: bump their pins by hand to the versions used here.
   - package-ecosystem: github-actions
-    directory: /
+    # The composite action pins setup-node itself; Dependabot reads
+    # .github/workflows from "/" and a local action only by its own directory.
+    directories: ["/", "/.github/actions/npm-install"]
     schedule: { interval: monthly, time: "05:00", timezone: Europe/Amsterdam }
     open-pull-requests-limit: 3
     rebase-strategy: disabled

@@ -11,10 +11,10 @@ const crypto = require('crypto');
 const kbStore = require('../../stores/knowledgeBases');
 const { requireAuth, requirePermission, resolveUserOrgIds } = require('../../auth');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 const NAME_TEXT = 'A category needs a name.';
 const CategoryBody = z.object({

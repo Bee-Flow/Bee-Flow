@@ -8,7 +8,7 @@ const userStore = require('../../stores/userStore');
 const { getAdminId } = require('./shared');
 const log = require('../../telemetry/log');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 
 const router = express.Router();
 
@@ -28,16 +28,16 @@ const router = express.Router();
 // wrong VALUE.
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 const text = (what) => worded(`${what} must be text.`);
-const cap = (name) => z.coerce.number({ invalid_type_error: `${name} must be a number.` })
+const cap = (name) => z.coerce.number({ error: typeError({ invalid: `${name} must be a number.` }) })
     .min(0, `${name} must be non-negative.`).nullish();
-const whole = (name) => z.coerce.number({ invalid_type_error: `${name} must be a number.` })
+const whole = (name) => z.coerce.number({ error: typeError({ invalid: `${name} must be a number.` }) })
     .int(`${name} must be a whole number.`).min(0, `${name} must be non-negative.`).nullish();
-const flag = (name) => z.boolean({ invalid_type_error: `${name} is true or false.` }).optional();
+const flag = (name) => z.boolean({ error: typeError({ invalid: `${name} is true or false.` }) }).optional();
 /** An allow-list column: a list of ids, or null for "unrestricted". */
-const allowList = (name) => z.array(text(`Each entry in ${name}`), { invalid_type_error: `${name} is a list of ids, or null.` }).nullish();
+const allowList = (name) => z.array(text(`Each entry in ${name}`), { error: typeError({ invalid: `${name} is a list of ids, or null.` }) }).nullish();
 
 const INTERVAL_TEXT = 'billing_interval is "monthly" or "yearly".';
 const MODEL_TEXT = 'billing_model is "fixed" or "metered".';
@@ -51,8 +51,8 @@ const NAME_TEXT = 'A plan needs a name.';
 const PLAN_SHAPE = {
     description: text('A description').nullish(),
     tagline: text('A tagline').nullish(),
-    plan_type: z.enum(['organization', 'consumer'], { errorMap: () => ({ message: TYPE_TEXT }) }).optional(),
-    tier: z.enum(['pro', 'enterprise', ''], { errorMap: () => ({ message: TIER_TEXT }) }).nullish(),
+    plan_type: z.enum(['organization', 'consumer'], { error: () => TYPE_TEXT }).optional(),
+    tier: z.enum(['pro', 'enterprise', ''], { error: () => TIER_TEXT }).nullish(),
 
     max_messages_per_month: cap('max_messages_per_month'),
     max_tokens_per_month: cap('max_tokens_per_month'),
@@ -62,7 +62,7 @@ const PLAN_SHAPE = {
     max_knowledge_sources: cap('max_knowledge_sources'),
     max_messages_per_seat: cap('max_messages_per_seat'),
     // A per-agent-type cap map — its keys ARE the data, so it stays open.
-    max_messages_by_type: z.record(z.coerce.number()).nullish(),
+    max_messages_by_type: z.record(z.string(), z.coerce.number()).nullish(),
 
     allowed_features: allowList('allowed_features'),
     allowed_models: allowList('allowed_models'),
@@ -71,9 +71,9 @@ const PLAN_SHAPE = {
 
     price: cap('price'),
     currency: worded(CURRENCY_TEXT).regex(/^[a-z]{3}$/i, CURRENCY_TEXT).optional(),
-    billing_interval: z.enum(['monthly', 'yearly'], { errorMap: () => ({ message: INTERVAL_TEXT }) }).optional(),
-    billing_model: z.enum(['fixed', 'metered'], { errorMap: () => ({ message: MODEL_TEXT }) }).optional(),
-    markup_percent: z.coerce.number({ invalid_type_error: 'markup_percent must be a number.' })
+    billing_interval: z.enum(['monthly', 'yearly'], { error: () => INTERVAL_TEXT }).optional(),
+    billing_model: z.enum(['fixed', 'metered'], { error: () => MODEL_TEXT }).optional(),
+    markup_percent: z.coerce.number({ error: typeError({ invalid: 'markup_percent must be a number.' }) })
         .min(0, 'markup_percent is between 0 and 1000.').max(1000, 'markup_percent is between 0 and 1000.').optional(),
     trial_days: whole('trial_days'),
     sort_order: whole('sort_order'),
@@ -96,7 +96,7 @@ const PLAN_SHAPE = {
 const noTrialOnPayg = (v, ctx) => {
     if (v.billing_model === 'metered' && v.trial_days) {
         ctx.addIssue({
-            code: z.ZodIssueCode.custom, path: ['trial_days'],
+            code: 'custom', path: ['trial_days'],
             message: 'PAYG plans cannot have trial_days — Stripe requires a payment method up front.',
         });
     }

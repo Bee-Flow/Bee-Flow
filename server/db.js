@@ -2,8 +2,8 @@
  * Shared Database Connections — PostgreSQL + Redis
  *
  *   - PostgreSQL via `pg` Pool for persistent data (beeflow_core)
- *   - Redis via `ioredis` for caching, rate limits, ephemeral state
- *     (session store uses a separate `node-redis` client in index.js)
+ *   - Redis via `ioredis` for caching, rate limits, ephemeral state and the
+ *     session read-through cache (auth/sessionCache.js)
  *
  * All stores should import { pool, getRedis, ... } from '../db';
  *

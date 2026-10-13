@@ -22,7 +22,7 @@
     "main": "dist/main/index.js",
     "desktopName": "beeflow.desktop",
     "engines": {
-        "node": ">=22.0.0 <23.0.0"
+        "node": ">=22.15.0 <23"
     },
     "packageManager": "npm@10.9.0",
     "scripts": {
@@ -34,7 +34,7 @@
         "start": "electron dist/main/index.js",
         "lint": "eslint .",
         "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.shell.json --noEmit && tsc -p e2e/tsconfig.json",
-        "test": "node --test --test-force-exit \"src/**/*.test.ts\"",
+        "test": "node --test \"src/**/*.test.ts\"",
         "test:watch": "node --test --watch \"src/**/*.test.ts\"",
         "verify": "npm run typecheck && npm run lint && npm test",
         "pack": "npm run build && electron-builder --dir",

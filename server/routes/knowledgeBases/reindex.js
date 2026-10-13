@@ -48,7 +48,7 @@ const kbSourcesStore = require('../../stores/kbSources');
 const { requireAuth, requirePermission } = require('../../auth');
 const { canAccessKB, blockIfSystemKB } = require('./shared');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 
 /** Express 5 leaves `req.body` undefined without a body; the Studio sends none. */
 const NoBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object({}).strict());

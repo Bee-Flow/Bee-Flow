@@ -75,10 +75,9 @@ function build({ corsOrigin = 'https://app.example.com,https://other.example.com
  */
 async function withServer(api, run) {
     const express = require('express');
-    const bodyParser = require('body-parser');
     const app = express();
     app.use(api.corsDispatcher);
-    app.use(bodyParser.json({ limit: '20mb' }));
+    app.use(express.json({ limit: '20mb' }));
     app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
     app.post('/api/health', (req, res) => res.json({ status: 'ok' }));
     app.get('/api/boom', () => { throw new Error('secret internals: postgres://beeflow@10.42.0.7/beeflow_core'); });

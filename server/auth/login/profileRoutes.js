@@ -14,17 +14,17 @@ const { requireAuth } = require('../permissions');
 const { HttpError } = require('../../core/http/errors');
 const { sanitizePlainText } = require('../../utils/htmlSanitizer');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 /**
  * An enum whose every refusal is a sentence. `invalid_type_error` alone is not
  * enough: zod reports a string that is not a member as `invalid_enum_value`,
  * whose default message quotes the whole option list back at the caller.
  */
-const wordedEnum = (values, message) => z.enum(values, { errorMap: () => ({ message }) });
+const wordedEnum = (values, message) => z.enum(values, { error: () => message });
 
 const NAME_TEXT = 'A display name must be text.';
 // `avatar` carries either an emoji or a data: URL, so it is bounded but not

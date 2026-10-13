@@ -13,11 +13,11 @@ const express = require('express');
 const { requirePrimaryOrgAdmin } = require('../auth/permissions');
 const { validate } = require('../core/http/validate');
 const { PolicySchema, getOrgMcpPolicy, saveOrgMcpPolicy } = require('../auth/mcpAccess/orgPolicy');
-const { z } = require('zod');
+const { z, onUnknownKeys } = require('../utils/zod');
 
 const router = express.Router();
 
-const NO_QUERY = z.object({}).strict('This route takes no query parameters.');
+const NO_QUERY = z.object({}, { error: onUnknownKeys('This route takes no query parameters.') }).strict();
 
 router.get('/', requirePrimaryOrgAdmin(), validate({ query: NO_QUERY }), async (req, res) => {
     const policy = await getOrgMcpPolicy(req.primaryOrgId);

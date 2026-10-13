@@ -50,7 +50,7 @@
  */
 
 const express = require('express');
-const { z } = require('zod');
+const { z, typeError } = require('../../../utils/zod');
 const log = require('../../../telemetry/log');
 const { depsWith } = require('../../../automation/patterns/depsWith');
 const { validate } = require('../../../core/http/validate');
@@ -63,7 +63,7 @@ const { fingerprintTitle } = require('../../../automation/suggestions');
 const { usageLogFields } = require('../../../core/providers/usageNormalizer');
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 const MODES = ['patterns', 'ideas'];
 const FOCUS_MAX_CHARS = 2000;
@@ -72,10 +72,10 @@ const INTEGRATIONS_TEXT = 'integrationIds is a list of app ids, like ["gmail", "
 const SOURCES_TEXT = 'sources is a list of source ids, like ["mail", "files"] — or [] for all of them.';
 const MODE_TEXT = 'mode is patterns or ideas.';
 const TIMEZONE_TEXT = 'timezone is an IANA zone name, like Europe/Amsterdam.';
-const idList = (text, max) => z.array(worded(text).trim().min(1, text).max(100, text), { invalid_type_error: text }).max(max, text);
+const idList = (text, max) => z.array(worded(text).trim().min(1, text).max(100, text), { error: typeError({ invalid: text }) }).max(max, text);
 
 const SuggestBody = z.object({
-    mode: z.enum(/** @type {[string, ...string[]]} */ (MODES), { errorMap: () => ({ message: MODE_TEXT }) }),
+    mode: z.enum(/** @type {[string, ...string[]]} */ (MODES), { error: () => MODE_TEXT }),
     sources: idList(SOURCES_TEXT, 50),
     integrationIds: idList(INTEGRATIONS_TEXT, 200),
     focus: worded('focus is text: what the scan should look for.')
@@ -83,11 +83,11 @@ const SuggestBody = z.object({
     timezone: worded(TIMEZONE_TEXT).trim().max(64, TIMEZONE_TEXT),
     // Re-scan / Try-again bypasses the server-side cache.
     force: z.preprocess((v) => (v === 'true' ? true : v === 'false' ? false : v),
-        z.boolean({ invalid_type_error: 'force is true or false.' })),
+        z.boolean({ error: typeError({ invalid: 'force is true or false.' }) })),
 }).partial().strict();
 
 const LastQuery = z.object({
-    mode: z.enum(/** @type {[string, ...string[]]} */ (MODES), { errorMap: () => ({ message: MODE_TEXT }) }).optional(),
+    mode: z.enum(/** @type {[string, ...string[]]} */ (MODES), { error: () => MODE_TEXT }).optional(),
 });
 
 // The store's own lists are the source of truth, read when they are needed.
@@ -102,14 +102,14 @@ const FeedbackBody = z.object({
     signature: worded(SIGNATURE_TEXT).trim().regex(/^[A-Za-z0-9_-]{8,128}$/, SIGNATURE_TEXT).nullish(),
     reasonCode: worded(REASON_CODE_TEXT).trim().refine((c) => feedbackLists().VALID_REASON_CODES.includes(c), REASON_CODE_TEXT).nullish(),
     suggestion: z.object({
-        id: z.string({ invalid_type_error: 'suggestion.id must be text.' }).max(200).nullish(),
+        id: z.string({ error: typeError({ invalid: 'suggestion.id must be text.' }) }).max(200).nullish(),
         title: worded(TITLE_TEXT).min(1, TITLE_TEXT).max(200, 'suggestion.title is at most 200 characters.'),
-        buildPrompt: z.string({ invalid_type_error: 'suggestion.buildPrompt must be text.' }).max(20_000).nullish(),
-        complexity: z.string({ invalid_type_error: 'suggestion.complexity must be text.' }).max(40).nullish(),
-        requiredIntegrations: z.array(z.string({ invalid_type_error: LIST_TEXT }), { invalid_type_error: LIST_TEXT }).max(100).nullish(),
-        groundedIn: z.string({ invalid_type_error: 'suggestion.groundedIn must be text.' }).max(40).nullish(),
-    }, { required_error: TITLE_TEXT, invalid_type_error: 'suggestion is the suggestion the scan returned.' }).passthrough(),
-    reason: z.string({ invalid_type_error: 'reason must be text.' }).max(300, 'A reason is at most 300 characters.').nullish(),
+        buildPrompt: z.string({ error: typeError({ invalid: 'suggestion.buildPrompt must be text.' }) }).max(20_000).nullish(),
+        complexity: z.string({ error: typeError({ invalid: 'suggestion.complexity must be text.' }) }).max(40).nullish(),
+        requiredIntegrations: z.array(z.string({ error: typeError({ invalid: LIST_TEXT }) }), { error: typeError({ invalid: LIST_TEXT }) }).max(100).nullish(),
+        groundedIn: z.string({ error: typeError({ invalid: 'suggestion.groundedIn must be text.' }) }).max(40).nullish(),
+    }, { error: typeError({ required: TITLE_TEXT, invalid: 'suggestion is the suggestion the scan returned.' }) }).passthrough(),
+    reason: z.string({ error: typeError({ invalid: 'reason must be text.' }) }).max(300, 'A reason is at most 300 characters.').nullish(),
 }).strict();
 
 /** Every collaborator, loaded on first use unless a test passed its own. */

@@ -46,12 +46,12 @@ const { checkSubscriptionLimits } = require('../../core/entitlements/limits');
 // org union" used to live here; auth/orgScope.js is the one read now.
 const { resolvePrimaryOrgId } = require('../../auth');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 
 const COMPONENTS_DIR = path.resolve(__dirname, '../../../components');
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 /** An absent body is an empty one, so the missing field gets its sentence rather than "Required". */
 const bodyOf = (schema) => z.preprocess((v) => (v === undefined || v === null ? {} : v), schema);
 
@@ -63,13 +63,13 @@ const ChatBody = bodyOf(z.object({
     // Component ids the designer may call this turn. The agent treats null as
     // "keep the previous turn's selection", so null stays null.
     tools: z.array(worded('Each tool is a component id.'),
-        { invalid_type_error: 'tools is a list of component ids.' }).nullish(),
+        { error: typeError({ invalid: 'tools is a list of component ids.' }) }).nullish(),
     // The two keys the agent reads: the component being edited, and a
     // replacement system prompt. Anything else was read by nothing.
     context: z.object({
         componentId: worded('context.componentId is the id of the component being edited.').optional(),
         systemPrompt: worded('context.systemPrompt must be text.').optional(),
-    }, { invalid_type_error: 'context is an object.' }).strict().nullish(),
+    }, { error: typeError({ invalid: 'context is an object.' }) }).strict().nullish(),
 }).strict());
 
 const INVALID_COMPONENT = 'Invalid component data';
@@ -88,20 +88,20 @@ const ComponentBody = bodyOf(z.object({
         name: worded(INVALID_COMPONENT).min(1, INVALID_COMPONENT),
         // It becomes index.js. An object here used to be JSON.stringify'd into
         // that file: a component that could never run, "created successfully".
-        code: z.string({ required_error: INVALID_COMPONENT, invalid_type_error: 'Component code must be text — it becomes index.js.' })
+        code: z.string({ error: typeError({ required: INVALID_COMPONENT, invalid: 'Component code must be text — it becomes index.js.' }) })
             .min(1, INVALID_COMPONENT),
         description: worded('A component description must be text.').optional(),
         category: worded('A component category must be text.').optional(),
-        inputs: emptyListIsNone(z.record(z.unknown(), { invalid_type_error: 'Component inputs are an object keyed by input name.' })).optional(),
-        outputs: emptyListIsNone(z.record(z.unknown(), { invalid_type_error: 'Component outputs are an object keyed by output name.' })).optional(),
-        dependencies: emptyListIsNone(z.record(worded('Each dependency is a version range, as in package.json.'),
-            { invalid_type_error: 'Component dependencies are an object of package names to versions.' })).optional(),
+        inputs: emptyListIsNone(z.record(z.string(), z.unknown(), { error: typeError({ invalid: 'Component inputs are an object keyed by input name.' }) })).optional(),
+        outputs: emptyListIsNone(z.record(z.string(), z.unknown(), { error: typeError({ invalid: 'Component outputs are an object keyed by output name.' }) })).optional(),
+        dependencies: emptyListIsNone(z.record(z.string(), worded('Each dependency is a version range, as in package.json.'),
+            { error: typeError({ invalid: 'Component dependencies are an object of package names to versions.' }) })).optional(),
         // Typed, because the fallback is OPEN: `agentEnabled !== false` read
         // the string "false" as true, and every agent in every org could call
         // the component.
-        agentEnabled: z.boolean({ invalid_type_error: 'agentEnabled is true or false.' }).optional(),
-        directChatEnabled: z.boolean({ invalid_type_error: 'directChatEnabled is true or false.' }).optional(),
-    }, { required_error: INVALID_COMPONENT, invalid_type_error: INVALID_COMPONENT }),
+        agentEnabled: z.boolean({ error: typeError({ invalid: 'agentEnabled is true or false.' }) }).optional(),
+        directChatEnabled: z.boolean({ error: typeError({ invalid: 'directChatEnabled is true or false.' }) }).optional(),
+    }, { error: typeError({ required: INVALID_COMPONENT, invalid: INVALID_COMPONENT }) }),
 }).strict());
 
 // Chat with AI agent (standard JSON response)

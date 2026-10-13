@@ -1,7 +1,7 @@
 'use strict';
 
 const express = require('express');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 const { bodyOf, choice } = require('../../core/http/schemaParts');
 const { validate } = require('../../core/http/validate');
 const { requireAuth } = require('../../auth/permissions');
@@ -12,7 +12,7 @@ const SharingBody = bodyOf({
     audience: choice(['private', 'organisation', 'restricted'], 'audience is private, organisation or restricted.'),
     sharedGroups: ids,
     sharedUserIds: ids,
-    access: choice(['view', 'edit'], 'access is view or edit.').default('view'),
+    access: choice(['view', 'edit'], 'access is view or edit.').prefault('view'),
 }, 'Sharing a document');
 
 function makeDocumentSharingRouter({ store = sharing, auth = requireAuth, notebookGate } = {}) {

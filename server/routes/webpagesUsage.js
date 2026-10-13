@@ -63,10 +63,10 @@ const webpageStore = require('../stores/webpageStore');
 const webpageUsage = require('../core/webpages/webpageUsage');
 const { requireAuth } = require('../auth/permissions');
 const { validate } = require('../core/http/validate');
-const { z } = require('zod');
+const { z, onUnknownKeys } = require('../utils/zod');
 
 /** Niets. Gezegd in plaats van weggelaten: een genegeerde sleutel is een belofte. */
-const NO_QUERY = z.object({}).strict('This usage list takes no parameters; it always covers every kind.');
+const NO_QUERY = z.object({}, { error: onUnknownKeys('This usage list takes no parameters; it always covers every kind.') }).strict();
 
 router.get('/:id/usage', requireAuth, validate({ query: NO_QUERY }), async (req, res) => {
     try {

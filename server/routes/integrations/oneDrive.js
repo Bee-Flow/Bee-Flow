@@ -13,7 +13,7 @@ const router = express.Router();
 const { requireAuth } = require('../../auth/permissions');
 const { isMicrosoftConnected, graphFetch } = require('../../integrations/msGraphClient');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -28,7 +28,7 @@ const { z } = require('zod');
 // quietly meaning 25. The ceiling stays a clamp.
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 // Graph drive item ids are opaque and base64url-ish, sometimes with a `!`.
 const ITEM_ID_RE = /^[A-Za-z0-9_!=.-]{1,512}$/;
@@ -37,7 +37,7 @@ const ITEM_ID_TEXT = 'That is not a OneDrive item id.';
 const FilesQuery = z.object({
     folderId: worded(ITEM_ID_TEXT).regex(ITEM_ID_RE, ITEM_ID_TEXT).optional(),
     search: worded('search must be text.').optional(),
-    top: z.coerce.number({ invalid_type_error: 'top must be a number.' })
+    top: z.coerce.number({ error: typeError({ invalid: 'top must be a number.' }) })
         .int('top must be a whole number.')
         .min(1, 'top must be at least 1.')
         .optional(),

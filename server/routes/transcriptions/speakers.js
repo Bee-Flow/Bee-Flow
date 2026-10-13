@@ -14,7 +14,7 @@ const { requireAuth } = require('../../auth/permissions');
 const { resolveAccessContext, resolveUserOrgFromReq, withInsightsPolicy } = require('./shared');
 const { toContextBias, identifySpeakerNames, applySpeakerNames } = require('../../core/meetingNotes/summaryHelpers');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 const { worded, bodyOf, NO_QUERY } = require('./schemas');
 
 // ── Wat een sprekerbewerking mag dragen ─────────────────────────────
@@ -29,8 +29,8 @@ const { worded, bodyOf, NO_QUERY } = require('./schemas');
 const RENAMES_TEXT = 'renames must be an object';
 const MERGES_TEXT = 'merges must be an array';
 const SpeakersBody = bodyOf({
-    renames: z.record(z.unknown(), { invalid_type_error: RENAMES_TEXT }).optional(),
-    merges: z.array(z.unknown(), { invalid_type_error: MERGES_TEXT }).optional(),
+    renames: z.record(z.string(), z.unknown(), { error: typeError({ invalid: RENAMES_TEXT }) }).optional(),
+    merges: z.array(z.unknown(), { error: typeError({ invalid: MERGES_TEXT }) }).optional(),
 });
 
 // Een komma-/regelgescheiden lijst of een echte lijst — toContextBias leest
@@ -40,7 +40,7 @@ const ReidentifyBody = bodyOf({
     attendees: z.union([
         worded(ATTENDEES_TEXT),
         z.array(worded(ATTENDEES_TEXT)),
-    ], { errorMap: () => ({ message: ATTENDEES_TEXT }) }).optional(),
+    ], { error: () => ATTENDEES_TEXT }).optional(),
 });
 
 // ── Edit speakers (rename + merge) ───────────────────────

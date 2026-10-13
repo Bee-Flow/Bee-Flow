@@ -43,7 +43,7 @@ const MOCKS = {
     '../../stores/configStore': { getConfig: async () => null },
     '../../stores/languageStore': { getAvailableLocales: async () => [] },
     '../../telemetry/log': { info() {}, warn() {}, error() {}, debug() {} },
-    'bcryptjs': { hash: async () => 'hash' },
+    '../passwordHash': { hash: async () => 'hash' },
 };
 
 const MOCK_IDS = {};

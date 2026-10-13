@@ -79,12 +79,12 @@ const { requirePermission, validateSharedGroupsForOrg, requireActiveOrgForMutati
 const { sanitizeEnabledIntegrations } = require('../core/tools/skillInjection');
 const { SkillStructureError } = require('../core/skills/skillStructure');
 const { validate } = require('../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../utils/zod');
 
 // ── What a caller may send ──────────────────────────────────────────
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 /** Express 5 leaves `req.body` undefined without a body; read that as `{}`. */
 const orEmpty = (schema) => z.preprocess((v) => (v === undefined || v === null ? {} : v), schema);
@@ -105,25 +105,25 @@ const SKILL_FIELDS = {
     rules: worded('The rules must be text.'),
     examples: worded('The examples must be text.'),
     icon: worded('An icon must be text.'),
-    isShared: z.boolean({ invalid_type_error: 'isShared is true or false.' }),
-    dynamicActivation: z.boolean({ invalid_type_error: 'dynamicActivation is true or false.' }),
+    isShared: z.boolean({ error: typeError({ invalid: 'isShared is true or false.' }) }),
+    dynamicActivation: z.boolean({ error: typeError({ invalid: 'dynamicActivation is true or false.' }) }),
     // `[]` is "the whole organisation" (with isShared); a blank entry is
     // refused rather than dropped, because dropping the only one is `[]` too.
     // null leaves the groups as they are.
     sharedGroups: z.array(worded(GROUP_TEXT).trim().min(1, GROUP_TEXT),
-        { invalid_type_error: 'sharedGroups is a list of group ids.' }).nullable(),
+        { error: typeError({ invalid: 'sharedGroups is a list of group ids.' }) }).nullable(),
     automationId: worded('automationId is the id of an automation, or null for none.').nullable(),
     // Not narrowed to KNOWN apps: a stored skill may carry one that has since
     // left the registry, and the autosave resends the whole list every time.
     // The sanitiser drops those, as before; the schema refuses the wrong shape.
     enabledIntegrations: z.array(worded(INTEGRATION_TEXT),
-        { invalid_type_error: 'enabledIntegrations is a list of app ids.' }).nullable(),
-    steps: z.unknown(),
-    rulesV2: z.unknown(),
-    examplesV2: z.unknown(),
-    outputSchema: z.unknown(),
-    knowledgeBaseIds: z.unknown(),
-    allowedAutomationIds: z.unknown(),
+        { error: typeError({ invalid: 'enabledIntegrations is a list of app ids.' }) }).nullable(),
+    steps: z.unknown().optional(),
+    rulesV2: z.unknown().optional(),
+    examplesV2: z.unknown().optional(),
+    outputSchema: z.unknown().optional(),
+    knowledgeBaseIds: z.unknown().optional(),
+    allowedAutomationIds: z.unknown().optional(),
 };
 const optionalFields = Object.fromEntries(Object.entries(SKILL_FIELDS).map(([k, s]) => [k, s.optional()]));
 
@@ -132,10 +132,10 @@ const UpdateSkillBody = orEmpty(z.object({ name: skillName.optional(), ...option
 
 const CONFIRM_TEXT = 'confirmBreaking is true once the list of what breaks has been seen.';
 const DeleteBody = orEmpty(z.object({
-    confirmBreaking: z.boolean({ invalid_type_error: CONFIRM_TEXT }).optional(),
+    confirmBreaking: z.boolean({ error: typeError({ invalid: CONFIRM_TEXT }) }).optional(),
 }).strict());
 const DeleteQuery = orEmpty(z.object({
-    confirmBreaking: z.enum(['true', 'false'], { errorMap: () => ({ message: CONFIRM_TEXT }) }).optional(),
+    confirmBreaking: z.enum(['true', 'false'], { error: () => CONFIRM_TEXT }).optional(),
 }).strict());
 
 // The bodies of the handlers in ./skills/*.js. Types and keys only: a blank
@@ -154,7 +154,7 @@ const MESSAGE_TEXT = 'messageIndex is the position of the message in the convers
 const CONVERSATION_TEXT = 'conversationId is the id of one of your conversations.';
 const FromMessageBody = orEmpty(z.object({
     conversationId: worded(CONVERSATION_TEXT).trim().min(1, CONVERSATION_TEXT),
-    messageIndex: z.number({ required_error: MESSAGE_TEXT, invalid_type_error: MESSAGE_TEXT }).int(MESSAGE_TEXT).min(0, MESSAGE_TEXT),
+    messageIndex: z.number({ error: MESSAGE_TEXT }).int(MESSAGE_TEXT).min(0, MESSAGE_TEXT),
     question: worded('The question must be text.').optional(),
 }).strict());
 

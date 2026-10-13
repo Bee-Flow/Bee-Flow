@@ -7,7 +7,7 @@
 const webpageStore = require('../../stores/webpageStore');
 const { requireAuth } = require('../../auth/permissions');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 const { bodyOf, NO_QUERY, NOTHING } = require('./schemas');
 const log = require('../../telemetry/log');
 
@@ -26,7 +26,7 @@ const log = require('../../telemetry/log');
 // kopie hier zou er vanzelf van gaan verschillen.
 const MESSAGES_TEXT = 'Stuur de berichten mee — { messages: [...] }';
 const ChatBody = bodyOf({
-    messages: z.array(z.unknown(), { required_error: MESSAGES_TEXT, invalid_type_error: MESSAGES_TEXT }),
+    messages: z.array(z.unknown(), { error: MESSAGES_TEXT }),
 });
 
 function register(router) {

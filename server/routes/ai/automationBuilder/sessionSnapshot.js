@@ -27,7 +27,7 @@ const router = express.Router();
 const automationStore = require('../../../stores/automationStore');
 const { requireAuth, requireActiveOrgForMutations } = require('../../../auth/permissions');
 const { validate } = require('../../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../../utils/zod');
 const { applyPendingDatatables, keptDatatables } = require('./applyPendingDatatables');
 const { clientSnapshot } = require('./datatableTurn');
 

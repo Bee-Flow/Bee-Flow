@@ -58,7 +58,7 @@
 
 const express = require('express');
 const multer = require('multer');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 const log = require('../../telemetry/log');
 const router = express.Router();
 const { validate } = require('../../core/http/validate');
@@ -122,7 +122,7 @@ const AGENT_TEXT = 'agentId is the id of an agent you can use.';
 const VOICE_TEXT = 'voice is the name of a voice.';
 const LANGUAGE_TEXT = 'language is a language code, like nl or en.';
 const HISTORY_TEXT = 'history is a JSON list of { role, content } messages.';
-const boundedText = (message, max) => z.string({ invalid_type_error: message }).max(max, message);
+const boundedText = (message, max) => z.string({ error: typeError({ invalid: message }) }).max(max, message);
 
 const SessionBody = orEmpty(z.object({
     agentId: boundedText(AGENT_TEXT, 200).nullish(),
@@ -131,17 +131,17 @@ const SessionBody = orEmpty(z.object({
 }).strict());
 
 const HistoryEntries = z.array(z.object({
-    role: z.string({ required_error: HISTORY_TEXT, invalid_type_error: HISTORY_TEXT }).max(40, HISTORY_TEXT),
-    content: z.string({ required_error: HISTORY_TEXT, invalid_type_error: HISTORY_TEXT }),
-}, { invalid_type_error: HISTORY_TEXT }).strict(), { invalid_type_error: HISTORY_TEXT });
+    role: z.string({ error: HISTORY_TEXT }).max(40, HISTORY_TEXT),
+    content: z.string({ error: HISTORY_TEXT }),
+}, { error: typeError({ invalid: HISTORY_TEXT }) }).strict(), { error: typeError({ invalid: HISTORY_TEXT }) });
 
 // Multipart text fields are strings, and '' has always meant "not given".
 const TurnFields = orEmpty(z.object({
-    history: z.string({ invalid_type_error: HISTORY_TEXT })
+    history: z.string({ error: typeError({ invalid: HISTORY_TEXT }) })
         .transform((raw, ctx) => {
             if (!raw.trim()) return [];
             try { return JSON.parse(raw); } catch (_) {
-                ctx.addIssue({ code: z.ZodIssueCode.custom, message: HISTORY_TEXT });
+                ctx.addIssue({ code: 'custom', message: HISTORY_TEXT });
                 return z.NEVER;
             }
         })

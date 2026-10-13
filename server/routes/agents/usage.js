@@ -35,7 +35,7 @@
  */
 
 const express = require('express');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 const { validate } = require('../../core/http/validate');
 const agentStore = require('../../stores/agentStore');
 // The pure half of the usage contract comes straight from the module rather

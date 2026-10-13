@@ -43,7 +43,7 @@ const { builtinPrompt, buildSummarySystemPrompt, canAccessTemplate } = require("
 // Welke stempel de notitie krijgt: welk sjabloon, welke versie ervan.
 const { stampForBuiltin, stampForTemplate, EMPTY_STAMP } = require("../../core/meetingNotes/summaryStamp");
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 const { worded, bodyOf, choice, flag, idList, bool, NOTHING, NO_QUERY } = require('./schemas');
 
 // ── Wat een notitie-actie mag dragen ────────────────────────────────
@@ -65,10 +65,10 @@ const PatchBody = bodyOf({
     // Dezelfde zin die core/meetingNotes/actionItems.js zelf gebruikt voor
     // "dit is geen lijst" — één boodschap voor één feit, ongeacht wie hem
     // als eerste tegenkomt.
-    actionItems: z.array(z.unknown(), { invalid_type_error: 'actionItems must be an array' }).optional(),
-    decisions: z.array(z.unknown(), { invalid_type_error: 'decisions must be an array' }).optional(),
-    questions: z.array(z.unknown(), { invalid_type_error: 'questions must be an array' }).optional(),
-    tags: z.array(z.unknown(), { invalid_type_error: 'tags must be an array' }).optional(),
+    actionItems: z.array(z.unknown(), { error: typeError({ invalid: 'actionItems must be an array' }) }).optional(),
+    decisions: z.array(z.unknown(), { error: typeError({ invalid: 'decisions must be an array' }) }).optional(),
+    questions: z.array(z.unknown(), { error: typeError({ invalid: 'questions must be an array' }) }).optional(),
+    tags: z.array(z.unknown(), { error: typeError({ invalid: 'tags must be an array' }) }).optional(),
 });
 
 // Welke prompt de samenvatting schrijft. `{"templatId":"tpl_1"}` viel terug op

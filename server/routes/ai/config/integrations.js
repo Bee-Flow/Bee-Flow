@@ -12,7 +12,7 @@ const configStore = require('../../../stores/configStore');
 const { requireAuth, requireSuperAdmin } = require('../../../auth/permissions');
 const { orgScope } = require('../../../auth/orgScope');
 const { validate } = require('../../../core/http/validate');
-const { z, worded, bodyOf, queryOf, closedObject, choice } = require('../../../core/http/schemaParts');
+const { z, worded, bodyOf, queryOf, closedObject, choice, typeError } = require('../../../core/http/schemaParts');
 const { isAdminUser } = require('./shared');
 
 // ── What these routes accept ─────────────────────────────────────────
@@ -22,11 +22,11 @@ const { isAdminUser } = require('./shared');
 // object stored that object where a list belongs. The values keep their clamps in the
 // handlers; the schema only refuses what the handler would have dropped.
 const aText = (message, max) => worded(message).max(max, message);
-const count = z.union([z.number(), z.string()], { invalid_type_error: 'A count is a number.' });
+const count = z.union([z.number(), z.string()], { error: typeError({ invalid: 'A count is a number.' }) });
 const DETAIL = choice(['basic', 'detailed', 'highly_detailed'], 'detail_level is basic, detailed or highly_detailed.');
 const SearchDefaultsBody = bodyOf({
     mode: choice(['web', 'web_fast', 'kb', 'auto'], 'mode is web, web_fast, kb or auto.').optional(),
-    include_citations: z.boolean({ invalid_type_error: 'include_citations is true or false.' }).optional(),
+    include_citations: z.boolean({ error: typeError({ invalid: 'include_citations is true or false.' }) }).optional(),
     web: closedObject({
         max_results: count.optional(), fetch_top_n: count.optional(), max_tokens_markdown: count.optional(), detail_level: DETAIL.optional(),
     }, 'web').optional(),
@@ -39,7 +39,7 @@ const N8nConfigBody = bodyOf({
     apiKey: aText('apiKey is text.', 4000).nullish(),
 }, 'The n8n connection');
 const N8nWorkflowsBody = bodyOf({
-    workflows: z.array(z.record(z.unknown()), { invalid_type_error: 'workflows is a list of workflow settings.' }).nullish(),
+    workflows: z.array(z.record(z.string(), z.unknown()), { error: typeError({ invalid: 'workflows is a list of workflow settings.' }) }).nullish(),
 }, 'The n8n workflows');
 const N8nPermissionBody = bodyOf({
     permission: aText('permission is the name of an n8n permission.', 100).optional(),
@@ -50,8 +50,8 @@ const TRANSPORT = choice(['stdio', 'http'], 'transport is stdio or http.');
 const mcpShape = {
     name: aText('name is text.', 200).optional(),
     command: aText('command is text.', 2000).nullish(),
-    args: z.array(z.unknown(), { invalid_type_error: 'args is a list.' }).nullish(),
-    required_credentials: z.array(z.unknown(), { invalid_type_error: 'required_credentials is a list.' }).nullish(),
+    args: z.array(z.unknown(), { error: typeError({ invalid: 'args is a list.' }) }).nullish(),
+    required_credentials: z.array(z.unknown(), { error: typeError({ invalid: 'required_credentials is a list.' }) }).nullish(),
     transport: TRANSPORT.optional(),
     url: aText('url is the address of the server.', 2000).nullish(),
     category: aText('category is text.', 200).nullish(),
@@ -59,7 +59,7 @@ const mcpShape = {
     icon: aText('icon is text.', 2000).nullish(),
 };
 const McpServerBody = bodyOf({ ...mcpShape, source: aText('source is text.', 40).optional() }, 'An MCP server');
-const McpUpdateBody = bodyOf({ ...mcpShape, enabled: z.boolean({ invalid_type_error: 'enabled is true or false.' }).optional() }, 'An MCP server');
+const McpUpdateBody = bodyOf({ ...mcpShape, enabled: z.boolean({ error: typeError({ invalid: 'enabled is true or false.' }) }).optional() }, 'An MCP server');
 const McpTestBody = bodyOf({
     command: mcpShape.command, args: mcpShape.args, transport: TRANSPORT.optional(), url: mcpShape.url,
 }, 'An MCP server test');

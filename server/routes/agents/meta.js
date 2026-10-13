@@ -15,7 +15,7 @@ require('../../core/http/sseHelpers');
 const log = require('../../telemetry/log');
 const { requireAuth } = require('../../auth/permissions');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 
 const router = express.Router();
 

@@ -24,7 +24,7 @@
 
 const express = require('express');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 
 // ── What a caller may send ────────────────────────────────────
 //
@@ -90,7 +90,7 @@ function _publicRow(row) {
 
 /** The questionnaire is `assess`'s own vocabulary; the key around it is not. */
 const AssessmentBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object({
-    answers: z.record(z.unknown(), { invalid_type_error: 'answers is a JSON object.' }).optional(),
+    answers: z.record(z.string(), z.unknown(), { error: typeError({ invalid: 'answers is a JSON object.' }) }).optional(),
 }).strict());
 
 router.get('/ai-act/assessments', ...guard, async (req, res) => {

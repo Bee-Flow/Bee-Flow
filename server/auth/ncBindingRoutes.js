@@ -27,10 +27,10 @@ const orgHealth = require('../services/orgHealth'); // fire-and-forget lifecycle
 
 const { ensureOrgAdminUser, bindOrgToNcInstance, getOrMintTenantKey } = bootstrapHelpers;
 const { validate } = require('../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../utils/zod');
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 function isExpired(row) {
     return row.expiresAt && new Date(row.expiresAt).getTime() <= Date.now();

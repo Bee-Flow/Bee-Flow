@@ -104,7 +104,25 @@ function createAuthConfigStore({ db, configStore }) {
             return true;
         });
     }
-    return { load, save, migrate: () => transaction(async () => true) };
+    /**
+     * Swap the built-in admin's password hash for a re-encoding of the same
+     * password, only if it is still the hash the sign-in just verified. Inside
+     * the same advisory-locked transaction as save(), so a concurrent setup or
+     * password change cannot be overwritten by an older password.
+     * @param {string} expectedHash
+     * @param {string} newHash
+     * @returns {Promise<boolean>}
+     */
+    async function replaceAdminPasswordHash(expectedHash, newHash) {
+        if (!expectedHash || !newHash) return false;
+        return transaction(async ({ state, write }) => {
+            if (state.admin.passwordHash !== expectedHash) return false;
+            state.admin = { ...state.admin, passwordHash: newHash };
+            await write('admin', state.admin);
+            return true;
+        });
+    }
+    return { load, save, replaceAdminPasswordHash, migrate: () => transaction(async () => true) };
 }
 
 let store;
@@ -113,4 +131,5 @@ function defaultStore() {
 }
 module.exports = { SECRET_KEYS, createAuthConfigStore,
     load: () => defaultStore().load(), save: patch => defaultStore().save(patch),
+    replaceAdminPasswordHash: (expectedHash, newHash) => defaultStore().replaceAdminPasswordHash(expectedHash, newHash),
     migrate: () => defaultStore().migrate() };

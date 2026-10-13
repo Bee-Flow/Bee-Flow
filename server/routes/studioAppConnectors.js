@@ -64,12 +64,12 @@ const express = require('express');
 const log = require('../telemetry/log');
 const router = express.Router();
 const { validate } = require('../core/http/validate');
-const { z, bodyOf } = require('../core/http/schemaParts');
+const { z, bodyOf, typeError } = require('../core/http/schemaParts');
 // A run or inspect takes the connector's parameters and nothing else; the
 // connector's own parameter list decides which of them count. A misspelled
 // `parms` used to run the connector with none, under a 200.
 const ParamsBody = bodyOf({
-    params: z.record(z.unknown(), { invalid_type_error: 'params is an object of the connector\'s parameters.' }).nullish(),
+    params: z.record(z.string(), z.unknown(), { error: typeError({ invalid: 'params is an object of the connector\'s parameters.' }) }).nullish(),
 }, 'A connector call');
 
 const studioAppStore = require('../stores/studioAppStore');

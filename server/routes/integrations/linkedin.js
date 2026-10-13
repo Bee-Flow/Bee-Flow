@@ -15,7 +15,7 @@ const log = require('../../telemetry/log');
 const router = express.Router();
 const configStore = require('../../stores/configStore');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 
 const SCOPES = ['openid', 'profile', 'w_member_social'];
 
@@ -154,7 +154,7 @@ router.get('/callback', async (req, res) => {
 // silence.
 const TEXT_TEXT = 'A LinkedIn post needs text.';
 const PostBody = z.object({
-    text: z.string({ required_error: TEXT_TEXT, invalid_type_error: TEXT_TEXT }).trim().min(1, TEXT_TEXT),
+    text: z.string({ error: TEXT_TEXT }).trim().min(1, TEXT_TEXT),
 }).strict();
 
 // The session gate stays AHEAD of the schema: an unauthenticated caller must

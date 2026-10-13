@@ -1,0 +1,25 @@
+# Node setup and a clean install for one package directory: setup-node reads
+# the version from .nvmrc, the npm cache is keyed on THAT package's lockfile,
+# then `npm ci` runs in that directory. The calling job must have checked the
+# repository out first. Used by the package jobs in ci.yml; a job that needs
+# more than one lockfile in its cache key, or no install, keeps its own steps.
+name: npm install
+description: setup-node (version from .nvmrc, npm cache keyed on the package's lockfile) and npm ci in one package directory
+
+inputs:
+  directory:
+    description: Package directory, relative to the repository root (holds package.json and package-lock.json)
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      with:
+        node-version-file: .nvmrc
+        cache: npm
+        cache-dependency-path: ${{ inputs.directory }}/package-lock.json
+    - name: Install dependencies
+      shell: bash
+      working-directory: ${{ inputs.directory }}
+      run: npm ci

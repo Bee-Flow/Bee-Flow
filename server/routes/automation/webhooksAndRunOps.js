@@ -7,7 +7,7 @@ const automationStore = require('../../stores/automationStore');
 const { webhookUrlForSlug, formUrlForToken } = require('../../automation/publicUrl');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 const { HttpError } = require('../../core/http/errors');
 // Handoff 5 sharing: what a role may do with an automation and its runs.
 const { makeAutomationAccess, mayReadRun, roleSatisfies } = require('../../automation/access');
@@ -31,7 +31,7 @@ const runTriggerLimiter = perUserRateLimit({ windowMs: 60_000, max: RUN_TRIGGER_
 // fail to stick with nothing on screen to explain it.
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 /**
  * A body that also accepts NO body at all. Express 5 leaves `req.body`
@@ -58,7 +58,7 @@ const Decision = z.preprocess((v) => {
     // is refused rather than guessed at.
     const said = typeof v === 'string' ? v.toLowerCase() : v;
     return said === undefined || said === null || said === '' ? 'approve' : said;
-}, z.enum(['approve', 'reject'], { errorMap: () => ({ message: DECISION_TEXT }) }));
+}, z.enum(['approve', 'reject'], { error: () => DECISION_TEXT }));
 const Reason = worded('reason must be text.').trim().max(2000, 'A reason is at most 2000 characters.').optional();
 
 const ApproveStepBody = bodyOf({
@@ -84,19 +84,19 @@ const FormPickBody = bodyOf({
 
 const AgentInvokeBody = bodyOf({
     // Whatever this automation's agent_call trigger declares it takes.
-    args: z.record(z.unknown(), { invalid_type_error: 'args is an object of the automation\'s own inputs.' }).default({}),
+    args: z.record(z.string(), z.unknown(), { error: typeError({ invalid: 'args is an object of the automation\'s own inputs.' }) }).default({}),
 });
 
 const ATTEMPTS_TEXT = 'attempts is the attempt number of the step row, a whole number from 1.';
 /** Which attempt's row the full output belongs to; omitted → the first. */
 const FullOutputQuery = z.object({
-    attempts: z.coerce.number({ invalid_type_error: ATTEMPTS_TEXT })
+    attempts: z.coerce.number({ error: typeError({ invalid: ATTEMPTS_TEXT }) })
         .int(ATTEMPTS_TEXT).min(1, ATTEMPTS_TEXT).default(1),
 }).strict();
 
 const RunFormBody = bodyOf({
     stepId: worded('stepId is the id of the form page being answered.').trim().min(1, 'stepId is the id of the form page being answered.').optional(),
-    values: z.record(z.unknown(), { invalid_type_error: 'values maps a field id to its answer.' }).default({}),
+    values: z.record(z.string(), z.unknown(), { error: typeError({ invalid: 'values maps a field id to its answer.' }) }).default({}),
 });
 
 

@@ -19,7 +19,7 @@ const userStore = require('../../stores/userStore');
 const { requireAuth, requireAdmin, requireSuperAdmin, requirePrimaryOrgAdmin, getUserPermissions, invalidateAllPermissionCaches, resolveUserOrgIds, SYSTEM_PERMISSIONS, getOrgRolePermissions, orgWideGrantImpliedPermissions, orgRoleImpliedFill } = require('../permissions');
 const orgRolePolicy = require('../orgRolePolicy');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 
 // The `roles` table has no organizationId column — a role is install-wide, so
 // editing one reshapes permissions for every tenant. That makes role mutation
@@ -140,7 +140,7 @@ async function rejectUngrantableRoles({ userId, session, requested, existing = [
 }
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 /**
  * The list shape as a schema, delegating to invalidStringArrayField so the one
@@ -149,7 +149,7 @@ const worded = (message) => z.string({ required_error: message, invalid_type_err
  */
 const idList = (field) => z.any().superRefine((value, ctx) => {
     const message = invalidStringArrayField(value, field);
-    if (message) ctx.addIssue({ code: z.ZodIssueCode.custom, message });
+    if (message) ctx.addIssue({ code: 'custom', message });
 }).optional();
 
 const GROUP_NAME_TEXT = 'Group name required';
@@ -206,7 +206,7 @@ const UpdateRoleBody = z.object({
 
 const PERMISSIONS_TEXT = 'permissions must be an array';
 const OrgRolePermissionsBody = z.object({
-    permissions: z.array(worded(PERMISSIONS_TEXT), { required_error: PERMISSIONS_TEXT, invalid_type_error: PERMISSIONS_TEXT }),
+    permissions: z.array(worded(PERMISSIONS_TEXT), { error: PERMISSIONS_TEXT }),
 }).strict();
 
 router.post('/groups', requireAuth, validate({ body: CreateGroupBody }), async (req, res) => {

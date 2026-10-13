@@ -18,7 +18,7 @@ const { requireAuth } = require('../../auth/permissions');
 const shareUrls = require('../webpageShareUrls');
 const shareReconciler = require('../../core/webpages/webpageShareReconciler');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 const { worded, bodyOf, choice, NOTHING, NO_QUERY } = require('./schemas');
 const log = require('../../telemetry/log');
 
@@ -49,16 +49,16 @@ const ShareBody = bodyOf({
     // Leeg-na-trimmen viel in de store weg en liet een e-mailpoort met een
     // LEGE lijst achter: een link die niemand meer kan openen, onder een 200
     // met de URL erbij.
-    allowedEmails: z.array(worded(EMAIL_TEXT).trim().min(1, EMAIL_TEXT), { invalid_type_error: EMAIL_TEXT }).optional(),
+    allowedEmails: z.array(worded(EMAIL_TEXT).trim().min(1, EMAIL_TEXT), { error: typeError({ invalid: EMAIL_TEXT }) }).optional(),
     // parseExpiresAt hieronder leest hem: null/'' betekent geen vervaldatum.
-    expiresAt: z.union([z.string(), z.number(), z.null()], { errorMap: () => ({ message: 'expiresAt is een tijdstip of null.' }) }).optional(),
+    expiresAt: z.union([z.string(), z.number(), z.null()], { error: () => 'expiresAt is een tijdstip of null.' }).optional(),
     title: worded('Een titel is tekst.').max(300, 'Een titel is hoogstens 300 tekens.').optional(),
 });
 
 // Alleen de vervaldatum. `{"expiresA": …}` was een 200 met de ongewijzigde
 // rij erbij — een wijziging die de lezer als geslaagd las en die nooit plaatsvond.
 const ExpiryBody = bodyOf({
-    expiresAt: z.union([z.string(), z.number(), z.null()], { errorMap: () => ({ message: 'expiresAt is een tijdstip of null.' }) }),
+    expiresAt: z.union([z.string(), z.number(), z.null()], { error: () => 'expiresAt is een tijdstip of null.' }),
 });
 
 // Re-snapshot every active public share for a webpage so published pages

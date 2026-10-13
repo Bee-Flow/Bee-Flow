@@ -89,7 +89,7 @@
 
 const express = require('express');
 const { usageLogFields } = require('../../core/providers/usageNormalizer');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 
 const { validate } = require('../../core/http/validate');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
@@ -135,13 +135,12 @@ const RouteBody = z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
     z.object({
         // Absent, null or blank is the handler's `no_text`, the code the client maps.
-        text: z.string({ invalid_type_error: TEXT_TYPE }).nullish(),
+        text: z.string({ error: typeError({ invalid: TEXT_TYPE }) }).nullish(),
     }, {
-        errorMap: (issue, ctx) => ({
-            message: issue.code === z.ZodIssueCode.unrecognized_keys
-                ? `Only the description is sent ("text"); there is no ${issue.keys.map((k) => `"${k}"`).join(', ')}.`
-                : (issue.code === z.ZodIssueCode.invalid_type ? 'The body is a JSON object: { "text": "…" }.' : ctx.defaultError),
-        }),
+        error: (iss) => {
+            if (iss.code === 'unrecognized_keys') return `Only the description is sent ("text"); there is no ${iss.keys.map((k) => `"${k}"`).join(', ')}.`;
+            return iss.code === 'invalid_type' ? 'The body is a JSON object: { "text": "…" }.' : undefined;
+        },
     }).strict(),
 );
 

@@ -74,7 +74,7 @@ const { extractSection, insertSection } = require('../core/documents/documentSec
 const { houseStyleCssFor: houseStyleCssForDocument } = require('../core/documents/renderFilledDocument');
 const { isDeckDocument, renderDeckDocument } = require('../core/documents/deckDocument');
 const { validate } = require('../core/http/validate');
-const { z, worded, bodyOf, queryOf, choice, wholeNumber } = require('../core/http/schemaParts');
+const { z, worded, bodyOf, queryOf, choice, wholeNumber, typeError } = require('../core/http/schemaParts');
 const { forCompose } = require('../core/documents/pageDocument');
 const { mergeBodies } = require('../core/documents/sectionMerge');
 const documentFeed = require('../core/documents/documentFeed');
@@ -126,7 +126,7 @@ const TemplatesQuery = queryOf({ ...listFilters, limit: pageOf('At most 200 are 
 const StartersQuery = queryOf({ locale: docText('locale is a language code, like en or nl.', 20).optional() }, 'The starters');
 const VersionQuery = queryOf({ versionId: docText('versionId is the id of a revision.', 200).optional() }, 'This document');
 const PreviewQuery = queryOf({ edit: choice(['0', '1'], 'edit is 1 for the editing bridge.').optional() }, 'The preview');
-const valuesMap = (name) => z.record(z.unknown(), { invalid_type_error: `${name} is an object of values.` });
+const valuesMap = (name) => z.record(z.string(), z.unknown(), { error: typeError({ invalid: `${name} is an object of values.` }) });
 const REVISION_TEXT = 'expectedVersionId is the revision you read.';
 const bodies = {
     deckTemplate: bodyOf({ dataUrl: docText('Send the deck as a base64 data URL.', 40_000_000), name: docText('name is text.', 500).optional() }, 'A template deck'),
@@ -137,7 +137,7 @@ const bodies = {
         message: docText('Describe the requested change', 12_000),
         mode: choice(['design', 'content', 'applicability'], 'mode is design, content or applicability.').optional(),
         values: valuesMap('values').nullish(),
-        history: z.array(z.object({ role: docText('role is user or assistant.', 20), content: z.unknown() }).passthrough(), { invalid_type_error: 'history is the list of earlier turns.' }).optional(),
+        history: z.array(z.object({ role: docText('role is user or assistant.', 20), content: z.unknown().optional() }).passthrough(), { error: typeError({ invalid: 'history is the list of earlier turns.' }) }).optional(),
     }, 'A change request'),
     check: bodyOf({ values: valuesMap('values').nullish(), sectionOverrides: valuesMap('sectionOverrides').nullish() }, 'Validating a document'),
     duplicate: bodyOf({

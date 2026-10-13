@@ -28,7 +28,7 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
-const { z } = require('zod');
+const { z, typeError } = require('../utils/zod');
 const componentManager = require('../core/cms/componentManager');
 const { requireAuth } = require('../auth/permissions');
 const { validate } = require('../core/http/validate');
@@ -71,7 +71,7 @@ function resolveComponentDir(id) {
 // it be text.
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 const INPUT_TEXT = 'Each input is a type name, or { type, default, description, secure }.';
 const InputDef = z.union([
@@ -80,11 +80,11 @@ const InputDef = z.union([
         type: worded('An input\'s type is text, like "string".').optional(),
         default: z.unknown().optional(),
         description: worded('An input\'s description is text.').optional(),
-        secure: z.boolean({ invalid_type_error: 'An input\'s secure flag is true or false.' }).optional(),
+        secure: z.boolean({ error: typeError({ invalid: 'An input\'s secure flag is true or false.' }) }).optional(),
         // The studio's placeholder for "a secret is stored, keep it" (see PUT).
         _hasStoredValue: z.boolean().optional(),
     }).strict(),
-], { errorMap: () => ({ message: INPUT_TEXT }) });
+], { error: () => INPUT_TEXT });
 
 const OUTPUTS_TEXT = 'outputs maps each output to a type name, like { "result": "string" }.';
 
@@ -103,21 +103,21 @@ const VERSION_TEXT = 'A dependency version is a registry range or tag, like ^1.6
 /** The allow-list is componentManager's; a package off it is refused here, before anything is written. */
 const allowedDependencies = () => componentManager.ALLOWED_DEPENDENCIES || new Set();
 const Dependencies = z.record(
-    z.string().refine((name) => allowedDependencies().has(name), (name) => ({
-        message: `"${name}" is not a package a component may install (allowed: ${[...allowedDependencies()].join(', ')}).`,
-    })),
+    z.string().refine((name) => allowedDependencies().has(name), {
+        error: (iss) => `"${iss.input}" is not a package a component may install (allowed: ${[...allowedDependencies()].join(', ')}).`,
+    }),
     worded(VERSION_TEXT).regex(VERSION_RE, VERSION_TEXT),
-    { invalid_type_error: 'dependencies maps package names to versions, like { "axios": "^1.6.0" }.' },
+    { error: typeError({ invalid: 'dependencies maps package names to versions, like { "axios": "^1.6.0" }.' }) },
 );
 
-const flag = (name) => z.boolean({ invalid_type_error: `${name} is true or false.` });
+const flag = (name) => z.boolean({ error: typeError({ invalid: `${name} is true or false.` }) });
 
 const COMPONENT_FIELDS = {
     name: worded('A component name is text.').optional(),
     description: worded('A description is text.').optional(),
     category: worded('A category is text.').optional(),
-    inputs: z.record(InputDef, { invalid_type_error: 'inputs maps each input name to its definition.' }).optional(),
-    outputs: z.record(worded(OUTPUTS_TEXT), { invalid_type_error: OUTPUTS_TEXT }).optional(),
+    inputs: z.record(z.string(), InputDef, { error: typeError({ invalid: 'inputs maps each input name to its definition.' }) }).optional(),
+    outputs: z.record(z.string(), worded(OUTPUTS_TEXT), { error: typeError({ invalid: OUTPUTS_TEXT }) }).optional(),
     code: worded('code is the component\'s source, as text.').optional(),
     dependencies: Dependencies.optional(),
     agentEnabled: flag('agentEnabled').optional(),
@@ -128,7 +128,7 @@ const BODY_TEXT = 'Send the component as an object.';
 const CreateComponentBody = z.object({
     id: worded(INVALID_ID_MESSAGE),
     ...COMPONENT_FIELDS,
-}, { required_error: BODY_TEXT, invalid_type_error: BODY_TEXT }).strict();
+}, { error: typeError({ required: BODY_TEXT, invalid: BODY_TEXT }) }).strict();
 
 const UpdateComponentBody = z.object({
     // The studio sends the whole form back, id included; the address decides.
@@ -137,7 +137,7 @@ const UpdateComponentBody = z.object({
     aiContext: worded('aiContext is text.').nullish(),
     // Whatever the last test run returned — the studio's "save as sample".
     sampleOutput: z.unknown().optional(),
-}, { required_error: BODY_TEXT, invalid_type_error: BODY_TEXT }).strict();
+}, { error: typeError({ required: BODY_TEXT, invalid: BODY_TEXT }) }).strict();
 
 // List all components
 router.get('/', (req, res) => {

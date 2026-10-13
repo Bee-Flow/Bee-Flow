@@ -27,7 +27,12 @@
 #                   build - by far the slowest part of rebuilding that image for
 #                   local iteration. The resulting image will NOT serve a working
 #                   Nextcloud connector /embed/ shell. Never set this for a `prd`
-#                   build or anything you intend to push.
+#                   build or anything you intend to push. It also skips the server
+#                   image's App Studio runtime bundle (a Vite build of agent-hub;
+#                   Studio screenshots then report unavailable).
+#
+# The server image is staged and stamped like CI's (scripts/stage-server-context.sh,
+# APP_BUILD_SHA); the runtime bundle needs agent-hub/node_modules (cd agent-hub; npm ci).
 
 [CmdletBinding()]
 param(
@@ -190,6 +195,39 @@ function Get-GitSha {
     return "local"
 }
 
+# The server image takes the App Studio runtime bundle and the SBOM from
+# gitignored folders of its build context; CI stages them
+# (scripts/stage-server-context.sh, shared with build-push-ghcr.yml and
+# build-images.sh). Best-effort like CI's non-prod run: the image is valid
+# without them, so a failure is a warning, never a failed build. The script is
+# bash, so this needs a bash on PATH (Git for Windows ships one); without it the
+# server image is built unstaged, as before. FAST_DEV=1 (dev only) skips the
+# runtime bundle, a Vite build of agent-hub.
+function Initialize-ServerContext {
+    param([string]$Env, [string]$Sha)
+    $what = if ($env:FAST_DEV -eq "1" -and $Env -ne "prd") { "sbom" } else { "all" }
+    $bash = Get-Command bash -ErrorAction SilentlyContinue
+    if (-not $bash) {
+        Write-Host "WARNING: bash not found - the server image is built WITHOUT the App Studio runtime bundle and the SBOM (CI stages both; install Git for Windows to get them)." -ForegroundColor Yellow
+        return
+    }
+    Write-Host "==> Staging the server build context ($what) ..."
+    $old = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    $oldSha = $env:BUILD_SHA
+    try {
+        $env:BUILD_SHA = $Sha
+        & $bash.Source "$RepoFwd/scripts/stage-server-context.sh" $what
+        $ok = ($LASTEXITCODE -eq 0)
+    } catch { $ok = $false } finally {
+        $env:BUILD_SHA = $oldSha
+        $ErrorActionPreference = $old
+    }
+    if (-not $ok) {
+        Write-Host "WARNING: server context staging failed - the image is built WITHOUT the App Studio runtime bundle and/or the SBOM (same as CI's non-prod fallback)." -ForegroundColor Yellow
+    }
+}
+
 # Which builder Build-One uses, decided once by Confirm-Builder below.
 # Empty $BuilderArgs = the current (default) builder.
 $script:BuilderArgs = @()
@@ -282,6 +320,12 @@ function Build-One {
         "server" {
             # DB-IP Lite edition month for the Dockerfile's `geo` stage (cache key).
             $extra += @("--build-arg", "GEO_DB_MONTH=$((Get-Date).ToUniversalTime().ToString('yyyy-MM'))")
+            # Same context staging and build stamp as CI (build-push-ghcr.yml, job
+            # `server`): the App Studio runtime bundle and the SBOM, which is
+            # stamped with the very sha baked in as APP_BUILD_SHA.
+            $buildSha = Get-GitSha
+            $extra += @("--build-arg", "APP_BUILD_SHA=$buildSha")
+            Initialize-ServerContext $Env $buildSha
         }
         "agent-hub" {
             $extra += @("--build-arg", "VITE_BUILD_SHA=$(Get-GitSha)")

@@ -9,7 +9,7 @@ const { isSuperAdmin } = require('../../auth');
 
 const { requireStaffSupport, _emit } = require('./shared');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 
 /** The disconnect button posts nothing; a key in its body is a mistake, not a default. */
 const NoBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object({}).strict());

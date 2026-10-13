@@ -13,18 +13,24 @@
 // The mousedown listener is attached on a deferred tick so the click that
 // opened the panel never immediately dismisses it. Escape is handled too
 // (disable with `escape: false`).
+//
+// `defer: false` attaches the listeners synchronously in the effect instead.
+// Use it when migrating a hand-written listener that never deferred, where a
+// press or key in the very tick that opened the panel must still count.
 
 import { useEffect, useEffectEvent, type RefObject } from 'react';
 
 export interface OutsideDismissOptions {
     enabled?: boolean;
     escape?: boolean;
+    /** Attach on a deferred tick (default). `false` attaches synchronously. */
+    defer?: boolean;
 }
 
 export default function useOutsideDismiss<T extends HTMLElement>(
     ref: RefObject<T | null>,
     onDismiss: () => void,
-    { enabled = true, escape = true }: OutsideDismissOptions = {},
+    { enabled = true, escape = true, defer = true }: OutsideDismissOptions = {},
 ): void {
     // Callers pass inline closures; an Effect Event reads the latest one
     // without re-subscribing per render (which would defeat the deferred attach).
@@ -40,16 +46,18 @@ export default function useOutsideDismiss<T extends HTMLElement>(
             if (escape && e.key === 'Escape') dismiss();
         };
 
-        // Defer so the opening click doesn't instantly close the panel.
-        const timer = setTimeout(() => {
+        const attach = () => {
             document.addEventListener('mousedown', onMouseDown);
             document.addEventListener('keydown', onKeyDown);
-        }, 0);
+        };
+        // Defer so the opening click doesn't instantly close the panel.
+        const timer = defer ? setTimeout(attach, 0) : null;
+        if (!defer) attach();
 
         return () => {
-            clearTimeout(timer);
+            if (timer !== null) clearTimeout(timer);
             document.removeEventListener('mousedown', onMouseDown);
             document.removeEventListener('keydown', onKeyDown);
         };
-    }, [enabled, escape, ref]);
+    }, [enabled, escape, defer, ref]);
 }

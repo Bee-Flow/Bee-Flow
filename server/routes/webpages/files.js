@@ -10,7 +10,7 @@ const { requireAuth } = require('../../auth/permissions');
 const webpageUsageSync = require('../../core/webpages/webpageUsageSync');
 const { reSnapshotWebpageShares } = require('./publicShares');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 const { worded, bodyOf, NO_QUERY } = require('./schemas');
 const log = require('../../telemetry/log');
 

@@ -35,14 +35,14 @@ const express = require('express');
 const log = require('../telemetry/log');
 const { HttpError } = require('../core/http/errors');
 const { validate } = require('../core/http/validate');
-const { z, bodyOf, queryOf, wholeNumber } = require('../core/http/schemaParts');
+const { z, bodyOf, queryOf, wholeNumber, typeError } = require('../core/http/schemaParts');
 const { requireNotebookRole } = require('./notebooksAccess');
 
 const NAME_TEXT = 'name is text of at most 80 characters.';
-const name = z.string({ required_error: NAME_TEXT, invalid_type_error: NAME_TEXT }).max(80, NAME_TEXT);
+const name = z.string({ error: NAME_TEXT }).max(80, NAME_TEXT);
 
 const ListQuery = queryOf({
-    cursor: z.string({ invalid_type_error: 'cursor is the nextCursor of the previous page.' })
+    cursor: z.string({ error: typeError({ invalid: 'cursor is the nextCursor of the previous page.' }) })
         .regex(/^\d{1,9}$/, 'cursor is the nextCursor of the previous page.').optional(),
     limit: wholeNumber('limit is a whole number from 1 to 200.', { min: 1, max: 200 }).optional(),
 }, 'The version list');
@@ -58,7 +58,7 @@ const KEPT_TEXT = 'html is the text to keep, as HTML.';
 const MAX_KEPT_BYTES = require('../core/collab/limits').defaultLimits().maxDocBytes;
 const KEPT_SIZE_TEXT = `html is at most ${Math.round(MAX_KEPT_BYTES / (1024 * 1024))} MB.`;
 const KeptBody = bodyOf({
-    html: z.string({ required_error: KEPT_TEXT, invalid_type_error: KEPT_TEXT })
+    html: z.string({ error: KEPT_TEXT })
         .refine((v) => v.trim().length > 0, KEPT_TEXT)
         .refine((v) => Buffer.byteLength(v, 'utf8') <= MAX_KEPT_BYTES, KEPT_SIZE_TEXT),
 }, 'Keeping unsaved text');

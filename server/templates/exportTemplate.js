@@ -16,7 +16,7 @@ let _logoDataUri = null;
 function getLogoDataUri() {
     if (_logoDataUri) return _logoDataUri;
     try {
-        const logoPath = path.resolve(__dirname, '../../agent-hub/public/BeeFlow-logo-Icon-2026.svg');
+        const logoPath = path.resolve(__dirname, '../assets/brand/BeeFlow-logo-Icon-2026.svg');
         const svgContent = fs.readFileSync(logoPath, 'utf8');
         _logoDataUri = `data:image/svg+xml;base64,${Buffer.from(svgContent).toString('base64')}`;
     } catch {

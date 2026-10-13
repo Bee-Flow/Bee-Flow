@@ -39,14 +39,29 @@ const SKIP_DIRS = new Set(['node_modules', '.git', 'coverage', 'vendor', 'upload
 const CHOKE_POINTS = /\b(createUserWithSeatCheck|createUser|updateUser)\s*\(/;
 
 /**
- * Every `bcrypt.hash(` in the tree, declared.
+ * A password hash being made: `passwords.hash(` (auth/passwordHash.js, argon2id,
+ * every login password) or a direct `bcrypt.hash(` (what is left: MFA codes).
+ */
+const HASH_CALL = /\b(?:passwords|bcrypt)\.hash\s*\(/;
+const HASH_CALLS = new RegExp(HASH_CALL.source, 'g');
+
+/**
+ * Every password hash made in the tree, declared.
  *
  * `kind: 'credential'` — this becomes somebody's login secret, so the write has
  * to travel through a choke point and gets dated.
  * `kind: 'not-a-credential'` — it is a hash, but not one anybody signs in with;
  * dating it would be a lie. The reason is the entry.
+ * `kind: 'rehash'` — the SAME password re-encoded (bcrypt → argon2id at sign-in).
+ * Nothing changed for the account holder, so it must not be dated: it writes
+ * through the stores' compare-and-swap helpers, never createUser/updateUser.
  */
 const HASH_SITES = new Map([
+    ['auth/passwordHash.js', {
+        count: 1, kind: 'not-a-credential',
+        why: 'the bcrypt branch of passwords.hash() itself: the module every declared '
+            + 'site below calls, not a place where a credential is written.',
+    }],
     ['auth/login/signupRoutes.js', {
         count: 1, kind: 'credential',
         why: 'public registration and invite accept — the only signup write path.',
@@ -62,7 +77,7 @@ const HASH_SITES = new Map([
     }],
     ['auth/login/setupRoutes.js', {
         count: 1, kind: 'credential',
-        why: 'first-run setup of the built-in admin (cost 12), stored in config AND '
+        why: 'first-run setup of the built-in admin, stored in config AND '
             + 'in the users row.',
     }],
     ['boot-init.js', {
@@ -73,6 +88,11 @@ const HASH_SITES = new Map([
         count: 1, kind: 'not-a-credential',
         why: 'a throwaway hash compared against on unknown usernames so that login '
             + 'timing does not leak whether an account exists. It is never stored.',
+    }],
+    ['auth/login/passwordRehash.js', {
+        count: 1, kind: 'rehash',
+        why: 'a successful sign-in re-encodes a bcrypt hash as argon2id. Same password, '
+            + 'so password_changed_at must not move.',
     }],
     ['auth/mfa.js', {
         count: 1, kind: 'not-a-credential',
@@ -125,7 +145,7 @@ function countOf(src, re) {
 }
 
 test('every file that hashes a password is declared, and no declaration is stale', () => {
-    const found = [...sources].filter(([, src]) => /bcrypt\.hash\s*\(/.test(src)).map(([rel]) => rel).sort();
+    const found = [...sources].filter(([, src]) => HASH_CALL.test(src)).map(([rel]) => rel).sort();
     const declared = [...HASH_SITES.keys()].sort();
 
     const undeclared = found.filter(f => !HASH_SITES.has(f));
@@ -140,7 +160,7 @@ test('every file that hashes a password is declared, and no declaration is stale
 
 test('the number of hashes per file is pinned, so a second one cannot slip in', () => {
     for (const [rel, decl] of HASH_SITES) {
-        const actual = countOf(sources.get(rel), /bcrypt\.hash\s*\(/g);
+        const actual = countOf(sources.get(rel), HASH_CALLS);
         assert.equal(actual, decl.count,
             `${rel} hashes ${actual}× but is declared as ${decl.count}×. A new site in a `
             + 'known file needs the same decision as a new file.');
@@ -150,7 +170,7 @@ test('the number of hashes per file is pinned, so a second one cannot slip in', 
 test('every declaration carries a reason worth reading', () => {
     for (const [rel, decl] of HASH_SITES) {
         assert.ok(decl.why && decl.why.length > 30, `${rel}: an empty reason is as good as no entry`);
-        assert.ok(['credential', 'not-a-credential'].includes(decl.kind), `${rel}: unknown kind`);
+        assert.ok(['credential', 'not-a-credential', 'rehash'].includes(decl.kind), `${rel}: unknown kind`);
     }
 });
 
@@ -175,6 +195,16 @@ test('credential writes reach the database through a choke point, never around i
     }
 });
 
+test('a re-encoded hash is stored without dating it', () => {
+    for (const [rel, decl] of HASH_SITES) {
+        if (decl.kind !== 'rehash') continue;
+        const src = sources.get(rel);
+        assert.ok(!CHOKE_POINTS.test(src),
+            `${rel} re-encodes an unchanged password; createUser/updateUser would date it as a change.`);
+        assert.match(src, /replacePasswordHash\s*\(/, `${rel} must write through the compare-and-swap helper`);
+    }
+});
+
 test('a hash that is never stored stays out of the store', () => {
     const login = sources.get('auth/login/passwordLoginRoutes.js');
     assert.ok(!/updateUser\s*\([^)]*passwordHash/.test(login),
@@ -189,7 +219,7 @@ test('copying an existing hash into the users row does not claim a password chan
         assert.match(src, /credentialUnchanged:\s*true/,
             `${rel} ${what}. Without credentialUnchanged the store dates it, and the security `
             + 'screen would report a months-old password as changed today.');
-        assert.ok(!/bcrypt\.hash\s*\(/.test(src),
+        assert.ok(!HASH_CALL.test(src),
             `${rel} must keep copying the config hash rather than making a new one`);
     }
 });
@@ -204,7 +234,7 @@ test('the OPAQUE account registration dates itself; the SSO encryption PIN does 
 
     assert.match(beforePin, /passwordChangedAt/,
         '/opaque/register/finish writes the credential an opaque_v1 account signs in with, '
-        + 'so it has to date it — there is no bcrypt hash for the store rule to notice.');
+        + 'so it has to date it — there is no password hash for the store rule to notice.');
     assert.ok(!/passwordChangedAt/.test(fromPin),
         'the SSO encryption PIN is not a login password; dating it would put "password '
         + 'changed today" on the screen of somebody who has never had one.');

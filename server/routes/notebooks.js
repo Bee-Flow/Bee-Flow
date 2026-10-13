@@ -50,7 +50,7 @@ const { partitionAccessibleKBIds } = require('../support/kbAccess');
 // every AI-Fill run threw ReferenceError after the SSE headers had been sent.
 const { TIER_DEFAULTS } = require('../core/llm/modelResolver');
 const { validate } = require('../core/http/validate');
-const { z, worded, bodyOf, queryOf, choice, flag, wholeNumber } = require('../core/http/schemaParts');
+const { z, worded, bodyOf, queryOf, choice, flag, wholeNumber, typeError } = require('../core/http/schemaParts');
 const { HttpError } = require('../core/http/errors');
 const { friendlyError } = require('../core/kb/friendlyError');
 const { mapWithConcurrency } = require('../core/concurrencyUtil');
@@ -147,7 +147,7 @@ async function assertSourceRoom(notebookId, adding = 1) {
 // a Drive import with `provider: "onedrive"` was filed as Google Drive.
 const text = (message, max) => worded(message).max(max, message);
 const NOTEBOOK_ID_TEXT = 'Every id is a non-empty id of at most 200 characters.';
-const ids = (message) => z.array(worded(message).min(1, NOTEBOOK_ID_TEXT).max(200, NOTEBOOK_ID_TEXT), { required_error: message, invalid_type_error: message });
+const ids = (message) => z.array(worded(message).min(1, NOTEBOOK_ID_TEXT).max(200, NOTEBOOK_ID_TEXT), { error: message });
 const modelTier = text('modelTier is the name of a model tier.', 100).optional();
 
 const ListQuery = queryOf({
@@ -169,7 +169,7 @@ const UpdateBody = bodyOf({
     name: text('name is text of at most 500 characters.', 500).optional(),
     description: text('description is text.', 10_000).nullish(),
     instructions: text('instructions is text.', 50_000).nullish(),
-    settings: z.record(z.unknown(), { invalid_type_error: 'settings is an object.' }).nullish(),
+    settings: z.record(z.string(), z.unknown(), { error: typeError({ invalid: 'settings is an object.' }) }).nullish(),
     knowledgeBaseIds: ids('knowledgeBaseIds must be an array').optional(),
     documentContent: worded('documentContent is the document, as text.').optional(),
     pinned: flag('pinned is true or false.').optional(),
@@ -193,7 +193,7 @@ const DriveBody = bodyOf({
         name: text('A file name is text.', 1000).optional(),
         driveFileId: text('driveFileId is text.', 500).optional(),
         content: worded('content is the file as text.').optional(),
-    }, { invalid_type_error: DRIVE_FILE_TEXT }), { required_error: 'Files array required', invalid_type_error: DRIVE_FILE_TEXT }),
+    }, { error: typeError({ invalid: DRIVE_FILE_TEXT }) }), { error: typeError({ required: 'Files array required', invalid: DRIVE_FILE_TEXT }) }),
     provider: choice(['google', 'microsoft'], 'provider is google or microsoft.').optional(),
 }, 'Importing from Drive');
 const ReorderBody = bodyOf({ orderedIds: ids('orderedIds must be an array') }, 'Reordering sources');

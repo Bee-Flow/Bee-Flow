@@ -29,18 +29,18 @@ const configStore = require('../stores/configStore');
 const { mintToken, SECRET_KEY } = require('../auth/mcpToken');
 const log = require('../telemetry/log');
 const { validate } = require('../core/http/validate');
-const { z } = require('zod');
+const { z, onUnknownKeys } = require('../utils/zod');
 
 const router = express.Router();
 
 const ONLY_YOURS = 'This route acts on your own MCP token only, so it takes no parameters. '
     + 'Another user\'s token is minted or revoked with scripts/mint-mcp-token.js --user <id>.';
 /** A query with no keys; the message is the one a caller can act on. */
-const NO_QUERY = z.object({}, { errorMap: () => ({ message: ONLY_YOURS }) }).strict(ONLY_YOURS);
+const NO_QUERY = z.object({}, { error: onUnknownKeys(ONLY_YOURS, () => ONLY_YOURS) }).strict();
 /** A body with no keys, which also accepts no body at all (Express 5 leaves `req.body` undefined). */
 const NO_BODY = z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
-    z.object({}, { errorMap: () => ({ message: ONLY_YOURS }) }).strict(ONLY_YOURS),
+    z.object({}, { error: onUnknownKeys(ONLY_YOURS, () => ONLY_YOURS) }).strict(),
 );
 
 function callerId(req) {

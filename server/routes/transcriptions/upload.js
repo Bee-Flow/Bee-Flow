@@ -96,7 +96,7 @@ const {
  */
 const { transcribeWithWhisperX, transcribeWithScaleway } = require('../../core/meetingNotes/summaryHelpers');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 const { worded, bodyOf, choice } = require('./schemas');
 
 // ── Wat een upload mag dragen ───────────────────────────────────────
@@ -127,7 +127,7 @@ const UploadBody = bodyOf({
     attendees: worded('attendees is tekst met namen.').optional(),
     // parseSpeakerCount klemt hem daarna op 1..50; wat het schema toevoegt is
     // dat "twee" geen stille Auto meer is.
-    num_speakers: z.coerce.number({ invalid_type_error: 'num_speakers is een getal.' })
+    num_speakers: z.coerce.number({ error: typeError({ invalid: 'num_speakers is een getal.' }) })
         .int('num_speakers is een heel getal.').optional(),
     provider: worded('provider is de naam van een transcriptiedienst.').trim().min(1).optional(),
     // Files the new note into a collaborative project (editor or owner there;

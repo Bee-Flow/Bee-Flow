@@ -24,7 +24,7 @@ const { requireAuth, hasPermission } = require('../../auth/permissions');
 const { getProviders, invalidateModelCache } = require('../../core/aiAgent');
 const { getAdapter } = require('../../core/providers');
 const { LOCAL_RUNTIMES, isLocalProviderType } = require('../../core/providers/localModels');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 const { validate } = require('../../core/http/validate');
 
 async function isAdminUser(req) {
@@ -47,18 +47,18 @@ async function requireAdmin(req, res, next) {
 
 const ENDPOINT_MALFORMED = 'Enter a full URL, for example http://localhost:11434';
 const ENDPOINT_SCHEME = 'Only http:// and https:// endpoints are supported';
-const EndpointUrl = z.string({ required_error: ENDPOINT_MALFORMED, invalid_type_error: ENDPOINT_MALFORMED })
+const EndpointUrl = z.string({ error: ENDPOINT_MALFORMED })
     .trim()
     .transform((raw, ctx) => {
         let parsed;
         try {
             parsed = new URL(raw);
         } catch (_) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, message: ENDPOINT_MALFORMED });
+            ctx.addIssue({ code: 'custom', message: ENDPOINT_MALFORMED });
             return z.NEVER;
         }
         if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, message: ENDPOINT_SCHEME });
+            ctx.addIssue({ code: 'custom', message: ENDPOINT_SCHEME });
             return z.NEVER;
         }
         // One canonical spelling, so the detect route's "already configured"
@@ -67,15 +67,15 @@ const EndpointUrl = z.string({ required_error: ENDPOINT_MALFORMED, invalid_type_
     });
 
 const TestBody = z.object({
-    type: z.string({ required_error: 'Pick a runtime type.', invalid_type_error: 'Pick a runtime type.' })
-        .refine(isLocalProviderType, (t) => ({ message: `Unknown runtime type '${t}'` })),
+    type: z.string({ error: 'Pick a runtime type.' })
+        .refine(isLocalProviderType, { error: (iss) => `Unknown runtime type '${iss.input}'` }),
     url: EndpointUrl,
-    apiKey: z.string({ invalid_type_error: 'An API key must be text.' }).default(''),
+    apiKey: z.string({ error: typeError({ invalid: 'An API key must be text.' }) }).default(''),
 }).strict();
 
 const MODEL_REQUIRED = 'A model name is required';
 const PullBody = z.object({
-    model: z.string({ required_error: MODEL_REQUIRED, invalid_type_error: MODEL_REQUIRED })
+    model: z.string({ error: MODEL_REQUIRED })
         .trim().min(1, MODEL_REQUIRED),
 }).strict();
 

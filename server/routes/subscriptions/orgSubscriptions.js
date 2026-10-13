@@ -11,7 +11,7 @@ const { isNcOrg, filterNcOnlyPlans } = require('../../auth/ncAudience');
 const { getAdminId } = require('./shared');
 const log = require('../../telemetry/log');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 
 const router = express.Router();
 
@@ -30,10 +30,10 @@ const router = express.Router();
 // route takes.
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 const text = (what) => worded(`${what} must be text.`);
-const cap = (name) => z.coerce.number({ invalid_type_error: `${name} must be a number.` })
+const cap = (name) => z.coerce.number({ error: typeError({ invalid: `${name} must be a number.` }) })
     .min(0, `${name} must be non-negative.`).nullish();
 
 const STATUS_TEXT = 'Invalid status. Must be: active, suspended, cancelled, trialing, past_due';
@@ -42,9 +42,7 @@ const PLAN_ID_TEXT = 'plan_id is required — the plan to start the trial on.';
 const OrgSubscriptionBody = z.object({
     // '' is how the editor spells "no plan"; it is stored as-is today.
     plan_id: text('plan_id').nullish(),
-    status: z.enum(['active', 'suspended', 'cancelled', 'trialing', 'past_due'], {
-        errorMap: () => ({ message: STATUS_TEXT }),
-    }).optional(),
+    status: z.enum(['active', 'suspended', 'cancelled', 'trialing', 'past_due'], { error: () => STATUS_TEXT }).optional(),
 
     max_messages_per_month: cap('max_messages_per_month'),
     max_tokens_per_month: cap('max_tokens_per_month'),
@@ -53,7 +51,7 @@ const OrgSubscriptionBody = z.object({
     max_agents: cap('max_agents'),
     max_knowledge_sources: cap('max_knowledge_sources'),
     // A per-agent-type cap map — its keys ARE the data, so it stays open.
-    max_messages_by_type: z.record(z.coerce.number()).nullish(),
+    max_messages_by_type: z.record(z.string(), z.coerce.number()).nullish(),
 
     allowed_features: z.array(text('Each allowed feature')).nullish(),
     allowed_models: z.array(text('Each allowed model')).nullish(),
@@ -71,7 +69,7 @@ const OrgSubscriptionBody = z.object({
     last_payment_failure_at: text('last_payment_failure_at').nullish(),
     past_due_since: text('past_due_since').nullish(),
 
-    cancel_at_period_end: z.boolean({ invalid_type_error: 'cancel_at_period_end is true or false.' }).nullish(),
+    cancel_at_period_end: z.boolean({ error: typeError({ invalid: 'cancel_at_period_end is true or false.' }) }).nullish(),
     cancel_at: text('cancel_at').nullish(),
     current_period_end: text('current_period_end').nullish(),
     pending_plan_id: text('pending_plan_id').nullish(),
@@ -80,7 +78,7 @@ const OrgSubscriptionBody = z.object({
     manual_override_until: text('manual_override_until').nullish(),
     manual_override_by: text('manual_override_by').nullish(),
     // Not a column: 0 clears an override, 1-168 sets one.
-    override_hours: z.coerce.number({ invalid_type_error: 'override_hours must be between 0 and 168' })
+    override_hours: z.coerce.number({ error: typeError({ invalid: 'override_hours must be between 0 and 168' }) })
         .min(0, 'override_hours must be between 0 and 168')
         .max(168, 'override_hours must be between 0 and 168')
         .optional(),

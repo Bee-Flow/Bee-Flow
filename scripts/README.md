@@ -22,6 +22,9 @@ anything that touches production.
 | Script | Purpose |
 |--------|---------|
 | `check-fast.mjs` | Every cheap CI gate at once, in parallel, in a few seconds (`npm run check:fast`) — see [below](#checkfast--the-cheap-ci-gates-locally) |
+| `check-editor-bundles.mjs` | The generated editor bundles in `server/core/markdown/` still match their `agent-hub/src/editor/` sources: recomputes the input sha256 in each bundle's banner (`npm run lint:editor-bundles`). `build-editor-bundles.mjs` builds and stamps them (`cd server && npm run build:editor-md` / `build:editor-collab`) |
+| `check-compose-drift.mjs` | Same third-party image, same tag in every `docker-compose*.yml`; compose profiles match `ALL_PROFILES` in `selfhost.sh` (`npm run lint:compose-drift`) |
+| `stage-server-context.sh` | Stages the server image's App Studio runtime bundle and SBOM into its (gitignored) build context; shared by `build-push-ghcr.yml`, `build-images.sh` and `build-images.ps1` |
 | `gen-shared-mirror.mjs` | Generates agent-hub's copy of the expression engine from `server/shared/expr/` (`npm run gen:shared`; `--check` is `npm run lint:shared-mirror`) — see [below](#gen-shared-mirrormjs--the-expression-engines-agent-hub-copy) |
 | `entry-point.mjs` | `isEntryPoint(import.meta.url)`: a script's "run as a command, not imported by a test" guard, through realpath so a symlinked path cannot make a gate skip `main()` and exit 0. A script that imports it and is copied into a test sandbox needs it copied too |
 | `eslint-budget.mjs` | ESLint warning ratchet per package (`npm run lint:budget`) — see [below](#eslint-budgetmjs-windows-and---concurrency) |

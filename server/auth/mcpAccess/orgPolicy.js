@@ -17,7 +17,7 @@
 
 'use strict';
 
-const { z } = require('zod');
+const { z, onUnknownKeys, typeError } = require('../../utils/zod');
 const { badRequest } = require('../../shared/httpErrors');
 const { parseCidrList } = require('./ipMatch');
 const log = require('../../telemetry/log');
@@ -41,28 +41,26 @@ function setDeps(next = {}) { overrides = { ...next }; }
 
 const storageKey = (orgId) => `org_${orgId}_mcp_access`;
 
-const idList = (what) => z.array(z.string().trim().min(1).max(200), {
-    invalid_type_error: `${what} must be a list.`,
-}).max(MAX_LIST, `${what} can hold at most ${MAX_LIST} entries.`);
+const idList = (what) => z.array(z.string().trim().min(1).max(200), { error: typeError({ invalid: `${what} must be a list.` }) }).max(MAX_LIST, `${what} can hold at most ${MAX_LIST} entries.`);
 
 /** The request / storage shape. Unknown keys are refused, so a typo is not silently dropped. */
 const PolicySchema = z.object({
-    enabled: z.boolean({ invalid_type_error: '"enabled" must be true or false.' }).default(true),
-    ipAllowlist: z.array(z.string(), { invalid_type_error: 'The IP allow-list must be a list.' }).default([]).transform((list, ctx) => {
+    enabled: z.boolean({ error: typeError({ invalid: '"enabled" must be true or false.' }) }).default(true),
+    ipAllowlist: z.array(z.string(), { error: typeError({ invalid: 'The IP allow-list must be a list.' }) }).default([]).transform((list, ctx) => {
         try {
             return parseCidrList(list);
         } catch (err) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, message: err.message });
+            ctx.addIssue({ code: 'custom', message: err.message });
             return z.NEVER;
         }
     }),
     allowedUsers: z.object({
-        mode: z.enum(['all', 'roles', 'users'], { errorMap: () => ({ message: 'Choose "all", "roles" or "users" for who may use MCP.' }) }).default('all'),
-        roles: idList('The role list').default([]),
-        userIds: idList('The user list').default([]),
-    }).strict('Send only mode, roles and userIds under allowedUsers.').default({}),
-    rejectLegacyTokens: z.boolean({ invalid_type_error: '"rejectLegacyTokens" must be true or false.' }).default(false),
-}).strict('Send only enabled, ipAllowlist, allowedUsers and rejectLegacyTokens.');
+        mode: z.enum(['all', 'roles', 'users'], { error: () => 'Choose "all", "roles" or "users" for who may use MCP.' }).default('all'),
+        roles: idList('The role list').prefault([]),
+        userIds: idList('The user list').prefault([]),
+    }, { error: onUnknownKeys('Send only mode, roles and userIds under allowedUsers.') }).strict().prefault({}),
+    rejectLegacyTokens: z.boolean({ error: typeError({ invalid: '"rejectLegacyTokens" must be true or false.' }) }).default(false),
+}, { error: onUnknownKeys('Send only enabled, ipAllowlist, allowedUsers and rejectLegacyTokens.') }).strict();
 
 /**
  * Validate a policy document and return its canonical form.

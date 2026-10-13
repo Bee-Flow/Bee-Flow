@@ -30,7 +30,7 @@ const {
     MAX_CONTEXT_BUDGET_PERCENT,
 } = require('../core/llm/contextPolicy');
 const { validate } = require('../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../utils/zod');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -55,14 +55,14 @@ const { z } = require('zod');
 /** A body that also accepts no body: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
-    z.object(shape, { invalid_type_error: 'Send the settings as a JSON object.' }).strict(),
+    z.object(shape, { error: typeError({ invalid: 'Send the settings as a JSON object.' }) }).strict(),
 );
 
 const SWITCH_TEXT = 'Say whether compaction is on: compactionEnabled is true or false.';
-const tunable = (name) => z.number({ invalid_type_error: `${name} is a number.` }).optional();
+const tunable = (name) => z.number({ error: typeError({ invalid: `${name} is a number.` }) }).optional();
 
 const PolicyBody = bodyOf({
-    compactionEnabled: z.boolean({ required_error: SWITCH_TEXT, invalid_type_error: SWITCH_TEXT }),
+    compactionEnabled: z.boolean({ error: SWITCH_TEXT }),
     compactionThreshold: tunable('compactionThreshold'),
     recentWindow: tunable('recentWindow'),
     contextBudgetPercent: tunable('contextBudgetPercent'),

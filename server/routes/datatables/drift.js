@@ -17,7 +17,7 @@ const { PG, keyOf } = require('./engine');
 const { requireDatatableGrade, requireManageForOrgScope } = require('./grade');
 const { answerDatatableError } = require('./refusals');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 const { bodyOf } = require('./schemas');
 const log = require('../../telemetry/log');
 

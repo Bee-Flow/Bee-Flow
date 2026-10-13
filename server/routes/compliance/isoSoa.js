@@ -28,19 +28,17 @@ const { readinessCounts } = require('../../compliance/iso/readiness');
 const { requireAuth, requirePermission } = require('../../auth/permissions');
 const { resolveOrgId, _isoChecksByControl, _recordSoaEvidence, _buildClauseConformity } = require('./shared');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
 const SOURCES = ['auto', 'connector', 'attest', 'inherited'];
 const DECISIONS = ['todo', 'reviewed', 'approved'];
-const oneOf = (name, values) => z.enum(values, {
-    errorMap: () => ({ message: `${name} is one of: ${values.join(', ')}.` }),
-});
+const oneOf = (name, values) => z.enum(values, { error: () => `${name} is one of: ${values.join(', ')}.` });
 
 const PROVIDER_TEXT = 'provider must be the name of your IaaS provider.';
 const SeedBody = bodyOf({
@@ -57,7 +55,7 @@ const SeedBody = bodyOf({
 const SoaPatch = bodyOf({
     // Excluding a control is the SoA's central decision, so it is a boolean
     // and nothing else: the string 'false' used to leave it applicable.
-    applicable: z.boolean({ invalid_type_error: 'applicable is true or false.' }).optional(),
+    applicable: z.boolean({ error: typeError({ invalid: 'applicable is true or false.' }) }).optional(),
     justification: worded('justification must be text.').trim().max(4000, 'justification is at most 4000 characters.').nullish(),
     how_met: worded('how_met must be text.').trim().max(4000, 'how_met is at most 4000 characters.').nullish(),
     source: oneOf('source', SOURCES).optional(),
@@ -69,7 +67,7 @@ const SoaPatch = bodyOf({
 
 const HISTORY_LIMIT_TEXT = 'limit must be a whole number of rows.';
 const HistoryQuery = z.object({
-    limit: z.coerce.number({ invalid_type_error: HISTORY_LIMIT_TEXT })
+    limit: z.coerce.number({ error: typeError({ invalid: HISTORY_LIMIT_TEXT }) })
         .int(HISTORY_LIMIT_TEXT).min(1, HISTORY_LIMIT_TEXT).optional(),
 }).strict();
 

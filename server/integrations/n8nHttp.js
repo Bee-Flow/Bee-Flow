@@ -23,7 +23,8 @@ function allowInsecureTls() {
 
 function n8nFetch(url, init = {}) {
     if (!N8N_ALLOW_INSECURE_TLS || !String(url).startsWith('https://')) return fetch(url, init);
-    insecureAgent ||= new Agent({ connect: { rejectUnauthorized: false } });
+    // HTTP/1.1 only, as before undici 8 (which offers h2 by default).
+    insecureAgent ||= new Agent({ allowH2: false, connect: { rejectUnauthorized: false } });
     return undiciFetch(url, { ...init, dispatcher: insecureAgent });
 }
 

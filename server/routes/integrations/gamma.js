@@ -9,7 +9,7 @@
 const express = require('express');
 const { executeGammaTool } = require('../../integrations/gammaTools');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 
 const router = express.Router();
 
@@ -26,7 +26,7 @@ const { requireAuth } = require('../../auth/permissions');
 // one would ask Gamma for the whole collection.
 const ID_TEXT = 'A Gamma generation id is required.';
 const GenerationParams = z.object({
-    generationId: z.string({ required_error: ID_TEXT, invalid_type_error: ID_TEXT })
+    generationId: z.string({ error: ID_TEXT })
         .regex(/^[A-Za-z0-9_-]{1,128}$/, 'That is not a Gamma generation id.'),
 }).strict();
 

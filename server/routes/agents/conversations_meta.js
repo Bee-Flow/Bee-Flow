@@ -15,7 +15,7 @@ require('../../core/http/sseHelpers');
 
 const router = express.Router();
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 
 // -- What the search query may say ------------------------------------
 //
@@ -27,11 +27,11 @@ const { z } = require('zod');
 // other spelling did the same thing.
 
 /** A string whose every refusal -- including "you left it out" -- is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 const SOURCE_TEXT = 'source is "agent" or "direct".';
 const one = (name, what) => worded(`${name} is ${what}.`).trim().min(1, `${name} is ${what}.`).optional();
-const whole = (name) => z.coerce.number({ invalid_type_error: `${name} must be a number.` })
+const whole = (name) => z.coerce.number({ error: typeError({ invalid: `${name} must be a number.` }) })
     .int(`${name} must be a whole number.`).optional();
 
 const SearchQuery = z.object({
@@ -41,7 +41,7 @@ const SearchQuery = z.object({
     agentId: one('agentId', 'the id of an agent'),
     startDate: one('startDate', 'a date'),
     endDate: one('endDate', 'a date'),
-    source: z.enum(['agent', 'direct'], { errorMap: () => ({ message: SOURCE_TEXT }) }).optional(),
+    source: z.enum(['agent', 'direct'], { error: () => SOURCE_TEXT }).optional(),
     limit: whole('limit'),
     offset: whole('offset'),
 }).strict();

@@ -8,7 +8,7 @@
  * Every refusal is a sentence (core/http/schemaParts.js).
  */
 
-const { z, worded, bodyOf, queryOf, choice, flag, wholeNumber } = require('../../core/http/schemaParts');
+const { z, worded, bodyOf, queryOf, choice, flag, wholeNumber, typeError } = require('../../core/http/schemaParts');
 
 const TITLE_MAX = 200;
 const CONTENT_MAX = 20000;
@@ -65,14 +65,14 @@ const REFS_TEXT = `refs is a list of at most ${MAX_REFS} objects like {"kind":"d
 const ref = z.object({
     kind: choice(['document', 'notebook', 'meeting', 'task'], REFS_TEXT),
     id: worded(REFS_TEXT).trim().min(1, REFS_TEXT).max(ID_MAX, REFS_TEXT),
-}, { invalid_type_error: REFS_TEXT }).strict();
+}, { error: typeError({ invalid: REFS_TEXT }) }).strict();
 
 const CreateChatBody = bodyOf({
     title: optionalTitle.optional(),
     aiMode: aiMode.optional(),
     agentId: agentId.optional(),
     message: firstMessage.optional(),
-    refs: z.array(ref, { invalid_type_error: REFS_TEXT }).max(MAX_REFS, REFS_TEXT).optional(),
+    refs: z.array(ref, { error: typeError({ invalid: REFS_TEXT }) }).max(MAX_REFS, REFS_TEXT).optional(),
 }, 'Starting a team chat');
 
 const TIER_TEXT = 'modelTier is the name of a model tier, such as auto, fast or thinking.';
@@ -81,11 +81,9 @@ const PostMessageBody = bodyOf({
     content,
     clientMsgId: worded(CLIENT_MSG_ID_TEXT).trim().min(1, CLIENT_MSG_ID_TEXT).max(CLIENT_MSG_ID_MAX, CLIENT_MSG_ID_TEXT).optional(),
     replyTo: worded(REPLY_TEXT).trim().min(1, REPLY_TEXT).max(ID_MAX, REPLY_TEXT).nullish(),
-    mentions: z.array(worded(MENTIONS_TEXT).trim().min(1, MENTIONS_TEXT).max(ID_MAX, MENTIONS_TEXT), {
-        invalid_type_error: MENTIONS_TEXT,
-    }).max(MAX_MENTIONS, MENTIONS_TEXT).optional(),
+    mentions: z.array(worded(MENTIONS_TEXT).trim().min(1, MENTIONS_TEXT).max(ID_MAX, MENTIONS_TEXT), { error: typeError({ invalid: MENTIONS_TEXT }) }).max(MAX_MENTIONS, MENTIONS_TEXT).optional(),
     threadId: worded(THREAD_TEXT).trim().min(1, THREAD_TEXT).max(ID_MAX, THREAD_TEXT).nullish(),
-    refs: z.array(ref, { invalid_type_error: REFS_TEXT }).max(MAX_REFS, REFS_TEXT).optional(),
+    refs: z.array(ref, { error: typeError({ invalid: REFS_TEXT }) }).max(MAX_REFS, REFS_TEXT).optional(),
     modelTier: worded(TIER_TEXT).trim().min(1, TIER_TEXT).max(100, TIER_TEXT).nullish(),
     askAi: flag('askAi is true to ask the AI assistant to answer, or false.').optional(),
 }, 'Posting a message');

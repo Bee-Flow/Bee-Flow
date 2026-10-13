@@ -26,16 +26,6 @@ const os = require('os');
 const path = require('path');
 const log = require('../telemetry/log');
 
-// ffmpeg helper — installed via @ffmpeg-installer/ffmpeg
-let ffmpeg;
-try {
-    const ffmpegInstaller = require('@ffmpeg-installer/ffmpeg');
-    ffmpeg = require('fluent-ffmpeg');
-    ffmpeg.setFfmpegPath(ffmpegInstaller.path);
-} catch (_) {
-    ffmpeg = null; // ffmpeg not available, Azure will attempt raw stream (WAV only)
-}
-
 // ─── Tool Definitions ──────────────────────────────────────────────────────────
 
 const TRANSCRIPTION_TOOLS = [

@@ -7,7 +7,7 @@ const router = express.Router();
 const { executeContactsAction } = require('../../integrations/contactsTools');
 const { executeMsContactsAction } = require('../../integrations/msContactsTools');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -30,7 +30,7 @@ const { z } = require('zod');
 // still read 401, not a 400 about its body.
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 const text = (what) => worded(`${what} must be text.`).nullish();
 
@@ -38,8 +38,8 @@ const ACTION_TEXT = 'action is create or update.';
 const PROVIDER_TEXT = '_provider is google or microsoft.';
 
 const ContactsAction = z.object({
-    action: z.enum(['create', 'update'], { errorMap: () => ({ message: ACTION_TEXT }) }),
-    _provider: z.enum(['google', 'microsoft'], { errorMap: () => ({ message: PROVIDER_TEXT }) }).optional(),
+    action: z.enum(['create', 'update'], { error: () => ACTION_TEXT }),
+    _provider: z.enum(['google', 'microsoft'], { error: () => PROVIDER_TEXT }).optional(),
 
     // Google (people API) shape
     resourceName: text('resourceName'),

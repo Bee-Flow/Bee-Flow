@@ -68,6 +68,27 @@ test('with the opt-in only https calls leave the platform fetch', async () => {
     }
 });
 
+test('the opt-in https path offers HTTP/1.1 only and skips verification', async () => {
+    const tls = require('node:tls');
+    const net = require('node:net');
+    const opted = loadWith('1');
+    const seen = [];
+    const original = tls.connect;
+    tls.connect = (opts) => {
+        seen.push({ alpn: opts.ALPNProtocols, rejectUnauthorized: opts.rejectUnauthorized });
+        const s = new net.Socket();
+        process.nextTick(() => s.destroy(new Error('tls stubbed')));
+        return s;
+    };
+    try {
+        // Not port 1: fetch refuses that "bad port" before any connect.
+        await assert.rejects(opted.n8nFetch('https://127.0.0.1:44399/', { signal: AbortSignal.timeout(2000) }));
+    } finally {
+        tls.connect = original;
+    }
+    assert.deepEqual(seen, [{ alpn: ['http/1.1'], rejectUnauthorized: false }]);
+});
+
 test('plain http goes through the global fetch, with the init passed along', async () => {
     const seen = [];
     const server = http.createServer((req, res) => {

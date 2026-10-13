@@ -15,7 +15,7 @@
 const lifecycle = require('../../playbooks/lifecycle');
 const { runTablePhase } = require('../../playbooks/phases/tablePhase');
 const { startFillPhase, refreshFillPhase } = require('../../playbooks/phases/fillPhase');
-const { z, sendErr, MAX_FEEDBACK, worded, bodyOf, check } = require('./contract');
+const { z, sendErr, MAX_FEEDBACK, worded, bodyOf, check, typeError } = require('./contract');
 
 // ONE route, four phase kinds, and between them two keys.
 //
@@ -34,7 +34,7 @@ const { z, sendErr, MAX_FEEDBACK, worded, bodyOf, check } = require('./contract'
 const FEEDBACK_TEXT = 'feedback is what should change about the design.';
 const RunBody = bodyOf({
     feedback: worded(FEEDBACK_TEXT).max(MAX_FEEDBACK, `feedback is at most ${MAX_FEEDBACK} characters.`).nullish(),
-    recheck: z.boolean({ invalid_type_error: 'recheck is true or false.' }).optional(),
+    recheck: z.boolean({ error: typeError({ invalid: 'recheck is true or false.' }) }).optional(),
 });
 const { kindOf, firstOfKind, automationBefore, localeOf } = require('./phaseList');
 const { makeRunComplianceReview } = require('./complianceReview');

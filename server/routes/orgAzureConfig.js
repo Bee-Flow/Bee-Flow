@@ -25,7 +25,7 @@ const { loadConfig, saveConfig, isSuperAdmin } = require('../auth/permissions');
 const { syncAzureGroupsToOrg, getSyncSettings, setSyncSettings, getSyncStatus, assertSyncBinding } = require('../integrations/azureGroupSync');
 const { validate } = require('../core/http/validate');
 const { forbidden } = require('../core/http/errors');
-const { z } = require('zod');
+const { z, typeError } = require('../utils/zod');
 
 // requireAuth is the canonical gate from auth/permissions (verifies the
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
@@ -77,18 +77,18 @@ function platformConfigGate(req, _res, next) {
 // An empty or absent secret keeps the stored one, as the screens rely on.
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
-    z.object(shape, { invalid_type_error: 'Send the settings as a JSON object.' }).strict(),
+    z.object(shape, { error: typeError({ invalid: 'Send the settings as a JSON object.' }) }).strict(),
 );
 
 /** An enum whose refusal is one sentence, for a wrong value as well as a wrong type. */
-const choice = (values, message) => z.enum(values, { errorMap: () => ({ message }) });
+const choice = (values, message) => z.enum(values, { error: () => message });
 
-const flag = (name) => z.boolean({ invalid_type_error: `${name} is true or false.` }).optional();
+const flag = (name) => z.boolean({ error: typeError({ invalid: `${name} is true or false.` }) }).optional();
 const text = (name) => worded(`${name} is text.`).trim().optional();
 
 /** An address the SDK can call, or '' to clear it. */
@@ -103,12 +103,12 @@ const TIER_NAMES = ['fast', 'standard', 'swarm', 'thinking', 'writer', 'pro',
     'smart'];
 const TIER_TEXT = 'A tier is an object: { modelId, … }.';
 const Tier = z.object({
-    modelId: z.string({ invalid_type_error: 'A tier\'s modelId is text.' }).optional(),
-    label: z.string({ invalid_type_error: 'A tier\'s label is text.' }).optional(),
-}, { invalid_type_error: TIER_TEXT }).passthrough();
+    modelId: z.string({ error: typeError({ invalid: 'A tier\'s modelId is text.' }) }).optional(),
+    label: z.string({ error: typeError({ invalid: 'A tier\'s label is text.' }) }).optional(),
+}, { error: typeError({ invalid: TIER_TEXT }) }).passthrough();
 const TIERS_TEXT = `chatModelTiers is a map of tiers: ${TIER_NAMES.join(', ')}.`;
 const TierMap = z.object(Object.fromEntries(TIER_NAMES.map((n) => [n, Tier.optional()])),
-    { required_error: TIERS_TEXT, invalid_type_error: TIERS_TEXT }).strict();
+    { error: typeError({ required: TIERS_TEXT, invalid: TIERS_TEXT }) }).strict();
 /** The four this panel shows, as a save always wrote them when absent. */
 const PANEL_TIERS = { fast: 'Fast', thinking: 'Thinking', writer: 'Writer', pro: 'Deep Thinking' };
 
@@ -137,13 +137,13 @@ const ConfigBody = z.preprocess(
         section('piiDetection', {
             piiDetectionEnabled: flag('piiDetectionEnabled'),
             piiDetectionCategories: z.array(worded(CATEGORY_TEXT).trim().min(1, CATEGORY_TEXT),
-                { invalid_type_error: CATEGORY_TEXT }).nullable().optional(),
-            piiDetectionConfidenceThreshold: z.number({ invalid_type_error: THRESHOLD_TEXT })
+                { error: typeError({ invalid: CATEGORY_TEXT }) }).nullable().optional(),
+            piiDetectionConfidenceThreshold: z.number({ error: typeError({ invalid: THRESHOLD_TEXT }) })
                 .min(0, THRESHOLD_TEXT).max(1, THRESHOLD_TEXT).optional(),
             piiDetectionScope: z.object({
                 userInput: flag('piiDetectionScope.userInput'),
                 agentOutput: flag('piiDetectionScope.agentOutput'),
-            }, { invalid_type_error: 'piiDetectionScope is { userInput, agentOutput }, each true or false.' })
+            }, { error: typeError({ invalid: 'piiDetectionScope is { userInput, agentOutput }, each true or false.' }) })
                 .strict().optional(),
             piiDetectionAction: choice(PII_ACTIONS, `piiDetectionAction is one of ${PII_ACTIONS.join(', ')}.`).optional(),
         }),
@@ -164,11 +164,10 @@ const ConfigBody = z.preprocess(
             autoApproveSSO: flag('autoApproveSSO'),
         }),
     ], {
-        errorMap: (issue, ctx) => ({
-            message: issue.code === 'invalid_union_discriminator' ? SECTION_TEXT
-                : issue.code === 'invalid_type' ? 'Send the settings as a JSON object.'
-                    : ctx.defaultError,
-        }),
+        error: (iss) => {
+            if (iss.code === 'invalid_union' && iss.note === 'No matching discriminator') return SECTION_TEXT;
+            return iss.code === 'invalid_type' ? 'Send the settings as a JSON object.' : undefined;
+        },
     }),
 );
 
@@ -177,7 +176,7 @@ const SyncSettingsBody = bodyOf({
     destructiveSync: flag('destructiveSync'),
     autoActivateUsers: flag('autoActivateUsers'),
     periodicSync: flag('periodicSync'),
-    syncIntervalHours: z.number({ invalid_type_error: INTERVAL_TEXT })
+    syncIntervalHours: z.number({ error: typeError({ invalid: INTERVAL_TEXT }) })
         .int(INTERVAL_TEXT).min(1, INTERVAL_TEXT).max(168, INTERVAL_TEXT).optional(),
 });
 

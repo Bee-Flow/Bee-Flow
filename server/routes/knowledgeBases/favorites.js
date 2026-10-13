@@ -8,14 +8,14 @@ const kbStore = require('../../stores/knowledgeBases');
 const { requireAuth } = require('../../auth');
 const { getUserId } = require('./shared');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 
 const KB_IDS = 'kbIds is a list of knowledge base ids.';
 const BulkFavoritesBody = z.object({
     // A one-time migration of what a browser had in localStorage, so a blank
     // entry is dropped rather than refused: the person's other favourites
     // must still arrive.
-    kbIds: z.array(z.string({ invalid_type_error: KB_IDS }), { required_error: KB_IDS, invalid_type_error: KB_IDS })
+    kbIds: z.array(z.string({ error: typeError({ invalid: KB_IDS }) }), { error: KB_IDS })
         .transform((ids) => ids.filter(Boolean)),
 }).strict();
 

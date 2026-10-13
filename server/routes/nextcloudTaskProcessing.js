@@ -43,7 +43,7 @@
 
 const express = require('express');
 const crypto = require('crypto');
-const { z } = require('zod');
+const { z, typeError } = require('../utils/zod');
 const { validate } = require('../core/http/validate');
 // configStore and userStore are required lazily inside the handlers, not here:
 // importing configStore stands up the Postgres pool at module load, which makes
@@ -340,7 +340,7 @@ async function runAgentTurn({ input, org, user, ncUid }) {
 // ── Request schema (see the header) ─────────────────────────────────
 
 /** A string whose every refusal, including "you left it out", is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 const TASK_TYPE_TEXT = 'taskType names the Nextcloud task type, like core:text2text:summary.';
 const TEXT_INPUT_TEXT = 'A text task needs input.input: the text to work on.';
@@ -349,7 +349,7 @@ const ExecuteBody = z.object({
     input: z.preprocess(
         // PHP encodes an empty input as [], and the connector sends {} for none.
         (v) => (v === undefined || v === null || (Array.isArray(v) && v.length === 0) ? {} : v),
-        z.record(z.string(), z.unknown(), { invalid_type_error: 'input is the task input object Nextcloud sent.' }),
+        z.record(z.string(), z.unknown(), { error: typeError({ invalid: 'input is the task input object Nextcloud sent.' }) }),
     ),
     ncUid: worded('ncUid is the Nextcloud user id.').max(256, 'ncUid is at most 256 characters.').nullish(),
     customId: worded('customId is text.').max(512, 'customId is at most 512 characters.').nullish(),
@@ -358,7 +358,7 @@ const ExecuteBody = z.object({
     if (!Object.prototype.hasOwnProperty.call(HANDLERS, body.taskType)) return;
     const text = body.input.input;
     if (typeof text !== 'string' || !text.trim()) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['input', 'input'], message: TEXT_INPUT_TEXT });
+        ctx.addIssue({ code: 'custom', path: ['input', 'input'], message: TEXT_INPUT_TEXT });
     }
 });
 

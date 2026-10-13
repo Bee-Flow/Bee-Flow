@@ -5,6 +5,7 @@
     // The browser side (src/shell) has its own config because it emits ES
     // modules a Chromium renderer loads directly, and the two module systems
     // cannot live in one program.
+    "extends": "../tsconfig.base.json",
     "compilerOptions": {
         "target": "ES2023",
         "lib": ["ES2023"],
@@ -15,14 +16,11 @@
         "module": "node16",
         "moduleResolution": "node16",
         "types": ["node"],
-        "strict": true,
         "noUncheckedIndexedAccess": true,
         "noImplicitOverride": true,
-        "noFallthroughCasesInSwitch": true,
         "noUnusedLocals": true,
         "noUnusedParameters": true,
         "exactOptionalPropertyTypes": false,
-        "forceConsistentCasingInFileNames": true,
         "esModuleInterop": true,
         "skipLibCheck": true,
         "resolveJsonModule": true,

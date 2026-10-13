@@ -13,7 +13,7 @@ const log = require('../../telemetry/log');
 
 const router = express.Router();
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 
 // -- What a caller may send ------------------------------------------
 //
@@ -26,12 +26,12 @@ const { z } = require('zod');
 // the wizard drew a plan in the wrong language on the wrong tier.
 
 /** A string whose every refusal -- including "you left it out" -- is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
-const doc = (name) => z.record(z.unknown(), { required_error: `${name} is a document.`, invalid_type_error: `${name} is a document.` });
+const doc = (name) => z.record(z.string(), z.unknown(), { error: typeError({ required: `${name} is a document.`, invalid: `${name} is a document.` }) });
 const PROMPT_TEXT = 'Prompt is required';
 const REFINE_TEXT = 'Refinement is required';
 const opt = (name, what) => worded(`${name} is ${what}.`).nullish();

@@ -45,7 +45,7 @@ const verifyToken = require('../compliance/dsr/verifyToken');
 const signedPayload = require('../auth/lib/signedPayload');
 const discovery = require('../compliance/dsr/discovery');
 const { validate } = require('../core/http/validate');
-const { z, worded, bodyOf, queryOf, choice } = require('../core/http/schemaParts');
+const { z, worded, bodyOf, queryOf, choice, typeError } = require('../core/http/schemaParts');
 const { onEvidenceWriteFailed } = require('../compliance/evidence/writeFailures');
 const appPaths = require('../utils/appPaths');
 
@@ -117,8 +117,8 @@ const DiscoveryQuery = queryOf({ force: choice(['0', '1'], 'force is 1 to run th
 const FulfilBody = bodyOf({
     status: dsrText('status must be "fulfilled" or "rejected"', 40).optional(),
     result_summary: dsrText(`result_summary must be at most ${MAX_SUMMARY} characters`, 20_000).nullish(),
-    notify_subject: z.boolean({ invalid_type_error: 'notify_subject is true or false.' }).optional(),
-    result_payload: z.record(z.unknown(), { invalid_type_error: 'result_payload is an object.' }).nullish(),
+    notify_subject: z.boolean({ error: typeError({ invalid: 'notify_subject is true or false.' }) }).optional(),
+    result_payload: z.record(z.string(), z.unknown(), { error: typeError({ invalid: 'result_payload is an object.' }) }).nullish(),
 }, 'Closing a request');
 
 // ───────────────── Helpers ─────────────────

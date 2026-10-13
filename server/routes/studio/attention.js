@@ -97,7 +97,7 @@
 'use strict';
 
 const express = require('express');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 
 const { validate } = require('../../core/http/validate');
 
@@ -150,11 +150,9 @@ const makeDefaultDeps = () => makeLazyDeps(DEFAULT_LOADERS);
 const NoQuery = z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
     z.object({}, {
-        errorMap: (issue, ctx) => ({
-            message: issue.code === z.ZodIssueCode.unrecognized_keys
-                ? `The attention list takes no parameters — it always checks every source you may see (got ${issue.keys.map((k) => `"${k}"`).join(', ')}).`
-                : ctx.defaultError,
-        }),
+        error: (iss) => (iss.code === 'unrecognized_keys'
+            ? `The attention list takes no parameters — it always checks every source you may see (got ${iss.keys.map((k) => `"${k}"`).join(', ')}).`
+            : undefined),
     }).strict(),
 );
 

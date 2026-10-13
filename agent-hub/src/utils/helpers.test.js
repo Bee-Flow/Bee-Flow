@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseSaveError } from './helpers';
+import { parseSaveError, generateMessageId } from './helpers';
 
 // parseSaveError only consumes res.status and res.text(); a minimal mock
 // keeps the test independent of the fetch Response implementation.
@@ -36,5 +36,25 @@ describe('parseSaveError', () => {
         expect(info.isLimit).toBe(true);
         expect(info.code).toBe('limit_reached');
         expect(info.resource).toBe('agents');
+    });
+});
+
+describe('generateMessageId', () => {
+    const V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+
+    it('returns a v4 uuid', () => {
+        expect(generateMessageId()).toMatch(V4);
+    });
+
+    it('still returns a v4 uuid where crypto.randomUUID is missing (plain HTTP)', () => {
+        const original = crypto.randomUUID;
+        Object.defineProperty(crypto, 'randomUUID', { value: undefined, configurable: true });
+        try {
+            const a = generateMessageId();
+            expect(a).toMatch(V4);
+            expect(generateMessageId()).not.toBe(a);
+        } finally {
+            Object.defineProperty(crypto, 'randomUUID', { value: original, configurable: true });
+        }
     });
 });

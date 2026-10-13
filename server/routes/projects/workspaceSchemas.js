@@ -17,7 +17,7 @@ const FILE_ID = 'A file id is the id of one of this project\'s files.';
 /** DELETE /:id/files/:fileId */
 const FileParams = closedObject({
     id: worded('A project id is required.').min(1, 'A project id is required.'),
-    fileId: worded(FILE_ID).trim().uuid(FILE_ID),
+    fileId: worded(FILE_ID).trim().guid(FILE_ID),
 }, 'This address');
 
 /** DELETE /:id/files/:fileId — no body, no query. */
@@ -34,7 +34,7 @@ const PRESENCE_TARGET = 'A presence target is a type (document, notebook, meetin
 /** POST /:id/presence — a ping, optionally naming the item being viewed. */
 const PresenceBody = bodyOf({
     target: closedObject({
-        type: z.enum(PRESENCE_TARGET_TYPES, { errorMap: () => ({ message: PRESENCE_TARGET }) }),
+        type: z.enum(PRESENCE_TARGET_TYPES, { error: () => PRESENCE_TARGET }),
         id: worded(PRESENCE_TARGET).trim().min(1, PRESENCE_TARGET).max(128, PRESENCE_TARGET),
     }, 'A presence target').optional(),
 }, 'A presence ping');

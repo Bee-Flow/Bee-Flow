@@ -28,7 +28,7 @@ const express = require('express');
 const log = require('../../telemetry/log');
 const { HttpError } = require('../../core/http/errors');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 const router = express.Router();
 const multer = require('multer');
 
@@ -125,7 +125,7 @@ function shapeTextOrigin(raw) {
 const { FIELDS: MEETING_FIELDS, DEFAULT_FIELDS: MEETING_DEFAULT_FIELDS } = require('../../core/kb/sources/meetingTag');
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 const NAME_TEXT = 'A source name must be text.';
 const SourceName = worded(NAME_TEXT).trim().max(200, 'A source name is at most 200 characters.');
@@ -143,14 +143,14 @@ const knownTimeZone = (tz) => {
 
 /** `null` and `''` both mean "no schedule" — what switching back to manual sends. */
 const RefreshRule = z.object({
-    mode: z.enum(REFRESH_MODES, { errorMap: () => ({ message: MODE_TEXT }) }).optional(),
+    mode: z.enum(REFRESH_MODES, { error: () => MODE_TEXT }).optional(),
     cron: worded(CRON_TEXT).trim().max(200, CRON_TEXT)
         .refine((v) => !v || /^\S+(\s+\S+){4,5}$/.test(v), CRON_TEXT)
         .nullish(),
     tz: worded('A time zone must be text.').trim().max(64, 'A time zone is at most 64 characters.')
-        .refine(knownTimeZone, (v) => ({ message: `Unknown time zone: ${v}` }))
+        .refine(knownTimeZone, { error: (iss) => `Unknown time zone: ${iss.input}` })
         .nullish(),
-}, { invalid_type_error: 'A refresh rule is an object like { mode, cron, tz }.' }).strict();
+}, { error: typeError({ invalid: 'A refresh rule is an object like { mode, cron, tz }.' }) }).strict();
 
 const TEXT_TEXT = 'A text source needs at least three characters of text.';
 const URL_TEXT = 'A web source needs an address.';
@@ -168,8 +168,8 @@ const CONFIG_BY_KIND = Object.freeze({
         // shapeTextOrigin holds the allow-list, and it is the SAME one applied
         // on the way out, so the two directions cannot drift apart.
         metadata: z.unknown().optional(),
-    }, { invalid_type_error: CONFIG_TEXT }).strict(),
-    upload: z.object({}, { invalid_type_error: CONFIG_TEXT }).strict(),
+    }, { error: typeError({ invalid: CONFIG_TEXT }) }).strict(),
+    upload: z.object({}, { error: typeError({ invalid: CONFIG_TEXT }) }).strict(),
     webpage: z.object({
         url: worded(URL_TEXT).trim().min(1, URL_TEXT),
         crawl: z.object({
@@ -177,20 +177,20 @@ const CONFIG_BY_KIND = Object.freeze({
             // sends a big number and means it.
             maxPages: z.coerce.number().catch(1)
                 .transform((n) => Math.min(Math.max(Math.trunc(n) || 1, 1), MAX_CRAWL_PAGES)),
-        }, { invalid_type_error: 'crawl is an object like { maxPages }.' }).strict().nullish(),
-    }, { invalid_type_error: CONFIG_TEXT }).strict(),
+        }, { error: typeError({ invalid: 'crawl is an object like { maxPages }.' }) }).strict().nullish(),
+    }, { error: typeError({ invalid: CONFIG_TEXT }) }).strict(),
     meeting_tag: z.object({
         tag: worded(TAG_TEXT).trim().min(1, TAG_TEXT),
         fields: z.array(
-            z.enum(MEETING_FIELDS, { errorMap: () => ({ message: `A meeting field is one of: ${MEETING_FIELDS.join(', ')}.` }) }),
-            { invalid_type_error: 'fields is a list of meeting fields.' },
+            z.enum(MEETING_FIELDS, { error: () => `A meeting field is one of: ${MEETING_FIELDS.join(', ')}.` }),
+            { error: typeError({ invalid: 'fields is a list of meeting fields.' }) },
         ).optional(),
-    }, { invalid_type_error: CONFIG_TEXT }).strict(),
+    }, { error: typeError({ invalid: CONFIG_TEXT }) }).strict(),
     datatable: z.object({
         datatableId: worded(TABLE_TEXT).trim().min(1, TABLE_TEXT),
-        columns: z.array(worded('A column name must be text.'), { invalid_type_error: 'columns is a list of column names.' }).optional(),
+        columns: z.array(worded('A column name must be text.'), { error: typeError({ invalid: 'columns is a list of column names.' }) }).optional(),
         titleColumn: worded('titleColumn must be the name of a column.').trim().min(1, 'titleColumn must be the name of a column.').optional(),
-    }, { invalid_type_error: CONFIG_TEXT }).strict(),
+    }, { error: typeError({ invalid: CONFIG_TEXT }) }).strict(),
 });
 
 /**
@@ -219,13 +219,13 @@ const CreateSourceBody = z.object({
     name: SourceName.optional(),
     config: z.unknown().optional(),
     refresh: RefreshRule.optional(),
-}, { required_error: BODY_TEXT, invalid_type_error: BODY_TEXT }).strict().transform(withKindConfig);
+}, { error: typeError({ required: BODY_TEXT, invalid: BODY_TEXT }) }).strict().transform(withKindConfig);
 
 const NAME_BLANK = 'A source name cannot be blank.';
 const PatchSourceBody = z.object({
     name: SourceName.min(1, NAME_BLANK).optional(),
     refresh: RefreshRule.optional(),
-}, { required_error: BODY_TEXT, invalid_type_error: BODY_TEXT }).strict();
+}, { error: typeError({ required: BODY_TEXT, invalid: BODY_TEXT }) }).strict();
 
 /**
  * Paging is clamped, not refused: a page size out of range is still a page.
@@ -242,10 +242,10 @@ const PatchSourceBody = z.object({
 const DocumentsQuery = z.object({
     limit: z.coerce.number().catch(DEFAULT_DOC_PAGE)
         .transform((n) => Math.min(Math.max(Math.trunc(n) || DEFAULT_DOC_PAGE, 1), MAX_DOC_PAGE))
-        .default(DEFAULT_DOC_PAGE),
+        .prefault(DEFAULT_DOC_PAGE),
     offset: z.coerce.number().catch(0)
         .transform((n) => Math.max(Math.trunc(n) || 0, 0))
-        .default(0),
+        .prefault(0),
     // Shared with routes/knowledgeBases/documents.js — see ./docFilters.
     status: statusFilter().optional(),
     pii: piiFilter().optional(),

@@ -60,20 +60,18 @@ const {
 } = require('./shared');
 const { publicCreateLimiter, threadReadLimiter, _emailRateLimitOk } = require('./rateLimits');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 const log = require('../../telemetry/log');
 
 // ── What a body and a query may carry ───────────────────────────────
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
-const oneOf = (name, values) => z.enum(values, {
-    errorMap: () => ({ message: `${name} is one of: ${values.join(', ')}.` }),
-});
+const oneOf = (name, values) => z.enum(values, { error: () => `${name} is one of: ${values.join(', ')}.` });
 
 const STATUSES = ['open', 'ai_responding', 'awaiting_user', 'awaiting_agent', 'resolved', 'closed'];
 const PRIORITIES = ['low', 'normal', 'high', 'urgent'];
@@ -99,7 +97,7 @@ const ReplyBody = bodyOf({
     body: worded(REPLY_TEXT).trim().min(1, REPLY_TEXT).max(10000, 'A reply is at most 10000 characters.'),
     // Only staff may set it, and only a real boolean decides. The string
     // 'false' used to make a reply an internal note the customer never saw.
-    internalNote: z.boolean({ invalid_type_error: 'internalNote is true or false.' }).optional(),
+    internalNote: z.boolean({ error: typeError({ invalid: 'internalNote is true or false.' }) }).optional(),
 });
 
 // Shared with the tenant inbox (routes/supportInbox.js), which adds its own
@@ -110,16 +108,12 @@ const PATCH_THREAD_SHAPE = {
     assignee_user_id: worded('assignee_user_id must be a user id.').trim().max(120, 'assignee_user_id is at most 120 characters.').nullable().optional(),
     category: worded('category must be text.').trim().max(100, 'A category is at most 100 characters.').nullable().optional(),
     // A bare string used to be dropped, leaving the thread's old labels.
-    tags: z.array(worded('tags is a list of labels.'), {
-        required_error: 'tags is a list of labels.', invalid_type_error: 'tags is a list of labels.',
-    }).max(50, 'A thread carries at most 50 labels.').optional(),
+    tags: z.array(worded('tags is a list of labels.'), { error: 'tags is a list of labels.' }).max(50, 'A thread carries at most 50 labels.').optional(),
 };
 const PatchThread = bodyOf(PATCH_THREAD_SHAPE);
 
 const BulkBody = bodyOf({
-    ids: z.array(worded('ids is a list of thread ids.'), {
-        required_error: 'ids is a list of thread ids.', invalid_type_error: 'ids is a list of thread ids.',
-    }).min(1, 'Pick at least one thread.').max(50, 'A bulk action covers at most 50 threads.'),
+    ids: z.array(worded('ids is a list of thread ids.'), { error: 'ids is a list of thread ids.' }).min(1, 'Pick at least one thread.').max(50, 'A bulk action covers at most 50 threads.'),
     action: oneOf('action', BULK_ACTIONS),
     // Read per action below; each one names what it still misses.
     params: z.object({
@@ -140,9 +134,9 @@ const InboxQuery = z.object({
     q: worded('q must be text.').trim().max(200, 'A search is at most 200 characters.').optional(),
     assignee: worded('assignee must be a user id.').trim().max(120, 'assignee is at most 120 characters.').optional(),
     followup: oneOf('followup', ['1', '0', 'true', 'false']).optional(),
-    limit: z.coerce.number({ invalid_type_error: PAGE_TEXT('limit') })
+    limit: z.coerce.number({ error: typeError({ invalid: PAGE_TEXT('limit') }) })
         .int(PAGE_TEXT('limit')).min(1, PAGE_TEXT('limit')).max(500, 'limit is at most 500.').optional(),
-    offset: z.coerce.number({ invalid_type_error: PAGE_TEXT('offset') })
+    offset: z.coerce.number({ error: typeError({ invalid: PAGE_TEXT('offset') }) })
         .int(PAGE_TEXT('offset')).min(0, PAGE_TEXT('offset')).optional(),
 }).strict();
 

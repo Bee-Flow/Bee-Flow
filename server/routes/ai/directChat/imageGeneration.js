@@ -17,17 +17,17 @@ const configStore = require('../../../stores/configStore');
 const { googleAdapter } = require('../../../core/providers');
 const { requireAuth } = require('../../../auth/permissions');
 const { validate } = require('../../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../../utils/zod');
 
 const PROMPT_TEXT = 'Prompt is required';
 const RATIO_TEXT = "aspectRatio is width:height, like '1:1' or '16:9'.";
 
 const GenerateImageBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object({
     // A prompt that was not text reached `prompt.substring` and was a 500.
-    prompt: z.string({ required_error: PROMPT_TEXT, invalid_type_error: PROMPT_TEXT }).trim().min(1, PROMPT_TEXT),
+    prompt: z.string({ error: PROMPT_TEXT }).trim().min(1, PROMPT_TEXT),
     // '' is "no preference": the square default, as before.
-    aspectRatio: z.string({ invalid_type_error: RATIO_TEXT }).trim().regex(/^(\d{1,2}:\d{1,2})?$/, RATIO_TEXT).optional(),
-    conversationId: z.string({ invalid_type_error: 'conversationId is the id of the conversation the image belongs to.' }).nullish(),
+    aspectRatio: z.string({ error: typeError({ invalid: RATIO_TEXT }) }).trim().regex(/^(\d{1,2}:\d{1,2})?$/, RATIO_TEXT).optional(),
+    conversationId: z.string({ error: typeError({ invalid: 'conversationId is the id of the conversation the image belongs to.' }) }).nullish(),
 }).strict());
 
 // ─── Image Generation (Google Nano Banana 2) ──────────────────────

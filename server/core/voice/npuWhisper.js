@@ -36,6 +36,7 @@ const path = require('path');
 
 const configStore = require('../../stores/configStore');
 const log = require('../../telemetry/log');
+const { buildAudioArgs, runFfmpeg } = require('../media/ffmpeg');
 
 // The server runs in Docker; the NPU service is a host systemd unit
 // (flm-npu.service), so the default reaches back out to the host.
@@ -101,23 +102,21 @@ async function isAvailable(now = Date.now()) {
 // source: the byte length then gives us an exact duration and exact sample
 // offsets with no ffprobe binary (the image ships @ffmpeg-installer, which is
 // ffmpeg ONLY — there is no ffprobe to call).
-async function decodeToWav(audioPath) {
-    const ffmpegInstaller = require('@ffmpeg-installer/ffmpeg');
-    const ffmpegLib = require('fluent-ffmpeg');
-    ffmpegLib.setFfmpegPath(ffmpegInstaller.path);
+function decodeArgs(audioPath, tmp) {
+    return buildAudioArgs({
+        input: audioPath,
+        output: tmp,
+        channels: 1,
+        sampleRate: SAMPLE_RATE,
+        codec: 'pcm_s16le',
+        format: 'wav',
+    });
+}
 
+async function decodeToWav(audioPath) {
     const tmp = path.join(os.tmpdir(), `npu-whisper-${crypto.randomUUID()}.wav`);
     try {
-        await new Promise((resolve, reject) => {
-            ffmpegLib(audioPath)
-                .audioChannels(1)
-                .audioFrequency(SAMPLE_RATE)
-                .audioCodec('pcm_s16le')
-                .format('wav')
-                .on('end', resolve)
-                .on('error', reject)
-                .save(tmp);
-        });
+        await runFfmpeg(decodeArgs(audioPath, tmp));
     } catch (err) {
         try { fs.unlinkSync(tmp); } catch (_) { /* never created */ }
         throw err;
@@ -340,5 +339,5 @@ module.exports = {
     transcribeWithNpu,
     isAvailable,
     // exported for tests
-    _internals: { findDataChunk, wavHeader, planCuts, rmsOf, WINDOW_SEC, BYTES_PER_SEC, SILENCE_RMS },
+    _internals: { decodeArgs, findDataChunk, wavHeader, planCuts, rmsOf, WINDOW_SEC, BYTES_PER_SEC, SILENCE_RMS },
 };

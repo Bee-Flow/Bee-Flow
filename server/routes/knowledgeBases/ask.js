@@ -51,7 +51,7 @@ const kbStore = require('../../stores/knowledgeBases');
 const { requireAuth } = require('../../auth');
 const { canAccessKB, getUserId } = require('./shared');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 // Module scope, deliberately: block-scoping this inside the handler is how
 // /ai-fill threw ReferenceError after its SSE headers had already gone out
 // (routes/notebooks.js:43 records the same lesson).
@@ -67,7 +67,7 @@ const MAX_CHUNK_CHARS = 4000;
 
 const QUESTION_TEXT = 'Type a question to test this knowledge base with.';
 const AskBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object({
-    question: z.string({ required_error: QUESTION_TEXT, invalid_type_error: QUESTION_TEXT })
+    question: z.string({ error: QUESTION_TEXT })
         .trim().min(1, QUESTION_TEXT)
         .max(MAX_QUESTION_CHARS, `A test question is at most ${MAX_QUESTION_CHARS} characters.`),
 }).strict());

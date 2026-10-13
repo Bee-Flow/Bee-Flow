@@ -12,7 +12,7 @@
 const log = require('../../telemetry/log');
 const { HttpError } = require('../../core/http/errors');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 const { resolveIntegration } = require('../../core/integrations/integrationToolMap');
 
 // -- What the agent-preview query may say ----------------------------
@@ -28,16 +28,16 @@ const { resolveIntegration } = require('../../core/integrations/integrationToolM
 // set an empty one, and execAi reads that as NO tools. So it is a string that
 // may be empty -- never `.min(1)`.
 const FLAG_TEXT = (name) => `${name} is "1" or "0".`;
-const flag = (name) => z.enum(['0', '1', 'true', 'false'], { errorMap: () => ({ message: FLAG_TEXT(name) }) }).optional();
+const flag = (name) => z.enum(['0', '1', 'true', 'false'], { error: () => FLAG_TEXT(name) }).optional();
 const AgentPreviewQuery = z.object({
     startAutomations: flag('startAutomations'),
     useKnowledge: flag('useKnowledge'),
     useTools: flag('useTools'),
-    tools: z.string({ invalid_type_error: 'tools is a comma-separated list of tool names.' }).optional(),
+    tools: z.string({ error: typeError({ invalid: 'tools is a comma-separated list of tool names.' }) }).optional(),
     // Handoff 5: the step's own skills and the agent skills it switched off,
     // so the preview applies the same skill grants the run does.
-    skillIds: z.string({ invalid_type_error: 'skillIds is a comma-separated list of skill ids.' }).optional(),
-    disabledAgentSkillIds: z.string({ invalid_type_error: 'disabledAgentSkillIds is a comma-separated list of skill ids.' }).optional(),
+    skillIds: z.string({ error: typeError({ invalid: 'skillIds is a comma-separated list of skill ids.' }) }).optional(),
+    disabledAgentSkillIds: z.string({ error: typeError({ invalid: 'disabledAgentSkillIds is a comma-separated list of skill ids.' }) }).optional(),
 }).strict();
 
 /** A comma-separated id list from the query; absent reads as none. */

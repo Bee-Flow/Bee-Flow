@@ -22,7 +22,7 @@ const { PG, DATA_LIMITS } = require('./engine');
 const { requireDatatableGrade, requireManageForOrgScope } = require('./grade');
 const { quota, answerDatatableError, confirmedBreaking, breakingColumnUsage } = require('./refusals');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 const { bodyOf, flag, CONFIRM_TEXT } = require('./schemas');
 const log = require('../../telemetry/log');
 
@@ -40,7 +40,7 @@ const log = require('../../telemetry/log');
 const FIELDS_TEXT = 'Send the full column list';
 const VERSION_TEXT = 'expectedVersion must be the whole number GET /schema returned';
 const SchemaBody = bodyOf({
-    fields: z.array(z.unknown(), { required_error: FIELDS_TEXT, invalid_type_error: FIELDS_TEXT }),
+    fields: z.array(z.unknown(), { error: FIELDS_TEXT }),
     // Accepted as a number or as the digits of one, and NOTHING else.
     // `Number()` alone accepts `true` (→ 1), `[]` (→ 0) and `''` (→ 0), so a
     // malformed field used to slip past and come back as a 409 telling the
@@ -48,8 +48,8 @@ const SchemaBody = bodyOf({
     expectedVersion: z.union([
         z.number().int(VERSION_TEXT).min(0, VERSION_TEXT),
         z.string().trim().regex(/^\d+$/, VERSION_TEXT).transform(Number),
-    ], { errorMap: () => ({ message: VERSION_TEXT }) }).optional(),
-    confirmBreaking: z.boolean({ invalid_type_error: CONFIRM_TEXT }).optional(),
+    ], { error: () => VERSION_TEXT }).optional(),
+    confirmBreaking: z.boolean({ error: typeError({ invalid: CONFIRM_TEXT }) }).optional(),
 });
 
 const SchemaQuery = z.object({ confirmBreaking: flag(CONFIRM_TEXT) }).strict();

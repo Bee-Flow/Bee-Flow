@@ -22,14 +22,14 @@
 
 'use strict';
 
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 const { HttpError } = require('../../core/http/errors');
 const { fieldDiff, describeChange, isLayoutOnlyChange, stepIdsOf } = require('../../automation/diffSummary');
 
 const MAX_NAME = 80;
 const NAME_TEXT = `name is the milestone name (at most ${MAX_NAME} characters), or null to clear it.`;
 const NameBody = z.object({
-    name: z.string({ invalid_type_error: NAME_TEXT }).trim().max(MAX_NAME, NAME_TEXT).nullable(),
+    name: z.string({ error: typeError({ invalid: NAME_TEXT }) }).trim().max(MAX_NAME, NAME_TEXT).nullable(),
 }).strict();
 
 /** Agent ids → names, best-effort, for a diff that changed an agent. */

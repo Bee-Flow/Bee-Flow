@@ -17,7 +17,7 @@ const { resolveAccessContext, withInsightsPolicy } = require('./shared');
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
 const { requireAuth } = require('../../auth/permissions');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 const { whole, NO_QUERY } = require('./schemas');
 
 // De bladwijzer van de lijst, en niets anders. `.strict()`, want elke andere

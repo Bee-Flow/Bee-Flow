@@ -136,12 +136,12 @@ async function _annotateProjectNames(orgId, rows) {
 }
 
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 
 const FRAMEWORK_TEXT = 'framework must be a framework id.';
 /** `?framwork=gdpr` used to drop the filter and answer with every framework's checks. */
 const ChecksQuery = z.object({
-    framework: z.string({ invalid_type_error: FRAMEWORK_TEXT }).max(120, 'framework is at most 120 characters.').optional(),
+    framework: z.string({ error: typeError({ invalid: FRAMEWORK_TEXT }) }).max(120, 'framework is at most 120 characters.').optional(),
 }).strict();
 
 // ── Why POST /checks/:id/auto-fix keeps an open body ────────────
@@ -203,7 +203,7 @@ router.get('/checks', requireAuth, requirePermission('admin_compliance'), valida
  * agent must not list another agent's runs. Without it every slot comes back.
  */
 const HistoryQuery = z.object({
-    scope_id: z.string({ invalid_type_error: 'scope_id must be a subject id.' })
+    scope_id: z.string({ error: typeError({ invalid: 'scope_id must be a subject id.' }) })
         .min(1, 'scope_id must not be empty.')
         .max(200, 'scope_id is at most 200 characters.')
         .optional(),

@@ -20,25 +20,25 @@ const express = require('express');
 const log = require('../telemetry/log');
 const { HttpError } = require('../core/http/errors');
 const { validate } = require('../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../utils/zod');
 
 // `.strict()`: a misspelled field must be refused, not dropped under a 200.
 // maxPerUser is clamped by the policy module (50..10000), but it has to be a
 // number to begin with.
 const bodyOf = (shape) => z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
-    z.object(shape, { invalid_type_error: 'Send the settings as a JSON object.' }).strict(),
+    z.object(shape, { error: typeError({ invalid: 'Send the settings as a JSON object.' }) }).strict(),
 );
 
 const SettingsBody = bodyOf({
-    enabled: z.boolean({ invalid_type_error: 'enabled is true or false.' }).optional(),
-    sensitiveOptInAllowed: z.boolean({ invalid_type_error: 'sensitiveOptInAllowed is true or false.' }).optional(),
-    maxPerUser: z.number({ invalid_type_error: 'maxPerUser is a number.' }).finite('maxPerUser is a number.').optional(),
+    enabled: z.boolean({ error: typeError({ invalid: 'enabled is true or false.' }) }).optional(),
+    sensitiveOptInAllowed: z.boolean({ error: typeError({ invalid: 'sensitiveOptInAllowed is true or false.' }) }).optional(),
+    maxPerUser: z.number({ error: typeError({ invalid: 'maxPerUser is a number.' }) }).finite('maxPerUser is a number.').optional(),
 });
 
 const ClearBody = z.object({
-    confirm: z.literal('DELETE', { errorMap: () => ({ message: 'Send {"confirm":"DELETE"} to clear the memories of this organisation.' }) }),
-}, { invalid_type_error: 'Send {"confirm":"DELETE"} to clear the memories of this organisation.' }).strict();
+    confirm: z.literal('DELETE', { error: () => 'Send {"confirm":"DELETE"} to clear the memories of this organisation.' }),
+}, { error: typeError({ invalid: 'Send {"confirm":"DELETE"} to clear the memories of this organisation.' }) }).strict();
 
 /** The real collaborators; `createOrgMemoryRouter(deps)` takes fakes in tests. */
 function makeDefaultDeps() {

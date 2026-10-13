@@ -18,7 +18,7 @@ const {
 const { deleteDocumentChunks, findDocumentBySourceUri } = require('../../core/kb/kbIngestionHelpers');
 const { keepUploadedSource } = require('../../core/documents/uploadedSource');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 const { worded, bodyOf, choice, NOTHING, NO_QUERY } = require('./schemas');
 const log = require('../../telemetry/log');
 
@@ -47,7 +47,7 @@ const DriveBody = bodyOf({
     provider: choice(['google', 'microsoft'], PROVIDER_TEXT),
     // De inhoud van één Drive-bestand zoals de kiezer hem al gelezen heeft.
     // De vorm daarvan is die van de kiezer, niet van deze route.
-    files: z.array(z.unknown(), { required_error: FILES_TEXT, invalid_type_error: FILES_TEXT }).min(1, FILES_TEXT),
+    files: z.array(z.unknown(), { error: FILES_TEXT }).min(1, FILES_TEXT),
 });
 
 function register(router, { upload }) {

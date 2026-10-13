@@ -15,7 +15,7 @@
  * never interprets it beyond these bounds; it is sealed as a whole.
  */
 
-const { z, worded, bodyOf, queryOf, closedObject, choice, flag, wholeNumber } = require('../../core/http/schemaParts');
+const { z, worded, bodyOf, queryOf, closedObject, choice, flag, wholeNumber, typeError } = require('../../core/http/schemaParts');
 
 const ID_MAX = 200;
 const CONTENT_MAX = 10000;
@@ -56,9 +56,7 @@ const content = worded(CONTENT_TEXT)
     .refine((v) => v.length <= CONTENT_MAX, CONTENT_TEXT);
 
 const MENTIONS_TEXT = `mentions is a list of at most ${MAX_MENTIONS} member ids.`;
-const mentions = z.array(worded(MENTIONS_TEXT).trim().min(1, MENTIONS_TEXT).max(ID_MAX, MENTIONS_TEXT), {
-    invalid_type_error: MENTIONS_TEXT,
-}).max(MAX_MENTIONS, MENTIONS_TEXT);
+const mentions = z.array(worded(MENTIONS_TEXT).trim().min(1, MENTIONS_TEXT).max(ID_MAX, MENTIONS_TEXT), { error: typeError({ invalid: MENTIONS_TEXT }) }).max(MAX_MENTIONS, MENTIONS_TEXT);
 
 const askAi = flag('askAi is true to ask the AI assistant to answer in the thread, or false.');
 const clientId = (name) => {

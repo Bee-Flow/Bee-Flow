@@ -11,19 +11,14 @@
 // Run: npm run lint    (or: npx eslint .)
 
 const globals = require('globals');
+const { hardErrorRules } = require('../scripts/eslint/base.cjs');
 
 const correctnessRules = {
-    // Hard errors — the tree is clean under these; keep it that way. An
-    // undefined identifier is a ReferenceError waiting for its branch (four
-    // shipped on live routes before this was an error).
-    'no-undef': 'error',
-    'no-dupe-keys': 'error',
-    'no-dupe-args': 'error',
-    'no-unreachable': 'error',
-    'no-const-assign': 'error',
-    'valid-typeof': 'error',
-    'use-isnan': 'error',
-    'no-self-assign': 'error',
+    // Hard errors shared with the small services (scripts/eslint/base.cjs) —
+    // the tree is clean under these; keep it that way. An undefined
+    // identifier is a ReferenceError waiting for its branch (four shipped on
+    // live routes before this was an error).
+    ...hardErrorRules,
     // Server code logs through telemetry/log.js (request id, JSON in production).
     // The console stays where stdout IS the output: CLI scripts, migrations,
     // the runner and MCP child processes, and tests.

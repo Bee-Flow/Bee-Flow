@@ -29,7 +29,7 @@ const agentStore = require('../stores/agentStore');
 const memoryStore = require('../stores/memoryStore');
 const { requireAuth, requirePermission } = require('../auth/permissions');
 const { validate } = require('../core/http/validate');
-const { z } = require('zod');
+const { z, datetimeWithOffset } = require('../utils/zod');
 
 const router = express.Router();
 
@@ -37,8 +37,8 @@ const DATE_TEXT = (name) => `${name} is a date (2026-09-22) or a date and time w
 // Each branch carries the sentence: a union answers with the first branch that
 // got as far as a check, so its errorMap alone would leak "Invalid datetime".
 const when = (name) => z.union(
-    [z.string().datetime({ offset: true, message: DATE_TEXT(name) }), z.string().date(DATE_TEXT(name))],
-    { errorMap: () => ({ message: DATE_TEXT(name) }) },
+    [z.string().regex(datetimeWithOffset, DATE_TEXT(name)), z.string().date(DATE_TEXT(name))],
+    { error: () => DATE_TEXT(name) },
 ).optional();
 
 const ReportQuery = z.object({ startDate: when('startDate'), endDate: when('endDate') }).strict();

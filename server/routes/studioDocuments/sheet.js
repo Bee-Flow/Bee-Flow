@@ -34,7 +34,7 @@
 const express = require('express');
 const { validate } = require('../../core/http/validate');
 const { HttpError, notFound, forbidden } = require('../../core/http/errors');
-const { z, worded, bodyOf } = require('../../core/http/schemaParts');
+const { z, worded, bodyOf, typeError } = require('../../core/http/schemaParts');
 const { sheetTabsOf, newTabId } = require('../../stores/lib/sheetDocument');
 
 const NAME_TEXT = 'name is the spreadsheet\'s name, at most 200 characters.';
@@ -48,13 +48,13 @@ const ROLE_TEXT = 'history is the earlier turns: { role: user|assistant, content
 const AssistantBody = bodyOf({
     message: worded('Say what the assistant should do.').trim().min(1, 'Say what the assistant should do.').max(4000, 'Keep the request under 4,000 characters.'),
     selection: worded('selection is a cell or range such as B2:D9.').max(20).nullable().optional(),
-    selectionKind: z.enum(['cell', 'range', 'rows', 'columns'], { errorMap: () => ({ message: 'selectionKind is cell, range, rows or columns.' }) }).nullable().optional(),
-    modelTier: z.enum(/** @type {[string, ...string[]]} */ (DEPTHS), { errorMap: () => ({ message: `modelTier is one of ${DEPTHS.join(', ')}.` }) }).optional(),
+    selectionKind: z.enum(['cell', 'range', 'rows', 'columns'], { error: () => 'selectionKind is cell, range, rows or columns.' }).nullable().optional(),
+    modelTier: z.enum(/** @type {[string, ...string[]]} */ (DEPTHS), { error: () => `modelTier is one of ${DEPTHS.join(', ')}.` }).optional(),
     tab: z.string().max(100).optional(),
-    history: z.array(z.object({ role: z.enum(['user', 'assistant']), content: z.string().max(4000) }), { invalid_type_error: ROLE_TEXT }).max(20).optional(),
+    history: z.array(z.object({ role: z.enum(['user', 'assistant']), content: z.string().max(4000) }), { error: typeError({ invalid: ROLE_TEXT }) }).max(20).optional(),
 }, 'Asking the spreadsheet assistant');
 const WriteBody = bodyOf({
-    cells: z.record(z.union([z.string(), z.null()]), { required_error: CELLS_TEXT, invalid_type_error: CELLS_TEXT }),
+    cells: z.record(z.string(), z.union([z.string(), z.null()]), { error: typeError({ required: CELLS_TEXT, invalid: CELLS_TEXT }) }),
 }, 'Changing cells');
 const TAB_NAME_TEXT = 'name is the tab name, at most 100 characters.';
 const TabCreateBody = bodyOf({

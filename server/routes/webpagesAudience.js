@@ -57,7 +57,7 @@ const audience = require('../core/webpages/webpagePublicAudience');
 const webpageUsageSync = require('../core/webpages/webpageUsageSync');
 const { requireAuth } = require('../auth/permissions');
 const { validate } = require('../core/http/validate');
-const { z } = require('zod');
+const { z, onUnknownKeys, typeError } = require('../utils/zod');
 const { worded, bodyOf, choice } = require('./webpages/schemas');
 
 // ── Wat "openbaar" mag dragen ───────────────────────────────────────
@@ -91,17 +91,17 @@ const EMAIL_TEXT = 'Every allowed address is text.';
 const EMAILS_NEEDED = 'An e-mail gated page needs at least one allowed address (allowedEmails).';
 const EXPIRY_TEXT = 'expiresAt is a date, or null for no expiry.';
 
-const NO_QUERY = z.object({}).strict('This takes no query parameters.');
+const NO_QUERY = z.object({}, { error: onUnknownKeys('This takes no query parameters.') }).strict();
 const PublicBody = bodyOf({
-    on: z.boolean({ required_error: ON_TEXT, invalid_type_error: ON_TEXT }),
+    on: z.boolean({ error: ON_TEXT }),
     publicColumns: z.record(
-        z.array(worded(COLUMNS_TEXT), { invalid_type_error: COLUMNS_TEXT }),
-        { invalid_type_error: COLUMNS_TEXT },
+        z.string(), z.array(worded(COLUMNS_TEXT), { error: typeError({ invalid: COLUMNS_TEXT }) }),
+        { error: typeError({ invalid: COLUMNS_TEXT }) },
     ).optional(),
     accessMode: choice(['unlisted', 'password', 'email'], MODE_TEXT).optional(),
     password: worded(PASSWORD_TEXT).min(6, PASSWORD_TEXT).optional(),
-    allowedEmails: z.array(worded(EMAIL_TEXT).trim().min(1, EMAIL_TEXT), { invalid_type_error: EMAIL_TEXT }).optional(),
-    expiresAt: z.union([z.string(), z.number(), z.null()], { errorMap: () => ({ message: EXPIRY_TEXT }) }).optional(),
+    allowedEmails: z.array(worded(EMAIL_TEXT).trim().min(1, EMAIL_TEXT), { error: typeError({ invalid: EMAIL_TEXT }) }).optional(),
+    expiresAt: z.union([z.string(), z.number(), z.null()], { error: () => EXPIRY_TEXT }).optional(),
 }).superRefine((b, ctx) => {
     if (!b || b.on !== true) return;
     if (b.publicColumns === undefined) ctx.addIssue({ code: 'custom', path: ['publicColumns'], message: COLUMNS_NEEDED });

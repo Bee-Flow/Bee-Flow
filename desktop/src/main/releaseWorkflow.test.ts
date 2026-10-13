@@ -7,8 +7,8 @@
  * The packaging-path list in its `plan` job is then the only thing between a
  * macOS- or Windows-only packaging regression and a green PR, and a list of
  * paths is exactly what goes stale when a file moves. So it is asserted here,
- * next to the files it names. desktop-checks.yml carries desktop-release.yml in
- * its paths so that an edit to the list runs this file.
+ * next to the files it names. ci.yml's `desktop` filter carries desktop-release.yml
+ * in its paths so that an edit to the list runs this file.
  *
  * The right answer to a failure here is to ADD a pattern. Relaxing an assertion
  * gives back the safety that made the saving acceptable.
@@ -153,7 +153,7 @@ describe('desktop-release.yml packaging-path list', () => {
             'desktop/scripts/build-preload.mjs',
             'desktop/tsconfig.json',
             'desktop/README.md',
-            '.github/workflows/desktop-checks.yml',
+            '.github/workflows/ci.yml',
         ];
         assert.deepEqual(
             mustStayLinux.filter((f) => coveredBy(f)),
@@ -408,7 +408,7 @@ describe('desktop-release.yml plan, run for real', { skip: noShell }, () => {
     it('builds Linux only for a PR that changes no packaging', () => {
         const r = runPlan({
             event: 'pull_request',
-            files: [{ filename: 'desktop/src/main/menu.ts' }, { filename: 'desktop/e2e/connect.spec.ts' }, { filename: '.github/workflows/desktop-checks.yml' }],
+            files: [{ filename: 'desktop/src/main/menu.ts' }, { filename: 'desktop/e2e/connect.spec.ts' }, { filename: '.github/workflows/ci.yml' }],
         });
         assert.equal(r.outputs.platforms, 'linux');
         assert.deepEqual(platformsOf(r), ['linux']);

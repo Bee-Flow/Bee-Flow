@@ -40,7 +40,7 @@ const { getAll } = require('../../db');
 const { requireAuth, requirePermission } = require('../../auth/permissions');
 const { resolveOrgId, _riskStore, _auditStore, _obligationStore } = require('./shared');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 
 // ── The vocabulary, kept next to the routes that speak it ───────────
 //
@@ -50,15 +50,13 @@ const { z } = require('zod');
 // test should catch.
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
 /** One of a fixed set, named in the refusal so the caller can correct it. */
-const oneOf = (name, values) => z.enum(values, {
-    errorMap: () => ({ message: `${name} is one of: ${values.join(', ')}.` }),
-});
+const oneOf = (name, values) => z.enum(values, { error: () => `${name} is one of: ${values.join(', ')}.` });
 
 const need = (name, max) => worded(`${name} is required.`)
     .trim().min(1, `${name} is required.`).max(max, `${name} is at most ${max} characters.`);
@@ -70,7 +68,7 @@ const userRef = (name) => worded(`${name} must be a user id.`).trim().max(120, `
 const dateish = (name) => worded(`${name} must be a date.`).trim()
     .refine((v) => v === '' || !Number.isNaN(Date.parse(v)), `${name} must be a date.`).nullish();
 /** 1–5, the only scale the register has. Out of range is a refusal, not a clamp. */
-const scale = (name) => z.number({ required_error: `${name} is 1 to 5.`, invalid_type_error: `${name} is 1 to 5.` })
+const scale = (name) => z.number({ error: `${name} is 1 to 5.` })
     .int(`${name} is 1 to 5.`).min(1, `${name} is 1 to 5.`).max(5, `${name} is 1 to 5.`);
 
 const RISK_STATUSES = ['open', 'treating', 'accepted', 'closed'];
@@ -159,8 +157,8 @@ const ReviewBody = bodyOf({
     // The attendee list the picker built, and the 9.3.2 agenda snapshot the
     // route handed the page. Both are stored as jsonb verbatim, so neither
     // is narrowed here.
-    attendees: z.array(z.unknown(), { invalid_type_error: 'attendees is a list.' }).optional(),
-    inputs: z.record(z.unknown(), { invalid_type_error: 'inputs is an object.' }).optional(),
+    attendees: z.array(z.unknown(), { error: typeError({ invalid: 'attendees is a list.' }) }).optional(),
+    inputs: z.record(z.string(), z.unknown(), { error: typeError({ invalid: 'inputs is an object.' }) }).optional(),
     decisions: text('decisions', 20000),
     minutes_evidence_ref: text('minutes_evidence_ref', 500),
 });
@@ -192,7 +190,7 @@ const NcPatch = bodyOf({
     owner_user_id: userRef('owner_user_id'),
     // Closing records who confirmed the corrective action worked, so this is
     // a boolean and nothing else — 'true' as a string is not a confirmation.
-    confirm_effectiveness: z.boolean({ invalid_type_error: 'confirm_effectiveness is true or false.' }).optional(),
+    confirm_effectiveness: z.boolean({ error: typeError({ invalid: 'confirm_effectiveness is true or false.' }) }).optional(),
 });
 
 // ── 6.2 objectives ──────────────────────────────────────────────────
@@ -219,18 +217,18 @@ const OBLIGATION_FIELDS = {
     owner_user_id: userRef('owner_user_id'),
     // Null is evergreen; a number is a repeat every N months. 'twaalf' used
     // to become null, which is "never again" rather than "every year".
-    recur_months: z.number({ invalid_type_error: 'recur_months is a number of months, 1 to 120.' })
+    recur_months: z.number({ error: typeError({ invalid: 'recur_months is a number of months, 1 to 120.' }) })
         .int('recur_months is a number of months, 1 to 120.')
         .min(1, 'recur_months is a number of months, 1 to 120.')
         .max(120, 'recur_months is a number of months, 1 to 120.').nullish(),
     // Days before the due date to remind. An unusable list used to be
     // replaced by the default tiers without a word.
     notify_offsets: z.array(
-        z.number({ invalid_type_error: 'notify_offsets is a list of whole days, 0 to 365.' })
+        z.number({ error: typeError({ invalid: 'notify_offsets is a list of whole days, 0 to 365.' }) })
             .int('notify_offsets is a list of whole days, 0 to 365.')
             .min(0, 'notify_offsets is a list of whole days, 0 to 365.')
             .max(365, 'notify_offsets is a list of whole days, 0 to 365.'),
-        { invalid_type_error: 'notify_offsets is a list of whole days, 0 to 365.' },
+        { error: typeError({ invalid: 'notify_offsets is a list of whole days, 0 to 365.' }) },
     ).optional(),
 };
 const DUE_TEXT = 'due_at is required — when this obligation falls due.';

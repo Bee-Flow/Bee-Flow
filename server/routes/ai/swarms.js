@@ -20,6 +20,7 @@
 
 const express = require('express');
 const log = require('../../telemetry/log');
+const { HttpError } = require('../../core/http/errors');
 const router = express.Router();
 const { listAvailableSwarms } = require('../../core/swarms/swarmRuntime');
 
@@ -27,7 +28,7 @@ const { listAvailableSwarms } = require('../../core/swarms/swarmRuntime');
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
 const { requireAuth } = require('../../auth/permissions');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 
 const NoQuery = z.object({}).strict();
 
@@ -37,7 +38,7 @@ router.get('/available', requireAuth, validate({ query: NoQuery }), (req, res) =
         return res.json({ swarms });
     } catch (e) {
         log.error('[Swarms] available list failed:', e);
-        return res.status(500).json({ error: 'Failed to list available swarms' });
+        throw new HttpError(500, 'swarms_list_failed', 'Failed to list available swarms');
     }
 });
 

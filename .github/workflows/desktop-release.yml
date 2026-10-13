@@ -73,7 +73,7 @@
 #   2. the PR carries the `desktop-full` label. Adding it starts a run by
 #      itself. Put it on any PR that changes how the app STARTS on macOS or
 #      Windows: code behind a `process.platform` branch is unit-tested with a
-#      faked platform on every PR (desktop-checks.yml), but only this workflow
+#      faked platform on every PR (the desktop job in ci.yml), but only this workflow
 #      launches it on those systems. "Run workflow" on the branch builds all
 #      three as well (only main publishes), but its verdict is not on the PR;
 #   3. the PR's changed files cannot be listed. It fails open.

@@ -25,7 +25,7 @@
 'use strict';
 
 const express = require('express');
-const { z } = require('zod');
+const { z } = require('../utils/zod');
 const { validate } = require('../core/http/validate');
 const { forbidden, unavailable } = require('../core/http/errors');
 const { bodyOf } = require('../core/http/schemaParts');
@@ -33,7 +33,7 @@ const { bodyOf } = require('../core/http/schemaParts');
 const SWITCH_TEXT = 'collabEnabled is true or false: may members edit project notebooks and pages together in real time?';
 
 const CollabBody = bodyOf({
-    collabEnabled: z.boolean({ required_error: SWITCH_TEXT, invalid_type_error: SWITCH_TEXT }),
+    collabEnabled: z.boolean({ error: SWITCH_TEXT }),
 }, 'The co-editing setting');
 
 /**

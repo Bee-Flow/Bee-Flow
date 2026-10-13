@@ -46,7 +46,7 @@
 const express = require('express');
 const router = express.Router();
 const { validate } = require('../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../utils/zod');
 
 const automationStore = require('../stores/automationStore');
 const userStore = require('../stores/userStore');
@@ -69,16 +69,16 @@ const { requireActiveOrgForMutations } = require('../auth');
 router.use(requireActiveOrgForMutations());
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 /** A real boolean, never the text "false" — which is true. */
-const bool = (message) => z.boolean({ required_error: message, invalid_type_error: message });
+const bool = (message) => z.boolean({ error: message });
 
 const TITLE_TEXT = 'A Step needs a title.';
 const DEFINITION_TEXT = 'A Step definition is a JSON object (the graph the builder saves).';
 const CATEGORY_TEXT = 'A Step category is text of at most 60 characters.';
 
 const title = worded(TITLE_TEXT).trim().min(1, TITLE_TEXT);
-const definition = z.record(z.unknown(), { required_error: DEFINITION_TEXT, invalid_type_error: DEFINITION_TEXT });
+const definition = z.record(z.string(), z.unknown(), { error: typeError({ required: DEFINITION_TEXT, invalid: DEFINITION_TEXT }) });
 const description = worded('A Step description must be text.').nullish();
 const icon = worded('A Step icon must be text.').nullish();
 // '' clears the category; the cap used to be applied by slicing, silently.
@@ -94,7 +94,7 @@ const GROUPS_TEXT = 'sharedGroups is a list of group ids ([] = the whole organis
 const SharingBody = z.object({
     isPublished: bool('isPublished is true or false.'),
     sharedGroups: z.array(worded('Each shared group is a group id.').trim().min(1, 'Each shared group is a group id.'),
-        { invalid_type_error: GROUPS_TEXT }).optional(),
+        { error: typeError({ invalid: GROUPS_TEXT }) }).optional(),
 }).strict().refine(
     // [] is "the whole organisation", so on publish it has to be SAID — the
     // store reads a missing list as [] too, which is how "one group" became
@@ -108,7 +108,7 @@ const ExposeBody = z.object({ exposeAsTool: bool('exposeAsTool is true or false.
 const TestBody = z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
     z.object({
-        inputs: z.record(z.unknown(), { invalid_type_error: 'inputs is an object of sample values, keyed by input name.' }).nullish(),
+        inputs: z.record(z.string(), z.unknown(), { error: typeError({ invalid: 'inputs is an object of sample values, keyed by input name.' }) }).nullish(),
     }).strict(),
 );
 

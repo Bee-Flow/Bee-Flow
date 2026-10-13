@@ -41,7 +41,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { z } = require('zod');
+const { z, typeError } = require('../utils/zod');
 
 const { requireAuth } = require('../auth/permissions');
 const { validate } = require('../core/http/validate');
@@ -54,7 +54,7 @@ const DictateFields = z.preprocess(
     // A request that is not multipart at all reaches here with no body.
     (v) => (v === undefined || v === null ? {} : v),
     z.object({
-        language: z.string({ invalid_type_error: LANGUAGE_TEXT }).trim().max(16, LANGUAGE_TEXT)
+        language: z.string({ error: typeError({ invalid: LANGUAGE_TEXT }) }).trim().max(16, LANGUAGE_TEXT)
             // The primary subtag of a BCP-47 tag; a bare code or name passes as it is.
             .transform((v) => v.split(/[-_]/)[0].toLowerCase())
             .optional(),

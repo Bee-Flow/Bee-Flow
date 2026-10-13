@@ -20,7 +20,7 @@ const { isAdminUser } = require('./shared');
 const { requireAuth } = require('../../../auth/permissions');
 const { validate } = require('../../../core/http/validate');
 const { HttpError } = require('../../../core/http/errors');
-const { z } = require('zod');
+const { z, typeError } = require('../../../utils/zod');
 
 // Only admins can generate regex rules — and only an admin learns what the
 // schema below refuses.
@@ -31,10 +31,10 @@ async function requireAdmin(req, res, next) {
 
 const PROMPT_TEXT = 'Prompt is required';
 const GenerateRegexBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object({
-    prompt: z.string({ required_error: PROMPT_TEXT, invalid_type_error: PROMPT_TEXT }).trim().min(1, PROMPT_TEXT),
+    prompt: z.string({ error: PROMPT_TEXT }).trim().min(1, PROMPT_TEXT),
     // '' is the page's "no tier picked" (its picker is empty until the
     // configured tiers load).
-    modelTier: z.string({ invalid_type_error: 'modelTier is the name of a configured model tier.' }).trim().optional(),
+    modelTier: z.string({ error: typeError({ invalid: 'modelTier is the name of a configured model tier.' }) }).trim().optional(),
 }).strict());
 
 // ─── AI Regex Generator ──────────────────────────────────────────

@@ -105,7 +105,7 @@ const { requireAuth } = require('../../auth');
 const { ALL_TOOL_APPS, loadToolsResult } = require('../../automation/toolRegistry');
 const { effectOf } = require('../../automation/sideEffectMap');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 
 // Bounded like every other user-facing list here: the registry is ours, but a
 // response is a response.

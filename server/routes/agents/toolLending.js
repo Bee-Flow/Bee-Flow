@@ -83,7 +83,7 @@ const { getEffectiveUserId } = require('../../utils/routeHelpers');
 const { canReadAgent, canModifyAgent } = require('./crud');
 const log = require('../../telemetry/log');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 
 const NoQuery = z.object({}).strict();
 

@@ -38,11 +38,11 @@ const modules = require('../modules');
 const remoteCatalog = require('../modules/remoteCatalog');
 const store = require('../stores/platformModuleStore');
 const { validate } = require('../core/http/validate');
-const { z } = require('zod');
+const { z, onUnknownKeys } = require('../utils/zod');
 
 const NO_QUERY_TEXT = 'The module manifest takes no parameters.';
 /** Nothing. Said rather than left out: an ignored key is a promise. */
-const NO_QUERY = z.object({}).strict(NO_QUERY_TEXT);
+const NO_QUERY = z.object({}, { error: onUnknownKeys(NO_QUERY_TEXT) }).strict();
 
 function assetBase(id, version) {
     return `/api/module-assets/${encodeURIComponent(id)}/${encodeURIComponent(version)}/frontend`;

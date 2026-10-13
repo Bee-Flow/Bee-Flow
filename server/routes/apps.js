@@ -25,7 +25,7 @@
  */
 
 const express = require('express');
-const { z } = require('zod');
+const { z, typeError } = require('../utils/zod');
 const log = require('../telemetry/log');
 const router = express.Router();
 const appStore = require('../stores/appStore');
@@ -34,7 +34,7 @@ const { resolveUserOrgIds, canSeePublished, resolveUserGroups } = require('../au
 const { validate } = require('../core/http/validate');
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 const NAME_TEXT = 'An app needs a name.';
 const CODE_TEXT = 'An app needs its code, as text.';
@@ -46,8 +46,8 @@ const APP_FIELDS = {
     // Not nullable: `null` is how a client says "I have no value", and the
     // store would read it as `[]` — the whole organisation. Widening an
     // audience takes the explicit empty list.
-    sharedGroups: z.array(worded(GROUPS_TEXT).trim().min(1, GROUPS_TEXT), { invalid_type_error: GROUPS_TEXT }).optional(),
-    isPublished: z.boolean({ invalid_type_error: 'isPublished is true or false.' }).optional(),
+    sharedGroups: z.array(worded(GROUPS_TEXT).trim().min(1, GROUPS_TEXT), { error: typeError({ invalid: GROUPS_TEXT }) }).optional(),
+    isPublished: z.boolean({ error: typeError({ invalid: 'isPublished is true or false.' }) }).optional(),
 };
 
 const BODY_TEXT = 'Send the app as { name, code }.';
@@ -55,13 +55,13 @@ const CreateAppBody = z.object({
     name: worded(NAME_TEXT).trim().min(1, NAME_TEXT),
     code: worded(CODE_TEXT).min(1, CODE_TEXT),
     ...APP_FIELDS,
-}, { required_error: BODY_TEXT, invalid_type_error: BODY_TEXT }).strict();
+}, { error: typeError({ required: BODY_TEXT, invalid: BODY_TEXT }) }).strict();
 
 const UpdateAppBody = z.object({
     name: worded(NAME_TEXT).trim().min(1, NAME_TEXT).optional(),
     code: worded(CODE_TEXT).min(1, CODE_TEXT).optional(),
     ...APP_FIELDS,
-}, { required_error: BODY_TEXT, invalid_type_error: BODY_TEXT }).strict();
+}, { error: typeError({ required: BODY_TEXT, invalid: BODY_TEXT }) }).strict();
 
 // requireAuth is the canonical gate from auth/permissions (verifies the
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).

@@ -11,11 +11,11 @@ const express = require('express');
 const router = express.Router();
 const notificationPrefsStore = require('../stores/notificationPrefsStore');
 const { validate } = require('../core/http/validate');
-const { z, closedObject, bodyOf } = require('../core/http/schemaParts');
+const { z, closedObject, bodyOf, typeError } = require('../core/http/schemaParts');
 
 const EVENT_TEXT = 'Each event is true or false.';
 const perEvent = (subject) => closedObject(
-    Object.fromEntries(notificationPrefsStore.EVENTS.map((e) => [e, z.boolean({ invalid_type_error: EVENT_TEXT }).optional()])),
+    Object.fromEntries(notificationPrefsStore.EVENTS.map((e) => [e, z.boolean({ error: typeError({ invalid: EVENT_TEXT }) }).optional()])),
     subject,
 ).optional();
 

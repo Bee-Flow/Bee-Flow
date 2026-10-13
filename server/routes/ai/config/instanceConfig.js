@@ -52,10 +52,10 @@ const ConfigBody = bodyOf({
     notebooksMenuEnabled: cfgFlag, stripeEnabled: cfgFlag, stripeTaxEnabled: cfgFlag,
     cpuRerankerEnabled: cfgFlag, voiceprintMatchingEnabled: cfgFlag, localWhisperEnabled: cfgFlag,
     piiDetectionEnabled: cfgFlag,
-    azureModels: z.unknown(), regexGuardrails: z.unknown(), piiDetectionCategories: z.unknown(),
-    piiDetectionConfidenceThreshold: z.unknown(), piiDetectionScope: z.unknown(),
-    allowedModelsByAgentType: z.unknown(), directChatRegexGuardrails: z.unknown(),
-    maxToolRoundsChat: z.unknown(), pyannoteIdentifyThreshold: z.unknown(),
+    azureModels: z.unknown().optional(), regexGuardrails: z.unknown().optional(), piiDetectionCategories: z.unknown().optional(),
+    piiDetectionConfidenceThreshold: z.unknown().optional(), piiDetectionScope: z.unknown().optional(),
+    allowedModelsByAgentType: z.unknown().optional(), directChatRegexGuardrails: z.unknown().optional(),
+    maxToolRoundsChat: z.unknown().optional(), pyannoteIdentifyThreshold: z.unknown().optional(),
 }, 'The AI configuration');
 const TestEmailBody = bodyOf({
     testRecipient: worded('Test recipient email is required').max(320, 'An e-mail address is at most 320 characters.'),

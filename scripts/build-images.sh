@@ -23,8 +23,13 @@
 #   FAST_DEV   set to 1 to skip agent-hub's second (Nextcloud-embed) Vite
 #              build — by far the slowest part of rebuilding that image for
 #              local iteration. The resulting image will NOT serve a working
-#              Nextcloud connector /embed/ shell. Never set this for a `prd`
-#              build or anything you intend to push.
+#              Nextcloud connector /embed/ shell. It also skips the server
+#              image's App Studio runtime bundle (a Vite build of agent-hub;
+#              Studio screenshots then report unavailable). Never set this for
+#              a `prd` build or anything you intend to push.
+#
+# The server image is staged and stamped like CI's (scripts/stage-server-context.sh,
+# APP_BUILD_SHA); the runtime bundle needs agent-hub/node_modules (cd agent-hub && npm ci).
 
 set -euo pipefail
 
@@ -53,6 +58,13 @@ SERVICES=(
   "agent-hub|agent-hub|"
   "guard|guard-service|"
   "license-server|${LICENSE_SERVER_SRC}|"
+  # Headless-Chromium runner. NOT a compose service: the server spawns it via
+  # the docker socket as the shared `bf-browser` container that backs the
+  # `browse_web` chat/agent tool (plus PDF export, thumbnails, SPA ingestion).
+  # CI builds it too (build-push-ghcr.yml). Building it locally is what makes
+  # browse_web work without the private ghcr.io/bee-flow/pwt-runner image; see
+  # the local tag in build_one.
+  "pwt-runner|server/pwt-runner|"
 )
 
 # classify: CPU image, built only by CI (build-push-ghcr.yml). It
@@ -137,6 +149,29 @@ _named() {
   return 1
 }
 
+# Playwright version the server pins (server/package.json); the pwt-runner image
+# is tagged with it. Fails loudly: an untagged runner would never be found.
+playwright_version() {
+  local v
+  v="$(sed -n 's/^[[:space:]]*"playwright"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "${REPO_ROOT}/server/package.json" | head -n 1)"
+  [[ -n "$v" ]] || { echo "ERROR: could not read the playwright version from server/package.json (needed to tag pwt-runner)." >&2; exit 1; }
+  echo "$v"
+}
+
+# The server image takes the App Studio runtime bundle and the SBOM from
+# gitignored folders of its build context; CI stages them
+# (scripts/stage-server-context.sh, shared with build-push-ghcr.yml and the
+# PowerShell script). Best-effort like CI's non-prod run: the image is valid
+# without them, so a failure is a warning, never a failed build.
+# FAST_DEV=1 (dev only) skips the runtime bundle, a Vite build of agent-hub.
+stage_server_context() {
+  local env="$1" sha="$2" what=all
+  [[ "${FAST_DEV:-0}" == "1" && "$env" != "prd" ]] && what=sbom
+  echo "==> Staging the server build context (${what}) ..."
+  BUILD_SHA="$sha" bash "${REPO_ROOT}/scripts/stage-server-context.sh" "$what" \
+    || echo "WARNING: server context staging failed - the image is built WITHOUT the App Studio runtime bundle and/or the SBOM (same as CI's non-prod fallback)." >&2
+}
+
 # Sets BUILD_SKIPPED=1 when it deliberately built nothing (the caller must not
 # record that service as built); a real failure returns non-zero as before.
 # A flag, not a special exit code: any code could also be docker's own.
@@ -151,11 +186,27 @@ build_one() {
     tag_args+=(-t "$t")
   done
 
+  # pwt-runner also carries the EXACT local ref the server auto-detects
+  # (services/pwtRunner.js LOCAL_IMAGE_TAG = beeflow-pwt-runner:pw-<playwright ver>),
+  # so a plain `build dev pwt-runner` makes browse_web work: the server finds
+  # this image on the shared docker daemon and never pulls the private ghcr
+  # runner or builds one in-container. Build-only: `push` stays registry-only.
+  if [[ "$svc" == "pwt-runner" ]]; then
+    tag_args+=(-t "beeflow-pwt-runner:pw-$(playwright_version)")
+  fi
+
   local extra=()
   case "$svc" in
     server)
       # DB-IP Lite edition month for the Dockerfile's `geo` stage (cache key).
       extra+=(--build-arg "GEO_DB_MONTH=$(date -u +%Y-%m)")
+      # Same context staging and build stamp as CI (build-push-ghcr.yml, job
+      # `server`): the App Studio runtime bundle and the SBOM, which is stamped
+      # with the very sha baked in as APP_BUILD_SHA.
+      local build_sha
+      build_sha="$(git -C "$REPO_ROOT" rev-parse --verify -q HEAD 2>/dev/null || echo local)"
+      extra+=(--build-arg "APP_BUILD_SHA=${build_sha}")
+      stage_server_context "$env" "$build_sha"
       ;;
     agent-hub)
       extra+=(--build-arg "VITE_BUILD_SHA=$(git -C "$REPO_ROOT" rev-parse HEAD 2>/dev/null || echo local)")

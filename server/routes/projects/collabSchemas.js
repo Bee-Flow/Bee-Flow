@@ -53,10 +53,7 @@ const SyncBody = bodyOf({
 /** POST /:id/docs/:docId/updates */
 const UpdatesBody = bodyOf({
     clientId: wholeNumber('clientId is the Yjs client id of your copy.', { min: 0, max: CLIENT_ID_MAX }),
-    updates: z.array(b64(UPDATE_B64_MAX, `Each update is a base64 Yjs update; a request carries at most ${Math.round(LIMITS.maxBodyBytes / 1024)} KB.`), {
-        required_error: 'updates is a list of base64 Yjs updates.',
-        invalid_type_error: 'updates is a list of base64 Yjs updates.',
-    }).min(1, 'Send at least one update.').max(MAX_UPDATES, `Send at most ${MAX_UPDATES} updates at once.`),
+    updates: z.array(b64(UPDATE_B64_MAX, `Each update is a base64 Yjs update; a request carries at most ${Math.round(LIMITS.maxBodyBytes / 1024)} KB.`), { error: 'updates is a list of base64 Yjs updates.' }).min(1, 'Send at least one update.').max(MAX_UPDATES, `Send at most ${MAX_UPDATES} updates at once.`),
     awareness: b64(AWARENESS_B64_MAX, 'awareness is a base64 presence update.').optional(),
 }, 'Sending changes');
 

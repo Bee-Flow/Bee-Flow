@@ -16,10 +16,10 @@ const { isOrgAdminForOrg } = require('./orgAdminGuards');
 const { getOrgRolePermissions } = require('../permissions');
 const { validate } = require('../../core/http/validate');
 const { HttpError } = require('../../core/http/errors');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 const EMAIL_TEXT = 'Email is required';
 // `role` is checked against the installation's own org-role list inside the

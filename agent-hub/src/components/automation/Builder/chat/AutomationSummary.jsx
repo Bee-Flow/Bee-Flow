@@ -1,5 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Info } from 'lucide-react';
+import useOutsideDismiss from '../../../../hooks/useOutsideDismiss';
 import MarkdownRenderer from '../../../renderers/MarkdownRenderer';
 
 /**
@@ -10,14 +11,7 @@ import MarkdownRenderer from '../../../renderers/MarkdownRenderer';
 export default function AutomationSummary({ label, text }) {
     const [open, setOpen] = useState(false);
     const ref = useRef(null);
-    useEffect(() => {
-        if (!open) return undefined;
-        const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-        const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
-        document.addEventListener('mousedown', onDoc);
-        document.addEventListener('keydown', onKey);
-        return () => { document.removeEventListener('mousedown', onDoc); document.removeEventListener('keydown', onKey); };
-    }, [open]);
+    useOutsideDismiss(ref, () => setOpen(false), { enabled: open, defer: false });
     if (!text || !text.trim()) return null;
     return (
         <div ref={ref} className="relative flex-shrink-0">

@@ -22,7 +22,7 @@ const {
     buildBrief,
 } = require('./createBrief');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 const { worded, bodyOf, choice, idList, NO_QUERY } = require('./schemas');
 const { FRAMEWORKS, RUNTIMES } = require('../../integrations/webpageFramework');
 const log = require('../../telemetry/log');
@@ -51,7 +51,7 @@ const CreateBody = bodyOf({
     // `{kind, id}`-paren. normalizeCreateSources bouwt ze veld voor veld op en
     // resolveCreateSources toetst élke bron voor DEZE beller vóór de pagina
     // bestaat — dat is waar de allow-list op soorten thuishoort.
-    sources: z.array(z.unknown(), { invalid_type_error: 'sources is een lijst.' }).optional(),
+    sources: z.array(z.unknown(), { error: typeError({ invalid: 'sources is een lijst.' }) }).optional(),
 });
 
 // Wat een save mag veranderen. `.strict()`, want de drie slots reizen mee in
@@ -65,7 +65,7 @@ const UpdateBody = bodyOf({
     // Een bewust open configuratieblok: hier staan de framework/runtime-keuze
     // én wat latere schermen erbij zetten. resolveFramework() leest er bij het
     // LEZEN alsnog alleen de woorden uit die het kent.
-    settings: z.record(z.unknown(), { invalid_type_error: 'settings is een object.' }).optional(),
+    settings: z.record(z.string(), z.unknown(), { error: typeError({ invalid: 'settings is een object.' }) }).optional(),
     knowledgeBaseIds: idList('knowledgeBaseIds is een lijst met kennisbank-id\'s.').optional(),
     html: worded(SLOT_TEXT).optional(),
     css: worded(SLOT_TEXT).optional(),

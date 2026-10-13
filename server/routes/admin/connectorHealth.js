@@ -31,7 +31,7 @@ const userStore = require('../../stores/userStore');
 const { requireAuth, requireSuperAdmin, isOrgAdminForOrg, resolveUserOrgIds } = require('../../auth/permissions');
 const { tagGate } = require('../../auth/gateMeta');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 
 // -- What a caller may send ------------------------------------------
 //
@@ -49,7 +49,7 @@ const { z } = require('zod');
 // without the other is exactly the drift a failing test should catch.
 
 /** A string whose every refusal -- including "you left it out" -- is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 const one = (name, what) => worded(`${name} is ${what}.`).trim().min(1, `${name} is ${what}.`).optional();
 
@@ -58,14 +58,14 @@ const SEVERITY_TEXT = `severity is one of: ${SEVERITIES.join(', ')}.`;
 const RESOLVED_TEXT = 'includeResolved is "1", "0", "true" or "false".';
 
 const ProblemsQuery = z.object({
-    includeResolved: z.enum(['0', '1', 'true', 'false'], { errorMap: () => ({ message: RESOLVED_TEXT }) }).optional(),
+    includeResolved: z.enum(['0', '1', 'true', 'false'], { error: () => RESOLVED_TEXT }).optional(),
 }).strict();
 
 const EventsQuery = z.object({
     code: one('code', 'a health code'),
-    severity: z.enum(SEVERITIES, { errorMap: () => ({ message: SEVERITY_TEXT }) }).optional(),
+    severity: z.enum(SEVERITIES, { error: () => SEVERITY_TEXT }).optional(),
     cursor: one('cursor', 'the value a previous page returned as nextCursor'),
-    limit: z.coerce.number({ invalid_type_error: 'limit must be a number.' })
+    limit: z.coerce.number({ error: typeError({ invalid: 'limit must be a number.' }) })
         .int('limit must be a whole number.').optional(),
 }).strict();
 

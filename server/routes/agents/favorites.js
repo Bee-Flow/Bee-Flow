@@ -10,14 +10,14 @@ const express = require('express');
 const router = express.Router();
 const agentStore = require('../../stores/agentStore');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 
 const AGENT_IDS = 'agentIds is a list of agent ids.';
 const BulkFavoritesBody = z.object({
     // A one-time migration of what a browser had in localStorage, so a blank
     // entry is dropped rather than refused: the person's other favourites
     // must still arrive.
-    agentIds: z.array(z.string({ invalid_type_error: AGENT_IDS }), { required_error: AGENT_IDS, invalid_type_error: AGENT_IDS })
+    agentIds: z.array(z.string({ error: typeError({ invalid: AGENT_IDS }) }), { error: AGENT_IDS })
         .transform((ids) => ids.filter(Boolean)),
 }).strict();
 

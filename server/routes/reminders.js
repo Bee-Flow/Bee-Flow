@@ -30,10 +30,10 @@ const express = require('express');
 const router = express.Router();
 const reminderStore = require('../stores/reminderStore');
 const { validate } = require('../core/http/validate');
-const { z } = require('zod');
+const { z, datetimeWithOffset } = require('../utils/zod');
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 const TITLE_TEXT = 'A reminder needs a title.';
 const WHEN_TEXT = 'remindAt is a date and time with its zone, e.g. 2026-09-22T09:00:00.000Z.';
@@ -43,11 +43,11 @@ const COMPLETED_TEXT = 'completed is "true" or "false".';
 
 const title = worded(TITLE_TEXT).trim().min(1, TITLE_TEXT);
 const message = worded('A reminder message must be text.').nullish();
-const remindAt = worded(WHEN_TEXT).datetime({ offset: true, message: WHEN_TEXT });
-const repeatInterval = z.enum(['daily', 'weekly', 'monthly'], { errorMap: () => ({ message: INTERVAL_TEXT }) }).nullish();
+const remindAt = worded(WHEN_TEXT).regex(datetimeWithOffset, WHEN_TEXT);
+const repeatInterval = z.enum(['daily', 'weekly', 'monthly'], { error: () => INTERVAL_TEXT }).nullish();
 
 const ListQuery = z.object({
-    completed: z.enum(['true', '1', 'false', '0'], { errorMap: () => ({ message: COMPLETED_TEXT }) }).optional(),
+    completed: z.enum(['true', '1', 'false', '0'], { error: () => COMPLETED_TEXT }).optional(),
 }).strict();
 
 const CreateBody = z.object({ title, message, remindAt, repeatInterval }).strict();

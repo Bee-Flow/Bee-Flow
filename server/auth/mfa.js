@@ -15,12 +15,20 @@
  */
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
-const { authenticator } = require('otplib');
+const { generateSecret: otpGenerateSecret, verifySync, createGuardrails } = require('otplib');
 const QRCode = require('qrcode');
 const configStore = require('../stores/configStore');
 
-// Tolerate one 30s step of clock drift on either side.
-authenticator.options = { window: 1 };
+// Tolerate one 30s step of clock drift on either side. The tolerance is given
+// in seconds: [30, 30] accepts exactly the previous, current and next step for
+// every instant (the old `window: 1`).
+const EPOCH_TOLERANCE_SECONDS = 30;
+// otplib 13 refuses secrets under 16 bytes by default. Accounts enrolled with
+// otplib 12 hold 10-byte (16 character) secrets, so lower the floor or every
+// one of them would be locked out of its authenticator app.
+const GUARDRAILS = createGuardrails({ MIN_SECRET_BYTES: 1 });
+// Byte length of a new secret: 16 base32 characters, as it always was.
+const SECRET_BYTES = 10;
 
 const ISSUER = 'Bee Flow';
 const RECOVERY_CODE_COUNT = 10;
@@ -31,11 +39,16 @@ const RECOVERY_CODE_COUNT = 10;
 const MFA_LOGIN_MAX_ATTEMPTS = 5;
 
 function generateSecret() {
-    return authenticator.generateSecret(); // base32
+    return otpGenerateSecret({ length: SECRET_BYTES }); // base32, no padding
 }
 
+// Built by hand: otplib 13 leaves the default period/digits/algorithm out of
+// the URL, and the URL (and so the QR code) is part of what users and support
+// see. Byte-identical to what otplib 12's `keyuri` produced.
 function otpauthUrl(secret, accountLabel) {
-    return authenticator.keyuri(accountLabel || 'user', ISSUER, secret);
+    const issuer = encodeURIComponent(ISSUER);
+    const label = encodeURIComponent(accountLabel || 'user');
+    return `otpauth://totp/${issuer}:${label}?secret=${secret}&period=30&digits=6&algorithm=SHA1&issuer=${issuer}`;
 }
 
 async function qrDataUrl(otpauth) {
@@ -47,7 +60,14 @@ function verifyTotp(secretPlain, token) {
     const clean = String(token).replace(/\s+/g, '');
     if (!/^\d{6}$/.test(clean)) return false;
     try {
-        return authenticator.verify({ token: clean, secret: secretPlain });
+        // otplib 12 accepted lower-case and "="-padded secrets; 13 only canonical ones.
+        const secret = String(secretPlain).toUpperCase().replace(/=+$/, '');
+        return verifySync({
+            token: clean,
+            secret,
+            epochTolerance: EPOCH_TOLERANCE_SECONDS,
+            guardrails: GUARDRAILS,
+        }).valid;
     } catch (_) {
         return false;
     }

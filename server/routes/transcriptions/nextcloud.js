@@ -62,7 +62,7 @@ async function resolveEffectiveRecordingFolder(session, userId, configuredFolder
 }
 
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 const { worded, bodyOf, bool, NO_QUERY } = require('./schemas');
 
 // ── Wat de Nextcloud-routes mogen dragen ────────────────────────────

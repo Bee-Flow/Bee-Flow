@@ -6,7 +6,7 @@
  */
 
 const express = require('express');
-const bcrypt = require('bcryptjs');
+const passwords = require('../passwordHash');
 const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
@@ -25,7 +25,7 @@ const { validatePassword } = require('../passwordPolicy');
 const { sanitizePlainTextFields } = require('../../utils/htmlSanitizer');
 const { checkResourceLimits } = require('../../core/entitlements/limits');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 const {
     isActiveUserStatus,
     wouldOrphanOrg,
@@ -100,7 +100,7 @@ function buildRoleDowngradeHint(fromRole, toRole) {
  */
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 const CREATE_TEXT = 'Username and password required';
 const CHANGE_TEXT = 'Old and new password required';
@@ -125,7 +125,7 @@ const CreateUserBody = z.object({
     avatar: worded('An avatar must be text.').max(2_000_000, 'That avatar image is too large.').nullable().optional(),
     avatarType: worded('An avatar type must be text.').max(32, 'That avatar type is too long.').nullable().optional(),
     role: worded('A role must be text.').max(64, 'That role name is too long.').optional(),
-    groups: z.array(worded('A group id must be text.'), { invalid_type_error: 'groups must be a list of group ids.' }).optional(),
+    groups: z.array(worded('A group id must be text.'), { error: typeError({ invalid: 'groups must be a list of group ids.' }) }).optional(),
     orgRole: worded('An organisation role must be text.').max(64, 'That organisation role is too long.').optional(),
     organizationId: worded('An organization id must be text.').trim().max(200, 'That organization id is too long.').optional(),
 }).strict();
@@ -374,7 +374,7 @@ router.post('/users', requireOrgAdminForUser, validate({ body: CreateUserBody })
         log.warn('[Auth] Failed to merge default groups:', e.message);
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await passwords.hash(password);
     const newUser = {
         id: username,
         username,
@@ -556,7 +556,7 @@ router.put('/users/:id', requireOrgAdminForUser, async (req, res) => {
             return res.status(400).json({ error: pwCheck.error, ...(pwCheck.code ? { code: pwCheck.code } : {}) });
         }
 
-        updates.passwordHash = await bcrypt.hash(password, 10);
+        updates.passwordHash = await passwords.hash(password);
 
         if (oldPassword) {
             // User-initiated password change — rewrap DEK
@@ -805,7 +805,7 @@ router.post('/change-password', requireAuth, validate({ body: ChangePasswordBody
         return res.status(400).json({ error: pwCheck.error, ...(pwCheck.code ? { code: pwCheck.code } : {}) });
     }
 
-    const isValid = await bcrypt.compare(oldPassword, user.passwordHash);
+    const isValid = await passwords.verify(oldPassword, user.passwordHash);
     if (!isValid) {
         return res.status(401).json({ error: 'Current password is incorrect' });
     }
@@ -816,7 +816,7 @@ router.post('/change-password', requireAuth, validate({ body: ChangePasswordBody
             return res.status(500).json({ error: 'Failed to update encryption keys' });
         }
 
-        const passwordHash = await bcrypt.hash(newPassword, 10);
+        const passwordHash = await passwords.hash(newPassword);
         await userStore.updateUser(userId, { passwordHash });
 
         // Update session encryption key

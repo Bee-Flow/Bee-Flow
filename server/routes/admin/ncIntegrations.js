@@ -23,7 +23,7 @@ const { requireAuth, requireOrgAdmin } = require('../../auth/permissions');
 const { NC_INTEGRATIONS, NC_INTEGRATION_IDS, isNcIntegrationId } = require('../../core/integrations/ncIntegrationCatalog');
 const ncScope = require('../../core/integrations/ncScope');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../../utils/zod');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -41,7 +41,7 @@ const { z } = require('zod');
 // The ids are the catalogue's own, so an unknown one is named back.
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
@@ -49,8 +49,8 @@ const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {
 const idList = (name) => {
     const text = `${name} is a list of Nextcloud integration ids.`;
     return z.array(
-        worded(text).refine(isNcIntegrationId, (v) => ({ message: `"${v}" is not a Nextcloud integration. Known ids: ${NC_INTEGRATION_IDS.join(', ')}.` })),
-        { required_error: text, invalid_type_error: text },
+        worded(text).refine(isNcIntegrationId, { error: (iss) => `"${iss.input}" is not a Nextcloud integration. Known ids: ${NC_INTEGRATION_IDS.join(', ')}.` }),
+        { error: text },
     );
 };
 

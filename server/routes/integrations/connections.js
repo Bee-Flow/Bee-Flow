@@ -15,7 +15,7 @@ const userStore = require('../../stores/userStore');
 const { requireActiveOrgForMutations } = require('../../auth/permissions');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { validate } = require('../../core/http/validate');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 const log = require('../../telemetry/log');
 
 const router = express.Router();
@@ -97,26 +97,22 @@ const OAUTH2_TOKEN_AUTH_METHODS = new Set(['client_secret_post', 'client_secret_
 // to make by hand.
 
 /** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
 /** A query flag. Present and readable → boolean; present and unreadable → 400. */
-const flag = (name) => z.enum(['1', '0', 'true', 'false'], {
-    errorMap: () => ({ message: `${name} is 1 or 0.` }),
-}).transform((v) => v === '1' || v === 'true').optional();
+const flag = (name) => z.enum(['1', '0', 'true', 'false'], { error: () => `${name} is 1 or 0.` }).transform((v) => v === '1' || v === 'true').optional();
 
-const anyObject = (name) => z.record(z.unknown(), { invalid_type_error: `${name} must be an object of fields.` });
+const anyObject = (name) => z.record(z.string(), z.unknown(), { error: typeError({ invalid: `${name} must be an object of fields.` }) });
 
 const PROVIDER_TEXT = 'Invalid provider';
 const GRANTEE_TEXT = 'Invalid granteeType';
 const RESOURCE_TEXT = 'Invalid resourceType';
 const MINE_TEXT = 'mine must be "outgoing" or "incoming"';
 
-const resourceType = () => z.enum(['agent', 'webpage', 'skill', 'automation', 'studio_app'], {
-    errorMap: () => ({ message: RESOURCE_TEXT }),
-});
+const resourceType = () => z.enum(['agent', 'webpage', 'skill', 'automation', 'studio_app'], { error: () => RESOURCE_TEXT });
 
 const ListQuery = z.object({
     provider: worded('provider must be text.').optional(),
@@ -130,7 +126,7 @@ const RequiredQuery = z.object({
 }).strict();
 
 const GrantsQuery = z.object({
-    mine: z.enum(['outgoing', 'incoming'], { errorMap: () => ({ message: MINE_TEXT }) }).optional(),
+    mine: z.enum(['outgoing', 'incoming'], { error: () => MINE_TEXT }).optional(),
     resourceType: resourceType().optional(),
     resourceId: worded('resourceId must be text.').optional(),
     connectionId: worded('connectionId must be text.').optional(),
@@ -141,23 +137,21 @@ const DeleteQuery = z.object({ force: flag('force') }).strict();
 const CreateBody = z.object({
     provider: worded(PROVIDER_TEXT).regex(PROVIDER_RE, PROVIDER_TEXT),
     label: worded('A connection label must be text.').optional(),
-    kind: z.enum(['oauth', 'api_key', 'basic', 'mcp', 'bearer', 'oauth2_cc'], {
-        errorMap: () => ({ message: 'Invalid kind' }),
-    }).optional(),
+    kind: z.enum(['oauth', 'api_key', 'basic', 'mcp', 'bearer', 'oauth2_cc'], { error: () => 'Invalid kind' }).optional(),
     secret: anyObject('secret').nullish(),
     secretMeta: anyObject('secretMeta').nullish(),
-    makeDefault: z.boolean({ invalid_type_error: 'makeDefault is true or false.' }).optional(),
+    makeDefault: z.boolean({ error: typeError({ invalid: 'makeDefault is true or false.' }) }).optional(),
 }).strict();
 
 const PatchBody = bodyOf({
     label: worded('A connection label must be text.').optional(),
-    makeDefault: z.boolean({ invalid_type_error: 'makeDefault is true or false.' }).optional(),
+    makeDefault: z.boolean({ error: typeError({ invalid: 'makeDefault is true or false.' }) }).optional(),
     secret: anyObject('secret').nullish(),
     secretMeta: anyObject('secretMeta').nullish(),
 });
 
 const GrantBody = bodyOf({
-    granteeType: z.enum(['user', 'group', 'org'], { errorMap: () => ({ message: GRANTEE_TEXT }) }),
+    granteeType: z.enum(['user', 'group', 'org'], { error: () => GRANTEE_TEXT }),
     granteeId: worded('granteeId must be text.').nullish(),
     granteeEmail: worded('granteeEmail must be text.').trim().nullish(),
     resourceType: resourceType().nullish(),
@@ -168,7 +162,7 @@ const GrantBody = bodyOf({
 }).superRefine((v, ctx) => {
     if ((v.resourceType == null) !== (v.resourceId == null)) {
         ctx.addIssue({
-            code: z.ZodIssueCode.custom, path: ['resourceId'],
+            code: 'custom', path: ['resourceId'],
             message: 'resourceType and resourceId must be set together',
         });
     }
@@ -177,9 +171,9 @@ const GrantBody = bodyOf({
         // Unvalidated input reached .toISOString() and threw a RangeError,
         // surfacing as a 500.
         if (Number.isNaN(parsed.getTime())) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['expiresAt'], message: 'expiresAt must be a valid date' });
+            ctx.addIssue({ code: 'custom', path: ['expiresAt'], message: 'expiresAt must be a valid date' });
         } else if (parsed.getTime() <= Date.now()) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['expiresAt'], message: 'expiresAt must be in the future' });
+            ctx.addIssue({ code: 'custom', path: ['expiresAt'], message: 'expiresAt must be in the future' });
         }
     }
 });

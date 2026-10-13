@@ -65,7 +65,7 @@ const MOCKS = {
     '../../core/entitlements/limits': { checkResourceLimits: async () => null },
     '../../utils/htmlSanitizer': { sanitizePlainTextFields: (o) => o },
     '../../telemetry/log': { info() {}, warn() {}, error() {}, debug() {} },
-    'bcryptjs': { compare: async () => true, hash: async () => 'hash' },
+    '../passwordHash': { verify: async () => true, hash: async () => 'hash', needsRehash: () => false },
 };
 
 const MOCK_IDS = {};

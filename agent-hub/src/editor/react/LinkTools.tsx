@@ -8,6 +8,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { Check, ExternalLink, Pencil, Trash2, X } from 'lucide-react';
 import useTranslation from '../../hooks/useTranslation';
 import { normalizeHref } from '../engine/links';
+import useOutsideDismiss from '../../hooks/useOutsideDismiss';
 
 export interface AnchorRect { top: number; left: number; bottom: number }
 
@@ -42,11 +43,7 @@ export function LinkEditor({ rect, initialHref, canRemove, onApply, onRemove, on
         return () => cancelAnimationFrame(id);
     }, []);
 
-    useEffect(() => {
-        const onDown = (e: MouseEvent) => { if (boxRef.current && !boxRef.current.contains(e.target as Node)) onClose(); };
-        document.addEventListener('mousedown', onDown);
-        return () => document.removeEventListener('mousedown', onDown);
-    }, [onClose]);
+    useOutsideDismiss(boxRef, onClose, { escape: false, defer: false });
 
     const apply = () => {
         const href = normalizeHref(value);

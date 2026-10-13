@@ -20,7 +20,7 @@
  */
 
 const express = require('express');
-const { z } = require('zod');
+const { z, typeError } = require('../utils/zod');
 const { validate } = require('../core/http/validate');
 const { HttpError } = require('../core/http/errors');
 const { perUserRateLimit } = require('../utils/perUserRateLimit');
@@ -41,7 +41,7 @@ const connectLimit = perUserRateLimit({ windowMs: 60_000, max: 12, name: 'mcp-li
 
 // ── Schemas ─────────────────────────────────────────────────────────
 
-const worded = (message) => z.string({ required_error: message, invalid_type_error: message });
+const worded = (message) => z.string({ error: message });
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
 const CATALOG_ID = worded('catalogId is a library id.').regex(/^[a-z0-9_]{2,40}$/, 'catalogId is a library id.');
@@ -49,12 +49,12 @@ const URL_TEXT = 'url is an https address.';
 const Url = worded(URL_TEXT).trim().min(1, URL_TEXT).max(2048, 'That address is too long.');
 const Credential = worded('The key must be text.').max(4096, 'The key is at most 4096 characters.');
 const Auth = z.object({
-    style: z.enum(['none', 'bearer', 'header'], { errorMap: () => ({ message: 'Authentication is none, bearer or header.' }) }),
+    style: z.enum(['none', 'bearer', 'header'], { error: () => 'Authentication is none, bearer or header.' }),
     header: worded('header is a header name.').max(64).optional(),
 }).strict();
-const ToolList = z.array(worded('A tool name must be text.').min(1).max(128), { invalid_type_error: 'tools is a list of tool names.' }).max(100, 'At most 100 tools.');
+const ToolList = z.array(worded('A tool name must be text.').min(1).max(128), { error: typeError({ invalid: 'tools is a list of tool names.' }) }).max(100, 'At most 100 tools.');
 const Access = z.object({
-    mode: z.enum(['everyone', 'groups'], { errorMap: () => ({ message: "access.mode is 'everyone' or 'groups'." }) }),
+    mode: z.enum(['everyone', 'groups'], { error: () => "access.mode is 'everyone' or 'groups'." }),
     groupIds: z.array(worded('A group id must be text.').min(1).max(200)).max(200).optional(),
 }).strict();
 
@@ -72,30 +72,30 @@ const InstallBody = z.object({
     name: worded('name must be text.').trim().max(120, 'A name is at most 120 characters.').optional(),
     description: worded('description must be text.').max(500, 'A description is at most 500 characters.').optional(),
     credential: Credential.optional(),
-    credentialMode: z.enum(['shared', 'personal'], { errorMap: () => ({ message: "credentialMode is 'shared' or 'personal'." }) }).default('shared'),
+    credentialMode: z.enum(['shared', 'personal'], { error: () => "credentialMode is 'shared' or 'personal'." }).default('shared'),
     tools: ToolList.optional(),
-    access: Access.default({ mode: 'everyone' }),
+    access: Access.prefault({ mode: 'everyone' }),
 }).strict().refine(b => b.catalogId || b.url, { message: 'Pick a server from the library or enter an address.' });
 
 const UpdateBody = z.object({
-    enabled: z.boolean({ invalid_type_error: 'enabled is true or false.' }).optional(),
+    enabled: z.boolean({ error: typeError({ invalid: 'enabled is true or false.' }) }).optional(),
     tools: ToolList.optional(),
     access: Access.optional(),
-    credentialMode: z.literal('personal', { errorMap: () => ({ message: "Only 'personal' can be set here; a shared key is set with PUT …/credential." }) }).optional(),
+    credentialMode: z.literal('personal', { error: () => "Only 'personal' can be set here; a shared key is set with PUT …/credential." }).optional(),
 }).strict();
 
 const CredentialBody = z.object({ value: Credential.min(1, 'Enter the key.') }).strict();
 
 const ServerWideBody = z.object({
     access: z.object({
-        mode: z.enum(['everyone', 'groups', 'nobody'], { errorMap: () => ({ message: "access.mode is 'everyone', 'groups' or 'nobody'." }) }),
+        mode: z.enum(['everyone', 'groups', 'nobody'], { error: () => "access.mode is 'everyone', 'groups' or 'nobody'." }),
         groupIds: z.array(worded('A group id must be text.').min(1).max(200)).max(200).optional(),
     }).strict(),
 }).strict();
 
 const PolicyBody = z.object({
-    remote: z.enum(policyModule.REMOTE_MODES, { errorMap: () => ({ message: `remote is one of ${policyModule.REMOTE_MODES.join(', ')}.` }) }),
-    allowedHosts: z.array(worded('A host must be text.').max(253), { invalid_type_error: 'allowedHosts is a list of host names.' })
+    remote: z.enum(policyModule.REMOTE_MODES, { error: () => `remote is one of ${policyModule.REMOTE_MODES.join(', ')}.` }),
+    allowedHosts: z.array(worded('A host must be text.').max(253), { error: typeError({ invalid: 'allowedHosts is a list of host names.' }) })
         .max(policyModule.MAX_ALLOWED_HOSTS, `At most ${policyModule.MAX_ALLOWED_HOSTS} hosts.`)
         .default([]),
 }).strict();

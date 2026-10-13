@@ -25,7 +25,7 @@
 const express = require('express');
 const log = require('../telemetry/log');
 const { validate } = require('../core/http/validate');
-const { z } = require('zod');
+const { z } = require('../utils/zod');
 const router = express.Router();
 
 const WHY = 'the PDF is rendered from the saved page, in one fixed layout.';
@@ -37,11 +37,9 @@ const WHY = 'the PDF is rendered from the saved page, in one fixed layout.';
 const NoBody = z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
     z.object({}, {
-        errorMap: (issue) => ({
-            message: issue.code === 'unrecognized_keys'
-                ? `This request takes no body, so ${issue.keys.map((k) => `'${k}'`).join(', ')} would change nothing: ${WHY}`
-                : `This request takes no body: ${WHY}`,
-        }),
+        error: (iss) => (iss.code === 'unrecognized_keys'
+            ? `This request takes no body, so ${iss.keys.map((k) => `'${k}'`).join(', ')} would change nothing: ${WHY}`
+            : `This request takes no body: ${WHY}`),
     }).strict(),
 );
 

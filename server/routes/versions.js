@@ -30,7 +30,7 @@ const { getEffectiveUserId } = require('../utils/routeHelpers');
 const { canModifyAgent } = require('./agents/crud');
 const { validate } = require('../core/http/validate');
 const { conflict } = require('../core/http/errors');
-const { z } = require('zod');
+const { z } = require('../utils/zod');
 
 /**
  * No body at all (Express 5 leaves `req.body` undefined then), or an empty
@@ -39,11 +39,9 @@ const { z } = require('zod');
 const noBody = (why) => z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
     z.object({}, {
-        errorMap: (issue) => ({
-            message: issue.code === 'unrecognized_keys'
-                ? `This request takes no body, so ${issue.keys.map((k) => `'${k}'`).join(', ')} would change nothing: ${why}`
-                : `This request takes no body: ${why}`,
-        }),
+        error: (iss) => (iss.code === 'unrecognized_keys'
+            ? `This request takes no body, so ${iss.keys.map((k) => `'${k}'`).join(', ')} would change nothing: ${why}`
+            : `This request takes no body: ${why}`),
     }).strict(),
 );
 const PreRefineBody = noBody('the undo point is the agent exactly as it is now.');

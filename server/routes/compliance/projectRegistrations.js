@@ -23,7 +23,7 @@
  */
 
 const express = require('express');
-const { z, bodyOf, choice } = require('../../core/http/schemaParts');
+const { z, bodyOf, choice, typeError } = require('../../core/http/schemaParts');
 const { validate } = require('../../core/http/validate');
 const { HttpError } = require('../../core/http/errors');
 const pd = require('../../compliance/projects/projectData');
@@ -33,10 +33,10 @@ const LAWFUL_BASES = Object.freeze(['consent', 'contract', 'legal_obligation', '
 const LIST_LIMIT = 500;
 
 const RegistrationBody = bodyOf({
-    purpose: z.string({ invalid_type_error: 'purpose must be text.' }).trim()
+    purpose: z.string({ error: typeError({ invalid: 'purpose must be text.' }) }).trim()
         .max(1000, 'purpose is at most 1000 characters.').nullable().optional(),
     lawful_basis: choice(LAWFUL_BASES, `lawful_basis must be one of ${LAWFUL_BASES.join(', ')}.`),
-    retention_days: z.number({ invalid_type_error: 'retention_days must be a whole number of days.' })
+    retention_days: z.number({ error: typeError({ invalid: 'retention_days must be a whole number of days.' }) })
         .int('retention_days must be a whole number of days.')
         .min(30, 'retention_days is at least 30.').max(3650, 'retention_days is at most 3650.')
         .nullable().optional(),

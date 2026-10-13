@@ -27,7 +27,7 @@
 
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { usageLogFields } = require('../../core/providers/usageNormalizer');
-const { z } = require('zod');
+const { z, typeError } = require('../../utils/zod');
 const { DRAFT_TOOL, MAX_BRIEF_CHARS, MAX_NOTE_CHARS, buildDraftMessages, parseFormDraft } = require('../../automation/formDraft');
 const log = require('../../telemetry/log');
 
@@ -105,10 +105,10 @@ const MODE_TEXT = 'mode is "create" or "revise".';
 const DraftBody = z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
     z.object({
-        mode: z.enum(['create', 'revise'], { errorMap: () => ({ message: MODE_TEXT }) }).default('create'),
-        brief: z.string({ invalid_type_error: 'brief must be text.' }).optional(),
-        note: z.string({ invalid_type_error: 'note must be text.' }).optional(),
-        current: z.record(z.unknown()).nullish(),
+        mode: z.enum(['create', 'revise'], { error: () => MODE_TEXT }).default('create'),
+        brief: z.string({ error: typeError({ invalid: 'brief must be text.' }) }).optional(),
+        note: z.string({ error: typeError({ invalid: 'note must be text.' }) }).optional(),
+        current: z.record(z.string(), z.unknown()).nullish(),
     }).strict(),
 );
 
