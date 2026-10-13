@@ -36,7 +36,7 @@ const TARGETS = new Set([
 
 /** Every production file allowed to reach a target, and why. */
 const ALLOWED = new Map([
-    ['index.js -> core/privacy/chatSignals', 'graceful shutdown flushes the counters'],
+    ['boot/lifecycle.js -> core/privacy/chatSignals', 'graceful shutdown flushes the counters (the shutdown chain moved here from index.js)'],
     ['routes/compliance/chatMonitoring.js -> core/privacy/chatSignals', '"Delete collected counts" drops the counts still waiting in this process (discardOrg); it counts nothing'],
     ['core/agentRuntime/chatStream/turnPreflight.js -> core/privacy/chatSignals', 'agent and embedded-agent turns (agent, agent_public)'],
     ['routes/ai/directChat/chatSignalsTurn.js -> core/privacy/chatSignals', 'the direct-chat hook helper'],

@@ -109,7 +109,8 @@ test('both search projections return page_start, not just one of them', async ()
     // A column returned by the vector query and left out of the full-text one
     // means the page appears or vanishes depending on which retriever won —
     // which reads as flakiness, not as a missing column.
-    const src = require('node:fs').readFileSync(require.resolve('./localKBIngest'), 'utf8');
+    // The search SQL lives in localSearch.js since the localKBIngest split.
+    const src = require('node:fs').readFileSync(require.resolve('./localSearch'), 'utf8');
     // THREE, not two: the full-text search has an AND-join and an OR-join
     // fallback, and the fallback is the one that was missed. A page that
     // appears or vanishes depending on which retriever won reads as

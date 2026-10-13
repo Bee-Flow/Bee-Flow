@@ -337,6 +337,12 @@ test('the simulation never reaches a decision about rights, connections or entit
         ['../../auth/datatableAccess.js', 'datatable grades'],
         ['../../automation/agentCallableTools.js', 'who owns an automation'],
         ['../../auth/permissions.js', 'permissions and org membership'],
+        ['../../auth/permissionsCatalog.js', 'permissions and org membership'],
+        ['../../auth/permissionsCache.js', 'permissions and org membership'],
+        ['../../auth/permissionsRequireAuth.js', 'permissions and org membership'],
+        ['../../auth/permissionsResolve.js', 'permissions and org membership'],
+        ['../../auth/permissionsOrgGates.js', 'permissions and org membership'],
+        ['../../auth/permissionsStudioScope.js', 'permissions and org membership'],
     ];
     for (const [rel, why] of FORBIDDEN) {
         assert.doesNotMatch(readAll(rel), /testAs/, `${rel} decides ${why} — a simulated group has no business there`);

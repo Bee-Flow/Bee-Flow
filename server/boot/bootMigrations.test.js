@@ -81,25 +81,25 @@ const ABSORBED = new Map([
 const COLUMN_LADDERS = [
     // O3: waar een Oplossing vandaan komt. Zachte verwijzing, geen FK — een
     // verwijderde Blueprint mag het project niet meenemen.
-    { column: 'installed_from_blueprint_id', into: 'stores/projectStore.js', tag: 'projectStore' },
+    { column: 'installed_from_blueprint_id', into: 'stores/project/schema.js', tag: 'projectStore' },
     // O4: en wat die herkomst er verder over zegt. `installed_from_org_id` is
     // de bron-organisatie (vastgesteld bij een galerij-installatie, beweerd bij
     // een bestandsinstallatie) en beslist NOOIT iets — toegang komt van
     // blueprintStore.canRead over de echte galerijrij. `installed_version`
     // krijgt zijn tabelnaam mee omdat die kolomnaam GEWOON is: hij bestaat ook
     // op project_solution_entities.
-    { column: 'installed_from_org_id', table: 'projects', into: 'stores/projectStore.js', tag: 'projectStore' },
-    { column: 'installed_version', table: 'projects', into: 'stores/projectStore.js', tag: 'projectStore' },
+    { column: 'installed_from_org_id', table: 'projects', into: 'stores/project/schema.js', tag: 'projectStore' },
+    { column: 'installed_version', table: 'projects', into: 'stores/project/schema.js', tag: 'projectStore' },
     // The collaborative project workspace: `kind` tells a project from a
     // Studio Solution (NULL = from before the split; the backfill migration
     // only UPDATEs it), and `files_kb_id` names the knowledge base holding the
     // files uploaded into the project. Both come from the store's ladder.
-    { column: 'kind', table: 'projects', into: 'stores/projectStore.js', tag: 'projectStore' },
-    { column: 'files_kb_id', table: 'projects', into: 'stores/projectStore.js', tag: 'projectStore' },
+    { column: 'kind', table: 'projects', into: 'stores/project/schema.js', tag: 'projectStore' },
+    { column: 'files_kb_id', table: 'projects', into: 'stores/project/schema.js', tag: 'projectStore' },
     // Documents and meeting notes filed into a project: soft references on
     // their own rows, cleared when the project is deleted.
     { column: 'project_id', table: 'studio_documents', into: 'stores/documentStore.js', tag: 'documentStore' },
-    { column: 'project_id', table: 'transcriptions', into: 'stores/transcriptionStore.js', tag: 'transcriptionStore' },
+    { column: 'project_id', table: 'transcriptions', into: 'stores/transcription/schema.js', tag: 'transcriptionStore' },
 
     // O4: de publicatiegeschiedenis zelf. `kind: 'table'`, want de claim gaat over
     // een TABEL die de ladder maakt en niet over een kolom. De galerijrij
@@ -112,8 +112,8 @@ const COLUMN_LADDERS = [
     // sjabloon, anders leest het scherm een uitspraak over het verleden af aan
     // het heden.
     { column: 'version', table: 'summary_templates', into: 'stores/summaryTemplateStore.js', tag: 'summaryTemplateStore' },
-    { column: 'summary_template_id', table: 'transcriptions', into: 'stores/transcriptionStore.js', tag: 'transcriptionStore' },
-    { column: 'summary_template_version', table: 'transcriptions', into: 'stores/transcriptionStore.js', tag: 'transcriptionStore' },
+    { column: 'summary_template_id', table: 'transcriptions', into: 'stores/transcription/schema.js', tag: 'transcriptionStore' },
+    { column: 'summary_template_version', table: 'transcriptions', into: 'stores/transcription/schema.js', tag: 'transcriptionStore' },
     // A1c: de persona-editor en de twee testset-tabellen. Alle drie uit
     // stores/agent/initSchema.js, alle drie zonder eigen migratiebestand.
     { column: 'persona', table: 'agents', into: 'stores/agent/initSchema.js', tag: 'agentSchema' },

@@ -1,55 +1,44 @@
-import {
-    ReactFlow, ReactFlowProvider, Background, MiniMap, Panel,
-    useReactFlow, useStore, useStoreApi, MarkerType, applyNodeChanges,
-} from '@xyflow/react';
-import { Layers } from 'lucide-react';
+import { ReactFlow, ReactFlowProvider, Background, useReactFlow, useStore, useStoreApi, MarkerType, applyNodeChanges } from '@xyflow/react';
 import React, { forwardRef, useMemo, useCallback, useRef, useState, useEffect, useImperativeHandle } from 'react';
 import '@xyflow/react/dist/style.css';
 
 import { NodeRuntimeContext } from './flow/NodeRuntimeContext';
 import { PresenterContext } from './flow/PresenterContext';
 import { isToolNodeId, parseToolNodeId } from './flow/aiToolNodes';
-import { applyPresenterShots, readPresenter, writePresenter } from './flow/presenterMode';
 import DiagramEmptyState from './flow/DiagramEmptyState';
+import DiagramOverlays from './flow/DiagramOverlays';
 import { EdgeCrossingProvider } from './flow/EdgeCrossingContext';
 import { edgeTypes } from './flow/edges';
-import { CONTAINER_HEADER, isInlineId, parseInlineId, prefixAddedStep } from './flow/inlineFlowlets';
-import { flowOrder } from './flow/flowOrder';
-import { miniMapColor } from './flow/nodeTypeColors';
-import { stepFamily } from './flow/nodeDefs';
 import { buildLayout, seedPositions } from './flow/layout';
-import LineColorPanel from './flow/LineColorPanel';
-import CanvasZoomStack from './flow/CanvasZoomStack';
-import CanvasLegend, { LegendToggle } from './flow/CanvasLegend';
-import FlowSummaryChip from './flow/FlowSummaryChip';
-import CanvasSouthBar from './flow/CanvasSouthBar';
-import ArrangeMenu from './flow/ArrangeMenu';
-import FloatingValidationPill from './FloatingValidationPill';
 import { spotlightKeysFor } from './flow/ghostDraft';
 import useTranslation from '../../../hooks/useTranslation';
 import { buildIssuesByStep } from './flow/matchValidationToStep';
 import NodeContextMenu from './flow/NodeContextMenu';
-import {
-    applyDeleteNodes, applyDuplicateNode, applyDetachNode, applyPatchStep,
-    canDeleteNode, canDuplicateNode, canDetachNode,
-} from './flow/nodeOps';
+import { applyDeleteNodes, canDeleteNode, canDuplicateNode, canDetachNode } from './flow/nodeOps';
 import { NODE_TYPES } from './flow/nodeTypes';
 import RibbonFlightLayer from './flow/RibbonFlightLayer';
+import { buildRuntimeContext } from './flow/buildRuntimeContext';
 import { computeRunFocus } from './flow/runFocus';
 import { effectiveRunByStep } from './flow/runStatus';
 import { useBuildChoreography } from './flow/useBuildChoreography';
+import { useCanvasHotkeys } from './flow/useCanvasHotkeys';
 import { useCanvasWheel } from './flow/useCanvasWheel';
+import { useDryRunReplayCamera } from './flow/useDryRunReplayCamera';
+import { useEdgeColorMode } from './flow/useEdgeColorMode';
 import { useEdgeEditCallbacks } from './flow/useEdgeEditCallbacks';
 import { useFurnitureFit } from './flow/useFurnitureFit';
+import { useInlineFlowletGraph } from './flow/useInlineFlowletGraph';
 import { useLegendPreference } from './flow/useLegendPreference';
+import { useLiveNodeMirror } from './flow/useLiveNodeMirror';
 import { useNodeDragWiring } from './flow/useNodeDragWiring';
+import { useNodeOps } from './flow/useNodeOps';
 import { selectMeasuredIds, useOpeningFit } from './flow/useOpeningFit';
+import { usePresenterToggle } from './flow/usePresenterToggle';
 import { useReducedMotion } from './flow/useReducedMotion';
 import { useRenderedGraph } from './flow/useRenderedGraph';
 import { useRibbonFlight, FLIGHT_TOTAL_MS } from './flow/useRibbonFlight';
 import { useRibbonSpotlight } from './flow/useRibbonSpotlight';
 import { useStepDrop } from './flow/useStepDrop';
-import scopedStorage from '../../../utils/scopedStorage';
 
 // The step-type → node-component registry lives in flow/nodeTypes.js —
 // re-exported so flow/nodeDefs.test.js and every other importer keep this
@@ -68,14 +57,6 @@ const DEFAULT_EDGE_OPTIONS = {
         height: 14,
     },
 };
-
-// The dry-run replay's camera (see the block by useDryRunReplay's consumer
-// below): one 300 ms centring per revealed card, owned for its duration plus
-// the same slack the choreography keeps, never below 80% — the LOD at which
-// the result chip is drawn.
-const REPLAY_CENTER_MS = 300;
-const REPLAY_OWN_SLACK_MS = 80;
-const REPLAY_MIN_ZOOM = 0.8;
 
 // Below this pane height the full furniture (a 182px zoom stack under the
 // north chips, a 96px minimap under the lines lens) no longer fits with room
@@ -107,8 +88,40 @@ const SHORT_CANVAS_PX = 420;
  * arranging the graph.
  */
 const DiagramPane = forwardRef(function DiagramPane({
-    definition,
+    // The canvas never draws the diagnose affordance from here: the host
+    // props stop at the list documented on DiagramPaneInner below.
+    onDiagnose: _notForwarded,
+    // Array/object defaults are created HERE, once per host render, never in
+    // DiagramPaneInner: a fresh `[]` on every inner render (each drag tick,
+    // each selection change) would re-run the layout and loop forever.
     runSteps = [],
+    layerSummaries = {},
+    layerRefCounts = {},
+    ...props
+}, ref) {
+    return (
+        <ReactFlowProvider>
+            {/* Lets each edge see where the others are drawn, so a crossing gets
+                a bridge instead of an ambiguous junction. Wraps the whole pane
+                rather than the canvas, so it survives a canvas remount. */}
+            <EdgeCrossingProvider>
+            <DiagramPaneInner
+                ref={ref}
+                runSteps={runSteps}
+                layerSummaries={layerSummaries}
+                layerRefCounts={layerRefCounts}
+                {...props}
+            />
+            </EdgeCrossingProvider>
+        </ReactFlowProvider>
+    );
+});
+
+export default DiagramPane;
+
+const DiagramPaneInner = forwardRef(function DiagramPaneInner({
+    definition,
+    runSteps,          // always passed by DiagramPane (default [] there)
     onNodeClick,
     onAskAssistant = null,
     onNodeExpand,      // (nodeId) — double-click: open the FULL editor
@@ -121,7 +134,7 @@ const DiagramPane = forwardRef(function DiagramPane({
     onRequestOpenPalette, // () — called by the empty-state CTA on a fresh draft
     onRequestAddAfter,  // (nodeId) — called when user clicks the "+" hover button on a node
     onRequestInsertOnEdge, // ({ sourceId, targetId, position }) — "+" on an edge: insert a step between two nodes
-    onDropStep,         // (payload, { position, sourceId?, targetId?, label?, caseName? }) — a step dragged in from the ribbon
+    onDropStep = null,  // (payload, { position, sourceId?, targetId?, label?, caseName? }) — a step dragged in from the ribbon
     onExecuteStep,      // (stepId) — n8n-style per-node ▶ button
     executingStepId = null,
     runInFlight = false,
@@ -130,7 +143,7 @@ const DiagramPane = forwardRef(function DiagramPane({
     autoMapEnabled = true,    // auto-map inputs when an edge is drawn
     onAutoMapped,             // (stepId, count) — fired after a successful auto-map
     onOpenLayer,              // (layerKey) — drill into an inline flowlet's sub-canvas
-    layerSummaries = {},      // { layerKey: description } — shown on call_layer nodes
+    layerSummaries,           // default {} in DiagramPane; { layerKey: description } — shown on call_layer nodes
     onStepAdded,              // (payload, sourceStep|null) — usage telemetry for the smart Add-step menu
     highlightedStepId = null, // stepId briefly ringed — e.g. after a validation-issue click
     // ── expanded flowlets ────────────────────────────────────────────────
@@ -143,7 +156,7 @@ const DiagramPane = forwardRef(function DiagramPane({
     onToggleInline = null,    // (nodeId, layerKey) — expand/collapse in place
     onExpandAllFlowlets = null, // () — open them all, for Arrange › Open flowlets
     onCollapseAllFlowlets = null, // () — fold them away, for the tightening modes
-    layerRefCounts = {},      // { layerKey: callSiteCount }
+    layerRefCounts,           // default {} in DiagramPane; { layerKey: callSiteCount }
     // ── overlay zones (builder redesign) ────────────────────────────────
     flowletsOpen = false,     // the Flowlets drawer is open (south-west button state)
     onToggleFlowlets = null,  // () — toggle the Flowlets drawer; null hides the button
@@ -176,98 +189,7 @@ const DiagramPane = forwardRef(function DiagramPane({
     // build plan). The build camera frames in what is left, so no card lands
     // behind it. 0 when nothing covers the canvas.
     cameraInsetLeft = 0,
-}, ref) {
-    return (
-        <ReactFlowProvider>
-            {/* Lets each edge see where the others are drawn, so a crossing gets
-                a bridge instead of an ambiguous junction. Wraps the whole pane
-                rather than the canvas, so it survives a canvas remount. */}
-            <EdgeCrossingProvider>
-            <DiagramPaneInner
-                ref={ref}
-                onOpenLayer={onOpenLayer}
-                layerSummaries={layerSummaries}
-                definition={definition}
-                runSteps={runSteps}
-                onNodeClick={onNodeClick}
-                onAskAssistant={onAskAssistant}
-                onNodeExpand={onNodeExpand}
-                onDefinitionChange={onDefinitionChange}
-                validation={validation}
-                readOnly={readOnly}
-                editable={editable}
-                structuralEditsBlocked={structuralEditsBlocked}
-                onRequestAddNode={onRequestAddNode}
-                onRequestOpenPalette={onRequestOpenPalette}
-                onRequestAddAfter={onRequestAddAfter}
-                onRequestInsertOnEdge={onRequestInsertOnEdge}
-                onDropStep={onDropStep}
-                onExecuteStep={onExecuteStep}
-                executingStepId={executingStepId}
-                runInFlight={runInFlight}
-                catalog={catalog}
-                realOutputById={realOutputById}
-                autoMapEnabled={autoMapEnabled}
-                onAutoMapped={onAutoMapped}
-                onStepAdded={onStepAdded}
-                highlightedStepId={highlightedStepId}
-                sidecar={sidecar}
-                shiftById={shiftById}
-                onToggleInline={onToggleInline}
-                onExpandAllFlowlets={onExpandAllFlowlets}
-                onCollapseAllFlowlets={onCollapseAllFlowlets}
-                layerRefCounts={layerRefCounts}
-                flowletsOpen={flowletsOpen}
-                onToggleFlowlets={onToggleFlowlets}
-                flowletCount={flowletCount}
-                fatalError={fatalError}
-                aborted={aborted}
-                onDismissFatal={onDismissFatal}
-                onFocusStep={onFocusStep}
-                onAddTrigger={onAddTrigger}
-                onOpenAssistant={onOpenAssistant}
-                editingStepId={editingStepId}
-                formUrl={formUrl}
-                onOpenFormOverlay={onOpenFormOverlay}
-                buildCue={buildCue}
-                ribbonRootRef={ribbonRootRef}
-                replayStepId={replayStepId}
-                cameraInsetLeft={cameraInsetLeft}
-            />
-            </EdgeCrossingProvider>
-        </ReactFlowProvider>
-    );
-});
-
-export default DiagramPane;
-
-const DiagramPaneInner = forwardRef(function DiagramPaneInner({
-    definition, runSteps, onNodeClick, onNodeExpand, onDefinitionChange, onAskAssistant = null,
-    validation, readOnly, editable, structuralEditsBlocked,
-    onRequestAddNode, onRequestOpenPalette, onRequestAddAfter, onRequestInsertOnEdge,
-    onDropStep = null,
-    onExecuteStep, executingStepId, runInFlight,
-    catalog = null, realOutputById = null, autoMapEnabled = true, onAutoMapped, onOpenLayer,
-    layerSummaries = {},
-    onDiagnose = null,
-    onStepAdded,
-    highlightedStepId = null,
-    sidecar = null,
-    shiftById = null,
-    onToggleInline = null,
-    onExpandAllFlowlets = null,
-    onCollapseAllFlowlets = null,
-    layerRefCounts = {},
-    flowletsOpen = false, onToggleFlowlets = null, flowletCount = 0,
-    fatalError = null, aborted = null, onDismissFatal = null, onFocusStep = null,
-    onAddTrigger = null, onOpenAssistant = null,
-    editingStepId = null,
-    formUrl = null,
-    onOpenFormOverlay = null,
-    buildCue = null,
-    ribbonRootRef = null,
-    replayStepId = null,
-    cameraInsetLeft = 0,
+    onDiagnose = null,        // never forwarded by DiagramPane (see above)
 }, ref) {
     const { t } = useTranslation();
     const rf = useReactFlow();
@@ -285,64 +207,11 @@ const DiagramPaneInner = forwardRef(function DiagramPaneInner({
         fit: fitAroundFurniture,
         enabled: !structuralEditsBlocked && !editingStepId && replayStepId == null,
     });
-    const hasInline = !!sidecar && sidecar.size > 0;
-    const inlineExpandedIds = useMemo(() => new Set(sidecar ? sidecar.keys() : []), [sidecar]);
-    const inlineTriggerIds = useMemo(
-        () => new Set(sidecar ? [...sidecar.values()].map(e => e.triggerId).filter(Boolean) : []),
-        [sidecar],
-    );
-    // Expanded LOOP containers, by prefix. A loop body is an ordered array with
-    // no edges of its own: the chain on screen IS the order, derived on the way
-    // in and read back on the way out (flow/loopBodyEdges.js). So the gestures
-    // that change order all work, and the ones that would draw something the
-    // runtime can't do — a free-hand connection, deleting a link — are refused
-    // rather than silently undone by the next render.
-    const loopPrefixes = useMemo(
-        () => new Set(sidecar ? [...sidecar.values()].filter(e => e.kind === 'loop').map(e => e.prefix) : []),
-        [sidecar],
-    );
-    const inLoopBody = useCallback(
-        (nodeId) => loopPrefixes.size > 0 && loopPrefixes.has(parseInlineId(nodeId).prefix),
-        [loopPrefixes],
-    );
-
-    /**
-     * A node's absolute canvas position. React Flow stores a node inside an
-     * expanded flowlet relative to its container, so anything that hands a
-     * position OUT of this component has to add the ancestors back on.
-     */
-    const absPositionOf = useCallback((node) => {
-        if (!node?.position) return null;
-        let { x, y } = node.position;
-        let parent = node.parentId;
-        while (parent) {
-            const pn = rf.getNode?.(parent);
-            if (!pn?.position) break;
-            x += pn.position.x;
-            y += pn.position.y;
-            parent = pn.parentId;
-        }
-        return { x, y };
-    }, [rf]);
-
-    /**
-     * Which graph a canvas point belongs to: the innermost expanded flowlet
-     * whose box contains it (its header strip excluded — dropping on the title
-     * bar means "next to the flowlet", not "into it"), or '' for the canvas's
-     * own graph.
-     */
-    const scopeAtPoint = useCallback((point) => {
-        if (!hasInline || !point) return '';
-        let best = '';
-        for (const [prefix, entry] of sidecar) {
-            const abs = absPositionOf(rf.getNode?.(prefix));
-            if (!abs) continue;
-            const inside = point.x >= abs.x && point.x <= abs.x + entry.size.width
-                && point.y >= abs.y + CONTAINER_HEADER && point.y <= abs.y + entry.size.height;
-            if (inside && prefix.length > best.length) best = prefix;
-        }
-        return best;
-    }, [hasInline, sidecar, rf, absPositionOf]);
+    // Expanded flowlets and loops (flow/useInlineFlowletGraph.ts): what is
+    // open, which ids are their triggers, and the position helpers.
+    const {
+        hasInline, inlineExpandedIds, inlineTriggerIds, inLoopBody, absPositionOf, scopeAtPoint,
+    } = useInlineFlowletGraph({ sidecar, rf });
     const wrapperRef = useRef(null);
 
     // Wheel, touchpad and pinch (flow/useCanvasWheel.ts): two fingers pan,
@@ -351,25 +220,10 @@ const DiagramPaneInner = forwardRef(function DiagramPaneInner({
     const rfStore = useStoreApi();
     useCanvasWheel({ wrapperRef, rf, store: rfStore, enabled: !readOnly && !!definition?.trigger });
 
-    // ── Presenter mode (flow/presenterMode.js) ───────────────────────────
-    // Bigger text for a projector: the cards re-derive their LOD from
-    // PresenterContext (flow/useZoomLod.js), the stylesheet keys on
-    // `data-presenter` on the wrapper, edges.jsx thickens the lines, and the
-    // build's push-in frames tighter (applyPresenterShots). A per-user
-    // preference, read once on mount. Toggled from the zoom stack, Shift+P,
-    // or P with nothing selected (plain P on a selected card is "freeze the
-    // output").
-    const [presenter, setPresenter] = useState(readPresenter);
-    const togglePresenter = useCallback(() => {
-        const next = !presenter;
-        writePresenter(next);
-        setPresenter(next);
-    }, [presenter]);
-    useEffect(() => {
-        applyPresenterShots(presenter);
-        return () => applyPresenterShots(false);
-    }, [presenter]);
-
+    // ── Presenter mode (flow/usePresenterToggle.ts) ──────────────────────
+    // Bigger text for a projector; toggled from the zoom stack, Shift+P, or
+    // P with nothing selected.
+    const [presenter, togglePresenter] = usePresenterToggle();
     // Clicking a node opens its focused Node Detail View (NDV) — owned by the
     // parent (BuilderShell). The canvas itself no longer renders any
     // node-anchored panels.
@@ -379,10 +233,6 @@ const DiagramPaneInner = forwardRef(function DiagramPaneInner({
     // after a reload, when in-memory run state is gone but pins persist).
     const runByStep = useMemo(() => effectiveRunByStep(definition, runSteps), [definition, runSteps]);
 
-    // "Colour lines by" — a per-user presentational lens (never part of the
-    // definition: it would pollute version diffs for zero shared value).
-    // 'branches' by default: automatic case colours only touch case edges,
-    // and manual colours render in every mode.
     // The legend (north-east) — a per-user view preference like the
     // line-colour lens below; until the user picks, it starts closed on a
     // laptop-sized canvas (flow/useLegendPreference.ts).
@@ -398,16 +248,11 @@ const DiagramPaneInner = forwardRef(function DiagramPaneInner({
     const shortCanvas = paneHeight > 0 && paneHeight < SHORT_CANVAS_PX;
     const paneWidth = useStore((s) => s.width);
     const [legendOpen, toggleLegend] = useLegendPreference(paneWidth, paneHeight);
-    const [edgeColorMode, setEdgeColorModeState] = useState(
-        () => {
-            const v = scopedStorage.getItem('builderEdgeColorMode');
-            return v === 'off' || v === 'pii' ? v : 'branches';
-        },
-    );
-    const setEdgeColorMode = useCallback((mode) => {
-        setEdgeColorModeState(mode);
-        scopedStorage.setItem('builderEdgeColorMode', mode);
-    }, []);
+    // "Colour lines by" (flow/useEdgeColorMode.ts) — a per-user presentational lens (never part of the
+    // definition: it would pollute version diffs for zero shared value).
+    // 'branches' by default: automatic case colours only touch case edges,
+    // and manual colours render in every mode.
+    const [edgeColorMode, setEdgeColorMode] = useEdgeColorMode();
     // The PII option only means something once a loaded run step carries a
     // pii summary (builder test-runs with the Privacy Shield applied to
     // automations) — offered disabled with an explanatory tooltip until then.
@@ -421,236 +266,29 @@ const DiagramPaneInner = forwardRef(function DiagramPaneInner({
         [validation, definition, sidecar],
     );
 
-    // Per-node delete / duplicate. Reached from the node's hover chrome, the
-    // canvas context menu, and the node detail view — three surfaces, one pair
-    // of handlers (BFSF-319). Declared ABOVE runtimeContextValue because that
-    // memo publishes them to every node component.
-    //
-    // Read their inputs through a ref so the callbacks keep a STABLE identity.
-    // `onDefinitionChange` is BuilderShell's `onVisualEdit`, whose useCallback
-    // depends on the draft-history object — recreated every render — so a
-    // normal dep array would churn `runtimeContextValue` on every render and
-    // re-render all 23 node components each time.
-    const nodeOpsRef = useRef(null);
-    nodeOpsRef.current = { definition, editable, structuralEditsBlocked, onDefinitionChange, catalog, realOutputById, autoMapEnabled, onAutoMapped, inlineTriggerIds };
+    // Per-node delete / duplicate / detach / patch / pin (flow/useNodeOps.ts).
+    // Reached from the node's hover chrome, the canvas context menu, and the
+    // node detail view (BFSF-319); stable identities, inputs read through a
+    // ref. Declared ABOVE runtimeContextValue because that memo publishes
+    // them to every node component.
+    const {
+        nodeOpsRef, onDeleteNode, onDetachNode, onDuplicateNode, onPatchStep, onPinNode,
+    } = useNodeOps(
+        { definition, editable, structuralEditsBlocked, onDefinitionChange, catalog, realOutputById, autoMapEnabled, onAutoMapped, inlineTriggerIds },
+        runByStep,
+    );
 
-    const onDeleteNode = useCallback((stepId) => {
-        const { definition: def, editable: ed, structuralEditsBlocked: blocked, onDefinitionChange: emit, inlineTriggerIds: protectedIds } = nodeOpsRef.current;
-        if (!ed || blocked || !stepId) return;
-        // The layer_input of an expanded flowlet: its mini-definition requires
-        // exactly one, so there is nothing sensible to do here.
-        if (protectedIds?.has?.(stepId)) return;
-        const next = applyDeleteNodes(def, stepId);
-        if (next === def) return; // primary trigger / unknown id
-        emit?.(seedPositions(next));
-    }, []);
-
-    // "Remove it from the connection" — unwire the step but keep it. The
-    // definition it emits already carries the parked position, so this must NOT
-    // go through a re-layout; seedPositions leaves set positions alone.
-    const onDetachNode = useCallback((stepId) => {
-        const { definition: def, editable: ed, structuralEditsBlocked: blocked, onDefinitionChange: emit } = nodeOpsRef.current;
-        if (!ed || blocked || !stepId) return;
-        const next = applyDetachNode(def, stepId);
-        if (next === def) return; // not a step, or already loose
-        emit?.(seedPositions(next));
-    }, []);
-
-    const onDuplicateNode = useCallback((stepId) => {
-        const { definition: def, editable: ed, structuralEditsBlocked: blocked, onDefinitionChange: emit } = nodeOpsRef.current;
-        if (!ed || blocked || !stepId) return;
-        const { definition: next, newStepId } = applyDuplicateNode(def, stepId);
-        if (!newStepId) return; // triggers aren't duplicable
-        // The copy of a step inside an expanded flowlet belongs to that
-        // flowlet — without the prefix it would land in the flow around it.
-        const { prefix } = parseInlineId(stepId);
-        emit?.(seedPositions(prefix ? prefixAddedStep(next, newStepId, prefix) : next));
-    }, []);
-
-    // A node writing back its OWN fields (BFSF-411: a note's inline
-    // text/size/color edits). No re-layout — unlike the graph-surgery ops
-    // above, this never touches wiring or position, so seedPositions would
-    // be a no-op anyway.
-    const onPatchStep = useCallback((stepId, patch) => {
-        const { definition: def, editable: ed, structuralEditsBlocked: blocked, onDefinitionChange: emit } = nodeOpsRef.current;
-        if (!ed || blocked || !stepId) return;
-        const next = applyPatchStep(def, stepId, patch);
-        if (next === def) return;
-        emit?.(next);
-    }, []);
-
-    // Freeze / release a step's last output from the card (the redesign's
-    // fifth action). Writes exactly the patch NodeDetailView's Pin button
-    // writes, so the two cannot drift: pinnedSource stays undefined on both
-    // paths — only the Edit-output editor sets it to 'edited'.
-    const onPinNode = useCallback((stepId) => {
-        const { definition: def, editable: ed, structuralEditsBlocked: blocked, onDefinitionChange: emit } = nodeOpsRef.current;
-        if (!ed || blocked || !stepId) return;
-        const all = [def?.trigger, ...(def?.triggers || []), ...(def?.steps || [])].filter(Boolean);
-        const step = all.find(st => st.id === stepId);
-        if (!step) return;
-        const isPinned = step.pinnedOutput !== undefined && step.pinnedOutput !== null;
-        let patch;
-        if (isPinned) {
-            patch = { pinnedOutput: null, pinnedAt: null, pinnedSource: undefined };
-        } else {
-            const row = runByStepRef.current?.get?.(stepId);
-            if (!row || row.output === undefined || row.status === 'pinned') return;
-            patch = { pinnedOutput: row.output, pinnedAt: new Date().toISOString(), pinnedSource: undefined };
-        }
-        const next = applyPatchStep(def, stepId, patch);
-        if (next === def) return;
-        emit?.(next);
-    }, []);
-    const runByStepRef = useRef(runByStep);
-    runByStepRef.current = runByStep;
-
-    // Derive runtime context: which steps are pinned / disabled / mid-run.
-    // The 17 per-type node components read this via NodeRuntimeContext so
-    // their call-sites stay unchanged. The build-choreography flags join it
-    // further down (`runtimeContextValue`), once the hook that owns them has
-    // run — they need the laid-out nodes this memo runs before.
-    const baseRuntimeContext = useMemo(() => {
-        const pinnedById = new Set();
-        const disabledById = new Set();
-        // Custom per-step symbol (a Lucide icon name set in the inspector).
-        // StepNodeBase reads this to override the default type icon.
-        const customIconById = new Map();
-        const allSteps = [definition?.trigger, ...(definition?.steps || [])].filter(Boolean);
-        for (const s of allSteps) {
-            if (s.pinnedOutput !== undefined && s.pinnedOutput !== null) pinnedById.add(s.id);
-            if (s.disabled) disabledById.add(s.id);
-            if (s.icon) customIconById.set(s.id, s.icon);
-        }
-        // Run ordinal — 1-based by finishedAt — so users can see "3/8" on
-        // the currently running node. The node still showing 'running'
-        // gets ordinal = (count of completed) + 1. 'pinned' steps count as
-        // completed for ordering — they're synthetic but the user wants
-        // to see their position in the run.
-        const ordered = (runSteps || []).filter(s => s.stepId && (s.status === 'success' || s.status === 'skipped' || s.status === 'pinned'))
-            .slice().sort((a, b) => String(a.finishedAt || '').localeCompare(String(b.finishedAt || '')));
-        const runIndexById = new Map();
-        ordered.forEach((s, i) => runIndexById.set(s.stepId, i + 1));
-        const runningStep = (runSteps || []).find(s => s.status === 'running');
-        if (runningStep?.stepId) runIndexById.set(runningStep.stepId, ordered.length + 1);
-        const runTotal = allSteps.length - 1; // exclude trigger
-
-        // ── Card identity (builder redesign) ──────────────────────────────
-        // The family paints the 4px bar and the tile; the number is the
-        // step's place in RUN order — the same sequence the node editor pages
-        // through — so "step 7" means the same thing on the canvas and in
-        // the editor's header. A step inside an expanded container reads
-        // `<container number>·<its place inside>`, matching the design's
-        // "13 · 1".
-        const everyNode = [definition?.trigger, ...(definition?.triggers || []), ...(definition?.steps || [])].filter(Boolean);
-        const triggerIdSet = new Set([
-            definition?.trigger?.id,
-            ...(definition?.triggers || []).map(t => t?.id),
-            ...inlineTriggerIds,
-        ].filter(Boolean));
-        const typeGroupById = new Map();
-        const stepTypeById = new Map();
-        for (const st of everyNode) {
-            const type = triggerIdSet.has(st.id) ? 'trigger' : (st.type || 'integration_action');
-            stepTypeById.set(st.id, type);
-            typeGroupById.set(st.id, stepFamily(type));
-        }
-        const stepNumberById = new Map();
-        {
-            const order = flowOrder(definition);
-            let n = 0;
-            const inner = new Map(); // prefix -> counter
-            const topNumber = new Map(); // prefix -> its own number
-            for (const id of order) {
-                if (stepTypeById.get(id) === 'note') continue;
-                if (!isInlineId(id)) {
-                    n += 1;
-                    stepNumberById.set(id, n);
-                    topNumber.set(id, n);
-                    continue;
-                }
-                const { prefix } = parseInlineId(id);
-                if (inlineTriggerIds.has(id) || stepTypeById.get(id) === 'loop_item') continue;
-                const k = (inner.get(prefix) || 0) + 1;
-                inner.set(prefix, k);
-                const parent = topNumber.get(prefix) ?? stepNumberById.get(prefix);
-                stepNumberById.set(id, parent != null ? `${parent}·${k}` : k);
-            }
-        }
-        // A pin needs a captured output. A synthetic 'pinned' row IS the pin.
-        const pinnableIds = new Set();
-        for (const [id, row] of runByStep) {
-            if (row && row.output !== undefined && row.status !== 'pinned') pinnableIds.add(id);
-        }
-
-        // While the drawer edits a step, its direct source is drawn dashed
-        // and what comes next is dimmed (design 1h).
-        const editingSourceIds = new Set();
-        const editingTargetIds = new Set();
-        if (editingStepId) {
-            for (const e of (definition?.edges || [])) {
-                if (e?.to === editingStepId && e.from) editingSourceIds.add(e.from);
-                if (e?.from === editingStepId && e.to) editingTargetIds.add(e.to);
-            }
-        }
-        return {
-            typeGroupById,
-            stepTypeById,
-            stepNumberById,
-            pinnableIds,
-            editingStepId,
-            editingSourceIds,
-            editingTargetIds,
-            onPinNode: (editable && !structuralEditsBlocked) ? onPinNode : null,
-            pinnedById,
-            disabledById,
-            customIconById,
-            onExecuteStep: editable ? onExecuteStep : null,
-            executingStepId,
-            runInFlight,
-            runIndexById,
-            runTotal,
-            onOpenLayer: onOpenLayer || null,
-            layerSummaries: layerSummaries || {},
-            highlightedStepId,
-            // Node actions (BFSF-319). Null on a read-only canvas or while the
-            // AI holds structural edits, so StepNodeBase renders no chrome.
-            onDeleteNode: (editable && !structuralEditsBlocked) ? onDeleteNode : null,
-            onDuplicateNode: (editable && !structuralEditsBlocked) ? onDuplicateNode : null,
-            onDetachNode: (editable && !structuralEditsBlocked) ? onDetachNode : null,
-            // A node writing back its own fields — a note's inline text/size/
-            // color edits (BFSF-411). Same editability gate as the actions
-            // above; a read-only canvas renders the note but cannot change it.
-            onPatchStep: (editable && !structuralEditsBlocked) ? onPatchStep : null,
-            // Which nodes are wired to anything — the Disconnect button is
-            // pointless on a loose card, so it isn't rendered there. Nor on a
-            // step inside a loop: its links are derived from the body's order,
-            // so "take it out of the flow" would be undone on the next render.
-            // Deleting it, or dragging it somewhere else in the chain, are the
-            // two things that mean something there.
-            attachedIds: new Set(
-                (definition?.edges || [])
-                    .flatMap(e => [e.from, e.to])
-                    .filter(id => id && !inLoopBody(id)),
-            ),
-            primaryTriggerId: definition?.trigger?.id || null,
-            // A flowlet's `layer_input` node is its trigger, so it gets the
-            // same treatment as one: never duplicated, never detached, and —
-            // since its mini-definition needs exactly one — never deleted.
-            triggerIds: new Set([
-                definition?.trigger?.id,
-                ...(definition?.triggers || []).map(t => t?.id),
-                ...inlineTriggerIds,
-            ].filter(Boolean)),
-            undeletableIds: inlineTriggerIds,
-            // Expand/collapse a flowlet in place. Offered on a read-only canvas
-            // too — looking inside a sub-flow isn't an edit.
-            onToggleInline,
-            inlineExpanded: inlineExpandedIds,
-            layerRefCounts,
-        };
-    }, [definition, runSteps, runByStep, onExecuteStep, executingStepId, runInFlight, editable, structuralEditsBlocked, onOpenLayer, layerSummaries, highlightedStepId, onToggleInline, inlineExpandedIds, inlineTriggerIds, inLoopBody, layerRefCounts, onPatchStep, onPinNode, editingStepId]);
-
+    // Derive runtime context (flow/buildRuntimeContext.ts): which steps are
+    // pinned / disabled / mid-run, card identity and node actions. The
+    // build-choreography flags join it further down (`runtimeContextValue`),
+    // once the hook that owns them has run — they need the laid-out nodes
+    // this memo runs before.
+    const baseRuntimeContext = useMemo(() => buildRuntimeContext({
+        definition, runSteps, runByStep, inlineTriggerIds, inlineExpandedIds, inLoopBody,
+        editingStepId, editable, structuralEditsBlocked, onExecuteStep, executingStepId, runInFlight,
+        onOpenLayer, layerSummaries, highlightedStepId, onToggleInline, layerRefCounts,
+        onPinNode, onDeleteNode, onDuplicateNode, onDetachNode, onPatchStep,
+    }), [definition, runSteps, runByStep, onExecuteStep, executingStepId, runInFlight, editable, structuralEditsBlocked, onOpenLayer, layerSummaries, highlightedStepId, onToggleInline, inlineExpandedIds, inlineTriggerIds, inLoopBody, layerRefCounts, onPatchStep, onPinNode, editingStepId, onDeleteNode, onDuplicateNode, onDetachNode]);
     // ── Where the run is ─────────────────────────────────────────────────
     //
     // Lives in ./flow/runFocus so the reconciliation against the live graph
@@ -686,45 +324,10 @@ const DiagramPaneInner = forwardRef(function DiagramPaneInner({
         [definition, runByStep, issuesByStep, onAddAfterForLayout, onDiagnose, sidecar, shiftById, catalog],
     );
 
-    // ── Live drag mirror ────────────────────────────────────────────────
-    //
-    // React Flow is in controlled mode — `nodes` is the source of truth
-    // and it does NOT animate drags by itself. If we keep using the
-    // computed-from-definition nodes directly, the visual stays frozen
-    // while the user drags (definition only updates on drag-end). So we
-    // mirror computedNodes into local state and apply React Flow's
-    // position changes on every onNodesChange tick. The definition is
-    // still only written at drag-end via commitNodePositions, so we
-    // don't thrash buildLayout / the debounced save round-trip.
-    const [nodes, setNodes] = useState(computedNodes);
-    // Track whether ReactFlow is currently dragging a node. If `definition`
-    // updates mid-drag (e.g. an autosave round-trip rewrites positions),
-    // unconditional sync would snap the dragged node back to the persisted
-    // position. We sync immediately on a non-drag definition change, and
-    // defer the sync to drag-end otherwise.
-    const isDraggingRef = useRef(false);
-    const pendingComputedRef = useRef(null);
-    // `buildLayout` rebuilds nodes from the definition, and those fresh objects
-    // carry no `selected` flag — so every re-layout (a run tick, a validation
-    // pass, an autosave round-trip) silently dropped the user's selection and
-    // multi-select looked broken. Selection is view state, not document state:
-    // carry it across the sync.
-    const carrySelection = useCallback((next) => {
-        setNodes((prev) => {
-            const selected = new Set(prev.filter(n => n.selected).map(n => n.id));
-            if (selected.size === 0) return next;
-            return next.map(n => (selected.has(n.id) ? { ...n, selected: true } : n));
-        });
-    }, []);
-    useEffect(() => {
-        if (isDraggingRef.current) {
-            pendingComputedRef.current = computedNodes;
-            return;
-        }
-        pendingComputedRef.current = null;
-        carrySelection(computedNodes);
-    }, [computedNodes, carrySelection]);
-
+    // ── Live drag mirror (flow/useLiveNodeMirror.ts) ────────────────────
+    // computedNodes mirrored into local state so a drag animates; the
+    // definition is only written at drag-end via commitNodePositions.
+    const { nodes, setNodes, isDraggingRef, pendingComputedRef, carrySelection } = useLiveNodeMirror(computedNodes);
     // ── The build as a film ─────────────────────────────────────────────
     // While the AI is writing the graph: each draft is diffed into reveal
     // flags for the cards and edges it added or edited, one frontier card
@@ -760,47 +363,10 @@ const DiagramPaneInner = forwardRef(function DiagramPaneInner({
         enabled: buildActive && hasRibbon,
     });
 
-    // ── The dry run, replayed (flow/useDryRunReplay.js) ─────────────────
-    // BuildTab reveals the test run's rows one at a time and names the row
-    // being revealed; the camera centres on that card, keeping the zoom (at
-    // least 80%, so the chip is legible). Our own setCenter reaches React
-    // Flow's onMoveStart like any gesture, so — the choreography's rule — the
-    // move is OWNED for its duration and the guarded handler below lets it
-    // pass; a move we did NOT start while a replay is on is the presenter
-    // taking the camera, and the replay stops moving it until the next one.
-    // `following === false` (the build film has already yielded) is honoured
-    // for the same reason. One move per id: a re-render with the same id, or
-    // `following` flipping, never re-centres.
-    const replayOwnUntilRef = useRef(0);
-    const replayYieldedRef = useRef(false);
-    const replayActiveRef = useRef(false);
-    const replayCenteredRef = useRef(null);
-    useEffect(() => { replayActiveRef.current = replayStepId != null; }, [replayStepId]);
-    useEffect(() => {
-        if (replayStepId == null) {
-            replayYieldedRef.current = false;
-            replayCenteredRef.current = null;
-            return;
-        }
-        if (replayCenteredRef.current === replayStepId) return;
-        replayCenteredRef.current = replayStepId;
-        if (replayYieldedRef.current || following === false) return;
-        const node = rf?.getNode?.(replayStepId);
-        const abs = absPositionOf(node);
-        if (!abs || typeof rf?.setCenter !== 'function') return;
-        const zoom = Math.max(Number(rf.getZoom?.()) || 1, REPLAY_MIN_ZOOM);
-        replayOwnUntilRef.current = Date.now() + REPLAY_CENTER_MS + REPLAY_OWN_SLACK_MS;
-        rf.setCenter(
-            abs.x + (node.measured?.width ?? node.width ?? 240) / 2,
-            abs.y + (node.measured?.height ?? node.height ?? 72) / 2,
-            { duration: REPLAY_CENTER_MS, zoom },
-        );
-    }, [replayStepId, following, rf, absPositionOf]);
-    const onMoveStartGuarded = useCallback((ev, viewport) => {
-        if (Date.now() < replayOwnUntilRef.current) return;
-        if (replayActiveRef.current) replayYieldedRef.current = true;
-        onMoveStart(ev, viewport);
-    }, [onMoveStart]);
+    // ── The dry run, replayed (flow/useDryRunReplayCamera.ts) ───────────
+    // The camera centres on the card a replay reveals; a move we did not
+    // start while a replay is on hands the camera back to the presenter.
+    const onMoveStartGuarded = useDryRunReplayCamera({ replayStepId, following, rf, absPositionOf, onMoveStart });
     // While the model is TYPING an app step (or inspecting an app), the tile
     // it is drawn from wears a steady spotlight — the eye is on the ribbon
     // before the pick ring flashes there at the card's departure.
@@ -886,7 +452,7 @@ const DiagramPaneInner = forwardRef(function DiagramPaneInner({
         // Persist to the definition only when the drag finishes
         // (commitNodePositions filters dragging:false changes).
         commitNodePositions(changes);
-    }, [editable, commitNodePositions]);
+    }, [editable, commitNodePositions, setNodes, isDraggingRef, pendingComputedRef, carrySelection]);
 
     const onEdgesChange = useCallback((_changes) => {
         // No-op: edges are derived from definition.edges. Selection state is
@@ -902,18 +468,6 @@ const DiagramPaneInner = forwardRef(function DiagramPaneInner({
     // definition update (so a group move is one undo step). What was missing
     // was the gesture and any sign that a selection existed at all.
     const [selectedIds, setSelectedIds] = useState([]);
-    useEffect(() => {
-        if (!onAskAssistant || selectedIds.length !== 1) return undefined;
-        const onKey = event => {
-            if ((event.ctrlKey || event.metaKey) && !event.altKey && event.key.toLowerCase() === 'j') {
-                event.preventDefault();
-                event.stopImmediatePropagation();
-                onAskAssistant(selectedIds[0]);
-            }
-        };
-        document.addEventListener('keydown', onKey, true);
-        return () => document.removeEventListener('keydown', onKey, true);
-    }, [onAskAssistant, selectedIds]);
     const onSelectionChange = useCallback(({ nodes: sel }) => {
         setSelectedIds((prev) => {
             const next = (sel || []).map(n => n.id);
@@ -952,53 +506,13 @@ const DiagramPaneInner = forwardRef(function DiagramPaneInner({
         onDefinitionChange?.(seedPositions(next));
     }, [definition, editable, structuralEditsBlocked, selectedIds, onDefinitionChange, inlineTriggerIds]);
 
-    // ── Keyboard equivalents of the action chrome ────────────────────────
-    //
-    // R (run up to here) · D (duplicate) · U (disconnect) · P (pin). One
-    // document listener for the whole canvas, not one per card, gated on
-    // exactly one selected node. Bare letters must never fire while the user
-    // is typing — the assistant composer, a note's inline text, the search
-    // box — so anything editable swallows them; modifier combos are left to
-    // useBuilderHotkeys.
-    useEffect(() => {
-        if (!editable || structuralEditsBlocked || selectedIds.length !== 1) return undefined;
-        const id = selectedIds[0];
-        const onKey = (e) => {
-            if (e.metaKey || e.ctrlKey || e.altKey) return;
-            // Shift+P is presenter mode (the listener below); never a pin.
-            if (e.shiftKey) return;
-            const el = e.target;
-            const tag = el?.tagName;
-            if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el?.isContentEditable) return;
-            const key = String(e.key || '').toLowerCase();
-            const isTrigger = runtimeContextValue.triggerIds?.has?.(id);
-            if (key === 'r' && onExecuteStep && !runInFlight) { e.preventDefault(); onExecuteStep(id, { mode: 'upTo' }); }
-            else if (key === 'd' && !isTrigger) { e.preventDefault(); onDuplicateNode(id); }
-            else if (key === 'u' && !isTrigger && runtimeContextValue.attachedIds?.has?.(id)) { e.preventDefault(); onDetachNode(id); }
-            else if (key === 'p' && !isTrigger) { e.preventDefault(); onPinNode(id); }
-        };
-        document.addEventListener('keydown', onKey);
-        return () => document.removeEventListener('keydown', onKey);
-    }, [editable, structuralEditsBlocked, selectedIds, runtimeContextValue, onExecuteStep, runInFlight, onDuplicateNode, onDetachNode, onPinNode]);
-
-    // Presenter mode from the keyboard: Shift+P anywhere on the canvas, and
-    // plain P only while nothing is selected — on a selected card P is "freeze
-    // the output" (above). Same editable-field guard as the letters above.
-    useEffect(() => {
-        if (readOnly) return undefined;
-        const onKey = (e) => {
-            if (e.metaKey || e.ctrlKey || e.altKey) return;
-            if (String(e.key || '').toLowerCase() !== 'p') return;
-            const el = e.target;
-            const tag = el?.tagName;
-            if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el?.isContentEditable) return;
-            if (!e.shiftKey && selectedIds.length !== 0) return;
-            e.preventDefault();
-            togglePresenter();
-        };
-        document.addEventListener('keydown', onKey);
-        return () => document.removeEventListener('keydown', onKey);
-    }, [readOnly, selectedIds, togglePresenter]);
+    // ── Keyboard (flow/useCanvasHotkeys.ts) ─────────────────────────────
+    // Ctrl/Cmd+J asks the assistant; R · D · U · P act on the one selected
+    // step; Shift+P (or P with nothing selected) toggles presenter mode.
+    useCanvasHotkeys({
+        selectedIds, onAskAssistant, editable, structuralEditsBlocked, readOnly, runtimeContextValue,
+        onExecuteStep, runInFlight, onDuplicateNode, onDetachNode, onPinNode, togglePresenter,
+    });
 
     // Connect gestures and per-edge controls ("+", "×", colour) — the
     // callbacks live in flow/useEdgeEditCallbacks.js, called from the same
@@ -1206,130 +720,47 @@ const DiagramPaneInner = forwardRef(function DiagramPaneInner({
                 deleteKeyCode={editable ? ['Backspace', 'Delete'] : null}
             >
                 <Background gap={16} size={1} color="var(--border-default)" />
-                {/* South-west zone (design 1a): the zoom stack — with "Wrap to fit"
-                    in it, the same kind of one-press act as fitView — then the
-                    Flowlets drawer and the Arrange menu. All one Panel, so they
-                    can never drift apart or overlap the minimap. The fit counts
-                    each piece on its own (`data-furniture-parts`): the tall
-                    stack and the short buttons are not one tall block. */}
-                <Panel position="bottom-left">
-                    <div className="flex items-end gap-2" data-furniture-parts>
-                        {/* Fit hands the camera back to the film only while there is
-                            one to follow; otherwise — and under reduced motion — it
-                            is the canvas's own fit, clear of the furniture. */}
-                        <CanvasZoomStack
-                            onWrapToFit={allowEdgeEdits ? () => handleArrange('serpentine') : null}
-                            onFit={structuralEditsBlocked && !reducedMotion ? resumeFollow : fitCanvasFully}
-                            presenter={presenter}
-                            onTogglePresenter={togglePresenter}
-                            compact={shortCanvas}
-                        />
-                        {onToggleFlowlets && !shortCanvas && (
-                            <button
-                                type="button"
-                                data-layers-toggle
-                                onClick={onToggleFlowlets}
-                                aria-pressed={!!flowletsOpen}
-                                title={t('automations.diagram_pane.flowlets_manage_reusable_sub_flows', 'Flowlets — manage reusable sub-flows')}
-                                className={`inline-flex items-center gap-1.5 px-2.5 py-[6px] rounded-lg border border-[var(--border-default)] shadow-sm text-[12px] font-medium text-[var(--text-primary)] transition ${
-                                    flowletsOpen ? 'bg-[var(--bg-tertiary)]' : 'bg-[var(--bg-card)] hover:bg-[var(--bg-tertiary)]'
-                                }`}
-                            >
-                                <Layers size={14} /> {t('automations.canvas.flowlets', 'Flowlets')}
-                                {flowletCount > 0 && <span className="text-[var(--text-tertiary)]">{flowletCount}</span>}
-                            </button>
-                        )}
-                        {allowEdgeEdits && !shortCanvas && <ArrangeMenu onArrange={handleArrange} />}
-                    </div>
-                </Panel>
-                {/* South edge: run banner OR build banner OR selection bar OR
-                    gesture hint — one at a time, by precedence, so nothing
-                    stacks. The build banner is also the lock notice while the
-                    AI holds structural edits. Capped so it never runs under
-                    the zoom stack or the minimap. */}
-                <Panel position="bottom-center" style={{ maxWidth: 'calc(100% - 440px)' }}>
-                    <CanvasSouthBar
-                        runFocus={runFocus}
-                        onShowRun={focusRunStep}
-                        formUrl={formUrl}
-                        onOpenFormOverlay={onOpenFormOverlay}
-                        selectedCount={selectedIds.length}
-                        selectionInDrawer={selectionInDrawer}
-                        onDeleteSelection={deleteSelection}
-                        onClearSelection={clearSelection}
-                        structuralEditsBlocked={structuralEditsBlocked}
-                        interactive={interactive}
-                        editable={editable}
-                        buildCue={buildCue}
-                        /* Under reduced motion the camera is never taken from
-                           the build, so there is never anything to hand back. */
-                        following={reducedMotion || following}
-                        onFollow={resumeFollow}
-                    />
-                </Panel>
-                {/* North-west zone: what the canvas holds, and what is wrong with
-                    it. The validation chip used to float bottom-right, on top of
-                    the minimap. */}
-                <Panel position="top-left">
-                    <div className="flex items-center gap-1.5">
-                        {editingStepId ? (!shortCanvas && (
-                            <div className="px-2.5 py-[5px] rounded-lg bg-[var(--bg-card)] border border-[var(--border-default)] text-[12px] text-[var(--text-secondary)] shadow-sm whitespace-nowrap" data-testid="editing-chip">
-                                {t('automations.canvas.editing_chip', 'Step {n} of {total} · Esc closes · Alt+←/→ previous/next', {
-                                    n: runtimeContextValue.stepNumberById.get(editingStepId) ?? '?',
-                                    total: [...runtimeContextValue.stepNumberById.values()].filter(v => typeof v === 'number').length,
-                                })}
-                            </div>
-                        )) : (
-                            <FlowSummaryChip definition={definition} />
-                        )}
-                        <FloatingValidationPill
-                            fatalError={fatalError}
-                            validation={validation}
-                            aborted={aborted}
-                            onDismissFatal={onDismissFatal}
-                            def={definition}
-                            onFocusStep={onFocusStep}
-                        />
-                    </div>
-                </Panel>
-                {/* "Colour lines by" + the rules panel behind it — mode is a
-                    per-user lens; the colour RULES (pin a case colour, remap a
-                    PII group) edit the definition. Shown wherever connections
-                    are; rule editing only on an editable canvas. */}
-                {/* North-east zone: the "Lines" lens (where there are lines) and
-                    the legend behind the help button. */}
-                {!shortCanvas && (
-                    <Panel position="top-right">
-                        <div className="flex flex-col items-end gap-1.5">
-                            <div className="flex items-start gap-1.5">
-                                {(definition.edges || []).length > 0 && (
-                                    <LineColorPanel
-                                        mode={edgeColorMode}
-                                        onModeChange={setEdgeColorMode}
-                                        definition={definition}
-                                        editable={allowEdgeEdits}
-                                        onDefinitionChange={onDefinitionChange}
-                                        hasPiiData={hasPiiData}
-                                    />
-                                )}
-                                <LegendToggle open={legendOpen} onToggle={toggleLegend} />
-                            </div>
-                            {legendOpen && <CanvasLegend />}
-                        </div>
-                    </Panel>
-                )}
-                {!shortCanvas && <MiniMap
-                    pannable
-                    zoomable
-                    // South-east zone: 160×96 (design 1a).
-                    style={{ width: 160, height: 96, borderRadius: 10 }}
-                    // The same family/status vocabulary the cards paint with
-                    // (flow/nodeTypeColors.js), so the map agrees with the canvas.
-                    nodeColor={(n) => ((n.type === 'row_label' || n.type === 'ai_tool' || n.type === 'ghost_step')
-                        ? 'transparent'
-                        : miniMapColor(runtimeContextValue.typeGroupById.get(n.id) || null, n.data?.runStep?.status || null))}
-                    maskColor="rgba(0,0,0,0.04)"
-                />}
+                <DiagramOverlays
+                    definition={definition}
+                    allowEdgeEdits={allowEdgeEdits}
+                    handleArrange={handleArrange}
+                    structuralEditsBlocked={structuralEditsBlocked}
+                    reducedMotion={reducedMotion}
+                    resumeFollow={resumeFollow}
+                    fitCanvasFully={fitCanvasFully}
+                    presenter={presenter}
+                    togglePresenter={togglePresenter}
+                    shortCanvas={shortCanvas}
+                    onToggleFlowlets={onToggleFlowlets}
+                    flowletsOpen={flowletsOpen}
+                    flowletCount={flowletCount}
+                    runFocus={runFocus}
+                    focusRunStep={focusRunStep}
+                    formUrl={formUrl}
+                    onOpenFormOverlay={onOpenFormOverlay}
+                    selectedCount={selectedIds.length}
+                    selectionInDrawer={selectionInDrawer}
+                    deleteSelection={deleteSelection}
+                    clearSelection={clearSelection}
+                    interactive={interactive}
+                    editable={editable}
+                    buildCue={buildCue}
+                    following={following}
+                    editingStepId={editingStepId}
+                    stepNumberById={runtimeContextValue.stepNumberById}
+                    fatalError={fatalError}
+                    validation={validation}
+                    aborted={aborted}
+                    onDismissFatal={onDismissFatal}
+                    onFocusStep={onFocusStep}
+                    edgeColorMode={edgeColorMode}
+                    setEdgeColorMode={setEdgeColorMode}
+                    onDefinitionChange={onDefinitionChange}
+                    hasPiiData={hasPiiData}
+                    legendOpen={legendOpen}
+                    toggleLegend={toggleLegend}
+                    typeGroupById={runtimeContextValue.typeGroupById}
+                />
             </ReactFlow>
             {/* The ghosts flying from the ribbon to their slots. Portalled to
                 <body> by the layer itself, but MOUNTED here so it unmounts with

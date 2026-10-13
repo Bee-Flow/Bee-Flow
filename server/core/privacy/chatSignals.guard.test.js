@@ -35,6 +35,7 @@ test('nothing that carries messages between people requires the chat signals rec
 });
 
 test('the walk sees the tree (the guard is not vacuous)', () => {
-    // index.js wires the shutdown flush, so at least that edge must be found.
-    assert.ok(EDGES.some(e => e.from === 'index.js' && e.to === 'core/privacy/chatSignals'), 'the derived edge list is empty: the walk is broken');
+    // boot/lifecycle.js (split out of index.js) wires the shutdown flush, so at
+    // least that edge must be found.
+    assert.ok(EDGES.some(e => e.from === 'boot/lifecycle.js' && e.to === 'core/privacy/chatSignals'), 'the derived edge list is empty: the walk is broken');
 });

@@ -5,15 +5,15 @@
  * sleutels bestaan in GEEN van beide Engelse woordenboeken meer, dus de
  * migratie schreef bij elke boot DB-rijen voor sleutels die nergens worden
  * opgevraagd: onschadelijk, maar dood. De enige aanroeper
- * (stores/knowledgeBases.js) is daarom uitgezet; het migratiebestand blijft
+ * (stores/kb/schema.js, vroeger stores/knowledgeBases.js) is daarom uitgezet; het migratiebestand blijft
  * bewust op schijf staan zodat replay van de migratiereeks mogelijk blijft.
  *
  * Deze test is statisch (leest bestanden als TEKST, raakt geen DB) en bewijst
  * de drie feiten waar dat besluit op rust:
  *   a. geen van de zeven sleutels komt nog in een woordenboek voor — komt er
  *      ooit één terug, dan wordt deze test rood en is dat het signaal om de
- *      aanroep in knowledgeBases.js weer aan te zetten;
- *   b. knowledgeBases.js roept de migratie niet meer aan, maar noemt haar naam
+ *      aanroep in stores/kb/schema.js weer aan te zetten;
+ *   b. stores/kb/schema.js roept de migratie niet meer aan, maar noemt haar naam
  *      nog wél in een comment (dat houdt de orphan-guard in
  *      boot/bootMigrations.test.js groen);
  *   c. het migratiebestand bestaat nog en exporteert nog `up()`.
@@ -28,7 +28,7 @@ const path = require('node:path');
 
 const MIGRATION_NAME = 'add-nl-kb-usage-translations';
 const MIGRATION_FILE = path.join(__dirname, `${MIGRATION_NAME}.js`);
-const KB_STORE_FILE = path.join(__dirname, '..', 'stores', 'knowledgeBases.js');
+const KB_STORE_FILE = path.join(__dirname, '..', 'stores', 'kb', 'schema.js');
 
 // De Engelse woordenboeken. ALLEEN LEZEN — deze test schrijft er nooit in.
 // De serverkant is één bestand per namespace onder i18n/defaults/en/; de
@@ -91,23 +91,23 @@ test('a. geen van de zeven kb_detail.usage_*-sleutels bestaat nog in een Engels 
             assert.ok(!text.includes(key),
                 `sleutel ${key} staat weer in ${path.relative(path.join(__dirname, '..', '..'), dict)}. ` +
                 `De migratie ${MIGRATION_NAME} is uitgezet omdat deze sleutels niet meer bestonden; ` +
-                'bestaan ze weer, zet dan de aanroep in stores/knowledgeBases.js weer aan.');
+                'bestaan ze weer, zet dan de aanroep in stores/kb/schema.js weer aan.');
         }
     }
 });
 
-test('b1. stores/knowledgeBases.js roept de migratie niet meer aan (geen actieve require().up())', () => {
+test('b1. stores/kb/schema.js roept de migratie niet meer aan (geen actieve require().up())', () => {
     const src = read(KB_STORE_FILE);
     const comments = commentLines(src);
     const callPattern = new RegExp(
-        String.raw`require\(\s*['"]\.\./migrations/${MIGRATION_NAME}['"]\s*\)\s*\.up\s*\(`);
+        String.raw`require\(\s*['"](?:\.\./)+migrations/${MIGRATION_NAME}['"]\s*\)\s*\.up\s*\(`);
 
     const activeCalls = src.split('\n')
         .map((line, i) => ({ line, no: i + 1 }))
         .filter(({ line, no }) => callPattern.test(line) && !comments.has(no));
 
     assert.deepStrictEqual(activeCalls.map(({ no }) => no), [],
-        `stores/knowledgeBases.js roept ${MIGRATION_NAME} weer aan op regel(s) ` +
+        `stores/kb/schema.js roept ${MIGRATION_NAME} weer aan op regel(s) ` +
         `${activeCalls.map(({ no }) => no).join(', ')}. Die migratie zaait NL-waarden voor ` +
         'sleutels die in geen enkel woordenboek meer bestaan.');
 });
@@ -121,12 +121,12 @@ test('b2. de naam staat er nog wél als comment in (houdt de orphan-guard van bo
         .filter(({ line }) => line.includes(MIGRATION_NAME));
 
     assert.ok(mentions.length > 0,
-        `de naam ${MIGRATION_NAME} is helemaal uit stores/knowledgeBases.js verdwenen. ` +
+        `de naam ${MIGRATION_NAME} is helemaal uit stores/kb/schema.js verdwenen. ` +
         'boot/bootMigrations.test.js verklaart een migratie verantwoord zodra haar naam als ' +
         'substring in een runtime-bron voorkomt (comments tellen mee); zonder die vermelding ' +
         'wordt die orphan-guard rood.');
     assert.ok(mentions.every(({ no }) => comments.has(no)),
-        `${MIGRATION_NAME} wordt in stores/knowledgeBases.js buiten commentaar genoemd op regel(s) ` +
+        `${MIGRATION_NAME} wordt in stores/kb/schema.js buiten commentaar genoemd op regel(s) ` +
         `${mentions.filter(({ no }) => !comments.has(no)).map(({ no }) => no).join(', ')}.`);
 });
 

@@ -10,7 +10,7 @@
  *   - a value poisoned under another build's key is never served.
  *
  * buildInfo reads APP_BUILD_SHA once at require time, so each scenario evicts
- * permissions.js + buildInfo.js from require.cache and reloads them under the
+ * the auth/permissions*.js modules + buildInfo.js from require.cache and reloads them under the
  * desired stamp (same pattern as utils/buildInfo.test.js).
  *
  * Run: cd server && node --test --test-force-exit auth/permissions.cacheStamp.test.js
@@ -23,6 +23,13 @@ const path = require('path');
 
 const SERVER = path.resolve(__dirname, '..');
 const PERMISSIONS = path.join(SERVER, 'auth', 'permissions.js');
+// permissions.js is a barrel over auth/permissions*.js; a fresh load evicts
+// every one of them, or the sibling modules keep the previous load's state.
+const evictPermissions = () => {
+    for (const key of Object.keys(require.cache)) {
+        if (/auth[\\/]permissions\w*\.js$/.test(key)) delete require.cache[key];
+    }
+};
 const BUILDINFO = path.join(SERVER, 'utils', 'buildInfo.js');
 
 // ── Stub userStore + db so this is a pure unit test (no DB, no real Redis) ──
@@ -55,7 +62,7 @@ const originalResolve = Module._resolveFilename;
 Module._resolveFilename = function (request, parent, ...rest) {
     // orgScope.js too: permissions.js delegates the org read to it, and a stub
     // keyed on the parent file alone would silently load the real userStore.
-    if (parent && /auth[\\/](permissions|orgScope)\.js$/.test(parent.filename) && Object.prototype.hasOwnProperty.call(MOCK_IDS, request)) {
+    if (parent && /auth[\\/](permissions\w*|orgScope)\.js$/.test(parent.filename) && Object.prototype.hasOwnProperty.call(MOCK_IDS, request)) {
         return MOCK_IDS[request];
     }
     return originalResolve.call(this, request, parent, ...rest);
@@ -79,7 +86,7 @@ function makeFakeRedis() {
 
 function loadPermissionsWithStamp(sha, redis) {
     currentRedis = redis;
-    delete require.cache[PERMISSIONS];
+    evictPermissions();
     delete require.cache[BUILDINFO];
     process.env.APP_BUILD_SHA = sha;
     try {
@@ -88,7 +95,7 @@ function loadPermissionsWithStamp(sha, redis) {
         delete process.env.APP_BUILD_SHA;
         // Evict again so no later require in this process accidentally reuses
         // a module bound to this test's stamp.
-        delete require.cache[PERMISSIONS];
+        evictPermissions();
         delete require.cache[BUILDINFO];
     }
 }

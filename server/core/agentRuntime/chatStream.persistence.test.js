@@ -39,6 +39,10 @@ const SRC = [
         .map(f => path.join('chatStream', f)),
     'attachmentIntake.js',
     'toolRoundExecutor.js',
+    // The round's steps (the tool messages are pushed in toolRound/results.js).
+    ...fs.readdirSync(path.join(__dirname, 'toolRound'))
+        .filter(f => f.endsWith('.js') && !f.endsWith('.test.js')).sort()
+        .map(f => path.join('toolRound', f)),
     'finalizeTurn.js',
     'guardrailHardBlock.js',
 ].map(f => fs.readFileSync(path.join(__dirname, f), 'utf8')).join('\n');

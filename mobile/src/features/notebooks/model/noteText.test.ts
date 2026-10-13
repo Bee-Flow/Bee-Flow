@@ -22,7 +22,7 @@ describe('the HTML sniff is the web’s, where the store decides', () => {
     });
 
     it('is where the store decides Markdown from HTML', () => {
-        const store = fs.readFileSync(path.join(REPO, 'server/stores/notebookStore.js'), 'utf8');
+        const store = fs.readFileSync(path.join(REPO, 'server/stores/notebook/notebooks.js'), 'utf8');
         expect(store).toContain('} else if (!looksLikeHtml(body)) {');
         expect(store).toContain("derivedFormat = 'markdown';");
     });

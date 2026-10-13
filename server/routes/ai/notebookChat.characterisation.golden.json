@@ -1,0 +1,1486 @@
+{
+ "editor turn: kb, history trim, selection, attachment, tool round, persist": {
+  "status": 200,
+  "events": [
+   [
+    "phase",
+    {
+     "stage": "model_resolved",
+     "status": "start",
+     "detail": "model-1"
+    }
+   ],
+   [
+    "phase",
+    {
+     "stage": "model_resolved",
+     "status": "end"
+    }
+   ],
+   [
+    "phase",
+    {
+     "stage": "kb_search",
+     "status": "start"
+    }
+   ],
+   [
+    "phase",
+    {
+     "stage": "kb_search",
+     "status": "end",
+     "durationMs": "ms"
+    }
+   ],
+   [
+    "kb_sources",
+    {
+     "sources": [
+      {
+       "title": "Notes.pdf",
+       "kind": "notebook",
+       "sourceId": "s1",
+       "sourceName": null,
+       "documentId": null,
+       "chunkId": null,
+       "datatableId": null,
+       "rowId": null,
+       "page": null,
+       "rowStart": null,
+       "rowEnd": null,
+       "occurredAt": null,
+       "section": "alpha passage",
+       "content": "alpha passage",
+       "score": 0.9,
+       "linked": null,
+       "preview": "alpha passage"
+      }
+     ]
+    }
+   ],
+   [
+    "phase",
+    {
+     "stage": "building_prompt",
+     "status": "start"
+    }
+   ],
+   [
+    "phase",
+    {
+     "stage": "building_prompt",
+     "status": "end",
+     "durationMs": "ms"
+    }
+   ],
+   [
+    "phase",
+    {
+     "stage": "streaming_start",
+     "status": "start",
+     "detail": "model-1"
+    }
+   ],
+   [
+    "thinking_start",
+    {}
+   ],
+   [
+    "thinking",
+    {
+     "text": "plan"
+    }
+   ],
+   [
+    "thinking_stop",
+    {}
+   ],
+   [
+    "content",
+    {
+     "text": "Working on it. "
+    }
+   ],
+   [
+    "tool_start",
+    {
+     "name": "notebook_doc_read",
+     "args": {}
+    }
+   ],
+   [
+    "tool_end",
+    {
+     "name": "notebook_doc_read",
+     "result": "{\"content\":\"Hello world\\n\",\"format\":\"markdown\"}"
+    }
+   ],
+   [
+    "tool_start",
+    {
+     "name": "notebook_doc_replace",
+     "args": {
+      "find_text": "Hello world",
+      "replace_text": "Hi world"
+     }
+    }
+   ],
+   [
+    "notebook_doc_update",
+    {
+     "content": "<p>Hi world</p>",
+     "version": 8
+    }
+   ],
+   [
+    "tool_end",
+    {
+     "name": "notebook_doc_replace",
+     "result": "{\"_action\":\"notebook_doc_update\",\"content\":\"<p>Hi world</p>\",\"contentMd\":\"Hi world\\n\",\"message\":\"Document text replaced successfully.\"}"
+    }
+   ],
+   [
+    "tool_start",
+    {
+     "name": "notebook_add_source",
+     "args": {
+      "name": "Found",
+      "content": "web text",
+      "metadata": {
+       "url": "https://x.invalid"
+      }
+     }
+    }
+   ],
+   [
+    "notebook_source_added",
+    {
+     "source": {
+      "id": "src-new",
+      "name": "Found",
+      "type": "text",
+      "status": "processing",
+      "metadata": {
+       "url": "https://x.invalid"
+      }
+     }
+    }
+   ],
+   [
+    "tool_end",
+    {
+     "name": "notebook_add_source",
+     "result": "{\"success\":true,\"message\":\"Source \\\"Found\\\" added and indexing.\",\"sourceId\":\"src-new\"}"
+    }
+   ],
+   [
+    "tool_start",
+    {
+     "name": "notebook_kb_search",
+     "args": {
+      "query": "beta"
+     }
+    }
+   ],
+   [
+    "tool_end",
+    {
+     "name": "notebook_kb_search",
+     "result": "{\"query\":\"q\",\"resultCount\":1,\"results\":[{\"chunk_id\":\"c7\",\"content\":\"gamma\"}]}"
+    }
+   ],
+   [
+    "tool_start",
+    {
+     "name": "agent_search",
+     "args": {
+      "query": "law"
+     }
+    }
+   ],
+   [
+    "tool_end",
+    {
+     "name": "agent_search",
+     "result": "{\"results\":[\"web hit\"]}"
+    }
+   ],
+   [
+    "tool_start",
+    {
+     "name": "mystery_tool",
+     "args": {
+      "a": 1
+     }
+    }
+   ],
+   [
+    "tool_end",
+    {
+     "name": "mystery_tool",
+     "result": "{\"error\":\"Unknown tool: mystery_tool\"}"
+    }
+   ],
+   [
+    "tool_start",
+    {
+     "name": "notebook_doc_read",
+     "args": {}
+    }
+   ],
+   [
+    "tool_end",
+    {
+     "name": "notebook_doc_read",
+     "result": "{\"content\":\"Hi world\\n\",\"format\":\"markdown\"}"
+    }
+   ],
+   [
+    "content",
+    {
+     "text": "Done, I rewrote it."
+    }
+   ],
+   [
+    "done",
+    {}
+   ]
+  ],
+  "body": null,
+  "calls": [
+   {
+    "key": "k",
+    "apiUrl": "http://model.invalid",
+    "modelId": "model-1",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are an intelligent notebook assistant. Today is <DATE>.\n\n[NOTEBOOK: \"Matter\"]\nDescription: A matter\n\nCustom Instructions: Be brief\n\n[AVAILABLE SOURCES]\n- Notes.pdf (pdf, 1,200 words)\n\nCRITICAL INSTRUCTIONS:\n1. ALWAYS ground your responses in the notebook's sources when relevant context is available.\n2. When you use specific information from the knowledge base, name the source it comes from (e.g. according to \"Report.pdf\"). The app shows the cited passages as source chips under your answer on its own. Never use numeric references such as [1] or [Source 1].\n3. If the user asks about something not covered in the sources, clearly state that and provide general knowledge with a disclaimer.\n4. Be comprehensive but concise. Synthesize information across multiple sources when applicable.\n5. If asked to summarize, compare, or analyze — draw from ALL relevant sources.\n6. Format responses with clear structure: headings, bullet points, and citations.\n\n[DOCUMENT TOOLS]\nYou have tools to interact with the user's document editor:\n- notebook_doc_read: Read the current document content (ALWAYS use before editing)\n- notebook_doc_write: Replace ALL document content (for new documents or full rewrites)\n- notebook_doc_replace: Replace a SPECIFIC portion (preferred for edits)\n\nDOCUMENT FORMAT — write the document in Markdown (BFM):\n- Headings: # H1, ## H2, ### H3\n- Inline: **bold**, *italic*, ~~strike~~, inline code in single backticks, ==highlight==\n- Lists: \"- item\", \"1. item\"; task lists \"- [ ] todo\" / \"- [x] done\"\n- > blockquote, --- divider, [text](url) links\n- Tables: a header row, then a |---|---| separator row, then data rows\n- Fenced code blocks (triple-backtick + language); diagrams use triple-backtick mermaid fences\n- Math (KaTeX): $inline$ and $$block$$\n- Images: ![alt](url){w=400 align=center wrap} (attrs optional; user uploads go via the toolbar, not AI)\n- Color/font are rare: [text]{color=#e74c3c} / [text]{font=Georgia}\n\nDOCUMENT RULES — FOLLOW STRICTLY:\n1. To rewrite, shorten, expand, fix, edit, or modify text from the document: ALWAYS use notebook_doc_replace to apply the change directly — do NOT just return the modified text in chat.\n2. For partial edits, ALWAYS prefer notebook_doc_replace over notebook_doc_write.\n3. Before notebook_doc_replace, call notebook_doc_read to see the EXACT current Markdown.\n4. When asked to write, create, or draft something: write it via notebook_doc_write — don't just reply in chat.\n5. The user's message may include selected document text — pass it verbatim as find_text.\n6. After applying a change, briefly confirm what you did (e.g. \"I've shortened that paragraph\").\n7. In the document, cite a source by its name in plain text (or as a [Source name](url) link only when you really know its URL) — never [1]-style refs.\n8. STYLE CONSISTENCY: when replacing, match the original formatting — don't promote a paragraph to a heading unless asked.\n\n[WEB SEARCH & SOURCES]\n- You can search the web using agent_search for current information and research\n- You can add search results or any text directly as a notebook source using notebook_add_source\n- When adding web search results as a source, pass the complete results text directly — no need to re-fetch\n[KNOWLEDGE BASE]\nThe passages below are already retrieved for this question. Call notebook_kb_search only to look up something different from what is below, and never repeat a search you have already done.\n### Source 1: Notes.pdf\nalpha passage\n\n[DOCUMENT EDITOR — CURRENT CONTENT]\nThe user has a rich-text document editor open in the center panel. Current content:\n```markdown\nstale md\n```\nYou can read, write, or edit this document using the notebook_doc_* tools.\n\n[SELECTED TEXT IN DOCUMENT]\nThe user has highlighted the following text in the editor:\n<<<SELECTION_BEGIN>>>\nHello world\n<<<SELECTION_END>>>\nThe user explicitly invoked \"rewrite\" on this selection, so you MUST call notebook_doc_replace with find_text set to the exact selection above and replace_text set to your revised version.\nNow: <NOW>"
+     },
+     {
+      "role": "user",
+      "content": "[Earlier in this conversation, 1 message(s) were omitted to stay within the context limit. If the user refers to something not shown below, say you no longer have it in view and ask them to restate it, or search the notebook's sources.]"
+     },
+     {
+      "role": "assistant",
+      "content": "old answer"
+     },
+     {
+      "role": "user",
+      "content": "recent question"
+     },
+     {
+      "role": "assistant",
+      "content": "recent answer"
+     },
+     {
+      "role": "user",
+      "content": "Rewrite this please\n\n[File: notes.txt]\n---\nattached body\n---"
+     }
+    ],
+    "opts": {
+     "maxTokens": 8192,
+     "temperature": 0.2,
+     "reasoningEffort": "low",
+     "signal": "AbortSignal",
+     "tools": [
+      "notebook_doc_read",
+      "notebook_doc_write",
+      "notebook_doc_replace",
+      "notebook_add_source",
+      "notebook_kb_search",
+      "agent_search"
+     ],
+     "toolChoice": "auto"
+    }
+   },
+   {
+    "key": "k",
+    "apiUrl": "http://model.invalid",
+    "modelId": "model-1",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are an intelligent notebook assistant. Today is <DATE>.\n\n[NOTEBOOK: \"Matter\"]\nDescription: A matter\n\nCustom Instructions: Be brief\n\n[AVAILABLE SOURCES]\n- Notes.pdf (pdf, 1,200 words)\n\nCRITICAL INSTRUCTIONS:\n1. ALWAYS ground your responses in the notebook's sources when relevant context is available.\n2. When you use specific information from the knowledge base, name the source it comes from (e.g. according to \"Report.pdf\"). The app shows the cited passages as source chips under your answer on its own. Never use numeric references such as [1] or [Source 1].\n3. If the user asks about something not covered in the sources, clearly state that and provide general knowledge with a disclaimer.\n4. Be comprehensive but concise. Synthesize information across multiple sources when applicable.\n5. If asked to summarize, compare, or analyze — draw from ALL relevant sources.\n6. Format responses with clear structure: headings, bullet points, and citations.\n\n[DOCUMENT TOOLS]\nYou have tools to interact with the user's document editor:\n- notebook_doc_read: Read the current document content (ALWAYS use before editing)\n- notebook_doc_write: Replace ALL document content (for new documents or full rewrites)\n- notebook_doc_replace: Replace a SPECIFIC portion (preferred for edits)\n\nDOCUMENT FORMAT — write the document in Markdown (BFM):\n- Headings: # H1, ## H2, ### H3\n- Inline: **bold**, *italic*, ~~strike~~, inline code in single backticks, ==highlight==\n- Lists: \"- item\", \"1. item\"; task lists \"- [ ] todo\" / \"- [x] done\"\n- > blockquote, --- divider, [text](url) links\n- Tables: a header row, then a |---|---| separator row, then data rows\n- Fenced code blocks (triple-backtick + language); diagrams use triple-backtick mermaid fences\n- Math (KaTeX): $inline$ and $$block$$\n- Images: ![alt](url){w=400 align=center wrap} (attrs optional; user uploads go via the toolbar, not AI)\n- Color/font are rare: [text]{color=#e74c3c} / [text]{font=Georgia}\n\nDOCUMENT RULES — FOLLOW STRICTLY:\n1. To rewrite, shorten, expand, fix, edit, or modify text from the document: ALWAYS use notebook_doc_replace to apply the change directly — do NOT just return the modified text in chat.\n2. For partial edits, ALWAYS prefer notebook_doc_replace over notebook_doc_write.\n3. Before notebook_doc_replace, call notebook_doc_read to see the EXACT current Markdown.\n4. When asked to write, create, or draft something: write it via notebook_doc_write — don't just reply in chat.\n5. The user's message may include selected document text — pass it verbatim as find_text.\n6. After applying a change, briefly confirm what you did (e.g. \"I've shortened that paragraph\").\n7. In the document, cite a source by its name in plain text (or as a [Source name](url) link only when you really know its URL) — never [1]-style refs.\n8. STYLE CONSISTENCY: when replacing, match the original formatting — don't promote a paragraph to a heading unless asked.\n\n[WEB SEARCH & SOURCES]\n- You can search the web using agent_search for current information and research\n- You can add search results or any text directly as a notebook source using notebook_add_source\n- When adding web search results as a source, pass the complete results text directly — no need to re-fetch\n[KNOWLEDGE BASE]\nThe passages below are already retrieved for this question. Call notebook_kb_search only to look up something different from what is below, and never repeat a search you have already done.\n### Source 1: Notes.pdf\nalpha passage\n\n[DOCUMENT EDITOR — CURRENT CONTENT]\nThe user has a rich-text document editor open in the center panel. Current content:\n```markdown\nstale md\n```\nYou can read, write, or edit this document using the notebook_doc_* tools.\n\n[SELECTED TEXT IN DOCUMENT]\nThe user has highlighted the following text in the editor:\n<<<SELECTION_BEGIN>>>\nHello world\n<<<SELECTION_END>>>\nThe user explicitly invoked \"rewrite\" on this selection, so you MUST call notebook_doc_replace with find_text set to the exact selection above and replace_text set to your revised version.\nNow: <NOW>"
+     },
+     {
+      "role": "user",
+      "content": "[Earlier in this conversation, 1 message(s) were omitted to stay within the context limit. If the user refers to something not shown below, say you no longer have it in view and ask them to restate it, or search the notebook's sources.]"
+     },
+     {
+      "role": "assistant",
+      "content": "old answer"
+     },
+     {
+      "role": "user",
+      "content": "recent question"
+     },
+     {
+      "role": "assistant",
+      "content": "recent answer"
+     },
+     {
+      "role": "user",
+      "content": "Rewrite this please\n\n[File: notes.txt]\n---\nattached body\n---"
+     },
+     {
+      "role": "assistant",
+      "content": "Working on it. ",
+      "tool_calls": [
+       {
+        "id": "call_a",
+        "type": "function",
+        "function": {
+         "name": "notebook_doc_read",
+         "arguments": "{}"
+        }
+       },
+       {
+        "id": "call_b",
+        "type": "function",
+        "function": {
+         "name": "notebook_doc_replace",
+         "arguments": "{\"find_text\":\"Hello world\",\"replace_text\":\"Hi world\"}"
+        }
+       },
+       {
+        "id": "call_c",
+        "type": "function",
+        "function": {
+         "name": "notebook_add_source",
+         "arguments": "{\"name\":\"Found\",\"content\":\"web text\",\"metadata\":{\"url\":\"https://x.invalid\"}}"
+        }
+       },
+       {
+        "id": "call_d",
+        "type": "function",
+        "function": {
+         "name": "notebook_kb_search",
+         "arguments": "{\"query\":\"beta\"}"
+        }
+       },
+       {
+        "id": "call_e",
+        "type": "function",
+        "function": {
+         "name": "agent_search",
+         "arguments": "{\"query\":\"law\"}"
+        }
+       },
+       {
+        "id": "call_f",
+        "type": "function",
+        "function": {
+         "name": "mystery_tool",
+         "arguments": "{\"a\":1}"
+        }
+       }
+      ]
+     },
+     {
+      "role": "tool",
+      "tool_call_id": "call_a",
+      "content": "{\"content\":\"Hello world\\n\",\"format\":\"markdown\"}"
+     },
+     {
+      "role": "tool",
+      "tool_call_id": "call_b",
+      "content": "{\"_action\":\"notebook_doc_update\",\"content\":\"<p>Hi world</p>\",\"contentMd\":\"Hi world\\n\",\"message\":\"Document text replaced successfully.\"}"
+     },
+     {
+      "role": "tool",
+      "tool_call_id": "call_c",
+      "content": "{\"success\":true,\"message\":\"Source \\\"Found\\\" added and indexing.\",\"sourceId\":\"src-new\"}"
+     },
+     {
+      "role": "tool",
+      "tool_call_id": "call_d",
+      "content": "{\"query\":\"q\",\"resultCount\":1,\"results\":[{\"chunk_id\":\"c7\",\"content\":\"gamma\"}]}"
+     },
+     {
+      "role": "tool",
+      "tool_call_id": "call_e",
+      "content": "{\"results\":[\"web hit\"]}"
+     },
+     {
+      "role": "tool",
+      "tool_call_id": "call_f",
+      "content": "{\"error\":\"Unknown tool: mystery_tool\"}"
+     }
+    ],
+    "opts": {
+     "maxTokens": 8192,
+     "temperature": 0.2,
+     "reasoningEffort": "low",
+     "signal": "AbortSignal",
+     "tools": [
+      "notebook_doc_read",
+      "notebook_doc_write",
+      "notebook_doc_replace",
+      "notebook_add_source",
+      "notebook_kb_search",
+      "agent_search"
+     ],
+     "toolChoice": "auto"
+    }
+   },
+   {
+    "key": "k",
+    "apiUrl": "http://model.invalid",
+    "modelId": "model-1",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are an intelligent notebook assistant. Today is <DATE>.\n\n[NOTEBOOK: \"Matter\"]\nDescription: A matter\n\nCustom Instructions: Be brief\n\n[AVAILABLE SOURCES]\n- Notes.pdf (pdf, 1,200 words)\n\nCRITICAL INSTRUCTIONS:\n1. ALWAYS ground your responses in the notebook's sources when relevant context is available.\n2. When you use specific information from the knowledge base, name the source it comes from (e.g. according to \"Report.pdf\"). The app shows the cited passages as source chips under your answer on its own. Never use numeric references such as [1] or [Source 1].\n3. If the user asks about something not covered in the sources, clearly state that and provide general knowledge with a disclaimer.\n4. Be comprehensive but concise. Synthesize information across multiple sources when applicable.\n5. If asked to summarize, compare, or analyze — draw from ALL relevant sources.\n6. Format responses with clear structure: headings, bullet points, and citations.\n\n[DOCUMENT TOOLS]\nYou have tools to interact with the user's document editor:\n- notebook_doc_read: Read the current document content (ALWAYS use before editing)\n- notebook_doc_write: Replace ALL document content (for new documents or full rewrites)\n- notebook_doc_replace: Replace a SPECIFIC portion (preferred for edits)\n\nDOCUMENT FORMAT — write the document in Markdown (BFM):\n- Headings: # H1, ## H2, ### H3\n- Inline: **bold**, *italic*, ~~strike~~, inline code in single backticks, ==highlight==\n- Lists: \"- item\", \"1. item\"; task lists \"- [ ] todo\" / \"- [x] done\"\n- > blockquote, --- divider, [text](url) links\n- Tables: a header row, then a |---|---| separator row, then data rows\n- Fenced code blocks (triple-backtick + language); diagrams use triple-backtick mermaid fences\n- Math (KaTeX): $inline$ and $$block$$\n- Images: ![alt](url){w=400 align=center wrap} (attrs optional; user uploads go via the toolbar, not AI)\n- Color/font are rare: [text]{color=#e74c3c} / [text]{font=Georgia}\n\nDOCUMENT RULES — FOLLOW STRICTLY:\n1. To rewrite, shorten, expand, fix, edit, or modify text from the document: ALWAYS use notebook_doc_replace to apply the change directly — do NOT just return the modified text in chat.\n2. For partial edits, ALWAYS prefer notebook_doc_replace over notebook_doc_write.\n3. Before notebook_doc_replace, call notebook_doc_read to see the EXACT current Markdown.\n4. When asked to write, create, or draft something: write it via notebook_doc_write — don't just reply in chat.\n5. The user's message may include selected document text — pass it verbatim as find_text.\n6. After applying a change, briefly confirm what you did (e.g. \"I've shortened that paragraph\").\n7. In the document, cite a source by its name in plain text (or as a [Source name](url) link only when you really know its URL) — never [1]-style refs.\n8. STYLE CONSISTENCY: when replacing, match the original formatting — don't promote a paragraph to a heading unless asked.\n\n[WEB SEARCH & SOURCES]\n- You can search the web using agent_search for current information and research\n- You can add search results or any text directly as a notebook source using notebook_add_source\n- When adding web search results as a source, pass the complete results text directly — no need to re-fetch\n[KNOWLEDGE BASE]\nThe passages below are already retrieved for this question. Call notebook_kb_search only to look up something different from what is below, and never repeat a search you have already done.\n### Source 1: Notes.pdf\nalpha passage\n\n[DOCUMENT EDITOR — CURRENT CONTENT]\nThe user has a rich-text document editor open in the center panel. Current content:\n```markdown\nstale md\n```\nYou can read, write, or edit this document using the notebook_doc_* tools.\n\n[SELECTED TEXT IN DOCUMENT]\nThe user has highlighted the following text in the editor:\n<<<SELECTION_BEGIN>>>\nHello world\n<<<SELECTION_END>>>\nThe user explicitly invoked \"rewrite\" on this selection, so you MUST call notebook_doc_replace with find_text set to the exact selection above and replace_text set to your revised version.\nNow: <NOW>"
+     },
+     {
+      "role": "user",
+      "content": "[Earlier in this conversation, 1 message(s) were omitted to stay within the context limit. If the user refers to something not shown below, say you no longer have it in view and ask them to restate it, or search the notebook's sources.]"
+     },
+     {
+      "role": "assistant",
+      "content": "old answer"
+     },
+     {
+      "role": "user",
+      "content": "recent question"
+     },
+     {
+      "role": "assistant",
+      "content": "recent answer"
+     },
+     {
+      "role": "user",
+      "content": "Rewrite this please\n\n[File: notes.txt]\n---\nattached body\n---"
+     },
+     {
+      "role": "assistant",
+      "content": "Working on it. ",
+      "tool_calls": [
+       {
+        "id": "call_a",
+        "type": "function",
+        "function": {
+         "name": "notebook_doc_read",
+         "arguments": "{}"
+        }
+       },
+       {
+        "id": "call_b",
+        "type": "function",
+        "function": {
+         "name": "notebook_doc_replace",
+         "arguments": "{\"find_text\":\"Hello world\",\"replace_text\":\"Hi world\"}"
+        }
+       },
+       {
+        "id": "call_c",
+        "type": "function",
+        "function": {
+         "name": "notebook_add_source",
+         "arguments": "{\"name\":\"Found\",\"content\":\"web text\",\"metadata\":{\"url\":\"https://x.invalid\"}}"
+        }
+       },
+       {
+        "id": "call_d",
+        "type": "function",
+        "function": {
+         "name": "notebook_kb_search",
+         "arguments": "{\"query\":\"beta\"}"
+        }
+       },
+       {
+        "id": "call_e",
+        "type": "function",
+        "function": {
+         "name": "agent_search",
+         "arguments": "{\"query\":\"law\"}"
+        }
+       },
+       {
+        "id": "call_f",
+        "type": "function",
+        "function": {
+         "name": "mystery_tool",
+         "arguments": "{\"a\":1}"
+        }
+       }
+      ]
+     },
+     {
+      "role": "tool",
+      "tool_call_id": "call_a",
+      "content": "{\"content\":\"Hello world\\n\",\"format\":\"markdown\"}"
+     },
+     {
+      "role": "tool",
+      "tool_call_id": "call_b",
+      "content": "{\"_action\":\"notebook_doc_update\",\"content\":\"<p>Hi world</p>\",\"contentMd\":\"Hi world\\n\",\"message\":\"Document text replaced successfully.\"}"
+     },
+     {
+      "role": "tool",
+      "tool_call_id": "call_c",
+      "content": "{\"success\":true,\"message\":\"Source \\\"Found\\\" added and indexing.\",\"sourceId\":\"src-new\"}"
+     },
+     {
+      "role": "tool",
+      "tool_call_id": "call_d",
+      "content": "{\"query\":\"q\",\"resultCount\":1,\"results\":[{\"chunk_id\":\"c7\",\"content\":\"gamma\"}]}"
+     },
+     {
+      "role": "tool",
+      "tool_call_id": "call_e",
+      "content": "{\"results\":[\"web hit\"]}"
+     },
+     {
+      "role": "tool",
+      "tool_call_id": "call_f",
+      "content": "{\"error\":\"Unknown tool: mystery_tool\"}"
+     },
+     {
+      "role": "assistant",
+      "content": null,
+      "tool_calls": [
+       {
+        "id": "call_g",
+        "type": "function",
+        "function": {
+         "name": "notebook_doc_read",
+         "arguments": "{}"
+        }
+       }
+      ]
+     },
+     {
+      "role": "tool",
+      "tool_call_id": "call_g",
+      "content": "{\"content\":\"Hi world\\n\",\"format\":\"markdown\"}"
+     }
+    ],
+    "opts": {
+     "maxTokens": 8192,
+     "temperature": 0.2,
+     "reasoningEffort": "low",
+     "signal": "AbortSignal",
+     "tools": [
+      "notebook_doc_read",
+      "notebook_doc_write",
+      "notebook_doc_replace",
+      "notebook_add_source",
+      "notebook_kb_search",
+      "agent_search"
+     ],
+     "toolChoice": "auto"
+    }
+   }
+  ],
+  "trace": [
+   [
+    "kb.search",
+    {
+     "userId": "u1",
+     "kbIds": [
+      "kb1"
+     ],
+     "query": "Rewrite this please",
+     "options": {
+      "topK": 10,
+      "rerank": true,
+      "minScore": 0.2
+     },
+     "sources": [
+      {
+       "id": "s1",
+       "name": "Notes.pdf",
+       "type": "pdf",
+       "status": "ready",
+       "wordCount": 1200
+      }
+     ]
+    }
+   ],
+   [
+    "store.updateNotebookCas",
+    "nb-1",
+    "u1",
+    {
+     "documentContent": "<p>Hi world</p>",
+     "documentMd": "Hi world\n",
+     "expectedVersion": 7
+    }
+   ],
+   [
+    "store.countSources",
+    "nb-1"
+   ],
+   [
+    "store.addSource",
+    {
+     "notebookId": "nb-1",
+     "type": "text",
+     "name": "Found",
+     "metadata": {
+      "url": "https://x.invalid"
+     },
+     "wordCount": 2
+    }
+   ],
+   [
+    "ingest.text",
+    "nb-1",
+    "src-new",
+    "u1",
+    "web text",
+    "Found"
+   ],
+   [
+    "feed.sourcesAdded",
+    {
+     "projectId": "p1",
+     "notebookId": "nb-1",
+     "actorId": "u1"
+    }
+   ],
+   [
+    "kb.tool",
+    {
+     "query": "beta"
+    },
+    "u1",
+    [
+     "kb1"
+    ],
+    [
+     {
+      "id": "s1",
+      "name": "Notes.pdf",
+      "type": "pdf",
+      "status": "ready",
+      "wordCount": 1200
+     }
+    ]
+   ],
+   [
+    "web.search",
+    "agent_search",
+    {
+     "query": "law"
+    },
+    {
+     "source": "notebook_chat",
+     "ids": {
+      "organization_id": "org-1",
+      "user_id": "u1",
+      "conversation_id": "nb-1"
+     }
+    }
+   ],
+   [
+    "store.recordVersion",
+    "nb-1",
+    {
+     "html": "<p>Hi world</p>",
+     "markdown": "Hi world\n",
+     "source": "ai",
+     "createdBy": "u1",
+     "contributors": [
+      {
+       "userId": "u1",
+       "kind": "ai"
+      }
+     ]
+    }
+   ],
+   [
+    "feed.contentChanged",
+    {
+     "projectId": "p1",
+     "notebookId": "nb-1",
+     "contributors": [
+      {
+       "userId": "u1",
+       "kind": "ai"
+      }
+     ],
+     "versionId": "ver-1",
+     "source": "ai"
+    }
+   ],
+   [
+    "conv.appendMessages",
+    "nb-1",
+    "u1",
+    "dek",
+    [
+     {
+      "role": "user",
+      "content": "Rewrite this please",
+      "createdAt": "T",
+      "attachments": [
+       "notes.txt"
+      ]
+     },
+     {
+      "role": "assistant",
+      "content": "Working on it. Done, I rewrote it.",
+      "createdAt": "T",
+      "modelId": "model-1",
+      "modelTier": "fast"
+     }
+    ]
+   ],
+   [
+    "store.touchActivity",
+    "nb-1",
+    "chat"
+   ]
+  ]
+ },
+ "viewer turn with the shield on: PII tokens, refused write, output redaction, privacy panel": {
+  "status": 200,
+  "events": [
+   [
+    "phase",
+    {
+     "stage": "model_resolved",
+     "status": "start",
+     "detail": "model-1"
+    }
+   ],
+   [
+    "phase",
+    {
+     "stage": "model_resolved",
+     "status": "end"
+    }
+   ],
+   [
+    "phase",
+    {
+     "stage": "building_prompt",
+     "status": "start"
+    }
+   ],
+   [
+    "phase",
+    {
+     "stage": "building_prompt",
+     "status": "end",
+     "durationMs": "ms"
+    }
+   ],
+   [
+    "phase",
+    {
+     "stage": "privacy_scan",
+     "status": "start"
+    }
+   ],
+   [
+    "phase",
+    {
+     "stage": "privacy_scan",
+     "status": "end",
+     "durationMs": "ms"
+    }
+   ],
+   [
+    "pii_tokenized",
+    {
+     "entities": [
+      {
+       "label": "Person",
+       "category": "PERSON"
+      }
+     ],
+     "tokenCount": 1
+    }
+   ],
+   [
+    "privacy_payload",
+    {
+     "tokenizedPrompt": "Ask [person_1] about it",
+     "provider": "model-1",
+     "source": "pii",
+     "timestamp": "T"
+    }
+   ],
+   [
+    "privacy_token_map",
+    {
+     "tokenMap": {
+      "[person_1]": "Jan"
+     },
+     "source": "pii"
+    }
+   ],
+   [
+    "phase",
+    {
+     "stage": "streaming_start",
+     "status": "start",
+     "detail": "model-1"
+    }
+   ],
+   [
+    "content",
+    {
+     "text": "Writing for Jan. "
+    }
+   ],
+   [
+    "tool_start",
+    {
+     "name": "notebook_doc_write",
+     "args": {
+      "content": "# For Jan"
+     }
+    }
+   ],
+   [
+    "tool_end",
+    {
+     "name": "notebook_doc_write",
+     "result": "{\"error\":\"This user can view this notebook but not change it, so the document and its sources were left as they are. Answer in the chat instead.\"}"
+    }
+   ],
+   [
+    "tool_start",
+    {
+     "name": "notebook_add_source",
+     "args": {
+      "content": "x"
+     }
+    }
+   ],
+   [
+    "tool_end",
+    {
+     "name": "notebook_add_source",
+     "result": "{\"error\":\"This user can view this notebook but not change it, so the document and its sources were left as they are. Answer in the chat instead.\"}"
+    }
+   ],
+   [
+    "content",
+    {
+     "text": "I cannot change it; the secret stays with Jan."
+    }
+   ],
+   [
+    "content_replace",
+    {
+     "text": "Writing for Jan. I cannot change it; the secret stays with Jan."
+    }
+   ],
+   [
+    "content_redact",
+    {
+     "originalMessage": "Writing for Jan. I cannot change it; the secret stays with Jan.",
+     "redactedMessage": "Writing for Jan. I cannot change it; the [REDACTED: Secret] stays with Jan.",
+     "rules": "Secret",
+     "autoRedactSeconds": 5
+    }
+   ],
+   [
+    "done",
+    {}
+   ]
+  ],
+  "body": null,
+  "calls": [
+   {
+    "key": "k",
+    "apiUrl": "http://model.invalid",
+    "modelId": "model-1",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are an intelligent notebook assistant. Today is <DATE>.\n\n[NOTEBOOK: \"Matter\"]\nDescription: A matter\n\nCustom Instructions: Be brief\n\n[AVAILABLE SOURCES]\n- Notes.pdf (pdf, 1,200 words)\n\nCRITICAL INSTRUCTIONS:\n1. ALWAYS ground your responses in the notebook's sources when relevant context is available.\n2. When you use specific information from the knowledge base, name the source it comes from (e.g. according to \"Report.pdf\"). The app shows the cited passages as source chips under your answer on its own. Never use numeric references such as [1] or [Source 1].\n3. If the user asks about something not covered in the sources, clearly state that and provide general knowledge with a disclaimer.\n4. Be comprehensive but concise. Synthesize information across multiple sources when applicable.\n5. If asked to summarize, compare, or analyze — draw from ALL relevant sources.\n6. Format responses with clear structure: headings, bullet points, and citations.\n\n[DOCUMENT TOOLS]\nYou have tools to interact with the user's document editor:\n- notebook_doc_read: Read the current document content (ALWAYS use before editing)\n- notebook_doc_write: Replace ALL document content (for new documents or full rewrites)\n- notebook_doc_replace: Replace a SPECIFIC portion (preferred for edits)\n\nDOCUMENT FORMAT — write the document in Markdown (BFM):\n- Headings: # H1, ## H2, ### H3\n- Inline: **bold**, *italic*, ~~strike~~, inline code in single backticks, ==highlight==\n- Lists: \"- item\", \"1. item\"; task lists \"- [ ] todo\" / \"- [x] done\"\n- > blockquote, --- divider, [text](url) links\n- Tables: a header row, then a |---|---| separator row, then data rows\n- Fenced code blocks (triple-backtick + language); diagrams use triple-backtick mermaid fences\n- Math (KaTeX): $inline$ and $$block$$\n- Images: ![alt](url){w=400 align=center wrap} (attrs optional; user uploads go via the toolbar, not AI)\n- Color/font are rare: [text]{color=#e74c3c} / [text]{font=Georgia}\n\nDOCUMENT RULES — FOLLOW STRICTLY:\n1. To rewrite, shorten, expand, fix, edit, or modify text from the document: ALWAYS use notebook_doc_replace to apply the change directly — do NOT just return the modified text in chat.\n2. For partial edits, ALWAYS prefer notebook_doc_replace over notebook_doc_write.\n3. Before notebook_doc_replace, call notebook_doc_read to see the EXACT current Markdown.\n4. When asked to write, create, or draft something: write it via notebook_doc_write — don't just reply in chat.\n5. The user's message may include selected document text — pass it verbatim as find_text.\n6. After applying a change, briefly confirm what you did (e.g. \"I've shortened that paragraph\").\n7. In the document, cite a source by its name in plain text (or as a [Source name](url) link only when you really know its URL) — never [1]-style refs.\n8. STYLE CONSISTENCY: when replacing, match the original formatting — don't promote a paragraph to a heading unless asked.\n\n[WEB SEARCH & SOURCES]\n- You can search the web using agent_search for current information and research\n- You can add search results or any text directly as a notebook source using notebook_add_source\n- When adding web search results as a source, pass the complete results text directly — no need to re-fetch\n\n\n[DOCUMENT EDITOR — CURRENT CONTENT]\nThe user has a rich-text document editor open in the center panel. Current content:\n```markdown\nDoc of [person_1]\n\n```\nYou can read, write, or edit this document using the notebook_doc_* tools.\nNow: <NOW>\n\n[PII TOKEN PRESERVATION — CRITICAL]\nThis conversation (the user's messages, the remembered notes in <memories>, documents and tool results) contains bracketed placeholders such as `[name_1]`, `[email_1]`, `[phone_2]`. These are NOT literal text — they stand in for real personal data that has been redacted before reaching you. A downstream system replaces each token with its original value before the user sees your reply, so to the user a token IS the value.\n\nTokens currently in scope for this conversation: `[person_1]`.\n\nRules (override any default phrasing habits, in any language):\n0. **A token is the answer.** When the user asks for a value that a token stands for (\"what is my name?\", \"what is my email address?\", \"what is the customer's phone number?\"), answer with that token verbatim: \"Your name is [person_1] and your email address is [email_1].\" A token in <memories> is the user's own data unless the note says otherwise (\"My name is [person_1]\" means the user is [person_1]). Never answer that you do not know, cannot see, or were not given the value, and never treat the token as some other person: you have the value, in token form, and the user reads the real value.\n1. When you need to refer to one of these entities (greeting, salutation, signature, recipient name, contact email, etc.), reuse the EXACT token verbatim — same brackets, same underscore, same number, all inside the brackets. e.g. write \"Beste [name_1],\" / \"Dear [name_1],\" — never \"Dear recipient\", \"Dear [name]\", \"[your name]\", \"[je naam]\", or a guessed real name. Do NOT alter the token's shape while writing longer or more formal text: keep the underscore and keep the digit INSIDE the brackets. `[person_2]` must stay `[person_2]` — never `[person2]`, `[person]2`, `[person 2]`, or `[email]2`. A reshaped token may fail to restore and leak the placeholder into the user's document.\n2. Never invent new bracketed placeholders. Do not output `[name]`, `[your name]`, `[je naam]`, `[recipient]`, `[email]`, `[phone]`, etc. Only the exact tokens listed above are valid.\n3. Never decode, guess, or reconstruct the real value behind a token. Treat each token as opaque.\n4. **Sign-offs**: when you sign a message on behalf of the user, you MUST use a person token from the list — do NOT write `[jouw naam]`, `[je naam]`, `[your name]`, `[name]`, `[uw naam]`, or any similar invented placeholder. To pick the right token, read the input carefully:\n   • If the user is replying to an inbound message, the person addressed in the original greeting (e.g. \"Beste [person_3],\" / \"Dear [person_3],\" / \"Hi [person_3]\") is the user — use that same token to sign off.\n   • If the user is forwarding or quoting their own draft and a person token appears in the existing signature, reuse that token.\n   • Only if NO person token in the list can plausibly represent the user, omit the name line entirely (e.g. just \"Met vriendelijke groet,\" with nothing after it). Do NOT fabricate a placeholder as a fallback.\n5. Tokens are language-neutral. Keep them unchanged regardless of the language you respond in.\n6. **DO NOT mention, explain, apologise for, or call attention to the tokenisation, anonymisation, redaction, placeholders, or privacy mechanism in your reply.** From the end user's perspective the tokens are real values — they see the un-tokenised text. Sentences like \"the names have been anonymised\", \"I can't see the real names\", \"deze zijn vervangen door aanduidingen\", \"de werkelijke namen zijn niet zichtbaar\", \"[person_X] is een placeholder\", \"om privacy te beschermen\" — these are FORBIDDEN. They confuse the user, who already sees the original names in the rendered output, and break the round-trip illusion. When summarising or answering questions about a document that contains tokens, simply use the tokens naturally inline (\"Mw. [person_1] woont met haar partner [person_2] …\") and let the un-tokeniser do its job silently. If the user explicitly asks WHY a name looks like `[person_3]`, you may briefly say \"those are privacy placeholders for the real names\" — only when asked."
+     },
+     {
+      "role": "user",
+      "content": "Ask [person_1] about it"
+     }
+    ],
+    "opts": {
+     "maxTokens": 8192,
+     "temperature": 0.2,
+     "reasoningEffort": "low",
+     "signal": "AbortSignal",
+     "tools": [
+      "notebook_doc_read",
+      "agent_search"
+     ],
+     "toolChoice": "auto"
+    }
+   },
+   {
+    "key": "k",
+    "apiUrl": "http://model.invalid",
+    "modelId": "model-1",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are an intelligent notebook assistant. Today is <DATE>.\n\n[NOTEBOOK: \"Matter\"]\nDescription: A matter\n\nCustom Instructions: Be brief\n\n[AVAILABLE SOURCES]\n- Notes.pdf (pdf, 1,200 words)\n\nCRITICAL INSTRUCTIONS:\n1. ALWAYS ground your responses in the notebook's sources when relevant context is available.\n2. When you use specific information from the knowledge base, name the source it comes from (e.g. according to \"Report.pdf\"). The app shows the cited passages as source chips under your answer on its own. Never use numeric references such as [1] or [Source 1].\n3. If the user asks about something not covered in the sources, clearly state that and provide general knowledge with a disclaimer.\n4. Be comprehensive but concise. Synthesize information across multiple sources when applicable.\n5. If asked to summarize, compare, or analyze — draw from ALL relevant sources.\n6. Format responses with clear structure: headings, bullet points, and citations.\n\n[DOCUMENT TOOLS]\nYou have tools to interact with the user's document editor:\n- notebook_doc_read: Read the current document content (ALWAYS use before editing)\n- notebook_doc_write: Replace ALL document content (for new documents or full rewrites)\n- notebook_doc_replace: Replace a SPECIFIC portion (preferred for edits)\n\nDOCUMENT FORMAT — write the document in Markdown (BFM):\n- Headings: # H1, ## H2, ### H3\n- Inline: **bold**, *italic*, ~~strike~~, inline code in single backticks, ==highlight==\n- Lists: \"- item\", \"1. item\"; task lists \"- [ ] todo\" / \"- [x] done\"\n- > blockquote, --- divider, [text](url) links\n- Tables: a header row, then a |---|---| separator row, then data rows\n- Fenced code blocks (triple-backtick + language); diagrams use triple-backtick mermaid fences\n- Math (KaTeX): $inline$ and $$block$$\n- Images: ![alt](url){w=400 align=center wrap} (attrs optional; user uploads go via the toolbar, not AI)\n- Color/font are rare: [text]{color=#e74c3c} / [text]{font=Georgia}\n\nDOCUMENT RULES — FOLLOW STRICTLY:\n1. To rewrite, shorten, expand, fix, edit, or modify text from the document: ALWAYS use notebook_doc_replace to apply the change directly — do NOT just return the modified text in chat.\n2. For partial edits, ALWAYS prefer notebook_doc_replace over notebook_doc_write.\n3. Before notebook_doc_replace, call notebook_doc_read to see the EXACT current Markdown.\n4. When asked to write, create, or draft something: write it via notebook_doc_write — don't just reply in chat.\n5. The user's message may include selected document text — pass it verbatim as find_text.\n6. After applying a change, briefly confirm what you did (e.g. \"I've shortened that paragraph\").\n7. In the document, cite a source by its name in plain text (or as a [Source name](url) link only when you really know its URL) — never [1]-style refs.\n8. STYLE CONSISTENCY: when replacing, match the original formatting — don't promote a paragraph to a heading unless asked.\n\n[WEB SEARCH & SOURCES]\n- You can search the web using agent_search for current information and research\n- You can add search results or any text directly as a notebook source using notebook_add_source\n- When adding web search results as a source, pass the complete results text directly — no need to re-fetch\n\n\n[DOCUMENT EDITOR — CURRENT CONTENT]\nThe user has a rich-text document editor open in the center panel. Current content:\n```markdown\nDoc of [person_1]\n\n```\nYou can read, write, or edit this document using the notebook_doc_* tools.\nNow: <NOW>\n\n[PII TOKEN PRESERVATION — CRITICAL]\nThis conversation (the user's messages, the remembered notes in <memories>, documents and tool results) contains bracketed placeholders such as `[name_1]`, `[email_1]`, `[phone_2]`. These are NOT literal text — they stand in for real personal data that has been redacted before reaching you. A downstream system replaces each token with its original value before the user sees your reply, so to the user a token IS the value.\n\nTokens currently in scope for this conversation: `[person_1]`.\n\nRules (override any default phrasing habits, in any language):\n0. **A token is the answer.** When the user asks for a value that a token stands for (\"what is my name?\", \"what is my email address?\", \"what is the customer's phone number?\"), answer with that token verbatim: \"Your name is [person_1] and your email address is [email_1].\" A token in <memories> is the user's own data unless the note says otherwise (\"My name is [person_1]\" means the user is [person_1]). Never answer that you do not know, cannot see, or were not given the value, and never treat the token as some other person: you have the value, in token form, and the user reads the real value.\n1. When you need to refer to one of these entities (greeting, salutation, signature, recipient name, contact email, etc.), reuse the EXACT token verbatim — same brackets, same underscore, same number, all inside the brackets. e.g. write \"Beste [name_1],\" / \"Dear [name_1],\" — never \"Dear recipient\", \"Dear [name]\", \"[your name]\", \"[je naam]\", or a guessed real name. Do NOT alter the token's shape while writing longer or more formal text: keep the underscore and keep the digit INSIDE the brackets. `[person_2]` must stay `[person_2]` — never `[person2]`, `[person]2`, `[person 2]`, or `[email]2`. A reshaped token may fail to restore and leak the placeholder into the user's document.\n2. Never invent new bracketed placeholders. Do not output `[name]`, `[your name]`, `[je naam]`, `[recipient]`, `[email]`, `[phone]`, etc. Only the exact tokens listed above are valid.\n3. Never decode, guess, or reconstruct the real value behind a token. Treat each token as opaque.\n4. **Sign-offs**: when you sign a message on behalf of the user, you MUST use a person token from the list — do NOT write `[jouw naam]`, `[je naam]`, `[your name]`, `[name]`, `[uw naam]`, or any similar invented placeholder. To pick the right token, read the input carefully:\n   • If the user is replying to an inbound message, the person addressed in the original greeting (e.g. \"Beste [person_3],\" / \"Dear [person_3],\" / \"Hi [person_3]\") is the user — use that same token to sign off.\n   • If the user is forwarding or quoting their own draft and a person token appears in the existing signature, reuse that token.\n   • Only if NO person token in the list can plausibly represent the user, omit the name line entirely (e.g. just \"Met vriendelijke groet,\" with nothing after it). Do NOT fabricate a placeholder as a fallback.\n5. Tokens are language-neutral. Keep them unchanged regardless of the language you respond in.\n6. **DO NOT mention, explain, apologise for, or call attention to the tokenisation, anonymisation, redaction, placeholders, or privacy mechanism in your reply.** From the end user's perspective the tokens are real values — they see the un-tokenised text. Sentences like \"the names have been anonymised\", \"I can't see the real names\", \"deze zijn vervangen door aanduidingen\", \"de werkelijke namen zijn niet zichtbaar\", \"[person_X] is een placeholder\", \"om privacy te beschermen\" — these are FORBIDDEN. They confuse the user, who already sees the original names in the rendered output, and break the round-trip illusion. When summarising or answering questions about a document that contains tokens, simply use the tokens naturally inline (\"Mw. [person_1] woont met haar partner [person_2] …\") and let the un-tokeniser do its job silently. If the user explicitly asks WHY a name looks like `[person_3]`, you may briefly say \"those are privacy placeholders for the real names\" — only when asked."
+     },
+     {
+      "role": "user",
+      "content": "Ask [person_1] about it"
+     },
+     {
+      "role": "assistant",
+      "content": "Writing for [person_1]. ",
+      "tool_calls": [
+       {
+        "id": "call_v",
+        "type": "function",
+        "function": {
+         "name": "notebook_doc_write",
+         "arguments": "{\"content\":\"# For [person_1]\"}"
+        }
+       },
+       {
+        "id": "call_w",
+        "type": "function",
+        "function": {
+         "name": "notebook_add_source",
+         "arguments": "{\"content\":\"x\"}"
+        }
+       }
+      ]
+     },
+     {
+      "role": "tool",
+      "tool_call_id": "call_v",
+      "content": "{\"error\":\"This user can view this notebook but not change it, so the document and its sources were left as they are. Answer in the chat instead.\"}"
+     },
+     {
+      "role": "tool",
+      "tool_call_id": "call_w",
+      "content": "{\"error\":\"This user can view this notebook but not change it, so the document and its sources were left as they are. Answer in the chat instead.\"}"
+     }
+    ],
+    "opts": {
+     "maxTokens": 8192,
+     "temperature": 0.2,
+     "reasoningEffort": "low",
+     "signal": "AbortSignal",
+     "tools": [
+      "notebook_doc_read",
+      "agent_search"
+     ],
+     "toolChoice": "auto"
+    }
+   }
+  ],
+  "trace": [
+   [
+    "dlp.composeScan",
+    "<p>Doc of Jan</p>"
+   ],
+   [
+    "dlp.mergeTokenMap",
+    "nb-1",
+    {
+     "[person_1]": "Jan"
+    }
+   ],
+   [
+    "conv.appendMessages",
+    "nb-1",
+    "u1",
+    "dek",
+    [
+     {
+      "role": "user",
+      "content": "Ask Jan about it",
+      "createdAt": "T",
+      "piiTokenizedCount": 1,
+      "piiCategories": [
+       "Person"
+      ]
+     },
+     {
+      "role": "assistant",
+      "content": "Writing for [person_1]. I cannot change it; the secret stays with [person_1].",
+      "createdAt": "T",
+      "modelId": "model-1",
+      "tokenisationInfo": {
+       "source": "pii",
+       "action": "redact",
+       "count": 1,
+       "categories": [
+        "Person"
+       ],
+       "provider": "model-1",
+       "automatic": true,
+       "tokenizedPrompt": "Ask [person_1] about it",
+       "tokenMap": {
+        "[person_1]": "Jan"
+       }
+      }
+     }
+    ]
+   ],
+   [
+    "store.touchActivity",
+    "nb-1",
+    "chat"
+   ]
+  ]
+ },
+ "stream error, empty answer fallback, history locked": {
+  "status": 200,
+  "events": [
+   [
+    "phase",
+    {
+     "stage": "model_resolved",
+     "status": "start",
+     "detail": "model-1"
+    }
+   ],
+   [
+    "phase",
+    {
+     "stage": "model_resolved",
+     "status": "end"
+    }
+   ],
+   [
+    "phase",
+    {
+     "stage": "building_prompt",
+     "status": "start"
+    }
+   ],
+   [
+    "phase",
+    {
+     "stage": "building_prompt",
+     "status": "end",
+     "durationMs": "ms"
+    }
+   ],
+   [
+    "phase",
+    {
+     "stage": "streaming_start",
+     "status": "start",
+     "detail": "model-1"
+    }
+   ],
+   [
+    "error",
+    {
+     "error": "provider down"
+    }
+   ],
+   [
+    "content",
+    {
+     "text": "I couldn't produce a response for that. Please try rephrasing your request."
+    }
+   ],
+   [
+    "history_locked",
+    {
+     "notebookId": "nb-1"
+    }
+   ],
+   [
+    "done",
+    {}
+   ]
+  ],
+  "body": null,
+  "calls": [
+   {
+    "key": "k",
+    "apiUrl": "http://model.invalid",
+    "modelId": "model-1",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are an intelligent notebook assistant. Today is <DATE>.\n\n[NOTEBOOK: \"Matter\"]\nDescription: A matter\n\nCustom Instructions: Be brief\n\n[AVAILABLE SOURCES]\n- Notes.pdf (pdf, 1,200 words)\n\nCRITICAL INSTRUCTIONS:\n1. ALWAYS ground your responses in the notebook's sources when relevant context is available.\n2. When you use specific information from the knowledge base, name the source it comes from (e.g. according to \"Report.pdf\"). The app shows the cited passages as source chips under your answer on its own. Never use numeric references such as [1] or [Source 1].\n3. If the user asks about something not covered in the sources, clearly state that and provide general knowledge with a disclaimer.\n4. Be comprehensive but concise. Synthesize information across multiple sources when applicable.\n5. If asked to summarize, compare, or analyze — draw from ALL relevant sources.\n6. Format responses with clear structure: headings, bullet points, and citations.\n\n[DOCUMENT TOOLS]\nYou have tools to interact with the user's document editor:\n- notebook_doc_read: Read the current document content (ALWAYS use before editing)\n- notebook_doc_write: Replace ALL document content (for new documents or full rewrites)\n- notebook_doc_replace: Replace a SPECIFIC portion (preferred for edits)\n\nDOCUMENT FORMAT — write the document in Markdown (BFM):\n- Headings: # H1, ## H2, ### H3\n- Inline: **bold**, *italic*, ~~strike~~, inline code in single backticks, ==highlight==\n- Lists: \"- item\", \"1. item\"; task lists \"- [ ] todo\" / \"- [x] done\"\n- > blockquote, --- divider, [text](url) links\n- Tables: a header row, then a |---|---| separator row, then data rows\n- Fenced code blocks (triple-backtick + language); diagrams use triple-backtick mermaid fences\n- Math (KaTeX): $inline$ and $$block$$\n- Images: ![alt](url){w=400 align=center wrap} (attrs optional; user uploads go via the toolbar, not AI)\n- Color/font are rare: [text]{color=#e74c3c} / [text]{font=Georgia}\n\nDOCUMENT RULES — FOLLOW STRICTLY:\n1. To rewrite, shorten, expand, fix, edit, or modify text from the document: ALWAYS use notebook_doc_replace to apply the change directly — do NOT just return the modified text in chat.\n2. For partial edits, ALWAYS prefer notebook_doc_replace over notebook_doc_write.\n3. Before notebook_doc_replace, call notebook_doc_read to see the EXACT current Markdown.\n4. When asked to write, create, or draft something: write it via notebook_doc_write — don't just reply in chat.\n5. The user's message may include selected document text — pass it verbatim as find_text.\n6. After applying a change, briefly confirm what you did (e.g. \"I've shortened that paragraph\").\n7. In the document, cite a source by its name in plain text (or as a [Source name](url) link only when you really know its URL) — never [1]-style refs.\n8. STYLE CONSISTENCY: when replacing, match the original formatting — don't promote a paragraph to a heading unless asked.\n\n[WEB SEARCH & SOURCES]\n- You can search the web using agent_search for current information and research\n- You can add search results or any text directly as a notebook source using notebook_add_source\n- When adding web search results as a source, pass the complete results text directly — no need to re-fetch\n\n\n[DOCUMENT EDITOR — EMPTY]\nThe user has an empty rich-text document editor open. Use notebook_doc_write to create content.\nNow: <NOW>"
+     },
+     {
+      "role": "user",
+      "content": "hello"
+     }
+    ],
+    "opts": {
+     "maxTokens": 1024,
+     "temperature": 0.2,
+     "reasoningEffort": "none",
+     "signal": "AbortSignal",
+     "tools": [
+      "notebook_doc_read",
+      "notebook_doc_write",
+      "notebook_doc_replace",
+      "notebook_add_source",
+      "agent_search"
+     ],
+     "toolChoice": "auto"
+    }
+   }
+  ],
+  "trace": [
+   [
+    "conv.appendMessages",
+    "nb-1",
+    "u1",
+    "dek",
+    [
+     {
+      "role": "user",
+      "content": "hello",
+      "createdAt": "T"
+     },
+     {
+      "role": "assistant",
+      "content": "I couldn't produce a response for that. Please try rephrasing your request.",
+      "createdAt": "T",
+      "modelId": "model-1"
+     }
+    ]
+   ]
+  ]
+ },
+ "the document scan blocks: the turn ends before any model call": {
+  "status": 200,
+  "events": [
+   [
+    "phase",
+    {
+     "stage": "model_resolved",
+     "status": "start",
+     "detail": "model-1"
+    }
+   ],
+   [
+    "phase",
+    {
+     "stage": "model_resolved",
+     "status": "end"
+    }
+   ],
+   [
+    "error",
+    {
+     "error": "Privacy Shield blocked this request because the content contains personal data that may not be sent to the AI model."
+    }
+   ]
+  ],
+  "body": null,
+  "calls": [],
+  "trace": [
+   [
+    "dlp.composeScan",
+    "<p>Secret doc</p>"
+   ]
+  ]
+ },
+ "the document is tokenised; a token minted after the write is restored at the end": {
+  "status": 200,
+  "events": [
+   [
+    "phase",
+    {
+     "stage": "model_resolved",
+     "status": "start",
+     "detail": "model-1"
+    }
+   ],
+   [
+    "phase",
+    {
+     "stage": "model_resolved",
+     "status": "end"
+    }
+   ],
+   [
+    "phase",
+    {
+     "stage": "building_prompt",
+     "status": "start"
+    }
+   ],
+   [
+    "phase",
+    {
+     "stage": "building_prompt",
+     "status": "end",
+     "durationMs": "ms"
+    }
+   ],
+   [
+    "phase",
+    {
+     "stage": "privacy_scan",
+     "status": "start"
+    }
+   ],
+   [
+    "phase",
+    {
+     "stage": "privacy_scan",
+     "status": "end",
+     "durationMs": "ms"
+    }
+   ],
+   [
+    "phase",
+    {
+     "stage": "streaming_start",
+     "status": "start",
+     "detail": "model-1"
+    }
+   ],
+   [
+    "tool_start",
+    {
+     "name": "notebook_doc_write",
+     "args": {
+      "content": "Mail a@b.invalid and [person-9] today"
+     }
+    }
+   ],
+   [
+    "notebook_doc_update",
+    {
+     "content": "<p>Mail a@b.invalid and [person-9] today</p>",
+     "title": "Document",
+     "version": 8
+    }
+   ],
+   [
+    "tool_end",
+    {
+     "name": "notebook_doc_write",
+     "result": "{\"_action\":\"notebook_doc_update\",\"content\":\"<p>Mail a@b.invalid and [person-9] today</p>\",\"contentMd\":\"Mail a@b.invalid and [person-9] today\",\"title\":\"Document\",\"message\":\"Document updated: \\\"Document\\\"\"}"
+    }
+   ],
+   [
+    "content",
+    {
+     "text": "Wrote to a@b.invalid."
+    }
+   ],
+   [
+    "content_replace",
+    {
+     "text": "Wrote to a@b.invalid."
+    }
+   ],
+   [
+    "tokenisation_info",
+    {
+     "source": "restored",
+     "action": "restore",
+     "count": 2,
+     "restoredCount": 1,
+     "categories": [],
+     "provider": "model-1",
+     "automatic": true,
+     "tokenMap": {
+      "[email-1]": "a@b.invalid",
+      "[person-9]": "Piet"
+     }
+    }
+   ],
+   [
+    "notebook_doc_update",
+    {
+     "content": "<p>Mail a@b.invalid and Piet today</p>",
+     "version": 8
+    }
+   ],
+   [
+    "done",
+    {}
+   ]
+  ],
+  "body": null,
+  "calls": [
+   {
+    "key": "k",
+    "apiUrl": "http://model.invalid",
+    "modelId": "model-1",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are an intelligent notebook assistant. Today is <DATE>.\n\n[NOTEBOOK: \"Matter\"]\nDescription: A matter\n\nCustom Instructions: Be brief\n\n[AVAILABLE SOURCES]\n- Notes.pdf (pdf, 1,200 words)\n\nCRITICAL INSTRUCTIONS:\n1. ALWAYS ground your responses in the notebook's sources when relevant context is available.\n2. When you use specific information from the knowledge base, name the source it comes from (e.g. according to \"Report.pdf\"). The app shows the cited passages as source chips under your answer on its own. Never use numeric references such as [1] or [Source 1].\n3. If the user asks about something not covered in the sources, clearly state that and provide general knowledge with a disclaimer.\n4. Be comprehensive but concise. Synthesize information across multiple sources when applicable.\n5. If asked to summarize, compare, or analyze — draw from ALL relevant sources.\n6. Format responses with clear structure: headings, bullet points, and citations.\n\n[DOCUMENT TOOLS]\nYou have tools to interact with the user's document editor:\n- notebook_doc_read: Read the current document content (ALWAYS use before editing)\n- notebook_doc_write: Replace ALL document content (for new documents or full rewrites)\n- notebook_doc_replace: Replace a SPECIFIC portion (preferred for edits)\n\nDOCUMENT FORMAT — write the document in Markdown (BFM):\n- Headings: # H1, ## H2, ### H3\n- Inline: **bold**, *italic*, ~~strike~~, inline code in single backticks, ==highlight==\n- Lists: \"- item\", \"1. item\"; task lists \"- [ ] todo\" / \"- [x] done\"\n- > blockquote, --- divider, [text](url) links\n- Tables: a header row, then a |---|---| separator row, then data rows\n- Fenced code blocks (triple-backtick + language); diagrams use triple-backtick mermaid fences\n- Math (KaTeX): $inline$ and $$block$$\n- Images: ![alt](url){w=400 align=center wrap} (attrs optional; user uploads go via the toolbar, not AI)\n- Color/font are rare: [text]{color=#e74c3c} / [text]{font=Georgia}\n\nDOCUMENT RULES — FOLLOW STRICTLY:\n1. To rewrite, shorten, expand, fix, edit, or modify text from the document: ALWAYS use notebook_doc_replace to apply the change directly — do NOT just return the modified text in chat.\n2. For partial edits, ALWAYS prefer notebook_doc_replace over notebook_doc_write.\n3. Before notebook_doc_replace, call notebook_doc_read to see the EXACT current Markdown.\n4. When asked to write, create, or draft something: write it via notebook_doc_write — don't just reply in chat.\n5. The user's message may include selected document text — pass it verbatim as find_text.\n6. After applying a change, briefly confirm what you did (e.g. \"I've shortened that paragraph\").\n7. In the document, cite a source by its name in plain text (or as a [Source name](url) link only when you really know its URL) — never [1]-style refs.\n8. STYLE CONSISTENCY: when replacing, match the original formatting — don't promote a paragraph to a heading unless asked.\n\n[WEB SEARCH & SOURCES]\n- You can search the web using agent_search for current information and research\n- You can add search results or any text directly as a notebook source using notebook_add_source\n- When adding web search results as a source, pass the complete results text directly — no need to re-fetch\n\n\n[DOCUMENT EDITOR — CURRENT CONTENT]\nThe user has a rich-text document editor open in the center panel. Current content:\n```markdown\nMail \\[email-1\\]\n\n```\nYou can read, write, or edit this document using the notebook_doc_* tools.\nNow: <NOW>\n\n[PII TOKEN PRESERVATION — CRITICAL]\nThis conversation (the user's messages, the remembered notes in <memories>, documents and tool results) contains bracketed placeholders such as `[name_1]`, `[email_1]`, `[phone_2]`. These are NOT literal text — they stand in for real personal data that has been redacted before reaching you. A downstream system replaces each token with its original value before the user sees your reply, so to the user a token IS the value.\n\nTokens currently in scope for this conversation: `[email-1]`.\n\nRules (override any default phrasing habits, in any language):\n0. **A token is the answer.** When the user asks for a value that a token stands for (\"what is my name?\", \"what is my email address?\", \"what is the customer's phone number?\"), answer with that token verbatim: \"Your name is [person_1] and your email address is [email_1].\" A token in <memories> is the user's own data unless the note says otherwise (\"My name is [person_1]\" means the user is [person_1]). Never answer that you do not know, cannot see, or were not given the value, and never treat the token as some other person: you have the value, in token form, and the user reads the real value.\n1. When you need to refer to one of these entities (greeting, salutation, signature, recipient name, contact email, etc.), reuse the EXACT token verbatim — same brackets, same underscore, same number, all inside the brackets. e.g. write \"Beste [name_1],\" / \"Dear [name_1],\" — never \"Dear recipient\", \"Dear [name]\", \"[your name]\", \"[je naam]\", or a guessed real name. Do NOT alter the token's shape while writing longer or more formal text: keep the underscore and keep the digit INSIDE the brackets. `[person_2]` must stay `[person_2]` — never `[person2]`, `[person]2`, `[person 2]`, or `[email]2`. A reshaped token may fail to restore and leak the placeholder into the user's document.\n2. Never invent new bracketed placeholders. Do not output `[name]`, `[your name]`, `[je naam]`, `[recipient]`, `[email]`, `[phone]`, etc. Only the exact tokens listed above are valid.\n3. Never decode, guess, or reconstruct the real value behind a token. Treat each token as opaque.\n4. **Sign-offs**: when you sign a message on behalf of the user, you MUST use a person token from the list — do NOT write `[jouw naam]`, `[je naam]`, `[your name]`, `[name]`, `[uw naam]`, or any similar invented placeholder. To pick the right token, read the input carefully:\n   • If the user is replying to an inbound message, the person addressed in the original greeting (e.g. \"Beste [person_3],\" / \"Dear [person_3],\" / \"Hi [person_3]\") is the user — use that same token to sign off.\n   • If the user is forwarding or quoting their own draft and a person token appears in the existing signature, reuse that token.\n   • Only if NO person token in the list can plausibly represent the user, omit the name line entirely (e.g. just \"Met vriendelijke groet,\" with nothing after it). Do NOT fabricate a placeholder as a fallback.\n5. Tokens are language-neutral. Keep them unchanged regardless of the language you respond in.\n6. **DO NOT mention, explain, apologise for, or call attention to the tokenisation, anonymisation, redaction, placeholders, or privacy mechanism in your reply.** From the end user's perspective the tokens are real values — they see the un-tokenised text. Sentences like \"the names have been anonymised\", \"I can't see the real names\", \"deze zijn vervangen door aanduidingen\", \"de werkelijke namen zijn niet zichtbaar\", \"[person_X] is een placeholder\", \"om privacy te beschermen\" — these are FORBIDDEN. They confuse the user, who already sees the original names in the rendered output, and break the round-trip illusion. When summarising or answering questions about a document that contains tokens, simply use the tokens naturally inline (\"Mw. [person_1] woont met haar partner [person_2] …\") and let the un-tokeniser do its job silently. If the user explicitly asks WHY a name looks like `[person_3]`, you may briefly say \"those are privacy placeholders for the real names\" — only when asked."
+     },
+     {
+      "role": "user",
+      "content": "tidy the doc"
+     }
+    ],
+    "opts": {
+     "maxTokens": 8192,
+     "temperature": 0.2,
+     "reasoningEffort": "low",
+     "signal": "AbortSignal",
+     "tools": [
+      "notebook_doc_read",
+      "notebook_doc_write",
+      "notebook_doc_replace",
+      "notebook_add_source",
+      "agent_search"
+     ],
+     "toolChoice": "auto"
+    }
+   },
+   {
+    "key": "k",
+    "apiUrl": "http://model.invalid",
+    "modelId": "model-1",
+    "messages": [
+     {
+      "role": "system",
+      "content": "You are an intelligent notebook assistant. Today is <DATE>.\n\n[NOTEBOOK: \"Matter\"]\nDescription: A matter\n\nCustom Instructions: Be brief\n\n[AVAILABLE SOURCES]\n- Notes.pdf (pdf, 1,200 words)\n\nCRITICAL INSTRUCTIONS:\n1. ALWAYS ground your responses in the notebook's sources when relevant context is available.\n2. When you use specific information from the knowledge base, name the source it comes from (e.g. according to \"Report.pdf\"). The app shows the cited passages as source chips under your answer on its own. Never use numeric references such as [1] or [Source 1].\n3. If the user asks about something not covered in the sources, clearly state that and provide general knowledge with a disclaimer.\n4. Be comprehensive but concise. Synthesize information across multiple sources when applicable.\n5. If asked to summarize, compare, or analyze — draw from ALL relevant sources.\n6. Format responses with clear structure: headings, bullet points, and citations.\n\n[DOCUMENT TOOLS]\nYou have tools to interact with the user's document editor:\n- notebook_doc_read: Read the current document content (ALWAYS use before editing)\n- notebook_doc_write: Replace ALL document content (for new documents or full rewrites)\n- notebook_doc_replace: Replace a SPECIFIC portion (preferred for edits)\n\nDOCUMENT FORMAT — write the document in Markdown (BFM):\n- Headings: # H1, ## H2, ### H3\n- Inline: **bold**, *italic*, ~~strike~~, inline code in single backticks, ==highlight==\n- Lists: \"- item\", \"1. item\"; task lists \"- [ ] todo\" / \"- [x] done\"\n- > blockquote, --- divider, [text](url) links\n- Tables: a header row, then a |---|---| separator row, then data rows\n- Fenced code blocks (triple-backtick + language); diagrams use triple-backtick mermaid fences\n- Math (KaTeX): $inline$ and $$block$$\n- Images: ![alt](url){w=400 align=center wrap} (attrs optional; user uploads go via the toolbar, not AI)\n- Color/font are rare: [text]{color=#e74c3c} / [text]{font=Georgia}\n\nDOCUMENT RULES — FOLLOW STRICTLY:\n1. To rewrite, shorten, expand, fix, edit, or modify text from the document: ALWAYS use notebook_doc_replace to apply the change directly — do NOT just return the modified text in chat.\n2. For partial edits, ALWAYS prefer notebook_doc_replace over notebook_doc_write.\n3. Before notebook_doc_replace, call notebook_doc_read to see the EXACT current Markdown.\n4. When asked to write, create, or draft something: write it via notebook_doc_write — don't just reply in chat.\n5. The user's message may include selected document text — pass it verbatim as find_text.\n6. After applying a change, briefly confirm what you did (e.g. \"I've shortened that paragraph\").\n7. In the document, cite a source by its name in plain text (or as a [Source name](url) link only when you really know its URL) — never [1]-style refs.\n8. STYLE CONSISTENCY: when replacing, match the original formatting — don't promote a paragraph to a heading unless asked.\n\n[WEB SEARCH & SOURCES]\n- You can search the web using agent_search for current information and research\n- You can add search results or any text directly as a notebook source using notebook_add_source\n- When adding web search results as a source, pass the complete results text directly — no need to re-fetch\n\n\n[DOCUMENT EDITOR — CURRENT CONTENT]\nThe user has a rich-text document editor open in the center panel. Current content:\n```markdown\nMail \\[email-1\\]\n\n```\nYou can read, write, or edit this document using the notebook_doc_* tools.\nNow: <NOW>\n\n[PII TOKEN PRESERVATION — CRITICAL]\nThis conversation (the user's messages, the remembered notes in <memories>, documents and tool results) contains bracketed placeholders such as `[name_1]`, `[email_1]`, `[phone_2]`. These are NOT literal text — they stand in for real personal data that has been redacted before reaching you. A downstream system replaces each token with its original value before the user sees your reply, so to the user a token IS the value.\n\nTokens currently in scope for this conversation: `[email-1]`.\n\nRules (override any default phrasing habits, in any language):\n0. **A token is the answer.** When the user asks for a value that a token stands for (\"what is my name?\", \"what is my email address?\", \"what is the customer's phone number?\"), answer with that token verbatim: \"Your name is [person_1] and your email address is [email_1].\" A token in <memories> is the user's own data unless the note says otherwise (\"My name is [person_1]\" means the user is [person_1]). Never answer that you do not know, cannot see, or were not given the value, and never treat the token as some other person: you have the value, in token form, and the user reads the real value.\n1. When you need to refer to one of these entities (greeting, salutation, signature, recipient name, contact email, etc.), reuse the EXACT token verbatim — same brackets, same underscore, same number, all inside the brackets. e.g. write \"Beste [name_1],\" / \"Dear [name_1],\" — never \"Dear recipient\", \"Dear [name]\", \"[your name]\", \"[je naam]\", or a guessed real name. Do NOT alter the token's shape while writing longer or more formal text: keep the underscore and keep the digit INSIDE the brackets. `[person_2]` must stay `[person_2]` — never `[person2]`, `[person]2`, `[person 2]`, or `[email]2`. A reshaped token may fail to restore and leak the placeholder into the user's document.\n2. Never invent new bracketed placeholders. Do not output `[name]`, `[your name]`, `[je naam]`, `[recipient]`, `[email]`, `[phone]`, etc. Only the exact tokens listed above are valid.\n3. Never decode, guess, or reconstruct the real value behind a token. Treat each token as opaque.\n4. **Sign-offs**: when you sign a message on behalf of the user, you MUST use a person token from the list — do NOT write `[jouw naam]`, `[je naam]`, `[your name]`, `[name]`, `[uw naam]`, or any similar invented placeholder. To pick the right token, read the input carefully:\n   • If the user is replying to an inbound message, the person addressed in the original greeting (e.g. \"Beste [person_3],\" / \"Dear [person_3],\" / \"Hi [person_3]\") is the user — use that same token to sign off.\n   • If the user is forwarding or quoting their own draft and a person token appears in the existing signature, reuse that token.\n   • Only if NO person token in the list can plausibly represent the user, omit the name line entirely (e.g. just \"Met vriendelijke groet,\" with nothing after it). Do NOT fabricate a placeholder as a fallback.\n5. Tokens are language-neutral. Keep them unchanged regardless of the language you respond in.\n6. **DO NOT mention, explain, apologise for, or call attention to the tokenisation, anonymisation, redaction, placeholders, or privacy mechanism in your reply.** From the end user's perspective the tokens are real values — they see the un-tokenised text. Sentences like \"the names have been anonymised\", \"I can't see the real names\", \"deze zijn vervangen door aanduidingen\", \"de werkelijke namen zijn niet zichtbaar\", \"[person_X] is een placeholder\", \"om privacy te beschermen\" — these are FORBIDDEN. They confuse the user, who already sees the original names in the rendered output, and break the round-trip illusion. When summarising or answering questions about a document that contains tokens, simply use the tokens naturally inline (\"Mw. [person_1] woont met haar partner [person_2] …\") and let the un-tokeniser do its job silently. If the user explicitly asks WHY a name looks like `[person_3]`, you may briefly say \"those are privacy placeholders for the real names\" — only when asked."
+     },
+     {
+      "role": "user",
+      "content": "tidy the doc"
+     },
+     {
+      "role": "assistant",
+      "content": null,
+      "tool_calls": [
+       {
+        "id": "call_t",
+        "type": "function",
+        "function": {
+         "name": "notebook_doc_write",
+         "arguments": "{\"content\":\"Mail [email-1] and [person-9] today\"}"
+        }
+       }
+      ]
+     },
+     {
+      "role": "tool",
+      "tool_call_id": "call_t",
+      "content": "{\"_action\":\"notebook_doc_update\",\"content\":\"<p>Mail [email-1] and [person-9] today</p>\",\"contentMd\":\"Mail [email-1] and [person-9] today\",\"title\":\"Document\",\"message\":\"Document updated: \\\"Document\\\"\"}"
+     }
+    ],
+    "opts": {
+     "maxTokens": 8192,
+     "temperature": 0.2,
+     "reasoningEffort": "low",
+     "signal": "AbortSignal",
+     "tools": [
+      "notebook_doc_read",
+      "notebook_doc_write",
+      "notebook_doc_replace",
+      "notebook_add_source",
+      "agent_search"
+     ],
+     "toolChoice": "auto"
+    }
+   }
+  ],
+  "trace": [
+   [
+    "dlp.composeScan",
+    "<p>Mail a@b.invalid</p>"
+   ],
+   [
+    "store.updateNotebookCas",
+    "nb-1",
+    "u1",
+    {
+     "documentContent": "<p>Mail a@b.invalid and [person-9] today</p>",
+     "documentMd": "Mail a@b.invalid and [person-9] today",
+     "expectedVersion": 7
+    }
+   ],
+   [
+    "store.updateNotebookCas",
+    "nb-1",
+    "u1",
+    {
+     "documentContent": "<p>Mail a@b.invalid and Piet today</p>",
+     "documentMd": "Mail a@b.invalid and Piet today",
+     "expectedVersion": 8
+    }
+   ],
+   [
+    "store.recordVersion",
+    "nb-1",
+    {
+     "html": "<p>Mail a@b.invalid and Piet today</p>",
+     "markdown": "Mail a@b.invalid and Piet today",
+     "source": "ai",
+     "createdBy": "u1",
+     "contributors": [
+      {
+       "userId": "u1",
+       "kind": "ai"
+      }
+     ]
+    }
+   ],
+   [
+    "feed.contentChanged",
+    {
+     "projectId": "p1",
+     "notebookId": "nb-1",
+     "contributors": [
+      {
+       "userId": "u1",
+       "kind": "ai"
+      }
+     ],
+     "versionId": "ver-1",
+     "source": "ai"
+    }
+   ],
+   [
+    "conv.appendMessages",
+    "nb-1",
+    "u1",
+    "dek",
+    [
+     {
+      "role": "user",
+      "content": "tidy the doc",
+      "createdAt": "T"
+     },
+     {
+      "role": "assistant",
+      "content": "Wrote to [email-1].",
+      "createdAt": "T",
+      "modelId": "model-1",
+      "tokenisationInfo": {
+       "source": "restored",
+       "action": "restore",
+       "count": 2,
+       "restoredCount": 1,
+       "categories": [],
+       "provider": "model-1",
+       "automatic": true,
+       "tokenMap": {
+        "[email-1]": "a@b.invalid",
+        "[person-9]": "Piet"
+       }
+      }
+     }
+    ]
+   ],
+   [
+    "store.touchActivity",
+    "nb-1",
+    "chat"
+   ]
+  ]
+ },
+ "missing fields are refused before anything runs": {
+  "status": 400,
+  "events": [],
+  "body": "{\"error\":\"Message required\"}",
+  "calls": [],
+  "trace": []
+ }
+}

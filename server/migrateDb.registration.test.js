@@ -50,6 +50,25 @@ const EXEMPT = new Map([
     // Idem: blueprintStore.js is sinds de opsplitsing (golf 1) een facade die
     // blueprint/schema.js' initDB doorgeeft.
     ['stores/blueprint/schema.js', 'gedekt via de blueprintStore-facade'],
+    // Idem voor de stores die in de tweede splitsgolf een facade werden: elke
+    // facade hieronder staat in STORE_MODULES en exporteert de initDB van zijn
+    // schema-module (makeStoreInit of rechtstreeks doorgegeven), dus de ladder
+    // draait deze DDL nog steeds via die facade, in dezelfde volgorde.
+    ['stores/compliance/schema.js', 'gedekt via de complianceStore-facade'],
+    // FINDING_DDL wordt door compliance/schema.js uitgevoerd (createSchema), niet hier.
+    ['stores/compliance/findings.js', 'bezit FINDING_DDL, uitgevoerd door compliance/schema.js — gedekt via de complianceStore-facade'],
+    ['stores/compliance/settingsFields.js', 'noemt CREATE TABLE alleen in commentaar — het schema staat in compliance/schema.js'],
+    ['stores/kb/schema.js', 'gedekt via de knowledgeBases-facade'],
+    ['stores/memorySchema.js', 'gedekt via de memoryStore-facade'],
+    ['stores/notebook/schema.js', 'gedekt via de notebookStore-facade'],
+    ['stores/project/schema.js', 'gedekt via de projectStore-facade'],
+    ['stores/studioApp/schema.js', 'gedekt via de studioAppStore-facade'],
+    ['stores/studioAppData/schema.js', 'gedekt via de studioAppDataStore-facade'],
+    // Classificeert dataModel-migratiestatements: "CREATE TABLE" staat hier in
+    // een regex en in commentaar, niet in een eigen schema.
+    ['stores/studioAppData/dataModel.js', 'herkent CREATE TABLE alleen in een regex — het schema staat in studioAppData/schema.js'],
+    ['stores/transcription/schema.js', 'gedekt via de transcriptionStore-facade'],
+    ['stores/usage/schema.js', 'gedekt via de usageStore-facade'],
     // Zelfde module, geen eigen schema: "CREATE TABLE" staat hier alleen in de
     // documentatie van createDatatable/deleteDatatable (de fysieke DDL wordt
     // door de aanroeper geïnjecteerd); de vier tabellen zelf staan in

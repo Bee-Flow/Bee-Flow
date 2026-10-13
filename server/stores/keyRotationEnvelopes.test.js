@@ -1,5 +1,5 @@
 /**
- * Pins scripts/rotate-master-key.js to the envelope schemes it rotates.
+ * Pins server/scripts/rotateMasterKey.js to the envelope schemes it rotates.
  *
  * The rotation script re-implements each key derivation (it must run against a
  * DB with the OLD master in env while deriving the NEW one, so it cannot just
@@ -21,7 +21,7 @@ const NEW_MASTER = 'b'.repeat(64);
 
 process.env.MASTER_ENCRYPTION_KEY = OLD_MASTER;
 
-const rotate = require('../../scripts/rotate-master-key');
+const rotate = require('../scripts/rotateMasterKey');
 const orgVault = require('./orgVault');
 
 test('orgVault: script derivation matches the store, and a rotation round-trips', () => {
@@ -191,17 +191,17 @@ test('every orgVault-sealed column in the tree is named in the rotation script',
     // `rotateScriptSrc` (not `script`) so the many other assertions below
     // that use the word "script" in their own failure messages do not
     // accidentally collide with this variable.
-    const rotateScriptSrc = fs.readFileSync(path.join(REPO, 'scripts/rotate-master-key.js'), 'utf8');
+    const rotateScriptSrc = fs.readFileSync(path.join(REPO, 'server/scripts/rotateMasterKey.js'), 'utf8');
     const unaccounted = sealers.filter((f) => !ROTATED_BY.has(f));
     assert.deepStrictEqual(unaccounted, [],
         'these files seal data with orgVault and are not mapped to a rotation pass. Add the column to '
-        + 'scripts/rotate-master-key.js AND to the map in this test, or a master-key rotation silently '
+        + 'server/scripts/rotateMasterKey.js AND to the map in this test, or a master-key rotation silently '
         + 'destroys what they wrote:\n' + unaccounted.join('\n'));
 
     for (const [file, needle] of ROTATED_BY) {
         if (!sealers.includes(file)) continue;   // the store was removed; the pass may stay
         assert.ok(rotateScriptSrc.includes(needle),
-            `${file} seals with orgVault but scripts/rotate-master-key.js has no pass for ${needle}`);
+            `${file} seals with orgVault but server/scripts/rotateMasterKey.js has no pass for ${needle}`);
     }
 });
 

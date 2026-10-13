@@ -1,12 +1,12 @@
 /**
- * DIFFERENTIAL lockstep: agent-hub `Builder/flow/settings/formState.js` and the
+ * DIFFERENTIAL lockstep: agent-hub `Builder/flow/settings/formState/` and the
  * per-family port extract the same drafts and build the same patches — over
  * a step of every type, and over every draft key set to a spread of values.
  * When this fails the web side changed — update the port, don't loosen the
  * test.
  */
 
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
 import * as fs from './index';
@@ -14,7 +14,7 @@ import { chainDefinition } from '../bindings/testing/fixture';
 import { BUILDER, requireWeb, webPath, webValue } from '../bindings/testing/web';
 import type { FlowNode } from '../bindings/types';
 
-const web = requireWeb(`${BUILDER}/flow/settings/formState.js`);
+const web = requireWeb(`${BUILDER}/flow/settings/formState`);
 
 // templates.js is run from its source, not require()d. Its organisation
 // template readers lazily require the automation and user stores, and a
@@ -145,8 +145,14 @@ describe('extractFormState / buildPatch', () => {
     });
 
     it('covers every type the web edits, and the corpus exercises every one', () => {
-        const src = readFileSync(webPath(`${BUILDER}/flow/settings/formState.js`), 'utf8');
-        const branched = new Set([...src.matchAll(/step\.type === '([a-z_]+)'/g)].map((m) => m[1] as string));
+        // One extractor per type, collected from every family module in extract/
+        // (the barrel there spreads the same `*Extractors` maps).
+        const extractDir = `${BUILDER}/flow/settings/formState/extract`;
+        const branched = new Set(readdirSync(webPath(extractDir))
+            .filter((f) => f.endsWith('.ts') && f !== 'index.ts' && !f.includes('.test.'))
+            .flatMap((f) => Object.entries(requireWeb(`${extractDir}/${f}`))
+                .filter(([name]) => name.endsWith('Extractors'))
+                .flatMap(([, map]) => Object.keys(map))));
         const unified = ['condition', 'switch', 'filter', 'guard', 'tokenize', 'untokenize'];
         expect([...fs.FORM_STEP_TYPES].sort()).toStrictEqual([...branched, ...unified].sort());
         const seen = new Set(STEPS.map((s) => s.type));

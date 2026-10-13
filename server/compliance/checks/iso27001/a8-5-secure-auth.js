@@ -8,8 +8,9 @@
  *      its source for the lockout fields — the fields live inside the function
  *      body, so the export alone would not prove the mechanism.
  *   2. SESSION — requireAuth re-checks on every request that the account still
- *      exists and destroys the session otherwise (auth/permissions.js).
- *      permissions.js is deliberately NOT required here (it pulls in db/redis
+ *      exists and destroys the session otherwise (auth/permissions.js; the gate itself
+ *      lives in auth/permissionsRequireAuth.js behind that barrel).
+ *      It is deliberately NOT required here (it pulls in db/redis
  *      wiring); the source marker is enough for a static architecture fact.
  *   3. PASSWORD POLICY — auth/passwordPolicy.js MIN_PASSWORD_LENGTH >= 8.
  *   4. SSO — at least one identity provider is configured (configStore
@@ -61,11 +62,13 @@ module.exports = {
             encryptionError = e.message;
         }
 
-        const lockoutSource = _sourceHas('encryption.js', ['dekUnwrapFailures', 'dekLockoutUntil']);
+        // The password-unlock lockout lives behind the auth/encryption.js barrel.
+        const lockoutSource = _sourceHas('encryptionUserDek.js', ['dekUnwrapFailures', 'dekLockoutUntil']);
         const lockoutActive =
             !!encryption && typeof encryption.unlockUserDEK === 'function' && lockoutSource !== false;
 
-        const sessionRevalidation = _sourceHas('permissions.js', ['requireAuth', 'User no longer exists']);
+        // requireAuth lives behind the auth/permissions.js barrel.
+        const sessionRevalidation = _sourceHas('permissionsRequireAuth.js', ['requireAuth', 'User no longer exists']);
 
         let minPasswordLength = null;
         try {

@@ -49,7 +49,7 @@ const STORES_DIR = path.sep + 'stores' + path.sep;
 const STUB_PATH = path.join(__dirname, '__stub_db_project_provenance__.js');
 const origResolve = Module._resolveFilename;
 Module._resolveFilename = function (request, parent, ...rest) {
-    if (parent && parent.filename && parent.filename.includes(STORES_DIR) && request === '../db') {
+    if (parent && parent.filename && parent.filename.includes(STORES_DIR) && (request === '../db' || request === '../../db')) {
         return STUB_PATH;
     }
     return origResolve.call(this, request, parent, ...rest);

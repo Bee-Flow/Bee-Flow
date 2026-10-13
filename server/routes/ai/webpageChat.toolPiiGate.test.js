@@ -28,6 +28,7 @@ const {
     SYNTH_EMAIL, OWN_SERVER_EMAIL, SIGNED_IN, AI_AGENT_STUB, configStoreStub, gateFixture, resetFixture,
     injectEmailDetector, streamingToolCallProvider, serveRouter, postJson, kbChatGateTests,
 } = require('../../testUtils/toolPiiGateHarness');
+const { withStepAliases } = require('./notebookChat.testkit');
 
 const pass = (req, res, next) => next();
 const fx = gateFixture({ kbSearches: [], webSearches: [], systemPrompts: [] });
@@ -37,7 +38,9 @@ const webpageStoreStub = { getWebpage: async () => WEBPAGE, getSources: async ()
 const dlpRunnerStub = { getConversationTokenMap: () => ({}), mergeTokenMap: () => {} };
 const toolDef = (name) => ({ type: 'function', function: { name, parameters: { type: 'object', properties: {} } } });
 
-const restore = installResolveStub({
+// The route's steps (./webpageChat/) require the same modules as '../../../x':
+// withStepAliases registers every stub under that spelling too.
+const restore = installResolveStub(withStepAliases({
     '../../core/aiAgent': AI_AGENT_STUB,
     // Also what the real orgShield (loaded by the gate) reads.
     '../../stores/configStore': configStoreStub({ agent_search_url: 'http://search.invalid' }),
@@ -80,7 +83,7 @@ const restore = installResolveStub({
     '../../core/dlp/dlpRunner': dlpRunnerStub,
     './dlpRunner': dlpRunnerStub,
     '../../stores/guardrailEventStore': { logGuardrailEvent: async (row) => { fx.guardrailRows.push(row); } },
-});
+}));
 
 injectEmailDetector(require('../../core/privacy/toolPiiGate'));
 

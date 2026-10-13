@@ -1,42 +1,34 @@
 /**
  * Regression tests for the terminal error handler (core/http/terminalErrorHandler.js,
- * mounted last in index.js) and the CORS fail-closed path in index.js (pentest findings M-02 "stack traces returned to anonymous
- * callers" and L-03 "rejected preflight answers 500").
+ * mounted last in index.js) and the CORS fail-closed path that index.js mounts
+ * from boot/httpMiddleware.js (pentest findings M-02 "stack traces returned to
+ * anonymous callers" and L-03 "rejected preflight answers 500").
  *
  * index.js cannot be require()d from a test: it opens a listening socket, a
- * Postgres pool and two dozen schedulers. So instead of duplicating the logic
- * here — a copy would keep passing while the real code regressed — the test
- * lifts the two marked CORS regions straight out of index.js and evaluates them.
- * `new Function` (rather than a vm realm) keeps the code in this realm, so the
- * `err instanceof SyntaxError` branch behaves exactly as it does in the server.
- *
- * If someone moves this code out of the markers, the extraction throws and the
- * suite fails loudly rather than silently testing nothing.
+ * Postgres pool and two dozen schedulers. The CORS dispatcher therefore lives in
+ * boot/httpMiddleware.js as `applyCors(app, { log })`, which this file drives
+ * with the REAL code: each build() gets a fresh dispatcher (its own warning
+ * state) for its own CORS_ORIGIN, and captures the one layer it registers so
+ * the same middleware can be mounted on a throwaway express app below.
  */
 
 const test = require('node:test');
 const assert = require('node:assert');
 const fs = require('fs');
 const path = require('path');
+const { applyCors } = require('./boot/httpMiddleware');
 
-const INDEX_PATH = path.join(__dirname, 'index.js');
-const SRC = fs.readFileSync(INDEX_PATH, 'utf8');
-
-/** Slice the source between `// ── <name>:begin ──` and `// ── <name>:end ──`. */
-function region(name) {
-    const beginAt = SRC.indexOf(`${name}:begin`);
-    const endAt = SRC.indexOf(`${name}:end`);
-    assert.ok(beginAt !== -1, `missing "${name}:begin" marker in index.js`);
-    assert.ok(endAt > beginAt, `missing "${name}:end" marker in index.js`);
-    const bodyStart = SRC.indexOf('\n', beginAt) + 1;
-    const bodyEnd = SRC.lastIndexOf('\n', endAt);
-    return SRC.slice(bodyStart, bodyEnd);
-}
+// The wiring invariants at the bottom are about source ORDER and shape, so they
+// read the files: index.js (mount order), boot/httpMiddleware.js (the CORS
+// dispatcher) and boot/staticAssets.js (the SPA fallback index.js mounts).
+const SRC = fs.readFileSync(path.join(__dirname, 'index.js'), 'utf8');
+const CORS_SRC = fs.readFileSync(path.join(__dirname, 'boot', 'httpMiddleware.js'), 'utf8');
+const STATIC_SRC = fs.readFileSync(path.join(__dirname, 'boot', 'staticAssets.js'), 'utf8');
 
 /**
- * Evaluate both regions with a captured console and a chosen CORS_ORIGIN.
- * ALLOWED_ORIGINS is read from process.env at evaluation time, so the env var is
- * set only for the duration of the build.
+ * Build a CORS dispatcher with a captured log and a chosen CORS_ORIGIN.
+ * ALLOWED_ORIGINS is read from process.env when applyCors runs, so the env var
+ * is set only for the duration of the build.
  */
 function build({ corsOrigin = 'https://app.example.com,https://other.example.com/' } = {}) {
     const logs = { warn: [], error: [], log: [] };
@@ -46,18 +38,15 @@ function build({ corsOrigin = 'https://app.example.com,https://other.example.com
         log: (...args) => logs.log.push(args),
         info: (...args) => logs.log.push(args),
     };
-    // The dispatch region ends in `app.use(...)`; capture what it registers so
-    // the same middleware can be mounted on a throwaway express app below.
+    // applyCors ends in `app.use(...)`; capture what it registers so the same
+    // middleware can be mounted on a throwaway express app below.
     const mounted = [];
     const appStub = { use: (fn) => mounted.push(fn) };
     const previous = process.env.CORS_ORIGIN;
     process.env.CORS_ORIGIN = corsOrigin;
     try {
-        const body = `${region('cors-helpers')}\n${region('cors-dispatch')}\n`
-            + 'return { ALLOWED_ORIGINS, isAllowedOrigin, safeForLog, warnRejectedOrigin };';
-        const factory = new Function('require', 'console', 'log', 'cors', 'app', body);
-        const api = factory(require, fakeConsole, fakeConsole, require('cors'), appStub);
-        assert.equal(mounted.length, 1, 'the cors-dispatch region should register exactly one middleware');
+        const api = applyCors(appStub, { log: fakeConsole });
+        assert.equal(mounted.length, 1, 'applyCors should register exactly one middleware');
         // The terminal handler is its own module; index.js mounts it last.
         const { createTerminalErrorHandler } = require('./core/http/terminalErrorHandler');
         const terminalErrorHandler = createTerminalErrorHandler({ log: fakeConsole });
@@ -425,12 +414,12 @@ test('a thrown route error returns a generic 500 with a correlation id (M-02)', 
     });
 });
 
-// ── Wiring invariants in index.js ─────────────────────────────────────────────
+// ── Wiring invariants in index.js and boot/ ───────────────────────────────────
 
 test('the CORS origin callback never constructs an Error (L-03)', () => {
     // Comment lines are dropped first — the fix is documented in a comment that
     // quotes the very pattern being banned.
-    const code = SRC.split('\n').filter(l => !l.trim().startsWith('//')).join('\n');
+    const code = CORS_SRC.split('\n').filter(l => !l.trim().startsWith('//')).join('\n');
     assert.ok(!/cb\(new Error\(/.test(code), 'cb(new Error(...)) throws into Express and returns a 500 + stack');
     assert.ok(code.includes('return cb(null, false);'), 'the origin callback must fail closed without throwing');
 });
@@ -488,7 +477,7 @@ test('an allow-listed origin and a no-Origin caller both still work', async () =
 });
 
 test('previewCors keeps reflecting any origin (bearer-token authed paths)', () => {
-    assert.ok(/const previewCors = cors\(\{\s*\n\s*origin: true,/.test(SRC),
+    assert.ok(/const previewCors = cors\(\{\s*\n\s*origin: true,/.test(CORS_SRC),
         'the sandboxed-iframe / public-share path must stay permissive');
 });
 
@@ -507,7 +496,11 @@ test('the terminal error handler is the last top-level app.use', () => {
 test('the JSON 404 is mounted above the marketing renderer and the SPA fallback', () => {
     const notFoundAt = SRC.indexOf("return res.status(404).json({ error: 'Not found' });");
     const publicRenderAt = SRC.indexOf("app.use(require('./routes/publicRender'));");
-    const spaFallbackAt = SRC.indexOf('res.sendFile(indexPath);');
+    // The SPA fallback is mounted from boot/staticAssets.js; that the call there
+    // is the index.html catch-all is pinned on its own source.
+    const spaFallbackAt = SRC.indexOf('staticAssets.mountSpaFallback(app);');
+    const spaFn = STATIC_SRC.slice(STATIC_SRC.indexOf('function mountSpaFallback('));
+    assert.ok(spaFn.includes('res.sendFile(indexPath);'), 'mountSpaFallback must stay the index.html catch-all');
     assert.ok(notFoundAt !== -1 && publicRenderAt !== -1 && spaFallbackAt !== -1);
     assert.ok(notFoundAt < publicRenderAt, 'otherwise unmatched /auth/* still costs a CMS lookup');
     assert.ok(notFoundAt < spaFallbackAt, 'otherwise unmatched /api/* answers 200 text/html in production');

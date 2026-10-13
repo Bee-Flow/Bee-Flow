@@ -20,6 +20,8 @@ const path = require('path');
 const { getServerSetupStatus } = require('../../../auth/opaqueSetup');
 
 const ENCRYPTION_PATH = path.join(__dirname, '..', '..', '..', 'auth', 'encryption.js');
+// The constants and Argon2 profiles live behind the barrel, in the primitives module.
+const PRIMITIVES_PATH = path.join(__dirname, '..', '..', '..', 'auth', 'encryptionPrimitives.js');
 
 // Everything the rest of the product calls; the check fails if any disappears.
 const REQUIRED_EXPORTS = [
@@ -29,7 +31,7 @@ const REQUIRED_EXPORTS = [
 
 function _readPrimitives() {
     try {
-        const src = fs.readFileSync(ENCRYPTION_PATH, 'utf-8');
+        const src = fs.readFileSync(PRIMITIVES_PATH, 'utf-8');
         const algorithm = (src.match(/ALGORITHM = '([^']+)'/) || [])[1] || null;
         const memory = (src.match(/memoryCost:\s*(\d+)/) || [])[1];
         const time = (src.match(/timeCost:\s*(\d+)/) || [])[1];

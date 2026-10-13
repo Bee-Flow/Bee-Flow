@@ -1,0 +1,2890 @@
+[
+ {
+  "step": "exports",
+  "surface": [
+   [
+    "DOC_STATUSES",
+    "array"
+   ],
+   [
+    "ACTIVE_DOC_STATUSES",
+    "array"
+   ],
+   [
+    "PII_STATUSES",
+    "array"
+   ],
+   [
+    "DOCUMENT_COLUMNS",
+    "array"
+   ],
+   [
+    "whenReady",
+    "function"
+   ],
+   [
+    "createKB",
+    "function"
+   ],
+   [
+    "getSystemKBBySlug",
+    "function"
+   ],
+   [
+    "listSystemKBs",
+    "function"
+   ],
+   [
+    "isSystemKB",
+    "function"
+   ],
+   [
+    "isProjectFilesKB",
+    "function"
+   ],
+   [
+    "listKBs",
+    "function"
+   ],
+   [
+    "filterByGroupAccess",
+    "function"
+   ],
+   [
+    "canUserAccessKB",
+    "function"
+   ],
+   [
+    "canUserManageKB",
+    "function"
+   ],
+   [
+    "getKB",
+    "function"
+   ],
+   [
+    "updateKB",
+    "function"
+   ],
+   [
+    "setPublished",
+    "function"
+   ],
+   [
+    "listKBCategories",
+    "function"
+   ],
+   [
+    "createKBCategory",
+    "function"
+   ],
+   [
+    "deleteKBCategory",
+    "function"
+   ],
+   [
+    "assertKbWrite",
+    "function"
+   ],
+   [
+    "managedPayload",
+    "function"
+   ],
+   [
+    "deleteKB",
+    "function"
+   ],
+   [
+    "bumpKBVersion",
+    "function"
+   ],
+   [
+    "createDocument",
+    "function"
+   ],
+   [
+    "recordDuplicate",
+    "function"
+   ],
+   [
+    "findNearDuplicateBySimhash",
+    "function"
+   ],
+   [
+    "updateDocumentStatus",
+    "function"
+   ],
+   [
+    "replaceDocumentContent",
+    "function"
+   ],
+   [
+    "findDocumentsBySourceExternalId",
+    "function"
+   ],
+   [
+    "findDocumentBySourceExternalId",
+    "function"
+   ],
+   [
+    "countsBySource",
+    "function"
+   ],
+   [
+    "countDocumentsByStatus",
+    "function"
+   ],
+   [
+    "listDocuments",
+    "function"
+   ],
+   [
+    "countDocuments",
+    "function"
+   ],
+   [
+    "listThreads",
+    "function"
+   ],
+   [
+    "listDocumentsByThread",
+    "function"
+   ],
+   [
+    "getDocument",
+    "function"
+   ],
+   [
+    "getDocumentOriginalContent",
+    "function"
+   ],
+   [
+    "deleteDocument",
+    "function"
+   ],
+   [
+    "updateDocumentSourceUri",
+    "function"
+   ],
+   [
+    "hasContentHash",
+    "function"
+   ],
+   [
+    "findDocumentByContentHash",
+    "function"
+   ],
+   [
+    "findDocumentBySourceUri",
+    "function"
+   ],
+   [
+    "updateChunkCount",
+    "function"
+   ],
+   [
+    "hashContent",
+    "function"
+   ],
+   [
+    "listFavorites",
+    "function"
+   ],
+   [
+    "addFavorite",
+    "function"
+   ],
+   [
+    "removeFavorite",
+    "function"
+   ],
+   [
+    "snapshotKBVersion",
+    "function"
+   ],
+   [
+    "listKBVersions",
+    "function"
+   ],
+   [
+    "getKBVersion",
+    "function"
+   ],
+   [
+    "snapshotDocumentVersion",
+    "function"
+   ],
+   [
+    "pruneDocumentVersions",
+    "function"
+   ],
+   [
+    "listDeletedDocuments",
+    "function"
+   ],
+   [
+    "initDB",
+    "function"
+   ]
+  ]
+ },
+ {
+  "step": "constants",
+  "DOC_STATUSES": [
+   "processed",
+   "redacted",
+   "skipped",
+   "error",
+   "duplicate"
+  ],
+  "ACTIVE_DOC_STATUSES": [
+   "processed",
+   "redacted"
+  ],
+  "PII_STATUSES": [
+   "none",
+   "found",
+   "redacted",
+   "unscanned"
+  ],
+  "DOCUMENT_COLUMNS": [
+   "id",
+   "tenant_id",
+   "knowledge_base_id",
+   "title",
+   "source_type",
+   "source_uri",
+   "lang",
+   "content_hash",
+   "chunk_count",
+   "created_at",
+   "metadata",
+   "duplicate_of",
+   "simhash",
+   "source_id",
+   "status",
+   "status_reason",
+   "updated_at",
+   "source_modified_at",
+   "external_id",
+   "size_bytes",
+   "page_count",
+   "sheet_count",
+   "mime",
+   "extract_summary",
+   "pii_status",
+   "pii_categories",
+   "overlaps_document_id",
+   "created_by"
+  ],
+  "frozen": [
+   true,
+   false
+  ]
+ },
+ {
+  "step": "initDB"
+ },
+ {
+  "via": "exec",
+  "sql": "CREATE TABLE IF NOT EXISTS knowledge_bases ( id UUID PRIMARY KEY DEFAULT gen_random_uuid(), tenant_id TEXT NOT NULL, name TEXT NOT NULL, description TEXT DEFAULT '', kb_version INT DEFAULT 1, embedding_model TEXT DEFAULT 'bge-m3', created_at TIMESTAMPTZ DEFAULT now(), updated_at TIMESTAMPTZ DEFAULT now() )",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "CREATE INDEX IF NOT EXISTS idx_kb_tenant ON knowledge_bases(tenant_id)",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "ALTER TABLE knowledge_bases DROP COLUMN IF EXISTS default_lang",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "ALTER TABLE knowledge_bases ADD COLUMN IF NOT EXISTS usage_contexts JSONB DEFAULT '[\"agent\",\"direct_chat\",\"webpage\"]'::jsonb",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "ALTER TABLE knowledge_bases ADD COLUMN IF NOT EXISTS source_kind TEXT DEFAULT 'manual'",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "UPDATE knowledge_bases SET source_kind = 'webpage_auto', usage_contexts = '[\"webpage\"]'::jsonb WHERE source_kind = 'manual' AND name LIKE '🌐 %' AND description LIKE 'Auto-generated knowledge base for webpage%'",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "UPDATE knowledge_bases SET source_kind = 'notebook_auto', usage_contexts = '[\"webpage\"]'::jsonb WHERE source_kind = 'manual' AND name LIKE '📓 %' AND description LIKE 'Auto-generated knowledge base for notebook%'",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "CREATE INDEX IF NOT EXISTS idx_kb_source_kind ON knowledge_bases(source_kind)",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "UPDATE knowledge_bases SET usage_contexts = '[\"agent\",\"direct_chat\"]'::jsonb WHERE source_kind = 'manual' AND usage_contexts = '[\"agent\",\"direct_chat\",\"webpage\"]'::jsonb",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "UPDATE knowledge_bases SET usage_contexts = usage_contexts || '[\"ai_step\"]'::jsonb, updated_at = now() WHERE usage_contexts ? 'agent' AND NOT (usage_contexts ? 'ai_step')",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "UPDATE knowledge_bases SET usage_contexts = '[\"agent\",\"direct_chat\",\"ai_step\"]'::jsonb, updated_at = now() WHERE usage_contexts IS NULL",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "CREATE TABLE IF NOT EXISTS documents ( id UUID PRIMARY KEY DEFAULT gen_random_uuid(), tenant_id TEXT NOT NULL, knowledge_base_id UUID NOT NULL REFERENCES knowledge_bases(id) ON DELETE CASCADE, title TEXT, source_type TEXT DEFAULT 'text', source_uri TEXT, lang TEXT DEFAULT 'unknown', content_hash TEXT, chunk_count INT DEFAULT 0, created_at TIMESTAMPTZ DEFAULT now() )",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "CREATE INDEX IF NOT EXISTS idx_documents_kb ON documents(knowledge_base_id)",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "CREATE INDEX IF NOT EXISTS idx_documents_tenant ON documents(tenant_id)",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "CREATE INDEX IF NOT EXISTS idx_documents_hash ON documents(knowledge_base_id, content_hash)",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "ALTER TABLE knowledge_bases ADD COLUMN IF NOT EXISTS organization_id TEXT",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "CREATE INDEX IF NOT EXISTS idx_kb_org ON knowledge_bases(organization_id) WHERE organization_id IS NOT NULL",
+  "params": null
+ },
+ {
+  "via": "getOne",
+  "sql": "SELECT 1 AS ok FROM information_schema.columns WHERE table_name = 'knowledge_bases' AND column_name = 'is_published'",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "ALTER TABLE knowledge_bases ADD COLUMN IF NOT EXISTS is_published BOOLEAN DEFAULT FALSE",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "ALTER TABLE knowledge_bases ADD COLUMN IF NOT EXISTS shared_groups TEXT DEFAULT '[]'",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "ALTER TABLE knowledge_bases ADD COLUMN IF NOT EXISTS category_id TEXT",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "ALTER TABLE knowledge_bases ADD COLUMN IF NOT EXISTS icon TEXT",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "ALTER TABLE knowledge_bases ADD COLUMN IF NOT EXISTS system_slug TEXT",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "CREATE UNIQUE INDEX IF NOT EXISTS idx_kb_system_slug ON knowledge_bases(system_slug) WHERE system_slug IS NOT NULL",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "CREATE INDEX IF NOT EXISTS idx_kb_org_published ON knowledge_bases(organization_id, is_published) WHERE is_published = TRUE",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "UPDATE knowledge_bases SET is_published = TRUE WHERE organization_id IS NOT NULL AND is_published = FALSE",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "CREATE TABLE IF NOT EXISTS kb_versions ( id UUID PRIMARY KEY DEFAULT gen_random_uuid(), kb_id UUID NOT NULL REFERENCES knowledge_bases(id) ON DELETE CASCADE, version_number INT NOT NULL, snapshot JSONB NOT NULL, changed_by TEXT, change_reason TEXT, created_at TIMESTAMPTZ DEFAULT now() )",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "CREATE INDEX IF NOT EXISTS idx_kb_versions_kb ON kb_versions(kb_id, version_number DESC)",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "CREATE UNIQUE INDEX IF NOT EXISTS idx_kb_versions_unique ON kb_versions(kb_id, version_number)",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "CREATE TABLE IF NOT EXISTS kb_document_versions ( id UUID PRIMARY KEY DEFAULT gen_random_uuid(), document_id UUID NOT NULL, knowledge_base_id UUID NOT NULL, tenant_id TEXT NOT NULL, title TEXT, source_type TEXT, source_uri TEXT, content_hash TEXT, payload JSONB, deleted_by TEXT, deleted_at TIMESTAMPTZ DEFAULT now() )",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "CREATE INDEX IF NOT EXISTS idx_kb_doc_versions_kb ON kb_document_versions(knowledge_base_id, deleted_at DESC)",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "CREATE INDEX IF NOT EXISTS idx_kb_doc_versions_doc ON kb_document_versions(document_id)",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "CREATE TABLE IF NOT EXISTS kb_categories ( id TEXT PRIMARY KEY, organization_id TEXT, name TEXT NOT NULL, icon TEXT DEFAULT '📚', color TEXT DEFAULT '#6366f1', created_at TIMESTAMPTZ DEFAULT now() )",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "CREATE INDEX IF NOT EXISTS idx_kb_categories_org ON kb_categories(organization_id)",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "ALTER TABLE documents ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'::jsonb",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "ALTER TABLE documents ADD COLUMN IF NOT EXISTS duplicate_of UUID",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "ALTER TABLE documents ADD COLUMN IF NOT EXISTS simhash BIGINT",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "CREATE INDEX IF NOT EXISTS idx_documents_metadata ON documents USING GIN (metadata jsonb_path_ops)",
+  "params": null
+ },
+ {
+  "hook": "kbSources.ensureSchema"
+ },
+ {
+  "via": "exec",
+  "sql": "ALTER TABLE knowledge_bases ADD COLUMN IF NOT EXISTS last_content_at TIMESTAMPTZ",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "ALTER TABLE documents ADD COLUMN IF NOT EXISTS original_content TEXT",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "ALTER TABLE documents ADD COLUMN IF NOT EXISTS source_id UUID REFERENCES kb_sources(id) ON DELETE CASCADE",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "ALTER TABLE documents ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'processed'",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "ALTER TABLE documents ADD COLUMN IF NOT EXISTS status_reason TEXT",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "ALTER TABLE documents ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now()",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "ALTER TABLE documents ADD COLUMN IF NOT EXISTS source_modified_at TIMESTAMPTZ",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "ALTER TABLE documents ADD COLUMN IF NOT EXISTS external_id TEXT",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "ALTER TABLE documents ADD COLUMN IF NOT EXISTS size_bytes INT",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "ALTER TABLE documents ADD COLUMN IF NOT EXISTS page_count INT",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "ALTER TABLE documents ADD COLUMN IF NOT EXISTS sheet_count INT",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "ALTER TABLE documents ADD COLUMN IF NOT EXISTS mime TEXT",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "ALTER TABLE documents ADD COLUMN IF NOT EXISTS extract_summary TEXT",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "ALTER TABLE documents ADD COLUMN IF NOT EXISTS pii_status TEXT DEFAULT 'unscanned'",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "ALTER TABLE documents ADD COLUMN IF NOT EXISTS pii_categories JSONB",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "ALTER TABLE documents ADD COLUMN IF NOT EXISTS overlaps_document_id UUID",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "ALTER TABLE documents ADD COLUMN IF NOT EXISTS created_by TEXT",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'documents_status_check') THEN ALTER TABLE documents ADD CONSTRAINT documents_status_check CHECK (status IN ('processed','redacted','skipped','error','duplicate')); END IF; IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'documents_pii_status_check') THEN ALTER TABLE documents ADD CONSTRAINT documents_pii_status_check CHECK (pii_status IN ('none','found','redacted','unscanned')); END IF; END $$",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "CREATE INDEX IF NOT EXISTS idx_documents_kb_source ON documents(knowledge_base_id, source_id)",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "CREATE INDEX IF NOT EXISTS idx_documents_source_external ON documents(source_id, external_id) WHERE status <> 'duplicate'",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "CREATE TABLE IF NOT EXISTS kb_favorites ( user_id TEXT NOT NULL, kb_id UUID NOT NULL REFERENCES knowledge_bases(id) ON DELETE CASCADE, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), PRIMARY KEY (user_id, kb_id) )",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "CREATE INDEX IF NOT EXISTS idx_kb_favorites_user ON kb_favorites(user_id)",
+  "params": null
+ },
+ {
+  "result": "<undefined>"
+ },
+ {
+  "step": "whenReady (memoised)"
+ },
+ {
+  "result": "<undefined>"
+ },
+ {
+  "step": "createKB defaults"
+ },
+ {
+  "via": "getOne",
+  "sql": "INSERT INTO knowledge_bases (tenant_id, name, description, organization_id, category_id, icon, source_kind, usage_contexts, system_slug, is_published) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10) RETURNING *",
+  "params": [
+   "alice",
+   "Base",
+   "",
+   null,
+   null,
+   null,
+   "manual",
+   "[\"agent\",\"direct_chat\"]",
+   null,
+   false
+  ]
+ },
+ {
+  "result": {
+   "echo": [
+    "alice",
+    "Base",
+    "",
+    null,
+    null,
+    null,
+    "manual",
+    "[\"agent\",\"direct_chat\"]",
+    null,
+    false
+   ]
+  }
+ },
+ {
+  "step": "createKB extra"
+ },
+ {
+  "via": "getOne",
+  "sql": "INSERT INTO knowledge_bases (tenant_id, name, description, organization_id, category_id, icon, source_kind, usage_contexts, system_slug, is_published) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10) RETURNING *",
+  "params": [
+   "alice",
+   "Sys",
+   "x",
+   "orgA",
+   "c",
+   "i",
+   "system_managed",
+   "[\"webpage\"]",
+   "nl-law",
+   true
+  ]
+ },
+ {
+  "result": {
+   "echo": [
+    "alice",
+    "Sys",
+    "x",
+    "orgA",
+    "c",
+    "i",
+    "system_managed",
+    "[\"webpage\"]",
+    "nl-law",
+    true
+   ]
+  }
+ },
+ {
+  "step": "getSystemKBBySlug empty"
+ },
+ {
+  "result": null
+ },
+ {
+  "step": "getSystemKBBySlug"
+ },
+ {
+  "via": "getOne",
+  "sql": "SELECT * FROM knowledge_bases WHERE source_kind = 'system_managed' AND system_slug = $1 LIMIT 1",
+  "params": [
+   "nl-law"
+  ]
+ },
+ {
+  "result": {
+   "echo": [
+    "nl-law"
+   ]
+  }
+ },
+ {
+  "step": "listSystemKBs"
+ },
+ {
+  "via": "getAll",
+  "sql": "SELECT kb.*, COALESCE(d.doc_count, 0) AS document_count, COALESCE(d.doc_count_all, 0) AS document_count_all, COALESCE(d.total_chunks, 0) AS total_chunks, d.last_document_at FROM knowledge_bases kb LEFT JOIN ( SELECT knowledge_base_id, COUNT(*) FILTER (WHERE status IN ('processed','redacted')) AS doc_count, COUNT(*) AS doc_count_all, SUM(chunk_count) FILTER (WHERE status IN ('processed','redacted')) AS total_chunks, MAX(created_at) FILTER (WHERE status IN ('processed','redacted')) AS last_document_at FROM documents GROUP BY knowledge_base_id ) d ON d.knowledge_base_id = kb.id WHERE kb.source_kind = 'system_managed' ORDER BY kb.name",
+  "params": null
+ },
+ {
+  "result": []
+ },
+ {
+  "step": "isSystemKB"
+ },
+ {
+  "result": [
+   true,
+   false,
+   false
+  ]
+ },
+ {
+  "step": "isProjectFilesKB"
+ },
+ {
+  "result": [
+   true,
+   false
+  ]
+ },
+ {
+  "step": "listKBs legacy"
+ },
+ {
+  "via": "getAll",
+  "sql": "SELECT kb.*, COALESCE(d.doc_count, 0) AS document_count, COALESCE(d.doc_count_all, 0) AS document_count_all, COALESCE(d.total_chunks, 0) AS total_chunks, d.last_document_at FROM knowledge_bases kb LEFT JOIN ( SELECT knowledge_base_id, COUNT(*) FILTER (WHERE status IN ('processed','redacted')) AS doc_count, COUNT(*) AS doc_count_all, SUM(chunk_count) FILTER (WHERE status IN ('processed','redacted')) AS total_chunks, MAX(created_at) FILTER (WHERE status IN ('processed','redacted')) AS last_document_at FROM documents GROUP BY knowledge_base_id ) d ON d.knowledge_base_id = kb.id WHERE kb.tenant_id = $1 AND kb.source_kind = ANY($2) ORDER BY created_at DESC",
+  "params": [
+   "alice",
+   [
+    "manual"
+   ]
+  ]
+ },
+ {
+  "result": []
+ },
+ {
+  "step": "listKBs legacy filters+system"
+ },
+ {
+  "via": "getAll",
+  "sql": "SELECT kb.*, COALESCE(d.doc_count, 0) AS document_count, COALESCE(d.doc_count_all, 0) AS document_count_all, COALESCE(d.total_chunks, 0) AS total_chunks, d.last_document_at FROM knowledge_bases kb LEFT JOIN ( SELECT knowledge_base_id, COUNT(*) FILTER (WHERE status IN ('processed','redacted')) AS doc_count, COUNT(*) AS doc_count_all, SUM(chunk_count) FILTER (WHERE status IN ('processed','redacted')) AS total_chunks, MAX(created_at) FILTER (WHERE status IN ('processed','redacted')) AS last_document_at FROM documents GROUP BY knowledge_base_id ) d ON d.knowledge_base_id = kb.id WHERE kb.tenant_id = $1 AND kb.source_kind = ANY($2) AND kb.usage_contexts ? $3 AND NOT (kb.usage_contexts ? $4) UNION SELECT kb.*, COALESCE(d.doc_count, 0) AS document_count, COALESCE(d.doc_count_all, 0) AS document_count_all, COALESCE(d.total_chunks, 0) AS total_chunks, d.last_document_at FROM knowledge_bases kb LEFT JOIN ( SELECT knowledge_base_id, COUNT(*) FILTER (WHERE status IN ('processed','redacted')) AS doc_count, COUNT(*) AS doc_count_all, SUM(chunk_count) FILTER (WHERE status IN ('processed','redacted')) AS total_chunks, MAX(created_at) FILTER (WHERE status IN ('processed','redacted')) AS last_document_at FROM documents GROUP BY knowledge_base_id ) d ON d.knowledge_base_id = kb.id WHERE kb.source_kind = 'system_managed' AND kb.system_slug = ANY($5) AND kb.usage_contexts ? $6 AND NOT (kb.usage_contexts ? $7) ORDER BY created_at DESC",
+  "params": [
+   "alice",
+   [
+    "manual",
+    "x"
+   ],
+   "agent",
+   "webpage",
+   [
+    "nl-law"
+   ],
+   "agent",
+   "webpage"
+  ]
+ },
+ {
+  "result": []
+ },
+ {
+  "step": "listKBs super admin"
+ },
+ {
+  "via": "getAll",
+  "sql": "SELECT kb.*, COALESCE(d.doc_count, 0) AS document_count, COALESCE(d.doc_count_all, 0) AS document_count_all, COALESCE(d.total_chunks, 0) AS total_chunks, d.last_document_at FROM knowledge_bases kb LEFT JOIN ( SELECT knowledge_base_id, COUNT(*) FILTER (WHERE status IN ('processed','redacted')) AS doc_count, COUNT(*) AS doc_count_all, SUM(chunk_count) FILTER (WHERE status IN ('processed','redacted')) AS total_chunks, MAX(created_at) FILTER (WHERE status IN ('processed','redacted')) AS last_document_at FROM documents GROUP BY knowledge_base_id ) d ON d.knowledge_base_id = kb.id WHERE kb.source_kind = ANY($1) ORDER BY created_at DESC",
+  "params": [
+   [
+    "manual"
+   ]
+  ]
+ },
+ {
+  "result": []
+ },
+ {
+  "step": "listKBs super admin all kinds"
+ },
+ {
+  "via": "getAll",
+  "sql": "SELECT kb.*, COALESCE(d.doc_count, 0) AS document_count, COALESCE(d.doc_count_all, 0) AS document_count_all, COALESCE(d.total_chunks, 0) AS total_chunks, d.last_document_at FROM knowledge_bases kb LEFT JOIN ( SELECT knowledge_base_id, COUNT(*) FILTER (WHERE status IN ('processed','redacted')) AS doc_count, COUNT(*) AS doc_count_all, SUM(chunk_count) FILTER (WHERE status IN ('processed','redacted')) AS total_chunks, MAX(created_at) FILTER (WHERE status IN ('processed','redacted')) AS last_document_at FROM documents GROUP BY knowledge_base_id ) d ON d.knowledge_base_id = kb.id ORDER BY created_at DESC",
+  "params": []
+ },
+ {
+  "result": []
+ },
+ {
+  "step": "listKBs super admin system"
+ },
+ {
+  "via": "getAll",
+  "sql": "SELECT kb.*, COALESCE(d.doc_count, 0) AS document_count, COALESCE(d.doc_count_all, 0) AS document_count_all, COALESCE(d.total_chunks, 0) AS total_chunks, d.last_document_at FROM knowledge_bases kb LEFT JOIN ( SELECT knowledge_base_id, COUNT(*) FILTER (WHERE status IN ('processed','redacted')) AS doc_count, COUNT(*) AS doc_count_all, SUM(chunk_count) FILTER (WHERE status IN ('processed','redacted')) AS total_chunks, MAX(created_at) FILTER (WHERE status IN ('processed','redacted')) AS last_document_at FROM documents GROUP BY knowledge_base_id ) d ON d.knowledge_base_id = kb.id WHERE kb.usage_contexts ? $1 UNION SELECT kb.*, COALESCE(d.doc_count, 0) AS document_count, COALESCE(d.doc_count_all, 0) AS document_count_all, COALESCE(d.total_chunks, 0) AS total_chunks, d.last_document_at FROM knowledge_bases kb LEFT JOIN ( SELECT knowledge_base_id, COUNT(*) FILTER (WHERE status IN ('processed','redacted')) AS doc_count, COUNT(*) AS doc_count_all, SUM(chunk_count) FILTER (WHERE status IN ('processed','redacted')) AS total_chunks, MAX(created_at) FILTER (WHERE status IN ('processed','redacted')) AS last_document_at FROM documents GROUP BY knowledge_base_id ) d ON d.knowledge_base_id = kb.id WHERE kb.source_kind = 'system_managed' AND kb.system_slug = ANY($2) AND kb.usage_contexts ? $3 ORDER BY created_at DESC",
+  "params": [
+   "agent",
+   [
+    "s"
+   ],
+   "agent"
+  ]
+ },
+ {
+  "result": []
+ },
+ {
+  "step": "listKBs no org"
+ },
+ {
+  "via": "getAll",
+  "sql": "SELECT kb.*, COALESCE(d.doc_count, 0) AS document_count, COALESCE(d.doc_count_all, 0) AS document_count_all, COALESCE(d.total_chunks, 0) AS total_chunks, d.last_document_at FROM knowledge_bases kb LEFT JOIN ( SELECT knowledge_base_id, COUNT(*) FILTER (WHERE status IN ('processed','redacted')) AS doc_count, COUNT(*) AS doc_count_all, SUM(chunk_count) FILTER (WHERE status IN ('processed','redacted')) AS total_chunks, MAX(created_at) FILTER (WHERE status IN ('processed','redacted')) AS last_document_at FROM documents GROUP BY knowledge_base_id ) d ON d.knowledge_base_id = kb.id WHERE kb.tenant_id = $1 AND kb.source_kind = ANY($2) AND NOT (kb.usage_contexts ? $3) ORDER BY created_at DESC",
+  "params": [
+   "alice",
+   [
+    "manual"
+   ],
+   "webpage"
+  ]
+ },
+ {
+  "result": []
+ },
+ {
+  "step": "listKBs org member"
+ },
+ {
+  "via": "getAll",
+  "sql": "SELECT kb.*, COALESCE(d.doc_count, 0) AS document_count, COALESCE(d.doc_count_all, 0) AS document_count_all, COALESCE(d.total_chunks, 0) AS total_chunks, d.last_document_at FROM knowledge_bases kb LEFT JOIN ( SELECT knowledge_base_id, COUNT(*) FILTER (WHERE status IN ('processed','redacted')) AS doc_count, COUNT(*) AS doc_count_all, SUM(chunk_count) FILTER (WHERE status IN ('processed','redacted')) AS total_chunks, MAX(created_at) FILTER (WHERE status IN ('processed','redacted')) AS last_document_at FROM documents GROUP BY knowledge_base_id ) d ON d.knowledge_base_id = kb.id WHERE (kb.tenant_id = $1 OR (kb.organization_id = ANY($2) AND kb.source_kind IS DISTINCT FROM 'project_files' AND kb.is_published = TRUE)) AND kb.source_kind = ANY($3) AND kb.usage_contexts ? $4 UNION SELECT kb.*, COALESCE(d.doc_count, 0) AS document_count, COALESCE(d.doc_count_all, 0) AS document_count_all, COALESCE(d.total_chunks, 0) AS total_chunks, d.last_document_at FROM knowledge_bases kb LEFT JOIN ( SELECT knowledge_base_id, COUNT(*) FILTER (WHERE status IN ('processed','redacted')) AS doc_count, COUNT(*) AS doc_count_all, SUM(chunk_count) FILTER (WHERE status IN ('processed','redacted')) AS total_chunks, MAX(created_at) FILTER (WHERE status IN ('processed','redacted')) AS last_document_at FROM documents GROUP BY knowledge_base_id ) d ON d.knowledge_base_id = kb.id WHERE kb.source_kind = 'system_managed' AND kb.system_slug = ANY($5) AND kb.usage_contexts ? $6 ORDER BY created_at DESC",
+  "params": [
+   "alice",
+   [
+    "orgA",
+    "orgB"
+   ],
+   [
+    "manual"
+   ],
+   "direct_chat",
+   [
+    "s"
+   ],
+   "direct_chat"
+  ]
+ },
+ {
+  "result": []
+ },
+ {
+  "step": "listKBs org admin"
+ },
+ {
+  "via": "getAll",
+  "sql": "SELECT kb.*, COALESCE(d.doc_count, 0) AS document_count, COALESCE(d.doc_count_all, 0) AS document_count_all, COALESCE(d.total_chunks, 0) AS total_chunks, d.last_document_at FROM knowledge_bases kb LEFT JOIN ( SELECT knowledge_base_id, COUNT(*) FILTER (WHERE status IN ('processed','redacted')) AS doc_count, COUNT(*) AS doc_count_all, SUM(chunk_count) FILTER (WHERE status IN ('processed','redacted')) AS total_chunks, MAX(created_at) FILTER (WHERE status IN ('processed','redacted')) AS last_document_at FROM documents GROUP BY knowledge_base_id ) d ON d.knowledge_base_id = kb.id WHERE (kb.tenant_id = $1 OR (kb.organization_id = ANY($2) AND kb.source_kind IS DISTINCT FROM 'project_files')) ORDER BY created_at DESC",
+  "params": [
+   "alice",
+   [
+    "orgA"
+   ]
+  ]
+ },
+ {
+  "result": []
+ },
+ {
+  "step": "filterByGroupAccess non-array"
+ },
+ {
+  "result": []
+ },
+ {
+  "step": "filterByGroupAccess member"
+ },
+ {
+  "result": [
+   "own",
+   "sys",
+   "pfOwn",
+   "pub",
+   "grp",
+   "badgrp"
+  ]
+ },
+ {
+  "step": "filterByGroupAccess no groups"
+ },
+ {
+  "result": [
+   "own",
+   "sys",
+   "pfOwn",
+   "pub",
+   "badgrp",
+   "other",
+   "personal"
+  ]
+ },
+ {
+  "step": "filterByGroupAccess org admin"
+ },
+ {
+  "result": [
+   "own",
+   "sys",
+   "pfOwn",
+   "draft",
+   "pub",
+   "grp",
+   "badgrp"
+  ]
+ },
+ {
+  "step": "filterByGroupAccess super admin"
+ },
+ {
+  "result": [
+   "own",
+   "sys",
+   "pf",
+   "pfOwn",
+   "draft",
+   "pub",
+   "grp",
+   "badgrp",
+   "other",
+   "personal"
+  ]
+ },
+ {
+  "step": "canUserAccessKB null"
+ },
+ {
+  "result": false
+ },
+ {
+  "step": "canUserManageKB matrix"
+ },
+ {
+  "result": [
+   true,
+   true,
+   true,
+   true,
+   false,
+   false,
+   true,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   true,
+   false,
+   true,
+   false,
+   true,
+   false,
+   true,
+   false,
+   true,
+   false,
+   true,
+   false,
+   true,
+   false,
+   true,
+   false,
+   false,
+   false,
+   true,
+   false,
+   false,
+   false,
+   true,
+   false,
+   false
+  ]
+ },
+ {
+  "step": "filterByGroupAccess self-dispatch"
+ },
+ {
+  "result": [
+   "other"
+  ]
+ },
+ {
+  "step": "getKB bad id"
+ },
+ {
+  "result": null
+ },
+ {
+  "step": "getKB empty"
+ },
+ {
+  "result": null
+ },
+ {
+  "step": "getKB"
+ },
+ {
+  "via": "getOne",
+  "sql": "SELECT * FROM knowledge_bases WHERE id = $1",
+  "params": [
+   "11111111-1111-4111-8111-111111111111"
+  ]
+ },
+ {
+  "result": {
+   "id": "11111111-1111-4111-8111-111111111111",
+   "tenant_id": "alice",
+   "name": "Base",
+   "description": "d",
+   "category_id": "cat",
+   "icon": null,
+   "usage_contexts": [
+    "agent"
+   ],
+   "organization_id": "orgA"
+  }
+ },
+ {
+  "step": "updateKB unmanaged"
+ },
+ {
+  "guard": "managedInfoForKb",
+  "kbId": "11111111-1111-4111-8111-111111111111"
+ },
+ {
+  "via": "getOne",
+  "sql": "UPDATE knowledge_bases SET name = COALESCE($2, name), description = COALESCE($3, description), category_id = CASE WHEN $7 THEN NULL ELSE COALESCE($4, category_id) END, icon = COALESCE($5, icon), usage_contexts = COALESCE($6::jsonb, usage_contexts), organization_id = COALESCE($8, organization_id), updated_at = now() WHERE id = $1 RETURNING *",
+  "params": [
+   "11111111-1111-4111-8111-111111111111",
+   "N",
+   null,
+   null,
+   null,
+   "[\"agent\"]",
+   true,
+   "orgB"
+  ]
+ },
+ {
+  "result": {
+   "echo": [
+    "11111111-1111-4111-8111-111111111111",
+    "N",
+    null,
+    null,
+    null,
+    "[\"agent\"]",
+    true,
+    "orgB"
+   ]
+  }
+ },
+ {
+  "step": "updateKB unmanaged no changes"
+ },
+ {
+  "guard": "managedInfoForKb",
+  "kbId": "11111111-1111-4111-8111-111111111111"
+ },
+ {
+  "via": "getOne",
+  "sql": "UPDATE knowledge_bases SET name = COALESCE($2, name), description = COALESCE($3, description), category_id = CASE WHEN $7 THEN NULL ELSE COALESCE($4, category_id) END, icon = COALESCE($5, icon), usage_contexts = COALESCE($6::jsonb, usage_contexts), organization_id = COALESCE($8, organization_id), updated_at = now() WHERE id = $1 RETURNING *",
+  "params": [
+   "11111111-1111-4111-8111-111111111111",
+   null,
+   null,
+   null,
+   null,
+   null,
+   false,
+   null
+  ]
+ },
+ {
+  "result": {
+   "echo": [
+    "11111111-1111-4111-8111-111111111111",
+    null,
+    null,
+    null,
+    null,
+    null,
+    false,
+    null
+   ]
+  }
+ },
+ {
+  "step": "updateKB managed refused"
+ },
+ {
+  "guard": "managedInfoForKb",
+  "kbId": "11111111-1111-4111-8111-111111111111"
+ },
+ {
+  "via": "getOne",
+  "sql": "SELECT * FROM knowledge_bases WHERE id = $1",
+  "params": [
+   "11111111-1111-4111-8111-111111111111"
+  ]
+ },
+ {
+  "guard": "managedInfoForKb",
+  "kbId": "11111111-1111-4111-8111-111111111111"
+ },
+ {
+  "guard": "assertManagedWrite",
+  "args": {
+   "kind": "knowledge_base",
+   "projectId": "p-uat",
+   "changedKeys": [
+    "name",
+    "categoryId"
+   ],
+   "managedWrite": null
+  }
+ },
+ {
+  "threw": {
+   "message": "managed",
+   "code": "managed_part",
+   "status": 409
+  }
+ },
+ {
+  "step": "updateKB managed same values"
+ },
+ {
+  "guard": "managedInfoForKb",
+  "kbId": "11111111-1111-4111-8111-111111111111"
+ },
+ {
+  "via": "getOne",
+  "sql": "SELECT * FROM knowledge_bases WHERE id = $1",
+  "params": [
+   "11111111-1111-4111-8111-111111111111"
+  ]
+ },
+ {
+  "via": "getOne",
+  "sql": "UPDATE knowledge_bases SET name = COALESCE($2, name), description = COALESCE($3, description), category_id = CASE WHEN $7 THEN NULL ELSE COALESCE($4, category_id) END, icon = COALESCE($5, icon), usage_contexts = COALESCE($6::jsonb, usage_contexts), organization_id = COALESCE($8, organization_id), updated_at = now() WHERE id = $1 RETURNING *",
+  "params": [
+   "11111111-1111-4111-8111-111111111111",
+   "Base",
+   null,
+   null,
+   null,
+   null,
+   false,
+   null
+  ]
+ },
+ {
+  "result": {
+   "echo": [
+    "11111111-1111-4111-8111-111111111111",
+    "Base",
+    null,
+    null,
+    null,
+    null,
+    false,
+    null
+   ]
+  }
+ },
+ {
+  "step": "updateKB managed with capability"
+ },
+ {
+  "guard": "managedInfoForKb",
+  "kbId": "11111111-1111-4111-8111-111111111111"
+ },
+ {
+  "via": "getOne",
+  "sql": "SELECT * FROM knowledge_bases WHERE id = $1",
+  "params": [
+   "11111111-1111-4111-8111-111111111111"
+  ]
+ },
+ {
+  "guard": "managedInfoForKb",
+  "kbId": "11111111-1111-4111-8111-111111111111"
+ },
+ {
+  "guard": "assertManagedWrite",
+  "args": {
+   "kind": "knowledge_base",
+   "projectId": "p-uat",
+   "changedKeys": [
+    "description"
+   ],
+   "managedWrite": {
+    "deploymentId": "d1"
+   }
+  }
+ },
+ {
+  "via": "getOne",
+  "sql": "UPDATE knowledge_bases SET name = COALESCE($2, name), description = COALESCE($3, description), category_id = CASE WHEN $7 THEN NULL ELSE COALESCE($4, category_id) END, icon = COALESCE($5, icon), usage_contexts = COALESCE($6::jsonb, usage_contexts), organization_id = COALESCE($8, organization_id), updated_at = now() WHERE id = $1 RETURNING *",
+  "params": [
+   "11111111-1111-4111-8111-111111111111",
+   null,
+   "new",
+   null,
+   null,
+   null,
+   false,
+   null
+  ]
+ },
+ {
+  "result": {
+   "echo": [
+    "11111111-1111-4111-8111-111111111111",
+    null,
+    "new",
+    null,
+    null,
+    null,
+    false,
+    null
+   ]
+  }
+ },
+ {
+  "step": "updateKB managed self-dispatch getKB"
+ },
+ {
+  "guard": "managedInfoForKb",
+  "kbId": "11111111-1111-4111-8111-111111111111"
+ },
+ {
+  "via": "getOne",
+  "sql": "UPDATE knowledge_bases SET name = COALESCE($2, name), description = COALESCE($3, description), category_id = CASE WHEN $7 THEN NULL ELSE COALESCE($4, category_id) END, icon = COALESCE($5, icon), usage_contexts = COALESCE($6::jsonb, usage_contexts), organization_id = COALESCE($8, organization_id), updated_at = now() WHERE id = $1 RETURNING *",
+  "params": [
+   "11111111-1111-4111-8111-111111111111",
+   "X",
+   null,
+   null,
+   null,
+   null,
+   false,
+   null
+  ]
+ },
+ {
+  "result": {
+   "echo": [
+    "11111111-1111-4111-8111-111111111111",
+    "X",
+    null,
+    null,
+    null,
+    null,
+    false,
+    null
+   ]
+  }
+ },
+ {
+  "step": "setPublished keep groups"
+ },
+ {
+  "via": "getOne",
+  "sql": "UPDATE knowledge_bases SET is_published = $2, updated_at = now() WHERE id = $1 RETURNING *",
+  "params": [
+   "11111111-1111-4111-8111-111111111111",
+   true
+  ]
+ },
+ {
+  "result": {
+   "echo": [
+    "11111111-1111-4111-8111-111111111111",
+    true
+   ]
+  }
+ },
+ {
+  "step": "setPublished groups"
+ },
+ {
+  "via": "getOne",
+  "sql": "UPDATE knowledge_bases SET is_published = $2, shared_groups = $3, updated_at = now() WHERE id = $1 RETURNING *",
+  "params": [
+   "11111111-1111-4111-8111-111111111111",
+   false,
+   "[\"g1\"]"
+  ]
+ },
+ {
+  "result": {
+   "echo": [
+    "11111111-1111-4111-8111-111111111111",
+    false,
+    "[\"g1\"]"
+   ]
+  }
+ },
+ {
+  "step": "setPublished non-array groups"
+ },
+ {
+  "via": "getOne",
+  "sql": "UPDATE knowledge_bases SET is_published = $2, shared_groups = $3, updated_at = now() WHERE id = $1 RETURNING *",
+  "params": [
+   "11111111-1111-4111-8111-111111111111",
+   true,
+   "[]"
+  ]
+ },
+ {
+  "result": {
+   "echo": [
+    "11111111-1111-4111-8111-111111111111",
+    true,
+    "[]"
+   ]
+  }
+ },
+ {
+  "step": "listKBCategories personal"
+ },
+ {
+  "via": "getAll",
+  "sql": "SELECT * FROM kb_categories WHERE organization_id IS NULL ORDER BY name",
+  "params": null
+ },
+ {
+  "result": []
+ },
+ {
+  "step": "listKBCategories org"
+ },
+ {
+  "via": "getAll",
+  "sql": "SELECT * FROM kb_categories WHERE organization_id = $1 ORDER BY name",
+  "params": [
+   "orgA"
+  ]
+ },
+ {
+  "result": []
+ },
+ {
+  "step": "createKBCategory"
+ },
+ {
+  "via": "getOne",
+  "sql": "INSERT INTO kb_categories (id, organization_id, name, icon, color) VALUES ($1, $2, $3, COALESCE($4, '📚'), COALESCE($5, '#6366f1')) RETURNING *",
+  "params": [
+   "c1",
+   null,
+   "Cat",
+   null,
+   null
+  ]
+ },
+ {
+  "result": {
+   "echo": [
+    "c1",
+    null,
+    "Cat",
+    null,
+    null
+   ]
+  }
+ },
+ {
+  "step": "deleteKBCategory"
+ },
+ {
+  "via": "run",
+  "sql": "UPDATE knowledge_bases SET category_id = NULL WHERE category_id = $1",
+  "params": [
+   "c1"
+  ]
+ },
+ {
+  "via": "run",
+  "sql": "DELETE FROM kb_categories WHERE id = $1",
+  "params": [
+   "c1"
+  ]
+ },
+ {
+  "result": true
+ },
+ {
+  "step": "assertKbWrite unmanaged"
+ },
+ {
+  "guard": "managedInfoForKb",
+  "kbId": "11111111-1111-4111-8111-111111111111"
+ },
+ {
+  "result": "<undefined>"
+ },
+ {
+  "step": "assertKbWrite no keys"
+ },
+ {
+  "result": "<undefined>"
+ },
+ {
+  "step": "assertKbWrite carry refused"
+ },
+ {
+  "guard": "managedInfoForKb",
+  "kbId": "11111111-1111-4111-8111-111111111111"
+ },
+ {
+  "guard": "assertManagedWrite",
+  "args": {
+   "kind": "knowledge_base_carry",
+   "projectId": "p-prd",
+   "changedKeys": [
+    "name"
+   ],
+   "managedWrite": null
+  }
+ },
+ {
+  "threw": {
+   "message": "managed",
+   "code": "managed_part",
+   "status": 409
+  }
+ },
+ {
+  "step": "assertKbWrite carry ok"
+ },
+ {
+  "guard": "managedInfoForKb",
+  "kbId": "11111111-1111-4111-8111-111111111111"
+ },
+ {
+  "guard": "assertManagedWrite",
+  "args": {
+   "kind": "knowledge_base_carry",
+   "projectId": "p-prd",
+   "changedKeys": [
+    "name"
+   ],
+   "managedWrite": {
+    "deploymentId": "d"
+   }
+  }
+ },
+ {
+  "result": "<undefined>"
+ },
+ {
+  "step": "managedPayload"
+ },
+ {
+  "guard": "managedInfoForKb",
+  "kbId": "11111111-1111-4111-8111-111111111111"
+ },
+ {
+  "hook": "managedPayloadFor",
+  "args": {
+   "projectId": "p-prd",
+   "kind": "knowledge_base",
+   "entityId": "11111111-1111-4111-8111-111111111111"
+  }
+ },
+ {
+  "result": {
+   "stage": "uat"
+  }
+ },
+ {
+  "step": "deleteKB managed refused"
+ },
+ {
+  "guard": "managedInfoForKb",
+  "kbId": "11111111-1111-4111-8111-111111111111"
+ },
+ {
+  "guard": "assertManagedWrite",
+  "args": {
+   "kind": "knowledge_base_carry",
+   "projectId": "p-prd",
+   "changedKeys": [
+    "delete"
+   ],
+   "managedWrite": null
+  }
+ },
+ {
+  "threw": {
+   "message": "managed",
+   "code": "managed_part",
+   "status": 409
+  }
+ },
+ {
+  "step": "assertKbWrite carryOnly on shell"
+ },
+ {
+  "guard": "managedInfoForKb",
+  "kbId": "11111111-1111-4111-8111-111111111111"
+ },
+ {
+  "result": "<undefined>"
+ },
+ {
+  "step": "managedPayload empty id"
+ },
+ {
+  "result": null
+ },
+ {
+  "step": "managedPayload unmanaged"
+ },
+ {
+  "guard": "managedInfoForKb",
+  "kbId": "11111111-1111-4111-8111-111111111111"
+ },
+ {
+  "result": null
+ },
+ {
+  "step": "deleteKB"
+ },
+ {
+  "guard": "managedInfoForKb",
+  "kbId": "11111111-1111-4111-8111-111111111111"
+ },
+ {
+  "via": "run",
+  "sql": "UPDATE projects SET knowledge_base_ids = COALESCE( (SELECT jsonb_agg(elem) FROM jsonb_array_elements_text(knowledge_base_ids) elem WHERE elem <> $1), '[]'::jsonb ) WHERE knowledge_base_ids @> to_jsonb($1::text)",
+  "params": [
+   "11111111-1111-4111-8111-111111111111"
+  ]
+ },
+ {
+  "via": "run",
+  "sql": "DELETE FROM knowledge_bases WHERE id = $1",
+  "params": [
+   "11111111-1111-4111-8111-111111111111"
+  ]
+ },
+ {
+  "result": true
+ },
+ {
+  "step": "deleteKB projects missing"
+ },
+ {
+  "guard": "managedInfoForKb",
+  "kbId": "11111111-1111-4111-8111-111111111111"
+ },
+ {
+  "via": "run",
+  "sql": "UPDATE projects SET knowledge_base_ids = COALESCE( (SELECT jsonb_agg(elem) FROM jsonb_array_elements_text(knowledge_base_ids) elem WHERE elem <> $1), '[]'::jsonb ) WHERE knowledge_base_ids @> to_jsonb($1::text)",
+  "params": [
+   "11111111-1111-4111-8111-111111111111"
+  ]
+ },
+ {
+  "via": "run",
+  "sql": "DELETE FROM knowledge_bases WHERE id = $1",
+  "params": [
+   "11111111-1111-4111-8111-111111111111"
+  ]
+ },
+ {
+  "result": true
+ },
+ {
+  "step": "bumpKBVersion"
+ },
+ {
+  "via": "getOne",
+  "sql": "UPDATE knowledge_bases SET kb_version = kb_version + 1, updated_at = now(), last_content_at = now() WHERE id = $1 RETURNING kb_version, last_content_at",
+  "params": [
+   "11111111-1111-4111-8111-111111111111"
+  ]
+ },
+ {
+  "result": {
+   "echo": [
+    "11111111-1111-4111-8111-111111111111"
+   ]
+  }
+ },
+ {
+  "step": "createDocument legacy"
+ },
+ {
+  "guard": "managedInfoForKb",
+  "kbId": "11111111-1111-4111-8111-111111111111"
+ },
+ {
+  "via": "getOne",
+  "sql": "INSERT INTO documents ( tenant_id, knowledge_base_id, title, source_type, source_uri, content_hash, chunk_count, metadata, simhash, source_id, external_id, source_modified_at, size_bytes, page_count, sheet_count, mime, created_by, status, status_reason, extract_summary, pii_status, pii_categories, overlaps_document_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22::jsonb, $23) RETURNING id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by",
+  "params": [
+   "alice",
+   "11111111-1111-4111-8111-111111111111",
+   "T",
+   "text",
+   "u",
+   "h",
+   0,
+   "{}",
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   "processed",
+   null,
+   null,
+   "unscanned",
+   null,
+   null
+  ]
+ },
+ {
+  "result": {
+   "echo": [
+    "alice",
+    "11111111-1111-4111-8111-111111111111",
+    "T",
+    "text",
+    "u",
+    "h",
+    0,
+    "{}",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    "processed",
+    null,
+    null,
+    "unscanned",
+    null,
+    null
+   ]
+  }
+ },
+ {
+  "step": "createDocument extra"
+ },
+ {
+  "guard": "managedInfoForKb",
+  "kbId": "11111111-1111-4111-8111-111111111111"
+ },
+ {
+  "via": "getOne",
+  "sql": "INSERT INTO documents ( tenant_id, knowledge_base_id, title, source_type, source_uri, content_hash, chunk_count, metadata, simhash, source_id, external_id, source_modified_at, size_bytes, page_count, sheet_count, mime, created_by, status, status_reason, extract_summary, pii_status, pii_categories, overlaps_document_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22::jsonb, $23) RETURNING id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by",
+  "params": [
+   "alice",
+   "11111111-1111-4111-8111-111111111111",
+   "T",
+   "file",
+   "u",
+   "h",
+   3,
+   "{\"a\":1}",
+   "42",
+   "s1",
+   "9",
+   "2026-01-01",
+   12,
+   null,
+   null,
+   "m",
+   "alice",
+   "redacted",
+   "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr",
+   "sum",
+   "found",
+   "[\"email\"]",
+   "o"
+  ]
+ },
+ {
+  "result": {
+   "echo": [
+    "alice",
+    "11111111-1111-4111-8111-111111111111",
+    "T",
+    "file",
+    "u",
+    "h",
+    3,
+    "{\"a\":1}",
+    "42",
+    "s1",
+    "9",
+    "2026-01-01",
+    12,
+    null,
+    null,
+    "m",
+    "alice",
+    "redacted",
+    "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr",
+    "sum",
+    "found",
+    "[\"email\"]",
+    "o"
+   ]
+  }
+ },
+ {
+  "step": "createDocument bad status"
+ },
+ {
+  "guard": "managedInfoForKb",
+  "kbId": "11111111-1111-4111-8111-111111111111"
+ },
+ {
+  "via": "getOne",
+  "sql": "INSERT INTO documents ( tenant_id, knowledge_base_id, title, source_type, source_uri, content_hash, chunk_count, metadata, simhash, source_id, external_id, source_modified_at, size_bytes, page_count, sheet_count, mime, created_by, status, status_reason, extract_summary, pii_status, pii_categories, overlaps_document_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22::jsonb, $23) RETURNING id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by",
+  "params": [
+   "alice",
+   "11111111-1111-4111-8111-111111111111",
+   "T",
+   "text",
+   "u",
+   "h",
+   0,
+   "{}",
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   "processed",
+   null,
+   null,
+   "unscanned",
+   null,
+   null
+  ]
+ },
+ {
+  "result": {
+   "echo": [
+    "alice",
+    "11111111-1111-4111-8111-111111111111",
+    "T",
+    "text",
+    "u",
+    "h",
+    0,
+    "{}",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    "processed",
+    null,
+    null,
+    "unscanned",
+    null,
+    null
+   ]
+  }
+ },
+ {
+  "step": "createDocument carried refused"
+ },
+ {
+  "guard": "managedInfoForKb",
+  "kbId": "11111111-1111-4111-8111-111111111111"
+ },
+ {
+  "guard": "assertManagedWrite",
+  "args": {
+   "kind": "knowledge_base_carry",
+   "projectId": "p-prd",
+   "changedKeys": [
+    "documents"
+   ],
+   "managedWrite": null
+  }
+ },
+ {
+  "threw": {
+   "message": "managed",
+   "code": "managed_part",
+   "status": 409
+  }
+ },
+ {
+  "step": "recordDuplicate carried ok"
+ },
+ {
+  "guard": "managedInfoForKb",
+  "kbId": "11111111-1111-4111-8111-111111111111"
+ },
+ {
+  "guard": "assertManagedWrite",
+  "args": {
+   "kind": "knowledge_base_carry",
+   "projectId": "p-prd",
+   "changedKeys": [
+    "documents"
+   ],
+   "managedWrite": {
+    "deploymentId": "d"
+   }
+  }
+ },
+ {
+  "via": "getOne",
+  "sql": "INSERT INTO documents (tenant_id, knowledge_base_id, title, source_type, source_uri, content_hash, chunk_count, duplicate_of, metadata, status, status_reason, source_id, external_id, created_by, size_bytes, mime) VALUES ($1, $2, $3, $4, $5, $6, 0, $7, $8::jsonb, 'duplicate', $9, $10, $11, $12, $13, $14) RETURNING id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by",
+  "params": [
+   "alice",
+   "11111111-1111-4111-8111-111111111111",
+   "T",
+   "text",
+   "u",
+   "h",
+   "canon",
+   "{}",
+   null,
+   null,
+   null,
+   null,
+   null,
+   null
+  ]
+ },
+ {
+  "result": {
+   "echo": [
+    "alice",
+    "11111111-1111-4111-8111-111111111111",
+    "T",
+    "text",
+    "u",
+    "h",
+    "canon",
+    "{}",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+   ]
+  }
+ },
+ {
+  "step": "replaceDocumentContent carried refused"
+ },
+ {
+  "via": "getOne",
+  "sql": "SELECT knowledge_base_id FROM documents WHERE id = $1",
+  "params": [
+   "22222222-2222-4222-8222-222222222222"
+  ]
+ },
+ {
+  "guard": "managedInfoForKb",
+  "kbId": "11111111-1111-4111-8111-111111111111"
+ },
+ {
+  "guard": "assertManagedWrite",
+  "args": {
+   "kind": "knowledge_base_carry",
+   "projectId": "p-prd",
+   "changedKeys": [
+    "documents"
+   ],
+   "managedWrite": null
+  }
+ },
+ {
+  "threw": {
+   "message": "managed",
+   "code": "managed_part",
+   "status": 409
+  }
+ },
+ {
+  "step": "deleteDocument carried refused"
+ },
+ {
+  "via": "getOne",
+  "sql": "SELECT knowledge_base_id FROM documents WHERE id = $1",
+  "params": [
+   "22222222-2222-4222-8222-222222222222"
+  ]
+ },
+ {
+  "guard": "managedInfoForKb",
+  "kbId": "11111111-1111-4111-8111-111111111111"
+ },
+ {
+  "guard": "assertManagedWrite",
+  "args": {
+   "kind": "knowledge_base_carry",
+   "projectId": "p-prd",
+   "changedKeys": [
+    "documents"
+   ],
+   "managedWrite": null
+  }
+ },
+ {
+  "threw": {
+   "message": "managed",
+   "code": "managed_part",
+   "status": 409
+  }
+ },
+ {
+  "step": "recordDuplicate"
+ },
+ {
+  "guard": "managedInfoForKb",
+  "kbId": "11111111-1111-4111-8111-111111111111"
+ },
+ {
+  "via": "getOne",
+  "sql": "INSERT INTO documents (tenant_id, knowledge_base_id, title, source_type, source_uri, content_hash, chunk_count, duplicate_of, metadata, status, status_reason, source_id, external_id, created_by, size_bytes, mime) VALUES ($1, $2, $3, $4, $5, $6, 0, $7, $8::jsonb, 'duplicate', $9, $10, $11, $12, $13, $14) RETURNING id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by",
+  "params": [
+   "alice",
+   "11111111-1111-4111-8111-111111111111",
+   "T",
+   "text",
+   "u",
+   "h",
+   "canon",
+   "{\"m\":1}",
+   "dup",
+   "s",
+   "0",
+   "a",
+   5,
+   "m"
+  ]
+ },
+ {
+  "result": {
+   "echo": [
+    "alice",
+    "11111111-1111-4111-8111-111111111111",
+    "T",
+    "text",
+    "u",
+    "h",
+    "canon",
+    "{\"m\":1}",
+    "dup",
+    "s",
+    "0",
+    "a",
+    5,
+    "m"
+   ]
+  }
+ },
+ {
+  "step": "recordDuplicate null extra"
+ },
+ {
+  "guard": "managedInfoForKb",
+  "kbId": "11111111-1111-4111-8111-111111111111"
+ },
+ {
+  "via": "getOne",
+  "sql": "INSERT INTO documents (tenant_id, knowledge_base_id, title, source_type, source_uri, content_hash, chunk_count, duplicate_of, metadata, status, status_reason, source_id, external_id, created_by, size_bytes, mime) VALUES ($1, $2, $3, $4, $5, $6, 0, $7, $8::jsonb, 'duplicate', $9, $10, $11, $12, $13, $14) RETURNING id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by",
+  "params": [
+   "alice",
+   "11111111-1111-4111-8111-111111111111",
+   "T",
+   "text",
+   "u",
+   "h",
+   "canon",
+   "{}",
+   null,
+   null,
+   null,
+   null,
+   null,
+   null
+  ]
+ },
+ {
+  "result": {
+   "echo": [
+    "alice",
+    "11111111-1111-4111-8111-111111111111",
+    "T",
+    "text",
+    "u",
+    "h",
+    "canon",
+    "{}",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+   ]
+  }
+ },
+ {
+  "step": "findNearDuplicateBySimhash null"
+ },
+ {
+  "result": null
+ },
+ {
+  "step": "findNearDuplicateBySimhash"
+ },
+ {
+  "via": "getOne",
+  "sql": "SELECT id, title, simhash, source_id FROM documents WHERE knowledge_base_id = $1 AND status IN ('processed','redacted') AND simhash IS NOT NULL AND length(replace((($2::bigint # simhash)::bit(64))::text, '0', '')) <= $3 ORDER BY created_at DESC LIMIT 1",
+  "params": [
+   "11111111-1111-4111-8111-111111111111",
+   "99",
+   3
+  ]
+ },
+ {
+  "result": {
+   "echo": [
+    "11111111-1111-4111-8111-111111111111",
+    "99",
+    3
+   ]
+  }
+ },
+ {
+  "step": "updateDocumentStatus bad"
+ },
+ {
+  "threw": {
+   "message": "Invalid document status: nope",
+   "code": null,
+   "status": null
+  }
+ },
+ {
+  "step": "updateDocumentStatus"
+ },
+ {
+  "via": "getOne",
+  "sql": "UPDATE documents SET status = $2, status_reason = $3, chunk_count = COALESCE($4, chunk_count), updated_at = now() WHERE id = $1 RETURNING id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by",
+  "params": [
+   "22222222-2222-4222-8222-222222222222",
+   "error",
+   "why",
+   4
+  ]
+ },
+ {
+  "result": {
+   "echo": [
+    "22222222-2222-4222-8222-222222222222",
+    "error",
+    "why",
+    4
+   ]
+  }
+ },
+ {
+  "step": "replaceDocumentContent empty"
+ },
+ {
+  "via": "getOne",
+  "sql": "SELECT knowledge_base_id FROM documents WHERE id = $1",
+  "params": [
+   "22222222-2222-4222-8222-222222222222"
+  ]
+ },
+ {
+  "guard": "managedInfoForKb",
+  "kbId": "11111111-1111-4111-8111-111111111111"
+ },
+ {
+  "via": "getOne",
+  "sql": "UPDATE documents SET updated_at = now() WHERE id = $1 RETURNING id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by",
+  "params": [
+   "22222222-2222-4222-8222-222222222222"
+  ]
+ },
+ {
+  "result": {
+   "echo": [
+    "22222222-2222-4222-8222-222222222222"
+   ]
+  }
+ },
+ {
+  "step": "replaceDocumentContent bad id"
+ },
+ {
+  "via": "getOne",
+  "sql": "UPDATE documents SET title = $1, updated_at = now() WHERE id = $2 RETURNING id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by",
+  "params": [
+   "x",
+   "not-a-uuid"
+  ]
+ },
+ {
+  "result": {
+   "echo": [
+    "x",
+    "not-a-uuid"
+   ]
+  }
+ },
+ {
+  "step": "replaceDocumentContent full"
+ },
+ {
+  "via": "getOne",
+  "sql": "SELECT knowledge_base_id FROM documents WHERE id = $1",
+  "params": [
+   "22222222-2222-4222-8222-222222222222"
+  ]
+ },
+ {
+  "guard": "managedInfoForKb",
+  "kbId": "11111111-1111-4111-8111-111111111111"
+ },
+ {
+  "via": "getOne",
+  "sql": "UPDATE documents SET title = $1, content_hash = $2, simhash = $3, duplicate_of = $4::uuid, chunk_count = $5, size_bytes = $6, page_count = $7, sheet_count = $8, mime = $9, source_modified_at = $10, external_id = $11, status = $12, status_reason = $13, extract_summary = $14, pii_status = $15, pii_categories = $16::jsonb, overlaps_document_id = $17, metadata = $18::jsonb, updated_at = now() WHERE id = $19 RETURNING id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by",
+  "params": [
+   "x",
+   "h2",
+   "1",
+   null,
+   5,
+   null,
+   2,
+   null,
+   "m",
+   "d",
+   "7",
+   "processed",
+   null,
+   "s",
+   "none",
+   null,
+   "o",
+   "{\"a\":1}",
+   "22222222-2222-4222-8222-222222222222"
+  ]
+ },
+ {
+  "result": {
+   "id": "canon",
+   "title": "C",
+   "source_id": null,
+   "status": "processed"
+  }
+ },
+ {
+  "step": "findDocumentsBySourceExternalId none"
+ },
+ {
+  "result": []
+ },
+ {
+  "step": "findDocumentsBySourceExternalId"
+ },
+ {
+  "via": "getAll",
+  "sql": "SELECT id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by FROM documents WHERE source_id = $1 AND external_id = $2 AND status <> 'duplicate' ORDER BY created_at DESC",
+  "params": [
+   "s1",
+   "12"
+  ]
+ },
+ {
+  "result": [
+   {
+    "id": "e1"
+   },
+   {
+    "id": "e2"
+   }
+  ]
+ },
+ {
+  "step": "findDocumentBySourceExternalId"
+ },
+ {
+  "via": "getAll",
+  "sql": "SELECT id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by FROM documents WHERE source_id = $1 AND external_id = $2 AND status <> 'duplicate' ORDER BY created_at DESC",
+  "params": [
+   "s1",
+   "12"
+  ]
+ },
+ {
+  "result": {
+   "id": "e1"
+  }
+ },
+ {
+  "step": "findDocumentBySourceExternalId self-dispatch"
+ },
+ {
+  "result": null
+ },
+ {
+  "step": "countsBySource empty"
+ },
+ {
+  "result": {}
+ },
+ {
+  "step": "countsBySource"
+ },
+ {
+  "via": "getAll",
+  "sql": "SELECT source_id, COUNT(*)::int AS document_count, COUNT(*) FILTER (WHERE status = 'processed')::int AS processed_count, COUNT(*) FILTER (WHERE status = 'redacted')::int AS redacted_count, COUNT(*) FILTER (WHERE status = 'skipped')::int AS skipped_count, COUNT(*) FILTER (WHERE status = 'error')::int AS error_count, COUNT(*) FILTER (WHERE status = 'duplicate')::int AS duplicate_count, COUNT(*) FILTER (WHERE pii_status IN ('found','redacted'))::int AS pii_found_count, COALESCE(SUM(chunk_count) FILTER (WHERE status IN ('processed','redacted')), 0)::int AS total_chunks FROM documents WHERE source_id = ANY($1::uuid[]) GROUP BY source_id",
+  "params": [
+   [
+    "s1",
+    "s2"
+   ]
+  ]
+ },
+ {
+  "result": {
+   "s1": {
+    "documentCount": 2,
+    "processedCount": 1,
+    "redactedCount": 0,
+    "skippedCount": 1,
+    "errorCount": 0,
+    "duplicateCount": 0,
+    "piiFoundCount": 1,
+    "totalChunks": 9
+   }
+  }
+ },
+ {
+  "step": "countDocumentsByStatus"
+ },
+ {
+  "via": "getOne",
+  "sql": "SELECT COUNT(*) FILTER (WHERE status IN ('processed','redacted'))::int AS document_count, COUNT(*)::int AS document_count_all, COALESCE(SUM(chunk_count) FILTER (WHERE status IN ('processed','redacted')), 0)::int AS total_chunks FROM documents WHERE knowledge_base_id = $1",
+  "params": [
+   "11111111-1111-4111-8111-111111111111"
+  ]
+ },
+ {
+  "result": {
+   "documentCount": 3,
+   "documentCountAll": 5,
+   "totalChunks": 0
+  }
+ },
+ {
+  "step": "listDocuments"
+ },
+ {
+  "via": "getAll",
+  "sql": "SELECT id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by FROM documents WHERE knowledge_base_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3",
+  "params": [
+   "11111111-1111-4111-8111-111111111111",
+   200,
+   0
+  ]
+ },
+ {
+  "result": []
+ },
+ {
+  "step": "listDocuments filters"
+ },
+ {
+  "via": "getAll",
+  "sql": "SELECT id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by FROM documents WHERE knowledge_base_id = $1 AND metadata->>'from' ILIKE $2 AND metadata->>'threadId' = $3 AND (metadata->>'hasAttachments')::boolean = true AND (metadata->>'date')::timestamptz >= $4 AND (metadata->>'date')::timestamptz <= $5 AND source_type = $6 AND source_id = $7 AND source_id IS NULL AND status = ANY($8) AND pii_status IN ('found','redacted') AND title ILIKE $9 ORDER BY created_at DESC LIMIT $10 OFFSET $11",
+  "params": [
+   "11111111-1111-4111-8111-111111111111",
+   "%bob%",
+   "t",
+   "a",
+   "b",
+   "email",
+   "s",
+   [
+    "processed",
+    "error"
+   ],
+   "%50\\%\\_off\\\\%",
+   5,
+   10
+  ]
+ },
+ {
+  "result": []
+ },
+ {
+  "step": "listDocuments status array + exact pii"
+ },
+ {
+  "via": "getAll",
+  "sql": "SELECT id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by FROM documents WHERE knowledge_base_id = $1 AND status = ANY($2) AND pii_status = $3 ORDER BY created_at DESC LIMIT $4 OFFSET $5",
+  "params": [
+   "11111111-1111-4111-8111-111111111111",
+   [
+    "skipped"
+   ],
+   "none",
+   200,
+   0
+  ]
+ },
+ {
+  "result": []
+ },
+ {
+  "step": "listDocuments bad status + bad pii"
+ },
+ {
+  "via": "getAll",
+  "sql": "SELECT id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by FROM documents WHERE knowledge_base_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3",
+  "params": [
+   "11111111-1111-4111-8111-111111111111",
+   200,
+   0
+  ]
+ },
+ {
+  "result": []
+ },
+ {
+  "step": "countDocuments"
+ },
+ {
+  "via": "getOne",
+  "sql": "SELECT COUNT(*)::int AS n FROM documents WHERE knowledge_base_id = $1 AND source_id = $2",
+  "params": [
+   "11111111-1111-4111-8111-111111111111",
+   "s"
+  ]
+ },
+ {
+  "result": 7
+ },
+ {
+  "step": "listThreads"
+ },
+ {
+  "via": "getAll",
+  "sql": "SELECT metadata->>'threadId' AS thread_id, COUNT(*)::int AS message_count, MAX(created_at) AS latest FROM documents WHERE knowledge_base_id = $1 AND metadata ? 'threadId' AND metadata->>'threadId' IS NOT NULL GROUP BY thread_id ORDER BY latest DESC LIMIT $2",
+  "params": [
+   "11111111-1111-4111-8111-111111111111",
+   100
+  ]
+ },
+ {
+  "result": []
+ },
+ {
+  "step": "listThreads limit"
+ },
+ {
+  "via": "getAll",
+  "sql": "SELECT metadata->>'threadId' AS thread_id, COUNT(*)::int AS message_count, MAX(created_at) AS latest FROM documents WHERE knowledge_base_id = $1 AND metadata ? 'threadId' AND metadata->>'threadId' IS NOT NULL GROUP BY thread_id ORDER BY latest DESC LIMIT $2",
+  "params": [
+   "11111111-1111-4111-8111-111111111111",
+   3
+  ]
+ },
+ {
+  "result": []
+ },
+ {
+  "step": "listDocumentsByThread"
+ },
+ {
+  "via": "getAll",
+  "sql": "SELECT id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by FROM documents WHERE knowledge_base_id = $1 AND metadata->>'threadId' = $2 ORDER BY (metadata->>'date')::timestamptz NULLS LAST, created_at",
+  "params": [
+   "11111111-1111-4111-8111-111111111111",
+   "t"
+  ]
+ },
+ {
+  "result": []
+ },
+ {
+  "step": "getDocument bad"
+ },
+ {
+  "result": null
+ },
+ {
+  "step": "getDocument"
+ },
+ {
+  "via": "getOne",
+  "sql": "SELECT id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by FROM documents WHERE id = $1",
+  "params": [
+   "22222222-2222-4222-8222-222222222222"
+  ]
+ },
+ {
+  "result": {
+   "id": "22222222-2222-4222-8222-222222222222",
+   "knowledge_base_id": "11111111-1111-4111-8111-111111111111",
+   "tenant_id": "alice",
+   "title": "T",
+   "source_type": "text",
+   "source_uri": "u",
+   "content_hash": "h",
+   "original_content": "secret body"
+  }
+ },
+ {
+  "step": "getDocumentOriginalContent"
+ },
+ {
+  "via": "getOne",
+  "sql": "SELECT original_content FROM documents WHERE id = $1",
+  "params": [
+   "22222222-2222-4222-8222-222222222222"
+  ]
+ },
+ {
+  "result": "body"
+ },
+ {
+  "step": "deleteDocument"
+ },
+ {
+  "via": "getOne",
+  "sql": "SELECT knowledge_base_id FROM documents WHERE id = $1",
+  "params": [
+   "22222222-2222-4222-8222-222222222222"
+  ]
+ },
+ {
+  "guard": "managedInfoForKb",
+  "kbId": "11111111-1111-4111-8111-111111111111"
+ },
+ {
+  "via": "getOne",
+  "sql": "SELECT id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by FROM documents WHERE id = $1",
+  "params": [
+   "22222222-2222-4222-8222-222222222222"
+  ]
+ },
+ {
+  "via": "run",
+  "sql": "INSERT INTO kb_document_versions (document_id, knowledge_base_id, tenant_id, title, source_type, source_uri, content_hash, payload, deleted_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+  "params": [
+   "22222222-2222-4222-8222-222222222222",
+   "11111111-1111-4111-8111-111111111111",
+   "alice",
+   "T",
+   "text",
+   "u",
+   "h",
+   "{\"id\":\"22222222-2222-4222-8222-222222222222\",\"knowledge_base_id\":\"11111111-1111-4111-8111-111111111111\",\"tenant_id\":\"alice\",\"title\":\"T\",\"source_type\":\"text\",\"source_uri\":\"u\",\"content_hash\":\"h\"}",
+   "alice"
+  ]
+ },
+ {
+  "via": "run",
+  "sql": "DELETE FROM documents WHERE id = $1",
+  "params": [
+   "22222222-2222-4222-8222-222222222222"
+  ]
+ },
+ {
+  "result": true
+ },
+ {
+  "step": "deleteDocument skip snapshot, bad id"
+ },
+ {
+  "via": "run",
+  "sql": "DELETE FROM documents WHERE id = $1",
+  "params": [
+   "x"
+  ]
+ },
+ {
+  "result": true
+ },
+ {
+  "step": "deleteDocument self-dispatch snapshot throws"
+ },
+ {
+  "via": "getOne",
+  "sql": "SELECT knowledge_base_id FROM documents WHERE id = $1",
+  "params": [
+   "22222222-2222-4222-8222-222222222222"
+  ]
+ },
+ {
+  "guard": "managedInfoForKb",
+  "kbId": "11111111-1111-4111-8111-111111111111"
+ },
+ {
+  "swapped": "snapshotDocumentVersion",
+  "id": "22222222-2222-4222-8222-222222222222",
+  "by": null
+ },
+ {
+  "via": "run",
+  "sql": "DELETE FROM documents WHERE id = $1",
+  "params": [
+   "22222222-2222-4222-8222-222222222222"
+  ]
+ },
+ {
+  "result": true
+ },
+ {
+  "step": "updateDocumentSourceUri"
+ },
+ {
+  "via": "run",
+  "sql": "UPDATE documents SET source_uri = $2 WHERE id = $1",
+  "params": [
+   "22222222-2222-4222-8222-222222222222",
+   "new"
+  ]
+ },
+ {
+  "result": {
+   "rowCount": 1,
+   "rows": []
+  }
+ },
+ {
+  "step": "hasContentHash"
+ },
+ {
+  "via": "getOne",
+  "sql": "SELECT id, title, source_id, status FROM documents WHERE knowledge_base_id = $1 AND content_hash = $2 AND status IN ('processed','redacted') ORDER BY created_at ASC LIMIT 1",
+  "params": [
+   "11111111-1111-4111-8111-111111111111",
+   "h"
+  ]
+ },
+ {
+  "result": "canon"
+ },
+ {
+  "step": "hasContentHash self-dispatch"
+ },
+ {
+  "result": null
+ },
+ {
+  "step": "findDocumentByContentHash none"
+ },
+ {
+  "result": null
+ },
+ {
+  "step": "findDocumentBySourceUri none"
+ },
+ {
+  "result": null
+ },
+ {
+  "step": "findDocumentBySourceUri"
+ },
+ {
+  "via": "getOne",
+  "sql": "SELECT id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by FROM documents WHERE knowledge_base_id = $1 AND source_uri = $2 ORDER BY id DESC LIMIT 1",
+  "params": [
+   "11111111-1111-4111-8111-111111111111",
+   "u"
+  ]
+ },
+ {
+  "result": {
+   "echo": [
+    "11111111-1111-4111-8111-111111111111",
+    "u"
+   ]
+  }
+ },
+ {
+  "step": "updateChunkCount"
+ },
+ {
+  "via": "run",
+  "sql": "UPDATE documents SET chunk_count = $2, updated_at = now() WHERE id = $1",
+  "params": [
+   "22222222-2222-4222-8222-222222222222",
+   8
+  ]
+ },
+ {
+  "result": {
+   "rowCount": 1,
+   "rows": []
+  }
+ },
+ {
+  "step": "hashContent"
+ },
+ {
+  "result": "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+ },
+ {
+  "step": "listFavorites"
+ },
+ {
+  "via": "getAll",
+  "sql": "SELECT kb_id FROM kb_favorites WHERE user_id = $1 ORDER BY created_at ASC",
+  "params": [
+   "alice"
+  ]
+ },
+ {
+  "result": [
+   "k1",
+   "k2"
+  ]
+ },
+ {
+  "step": "addFavorite"
+ },
+ {
+  "via": "run",
+  "sql": "INSERT INTO kb_favorites (user_id, kb_id) VALUES ($1, $2) ON CONFLICT (user_id, kb_id) DO NOTHING",
+  "params": [
+   "alice",
+   "11111111-1111-4111-8111-111111111111"
+  ]
+ },
+ {
+  "result": "<undefined>"
+ },
+ {
+  "step": "removeFavorite"
+ },
+ {
+  "via": "run",
+  "sql": "DELETE FROM kb_favorites WHERE user_id = $1 AND kb_id = $2",
+  "params": [
+   "alice",
+   "11111111-1111-4111-8111-111111111111"
+  ]
+ },
+ {
+  "result": "<undefined>"
+ },
+ {
+  "step": "snapshotKBVersion"
+ },
+ {
+  "via": "getOne",
+  "sql": "SELECT * FROM knowledge_bases WHERE id = $1",
+  "params": [
+   "11111111-1111-4111-8111-111111111111"
+  ]
+ },
+ {
+  "via": "getOne",
+  "sql": "SELECT COALESCE(MAX(version_number), 0) + 1 AS v FROM kb_versions WHERE kb_id = $1",
+  "params": [
+   "11111111-1111-4111-8111-111111111111"
+  ]
+ },
+ {
+  "via": "run",
+  "sql": "INSERT INTO kb_versions (kb_id, version_number, snapshot, changed_by, change_reason) VALUES ($1, $2, $3, $4, $5)",
+  "params": [
+   "11111111-1111-4111-8111-111111111111",
+   4,
+   "{\"id\":\"11111111-1111-4111-8111-111111111111\",\"tenant_id\":\"alice\",\"name\":\"Base\",\"description\":\"d\",\"category_id\":\"cat\",\"icon\":null,\"usage_contexts\":[\"agent\"],\"organization_id\":\"orgA\"}",
+   "alice",
+   "rename"
+  ]
+ },
+ {
+  "result": 4
+ },
+ {
+  "step": "snapshotKBVersion failing"
+ },
+ {
+  "via": "getOne",
+  "sql": "SELECT * FROM knowledge_bases WHERE id = $1",
+  "params": [
+   "11111111-1111-4111-8111-111111111111"
+  ]
+ },
+ {
+  "result": null
+ },
+ {
+  "step": "listKBVersions"
+ },
+ {
+  "via": "getAll",
+  "sql": "SELECT id, version_number, changed_by, change_reason, created_at FROM kb_versions WHERE kb_id = $1 ORDER BY version_number DESC LIMIT $2 OFFSET $3",
+  "params": [
+   "11111111-1111-4111-8111-111111111111",
+   50,
+   0
+  ]
+ },
+ {
+  "result": []
+ },
+ {
+  "step": "listKBVersions paged"
+ },
+ {
+  "via": "getAll",
+  "sql": "SELECT id, version_number, changed_by, change_reason, created_at FROM kb_versions WHERE kb_id = $1 ORDER BY version_number DESC LIMIT $2 OFFSET $3",
+  "params": [
+   "11111111-1111-4111-8111-111111111111",
+   2,
+   4
+  ]
+ },
+ {
+  "result": []
+ },
+ {
+  "step": "getKBVersion"
+ },
+ {
+  "via": "getOne",
+  "sql": "SELECT * FROM kb_versions WHERE kb_id = $1 AND version_number = $2",
+  "params": [
+   "11111111-1111-4111-8111-111111111111",
+   2
+  ]
+ },
+ {
+  "result": {
+   "echo": [
+    "11111111-1111-4111-8111-111111111111",
+    2
+   ]
+  }
+ },
+ {
+  "step": "snapshotDocumentVersion"
+ },
+ {
+  "via": "getOne",
+  "sql": "SELECT id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by FROM documents WHERE id = $1",
+  "params": [
+   "22222222-2222-4222-8222-222222222222"
+  ]
+ },
+ {
+  "via": "run",
+  "sql": "INSERT INTO kb_document_versions (document_id, knowledge_base_id, tenant_id, title, source_type, source_uri, content_hash, payload, deleted_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+  "params": [
+   "22222222-2222-4222-8222-222222222222",
+   "11111111-1111-4111-8111-111111111111",
+   "alice",
+   "T",
+   "text",
+   "u",
+   "h",
+   "{\"id\":\"22222222-2222-4222-8222-222222222222\",\"knowledge_base_id\":\"11111111-1111-4111-8111-111111111111\",\"tenant_id\":\"alice\",\"title\":\"T\",\"source_type\":\"text\",\"source_uri\":\"u\",\"content_hash\":\"h\"}",
+   "alice"
+  ]
+ },
+ {
+  "result": "22222222-2222-4222-8222-222222222222"
+ },
+ {
+  "step": "snapshotDocumentVersion failing"
+ },
+ {
+  "via": "getOne",
+  "sql": "SELECT id, tenant_id, knowledge_base_id, title, source_type, source_uri, lang, content_hash, chunk_count, created_at, metadata, duplicate_of, simhash, source_id, status, status_reason, updated_at, source_modified_at, external_id, size_bytes, page_count, sheet_count, mime, extract_summary, pii_status, pii_categories, overlaps_document_id, created_by FROM documents WHERE id = $1",
+  "params": [
+   "22222222-2222-4222-8222-222222222222"
+  ]
+ },
+ {
+  "via": "run",
+  "sql": "INSERT INTO kb_document_versions (document_id, knowledge_base_id, tenant_id, title, source_type, source_uri, content_hash, payload, deleted_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+  "params": [
+   "22222222-2222-4222-8222-222222222222",
+   "11111111-1111-4111-8111-111111111111",
+   "alice",
+   "T",
+   "text",
+   "u",
+   "h",
+   "{\"id\":\"22222222-2222-4222-8222-222222222222\",\"knowledge_base_id\":\"11111111-1111-4111-8111-111111111111\",\"tenant_id\":\"alice\",\"title\":\"T\",\"source_type\":\"text\",\"source_uri\":\"u\",\"content_hash\":\"h\"}",
+   null
+  ]
+ },
+ {
+  "result": null
+ },
+ {
+  "step": "pruneDocumentVersions"
+ },
+ {
+  "via": "run",
+  "sql": "DELETE FROM kb_document_versions v WHERE v.deleted_at < now() - ($2::int * INTERVAL '1 day') OR v.id IN ( SELECT id FROM ( SELECT id, row_number() OVER (PARTITION BY document_id ORDER BY deleted_at DESC, id DESC) AS rn FROM kb_document_versions ) ranked WHERE ranked.rn > $1 )",
+  "params": [
+   3,
+   30
+  ]
+ },
+ {
+  "result": 6
+ },
+ {
+  "step": "pruneDocumentVersions args"
+ },
+ {
+  "via": "run",
+  "sql": "DELETE FROM kb_document_versions v WHERE v.deleted_at < now() - ($2::int * INTERVAL '1 day') OR v.id IN ( SELECT id FROM ( SELECT id, row_number() OVER (PARTITION BY document_id ORDER BY deleted_at DESC, id DESC) AS rn FROM kb_document_versions ) ranked WHERE ranked.rn > $1 )",
+  "params": [
+   0,
+   1
+  ]
+ },
+ {
+  "result": 6
+ },
+ {
+  "step": "listDeletedDocuments"
+ },
+ {
+  "via": "getAll",
+  "sql": "SELECT id, document_id, title, source_type, source_uri, deleted_at, deleted_by FROM kb_document_versions WHERE knowledge_base_id = $1 ORDER BY deleted_at DESC LIMIT $2",
+  "params": [
+   "11111111-1111-4111-8111-111111111111",
+   100
+  ]
+ },
+ {
+  "result": []
+ },
+ {
+  "step": "listDeletedDocuments limit"
+ },
+ {
+  "via": "getAll",
+  "sql": "SELECT id, document_id, title, source_type, source_uri, deleted_at, deleted_by FROM kb_document_versions WHERE knowledge_base_id = $1 ORDER BY deleted_at DESC LIMIT $2",
+  "params": [
+   "11111111-1111-4111-8111-111111111111",
+   3
+  ]
+ },
+ {
+  "result": []
+ }
+]

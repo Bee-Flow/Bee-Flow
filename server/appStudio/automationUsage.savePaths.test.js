@@ -17,9 +17,10 @@
  * bestand doet het" zegt, zegt niets over de acht handlers erin.
  *
  * Hier zijn het er TIEN, verdeeld over vier bestanden:
- *   routes/studioApps.js                     4 — aanmaken, definitie opslaan,
+ *   routes/studioApps/ (map)                 4 — aanmaken, definitie opslaan,
  *                                                sjabloon-upgrade, versie terugzetten
- *   projects/packaging/install.js            2 — een app uit een Oplossing
+ *   projects/packaging/install/parts/apps.js 1 — een app uit een Oplossing (aanmaken)
+ *   projects/packaging/install/patch.js      1 — en daarna met haar definitie gevuld
  *   projects/packaging/upgrade.js            1 — een app die een upgrade vervangt
  *   appStudio/builderTools/persistence.js    3 — de AI-bouwer (create + save + retry)
  *
@@ -45,7 +46,20 @@ const path = require('node:path');
 const SERVER = path.resolve(__dirname, '..');
 const read = (rel) => fs.readFileSync(path.join(SERVER, rel), 'utf8');
 
+/** Een bestand, of een map met routedelen: dan elk niet-test-.js-bestand erin, samen. */
+const readSite = (rel) => {
+    const full = path.join(SERVER, rel);
+    if (fs.statSync(full).isFile()) return fs.readFileSync(full, 'utf8');
+    return fs.readdirSync(full).filter((n) => n.endsWith('.js') && !n.includes('.test.')).sort()
+        .map((n) => fs.readFileSync(path.join(full, n), 'utf8')).join('\n');
+};
+
 const STORE = 'stores/studioAppStore.js';
+// De store is sinds de splitsing een barrel: de schrijvers en hun wrappers
+// staan in stores/studioApp/. De scans hieronder lezen de barrel (de exports)
+// en die map samen, als één bron.
+const STORE_DIR = 'stores/studioApp';
+const readStore = () => `${read(STORE)}\n${readSite(STORE_DIR)}`;
 
 /**
  * De aanroepplekken die een app-definitie wegschrijven, per bestand met het
@@ -54,9 +68,11 @@ const STORE = 'stores/studioAppStore.js';
  */
 const DEFINITION_WRITE_SITES = [
     // aanmaken · definitie opslaan · sjabloon-upgrade · versie terugzetten
-    { file: 'routes/studioApps.js', atLeast: 4 },
+    // (routes/studioApps/: de router is per resourcegroep gesplitst; de map telt samen)
+    { file: 'routes/studioApps', atLeast: 4 },
     // een app uit een Oplossing: aangemaakt, en daarna met haar definitie gevuld
-    { file: 'projects/packaging/install.js', atLeast: 2 },
+    { file: 'projects/packaging/install/parts/apps.js', atLeast: 1 },
+    { file: 'projects/packaging/install/patch.js', atLeast: 1 },
     // een app die door een Oplossing-upgrade wordt VERVANGEN
     { file: 'projects/packaging/upgrade.js', atLeast: 1 },
     // de AI-bouwer: create, save, en de save-na-conflict
@@ -69,7 +85,7 @@ const WRITE_CALL = /\b(createStudioApp|saveDefinition|restoreVersion)\s*\(/g;
 test('tien aanroepplekken bewaren een app-definitie, verdeeld over vier bestanden', () => {
     let total = 0;
     for (const { file, atLeast } of DEFINITION_WRITE_SITES) {
-        const found = (read(file).match(WRITE_CALL) || []).length;
+        const found = (readSite(file).match(WRITE_CALL) || []).length;
         assert.ok(found >= atLeast,
             `${file}: ${found} aanroep(en) die een definitie bewaren, verwacht minstens ${atLeast} — `
             + 'is er een save-pad verdwenen, of heet de storefunctie anders?');
@@ -132,7 +148,7 @@ function bodyOf(src, name) {
 }
 
 test('elke storefunctie die de definitie schrijft, wordt via haar herindexerende wrapper geexporteerd', () => {
-    const src = read(STORE);
+    const src = readStore();
     const writers = definitionWritersIn(src);
 
     // De premisse zelf: als deze scan niets meer vindt, is hij kapot — en een
@@ -184,7 +200,7 @@ test('elke storefunctie die de definitie schrijft, wordt via haar herindexerende
  */
 test('de publish-schrijver gaat ook door een herindexerende wrapper', () => {
     // Bewust brontekst, zelfde reden als hierboven.
-    const src = read(STORE);
+    const src = readStore();
     assert.match(src, /published_definition/, 'de scan is stuk als deze kolom niet meer bestaat');
     assert.match(src, /\bsetStudioAppPublished:\s*setStudioAppPublishedIndexed\b/,
         `${STORE}: setStudioAppPublished hoort als zijn herindexerende wrapper geexporteerd te worden`);
@@ -219,9 +235,9 @@ test('beide kanten van de ontbrekende FK worden opgeruimd', () => {
     // hij namens een knop of een automatisering die niet meer bestaat.
     // Bewust brontekst, zelfde reden als hierboven — twee bestanden, geen van
     // beide een test die dit gedrag al aandrijft.
-    assert.match(read(STORE), /purgeAppAutomationUsage\(/,
+    assert.match(readStore(), /purgeAppAutomationUsage\(/,
         `${STORE}: een verwijderde app hoort haar rijen mee te nemen`);
-    assert.match(read(STORE), /async function deleteStudioAppIndexed\b/,
+    assert.match(readStore(), /async function deleteStudioAppIndexed\b/,
         `${STORE}: de delete hoort door haar opruimende wrapper te gaan`);
     assert.match(read(STORE), /\bdeleteStudioApp:\s*deleteStudioAppIndexed\b/,
         `${STORE}: en die wrapper hoort de geexporteerde te zijn`);
@@ -250,8 +266,9 @@ function* sources(dir) {
  */
 const RECONCILER_CALLERS = [
     // De backstop. De enige plek waar "de app is veranderd" en "de index is
-    // achterhaald" hetzelfde feit zijn.
-    'stores/studioAppStore.js',
+    // achterhaald" hetzelfde feit zijn. Sinds de splitsing van de store staan
+    // de wrappers in stores/studioApp/writers.js.
+    'stores/studioApp/writers.js',
 ];
 const AUTOMATION_PURGE_CALLERS = [
     'jobs/automationTrashPurge.js',   // an automation leaves the trash for good (handoff 5)

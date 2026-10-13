@@ -6,7 +6,7 @@
  */
 
 import { humanizeFieldKey } from '@/shared/lib/humanizeKey';
-import { loadWebModule, webFileExists } from '@/shared/testing/webModule';
+import { AGENT_HUB_SRC, loadWebModule, webFileExists } from '@/shared/testing/webModule';
 
 import { audienceOf, gradeAtLeast } from './access';
 import {
@@ -29,12 +29,19 @@ import { FILTER_OPS, filterDescriptor, filterEntry, opsForColumn, opTakesList, o
 import type { ColumnDraft, Datatable, Grade } from './types';
 
 const DIR = 'components/admin/Studio/Datatables';
-const HELPERS = 'components/automation/Builder/flow/displayHelpers.js';
+// humanizeFieldKey lives in mapping/core.ts; flow/displayHelpers.js (which
+// datatableDisplay.js imports it from) re-exports it from there. TypeScript, so
+// it is required through Babel rather than evaluated as text.
+const HELPERS = 'components/automation/Builder/mapping/core.ts';
+function webHelpers(): { humanizeFieldKey: (k: unknown) => string } {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- agent-hub TS, compiled by jest's Babel
+    return require(`${AGENT_HUB_SRC}/${HELPERS}`) as { humanizeFieldKey: (k: unknown) => string };
+}
 const describeIfWeb = webFileExists(`${DIR}/datatableDisplay.js`) ? describe : describe.skip;
 
 /** The web module with its own three dependencies, each the web's implementation. */
 function loadDisplay(): Web {
-    const helpers = loadWebModule<{ humanizeFieldKey: unknown }>(HELPERS, { parseExprToRows: null, labelFor: null, isUnaryOp: null });
+    const helpers = webHelpers();
     const forms = loadWebModule<Record<string, unknown>>(`${DIR}/formAnswers.js`);
     const mirrors = loadWebModule<Record<string, unknown>>(`${DIR}/sourceMirrors.js`);
     return loadWebModule<Web>(`${DIR}/datatableDisplay.js`, {
@@ -102,7 +109,7 @@ describeIfWeb('datatableDisplay ports match the web', () => {
     });
 
     it('humanises a key the way the builder does', () => {
-        const theirs = loadWebModule<{ humanizeFieldKey: (k: unknown) => string }>(HELPERS, { parseExprToRows: null, labelFor: null, isUnaryOp: null });
+        const theirs = webHelpers();
         for (const key of ['from_email', 'messageId', 'htmlUrl', 'pdf_ai_kb', 'github-url', '', '  x  ', 'a.b.c', 42]) {
             expect({ key, label: humanizeFieldKey(key) }).toEqual({ key, label: theirs.humanizeFieldKey(key) });
         }

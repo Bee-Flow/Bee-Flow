@@ -40,7 +40,7 @@ Order of work:
 1. CHARACTERISATION FIRST. If the file has no colocated test that exercises its main flow, write one before touching the code: drive the real module with fakes injected through its existing seams (or a minimal _setDepsForTests seam), pin the current outputs/calls/order for the main paths (the "golden" behaviour). For wave 3 the test pins the ORDER of the security gates (name gate, confirmation hold, DLP restore, PII policy, egress) or the crypto round-trips (encrypt/decrypt/wrap/unwrap vectors) before anything moves.
 2. SPLIT as pure moves: functions, constants and classes move verbatim into the new modules; the original path becomes a barrel (or keeps only the orchestration) and exports EXACTLY the same keys, so importers, router mounts (server/index.js mount order!) and tests keep working. Module-level state stays in one module. Lazy requires stay lazy. No new upward imports (lint:layering-ratchet and lint:scc-ratchet must not grow; the new lint:file-budget must pass: lower a personal ceiling only, never raise). agent-hub: new modules in TypeScript; i18n rule; style and big-file ratchets.
 3. Tests move with the code they test; no assertion is dropped.
-4. Verify: node --test on every test touching the file and new modules (server); npx vitest related --run <files> + npm run typecheck + npx eslint (agent-hub); npm run check:fast from the root. Do NOT run full suites inside the agent (the orchestrator runs them per phase). Do NOT git commit, stash, checkout or reset.
+4. Verify: node --test on every test touching the file and new modules (server); npx vitest related --run --maxWorkers=2 <files> + npm run typecheck + npx eslint (agent-hub); npm run check:fast from the root. Stage new files with "git add -N <file>" before lint:source-text or git-grep based tests, which read git ls-files. Do NOT run full suites inside the agent (the orchestrator runs them per phase). Do NOT git commit, stash, checkout or reset.
 Behaviour must stay identical; a user or client must notice nothing. Return lines_before / lines_after_main_file and name the characterisation test file.`
 
 phase('Wave 2')
@@ -56,12 +56,23 @@ const w2 = await parallel(WAVE2.map(lane => async () => {
 }))
 
 phase('Wave 3')
-// One at a time: these hold the security gates and the key handling.
-const w3 = []
-let prev3 = ''
-for (const file of WAVE3) {
+// Four of the six are self-contained and run in parallel; permissions.js (253 importers)
+// and index.js (the composition root) run alone afterwards, because every other agent's
+// tests load them.
+const nul = (file) => ({ id: file, status: 'skipped', files_changed: [], lines_before: 0, lines_after_main_file: 0, characterisation_test: '', tests_run: '', tests_green: false, behaviour_notes: '', open_questions: 'agent returned null' })
+const PAR = ['server/core/agentRuntime/toolRoundExecutor.js', 'server/core/automationRunner/execution.js', 'server/modules/packageLoader.js', 'server/auth/encryption.js']
+const SEQ = ['server/auth/permissions.js', 'server/index.js']
+const CONCUR3 = 'Other wave-3 agents split OTHER files at the same time (execution.js, packageLoader.js, encryption.js, toolRoundExecutor.js): touch only your file, its new modules, its tests and the minimum of importers; cap vitest with --maxWorkers=2.'
+const w3par = await parallel(PAR.map(file => async () => {
+  const r = await agent(splitPrompt(file, '', 3) + '\n\n' + CONCUR3, { label: `wave3:${file.split('/').pop()}`, phase: 'Wave 3', schema: RESULT, model: MODEL, effort: 'high' })
+  log(`wave3: ${file} ${r ? r.status : 'null'}`)
+  return r || nul(file)
+}))
+const w3 = w3par.map((r, i) => r || nul(PAR[i]))
+let prev3 = w3.filter(r => r.status !== 'skipped').map(r => `${r.id}: ${r.files_changed.slice(0, 8).join(', ')}`).join('; ')
+for (const file of SEQ) {
   const r = await agent(splitPrompt(file, prev3, 3), { label: `wave3:${file.split('/').pop()}`, phase: 'Wave 3', schema: RESULT, model: MODEL, effort: 'high' })
-  w3.push(r || { id: file, status: 'skipped', files_changed: [], lines_before: 0, lines_after_main_file: 0, characterisation_test: '', tests_run: '', tests_green: false, behaviour_notes: '', open_questions: 'agent returned null' })
+  w3.push(r || nul(file))
   if (r) prev3 += (prev3 ? '; ' : '') + `${file}: ${r.files_changed.slice(0, 8).join(', ')}`
   log(`wave3: ${file} ${r ? r.status : 'null'}`)
 }

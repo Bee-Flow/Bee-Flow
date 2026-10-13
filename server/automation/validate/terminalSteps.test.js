@@ -83,9 +83,9 @@ const SERVER_SITES = [
         fix: 'geef de soort een entry in TERMINAL_EDGE_RULES in validate/graph.js (code, severity, message, hint)',
     },
     {
-        what: 'de runner dispatcht de soort (core/automationRunner/execution.js)',
-        check: (type) => new RegExp(`case '${type}':`).test(read('core/automationRunner/execution.js')),
-        fix: 'voeg een case toe aan runStepLeaf in core/automationRunner/execution.js — zonder die case gooit de run "Unknown step type"',
+        what: 'de runner dispatcht de soort (core/automationRunner/stepDispatch.js)',
+        check: (type) => new RegExp(`case '${type}':`).test(read('core/automationRunner/stepDispatch.js')),
+        fix: 'voeg een case toe aan runStepLeaf in core/automationRunner/stepDispatch.js — zonder die case gooit de run "Unknown step type"',
     },
     {
         what: 'het model leest de soort in de typecatalogus (automation/builderPrompt.js)',

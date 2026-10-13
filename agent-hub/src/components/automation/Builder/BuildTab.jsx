@@ -4,41 +4,36 @@
 import { followSuccessors } from '@shared/expr/routeFollow.mjs';
 import { Sparkles, X } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import useBuildCue from './build/useBuildCue';
+import useExpandedFlowletGraph from './build/useExpandedFlowletGraph';
+import useFlowletsManager from './build/useFlowletsManager';
+import useSmartAddStep from './build/useSmartAddStep';
 import { useBuilderConfirm } from './BuilderConfirmContext';
 import BuilderHeader from './BuilderHeader';
 import CanvasPlanPanel from './CanvasPlanPanel';
 
 import { AutomationSummary, AssistantWelcome, RunProgressBanner, MessageBubble, BuilderWaitingCard } from './chat/index';
-import { addedStepsOf, describeToolCall } from './chat/toolCallDisplay';
 import { webSearchUnavailableHint } from './chat/webSearchStatus';
 import DiagramPane, { applyAddNode } from './DiagramPane';
 import AddStepMenu from './flow/AddStepMenu';
 import AddStepRibbon from './flow/AddStepRibbon';
 import { branchFromHandle, spliceStepIntoEdge } from './flow/branchEdges';
-import { chapterOf } from './flow/buildChoreography';
 import {
-    getScopedGraph, setScopedGraph, createLayerInDefinition,
-    deleteLayerFromDefinition, deleteLayerAndCalls, isLayerEmpty, renameLayer, countLayerRefs,
-
-    setLayerDescription, listLayers, layerKeysThatReach,
+    getScopedGraph, setScopedGraph, createLayerInDefinition, listLayers, layerKeysThatReach,
 } from './flow/flowletScope';
 import {
-    composeInlineGraph, decomposeInlineGraph, shiftForExpansion, useExpandedFlowlets,
-    flowToScopePosition, prefixAddedStep, parseInlineId, isInlineId,
+    decomposeInlineGraph, flowToScopePosition, prefixAddedStep, parseInlineId, isInlineId,
 } from './flow/inlineFlowlets';
-import { seedPositions } from './flow/layout';
 import { COL_PITCH } from './flow/buildChoreography';
 import { placeNewStep } from './flow/placeStep';
 import { applyDeleteNodes, applyDuplicateNode } from './flow/nodeOps';
 import { normalizeDefinitionShape, emptyGraph } from './flow/normalizeDefinition';
 import { renameFormField } from './flow/renameFormField';
-import { stepOutputIsArray } from './flow/ribbon/fitsAfter';
 import { followAfterAdd, followedMessages } from './flow/routeFollowNotes';
 import { isRouteStep, routePorts } from './flow/routeModel';
 import { insertStepBefore } from './flow/settings/routeHandoff';
 import { computeRunFocus } from './flow/runFocus';
 import { itemForKey } from './flow/stepPalette';
-import { recordStep, readUsage, readTransitions, topFrequentKeys, scoreSuggestions } from './flow/stepUsage';
 import { defaultTriggerLabel } from './flow/triggerLabels';
 import { useDryRunReplay } from './flow/useDryRunReplay';
 import { useReducedMotion } from './flow/useReducedMotion';
@@ -192,141 +187,16 @@ export default function BuildTab({
     }, [builderApi, catalogNonce]);
 
     // ── Expanded flowlets ───────────────────────────────────────────────────
-    //
-    // A `call_layer` node can be opened in place so the flowlet it runs is
-    // drawn, and edited, inside the flow that uses it. `flatDef` is the canvas
-    // graph with those flowlets folded in; `inlineSidecar` says what came from
-    // where, and every edit is split back out by `onVisualEditFlat`.
-    //
-    // When nothing is expanded, `flatDef === scopedDef` and every path below is
-    // exactly the one that existed before.
-    const inlineFlowlets = useExpandedFlowlets(automation?.id || state.automationId, scopeKey);
-    const { graph: flatDef, sidecar: inlineSidecar } = useMemo(
-        () => composeInlineGraph(scopedDef, rootDef, inlineFlowlets.expanded, { scopeLayerKey: scopeKey }),
-        [scopedDef, rootDef, inlineFlowlets.expanded, scopeKey],
-    );
-    const inlineShift = useMemo(() => shiftForExpansion(flatDef, inlineSidecar), [flatDef, inlineSidecar]);
+    // `flatDef` is the canvas graph with the opened flowlets folded in; every
+    // edit is split back out by `onVisualEditFlat` (build/useExpandedFlowletGraph.ts).
+    const {
+        flatDef, inlineSidecar, inlineShift,
+        onToggleInline, onCollapseAllFlowlets, onExpandAllFlowlets, layerRefCounts, expandOnCanvas, onVisualEditFlat,
+    } = useExpandedFlowletGraph({ automation, state, scopedDef, rootDef, scopeKey, onVisualEdit, onVisualEditRoot, closeNdv, diagramRef });
 
     // ── The build cue ───────────────────────────────────────────────────────
-    //
-    // What the canvas needs to know about the assistant's turn — the banner,
-    // the ghost slot and the camera all read this one object. It must change
-    // once per tool call, not once per streamed token: the stream hook mutates
-    // the in-flight assistant message IN PLACE, so the message's identity says
-    // nothing, and the memos below key on the arrays and fields the hook does
-    // replace (`toolCalls`, `thinkingSummary`) — never on the message object.
-    const lastAssistant = (() => {
-        for (let i = state.messages.length - 1; i >= 0; i--) {
-            if (state.messages[i]?.role === 'assistant') return state.messages[i];
-        }
-        return null;
-    })();
-    const lastToolCalls = lastAssistant?.toolCalls;
-    const lastThinkingSummary = lastAssistant?.thinkingSummary;
-    // Its own memo, keyed on the tool-call array alone: the south bar's
-    // four-second "Skipped: …" notice keys on this object's identity, and a
-    // call rebuilt on every narration phrase would restart that clock.
-    const lastCall = useMemo(() => {
-        const tc = Array.isArray(lastToolCalls) && lastToolCalls.length ? lastToolCalls[lastToolCalls.length - 1] : null;
-        // `added`: the created step(s) as a list — one entry for a single add,
-        // the batch in the model's own order for `builder_add_steps`. The
-        // canvas deals a burst in THIS order (useBuildChoreography's orderHint),
-        // so the cards land the way the model told the story, not by flowOrder.
-        return tc ? { name: tc.name, ...describeToolCall(tc, t), added: addedStepsOf(tc.result) } : null;
-    }, [lastToolCalls, t]);
-    // The chapter comes from the last call the server ACCEPTED, and "finalized"
-    // from this turn's own calls — a refused finalize is not an ending, and
-    // `state.finalizedId` outlives the turn that earned it (flow/buildChoreography.js).
-    const chapter = useMemo(() => chapterOf(lastToolCalls), [lastToolCalls]);
-    // When the build started, captured in the same render `running` flips
-    // true (React's "adjust state while rendering" — a re-render before
-    // commit, not an effect one frame later), so the banner's first frame
-    // already has a clock. Kept across the flip back: the ending reports it.
-    const [buildStart, setBuildStart] = useState(() => ({ running: !!state.running, at: state.running ? Date.now() : null }));
-    if (buildStart.running !== !!state.running) {
-        setBuildStart({ running: !!state.running, at: state.running ? Date.now() : buildStart.at });
-    }
-    const buildCue = useMemo(() => ({
-        running: !!state.running,
-        // Derived from tool names, never from the plan: everything must work
-        // when the plan never arrives and when thinking is off.
-        phase: chapter.phase,
-        startedAt: buildStart.at,
-        lastCall,
-        narration: (typeof lastThinkingSummary?.text === 'string' && lastThinkingSummary.text.trim()) || null,
-        todos: Array.isArray(state.todos) ? state.todos : [],
-        finalizedId: chapter.finalized ? (state.finalizedId || null) : null,
-        aborted: state.aborted || null,
-        stepCount: (flatDef?.steps || []).length,
-        // The engine behind the build and the turn's live reading/writing
-        // state (hooks/useAutomationBuilderStream.js) feed the south bar's
-        // engine line; the tool call being typed feeds the ghost slot.
-        engine: state.engine || null,
-        turn: state.turn || null,
-        toolDraft: state.toolDraft || null,
-    }), [state.running, lastCall, chapter, buildStart.at, lastThinkingSummary, state.todos, state.finalizedId, state.aborted, flatDef, state.engine, state.turn, state.toolDraft]);
-    const onToggleInline = useCallback(
-        (nodeId, layerKey) => inlineFlowlets.toggle(nodeId, layerKey, inlineSidecar),
-        [inlineFlowlets, inlineSidecar],
-    );
-    /**
-     * Open every flowlet on this canvas at once — the Arrange menu's
-     * "Open flowlets". Call sites come from THIS scope's own steps, so a
-     * flowlet that is only called from somewhere else stays shut.
-     */
-    /**
-     * Fold every flowlet away — what "Compact" and "Wrap to fit" do first.
-     * Stored positions are collapsed-space, so tightening a canvas whose
-     * containers are drawn expanded would measure one thing and show another.
-     */
-    const onCollapseAllFlowlets = useCallback(() => {
-        inlineFlowlets.collapseAll();
-    }, [inlineFlowlets]);
-
-    const onExpandAllFlowlets = useCallback(() => {
-        const callSites = (scopedDef?.steps || [])
-            .filter(s => s?.type === 'call_layer' && s.layerKey)
-            .map(s => ({ prefix: s.id, layerKey: s.layerKey }));
-        if (callSites.length) inlineFlowlets.expandAll(callSites);
-    }, [scopedDef, inlineFlowlets]);
-    // How many call sites each flowlet has — an expanded container says so,
-    // because editing it changes every one of them. (A loop's body belongs to
-    // one step and is never shared, so it has no key and no count.)
-    const layerRefCounts = useMemo(() => {
-        const out = {};
-        for (const entry of inlineSidecar.values()) {
-            if (entry.layerKey) out[entry.layerKey] = countLayerRefs(rootDef, entry.layerKey);
-        }
-        return out;
-    }, [inlineSidecar, rootDef]);
-
-    /**
-     * "Edit on canvas", from a Loop's own editor: draw its body inside the node
-     * and get out of the way. Expands rather than toggles — the user asked for
-     * the canvas, and closing the panel onto an unchanged card would read as a
-     * dead button.
-     */
-    const expandOnCanvas = useCallback((stepId) => {
-        if (!stepId) return;
-        if (!inlineFlowlets.expanded.has(stepId)) inlineFlowlets.toggle(stepId, null, inlineSidecar);
-        closeNdv?.();
-        diagramRef.current?.focusStep?.(stepId);
-    }, [inlineFlowlets, inlineSidecar, closeNdv]);
-
-    /**
-     * The one write path for canvas edits. Splits the edited flat graph back
-     * into this scope's graph plus one patch per expanded flowlet, and commits
-     * the lot as a single whole-document update so it is one undo entry.
-     */
-    const onVisualEditFlat = useCallback((nextFlat) => {
-        if (!inlineSidecar.size) { onVisualEdit?.(nextFlat); return; }
-        const { graph, layerPatches } = decomposeInlineGraph(nextFlat, inlineSidecar);
-        let root = setScopedGraph(rootDef, scopeKey, seedPositions(graph));
-        if (Object.keys(layerPatches).length) {
-            root = { ...root, layers: { ...(root.layers || {}), ...layerPatches } };
-        }
-        onVisualEditRoot?.(root);
-    }, [inlineSidecar, onVisualEdit, onVisualEditRoot, rootDef, scopeKey]);
+    // What the canvas needs to know about the assistant's turn (build/useBuildCue.ts).
+    const buildCue = useBuildCue({ state, flatDef, t });
 
     /**
      * Rename one form question's binding name across the WHOLE automation.
@@ -417,25 +287,12 @@ export default function BuildTab({
         () => scopedStorage.getItem('autoMapOnConnect') !== '0',
     );
 
-    // Flowlets manager drawer (bottom-left button → docked right drawer).
-    const [layersOpen, setLayersOpen] = useState(false);
-    // Which flowlet's AI summary is currently generating (one at a time).
-    const [summarizingKey, setSummarizingKey] = useState(null);
-    // The main flow (root) gets its own summary flag.
-    const [summarizingRoot, setSummarizingRoot] = useState(false);
-    // AI flowlet summaries are opt-in and OFF by default — no LLM call ever
-    // fires unless the user ticks this. Persisted per-user, mirrors the
-    // auto-map-on-connect toggle.
-    const [aiSummaryEnabled, setAiSummaryEnabled] = useState(
-        () => scopedStorage.getItem('layerAiSummaries') === '1',
-    );
-    const toggleAiSummary = useCallback(() => {
-        setAiSummaryEnabled(v => {
-            const next = !v;
-            scopedStorage.setItem('layerAiSummaries', next ? '1' : '0');
-            return next;
-        });
-    }, []);
+    // Flowlets manager drawer (bottom-left button → docked right drawer), its AI
+    // summaries and its create / rename / delete handlers.
+    const {
+        layersOpen, setLayersOpen, summarizingKey, summarizingRoot, aiSummaryEnabled, toggleAiSummary,
+        refCountFor, handleCreateLayer, handleRenameLayer, handleDeleteLayer, handleSummarizeLayer, handleSummarizeRoot,
+    } = useFlowletsManager({ rootDef, scopeKey, setScopeKey, onVisualEditRoot, confirmAction, builderApi });
 
     // Palette state. `position` and `edgeSource` are populated only when
     // the panel was opened via React Flow's onConnectEnd (edge dragged
@@ -546,43 +403,7 @@ export default function BuildTab({
     }, []);
 
     // ── Smart Add-step: per-user frequency + context-aware suggestions ────────
-    // `usageTick` bumps after each add so the memos below re-read scopedStorage.
-    const [usageTick, setUsageTick] = useState(0);
-    const recordUsage = useCallback((payload, sourceStep) => {
-        recordStep(payload, sourceStep || null);
-        setUsageTick(t => t + 1);
-    }, []);
-    // The user's recency-weighted favourites, resolved to render-ready items.
-    const frequentItems = useMemo(
-        () => topFrequentKeys(readUsage(), 8)
-            .map(k => itemForKey(k, { catalog, layers: paletteLayers }))
-            .filter(Boolean),
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- usageTick invalidates readUsage(), which reads scopedStorage
-        [catalog, paletteLayers, usageTick],
-    );
-    // Context "Suggested next" for the edge-drop / node-"+" popover (it knows
-    // the source step). Empty unless the popover is open.
-    const suggestedItems = useMemo(() => {
-        if (!palette.open) return [];
-        const src = palette.edgeSource
-            ? [scopedDef?.trigger, ...(scopedDef?.steps || [])].find(n => n?.id === palette.edgeSource)
-            : null;
-        const ranked = scoreSuggestions({
-            sourceKind: src ? (src.kind || src.type) : null,
-            sourceOutputIsArray: stepOutputIsArray(src, catalog),
-            usage: readUsage(),
-            transitions: readTransitions(),
-            limit: 5,
-        });
-        const seen = new Set();
-        return ranked
-            .map(s => {
-                const it = itemForKey(s.key, { catalog, layers: paletteLayers });
-                return it ? { ...it, context: s.reason } : null;
-            })
-            .filter(it => it && !seen.has(it.key) && seen.add(it.key));
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- usageTick invalidates readUsage()/readTransitions(), which read scopedStorage
-    }, [palette.open, palette.edgeSource, scopedDef, catalog, paletteLayers, usageTick]);
+    const { usageTick, recordUsage, frequentItems, suggestedItems } = useSmartAddStep({ palette, scopedDef, catalog, paletteLayers });
 
     /**
      * The one insert path. Every add-a-step surface funnels through here with
@@ -965,86 +786,6 @@ export default function BuildTab({
         return onSaveStep(graph, layerPatches);
     }, [inlineSidecar, onSaveStep]);
 
-    // ── Flowlets manager wiring ─────────────────────────────────────────────
-    // All edits go through onVisualEditRoot (whole-document commit) so they
-    // share the builder's undo/autosave path. Reuses the same pure helpers
-    // the palette + header already use. The popover is bottom-left, so it
-    // doesn't conflict with the right-edge palette/inspector.
-    const refCountFor = useCallback((key) => countLayerRefs(rootDef, key), [rootDef]);
-
-    const handleCreateLayer = useCallback(() => {
-        const { definition: withLayer, layerKey } = createLayerInDefinition(rootDef, 'New flowlet');
-        onVisualEditRoot?.(withLayer);
-        // Drill straight into the fresh flowlet so the user can start building.
-        // (Unlike the palette's "Create flowlet", this does NOT drop a
-        // call_layer node — the manager creates the reusable flowlet itself;
-        // the user wires a call where they want it via the palette.)
-        setScopeKey?.(layerKey);
-    }, [rootDef, onVisualEditRoot, setScopeKey]);
-
-    const handleRenameLayer = useCallback((key, title) => {
-        onVisualEditRoot?.(renameLayer(rootDef, key, title));
-    }, [rootDef, onVisualEditRoot]);
-
-    const handleDeleteLayer = useCallback(async (key) => {
-        const refs = countLayerRefs(rootDef, key);
-        // A flowlet with steps in it and callers on the canvas stays protected —
-        // deleting it would silently break those flows. An EMPTY one is a
-        // different story: the palette's "Create flowlet" drops a call node as
-        // part of creating it, so a brand-new flowlet was born un-deletable
-        // (BFSF-340). Nothing is lost, so the call sites go with it.
-        if (refs > 0) {
-            if (!isLayerEmpty(rootDef, key)) return;
-            const label = rootDef?.layers?.[key]?.title || key;
-            const ok = await confirmAction({
-                title: `Delete the empty flowlet “${label}”?`,
-                description: `Its ${refs} “Call flowlet” ${refs === 1 ? 'step' : 'steps'} on the canvas ${refs === 1 ? 'is' : 'are'} removed too; the steps around ${refs === 1 ? 'it' : 'them'} reconnect.`,
-                confirmLabel: 'Delete',
-                destructive: true,
-            });
-            if (!ok) return;
-            onVisualEditRoot?.(deleteLayerAndCalls(rootDef, key));
-            if (scopeKey === key) setScopeKey?.(null);
-            return;
-        }
-        onVisualEditRoot?.(deleteLayerFromDefinition(rootDef, key));
-        if (scopeKey === key) setScopeKey?.(null);
-    }, [rootDef, onVisualEditRoot, scopeKey, setScopeKey, confirmAction]);
-
-    const handleSummarizeLayer = useCallback(async (key) => {
-        const layer = rootDef?.layers?.[key];
-        if (!layer) return;
-        setSummarizingKey(key);
-        try {
-            const r = await builderApi.summariseLayer(layer);
-            const summary = (r?.summary || '').trim();
-            if (summary) onVisualEditRoot?.(setLayerDescription(rootDef, key, summary));
-            else toast.error('No summary was generated — try again.');
-        } catch (e) {
-            toast.error(`Could not summarise flowlet. ${e.message || ''}`.trim());
-        } finally {
-            setSummarizingKey(null);
-        }
-    }, [rootDef, builderApi, onVisualEditRoot]);
-
-    // AI summary of the WHOLE automation (the main/root flow). The summarise
-    // endpoint takes any flow shape, so we pass the root definition and store
-    // the one-liner on definition.description (mirrors flowlet descriptions).
-    const handleSummarizeRoot = useCallback(async () => {
-        if (!rootDef?.trigger) return;
-        setSummarizingRoot(true);
-        try {
-            const flow = { ...rootDef, steps: Array.isArray(rootDef.steps) ? rootDef.steps : [] };
-            const r = await builderApi.summariseLayer(flow);
-            const summary = (r?.summary || '').trim();
-            if (summary) onVisualEditRoot?.({ ...rootDef, description: summary });
-            else toast.error('No summary was generated — try again.');
-        } catch (e) {
-            toast.error(`Could not summarise the main flow. ${e.message || ''}`.trim());
-        } finally {
-            setSummarizingRoot(false);
-        }
-    }, [rootDef, builderApi, onVisualEditRoot]);
 
     // The assistant is summonable: shown only when opened, and never in step
     // mode (v1 Steps are built visually — no AI chat).

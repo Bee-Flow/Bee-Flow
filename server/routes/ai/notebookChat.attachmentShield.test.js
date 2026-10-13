@@ -26,6 +26,7 @@ const assert = require('node:assert');
 const { installResolveStub } = require('../../testUtils/stubRequire');
 const { quietSse } = require('../../testUtils/quietSse');
 const { SIGNED_IN, AI_AGENT_STUB, configStoreStub, serveRouter, postJson } = require('../../testUtils/toolPiiGateHarness');
+const { withStepAliases } = require('./notebookChat.testkit');
 
 const pass = (req, res, next) => next();
 const fx = {
@@ -59,7 +60,7 @@ const recordingProvider = {
     }),
 };
 
-const restore = installResolveStub({
+const restore = installResolveStub(withStepAliases({
     '../../core/aiAgent': AI_AGENT_STUB,
     // The stored org shield document is the resolved one here, so the block
     // and fail-closed cases do not depend on which of the two the route reads.
@@ -105,7 +106,7 @@ const restore = installResolveStub({
     },
     '../../core/dlp/composeScan': { composeScan: async ({ units }) => ({ units, stats: { segments: 0 } }) },
     '../../agents/notebooks/sourceIngestion': { ingestTextSource: async () => {} },
-});
+}));
 
 const baseUrl = serveRouter(test, require('./notebookChat'), { prefix: '/ai', session: SIGNED_IN, restore });
 

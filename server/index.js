@@ -3,10 +3,6 @@ require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') }
 // patch them. Self-gated: a no-op unless OTEL is enabled (see telemetry/otel).
 const otel = require('./telemetry/otel');
 const express = require('express');
-const cors = require('cors');
-const session = require('express-session');
-const fs = require('fs');
-const path = require('path');
 
 // Core modules
 const componentManager = require('./core/cms/componentManager');
@@ -43,22 +39,17 @@ const TRUST_PROXY_HOPS = Math.max(0, parseInt(process.env.TRUST_PROXY_HOPS || '1
 app.set('trust proxy', TRUST_PROXY_HOPS);
 const PORT = process.env.SERVER_PORT || process.env.PORT || 3001;
 
-// One id per request: on the X-Request-Id response header, on every log line
-// the request writes, and echoed as correlationId by the error handler below.
-app.use(require('./core/http/requestId').withRequestId);
-
-// ── Security headers, Permissions-Policy and API cache-control ───────────────
-// The first middleware in the chain — see boot/securityHeaders.js.
-require('./boot/securityHeaders').applySecurityHeaders(app);
+// ── HTTP front ────────────────────────────────────────────────────────────────
+// One id per request (X-Request-Id), then the security headers, Permissions-
+// Policy and API cache-control — see boot/httpMiddleware.js.
+const httpMiddleware = require('./boot/httpMiddleware');
+httpMiddleware.applyRequestIdAndSecurityHeaders(app);
 
 // ── Error handlers ────────────────────────────────────────────────────────────
-process.on('unhandledRejection', (reason, promise) => {
-    log.error('Unhandled Rejection at:', promise, 'reason:', reason);
-});
-process.on('uncaughtException', (err) => {
-    log.error('Uncaught Exception:', err);
-    process.exit(1);
-});
+// unhandledRejection is logged, uncaughtException is logged and exits 1 — see
+// boot/lifecycle.js.
+const lifecycle = require('./boot/lifecycle');
+lifecycle.installProcessErrorHandlers();
 
 // No directory is created here. A `../workflows` mkdir outlived the removed
 // Workflow AI: nothing read or wrote that directory, and in the image it is
@@ -67,170 +58,13 @@ process.on('uncaughtException', (err) => {
 // server/Dockerfile.
 
 // ── Middleware ─────────────────────────────────────────────────────────────────
-// ── cors-helpers:begin ── (index.errorHandler.test.js evaluates this region)
-const ALLOWED_ORIGINS = (process.env.CORS_ORIGIN || 'http://localhost:5173')
-    .split(',')
-    .map(s => s.trim())
-    .filter(Boolean);
-
-/** Trailing-slash-insensitive membership test against the allow-list. */
-function isAllowedOrigin(origin) {
-    const normalized = origin.endsWith('/') ? origin.slice(0, -1) : origin;
-    return ALLOWED_ORIGINS.some(o => (o.endsWith('/') ? o.slice(0, -1) : o) === normalized);
-}
-
-const { safeForLog } = require('./utils/safeForLog');
-
-// The one message an operator actually needs from here is "a legitimate
-// front-end is missing from CORS_ORIGIN". Everything else is noise, and the
-// origin is attacker-chosen, so a line per rejection hands any anonymous client
-// a write primitive against our log storage and buries the useful line.
-//
-// TWO limits, because per-key deduplication alone does not bound anything: a
-// client sending a million DISTINCT origins gets a million log lines out of a
-// per-origin rule. So there is also an aggregate ceiling per window — beyond it
-// the warnings stop entirely and one summary line is emitted when the window
-// rolls over. The tracking map is capped separately: its keys are
-// attacker-chosen too, so it must not be growable into a memory-exhaustion
-// vector.
-const CORS_WARN_WINDOW_MS = 10 * 60 * 1000;
-const CORS_WARN_MAX_TRACKED = 200;
-const CORS_WARN_MAX_PER_WINDOW = 20;
-const _corsWarnedAt = new Map();
-let _corsWarnWindowStart = 0;
-let _corsWarnCount = 0;
-let _corsSuppressed = 0;
-function warnRejectedOrigin(origin) {
-    const now = Date.now();
-
-    // Roll the aggregate window, reporting anything we swallowed in the last one.
-    if (now - _corsWarnWindowStart >= CORS_WARN_WINDOW_MS) {
-        if (_corsSuppressed > 0) {
-            log.warn(`[CORS] ${_corsSuppressed} further origin rejections were suppressed in the previous window.`);
-        }
-        _corsWarnWindowStart = now;
-        _corsWarnCount = 0;
-        _corsSuppressed = 0;
-    }
-
-    const last = _corsWarnedAt.get(origin);
-    if (last !== undefined && now - last < CORS_WARN_WINDOW_MS) return;
-
-    if (_corsWarnedAt.size >= CORS_WARN_MAX_TRACKED) {
-        for (const [key, ts] of _corsWarnedAt) {
-            if (now - ts >= CORS_WARN_WINDOW_MS) _corsWarnedAt.delete(key);
-        }
-        // Still full ⇒ evict the oldest insertion (Map preserves insertion order).
-        if (_corsWarnedAt.size >= CORS_WARN_MAX_TRACKED) {
-            _corsWarnedAt.delete(_corsWarnedAt.keys().next().value);
-        }
-    }
-    _corsWarnedAt.set(origin, now);
-
-    if (_corsWarnCount >= CORS_WARN_MAX_PER_WINDOW) {
-        _corsSuppressed++;
-        return;
-    }
-    _corsWarnCount++;
-    log.warn(`[CORS] Rejected origin: ${safeForLog(origin)}. Allowed:`, ALLOWED_ORIGINS);
-}
-// ── cors-helpers:end ──
-
-// ── cors-dispatch:begin ── (index.errorHandler.test.js evaluates this region)
-const globalCors = cors({
-    origin: (origin, cb) => {
-        // Same-origin / curl / server-to-server (no Origin header)
-        if (!origin) return cb(null, true);
-        if (isAllowedOrigin(origin)) return cb(null, true);
-
-        // Fail closed, WITHOUT throwing. Two earlier shapes of this callback were
-        // both wrong. `cb(null, origin)` reflected ANY origin and — combined with
-        // credentials:true — let arbitrary websites issue authenticated XHRs
-        // against this API. `cb(new Error(...))` did block the browser, but it
-        // threw into Express, so every disallowed preflight became a 500 whose
-        // body carried a Node stack trace (this file's path and line numbers, the
-        // middleware chain, dependency versions) back to an anonymous caller.
-        // `cb(null, false)` is what actually blocks: the cors package then omits
-        // Access-Control-Allow-Origin entirely and the browser refuses the
-        // response — and nothing is thrown.
-        warnRejectedOrigin(origin);
-        return cb(null, false);
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    // X-Beeflow-Client must be listed or the browser refuses the preflight and
-    // NO cross-origin call gets through — authFetch sets it on every request
-    // (agent-hub/src/utils/helpers.js). Production never caught this because
-    // the SPA and the API share an origin there, so nothing pre-flights; it
-    // breaks exactly the split-origin setups — the dev server on :5176 talking
-    // to :3001, and self-hosts serving the app from a separate host.
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Session-Token', 'X-Beeflow-Client']
-});
-
-// Sandboxed preview iframes have an opaque origin (`Origin: null`) and never
-// carry cookies. Auth on /api/webpages-preview/* is HMAC bearer tokens scoped
-// to (userId, webpageId), so the origin check buys nothing — we just need
-// permissive CORS so the browser doesn't pre-flight-block the calls.
-const previewCors = cors({
-    origin: true,           // reflect whatever Origin the iframe sends, including 'null'
-    credentials: false,     // never send cookies; the bearer token is the trust anchor
-    methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-});
-
-app.use((req, res, next) => {
-    if (req.path.startsWith('/api/webpages-preview/')) return previewCors(req, res, next);
-    // Anonymous public-share AI bridge — same opaque-origin/bearer-token model
-    // as the preview bridge, so the same permissive CORS applies.
-    if (req.path.startsWith('/api/public-share/')) return previewCors(req, res, next);
-
-    // A request carrying a disallowed Origin is refused HERE, for every method
-    // — not just OPTIONS.
-    //
-    // That "not just OPTIONS" is the whole point, and getting it wrong is
-    // subtle. Omitting Access-Control-Allow-Origin stops the attacker's page
-    // from READING the response, but it does not stop the request from being
-    // SENT: a CORS-simple request (multipart/form-data,
-    // application/x-www-form-urlencoded, text/plain, or any POST acting on path
-    // params alone) is never preflighted, so with an OPTIONS-only refusal the
-    // route still executes with the victim's cookies attached. Uploads, CMS
-    // writes and model-spend endpoints all qualify, this API has no global CSRF
-    // token, and production renders COOKIE_SAMESITE=none — so "unreadable
-    // response" is not a defence there.
-    //
-    // The old `cb(new Error(...))` blocked the request itself, at the cost of a
-    // 500 with a stack trace. This keeps the blocking and drops the stack trace:
-    // an early, explicit 403 before the session, DB and rate-limit middleware
-    // ever run. It is also honest in a proxy log, where the router's automatic
-    // 204 for a rejected preflight read as success.
-    //
-    // Requests with NO Origin header (curl, the Nextcloud connector, Stripe,
-    // server-to-server) are untouched — browsers are the only thing that sets
-    // it, and it is the browser this protects. Same-origin browser traffic is
-    // covered because a deployment's own front-end origin is in CORS_ORIGIN; it
-    // has to be, since the previous behaviour already failed those requests
-    // (with a 500) if it was not. `Vary: Origin` keeps a shared cache from
-    // replaying this refusal to a legitimate origin.
-    const origin = req.headers.origin;
-    if (origin && !isAllowedOrigin(origin)) {
-        warnRejectedOrigin(origin);
-        res.setHeader('Vary', 'Origin');
-        return res.status(403).json({ error: 'Origin not allowed' });
-    }
-    return globalCors(req, res, next);
-});
-// ── cors-dispatch:end ──
-
-// Stripe webhook needs raw body for signature verification — must be BEFORE express.json
-app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }));
-// Capture the raw JSON bytes on every request. The Nextcloud connector's
-// HMAC endpoints (task-processing/execute, automation/events/nextcloud) sign
-// over the exact request body and verify against `req.rawBody`; their own
-// route-level raw-capture never fires because this global parser consumes the
-// stream first, so the signature was checked against an empty body and every
-// connector→SaaS call 401'd. Storing the raw string here (a no-op for parsing)
-// makes `req.rawBody` available to those verifiers.
-app.use(express.json({ limit: '20mb', verify: (req, _res, buf) => { req.rawBody = buf.toString('utf8'); } }));
+// The CORS allow-list dispatcher: a request carrying a disallowed Origin is
+// refused with a 403 here, for every method, before the session, DB and
+// rate-limit middleware run. Then the Stripe webhook's raw body and the global
+// JSON parser that keeps req.rawBody for the HMAC verifiers — see
+// boot/httpMiddleware.js.
+httpMiddleware.applyCors(app);
+httpMiddleware.applyBodyParsers(app);
 
 // ── Request-timing instrumentation ─────────────────────────────────────────────
 // Per-route latency recording — see boot/requestTiming.js. The same counters are
@@ -240,79 +74,12 @@ const httpMetrics = require('./telemetry/httpMetrics');
 require('./boot/requestTiming').mountRequestTiming(app);
 
 // ── Sessions ──────────────────────────────────────────────────────────────────────
-const pgSession = require('connect-pg-simple')(session);
-const { pool, getRedis, disconnectRedis } = require('./db');
-const { installRedisCacheWhenReady } = require('./auth/sessionCache');
-
-// Sessions: PostgreSQL is the durable source of truth (survives Redis restarts).
-// Redis is wired as a read-through cache layer on top — cache hit avoids a DB
-// round-trip for the session lookup that happens on every authenticated request.
-// Primary: PostgreSQL (persistent via beeflow-pgdata volume)
-const pgStore = new pgSession({ pool, tableName: 'user_sessions', createTableIfMissing: true, pruneSessionInterval: 900 });
-log.info('[Sessions] Using PostgreSQL session store (persistent across deploys)');
-const sessionStore = pgStore;
-
-// Redis session cache — read-through layer over pgStore, on the shared ioredis
-// client from db.js (TLS, reconnects and fail-fast are configured there). It
-// activates once that client is connected; without Redis, or when Redis is not
-// reachable at boot, sessions stay PG-only.
-installRedisCacheWhenReady(sessionStore, pgStore, getRedis());
-
-// Session lifetime and whether it slides — see auth/sessionLifetime.js for
-// what these two values actually were versus what the docs claimed.
-const { sessionMaxAgeMs, sessionRolling } = require('./auth/sessionLifetime');
-
-if (!process.env.MASTER_ENCRYPTION_KEY || process.env.MASTER_ENCRYPTION_KEY.length < 32) {
-    throw new Error('MASTER_ENCRYPTION_KEY must be set to a random value of at least 32 characters; it keys everything encrypted at rest. See .env.example. Generate with: openssl rand -hex 32');
-}
-app.use(session({
-    store: sessionStore,
-    name: process.env.COOKIE_NAME || 'connect.sid',
-    secret: (() => {
-        const s = process.env.SESSION_SECRET;
-        if (!s || s.length < 32) {
-            throw new Error('SESSION_SECRET must be set to a random value of at least 32 characters. See .env.example. Generate with: node -e "console.log(require(\'crypto\').randomBytes(48).toString(\'hex\'))"');
-        }
-        return s;
-    })(),
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-        secure: process.env.COOKIE_SECURE === 'false' ? false : (process.env.NODE_ENV === 'production' || process.env.COOKIE_SECURE === 'true'),
-        httpOnly: true,
-        // Session lifetime. THIRTY days, and FIXED — `rolling` is off, so the
-        // window runs from sign-in and does not extend with activity. Signing in
-        // on the 1st means signing in again on the 31st however much you used
-        // it, and a session idle since the 1st is still valid on the 30th.
-        //
-        // The API reference described this as "14 days, sliding, refreshed on
-        // every successful API call". Wrong on all three counts, and the reason
-        // that matters is not tidiness: an organisation writing "sessions expire
-        // after 14 days of inactivity" into its ISO access-control policy
-        // (A.5.17, A.8.5) would be documenting a control it does not have.
-        //
-        // Configurable now, because a session timeout is a policy an
-        // organisation sets rather than one a vendor picks for them. The default
-        // is unchanged — shortening it for everyone has a cost (people signed
-        // out sooner) that belongs to whoever runs the installation.
-        maxAge: sessionMaxAgeMs(),
-        sameSite: process.env.COOKIE_SAMESITE || 'lax',
-        ...(process.env.COOKIE_DOMAIN && { domain: process.env.COOKIE_DOMAIN })
-    },
-    // Off by default, matching the behaviour that has always been in place. Set
-    // SESSION_ROLLING=true for an inactivity timeout instead of a fixed window,
-    // which is what most access-control policies actually describe.
-    rolling: sessionRolling(),
-}));
-
-// Which client is this? Every client sends X-Beeflow-Client and until now
-// nothing read it, so no query could tell a phone turn from a browser one.
-// Mounted before the auth layers so it covers every route including the
-// unauthenticated ones, and held in AsyncLocalStorage so `logUsage` can read
-// it without forty call sites growing a parameter.
-const { withRequestClient, currentClient } = require('./telemetry/requestClient');
-app.use(withRequestClient);
-app.use(require('./stores/lib/documentCrypto').withDocumentEncryptionSession);
+// PostgreSQL session store with the Redis read-through cache, the refuse-to-boot
+// MASTER_ENCRYPTION_KEY / SESSION_SECRET checks, the cookie session (lifetime
+// from auth/sessionLifetime.js), then the per-request client tag and the
+// document-crypto session — see boot/session.js.
+const sessionLayers = require('./boot/session');
+sessionLayers.applyCookieSession(app);
 
 // Nextcloud Connector JWT auth — handles requests from the Bee Flow ExApp
 // connector. Tagged with `X-Beeflow-Source: nextcloud-connector`. Populates
@@ -322,51 +89,19 @@ app.use(require('./auth/connectorJwt'));
 // ── Session-token bridge (popup→iframe handoff for embedded mode) ──
 // Helpers live in utils/sessionToken so OAuth callback can mint pickup tokens.
 const {
-    getSessionToken,
     setSessionToken,
     generateToken,
     SESSION_TOKEN_TTL_SECONDS,
     NATIVE_SESSION_TOKEN_TTL_SECONDS,
 } = require('./utils/sessionToken');
 
-app.use(async (req, res, next) => {
-    const sessionToken = req.headers['x-session-token'];
-    if (sessionToken) {
-        // Wrapped because this is an async middleware: under Express 5 a
-        // rejection here goes to the error handler, so a Redis that exists but
-        // is unhealthy would 500 EVERY request carrying the header — the whole
-        // app for a bridged client, not just this lookup. Continuing anonymous
-        // degrades to a 401 the client can act on.
-        let data = null;
-        try {
-            data = await getSessionToken(sessionToken);
-        } catch (err) {
-            log.warn('[Sessions] Bridge token lookup failed:', err.message);
-        }
-        if (data) {
-            Object.assign(req.session, data);
-            // The iframe presents this token on EVERY request (that is the
-            // whole point of the bridge — its cookie never reaches us), so
-            // the session is rebuilt per request and a persisted row would
-            // never be read back. Skip the end-of-response PG write.
-            const { suppressSessionPersistence } = require('./auth/establishSession');
-            suppressSessionPersistence(req);
-            // Re-validate license on bridge transfer. Without this the iframe
-            // would inherit whatever tier was cached when the parent session
-            // was created — possibly stale after a revocation/upgrade. The
-            // resolution is memoised on req.session for 30s anyway.
-            try {
-                const { resolveBestTierForRequest } = require('./license/middleware');
-                const resolution = await resolveBestTierForRequest(req);
-                req.session._bridgeTier = resolution.tier;
-            } catch (_e) { /* non-fatal */ }
-        }
-    }
-    next();
-});
+// The bridge itself (an X-Session-Token rebuilds the session per request), then
+// the Microsoft login-identity recheck — see boot/session.js. The route below
+// MINTS the tokens.
+sessionLayers.applySessionBridge(app);
 
-// Recheck the login identity even when connected integration credentials change.
-app.use(require('./auth/microsoftSession').validateMicrosoftSession);
+// Which client is asking — the native app gets a longer token.
+const { currentClient } = require('./telemetry/requestClient');
 
 app.get('/api/session-token', async (req, res) => {
     if (!req.session?.user?.id) return res.status(401).json({ error: 'Not authenticated' });
@@ -483,35 +218,10 @@ app.get('/api', (req, res) => {
 app.use('/.well-known', require('./routes/wellKnown'));
 
 // ── Static files ──────────────────────────────────────────────────────────────
-const agentHubDistPath = path.resolve(__dirname, '../agent-hub/dist');
-if (process.env.NODE_ENV === 'production' && fs.existsSync(agentHubDistPath)) {
-    // Hashed Vite assets get long-lived immutable cache; everything else (index.html) gets no-cache
-    app.use('/assets', express.static(path.join(agentHubDistPath, 'assets'), {
-        maxAge: '1y',
-        immutable: true,
-    }));
-    app.use(express.static(agentHubDistPath, {
-        maxAge: 0,
-        setHeaders: (res, filePath) => {
-            if (filePath.endsWith('.html')) {
-                res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-                res.setHeader('Pragma', 'no-cache');
-                res.setHeader('Expires', '0');
-            }
-        },
-    }));
-    log.info('[Production] Serving static files from agent-hub:', agentHubDistPath);
-}
-// `data/uploads` mixes public images (avatars, org logos, agents/) with private
-// user content (`saved-recordings/` — every meeting's raw audio). This mount
-// authenticates nothing and sits ahead of every router, so it is gated by an
-// allowlist. See middleware/publicUploads.js for why.
-app.use('/uploads', require('./middleware/publicUploads').publicUploadsOnly);
-app.use('/uploads', express.static(path.join(__dirname, 'data', 'uploads')));
-// Learning Center video pack (LEARN_MEDIA_DIR, outside git and the image).
-// Public, allow-listed file types, a bare 404 on a miss so the SPA renderer
-// never answers for it. See learning/learnMedia.js.
-app.use('/learn-media', require('./learning/learnMedia').createLearnMediaRouter());
+// The built SPA's assets (production only), the allow-listed /uploads and the
+// Learning Center video pack — see boot/staticAssets.js.
+const staticAssets = require('./boot/staticAssets');
+staticAssets.mountStaticAssets(app);
 
 // ── RustFS Storage Init ───────────────────────────────────────────────────────
 const storageStore = require('./stores/storageStore');
@@ -1011,17 +721,8 @@ app.use((req, res, next) => {
 app.use(require('./routes/publicRender'));
 
 // ── SPA fallback (production) ─────────────────────────────────────────────────
-if (process.env.NODE_ENV === 'production') {
-    const indexPath = path.join(agentHubDistPath, 'index.html');
-    if (fs.existsSync(indexPath)) {
-        app.use((req, res) => {
-            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-            res.setHeader('Pragma', 'no-cache');
-            res.setHeader('Expires', '0');
-            res.sendFile(indexPath);
-        });
-    }
-}
+// index.html for whatever path is left — see boot/staticAssets.js.
+staticAssets.mountSpaFallback(app);
 
 // ── Terminal error handler ────────────────────────────────────────────────────
 // The LAST app.use in this file, and it has to stay last: Express only offers an
@@ -1034,93 +735,13 @@ app.use(terminalErrorHandler);
 const { runStartupChecks, runStartupTasks } = require('./boot/startupTasks');
 
 // ── Start server ──────────────────────────────────────────────────────────────
-// Captured so the (gated, off-by-default) webpage full-tier proxy can attach a
-// WebSocket 'upgrade' listener for Vite HMR — upgrade requests bypass the
-// Express app entirely and can only be intercepted on the underlying
-// http.Server.
-const server = require('node:http').createServer(app);
-async function startServer() {
-    // Existing deployments must finish additive auth schema and transactional
-    // secret migration before accepting requests. Any failure stops startup.
-    await require('./stores/userStore').initDB();
-    await require('./stores/authConfigStore').migrate();
-    server.listen(PORT, '0.0.0.0', () => {
-    log.info(`Server running on http://0.0.0.0:${PORT}`);
-    // Refuse-to-boot / NODE_ENV posture checks, the INIT_* first-boot wizard and
-    // the durable HMAC secrets — see boot/startupTasks.js.
-    runStartupChecks();
-
-    // Webpage full-tier runtime (per-project Node/Vite dev container) — GATED
-    // + INERT by default. startReaper() is always safe to call: it no-ops
-    // unless WEBPAGE_FULL_RUNTIME_ENABLED=1 (see webpageRuntimeManager.js's
-    // own gate). The proxy mount (http-proxy-middleware + the WS 'upgrade'
-    // listener) is additionally only required — not just gated internally —
-    // when the flag is on, so installs that never touch this feature never
-    // load that dependency. No runner image is built from this repository
-    // any more; enabling it in production needs its own image and a security
-    // review first.
-    const webpageRuntimeManager = require('./services/webpageRuntimeManager');
-    webpageRuntimeManager.startReaper();
-    if (webpageRuntimeManager.isEnabled()) {
-        require('./routes/webpagesFullTierProxy').mountFullTierProxy(app, server);
-        log.info('[Server] Webpage full-tier runtime proxy mounted (WEBPAGE_FULL_RUNTIME_ENABLED=1).');
-        // This proxy mounts once the server is already listening, i.e. BEHIND
-        // the terminal error handler — and Express never routes an error
-        // backwards. Re-register the handler so a proxy failure gets the same
-        // generic body instead of falling through to the stack-printing default.
-        // The earlier copy still wins for every layer that precedes it.
-        app.use(terminalErrorHandler);
-    }
-
-    // Sanity probes, warmups, one-shot backfills and migrations, schedulers,
-    // runners and periodic jobs — see boot/startupTasks.js.
-    runStartupTasks();
-    });
-}
-startServer().catch(err => {
-    log.error('[Server] OAuth upgrade failed; refusing startup:', err.message);
-    process.exit(1);
-});
+// Auth-schema migrations, then listen, then the startup checks, the webpage
+// runtime reaper and the startup tasks — see boot/lifecycle.js. A failed
+// migration refuses startup (exit 1).
+lifecycle.startServer({ app, port: PORT, terminalErrorHandler, runStartupChecks, runStartupTasks });
 
 // ── Graceful shutdown ─────────────────────────────────────────────────────────
-let _shuttingDown = false;
-const shutdown = async (signal) => {
-    if (_shuttingDown) return; // ignore a second signal while draining
-    _shuttingDown = true;
-    log.info(`[Server] ${signal} received, cleaning up...`);
-    // Drain in-flight automation runs FIRST: stop claiming new scheduled work
-    // and wait (bounded) for running executions to finish, so a deploy doesn't
-    // abandon a run mid-step and re-fire its side effects after restart. Bound
-    // it under the orchestrator's termination grace (k8s default 30s).
-    try {
-        const automationRunner = require('./core/automationRunner');
-        if (typeof automationRunner.stop === 'function') {
-            await automationRunner.stop({ timeoutMs: parseInt(process.env.AUTOMATION_DRAIN_TIMEOUT_MS, 10) || 25_000 });
-        }
-    } catch (e) { log.warn('[Server] automation runner drain failed:', e.message); }
-    try { require('./jobs/usageOpenObservePush').stop(); } catch (_) { /* best-effort */ }
-    try { require('./jobs/opsMetricsPush').stop(); } catch (_) { /* best-effort */ }
-    // Chat signals: write the last minute of counters (bounded; a lost minute is acceptable, a hung shutdown is not).
-    try { await Promise.race([require('./core/privacy/chatSignals').flush(), new Promise(r => setTimeout(r, 2000).unref())]); } catch (_) { /* best-effort */ }
-    try { require('./stores/configStore')._stopInvalidationListener(); } catch (_) { /* best-effort */ }
-    await disconnectRedis(); // shared ioredis client (caching and the session cache)
-    // Flush the SQLite blob engines' dirty handles BEFORE exiting. Their own
-    // SIGTERM listeners fire concurrently, but the process.exit() below used
-    // to race them to death — an unawaited flush loses up to the debounce
-    // window of committed app/webpage writes on every single deploy. Bounded
-    // so a hung RustFS can't stall the pod past its termination grace.
-    try {
-        await Promise.race([
-            Promise.allSettled([
-                require('./stores/studioAppDbStore').closeAll(),
-                require('./stores/webpageDbStore').closeAll(),
-            ]),
-            new Promise((resolve) => setTimeout(resolve, 10_000).unref()),
-        ]);
-    } catch (e) { log.warn('[Server] Blob-engine shutdown flush failed:', e.message); }
-    // Flush any buffered spans/metrics so a deploy doesn't drop the last batch.
-    await otel.shutdown();
-    process.exit(0);
-};
-process.on('SIGTERM', () => shutdown('SIGTERM'));
-process.on('SIGINT', () => shutdown('SIGINT'));
+// SIGTERM / SIGINT: drain the automation runner first, stop the pushers, flush,
+// close Redis, the blob engines and OTEL, then exit — see boot/lifecycle.js.
+const { disconnectRedis } = require('./db');
+lifecycle.installGracefulShutdown({ otel, disconnectRedis });

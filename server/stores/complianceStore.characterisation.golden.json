@@ -1,0 +1,2358 @@
+[
+ {
+  "step": "exports",
+  "surface": {
+   "initDB": "function",
+   "SETTINGS_FIELDS": "array",
+   "SETTINGS_REQUEST_DENY": "array",
+   "SettingsValidationError": "function",
+   "sanitizeSettingsPatch": "function",
+   "getSettings": "function",
+   "saveSettings": "function",
+   "markOnboarded": "function",
+   "setSccConfirmed": "function",
+   "markRopaReviewed": "function",
+   "markRetentionRun": "function",
+   "recordCheckResult": "function",
+   "getLatestPerCheck": "function",
+   "listLatestScopes": "function",
+   "getLatestForChecks": "function",
+   "getCheckHistory": "function",
+   "recordScoreSnapshot": "function",
+   "getScoreHistory": "function",
+   "addEvidence": "function",
+   "getChainHead": "function",
+   "listEvidence": "function",
+   "countEvidence": "function",
+   "getEvidenceById": "function",
+   "getEvidenceHistory": "function",
+   "markNotified": "function",
+   "wasNotified": "function",
+   "FINDING_STATES": "array",
+   "listFindingStates": "function",
+   "setFindingState": "function",
+   "clearFindingState": "function",
+   "listSubjectRegistrations": "function",
+   "upsertSubjectRegistration": "function",
+   "deleteSubjectRegistration": "function",
+   "getHintDismissals": "function",
+   "recordHintDismissal": "function",
+   "eraseHintDismissals": "function",
+   "pruneHintDismissals": "function"
+  }
+ },
+ {
+  "step": "initDB"
+ },
+ {
+  "via": "exec",
+  "sql": "CREATE TABLE IF NOT EXISTS compliance_settings ( organization_id TEXT PRIMARY KEY, dpo_name TEXT, dpo_email TEXT, dpo_phone TEXT, legal_bases JSONB DEFAULT '[]'::jsonb, data_residency TEXT DEFAULT 'eu', breach_recipients JSONB DEFAULT '[]'::jsonb, default_retention_days INTEGER, privacy_notice_url TEXT, onboarded_at TIMESTAMPTZ, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW() )",
+  "params": null
+ },
+ {
+  "via": "runDdl",
+  "tag": "complianceStore",
+  "statements": [
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS scc_confirmed_operators JSONB DEFAULT '[]'::jsonb",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS ropa_reviewed_at TIMESTAMPTZ",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS ropa_reviewed_by TEXT",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS last_retention_run_at TIMESTAMPTZ",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS datatable_review_days INTEGER",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS ai_literacy_confirmed_at TIMESTAMPTZ",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS ai_literacy_material_url TEXT",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS memory_retention_enabled BOOLEAN NOT NULL DEFAULT false",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS datatable_review_days INTEGER",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS project_retention_days INTEGER",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS project_owner_hints_enabled BOOLEAN NOT NULL DEFAULT true",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS enabled_frameworks JSONB DEFAULT '[]'::jsonb",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS framework_relevance JSONB DEFAULT '{}'::jsonb",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS ai_content_marking_enabled BOOLEAN NOT NULL DEFAULT false",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS ai_content_marking_footer TEXT",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS ai_content_marking_enabled_at TIMESTAMPTZ",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS ai_content_marking_enabled_by TEXT",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS chat_monitoring_enabled BOOLEAN NOT NULL DEFAULT false",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS chat_monitoring_surfaces JSONB DEFAULT '[]'::jsonb",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS chat_monitoring_signals JSONB DEFAULT '[]'::jsonb",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS chat_monitoring_effective_from TIMESTAMPTZ",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS chat_monitoring_retention_days INTEGER",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS chat_monitoring_legal_basis TEXT",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS chat_monitoring_lia_at TIMESTAMPTZ",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS chat_monitoring_works_council TEXT",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS chat_monitoring_works_council_reason TEXT",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS chat_monitoring_works_council_at DATE",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS chat_monitoring_works_council_scope JSONB DEFAULT '{}'::jsonb",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS chat_monitoring_dpia_ref TEXT",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS chat_monitoring_dpia_at DATE",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS chat_monitoring_dpia_risk_level TEXT",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS chat_monitoring_dpo_advice_at DATE",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS chat_monitoring_prior_consultation_at DATE",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS chat_monitoring_notice_url TEXT",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS chat_monitoring_notice_published_at DATE",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS chat_monitoring_enabled_at TIMESTAMPTZ",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS chat_monitoring_enabled_by TEXT",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS public_base_url TEXT",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS sso_enforces_mfa BOOLEAN",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS nis2_entity_class TEXT",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS nis2_registration_reference TEXT",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS nis2_registered_at TIMESTAMPTZ",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS nis2_authority_channel TEXT",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS nis2_csirt_contact TEXT",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS nis2_board_training_at TIMESTAMPTZ",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS cra_role TEXT",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS cra_reporting_channel TEXT",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS psirt_contact_email TEXT",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS vuln_disclosure_url TEXT",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS security_txt_policy_enabled BOOLEAN",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS support_policy_url TEXT",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS support_end_date DATE",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS security_update_channel TEXT",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS data_act_provider_role BOOLEAN",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS notice_period_days INTEGER",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS exit_procedure_tested_at TIMESTAMPTZ",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS exit_procedure_tested_by TEXT",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS accessibility_statement_url TEXT",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS accessibility_conformance_level TEXT",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS accessibility_conformance_at TIMESTAMPTZ",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS incident_customer_contacts JSONB DEFAULT '[]'::jsonb",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS dora_customer_notice_hours INTEGER DEFAULT 4",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS dora_contract_clauses_confirmed_at TIMESTAMPTZ",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS dora_contract_clauses_confirmed_by TEXT",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS dora_contract_template_url TEXT",
+   "ALTER TABLE compliance_settings ADD COLUMN IF NOT EXISTS machinery_manual_subjects JSONB DEFAULT '[]'::jsonb"
+  ]
+ },
+ {
+  "via": "exec",
+  "sql": "CREATE TABLE IF NOT EXISTS compliance_checks ( id SERIAL PRIMARY KEY, organization_id TEXT, check_id TEXT NOT NULL, regulation TEXT NOT NULL, article TEXT, severity TEXT NOT NULL DEFAULT 'medium', status TEXT NOT NULL, evidence JSONB DEFAULT '{}'::jsonb, details TEXT, scope_type TEXT DEFAULT 'global', scope_id TEXT, run_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), run_type TEXT DEFAULT 'scheduled' )",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "CREATE INDEX IF NOT EXISTS idx_compliance_checks_org_run ON compliance_checks(organization_id, run_at DESC)",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "CREATE INDEX IF NOT EXISTS idx_compliance_checks_check_id ON compliance_checks(organization_id, check_id, run_at DESC)",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "CREATE INDEX IF NOT EXISTS idx_compliance_checks_scope ON compliance_checks(scope_type, scope_id)",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "CREATE INDEX IF NOT EXISTS idx_compliance_checks_latest ON compliance_checks(organization_id, check_id, scope_type, scope_id, run_at DESC)",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "CREATE TABLE IF NOT EXISTS compliance_evidence ( id SERIAL PRIMARY KEY, organization_id TEXT, check_id TEXT, subject_type TEXT, subject_id TEXT, captured_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), hash TEXT, payload JSONB DEFAULT '{}'::jsonb )",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "CREATE INDEX IF NOT EXISTS idx_compliance_evidence_org ON compliance_evidence(organization_id, captured_at DESC)",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "CREATE INDEX IF NOT EXISTS idx_compliance_evidence_check ON compliance_evidence(organization_id, check_id, captured_at DESC)",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "CREATE TABLE IF NOT EXISTS compliance_score_history ( id SERIAL PRIMARY KEY, organization_id TEXT NOT NULL, overall_score INTEGER, gdpr_score INTEGER, aia_score INTEGER, pass INTEGER, warn INTEGER, fail INTEGER, na INTEGER, run_type TEXT, captured_at TIMESTAMPTZ NOT NULL DEFAULT NOW() )",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "CREATE INDEX IF NOT EXISTS idx_compliance_score_hist ON compliance_score_history(organization_id, captured_at DESC)",
+  "params": null
+ },
+ {
+  "via": "exec",
+  "sql": "CREATE TABLE IF NOT EXISTS compliance_notify_log ( organization_id TEXT NOT NULL, subject_kind TEXT NOT NULL, subject_id TEXT NOT NULL, offset_key TEXT NOT NULL, sent_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), PRIMARY KEY (organization_id, subject_kind, subject_id, offset_key) )",
+  "params": null
+ },
+ {
+  "via": "runDdl",
+  "tag": "complianceStore",
+  "statements": [
+   "ALTER TABLE compliance_score_history ADD COLUMN IF NOT EXISTS iso_score INTEGER",
+   "ALTER TABLE compliance_score_history ADD COLUMN IF NOT EXISTS scores JSONB DEFAULT '{}'::jsonb",
+   "ALTER TABLE compliance_score_history ADD COLUMN IF NOT EXISTS coverage JSONB",
+   "ALTER TABLE compliance_evidence ADD COLUMN IF NOT EXISTS storage_key TEXT",
+   "ALTER TABLE compliance_evidence ADD COLUMN IF NOT EXISTS seq BIGINT",
+   "ALTER TABLE compliance_evidence ADD COLUMN IF NOT EXISTS prev_hash TEXT",
+   "ALTER TABLE compliance_evidence ADD COLUMN IF NOT EXISTS payload_hash TEXT",
+   "CREATE UNIQUE INDEX IF NOT EXISTS idx_compliance_evidence_seq ON compliance_evidence(organization_id, seq) WHERE seq IS NOT NULL",
+   "ALTER TABLE compliance_checks ADD COLUMN IF NOT EXISTS framework_code TEXT"
+  ]
+ },
+ {
+  "via": "runDdl",
+  "tag": "complianceStore",
+  "statements": [
+   "CREATE TABLE IF NOT EXISTS compliance_finding_states ( organization_id TEXT NOT NULL, check_id TEXT NOT NULL, scope_key TEXT NOT NULL, fingerprint TEXT NOT NULL, state TEXT NOT NULL CHECK (state IN ('acknowledged', 'accepted_risk', 'snoozed')), reason TEXT, until TIMESTAMPTZ, actor_id TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), PRIMARY KEY (organization_id, check_id, scope_key) )",
+   "CREATE TABLE IF NOT EXISTS compliance_subject_registrations ( organization_id TEXT NOT NULL, subject_kind TEXT NOT NULL, subject_id TEXT NOT NULL, purpose TEXT, lawful_basis TEXT, retention_days INTEGER, confirmed_by TEXT, confirmed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), PRIMARY KEY (organization_id, subject_kind, subject_id) )",
+   "CREATE TABLE IF NOT EXISTS project_hint_dismissals ( user_id TEXT NOT NULL, project_id TEXT NOT NULL, hint_key TEXT NOT NULL, fingerprint TEXT, snoozed_until TIMESTAMPTZ, dismissed_at TIMESTAMPTZ, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), PRIMARY KEY (user_id, project_id, hint_key) )"
+  ]
+ },
+ {
+  "result": "<undefined>"
+ },
+ {
+  "step": "initDB again (memoised)"
+ },
+ {
+  "result": "<undefined>"
+ },
+ {
+  "step": "constants",
+  "SETTINGS_FIELDS": [
+   {
+    "col": "dpo_name",
+    "kind": "text",
+    "legacy": true
+   },
+   {
+    "col": "dpo_email",
+    "kind": "text",
+    "legacy": true
+   },
+   {
+    "col": "dpo_phone",
+    "kind": "text",
+    "legacy": true
+   },
+   {
+    "col": "legal_bases",
+    "kind": "jsonb",
+    "fallback": [],
+    "legacy": true
+   },
+   {
+    "col": "data_residency",
+    "kind": "text",
+    "fallback": "eu",
+    "legacy": true
+   },
+   {
+    "col": "breach_recipients",
+    "kind": "jsonb",
+    "fallback": [],
+    "legacy": true
+   },
+   {
+    "col": "default_retention_days",
+    "kind": "int",
+    "legacy": true,
+    "min": 0,
+    "max": 36500
+   },
+   {
+    "col": "memory_retention_enabled",
+    "kind": "bool",
+    "fallback": false,
+    "ddl": "BOOLEAN NOT NULL DEFAULT false"
+   },
+   {
+    "col": "datatable_review_days",
+    "kind": "int",
+    "ddl": "INTEGER",
+    "min": 30,
+    "max": 3650
+   },
+   {
+    "col": "project_retention_days",
+    "kind": "int",
+    "ddl": "INTEGER",
+    "min": 30,
+    "max": 3650
+   },
+   {
+    "col": "project_owner_hints_enabled",
+    "kind": "bool",
+    "fallback": true,
+    "ddl": "BOOLEAN NOT NULL DEFAULT true"
+   },
+   {
+    "col": "privacy_notice_url",
+    "kind": "text",
+    "legacy": true
+   },
+   {
+    "col": "onboarded_at",
+    "kind": "ts",
+    "legacy": true
+   },
+   {
+    "col": "ai_literacy_confirmed_at",
+    "kind": "ts",
+    "legacy": true
+   },
+   {
+    "col": "ai_literacy_material_url",
+    "kind": "text",
+    "legacy": true
+   },
+   {
+    "col": "enabled_frameworks",
+    "kind": "jsonb",
+    "fallback": [],
+    "ddl": "JSONB DEFAULT '[]'::jsonb",
+    "owner": "compliance/frameworkPolicy"
+   },
+   {
+    "col": "framework_relevance",
+    "kind": "jsonb",
+    "fallback": {},
+    "ddl": "JSONB DEFAULT '{}'::jsonb",
+    "owner": "compliance/frameworkPolicy"
+   },
+   {
+    "col": "ai_content_marking_enabled",
+    "kind": "bool",
+    "fallback": false,
+    "ddl": "BOOLEAN NOT NULL DEFAULT false"
+   },
+   {
+    "col": "ai_content_marking_footer",
+    "kind": "text",
+    "ddl": "TEXT"
+   },
+   {
+    "col": "ai_content_marking_enabled_at",
+    "kind": "ts",
+    "ddl": "TIMESTAMPTZ",
+    "owner": "routes/compliance/settings"
+   },
+   {
+    "col": "ai_content_marking_enabled_by",
+    "kind": "text",
+    "ddl": "TEXT",
+    "owner": "routes/compliance/settings"
+   },
+   {
+    "col": "chat_monitoring_enabled",
+    "kind": "bool",
+    "fallback": false,
+    "ddl": "BOOLEAN NOT NULL DEFAULT false",
+    "owner": "routes/compliance/chatMonitoring"
+   },
+   {
+    "col": "chat_monitoring_surfaces",
+    "kind": "jsonb",
+    "fallback": [],
+    "ddl": "JSONB DEFAULT '[]'::jsonb",
+    "owner": "routes/compliance/chatMonitoring"
+   },
+   {
+    "col": "chat_monitoring_signals",
+    "kind": "jsonb",
+    "fallback": [],
+    "ddl": "JSONB DEFAULT '[]'::jsonb",
+    "owner": "routes/compliance/chatMonitoring"
+   },
+   {
+    "col": "chat_monitoring_effective_from",
+    "kind": "ts",
+    "ddl": "TIMESTAMPTZ",
+    "owner": "routes/compliance/chatMonitoring"
+   },
+   {
+    "col": "chat_monitoring_retention_days",
+    "kind": "int",
+    "ddl": "INTEGER",
+    "min": 30,
+    "max": 90,
+    "owner": "routes/compliance/chatMonitoring"
+   },
+   {
+    "col": "chat_monitoring_legal_basis",
+    "kind": "text",
+    "ddl": "TEXT",
+    "owner": "routes/compliance/chatMonitoring"
+   },
+   {
+    "col": "chat_monitoring_lia_at",
+    "kind": "ts",
+    "ddl": "TIMESTAMPTZ",
+    "owner": "routes/compliance/chatMonitoring"
+   },
+   {
+    "col": "chat_monitoring_works_council",
+    "kind": "text",
+    "ddl": "TEXT",
+    "owner": "routes/compliance/chatMonitoring"
+   },
+   {
+    "col": "chat_monitoring_works_council_reason",
+    "kind": "text",
+    "ddl": "TEXT",
+    "owner": "routes/compliance/chatMonitoring"
+   },
+   {
+    "col": "chat_monitoring_works_council_at",
+    "kind": "date",
+    "ddl": "DATE",
+    "owner": "routes/compliance/chatMonitoring"
+   },
+   {
+    "col": "chat_monitoring_works_council_scope",
+    "kind": "jsonb",
+    "fallback": {},
+    "ddl": "JSONB DEFAULT '{}'::jsonb",
+    "owner": "routes/compliance/chatMonitoring"
+   },
+   {
+    "col": "chat_monitoring_dpia_ref",
+    "kind": "text",
+    "ddl": "TEXT",
+    "owner": "routes/compliance/chatMonitoring"
+   },
+   {
+    "col": "chat_monitoring_dpia_at",
+    "kind": "date",
+    "ddl": "DATE",
+    "owner": "routes/compliance/chatMonitoring"
+   },
+   {
+    "col": "chat_monitoring_dpia_risk_level",
+    "kind": "text",
+    "ddl": "TEXT",
+    "owner": "routes/compliance/chatMonitoring"
+   },
+   {
+    "col": "chat_monitoring_dpo_advice_at",
+    "kind": "date",
+    "ddl": "DATE",
+    "owner": "routes/compliance/chatMonitoring"
+   },
+   {
+    "col": "chat_monitoring_prior_consultation_at",
+    "kind": "date",
+    "ddl": "DATE",
+    "owner": "routes/compliance/chatMonitoring"
+   },
+   {
+    "col": "chat_monitoring_notice_url",
+    "kind": "text",
+    "ddl": "TEXT",
+    "owner": "routes/compliance/chatMonitoring"
+   },
+   {
+    "col": "chat_monitoring_notice_published_at",
+    "kind": "date",
+    "ddl": "DATE",
+    "owner": "routes/compliance/chatMonitoring"
+   },
+   {
+    "col": "chat_monitoring_enabled_at",
+    "kind": "ts",
+    "ddl": "TIMESTAMPTZ",
+    "owner": "routes/compliance/chatMonitoring"
+   },
+   {
+    "col": "chat_monitoring_enabled_by",
+    "kind": "text",
+    "ddl": "TEXT",
+    "owner": "routes/compliance/chatMonitoring"
+   },
+   {
+    "col": "public_base_url",
+    "kind": "text",
+    "ddl": "TEXT"
+   },
+   {
+    "col": "sso_enforces_mfa",
+    "kind": "bool",
+    "ddl": "BOOLEAN"
+   },
+   {
+    "col": "nis2_entity_class",
+    "kind": "text",
+    "ddl": "TEXT"
+   },
+   {
+    "col": "nis2_registration_reference",
+    "kind": "text",
+    "ddl": "TEXT"
+   },
+   {
+    "col": "nis2_registered_at",
+    "kind": "ts",
+    "ddl": "TIMESTAMPTZ"
+   },
+   {
+    "col": "nis2_authority_channel",
+    "kind": "text",
+    "ddl": "TEXT"
+   },
+   {
+    "col": "nis2_csirt_contact",
+    "kind": "text",
+    "ddl": "TEXT"
+   },
+   {
+    "col": "nis2_board_training_at",
+    "kind": "ts",
+    "ddl": "TIMESTAMPTZ"
+   },
+   {
+    "col": "cra_role",
+    "kind": "text",
+    "ddl": "TEXT"
+   },
+   {
+    "col": "cra_reporting_channel",
+    "kind": "text",
+    "ddl": "TEXT"
+   },
+   {
+    "col": "psirt_contact_email",
+    "kind": "text",
+    "ddl": "TEXT"
+   },
+   {
+    "col": "vuln_disclosure_url",
+    "kind": "text",
+    "ddl": "TEXT"
+   },
+   {
+    "col": "security_txt_policy_enabled",
+    "kind": "bool",
+    "ddl": "BOOLEAN"
+   },
+   {
+    "col": "support_policy_url",
+    "kind": "text",
+    "ddl": "TEXT"
+   },
+   {
+    "col": "support_end_date",
+    "kind": "date",
+    "ddl": "DATE"
+   },
+   {
+    "col": "security_update_channel",
+    "kind": "text",
+    "ddl": "TEXT"
+   },
+   {
+    "col": "data_act_provider_role",
+    "kind": "bool",
+    "ddl": "BOOLEAN"
+   },
+   {
+    "col": "notice_period_days",
+    "kind": "int",
+    "ddl": "INTEGER",
+    "min": 0,
+    "max": 3650
+   },
+   {
+    "col": "exit_procedure_tested_at",
+    "kind": "ts",
+    "ddl": "TIMESTAMPTZ"
+   },
+   {
+    "col": "exit_procedure_tested_by",
+    "kind": "text",
+    "ddl": "TEXT"
+   },
+   {
+    "col": "accessibility_statement_url",
+    "kind": "text",
+    "ddl": "TEXT"
+   },
+   {
+    "col": "accessibility_conformance_level",
+    "kind": "text",
+    "ddl": "TEXT"
+   },
+   {
+    "col": "accessibility_conformance_at",
+    "kind": "ts",
+    "ddl": "TIMESTAMPTZ"
+   },
+   {
+    "col": "incident_customer_contacts",
+    "kind": "jsonb",
+    "fallback": [],
+    "ddl": "JSONB DEFAULT '[]'::jsonb"
+   },
+   {
+    "col": "dora_customer_notice_hours",
+    "kind": "int",
+    "fallback": 4,
+    "ddl": "INTEGER DEFAULT 4",
+    "min": 0,
+    "max": 8760
+   },
+   {
+    "col": "dora_contract_clauses_confirmed_at",
+    "kind": "ts",
+    "ddl": "TIMESTAMPTZ"
+   },
+   {
+    "col": "dora_contract_clauses_confirmed_by",
+    "kind": "text",
+    "ddl": "TEXT"
+   },
+   {
+    "col": "dora_contract_template_url",
+    "kind": "text",
+    "ddl": "TEXT"
+   },
+   {
+    "col": "machinery_manual_subjects",
+    "kind": "jsonb",
+    "fallback": [],
+    "ddl": "JSONB DEFAULT '[]'::jsonb"
+   }
+  ],
+  "SETTINGS_REQUEST_DENY": [
+   "enabled_frameworks",
+   "framework_relevance",
+   "ai_content_marking_enabled_at",
+   "ai_content_marking_enabled_by",
+   "chat_monitoring_enabled",
+   "chat_monitoring_surfaces",
+   "chat_monitoring_signals",
+   "chat_monitoring_effective_from",
+   "chat_monitoring_retention_days",
+   "chat_monitoring_legal_basis",
+   "chat_monitoring_lia_at",
+   "chat_monitoring_works_council",
+   "chat_monitoring_works_council_reason",
+   "chat_monitoring_works_council_at",
+   "chat_monitoring_works_council_scope",
+   "chat_monitoring_dpia_ref",
+   "chat_monitoring_dpia_at",
+   "chat_monitoring_dpia_risk_level",
+   "chat_monitoring_dpo_advice_at",
+   "chat_monitoring_prior_consultation_at",
+   "chat_monitoring_notice_url",
+   "chat_monitoring_notice_published_at",
+   "chat_monitoring_enabled_at",
+   "chat_monitoring_enabled_by"
+  ],
+  "FINDING_STATES": [
+   "acknowledged",
+   "accepted_risk",
+   "snoozed"
+  ]
+ },
+ {
+  "step": "getSettings (no row)"
+ },
+ {
+  "via": "getOne",
+  "sql": "SELECT * FROM compliance_settings WHERE organization_id = $1",
+  "params": [
+   "orgA"
+  ]
+ },
+ {
+  "result": {
+   "organization_id": "orgA",
+   "dpo_name": null,
+   "dpo_email": null,
+   "dpo_phone": null,
+   "legal_bases": [],
+   "data_residency": "eu",
+   "breach_recipients": [],
+   "default_retention_days": null,
+   "memory_retention_enabled": false,
+   "datatable_review_days": null,
+   "project_retention_days": null,
+   "project_owner_hints_enabled": true,
+   "privacy_notice_url": null,
+   "onboarded_at": null,
+   "ai_literacy_confirmed_at": null,
+   "ai_literacy_material_url": null,
+   "enabled_frameworks": [],
+   "framework_relevance": {},
+   "ai_content_marking_enabled": false,
+   "ai_content_marking_footer": null,
+   "ai_content_marking_enabled_at": null,
+   "ai_content_marking_enabled_by": null,
+   "chat_monitoring_enabled": false,
+   "chat_monitoring_surfaces": [],
+   "chat_monitoring_signals": [],
+   "chat_monitoring_effective_from": null,
+   "chat_monitoring_retention_days": null,
+   "chat_monitoring_legal_basis": null,
+   "chat_monitoring_lia_at": null,
+   "chat_monitoring_works_council": null,
+   "chat_monitoring_works_council_reason": null,
+   "chat_monitoring_works_council_at": null,
+   "chat_monitoring_works_council_scope": {},
+   "chat_monitoring_dpia_ref": null,
+   "chat_monitoring_dpia_at": null,
+   "chat_monitoring_dpia_risk_level": null,
+   "chat_monitoring_dpo_advice_at": null,
+   "chat_monitoring_prior_consultation_at": null,
+   "chat_monitoring_notice_url": null,
+   "chat_monitoring_notice_published_at": null,
+   "chat_monitoring_enabled_at": null,
+   "chat_monitoring_enabled_by": null,
+   "public_base_url": null,
+   "sso_enforces_mfa": null,
+   "nis2_entity_class": null,
+   "nis2_registration_reference": null,
+   "nis2_registered_at": null,
+   "nis2_authority_channel": null,
+   "nis2_csirt_contact": null,
+   "nis2_board_training_at": null,
+   "cra_role": null,
+   "cra_reporting_channel": null,
+   "psirt_contact_email": null,
+   "vuln_disclosure_url": null,
+   "security_txt_policy_enabled": null,
+   "support_policy_url": null,
+   "support_end_date": null,
+   "security_update_channel": null,
+   "data_act_provider_role": null,
+   "notice_period_days": null,
+   "exit_procedure_tested_at": null,
+   "exit_procedure_tested_by": null,
+   "accessibility_statement_url": null,
+   "accessibility_conformance_level": null,
+   "accessibility_conformance_at": null,
+   "incident_customer_contacts": [],
+   "dora_customer_notice_hours": 4,
+   "dora_contract_clauses_confirmed_at": null,
+   "dora_contract_clauses_confirmed_by": null,
+   "dora_contract_template_url": null,
+   "machinery_manual_subjects": [],
+   "scc_confirmed_operators": [],
+   "ropa_reviewed_at": null,
+   "ropa_reviewed_by": null,
+   "last_retention_run_at": null
+  }
+ },
+ {
+  "step": "getSettings (no org)"
+ },
+ {
+  "via": "getOne",
+  "sql": "SELECT * FROM compliance_settings WHERE organization_id = $1",
+  "params": [
+   "default"
+  ]
+ },
+ {
+  "result": {
+   "organization_id": "default",
+   "dpo_name": null,
+   "dpo_email": null,
+   "dpo_phone": null,
+   "legal_bases": [],
+   "data_residency": "eu",
+   "breach_recipients": [],
+   "default_retention_days": null,
+   "memory_retention_enabled": false,
+   "datatable_review_days": null,
+   "project_retention_days": null,
+   "project_owner_hints_enabled": true,
+   "privacy_notice_url": null,
+   "onboarded_at": null,
+   "ai_literacy_confirmed_at": null,
+   "ai_literacy_material_url": null,
+   "enabled_frameworks": [],
+   "framework_relevance": {},
+   "ai_content_marking_enabled": false,
+   "ai_content_marking_footer": null,
+   "ai_content_marking_enabled_at": null,
+   "ai_content_marking_enabled_by": null,
+   "chat_monitoring_enabled": false,
+   "chat_monitoring_surfaces": [],
+   "chat_monitoring_signals": [],
+   "chat_monitoring_effective_from": null,
+   "chat_monitoring_retention_days": null,
+   "chat_monitoring_legal_basis": null,
+   "chat_monitoring_lia_at": null,
+   "chat_monitoring_works_council": null,
+   "chat_monitoring_works_council_reason": null,
+   "chat_monitoring_works_council_at": null,
+   "chat_monitoring_works_council_scope": {},
+   "chat_monitoring_dpia_ref": null,
+   "chat_monitoring_dpia_at": null,
+   "chat_monitoring_dpia_risk_level": null,
+   "chat_monitoring_dpo_advice_at": null,
+   "chat_monitoring_prior_consultation_at": null,
+   "chat_monitoring_notice_url": null,
+   "chat_monitoring_notice_published_at": null,
+   "chat_monitoring_enabled_at": null,
+   "chat_monitoring_enabled_by": null,
+   "public_base_url": null,
+   "sso_enforces_mfa": null,
+   "nis2_entity_class": null,
+   "nis2_registration_reference": null,
+   "nis2_registered_at": null,
+   "nis2_authority_channel": null,
+   "nis2_csirt_contact": null,
+   "nis2_board_training_at": null,
+   "cra_role": null,
+   "cra_reporting_channel": null,
+   "psirt_contact_email": null,
+   "vuln_disclosure_url": null,
+   "security_txt_policy_enabled": null,
+   "support_policy_url": null,
+   "support_end_date": null,
+   "security_update_channel": null,
+   "data_act_provider_role": null,
+   "notice_period_days": null,
+   "exit_procedure_tested_at": null,
+   "exit_procedure_tested_by": null,
+   "accessibility_statement_url": null,
+   "accessibility_conformance_level": null,
+   "accessibility_conformance_at": null,
+   "incident_customer_contacts": [],
+   "dora_customer_notice_hours": 4,
+   "dora_contract_clauses_confirmed_at": null,
+   "dora_contract_clauses_confirmed_by": null,
+   "dora_contract_template_url": null,
+   "machinery_manual_subjects": [],
+   "scc_confirmed_operators": [],
+   "ropa_reviewed_at": null,
+   "ropa_reviewed_by": null,
+   "last_retention_run_at": null
+  }
+ },
+ {
+  "step": "getSettings (row)"
+ },
+ {
+  "via": "getOne",
+  "sql": "SELECT * FROM compliance_settings WHERE organization_id = $1",
+  "params": [
+   "orgA"
+  ]
+ },
+ {
+  "result": {
+   "organization_id": "orgA",
+   "dpo_name": "Dana",
+   "dpo_email": null,
+   "legal_bases": [
+    "contract"
+   ],
+   "data_residency": "eu",
+   "breach_recipients": [],
+   "framework_relevance": {},
+   "enabled_frameworks": [
+    "gdpr"
+   ],
+   "scc_confirmed_operators": [
+    {
+     "operator": "OpenAI",
+     "contract_ref": "C-1"
+    }
+   ],
+   "memory_retention_enabled": true,
+   "default_retention_days": 30,
+   "chat_monitoring_surfaces": [],
+   "chat_monitoring_signals": [],
+   "chat_monitoring_works_council_scope": {},
+   "incident_customer_contacts": [],
+   "machinery_manual_subjects": []
+  }
+ },
+ {
+  "step": "saveSettings (update)"
+ },
+ {
+  "via": "getOne",
+  "sql": "SELECT * FROM compliance_settings WHERE organization_id = $1",
+  "params": [
+   "orgA"
+  ]
+ },
+ {
+  "via": "run",
+  "sql": "UPDATE compliance_settings SET dpo_name = $2, dpo_email = $3, dpo_phone = $4, legal_bases = $5::jsonb, data_residency = $6, breach_recipients = $7::jsonb, default_retention_days = $8, memory_retention_enabled = $9, datatable_review_days = $10, project_retention_days = $11, project_owner_hints_enabled = $12, privacy_notice_url = $13, onboarded_at = $14, ai_literacy_confirmed_at = $15, ai_literacy_material_url = $16, enabled_frameworks = $17::jsonb, framework_relevance = $18::jsonb, ai_content_marking_enabled = $19, ai_content_marking_footer = $20, ai_content_marking_enabled_at = $21, ai_content_marking_enabled_by = $22, chat_monitoring_enabled = $23, chat_monitoring_surfaces = $24::jsonb, chat_monitoring_signals = $25::jsonb, chat_monitoring_effective_from = $26, chat_monitoring_retention_days = $27, chat_monitoring_legal_basis = $28, chat_monitoring_lia_at = $29, chat_monitoring_works_council = $30, chat_monitoring_works_council_reason = $31, chat_monitoring_works_council_at = $32, chat_monitoring_works_council_scope = $33::jsonb, chat_monitoring_dpia_ref = $34, chat_monitoring_dpia_at = $35, chat_monitoring_dpia_risk_level = $36, chat_monitoring_dpo_advice_at = $37, chat_monitoring_prior_consultation_at = $38, chat_monitoring_notice_url = $39, chat_monitoring_notice_published_at = $40, chat_monitoring_enabled_at = $41, chat_monitoring_enabled_by = $42, public_base_url = $43, sso_enforces_mfa = $44, nis2_entity_class = $45, nis2_registration_reference = $46, nis2_registered_at = $47, nis2_authority_channel = $48, nis2_csirt_contact = $49, nis2_board_training_at = $50, cra_role = $51, cra_reporting_channel = $52, psirt_contact_email = $53, vuln_disclosure_url = $54, security_txt_policy_enabled = $55, support_policy_url = $56, support_end_date = $57, security_update_channel = $58, data_act_provider_role = $59, notice_period_days = $60, exit_procedure_tested_at = $61, exit_procedure_tested_by = $62, accessibility_statement_url = $63, accessibility_conformance_level = $64, accessibility_conformance_at = $65, incident_customer_contacts = $66::jsonb, dora_customer_notice_hours = $67, dora_contract_clauses_confirmed_at = $68, dora_contract_clauses_confirmed_by = $69, dora_contract_template_url = $70, machinery_manual_subjects = $71::jsonb, updated_at = NOW() WHERE organization_id = $1",
+  "params": [
+   "orgA",
+   "Dana",
+   null,
+   null,
+   "\"[\\\"contract\\\"]\"",
+   "eu",
+   "[]",
+   30,
+   true,
+   null,
+   null,
+   true,
+   null,
+   null,
+   null,
+   null,
+   "[]",
+   "\"not json\"",
+   false,
+   null,
+   null,
+   null,
+   false,
+   "[]",
+   "[]",
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   "{}",
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   "essential",
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   "[]",
+   4,
+   null,
+   null,
+   null,
+   "[]"
+  ]
+ },
+ {
+  "via": "getOne",
+  "sql": "SELECT * FROM compliance_settings WHERE organization_id = $1",
+  "params": [
+   "orgA"
+  ]
+ },
+ {
+  "result": {
+   "organization_id": "orgA",
+   "dpo_name": "Dana",
+   "dpo_email": null,
+   "legal_bases": [
+    "contract"
+   ],
+   "data_residency": "eu",
+   "breach_recipients": [],
+   "framework_relevance": {},
+   "enabled_frameworks": [
+    "gdpr"
+   ],
+   "scc_confirmed_operators": [
+    {
+     "operator": "OpenAI",
+     "contract_ref": "C-1"
+    }
+   ],
+   "memory_retention_enabled": true,
+   "default_retention_days": 30,
+   "chat_monitoring_surfaces": [],
+   "chat_monitoring_signals": [],
+   "chat_monitoring_works_council_scope": {},
+   "incident_customer_contacts": [],
+   "machinery_manual_subjects": []
+  }
+ },
+ {
+  "step": "saveSettings (insert)"
+ },
+ {
+  "via": "getOne",
+  "sql": "SELECT * FROM compliance_settings WHERE organization_id = $1",
+  "params": [
+   "orgB"
+  ]
+ },
+ {
+  "via": "run",
+  "sql": "INSERT INTO compliance_settings (organization_id, dpo_name, dpo_email, dpo_phone, legal_bases, data_residency, breach_recipients, default_retention_days, memory_retention_enabled, datatable_review_days, project_retention_days, project_owner_hints_enabled, privacy_notice_url, onboarded_at, ai_literacy_confirmed_at, ai_literacy_material_url, enabled_frameworks, framework_relevance, ai_content_marking_enabled, ai_content_marking_footer, ai_content_marking_enabled_at, ai_content_marking_enabled_by, chat_monitoring_enabled, chat_monitoring_surfaces, chat_monitoring_signals, chat_monitoring_effective_from, chat_monitoring_retention_days, chat_monitoring_legal_basis, chat_monitoring_lia_at, chat_monitoring_works_council, chat_monitoring_works_council_reason, chat_monitoring_works_council_at, chat_monitoring_works_council_scope, chat_monitoring_dpia_ref, chat_monitoring_dpia_at, chat_monitoring_dpia_risk_level, chat_monitoring_dpo_advice_at, chat_monitoring_prior_consultation_at, chat_monitoring_notice_url, chat_monitoring_notice_published_at, chat_monitoring_enabled_at, chat_monitoring_enabled_by, public_base_url, sso_enforces_mfa, nis2_entity_class, nis2_registration_reference, nis2_registered_at, nis2_authority_channel, nis2_csirt_contact, nis2_board_training_at, cra_role, cra_reporting_channel, psirt_contact_email, vuln_disclosure_url, security_txt_policy_enabled, support_policy_url, support_end_date, security_update_channel, data_act_provider_role, notice_period_days, exit_procedure_tested_at, exit_procedure_tested_by, accessibility_statement_url, accessibility_conformance_level, accessibility_conformance_at, incident_customer_contacts, dora_customer_notice_hours, dora_contract_clauses_confirmed_at, dora_contract_clauses_confirmed_by, dora_contract_template_url, machinery_manual_subjects) VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7::jsonb, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17::jsonb, $18::jsonb, $19, $20, $21, $22, $23, $24::jsonb, $25::jsonb, $26, $27, $28, $29, $30, $31, $32, $33::jsonb, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66::jsonb, $67, $68, $69, $70, $71::jsonb)",
+  "params": [
+   "orgB",
+   null,
+   null,
+   null,
+   "[\"consent\"]",
+   "eu",
+   "[]",
+   null,
+   false,
+   null,
+   null,
+   true,
+   null,
+   null,
+   null,
+   null,
+   "[]",
+   "{}",
+   false,
+   null,
+   null,
+   null,
+   false,
+   "[]",
+   "[]",
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   "{}",
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   "2030-01-01",
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   "[]",
+   4,
+   null,
+   null,
+   null,
+   "[]"
+  ]
+ },
+ {
+  "via": "getOne",
+  "sql": "SELECT * FROM compliance_settings WHERE organization_id = $1",
+  "params": [
+   "orgB"
+  ]
+ },
+ {
+  "result": {
+   "organization_id": "orgB",
+   "dpo_name": null,
+   "dpo_email": null,
+   "dpo_phone": null,
+   "legal_bases": [],
+   "data_residency": "eu",
+   "breach_recipients": [],
+   "default_retention_days": null,
+   "memory_retention_enabled": false,
+   "datatable_review_days": null,
+   "project_retention_days": null,
+   "project_owner_hints_enabled": true,
+   "privacy_notice_url": null,
+   "onboarded_at": null,
+   "ai_literacy_confirmed_at": null,
+   "ai_literacy_material_url": null,
+   "enabled_frameworks": [],
+   "framework_relevance": {},
+   "ai_content_marking_enabled": false,
+   "ai_content_marking_footer": null,
+   "ai_content_marking_enabled_at": null,
+   "ai_content_marking_enabled_by": null,
+   "chat_monitoring_enabled": false,
+   "chat_monitoring_surfaces": [],
+   "chat_monitoring_signals": [],
+   "chat_monitoring_effective_from": null,
+   "chat_monitoring_retention_days": null,
+   "chat_monitoring_legal_basis": null,
+   "chat_monitoring_lia_at": null,
+   "chat_monitoring_works_council": null,
+   "chat_monitoring_works_council_reason": null,
+   "chat_monitoring_works_council_at": null,
+   "chat_monitoring_works_council_scope": {},
+   "chat_monitoring_dpia_ref": null,
+   "chat_monitoring_dpia_at": null,
+   "chat_monitoring_dpia_risk_level": null,
+   "chat_monitoring_dpo_advice_at": null,
+   "chat_monitoring_prior_consultation_at": null,
+   "chat_monitoring_notice_url": null,
+   "chat_monitoring_notice_published_at": null,
+   "chat_monitoring_enabled_at": null,
+   "chat_monitoring_enabled_by": null,
+   "public_base_url": null,
+   "sso_enforces_mfa": null,
+   "nis2_entity_class": null,
+   "nis2_registration_reference": null,
+   "nis2_registered_at": null,
+   "nis2_authority_channel": null,
+   "nis2_csirt_contact": null,
+   "nis2_board_training_at": null,
+   "cra_role": null,
+   "cra_reporting_channel": null,
+   "psirt_contact_email": null,
+   "vuln_disclosure_url": null,
+   "security_txt_policy_enabled": null,
+   "support_policy_url": null,
+   "support_end_date": null,
+   "security_update_channel": null,
+   "data_act_provider_role": null,
+   "notice_period_days": null,
+   "exit_procedure_tested_at": null,
+   "exit_procedure_tested_by": null,
+   "accessibility_statement_url": null,
+   "accessibility_conformance_level": null,
+   "accessibility_conformance_at": null,
+   "incident_customer_contacts": [],
+   "dora_customer_notice_hours": 4,
+   "dora_contract_clauses_confirmed_at": null,
+   "dora_contract_clauses_confirmed_by": null,
+   "dora_contract_template_url": null,
+   "machinery_manual_subjects": [],
+   "scc_confirmed_operators": [],
+   "ropa_reviewed_at": null,
+   "ropa_reviewed_by": null,
+   "last_retention_run_at": null
+  }
+ },
+ {
+  "step": "saveSettings (null patch)"
+ },
+ {
+  "via": "getOne",
+  "sql": "SELECT * FROM compliance_settings WHERE organization_id = $1",
+  "params": [
+   "orgB"
+  ]
+ },
+ {
+  "via": "run",
+  "sql": "INSERT INTO compliance_settings (organization_id, dpo_name, dpo_email, dpo_phone, legal_bases, data_residency, breach_recipients, default_retention_days, memory_retention_enabled, datatable_review_days, project_retention_days, project_owner_hints_enabled, privacy_notice_url, onboarded_at, ai_literacy_confirmed_at, ai_literacy_material_url, enabled_frameworks, framework_relevance, ai_content_marking_enabled, ai_content_marking_footer, ai_content_marking_enabled_at, ai_content_marking_enabled_by, chat_monitoring_enabled, chat_monitoring_surfaces, chat_monitoring_signals, chat_monitoring_effective_from, chat_monitoring_retention_days, chat_monitoring_legal_basis, chat_monitoring_lia_at, chat_monitoring_works_council, chat_monitoring_works_council_reason, chat_monitoring_works_council_at, chat_monitoring_works_council_scope, chat_monitoring_dpia_ref, chat_monitoring_dpia_at, chat_monitoring_dpia_risk_level, chat_monitoring_dpo_advice_at, chat_monitoring_prior_consultation_at, chat_monitoring_notice_url, chat_monitoring_notice_published_at, chat_monitoring_enabled_at, chat_monitoring_enabled_by, public_base_url, sso_enforces_mfa, nis2_entity_class, nis2_registration_reference, nis2_registered_at, nis2_authority_channel, nis2_csirt_contact, nis2_board_training_at, cra_role, cra_reporting_channel, psirt_contact_email, vuln_disclosure_url, security_txt_policy_enabled, support_policy_url, support_end_date, security_update_channel, data_act_provider_role, notice_period_days, exit_procedure_tested_at, exit_procedure_tested_by, accessibility_statement_url, accessibility_conformance_level, accessibility_conformance_at, incident_customer_contacts, dora_customer_notice_hours, dora_contract_clauses_confirmed_at, dora_contract_clauses_confirmed_by, dora_contract_template_url, machinery_manual_subjects) VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7::jsonb, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17::jsonb, $18::jsonb, $19, $20, $21, $22, $23, $24::jsonb, $25::jsonb, $26, $27, $28, $29, $30, $31, $32, $33::jsonb, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66::jsonb, $67, $68, $69, $70, $71::jsonb)",
+  "params": [
+   "orgB",
+   null,
+   null,
+   null,
+   "[]",
+   "eu",
+   "[]",
+   null,
+   false,
+   null,
+   null,
+   true,
+   null,
+   null,
+   null,
+   null,
+   "[]",
+   "{}",
+   false,
+   null,
+   null,
+   null,
+   false,
+   "[]",
+   "[]",
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   "{}",
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   "[]",
+   4,
+   null,
+   null,
+   null,
+   "[]"
+  ]
+ },
+ {
+  "via": "getOne",
+  "sql": "SELECT * FROM compliance_settings WHERE organization_id = $1",
+  "params": [
+   "orgB"
+  ]
+ },
+ {
+  "result": {
+   "organization_id": "orgB",
+   "dpo_name": null,
+   "dpo_email": null,
+   "dpo_phone": null,
+   "legal_bases": [],
+   "data_residency": "eu",
+   "breach_recipients": [],
+   "default_retention_days": null,
+   "memory_retention_enabled": false,
+   "datatable_review_days": null,
+   "project_retention_days": null,
+   "project_owner_hints_enabled": true,
+   "privacy_notice_url": null,
+   "onboarded_at": null,
+   "ai_literacy_confirmed_at": null,
+   "ai_literacy_material_url": null,
+   "enabled_frameworks": [],
+   "framework_relevance": {},
+   "ai_content_marking_enabled": false,
+   "ai_content_marking_footer": null,
+   "ai_content_marking_enabled_at": null,
+   "ai_content_marking_enabled_by": null,
+   "chat_monitoring_enabled": false,
+   "chat_monitoring_surfaces": [],
+   "chat_monitoring_signals": [],
+   "chat_monitoring_effective_from": null,
+   "chat_monitoring_retention_days": null,
+   "chat_monitoring_legal_basis": null,
+   "chat_monitoring_lia_at": null,
+   "chat_monitoring_works_council": null,
+   "chat_monitoring_works_council_reason": null,
+   "chat_monitoring_works_council_at": null,
+   "chat_monitoring_works_council_scope": {},
+   "chat_monitoring_dpia_ref": null,
+   "chat_monitoring_dpia_at": null,
+   "chat_monitoring_dpia_risk_level": null,
+   "chat_monitoring_dpo_advice_at": null,
+   "chat_monitoring_prior_consultation_at": null,
+   "chat_monitoring_notice_url": null,
+   "chat_monitoring_notice_published_at": null,
+   "chat_monitoring_enabled_at": null,
+   "chat_monitoring_enabled_by": null,
+   "public_base_url": null,
+   "sso_enforces_mfa": null,
+   "nis2_entity_class": null,
+   "nis2_registration_reference": null,
+   "nis2_registered_at": null,
+   "nis2_authority_channel": null,
+   "nis2_csirt_contact": null,
+   "nis2_board_training_at": null,
+   "cra_role": null,
+   "cra_reporting_channel": null,
+   "psirt_contact_email": null,
+   "vuln_disclosure_url": null,
+   "security_txt_policy_enabled": null,
+   "support_policy_url": null,
+   "support_end_date": null,
+   "security_update_channel": null,
+   "data_act_provider_role": null,
+   "notice_period_days": null,
+   "exit_procedure_tested_at": null,
+   "exit_procedure_tested_by": null,
+   "accessibility_statement_url": null,
+   "accessibility_conformance_level": null,
+   "accessibility_conformance_at": null,
+   "incident_customer_contacts": [],
+   "dora_customer_notice_hours": 4,
+   "dora_contract_clauses_confirmed_at": null,
+   "dora_contract_clauses_confirmed_by": null,
+   "dora_contract_template_url": null,
+   "machinery_manual_subjects": [],
+   "scc_confirmed_operators": [],
+   "ropa_reviewed_at": null,
+   "ropa_reviewed_by": null,
+   "last_retention_run_at": null
+  }
+ },
+ {
+  "step": "sanitizeSettingsPatch ok"
+ },
+ {
+  "result": {
+   "dpo_name": "42",
+   "dpo_phone": null,
+   "legal_bases": [
+    "a"
+   ],
+   "memory_retention_enabled": true,
+   "datatable_review_days": 90,
+   "onboarded_at": "2026-01-02T03:04:05.000Z",
+   "support_end_date": "2029-02-28"
+  }
+ },
+ {
+  "step": "sanitizeSettingsPatch bad"
+ },
+ {
+  "threw": {
+   "name": "SettingsValidationError",
+   "message": "Invalid settings value for: dpo_name, legal_bases, breach_recipients, memory_retention_enabled, datatable_review_days, privacy_notice_url, onboarded_at, sso_enforces_mfa, nis2_registered_at, support_end_date, notice_period_days, incident_customer_contacts, dora_customer_notice_hours",
+   "code": "invalid_setting",
+   "status": 400,
+   "body": {
+    "error": "invalid_setting",
+    "fields": [
+     {
+      "field": "dpo_name",
+      "expected": "a string without NUL characters"
+     },
+     {
+      "field": "legal_bases",
+      "expected": "a JSON array"
+     },
+     {
+      "field": "breach_recipients",
+      "expected": "a JSON array nested at most 20 levels deep"
+     },
+     {
+      "field": "memory_retention_enabled",
+      "expected": "a boolean"
+     },
+     {
+      "field": "datatable_review_days",
+      "expected": "an integer between 30 and 3650"
+     },
+     {
+      "field": "privacy_notice_url",
+      "expected": "a string"
+     },
+     {
+      "field": "onboarded_at",
+      "expected": "an ISO-8601 timestamp in the years 1900-9999"
+     },
+     {
+      "field": "sso_enforces_mfa",
+      "expected": "a boolean"
+     },
+     {
+      "field": "nis2_registered_at",
+      "expected": "an ISO-8601 timestamp"
+     },
+     {
+      "field": "support_end_date",
+      "expected": "a date (YYYY-MM-DD)"
+     },
+     {
+      "field": "notice_period_days",
+      "expected": "an integer"
+     },
+     {
+      "field": "incident_customer_contacts",
+      "expected": "a JSON array without NUL characters"
+     },
+     {
+      "field": "dora_customer_notice_hours",
+      "expected": "an integer between 0 and 8760"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "step": "sanitizeSettingsPatch non-object"
+ },
+ {
+  "result": {}
+ },
+ {
+  "step": "SettingsValidationError"
+ },
+ {
+  "result": {
+   "name": "SettingsValidationError",
+   "message": "Invalid settings value for: a",
+   "code": "invalid_setting",
+   "status": 400,
+   "body": {
+    "error": "invalid_setting",
+    "fields": [
+     {
+      "field": "a",
+      "expected": "b"
+     }
+    ]
+   },
+   "isError": true
+  }
+ },
+ {
+  "step": "markOnboarded"
+ },
+ {
+  "via": "run",
+  "sql": "UPDATE compliance_settings SET onboarded_at = NOW(), updated_at = NOW() WHERE organization_id = $1 AND onboarded_at IS NULL",
+  "params": [
+   "orgA"
+  ]
+ },
+ {
+  "result": "<undefined>"
+ },
+ {
+  "step": "setSccConfirmed (re-confirm keeps fields)"
+ },
+ {
+  "via": "getOne",
+  "sql": "SELECT * FROM compliance_settings WHERE organization_id = $1",
+  "params": [
+   "orgA"
+  ]
+ },
+ {
+  "via": "run",
+  "sql": "INSERT INTO compliance_settings (organization_id, scc_confirmed_operators, updated_at) VALUES ($1, $2::jsonb, NOW()) ON CONFLICT (organization_id) DO UPDATE SET scc_confirmed_operators = EXCLUDED.scc_confirmed_operators, updated_at = NOW()",
+  "params": [
+   "orgA",
+   "[{\"operator\":\"openai\",\"contract_ref\":\"C-1\",\"attested_by\":\"u1\",\"attested_at\":\"2026-10-13T00:00:00.000Z\"}]"
+  ]
+ },
+ {
+  "result": [
+   {
+    "operator": "openai",
+    "contract_ref": "C-1",
+    "attested_by": "u1",
+    "attested_at": "2026-10-13T00:00:00.000Z"
+   }
+  ]
+ },
+ {
+  "step": "setSccConfirmed (remove)"
+ },
+ {
+  "via": "getOne",
+  "sql": "SELECT * FROM compliance_settings WHERE organization_id = $1",
+  "params": [
+   "orgA"
+  ]
+ },
+ {
+  "via": "run",
+  "sql": "INSERT INTO compliance_settings (organization_id, scc_confirmed_operators, updated_at) VALUES ($1, $2::jsonb, NOW()) ON CONFLICT (organization_id) DO UPDATE SET scc_confirmed_operators = EXCLUDED.scc_confirmed_operators, updated_at = NOW()",
+  "params": [
+   "orgA",
+   "[]"
+  ]
+ },
+ {
+  "result": []
+ },
+ {
+  "step": "markRopaReviewed"
+ },
+ {
+  "via": "run",
+  "sql": "INSERT INTO compliance_settings (organization_id, ropa_reviewed_at, ropa_reviewed_by, updated_at) VALUES ($1, NOW(), $2, NOW()) ON CONFLICT (organization_id) DO UPDATE SET ropa_reviewed_at = NOW(), ropa_reviewed_by = $2, updated_at = NOW()",
+  "params": [
+   "orgA",
+   null
+  ]
+ },
+ {
+  "result": "<undefined>"
+ },
+ {
+  "step": "markRetentionRun"
+ },
+ {
+  "via": "run",
+  "sql": "INSERT INTO compliance_settings (organization_id, last_retention_run_at, updated_at) VALUES ($1, NOW(), NOW()) ON CONFLICT (organization_id) DO UPDATE SET last_retention_run_at = NOW(), updated_at = NOW()",
+  "params": [
+   "orgA"
+  ]
+ },
+ {
+  "result": "<undefined>"
+ },
+ {
+  "step": "recordCheckResult"
+ },
+ {
+  "via": "run",
+  "sql": "INSERT INTO compliance_checks (organization_id, check_id, regulation, article, severity, status, evidence, details, scope_type, scope_id, run_type, framework_code) VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8, $9, $10, $11, $12)",
+  "params": [
+   null,
+   "C-1",
+   "GDPR",
+   null,
+   "medium",
+   "warn",
+   "{}",
+   null,
+   "global",
+   null,
+   "scheduled",
+   null
+  ]
+ },
+ {
+  "result": "<undefined>"
+ },
+ {
+  "step": "recordCheckResult full"
+ },
+ {
+  "via": "run",
+  "sql": "INSERT INTO compliance_checks (organization_id, check_id, regulation, article, severity, status, evidence, details, scope_type, scope_id, run_type, framework_code) VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8, $9, $10, $11, $12)",
+  "params": [
+   "orgA",
+   "C-2",
+   "CUSTOM",
+   "a",
+   "high",
+   "fail",
+   "{\"x\":1}",
+   "d",
+   "per-source",
+   "s",
+   "manual",
+   "F"
+  ]
+ },
+ {
+  "result": "<undefined>"
+ },
+ {
+  "step": "getLatestPerCheck"
+ },
+ {
+  "via": "getAll",
+  "sql": "SELECT DISTINCT ON (check_id, scope_type, scope_id) check_id, regulation, article, severity, status, evidence, details, scope_type, scope_id, run_at, run_type, framework_code FROM compliance_checks WHERE organization_id = $1 ORDER BY check_id, scope_type, scope_id, run_at DESC",
+  "params": [
+   "orgA"
+  ]
+ },
+ {
+  "result": [
+   {
+    "check_id": "C-1",
+    "status": "pass"
+   }
+  ]
+ },
+ {
+  "step": "listLatestScopes"
+ },
+ {
+  "via": "getAll",
+  "sql": "SELECT DISTINCT ON (scope_type, scope_id) scope_type, scope_id, status, evidence, run_at FROM compliance_checks WHERE organization_id = $1 AND check_id = $2 ORDER BY scope_type, scope_id, run_at DESC",
+  "params": [
+   "orgA",
+   "C-1"
+  ]
+ },
+ {
+  "result": [
+   {
+    "check_id": "C-1",
+    "status": "pass"
+   }
+  ]
+ },
+ {
+  "step": "getLatestForChecks empty"
+ },
+ {
+  "result": []
+ },
+ {
+  "step": "getLatestForChecks"
+ },
+ {
+  "via": "getAll",
+  "sql": "SELECT DISTINCT ON (check_id, scope_type, scope_id) check_id, status, evidence, scope_type, scope_id, run_at FROM compliance_checks WHERE organization_id = $1 AND check_id = ANY($2::text[]) AND run_at >= NOW() - ($3 || ' days')::interval ORDER BY check_id, scope_type, scope_id, run_at DESC",
+  "params": [
+   "orgA",
+   [
+    "C-1",
+    "2"
+   ],
+   "7"
+  ]
+ },
+ {
+  "result": [
+   {
+    "check_id": "C-1",
+    "status": "pass"
+   }
+  ]
+ },
+ {
+  "step": "getLatestForChecks default age"
+ },
+ {
+  "result": []
+ },
+ {
+  "step": "getCheckHistory"
+ },
+ {
+  "via": "getAll",
+  "sql": "SELECT status, details, run_at, run_type, evidence, scope_type, scope_id, framework_code FROM compliance_checks WHERE organization_id = $1 AND check_id = $2 ORDER BY run_at DESC LIMIT $3",
+  "params": [
+   "orgA",
+   "C-1",
+   100
+  ]
+ },
+ {
+  "result": [
+   {
+    "check_id": "C-1",
+    "status": "pass"
+   }
+  ]
+ },
+ {
+  "step": "getCheckHistory scoped"
+ },
+ {
+  "via": "getAll",
+  "sql": "SELECT status, details, run_at, run_type, evidence, scope_type, scope_id, framework_code FROM compliance_checks WHERE organization_id = $1 AND check_id = $2 AND scope_id IS NOT DISTINCT FROM $4 ORDER BY run_at DESC LIMIT $3",
+  "params": [
+   "orgA",
+   "C-1",
+   5,
+   "project:a"
+  ]
+ },
+ {
+  "result": [
+   {
+    "check_id": "C-1",
+    "status": "pass"
+   }
+  ]
+ },
+ {
+  "step": "recordScoreSnapshot legacy"
+ },
+ {
+  "via": "run",
+  "sql": "INSERT INTO compliance_score_history (organization_id, overall_score, gdpr_score, aia_score, iso_score, pass, warn, fail, na, run_type, scores, coverage) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb, $12::jsonb)",
+  "params": [
+   "default",
+   70,
+   60,
+   null,
+   null,
+   1,
+   null,
+   null,
+   null,
+   "scheduled",
+   "{\"gdpr\":60}",
+   null
+  ]
+ },
+ {
+  "result": "<undefined>"
+ },
+ {
+  "step": "recordScoreSnapshot scores"
+ },
+ {
+  "via": "run",
+  "sql": "INSERT INTO compliance_score_history (organization_id, overall_score, gdpr_score, aia_score, iso_score, pass, warn, fail, na, run_type, scores, coverage) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb, $12::jsonb)",
+  "params": [
+   "orgA",
+   null,
+   50,
+   30,
+   null,
+   null,
+   null,
+   null,
+   null,
+   "manual",
+   "{\"gdpr\":50,\"nis2\":10,\"aia\":30}",
+   "{\"examined\":2}"
+  ]
+ },
+ {
+  "result": "<undefined>"
+ },
+ {
+  "step": "getScoreHistory"
+ },
+ {
+  "via": "getAll",
+  "sql": "SELECT overall_score, gdpr_score, aia_score, iso_score, pass, warn, fail, na, run_type, captured_at, scores, coverage FROM compliance_score_history WHERE organization_id = $1 AND captured_at >= NOW() - ($2 || ' days')::interval ORDER BY captured_at ASC",
+  "params": [
+   "orgA",
+   "90"
+  ]
+ },
+ {
+  "result": [
+   {
+    "overall_score": 80,
+    "gdpr_score": 70,
+    "aia_score": 90,
+    "iso_score": null,
+    "pass": 1,
+    "warn": 2,
+    "fail": 0,
+    "na": 0,
+    "run_type": "manual",
+    "captured_at": "2026-10-01T00:00:00.000Z",
+    "scores": {
+     "gdpr": 70,
+     "aia": 90,
+     "iso27001": null
+    },
+    "coverage": {
+     "examined": 3
+    }
+   },
+   {
+    "overall_score": 81,
+    "gdpr_score": 71,
+    "aia_score": 91,
+    "iso_score": 50,
+    "pass": 1,
+    "warn": 1,
+    "fail": 1,
+    "na": 0,
+    "run_type": "scheduled",
+    "captured_at": "2026-10-02T00:00:00.000Z",
+    "scores": {
+     "gdpr": 71,
+     "nis2": 40
+    },
+    "coverage": null
+   }
+  ]
+ },
+ {
+  "step": "getScoreHistory days"
+ },
+ {
+  "via": "getAll",
+  "sql": "SELECT overall_score, gdpr_score, aia_score, iso_score, pass, warn, fail, na, run_type, captured_at, scores, coverage FROM compliance_score_history WHERE organization_id = $1 AND captured_at >= NOW() - ($2 || ' days')::interval ORDER BY captured_at ASC",
+  "params": [
+   "orgA",
+   "7"
+  ]
+ },
+ {
+  "result": [
+   {
+    "overall_score": 80,
+    "gdpr_score": 70,
+    "aia_score": 90,
+    "iso_score": null,
+    "pass": 1,
+    "warn": 2,
+    "fail": 0,
+    "na": 0,
+    "run_type": "manual",
+    "captured_at": "2026-10-01T00:00:00.000Z",
+    "scores": {
+     "gdpr": 70,
+     "aia": 90,
+     "iso27001": null
+    },
+    "coverage": {
+     "examined": 3
+    }
+   },
+   {
+    "overall_score": 81,
+    "gdpr_score": 71,
+    "aia_score": 91,
+    "iso_score": 50,
+    "pass": 1,
+    "warn": 1,
+    "fail": 1,
+    "na": 0,
+    "run_type": "scheduled",
+    "captured_at": "2026-10-02T00:00:00.000Z",
+    "scores": {
+     "gdpr": 71,
+     "nis2": 40
+    },
+    "coverage": null
+   }
+  ]
+ },
+ {
+  "step": "addEvidence (no org)"
+ },
+ {
+  "via": "run",
+  "sql": "INSERT INTO compliance_evidence (organization_id, check_id, subject_type, subject_id, payload, storage_key, payload_hash, hash) VALUES (NULL, $1, $2, $3, $4::jsonb, $5, $6, $7) RETURNING id, seq, hash",
+  "params": [
+   "C",
+   null,
+   null,
+   "{\"a\":1,\"sha256\":\"filehash\"}",
+   null,
+   "P({\"a\":1,\"sha256\":\"filehash\"})",
+   "L(0|P({\"a\":1,\"sha256\":\"filehash\"}))"
+  ]
+ },
+ {
+  "result": {
+   "id": 7,
+   "seq": null,
+   "hash": "H"
+  }
+ },
+ {
+  "step": "addEvidence (genesis)"
+ },
+ {
+  "via": "client",
+  "sql": "SELECT pg_advisory_xact_lock(hashtext('beeflow:evidence:' || $1))",
+  "params": [
+   "orgA"
+  ]
+ },
+ {
+  "via": "client",
+  "sql": "SELECT seq, hash FROM compliance_evidence WHERE organization_id = $1 AND seq IS NOT NULL ORDER BY seq DESC LIMIT 1",
+  "params": [
+   "orgA"
+  ]
+ },
+ {
+  "via": "client",
+  "sql": "INSERT INTO compliance_evidence (organization_id, check_id, subject_type, subject_id, payload, storage_key, payload_hash, seq, prev_hash, hash) VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7, $8, $9, $10) RETURNING id, seq, hash",
+  "params": [
+   "orgA",
+   null,
+   "t",
+   "s",
+   "{\"sha256\":\"own\"}",
+   "k",
+   "P({\"sha256\":\"own\"})",
+   1,
+   null,
+   "L(0|P({\"sha256\":\"own\"}))"
+  ]
+ },
+ {
+  "result": {
+   "id": 7,
+   "seq": 1,
+   "hash": "H"
+  }
+ },
+ {
+  "step": "addEvidence (chained)"
+ },
+ {
+  "via": "client",
+  "sql": "SELECT pg_advisory_xact_lock(hashtext('beeflow:evidence:' || $1))",
+  "params": [
+   "orgA"
+  ]
+ },
+ {
+  "via": "client",
+  "sql": "SELECT seq, hash FROM compliance_evidence WHERE organization_id = $1 AND seq IS NOT NULL ORDER BY seq DESC LIMIT 1",
+  "params": [
+   "orgA"
+  ]
+ },
+ {
+  "via": "client",
+  "sql": "INSERT INTO compliance_evidence (organization_id, check_id, subject_type, subject_id, payload, storage_key, payload_hash, seq, prev_hash, hash) VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7, $8, $9, $10) RETURNING id, seq, hash",
+  "params": [
+   "orgA",
+   null,
+   null,
+   null,
+   "{\"n\":2}",
+   null,
+   "P({\"n\":2})",
+   5,
+   "HEAD",
+   "L(HEAD|P({\"n\":2}))"
+  ]
+ },
+ {
+  "result": {
+   "id": 7,
+   "seq": 5,
+   "hash": "H"
+  }
+ },
+ {
+  "step": "getChainHead"
+ },
+ {
+  "via": "getOne",
+  "sql": "SELECT seq, hash FROM compliance_evidence WHERE organization_id = $1 AND seq IS NOT NULL ORDER BY seq DESC LIMIT 1",
+  "params": [
+   "orgA"
+  ]
+ },
+ {
+  "result": {
+   "seq": 4,
+   "hash": "HEAD"
+  }
+ },
+ {
+  "step": "getChainHead empty"
+ },
+ {
+  "via": "getOne",
+  "sql": "SELECT seq, hash FROM compliance_evidence WHERE organization_id = $1 AND seq IS NOT NULL ORDER BY seq DESC LIMIT 1",
+  "params": [
+   "orgA"
+  ]
+ },
+ {
+  "result": null
+ },
+ {
+  "step": "listEvidence"
+ },
+ {
+  "via": "getAll",
+  "sql": "SELECT id, check_id, subject_type, subject_id, captured_at, hash, payload, storage_key, seq, prev_hash, payload_hash FROM compliance_evidence WHERE organization_id = $1 ORDER BY captured_at DESC, id DESC LIMIT $2 OFFSET $3",
+  "params": [
+   "orgA",
+   100,
+   0
+  ]
+ },
+ {
+  "result": [
+   {
+    "id": 3,
+    "check_id": "GDPR-x"
+   }
+  ]
+ },
+ {
+  "step": "listEvidence filtered"
+ },
+ {
+  "via": "getAll",
+  "sql": "SELECT id, check_id, subject_type, subject_id, captured_at, hash, payload, storage_key, seq, prev_hash, payload_hash FROM compliance_evidence WHERE organization_id = $1 AND check_id = $2 AND subject_type = $3 AND subject_id = $4 AND check_id LIKE $5 ORDER BY captured_at DESC, id DESC LIMIT $6 OFFSET $7",
+  "params": [
+   "orgA",
+   "C",
+   "t",
+   "5",
+   "DATA\\_ACT\\%x-%",
+   1000,
+   0
+  ]
+ },
+ {
+  "result": [
+   {
+    "id": 3,
+    "check_id": "GDPR-x"
+   }
+  ]
+ },
+ {
+  "step": "countEvidence"
+ },
+ {
+  "via": "getOne",
+  "sql": "SELECT COUNT(*)::int AS n FROM compliance_evidence WHERE organization_id = $1 AND check_id LIKE $2",
+  "params": [
+   "orgA",
+   "GDPR-%"
+  ]
+ },
+ {
+  "result": 4
+ },
+ {
+  "step": "countEvidence no filters"
+ },
+ {
+  "via": "getOne",
+  "sql": "SELECT COUNT(*)::int AS n FROM compliance_evidence WHERE organization_id = $1",
+  "params": [
+   "orgA"
+  ]
+ },
+ {
+  "result": 4
+ },
+ {
+  "step": "getEvidenceById"
+ },
+ {
+  "via": "getOne",
+  "sql": "SELECT id, check_id, subject_type, subject_id, captured_at, hash, payload, storage_key, seq, prev_hash, payload_hash FROM compliance_evidence WHERE organization_id = $1 AND id = $2",
+  "params": [
+   "orgA",
+   3
+  ]
+ },
+ {
+  "result": {
+   "id": 3,
+   "check_id": "GDPR-x"
+  }
+ },
+ {
+  "step": "getEvidenceHistory"
+ },
+ {
+  "via": "getAll",
+  "sql": "SELECT id, check_id, subject_type, subject_id, captured_at, hash, payload, storage_key, seq, prev_hash, payload_hash FROM compliance_evidence WHERE organization_id = $1 AND check_id = $2 ORDER BY captured_at DESC LIMIT $3",
+  "params": [
+   "orgA",
+   "C",
+   10
+  ]
+ },
+ {
+  "result": [
+   {
+    "id": 3,
+    "check_id": "GDPR-x"
+   }
+  ]
+ },
+ {
+  "step": "markNotified"
+ },
+ {
+  "via": "run",
+  "sql": "INSERT INTO compliance_notify_log (organization_id, subject_kind, subject_id, offset_key) VALUES ($1, $2, $3, $4) ON CONFLICT (organization_id, subject_kind, subject_id, offset_key) DO NOTHING",
+  "params": [
+   "orgA",
+   "dsr",
+   "12",
+   "7d"
+  ]
+ },
+ {
+  "result": true
+ },
+ {
+  "step": "wasNotified"
+ },
+ {
+  "via": "getOne",
+  "sql": "SELECT 1 AS hit FROM compliance_notify_log WHERE organization_id = $1 AND subject_kind = $2 AND subject_id = $3 AND offset_key = $4",
+  "params": [
+   "orgA",
+   "dsr",
+   "12",
+   "7d"
+  ]
+ },
+ {
+  "result": false
+ },
+ {
+  "step": "listFindingStates"
+ },
+ {
+  "via": "getAll",
+  "sql": "SELECT check_id, scope_key, fingerprint, state, reason, until, actor_id, created_at, updated_at FROM compliance_finding_states WHERE organization_id = $1",
+  "params": [
+   "orgA"
+  ]
+ },
+ {
+  "result": [
+   {
+    "check_id": "C-1",
+    "scope_key": "global",
+    "fingerprint": "fp",
+    "state": "snoozed",
+    "reason": null,
+    "until": "2026-11-01T00:00:00.000Z",
+    "actor_id": null,
+    "created_at": "2026-10-01T00:00:00.000Z",
+    "updated_at": "2026-10-02T00:00:00.000Z"
+   }
+  ]
+ },
+ {
+  "step": "setFindingState"
+ },
+ {
+  "via": "getOne",
+  "sql": "INSERT INTO compliance_finding_states (organization_id, check_id, scope_key, fingerprint, state, reason, until, actor_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT (organization_id, check_id, scope_key) DO UPDATE SET fingerprint = EXCLUDED.fingerprint, state = EXCLUDED.state, reason = EXCLUDED.reason, until = EXCLUDED.until, actor_id = EXCLUDED.actor_id, updated_at = NOW() RETURNING check_id, scope_key, fingerprint, state, reason, until, actor_id, created_at, updated_at",
+  "params": [
+   "orgA",
+   "C-1",
+   "global",
+   "fp",
+   "snoozed",
+   null,
+   "2026-11-01",
+   null
+  ]
+ },
+ {
+  "result": {
+   "check_id": "C-1",
+   "scope_key": "global",
+   "fingerprint": "fp",
+   "state": "snoozed",
+   "reason": null,
+   "until": "2026-11-01T00:00:00.000Z",
+   "actor_id": null,
+   "created_at": "2026-10-01T00:00:00.000Z",
+   "updated_at": "2026-10-02T00:00:00.000Z"
+  }
+ },
+ {
+  "step": "setFindingState bad"
+ },
+ {
+  "threw": {
+   "name": "Error",
+   "message": "Unknown finding state: ignored",
+   "code": null,
+   "status": null,
+   "body": null
+  }
+ },
+ {
+  "step": "clearFindingState"
+ },
+ {
+  "via": "run",
+  "sql": "DELETE FROM compliance_finding_states WHERE organization_id = $1 AND check_id = $2 AND scope_key = $3",
+  "params": [
+   "orgA",
+   "C-1",
+   "global"
+  ]
+ },
+ {
+  "result": true
+ },
+ {
+  "step": "listSubjectRegistrations"
+ },
+ {
+  "via": "getAll",
+  "sql": "SELECT subject_kind, subject_id, purpose, lawful_basis, retention_days, confirmed_by, confirmed_at FROM compliance_subject_registrations WHERE organization_id = $1 AND subject_kind = $2 ORDER BY confirmed_at DESC",
+  "params": [
+   "orgA",
+   "project"
+  ]
+ },
+ {
+  "result": [
+   {
+    "subject_kind": "project",
+    "subject_id": "p1",
+    "purpose": "x",
+    "lawful_basis": null,
+    "retention_days": 30,
+    "confirmed_by": "u1",
+    "confirmed_at": "2026-10-01T00:00:00.000Z"
+   }
+  ]
+ },
+ {
+  "step": "upsertSubjectRegistration"
+ },
+ {
+  "via": "getOne",
+  "sql": "INSERT INTO compliance_subject_registrations (organization_id, subject_kind, subject_id, purpose, lawful_basis, retention_days, confirmed_by, confirmed_at) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW()) ON CONFLICT (organization_id, subject_kind, subject_id) DO UPDATE SET purpose = EXCLUDED.purpose, lawful_basis = EXCLUDED.lawful_basis, retention_days = EXCLUDED.retention_days, confirmed_by = EXCLUDED.confirmed_by, confirmed_at = NOW() RETURNING subject_kind, subject_id, purpose, lawful_basis, retention_days, confirmed_by, confirmed_at",
+  "params": [
+   "orgA",
+   "project",
+   "p1",
+   "x",
+   null,
+   30,
+   null
+  ]
+ },
+ {
+  "result": {
+   "subject_kind": "project",
+   "subject_id": "p1",
+   "purpose": "x",
+   "lawful_basis": null,
+   "retention_days": 30,
+   "confirmed_by": "u1",
+   "confirmed_at": "2026-10-01T00:00:00.000Z"
+  }
+ },
+ {
+  "step": "deleteSubjectRegistration"
+ },
+ {
+  "via": "run",
+  "sql": "DELETE FROM compliance_subject_registrations WHERE organization_id = $1 AND subject_kind = $2 AND subject_id = $3",
+  "params": [
+   "orgA",
+   "project",
+   "p1"
+  ]
+ },
+ {
+  "result": false
+ },
+ {
+  "step": "getHintDismissals"
+ },
+ {
+  "via": "getAll",
+  "sql": "SELECT hint_key, fingerprint, snoozed_until, dismissed_at FROM project_hint_dismissals WHERE user_id = $1 AND project_id = $2",
+  "params": [
+   "u1",
+   "p1"
+  ]
+ },
+ {
+  "result": {
+   "h1": {
+    "fingerprint": null,
+    "snoozedUntil": "2026-12-01T00:00:00.000Z",
+    "dismissedAt": null
+   }
+  }
+ },
+ {
+  "step": "recordHintDismissal"
+ },
+ {
+  "via": "run",
+  "sql": "INSERT INTO project_hint_dismissals (user_id, project_id, hint_key, fingerprint, snoozed_until, dismissed_at, updated_at) VALUES ($1, $2, $3, $4, $5, CASE WHEN $5::timestamptz IS NULL THEN NOW() ELSE NULL END, NOW()) ON CONFLICT (user_id, project_id, hint_key) DO UPDATE SET fingerprint = EXCLUDED.fingerprint, snoozed_until = EXCLUDED.snoozed_until, dismissed_at = EXCLUDED.dismissed_at, updated_at = NOW()",
+  "params": [
+   "u1",
+   "p1",
+   "h1",
+   "fp",
+   null
+  ]
+ },
+ {
+  "result": "<undefined>"
+ },
+ {
+  "step": "recordHintDismissal snooze"
+ },
+ {
+  "via": "run",
+  "sql": "INSERT INTO project_hint_dismissals (user_id, project_id, hint_key, fingerprint, snoozed_until, dismissed_at, updated_at) VALUES ($1, $2, $3, $4, $5, CASE WHEN $5::timestamptz IS NULL THEN NOW() ELSE NULL END, NOW()) ON CONFLICT (user_id, project_id, hint_key) DO UPDATE SET fingerprint = EXCLUDED.fingerprint, snoozed_until = EXCLUDED.snoozed_until, dismissed_at = EXCLUDED.dismissed_at, updated_at = NOW()",
+  "params": [
+   "u1",
+   "p1",
+   "h1",
+   null,
+   "2026-12-01"
+  ]
+ },
+ {
+  "result": "<undefined>"
+ },
+ {
+  "step": "eraseHintDismissals none"
+ },
+ {
+  "result": {
+   "rows": 0
+  }
+ },
+ {
+  "step": "eraseHintDismissals"
+ },
+ {
+  "via": "run",
+  "sql": "DELETE FROM project_hint_dismissals WHERE user_id = $1",
+  "params": [
+   "9"
+  ]
+ },
+ {
+  "result": {
+   "rows": 2
+  }
+ },
+ {
+  "step": "pruneHintDismissals (missing table)"
+ },
+ {
+  "via": "run",
+  "sql": "DELETE FROM project_hint_dismissals d WHERE NOT EXISTS (SELECT 1 FROM projects p WHERE p.id = d.project_id) OR NOT EXISTS (SELECT 1 FROM users u WHERE u.id = d.user_id)",
+  "params": []
+ },
+ {
+  "result": {
+   "rows": 0
+  }
+ }
+]

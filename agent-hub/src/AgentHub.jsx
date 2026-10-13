@@ -1,82 +1,37 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { Heart } from 'lucide-react';
 import React, { useState, useEffect, useEffectEvent, useRef, useCallback, Suspense } from 'react';
-import AgentChatView from './AgentHub/AgentChatView';
 import ChatSidePanels from './AgentHub/ChatSidePanels';
-import DirectChatView from './AgentHub/DirectChatView';
-import ProjectsView from './AgentHub/ProjectsView';
+import { AgentDesignerPanel, LazyFallback, MemoryPanel } from './AgentHub/hubLazySlots';
+import HubMainContent from './AgentHub/HubMainContent';
+import { createHubNavigation } from './AgentHub/hubNavigation';
+import { createCloseAllOverlays } from './AgentHub/hubOverlays';
 import useAgentHubActions from './AgentHub/useAgentHubActions';
 import useAgentHubData from './AgentHub/useAgentHubData';
+import useComposerMode from './AgentHub/useComposerMode';
 import useConversationMeta from './AgentHub/useConversationMeta';
 import useDirectChatEvents from './AgentHub/useDirectChatEvents';
 import useProjectChatStart from './AgentHub/useProjectChatStart';
 import useSidePanelState from './AgentHub/useSidePanelState';
-import { projectKeys, useProjectsQuery } from './api/queries/projects';
-import beeFlowIcon from './assets/BeeFlow-logo-Icon-2026.svg';
+import { useProjectsQuery } from './api/queries/projects';
 import { usesProjectRail } from './authedApp/appRoutes';
-import { describeSchedule } from './components/cowork/coworkSchedule';
-import useCoworkComposer from './components/cowork/useCoworkComposer';
-import { RequireTier, useLicenseContext } from './components/licensing/LicenseContext';
+import { useLicenseContext } from './components/licensing/LicenseContext';
 import { ProjectLiveProvider } from './components/projects/workspace/ProjectLiveContext';
-import { toast } from './components/shared/Toast';
 import useConfirm from './components/shared/useConfirm';
 import SearchOverlay from './components/shell/SearchOverlay';
 import Sidebar from './components/shell/Sidebar';
 import { useTranslation } from './hooks/useTranslation';
 import { useViewport } from './hooks/useViewport';
-import { documentRefOf } from './pages/documents/notebookRef';
-import { lazy } from './utils/lazyWithReload';
-import scopedStorage from './utils/scopedStorage';
 import { rememberStudioItem } from './utils/studioRecents';
 import { whenMayNavigate } from './utils/unsavedNavigation';
 
-// ── Chat-critical (eager) ────────────────────────────────────────────
-// These components are on the main chat path; deferring them costs more
-// in flicker than they save in bundle size.
-
-// ── Lazy: admin / studio / notebooks / marketplaces ──────────────────
-// Each of these is opened from a modal slot or a separate route. Lazy
-// loading saves ~1.2 MB off the initial bundle.
-const AgentDesignerPanel = lazy(() => import('./components/agents/AgentDesignerPanel'));
-const AgentMarketplace = lazy(() => import('./components/agents/AgentMarketplace'));
-const MemoryPanel = lazy(() => import('./components/knowledge/memory/MemoryPanel'));
-const AdvancedSettings = lazy(() => import('./pages/AdvancedSettings'));
-const AgentStudio = lazy(() => import('./components/agents/AgentStudio/index'));
-const Studio = lazy(() => import('./components/admin/Studio'));
-const SkillsPanel = lazy(() => import('./components/skills/SkillsPanel'));
-const CoworkPage = lazy(() => import('./components/cowork/CoworkPage'));
-// The two published directories. They render in this inline slot rather than
-// as standalone routes so the app sidebar stays put — arriving at either used
-// to leave the user with no navigation but the Back button.
-const AppsHomePage = lazy(() => import('./pages/apps/AppsHomePage'));
-const FormsHomePage = lazy(() => import('./pages/forms/FormsHomePage'));
-const DocumentsPage = lazy(() => import('./pages/documents/DocumentsPage'));
-// One published form, shown inside the workspace at /app/forms/:token. The very
-// same component serves it anonymously at /f/:token — being signed in does not
-// change what the form is, only that the sidebar is still there around it.
-const PublicFormPage = lazy(() => import('./pages/PublicFormPage'));
-
-// Top-level pages rendered ABOVE the overlay branches in the main-content
-// ternary. A page in this list hides any overlay opened while it is on screen,
-// so closeAllOverlays() has to navigate away from it too. Keep it in sync with
-// the branch order below — adding a page above the overlays without adding it
-// here reintroduces BFSF-267 ("the sidebar item does nothing").
-const PAGES_ABOVE_OVERLAYS = ['cowork', 'documents', 'apps', 'forms', 'formView'];
+// The lazy slots (admin / studio / notebooks / marketplaces) and their shared
+// Suspense fallback live in AgentHub/hubLazySlots.tsx; the main-content slot
+// and its order in AgentHub/HubMainContent.tsx; the pages that outrank the
+// overlays (PAGES_ABOVE_OVERLAYS, BFSF-267) in AgentHub/hubOverlays.ts.
 
 // One stable empty list, so a hub without projects does not hand the sidebar
 // a new array on every render.
 const NO_PROJECTS = [];
-
-// Shared Suspense fallback — keeps lazy slots from flashing layout shifts.
-// Each modal slot already renders inside its own animated container so a
-// plain spinner is sufficient.
-function LazyFallback() {
-    return (
-        <div className="flex items-center justify-center w-full h-full">
-            <div className="w-6 h-6 rounded-full border-2 border-[var(--border-default)] border-t-[var(--accent-primary)] animate-spin" />
-        </div>
-    );
-}
 
 const AgentHub = ({
     onNavigate, user, onUpdateUser, onLogout, currentPage,
@@ -107,14 +62,6 @@ const AgentHub = ({
         return perms.includes('all') || perms.includes(perm);
     };
 
-    // Beta feature helper - checks if user's org has a beta feature enabled
-    // Admins always have access to all beta features
-    const hasBetaFeature = (featureId) => {
-        if (user?.isAdmin || (user?.permissions || []).includes('all')) return true;
-        const features = Array.isArray(user?.betaFeatures) ? user.betaFeatures : [];
-        return features.includes(featureId);
-    };
-
     // Viewport detection — shared hook (see hooks/useViewport.js).
     //   isMobile  <768  — hamburger/overlay patterns
     //   isCompact 768–1279 — 13" laptops: auto-collapse sidebar, notebook as drawer
@@ -132,40 +79,9 @@ const AgentHub = ({
     // reflects the real saved preference.
     const simpleMode = !!user?.simpleMode || isMobile;
 
-    // ── Chat ⇄ Cowork ───────────────────────────────────────────────────
-    // The composer can either talk to you (chat) or go do something (cowork).
-    // One composer state for the whole hub, so flipping the switch in the
-    // welcome composer and in the docked one is the same flip.
-    const [coworkMode, setCoworkMode] = useState('chat');
-    // In Cowork the composer produces a scheduled run, not a conversation, so
-    // the chat-side panels have nothing to attach to: a Notebook and a Webpage
-    // are things you read ALONGSIDE a conversation you are having.
-    const inCoworkMode = coworkMode === 'cowork';
-    const coworkComposer = useCoworkComposer({
-        onCreated: (created) => {
-            // Say what it understood, not just that it worked: the schedule was
-            // read out of the user's own sentence, so it has to be visible and
-            // correctable rather than silently assumed.
-            const schedule = describeSchedule({
-                presetId: 'custom',
-                runAt: created?.nextRunAt,
-                repeatInterval: created?.repeatInterval,
-            });
-            toast.success(`"${created?.title || 'Untitled cowork'}" scheduled — ${schedule}. Change it under Cowork in the sidebar.`);
-        },
-    });
-    // Agent chat defaults the work to that agent: if you're mid-conversation
-    // with an agent and delegate something, you mean that agent to do it.
-    // Only seed an agent the picker actually offers — outside the
-    // agent_routines beta the create call would 403 on the agentId.
-    const coworkAgentIds = coworkComposer.agents;
-    const setCoworkAgentId = coworkComposer.setAgentId;
-    const setCoworkModeForAgent = useCallback((mode, agentId) => {
-        setCoworkMode(mode);
-        if (mode === 'cowork' && agentId && coworkAgentIds.some(a => a.id === agentId)) {
-            setCoworkAgentId(agentId);
-        }
-    }, [coworkAgentIds, setCoworkAgentId]);
+    // ── Chat ⇄ Cowork ── (AgentHub/useComposerMode.ts)
+    const { coworkMode, setCoworkMode, inCoworkMode, coworkComposer, setCoworkModeForAgent } = useComposerMode();
+
 
     // Notebook layout: split-pane sibling column at every breakpoint above
     // mobile. On compact (13" laptops) it takes a fixed ~420 px width so the
@@ -251,7 +167,6 @@ const AgentHub = ({
         sidePanelDocumentId,
         webpagePickerOpen, setWebpagePickerOpen,
         webpageButtonRef, webpageButtonRefDirect,
-        toggleNotebookPanel,
         openWebpageInSidePanel, closeWebpagePanel, clearWebpageSelection,
         openDocumentInSidePanel, closeDocumentPanel,
     } = useSidePanelState();
@@ -498,38 +413,19 @@ const AgentHub = ({
     });
 
     // Single source of truth for "user navigated somewhere — dismiss every
-    // floating overlay first." Without this, opening a chat / notification /
-    // marketplace while Studio (or AgentWizard / SkillsPanel / etc) is open
-    // leaves the overlay sitting on top of the new content. Every navigation
+    // floating overlay first" (AgentHub/hubOverlays.ts). Every navigation
     // entry point should call this before changing state.
-    // `keepPage` is for callers that open something *on top of* the main
-    // content (the search palette) rather than replacing it — those have no
-    // reason to throw the user off the page they were on.
-    const closeAllOverlays = ({ keepPage = false } = {}) => {
-        if (onCloseSettings) onCloseSettings();
-        if (onCloseAgentDesigner) onCloseAgentDesigner();
-        if (onCloseAgentWizard) onCloseAgentWizard();
-        if (onCloseStudio) onCloseStudio();
-        if (onCloseSkillsPanel) onCloseSkillsPanel();
-        // Same trap one level up: Cowork is a top-level PAGE, and it is matched
-        // ABOVE the overlay branches in the main ternary. Closing the overlays
-        // is not enough — while `currentPage` is still 'cowork' the page keeps
-        // winning, so opening the marketplace or search from the sidebar
-        // flipped a flag nothing rendered and the click did nothing.
-        // Leaving the page is part of closing what's on screen.
-        if (!keepPage && PAGES_ABOVE_OVERLAYS.includes(currentPage) && onNavigate) onNavigate('agents');
-        setShowMarketplace(false);
-        setShowProjectsStore(false);
-        setActiveProjectId(null);
-        // On phones the sidebar is a full-screen drawer; any navigation/overlay
-        // action must dismiss it, otherwise the destination opens behind it.
-        if (isMobile) setSidebarOpen(false);
-    };
+    const closeAllOverlays = createCloseAllOverlays({
+        onCloseSettings, onCloseAgentDesigner, onCloseAgentWizard, onCloseStudio, onCloseSkillsPanel,
+        currentPage, onNavigate,
+        setShowMarketplace, setShowProjectsStore, setActiveProjectId,
+        isMobile, setSidebarOpen,
+    });
 
     // Navigation-level handlers (select agent/conversation, direct chat, new
     // chat, delete, search routing, favourites, unpublish, notebook save).
-    // Plain closures, no hooks — moved verbatim; closeAllOverlays stays here
-    // above (pinned by AgentHub.overlayOrder.test.js) and is passed in.
+    // Plain closures, no hooks — moved verbatim; closeAllOverlays is built
+    // just above (pinned by AgentHub.overlayOrder.test.js) and is passed in.
     const {
         handleSelectAgent, handleDirectChat,
         handleSelectDirectConversation, handleDeleteDirectConversation,
@@ -578,55 +474,19 @@ const AgentHub = ({
         turnConversation,
     });
 
-    // The project a workspace page is showing, for the chat context. The list
-    // row is preferred; the page's own detail read covers a list that has not
-    // arrived yet.
-    const projectForContext = (projectId) => (projectId
-        ? projects.find(p => p.id === projectId) || queryClient.getQueryData(projectKeys.detail(projectId)) || null
-        : null);
+    // Chat context that follows a conversation or project, and the sidebar's
+    // select/open handlers (AgentHub/hubNavigation.ts).
+    const {
+        openProjectThread, openActiveProject,
+        onSelectConversation, onSelectDirectConversation, onSelectAllChatsConversation,
+        onOpenProject, onNewChatInProject, onCreateProject, onBrowseProjects,
+    } = createHubNavigation({
+        t, agents, projects, queryClient, activeProjectId, selectedAgent, directChatMode, isMobile,
+        setActiveProject, setSelectedAgent, setDirectChatMode, setSidebarOpen,
+        closeAllOverlays, closeProjects, goToProject,
+        handleSelectAgent, handleDirectChat, handleSelectDirectConversation, selectConversation, loadModelTiers,
+    });
 
-    // Opening an existing conversation: the chat context is that conversation's
-    // OWN filing, never what the previous chat left behind. The sidebar row
-    // (`conv.project_id`, the same field the project filter and chip read) is the
-    // source: it is on the row at click time, before the conversation GET returns.
-    // No project_id means the chat is private, so the context is cleared.
-    const adoptConversationProject = (conv) => {
-        setActiveProject(projectForContext(conv?.project_id ?? conv?.projectId ?? null));
-    };
-
-    // Opening a shared thread leaves the project page and lands in the chat
-    // itself, with the project as the chat context so its instructions and
-    // knowledge apply to whatever the member replies.
-    const openProjectThread = (thread) => {
-        const agent = thread.type === 'agent' ? agents.find(a => a.id === thread.agentId) : null;
-        if (thread.type === 'agent' && !agent) {
-            toast.error(t('sidebar.project_thread_agent_unavailable', 'This chat belongs to an agent you cannot open.'));
-            return;
-        }
-        const project = projectForContext(activeProjectId);
-        closeProjects();
-        if (agent) {
-            handleSelectAgent(agent);
-            // After handleSelectAgent, which clears the chat context.
-            if (project) setActiveProject(project);
-            selectConversation(agent.id, thread.id);
-            return;
-        }
-        if (project) setActiveProject(project);
-        if (!directChatMode || selectedAgent) {
-            setDirectChatMode(true);
-            setSelectedAgent(null);
-            scopedStorage.setItem('lastUsedMode', 'direct-chat');
-            loadModelTiers();
-        }
-        handleSelectDirectConversation({ id: thread.id });
-    };
-
-    // Pill in the chat header → back to the project's home.
-    const openActiveProject = (project) => {
-        closeAllOverlays();
-        goToProject(project.id);
-    };
 
     if (designMode) {
         return (
@@ -709,22 +569,7 @@ const AgentHub = ({
                 agents={agents}
                 groupedConversations={getGroupedConversations()}
                 currentConversation={currentConversation}
-                onSelectConversation={(conv) => {
-                    closeAllOverlays();
-                    adoptConversationProject(conv);
-                    // Switch agent if the conversation belongs to a different one
-                    if (conv.agent_id && (!selectedAgent || selectedAgent.id !== conv.agent_id)) {
-                        const agent = agents.find(a => a.id === conv.agent_id);
-                        if (agent) {
-                            setSelectedAgent(agent);
-                            setDirectChatMode(false);
-                            scopedStorage.setItem('lastUsedAgentId', agent.id);
-                            scopedStorage.setItem('lastUsedMode', 'agent');
-                        }
-                    }
-                    selectConversation(conv.agent_id || selectedAgent?.id, conv.id);
-                    if (isMobile) setSidebarOpen(false);
-                }}
+                onSelectConversation={onSelectConversation}
                 onDeleteConversation={handleDeleteConversation}
                 onSelectAgent={handleSelectAgent}
                 onOpenMarketplace={() => { closeAllOverlays(); setShowMarketplace(true); }}
@@ -751,54 +596,16 @@ const AgentHub = ({
                 onDirectChat={handleDirectChat}
                 directChatMode={directChatMode}
                 directConversations={directConversations}
-                onSelectDirectConversation={(conv) => {
-                    // Close every overlay before switching to direct chat —
-                    // Studio, Agent Wizard, Notebooks, and Webpages were missing
-                    // here, so picking a direct chat from history while Studio
-                    // was open updated the URL but kept the editor on screen.
-                    closeAllOverlays();
-                    adoptConversationProject(conv);
-                    // Ensure we're in direct chat mode
-                    if (!directChatMode) {
-                        setDirectChatMode(true);
-                        setSelectedAgent(null);
-                        scopedStorage.setItem('lastUsedMode', 'direct-chat');
-                        loadModelTiers();
-                    }
-                    handleSelectDirectConversation(conv);
-                    if (isMobile) setSidebarOpen(false);
-                }}
+                onSelectDirectConversation={onSelectDirectConversation}
                 onDeleteDirectConversation={handleDeleteDirectConversation}
                 currentDirectConversation={currentDirectConversation}
                 onToggleFavorite={handleToggleFavorite}
                 projects={projects}
                 activeProject={activeProjectLive}
-                onOpenProject={(p) => {
-                    // Opening a project also makes it the chat context: the
-                    // chats started from here on belong to it.
-                    closeAllOverlays();
-                    setActiveProject(p);
-                    goToProject(p.id);
-                }}
-                onNewChatInProject={(p) => {
-                    closeProjects();
-                    handleDirectChat();
-                    // After handleDirectChat, which clears the context.
-                    setActiveProject(p);
-                }}
-                onCreateProject={() => {
-                    // BFSF-267: these hand-rolled subset closes missed overlays
-                    // (and Studio/AgentWizard/Notebooks) — route through the
-                    // single source of truth, then navigate.
-                    closeAllOverlays();
-                    goToProject('');
-                }}
-                onBrowseProjects={() => {
-                    // The list had no way in at all: it only rendered after the
-                    // detail view was closed, and nothing opened it directly.
-                    closeAllOverlays();
-                    goToProject(null);
-                }}
+                onOpenProject={onOpenProject}
+                onNewChatInProject={onNewChatInProject}
+                onCreateProject={onCreateProject}
+                onBrowseProjects={onBrowseProjects}
                 onMoveToProject={handleMoveToProject}
                 onShareToProject={handleShareToProject}
                 onRenameConversation={handleRenameConversation}
@@ -810,384 +617,44 @@ const AgentHub = ({
                 onEditLabel={handleEditLabel}
                 chatHistoryMode={chatHistoryMode}
                 allAgentConversations={allAgentConversations}
-                onSelectAllChatsConversation={(conv) => {
-                    // Close every overlay before switching context — Studio, Agent
-                    // Wizard, Notebooks, Webpages, etc. were all missing here, which
-                    // is why clicking a chat from history while Studio was open
-                    // appeared to "do nothing": the conversation loaded behind the
-                    // Studio overlay. closeAllOverlays() is the single source of
-                    // truth for this and matches the per-agent path above.
-                    closeAllOverlays();
-                    adoptConversationProject(conv);
-                    if (conv._source === 'direct') {
-                        // Switch to direct chat mode and open the conversation
-                        if (!directChatMode) {
-                            setDirectChatMode(true);
-                            setSelectedAgent(null);
-                            loadModelTiers();
-                            scopedStorage.setItem('lastUsedMode', 'direct-chat');
-                        }
-                        handleSelectDirectConversation(conv);
-                    } else {
-                        // Switch to the agent and open the conversation
-                        const agent = agents.find(a => a.id === conv.agent_id);
-                        if (agent && (!selectedAgent || selectedAgent.id !== agent.id)) {
-                            setSelectedAgent(agent);
-                            setDirectChatMode(false);
-                            scopedStorage.setItem('lastUsedAgentId', agent.id);
-                            scopedStorage.setItem('lastUsedMode', 'agent');
-                        } else if (!agent) {
-                            setDirectChatMode(false);
-                        }
-                        selectConversation(conv.agent_id, conv.id);
-                    }
-                    if (isMobile) setSidebarOpen(false);
-                }}
+                onSelectAllChatsConversation={onSelectAllChatsConversation}
             />
 
             {/* Main Content Area */}
             <div className="flex-1 flex flex-col min-w-0 relative">
-                {showSettings ? (
-                    /* Settings rendered inline in conversation area — Open WebUI style */
-                    <AdvancedSettings onBack={null} onNavigate={onNavigate} onLogout={onLogout} user={user} onUpdateUser={onUpdateUser} onClose={onCloseSettings} />
-                ) : showStudio ? (
-                    /* Unified Studio: Agents / Skills / AI Tasks under one shell. */
-                    <Studio
-                        user={user}
-                        section={studioRoute.section}
-                        initialAgentId={studioRoute.section === 'agents' ? studioRoute.id : null}
-                        initialSkillId={studioRoute.section === 'skills' ? studioRoute.id : null}
-                        initialKbId={studioRoute.section === 'knowledge' ? studioRoute.id : null}
-                        initialKbTab={studioRoute.section === 'knowledge' ? (studioRoute.sub || null) : null}
-                        initialSourceId={studioRoute.section === 'knowledge' ? (studioRoute.subId || null) : null}
-                        initialTaskId={studioRoute.section === 'aiTasks' && studioRoute.automationKind !== 'step' ? studioRoute.id : null}
-                        initialStepId={studioRoute.section === 'aiTasks' && studioRoute.automationKind === 'step' ? studioRoute.id : null}
-                        initialFlowletKey={studioRoute.section === 'aiTasks' ? (studioRoute.sub || null) : null}
-                        initialWebpageId={studioRoute.section === 'webpages' ? studioRoute.id : null}
-                        initialDocumentId={studioRoute.section === 'documents' ? documentRefOf(studioRoute) : null}
-                        initialStudioAppId={studioRoute.section === 'apps' ? studioRoute.id : null}
-                        // Meeting Notes accepts a deep link too, so the sidebar's
-                        // "recently edited" rows can land on the transcript itself
-                        // and not just on the section.
-                        initialMeetingId={studioRoute.section === 'meetingNotes' ? studioRoute.id : null}
-                        initialApprovalId={studioRoute.section === 'approvals' ? studioRoute.id : null}
-                        initialSolutionId={studioRoute.section === 'solutions' ? studioRoute.id : null}
-                        initialDatatableId={studioRoute.section === 'datatables' ? studioRoute.id : null}
-                        initialDatatableTab={studioRoute.section === 'datatables' ? (studioRoute.sub || null) : null}
-                        // A form is addressed by its AUTOMATION id (never the page
-                        // token) — Studio → Forms → one form, with its tab.
-                        initialFormId={studioRoute.section === 'forms' ? studioRoute.id : null}
-                        initialFormTab={studioRoute.section === 'forms' ? (studioRoute.sub || null) : null}
-                        initialPlaybookId={studioRoute.section === 'playbooks' ? studioRoute.id : null}
-                        // Builder query state (?view/run/step) — a run deep-link.
-                        // `?run=` is read for Runs & log as well: that section
-                        // has no `/:id` path segment (a run is addressed by the
-                        // same query string the builder uses), so without this
-                        // a link to one run in the org's log would open the log
-                        // and drop the run. `?view=` stays builder-only — the
-                        // Runs section has no views to switch between.
-                        initialBuilderView={studioRoute.section === 'aiTasks' ? (studioRoute.view || null) : null}
-                        initialRunId={studioRoute.section === 'aiTasks' || studioRoute.section === 'runs' ? (studioRoute.runId || null) : null}
-                        initialRunStepId={studioRoute.section === 'aiTasks' || studioRoute.section === 'runs' ? (studioRoute.stepId || null) : null}
-                        // ?from=app:… — the button in an app this builder was
-                        // opened from, for the breadcrumb back (P4). Builder
-                        // only: no other section has a trail to draw.
-                        initialFrom={studioRoute.section === 'aiTasks' ? (studioRoute.from || null) : null}
-                        onClose={onCloseStudio}
-                        onNavigate={onNavigate}
-                        modelTiers={modelTiers}
-                        onEditingChange={setStudioFullscreen}
-                        hasPermission={(perm) => {
-                            const perms = user?.permissions || [];
-                            return perms.includes('all') || perms.includes(perm);
-                        }}
-                    />
-                ) : showAgentDesigner ? (
-                    /* Unified Agent Studio: list + wizard split layout. Replaces the
-                       legacy AgentDesigner as the primary editor. The legacy form
-                       (advanced settings: guardrails, embed, bubble widget, sharing)
-                       is still reachable via "Advanced" inside the studio. */
-                    /* Gate the whole editor on manage_agents — the server 403s on
-                       /agents/all, so a user without the permission reaching here
-                       (via the marketplace pencil or a direct URL) just saw a broken
-                       load-error/retry loop (BFSF-181). Block the mount instead. */
-                    ((user?.permissions || []).some(p => p === 'all' || p === 'manage_agents')) ? (
-                    <AgentStudio
-                        user={user}
-                        initialAgentId={initialDesignerAgentId}
-                        onClose={onCloseAgentDesigner}
-                        onNavigate={onNavigate}
-                        hasPermission={(perm) => {
-                            const perms = user?.permissions || [];
-                            return perms.includes('all') || perms.includes(perm);
-                        }}
-                    />
-                    ) : (
-                        <div className="flex flex-col items-center justify-center h-full gap-3 p-8 text-center">
-                            <p className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{t('app.agent_hub_no_editor_access_title', 'No access to the Agent Editor')}</p>
-                            <p className="text-sm max-w-md" style={{ color: 'var(--text-muted)' }}>{t('app.agent_hub_no_editor_access_body', "You don't have permission to edit agents. Contact an administrator if you need access.")}</p>
-                            <button onClick={() => onNavigate('agents')} className="px-3 py-1.5 rounded-md text-sm font-medium" style={{ background: 'var(--accent-primary)', color: 'white' }}>{t('agent_studio.header.back_to_agents', 'Back to Agents')}</button>
-                        </div>
-                    )
-                ) : showAgentWizard ? (
-                    /* /app/agent-wizard kept as a deep link — same studio, opens in
-                       wizard (chat) mode for fresh creation. `startInWizard` is what
-                       keeps that promise since the studio's idle state became the
-                       card grid (A5); without it this link would land on the
-                       overview and the deep link would silently mean something else. */
-                    /* DEZELFDE POORT als de deur hierboven (BFSF-181). Hij
-                       ontbrak hier, en sinds A5 heeft het overzicht een "Back
-                       to Agents"-knop: een gebruiker zonder manage_agents kwam
-                       daarmee schermvullend op een raster te staan waarvan
-                       /agents/all 403't — alleen een foutbanner, geen enkele
-                       actie. Geen datalek (de server weigert), wel precies de
-                       kapotte staat die BFSF-181 aan de andere deur dichtzette. */
-                    ((user?.permissions || []).some(p => p === 'all' || p === 'manage_agents')) ? (
-                        <AgentStudio
-                            user={user}
-                            initialAgentId={null}
-                            startInWizard
-                            onClose={onCloseAgentWizard}
-                            onNavigate={onNavigate}
-                            hasPermission={(perm) => {
-                                const perms = user?.permissions || [];
-                                return perms.includes('all') || perms.includes(perm);
-                            }}
-                        />
-                    ) : (
-                        <div className="flex flex-col items-center justify-center h-full gap-3 p-8 text-center">
-                            <p className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{t('app.agent_hub_no_editor_access_title', 'No access to the Agent Editor')}</p>
-                            <p className="text-sm max-w-md" style={{ color: 'var(--text-muted)' }}>{t('app.agent_hub_no_editor_access_body', "You don't have permission to edit agents. Contact an administrator if you need access.")}</p>
-                            <button onClick={() => onNavigate('agents')} className="px-3 py-1.5 rounded-md text-sm font-medium" style={{ background: 'var(--accent-primary)', color: 'white' }}>{t('agent_studio.header.back_to_agents', 'Back to Agents')}</button>
-                        </div>
-                    )
-                ) : currentPage === 'cowork' ? (
-                    /* Cowork (/app/cowork[/:id]) — the front door for prompt
-                       automation and the only place it lives. Same inline slot
-                       as Notebooks/Settings so the sidebar stays put. Driven
-                       straight off currentPage: navigateToPage already clears
-                       every overlay flag for a top-level page, so there's no
-                       separate `showCowork` boolean to keep in sync. */
-                    <CoworkPage user={user} isMobile={isMobile} initialCoworkId={initialCoworkId} onNavigate={onNavigate} />
-                ) : currentPage === 'documents' ? (
-                    <DocumentsPage
-                        mode="workspace"
-                        user={user}
-                        initialDocumentId={initialDocumentId}
-                        onDocumentChange={(id) => onNavigate(id ? `documents/${id}` : 'documents')}
-                    />
-                ) : currentPage === 'apps' ? (
-                    /* Published-apps directory (/app/apps). Same inline slot as
-                       Cowork, for the same reason: the sidebar stays. Tiles
-                       link on to the standalone run view at /app/apps/:id,
-                       which IS full-viewport. */
-                    <AppsHomePage />
-                ) : currentPage === 'forms' ? (
-                    /* Published-forms directory (/app/forms). A tile opens the
-                       form itself, in this tab, at /app/forms/:token. */
-                    <FormsHomePage onNavigate={onNavigate} />
-                ) : currentPage === 'formView' ? (
-                    <div className="h-full overflow-y-auto custom-scrollbar px-4 py-8">
-                        <div className="mx-auto w-full max-w-xl">
-                            {/* This slot only ever renders inside the authenticated
-                                workspace (App.jsx redirects /f/<token> here before
-                                the page mounts), so `user` being set IS "signed in".
-                                Gates the closing page's server-side result actions
-                                (Word/PDF, Notebook, Webpage) — see the props' own
-                                doc comment in PublicFormPage. */}
-                            <PublicFormPage token={formViewToken} authenticated={!!user} webpagesEnabled={canUseWebpagesSide} />
-                        </div>
-                    </div>
-                ) : showSkillsPanel ? (
-                    /* Skills panel rendered inline in conversation area */
-                    <SkillsPanel
-                        user={user}
-                        onClose={onCloseSkillsPanel}
-                        activeSkillIds={activeSkillIds}
-                        onToggleSkill={handleToggleSkill}
-                        agents={agents}
-                    />
-                ) : showMarketplace ? (
-                    /* Agent Marketplace rendered inline in conversation area */
-                    <AgentMarketplace
-                        agents={agents}
-                        favorites={favorites}
-                        categories={agentCategories}
-                        onToggleFavorite={handleToggleFavorite}
-                        onSelect={handleSelectAgent}
-                        onClose={() => setShowMarketplace(false)}
-                        onUnpublish={handleUnpublishAgent}
-                        /* Only expose the edit affordance to users who can actually
-                           manage agents — ownership alone used to reveal the pencil,
-                           routing the user into a studio that 403s (BFSF-181).
-                           Hidden on mobile entirely: phones are view/chat-only, the
-                           agent editor route is blocked there. */
-                        onEditAgent={(!isMobile && (user?.permissions || []).some(p => p === 'all' || p === 'manage_agents'))
-                            ? (agent) => { setShowMarketplace(false); onNavigate(agent ? `agentDesigner:${agent.id}` : 'agentDesigner'); }
-                            : undefined}
-                        user={user}
-                    />
-                ) : showProjectsStore ? (
-                    /* Projects — the list at /app/projects, one workspace at
-                       /app/projects/:id[/:tab[/:sub]], the create form at
-                       /app/projects/new. */
-                    <ProjectsView
-                        route={{
-                            projectId: activeProjectId,
-                            tab: initialProjectRoute?.projectId === activeProjectId ? (initialProjectRoute?.tab || null) : null,
-                            sub: initialProjectRoute?.projectId === activeProjectId ? (initialProjectRoute?.sub || null) : null,
-                        }}
-                        projects={projects}
-                        loading={projectsQuery.isPending && projectsEnabled}
-                        error={projectsQuery.isError ? t('sidebar.projects_load_failed', 'Could not load your projects.') : null}
-                        user={user}
-                        onGoToProject={goToProject}
-                        onClose={closeProjects}
-                        onSaved={() => queryClient.invalidateQueries({ queryKey: ['projects', 'list'] })}
-                        onDeleted={(id) => {
-                            if (activeProject?.id === id) setActiveProject(null);
-                            goToProject(null);
-                        }}
-                        onOpenThread={openProjectThread}
-                        onNavigate={onNavigate}
-                        onStartChat={startProjectChat}
-                        notebooksEnabled={notebooksEnabled}
-                        searchOpen={projectSearchOpen}
-                        onSearchOpenChange={setProjectSearchOpen}
-                    />
-                ) : selectedAgent ? (
-                    <AgentChatView
-                        isMobile={isMobile}
-                        setSidebarOpen={setSidebarOpen}
-                        selectedAgent={selectedAgent}
-                        user={user}
-                        onNavigate={onNavigate}
-                        favorites={favorites}
-                        showAgentMenu={showAgentMenu}
-                        setShowAgentMenu={setShowAgentMenu}
-                        handleNewChat={handleNewChat}
-                        handleToggleFavorite={handleToggleFavorite}
-                        handleUnpublishAgent={handleUnpublishAgent}
-                        coworkMode={coworkMode}
-                        setCoworkModeForAgent={setCoworkModeForAgent}
-                        conversationStarted={conversationStarted}
-                        notebooksEnabled={notebooksEnabled}
-                        inCoworkMode={inCoworkMode}
-                        sidePanelDocumentId={sidePanelDocumentId}
-                        openDocumentInSidePanel={openDocumentInSidePanel}
-                        closeDocumentPanel={closeDocumentPanel}
-                        canUseWebpagesSide={canUseWebpagesSide}
-                        webpageButtonRef={webpageButtonRef}
-                        sidePanelWebpageId={sidePanelWebpageId}
-                        closeWebpagePanel={closeWebpagePanel}
-                        webpagePickerOpen={webpagePickerOpen}
-                        setWebpagePickerOpen={setWebpagePickerOpen}
-                        openWebpageInSidePanel={openWebpageInSidePanel}
-                        messagesContainerRef={messagesContainerRef}
-                        messagesEndRef={messagesEndRef}
-                        shouldForceScrollRef={shouldForceScrollRef}
-                        messages={messages}
-                        chatInput={chatInput}
-                        setChatInput={setChatInput}
-                        sendMessage={sendMessage}
-                        stopGenerating={stopGenerating}
-                        isLoading={isLoading}
-                        activeSkillIds={activeSkillIds}
-                        agentAttachedSkillIds={agentAttachedSkillIds}
-                        handleToggleSkill={handleToggleSkill}
-                        handleVoiceTurnComplete={handleVoiceTurnComplete}
-                        coworkComposer={coworkComposer}
-                        currentConversation={currentConversation}
-                        retryMessage={retryMessage}
-                        editAndRegenerate={editAndRegenerate}
-                        modelTiers={modelTiers}
-                        renderSidePanels={renderSidePanels}
-                        activeProject={activeProjectLive}
-                        onOpenActiveProject={openActiveProject}
-                        onLeaveActiveProject={() => setActiveProject(null)}
-                        chatSignals={chatSignals}
-                    />
-                ) : directChatMode ? (
-                    /* Direct Chat Mode */
-                    <DirectChatView
-                        isMobile={isMobile}
-                        setSidebarOpen={setSidebarOpen}
-                        user={user}
-                        notebooksEnabled={notebooksEnabled}
-                        conversationStarted={conversationStarted}
-                        coworkMode={coworkMode}
-                        setCoworkMode={setCoworkMode}
-                        inCoworkMode={inCoworkMode}
-                        sidePanelDocumentId={sidePanelDocumentId}
-                        openDocumentInSidePanel={openDocumentInSidePanel}
-                        closeDocumentPanel={closeDocumentPanel}
-                        canUseWebpagesSide={canUseWebpagesSide}
-                        webpageButtonRefDirect={webpageButtonRefDirect}
-                        sidePanelWebpageId={sidePanelWebpageId}
-                        closeWebpagePanel={closeWebpagePanel}
-                        webpagePickerOpen={webpagePickerOpen}
-                        setWebpagePickerOpen={setWebpagePickerOpen}
-                        openWebpageInSidePanel={openWebpageInSidePanel}
-                        messagesContainerRef={messagesContainerRef}
-                        messagesEndRef={messagesEndRef}
-                        shouldForceScrollRef={shouldForceScrollRef}
-                        messages={messages}
-                        chatInput={chatInput}
-                        setChatInput={setChatInput}
-                        sendMessage={sendMessage}
-                        stopGenerating={stopGenerating}
-                        isLoading={isLoading}
-                        modelTiers={modelTiers}
-                        selectedTier={selectedTier}
-                        setSelectedTier={setSelectedTier}
-                        activeSkillIds={activeSkillIds}
-                        handleToggleSkill={handleToggleSkill}
-                        handleVoiceTurnComplete={handleVoiceTurnComplete}
-                        coworkComposer={coworkComposer}
-                        directSessionSkills={directSessionSkills}
-                        directActivatedSessionSkillIds={directActivatedSessionSkillIds}
-                        directCompletedSessionSkillIds={directCompletedSessionSkillIds}
-                        currentDirectConversation={currentDirectConversation}
-                        directChatKbs={directChatKbs}
-                        directChatKBIds={directChatKBIds}
-                        setDirectChatKBIds={setDirectChatKBIds}
-                        attachedWebpageSelection={attachedWebpageSelection}
-                        clearWebpageSelection={clearWebpageSelection}
-                        setAttachedWebpageSelection={setAttachedWebpageSelection}
-                        retryMessage={retryMessage}
-                        editAndRegenerate={editAndRegenerate}
-                        renderSidePanels={renderSidePanels}
-                        activeProject={activeProjectLive}
-                        onOpenActiveProject={openActiveProject}
-                        onLeaveActiveProject={() => setActiveProject(null)}
-                        chatSignals={chatSignals}
-                    />
-                ) : (
-                    /* No Agent Selected - Empty State */
-                    <div className="flex-1 flex flex-col items-center justify-center p-8">
-                        <img src={beeFlowIcon} alt={t('app.agent_hub_logo_alt', 'Bee Flow')} className="w-24 h-24 rounded-2xl object-contain mb-6 shadow-xl" />
-                        <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-2">
-                            {t('app.agent_hub_welcome_title', 'Welcome to Bee Flow')}
-                        </h1>
-                        <p className="text-[var(--text-secondary)] text-center max-w-md mb-8">
-                            {t('app.agent_hub_welcome_body', 'Select an agent from the marketplace to start chatting, or create your own custom AI assistant.')}
-                        </p>
-                        <button
-                            onClick={() => { if (onCloseSettings) onCloseSettings(); if (onCloseAgentDesigner) onCloseAgentDesigner(); setShowMarketplace(true); }}
-                            className="flex items-center gap-2 px-6 py-3 bg-[var(--accent-primary)] hover:bg-[var(--accent-primary-hover)] text-white rounded-xl font-medium shadow-lg transition-all hover:scale-105"
-                        >
-                            {t('app.agent_hub_browse_agents', 'Browse Agents')}
-                        </button>
-                    </div>
-                )}
+                <HubMainContent
+                    {...{
+                        showSettings, showStudio, showAgentDesigner, showAgentWizard, currentPage,
+                        showSkillsPanel, showMarketplace, showProjectsStore,
+                        user, t, isMobile, onNavigate, hasPermission,
+                        onLogout, onUpdateUser, onCloseSettings, studioRoute, onCloseStudio, modelTiers, setStudioFullscreen,
+                        initialDesignerAgentId, onCloseAgentDesigner, onCloseAgentWizard,
+                        initialCoworkId, initialDocumentId, formViewToken, canUseWebpagesSide,
+                        onCloseSkillsPanel, activeSkillIds, handleToggleSkill, agents, favorites, agentCategories,
+                        handleToggleFavorite, handleSelectAgent, setShowMarketplace, handleUnpublishAgent,
+                        activeProjectId, initialProjectRoute, projects, projectsQuery, projectsEnabled, goToProject, closeProjects,
+                        queryClient, activeProject, setActiveProject, openProjectThread, startProjectChat, notebooksEnabled,
+                        projectSearchOpen, setProjectSearchOpen,
+                    }}
+                    chat={{
+                        selectedAgent, directChatMode, t, setActiveProject,
+                        isMobile, setSidebarOpen, user, onNavigate, favorites, showAgentMenu, setShowAgentMenu,
+                        handleNewChat, handleToggleFavorite, handleUnpublishAgent,
+                        coworkMode, setCoworkMode, setCoworkModeForAgent, conversationStarted, notebooksEnabled, inCoworkMode,
+                        sidePanelDocumentId, openDocumentInSidePanel, closeDocumentPanel,
+                        canUseWebpagesSide, webpageButtonRef, webpageButtonRefDirect, sidePanelWebpageId, closeWebpagePanel,
+                        webpagePickerOpen, setWebpagePickerOpen, openWebpageInSidePanel,
+                        messagesContainerRef, messagesEndRef, shouldForceScrollRef, messages, chatInput, setChatInput,
+                        sendMessage, stopGenerating, isLoading, activeSkillIds, agentAttachedSkillIds, handleToggleSkill,
+                        handleVoiceTurnComplete, coworkComposer, currentConversation, retryMessage, editAndRegenerate,
+                        modelTiers, selectedTier, setSelectedTier, renderSidePanels, activeProjectLive, openActiveProject, chatSignals,
+                        directSessionSkills, directActivatedSessionSkillIds, directCompletedSessionSkillIds,
+                        currentDirectConversation, directChatKbs, directChatKBIds, setDirectChatKBIds,
+                        attachedWebpageSelection, clearWebpageSelection, setAttachedWebpageSelection,
+                        onCloseSettings, onCloseAgentDesigner, setShowMarketplace,
+                    }}
+                />
             </div>
-
-
-
-
-
-
-
 
             {/* Global Search Overlay */}
             <SearchOverlay

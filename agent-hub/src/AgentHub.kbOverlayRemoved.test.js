@@ -27,7 +27,10 @@ import { fileURLToPath } from 'node:url';
 import { describe, it, expect } from 'vitest';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const AGENT_HUB = fs.readFileSync(path.join(HERE, 'AgentHub.jsx'), 'utf8');
+// AgentHub.jsx plus the modules its main content and lazy slots moved into.
+const AGENT_HUB = ['AgentHub.jsx', 'AgentHub/HubMainContent.tsx', 'AgentHub/HubChatContent.tsx', 'AgentHub/hubLazySlots.tsx', 'AgentHub/hubOverlays.ts']
+    .map((file) => fs.readFileSync(path.join(HERE, file), 'utf8'))
+    .join('\n');
 const SIDEBAR = fs.readFileSync(path.join(HERE, 'components/shell/Sidebar.jsx'), 'utf8');
 
 describe('AgentHub — the unreachable KB-store overlay is removed', () => {

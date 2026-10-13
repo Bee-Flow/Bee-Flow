@@ -81,18 +81,19 @@ test('a near-miss spelling is refused loudly rather than guessed', () => {
     }
 });
 
-test('index.js uses the helpers rather than a second copy of the rule', () => {
+test('the cookie session uses the helpers rather than a second copy of the rule', () => {
     // The value was a bare literal in index.js for the life of the project, and
     // a second copy is how the tested rule and the shipped rule drift apart.
-    // Bewust brontekst: index.js is de hele app-bootstrap (DB, alle routes,
-    // middleware) — vereisen om dit ene bedradingsdetail waar te nemen zou
-    // een lichte eenheidstest omzetten in een boot van het hele proces.
-    const src = fs.readFileSync(path.resolve(__dirname, '../index.js'), 'utf8');
-    assert.match(src, /require\('\.\/auth\/sessionLifetime'\)/);
+    // The cookie session now lives in boot/session.js (index.js calls
+    // applyCookieSession); boot/bootChain.characterisation.test.js drives it.
+    // Bewust brontekst: dit pint dat de helpers de bron ZIJN, niet alleen dat
+    // de waarde vandaag toevallig klopt.
+    const src = fs.readFileSync(path.resolve(__dirname, '../boot/session.js'), 'utf8');
+    assert.match(src, /require\('\.\.\/auth\/sessionLifetime'\)/);
     assert.match(src, /maxAge:\s*sessionMaxAgeMs\(\)/);
     assert.match(src, /rolling:\s*sessionRolling\(\)/);
     assert.ok(
         !/maxAge:\s*\d+\s*\*\s*24\s*\*\s*60/.test(src),
-        'a hardcoded session maxAge is back in index.js — the configurable one is then decorative',
+        'a hardcoded session maxAge is back in boot/session.js — the configurable one is then decorative',
     );
 });

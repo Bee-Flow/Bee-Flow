@@ -1,8 +1,9 @@
 /**
  * Nothing may write a transcription's content columns without sealing them.
  *
- * transcriptionStore.js seals on its own write paths, but the store is not the
- * only writer: routes/transcriptions/reprocess.js goes round it deliberately,
+ * The transcription store seals on its own write paths
+ * (stores/transcription/writes.js), but the store is not the only writer:
+ * routes/transcriptions/reprocess.js goes round it deliberately,
  * because its UPDATE carries a claim predicate (`AND status = 'processing'`)
  * that the store's generic update cannot express. That is a legitimate reason
  * to write raw SQL and an easy way to write PLAINTEXT straight over an
@@ -25,7 +26,7 @@ const { ALL_COLUMNS } = require('./transcriptCrypto');
 
 /** Files allowed to write these columns, and what makes each one safe. */
 const SEALERS = new Map([
-    ['stores/transcriptionStore.js', 'transcriptCrypto.encryptRow'],
+    ['stores/transcription/writes.js', 'transcriptCrypto.encryptRow'],
     ['routes/transcriptions/reprocess.js', 'transcriptCrypto.encryptRow'],
 ]);
 

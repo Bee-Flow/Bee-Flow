@@ -25,7 +25,12 @@ const test = require('node:test');
 const assert = require('node:assert');
 const fs = require('node:fs');
 
-const SRC = fs.readFileSync(require.resolve('./webpageChat'), 'utf8');
+// Since the route was split, the end of the turn lives in webpageChat/finalize.js,
+// the pre-turn copy in webpageChat/toolLoop.js and the tool writes in
+// webpageChat/tools.js.
+const SRC = fs.readFileSync(require.resolve('./webpageChat/finalize'), 'utf8');
+const LOOP_SRC = fs.readFileSync(require.resolve('./webpageChat/toolLoop'), 'utf8');
+const TOOLS_SRC = fs.readFileSync(require.resolve('./webpageChat/tools'), 'utf8');
 
 /** Het blok dat de bewerkingen van deze beurt wegschrijft. */
 function persistBlock() {
@@ -67,10 +72,14 @@ test('het regelverschil wordt gemeten tegen de stand van VÓÓR de beurt', () =>
         'liveFiles wordt door de gereedschappen ter plekke overschreven — zonder de kopie is er niets meer te meten');
     // Bewust brontekst, zoals de bestandskop hierboven uitlegt: de bedrading
     // pinnen is hier het haalbare, niet het gedrag van een echte SSE-beurt.
-    assert.match(SRC, /const preTurnFiles = \{ \.\.\.liveFiles \};/,
+    assert.match(LOOP_SRC, /const preTurnFiles = \{ \.\.\.liveFiles \};/,
         'de kopie moet gemaakt worden vóór de eerste gereedschapsronde');
-    const copyAt = SRC.indexOf('const preTurnFiles');
-    const firstToolWrite = SRC.indexOf('liveFiles[slot] = toolResult.content');
+    // De gereedschappen schrijven liveFiles in tools.js; de lus maakt de kopie
+    // vóórdat hij die schrijver (createToolDispatcher) optuigt.
+    assert.ok(TOOLS_SRC.includes('liveFiles[slot] = toolResult.content'),
+        'sanity: de gereedschappen schrijven liveFiles nog ter plekke');
+    const copyAt = LOOP_SRC.indexOf('const preTurnFiles');
+    const firstToolWrite = LOOP_SRC.indexOf('createToolDispatcher(');
     assert.ok(copyAt !== -1 && firstToolWrite !== -1 && copyAt < firstToolWrite,
         'sanity: de kopie staat vóór de plek waar de gereedschappen liveFiles schrijven');
 });
@@ -82,6 +91,6 @@ test('de maker is de persoon achter de beurt, niet een verzonnen AI-account', ()
 });
 
 test('de versiefeiten komen uit de gedeelde module, niet uit een eigen kopie', () => {
-    assert.match(SRC, /require\('\.\.\/\.\.\/core\/webpages\/versionFacts'\)/,
+    assert.match(SRC, /require\('\.\.\/\.\.\/\.\.\/core\/webpages\/versionFacts'\)/,
         'drie schrijfplekken met elk hun eigen manier om regels te tellen gaan verschillende taal spreken');
 });

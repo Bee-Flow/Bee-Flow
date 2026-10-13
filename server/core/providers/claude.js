@@ -8,16 +8,21 @@
 
 const BaseProvider = require("./base");
 const { qualifiesForStrict } = require("./openaiModelCaps");
-const {
-    describeClaudeModel,
-    resolveEffort,
-} = require("./claudeModels");
+const { describeClaudeModel } = require("./claudeModels");
 const { downscaleClaudeMessages } = require("../documents/imageDownscale");
 const { inlineInternalImages } = require("../documents/imageInline");
 const log = require('../../telemetry/log');
 const { normalizeUsage } = require("./usageNormalizer");
-
-const DEFAULT_MAX_TOKENS = 8192;
+const { mergeToolResultRuns, repairToolPairs } = require("./claude/messageRepair");
+const { applyPromptCacheBreakpoints } = require("./claude/promptCache");
+const {
+    refusalMessage,
+    isContextWindowStop,
+    isThinkingReplayRejection,
+    isForcedToolChoiceRejection,
+    isContextManagementRejection,
+} = require("./claude/errors");
+const { buildThinking, buildSdkParams, requestOptionsFor } = require("./claude/params");
 
 // Explicit SDK request timeout. Passing ANY constructor `timeout` disables the
 // SDK's pre-flight "Streaming is required for operations that may take longer
@@ -38,235 +43,6 @@ const SDK_TIMEOUT_MS = 600000; // 10 minutes (== @anthropic-ai/sdk DEFAULT_TIMEO
 // when the first system block is exactly this string. Injected in OAuth dev mode
 // (BEEFLOW_CLAUDE_CODE_OAUTH=1); see core/providers/claudeCodeAuth.js.
 const CLAUDE_CODE_IDENTITY = "You are Claude Code, Anthropic's official CLI for Claude.";
-
-/**
- * Drop orphan tool_use/tool_result blocks so Anthropic doesn't reject the
- * request. After compaction or aggressive history pruning, the message array
- * can contain a `tool_result` whose matching `tool_use` has been summarised
- * away — Claude returns "unexpected tool_use_id found in tool_result blocks".
- *
- * Rules enforced (mirrors the API's contract):
- *   1. tool_result.tool_use_id must reference a tool_use emitted in the
- *      immediately previous assistant message.
- *   2. Every tool_use must have a matching tool_result in the immediately
- *      following user message.
- *
- * Anything that violates either rule is dropped. Messages that become empty
- * after dropping orphans are removed from the array entirely.
- */
-/**
- * Merge runs of consecutive user messages that each carry tool_result blocks
- * into ONE user message. Anthropic requires every tool_result answering an
- * assistant turn's tool_use blocks to arrive in the SINGLE user message
- * immediately following that turn. Our tool loops (builder, chat, flowlet)
- * push one role:'tool' message per result, which normalizes to N consecutive
- * user messages on a parallel-tool-call round — without this merge,
- * repairToolPairs pairs only the FIRST result with the assistant turn and
- * silently drops the rest (the model then loses those results entirely).
- * Plain-text user messages are never merged — only tool_result carriers.
- */
-function mergeToolResultRuns(messages) {
-    const out = [];
-    const carriesToolResult = (m) => m && m.role === 'user'
-        && Array.isArray(m.content) && m.content.some(b => b?.type === 'tool_result');
-    for (const msg of messages) {
-        const prev = out[out.length - 1];
-        if (carriesToolResult(msg) && carriesToolResult(prev)) {
-            prev.content = [...prev.content, ...msg.content];
-            continue;
-        }
-        out.push(msg);
-    }
-    return out;
-}
-
-function repairToolPairs(messages) {
-    const out = [];
-    for (let i = 0; i < messages.length; i++) {
-        const msg = messages[i];
-
-        // user/tool_result message — keep only tool_result blocks whose id
-        // appears in the previous assistant's tool_use blocks.
-        if (msg.role === 'user' && Array.isArray(msg.content) && msg.content.some(b => b?.type === 'tool_result')) {
-            const prev = out[out.length - 1];
-            const prevToolUseIds = new Set(
-                (prev?.role === 'assistant' && Array.isArray(prev.content)
-                    ? prev.content.filter(b => b?.type === 'tool_use').map(b => b.id)
-                    : [])
-            );
-            const cleaned = msg.content.filter(b => {
-                if (b?.type !== 'tool_result') return true; // keep non-tool blocks (rare but legal)
-                return prevToolUseIds.has(b.tool_use_id);
-            });
-            if (cleaned.length === 0) continue; // entire message was orphaned — drop
-            out.push({ ...msg, content: cleaned });
-            continue;
-        }
-
-        // assistant message with tool_use blocks — drop any tool_use whose
-        // matching tool_result isn't in the next message. If all tool_uses
-        // are orphaned and no other content remains, drop the message.
-        if (msg.role === 'assistant' && Array.isArray(msg.content) && msg.content.some(b => b?.type === 'tool_use')) {
-            const next = messages[i + 1];
-            const nextResultIds = new Set(
-                (next?.role === 'user' && Array.isArray(next.content)
-                    ? next.content.filter(b => b?.type === 'tool_result').map(b => b.tool_use_id)
-                    : [])
-            );
-            const cleaned = msg.content.filter(b => {
-                if (b?.type !== 'tool_use') return true;
-                return nextResultIds.has(b.id);
-            });
-            const hasMeaningful = cleaned.some(b => b?.type === 'text' || b?.type === 'tool_use' || b?.type === 'thinking');
-            if (!hasMeaningful) continue; // assistant turn was nothing but orphan tool_uses — drop
-            out.push({ ...msg, content: cleaned });
-            continue;
-        }
-
-        out.push(msg);
-    }
-    return out;
-}
-
-// Server-side context editing (Claude-only): Anthropic clears old tool
-// results from the prompt before the model sees it, once a request crosses
-// the trigger. Applied entirely on Anthropic's side — our own history and
-// persistence are untouched, so it composes with the provider-agnostic
-// watermark compaction in core/compaction.js (that handles cross-turn
-// history; this handles heavy in-turn tool loops). Escape hatch:
-// CLAUDE_CONTEXT_EDITING_DISABLED=1 turns it off without a code change.
-const CONTEXT_EDITING_BETA = 'context-management-2025-06-27';
-const CONTEXT_EDITING_DISABLED = process.env.CLAUDE_CONTEXT_EDITING_DISABLED === '1';
-
-/**
- * Whether the API returns the reasoning TEXT alongside each thinking block.
- *
- * This is not cosmetic and it is not the same switch as "is thinking on".
- * `display` defaults to `'omitted'` on Claude Opus 5, Sonnet 5, Opus 4.8/4.7
- * and Fable/Mythos 5 — a silent change from Opus 4.6 / Sonnet 4.6, where the
- * default was `'summarized'`. With `'omitted'` the model still thinks, is still
- * billed for it, and still returns a signed thinking block — but the `thinking`
- * field is an empty string and NO `thinking_delta` events are streamed. The
- * product's reasoning panel then has nothing to render and hides itself, which
- * looks exactly like "thinking is broken".
- *
- * So the default here is `'summarized'`: this app shows reasoning to the user.
- * `'omitted'` is the right choice for a deployment that never surfaces it —
- * it trims time-to-first-text-token — but it saves no money.
- *
- * CLAUDE_THINKING_DISPLAY=summarized | omitted
- */
-const THINKING_DISPLAY = (() => {
-    const raw = String(process.env.CLAUDE_THINKING_DISPLAY || '').trim().toLowerCase();
-    return raw === 'omitted' ? 'omitted' : 'summarized';
-})();
-
-/**
- * How many assistant turns of thinking the API is asked to preserve.
- *
- * 'all' (default) keeps the model's whole reasoning trail in context, which is
- * the point — on Opus 4.6 / Sonnet 4.6 and earlier the API otherwise keeps
- * only the LAST turn. 'off' omits the edit entirely (falls back to the model
- * default); a positive integer caps it for deployments that would rather pay
- * less than let the model re-read every earlier thought.
- *
- * CLAUDE_KEEP_THINKING_TURNS=all | off | <positive integer>
- */
-const KEEP_THINKING_TURNS = (() => {
-    const raw = String(process.env.CLAUDE_KEEP_THINKING_TURNS || '').trim().toLowerCase();
-    if (raw === 'off' || raw === '0') return 'off';
-    if (raw === 'all' || raw === '') return 'all';
-    const n = Number.parseInt(raw, 10);
-    return Number.isInteger(n) && n > 0 ? n : 'all';
-})();
-
-/**
- * Claude Opus 5 and the Fable/Mythos family run safety classifiers that can
- * DECLINE a request. This is not an error and does not throw: the API answers
- * HTTP 200 with `stop_reason: 'refusal'`, NO text content, and a structured
- * `stop_details` giving an open-set category.
- *
- * So code that reads content blocks without checking `stop_reason` first shows
- * the user a blank answer with no explanation — which is exactly what this
- * adapter did. `stop_details` is populated ONLY for a refusal and is null for
- * every other stop reason, so it must always be guarded before reading.
- */
-const REFUSAL_CATEGORY_HINTS = {
-    cyber: 'security or exploitation content',
-    bio: 'biological or chemical risk content',
-    reasoning_extraction: 'a request to reveal internal reasoning',
-    frontier_llm: 'a request about frontier model internals',
-};
-
-function refusalMessage(response) {
-    const details = response?.stop_details || null;
-    const hint = (details && REFUSAL_CATEGORY_HINTS[details.category]) || null;
-    const why = hint ? ` It was classified as ${hint}.` : '';
-    const extra = details && details.explanation ? ` ${details.explanation}` : '';
-    return `The model declined to answer this request.${why}${extra}`.trim();
-}
-
-/**
- * `model_context_window_exceeded` is a stop reason the API added in 2026: the
- * request simply did not fit. Worth distinguishing from a refusal and from a
- * plain `max_tokens` truncation, because the remedy is different (fold the
- * conversation, don\'t rephrase it).
- */
-function isContextWindowStop(response) {
-    return response?.stop_reason === 'model_context_window_exceeded';
-}
-
-/**
- * Anthropic rejects a replayed `thinking` block whose signature it cannot
- * verify — the usual cause is a conversation that changed model mid-thread, so
- * the stored signature was minted by a different model. The blocks are an
- * optimisation, never load-bearing, so the adapter drops them and retries once
- * rather than failing the user's turn.
- */
-function isThinkingReplayRejection(err) {
-    if (err?.status && err.status !== 400) return false;
-    const body = JSON.stringify(err?.error || '') + (err?.message || '');
-    if (!/thinking|signature/i.test(body)) return false;
-    return /invalid|verif|unexpected|expected|does not match|mismatch/i.test(body);
-}
-
-/**
- * The instruction that stands in for a forced `tool_choice` on the models that
- * refuse one (see supportsForcedToolChoice). `auto` does not guarantee a call,
- * so the prompt has to say that the tool IS the answer — the documented
- * replacement for `{type:'tool'}` / `{type:'any'}`.
- */
-function forcedToolInstruction(toolName) {
-    return toolName
-        ? `Respond by calling the \`${toolName}\` tool exactly once, with arguments that follow its input schema. Do not answer in plain text.`
-        : 'Respond by calling one of the provided tools, with arguments that follow its input schema. Do not answer in plain text.';
-}
-
-/**
- * The 400 a model answers a forced `tool_choice` with when it no longer
- * supports one. Recognised so a model the catalog does not know yet still
- * gets its answer through the `auto` fallback instead of a failed request.
- */
-function isForcedToolChoiceRejection(err) {
-    if (err?.status && err.status !== 400) return false;
-    const body = JSON.stringify(err?.error || '') + (err?.message || '');
-    return /tool_choice/i.test(body) && /not supported/i.test(body);
-}
-
-// Claude structured outputs reject numeric and length constraints
-// ("For 'number' type, properties maximum, minimum are not supported"), so they
-// are dropped from the schema we send. Callers validate ranges themselves.
-const UNSUPPORTED_SCHEMA_KEYWORDS = new Set(['minimum', 'maximum', 'exclusiveMinimum', 'exclusiveMaximum', 'multipleOf', 'minLength', 'maxLength']);
-function stripUnsupportedSchemaKeywords(node) {
-    if (Array.isArray(node)) return node.map(stripUnsupportedSchemaKeywords);
-    if (!node || typeof node !== 'object') return node;
-    const out = {};
-    for (const [k, v] of Object.entries(node)) {
-        if (UNSUPPORTED_SCHEMA_KEYWORDS.has(k) && (typeof v === 'number')) continue;
-        out[k] = stripUnsupportedSchemaKeywords(v);
-    }
-    return out;
-}
 
 class ClaudeProvider extends BaseProvider {
     // Modern Claude models can reject forced tool_choice. Use native JSON for
@@ -504,158 +280,8 @@ class ClaudeProvider extends BaseProvider {
             }));
 
         // ─── Prompt caching ──────────────────────────────────────────
-        // Anthropic allows up to 4 cache_control breakpoints per request and
-        // requires longer TTLs to appear earlier in the wire order. The
-        // adapter already places one 1h breakpoint on the first system block
-        // (extractSystem) which caches "tools + stable system" together.
-        // Here we add up to three 5-min breakpoints further down the request:
-        //
-        //   (a) Immediately after the compaction summary block, if present.
-        //       This lets Anthropic cache (tools + system + summary) as a
-        //       durable prefix that stays stable across many turns, even as
-        //       the recent-window messages keep changing.
-        //
-        //   (b) On the last genuine user text message. This creates a
-        //       shorter-lived breakpoint so the next turn can still hit the
-        //       cache for "system + tools + summary + full recent history".
-        //       Skipped if the message already has a cache_control marker
-        //       set upstream (e.g. directChat attaches one to the last file
-        //       block so the document content gets cached).
-        //
-        //   (c) On the last tool_result in a multi-turn agent loop. Each
-        //       extra round otherwise re-tokenises the full tool history at
-        //       full price. Tool_result blocks DO support cache_control per
-        //       Anthropic docs.
-        //
-        //   (d) On the PREVIOUS user turn, if a breakpoint is still free.
-        //       Anthropic only looks back 20 content blocks from a breakpoint
-        //       when hunting for an existing cache entry, so a single turn that
-        //       appends more than 20 blocks (a fan-out of tool calls, a
-        //       multi-page upload) pushes the previous write out of range and
-        //       silently re-bills the whole prefix. A trailing breakpoint one
-        //       turn back is a cache READ (free refresh), not a second write,
-        //       and it is what the docs recommend for growing conversations.
-        //
-        // Total breakpoints used: 1 (system, 1h) + up to 3 (5-min) = 4 max,
-        // exactly at the 4-breakpoint cap.
-        //
-        // All skipped for very short conversations (<4 messages) where
-        // caching overhead isn't worth it.
-        const hasCacheControl = (msg) => {
-            if (!Array.isArray(msg.content)) return false;
-            return msg.content.some(b => b && typeof b === 'object' && b.cache_control);
-        };
-
-        // Block types that accept `cache_control`. Marking the LAST of them —
-        // not the last *text* block — is what puts attachments inside the
-        // cached prefix: an uploaded PDF is pushed as `text` (extracted) +
-        // `document` (the raw bytes), so a text-only search parked the
-        // breakpoint before the expensive half and re-billed the document at
-        // full price on every follow-up question.
-        const CACHEABLE_BLOCK_TYPES = new Set([
-            'text', 'image', 'document', 'tool_result', 'tool_use', 'search_result',
-        ]);
-
-        const markLastCacheableBlock = (msg) => {
-            if (typeof msg.content === 'string' && msg.content.trim()) {
-                msg.content = [{
-                    type: "text",
-                    text: msg.content,
-                    cache_control: { type: "ephemeral" },
-                }];
-                return true;
-            }
-            if (Array.isArray(msg.content) && msg.content.length > 0) {
-                for (let j = msg.content.length - 1; j >= 0; j--) {
-                    if (CACHEABLE_BLOCK_TYPES.has(msg.content[j]?.type)) {
-                        msg.content[j].cache_control = { type: "ephemeral" };
-                        return true;
-                    }
-                }
-            }
-            return false;
-        };
-
-        const markLastToolResultBlock = (msg) => {
-            if (!Array.isArray(msg.content) || msg.content.length === 0) return false;
-            for (let j = msg.content.length - 1; j >= 0; j--) {
-                if (msg.content[j].type === 'tool_result') {
-                    msg.content[j].cache_control = { type: "ephemeral" };
-                    return true;
-                }
-            }
-            return false;
-        };
-
-        const isSummaryMessage = (msg) => {
-            if (msg.role !== 'user') return false;
-            const text = typeof msg.content === 'string'
-                ? msg.content
-                : Array.isArray(msg.content)
-                    ? (msg.content.find(b => b.type === 'text')?.text || '')
-                    : '';
-            return text.startsWith('[Conversation Summary');
-        };
-
-        if (normalized.length >= 4) {
-            let breakpointsUsed = 0;
-            const BREAKPOINT_BUDGET = 3; // (a) summary, (b) last-user, (c) last-tool_result, (d) previous-user
-
-            // Count pre-existing markers (e.g. attachment caching set in directChat).
-            for (const msg of normalized) {
-                if (hasCacheControl(msg)) breakpointsUsed += 1;
-            }
-
-            // (a) Breakpoint on the summary message, if the compactor inserted one.
-            const summaryIdx = normalized.findIndex(isSummaryMessage);
-            if (summaryIdx >= 0 && !hasCacheControl(normalized[summaryIdx]) && breakpointsUsed < BREAKPOINT_BUDGET) {
-                if (markLastCacheableBlock(normalized[summaryIdx])) breakpointsUsed += 1;
-            }
-
-            // (b) Breakpoint on the last genuine user text message — skipped
-            //     if the message already carries a marker (attachment cache).
-            if (breakpointsUsed < BREAKPOINT_BUDGET) {
-                for (let i = normalized.length - 1; i >= 0; i--) {
-                    const msg = normalized[i];
-                    if (msg.role !== 'user') continue;
-                    if (i === summaryIdx) continue; // already marked above
-                    if (hasCacheControl(msg)) continue; // upstream already marked
-                    if (Array.isArray(msg.content) && msg.content.some(b => b.type === 'tool_result')) continue;
-                    if (markLastCacheableBlock(msg)) { breakpointsUsed += 1; break; }
-                }
-            }
-
-            // (c) Breakpoint on the latest tool_result, if any. Multi-turn
-            //     agent loops re-send the full tool-call chain every round;
-            //     caching the last tool_result lets the next iteration read
-            //     the prior context at 10% cost.
-            if (breakpointsUsed < BREAKPOINT_BUDGET) {
-                for (let i = normalized.length - 1; i >= 0; i--) {
-                    const msg = normalized[i];
-                    if (msg.role !== 'user') continue;
-                    if (hasCacheControl(msg)) continue;
-                    if (!Array.isArray(msg.content) || !msg.content.some(b => b.type === 'tool_result')) continue;
-                    if (markLastToolResultBlock(msg)) { breakpointsUsed += 1; break; }
-                }
-            }
-
-            // (d) Trailing breakpoint one user turn further back — keeps the
-            //     previous write inside the 20-block lookback window. Only
-            //     runs with budget to spare, and only when there is real
-            //     history in front of it to cache.
-            if (breakpointsUsed < BREAKPOINT_BUDGET) {
-                let seenUserTurns = 0;
-                for (let i = normalized.length - 1; i >= 2; i--) {
-                    const msg = normalized[i];
-                    if (msg.role !== 'user') continue;
-                    if (hasCacheControl(msg)) { seenUserTurns += 1; continue; }
-                    seenUserTurns += 1;
-                    if (seenUserTurns < 2) continue; // skip the current turn
-                    if (markLastCacheableBlock(msg)) { breakpointsUsed += 1; }
-                    break;
-                }
-            }
-        }
+        // Up to three 5-min breakpoints on the history; see claude/promptCache.js.
+        applyPromptCacheBreakpoints(normalized);
 
         // ─── Drop orphan tool_use / tool_result pairs ───────────────────
         // Anthropic rejects the request with `messages.N.content.0:
@@ -726,28 +352,7 @@ class ClaudeProvider extends BaseProvider {
     }
 
     buildThinking(model, options = {}) {
-        if (!this.supportsReasoning(model)) return undefined;
-
-        const effortRaw = options.reasoningEffort;
-        if (effortRaw === 'none') return undefined; // Explicitly disabled
-
-        // Adaptive-only models reject manual budget_tokens. Legacy 4.x (Opus 4.6 /
-        // Sonnet 4.6) still accept it, though adaptive is recommended.
-        const adaptiveOnly = this.isAdaptiveOnlyReasoning(model);
-        if (!adaptiveOnly && options.budgetTokens && options.budgetTokens > 0) {
-            return { thinking: { type: "enabled", budget_tokens: options.budgetTokens } };
-        }
-
-        // Adaptive thinking: effort is passed via output_config (top-level), not
-        // nested in thinking. Which levels a model actually accepts is a
-        // per-model fact (`xhigh` only arrived with Opus 4.7), so the ladder and
-        // the xhigh->max fallback for the ladders without it live in the catalog.
-        const effort = resolveEffort(model, effortRaw) || 'medium';
-        // `display` is what makes the reasoning visible at all — see
-        // THINKING_DISPLAY. The legacy `budget_tokens` path above deliberately
-        // leaves it unset: those models already default to 'summarized', so
-        // the only thing setting it there could do is break on an older API.
-        return { thinking: { type: "adaptive", display: THINKING_DISPLAY }, effort };
+        return buildThinking(this, model, options);
     }
 
     supportsReasoning(modelId) {
@@ -794,154 +399,7 @@ class ClaudeProvider extends BaseProvider {
     // ─── SDK Params Builder ──────────────────────────────────────
 
     _buildSdkParams(model, messages, options = {}) {
-        // Resolved first: whether thinking is on decides whether stored
-        // thinking blocks are worth replaying into the history at all.
-        let thinkingConfig = this.buildThinking(model, options);
-
-        // Extended thinking is incompatible with a forced tool choice: per
-        // https://docs.claude.com/en/docs/agents-and-tools/tool-use/implement-tool-use
-        // only `auto` and `none` are allowed while thinking is enabled —
-        // `any`/`tool` get a 400 and the whole call fails. Forced choice is the
-        // mechanical structured-output path (llmClient.chatForcedTool), where
-        // reasoning adds nothing, so thinking yields to the force, never the
-        // other way around. Skipping replay too: thinking blocks without a
-        // thinking param are dead weight in the history.
-        //
-        // Sonnet 5.5, Opus 5.5 and Fable/Mythos 5.1 refuse a forced choice
-        // outright (400 `tool_choice: type "tool" and "any" are not supported
-        // for this model.`). There the call runs with `auto` plus an explicit
-        // instruction naming the tool (forcedToolFallback), and thinking STAYS
-        // on: it cannot be switched off on those models anyway, and dropping
-        // the config would only lose the effort and the max_tokens headroom.
-        const tc = options.toolChoice;
-        const forcedName = tc && typeof tc === 'object' ? (tc.name || tc.function?.name || null) : null;
-        const forcedChoice = tc === 'any' || tc === 'required' || !!forcedName;
-        const unforced = forcedChoice && (options._noForcedToolChoice || !this.supportsForcedToolChoice(model));
-        if (forcedChoice && !unforced && thinkingConfig) {
-            thinkingConfig = undefined;
-        }
-        const keepThinking = !!thinkingConfig && !options._noThinkingReplay;
-
-        const params = {
-            model,
-            messages: this.normalizeMessages(messages, { keepThinking }),
-            max_tokens: options.maxTokens ?? DEFAULT_MAX_TOKENS,
-        };
-
-        const system = this.extractSystem(messages);
-        if (system) params.system = system;
-
-        // The adaptive-only family (Opus 4.7/4.8, Sonnet 5, Fable/Mythos 5) rejects
-        // sampling params with a 400 — never forward a caller-supplied temperature.
-        const adaptiveOnly = this.isAdaptiveOnlyReasoning(model);
-        if (options.temperature !== undefined && !adaptiveOnly && describeClaudeModel(model).temperature) params.temperature = options.temperature;
-
-        if (options.tools && options.tools.length > 0) {
-            const normalizedTools = this.normalizeTools(options.tools);
-            // Tools come before system in Anthropic's wire format. Per the
-            // mixed-TTL rule ("longer TTL must appear first"), placing a
-            // 5-min breakpoint on tools while system has a 1-hour breakpoint
-            // would violate ordering. The system block-1 1h breakpoint
-            // already caches "tools + system" as a single prefix, so the
-            // standalone tools breakpoint is redundant — drop it.
-            params.tools = normalizedTools;
-            if (options.toolChoice === "auto") params.tool_choice = { type: "auto" };
-            if (unforced) {
-                params.tool_choice = { type: "auto" };
-                params.system = [...(params.system || []), { type: "text", text: forcedToolInstruction(forcedName) }];
-            } else if (options.toolChoice === "any" || options.toolChoice === "required") {
-                params.tool_choice = { type: "any" };
-            } else if (forcedName) {
-                // Force a single named tool. Accept BOTH the bare `{name}` form
-                // and the OpenAI wire shape `{type:'function',function:{name}}`
-                // that openai-style callers and llmClient.forcedToolChoice emit —
-                // Anthropic's SDK only understands `{type:'tool',name}`, so a
-                // caller passing the OpenAI shape previously fell through here and
-                // silently ran with tool_choice unset (auto), breaking every
-                // forced-structured-output call routed to a Claude model.
-                params.tool_choice = { type: "tool", name: forcedName };
-            }
-        }
-
-        // ─── Server-side context management ──────────────────────────
-        //
-        // This is the LOSSLESS half of context handling and, since local
-        // compaction became opt-in (core/llm/contextPolicy.js), the one that
-        // normally runs. Anthropic edits the request server-side; our stored
-        // conversation is never rewritten, so nothing is destroyed for later
-        // turns the way a fast-tier summary destroys it.
-        //
-        // Two edits, and ORDER MATTERS — `clear_thinking_20251015` must come
-        // first when combined, per Anthropic's docs.
-        //
-        //   1. clear_thinking_20251015 — `keep: all`. Not a no-op: on Opus 4.6
-        //      / Sonnet 4.6 and earlier the API's DEFAULT is to keep only the
-        //      last turn's thinking and silently drop the rest, which is half
-        //      of "the model loses its reasoning in long chats". We replay the
-        //      blocks (replayThinkingBlocks) and this stops the server from
-        //      throwing them away again. Opus 4.5+/Sonnet 4.6+ already default
-        //      to keeping everything, so there it just pins the behaviour.
-        //      CLAUDE_KEEP_THINKING_TURNS=<n> caps it for cost-sensitive
-        //      deployments.
-        //
-        //   2. clear_tool_uses_20250919 — only meaningful with tools in play.
-        //      Fires on genuinely heavy tool turns, keeps the recent pairs the
-        //      model is actively reasoning about, and clears enough per
-        //      activation to justify the cache invalidation at the clear point.
-        //      `clear_tool_inputs` stays false so the model still sees WHAT it
-        //      called even once the result is gone.
-        //
-        // Native server-side compaction (compact_20260112) is deliberately NOT
-        // enabled: its compaction blocks must be replayed verbatim on later
-        // requests, and our flattened message persistence cannot round-trip
-        // them.
-        if (!CONTEXT_EDITING_DISABLED && !options._noContextEditing && this.supportsContextEditing(model)) {
-            const edits = [];
-
-            if (thinkingConfig && KEEP_THINKING_TURNS !== 'off') {
-                edits.push({
-                    type: 'clear_thinking_20251015',
-                    keep: KEEP_THINKING_TURNS === 'all'
-                        ? { type: 'all' }
-                        : { type: 'thinking_turns', value: KEEP_THINKING_TURNS },
-                });
-            }
-
-            if (params.tools) {
-                edits.push({
-                    type: 'clear_tool_uses_20250919',
-                    trigger: { type: 'input_tokens', value: 30000 },
-                    keep: { type: 'tool_uses', value: 5 },
-                    clear_at_least: { type: 'input_tokens', value: 5000 },
-                });
-            }
-
-            if (edits.length > 0) params.context_management = { edits };
-        }
-
-        if (thinkingConfig) {
-            params.thinking = thinkingConfig.thinking;
-            // Legacy 4.x require temperature=1 when thinking is enabled; the
-            // adaptive-only family rejects sampling params, so leave it unset.
-            if (!adaptiveOnly) params.temperature = 1;
-            if (thinkingConfig.thinking.type === 'adaptive') {
-                // effort belongs inside output_config per SDK v0.78.0 OutputConfig interface
-                if (thinkingConfig.effort) {
-                    params.output_config = { effort: thinkingConfig.effort };
-                }
-                // Ensure enough room for thinking + answer
-                if (params.max_tokens < 16384) params.max_tokens = 16384;
-            } else if (thinkingConfig.thinking.budget_tokens && params.max_tokens < thinkingConfig.thinking.budget_tokens + 1024) {
-                // Legacy budget_tokens mode
-                params.max_tokens = thinkingConfig.thinking.budget_tokens + 1024;
-            }
-        }
-
-        if (options.responseFormat?.type === 'json_schema' && options.responseFormat.json_schema?.schema) {
-            params.output_config = { ...params.output_config,
-                format: { type: 'json_schema', schema: stripUnsupportedSchemaKeywords(options.responseFormat.json_schema.schema) } };
-        }
-        return params;
+        return buildSdkParams(this, model, messages, options);
     }
 
     /**
@@ -951,14 +409,11 @@ class ClaudeProvider extends BaseProvider {
      * beta (comma-separated list is the documented form).
      */
     _requestOptionsFor(params, oauth) {
-        if (!params.context_management) return undefined;
-        const betas = oauth ? `oauth-2025-04-20,${CONTEXT_EDITING_BETA}` : CONTEXT_EDITING_BETA;
-        return { headers: { 'anthropic-beta': betas } };
+        return requestOptionsFor(params, oauth);
     }
 
     _isContextManagementRejection(err) {
-        const body = JSON.stringify(err?.error || '') + (err?.message || '');
-        return /context[_-]?management/i.test(body);
+        return isContextManagementRejection(err);
     }
 
     // ─── High-Level API (all SDK) ────────────────────────────────
