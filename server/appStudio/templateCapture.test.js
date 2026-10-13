@@ -214,6 +214,9 @@ test('BFSF-384: a staged approval loses its stages on capture, and the capture s
     };
     const out = captureTemplate({ definition: def, meta: { title: 'Orders' } });
     assert.ok(out.ok, JSON.stringify(out.errors));
-    assert.ok(!JSON.stringify(out.template).includes('u1') && !JSON.stringify(out.template).includes('g_fin'));
+    // Match the quoted values: capture renames actions to random ids
+    // (act_u1cvq5), so a bare 'u1' substring hit about 1 run in 80.
+    const json = JSON.stringify(out.template);
+    assert.ok(!json.includes('"u1"') && !json.includes('"g_fin"'), json);
     assert.ok(out.report.warnings.some(w => /2 approval stage\(s\) removed/.test(w)), JSON.stringify(out.report.warnings));
 });
