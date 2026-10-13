@@ -35,28 +35,12 @@
 const { test, before, after } = require('node:test');
 const assert = require('node:assert');
 const { PGlite } = require('@electric-sql/pglite');
+const { pgliteDb, dbFacade } = require('../testUtils/pgliteDb');
 
 const { makeProjectStore, applyProjectSchema } = require('./projectStore');
 
-/** PGlite's result in node-postgres's shape. */
-function asPgResult(r) {
-    const rows = r.rows || [];
-    return { rows, rowCount: typeof r.affectedRows === 'number' ? r.affectedRows : rows.length };
-}
-
 /** The slice of db.js the store uses, over one PGlite connection. */
-function facadeFor(pg) {
-    const query = async (sql, params) => asPgResult(
-        params && params.length ? await pg.query(sql, params) : await pg.query(sql),
-    );
-    return {
-        run: query,
-        getOne: async (sql, params) => (await query(sql, params)).rows[0] || null,
-        getAll: async (sql, params) => (await query(sql, params)).rows,
-        getClient: async () => ({ query, release() {} }),
-        exec: (sql) => pg.exec(sql),
-    };
-}
+const facadeFor = (pg) => dbFacade(pgliteDb(pg).db);
 
 /** runDdl's contract without its lock plumbing: every statement, in order. */
 async function runStatements(pg, statements) {

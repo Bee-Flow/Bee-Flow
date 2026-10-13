@@ -140,3 +140,72 @@ test('openSse starts the keep-alive only when asked', () => {
         mock.timers.reset();
     }
 });
+
+test('openSse keeps a route\'s own head: overrides a value, drops a null one, flushes on request', () => {
+    const res = fakeStreamRes();
+    let flushed = 0;
+    res.flushHeaders = () => { flushed++; };
+    openSse(res, { headers: { 'Cache-Control': 'no-cache, no-transform', 'X-Accel-Buffering': null }, flush: true });
+    assert.deepStrictEqual(res.headers, {
+        'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache, no-transform', 'Connection': 'keep-alive',
+    });
+    assert.strictEqual(flushed, 1);
+    const plain = fakeStreamRes();
+    plain.flushHeaders = () => { flushed++; };
+    openSse(plain);
+    assert.strictEqual(flushed, 1, 'no flush unless asked');
+});
+
+test('openSse: sendRaw writes the chunk as is, swallows a throwing write, and stops after end', () => {
+    const res = fakeStreamRes();
+    let ended = 0;
+    res.end = () => { ended++; res.writableEnded = true; return res; };
+    const { sendRaw, end } = openSse(res);
+    sendRaw('data: {"type":"done"}\n\n');
+    assert.deepStrictEqual(res.writes, ['data: {"type":"done"}\n\n']);
+    res.write = () => { throw new Error('EPIPE'); };
+    assert.doesNotThrow(() => sendRaw('x'));
+    assert.strictEqual(end(), res);
+    assert.strictEqual(end(), res, 'a second end() is a no-op');
+    assert.strictEqual(ended, 1);
+});
+
+test('openSse: the heartbeat takes startSseHeartbeat\'s interval and frame, and end() stops it', () => {
+    mock.timers.enable({ apis: ['setInterval'] });
+    try {
+        const res = fakeStreamRes();
+        res.end = () => { res.writableEnded = true; return res; };
+        const { end } = openSse(res, { heartbeat: { intervalMs: 25000, frame: ': keepalive\n\n' } });
+        mock.timers.tick(10000);
+        assert.strictEqual(res.writes.length, 0);
+        mock.timers.tick(15000);
+        assert.deepStrictEqual(res.writes, [': keepalive\n\n']);
+        end();
+        mock.timers.tick(50000);
+        assert.strictEqual(res.writes.length, 1);
+    } finally {
+        mock.timers.reset();
+    }
+});
+
+test('openSse tolerates a response stub without event listeners', () => {
+    const res = { writes: [], writeHead() {}, write(s) { this.writes.push(s); return true; } };
+    const { send } = openSse(res, { heartbeat: true });
+    send('done', { ok: true });
+    assert.deepStrictEqual(res.writes, ['event: done\ndata: {"ok":true}\n\n']);
+});
+
+test('openSse viaSetHeader sets the head header by header instead of writeHead', () => {
+    const res = fakeStreamRes();
+    const set = {};
+    res.setHeader = (k, v) => { set[k] = v; };
+    res.writeHead = () => { throw new Error('writeHead must not be called'); };
+    openSse(res, { viaSetHeader: true, headers: { 'X-Accel-Buffering': null } });
+    assert.deepStrictEqual(set, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
+});
+
+test('openSse charset reproduces the Content-Type Express\'s res.set wrote', () => {
+    const res = fakeStreamRes();
+    openSse(res, { charset: 'utf-8' });
+    assert.strictEqual(res.headers['Content-Type'], 'text/event-stream; charset=utf-8');
+});

@@ -135,3 +135,114 @@ export const apiClient: ApiClient = {
 };
 
 export default apiClient;
+
+// ---------------------------------------------------------------------------
+// createJsonResource — the `request()` every studio API module used to carry
+// its own copy of. Unlike `apiClient` it keeps those modules' contract
+// exactly: ONE attempt (no retry unless asked: a retried POST is a second
+// write), the server's `error` text verbatim (falling back to
+// "Request failed (<status>)"), and a thrown Error carrying `status`, `code`
+// and the parsed `body`. The resolved value is the parsed JSON body, or null
+// when the answer had none.
+// ---------------------------------------------------------------------------
+
+/** The Error a resource request throws on a non-2xx answer. */
+export interface JsonResourceError extends Error {
+    status: number;
+    code: string | null;
+    body: unknown;
+    [extra: string]: unknown;
+}
+
+/** Init for one resource call: a fetch init whose body may be a plain object. */
+export interface JsonResourceInit extends Omit<RequestInit, 'body' | 'headers'> {
+    body?: unknown;
+    headers?: Record<string, string>;
+}
+
+export interface JsonResourceOptions {
+    /**
+     * When to send `Content-Type: application/json`:
+     *  - 'json' (default): on every call except a FormData body (which sets
+     *    its own multipart boundary); the caller's headers win.
+     *  - 'body': only when the call carries a body.
+     *  - 'none': never — the caller passes its own headers.
+     */
+    contentType?: 'json' | 'body' | 'none';
+    /** JSON.stringify a body that is not already a string or FormData. Default true. */
+    encodeBody?: boolean;
+    /** Message when the error body carries no `error`. Default "Request failed (<status>)". */
+    errorText?: (status: number) => string;
+    /** Add module-specific fields (retryAfter, managed, field, ...) to the thrown error. */
+    decorate?: (err: JsonResourceError, body: Record<string, unknown> | null, res: Response) => void;
+    /** Retry on network errors / 5xx / 408 / 429. Off by default (see above). */
+    retry?: false | Partial<RetryOptions>;
+}
+
+// The default is `any` on purpose: the JS modules that call this read the
+// body field by field exactly as they did with `await res.json()`; a TS caller
+// names its type.
+export type JsonResourceRequest = <T = any>(path?: string, init?: JsonResourceInit) => Promise<T>;
+
+const isFormData = (b: unknown): boolean => typeof FormData !== 'undefined' && b instanceof FormData;
+
+/**
+ * A `request(path, init)` bound to `base` (prepended verbatim, '' for callers
+ * that pass whole URLs).
+ */
+export function createJsonResource(base = '', options: JsonResourceOptions = {}): JsonResourceRequest {
+    const {
+        contentType = 'json',
+        encodeBody = true,
+        errorText = (status: number) => `Request failed (${status})`,
+        decorate,
+        retry = false,
+    } = options;
+
+    function toFetchInit(init: JsonResourceInit): RequestInit {
+        const { body: rawBody, headers: callerHeaders, ...rest } = init;
+        const fetchInit: RequestInit = { ...rest };
+        const hasBody = rawBody !== undefined;
+        const form = isFormData(rawBody);
+        const wantsJson = (contentType === 'json' && !form) || (contentType === 'body' && hasBody);
+        const headers = wantsJson ? { 'Content-Type': 'application/json', ...callerHeaders } : callerHeaders;
+        if (headers) fetchInit.headers = headers;
+        if (!hasBody) return fetchInit;
+        const encode = encodeBody && typeof rawBody !== 'string' && !form;
+        fetchInit.body = (encode ? JSON.stringify(rawBody) : rawBody) as BodyInit;
+        return fetchInit;
+    }
+
+    async function once<T>(url: string, init: JsonResourceInit): Promise<T> {
+        const res: Response = await authFetch(url, toFetchInit(init));
+        let parsed: Record<string, unknown> | null = null;
+        try { parsed = await res.json(); } catch { /* empty or non-JSON body */ }
+        if (res.ok) return parsed as T;
+        const err = new Error((parsed?.error as string) || errorText(res.status)) as JsonResourceError;
+        err.status = res.status;
+        err.code = (parsed?.code as string) || null;
+        err.body = parsed;
+        decorate?.(err, parsed, res);
+        throw err;
+    }
+
+    return async function request<T = any>(path = '', init: JsonResourceInit = {}): Promise<T> {
+        const url = `${base}${path}`;
+        if (retry === false) return once<T>(url, init);
+        const r: RetryOptions = { ...DEFAULT_RETRY, ...retry };
+        let lastErr: unknown;
+        for (let i = 0; i <= r.attempts; i++) {
+            try {
+                return await once<T>(url, init);
+            } catch (e) {
+                if ((e as Error)?.name === 'AbortError') throw e;
+                const status = (e as JsonResourceError)?.status;
+                if (status && status < 500 && status !== 408 && status !== 429) throw e;
+                lastErr = e;
+                if (i === r.attempts) break;
+                await new Promise((res) => setTimeout(res, r.base * 2 ** i));
+            }
+        }
+        throw lastErr;
+    };
+}

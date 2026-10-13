@@ -16,9 +16,7 @@ const consentGuards = require('../consentGuards');
 const { isEncryptionEnabledForUser, isSsoPinRequiredForUser } = require('../../stores/encryptionAvailability');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
+const { worded } = require('../../core/http/schemaParts');
 
 const ID_TEXT = 'Name the consent you want to change.';
 const GRANTED_TEXT = 'Say whether the consent is given or withdrawn.';
@@ -257,16 +255,9 @@ router.get('/user', async (req, res) => {
                     const orgId = freshUser?.organizationId;
                     if (!orgId) return null;
                     const org = await userStore.getOrganization(orgId);
-                    if (org?.enabledIntegrations) {
-                        return typeof org.enabledIntegrations === 'string' ? JSON.parse(org.enabledIntegrations) : org.enabledIntegrations;
-                    }
-                    // Org uses defaults — load global default integrations
-                    const configStore = require('../../stores/configStore');
-                    const globalDefaults = await configStore.getConfig('default_org_integrations');
-                    if (globalDefaults) {
-                        return typeof globalDefaults === 'string' ? JSON.parse(globalDefaults) : globalDefaults;
-                    }
-                    return null; // no defaults configured = all enabled
+                    // Org override, else the global default; null = all enabled.
+                    const { resolveOrgAllowList } = require('../../core/integrations/enabledIntegrations');
+                    return await resolveOrgAllowList(org);
                 } catch (e) { return null; }
             })(),
         });

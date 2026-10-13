@@ -72,7 +72,7 @@ function setupSSE(res) {
  *     `ping` event). Pass a custom frame to preserve a route's existing wire
  *     format (e.g. `': keepalive\n\n'`).
  *   maxFailures — consecutive write failures before onDead fires (default 3).
- * @returns {Function} stop
+ * @returns {() => void} stop
  */
 function startSseHeartbeat(res, intervalMs = 10000, opts = {}) {
     const { onDead = null, frame = ': ping\n\nevent: ping\ndata: {}\n\n', maxFailures = 3 } = opts;
@@ -97,55 +97,97 @@ function startSseHeartbeat(res, intervalMs = 10000, opts = {}) {
         }
     }, intervalMs);
     if (timer.unref) timer.unref();  // don't keep the event loop alive for pings
-    res.on('close', stop);
-    res.on('finish', stop);
-    res.on('error', stop);
+    if (typeof res.on === 'function') {
+        res.on('close', stop);
+        res.on('finish', stop);
+        res.on('error', stop);
+    }
     return stop;
 }
 
+/** The head every hand-rolled stream used to write itself. */
+const SSE_HEADERS = Object.freeze({
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    // nginx buffers a streamed response into uselessness without this.
+    'X-Accel-Buffering': 'no',
+});
+
 /**
- * Open a streaming chat response: the SSE headers, a guarded `send`, the
- * client-stop wiring and (opt-in) the keep-alive, in one call, so a route
- * cannot forget one of them.
+ * Open a streaming response: the SSE head, a guarded `send`, the client-stop
+ * wiring and (opt-in) the keep-alive, in one call, so a route cannot forget
+ * one of them.
  *
- *   - headers: 200 + `text/event-stream`, `no-cache`, `keep-alive` and
- *     `X-Accel-Buffering: no` (nginx would otherwise buffer the stream);
- *   - send(event, data): a no-op once the response has ended or the socket
- *     is gone, so a late callback never writes after end();
- *   - signal / isGone(): the composer's stop button aborts the browser fetch,
- *     which closes this response. Our own end() also emits 'close', so
- *     `writableEnded` keeps it from reading as a cancel;
+ *   - head: 200 + SSE_HEADERS. `headers` overrides single values (a `null`
+ *     value drops that header), so a route keeps its exact wire head;
+ *     `flush` pushes the head to the wire before the first event;
+ *     `viaSetHeader` sets the head header by header (status stays 200)
+ *     instead of writeHead, for a route that always wrote it that way;
+ *     `charset` appends `; charset=…` to the Content-Type (what Express's
+ *     res.set added for a route that used it);
+ *   - send(event, data) / sendRaw(chunk): a no-op once the response has ended
+ *     or the socket is gone, so a late callback never writes after end();
+ *     a write that throws on a dying socket is swallowed;
+ *   - signal / isGone(): the client closing the stream (the composer's stop
+ *     button aborts the browser fetch) aborts `signal`. Our own end() also
+ *     emits 'close', so `writableEnded` keeps it from reading as a cancel;
  *   - heartbeat: startSseHeartbeat, which keeps a long, silent turn alive
  *     through the Nextcloud AppAPI proxy instead of an idle 504 (BFSF-221).
+ *     `true` for the default 10 s ping, or startSseHeartbeat's options plus
+ *     `intervalMs` to keep a route's own interval and frame;
+ *   - end(): stops the heartbeat and ends the response once (returns what
+ *     res.end returns, or res when it had already ended).
  *
  * @param {Object} res - Express response (headers not yet sent)
- * @param {{ heartbeat?: boolean, intervalMs?: number, tag?: string }} [opts]
- *   tag — log prefix for the disconnect line (e.g. 'TemplateChat').
- * @returns {{ send: (event: string, data: any) => void, signal: AbortSignal,
- *   isGone: () => boolean, stopHeartbeat: Function }}
+ * @param {{ heartbeat?: boolean|{ intervalMs?: number, frame?: string, onDead?: Function, maxFailures?: number },
+ *   intervalMs?: number, tag?: string|null, headers?: Object<string, string|null>, flush?: boolean,
+ *   viaSetHeader?: boolean, charset?: string|null }} [opts]
+ *   tag — when set, the disconnect is logged with this prefix (e.g. 'TemplateChat').
+ * @returns {{ send: (event: string, data: any) => void, sendRaw: (chunk: string) => void,
+ *   signal: AbortSignal, isGone: () => boolean, end: Function, stopHeartbeat: Function }}
  */
 function openSse(res, opts = {}) {
-    const { heartbeat = false, intervalMs = 10000, tag = 'SSE' } = opts;
-    res.writeHead(200, {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-        'X-Accel-Buffering': 'no',
-    });
-    const send = (event, data) => {
+    const { heartbeat = false, intervalMs = 10000, tag = null, headers = null, flush = false, viaSetHeader = false, charset = null } = opts;
+    /** @type {Record<string, string>} */
+    const head = { ...SSE_HEADERS };
+    if (charset) head['Content-Type'] = `${head['Content-Type']}; charset=${charset}`;
+    for (const [k, v] of Object.entries(headers || {})) {
+        if (v === null || v === undefined) delete head[k]; else head[k] = v;
+    }
+    if (viaSetHeader) {
+        for (const [k, v] of Object.entries(head)) res.setHeader(k, v);
+    } else {
+        res.writeHead(200, head);
+    }
+    if (flush && typeof res.flushHeaders === 'function') res.flushHeaders();
+    const sendRaw = (chunk) => {
         if (res.writableEnded || res.destroyed) return;
-        res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+        try { res.write(chunk); } catch (_) { /* socket gone */ }
     };
+    const send = (event, data) => sendRaw(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
     const abortController = new AbortController();
     let gone = false;
-    res.on('close', () => {
-        if (res.writableEnded) return;
-        gone = true;
-        log.info(`[${tag}] client disconnected — aborting the generation`);
-        try { abortController.abort(); } catch (_) { /* already aborted */ }
-    });
-    const stopHeartbeat = heartbeat ? startSseHeartbeat(res, intervalMs) : () => {};
-    return { send, signal: abortController.signal, isGone: () => gone, stopHeartbeat };
+    if (typeof res.on === 'function') {
+        res.on('close', () => {
+            if (res.writableEnded) return;
+            gone = true;
+            if (tag) log.info(`[${tag}] client disconnected — aborting the generation`);
+            try { abortController.abort(); } catch (_) { /* already aborted */ }
+        });
+    }
+    let stopHeartbeat = () => {};
+    if (heartbeat) {
+        const hb = typeof heartbeat === 'object' ? heartbeat : {};
+        const { intervalMs: hbInterval = intervalMs, ...hbOpts } = hb;
+        stopHeartbeat = startSseHeartbeat(res, hbInterval, hbOpts);
+    }
+    const end = (...args) => {
+        stopHeartbeat();
+        if (res.writableEnded) return res;
+        return res.end(...args);
+    };
+    return { send, sendRaw, signal: abortController.signal, isGone: () => gone, end, stopHeartbeat };
 }
 
 /**
@@ -258,4 +300,4 @@ async function getOrCreateAgentConversation(agent, conversationId, userId, encry
     return conversation;
 }
 
-module.exports = { setupSSE, openSse, sendSSEError, startSseHeartbeat, persistAndTitle, getOrCreateAgentConversation };
+module.exports = { SSE_HEADERS, setupSSE, openSse, sendSSEError, startSseHeartbeat, persistAndTitle, getOrCreateAgentConversation };

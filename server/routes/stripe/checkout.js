@@ -15,6 +15,7 @@ const { handleCheckoutCompleted } = require('./checkoutEvents');
 const { accountLicenseSettingsPath, orgLicenseSettingsPath } = require('../../utils/appPaths');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
+const { worded } = require('../../core/http/schemaParts');
 const log = require('../../telemetry/log');
 
 const router = express.Router();
@@ -40,9 +41,6 @@ const router = express.Router();
 // `req.get('host')` in every deployment. Only its shape is pinned, to a bare
 // http(s) origin, since it is concatenated into the URL Stripe redirects to.
 // `successUrl` keeps its own `startsWith(origin)` check in the handler.
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());

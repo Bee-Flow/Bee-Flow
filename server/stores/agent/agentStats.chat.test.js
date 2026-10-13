@@ -26,12 +26,11 @@ const Module = require('node:module');
 const SERVER = path.resolve(__dirname, '..', '..');
 
 const { PGlite } = require('@electric-sql/pglite');
+const { pgliteQuery } = require('../../testUtils/pglitePool');
 const pg = new PGlite();
 
-async function q(sql, params) {
-    const res = Array.isArray(params) && params.length > 0 ? await pg.query(sql, params) : await pg.query(sql);
-    return { rows: res.rows || [], rowCount: (res.rows || []).length };
-}
+// node-postgres's `query(sql, params)` over this PGlite.
+const q = pgliteQuery(pg);
 const db = { query: q };
 
 // db.js is mocked so requiring the store opens no pool; every call in this

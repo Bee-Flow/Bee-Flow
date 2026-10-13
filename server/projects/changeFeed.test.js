@@ -25,22 +25,12 @@
 const { test, before, after, beforeEach } = require('node:test');
 const assert = require('node:assert');
 const { PGlite } = require('@electric-sql/pglite');
+const { pgliteDb, dbFacade } = require('../testUtils/pgliteDb');
 const { makeProjectStore, applyProjectSchema } = require('../stores/projectStore');
 const { makeChangeFeed, summarizeChanges, summarizeChangesPage, changeWindow } = require('./changeFeed');
 
-function facadeFor(pg) {
-    const query = async (sql, params) => {
-        const r = params && params.length ? await pg.query(sql, params) : await pg.query(sql);
-        const rows = r.rows || [];
-        return { rows, rowCount: typeof r.affectedRows === 'number' ? r.affectedRows : rows.length };
-    };
-    return {
-        run: query,
-        getOne: async (sql, params) => (await query(sql, params)).rows[0] || null,
-        getAll: async (sql, params) => (await query(sql, params)).rows,
-        getClient: async () => ({ query, release() {} }),
-    };
-}
+/** The slice of db.js the store uses, over one PGlite connection. */
+const facadeFor = (pg) => dbFacade(pgliteDb(pg).db);
 
 let pg;
 let store;

@@ -20,6 +20,7 @@ const { requireAuth } = require('../auth/permissions');
 const { isOrgAdminForOrg: isOrgAdmin } = require('../auth/permissions');
 const { validate } = require('../core/http/validate');
 const { z, typeError } = require('../utils/zod');
+const { worded, choice } = require('../core/http/schemaParts');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -46,17 +47,11 @@ const { z, typeError } = require('../utils/zod');
 // rollback) and the server's own `updatedAt`/`updatedBy` stamp arrive too.
 // They are accepted; the stamp is ignored and rewritten on save.
 
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
-
 /** A body that also accepts no body: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
     z.object(shape, { error: typeError({ invalid: 'Send the settings as a JSON object.' }) }).strict(),
 );
-
-/** An enum whose refusal is one sentence, for a wrong value as well as a wrong type. */
-const choice = (values, message) => z.enum(values, { error: () => message });
 
 const onOff = (name) => z.boolean({ error: typeError({ invalid: `${name} is true, false, or null for no opinion.` }) })
     .nullable().optional();

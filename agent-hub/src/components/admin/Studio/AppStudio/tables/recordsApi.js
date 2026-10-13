@@ -1,4 +1,5 @@
-import { API_BASE, authFetch } from '../../../../../utils/helpers';
+import { createJsonResource } from '../../../../../api/client';
+import { API_BASE } from '../../../../../utils/helpers';
 
 /**
  * App Studio — record CRUD for the owner's row editor.
@@ -29,22 +30,17 @@ function recordsUrl(appId, tableId) {
     return `${API_BASE}/api/studio-apps/${enc(appId)}/data/tables/${enc(tableId)}/records`;
 }
 
-async function request(url, options = {}) {
-    const res = await authFetch(url, options);
-    let body = null;
-    try { body = await res.json(); } catch { /* empty/non-JSON body */ }
-    if (!res.ok) {
-        const err = new Error(body?.error || `Request failed (${res.status})`);
-        err.status = res.status;
-        err.code = body?.code || null;
-        err.body = body;
+// The caller sets its own headers. A 429 carries Retry-After (seconds) as
+// `err.retryAfter`; an empty 2xx body reads as {}.
+const resource = createJsonResource('', {
+    contentType: 'none',
+    decorate: (err, _body, res) => {
         const header = typeof res.headers?.get === 'function' ? res.headers.get('Retry-After') : null;
         const seconds = Number(header);
         err.retryAfter = Number.isFinite(seconds) && seconds > 0 ? seconds : null;
-        throw err;
-    }
-    return body || {};
-}
+    },
+});
+const request = async (url, options = {}) => (await resource(url, options)) || {};
 
 export async function listRecords(appId, tableId, { limit = PAGE_SIZE, cursor = null } = {}) {
     const params = new URLSearchParams({ limit: String(limit) });

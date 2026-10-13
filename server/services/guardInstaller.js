@@ -21,6 +21,10 @@ const Docker = require('dockerode');
 const configStore = require('../stores/configStore');
 const { invalidateGuardEndpointCache } = require('../core/privacy/piiDetection');
 const log = require('../telemetry/log');
+const {
+    isServerInContainer, imageExists, pullImage: pullImageStream, ensureNetwork,
+    removeContainerIfExists: removeContainer,
+} = require('./docker/dockerKit');
 
 const GUARD_CONTAINER = 'beeflow-guard';
 const REDIS_CONTAINER = 'beeflow-guard-redis';
@@ -37,25 +41,10 @@ const GUARD_HOST_PORT = 8100;
 const HEALTH_TIMEOUT_MS = 300_000;
 const HEALTH_POLL_INTERVAL_MS = 3_000;
 
-/**
- * Detect whether the server itself is running inside a Docker container.
- * - /.dockerenv is created by the docker engine in every container.
- * - Falls back to checking cgroup membership for non-standard runtimes.
- *
- * Used to decide how the server reaches the guard container:
- *   - server-in-container → join the server's docker network, use guard hostname
- *   - server-native       → publish guard port to host, use 127.0.0.1
- */
-function isServerInContainer() {
-    try {
-        if (fs.existsSync('/.dockerenv')) return true;
-    } catch (_) { /* ignore */ }
-    try {
-        const cgroup = fs.readFileSync('/proc/1/cgroup', 'utf8');
-        return /docker|containerd|kubepods/.test(cgroup);
-    } catch (_) { /* not Linux or no /proc — assume native */ }
-    return false;
-}
+// isServerInContainer (services/docker/dockerKit) decides how the server
+// reaches the guard container:
+//   - server-in-container → join the server's docker network, use guard hostname
+//   - server-native       → publish guard port to host, use 127.0.0.1
 
 /**
  * When the server runs in a container, the guard container must join the
@@ -226,16 +215,6 @@ async function getStatus() {
     return result;
 }
 
-async function imageExists(docker, image) {
-    try {
-        await docker.getImage(image).inspect();
-        return true;
-    } catch (err) {
-        if (err.statusCode === 404) return false;
-        throw err;
-    }
-}
-
 /**
  * Pull an image while reporting layer-aggregated download progress.
  *
@@ -249,50 +228,41 @@ async function pullImage(docker, image, displayName) {
     const layers = new Map(); // id → { current, total, done }
     let lastReport = 0;
 
-    await new Promise((resolve, reject) => {
-        docker.pull(image, (err, stream) => {
-            if (err) return reject(err);
-            docker.modem.followProgress(
-                stream,
-                (progressErr) => progressErr ? reject(progressErr) : resolve(),
-                (evt) => {
-                    if (!evt) return;
-                    const id = evt.id;
-                    if (id && evt.progressDetail && typeof evt.progressDetail.total === 'number' && evt.progressDetail.total > 0) {
-                        layers.set(id, {
-                            current: evt.progressDetail.current || 0,
-                            total: evt.progressDetail.total,
-                            done: false,
-                        });
-                    }
-                    // Layer completion signals — treat the layer as fully downloaded
-                    // so percent reaches 100 even if the last progress event was lost.
-                    if (id && /complete/i.test(evt.status || '')) {
-                        const layer = layers.get(id);
-                        if (layer) {
-                            layers.set(id, { ...layer, current: layer.total, done: true });
-                        }
-                    }
+    await pullImageStream(docker, image, (evt) => {
+        if (!evt) return;
+        const id = evt.id;
+        if (id && evt.progressDetail && typeof evt.progressDetail.total === 'number' && evt.progressDetail.total > 0) {
+            layers.set(id, {
+                current: evt.progressDetail.current || 0,
+                total: evt.progressDetail.total,
+                done: false,
+            });
+        }
+        // Layer completion signals — treat the layer as fully downloaded
+        // so percent reaches 100 even if the last progress event was lost.
+        if (id && /complete/i.test(evt.status || '')) {
+            const layer = layers.get(id);
+            if (layer) {
+                layers.set(id, { ...layer, current: layer.total, done: true });
+            }
+        }
 
-                    // Throttle progress writes to ~3/sec so the polling
-                    // endpoint doesn't see flicker and we don't spin the CPU.
-                    const now = Date.now();
-                    if (now - lastReport < 300) return;
-                    lastReport = now;
+        // Throttle progress writes to ~3/sec so the polling
+        // endpoint doesn't see flicker and we don't spin the CPU.
+        const now = Date.now();
+        if (now - lastReport < 300) return;
+        lastReport = now;
 
-                    let current = 0;
-                    let total = 0;
-                    for (const layer of layers.values()) {
-                        current += layer.current;
-                        total += layer.total;
-                    }
-                    const percent = total > 0 ? (current / total) * 100 : null;
-                    _setProgress('pull', {
-                        message: `Pulling ${displayName || image}`,
-                        percent,
-                    });
-                },
-            );
+        let current = 0;
+        let total = 0;
+        for (const layer of layers.values()) {
+            current += layer.current;
+            total += layer.total;
+        }
+        const percent = total > 0 ? (current / total) * 100 : null;
+        _setProgress('pull', {
+            message: `Pulling ${displayName || image}`,
+            percent,
         });
     });
 
@@ -456,16 +426,6 @@ async function resolveGuardImage(docker) {
     return buildTag;
 }
 
-async function ensureNetwork(docker, name) {
-    try {
-        await docker.getNetwork(name).inspect();
-        return;
-    } catch (err) {
-        if (err.statusCode !== 404) throw err;
-    }
-    await docker.createNetwork({ Name: name, Driver: 'bridge' });
-}
-
 async function ensureVolume(docker, name) {
     try {
         await docker.getVolume(name).inspect();
@@ -476,14 +436,8 @@ async function ensureVolume(docker, name) {
     await docker.createVolume({ Name: name });
 }
 
-async function removeContainerIfExists(docker, name) {
-    try {
-        const c = docker.getContainer(name);
-        try { await c.stop({ t: 10 }); } catch (_) { /* may already be stopped */ }
-        await c.remove({ force: true });
-    } catch (err) {
-        if (err.statusCode !== 404) throw err;
-    }
+function removeContainerIfExists(docker, name) {
+    return removeContainer(docker, name, 10);
 }
 
 async function startRedis(docker) {

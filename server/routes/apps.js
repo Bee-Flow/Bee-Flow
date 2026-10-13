@@ -26,15 +26,13 @@
 
 const express = require('express');
 const { z, typeError } = require('../utils/zod');
+const { worded } = require('../core/http/schemaParts');
 const log = require('../telemetry/log');
 const router = express.Router();
 const appStore = require('../stores/appStore');
 const userStore = require('../stores/userStore');
 const { resolveUserOrgIds, canSeePublished, resolveUserGroups } = require('../auth');
 const { validate } = require('../core/http/validate');
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 const NAME_TEXT = 'An app needs a name.';
 const CODE_TEXT = 'An app needs its code, as text.';

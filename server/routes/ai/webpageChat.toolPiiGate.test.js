@@ -23,6 +23,7 @@ process.env.NODE_ENV = 'test';
 const test = require('node:test');
 const assert = require('node:assert');
 const { installResolveStub } = require('../../testUtils/stubRequire');
+const { quietSse } = require('../../testUtils/quietSse');
 const {
     SYNTH_EMAIL, OWN_SERVER_EMAIL, SIGNED_IN, AI_AGENT_STUB, configStoreStub, gateFixture, resetFixture,
     injectEmailDetector, streamingToolCallProvider, serveRouter, postJson, kbChatGateTests,
@@ -43,7 +44,7 @@ const restore = installResolveStub({
     '../../core/providers': streamingToolCallProvider(fx),
     '../../stores/webpageStore': webpageStoreStub,
     '../stores/webpageStore': webpageStoreStub,
-    '../../core/http/sseHelpers': { startSseHeartbeat: () => () => {} },
+    '../../core/http/sseHelpers': quietSse(),
     '../../core/webpages/versionFacts': {},
     '../../core/webpages/webpageUsageSync': { reconcileWebpageUsageDetached: () => {} },
     '../../integrations/webpageMultiFileTools': { WEBPAGE_MULTI_FILE_TOOLS: [], executeMultiFileTool: async () => ({}), isMultiFileTool: () => false },

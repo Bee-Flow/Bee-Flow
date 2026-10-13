@@ -55,4 +55,24 @@ async function createProjectScopedSchema(pg, ddl, projectIds = ['p1', 'p2']) {
     for (const id of projectIds) await pg.query('INSERT INTO projects (id, name, owner_id) VALUES ($1, $1, $2)', [id, 'owner']);
 }
 
-module.exports = { pgliteDb, createProjectScopedSchema };
+/**
+ * The slice of db.js a store factory such as `makeProjectStore(db)` reads —
+ * `run`, `getOne`, `getAll`, `getClient` — plus `query`, over a pgliteDb `db`.
+ * `getClient` lends the one PGlite session; `release()` does nothing.
+ *
+ *   const { pg, db } = pgliteDb();
+ *   const store = makeProjectStore(dbFacade(db));
+ *
+ * @param {{ query: Function }} db  the `db` of pgliteDb()
+ */
+function dbFacade(db) {
+    return {
+        query: db.query,
+        run: db.query,
+        getOne: async (sql, params) => (await db.query(sql, params)).rows[0] || null,
+        getAll: async (sql, params) => (await db.query(sql, params)).rows,
+        getClient: async () => ({ query: db.query, release() {} }),
+    };
+}
+
+module.exports = { pgliteDb, dbFacade, createProjectScopedSchema };

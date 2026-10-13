@@ -15,6 +15,7 @@
  *   400 `invalid_structure`  one structured facet was malformed; `field`
  *                       says which, so the editor can point at it.
  */
+import { createJsonResource } from '../../../../api/client';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 
 /**
@@ -52,20 +53,12 @@ async function readNamedSse(response, onEvent) {
     }
 }
 
-async function request(path, init) {
-    const res = await authFetch(`${API_BASE}/api/skills${path}`, init);
-    let body = null;
-    try { body = await res.json(); } catch { /* empty or non-JSON */ }
-    if (!res.ok) {
-        const err = new Error(body?.error || `Request failed (${res.status})`);
-        err.status = res.status;
-        err.code = body?.code || null;
-        err.field = body?.field || null;
-        err.body = body;
-        throw err;
-    }
-    return body;
-}
+// A non-2xx throws an Error carrying the server's error text, status, code,
+// the offending `field` and the body.
+const request = createJsonResource(`${API_BASE}/api/skills`, {
+    contentType: 'none',
+    decorate: (err, body) => { err.field = body?.field || null; },
+});
 
 const json = (method, body) => ({
     method,

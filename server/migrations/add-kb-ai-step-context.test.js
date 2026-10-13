@@ -17,15 +17,11 @@ const path = require('node:path');
 const Module = require('node:module');
 
 const { PGlite } = require('@electric-sql/pglite');
+const { pgliteQuery } = require('../testUtils/pglitePool');
 const pg = new PGlite();
 
-async function q(sql, params) {
-    const res = Array.isArray(params) && params.length
-        ? await pg.query(sql, params)
-        : (/;\s*\S/.test(String(sql).trim()) ? await pg.exec(sql) : await pg.query(sql));
-    const r = Array.isArray(res) ? (res[res.length - 1] || {}) : (res || {});
-    return { rows: r.rows || [], rowCount: (r.rows || []).length };
-}
+// node-postgres's `query(sql, params)` over this PGlite.
+const q = pgliteQuery(pg);
 
 function mock(absId, exports) {
     const p = require.resolve(absId);

@@ -35,6 +35,7 @@ const { getAll } = require('../db');
 const log = require('../telemetry/log');
 const { validate } = require('../core/http/validate');
 const { z, typeError } = require('../utils/zod');
+const { worded } = require('../core/http/schemaParts');
 
 const router = express.Router();
 
@@ -63,9 +64,6 @@ const requireAdvancedMonitoring = (req, res, next) =>
 // table — and on /org, every conversation snapshot the organisation holds.
 const MAX_FEEDBACK_LIMIT = 500;
 const DEFAULT_FEEDBACK_LIMIT = 200;
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 /** An id as the chat holds it: text, or a number the store keeps as text. */
 const asIdText = (v) => (typeof v === 'number' && Number.isFinite(v) ? String(v) : v);

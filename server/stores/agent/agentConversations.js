@@ -19,6 +19,16 @@ const { encryptField, decryptField, isEnvelope } = require('../lib/fieldEnvelope
 const { sealTitle, openTitle, openTitles } = require('./conversationTitle');
 const convMessages = require('./conversationMessages');
 const log = require('../../telemetry/log');
+const { searchConversationRows, byUpdatedDesc, AGENT_SEARCH } = require('../lib/conversationSearch');
+
+/** What the shared search needs from this store's db and crypto modules. */
+const SEARCH_DEPS = {
+    getAll: (sql, params) => getAll(sql, params),
+    resolveCrypto,
+    openTitle,
+    decryptMessages,
+    getMessages: (id, ctx) => convMessages.getMessages(id, ctx),
+};
 // Shared-thread helpers live on the direct side; both tables have identical
 // shared_scope / crypto_scope semantics, so duplicating them would only create
 // two things to keep in step. Required lazily inside the functions below to
@@ -370,159 +380,11 @@ async function listAllConversations(userId) {
 
 async function searchConversations(userId, query, filters = {}, encryptionKey) {
     await initDB();
-
-    // ── Phase 6: SQL-side search ──────────────────────────────────────────────
-    // Old approach: load every conversation + messages into Node.js, then do
-    //   JS string matching (O(n) queries + O(n) memory).
-    //
-    // New approach — three strategies, applied in priority order:
-    //
-    //  Strategy A (SQL JOIN — zero extra queries):
-    //    For title matches AND migrated-conversation content matches.
-    //    One query with LEFT JOIN on conversation_messages finds both in one shot.
-    //
-    //  Strategy B (SQL ILIKE on blob — no encryption):
-    //    If no encryption key, the messages_json blob is plain text, so we can
-    //    search it directly in SQL for non-migrated conversations.
-    //
-    //  Strategy C (JS fallback — encrypted blobs only):
-    //    Only reached when encryptionKey is set AND conversations aren't migrated
-    //    yet. Bounded to 200 rows max (vs. the old unbounded loop).
-    // ─────────────────────────────────────────────────────────────────────────
-
-    const likeQuery = `%${query}%`;
-    const lowerQuery = query.toLowerCase();
-
-    // Base filter params (userId is always $1)
-    const filterParams = [userId];
-    let filterClauses = '';
-    let filterIdx = 2;
-    if (filters.agentId) { filterClauses += ` AND c.agent_id = $${filterIdx++}`; filterParams.push(filters.agentId); }
-    if (filters.startDate) { filterClauses += ` AND c.updated_at >= $${filterIdx++}`; filterParams.push(filters.startDate); }
-    if (filters.endDate) { filterClauses += ` AND c.updated_at <= $${filterIdx++}`; filterParams.push(filters.endDate); }
-
-    // likeQuery is the next param after the filter params
-    const likeIdx = filterIdx; // e.g. $2 if no filters, $3 if agentId, etc.
-
-    // ── Strategy A: title OR migrated message content (single JOIN query) ────
-    const stratA = await getAll(`
-        SELECT DISTINCT
-            c.id, c.agent_id, c.user_id, c.title, c.updated_at,
-            c.messages_migrated,
-            a.name AS agent_name, a.avatar AS agent_avatar
-        FROM agent_conversations c
-        LEFT JOIN agents a ON c.agent_id = a.id
-        LEFT JOIN conversation_messages cm
-            ON cm.conversation_id = c.id AND c.messages_migrated = TRUE
-        WHERE c.user_id = $1
-          AND (c.title ILIKE $${likeIdx} OR cm.content ILIKE $${likeIdx})
-          ${filterClauses}
-        ORDER BY c.updated_at DESC
-        LIMIT 50
-    `, [...filterParams, likeQuery]);
-
-    const results = [...stratA];
-    const matchedIds = new Set(results.map(r => r.id));
-
-    // ── Strategy A2: migrated conversations whose content or TITLE is ENCRYPTED ──
-    // Strategy A's `cm.content ILIKE` / `c.title ILIKE` match nothing against
-    // ciphertext, and the GIN trigram index on content becomes dead weight, so
-    // without this pass search silently returns fewer results once either
-    // surface is enabled. Decrypt a bounded candidate set in the app.
-    const searchCtx = await resolveCrypto({ userId, encryptionKey });
-    if (searchCtx.encryptMessages || searchCtx.encryptTitle) {
-        const encMigrated = await getAll(`
-            SELECT c.id, c.agent_id, c.user_id, c.title, c.updated_at,
-                   c.messages_migrated,
-                   a.name AS agent_name, a.avatar AS agent_avatar
-            FROM agent_conversations c
-            LEFT JOIN agents a ON c.agent_id = a.id
-            WHERE c.user_id = $1
-              ${searchCtx.encryptMessages ? 'AND c.messages_migrated = TRUE' : ''}
-              ${filterClauses}
-            ORDER BY c.updated_at DESC
-            LIMIT 200
-        `, filterParams);
-        let added = 0;
-        for (const conv of encMigrated) {
-            if (matchedIds.has(conv.id)) continue;
-            try {
-                const title = openTitle(conv.title, conv.id, 'agent', searchCtx);
-                let hit = !!title && String(title).toLowerCase().includes(lowerQuery);
-                if (!hit && searchCtx.encryptMessages && conv.messages_migrated) {
-                    const msgs = await convMessages.getMessages(conv.id, searchCtx);
-                    hit = JSON.stringify(msgs).toLowerCase().includes(lowerQuery);
-                }
-                if (hit) {
-                    results.push({ ...conv, title });
-                    matchedIds.add(conv.id);
-                    if (++added >= 50) break;
-                }
-            } catch (e) {
-                log.error('[AgentConversations] Search decrypt error for', conv.id, '-', e.message);
-            }
-        }
-    }
-
-    if (!encryptionKey) {
-        // ── Strategy B: non-migrated blobs, no encryption — search in SQL ──
-        const stratB = await getAll(`
-            SELECT
-                c.id, c.agent_id, c.user_id, c.title, c.updated_at,
-                c.messages_migrated,
-                a.name AS agent_name, a.avatar AS agent_avatar
-            FROM agent_conversations c
-            LEFT JOIN agents a ON c.agent_id = a.id
-            WHERE c.user_id = $1
-              AND c.messages_migrated = FALSE
-              AND c.messages_json ILIKE $${likeIdx}
-              ${filterClauses}
-            ORDER BY c.updated_at DESC
-            LIMIT 50
-        `, [...filterParams, likeQuery]);
-
-        for (const r of stratB) {
-            if (!matchedIds.has(r.id)) { results.push(r); matchedIds.add(r.id); }
-        }
-    } else {
-        // ── Strategy C: non-migrated encrypted blobs — bounded JS fallback ──
-        const encCandidates = await getAll(`
-            SELECT
-                c.id, c.agent_id, c.user_id, c.title, c.updated_at,
-                c.messages_json, c.messages_migrated,
-                a.name AS agent_name, a.avatar AS agent_avatar
-            FROM agent_conversations c
-            LEFT JOIN agents a ON c.agent_id = a.id
-            WHERE c.user_id = $1
-              AND c.messages_migrated = FALSE
-              ${filterClauses}
-            ORDER BY c.updated_at DESC
-            LIMIT 200
-        `, filterParams);
-
-        let cAdded = 0;
-        for (const conv of encCandidates) {
-            if (matchedIds.has(conv.id)) continue;
-            try {
-                const decrypted = decryptMessages(conv.messages_json || '[]', encryptionKey, conv.id, userId);
-                if (decrypted.toLowerCase().includes(lowerQuery)) {
-                    results.push({ ...conv, messages_json: decrypted });
-                    matchedIds.add(conv.id);
-                    if (++cAdded >= 50) break;
-                }
-            } catch (e) {
-                log.error('[AgentConversations] Search decrypt error:', e);
-            }
-        }
-    }
-
+    // SQL-side search in four strategies (A, A2, B, C): see stores/lib/conversationSearch.js.
+    const { results, searchCtx } = await searchConversationRows(AGENT_SEARCH, SEARCH_DEPS, userId, query, filters, encryptionKey);
     // Return unified results sorted by recency, capped at 50. openTitles is a
     // no-op for rows A2 already decrypted and for plaintext rows from A/B/C.
-    return openTitles(
-        results.sort((a, b) => /** @type {any} */ (new Date(b.updated_at)) - /** @type {any} */ (new Date(a.updated_at))).slice(0, 50),
-        'agent',
-        searchCtx,
-    );
+    return openTitles(results.sort(byUpdatedDesc).slice(0, 50), 'agent', searchCtx);
 }
 
 async function getConversationById(conversationId, encryptionKey = null, options = {}) {

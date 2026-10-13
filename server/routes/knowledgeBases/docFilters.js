@@ -13,10 +13,8 @@
  * without the two routes drifting from each other.
  */
 
-const { z } = require('../../utils/zod');
+const { worded } = require('../../core/http/schemaParts');
 const kbStore = require('../../stores/knowledgeBases');
-
-const worded = (message) => z.string({ error: message });
 
 // Read at request time, not captured once at require-time: the store owns
 // these lists, and a test that stands in for the store need not repeat them.

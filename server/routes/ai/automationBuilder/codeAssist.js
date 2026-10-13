@@ -42,7 +42,7 @@ const log = require('../../../telemetry/log');
 const { validate } = require('../../../core/http/validate');
 const { z, worded, bodyOf, closedObject, choice, typeError } = require('../../../core/http/schemaParts');
 const { perUserRateLimit } = require('../../../utils/perUserRateLimit');
-const { startSseHeartbeat } = require('../../../core/http/sseHelpers');
+const { openSse } = require('../../../core/http/sseHelpers');
 const { streamWithRetry } = require('../builderShared');
 const { runCodeAssistTurn } = require('./codeAssistTurn');
 const { MAX_CODE_CHARS } = require('./codeAssistTools');
@@ -224,27 +224,9 @@ function makeCodeAssistRouter(overrides = {}) {
         const model = await deps.resolveModel({ userId, session: req.session, modelTier: body.modelTier });
         if (model.refusal) return res.status(model.refusal.status).json(model.refusal.body);
 
-        res.writeHead(200, {
-            'Content-Type': 'text/event-stream',
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive',
-            'X-Accel-Buffering': 'no',
-        });
-        if (typeof res.flushHeaders === 'function') res.flushHeaders();
-        const stopHeartbeat = startSseHeartbeat(res);
-        const send = (event, data) => {
-            if (res.writableEnded || res.destroyed) return;
-            try { res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`); } catch (_) { /* socket gone */ }
-        };
-        // The panel's stop button closes the stream: stop the model call in
-        // flight too, so a single-slot local model is free for the next ask.
-        const clientAbort = new AbortController();
-        let gone = false;
-        res.on('close', () => {
-            if (res.writableEnded) return;
-            gone = true;
-            try { clientAbort.abort(); } catch (_) { /* already aborted */ }
-        });
+        // The panel's stop button closes the stream: `signal` stops the model
+        // call in flight too, so a single-slot local model is free for the next ask.
+        const { send, signal: clientSignal, isGone, stopHeartbeat } = openSse(res, { heartbeat: true, flush: true });
 
         const code = typeof body.code === 'string' ? body.code : '';
         const allowedTools = body.allowedTools || [];
@@ -266,7 +248,7 @@ function makeCodeAssistRouter(overrides = {}) {
                 analyse: deps.loadAnalyser(),
                 gate: deps.makeGate({ userId, orgId, automationId, modelId: model.modelId }),
                 send,
-                isGone: () => gone,
+                isGone,
                 surfacesRawReasoning,
                 streamRound: (msgs, { tools, onText }) => deps.streamWithRetry(model.adapter, model.cfg, model.modelId, msgs, {
                     // A whole-code write is one tool call; 8192 leaves room
@@ -279,7 +261,7 @@ function makeCodeAssistRouter(overrides = {}) {
                 }, {
                     send: (event, data) => { if (event === 'message' && data && data.content) onText(data.content); },
                     emitThinking: NO_THINKING,
-                    signal: clientAbort.signal,
+                    signal: clientSignal,
                     logPrefix: '[CodeAssist]',
                 }),
             });

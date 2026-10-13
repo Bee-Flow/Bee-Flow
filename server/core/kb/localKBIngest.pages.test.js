@@ -19,15 +19,11 @@ const { test, before, after } = require('node:test');
 const assert = require('node:assert');
 
 const { PGlite } = require('@electric-sql/pglite');
+const { pgliteQuery } = require('../../testUtils/pglitePool');
 const pg = new PGlite();
 
-async function q(sql, params) {
-    const res = Array.isArray(params) && params.length
-        ? await pg.query(sql, params)
-        : (/;\s*\S/.test(String(sql).trim()) ? await pg.exec(sql) : await pg.query(sql));
-    const r = Array.isArray(res) ? (res[res.length - 1] || {}) : (res || {});
-    return { rows: r.rows || [], rowCount: (r.rows || []).length };
-}
+// node-postgres's `query(sql, params)` over this PGlite.
+const q = pgliteQuery(pg);
 
 // The table as ensureKBChunksTable brings it forward, minus the vector column
 // (pgvector is not in PGlite's default build, and the page has nothing to do

@@ -31,25 +31,17 @@
 const { test, before, after } = require('node:test');
 const assert = require('node:assert');
 const { PGlite } = require('@electric-sql/pglite');
+const { pgliteQuery } = require('../testUtils/pglitePool');
 
 const { up, SOLUTION_ICON } = require('./project-kind-backfill-2026-09');
 const { applyProjectSchema } = require('../stores/projectStore');
 
-function adaptResult(res) {
-    const r = Array.isArray(res) ? (res[res.length - 1] || {}) : (res || {});
-    const rows = r.rows || [];
-    const rowCount = (r.fields || []).length > 0
-        ? rows.length
-        : (typeof r.affectedRows === 'number' ? r.affectedRows : 0);
-    return { rows, rowCount };
-}
-
 /** The slice of the db.js facade the migration uses, over one PGlite connection. */
 function facadeFor(pg, { failOn = null } = {}) {
+    const pgQuery = pgliteQuery(pg);
     const query = async (sql, params) => {
         if (failOn && failOn.test(sql)) throw Object.assign(new Error('injected failure'), { code: 'XX000' });
-        if (Array.isArray(params) && params.length > 0) return adaptResult(await pg.query(sql, params));
-        return adaptResult(await pg.query(sql));
+        return pgQuery(sql, params);
     };
     const client = { query };
     return {

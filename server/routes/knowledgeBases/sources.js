@@ -29,6 +29,7 @@ const log = require('../../telemetry/log');
 const { HttpError } = require('../../core/http/errors');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
+const { worded } = require('../../core/http/schemaParts');
 const router = express.Router();
 const multer = require('multer');
 
@@ -123,9 +124,6 @@ function shapeTextOrigin(raw) {
 // setting the person typed, with nothing on screen to say so.
 
 const { FIELDS: MEETING_FIELDS, DEFAULT_FIELDS: MEETING_DEFAULT_FIELDS } = require('../../core/kb/sources/meetingTag');
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 const NAME_TEXT = 'A source name must be text.';
 const SourceName = worded(NAME_TEXT).trim().max(200, 'A source name is at most 200 characters.');

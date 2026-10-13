@@ -85,7 +85,7 @@ const { getProfileForModel, effortForIteration, CORE_TOOL_NAMES } = require('../
 const { projectToolSchemas } = require('../../../automation/builderTools/schemaProjection');
 const { ensureDraftTitle, UNTITLED_AUTOMATION } = require('../../../automation/builderTools/deriveTitle');
 const { applyBuilderTierFloor } = require('../builderShared');
-const { startSseHeartbeat } = require('../../../core/http/sseHelpers');
+const { openSse } = require('../../../core/http/sseHelpers');
 const { builderRateLimit } = require('./rateLimits');
 const { loadOrCreateDraft, persistDraftWrap } = require('./builderDraft');
 const { runDelegationTool } = require('./layerDelegation');
@@ -263,12 +263,6 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
         }
     }
 
-    res.writeHead(200, {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-        'X-Accel-Buffering': 'no',
-    });
     // Push the SSE response headers to the wire immediately, then keep the
     // connection warm with 10s pings. A thinking model can go silent for
     // 30–60s (deep reasoning between tool calls); without a heartbeat an
@@ -277,11 +271,7 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
     // while the agent is still building — and never receives the thinking
     // stream. Same class as the chat/notebook fix (BFSF-221). The heartbeat
     // auto-stops on res close/finish/error.
-    if (typeof res.flushHeaders === 'function') res.flushHeaders();
-    const stopHeartbeat = startSseHeartbeat(res);
-    const sendRaw = (event, data) => {
-        try { res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`); } catch (_) {}
-    };
+    const { send: sendRaw, stopHeartbeat } = openSse(res, { heartbeat: true, flush: true });
     // The build loop writes through `send`. When an admin has configured a
     // narration model it is swapped for the thought narrator's wrapper right
     // before the loop; `done` / `error` always leave through sendRaw AFTER the

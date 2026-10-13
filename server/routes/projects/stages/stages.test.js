@@ -35,7 +35,7 @@ const { PGlite } = require('@electric-sql/pglite');
 
 const { makeProjectStore, applyProjectSchema } = require('../../../stores/projectStore');
 const { makeSolutionStageStore, applySolutionStageSchema } = require('../../../stores/solutionStageStore');
-const { pgliteDb } = require('../../../testUtils/pgliteDb');
+const { pgliteDb, dbFacade } = require('../../../testUtils/pgliteDb');
 const { terminalErrorHandler } = require('../../../core/http/terminalErrorHandler');
 const { HttpError } = require('../../../core/http/errors');
 const { hashPayload, canonicalOf } = require('../../../projects/stages/stagePayload');
@@ -44,15 +44,6 @@ const { makeStagesRouter } = require('./index');
 const runDdl = (pg) => async (_tag, statements) => {
     for (const stmt of statements) await pg.exec(typeof stmt === 'string' ? stmt : stmt.sql);
 };
-
-function facadeFor(db) {
-    return {
-        run: db.query,
-        getOne: async (sql, params) => (await db.query(sql, params)).rows[0] || null,
-        getAll: async (sql, params) => (await db.query(sql, params)).rows,
-        getClient: async () => ({ query: db.query, release() {} }),
-    };
-}
 
 // ── The world ─────────────────────────────────────────────────────────────────
 
@@ -219,7 +210,7 @@ before(async () => {
     await applyProjectSchema({ exec: (sql) => pg.exec(sql), runDdl: runDdl(pg) });
     await applySolutionStageSchema({ runDdl: runDdl(pg) });
     const { db } = pgliteDb(pg);
-    projects = makeProjectStore(facadeFor(db));
+    projects = makeProjectStore(dbFacade(db));
     store = makeSolutionStageStore(db, { projectStore: projects });
 
     const app = express();

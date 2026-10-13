@@ -21,6 +21,7 @@ const notebookStore = require('../stores/notebookStore');
 // every AI-Fill run threw ReferenceError after the SSE headers had been sent.
 const { TIER_DEFAULTS } = require('../core/llm/modelResolver');
 const { validate } = require('../core/http/validate');
+const { openSse } = require('../core/http/sseHelpers');
 const { worded, bodyOf } = require('../core/http/schemaParts');
 const { partitionNotebookKbIds } = require('../agents/notebooks/notebookKbAccess');
 const { shieldNotebookPrompt } = require('../agents/notebooks/notebookAiShield');
@@ -158,14 +159,7 @@ Wrap your output in \`\`\`mermaid ... \`\`\` tags. Focus on hierarchical relatio
         const apiUrl = (config.url || '').replace(/\/+$/, '');
         const adapter = getAdapter(config.providerType, apiUrl);
 
-        // Set SSE headers
-        res.writeHead(200, {
-            'Content-Type': 'text/event-stream',
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive',
-            'X-Accel-Buffering': 'no',
-        });
-        const send = (event, data) => res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+        const { send } = openSse(res);
 
         const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         const systemPrompt = `You are an expert content generator. Today is ${today}.
@@ -316,14 +310,7 @@ router.post('/:id/ai-fill', requireAuth, validate({ body: AiFillBody }), asEdito
         const apiUrl = (config.url || '').replace(/\/+$/, '');
         const adapter = getAdapter(config.providerType, apiUrl);
 
-        // SSE headers
-        res.writeHead(200, {
-            'Content-Type': 'text/event-stream',
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive',
-            'X-Accel-Buffering': 'no',
-        });
-        const send = (event, data) => res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+        const { send } = openSse(res);
 
         const uniqueParams = [...new Set(params)];
         log.info(`[Notebooks] AI Fill: ${uniqueParams.length} unique parameters found for notebook ${nb.id}`);

@@ -27,6 +27,7 @@
  * body is `documentContent(kbId, docId)`, one document at a time, on demand.
  */
 
+import { createJsonResource } from '../../../../api/client';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 
 const base = `${API_BASE}/api/kb`;
@@ -43,28 +44,10 @@ export function qs(params = {}) {
     return s ? `?${s}` : '';
 }
 
-async function request(url, options = {}) {
-    // FormData must set its own multipart boundary, so a Content-Type header
-    // is only correct for the JSON calls.
-    const isForm = typeof FormData !== 'undefined' && options.body instanceof FormData;
-    const res = await authFetch(url, {
-        ...options,
-        headers: {
-            ...(isForm ? {} : { 'Content-Type': 'application/json' }),
-            ...(options.headers || {}),
-        },
-    });
-    let body = null;
-    try { body = await res.json(); } catch { /* empty or non-JSON body */ }
-    if (!res.ok) {
-        const err = new Error(body?.error || `Request failed (${res.status})`);
-        err.status = res.status;
-        err.code = body?.code || null;
-        err.body = body;
-        throw err;
-    }
-    return body;
-}
+// JSON in and out (a FormData body sets its own multipart boundary, so it
+// goes without a Content-Type); a non-2xx throws an Error carrying the
+// server's error text, status, code and body.
+const request = createJsonResource();
 
 /**
  * Read a NAMED-event SSE stream: `event: <name>\ndata: <json>`.

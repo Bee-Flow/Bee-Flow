@@ -46,7 +46,7 @@ const RESULT = { type: 'object', properties: {
   behaviour_notes: { type: 'string' }, open_questions: { type: 'string' } },
   required: ['id', 'status', 'files_changed', 'dup_lines_removed', 'tests_run', 'tests_green', 'behaviour_notes', 'open_questions'] }
 
-const prompt = (lane, item, prev) => `You implement ONE reuse item of a verified code-quality plan for the Bee Flow monorepo at /home/user/Bee-Flow (branch ccr-8c0edf67-243f59, checked out; other agents edit OTHER files at the same time: re-read a file right before editing it and keep edits minimal). The audit record for the concept is in ${S}/synthesis.json (reuse list): python3 -c "import json;d=json.load(open('${S}/synthesis.json'));print(json.dumps([r for r in d['reuse']],indent=1,ensure_ascii=False))" | less is too long; grep it for your concept instead.
+const prompt = (lane, item, prev) => `You implement ONE reuse item of a verified code-quality plan for the Bee Flow monorepo at /home/tom/Projects/Bee-Flow (branch ccr-8c0edf67-243f59, checked out; other agents edit OTHER files at the same time: re-read a file right before editing it and keep edits minimal). The audit record for the concept is in ${S}/synthesis.json (reuse list): python3 -c "import json;d=json.load(open('${S}/synthesis.json'));print(json.dumps([r for r in d['reuse']],indent=1,ensure_ascii=False))" | less is too long; grep it for your concept instead.
 
 Item ${item.id}: ${item.text}
 ${prev ? `Earlier items in this lane already changed: ${prev}. Build on that state (the generator manifest from GEN-MANIFEST is in scripts/; read it first when your item adds entries).` : ''}
@@ -55,19 +55,60 @@ Rules:
 - The app keeps working exactly as users know it. A shared helper reproduces each caller's current behaviour (pin it with a test before switching the caller); a generated mirror is byte-identical in effect; the only deliberate behaviour changes allowed are the ones the item text names, and they go in behaviour_notes.
 - Conventions from CLAUDE.md apply: tests next to source, i18n serialisation rule, shared mirror rule (source in server/shared, generated copies never edited by hand), ratchets only lower, new agent-hub files in TypeScript, no --test-force-exit, no secrets.
 - Stay inside the lane's files: ${lane.files}. A needed edit elsewhere stays minimal and is listed.
-- Verify what you touched: node --test (server, components, hub-module-sdk), npx vitest related --run + npm run typecheck + npx eslint (agent-hub), jest --findRelatedTests + typecheck + lint (mobile), pytest + ruff (python), npm run lint:shared-mirror and npm run check:fast from the root when a generated file or a ratchet changed. Do NOT run full suites (4 CPUs, another lane is working). Do NOT git commit, stash, checkout or reset.
+- Verify what you touched: node --test (server, components, hub-module-sdk), npx vitest related --run + npm run typecheck + npx eslint (agent-hub), jest --findRelatedTests + typecheck + lint (mobile), pytest + ruff (python), npm run lint:shared-mirror and npm run check:fast from the root when a generated file or a ratchet changed. Do NOT run full suites (other lanes work at the same time and the machine is shared: cap vitest with --maxWorkers=4 and jest with --maxWorkers=2; the Python venv for guard-service is guard-service/.venv, run tests with .venv/bin/python -m unittest discover -s tests and ruff via .venv/bin/ruff). Do NOT git commit, stash, checkout or reset.
 Return the structured result; dup_lines_removed is your estimate of duplicated lines removed.`
 
+// Runner: file-disjoint sub-lanes so up to ~9 agents work at once (the heads of the
+// original lanes are cached from the first run and return instantly on resume).
+const RESTART = 'A previous run of this item was interrupted; its partial edits are in the working tree (git status / git diff on your files). Inspect them, keep what is right, finish the item.'
+const CONCUR = 'Concurrency: ~9 agents work at the same time on this machine. Cap vitest with --maxWorkers=2 and jest with --maxWorkers=2. scripts/shared-mirror.manifest.json and the root package.json are edited by several agents: re-read the file immediately before every edit, add your entry with one minimal insert (never rewrite the file), and verify at the end that your entry is still there. `npm run gen:shared` regenerates every entry; leave files outside your lane as it writes them.'
+const byKey = Object.fromEntries(LANES.map(l => [l.key, l]))
+const itemOf = (laneKey, id) => byKey[laneKey].items.find(i => i.id === id)
+const run = async (laneKey, id, prev, extra) => {
+  const lane = byKey[laneKey], item = itemOf(laneKey, id)
+  const r = await agent(prompt(lane, item, prev) + (extra ? `\n\n${extra}` : ''), { label: `${laneKey}:${id}`, phase: 'Reuse', schema: RESULT, model: 'opus' })
+  log(`${laneKey}: ${id} ${r ? r.status : 'null'}`)
+  return r || { id, status: 'skipped', files_changed: [], dup_lines_removed: 0, tests_run: '', tests_green: false, behaviour_notes: '', open_questions: 'agent returned null' }
+}
+const addPrev = (prev, r) => prev + (prev ? '; ' : '') + `${r.id}: ${r.files_changed.slice(0, 10).join(', ')}`
+const results = { generator: [], 'server-helpers': [], 'agent-hub-data': [], 'test-kits': [] }
+
 phase('Reuse')
-const results = await parallel(LANES.map(lane => async () => {
+// Round 1: the heads (cached from the first run; byte-identical prompts).
+const [gen0, srv0, hub0, kit0] = await parallel([
+  () => run('generator', 'GEN-MANIFEST', '', ''),
+  () => run('server-helpers', 'H4', '', ''),
+  () => run('agent-hub-data', 'H16', '', ''),
+  async () => { const a = await run('test-kits', 'H28', '', ''); const b = await run('test-kits', 'SDK-KIT', addPrev('', a), ''); return [a, b] },
+])
+results.generator.push(gen0); results['server-helpers'].push(srv0); results['agent-hub-data'].push(hub0); results['test-kits'].push(...kit0)
+const genPrev = addPrev('', gen0), srvPrev = addPrev('', srv0), hubPrev = addPrev('', hub0), kitPrev = addPrev(addPrev('', kit0[0]), kit0[1])
+
+// Round 2: file-disjoint sub-lanes in parallel.
+const chain = async (laneKey, ids, prev, firstExtra) => {
   const out = []
-  let prev = ''
-  for (const item of lane.items) {
-    const r = await agent(prompt(lane, item, prev), { label: `${lane.key}:${item.id}`, phase: 'Reuse', schema: RESULT, model: 'opus' })
-    if (r) { out.push(r); prev += (prev ? '; ' : '') + `${item.id}: ${r.files_changed.slice(0, 10).join(', ')}` }
-    else out.push({ id: item.id, status: 'skipped', files_changed: [], dup_lines_removed: 0, tests_run: '', tests_green: false, behaviour_notes: '', open_questions: 'agent returned null' })
-    log(`${lane.key}: ${item.id} ${r ? r.status : 'null'}`)
+  for (let i = 0; i < ids.length; i++) {
+    const r = await run(laneKey, ids[i], prev, [i === 0 ? firstExtra : '', CONCUR].filter(Boolean).join(' '))
+    out.push(r); prev = addPrev(prev, r)
   }
-  return { lane: lane.key, items: out }
-}))
-return results.filter(Boolean)
+  return out
+}
+const round2 = await parallel([
+  () => chain('generator', ['H21'], genPrev, RESTART),
+  () => chain('generator', ['H14', 'CMS-TWINS'], genPrev, ''),
+  () => chain('generator', ['H15', 'COMPONENT-MIRROR'], genPrev, ''),
+  () => chain('generator', ['H18'], genPrev, ''),
+  () => chain('server-helpers', ['OPEN-SSE', 'SCHEMA-PARTS'], srvPrev, RESTART),
+  () => chain('server-helpers', ['STABLE-JSON', 'ISO-PREAMBLE'], srvPrev, ''),
+  () => chain('server-helpers', ['JOBS-KIT', 'SMALL-SHARED'], srvPrev, ''),
+  () => chain('agent-hub-data', ['H19'], hubPrev, RESTART),
+  () => chain('test-kits', ['TEST-HELPERS'], kitPrev, RESTART),
+])
+const laneOf = ['generator', 'generator', 'generator', 'generator', 'server-helpers', 'server-helpers', 'server-helpers', 'agent-hub-data', 'test-kits']
+round2.forEach((out, i) => { if (out) results[laneOf[i]].push(...out) })
+
+// Round 3: the duplication budget last, once every generated target exists.
+const allPrev = Object.values(results).flat().reduce((p, r) => addPrev(p, r), '')
+results.generator.push(await run('generator', 'JSCPD', allPrev, 'Every other phase-4 item is finished; measure on the tree as it is now. Only one other process (none) runs: lint:duplication may use the machine.'))
+
+return Object.entries(results).map(([lane, items]) => ({ lane, items }))

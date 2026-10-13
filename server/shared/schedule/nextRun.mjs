@@ -1,8 +1,11 @@
 // Compute the next-run ISO timestamp for an agent schedule, anchored to a
-// target IANA timezone. Used by the wizard chat (auto-create from chat),
-// the new-schedule modal, and the backend wizard/commit path so all three
-// produce identical schedules — previously each had its own local-TZ math
-// and disagreed when the user's browser TZ differed from the schedule TZ.
+// target IANA timezone. The one source for every entry point: the wizard
+// chat (auto-create from chat) and the new-schedule modal in the browser
+// (agent-hub/src/shared/schedule/, generated from this file by
+// `npm run gen:shared`) and the backend wizard/commit path (server/routes/
+// agents/wizard.js), so the "next run" the user is shown is the moment the
+// schedule really runs. Isomorphic: no imports, no Node or browser APIs
+// beyond Date and Intl.
 //
 // `schedule` shape:
 //   { repeatInterval: 'hourly'|'daily'|'weekdays'|'weekly'|'biweekly'|'monthly',
@@ -10,8 +13,6 @@
 //     timeOfDay: 'HH:MM' | null,
 //     dayOfMonth: number | null   // monthly mode; defaults to today's day
 //   }
-
-const DOW_TOKENS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 
 function getTzParts(date, tz) {
     const fmt = new Intl.DateTimeFormat('en-US', {
@@ -127,15 +128,12 @@ export function computeScheduleNextRun(schedule, tz) {
         target = wallClockToUtc(tParts.year, tParts.month, tParts.day, hh, mm, TZ);
     }
     if (allowedDays && allowedDays.size > 0) {
-        let matched = false;
+        // A corrupt daysOfWeek (e.g. ['xyz']) matches nothing: the loop then
+        // ends a week after the first candidate.
         for (let i = 0; i < 7; i += 1) {
             const tParts = getTzParts(target, TZ);
-            if (allowedDays.has(tParts.weekday)) { matched = true; break; }
+            if (allowedDays.has(tParts.weekday)) break;
             target = new Date(target.getTime() + 24 * 60 * 60 * 1000);
-        }
-        if (!matched && typeof console !== 'undefined') {
-            // Corrupt daysOfWeek (e.g. ['xyz']) — log so it surfaces during dev.
-            console.warn('[scheduleNextRun] No matching weekday found within 7 days', { allowedDays: [...allowedDays] });
         }
     }
     return target.toISOString();

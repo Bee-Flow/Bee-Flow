@@ -8,6 +8,7 @@
  */
 
 const crypto = require('node:crypto');
+const stableJson = require('../../utils/stableJson');
 const { parseJSONObject } = require('../lib/json');
 const managedParts = require('../managedPartsDefault');
 // ── The managed-part guard (Solution stages, design 5.3) ────────────────
@@ -26,12 +27,7 @@ const managedParts = require('../managedPartsDefault');
 
 /** JSON with sorted keys and no undefined members: equal descriptors, equal text. */
 function stableStringify(v) {
-    if (v && typeof v === 'object' && typeof v.toJSON === 'function') return stableStringify(v.toJSON());
-    if (v === undefined || typeof v === 'function') return 'null';
-    if (v === null || typeof v !== 'object') return JSON.stringify(v);
-    if (Array.isArray(v)) return `[${v.map(stableStringify).join(',')}]`;
-    const keys = Object.keys(v).filter(k => v[k] !== undefined && typeof v[k] !== 'function').sort();
-    return `{${keys.map(k => `${JSON.stringify(k)}:${stableStringify(v[k])}`).join(',')}}`;
+    return stableJson.stableStringify(v, { undefined: 'drop', toJSON: true });
 }
 
 /**

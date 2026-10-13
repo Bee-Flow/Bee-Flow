@@ -30,7 +30,7 @@ const { PGlite } = require('@electric-sql/pglite');
 
 const { makeProjectStore, applyProjectSchema } = require('./projectStore');
 const { makeSolutionStageStore, applySolutionStageSchema } = require('./solutionStageStore');
-const { pgliteDb } = require('../testUtils/pgliteDb');
+const { pgliteDb, dbFacade } = require('../testUtils/pgliteDb');
 
 const runDdl = (pg) => async (_tag, statements) => {
     for (const stmt of statements) await pg.exec(typeof stmt === 'string' ? stmt : stmt.sql);
@@ -54,15 +54,6 @@ let store;
 let dev;
 let uat;
 let prd;
-
-function facadeFor(db) {
-    return {
-        run: db.query,
-        getOne: async (sql, params) => (await db.query(sql, params)).rows[0] || null,
-        getAll: async (sql, params) => (await db.query(sql, params)).rows,
-        getClient: async () => ({ query: db.query, release() {} }),
-    };
-}
 
 let keySeq = 0;
 /** An admission row for a stage; `over` replaces any field. */
@@ -103,7 +94,7 @@ before(async () => {
     await applySolutionStageSchema({ runDdl: runDdl(pg) });
     await pg.exec(BLUEPRINT_TABLES);
     const { db } = pgliteDb(pg);
-    projects = makeProjectStore(facadeFor(db));
+    projects = makeProjectStore(dbFacade(db));
     store = makeSolutionStageStore(db, { projectStore: projects });
     dev = await projects.createProject({ name: 'Invoices', ownerId: 'alice', organizationId: 'org1', kind: 'solution' });
 });

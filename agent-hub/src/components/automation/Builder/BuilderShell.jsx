@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import AppRefBreadcrumb from './AppRefBreadcrumb';
 import UsedByButtonsCapsule from './UsedByButtonsCapsule';
+import { readOrgGroups } from '../../../api/queries/orgGroups';
 import ExecutionsPanel from '../../admin/Studio/Executions/ExecutionsPanel';
 import { BuilderConfirmProvider } from './BuilderConfirmContext';
 import BuilderHeader from './BuilderHeader';
@@ -377,11 +378,8 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
         let alive = true;
         (async () => {
             try {
-                const r = await authFetch(`${API_BASE}/auth/groups`);
-                if (r.ok && alive) {
-                    const data = await r.json();
-                    setOrgGroups(Array.isArray(data) ? data : []);
-                }
+                const list = await readOrgGroups();
+                if (list && alive) setOrgGroups(Array.isArray(list) ? list : []);
             } catch (_) { /* silent — menu falls back to Personal/Org only */ }
         })();
         return () => { alive = false; };

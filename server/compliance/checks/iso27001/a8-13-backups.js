@@ -7,7 +7,7 @@
  * instances — the connector is then evidence-only, not proof of backups.
  */
 
-const isoEvidenceStore = require('../../../stores/isoEvidenceStore');
+const { readConnectorSnapshots, noSnapshotYet } = require('../lib/connectorSnapshots');
 
 const FAIL_AGE_DAYS = 7;
 const PASS_AGE_DAYS = 3;
@@ -27,22 +27,10 @@ module.exports = {
     remediationLink: 'admin/compliance/iso_connectors',
 
     async evaluate(orgId) {
-        const config = await isoEvidenceStore.getConfig(orgId, 'scaleway');
-        if (!config?.enabled) {
-            return {
-                status: 'not_applicable',
-                evidence: { connector: 'scaleway', enabled: false },
-                details: 'Scaleway connector not enabled — link a read-only API key under ISO 27001 → Connectors to collect backup evidence.',
-            };
-        }
-        const snaps = await isoEvidenceStore.listLatestSnapshots(orgId, 'scaleway');
-        if (!snaps.length) {
-            return {
-                status: 'warn',
-                evidence: { connector: 'scaleway', enabled: true, snapshots: 0 },
-                details: 'Connector enabled but no snapshot yet — run a sweep or check the API key and region.',
-            };
-        }
+        const read = await readConnectorSnapshots(orgId, 'scaleway', 'Scaleway connector not enabled — link a read-only API key under ISO 27001 → Connectors to collect backup evidence.');
+        if (read.result) return read.result;
+        const { snaps } = read;
+        if (!snaps.length) return noSnapshotYet('scaleway', 'Connector enabled but no snapshot yet — run a sweep or check the API key and region.');
         const summary = snaps.find(s => s.subject_id === 'summary');
         if (!summary) {
             return {

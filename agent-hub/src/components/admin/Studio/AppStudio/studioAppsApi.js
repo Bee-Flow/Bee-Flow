@@ -5,34 +5,23 @@
  * EXCEPT saveDefinition, whose 409/422 are expected flows returned as values.
  */
 
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { createJsonResource } from '../../../../api/client';
+import { API_BASE } from '../../../../utils/helpers';
 import { fromError } from '../../../shared/managedPart';
 
 const base = `${API_BASE}/api/studio-apps`;
 const enc = encodeURIComponent;
 
-async function request(url, options = {}) {
-    const res = await authFetch(url, {
-        headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
-        ...options,
-    });
-    let body = null;
-    try { body = await res.json(); } catch { /* empty/non-JSON body */ }
-    if (!res.ok) {
-        // Prefer the server's structured error/code (e.g. the 409 quota body
-        // { error, code:'quota_exceeded', limit, used }) over the generic text.
-        const err = new Error(body?.error || `Request failed (${res.status})`);
-        err.status = res.status;
-        err.code = body?.code || null;
-        err.body = body;
-        // The stage that manages this app refused the write (409 managed_part)
-        // or the step (managed_part_not_deployed): what the banner needs.
+// One request helper for every call: JSON in and out, and on a non-2xx an
+// Error carrying the server's error text, status, code and body. A stage that
+// manages the resource refused the write (409 managed_part) or the step
+// (managed_part_not_deployed): `err.managed` is what the banner needs.
+const request = createJsonResource('', {
+    decorate: (err, body) => {
         const managed = fromError(body);
         if (managed) err.managed = managed;
-        throw err;
-    }
-    return body;
-}
+    },
+});
 
 /**
  * The stage's refusal as a SAVE result. A 409 here is otherwise "someone else

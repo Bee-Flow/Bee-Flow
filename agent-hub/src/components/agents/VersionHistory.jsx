@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import useTranslation from '../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../utils/helpers';
+import { mutate } from '../../api/mutate';
 import { formatRelativeTime } from '../../utils/dateFormatters';
 import { Clock, RotateCcw, ChevronDown, ChevronRight, Trash2, Eye } from 'lucide-react';
 import { toast } from '../shared/Toast';
@@ -87,11 +88,12 @@ export default function VersionHistory({ agentId, onRestore }) {
         e.stopPropagation();
         if (!(await confirm({ title: 'Delete this version?', confirmLabel: 'Delete', destructive: true }))) return;
         try {
-            await authFetch(`${API_BASE}/versions/${agentId}/${versionId}`, { method: 'DELETE' });
+            await mutate(`${API_BASE}/versions/${agentId}/${versionId}`, { method: 'DELETE' });
             setVersions(prev => prev.filter(v => v.id !== versionId));
             if (previewVersion?.id === versionId) setPreviewVersion(null);
         } catch (err) {
             console.error('[VersionHistory] Delete error:', err);
+            toast.error(err.message);
         }
     };
 

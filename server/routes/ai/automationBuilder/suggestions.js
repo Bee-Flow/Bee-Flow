@@ -51,6 +51,7 @@
 
 const express = require('express');
 const { z, typeError } = require('../../../utils/zod');
+const { worded } = require('../../../core/http/schemaParts');
 const log = require('../../../telemetry/log');
 const { depsWith } = require('../../../automation/patterns/depsWith');
 const { validate } = require('../../../core/http/validate');
@@ -61,9 +62,6 @@ const { asToolExecutor } = require('../../../automation/patterns/scanReader');
 const { integrationOf } = require('../../../automation/patterns/ideation');
 const { fingerprintTitle } = require('../../../automation/suggestions');
 const { usageLogFields } = require('../../../core/providers/usageNormalizer');
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 const MODES = ['patterns', 'ideas'];
 const FOCUS_MAX_CHARS = 2000;

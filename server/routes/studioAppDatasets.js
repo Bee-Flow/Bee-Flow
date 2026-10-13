@@ -114,6 +114,7 @@
 const express = require('express');
 const crypto = require('crypto');
 const { z } = require('../utils/zod');
+const { worded } = require('../core/http/schemaParts');
 const log = require('../telemetry/log');
 const { validate } = require('../core/http/validate');
 const router = express.Router();
@@ -145,8 +146,6 @@ const MAX_FILES_PER_APP = parseInt(process.env.STUDIO_APP_DATASET_MAX_FILES, 10)
 const largeDatasets = requireFeature('large_datasets');
 
 // ── What a caller may send ────────────────────────────────────────────
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 /** An object that also accepts nothing at all: no body, or a test's bare req, reads as {}. */
 const partOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 

@@ -9,9 +9,10 @@
  * API and hand the answer back as Markdown.
  *
  * A component runs from its own directory and cannot require server/, so
- * ssrfGuard.js next to this file is a byte copy of the canonical
- * server/core/http/ssrfGuard.js (scripts/check-duplicated-files.mjs keeps it
- * so). This file is byte-identical in both components for the same reason.
+ * ssrfGuard.js next to this file is a generated copy of the canonical
+ * server/core/http/ssrfGuard.js (npm run gen:shared writes it, npm run
+ * lint:shared-mirror checks it). This file is byte-identical in both
+ * components for the same reason (scripts/check-duplicated-files.mjs).
  *
  * Layers:
  *   1. Every hop (the first URL and each redirect target) must be http(s) and

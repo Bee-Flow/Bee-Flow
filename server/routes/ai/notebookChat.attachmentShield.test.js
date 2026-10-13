@@ -24,6 +24,7 @@ process.env.NODE_ENV = 'test';
 const test = require('node:test');
 const assert = require('node:assert');
 const { installResolveStub } = require('../../testUtils/stubRequire');
+const { quietSse } = require('../../testUtils/quietSse');
 const { SIGNED_IN, AI_AGENT_STUB, configStoreStub, serveRouter, postJson } = require('../../testUtils/toolPiiGateHarness');
 
 const pass = (req, res, next) => next();
@@ -83,7 +84,7 @@ const restore = installResolveStub({
         resolveEffectiveOrgId: async () => fx.orgId,
         TIER_DEFAULTS: { fast: { maxTokens: 1024, temperature: 0.2 } },
     },
-    '../../core/http/sseHelpers': { startSseHeartbeat: () => () => {} },
+    '../../core/http/sseHelpers': quietSse(),
     '../../core/kb/notebookKnowledgeSearch': {
         searchNotebookKB: async () => ({ chunks: [], citations: [], contextPrompt: '' }),
         executeNotebookKBSearchTool: async () => ({ chunks: [] }),

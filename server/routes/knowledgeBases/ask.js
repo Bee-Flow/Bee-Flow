@@ -51,6 +51,7 @@ const kbStore = require('../../stores/knowledgeBases');
 const { requireAuth } = require('../../auth');
 const { canAccessKB, getUserId } = require('./shared');
 const { validate } = require('../../core/http/validate');
+const { openSse } = require('../../core/http/sseHelpers');
 const { z } = require('../../utils/zod');
 // Module scope, deliberately: block-scoping this inside the handler is how
 // /ai-fill threw ReferenceError after its SSE headers had already gone out
@@ -73,10 +74,11 @@ const AskBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.
 }).strict());
 
 router.post('/:id/ask', requireAuth, validate({ body: AskBody }), async (req, res, next) => {
-    let headersSent = false;
+    // Null until the stream is open: before that, an error is still a status.
+    let sse = null;
     const send = (event, data) => {
-        if (!headersSent) return;
-        res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+        if (!sse) return;
+        sse.send(event, data);
     };
 
     try {
@@ -118,8 +120,7 @@ router.post('/:id/ask', requireAuth, validate({ body: AskBody }), async (req, re
         // "the sources do not cover this" is exactly what the person is
         // checking for. No model call, because there is nothing to ground on.
         if (chunks.length === 0) {
-            res.writeHead(200, SSE_HEADERS);
-            headersSent = true;
+            sse = openSse(res);
             send('kb_sources', { sources: [] });
             send('done', { empty: true, usage: null });
             return res.end();
@@ -154,8 +155,7 @@ ${fenced}`;
         const apiUrl = (config.url || '').replace(/\/+$/, '');
         const adapter = getAdapter(config.providerType, apiUrl);
 
-        res.writeHead(200, SSE_HEADERS);
-        headersSent = true;
+        sse = openSse(res);
         // The citations go out BEFORE the answer: a person testing their
         // sources needs to see what was found while the answer is still
         // arriving, not after they have read a paragraph built on it.
@@ -181,7 +181,7 @@ ${fenced}`;
         res.end();
     } catch (e) {
         log.error('[KB/ask] error:', e.message);
-        if (headersSent) {
+        if (sse) {
             // The headers are out; a 500 is no longer available, so the error
             // has to travel as an event or the client waits for ever.
             send('error', { error: e.message });
@@ -190,14 +190,6 @@ ${fenced}`;
             next(e);
         }
     }
-});
-
-const SSE_HEADERS = Object.freeze({
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
-    'Connection': 'keep-alive',
-    // nginx buffers a streamed response into uselessness without this.
-    'X-Accel-Buffering': 'no',
 });
 
 module.exports = router;

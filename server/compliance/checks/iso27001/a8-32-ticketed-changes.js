@@ -7,7 +7,7 @@
  * operational/ticket side.
  */
 
-const isoEvidenceStore = require('../../../stores/isoEvidenceStore');
+const { readConnectorSnapshots, noSnapshotYet } = require('../lib/connectorSnapshots');
 const { snapshotFor } = require('../../lib/connectorEvidence');
 
 module.exports = {
@@ -24,25 +24,13 @@ module.exports = {
     remediationLink: 'admin/compliance/iso_connectors',
 
     async evaluate(orgId) {
-        const config = await isoEvidenceStore.getConfig(orgId, 'youtrack');
-        if (!config?.enabled) {
-            return {
-                status: 'not_applicable',
-                evidence: { connector: 'youtrack', enabled: false },
-                details: 'YouTrack connector not enabled — link a permanent token and set the operations project under ISO 27001 → Connectors.',
-            };
-        }
-        const snaps = await isoEvidenceStore.listLatestSnapshots(orgId, 'youtrack');
+        const read = await readConnectorSnapshots(orgId, 'youtrack', 'YouTrack connector not enabled — link a permanent token and set the operations project under ISO 27001 → Connectors.');
+        if (read.result) return read.result;
+        const { config, snaps } = read;
         // The project as the connector trims it into the subject; a project
         // that was configured before keeps its last snapshot in the list.
         const snap = snapshotFor(snaps, String(config.settings?.project || '').trim());
-        if (!snap) {
-            return {
-                status: 'warn',
-                evidence: { connector: 'youtrack', enabled: true, snapshots: 0 },
-                details: 'Connector enabled but no snapshot for the configured project yet — run a sweep or check the base URL, token and project.',
-            };
-        }
+        if (!snap) return noSnapshotYet('youtrack', 'Connector enabled but no snapshot for the configured project yet — run a sweep or check the base URL, token and project.');
         const p = snap.payload || {};
         const recent = Number(p.recent_issues) || 0;
         const resolved = Number(p.resolved_recent) || 0;

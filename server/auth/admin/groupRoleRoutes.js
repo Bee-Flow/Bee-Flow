@@ -20,6 +20,7 @@ const { requireAuth, requireAdmin, requireSuperAdmin, requirePrimaryOrgAdmin, ge
 const orgRolePolicy = require('../orgRolePolicy');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
+const { worded } = require('../../core/http/schemaParts');
 
 // The `roles` table has no organizationId column — a role is install-wide, so
 // editing one reshapes permissions for every tenant. That makes role mutation
@@ -138,9 +139,6 @@ async function rejectUngrantableRoles({ userId, session, requested, existing = [
     if (blocked.length === 0) return null;
     return `Cannot assign roles that grant permissions you don't have: ${blocked.join('; ')}`;
 }
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 /**
  * The list shape as a schema, delegating to invalidStringArrayField so the one

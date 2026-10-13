@@ -25,6 +25,7 @@ const ncScope = require('../core/integrations/ncScope');
 const { NC_INTEGRATIONS } = require('../core/integrations/ncIntegrationCatalog');
 const { validate } = require('../core/http/validate');
 const { z, typeError } = require('../utils/zod');
+const { worded } = require('../core/http/schemaParts');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -54,9 +55,6 @@ const { z, typeError } = require('../utils/zod');
 /** The core's cap per app (MAX_SELECTED in core/integrations/ncScope.js). */
 const MAX_SELECTED = 200;
 const MAX_ID_LEN = 500;
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess(

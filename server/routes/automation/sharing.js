@@ -29,12 +29,11 @@
 
 const express = require('express');
 const { z } = require('../../utils/zod');
+const { worded } = require('../../core/http/schemaParts');
 const log = require('../../telemetry/log');
 const { validate } = require('../../core/http/validate');
 const { HttpError } = require('../../core/http/errors');
 const { makeAutomationAccess, projectForViewer, RANK } = require('../../automation/access');
-
-const worded = (message) => z.string({ error: message });
 
 const PRINCIPAL_TYPE_TEXT = 'principalType is "user" or "group".';
 const ROLE_TEXT = 'role is "run", "view" or "edit".';

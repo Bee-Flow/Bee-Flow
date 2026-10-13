@@ -23,7 +23,8 @@ import type { UpstreamGroup } from './deepFields';
 import { isEmptyBinding } from './partitionInputs';
 
 interface Schema { properties?: Record<string, { type?: unknown } | undefined>; required?: string[] }
-type Binding = { kind: 'ref'; path: string };
+/** A binding the patch may already hold (another pass's); this pass adds refs. */
+type Binding = { kind?: string; path?: string };
 
 /**
  * Does another id input (`labelId`, `id`) already hold the item's id, as a ref

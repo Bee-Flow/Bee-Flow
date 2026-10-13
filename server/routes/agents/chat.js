@@ -30,6 +30,7 @@ const { storedFlag, FLAG_DEFAULTS } = require('./storedFlag');
 const router = express.Router();
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
+const { worded } = require('../../core/http/schemaParts');
 
 // -- What a caller may send ------------------------------------------
 //
@@ -53,9 +54,6 @@ const { z, typeError } = require('../../utils/zod');
 // client's AgentTurnPayload types them) and `isHidden` (the SPA sends it).
 // `.strict()` without them would have 400'd every turn from Agent Hub and
 // from the Android app.
-
-/** A string whose every refusal -- including "you left it out" -- is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());

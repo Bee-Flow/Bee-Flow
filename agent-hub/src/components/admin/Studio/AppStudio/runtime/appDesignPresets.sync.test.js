@@ -1,8 +1,8 @@
 /**
- * The preset gallery's data exists twice — the server copy is the schema of
- * record (builder tools materialize from it), the client copy renders the
- * gallery without a fetch. This test pins them byte-equal, exactly like the
- * CMS themePresets sync test. If it fails: edit BOTH files.
+ * The preset gallery's data is ONE module (server/shared/appDefinition/
+ * designPresets.mjs, mirrored into @shared/appDefinition by npm run gen:shared;
+ * lint:shared-mirror catches a stale copy). This test checks the data against
+ * the server's design spec and the house colour rule.
  */
 import { describe, it, expect } from 'vitest';
 import { createRequire } from 'module';
@@ -12,7 +12,7 @@ const require = createRequire(import.meta.url);
 const serverPresets = require('../../../../../../../server/appStudio/appDesignPresets');
 
 describe('appDesignPresets client/server sync', () => {
-    it('the two copies are deep-equal', () => {
+    it('the server entry point serves the same presets', () => {
         expect(APP_DESIGN_PRESETS).toEqual(serverPresets.APP_DESIGN_PRESETS);
     });
 

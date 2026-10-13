@@ -31,6 +31,7 @@ const { getServiceHeaders } = require('../../core/serviceAuth');
 const { validate } = require('../../core/http/validate');
 const { HttpError } = require('../../core/http/errors');
 const { z, typeError } = require('../../utils/zod');
+const { worded } = require('../../core/http/schemaParts');
 const {
     SEARCH_SERVICE_URL,
     getUserId,
@@ -38,8 +39,6 @@ const {
     resolveIsOrgAdmin,
 } = require('./shared');
 
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 

@@ -33,6 +33,7 @@ const assert = require('node:assert');
 process.env.NODE_ENV = 'test';
 
 const { createPgAppEngine } = require('./pgAppEngine');
+const { pgliteQuery } = require('../../testUtils/pglitePool');
 const engineFlag = require('../../appStudio/engineFlag');
 const dm = require('../../appStudio/dataModel');
 
@@ -50,24 +51,12 @@ const APP_OTHER = 'app-cccccccc-3333-3333-3333-cccccccccccc';
 let pg = null;
 let engine = null;
 
-// ── node-pg-shaped adapters over pglite (mirrors pgAppEngine.test.js) ──
+// ── node-pg-shaped adapters over pglite ──
 
-function adaptResult(res, sql) {
-    const r = Array.isArray(res) ? (res[res.length - 1] || {}) : (res || {});
-    const rows = r.rows || [];
-    const fields = r.fields || [];
-    const command = fields.length > 0 ? 'SELECT' : String(sql).trim().split(/\s+/)[0].toUpperCase();
-    const rowCount = fields.length > 0
-        ? rows.length
-        : (typeof r.affectedRows === 'number' ? r.affectedRows : 0);
-    return { rows, fields, rowCount, command };
-}
-
-async function rawQuery(sql, params) {
-    if (Array.isArray(params) && params.length > 0) return adaptResult(await pg.query(sql, params), sql);
-    if (/;\s*\S/.test(String(sql).trim())) return adaptResult(await pg.exec(sql), sql);
-    return adaptResult(await pg.query(sql), sql);
-}
+// testUtils/pglitePool.js: pglite has no `command`, it synthesizes it the
+// way node-pg reports it (the ENGINE relies on result.command). `pg` is
+// opened in the setup test, so it is read per call.
+const rawQuery = (sql, params) => pgliteQuery(pg)(sql, params);
 
 const runQuery = (sql, params) => rawQuery(sql, params);
 const getClient = async () => ({

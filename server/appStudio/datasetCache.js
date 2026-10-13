@@ -38,6 +38,7 @@
 'use strict';
 
 const crypto = require('crypto');
+const stableJson = require('../utils/stableJson');
 const studioAppDataStore = require('../stores/studioAppDataStore');
 const studioAppDbStore = require('../stores/studioAppDbStore');
 const queryCompiler = require('./queryCompiler');
@@ -55,11 +56,7 @@ function sha256(str) {
  * insertion order. Arrays keep their order (filter order is significant).
  */
 function stableStringify(value) {
-    if (value === null || value === undefined) return 'null';
-    if (typeof value !== 'object') return JSON.stringify(value);
-    if (Array.isArray(value)) return '[' + value.map(stableStringify).join(',') + ']';
-    const keys = Object.keys(value).sort();
-    return '{' + keys.map((k) => JSON.stringify(k) + ':' + stableStringify(value[k])).join(',') + '}';
+    return stableJson.stableStringify(value);
 }
 
 /**

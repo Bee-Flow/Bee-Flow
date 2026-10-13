@@ -41,6 +41,7 @@ const log = require('../telemetry/log');
 const router = express.Router();
 const { validate } = require('../core/http/validate');
 const { HttpError } = require('../core/http/errors');
+const { openSse } = require('../core/http/sseHelpers');
 const { z, typeError } = require('../utils/zod');
 
 const studioAppDataStore = require('../stores/studioAppDataStore');
@@ -146,13 +147,8 @@ router.post('/:id/actions/:actionId/step/stream', requireAuth, jsonBody, validat
         if (!isOwner && !role) return res.status(403).json({ error: 'You do not have access to this app yet' });
 
         // ── Open the SSE stream ──────────────────────────────────────────
-        res.setHeader('Content-Type', 'text/event-stream');
-        res.setHeader('Cache-Control', 'no-cache, no-transform');
-        res.setHeader('Connection', 'keep-alive');
-        res.setHeader('X-Accel-Buffering', 'no');
-        if (typeof res.flushHeaders === 'function') res.flushHeaders();
-
-        const send = (obj) => { try { res.write(`data: ${JSON.stringify(obj)}\n\n`); } catch { /* client gone */ } };
+        const { sendRaw } = openSse(res, { headers: { 'Cache-Control': 'no-cache, no-transform' }, flush: true, viaSetHeader: true });
+        const send = (obj) => sendRaw(`data: ${JSON.stringify(obj)}\n\n`);
         const bridge = (event, data) => {
             const type = EVENT_MAP[event];
             if (type) send({ type, ...data });

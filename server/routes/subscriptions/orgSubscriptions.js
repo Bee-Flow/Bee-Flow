@@ -12,6 +12,7 @@ const { getAdminId } = require('./shared');
 const log = require('../../telemetry/log');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
+const { worded } = require('../../core/http/schemaParts');
 
 const router = express.Router();
 
@@ -28,9 +29,6 @@ const router = express.Router();
 // thing `planId`; both spellings live in this API, which is exactly why a
 // strict schema — rather than a truthiness check — has to say which one this
 // route takes.
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 const text = (what) => worded(`${what} must be text.`);
 const cap = (name) => z.coerce.number({ error: typeError({ invalid: `${name} must be a number.` }) })

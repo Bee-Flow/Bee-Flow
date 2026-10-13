@@ -21,7 +21,7 @@ const { getAdapter } = require('../../core/providers');
 const notebookStore = require('../../stores/notebookStore');
 const notebookConversationStore = require('../../stores/notebookConversationStore');
 const { countWords } = require('../../utils/text');
-const { startSseHeartbeat } = require('../../core/http/sseHelpers');
+const { openSse } = require('../../core/http/sseHelpers');
 
 const { NOTEBOOK_DOC_TOOLS, NOTEBOOK_ADD_SOURCE_TOOL, executeNotebookDocTool } = require('../../integrations/notebookDocTools');
 const { htmlToMarkdown } = require('../../core/markdown');
@@ -168,34 +168,14 @@ router.post('/chat/notebook/stream', requireAuth, validate({ body: NotebookTurnB
 
     log.info(`[NotebookChat] Model: ${modelId} (tier: ${resolvedTier}${modelTier === 'auto' ? ', auto-selected' : ''}) for notebook ${notebook.id} (${readySources.length} sources)`);
 
-    // Set SSE headers
-    res.writeHead(200, {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-        'X-Accel-Buffering': 'no',
-    });
-
-    const send = (event, data) => {
-        res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
-    };
     // Keep the stream warm through the NC AppAPI proxy during long reasoning /
     // doc-edit turns so it isn't idle-timed-out into a 504 (BFSF-221/177).
-    startSseHeartbeat(res);
-
     // One abort signal per turn, tripped when the client disconnects (the Stop
     // button closes the EventSource). Without this the tool loop kept running
     // after Stop and a notebook_doc_write still landed in the database — the
     // user cancelled and the document changed anyway, with no undo in the UI.
-    const turnAbort = new AbortController();
-    let clientGone = false;
-    res.on('close', () => {
-        if (res.writableEnded) return;   // normal completion, not a cancel
-        clientGone = true;
-        turnAbort.abort();
-        log.info('[NotebookChat] client disconnected — aborting turn');
-    });
-    const aborted = () => clientGone || turnAbort.signal.aborted;
+    const { send, signal: turnSignal, isGone } = openSse(res, { heartbeat: true, tag: 'NotebookChat' });
+    const aborted = () => isGone() || turnSignal.aborted;
 
     // Persist a verified authority into the matter's bronnenlijst when a
     // retrieval tool returns a real record (a successful _get IS verification).
@@ -1067,7 +1047,7 @@ Now: ${formatLocalNow(timezone)}`;
                 // The turn already aborts on disconnect; the signal has to
                 // reach the adapter too, or the request to the model keeps
                 // generating after the user pressed stop.
-                signal: turnAbort.signal,
+                signal: turnSignal,
                 // Tools stay enabled every round except a final safety round,
                 // which forces a textual answer if the model hits the cap.
                 tools: isFinalRound ? undefined : notebookTools,

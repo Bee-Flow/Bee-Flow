@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { lazy } from '../../../utils/lazyWithReload';
 import AIComponentDesigner from './AIComponentDesigner';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { API_BASE, authFetch, mutate } from '../../../api/mutate';
 import { toast } from '../../shared/Toast';
 import useConfirm from '../../shared/useConfirm';
 import { useTranslation } from '../../../hooks/useTranslation';
@@ -266,7 +266,7 @@ process.stdin.on('end', async () => {
         if (!(await confirm({ title: t('component_studio.builder.confirm_delete_title', 'Delete "{name}"?', { name: formData.name }), description: t('component_studio.builder.confirm_cannot_undo', 'This cannot be undone.'), confirmLabel: t('component_studio.builder.delete', 'Delete'), destructive: true }))) return;
 
         try {
-            await authFetch(`${API_BASE}/components/${selectedComponent}`, { method: 'DELETE' });
+            await mutate(`${API_BASE}/components/${selectedComponent}`, { method: 'DELETE' });
             fetchComponents();
             handleNewComponent();
         } catch (err) {
@@ -280,7 +280,7 @@ process.stdin.on('end', async () => {
 
         try {
             for (const comp of componentsInCategory) {
-                await authFetch(`${API_BASE}/components/${comp.id}`, { method: 'DELETE' });
+                await mutate(`${API_BASE}/components/${comp.id}`, { method: 'DELETE' });
             }
             fetchComponents();
             if (selectedComponent && componentsInCategory.some(c => c.id === selectedComponent)) {
@@ -296,7 +296,7 @@ process.stdin.on('end', async () => {
         if (!(await confirm({ title: t('component_studio.builder.confirm_delete_title', 'Delete "{name}"?', { name: compName }), description: t('component_studio.builder.confirm_cannot_undo', 'This cannot be undone.'), confirmLabel: t('component_studio.builder.delete', 'Delete'), destructive: true }))) return;
 
         try {
-            await authFetch(`${API_BASE}/components/${compId}`, { method: 'DELETE' });
+            await mutate(`${API_BASE}/components/${compId}`, { method: 'DELETE' });
             fetchComponents();
             if (selectedComponent === compId) {
                 handleNewComponent();

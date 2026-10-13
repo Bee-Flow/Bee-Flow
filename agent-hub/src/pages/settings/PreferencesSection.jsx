@@ -7,6 +7,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { useViewport } from '../../hooks/useViewport';
 import { Check, ChevronDown } from 'lucide-react';
 import { API_BASE, authFetch } from '../../utils/helpers';
+import { mutate } from '../../api/mutate';
 import scopedStorage from '../../utils/scopedStorage';
 import MeetingNotesSection from './MeetingNotesSection';
 import GoogleMeetNotesSection from './GoogleMeetNotesSection';
@@ -175,7 +176,7 @@ const PreferencesSection = ({
         if (onUpdateUser) onUpdateUser({ simpleMode: newVal });
         setSimpleSaving(true);
         try {
-            await authFetch(`${API_BASE}/ai/user-settings`, {
+            await mutate(`${API_BASE}/ai/user-settings`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ simpleMode: newVal }),

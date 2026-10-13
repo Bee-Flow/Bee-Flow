@@ -1,0 +1,1193 @@
+{
+ "server": {
+  "findNode.top": {
+   "node": "cmp_title1",
+   "parent": "sec_top001",
+   "screen": "scr_home01",
+   "section": "sec_top001",
+   "index": 0
+  },
+  "findNode.nested": {
+   "node": "cmp_inner1",
+   "parent": "cmp_box001",
+   "screen": "scr_home01",
+   "section": "sec_top001",
+   "index": 2
+  },
+  "findNode.missing": {
+   "value": null
+  },
+  "findNode.nullDef": {
+   "value": null
+  },
+  "findScreen.hit": {
+   "value": {
+    "id": "scr_detl01",
+    "name": "Detail",
+    "icon": "file",
+    "showInNav": false,
+    "maxWidth": "wide",
+    "visibleToRoles": [
+     "manager"
+    ],
+    "sections": [
+     {
+      "id": "sec_det001",
+      "style": {
+       "padding": 4,
+       "gap": 3,
+       "background": "none"
+      },
+      "children": [
+       {
+        "id": "cmp_dtext1",
+        "type": "text",
+        "props": {
+         "text": "Detail"
+        }
+       }
+      ]
+     }
+    ]
+   }
+  },
+  "findScreen.miss": {
+   "value": null
+  },
+  "findSection.hit": {
+   "section": "sec_bot001",
+   "screen": "scr_home01",
+   "index": 1
+  },
+  "findSection.miss": {
+   "value": null
+  },
+  "findAction.hit": {
+   "value": {
+    "kind": "save_record",
+    "table": "orders",
+    "onSuccess": {
+     "navigateTo": "scr_detl01",
+     "toast": "ok"
+    }
+   }
+  },
+  "findAction.null": {
+   "value": null
+  },
+  "collectIds": {
+   "set": [
+    "scr_home01",
+    "sec_top001",
+    "cmp_title1",
+    "cmp_table1",
+    "cmp_box001",
+    "cmp_btn001",
+    "cmp_btn002",
+    "cmp_inner1",
+    "sec_bot001",
+    "cmp_modal1",
+    "cmp_mtext1",
+    "cmp_btn003",
+    "scr_detl01",
+    "sec_det001",
+    "cmp_dtext1",
+    "act_save01",
+    "act_open01",
+    "act_nav001",
+    "act_del001",
+    "act_omod01",
+    "act_seq001"
+   ]
+  },
+  "uniqueId": {
+   "value": [
+    "cmp_zp5eds",
+    "scr_o8jl3z",
+    23
+   ]
+  },
+  "updateNodeProps.change": {
+   "same": false,
+   "keptScreens": [
+    false,
+    true
+   ],
+   "hash": "18851a4021991ce7"
+  },
+  "updateNodeProps.noop": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4"
+  },
+  "updateNodeProps.missing": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4"
+  },
+  "updateNodeProps.badPatch": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4"
+  },
+  "updateNodeStyle.new": {
+   "same": false,
+   "keptScreens": [
+    false,
+    true
+   ],
+   "hash": "828019d8b50bd625"
+  },
+  "updateNodeStyle.noop": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4"
+  },
+  "setNodeVisible.change": {
+   "same": false,
+   "keptScreens": [
+    false,
+    true
+   ],
+   "hash": "41999cd1bc94c7c3"
+  },
+  "setNodeVisible.nonBool": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4"
+  },
+  "setNodeEvent.onClick": {
+   "same": false,
+   "keptScreens": [
+    false,
+    true
+   ],
+   "hash": "ff651e68e1cf3adf"
+  },
+  "setNodeEvent.clear": {
+   "same": false,
+   "keptScreens": [
+    false,
+    true
+   ],
+   "hash": "56958ea4efbac867"
+  },
+  "setNodeEvent.noop": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4"
+  },
+  "setNodeEvent.onRowClick": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4"
+  },
+  "setNodeEvent.unknown": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4"
+  },
+  "insertNode.section": {
+   "same": false,
+   "keptScreens": [
+    false,
+    true
+   ],
+   "hash": "f3291cb1f6379759",
+   "nodeId": "cmp_new001"
+  },
+  "insertNode.sectionAppend": {
+   "same": false,
+   "keptScreens": [
+    true,
+    false
+   ],
+   "hash": "b4ae031dc1427e1e",
+   "nodeId": "cmp_new001"
+  },
+  "insertNode.container": {
+   "same": false,
+   "keptScreens": [
+    false,
+    true
+   ],
+   "hash": "c6458e0995567284",
+   "nodeId": "cmp_elwiua"
+  },
+  "insertNode.takenId": {
+   "same": false,
+   "keptScreens": [
+    false,
+    true
+   ],
+   "hash": "3733bd9dba6e6f3a",
+   "nodeId": "cmp_2lht6d"
+  },
+  "insertNode.nonContainer": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4",
+   "nodeId": null
+  },
+  "insertNode.wrongScreen": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4",
+   "nodeId": null
+  },
+  "insertNode.screenScoped": {
+   "same": false,
+   "keptScreens": [
+    true,
+    false
+   ],
+   "hash": "19b5380d13ffdb5f",
+   "nodeId": "cmp_new001"
+  },
+  "insertNode.noNode": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4",
+   "nodeId": null
+  },
+  "moveNode.reorder": {
+   "same": false,
+   "keptScreens": [
+    false,
+    true
+   ],
+   "hash": "06d2d52208b64329"
+  },
+  "moveNode.samePlace": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4"
+  },
+  "moveNode.crossSection": {
+   "same": false,
+   "keptScreens": [
+    false,
+    false
+   ],
+   "hash": "ad6275180b95d9b1"
+  },
+  "moveNode.intoSelf": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4"
+  },
+  "moveNode.modal": {
+   "same": false,
+   "keptScreens": [
+    false,
+    false
+   ],
+   "hash": "31fa1d4250c3ed41"
+  },
+  "moveNode.badTarget": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4"
+  },
+  "moveNode.missing": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4"
+  },
+  "removeNode.leaf": {
+   "same": false,
+   "keptScreens": [
+    false,
+    true
+   ],
+   "hash": "5a254601cae84408"
+  },
+  "removeNode.modal": {
+   "same": false,
+   "keptScreens": [
+    false,
+    true
+   ],
+   "hash": "1c948b99808f84fd"
+  },
+  "removeNode.missing": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4"
+  },
+  "updateTheme.change": {
+   "same": false,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "90e5a9fe6b894ff0"
+  },
+  "updateTheme.noop": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4"
+  },
+  "updateMeta.change": {
+   "same": false,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "33ec0a5f8bd803cf"
+  },
+  "updateMeta.bad": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4"
+  },
+  "updateDesign.change": {
+   "same": false,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "2f41256880143f57"
+  },
+  "updateDesign.remove": {
+   "same": false,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "1bf13c182e82ce8d"
+  },
+  "updateDesign.removeAbsent": {
+   "same": false,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "1bf13c182e82ce8d"
+  },
+  "updateNav.change": {
+   "same": false,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "59598055f5145532"
+  },
+  "updateNav.remove": {
+   "same": false,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "bd50190ea580124b"
+  },
+  "addScreen.named": {
+   "same": false,
+   "keptScreens": [
+    true,
+    true,
+    false
+   ],
+   "hash": "f28f47397bff1407",
+   "screenId": "scr_9g1nxt"
+  },
+  "addScreen.unnamed": {
+   "same": false,
+   "keptScreens": [
+    true,
+    true,
+    false
+   ],
+   "hash": "ca6595e8a796414f",
+   "screenId": "scr_t6jl0m"
+  },
+  "removeScreen.detail": {
+   "same": false,
+   "keptScreens": [
+    true
+   ],
+   "hash": "4561103eb0e57f74"
+  },
+  "removeScreen.home": {
+   "same": false,
+   "keptScreens": [
+    true
+   ],
+   "hash": "2b91051d7f009a02"
+  },
+  "removeScreen.missing": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4"
+  },
+  "removeScreen.last": {
+   "same": false,
+   "keptScreens": [
+    true
+   ],
+   "hash": "4561103eb0e57f74"
+  },
+  "updateScreen.change": {
+   "same": false,
+   "keptScreens": [
+    false,
+    true
+   ],
+   "hash": "8b4d21b7b6c457ca"
+  },
+  "updateScreen.noop": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4"
+  },
+  "updateScreen.missing": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4"
+  },
+  "addSection.mid": {
+   "same": false,
+   "keptScreens": [
+    false,
+    true
+   ],
+   "hash": "bffaed811c53961a",
+   "sectionId": "sec_t0er6b"
+  },
+  "addSection.missing": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4",
+   "sectionId": null
+  },
+  "updateSectionStyle.change": {
+   "same": false,
+   "keptScreens": [
+    false,
+    true
+   ],
+   "hash": "f196f8cb47e2a9ec"
+  },
+  "updateSectionStyle.noop": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4"
+  },
+  "setAction.new": {
+   "same": false,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "abeabe460dd8d7c6",
+   "actionId": "act_7ixplk"
+  },
+  "setAction.replace": {
+   "same": false,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "fec7ea5f9f22b18a",
+   "actionId": "act_save01"
+  },
+  "setAction.bad": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4",
+   "actionId": null
+  },
+  "removeAction.del": {
+   "same": false,
+   "keptScreens": [
+    false,
+    true
+   ],
+   "hash": "c3015fbe3bbb8449"
+  },
+  "removeAction.open": {
+   "same": false,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "1e7e6bcd21d12540"
+  },
+  "removeAction.missing": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4"
+  },
+  "setVariables.set": {
+   "same": false,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "ee7e89a5406d1891"
+  },
+  "setVariables.clear": {
+   "same": false,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b76daa67b0f14805"
+  },
+  "setPublicAccess.open": {
+   "same": false,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "ffc0267984f692d2"
+  },
+  "setPublicAccess.close": {
+   "same": false,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4"
+  }
+ },
+ "client": {
+  "findNode.top": {
+   "node": "cmp_title1",
+   "parent": "sec_top001",
+   "screen": "scr_home01",
+   "section": "sec_top001",
+   "index": 0
+  },
+  "findNode.nested": {
+   "node": "cmp_inner1",
+   "parent": "cmp_box001",
+   "screen": "scr_home01",
+   "section": "sec_top001",
+   "index": 2
+  },
+  "findNode.missing": {
+   "value": null
+  },
+  "findNode.nullDef": {
+   "value": null
+  },
+  "findScreen.hit": {
+   "value": {
+    "id": "scr_detl01",
+    "name": "Detail",
+    "icon": "file",
+    "showInNav": false,
+    "maxWidth": "wide",
+    "visibleToRoles": [
+     "manager"
+    ],
+    "sections": [
+     {
+      "id": "sec_det001",
+      "style": {
+       "padding": 4,
+       "gap": 3,
+       "background": "none"
+      },
+      "children": [
+       {
+        "id": "cmp_dtext1",
+        "type": "text",
+        "props": {
+         "text": "Detail"
+        }
+       }
+      ]
+     }
+    ]
+   }
+  },
+  "findScreen.miss": {
+   "value": null
+  },
+  "findSection.hit": {
+   "section": "sec_bot001",
+   "screen": "scr_home01",
+   "index": 1
+  },
+  "findSection.miss": {
+   "value": null
+  },
+  "findAction.hit": {
+   "value": {
+    "kind": "save_record",
+    "table": "orders",
+    "onSuccess": {
+     "navigateTo": "scr_detl01",
+     "toast": "ok"
+    }
+   }
+  },
+  "findAction.null": {
+   "value": null
+  },
+  "collectIds": {
+   "set": [
+    "scr_home01",
+    "sec_top001",
+    "cmp_title1",
+    "cmp_table1",
+    "cmp_box001",
+    "cmp_btn001",
+    "cmp_btn002",
+    "cmp_inner1",
+    "sec_bot001",
+    "cmp_modal1",
+    "cmp_mtext1",
+    "cmp_btn003",
+    "scr_detl01",
+    "sec_det001",
+    "cmp_dtext1",
+    "act_save01",
+    "act_open01",
+    "act_nav001",
+    "act_del001",
+    "act_omod01",
+    "act_seq001"
+   ]
+  },
+  "updateNodeProps.change": {
+   "same": false,
+   "keptScreens": [
+    false,
+    true
+   ],
+   "hash": "18851a4021991ce7"
+  },
+  "updateNodeProps.noop": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4"
+  },
+  "updateNodeProps.missing": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4"
+  },
+  "updateNodeProps.badPatch": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4"
+  },
+  "updateNodeStyle.new": {
+   "same": false,
+   "keptScreens": [
+    false,
+    true
+   ],
+   "hash": "828019d8b50bd625"
+  },
+  "updateNodeStyle.noop": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4"
+  },
+  "setNodeEvent.onClick": {
+   "same": false,
+   "keptScreens": [
+    false,
+    true
+   ],
+   "hash": "ff651e68e1cf3adf"
+  },
+  "setNodeEvent.clear": {
+   "same": false,
+   "keptScreens": [
+    false,
+    true
+   ],
+   "hash": "56958ea4efbac867"
+  },
+  "setNodeEvent.noop": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4"
+  },
+  "setNodeEvent.onRowClick": {
+   "same": false,
+   "keptScreens": [
+    false,
+    true
+   ],
+   "hash": "eebe3e3093b08618"
+  },
+  "setNodeEvent.unknown": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4"
+  },
+  "insertNode.section": {
+   "same": false,
+   "keptScreens": [
+    false,
+    true
+   ],
+   "hash": "f3291cb1f6379759",
+   "nodeId": "cmp_new001"
+  },
+  "insertNode.sectionAppend": {
+   "same": false,
+   "keptScreens": [
+    true,
+    false
+   ],
+   "hash": "b4ae031dc1427e1e",
+   "nodeId": "cmp_new001"
+  },
+  "insertNode.container": {
+   "same": false,
+   "keptScreens": [
+    false,
+    true
+   ],
+   "hash": "c6458e0995567284",
+   "nodeId": "cmp_elwiua"
+  },
+  "insertNode.takenId": {
+   "same": false,
+   "keptScreens": [
+    false,
+    true
+   ],
+   "hash": "3733bd9dba6e6f3a",
+   "nodeId": "cmp_2lht6d"
+  },
+  "insertNode.nonContainer": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4",
+   "nodeId": null
+  },
+  "insertNode.wrongScreen": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4",
+   "nodeId": null
+  },
+  "insertNode.screenScoped": {
+   "same": false,
+   "keptScreens": [
+    true,
+    false
+   ],
+   "hash": "19b5380d13ffdb5f",
+   "nodeId": "cmp_new001"
+  },
+  "insertNode.noNode": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4",
+   "nodeId": null
+  },
+  "moveNode.reorder": {
+   "same": false,
+   "keptScreens": [
+    false,
+    true
+   ],
+   "hash": "06d2d52208b64329"
+  },
+  "moveNode.samePlace": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4"
+  },
+  "moveNode.crossSection": {
+   "same": false,
+   "keptScreens": [
+    false,
+    false
+   ],
+   "hash": "ad6275180b95d9b1"
+  },
+  "moveNode.intoSelf": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4"
+  },
+  "moveNode.modal": {
+   "same": false,
+   "keptScreens": [
+    false,
+    false
+   ],
+   "hash": "31fa1d4250c3ed41"
+  },
+  "moveNode.badTarget": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4"
+  },
+  "moveNode.missing": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4"
+  },
+  "removeNode.leaf": {
+   "same": false,
+   "keptScreens": [
+    false,
+    true
+   ],
+   "hash": "5a254601cae84408"
+  },
+  "removeNode.modal": {
+   "same": false,
+   "keptScreens": [
+    false,
+    true
+   ],
+   "hash": "09a1dd4381ea4470"
+  },
+  "removeNode.missing": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4"
+  },
+  "updateTheme.change": {
+   "same": false,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "90e5a9fe6b894ff0"
+  },
+  "updateTheme.noop": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4"
+  },
+  "updateMeta.change": {
+   "same": false,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "33ec0a5f8bd803cf"
+  },
+  "updateMeta.bad": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4"
+  },
+  "updateDesign.change": {
+   "same": false,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "2f41256880143f57"
+  },
+  "updateDesign.remove": {
+   "same": false,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "1bf13c182e82ce8d"
+  },
+  "updateDesign.removeAbsent": {
+   "same": false,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "1bf13c182e82ce8d"
+  },
+  "updateNav.change": {
+   "same": false,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "59598055f5145532"
+  },
+  "updateNav.remove": {
+   "same": false,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "bd50190ea580124b"
+  },
+  "updateAiBrowsing.set": {
+   "same": false,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "c5b548e4ec662649"
+  },
+  "addScreen.named": {
+   "same": false,
+   "keptScreens": [
+    true,
+    true,
+    false
+   ],
+   "hash": "f28f47397bff1407",
+   "screenId": "scr_9g1nxt"
+  },
+  "addScreen.unnamed": {
+   "same": false,
+   "keptScreens": [
+    true,
+    true,
+    false
+   ],
+   "hash": "ca6595e8a796414f",
+   "screenId": "scr_t6jl0m"
+  },
+  "removeScreen.detail": {
+   "same": false,
+   "keptScreens": [
+    false
+   ],
+   "hash": "494e1969ce1de096"
+  },
+  "removeScreen.home": {
+   "same": false,
+   "keptScreens": [
+    true
+   ],
+   "hash": "c99f5b31aad13966"
+  },
+  "removeScreen.missing": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4"
+  },
+  "removeScreen.last": {
+   "same": false,
+   "keptScreens": [
+    false
+   ],
+   "hash": "494e1969ce1de096"
+  },
+  "updateScreen.change": {
+   "same": false,
+   "keptScreens": [
+    false,
+    true
+   ],
+   "hash": "8b4d21b7b6c457ca"
+  },
+  "updateScreen.noop": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4"
+  },
+  "updateScreen.missing": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4"
+  },
+  "addSection.mid": {
+   "same": false,
+   "keptScreens": [
+    false,
+    true
+   ],
+   "hash": "bffaed811c53961a",
+   "sectionId": "sec_t0er6b"
+  },
+  "addSection.missing": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4",
+   "sectionId": null
+  },
+  "setAction.new": {
+   "same": false,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "abeabe460dd8d7c6",
+   "actionId": "act_7ixplk"
+  },
+  "setAction.replace": {
+   "same": false,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "fec7ea5f9f22b18a",
+   "actionId": "act_save01"
+  },
+  "setAction.bad": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4",
+   "actionId": null
+  },
+  "removeAction.del": {
+   "same": false,
+   "keptScreens": [
+    false,
+    true
+   ],
+   "hash": "de24d726d9d73a91"
+  },
+  "removeAction.open": {
+   "same": false,
+   "keptScreens": [
+    false,
+    true
+   ],
+   "hash": "67342026b5b4aa5b"
+  },
+  "removeAction.missing": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4"
+  }
+ }
+}

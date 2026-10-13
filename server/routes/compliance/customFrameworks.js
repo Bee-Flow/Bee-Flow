@@ -44,14 +44,12 @@ const { resolveOrgId } = require('./shared');
 const { onEvidenceWriteFailed } = require('../../compliance/evidence/writeFailures');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
+const { worded } = require('../../core/http/schemaParts');
 
 const guard = [requireAuth, requirePermission('admin_compliance'), requireCapability('compliance_hub_custom')];
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_EXPIRES_MONTHS = 120;
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());

@@ -30,30 +30,23 @@
  * managed } }` (managedPart.managedOf reads it).
  */
 
+import { createJsonResource } from '../../../../api/client';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import { fromError } from '../../../shared/managedPart';
 
 const base = `${API_BASE}/api/datatables`;
 const enc = encodeURIComponent;
 
-async function request(url, options = {}) {
-    const res = await authFetch(url, {
-        headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
-        ...options,
-    });
-    let body = null;
-    try { body = await res.json(); } catch { /* empty or non-JSON body */ }
-    if (!res.ok) {
-        const err = new Error(body?.error || `Request failed (${res.status})`);
-        err.status = res.status;
-        err.code = body?.code || null;
-        err.body = body;
+// One request helper for every call: JSON in and out, and on a non-2xx an
+// Error carrying the server's error text, status, code and body. A stage that
+// manages the resource refused the write (409 managed_part) or the step
+// (managed_part_not_deployed): `err.managed` is what the banner needs.
+const request = createJsonResource('', {
+    decorate: (err, body) => {
         const managed = fromError(body);
         if (managed) err.managed = managed;
-        throw err;
-    }
-    return body;
-}
+    },
+});
 
 export const datatablesApi = {
     /** Every table the caller holds any grade on, each already carrying it. */

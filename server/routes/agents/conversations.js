@@ -10,6 +10,7 @@ const { getEffectiveUserId } = require('../../utils/routeHelpers');
 const { makeReadAgentConversation } = require('./sharedThreadRead');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
+const { worded } = require('../../core/http/schemaParts');
 
 require('../../stores/userStore');
 require('../../stores/usageStore');
@@ -33,9 +34,6 @@ const MAX_WORKSPACE_BYTES = 10 * 1024 * 1024; // 10 MB
 // Every schema is `.strict()`: a key this router does not read is a client
 // bug, and answering 200 to it means the person watches a setting they typed
 // fail to stick with nothing on screen to explain it.
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 const TITLE_TEXT = 'A conversation title must be text.';
 const Title = worded(TITLE_TEXT).max(MAX_TITLE_LEN, `A conversation title is at most ${MAX_TITLE_LEN} characters.`);

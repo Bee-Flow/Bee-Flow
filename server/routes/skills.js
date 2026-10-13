@@ -80,14 +80,10 @@ const { sanitizeEnabledIntegrations } = require('../core/tools/skillInjection');
 const { SkillStructureError } = require('../core/skills/skillStructure');
 const { validate } = require('../core/http/validate');
 const { z, typeError } = require('../utils/zod');
+const { worded, orEmpty } = require('../core/http/schemaParts');
 
 // ── What a caller may send ──────────────────────────────────────────
 
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
-
-/** Express 5 leaves `req.body` undefined without a body; read that as `{}`. */
-const orEmpty = (schema) => z.preprocess((v) => (v === undefined || v === null ? {} : v), schema);
 const NoQuery = orEmpty(z.object({}).strict());
 
 const NAME_TEXT = 'A skill needs a name.';

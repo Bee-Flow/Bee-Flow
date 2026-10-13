@@ -19,6 +19,7 @@ const maintenanceWindow = require('../core/entitlements/maintenanceWindow');
 const { APP_BUILD_SHA } = require('../utils/buildInfo');
 const { validate } = require('../core/http/validate');
 const { z, typeError } = require('../utils/zod');
+const { worded } = require('../core/http/schemaParts');
 
 // ── What the pipeline may send ──────────────────────────────────────
 //
@@ -36,9 +37,6 @@ const { z, typeError } = require('../utils/zod');
 // clamped to 10..3600 there. Anything else was already a 400; it is now the
 // schema's, in a sentence. And a failure while storing the window is a
 // generic 500 through the terminal handler, instead of echoing its message.
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess(

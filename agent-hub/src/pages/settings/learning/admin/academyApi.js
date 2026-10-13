@@ -11,22 +11,13 @@
  * the saved lesson is NOT attached to any course until a follow-up
  * saveCourse() whose lessonIds includes the returned lesson.id.
  */
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { createJsonResource } from '../../../../api/client';
+import { API_BASE } from '../../../../utils/helpers';
 
 const root = `${API_BASE}/ai/learning/admin`;
 
-async function request(url, { method = 'GET', body } = {}) {
-    const res = await authFetch(url, {
-        method,
-        ...(body !== undefined
-            ? { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
-            : {}),
-    });
-    let data = null;
-    try { data = await res.json(); } catch { /* non-JSON error body */ }
-    if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
-    return data;
-}
+const resource = createJsonResource('', { contentType: 'body', errorText: (status) => `HTTP ${status}` });
+const request = (url, { method = 'GET', body } = {}) => resource(url, { method, body });
 
 export const academyApi = {
     // → { courses: [{ courseId, title, status, updatedAt }] }

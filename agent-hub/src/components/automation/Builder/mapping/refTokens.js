@@ -22,8 +22,8 @@
  * text and made re-picking through the pill keep the stale half.
  */
 import { formatPath, readPath, scanTemplate } from '@shared/expr/path.mjs';
+import { humanizeFieldTail } from './core';
 import { detectTemplate, isCleanPath, refPathTokens } from '../../../../utils/bindingHelpers';
-import { humanizeFieldTail } from '../flow/displayHelpers';
 
 // The roots a pill can name.
 const REF_ROOTS = ['steps', 'trigger', 'loop'];

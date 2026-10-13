@@ -16,6 +16,7 @@ require('googleapis');
 const { loadConfig, requireAuth } = require('../../auth/permissions');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
+const { worded } = require('../../core/http/schemaParts');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -27,9 +28,6 @@ const { z, typeError } = require('../../utils/zod');
 //
 // The picker (agent-hub hooks/useGoogleWorkspacePicker.ts) sends exactly
 // query/pageToken/pageSize, which is why the key set is `.strict()`.
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 const FILE_ID_TEXT = 'That is not a Google Drive file id.';
 

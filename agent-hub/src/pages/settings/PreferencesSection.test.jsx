@@ -375,10 +375,10 @@ describe('PreferencesSection — Simple Mode', () => {
         expect(screen.queryByText(/failed/i)).toBeNull();
     });
 
-    it('keeps the toggle ON when the server REFUSES the save (wart)', async () => {
-        // The response status is never inspected: a 403/500 leaves the
-        // optimistic value standing, so the screen claims a preference the
-        // backend rejected. Only a thrown request is reverted.
+    it('reverts the toggle when the server REFUSES the save', async () => {
+        // The save goes through mutate(), which throws on a 403/500, so a
+        // refused save is reverted like a failed request instead of leaving
+        // the optimistic value standing on screen.
         const onUpdateUser = vi.fn();
         authFetch.mockImplementation(async (url, init) => {
             if (init?.method === 'POST') return { ok: false, status: 403, json: async () => ({ error: 'forbidden' }) };
@@ -387,9 +387,9 @@ describe('PreferencesSection — Simple Mode', () => {
         mount({ onUpdateUser });
         fireEvent.click(toggle());
 
-        await waitFor(() => expect(authFetch.mock.calls.some(c => c[1]?.method === 'POST')).toBe(true));
-        expect(toggle()).toHaveAttribute('aria-pressed', 'true');
-        expect(onUpdateUser.mock.calls).toEqual([[{ simpleMode: true }]]);
+        await waitFor(() => expect(toggle()).toHaveAttribute('aria-pressed', 'false'));
+        expect(authFetch.mock.calls.some(c => c[1]?.method === 'POST')).toBe(true);
+        expect(onUpdateUser.mock.calls).toEqual([[{ simpleMode: true }], [{ simpleMode: false }]]);
     });
 
     it('hides Chat History and Startup while Simple Mode is on', () => {

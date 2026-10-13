@@ -22,6 +22,7 @@ const log = require('../../telemetry/log');
 
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
+const { worded } = require('../../core/http/schemaParts');
 const { storedFlag, FLAG_DEFAULTS } = require('./storedFlag');
 const { makeAgentAccess } = require('../../agents/agentAccess');
 
@@ -32,9 +33,6 @@ const router = express.Router();
 // The category, transfer and tool-param routes, and the agent save (PUT /:id).
 // The create body (POST /) is deliberately not stated here — see the note
 // above POST /.
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 const CATEGORY_NAME = 'A category needs a name.';
 const CategoryBody = z.object({

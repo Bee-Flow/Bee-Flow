@@ -86,7 +86,7 @@ const router = express.Router();
 const studioAppStore = require('../../../stores/studioAppStore');
 const { getAdapter } = require('../../../core/providers');
 const { perUserRateLimit } = require('../../../utils/perUserRateLimit');
-const { startSseHeartbeat } = require('../../../core/http/sseHelpers');
+const { openSse } = require('../../../core/http/sseHelpers');
 // requireAuth is the canonical gate from auth/permissions (verifies the
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
 const { requireAuth } = require('../../../auth/permissions');
@@ -190,17 +190,7 @@ router.post('/stream', requireAuth, builderRateLimit, async (req, res) => {
     //    thinking model can go silent for 30–60s and an idle gateway would
     //    otherwise drop the stream into a false 504 (same class as the
     //    automation-builder incident / BFSF-221). ──
-    res.writeHead(200, {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-        'X-Accel-Buffering': 'no',
-    });
-    if (typeof res.flushHeaders === 'function') res.flushHeaders();
-    const stopHeartbeat = startSseHeartbeat(res);
-    const send = (event, data) => {
-        try { res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`); } catch (_) { /* stream gone */ }
-    };
+    const { send, stopHeartbeat } = openSse(res, { heartbeat: true, flush: true });
 
     // ── Wave 6c error taxonomy: an SSE `error` carries a machine `code` AND
     //    leaves a structured stderr line (shipped to OpenObserve via stdout —

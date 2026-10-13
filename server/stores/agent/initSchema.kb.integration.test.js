@@ -7,8 +7,8 @@
  * The unit tests around this column all stub the database, so none of them can
  * tell whether the ALTER is even valid SQL. This one runs the REAL
  * `stores/agent/initSchema` against a REAL Postgres and reads the ground truth
- * out of information_schema — the same reasoning (and the same pglite facade)
- * as migrateDb.integration.test.js, which asserts tables and not columns.
+ * out of information_schema — the same reasoning as
+ * migrateDb.integration.test.js, which asserts tables and not columns.
  *
  * What it pins:
  *
@@ -25,81 +25,14 @@
  * pglite is real Postgres (WASM, in-process, already a devDependency), so this
  * suite always runs — no container, no self-skip.
  *
- * Run: cd server && node --test --test-force-exit stores/agent/initSchema.kb.integration.test.js
+ * Run: cd server && node --test stores/agent/initSchema.kb.integration.test.js
  */
 
 const { test } = require('node:test');
 const assert = require('node:assert');
-const path = require('node:path');
-const Module = require('node:module');
 
-const SERVER = path.join(__dirname, '..', '..');
-
-const { PGlite } = require('@electric-sql/pglite');
-const pg = new PGlite();
-
-function adaptResult(res, sql) {
-    const r = Array.isArray(res) ? (res[res.length - 1] || {}) : (res || {});
-    const rows = r.rows || [];
-    const fields = r.fields || [];
-    const command = fields.length > 0 ? 'SELECT' : String(sql).trim().split(/\s+/)[0].toUpperCase();
-    const rowCount = fields.length > 0
-        ? rows.length
-        : (typeof r.affectedRows === 'number' ? r.affectedRows : 0);
-    return { rows, fields, rowCount, command };
-}
-
-async function rawQuery(sql, params) {
-    if (Array.isArray(params) && params.length > 0) return adaptResult(await pg.query(sql, params), sql);
-    if (/;\s*\S/.test(String(sql).trim())) return adaptResult(await pg.exec(sql), sql);
-    return adaptResult(await pg.query(sql), sql);
-}
-
-const client = { query: (sql, params) => rawQuery(sql, params), release: () => {} };
-
-function mock(absId, exportsObj) {
-    const p = require.resolve(absId);
-    const m = new Module(p);
-    m.exports = exportsObj;
-    m.loaded = true;
-    require.cache[p] = m;
-}
-
-mock(path.join(SERVER, 'db.js'), {
-    pool: { query: rawQuery, connect: async () => client, end: async () => {} },
-    run: rawQuery,
-    getOne: async (sql, params) => (await rawQuery(sql, params)).rows[0] || null,
-    getAll: async (sql, params) => (await rawQuery(sql, params)).rows,
-    exec: (sql) => rawQuery(sql, []),
-    getClient: async () => client,
-    // A REAL transaction: runDdl opens a SAVEPOINT per statement, which
-    // Postgres refuses outside a transaction block. A withTransaction that
-    // merely hands over a client would make this suite prove nothing about the
-    // path the boot actually takes.
-    withTransaction: async (fn) => {
-        await client.query('BEGIN');
-        try {
-            const out = await fn(client);
-            await client.query('COMMIT');
-            return out;
-        } catch (e) {
-            try { await client.query('ROLLBACK'); } catch { /* already aborted */ }
-            throw e;
-        }
-    },
-    makeStoreInit: (tag, schemaFn) => {
-        let promise = null;
-        return function ensureInit() {
-            if (!promise) promise = Promise.resolve().then(schemaFn).catch((err) => { promise = null; throw err; });
-            return promise;
-        };
-    },
-    isSqlStateError: (e) => typeof e?.code === 'string' && /^[0-9A-Z]{5}$/.test(e.code),
-    getRedis: () => null,
-    redisHealthy: () => false,
-    disconnectRedis: async () => {},
-    getPoolStats: () => ({}),
-});
+const { usePglitePool } = require('../../testUtils/pglitePool');
+const { query: rawQuery } = usePglitePool();
 
 const { initDB } = require('./initSchema');
 

@@ -17,6 +17,7 @@
 process.env.NODE_ENV = 'test';
 
 const test = require('node:test');
+const { quietSse } = require('../testUtils/quietSse');
 const assert = require('node:assert');
 const express = require('express');
 const { installResolveStub } = require('../testUtils/stubRequire');
@@ -76,7 +77,7 @@ const restore = installResolveStub({
     '../integrations/webpageApiRuntime': { executeApiHandler: async () => ({}) },
     '../core/aiAgent': { getProviderForModel: async () => ({ providerType: 'openai', url: 'http://model.invalid', apiKey: 'k' }) },
     '../core/providers': streamingToolCallProvider(fx),
-    '../core/http/sseHelpers': { startSseHeartbeat: () => () => {} },
+    '../core/http/sseHelpers': quietSse(),
     '../core/privacy/orgShield': {
         resolveShieldFor: async (who) => { fx.shieldCalls.push(who); return fx.shield; },
     },

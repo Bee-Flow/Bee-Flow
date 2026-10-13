@@ -31,20 +31,11 @@ const SERVER = path.join(__dirname, '..');
 
 // ── pglite behind the db.js facade ─────────────────────────────────────────
 const { PGlite } = require('@electric-sql/pglite');
+const { pgliteQuery } = require('../testUtils/pglitePool');
 const pg = new PGlite();
 
-function adaptResult(res) {
-    const r = Array.isArray(res) ? (res[res.length - 1] || {}) : (res || {});
-    const rows = r.rows || [];
-    const rowCount = (r.fields || []).length > 0
-        ? rows.length
-        : (typeof r.affectedRows === 'number' ? r.affectedRows : 0);
-    return { rows, rowCount };
-}
-async function rawQuery(sql, params) {
-    if (Array.isArray(params) && params.length > 0) return adaptResult(await pg.query(sql, params));
-    return adaptResult(await pg.query(sql));
-}
+// node-postgres's `query(sql, params)` over this PGlite (testUtils/pglitePool.js).
+const rawQuery = pgliteQuery(pg);
 
 function mock(absPath, exportsObj) {
     const m = new Module(absPath);

@@ -13,6 +13,7 @@ const { requirePermission } = require('../auth/permissions');
 const installer = require('../services/guardInstaller');
 const { validate } = require('../core/http/validate');
 const { z, typeError } = require('../utils/zod');
+const { worded } = require('../core/http/schemaParts');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -25,9 +26,6 @@ const { z, typeError } = require('../utils/zod');
 //   - a misspelled `modle` installed the default model, answered 202;
 //   - a model or key with whitespace in it went into the container's env and
 //     the X-API-Key header as-is, where it can only fail later.
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess(

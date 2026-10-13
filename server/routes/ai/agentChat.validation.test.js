@@ -33,7 +33,7 @@ const Module = require('module');
 
 // Every agent turn lands in `touched`. A refused request must leave it empty.
 const touched = [];
-const state = { capabilities: new Set(['component_designer']), initialized: 0, users: {} };
+const state = { capabilities: new Set(['component_designer']), initialized: 0, users: {}, duringChat: null };
 const pass = (req, res, next) => next();
 
 const MOCKS = {
@@ -41,6 +41,7 @@ const MOCKS = {
         getOrCreateAgent: () => ({
             async chat(message, tools, context) {
                 touched.push({ what: 'chat', args: [message, tools, context] });
+                if (state.duringChat) state.duringChat();
                 return { message: 'ok', component: null, toolCalls: [] };
             },
             getHistory: () => [],
@@ -174,6 +175,23 @@ test('a well-formed turn reaches the agent with its tools and context intact', a
     });
     assert.strictEqual(res.statusCode, 200);
     assert.deepStrictEqual(touched, [{ what: 'chat', args: ['build a weather lookup', ['tavily-search'], { componentId: 'weather' }] }]);
+});
+
+test('/chat-stream frames the turn as SSE and keeps a silent turn alive until it ends', async () => {
+    test.mock.timers.enable({ apis: ['setInterval'] });
+    try {
+        state.duringChat = () => test.mock.timers.tick(10000);
+        const res = await dispatch({ method: 'POST', url: '/chat-stream', body: { message: 'hi' } });
+        assert.strictEqual(res.statusCode, 200);
+        assert.ok(res.stream.includes(': ping\n\nevent: ping\ndata: {}\n\n'), 'a 10 s keep-alive while the designer thinks');
+        assert.ok(res.stream.endsWith('event: done\ndata: {"message":"ok","component":null,"toolCalls":[]}\n\n'));
+        const n = res.stream.length;
+        test.mock.timers.tick(30000);
+        assert.strictEqual(res.stream.length, n, 'the keep-alive stops with the turn');
+    } finally {
+        state.duringChat = null;
+        test.mock.timers.reset();
+    }
 });
 
 test('null tools stays null — the agent reads it as "keep the previous selection"', async () => {

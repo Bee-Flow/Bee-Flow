@@ -20,9 +20,7 @@ const { loginIpLimiter } = require('../authRateLimits');
 const { finalizeLogin } = require('./finalizeLogin');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
+const { worded } = require('../../core/http/schemaParts');
 
 // One sentence for both fields and for every way they can be wrong. The 400
 // must not distinguish a missing username from a missing password any more

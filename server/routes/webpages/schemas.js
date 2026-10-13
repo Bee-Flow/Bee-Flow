@@ -22,18 +22,13 @@
 'use strict';
 
 const { z, onUnknownKeys, typeError } = require('../../utils/zod');
-
-/** Een string waarvan élke weigering — ook "je liet hem weg" — een zin is. */
-const worded = (message) => z.string({ error: message });
+const { worded, choice } = require('../../core/http/schemaParts');
 
 /** Een body die óók geen body accepteert: Express 5 laat `req.body` dan undefined. */
 const bodyOf = (shape) => z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
     z.object(shape).strict(),
 );
-
-/** Een enum waarvan de weigering één zin is, voor een verkeerde waarde net zo goed. */
-const choice = (values, message) => z.enum(values, { error: () => message });
 
 /** Een "ja" op de query string. `?confirm=1` en `?confirm=true` allebei. */
 const flag = (message) => choice(['true', '1', 'false', '0'], message)

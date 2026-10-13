@@ -50,6 +50,7 @@
 
 const express = require('express');
 const { z, typeError } = require('../../utils/zod');
+const { worded } = require('../../core/http/schemaParts');
 const { validate } = require('../../core/http/validate');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { validateCustomIntegration, deriveOpenAiTools } = require('../../core/customIntegrations/validateCustomIntegration');
@@ -69,9 +70,6 @@ const TOOL_NAME_RE = /^[a-z][a-z0-9_]{2,40}$/;
 const MAX_TOOL_NAME_CHARS = 41;
 
 // ── Request schemas ─────────────────────────────────────────────────
-
-/** A string whose every refusal, including "you left it out", is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());

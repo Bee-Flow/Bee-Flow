@@ -9,6 +9,10 @@
       "reason": "GENERATED from server/i18n/defaults/en (npm run i18n:gen, checked by lint:i18n-gen)"
     },
     {
+      "glob": "src/**/*.generated.mjs",
+      "reason": "GENERATED copies of server CMS data (cmsDefaults, themePresets, emojiCatalog) by npm run gen:shared, checked by lint:shared-mirror"
+    },
+    {
       "glob": "src/demo/fixtures/**",
       "reason": "demo-mode fixture data served instead of the API"
     },

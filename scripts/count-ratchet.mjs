@@ -29,6 +29,13 @@
  *                     module system (`require.cache`, `Module._load`,
  *                     `_resolveFilename`). The target is injection through the
  *                     stores' init()/factory seams (phase 2, point 6).
+ *   authfetch-outside-api  non-test files outside src/api/ that call
+ *                     authFetch themselves (utils/helpers.js, where it is
+ *                     defined, not counted). The data layer is src/api/:
+ *                     apiClient / createJsonResource (client.ts), mutate()
+ *                     and the readers in api/queries/; a call written by hand
+ *                     elsewhere is one more copy of URL, headers and error
+ *                     handling.
  *   authfetch-effect  non-test files that call authFetch AND use useEffect:
  *                     a fetch wired by hand into a component's lifecycle. The
  *                     target is useQuery/useMutation in src/api/queries/.
@@ -47,6 +54,21 @@
  *                     correlation id. The eslint rule already forbids echoing
  *                     err.message in these; this metric counts all of them, so
  *                     the hand-written 5xx responses can only go down.
+ *   sse-head          a `text/event-stream` head written by hand outside
+ *                     core/http/ (an object-literal or setHeader
+ *                     Content-Type, or res.type()), in non-test code. The
+ *                     convention is openSse() from core/http/sseHelpers.js:
+ *                     the head, the guarded send, the client-stop signal and
+ *                     the keep-alive in one call, so a route cannot forget
+ *                     one of them. Reading the header (boot/requestTiming.js)
+ *                     or asking for it (an Accept header) is not counted.
+ *   local-zod-helper  top-level declarations in routes/ and auth/ (non-test)
+ *                     named after a helper of core/http/schemaParts.js
+ *                     (worded, bodyOf, queryOf, choice, flag, wholeNumber,
+ *                     idList, closedObject, orEmpty): a route re-declaring
+ *                     the shared zod pieces. The ones left differ in
+ *                     wording or defaults from the shared helper, so they
+ *                     stay until someone words them the shared way.
  *   dutch-comment     files with at least one comment line in Dutch (two
  *                     distinct Dutch function words on one comment line). The
  *                     comment policy is English in code; Dutch belongs in the
@@ -61,6 +83,27 @@
  *                     dependency of the product. The target is moving the
  *                     shared piece down (into api/, hooks/ or components/),
  *                     then an eslint no-restricted-paths rule once at zero.
+ *   unchecked-mutation  non-test calls of authFetch with a literal POST, PUT,
+ *                     PATCH or DELETE method whose Response nobody checks:
+ *                     authFetch does not throw on 4xx/5xx, so a caller that
+ *                     neither reads `.ok`/`.status` nor hands the Response on
+ *                     shows success when the server refused. A call counts as
+ *                     checked when it is returned (the caller owns it) or
+ *                     passed straight to a function; when the name it lands in
+ *                     (directly, through a ternary or a `Promise.all`
+ *                     destructuring) is read in the next 25 lines as
+ *                     `.ok`/`.status`, passed to a function, or parsed and
+ *                     branched on as `.error`/`.success`/`.ok`; or when a
+ *                     `.then` reading `.ok`/`.status` follows it. The target
+ *                     is `mutate()` from src/api/mutate.ts, which throws an
+ *                     ApiError carrying the server's error text.
+ *   inline-pglite     server test files that build their own node-postgres
+ *                     adapter over a PGlite (an adapt/rawQuery function, a
+ *                     rowCount mapping, a db.pool swap). The shared ones are
+ *                     testUtils/pglitePool.js (`usePglitePool()`,
+ *                     `pgliteQuery(pg)`) and testUtils/pgliteDb.js
+ *                     (`pgliteDb()`, `dbFacade()`); testUtils/ itself is not
+ *                     counted.
  *
  * Usage:
  *   node scripts/count-ratchet.mjs <metric> <package>            gate
@@ -111,6 +154,79 @@ function resolveImport(spec, fromRel) {
     return target.startsWith('../') ? null : target;
 }
 
+// unchecked-mutation: a non-GET authFetch whose Response is never looked at.
+const MUTATION_METHOD = /\bmethod\s*:\s*(['"`])(?:POST|PUT|PATCH|DELETE)\1/i;
+const AUTHFETCH_CALL = /(?<![\w.$])authFetch\s*\(/g;
+const CHECK_WINDOW_LINES = 25;
+
+/** Index just past the `)` closing the call whose `(` sits at `open`, or -1. */
+function closeParen(text, open) {
+    let depth = 0;
+    for (let i = open; i < text.length; i++) {
+        const c = text[i];
+        if (c === '(') depth++;
+        else if (c === ')' && --depth === 0) return i + 1;
+    }
+    return -1;
+}
+
+const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/** The names a call's Response lands in: `const res = await authFetch(`, the
+ * branch of a ternary assignment, or an element of `const [a, b] = await Promise.all([`. */
+function responseNames(text, callIndex, before) {
+    const direct = before.match(/(?:\b(?:const|let|var)\s+)?([A-Za-z_$][\w$]*)(?:\s*:\s*[\w$.<>[\]| ]+?)?\s*=\s*(?:await\s+)?$/);
+    if (direct) return [direct[1]];
+    const back = text.slice(Math.max(0, callIndex - 1200), callIndex).split('\n').slice(-16).join('\n');
+    if (/[?:]\s*(?:await\s+)?$/.test(before)) {
+        const ternary = back.match(/\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=[^;]*$/);
+        if (ternary) return [ternary[1]];
+    }
+    if (/(?:^\s*|[[,]\s*)$/.test(before)) {
+        const all = back.match(/\b(?:const|let|var)\s+\[([^\]]+)\]\s*=\s*await\s+Promise\.all\s*\(\s*\[[^;]*$/);
+        if (all) return all[1].split(',').map((n) => n.trim()).filter((n) => /^[A-Za-z_$][\w$]*$/.test(n));
+    }
+    return [];
+}
+
+/** True when `after` reads the Response: `.ok`/`.status`, hands it to a function,
+ * or parses it and branches on the body's `error`/`success`. */
+function responseRead(after, names) {
+    return names.some((raw) => {
+        const name = escapeRe(raw);
+        if (new RegExp(`\\b${name}\\s*\\??\\.\\s*(?:ok|status)\\b|[(,]\\s*${name}\\s*[),]`).test(after)) return true;
+        return new RegExp(`\\b${name}\\.json\\(`).test(after) && /(?<!\b(?:console|toast|log|logger))\.(?:error|success|ok)\b/.test(after);
+    });
+}
+
+function countUncheckedMutations(text) {
+    let n = 0;
+    for (const m of text.matchAll(AUTHFETCH_CALL)) {
+        const open = m.index + m[0].length - 1;
+        const end = closeParen(text, open);
+        if (end < 0) continue;
+        if (!MUTATION_METHOD.test(text.slice(open, end))) continue;
+        const lineStart = text.lastIndexOf('\n', m.index) + 1;
+        const before = text.slice(lineStart, m.index);
+        // Returned: the caller receives the Response and owns the check.
+        if (/(?:\breturn|=>)\s*(?:await\s+)?$/.test(before)) continue;
+        // Handed straight to a reader: `readJson(await authFetch(…))`.
+        if (/[\w$]\s*\(\s*(?:await\s+)?$/.test(before)) continue;
+        const after = text.slice(end).split('\n').slice(0, CHECK_WINDOW_LINES).join('\n');
+        if (/^\s*\.then\s*\(/.test(after)) {
+            if (!/\.(?:ok|status)\b/.test(after)) n++;
+            continue;
+        }
+        if (/\{[^}]*\b(?:ok|status)\b[^}]*\}\s*=\s*(?:await\s+)?$/.test(before)) continue;
+        if (responseRead(after, responseNames(text, m.index, before))) continue;
+        n++;
+    }
+    return n;
+}
+
+// inline-pglite: the shapes a hand-rolled node-postgres adapter over PGlite takes.
+const INLINE_PGLITE_ADAPTER = /^(?:async\s+)?function\s+(?:adapt\w*|rawQuery|q|query)\s*\(|\browCount\s*:|typeof\s+[\w?.]+\.affectedRows|\.affectedRows\s*\?\?|\bpool\.(?:query|connect)\s*=|\bquery\s*:\s*\(sql, params\)\s*=>\s*pg\.query/m;
+
 const METRICS = {
     'inline-style': {
         measure: countMatches(/\bstyle=\{\s*\{/g),
@@ -134,6 +250,12 @@ const METRICS = {
         what: 'files pairing authFetch with useEffect',
         advice: 'read through useQuery/useMutation in src/api/queries/ instead',
     },
+    'authfetch-outside-api': {
+        include: (rel) => !TEST_FILE.test(rel) && !rel.startsWith('api/') && rel !== 'utils/helpers.js',
+        measure: (text) => (/(?<![\w.$])authFetch\s*\(/.test(text) ? 1 : 0),
+        what: 'files calling authFetch outside src/api',
+        advice: 'call through src/api/ instead: apiClient or createJsonResource (api/client.ts), mutate() (api/mutate.ts), or a reader in api/queries/',
+    },
     'big-file': {
         include: (rel) => !TEST_FILE.test(rel) && !BIG_FILE_EXEMPT.test(rel),
         measure: (text, pkg) => (lineCount(text) > (BIG_FILE_LIMIT[pkg] ?? 400) ? 1 : 0),
@@ -154,6 +276,22 @@ const METRICS = {
         measure: countMatches(/\.status\(\s*5\d\d\s*\)/g),
         what: 'hand-written .status(5xx) responses',
         advice: 'throw an HttpError (core/http/errors.js) or call next(err) and let core/http/terminalErrorHandler.js answer',
+    },
+    'sse-head': {
+        include: (rel) => !TEST_FILE.test(rel) && !rel.startsWith('core/http/'),
+        measure: countMatches(/['"]Content-Type['"]\s*[:,]\s*['"`]text\/event-stream|\.type\(\s*['"`]text\/event-stream/gi),
+        what: 'hand-written text/event-stream heads outside core/http',
+        advice: 'open the stream with openSse() from core/http/sseHelpers.js (headers/flush/heartbeat options keep a route\'s own wire head)',
+    },
+    'local-zod-helper': {
+        // Route and auth files only: elsewhere these names mean other things
+        // (integrations/shared/idList.js parses a query string). Top-level
+        // declarations only, so a local `const choice = data.choices[0]`
+        // inside a handler is not one.
+        include: (rel) => !TEST_FILE.test(rel) && /^(routes|auth)\//.test(rel),
+        measure: countMatches(/^(?:const|let|function)\s+(?:worded|bodyOf|queryOf|choice|flag|wholeNumber|idList|closedObject|orEmpty)\b/gm),
+        what: 'local copies of the zod schema helpers in routes/ and auth/',
+        advice: 'import the helper from core/http/schemaParts.js (worded, bodyOf, queryOf, choice, flag, wholeNumber, idList, closedObject, orEmpty), or give a deliberately different helper its own name',
     },
     'dutch-comment': {
         // The dictionaries hold translations and translator notes; their
@@ -182,6 +320,18 @@ const METRICS = {
         },
         what: 'files importing against the layer direction (api/hooks -> components/pages, components -> pages)',
         advice: 'move the shared piece down into api/, hooks/ or components/ and import it from there',
+    },
+    'unchecked-mutation': {
+        include: (rel) => !TEST_FILE.test(rel),
+        measure: (text) => countUncheckedMutations(text),
+        what: 'non-GET authFetch calls whose Response is not checked',
+        advice: 'call mutate() from src/api/mutate.ts (it throws an ApiError on a non-2xx answer) and show the error, or check res.ok',
+    },
+    'inline-pglite': {
+        include: (rel) => TEST_FILE.test(rel) && !rel.startsWith('testUtils/'),
+        measure: (text) => (/\bnew PGlite\(/.test(text) && INLINE_PGLITE_ADAPTER.test(text) ? 1 : 0),
+        what: 'test files with their own PGlite adapter',
+        advice: 'use pgliteQuery(pg) / usePglitePool() from testUtils/pglitePool.js or pgliteDb()/dbFacade() from testUtils/pgliteDb.js instead',
     },
 };
 

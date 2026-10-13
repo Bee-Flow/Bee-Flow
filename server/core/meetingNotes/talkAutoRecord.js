@@ -25,6 +25,7 @@
 const configStore = require('../../stores/configStore');
 const { resolveTalkNotesSettings } = require('./talkNotesSettings');
 const log = require('../../telemetry/log');
+const kit = require('./importJobKit');
 
 const ARMED_KEY = (userId) => `talk_autorecord_armed_${userId}`;
 
@@ -88,10 +89,7 @@ async function disarmToken(userId, token) {
 }
 
 async function resolveOrgIdForUser(userId) {
-    try {
-        const { getUser } = require('../../stores/userStore');
-        return (await getUser(userId))?.organizationId || null;
-    } catch (_) { return null; }
+    return kit.resolveOrgIdForUser(userId, () => require('../../stores/userStore'));
 }
 
 /**
@@ -100,30 +98,13 @@ async function resolveOrgIdForUser(userId) {
  * can turn it on for members who never opened their own settings).
  */
 async function listCandidateUsers() {
-    const all = await configStore.getAllConfig().catch(() => ({}));
-    const userIds = new Set();
-    const orgIds = new Set();
-    for (const key of Object.keys(all || {})) {
-        if (key.startsWith('user_talk_notes_')) userIds.add(key.slice('user_talk_notes_'.length));
-        else if (key.startsWith('org_talk_notes_')) orgIds.add(key.slice('org_talk_notes_'.length));
-    }
-    if (orgIds.size) {
-        const enabledOrgs = [];
-        for (const orgId of orgIds) {
-            const s = await resolveTalkNotesSettings({ orgId }).catch(() => null);
-            if (s?.autoRecord) enabledOrgs.push(orgId);
-        }
-        if (enabledOrgs.length) {
-            try {
-                const { getAllUsers } = require('../../stores/userStore');
-                const users = await getAllUsers();
-                for (const u of users) {
-                    if (u.organizationId && enabledOrgs.includes(u.organizationId)) userIds.add(u.id);
-                }
-            } catch (_) { /* best-effort */ }
-        }
-    }
-    return Array.from(userIds);
+    return kit.listCandidateUsers({
+        configStore,
+        kind: 'talk_notes',
+        resolveSettings: resolveTalkNotesSettings,
+        flag: 'autoRecord',
+        getUserStore: () => require('../../stores/userStore'),
+    });
 }
 
 /**

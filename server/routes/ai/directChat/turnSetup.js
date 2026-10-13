@@ -19,6 +19,7 @@ const agentStore = require('../../../stores/agentStore');
 const { checkSubscriptionLimits, resolveOrgId } = require('../../../core/entitlements/limits');
 const orgHealth = require('../../../services/orgHealth');
 const log = require('../../../telemetry/log');
+const { openSse } = require('../../../core/http/sseHelpers');
 const { resolveTurnTier } = require('../../../core/llm/resolveTurnModel');
 
 async function resolveTurnSetup({ req, res, userId, message, modelTier, conversationId, attachments }) {
@@ -143,27 +144,17 @@ async function resolveTurnSetup({ req, res, userId, message, modelTier, conversa
             const ownerId = await agentStore.getConversationOwnerId(conversationId);
             if (ownerId && ownerId !== userId) {
                 log.warn('[DirectChat] refused foreign conversationId:', { conversationId, caller: userId, owner: ownerId });
-                res.writeHead(200, {
-                    'Content-Type': 'text/event-stream',
-                    'Cache-Control': 'no-cache',
-                    'Connection': 'keep-alive',
-                    'X-Accel-Buffering': 'no',
-                });
-                res.write(`event: error\ndata: ${JSON.stringify({ error: 'Conversation not found' })}\n\n`);
-                return res.end();
+                const sse = openSse(res);
+                sse.send('error', { error: 'Conversation not found' });
+                return sse.end();
             }
         } catch (e) {
             // Fail closed: if we can't establish ownership we don't proceed with
             // a client-supplied conversation id.
             log.error('[DirectChat] conversation ownership check failed:', e.message);
-            res.writeHead(200, {
-                'Content-Type': 'text/event-stream',
-                'Cache-Control': 'no-cache',
-                'Connection': 'keep-alive',
-                'X-Accel-Buffering': 'no',
-            });
-            res.write(`event: error\ndata: ${JSON.stringify({ error: 'Could not verify the conversation. Please retry.' })}\n\n`);
-            return res.end();
+            const sse = openSse(res);
+            sse.send('error', { error: 'Could not verify the conversation. Please retry.' });
+            return sse.end();
         }
     }
 
@@ -171,14 +162,9 @@ async function resolveTurnSetup({ req, res, userId, message, modelTier, conversa
     const limitOrgId = await resolveOrgId(req);
     const limitError = await checkSubscriptionLimits(limitOrgId, 'chat', userId);
     if (limitError) {
-        res.writeHead(200, {
-            'Content-Type': 'text/event-stream',
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive',
-            'X-Accel-Buffering': 'no',
-        });
-        res.write(`event: error\ndata: ${JSON.stringify({ error: limitError })}\n\n`);
-        return res.end();
+        const sse = openSse(res);
+        sse.send('error', { error: limitError });
+        return sse.end();
     }
     return { orgIdsForTiers, userOrgForTiers, tiers, disableSearchOnUpload, webSearchGuardPiiCategories, resolvedTier, tier, modelId, config, adapter, apiKey, apiUrl };
 }

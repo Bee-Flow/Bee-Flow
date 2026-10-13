@@ -9,6 +9,7 @@ import type {
     BuilderValidation,
     DryRun,
 } from './builderStream';
+import { openTurn, rateOf } from './builderStream';
 import { isBlankDefinition } from '../components/automation/Builder/flow/normalizeDefinition';
 import { deepEqual } from '../utils/deepEqual';
 import { API_BASE, authFetch } from '../utils/helpers';
@@ -738,27 +739,8 @@ function finalizeStreaming(messages: BuilderMessage[]): BuilderMessage[] {
  *
  * Always replaced copy-on-write (touchTurn): BuildTab's effect that files the
  * measurement keys on `state.turn`, and an in-place write would never fire it.
+ * The record itself is openTurn() in builderStream.ts.
  */
-function openTurn(tier?: string | null): BuilderTurn {
-    return {
-        sentAt: Date.now(),
-        tier: tier || null,
-        sessionAt: null,
-        pings: 0,
-        lastPingAt: null,
-        modelId: null,
-        roundStartedAt: null,
-        promptChars: null,
-        firstEventAt: null,
-        // Per-round facts (server round_start / prompt_progress / usage):
-        iter: null,
-        local: null,          // true when the round runs on a self-hosted runtime
-        providerType: null,
-        phase: null,          // 'reading' from round_start until the first output, then 'writing'
-        progress: null,       // llama-server prompt progress { total, cache, processed, timeMs, at }
-        usage: null,          // the round's normalised usage (prompt/completion/cached tokens, timings)
-    };
-}
 
 // The server remembers which approved plan its open questions belong to
 // (questionsMeta.planId), so a reload keeps "this answer continues the build".
@@ -781,16 +763,6 @@ function markFirstEvent(s: AutomationBuilderState): AutomationBuilderState {
     // Any output from the model means it is past reading the prompt.
     if (s.turn.phase !== 'writing') patch.phase = 'writing';
     return Object.keys(patch).length ? touchTurn(s, patch) : s;
-}
-
-/**
- * Tokens per second from llama-server timings, or null. `prompt_n` is the
- * number of prompt tokens actually evaluated (cached ones are in `cache_n`),
- * so prompt_n / prompt_ms is the true read speed of this round.
- */
-function rateOf(n?: number, ms?: number): number | null {
-    if (!Number.isFinite(n) || !Number.isFinite(ms) || !(n! > 0) || !(ms! > 0)) return null;
-    return Math.round((n! / ms!) * 1000);
 }
 
 function handle(setState: Dispatch<SetStateAction<AutomationBuilderState>>, event: string, data: BuilderStreamData) {

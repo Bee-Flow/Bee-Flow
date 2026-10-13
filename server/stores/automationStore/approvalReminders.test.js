@@ -11,10 +11,11 @@
 const { test, before, after } = require('node:test');
 const assert = require('node:assert');
 const { PGlite } = require('@electric-sql/pglite');
+const { pgliteQuery } = require('../../testUtils/pglitePool');
 const { claimApprovalReminder } = require('./approvalReminders');
 
 const pg = new PGlite();
-const deps = { getClient: async () => ({ query: (sql, params) => pg.query(sql, params), release: () => {} }) };
+const deps = { getClient: async () => ({ query: pgliteQuery(pg), release: () => {} }) };
 
 before(async () => {
     await pg.exec(`

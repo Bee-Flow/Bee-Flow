@@ -25,6 +25,7 @@ const { resolveUserOrgIds } = require('../auth');
 
 const { validate } = require('../core/http/validate');
 const { z, typeError } = require('../utils/zod');
+const { worded } = require('../core/http/schemaParts');
 
 const upload = multer({
     storage: multer.memoryStorage(),
@@ -47,9 +48,6 @@ const upload = multer({
 // `req.body` with the text fields only after reading the stream; the file
 // itself is `req.file`, checked in the handler. FormData carries only text,
 // and `isDefault` was `=== 'true'`: an HTML checkbox's "on" meant NO.
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess(

@@ -16,10 +16,8 @@ const supportStore = require('../../stores/supportStore');
 const { _hasAdminSupport, requireStaffSupport, _actingOrgId } = require('./shared');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
+const { worded } = require('../../core/http/schemaParts');
 const log = require('../../telemetry/log');
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 const NAME_TEXT = 'A tag needs a name.';
 const TagBody = z.object({

@@ -29,6 +29,7 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const { z, typeError } = require('../utils/zod');
+const { worded } = require('../core/http/schemaParts');
 const componentManager = require('../core/cms/componentManager');
 const { requireAuth } = require('../auth/permissions');
 const { validate } = require('../core/http/validate');
@@ -69,9 +70,6 @@ function resolveComponentDir(id) {
 // The id's SHAPE stays judged by resolveComponentDir above — one place, with
 // the containment check the :id routes need too. The schema asks only that
 // it be text.
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 const INPUT_TEXT = 'Each input is a type name, or { type, default, description, secure }.';
 const InputDef = z.union([

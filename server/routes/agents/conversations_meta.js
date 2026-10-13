@@ -16,6 +16,7 @@ require('../../core/http/sseHelpers');
 const router = express.Router();
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
+const { worded } = require('../../core/http/schemaParts');
 
 // -- What the search query may say ------------------------------------
 //
@@ -25,9 +26,6 @@ const { z, typeError } = require('../../utils/zod');
 // -- switched BOTH halves on, and somebody who had narrowed to their agent
 // conversations was handed their direct chats as well, under a 200. Any
 // other spelling did the same thing.
-
-/** A string whose every refusal -- including "you left it out" -- is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 const SOURCE_TEXT = 'source is "agent" or "direct".';
 const one = (name, what) => worded(`${name} is ${what}.`).trim().min(1, `${name} is ${what}.`).optional();

@@ -61,6 +61,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { z, typeError } = require('../utils/zod');
+const { choice } = require('../core/http/schemaParts');
 const { requireAuth: _requireAuth, requireAdmin: _requireAdmin } = require('../auth/permissions');
 const brandingStore = require('../stores/brandingStore');
 const { validate } = require('../core/http/validate');
@@ -87,7 +88,6 @@ const requireAdmin = safe(_requireAdmin);
 // The same words brandingStore.sanitize accepts. An enum whose refusal is one
 // sentence, for a wrong value as much as a wrong type (see validate.js).
 
-const choice = (values, message) => z.enum(values, { error: () => message });
 const within = (name, lo, hi) => {
     const text = `${name} is a number from ${lo} to ${hi}.`;
     return z.number({ error: typeError({ invalid: text }) }).min(lo, text).max(hi, text);

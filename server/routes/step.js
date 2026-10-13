@@ -47,6 +47,7 @@ const express = require('express');
 const router = express.Router();
 const { validate } = require('../core/http/validate');
 const { z, typeError } = require('../utils/zod');
+const { worded } = require('../core/http/schemaParts');
 
 const automationStore = require('../stores/automationStore');
 const userStore = require('../stores/userStore');
@@ -68,8 +69,6 @@ router.use(requireBetaFeature('automations'));
 const { requireActiveOrgForMutations } = require('../auth');
 router.use(requireActiveOrgForMutations());
 
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 /** A real boolean, never the text "false" — which is true. */
 const bool = (message) => z.boolean({ error: message });
 

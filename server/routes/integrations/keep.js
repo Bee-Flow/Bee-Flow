@@ -6,6 +6,7 @@ const router = express.Router();
 const { executeKeepAction } = require('../../integrations/keepTools');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
+const { worded } = require('../../core/http/schemaParts');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -22,9 +23,6 @@ const { z, typeError } = require('../../utils/zod');
 //
 // The session gate stays AHEAD of the schema: an unauthenticated caller must
 // still read 401, not a 400 about its body.
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 const ACTION_TEXT = 'action is create or delete.';
 const TYPE_TEXT = 'type is text or list.';

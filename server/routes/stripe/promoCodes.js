@@ -13,6 +13,7 @@ const userStore = require('../../stores/userStore');
 const { requireCloud, stripeIpLimiter, stripeUserLimiter } = require('./shared');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
+const { worded } = require('../../core/http/schemaParts');
 const log = require('../../telemetry/log');
 
 const router = express.Router();
@@ -36,9 +37,6 @@ const router = express.Router();
 //
 // `duration: 'repeating'` without `durationMonths` is refused here rather
 // than at Stripe, which answered it with a raw API error.
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 const CODE_TEXT = 'A promo code needs a code, e.g. LAUNCH20.';
 const TYPE_TEXT = 'discountType must be "percent" or "fixed".';

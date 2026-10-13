@@ -1,25 +1,24 @@
 /**
- * DIFFERENTIAL lockstep for the deep reading, the per-item moves and the item
- * describers: agent-hub `Builder/mapping/{deepFields,deepenForEach,itemRefs,
- * innerList,autoMapIteration}.ts` and `upstream/loops.js` against their ports,
- * on payloads as they come: JSON text inside JSON text, name/value lists,
- * keys that are not identifiers, lists inside lists. When this fails the web
- * side changed — update the port, don't loosen the test.
+ * DIFFERENTIAL lockstep for the item describers, auto-map and the list-path
+ * words: agent-hub `upstream/loops.js`, `autoMapInputs.js` and
+ * `listPathLabel.ts` (whose humanizeFieldKey is the phone's own) against the
+ * phone, on payloads as they come: JSON text inside JSON text, name/value
+ * lists, keys that are not identifiers, lists inside lists. The TypeScript
+ * mapping library itself (deepFields, deepenForEach, itemRefs, innerList,
+ * deepPick, autoMapIteration) is the web's file, generated into mirror/ and
+ * held there by npm run lint:shared-mirror. When this fails the web side
+ * changed — update the port, don't loosen the test.
  */
 
 import * as am from './autoMap';
 import { applyAutoMapToStep } from './autoMapStep';
-import * as dp from './deepenForEach';
 import * as df from './deepFields';
-import { planDeepPick } from './deepPick';
 import { listPathLabel } from './listPathLabel';
 import { BUILDER, requireWeb } from './testing/web';
 import type { Catalog, FlowDefinition, VariableGroup } from './types';
 import * as loops from './upstream/loops';
 
 const web = {
-    df: requireWeb(`${BUILDER}/mapping/deepFields.ts`),
-    dp: requireWeb(`${BUILDER}/mapping/deepenForEach.ts`),
     am: requireWeb(`${BUILDER}/mapping/autoMapInputs.js`),
     loops: requireWeb(`${BUILDER}/mapping/upstream/loops.js`),
 };
@@ -55,78 +54,10 @@ function group(id: string, output: unknown, kind = 'integration_action', extra: 
     return { id, label: id, kind, basePath, sample: output, fields, ...extra };
 }
 
-describe('deepFields', () => {
-    it('reads the same positions, lists and entries', () => {
-        for (const v of [UGLY, ITEMS, BODY, null, 'text', [[1, 2]], { a: { b: { c: { d: { e: { f: { g: 1 } } } } } } }]) {
-            expect(df.deepValueFields(v, 'steps.x.output')).toStrictEqual(web.df.deepValueFields?.(v, 'steps.x.output'));
-            expect(df.listSources(v, 'steps.x.output')).toStrictEqual(web.df.listSources?.(v, 'steps.x.output'));
-            expect(df.mergeElementSamples(v)).toStrictEqual(web.df.mergeElementSamples?.(v));
-        }
-        for (const g of [group('u', UGLY), group('c', { result: { lines: [{ a: 1 }] }, logs: ['x'], httpCalls: 0 }, 'code')]) {
-            expect(df.groupListSources(g)).toStrictEqual(web.df.groupListSources?.(g));
-            expect(df.groupValueFields(g)).toStrictEqual(web.df.groupValueFields?.(g));
-        }
-        for (const k of ['Prénom', 'first-name', 'First Name', 'firstName', null, 'ÉMAIL']) expect(df.foldKey(k)).toBe(web.df.foldKey?.(k));
-        expect(df.pairEntries(UGLY.headers)).toStrictEqual(web.df.pairEntries?.(UGLY.headers));
-    });
-
+describe('deepFields (the web\'s file, generated into mirror/)', () => {
     it('reaches the bottom of JSON text inside JSON text', () => {
         const paths = df.deepValueFields({ body: JSON.stringify({ data: { payload: JSON.stringify({ meta: JSON.stringify({ ai: LVL3 }) }) } }) }, 'steps.h.output').map((n) => n.path);
         expect(paths).toContain('steps.h.output.body.data.payload.meta.ai.verdict["reason code"]');
-    });
-});
-
-describe('per-item moves', () => {
-    const SHOP = { steps: { shop: { output: { orders: [{ id: 1, line_items: [{ sku: 'A', properties: [{ name: 'n', value: 'v' }] }] }] } } } };
-    const FE = { overRef: 'steps.shop.output.orders', itemVar: 'order' };
-
-    it('plan, move, rebind and the column finder agree', () => {
-        for (const [path, v] of [
-            ['loop.order.line_items[*].sku', 'order'],
-            ['loop.order["line-items"][*]["unit price"]', 'order'],
-            ['loop.order.line_items[*].properties[*].value', 'order'],
-            ['loop.result.results[*].id', 'result'],
-            ['loop.order.subject', 'order'],
-        ] as const) {
-            const plan = dp.nestedListPick(path, v);
-            expect(plan).toStrictEqual(web.dp.nestedListPick?.(path, v));
-            if (!plan) continue;
-            expect(dp.deepenedForEach(FE, plan, SHOP)).toStrictEqual(web.dp.deepenedForEach?.(FE, plan, SHOP));
-            expect(dp.deepenedForEach({ ...FE, parents: [{ itemVar: 'x', overRef: 'steps.a.output.x' }] }, plan)).toStrictEqual(
-                web.dp.deepenedForEach?.({ ...FE, parents: [{ itemVar: 'x', overRef: 'steps.a.output.x' }] }, plan),
-            );
-            const inputs = {
-                id: { kind: 'ref', path: 'loop.order.id' },
-                col: { kind: 'ref', path: 'loop.order.line_items[*].sku' },
-                text: { kind: 'template', value: 'Order {{ loop.order.line_items[*].sku }} {{loop.order.id}}' },
-                expr: { kind: 'expr', value: 'upper(loop.order.line_items[*].sku)' },
-                values: { A: { kind: 'ref', path: 'loop.order.line_items[*].sku' } },
-            };
-            expect(dp.rebindToNewItem(inputs, plan, null)).toStrictEqual(web.dp.rebindToNewItem?.(inputs, plan, null));
-        }
-        const item = { id: 'm1', attachments: [{ attachmentId: 'a1', messageId: 'm1' }], payload: JSON.stringify({ parts: [{ partId: 'p' }] }) };
-        for (const keys of [['attachmentId'], ['messageId'], ['partId'], ['nope']]) {
-            expect(dp.findNestedColumn(keys, item, 'mail')).toStrictEqual(web.dp.findNestedColumn?.(keys, item, 'mail'));
-        }
-        for (const p of ['steps.shop.output.orders[*].line_items[*].sku', 'steps.shop.output.orders[*].id', 'steps.h.output.body.value[*].body.attendees[*].email']) {
-            expect(dp.innerForEachPick(p, SHOP)).toStrictEqual(web.dp.innerForEachPick?.(p, SHOP));
-            expect(dp.relativeToItem(p, FE)).toStrictEqual(web.dp.relativeToItem?.(p, FE));
-        }
-    });
-
-    it('re-pointing at another list agrees, fields and all', () => {
-        const inputs = { a: { kind: 'ref', path: 'loop.order.id' }, b: { kind: 'template', value: '{{loop.order.Subject}}' } };
-        for (const [path, element] of [
-            ['steps.shop.output.orders[*].line_items', { sku: 'A' }],
-            ['steps.other.output.messages', { ID: 'x', subject: 's' }],
-            ['steps.shop.output.orders', { id: 1 }],
-        ] as const) {
-            expect(dp.rebaseForEach(FE, { path, element }, inputs)).toStrictEqual(web.dp.rebaseForEach?.(FE, { path, element }, inputs));
-        }
-        const body = [{ id: 'c', type: 'condition', expr: 'loop.order.id > 1' }];
-        expect(dp.rebaseForEach(FE, { path: 'steps.b.output.rows', element: { id: 1 } }, body, { strings: true })).toStrictEqual(
-            web.dp.rebaseForEach?.(FE, { path: 'steps.b.output.rows', element: { id: 1 } }, body, { strings: true }),
-        );
     });
 });
 
@@ -239,21 +170,5 @@ describe('a list path in words', () => {
         }
         expect(listPathLabel('steps.split.output.matchesByCase.default', labels)).toBe('Split ▸ Otherwise');
         expect(listPathLabel('steps.keep.output.items[*].attachments', labels, null, { compact: true, stepTypeById })).toBe('Keep ▸ Attachments');
-    });
-});
-
-describe('a value from a list inside a list, picked into one field', () => {
-    it('plans the same move on the phone', () => {
-        const pick = requireWeb(`${BUILDER}/mapping/deepPick.ts`);
-        const root = { steps: { shop: { output: { orders: [{ id: 1, line_items: [{ sku: 'A' }] }] } } }, loop: { order: { id: 1, line_items: [{ sku: 'A' }] } } };
-        const apply = () => null;
-        for (const [path, opts] of [
-            ['loop.order.line_items[*].sku', { deepenForEach: { itemVar: 'order', apply }, sampleRoot: root }],
-            ['steps.shop.output.orders[*].line_items[*].sku', { deepenForEach: { itemVar: 'order', forEach: { overRef: 'steps.shop.output.orders', itemVar: 'order' }, apply }, sampleRoot: root }],
-            ['steps.shop.output.orders[*].line_items[*].sku', { canForEach: true, sampleRoot: root }],
-            ['steps.shop.output.orders[*].id', { canForEach: true, sampleRoot: root }],
-        ] as const) {
-            expect(planDeepPick(path, opts)).toStrictEqual(pick.planDeepPick?.(path, opts));
-        }
     });
 });

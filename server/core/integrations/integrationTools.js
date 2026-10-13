@@ -8,6 +8,7 @@
  */
 
 const configStore = require('../../stores/configStore');
+const { resolveOrgAllowList, resolveOrgActiveSet } = require('./enabledIntegrations');
 const { GMAIL_TOOLS } = require('../../integrations/gmailTools');
 const { CALENDAR_TOOLS } = require('../../integrations/calendarTools');
 const { DRIVE_TOOLS } = require('../../integrations/driveTools');
@@ -183,29 +184,11 @@ async function getIntegrationTools({ userId, session, isAdmin, agentConfig, agen
         if (currentUser?.organizationId) {
             userOrgId = currentUser.organizationId;
             const org = await userStore.getOrganization(currentUser.organizationId);
-            if (org?.enabledIntegrations) {
-                // Org has custom overrides
-                orgEnabledIntegrations = typeof org.enabledIntegrations === 'string'
-                    ? JSON.parse(org.enabledIntegrations)
-                    : org.enabledIntegrations;
-            } else {
-                // Org uses defaults — load global default integrations
-                const globalDefaults = await configStore.getConfig('default_org_integrations');
-                if (globalDefaults) {
-                    orgEnabledIntegrations = typeof globalDefaults === 'string'
-                        ? JSON.parse(globalDefaults)
-                        : globalDefaults;
-                }
-                // null globalDefaults = all enabled (no defaults configured yet)
-            }
+            // Org override, else the global default; null = all enabled.
+            orgEnabledIntegrations = await resolveOrgAllowList(org);
             // Org-admin's active subset. Super admin bypasses this entirely
             // so they can always see/use everything the platform allows.
-            if (!isSuperAdmin) {
-                try {
-                    const activeList = await userStore.getOrgEnabledIntegrations(currentUser.organizationId);
-                    orgActiveSet = new Set(activeList);
-                } catch (_) { orgActiveSet = new Set(); }
-            }
+            orgActiveSet = await resolveOrgActiveSet(currentUser.organizationId, { bypass: isSuperAdmin });
             // Collect disabled_integrations arrays from each group the user
             // belongs to. Skip when user is not in any groups; isAppOn then
             // bypasses the group-deny path entirely.
@@ -1195,16 +1178,7 @@ async function buildUserAppGate({ userId, session, isAdmin, onlyAppId = null } =
         else if (isAdmin || session?.user?.role === 'admin') webpageOrgId = '__system__';
         if (currentUser?.organizationId) {
             const org = await userStore.getOrganization(currentUser.organizationId);
-            if (org?.enabledIntegrations) {
-                orgEnabledIntegrations = typeof org.enabledIntegrations === 'string'
-                    ? JSON.parse(org.enabledIntegrations) : org.enabledIntegrations;
-            } else {
-                const globalDefaults = await configStore.getConfig('default_org_integrations');
-                if (globalDefaults) {
-                    orgEnabledIntegrations = typeof globalDefaults === 'string'
-                        ? JSON.parse(globalDefaults) : globalDefaults;
-                }
-            }
+            orgEnabledIntegrations = await resolveOrgAllowList(org);
             // NOTE: orgActiveSet (the org-admin "active integrations" subset) is
             // intentionally NOT consulted here. That layer is a runtime override
             // for tool dispatch — when an org hasn't populated it (the default

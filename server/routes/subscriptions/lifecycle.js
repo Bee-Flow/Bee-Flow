@@ -12,6 +12,7 @@ const { getAdminId } = require('./shared');
 const log = require('../../telemetry/log');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
+const { worded } = require('../../core/http/schemaParts');
 
 const router = express.Router();
 
@@ -22,9 +23,6 @@ const router = express.Router();
 // the other with "planId is required", which reads like a bug in the caller's
 // code rather than in its spelling; `.strict()` names the key it did not
 // expect instead.
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());

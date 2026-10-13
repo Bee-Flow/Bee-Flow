@@ -33,7 +33,7 @@ const { issuePreviewToken } = require('../../auth/webpagePreviewToken');
 const { validate } = require('../../core/http/validate');
 const { HttpError } = require('../../core/http/errors');
 const { buildDraftDocument } = require('../../services/webpageDraftDocument');
-const { buildBridgeHeadScripts } = require('../../services/webpagePreviewBridges');
+const { buildBridgeHeadScripts } = require('../../shared/webpage/previewBridges.mjs');
 const { readSlotsForReader } = require('./publishedSnapshot');
 const { NO_QUERY } = require('./schemas');
 

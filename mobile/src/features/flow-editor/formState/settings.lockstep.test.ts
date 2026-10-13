@@ -1,7 +1,8 @@
 /**
  * DIFFERENTIAL lockstep for the settings helpers: columnMatch, tablesRowValues,
- * routeIntents, diffSummary, notificationDefaults and outputDrafts run beside
- * their agent-hub originals. When this fails the web side changed — update the
+ * routeIntents, diffSummary and notificationDefaults run beside their
+ * agent-hub originals (outputDrafts is the web's file, generated into
+ * bindings/mirror). When this fails the web side changed — update the
  * port, don't loosen the test.
  */
 
@@ -227,31 +228,11 @@ describe('notificationDefaults', () => {
 });
 
 describe('outputDrafts', () => {
-    const web = requireWeb(`${BUILDER}/outputDrafts.ts`);
-    const withoutIds = (v: unknown) => JSON.parse(JSON.stringify(v, (k, val) => (k === 'id' ? undefined : val)));
-    it('drafts and values round-trip like the web', () => {
-        for (const text of ['{"a":1,"b":"x\\ny","c":true,"d":null,"e":{"f":1}}', '[{"a":1},{"b":2},3]', '"single"', '42', 'not json', '[]']) {
-            const mine = od.draftRecords(text);
-            expect(withoutIds(mine)).toStrictEqual(withoutIds(web.draftRecords?.(text)));
-            const parsed = (() => { try { return JSON.parse(text); } catch { return null; } })();
-            const shape = od.outputShape(parsed);
-            expect(shape).toBe(web.outputShape?.(parsed));
-            expect(od.draftValue(shape, mine)).toStrictEqual(web.draftValue?.(shape, mine));
-        }
-        expect(od.draftValue(null, [])).toStrictEqual(web.draftValue?.(null, []));
-        expect(od.MAX_PINNED_BYTES).toBe(webValue(web, 'MAX_PINNED_BYTES'));
-        for (const v of [{ a: 'é' }, 1n, undefined, 'x']) {
-            expect(od.jsonByteLength(v)).toBe(web.jsonByteLength?.(v));
-            expect(od.safeJsonText(v)).toBe(web.safeJsonText?.(v));
-        }
-        for (const kind of ['text', 'number', 'yesno', 'nested'] as const) {
-            for (const v of ['1.', '', ' 12 ', 'ja', 0, 3, true, null]) {
-                expect(od.typedValue(kind, String(v ?? ''))).toStrictEqual(web.typedValue?.(kind, String(v ?? '')));
-                expect(od.coerceToKind(kind, v)).toStrictEqual(web.coerceToKind?.(kind, v));
-            }
-        }
-        for (const k of ['text', 'x']) expect(od.isOutFieldKind(k)).toBe(web.isOutFieldKind?.(k));
-        expect(od.rowText(null)).toBe(web.rowText?.(null));
+    // The web's file itself (bindings/mirror, generated); its own tests live in
+    // agent-hub. What the phone's settings rely on:
+    it('drafts, a multi-line value and row ids', () => {
+        const rows = od.draftRecords('{"a":1,"b":"x\\ny"}');
+        expect(od.draftValue(od.outputShape({ a: 1, b: 'x\ny' }), rows)).toStrictEqual({ a: 1, b: 'x\ny' });
         expect(od.isMultilineText('a\nb')).toBe(true);
         expect(od.nextRowId()).toMatch(/^of\d+$/);
     });

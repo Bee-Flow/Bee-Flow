@@ -16,6 +16,7 @@ const { requireActiveOrgForMutations } = require('../../auth/permissions');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
+const { worded } = require('../../core/http/schemaParts');
 const log = require('../../telemetry/log');
 
 const router = express.Router();
@@ -95,9 +96,6 @@ const OAUTH2_TOKEN_AUTH_METHODS = new Set(['client_secret_post', 'client_secret_
 // (exact secret fields, meta allow-list, header-name and token-URL rules).
 // The schema only says they are objects — which is the check the route used
 // to make by hand.
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());

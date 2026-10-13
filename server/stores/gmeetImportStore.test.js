@@ -72,6 +72,21 @@ const mockDb = {
         return state.allRows;
     },
     getClient: async () => makeClient(),
+    // Same COMMIT/ROLLBACK/release discipline as db.withTransaction.
+    withTransaction: async (fn) => {
+        const client = makeClient();
+        try {
+            await client.query('BEGIN');
+            const result = await fn(client);
+            await client.query('COMMIT');
+            return result;
+        } catch (e) {
+            try { await client.query('ROLLBACK'); } catch (_) { /* connection may be dead */ }
+            throw e;
+        } finally {
+            client.release();
+        }
+    },
 };
 
 const dbResolved = require.resolve(path.join(__dirname, '..', 'db.js'));

@@ -56,6 +56,12 @@ const ALLOWED_PER_FILE = new Map([
         // reason: the store doubles intercept the literal '../db' request.
         ['../db', 'lazy dual-resolve: test-hook target, falls back to ../../db'],
     ])],
+    ['shared/webpage/previewDocument.pin.test.mjs', new Map([
+        // Fixture text, not an import of this package: the pin test feeds a
+        // React entry with a broken import into the preview bundler to pin
+        // the build-error document. The string must keep the import syntax.
+        ['./missing.jsx', 'bundler fixture: a deliberately unresolvable React entry'],
+    ])],
     ['auth/accessRegistry.sweep.test.js', new Map([
         // The synthetic fixtures that prove the route sweep bites: in-memory
         // app source fed to the parser, never loaded as modules.

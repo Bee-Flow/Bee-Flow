@@ -40,8 +40,6 @@ const automationAccess = makeAutomationAccess({ store: automationStore });
 
 // ── What a caller may send ──────────────────────────────────────────
 // (the schemas themselves live with the routes that read them)
-const { z } = require('../../utils/zod');
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
+const { worded } = require('../../core/http/schemaParts');
 
 module.exports = { orgOf, kbFindingsFor, automationAccess, worded };

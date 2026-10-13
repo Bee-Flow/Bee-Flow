@@ -9,6 +9,7 @@ const log = require('../../../telemetry/log');
 
 const router = express.Router();
 const configStore = require('../../../stores/configStore');
+const { resolveOrgAllowListWithSource } = require('../../../core/integrations/enabledIntegrations');
 const { requireAuth, requireSuperAdmin } = require('../../../auth/permissions');
 const { orgScope } = require('../../../auth/orgScope');
 const { validate } = require('../../../core/http/validate');
@@ -314,18 +315,7 @@ router.get('/n8n/diagnostics', requireAuth, async (req, res) => {
     let orgGateSource = 'all_enabled';
     if (rawOrgId) {
         const org = await userStore.getOrganization(rawOrgId);
-        if (org?.enabledIntegrations) {
-            orgEnabledIntegrations = typeof org.enabledIntegrations === 'string'
-                ? JSON.parse(org.enabledIntegrations) : org.enabledIntegrations;
-            orgGateSource = 'org_override';
-        } else {
-            const globalDefaults = await configStore.getConfig('default_org_integrations');
-            if (globalDefaults) {
-                orgEnabledIntegrations = typeof globalDefaults === 'string'
-                    ? JSON.parse(globalDefaults) : globalDefaults;
-                orgGateSource = 'global_default';
-            }
-        }
+        ({ list: orgEnabledIntegrations, source: orgGateSource } = await resolveOrgAllowListWithSource(org));
     }
     const orgGatePasses = !orgEnabledIntegrations || orgEnabledIntegrations.includes('n8n');
 

@@ -14,6 +14,7 @@ const { requireAuth } = require('../../auth/permissions');
 const { isMicrosoftConnected, graphFetch } = require('../../integrations/msGraphClient');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
+const { worded } = require('../../core/http/schemaParts');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -26,9 +27,6 @@ const { z, typeError } = require('../../utils/zod');
 // `top` was `Math.min(Math.max(parseInt(top) || 25, 1), 50)`, which already
 // had both ends; the change is only that `?top=abc` now says so instead of
 // quietly meaning 25. The ceiling stays a clamp.
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 // Graph drive item ids are opaque and base64url-ish, sometimes with a `!`.
 const ITEM_ID_RE = /^[A-Za-z0-9_!=.-]{1,512}$/;

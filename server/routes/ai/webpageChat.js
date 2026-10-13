@@ -25,7 +25,7 @@ const {
 const configStore = require('../../stores/configStore');
 const { getAdapter } = require('../../core/providers');
 const webpageStore = require('../../stores/webpageStore');
-const { startSseHeartbeat } = require('../../core/http/sseHelpers');
+const { openSse } = require('../../core/http/sseHelpers');
 const { vocabularyPromptLines } = require('../../core/webpages/bfElements');
 const versionFacts = require('../../core/webpages/versionFacts');
 // De AI-arm is een save-pad als elk ander: hij schrijft slots én extra
@@ -244,31 +244,13 @@ router.post('/chat/webpage/stream', requireAuth, validate({ body: WebpageTurnBod
 
     log.info(`[WebpageChat] Model: ${modelId} (tier: ${resolvedTier}) for webpage: "${webpage.name}" (${readySources.length} sources)`);
 
-    res.writeHead(200, {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-        'X-Accel-Buffering': 'no',
-    });
-    const send = (event, data) => {
-        if (res.writableEnded || res.destroyed) return;
-        res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
-    };
     // STOP: the composer's stop button aborts the browser fetch, which closes
     // this response. Without a listener the turn ran on — tool rounds and all —
     // and on a single-slot local model the next message queued behind an answer
-    // nobody wanted. `writableEnded` keeps our own end() from reading as a cancel.
-    const clientAbort = new AbortController();
-    let clientGone = false;
-    res.on('close', () => {
-        if (res.writableEnded) return;
-        clientGone = true;
-        log.info('[WebpageChat] client disconnected — aborting the generation');
-        try { clientAbort.abort(); } catch (_) { /* already aborted */ }
-    });
-    // Keep the stream warm through the NC AppAPI proxy during long, silent
-    // webpage builds so it isn't idle-timed-out into a 504 (BFSF-221).
-    startSseHeartbeat(res);
+    // nobody wanted. The keep-alive holds the stream warm through the NC AppAPI
+    // proxy during long, silent webpage builds so it isn't idle-timed-out into
+    // a 504 (BFSF-221).
+    const { send, signal: clientSignal, isGone } = openSse(res, { heartbeat: true, tag: 'WebpageChat' });
 
     if (modelTier === 'auto') {
         send('model_selected', { tier: resolvedTier, modelId });
@@ -729,7 +711,7 @@ Now: ${formatLocalNow(timezone)}`;
         const chatOptions = {
             // Every adapter.stream call in this turn spreads chatOptions, so
             // one listener cancels the request in flight to the model too.
-            signal: clientAbort.signal,
+            signal: clientSignal,
             maxTokens: tierSettings.maxTokens || tierDefaults.maxTokens,
             temperature: tierSettings.temperature !== undefined ? tierSettings.temperature : tierDefaults.temperature,
         };
@@ -1095,7 +1077,7 @@ Now: ${formatLocalNow(timezone)}`;
 
         while (toolCallRounds < MAX_TOOL_ROUNDS) {
             // No new tool round once the user is gone.
-            if (clientGone) break;
+            if (isGone()) break;
             fullContent = '';
             streamToolCalls = [];
             streamThinkingParts = {};
@@ -1283,7 +1265,7 @@ Now: ${formatLocalNow(timezone)}`;
     } catch (err) {
         // A cancelled answer is not an outage: no error event (nobody is
         // listening), and nothing logged as a termination.
-        if (clientGone || err?.name === 'AbortError' || clientAbort.signal.aborted) {
+        if (isGone() || err?.name === 'AbortError' || clientSignal.aborted) {
             log.info('[WebpageChat] turn cancelled by the client');
             try { if (!res.writableEnded) res.end(); } catch (_) { /* socket already gone */ }
             return;

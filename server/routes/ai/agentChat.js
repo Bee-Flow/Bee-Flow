@@ -47,14 +47,11 @@ const { checkSubscriptionLimits } = require('../../core/entitlements/limits');
 // org union" used to live here; auth/orgScope.js is the one read now.
 const { resolvePrimaryOrgId } = require('../../auth');
 const { validate } = require('../../core/http/validate');
+const { openSse } = require('../../core/http/sseHelpers');
 const { z, typeError } = require('../../utils/zod');
+const { worded, orEmpty: bodyOf } = require('../../core/http/schemaParts');
 
 const COMPONENTS_DIR = path.resolve(__dirname, '../../../components');
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
-/** An absent body is an empty one, so the missing field gets its sentence rather than "Required". */
-const bodyOf = (schema) => z.preprocess((v) => (v === undefined || v === null ? {} : v), schema);
 
 // ── What a caller may send ────────────────────────────────────────────────
 
@@ -131,16 +128,10 @@ router.post('/chat-stream', requireAuth, requireCapability('component_designer')
     const limitError = await checkSubscriptionLimits(limitOrgId, 'chat', userId);
     if (limitError) return res.status(402).json({ error: limitError });
 
-    res.writeHead(200, {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-        'X-Accel-Buffering': 'no',
-    });
-
-    const send = (event, data) => {
-        res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
-    };
+    // The designer agent can think for a minute between progress events; the
+    // keep-alive stops an idle gateway (Nextcloud AppAPI proxy) from cutting
+    // the stream into a false 504 (BFSF-221, same as the other chat streams).
+    const { send, end } = openSse(res, { heartbeat: true });
 
     try {
         const agent = getOrCreateAgent(sessionId);
@@ -153,7 +144,7 @@ router.post('/chat-stream', requireAuth, requireCapability('component_designer')
         log.error('AI chat-stream error:', error);
         send('error', { error: error.message });
     } finally {
-        res.end();
+        end();
     }
 });
 

@@ -1,26 +1,43 @@
 /**
- * The live platform bridges a webpage PREVIEW runs with — the server twin of
- * the bridge head scripts in agent-hub/src/utils/composeWebpageDocument.js.
+ * The platform bridges of a webpage PREVIEW document: one source for the web
+ * editor's preview (agent-hub/src/utils/composeWebpageDocument.js and
+ * buildWebpagePreview.js, through the generated mirror
+ * agent-hub/src/shared/webpage/) and the server's draft document for the phone
+ * (routes/webpages/draftDocument.js, services/webpageDraftDocument.js).
  *
- * The web editor composes its preview in the browser and bakes a preview token
- * (POST /api/webpages/:id/preview-token) into these scripts, so the page's
- * `window.beeflowDB`, `beeflowAI`, `beeflowAutomations`, `beeflowIntegrations`,
- * `beeflowTables` and `beeflowApp` reach /api/webpages-preview/:id/... with an
- * `Authorization: Bearer` header from the sandboxed, opaque-origin iframe.
- * GET /api/webpages/:id/draft-document (routes/webpages/draftDocument.js)
- * builds the same document on the server for the phone, so the scripts are
- * needed here too.
+ * The bridges reach /api/webpages-preview/:id/... with an `Authorization:
+ * Bearer` preview token (POST /api/webpages/:id/preview-token) from the
+ * sandboxed, opaque-origin iframe. They are NOT the stubs in
+ * services/reactBundleServer.buildStubBridgeScript: those serve the public
+ * share and the headless screenshot, where no token exists.
  *
- * KEEP IN LOCKSTEP with the web file: webpagePreviewBridges.lockstep.test.js
- * compares each function below with its web original, comment lines aside
- * (the web's comments are partly Dutch; these are the English equivalents).
- * These are NOT the stubs in reactBundleServer.buildStubBridgeScript: those
- * serve the public share and the headless screenshot, where no token exists.
+ * Plain functions over strings, no imports and no platform API. Edit this
+ * file, never the mirror; then run `npm run gen:shared`.
+ * server/shared/webpage/previewDocument.pin.test.mjs pins every document built
+ * from it.
  */
 
-'use strict';
+/**
+ * Build the combined acts-as-author bridge head scripts (auth + DB + AI /
+ * automations / integrations), gated identically to the DB shim. Returns ''
+ * when any of (token, base, id) is missing. Shared by both the vanilla compose
+ * below and the react-mui preview pipeline.
+ */
+export function buildBridgeHeadScripts({ dbToken, dbApiBase, dbWebpageId }) {
+    if (!dbToken || !dbApiBase || !dbWebpageId) return '';
+    return buildBeeflowAuthScript({ dbToken })
+        + buildBeeflowDbScript({ dbApiBase, dbWebpageId })
+        + buildBeeflowBridgesScript({ dbToken, dbApiBase, dbWebpageId });
+}
 
-function buildBeeflowAuthScript({ dbToken }) {
+/**
+ * Build the shared auth helper used by both the DB shim and the bridges
+ * shim. Owns the bearer token, the 401-triggered refresh via parent
+ * postMessage, and exposes `window.__beeflowAuth.fetchWithAuth(url, init)`
+ * which automatically retries once with a fresh token. Emitted once,
+ * before either shim, so a single rotation propagates to all callers.
+ */
+export function buildBeeflowAuthScript({ dbToken }) {
     const tokenLiteral = JSON.stringify(dbToken);
     return `<script>(function(){
   var TOKEN = ${tokenLiteral};
@@ -73,7 +90,16 @@ function buildBeeflowAuthScript({ dbToken }) {
 })();<\/script>`;
 }
 
-function buildBeeflowBridgesScript({ dbToken, dbApiBase, dbWebpageId }) {
+/**
+ * Build the `window.beeflowAI`, `window.beeflowAutomations`,
+ * `window.beeflowIntegrations` and `window.beeflowTables` shims — the runtime API a webpage's
+ * script.js calls to use platform capabilities. Each goes through an
+ * HMAC-bearer-token-authenticated proxy that runs acts-as-author.
+ * Emitted only when (token, base, id) are present — same gating as the
+ * DB shim. See server/routes/webpagesPreview.js for the route surface
+ * and server/core/webpageBridgeAuth.js for the author-context resolver.
+ */
+export function buildBeeflowBridgesScript({ dbToken, dbApiBase, dbWebpageId }) {
     if (!dbToken || !dbApiBase || !dbWebpageId) return '';
     const safeBase = String(dbApiBase || '').replace(/\/+$/, '');
     const safeId = encodeURIComponent(dbWebpageId);
@@ -223,26 +249,27 @@ function buildBeeflowBridgesScript({ dbToken, dbApiBase, dbWebpageId }) {
     run: function(tool, args){ return postJson("/integrations/run", { tool: tool, args: args || {} }); }
   };
 
-  // Studio tables (W3). UNLIKE THE REST ABOVE: these calls run server-side as
-  // the SIGNED-IN VISITOR, not as the author — a datatable grants per person.
-  // What the page gets back is also cut down to the columns the author bound
-  // to this table, plus id and updated_at. The table and every column must be
-  // bound; writing needs a 'readwrite' binding.
+  // Studio-tabellen (W3). ANDERS DAN DE REST HIERBOVEN: deze calls draaien
+  // server-side als de INGELOGDE BEZOEKER, niet als de auteur — een datatable
+  // heeft per persoon een eigen graad. Wat de pagina terugkrijgt is bovendien
+  // geknipt tot de kolommen die de auteur aan deze tabel heeft gebonden, plus
+  // id en updated_at. Zowel de tabel als elke kolom moet gebonden zijn;
+  // schrijven vereist een binding op 'readwrite'.
   //
-  // Does NOT exist on a public share: /w/<slug> is a script-free snapshot, so
-  // code that leans on this must cope with a missing window.beeflowTables.
+  // Bestaat NIET op een publieke share: /w/<slug> is een script-vrije snapshot,
+  // dus code die hierop leunt moet een ontbrekende window.beeflowTables aankunnen.
   window.beeflowTables = {
-    // opts: { filters?, match?, sort?, limit?, cursor? } — filters and sort
-    // may only name bound columns, otherwise the server answers 400.
-    // Resolves to { rows, hasMore, count, nextCursor, columns }.
+    // opts: { filters?, match?, sort?, limit?, cursor? } — filters en sort
+    // mogen alleen gebonden kolommen noemen, anders antwoordt de server 400.
+    // Levert { rows, hasMore, count, nextCursor, columns }.
     query: function(datatableId, opts){
       return postJson("/tables/" + encodeURIComponent(datatableId) + "/query", opts || {});
     },
     insert: function(datatableId, values){
       return postJson("/tables/" + encodeURIComponent(datatableId) + "/insert", { values: values || {} });
     },
-    // expectedUpdatedAt is the updated_at you read: without it the server
-    // refuses, so two visitors never silently overwrite each other's change.
+    // expectedUpdatedAt is de updated_at die je las: zonder hem weigert de
+    // server, zodat twee bezoekers elkaars wijziging niet stil overschrijven.
     update: function(datatableId, rowId, values, expectedUpdatedAt){
       return postJson("/tables/" + encodeURIComponent(datatableId) + "/update", {
         rowId: rowId, values: values || {}, expectedUpdatedAt: expectedUpdatedAt
@@ -263,7 +290,14 @@ function buildBeeflowBridgesScript({ dbToken, dbApiBase, dbWebpageId }) {
 })();<\/script>`;
 }
 
-function buildBeeflowDbScript({ dbApiBase, dbWebpageId }) {
+/**
+ * Build the `window.beeflowDB` shim that the user's script.js can call to
+ * talk to the per-webpage SQLite database. Lives in <head> so it's defined
+ * before script.js runs. Only emitted when all three of (token, base, id)
+ * are present — otherwise the page renders without DB support and any
+ * `beeflowDB.*` call surfaces as a clear ReferenceError.
+ */
+export function buildBeeflowDbScript({ dbApiBase, dbWebpageId }) {
     const safeBase = String(dbApiBase || '').replace(/\/+$/, '');
     const safeId = encodeURIComponent(dbWebpageId);
     const baseLiteral = JSON.stringify(safeBase);
@@ -293,19 +327,4 @@ function buildBeeflowDbScript({ dbApiBase, dbWebpageId }) {
   };
 })();<\/script>`;
 }
-/**
- * The combined auth + DB + AI/automations/integrations/tables/app bridges.
- * Returns '' when any of (token, base, id) is missing, as on the web.
- */
-function buildBridgeHeadScripts({ dbToken, dbApiBase, dbWebpageId }) {
-    if (!dbToken || !dbApiBase || !dbWebpageId) return '';
-    return buildBeeflowAuthScript({ dbToken })
-        + buildBeeflowDbScript({ dbApiBase, dbWebpageId })
-        + buildBeeflowBridgesScript({ dbToken, dbApiBase, dbWebpageId });
-}
 
-module.exports = {
-    buildBridgeHeadScripts,
-    // test/lockstep
-    _internals: { buildBeeflowAuthScript, buildBeeflowBridgesScript, buildBeeflowDbScript },
-};

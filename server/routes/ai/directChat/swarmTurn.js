@@ -11,6 +11,7 @@ const agentStore = require('../../../stores/agentStore');
 const { encryptionOpts } = require('./shared');
 const chatSignalsTurn = require('./chatSignalsTurn');
 const log = require('../../../telemetry/log');
+const { openSse } = require('../../../core/http/sseHelpers');
 const { turnTierRefusal } = require('../../../core/llm/resolveTurnModel');
 
 async function runSwarmTierTurn({ req, res, userId, message, conversationId, attachments }) {
@@ -61,17 +62,10 @@ async function runSwarmTierTurn({ req, res, userId, message, conversationId, att
         // come from the same body as a regular direct turn.
         chatSignalsTurn.countFixedTurn({ req, userId, surface: 'direct', outcome: 'unscanned', providerConfig: null });
 
-        // SSE handshake (mirror of the block further down for the regular
-        // direct-chat path — kept inline so the swarm branch is self-contained).
-        res.writeHead(200, {
-            'Content-Type': 'text/event-stream',
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive',
-            'X-Accel-Buffering': 'no',
-        });
-        const send = (event, data) => {
-            try { res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`); } catch (_) {}
-        };
+        // SSE handshake: the same head as the regular direct-chat path
+        // (streamTurn.js). No keep-alive here, as before this branch moved
+        // onto openSse.
+        const { send } = openSse(res);
 
         // Load (or create) conversation + restore prior Hive Mind state.
         let convId = conversationId;

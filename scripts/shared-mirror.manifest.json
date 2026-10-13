@@ -1,0 +1,148 @@
+{
+    "$comment": "Generated copies of server/shared code, written by scripts/gen-shared-mirror.mjs (npm run gen:shared) and checked by npm run lint:shared-mirror. Each entry copies the non-test files of `source` into `target`. transform \"none\" (the default) is a byte-for-byte copy without a header; \"cjs-to-esm\" and importRewrite change the text, and then every written file starts with a GENERATED header. include / exclude narrow the file list (paths relative to source); keep lists hand-written files in target that are neither generated nor reported as extra.",
+    "entries": [
+        {
+            "source": "server/shared/expr",
+            "target": "agent-hub/src/shared/expr",
+            "transform": "none",
+            "why": "App Studio and the web automation builder: the agent-hub image builds with context ./agent-hub and cannot see server/."
+        },
+        {
+            "source": "server/shared/expr",
+            "target": "mobile/src/shared/expr/vendor",
+            "transform": "none",
+            "exclude": [
+                "corpus.mjs",
+                "sheet.mjs",
+                "sheetFill.mjs"
+            ],
+            "keep": [
+                "index.d.mts"
+            ],
+            "why": "The phone's flow editor evaluates the same conditions; exprVendor.lockstep.test.ts holds it to both originals. index.d.mts is the hand-written type declaration."
+        },
+        {
+            "source": "server/shared/appDefinition",
+            "target": "agent-hub/src/shared/appDefinition",
+            "transform": "none",
+            "exclude": [
+                "lockstep.fixture.mjs",
+                "lockstep.golden.json"
+            ],
+            "why": "App Studio definition model (ids, section style, the shared definition ops, design presets, variables): the editor's state/definitionOps.js and runtime re-export it. The lockstep fixture and golden are test data and stay on the server."
+        },
+        {
+            "source": "server/shared/schedule",
+            "target": "agent-hub/src/shared/schedule",
+            "transform": "none",
+            "why": "The next-run time of an agent schedule: the wizard and the schedule modal show it, the server's wizard/commit stores it, so both compute it with the same code."
+        },
+        {
+            "source": "agent-hub/src/components/automation/Builder/mapping",
+            "target": "mobile/src/features/flow-editor/bindings/mirror/mapping",
+            "transform": "none",
+            "include": [
+                "autoMapEntity.ts",
+                "autoMapIteration.ts",
+                "autoMapListInput.ts",
+                "autoMapOwnItem.ts",
+                "deepFields.ts",
+                "deepPick.ts",
+                "deepenForEach.ts",
+                "innerList.ts",
+                "itemRefs.ts",
+                "listPathLabel.ts",
+                "pathTokens.ts",
+                "schemaMatch.ts",
+                "upstream/fieldTree.ts",
+                "upstream/forEachShape.ts",
+                "upstream/routeFieldLabel.ts"
+            ],
+            "importRewrite": [
+                [
+                    "@shared/expr/path.mjs",
+                    "@/shared/expr"
+                ],
+                [
+                    "@shared/expr/pathLabel.mjs",
+                    "@/shared/expr"
+                ],
+                [
+                    "../flow/displayHelpers",
+                    "@/shared/lib/humanizeKey"
+                ],
+                [
+                    "./boundPaths",
+                    "@/features/flow-editor/bindings/boundPaths"
+                ],
+                [
+                    "./listShape",
+                    "@/features/flow-editor/bindings/listShape"
+                ],
+                [
+                    "./partitionInputs",
+                    "@/features/flow-editor/bindings/partitionInputs"
+                ],
+                [
+                    "./upstream/loops",
+                    "@/features/flow-editor/bindings/upstream/loops"
+                ]
+            ],
+            "why": "The phone's flow editor maps and deepens with the web's TypeScript mapping library (field tree, deep fields, forEach deepening, auto-map). The JavaScript modules it leans on (loops, listShape, partitionInputs, boundPaths) and humanizeFieldKey resolve to the phone's own ports; mobile bindings/*.ts re-export the mirror."
+        },
+        {
+            "source": "agent-hub/src/components/automation/Builder/flow/stepPayload.ts",
+            "target": "mobile/src/features/flow-editor/bindings/mirror/flow/stepPayload.ts",
+            "transform": "none",
+            "why": "Which output keys are diagnostics; the mirrored deepFields / autoMapListInput import it as ../flow/stepPayload."
+        },
+        {
+            "source": "agent-hub/src/components/automation/Builder/outputDrafts.ts",
+            "target": "mobile/src/features/flow-editor/bindings/mirror/outputDrafts.ts",
+            "transform": "none",
+            "why": "Output-field drafts of a step's settings; mobile formState/outputDrafts.ts re-exports it."
+        },
+        {
+            "source": "server/shared/webpage",
+            "target": "agent-hub/src/shared/webpage",
+            "transform": "none",
+            "why": "Webpage preview document (bridges, inliners, react-mui import map, bundler plugin, runtime guard, asset resolver, shell): the web editor's preview (utils/composeWebpageDocument.js, utils/buildWebpagePreview.js) and the server's screenshot, public React share and phone draft document build the same document."
+        },
+        {
+            "source": "server/utils/htmlToMarkdown.js",
+            "target": "components/webpage-to-markdown/htmlToMarkdown.js",
+            "transform": "none",
+            "why": "The webpage-to-markdown component runs from its own directory and cannot require server/; its index.js adds the guarded fetch and the CLI around this converter."
+        },
+        {
+            "source": "server/core/http/ssrfGuard.js",
+            "target": "components/webpage-to-markdown/ssrfGuard.js",
+            "transform": "none",
+            "why": "The SSRF guard of the component's fetches (safeGet.js); a component cannot require server/."
+        },
+        {
+            "source": "server/core/http/ssrfGuard.js",
+            "target": "components/website-sitemap-fetcher/ssrfGuard.js",
+            "transform": "none",
+            "why": "The SSRF guard of the component's fetches (safeGet.js); a component cannot require server/."
+        },
+        {
+            "source": "server/i18n/defaults/themePresets.js",
+            "target": "agent-hub/src/components/admin/product-website/themePresets.generated.mjs",
+            "transform": "cjs-to-esm",
+            "why": "CMS theme presets: the server is the schema of record (the AI builder applies a theme by name); the panel's themePresets.js re-exports this copy and adds applyPreset. themePresets.lockstep.test.ts deep-equals it to the source."
+        },
+        {
+            "source": "server/i18n/defaults/cmsDefaults.js",
+            "target": "agent-hub/src/components/admin/product-website/blockEditors/blockData.generated.mjs",
+            "transform": "cjs-to-esm",
+            "why": "CMS block defaults and layout variants (BLOCK_DEFAULTS, BLOCK_VARIANTS, design enums): a block added in the panel matches one created server-side. catalogue.js keeps only the editor registry and re-exports these; blockData.lockstep.test.ts deep-equals them to the source."
+        },
+        {
+            "source": "server/core/cms/emojiCatalog.js",
+            "target": "agent-hub/src/utils/emojiCatalog.generated.mjs",
+            "transform": "cjs-to-esm",
+            "why": "Themable emoji catalogue: utils/emojiCatalog.js re-exports it (plus defaultEmojiFor / labelFor) as the synchronous fallback before /api/icons/catalog loads. emojiCatalog.lockstep.test.ts deep-equals it to the source."
+        }
+    ]
+}

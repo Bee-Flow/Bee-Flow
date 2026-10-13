@@ -17,15 +17,12 @@
 const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const { PGlite } = require('@electric-sql/pglite');
+const { pgliteDb, dbFacade } = require('../testUtils/pgliteDb');
 const { installResolveStub } = require('../testUtils/stubRequire');
 const { LEDGER_ORG_SQL } = require('./integrationLocationSql');
 
 const pg = new PGlite();
-const run = async (sql, params) => (params && params.length ? pg.query(sql, params) : pg.query(sql));
-const fakeDb = {
-    getAll: async (sql, params) => (await run(sql, params)).rows,
-    getOne: async (sql, params) => (await run(sql, params)).rows[0] || null,
-};
+const fakeDb = dbFacade(pgliteDb(pg).db);
 
 const restore = installResolveStub({
     '../../../db': fakeDb,

@@ -25,7 +25,7 @@
  * + route-stack technique routes/datatables.principal.test.js uses, so the
  * route-level gate still runs.
  *
- * Run: cd server && node --test --test-force-exit routes/datatables.integration.test.js
+ * Run: cd server && node --test routes/datatables.integration.test.js
  */
 
 const { test, before, after } = require('node:test');
@@ -35,35 +35,11 @@ const Module = require('node:module');
 
 const SERVER = path.resolve(__dirname, '..');
 
-// ── A db.js facade over one pglite connection ───────────────────────────────
-
-// Constructed before the stores are required: every store in the require graph
-// kicks off its own createSchema at load time, and a null handle there fills
-// the output with unrelated init errors. The constructor returns immediately;
-// the first query awaits readiness.
-const { PGlite } = require('@electric-sql/pglite');
-const pg = new PGlite();
-
-function adaptResult(res, sql) {
-    const r = Array.isArray(res) ? (res[res.length - 1] || {}) : (res || {});
-    const rows = r.rows || [];
-    const fields = r.fields || [];
-    const command = fields.length > 0 ? 'SELECT' : String(sql).trim().split(/\s+/)[0].toUpperCase();
-    const rowCount = fields.length > 0
-        ? rows.length
-        : (typeof r.affectedRows === 'number' ? r.affectedRows : 0);
-    return { rows, fields, rowCount, command };
-}
-
-async function rawQuery(sql, params) {
-    if (Array.isArray(params) && params.length > 0) return adaptResult(await pg.query(sql, params), sql);
-    if (/;\s*\S/.test(String(sql).trim())) return adaptResult(await pg.exec(sql), sql);
-    return adaptResult(await pg.query(sql), sql);
-}
-
-// pglite is ONE connection, so every "client" is that connection and these
-// tests must stay sequential — two overlapping transactions would interleave.
-const client = { query: (sql, params) => rawQuery(sql, params), release: () => {} };
+// ── The real db.js, its pool answered by one pglite connection ──────────────
+// Before the stores are required: they start their schema init at load.
+// pglite is ONE connection, so these tests stay sequential.
+const { usePglitePool } = require('../testUtils/pglitePool');
+const { pg, query: rawQuery, close: closePg } = usePglitePool();
 
 function mock(absId, exports) {
     const p = require.resolve(absId);
@@ -72,36 +48,6 @@ function mock(absId, exports) {
     m.loaded = true;
     require.cache[p] = m;
 }
-
-mock(path.join(SERVER, 'db.js'), {
-    pool: { query: rawQuery, connect: async () => client },
-    run: rawQuery,
-    getOne: async (sql, params) => (await rawQuery(sql, params)).rows[0] || null,
-    getAll: async (sql, params) => (await rawQuery(sql, params)).rows,
-    exec: (sql) => rawQuery(sql, []),
-    getClient: async () => client,
-    withTransaction: async (fn) => {
-        await client.query('BEGIN');
-        try {
-            const out = await fn(client);
-            await client.query('COMMIT');
-            return out;
-        } catch (e) {
-            try { await client.query('ROLLBACK'); } catch { /* already aborted */ }
-            throw e;
-        }
-    },
-    makeStoreInit: (tag, schemaFn) => {
-        let promise = null;
-        return function ensureInit() {
-            if (!promise) promise = Promise.resolve().then(schemaFn).catch((err) => { promise = null; throw err; });
-            return promise;
-        };
-    },
-    getRedis: () => null,
-    redisHealthy: () => false,
-    isSqlStateError: (e) => typeof e?.code === 'string' && /^[0-9A-Z]{5}$/.test(e.code),
-});
 
 // ── The `users` table the principal resolver reads ──────────────────────────
 
@@ -225,7 +171,7 @@ before(async () => {
     await pg.exec('CREATE TABLE IF NOT EXISTS webpages (id TEXT PRIMARY KEY, user_id TEXT, name TEXT)');
 });
 
-after(async () => { await pg.close(); });
+after(closePg);
 
 // ── Create ──────────────────────────────────────────────────────────────────
 

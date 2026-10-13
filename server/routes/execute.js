@@ -20,6 +20,7 @@
 
 const express = require('express');
 const { z, typeError } = require('../utils/zod');
+const { worded } = require('../core/http/schemaParts');
 const executionEngine = require('../core/executionEngine');
 const componentManager = require('../core/cms/componentManager');
 const log = require('../telemetry/log');
@@ -29,9 +30,6 @@ const router = express.Router();
 
 const { getUserAuth } = require('../utils/routeHelpers');
 const { requireAuth } = require('../auth');
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 const WORKFLOW_TEXT = 'workflow is the graph to run: { nodes: [...], edges: [...] }.';
 const Graph = z.object({

@@ -7,6 +7,7 @@ import type {
     BuilderValidation,
     ThinkingPart,
 } from './builderStream';
+import { errorTextOf as safeText, finalizeStreaming, openTurn, rateOf, useAbortOnUnmount, usePatchAssistant } from './builderStream';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { studioAppsApi } from '../components/admin/Studio/AppStudio/studioAppsApi';
 import { API_BASE, authFetch } from '../utils/helpers';
@@ -236,30 +237,9 @@ export default function useAppBuilderStream({
         return () => { alive = false; };
     }, [appId]);
 
-    // Abort an in-flight stream on unmount.
-    useEffect(() => () => {
-        try { abortRef.current?.abort(); } catch { /* already settled */ }
-    }, []);
+    useAbortOnUnmount(abortRef);
 
-    /**
-     * Patch the current turn's assistant message (the last non-tool assistant
-     * item — tool/error items may have been appended after it). `fn` receives
-     * a shallow copy and returns the replacement.
-     */
-    const patchAssistant = useCallback((fn: (m: BuilderMessage) => BuilderMessage) => {
-        setMessages((msgs) => {
-            const next = msgs.slice();
-            for (let i = next.length - 1; i >= 0; i--) {
-                const m = next[i];
-                if (m && m.role === 'assistant' && !m.kind) {
-                    next[i] = fn({ ...m });
-                    return next;
-                }
-            }
-            next.push(fn({ role: 'assistant', content: '', thinkingParts: [], isStreaming: true }));
-            return next;
-        });
-    }, []);
+    const patchAssistant = usePatchAssistant(setMessages);
 
     // Copy-on-write patches of the live turn (the waiting card's effects key
     // on the object identity).
@@ -759,60 +739,6 @@ export default function useAppBuilderStream({
     };
 }
 
-/**
- * The live turn record of a build. Same contract as the automation builder's
- * (useAutomationBuilderStream openTurn): sentAt/sessionAt/pings/modelId,
- * roundStartedAt/promptChars/progress, and firstEventAt — set ONCE — which
- * ends the "Thinking…" wait in the chat column.
- */
-export function openTurn(tier?: string | null): BuilderTurn {
-    return {
-        sentAt: Date.now(),
-        tier: tier || null,
-        sessionAt: null,
-        pings: 0,
-        lastPingAt: null,
-        modelId: null,
-        roundStartedAt: null,
-        promptChars: null,
-        firstEventAt: null,
-        iter: null,
-        local: null,
-        providerType: null,
-        phase: null,
-        progress: null,
-        usage: null,
-    };
-}
-
-/**
- * Tokens per second from llama-server timings, or null. `prompt_n` is the
- * number of prompt tokens actually evaluated (cached ones are in `cache_n`),
- * so prompt_n / prompt_ms is the true read speed of this round.
- */
-export function rateOf(n?: number, ms?: number): number | null {
-    if (!Number.isFinite(n) || !Number.isFinite(ms) || !(n! > 0) || !(ms! > 0)) return null;
-    return Math.round((n! / ms!) * 1000);
-}
-
-/** Settle streaming flags + reasoning end time once a stream stops. */
-function finalizeStreaming(messages: BuilderMessage[]): BuilderMessage[] {
-    if (!messages.some((m) => m && m.isStreaming)) return messages;
-    return messages.map((m) => (m && m.isStreaming
-        ? {
-            ...m,
-            isStreaming: false,
-            thinkingEndedAt: m.thinkingEndedAt || (m.thinkingStartedAt ? Date.now() : undefined),
-            thinkingParts: (m.thinkingParts || []).map((p) => (p.endedAt ? p : { ...p, endedAt: Date.now() })),
-        }
-        : m));
-}
-
-async function safeText(r: Response): Promise<string> {
-    try {
-        const j = await r.json();
-        return j.error || j.message || JSON.stringify(j);
-    } catch {
-        return r.statusText;
-    }
-}
+// The turn record and the llama-server rate, shared with the automation
+// builder (builderStream), stay importable from here.
+export { openTurn, rateOf } from './builderStream';

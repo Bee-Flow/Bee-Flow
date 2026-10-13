@@ -51,6 +51,7 @@
  * an agent is what closes its stack.
  */
 const { sanitizeToolResult } = require('../../utils/sanitize');
+const { stableStringify } = require('../../utils/stableJson');
 // Egress rows now flow through core/integrationLogging.js (lazy-required at
 // the call sites) — the store is no longer used directly here.
 const { resolveIntegration } = require('../integrations/integrationToolMap');
@@ -158,10 +159,7 @@ function _flattenToolRoundTrips(msgs) {
     return out;
 }
 function _stableStringify(value) {
-    if (value === null || typeof value !== 'object') return JSON.stringify(value);
-    if (Array.isArray(value)) return '[' + value.map(_stableStringify).join(',') + ']';
-    const keys = Object.keys(value).sort();
-    return '{' + keys.map(k => JSON.stringify(k) + ':' + _stableStringify(value[k])).join(',') + '}';
+    return stableStringify(value, { undefined: 'raw' });
 }
 
 const testChatMod = require('./testChat');

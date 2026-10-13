@@ -57,9 +57,7 @@ async function ensureUserRow(userId) {
 // Current MFA state for the security settings UI.
 const { validate } = require('../core/http/validate');
 const { z, typeError } = require('../utils/zod');
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
+const { worded } = require('../core/http/schemaParts');
 
 /**
  * `force` means "throw away the secret I am already showing and mint a new

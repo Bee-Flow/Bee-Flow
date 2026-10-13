@@ -9,7 +9,9 @@ const log = require('../../telemetry/log');
 
 const router = express.Router();
 const { validate } = require('../../core/http/validate');
+const { openSse } = require('../../core/http/sseHelpers');
 const { z } = require('../../utils/zod');
+const { worded } = require('../../core/http/schemaParts');
 
 // System-agent helpers all make LLM calls. They need auth + a rate limit for
 // the same reason /thread/title and /describe-building do — anonymous users
@@ -29,9 +31,6 @@ const systemHelperLimiter = perUserRateLimit({ windowMs: 60_000, max: 30 });
 // description of an agent the model had never been told anything about, and
 // a body that was not sent at all threw on the destructure and came back a
 // 500. Both now say which field.
-
-/** A string whose every refusal -- including "you left it out" -- is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
@@ -151,17 +150,7 @@ router.post('/system/prompt-designer/stream', requireAuth, systemHelperLimiter, 
         log.info(`[PromptDesigner] Using thinking tier model: ${modelId}`);
 
         // Set up SSE (flushHeaders required for Nginx Proxy Manager)
-        res.setHeader('Content-Type', 'text/event-stream');
-        res.setHeader('Cache-Control', 'no-cache');
-        res.setHeader('Connection', 'keep-alive');
-        res.setHeader('X-Accel-Buffering', 'no');
-        res.flushHeaders();
-
-        const send = (event, data) => {
-            if (!res.writableEnded) {
-                res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
-            }
-        };
+        const { send } = openSse(res, { flush: true, viaSetHeader: true });
 
         const messages = [
             { role: 'system', content: agent.system_prompt },

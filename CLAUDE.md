@@ -104,8 +104,14 @@ and `npm run lint:secrets`.
   two branches adding to the same file merge without a visible conflict, and the second one
   silently wins.
 - `npm run lint:shared-mirror`: `server/shared/expr/` is the source of the expression engine,
-  `agent-hub/src/shared/expr/` a byte-for-byte GENERATED copy (the agent-hub image cannot see
-  `server/`). After changing the source run `npm run gen:shared` and commit both.
+  `agent-hub/src/shared/expr/` and `mobile/src/shared/expr/vendor/` byte-for-byte GENERATED
+  copies (the agent-hub image cannot see `server/`). After changing the source run
+  `npm run gen:shared` and commit both. The copies are entries in
+  `scripts/shared-mirror.manifest.json` (`source`, `target`, `transform` `none`|`cjs-to-esm`,
+  `importRewrite`, `include`/`exclude`, `keep` for hand-written files such as a `.d.mts`); a new
+  generated copy is one entry there, never a hand copy. A transformed copy starts with a
+  `GENERATED from … do not edit` header, and `--check` names the entry of any stale or
+  hand-edited target.
 - Count ratchets (`scripts/count-ratchet.mjs`, budget in `agent-hub/.<metric>-ratchet.json`,
   `--update` only lowers, `--list` shows where they are): `lint:style-ratchet` (`style={{…}}`
   objects; use a Tailwind class on the theme variable, `text-[var(--x)]`),

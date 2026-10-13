@@ -18,9 +18,7 @@ const {
 } = require('../authRateLimits');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
+const { worded } = require('../../core/http/schemaParts');
 
 const EMAIL_TEXT = 'Enter the e-mail address of the account you want to reset.';
 // The constant-200 contract below is unchanged: this only refuses a request

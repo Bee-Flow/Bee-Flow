@@ -41,6 +41,7 @@ const log = require('../telemetry/log');
 const router = express.Router();
 const { validate } = require('../core/http/validate');
 const { z, typeError } = require('../utils/zod');
+const { worded } = require('../core/http/schemaParts');
 
 const store = require('../stores/summaryTemplateStore');
 const userStore = require('../stores/userStore');
@@ -56,8 +57,6 @@ const { BUILTIN_TEMPLATES, pickDefaultTemplate } = require('../core/meetingNotes
 const MAX_PROMPT_LEN = 20000;
 const MAX_NAME_LEN = 120;
 
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 const isDefault = z.boolean({ error: typeError({ invalid: 'isDefault is true or false.' }) });
 
 const SCOPE_TEXT = 'scope is "user" (just me), "org" (the whole organisation) or "group".';

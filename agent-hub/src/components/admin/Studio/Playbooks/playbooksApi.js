@@ -3,28 +3,15 @@
  * `expectedVersion`; a 409 carries `currentVersion` + the current playbook,
  * and the caller reloads rather than retrying blindly).
  */
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { createJsonResource } from '../../../../api/client';
+import { API_BASE } from '../../../../utils/helpers';
 
 const base = `${API_BASE}/api/playbooks`;
 const enc = encodeURIComponent;
 
-async function request(url, options = {}) {
-    const res = await authFetch(url, {
-        headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
-        ...options,
-        ...(options.body !== undefined && typeof options.body !== 'string' ? { body: JSON.stringify(options.body) } : {}),
-    });
-    let body = null;
-    try { body = await res.json(); } catch { /* 204 */ }
-    if (!res.ok) {
-        const err = new Error(body?.error || `Request failed (${res.status})`);
-        err.status = res.status;
-        err.code = body?.code || null;
-        err.body = body;
-        throw err;
-    }
-    return body;
-}
+// JSON in and out (a plain-object body is serialised); a non-2xx throws an
+// Error carrying the server's error text, status, code and body.
+const request = createJsonResource();
 
 export const playbooksApi = {
     // The recipes come back in the interface language: their columns, labels

@@ -22,8 +22,8 @@
 
 const { pool } = require('../db');
 const datatableStore = require('../stores/datatableStore');
-const { recordJobRun } = require('../telemetry/metrics');
 const log = require('../telemetry/log');
+const { createLockedTick, runWorkerPool } = require('./lib/workerPool');
 
 const LOCK_KEY = 0xBEEF110;
 const INTERVAL_MS = 60 * 1000;
@@ -31,7 +31,6 @@ const BOOT_DELAY_MS = 45 * 1000;
 const MAX_PER_TICK = parseInt(process.env.DATATABLE_NC_SYNC_PER_TICK, 10) || 20;
 const SYNC_CONCURRENCY = parseInt(process.env.DATATABLE_NC_SYNC_CONCURRENCY, 10) || 3;
 
-let _inFlight = false;
 let _timer = null;
 
 /** Run one due mirror, whatever its kind. Exported for the tests. */
@@ -47,42 +46,24 @@ async function syncOne(table) {
     }
 }
 
-async function processDueSyncs() {
-    if (_inFlight) return;
-    _inFlight = true;
-    let client = null;
-    let acquired = false;
-    const t0 = Date.now();
-    let ok = true;
-    try {
-        client = await pool.connect();
-        const lockRes = await client.query('SELECT pg_try_advisory_lock($1) AS locked', [LOCK_KEY]);
-        acquired = !!lockRes.rows[0]?.locked;
-        if (!acquired) return;
-
+// One tick: the advisory lock, the in-flight guard and the job-run metric
+// live in jobs/lib/workerPool.js; a pool of workers pulls from one shared
+// cursor so a fast item never waits on a slow one.
+const processDueSyncs = createLockedTick({
+    pool,
+    lockKey: LOCK_KEY,
+    job: 'datatable_nc_sync',
+    label: 'DatatableNcSync',
+    run: async () => {
+        let ok = true;
         const due = await datatableStore.listDueSourceSyncs(MAX_PER_TICK);
-        let cursor = 0;
-        const workers = Array.from({ length: Math.min(SYNC_CONCURRENCY, due.length) }, async () => {
-            for (;;) {
-                const i = cursor++;
-                if (i >= due.length) return;
-                const r = await syncOne(due[i]);
-                if (!r.ok) ok = false;
-            }
+        await runWorkerPool(due, SYNC_CONCURRENCY, async (item) => {
+            const r = await syncOne(item);
+            if (!r.ok) ok = false;
         });
-        await Promise.all(workers);
-    } catch (e) {
-        ok = false;
-        log.warn('[DatatableNcSync] tick error:', e.message);
-    } finally {
-        if (client) {
-            try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]); } catch (_) { /* best-effort */ }
-            client.release();
-        }
-        if (acquired) recordJobRun({ job: 'datatable_nc_sync', status: ok ? 'ok' : 'error', durationMs: Date.now() - t0 });
-        _inFlight = false;
-    }
-}
+        return ok;
+    },
+});
 
 function start() {
     if (_timer) return;

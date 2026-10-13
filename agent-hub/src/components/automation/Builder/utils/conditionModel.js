@@ -13,7 +13,7 @@ import {
     TEST_OF_OP, UNARY_TESTS,
 } from '@shared/expr/rules.mjs';
 import { renderBindingValue, isCleanPath, bindingFromInput, canonicalRefPath } from '../../../../utils/bindingHelpers';
-import { ISO_DATE_RE } from '../mapping/fieldKinds';
+import { ISO_DATE_RE } from '../mapping/core';
 
 /** A coarse datatype from a sample value: picks the operators offered. */
 export function inferType(value) {

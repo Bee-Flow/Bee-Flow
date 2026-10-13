@@ -24,6 +24,7 @@ const { NC_INTEGRATIONS, NC_INTEGRATION_IDS, isNcIntegrationId } = require('../.
 const ncScope = require('../../core/integrations/ncScope');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
+const { worded } = require('../../core/http/schemaParts');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -39,9 +40,6 @@ const { z } = require('../../utils/zod');
 //     switched OFF by a request that asked for it to be on.
 //
 // The ids are the catalogue's own, so an unknown one is named back.
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());

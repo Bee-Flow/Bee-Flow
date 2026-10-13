@@ -43,13 +43,11 @@
 
 const express = require('express');
 const { z, typeError } = require('../../utils/zod');
+const { worded } = require('../../core/http/schemaParts');
 const { formatLocalNow } = require('../../core/llm/clock');
 const log = require('../../telemetry/log');
 const router = express.Router();
 const { validate } = require('../../core/http/validate');
-
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 /** The meeting-note context budget: five notes at 4,000 characters, shared. */
 const MEETING_CONTEXT_CHARS = 20_000;

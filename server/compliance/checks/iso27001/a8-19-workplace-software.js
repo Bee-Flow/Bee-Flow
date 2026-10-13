@@ -7,7 +7,7 @@
  * of scope for this connector.
  */
 
-const isoEvidenceStore = require('../../../stores/isoEvidenceStore');
+const { readConnectorSnapshots, noSnapshotYet } = require('../lib/connectorSnapshots');
 
 module.exports = {
     id: 'ISO27001-A.8.19-workplace-software',
@@ -23,22 +23,10 @@ module.exports = {
     remediationLink: 'admin/compliance/iso_connectors',
 
     async evaluate(orgId) {
-        const config = await isoEvidenceStore.getConfig(orgId, 'nextcloud');
-        if (!config?.enabled) {
-            return {
-                status: 'not_applicable',
-                evidence: { connector: 'nextcloud', enabled: false },
-                details: 'Nextcloud connector not enabled — link an admin app password under ISO 27001 → Connectors to record the workplace server version.',
-            };
-        }
-        const snaps = await isoEvidenceStore.listLatestSnapshots(orgId, 'nextcloud');
-        if (!snaps.length) {
-            return {
-                status: 'warn',
-                evidence: { connector: 'nextcloud', enabled: true, snapshots: 0 },
-                details: 'Connector enabled but no snapshot yet — serverinfo unreachable or a sweep has not run; check the base URL and app password.',
-            };
-        }
+        const read = await readConnectorSnapshots(orgId, 'nextcloud', 'Nextcloud connector not enabled — link an admin app password under ISO 27001 → Connectors to record the workplace server version.');
+        if (read.result) return read.result;
+        const { snaps } = read;
+        if (!snaps.length) return noSnapshotYet('nextcloud', 'Connector enabled but no snapshot yet — serverinfo unreachable or a sweep has not run; check the base URL and app password.');
         const p = snaps[0].payload || {};
         const evidence = {
             version: p.version || null,

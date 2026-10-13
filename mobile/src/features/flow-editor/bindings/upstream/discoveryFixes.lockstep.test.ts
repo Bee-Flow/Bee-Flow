@@ -1,7 +1,8 @@
 /**
  * DIFFERENTIAL lockstep for the discovery review fixes: agent-hub
- * `Builder/mapping/{deepFields.ts, upstream/*}` and their ports give the same
- * answers, and those answers are the fixed ones:
+ * `Builder/mapping/upstream/*` and their ports give the same answers, and
+ * those answers are the fixed ones (deepFields.ts is the web's file itself,
+ * generated into bindings/mirror, so only its answers are pinned here):
  *   - a `length` key inside JSON text is never offered (the runtime reads the
  *     text's own length there);
  *   - a Code step that runs once per item offers its forEach envelope's
@@ -20,7 +21,6 @@ import type { Catalog, FlowDefinition, VariableField, VariableGroup } from '../t
 import * as up from './index';
 
 const web = {
-    df: requireWeb(`${BUILDER}/mapping/deepFields.ts`),
     up: requireWeb(`${BUILDER}/mapping/upstream/index.js`),
     real: requireWeb(`${BUILDER}/mapping/realOutputs.js`),
 };
@@ -44,12 +44,8 @@ describe('a `length` key inside JSON text', () => {
     const ROWS = ['{"length":5,"name":"a"}', '{"length":7,"name":"b"}'];
 
     it('is not offered, on both sides', () => {
-        const fields = df.deepValueFields(BODY, 'x');
-        expect(fields).toStrictEqual(web.df.deepValueFields?.(BODY, 'x'));
-        expect(fields.map((f) => f.path)).toStrictEqual(['x.width']);
-        expect(df.listSources({ rows: ROWS }, 'r')).toStrictEqual(web.df.listSources?.({ rows: ROWS }, 'r'));
+        expect(df.deepValueFields(BODY, 'x').map((f) => f.path)).toStrictEqual(['x.width']);
         expect(df.mergeElementSamples(ROWS)).toStrictEqual({ name: 'a' });
-        expect(web.df.mergeElementSamples?.(ROWS)).toStrictEqual({ name: 'a' });
         const root = { steps: { q: { output: { rows: ROWS } } } };
         expect(up.resolveElementSample('steps.q.output.rows', root)).toStrictEqual(web.up.resolveElementSample?.('steps.q.output.rows', root));
     });
@@ -86,7 +82,6 @@ describe('lists of a Code step that runs once per item', () => {
     it('never the logs of a Code step that returned nothing', () => {
         const groups = groupsBoth(CODE_DEF(false), 'dst', CODE_CATALOG, [{ stepId: 'code', output: { logs: ['x'], httpCalls: 0 } }]);
         const g = groups.find((x) => x.id === 'code') as VariableGroup;
-        expect(df.groupListSources(g)).toStrictEqual(web.df.groupListSources?.(g));
         expect(df.groupListSources(g).map((s) => s.path)).toStrictEqual([]);
     });
 });
@@ -152,7 +147,6 @@ describe('the current item', () => {
     };
 
     it('is the first item, its gaps filled from the others, on both sides', () => {
-        expect(df.firstItemPreview([M1, M2])).toStrictEqual(web.df.firstItemPreview?.([M1, M2]));
         const groups = groupsBoth(DEF, 'each', { apps: [] } as unknown as Catalog, [{ stepId: 'list', output: { value: [M1, M2] } }]);
         const item = groups.find((g) => g.basePath === 'loop.mail') as VariableGroup;
         expect(item.sample).toStrictEqual({ ...M1, from: { name: 'Ann', address: 'b@x' } });

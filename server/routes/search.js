@@ -54,14 +54,12 @@ const { ingestLocally, searchLocally, getDocumentContent, deleteChunksLocally } 
 const configStore = require('../stores/configStore');
 const { validate } = require('../core/http/validate');
 const { z, typeError } = require('../utils/zod');
+const { worded, choice } = require('../core/http/schemaParts');
 
 // ─── What a caller may send ─────────────────────────────────────
 
-/** A string whose every refusal — including "you left it out" — is a sentence. */
-const worded = (message) => z.string({ error: message });
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
-const choice = (values, message) => z.enum(values, { error: () => message });
 const texts = (message) => z.array(worded(message), { error: message }).min(1, message);
 const id = (message) => worded(message).min(1, message);
 // Coerced, like pydantic's lax mode: "5" is 5 on the Python side too.

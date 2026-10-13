@@ -1,30 +1,7 @@
 /**
- * A list's path as a person reads it: "Read the purchasing inbox ▸ Value ▸
- * Attachments (inside each row)" for `steps.s1.output.value[*].attachments`.
- *
- * The naming itself lives in the shared engine (vendor/pathLabel.mjs, the
- * web's file byte for byte); this wrapper only supplies the phone's own
- * humanizeFieldKey. deepen.lockstep.test.ts holds the two together.
+ * The web's `agent-hub/src/components/automation/Builder/mapping/listPathLabel.ts`, generated into mirror/ by
+ * scripts/gen-shared-mirror.mjs (npm run gen:shared; npm run lint:shared-mirror
+ * fails on a stale copy). Change the web file, never the mirror; this path stays
+ * so the phone's importers did not change.
  */
-import { listPathLabel as sharedListPathLabel } from '@/shared/expr';
-import { humanizeFieldKey } from '@/shared/lib/humanizeKey';
-
-type Translate = (key: string, fallback: string, vars?: Record<string, unknown>) => string;
-type Lookup = Pick<Map<string, string>, 'get'> | null | undefined;
-
-/**
- * `stepTypeById` (optional) tells which steps are Conditions, so the list one
- * keeps (`items`) reads as the Condition's name rather than "Items".
- *
- * `compact` is the canvas card's form: a list inside each row of another
- * reads as the step and the inner list only ("Read many ▸ Attachments"), no
- * note in brackets; the editor's "Working through" shows the whole chain.
- */
-export function listPathLabel(
-    path: string,
-    stepLabelById: Lookup = null,
-    t: Translate | null = null,
-    { compact = false, stepTypeById = null }: { compact?: boolean; stepTypeById?: Lookup } = {},
-): string {
-    return sharedListPathLabel(path, stepLabelById, t, { compact, stepTypeById, humanize: humanizeFieldKey });
-}
+export * from './mirror/mapping/listPathLabel';

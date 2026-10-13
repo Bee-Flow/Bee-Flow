@@ -8,7 +8,9 @@
  * differently). This is a BYTE test, not a behaviour test: a difference of any
  * kind fails, including a reformat.
  *
- * When it fails, copy the web's files over vendor/ — never edit them here.
+ * vendor/ is written by scripts/gen-shared-mirror.mjs (an entry in
+ * scripts/shared-mirror.manifest.json) and checked by npm run lint:shared-mirror.
+ * When it fails, run `npm run gen:shared` from the repo root — never edit them here.
  */
 
 import fs from 'node:fs';

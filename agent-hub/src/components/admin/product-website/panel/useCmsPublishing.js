@@ -3,6 +3,7 @@
 // verbatim from ProductWebsitePanel.jsx. State stays owned by the panel.
 import { useCallback } from 'react';
 import { authFetch } from '../../../../utils/helpers';
+import { mutate } from '../../../../api/mutate';
 import { toast } from '../../../shared/Toast';
 import { cmsApi } from '../cmsApi';
 import { AI_LOCK_MSG } from './helpers';
@@ -147,7 +148,7 @@ export default function useCmsPublishing({
     const persistDefaultLocale = async (next) => {
         setDefaultLocale(next);
         try {
-            await authFetch(cmsApi.defaultLocale(), {
+            await mutate(cmsApi.defaultLocale(), {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ locale: next }),

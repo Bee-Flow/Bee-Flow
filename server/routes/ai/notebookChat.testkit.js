@@ -10,6 +10,7 @@
  */
 
 const { AI_AGENT_STUB, configStoreStub } = require('../../testUtils/toolPiiGateHarness');
+const { quietSse } = require('../../testUtils/quietSse');
 
 const pass = (req, res, next) => next();
 
@@ -42,7 +43,7 @@ function notebookChatStubs(fx, over = {}) {
             resolveEffectiveOrgId: async () => 'org-1',
             TIER_DEFAULTS: { fast: { maxTokens: 1024, temperature: 0.2 } },
         },
-        '../../core/http/sseHelpers': { startSseHeartbeat: () => () => {} },
+        '../../core/http/sseHelpers': quietSse(),
         // The notebook has no sources here, so no title maps to one.
         '../../core/kb/notebookKnowledgeSearch': {
             NOTEBOOK_KB_SEARCH_TOOL: toolDef('notebook_kb_search'),

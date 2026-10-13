@@ -25,6 +25,7 @@ const { hasPermission } = require('../../auth/permissions');
 const { requireAuth, getUserPermissions } = require('../../auth/permissions');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
+const { worded } = require('../../core/http/schemaParts');
 
 // -- What a caller may send ------------------------------------------
 //
@@ -44,9 +45,6 @@ const { z, typeError } = require('../../utils/zod');
 // One body stays OPEN on purpose and says so where it is registered:
 // `POST /:code/import` IS the export document, whatever shape it was
 // exported in.
-
-/** A string whose every refusal -- including "you left it out" -- is a sentence. */
-const worded = (message) => z.string({ error: message });
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());

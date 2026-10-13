@@ -28,6 +28,7 @@
 'use strict';
 
 const crypto = require('crypto');
+const stableJson = require('../../utils/stableJson');
 
 const STAGES = Object.freeze(['uat', 'prd']);
 const KINDS = Object.freeze(['deploy', 'rollback', 'redeploy', 'settings', 'remove']);
@@ -144,12 +145,7 @@ function needsApproval({ stage, kind, settings = null } = /** @type {any} */ ({}
  * written in (jsonb does not keep key order).
  */
 function stableStringify(value) {
-    if (value === undefined || typeof value === 'function') return 'null';
-    if (value === null || typeof value !== 'object') return JSON.stringify(value);
-    if (typeof value.toJSON === 'function') return stableStringify(value.toJSON());
-    if (Array.isArray(value)) return `[${value.map(v => (v === undefined || typeof v === 'function' ? 'null' : stableStringify(v))).join(',')}]`;
-    const keys = Object.keys(value).filter(k => value[k] !== undefined && typeof value[k] !== 'function').sort();
-    return `{${keys.map(k => `${JSON.stringify(k)}:${stableStringify(value[k])}`).join(',')}}`;
+    return stableJson.stableStringify(value, { undefined: 'drop', toJSON: true });
 }
 
 function sha256(text) {

@@ -6,14 +6,14 @@
  * Two frameworks, the same two paths the web takes:
  *
  *   - 'vanilla': the three slots plus the project's extra files, inlined
- *     exactly as agent-hub/src/utils/composeWebpageDocument.js does (the
- *     inliners below are pinned to it by webpagePreviewBridges.lockstep.test.js);
+ *     exactly as agent-hub/src/utils/composeWebpageDocument.js does (both
+ *     use the inliners of server/shared/webpage/previewInline.mjs);
  *   - 'react-mui': the extra files bundled by reactBundleServer.composeReactDoc,
  *     the code that also builds the public React share and the builder's
  *     screenshot — here with the LIVE bridges instead of the stubs.
  *
  * The caller supplies `headScripts` (the token-carrying bridges from
- * webpagePreviewBridges.js) and the slots it is allowed to read (a reader gets
+ * shared/webpage/previewBridges.mjs) and the slots it is allowed to read (a reader gets
  * the published snapshot, see routes/webpages/publishedSnapshot.js). This
  * module mints nothing and decides no access.
  *
@@ -33,62 +33,15 @@ const crypto = require('crypto');
 const webpageStore = require('../stores/webpageStore');
 const { resolveFramework, resolveRuntime } = require('../integrations/webpageFramework');
 const { REACT_ENTRY, buildReactBundle, composeReactDoc } = require('./reactBundleServer');
+const {
+    defangScriptClose, inlineStylesheet, inlineScript, inlineExtras,
+} = require('../shared/webpage/previewInline.mjs');
 
 const EMPTY_DOC = '<!DOCTYPE html><html><head></head><body></body></html>';
 
-// ── Vanilla composition (port of composeWebpageDocument.js) ─────────────────
+// ── Vanilla composition (composeWebpageDocument.js, same shared inliners) ───
 
-function escapeRegExp(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
-
-function defangScriptClose(jsContent) {
-    return String(jsContent || '').replace(/<\/script/gi, '<\\/script');
-}
-
-function inlineStylesheet(html, targetPath, css) {
-    const re = new RegExp(`<link\\b[^>]*\\bhref\\s*=\\s*["']${escapeRegExp(targetPath)}["'][^>]*>`, 'gi');
-    // Use the function-form replacer so `$` chars in `css` aren't interpreted
-    // as String.replace backreferences ($&, $', $`, $1-$9).
-    return html.replace(re, () => `<style>\n${css}\n</style>`);
-}
-
-function inlineScript(html, targetPath, js) {
-    const re = new RegExp(`<script\\b[^>]*\\bsrc\\s*=\\s*["']${escapeRegExp(targetPath)}["'][^>]*>\\s*<\\/script>`, 'gi');
-    const replacement = `<script>\n${defangScriptClose(js)}\n<\/script>`;
-    // Function-form replacer — JS bodies routinely contain `$` (template
-    // literals, KaTeX delimiters, regexes). The string form would interpret
-    // those as backreferences and silently corrupt the inlined script.
-    return html.replace(re, () => replacement);
-}
-
-function inlineDataUrl(html, targetPath, dataUrl) {
-    const reHref = new RegExp(`(\\bhref\\s*=\\s*["'])${escapeRegExp(targetPath)}(["'])`, 'gi');
-    const reSrc = new RegExp(`(\\bsrc\\s*=\\s*["'])${escapeRegExp(targetPath)}(["'])`, 'gi');
-    // dataUrl is base64 but the surrounding HTML segments could contain `$`;
-    // use the function form for the same reason as inlineScript above.
-    return html
-        .replace(reHref, (_match, p1, p2) => `${p1}${dataUrl}${p2}`)
-        .replace(reSrc, (_match, p1, p2) => `${p1}${dataUrl}${p2}`);
-}
-
-function inlineExtras(html, extras) {
-    let working = html;
-    // Pass 1: text files referenced by <link>/<script> tags.
-    for (const f of extras) {
-        if (!f.isText || typeof f.content !== 'string') continue;
-        if (/\.css$/i.test(f.path)) working = inlineStylesheet(working, f.path, f.content);
-        else if (/\.m?js$/i.test(f.path)) working = inlineScript(working, f.path, f.content);
-    }
-    // Pass 2: data URLs for everything still referenced by src/href.
-    for (const f of extras) {
-        if (f.dataUrl) {
-            working = inlineDataUrl(working, f.path, f.dataUrl);
-        } else if (f.isText && typeof f.content === 'string') {
-            const url = `data:${f.mimeType || 'text/plain'};base64,${Buffer.from(f.content, 'utf8').toString('base64')}`;
-            working = inlineDataUrl(working, f.path, url);
-        }
-    }
-    return working;
-}
+const toBase64 = (text) => Buffer.from(text, 'utf8').toString('base64');
 
 /** composeWebpageDocument with the live bridges as `headScripts`. */
 function composeVanillaDocument({ html, css, js }, { extras = [], headScripts = '' } = {}) {
@@ -107,7 +60,7 @@ function composeVanillaDocument({ html, css, js }, { extras = [], headScripts = 
         const replaced = inlineScript(working, 'script.js', js);
         if (replaced !== working) { working = replaced; jsInlined = true; }
     }
-    working = inlineExtras(working, extras);
+    working = inlineExtras(working, extras, toBase64);
 
     const headStyleTag = cssInlined ? '' : styleTag;
     const bodyScriptTag = jsInlined ? '' : scriptTag;
@@ -229,6 +182,6 @@ async function buildDraftDocument({ webpage, slots, headScripts }) {
 module.exports = {
     buildDraftDocument,
     composeVanillaDocument,
-    // test/lockstep
-    _internals: { inlineStylesheet, inlineScript, inlineDataUrl, bundleCache, BUNDLE_CACHE_MAX },
+    // test
+    _internals: { bundleCache, BUNDLE_CACHE_MAX },
 };

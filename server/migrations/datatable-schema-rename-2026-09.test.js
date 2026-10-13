@@ -25,24 +25,11 @@ const Module = require('node:module');
 const SERVER = path.resolve(__dirname, '..');
 
 const { PGlite } = require('@electric-sql/pglite');
+const { pgliteQuery } = require('../testUtils/pglitePool');
 const pg = new PGlite();
 
-function adaptResult(res, sql) {
-    const r = Array.isArray(res) ? (res[res.length - 1] || {}) : (res || {});
-    const rows = r.rows || [];
-    const fields = r.fields || [];
-    const command = fields.length > 0 ? 'SELECT' : String(sql).trim().split(/\s+/)[0].toUpperCase();
-    const rowCount = fields.length > 0
-        ? rows.length
-        : (typeof r.affectedRows === 'number' ? r.affectedRows : 0);
-    return { rows, fields, rowCount, command };
-}
-
-async function rawQuery(sql, params) {
-    if (Array.isArray(params) && params.length > 0) return adaptResult(await pg.query(sql, params), sql);
-    if (/;\s*\S/.test(String(sql).trim())) return adaptResult(await pg.exec(sql), sql);
-    return adaptResult(await pg.query(sql), sql);
-}
+// node-postgres's `query(sql, params)` over this PGlite (testUtils/pglitePool.js).
+const rawQuery = pgliteQuery(pg);
 
 // pglite is ONE connection, so every "client" is that connection and these
 // tests must stay sequential — two overlapping transactions would interleave.

@@ -13,12 +13,10 @@
  */
 
 const { isSideEffect } = require('../automationModel/sideEffectMap');
+const { stableStringify } = require('../../utils/stableJson');
 
 function _defaultStableStringify(value) {
-    if (value === null || typeof value !== 'object') return JSON.stringify(value);
-    if (Array.isArray(value)) return '[' + value.map(_defaultStableStringify).join(',') + ']';
-    const keys = Object.keys(value).sort();
-    return '{' + keys.map(k => JSON.stringify(k) + ':' + _defaultStableStringify(value[k])).join(',') + '}';
+    return stableStringify(value, { undefined: 'raw' });
 }
 
 /**

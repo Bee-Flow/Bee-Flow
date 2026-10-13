@@ -30,11 +30,9 @@ const { listRecentlyEndedMeetMeetings } = require('./gmeetCalendar');
 const { getSpaceByMeetingCode, findConferenceRecord, findGeneratedRecording } = require('./gmeetArtifacts');
 const { ingestGmeetRecording } = require('./ingestGmeetRecording');
 const log = require('../../telemetry/log');
+const kit = require('./importJobKit');
 
-// Artifact wait/retry backoff, indexed by the job's attempt count; past the
-// end of the table the poller settles into an hourly re-check.
-const BACKOFF_MINUTES = [2, 5, 10, 20, 40];
-const HOURLY_MS = 60 * 60_000;
+const { codedError, backoffMsFor, meetingEndMs } = kit;
 
 // Recording artifacts appear "soon after" the meeting ends (no SLA). A meeting
 // still without a FILE_GENERATED recording 24h past its end simply wasn't
@@ -64,29 +62,6 @@ const TERMINAL_CODES = new Set([
 // Expected outcomes, not incidents — logged without alarm.
 const QUIET_CODES = new Set(['no_recording', 'no_conference', 'no_drive_access']);
 
-// Round-robin cursor so a large install fans discovery over successive ticks.
-let _userCursor = 0;
-
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-function codedError(message, code) {
-    const e = new Error(message);
-    e.code = code;
-    return e;
-}
-
-function backoffMsFor(attempts) {
-    const min = BACKOFF_MINUTES[Math.max(0, attempts || 0)];
-    return min != null ? min * 60_000 : HOURLY_MS;
-}
-
-function meetingEndMs(job) {
-    const end = job.meetingEnd ? new Date(job.meetingEnd).getTime() : NaN;
-    if (Number.isFinite(end)) return end;
-    const created = job.createdAt ? new Date(job.createdAt).getTime() : NaN;
-    return Number.isFinite(created) ? created : Date.now();
-}
-
 /**
  * Session-shaped shim over a vault credential. `createGoogleApiClient` calls
  * `session.save?.()` after an SDK-side token refresh — write the rotated
@@ -115,10 +90,7 @@ function buildVaultSession(auth) {
 }
 
 async function resolveOrgIdForUser(userId) {
-    try {
-        const { getUser } = require('../../stores/userStore');
-        return (await getUser(userId))?.organizationId || null;
-    } catch (_) { return null; }
+    return kit.resolveOrgIdForUser(userId, () => require('../../stores/userStore'));
 }
 
 /**
@@ -127,30 +99,13 @@ async function resolveOrgIdForUser(userId) {
  * it on for members who never opened their own settings).
  */
 async function listCandidateUsers() {
-    const all = await configStore.getAllConfig().catch(() => ({}));
-    const userIds = new Set();
-    const orgIds = new Set();
-    for (const key of Object.keys(all || {})) {
-        if (key.startsWith('user_gmeet_notes_')) userIds.add(key.slice('user_gmeet_notes_'.length));
-        else if (key.startsWith('org_gmeet_notes_')) orgIds.add(key.slice('org_gmeet_notes_'.length));
-    }
-    if (orgIds.size) {
-        const enabledOrgs = [];
-        for (const orgId of orgIds) {
-            const s = await resolveGmeetNotesSettings({ orgId }).catch(() => null);
-            if (s?.autoImport) enabledOrgs.push(orgId);
-        }
-        if (enabledOrgs.length) {
-            try {
-                const { getAllUsers } = require('../../stores/userStore');
-                const users = await getAllUsers();
-                for (const u of users) {
-                    if (u.organizationId && enabledOrgs.includes(u.organizationId)) userIds.add(u.id);
-                }
-            } catch (_) { /* best-effort */ }
-        }
-    }
-    return Array.from(userIds);
+    return kit.listCandidateUsers({
+        configStore,
+        kind: 'gmeet_notes',
+        resolveSettings: resolveGmeetNotesSettings,
+        flag: 'autoImport',
+        getUserStore: () => require('../../stores/userStore'),
+    });
 }
 
 async function discoverUser(userId) {
@@ -218,22 +173,13 @@ async function discoverUser(userId) {
  * Phase A — seed jobs from candidates' calendars. Metadata only; the caller
  * wraps this in the Postgres advisory lock so one pod discovers per tick.
  */
-async function discover() {
-    let users;
-    try { users = await listCandidateUsers(); }
-    catch (e) { log.error('[GmeetAutoImport] candidate scan failed:', e.message); return; }
-    if (!users.length) return;
-
-    const count = Math.min(users.length, MAX_USERS_PER_TICK);
-    const start = _userCursor % users.length;
-    _userCursor = (start + count) % users.length;
-    for (let i = 0; i < count; i++) {
-        const userId = users[(start + i) % users.length];
-        if (i > 0) await sleep(Math.floor(Math.random() * USER_JITTER_MS)); // spread calendar reads (quota friendliness)
-        try { await discoverUser(userId); }
-        catch (e) { log.error(`[GmeetAutoImport] discovery failed for user ${userId}: ${e.message}`); }
-    }
-}
+const discover = kit.makeDiscovery({
+    label: 'GmeetAutoImport',
+    maxUsersPerTick: MAX_USERS_PER_TICK,
+    jitterMs: USER_JITTER_MS, // spread calendar reads (quota friendliness)
+    listCandidateUsers,
+    discoverUser,
+});
 
 /**
  * Best-effort calendar attendee list for a claimed job (used for the speaker
@@ -292,15 +238,6 @@ async function resolveDuplicate(job, conferenceRecordName) {
     return { pending: true, status: 'duplicate' };
 }
 
-// `lastError` carries an "attempt N/M:" marker so ingest retries are counted
-// across claims — job.attempts also counts artifact waits, which must not eat
-// into the ingest retry budget.
-function ingestAttempt(job) {
-    if (job.errorCode !== 'failed') return 0;
-    const m = /^attempt (\d+)\//.exec(job.lastError || '');
-    return m ? Number(m[1]) : 1;
-}
-
 // Always throws: classified codes freeze the job per code; anything else
 // retries up to MAX_INGEST_ATTEMPTS, then freezes as 'failed'.
 /**
@@ -327,25 +264,13 @@ async function releaseClaimAfterTerminalFailure(job) {
 }
 
 async function failIngest(job, err) {
-    const code = err?.code || null;
-    if (code && TERMINAL_CODES.has(code)) {
-        await gmeetImportStore.failJob(job.id, { errorCode: code, terminal: true, lastError: err.message });
-        await releaseClaimAfterTerminalFailure(job);
-        throw err;
-    }
-    const attempt = ingestAttempt(job) + 1;
-    const lastError = `attempt ${attempt}/${MAX_INGEST_ATTEMPTS}: ${String(err?.message || err).slice(0, 500)}`;
-    if (attempt >= MAX_INGEST_ATTEMPTS) {
-        await gmeetImportStore.failJob(job.id, { errorCode: 'failed', terminal: true, lastError });
-        await releaseClaimAfterTerminalFailure(job);
-    } else {
-        await gmeetImportStore.failJob(job.id, {
-            errorCode: 'failed', lastError,
-            terminal: false, status: 'pending',
-            backoffMs: backoffMsFor(job.attempts),
-        });
-    }
-    throw codedError(err?.message || 'Google Meet import failed', 'failed');
+    return kit.failIngest({
+        store: gmeetImportStore, job, err,
+        terminalCodes: TERMINAL_CODES,
+        maxAttempts: MAX_INGEST_ATTEMPTS,
+        fallbackMessage: 'Google Meet import failed',
+        onTerminal: releaseClaimAfterTerminalFailure,
+    });
 }
 
 /**
@@ -476,19 +401,13 @@ async function processClaimedJob(job) {
  * are FOR UPDATE SKIP LOCKED, so every pod may run this concurrently).
  */
 async function processDue({ limit = 2 } = {}) {
-    let jobs;
-    try { jobs = await gmeetImportStore.claimDueJobs(limit); }
-    catch (e) { log.error('[GmeetAutoImport] claim failed:', e.message); return; }
-    for (const job of jobs) {
-        try {
-            await processClaimedJob(job);
-        } catch (e) {
-            const code = e?.code || 'failed';
-            const line = `[GmeetAutoImport] job ${job.id} (${job.meetingCode}): ${code}: ${e.message}`;
-            if (QUIET_CODES.has(code)) log.info(line); // expected outcome, no alarm
-            else log.warn(line);
-        }
-    }
+    return kit.processDueJobs({
+        store: gmeetImportStore, limit,
+        label: 'GmeetAutoImport',
+        describe: (job) => `${job.id} (${job.meetingCode})`,
+        processClaimedJob,
+        quietCodes: QUIET_CODES,
+    });
 }
 
 module.exports = { discover, processDue, processJobInline };

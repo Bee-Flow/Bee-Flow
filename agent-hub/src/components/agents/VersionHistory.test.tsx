@@ -80,3 +80,34 @@ describe('VersionHistory restore', () => {
         expect(toastMock.error).not.toHaveBeenCalled();
     });
 });
+
+describe('VersionHistory delete', () => {
+    /** Serves the list and answers DELETE …/v1 with `answer`. */
+    async function deleteVersionOne(answer: ReturnType<typeof json>) {
+        fetchMock.mockImplementation(async (url: string, init?: { method?: string }) => {
+            if (init?.method === 'DELETE' && url.endsWith('/versions/a1/v1')) return answer;
+            if (url.endsWith('/versions/a1')) return json(VERSIONS);
+            return json({ error: 'unexpected' }, 404);
+        });
+        const user = userEvent.setup();
+        render(<VersionHistory agentId="a1" />);
+        await user.click(screen.getByRole('button', { name: /Version History/ }));
+        await screen.findByText('v1');
+        await user.click(screen.getAllByTitle('Delete version')[1]);
+        const dialog = await screen.findByRole('dialog', { name: 'Delete this version?' });
+        await user.click(within(dialog).getByRole('button', { name: 'Delete' }));
+    }
+
+    it('shows the server error and keeps the version when the delete is refused', async () => {
+        await deleteVersionOne(json({ error: 'Not allowed' }, 403));
+        await waitFor(() => expect(toastMock.error).toHaveBeenCalledWith('Not allowed'));
+        expect(screen.getByText('v1')).toBeInTheDocument();
+    });
+
+    it('drops the version from the list when the delete lands', async () => {
+        await deleteVersionOne(json({ success: true }));
+        await waitFor(() => expect(screen.queryByText('v1')).toBeNull());
+        expect(screen.getByText('v2')).toBeInTheDocument();
+        expect(toastMock.error).not.toHaveBeenCalled();
+    });
+});

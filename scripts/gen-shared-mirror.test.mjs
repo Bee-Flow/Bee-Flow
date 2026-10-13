@@ -32,12 +32,27 @@ const SOURCE_TESTS = {
     'functions.format.test.mjs': "import test from 'node:test';\n",
 };
 
-function sandbox(t, { source = { ...SOURCE, ...SOURCE_TESTS } } = {}) {
+const EXPR_ENTRY = { source: 'server/shared/expr', target: 'agent-hub/src/shared/expr', transform: 'none' };
+
+function writeManifest(dir, entries) {
+    fs.writeFileSync(path.join(dir, 'scripts', 'shared-mirror.manifest.json'), JSON.stringify({ entries }, null, 4));
+}
+
+function writeTree(dir, rel, files) {
+    for (const [name, body] of Object.entries(files)) {
+        const file = path.join(dir, rel, name);
+        fs.mkdirSync(path.dirname(file), { recursive: true });
+        fs.writeFileSync(file, body);
+    }
+}
+
+function sandbox(t, { source = { ...SOURCE, ...SOURCE_TESTS }, entries = [EXPR_ENTRY] } = {}) {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gen-shared-mirror-'));
     t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
     fs.mkdirSync(path.join(dir, 'scripts'));
     fs.copyFileSync(SCRIPT, path.join(dir, 'scripts', 'gen-shared-mirror.mjs'));
     fs.copyFileSync(path.join(HERE, 'entry-point.mjs'), path.join(dir, 'scripts', 'entry-point.mjs'));
+    writeManifest(dir, entries);
     for (const [name, body] of Object.entries(source)) {
         const file = path.join(dir, 'server', 'shared', 'expr', name);
         fs.mkdirSync(path.dirname(file), { recursive: true });
@@ -166,4 +181,110 @@ test('a source directory without files to mirror is an error, not a pass', (t) =
         assert.match(r.stderr, /server\/shared\/expr\/ has no files to mirror/);
     }
     assert.ok(!fs.existsSync(mirror(dir)));
+});
+
+// ---- manifest-driven entries -------------------------------------------------
+
+const MOBILE_ENTRY = {
+    source: 'server/shared/expr',
+    target: 'mobile/src/shared/expr/vendor',
+    exclude: ['functions.mjs'],
+    keep: ['index.d.mts'],
+};
+const vendor = (dir, name = '') => path.join(dir, 'mobile', 'src', 'shared', 'expr', 'vendor', name);
+
+test('a second target of the same source honours exclude and keeps hand-written files', (t) => {
+    const dir = sandbox(t, { entries: [EXPR_ENTRY, MOBILE_ENTRY] });
+    writeTree(dir, 'mobile/src/shared/expr/vendor', { 'index.d.mts': 'export declare const f: () => string;\n' });
+
+    const r = run(dir);
+    assert.strictEqual(r.code, 0, r.stderr);
+    assert.deepStrictEqual(fs.readdirSync(vendor(dir)).sort(), ['engine.mjs', 'index.d.mts', 'index.mjs']);
+    assert.ok(fs.readFileSync(vendor(dir, 'engine.mjs')).equals(Buffer.from(SOURCE['engine.mjs'])), 'transform none stays byte-identical, no header');
+    assert.strictEqual(run(dir, ['--check']).code, 0);
+
+    fs.appendFileSync(vendor(dir, 'index.mjs'), '// hand edit\n');
+    const c = run(dir, ['--check']);
+    assert.strictEqual(c.code, 1);
+    assert.match(c.stderr, /entry #2 \(server\/shared\/expr\/ -> mobile\/src\/shared\/expr\/vendor\/\)/, 'the failing entry is named');
+    assert.match(c.stderr, /differs: mobile\/src\/shared\/expr\/vendor\/index\.mjs/);
+    assert.doesNotMatch(c.stderr, /index\.d\.mts/, 'a kept file is never extra');
+    assert.match(c.stdout, /agent-hub\/src\/shared\/expr\/ matches/, 'the clean entry still reports');
+});
+
+test('cjs-to-esm with importRewrite writes a GENERATED header and --check catches a hand edit', (t) => {
+    const entries = [{
+        source: 'server/shared/emoji',
+        target: 'agent-hub/src/shared/emoji',
+        transform: 'cjs-to-esm',
+        importRewrite: [['./data', './data.js']],
+    }];
+    const dir = sandbox(t, { entries });
+    writeTree(dir, 'server/shared/emoji', {
+        'catalog.js': "'use strict';\nconst { list, size: count } = require('./data');\nconst path = require('node:path');\nconst all = () => list;\nmodule.exports = { all, total: count, path };\n",
+    });
+
+    const r = run(dir);
+    assert.strictEqual(r.code, 0, r.stderr);
+    const out = fs.readFileSync(path.join(dir, 'agent-hub/src/shared/emoji/catalog.js'), 'utf8');
+    assert.strictEqual(out, '// GENERATED from server/shared/emoji/catalog.js by scripts/gen-shared-mirror.mjs — do not edit\n'
+        + "import { list, size as count } from './data.js';\nimport path from 'node:path';\nconst all = () => list;\nexport { all, count as total, path };\n");
+    assert.strictEqual(run(dir, ['--check']).code, 0);
+
+    fs.writeFileSync(path.join(dir, 'agent-hub/src/shared/emoji/catalog.js'), out.replace('do not edit', 'edited'));
+    const c = run(dir, ['--check']);
+    assert.strictEqual(c.code, 1);
+    assert.match(c.stderr, /differs: agent-hub\/src\/shared\/emoji\/catalog\.js \(first difference at line 1\)/);
+});
+
+test('a file source mirrors to a target file', (t) => {
+    const entries = [{ source: 'server/shared/one.mjs', target: 'components/x/one.mjs' }];
+    const dir = sandbox(t, { entries });
+    writeTree(dir, 'server/shared', { 'one.mjs': 'export const one = 1;\n' });
+    assert.strictEqual(run(dir).code, 0);
+    assert.strictEqual(fs.readFileSync(path.join(dir, 'components/x/one.mjs'), 'utf8'), 'export const one = 1;\n');
+    fs.rmSync(path.join(dir, 'components/x/one.mjs'));
+    const c = run(dir, ['--check']);
+    assert.strictEqual(c.code, 1);
+    assert.match(c.stderr, /missing: components\/x\/one\.mjs/);
+});
+
+test('a file source with cjs-to-esm names the source file itself in its header', (t) => {
+    const entries = [{ source: 'server/core/one.js', target: 'agent-hub/src/one.generated.mjs', transform: 'cjs-to-esm' }];
+    const dir = sandbox(t, { entries });
+    writeTree(dir, 'server/core', { 'one.js': 'const one = 1;\nmodule.exports = { one };\n' });
+    assert.strictEqual(run(dir).code, 0);
+    assert.strictEqual(fs.readFileSync(path.join(dir, 'agent-hub/src/one.generated.mjs'), 'utf8'),
+        '// GENERATED from server/core/one.js by scripts/gen-shared-mirror.mjs — do not edit\nconst one = 1;\nexport { one };\n');
+    assert.strictEqual(run(dir, ['--check']).code, 0);
+});
+
+test('cjs-to-esm refuses a file it cannot fully convert, and nothing is written for any entry', (t) => {
+    const entries = [EXPR_ENTRY, { source: 'server/shared/dyn', target: 'agent-hub/src/shared/dyn', transform: 'cjs-to-esm' }];
+    const dir = sandbox(t, { entries });
+    writeTree(dir, 'server/shared/dyn', { 'lazy.js': "function load() { return require('./x'); }\nmodule.exports = { load };\n" });
+    const r = run(dir);
+    assert.strictEqual(r.code, 1);
+    assert.match(r.stderr, /cjs-to-esm: server\/shared\/dyn\/lazy\.js still has "require\("/);
+    assert.ok(!fs.existsSync(mirror(dir)), 'the valid entry was not written either');
+});
+
+test('an unknown transform or key in the manifest is an error', (t) => {
+    for (const bad of [{ ...EXPR_ENTRY, transform: 'babel' }, { ...EXPR_ENTRY, rewrite: [] }, { target: 'x' }]) {
+        const dir = sandbox(t, { entries: [bad] });
+        const r = run(dir, ['--check']);
+        assert.strictEqual(r.code, 1);
+        assert.match(r.stderr, /entry #1: (unknown transform|unknown key|source is required)/);
+    }
+});
+
+test('the repo manifest mirrors the expr engine byte for byte to agent-hub and mobile', async () => {
+    const { normaliseManifest } = await import('./gen-shared-mirror.mjs');
+    const entries = normaliseManifest(JSON.parse(fs.readFileSync(path.join(HERE, 'shared-mirror.manifest.json'), 'utf8')));
+    const expr = entries.filter((e) => e.source === 'server/shared/expr');
+    assert.deepStrictEqual(expr.map((e) => e.target), ['agent-hub/src/shared/expr', 'mobile/src/shared/expr/vendor']);
+    for (const e of expr) {
+        assert.strictEqual(e.transform, 'none');
+        assert.deepStrictEqual(e.importRewrite, []);
+    }
 });

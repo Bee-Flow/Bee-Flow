@@ -6,7 +6,7 @@ import {
     Wrench, Code, Settings, Package, Eye, Clock, Bot, User,
     Loader2, CheckCircle2, Search, Cpu, FileText, Zap
 } from 'lucide-react';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { API_BASE, authFetch, mutate } from '../../../api/mutate';
 import { useTranslation } from '../../../hooks/useTranslation';
 
 // ---------- Template Cards Data ----------
@@ -415,7 +415,7 @@ const AIComponentDesigner = ({ onComponentCreated, onClose }) => {
 
     const handleClearChat = async () => {
         try {
-            await authFetch(`${API_BASE}/ai/clear`, { method: 'POST' });
+            await mutate(`${API_BASE}/ai/clear`, { method: 'POST' });
             setMessages([]); setPendingComponent(null); setShowTemplates(true);
             setShowChangeInput(false); setChangeRequestInput('');
         } catch (e) { console.error('Failed to clear chat:', e); }

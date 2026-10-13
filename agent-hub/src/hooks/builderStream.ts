@@ -5,9 +5,14 @@
  * clones of one another — the CMS one says so in its own header — and each
  * renders the same list of rows: chat turns, tool calls, and error cards. One
  * description of that list lives here so the three cannot drift apart in shape
- * while claiming to be the same thing. Only the shape is shared; each hook
- * keeps its own events and its own state machine.
+ * while claiming to be the same thing. Each hook keeps its own events and its
+ * own state machine; the small pieces they had copied word for word (patching
+ * the live assistant message, aborting on unmount, settling the streaming
+ * flags, the error text of a failed answer, the turn record) live at the end
+ * of this file.
  */
+
+import { useCallback, useEffect, type Dispatch, type MutableRefObject, type SetStateAction } from 'react';
 
 /** One reasoning block, from `thinking_start` to `thinking_stop`. */
 export interface ThinkingPart {
@@ -227,4 +232,98 @@ export interface BuilderStreamData {
     message?: string;
     hint?: string;
     reason?: string;
+}
+
+// ---------------------------------------------------------------------------
+// Shared runtime pieces
+// ---------------------------------------------------------------------------
+
+/**
+ * Patch the current turn's assistant message (the last non-tool assistant
+ * item — tool/error items may have been appended after it). `fn` receives a
+ * shallow copy and returns the replacement; with no such message yet, a fresh
+ * streaming one is appended.
+ */
+export function usePatchAssistant(setMessages: Dispatch<SetStateAction<BuilderMessage[]>>) {
+    return useCallback((fn: (m: BuilderMessage) => BuilderMessage) => {
+        setMessages((msgs) => {
+            const next = msgs.slice();
+            for (let i = next.length - 1; i >= 0; i--) {
+                const m = next[i];
+                if (m && m.role === 'assistant' && !m.kind) {
+                    next[i] = fn({ ...m });
+                    return next;
+                }
+            }
+            next.push(fn({ role: 'assistant', content: '', thinkingParts: [], isStreaming: true }));
+            return next;
+        });
+    }, [setMessages]);
+}
+
+/** Abort an in-flight stream on unmount. */
+export function useAbortOnUnmount(abortRef: MutableRefObject<AbortController | null>) {
+    useEffect(() => () => {
+        try { abortRef.current?.abort(); } catch { /* already settled */ }
+    }, [abortRef]);
+}
+
+/** Settle streaming flags + reasoning end time (message and parts) once a stream stops. */
+export function finalizeStreaming(messages: BuilderMessage[]): BuilderMessage[] {
+    if (!messages.some((m) => m && m.isStreaming)) return messages;
+    return messages.map((m) => (m && m.isStreaming
+        ? {
+            ...m,
+            isStreaming: false,
+            thinkingEndedAt: m.thinkingEndedAt || (m.thinkingStartedAt ? Date.now() : undefined),
+            thinkingParts: (m.thinkingParts || []).map((p) => (p.endedAt ? p : { ...p, endedAt: Date.now() })),
+        }
+        : m));
+}
+
+/** The text of a failed answer: its `error`, else `message`, else the JSON, else the status text. */
+export async function errorTextOf(r: Response): Promise<string> {
+    try {
+        const j = await r.json();
+        return j.error || j.message || JSON.stringify(j);
+    } catch {
+        return r.statusText;
+    }
+}
+
+/**
+ * The live turn record of a build: sentAt/sessionAt/pings/modelId,
+ * roundStartedAt/promptChars/progress, and firstEventAt — set ONCE — which
+ * ends the "Thinking…" wait in the chat column. Always replaced
+ * copy-on-write: the effects that file the measurement key on its identity.
+ */
+export function openTurn(tier?: string | null): BuilderTurn {
+    return {
+        sentAt: Date.now(),
+        tier: tier || null,
+        sessionAt: null,
+        pings: 0,
+        lastPingAt: null,
+        modelId: null,
+        roundStartedAt: null,
+        promptChars: null,
+        firstEventAt: null,
+        // Per-round facts (server round_start / prompt_progress / usage):
+        iter: null,
+        local: null,          // true when the round runs on a self-hosted runtime
+        providerType: null,
+        phase: null,          // 'reading' from round_start until the first output, then 'writing'
+        progress: null,       // llama-server prompt progress { total, cache, processed, timeMs, at }
+        usage: null,          // the round's normalised usage (prompt/completion/cached tokens, timings)
+    };
+}
+
+/**
+ * Tokens per second from llama-server timings, or null. `prompt_n` is the
+ * number of prompt tokens actually evaluated (cached ones are in `cache_n`),
+ * so prompt_n / prompt_ms is the true read speed of this round.
+ */
+export function rateOf(n?: number, ms?: number): number | null {
+    if (!Number.isFinite(n) || !Number.isFinite(ms) || !(n! > 0) || !(ms! > 0)) return null;
+    return Math.round((n! / ms!) * 1000);
 }
