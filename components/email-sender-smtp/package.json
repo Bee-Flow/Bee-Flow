@@ -2,6 +2,6 @@
   "name": "email-sender-smtp",
   "version": "1.0.0",
   "dependencies": {
-    "nodemailer": "^6.9.14"
+    "nodemailer": "^10.0.16"
   }
 }
