@@ -17,43 +17,12 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const http = require('node:http');
-const Module = require('module');
-
-function clone(v) { return v == null ? v : JSON.parse(JSON.stringify(v)); }
+const { createCmsConfigMocks } = require('../stores/cmsStore.testkit');
+const { installResolveStub } = require('../testUtils/stubRequire');
 
 // ── In-memory config table + db LIKE queries (real cmsStore on top) ──
 
-const configState = { map: new Map() };
-
-const mockConfigStore = {
-    async getConfig(key) { return clone(configState.map.get(key)); },
-    async getConfigFresh(key) { return clone(configState.map.get(key)); },
-    async setConfig(key, value) { configState.map.set(key, clone(value)); },
-    async deleteConfig(key) { configState.map.delete(key); },
-    async mutateConfig(key, fn) {
-        const cur = configState.map.has(key) ? clone(configState.map.get(key)) : undefined;
-        const next = fn(cur);
-        configState.map.set(key, clone(next));
-        return next;
-    },
-};
-
-function likeToRegex(pattern) {
-    const esc = String(pattern).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    return new RegExp(`^${esc.replace(/%/g, '.*').replace(/_/g, '.')}$`);
-}
-
-const mockDb = {
-    async getAll(sql, params) {
-        const keys = [...configState.map.keys()];
-        if (/key = \$1 OR key LIKE \$2/.test(sql)) {
-            const re = likeToRegex(params[1]);
-            return keys.filter((k) => k === params[0] || re.test(k)).map((k) => ({ key: k }));
-        }
-        const re = likeToRegex(params[0]);
-        return keys.filter((k) => re.test(k)).map((k) => ({ key: k }));
-    },
-};
+const { mockConfigStore, mockDb } = createCmsConfigMocks();
 
 const MOCKS = {
     // cmsStore's Postgres edges — the store itself runs REAL. cms.js
@@ -100,17 +69,7 @@ const MOCKS = {
     '../license': { serverLicenseGovernsOrgs: () => false },
 };
 
-const MOCK_IDS = {};
-for (const [request, exportsObj] of Object.entries(MOCKS)) {
-    const mockId = `mock:${request}`;
-    MOCK_IDS[request] = mockId;
-    require.cache[mockId] = { id: mockId, filename: mockId, loaded: true, exports: exportsObj };
-}
-const originalResolve = Module._resolveFilename;
-Module._resolveFilename = function (request, parent, ...rest) {
-    if (Object.prototype.hasOwnProperty.call(MOCK_IDS, request)) return MOCK_IDS[request];
-    return originalResolve.call(this, request, parent, ...rest);
-};
+installResolveStub(MOCKS);
 
 const express = require('express');
 const router = require('./cms');
