@@ -43,6 +43,28 @@ module.exports = [
         },
     },
     {
+        // A promise nobody awaits loses its rejection: in the main process that
+        // is an unhandled rejection with no UI to show it. Type-aware, so only
+        // here (src/main is in tsconfig.json; projectService finds it). Await
+        // it, or write `void` with a one-line reason why fire-and-forget is fine.
+        files: ['src/main/**/*.ts'],
+        languageOptions: {
+            parserOptions: { projectService: true, tsconfigRootDir: __dirname },
+        },
+        rules: {
+            // node:test's describe/it/test return a promise the runner itself
+            // tracks; awaiting each one in a test file is noise, not safety.
+            '@typescript-eslint/no-floating-promises': [
+                'error',
+                {
+                    allowForKnownSafeCalls: [
+                        { from: 'package', package: 'node:test', name: ['describe', 'it', 'test', 'suite', 'before', 'after', 'beforeEach', 'afterEach'] },
+                    ],
+                },
+            ],
+        },
+    },
+    {
         files: ['src/shell/**/*.ts'],
         languageOptions: {
             globals: { ...globals.browser },

@@ -40,6 +40,7 @@ from __future__ import annotations
 import logging
 import os
 import threading
+from contextlib import suppress
 
 logger = logging.getLogger("guard.disclosure")
 
@@ -113,10 +114,9 @@ class SentenceEncoder:
                 # reports the node, not this pod's slice, and a thread pool
                 # sized for the node thrashes inside the quota.
                 apply_thread_env()
-                try:
+                # Torch-build dependent; a build without it keeps its default.
+                with suppress(Exception):
                     torch.set_num_threads(available_cpus())
-                except Exception:  # pragma: no cover - torch build dependent
-                    pass
 
                 self._tokenizer = AutoTokenizer.from_pretrained(model_dir)
                 model = AutoModel.from_pretrained(model_dir)

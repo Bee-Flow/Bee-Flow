@@ -135,7 +135,7 @@ class PiiRequest(BaseModel):
     )
 
     @model_validator(mode="after")
-    def _distinct_custom_labels(self) -> "PiiRequest":
+    def _distinct_custom_labels(self) -> PiiRequest:
         labels = self.custom_labels or []
         ids = [label.id for label in labels]
         if len(set(ids)) != len(ids):
@@ -227,7 +227,7 @@ class ProbeRequest(BaseModel):
     )
 
     @model_validator(mode="after")
-    def _distinct_prompts(self) -> "ProbeRequest":
+    def _distinct_prompts(self) -> ProbeRequest:
         _require_distinct_prompts(list(self.label_set.values()))
         return self
 

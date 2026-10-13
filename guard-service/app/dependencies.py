@@ -48,10 +48,12 @@ async def close_http() -> None:
 
 
 def get_redis() -> aioredis.Redis:
-    assert redis_client is not None, "Redis not initialized"
+    if redis_client is None:
+        raise RuntimeError("Redis not initialized")
     return redis_client
 
 
 def get_http() -> httpx.AsyncClient:
-    assert http_client is not None, "HTTP client not initialized"
+    if http_client is None:
+        raise RuntimeError("HTTP client not initialized")
     return http_client

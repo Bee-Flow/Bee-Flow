@@ -41,9 +41,9 @@ def probe(category: str, labels: list[str], records, max_records: int) -> dict:
     import contextlib
     from unittest.mock import patch
 
+    import app.services.pii as pii_mod
     from app.config import settings
     from app.services.pii import get_pii_service
-    import app.services.pii as pii_mod
 
     svc = get_pii_service()
     svc.load(settings.pii_model)

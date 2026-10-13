@@ -140,7 +140,7 @@ def env_info() -> dict:
         except metadata.PackageNotFoundError:
             continue
     return {
-        "date": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
+        "date": dt.datetime.now(dt.UTC).isoformat(timespec="seconds"),
         "python": platform.python_version(),
         "packages": versions,
         "cpu_model": _cpu_model(),

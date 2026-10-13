@@ -119,7 +119,9 @@ and `npm run lint:secrets`.
   `lint:module-mock-ratchet`, `lint:authfetch-effect-ratchet`, `lint:big-file-ratchet`,
   `lint:dutch-comment-ratchet` and `lint:import-zones-ratchet` (agent-hub layer direction:
   `api/` and `hooks/` never import from `components/` or `pages/`, `components/` never from
-  `pages/`; tests excluded).
+  `pages/`; tests excluded). Also `lint:empty-catch-ratchet`, `lint:rollback-in-store-ratchet`
+  (use `db.withTransaction`), `lint:db-in-routes-ratchet` (routes go through a store) and
+  `lint:long-function-ratchet` (functions over 200 lines, server and agent-hub).
 - `npm run lint:scc-ratchet`: the largest import cycle (strongly connected component of the
   internal import graph, lazy `require`s included, `import type` excluded) in `server`,
   `agent-hub/src` and `mobile/src` may only shrink (`scripts/scc-ratchet.mjs`, budget in

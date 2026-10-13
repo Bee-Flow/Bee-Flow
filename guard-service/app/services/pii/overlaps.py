@@ -10,7 +10,6 @@ envelope fields the Node side reads.
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
 from .ranking import _SPECIFICITY_MIN_COVERAGE, _pick_label
 
@@ -24,14 +23,14 @@ class _OverlapResolution:
     def _finalise(  # noqa: C901, PLR0913, PLR0915
         entities: list[dict],
         degraded: bool = False,
-        degraded_reason: Optional[str] = None,
-        degraded_categories: Optional[list[str]] = None,
-        processed_chars: Optional[int] = None,
-        total_chars: Optional[int] = None,
-        tier_mode: Optional[str] = None,
-        text: Optional[str] = None,
-        near_miss_counts: Optional[dict] = None,
-        scan_stats: Optional[dict] = None,
+        degraded_reason: str | None = None,
+        degraded_categories: list[str] | None = None,
+        processed_chars: int | None = None,
+        total_chars: int | None = None,
+        tier_mode: str | None = None,
+        text: str | None = None,
+        near_miss_counts: dict | None = None,
+        scan_stats: dict | None = None,
     ) -> dict:
         """Resolve overlaps and wrap in the response envelope.
 

@@ -367,14 +367,14 @@ def _collect_outcomes(
     a group can be judged failed only when EVERY one of its slices raised."""
     slices_total: dict[int, int] = {}
     slices_failed: dict[int, int] = {}
-    for unit, (batched, exc) in zip(units, outcomes):
+    for unit, (batched, exc) in zip(units, outcomes, strict=False):
         group_idx, _labels, _thr, _texts, sub_offsets, _i = unit
         slices_total[group_idx] = slices_total.get(group_idx, 0) + 1
         if exc is not None or batched is None:
             slices_failed[group_idx] = slices_failed.get(group_idx, 0) + 1
             continue
         # zip() stops at the shorter side — safe if the batch length differs.
-        for raw, chunk_offset in zip(batched, sub_offsets):
+        for raw, chunk_offset in zip(batched, sub_offsets, strict=False):
             for ent in raw:
                 collector.accept(ent, chunk_offset)
     return slices_total, slices_failed

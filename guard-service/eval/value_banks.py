@@ -29,19 +29,19 @@ import string
 from .validators import (
     _is_valid_bsn,
     _is_valid_iban,
+    _is_valid_ipv4,
     _is_valid_luhn,
     _is_valid_ssn,
-    _is_valid_ipv4,
     is_valid_at_svnr,
     is_valid_be_national_id,
+    is_valid_de_kvnr,
+    is_valid_de_rvnr,
     is_valid_es_dni,
     is_valid_fr_nir,
     is_valid_iso7064_mod11_10,
     is_valid_pl_pesel,
     is_valid_se_personnummer,
     is_valid_uk_nhs as _is_valid_uk_nhs,
-    is_valid_de_kvnr,
-    is_valid_de_rvnr,
 )
 
 # ── Fuzzy-category banks (GLiNER tier) ─────────────────────────────────────
@@ -288,7 +288,7 @@ def gen_health_insurance(rng: random.Random, lang: str = "nl") -> tuple[str, str
     if rng.random() < 0.3:
         for _ in range(200):
             body = f"{rng.randint(100, 999)}{rng.randint(0, 999999):06d}"
-            total = sum(int(d) * w for d, w in zip(body, range(10, 1, -1)))
+            total = sum(int(d) * w for d, w in zip(body, range(10, 1, -1), strict=True))
             check = (11 - total % 11) % 11
             if check == 10:  # would need a two-digit check — never issued
                 continue
@@ -509,7 +509,7 @@ def _gen_bsn_nl(rng: random.Random) -> str:
     for _ in range(200):
         first8 = [rng.randint(0, 9) for _ in range(8)]
         weights = (9, 8, 7, 6, 5, 4, 3, 2)
-        partial = sum(w * d for w, d in zip(weights, first8))
+        partial = sum(w * d for w, d in zip(weights, first8, strict=False))
         d9 = partial % 11
         if d9 == 10:
             continue
@@ -589,7 +589,7 @@ def _gen_de_rvnr(rng: random.Random) -> str:
         serial = f"{rng.randint(0, 99):02d}"
         effective = body + str(ord(letter) - ord("A") + 1).zfill(2) + serial
         total = 0
-        for ch, w in zip(effective, (2, 1, 2, 5, 7, 1, 2, 1, 2, 1, 2, 1)):
+        for ch, w in zip(effective, (2, 1, 2, 5, 7, 1, 2, 1, 2, 1, 2, 1), strict=False):
             product = int(ch) * w
             total += product // 10 + product % 10
         value = f"{body}{letter}{serial}{total % 10}"
@@ -605,7 +605,7 @@ def _gen_de_kvnr(rng: random.Random) -> str:
         body = f"{rng.randint(0, 99999999):08d}"
         effective = str(ord(letter) - ord("A") + 1).zfill(2) + body
         total = 0
-        for ch, w in zip(effective, (1, 2) * 5):
+        for ch, w in zip(effective, (1, 2) * 5, strict=False):
             product = int(ch) * w
             total += product - 9 if product >= 10 else product
         value = f"{letter}{body}{total % 10}"
@@ -675,7 +675,7 @@ def _gen_pl_pesel(rng: random.Random) -> str:
             f"{rng.randint(1, 28):02d}{rng.randint(0, 9999):04d}"
         )
         weights = (1, 3, 7, 9, 1, 3, 7, 9, 1, 3)
-        total = sum(w * int(d) for w, d in zip(weights, body))
+        total = sum(w * int(d) for w, d in zip(weights, body, strict=False))
         digits = body + str((10 - total % 10) % 10)
         if is_valid_pl_pesel(digits):
             return digits
@@ -715,11 +715,11 @@ def _gen_at_svnr(rng: random.Random) -> str:
             f"{rng.randint(1, 28):02d}{rng.randint(1, 12):02d}{rng.randint(40, 99):02d}"
         )
         weights = (3, 7, 9, 0, 5, 8, 4, 2, 1, 6)
-        total = sum(w * int(d) for w, d in zip(weights, f"{serial}0{date}")) % 11
+        stem = f"{serial}0{date}"  # always 10 digits, one per weight
+        total = sum(w * int(d) for w, d in zip(weights, stem, strict=True)) % 11
         if total == 10:
             continue
-        digits = f"{serial}{total}{date}"
-        if is_valid_at_svnr(digits):
+        if is_valid_at_svnr(digits := f"{serial}{total}{date}"):
             return digits
     raise AssertionError("could not generate a valid SVNR")
 

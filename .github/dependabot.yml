@@ -249,11 +249,12 @@ updates:
     labels: [dependencies]
 
   # Satellites and tooling that had no entry: the module SDK, the e2e suite and
-  # the components. Monthly and grouped, one PR for all of them (a group spans
+  # the components (/components itself is their lint and smoke-test tooling).
+  # Monthly and grouped, one PR for all of them (a group spans
   # the directories of one entry). scripts/packages.json lists every package;
   # `npm run lint:package-registry` fails on a package without an entry here.
   - package-ecosystem: npm
-    directories: ["/hub-module-sdk", "/e2e", "/components/*"]
+    directories: ["/hub-module-sdk", "/e2e", "/components", "/components/*"]
     schedule: { interval: monthly, time: "05:00", timezone: Europe/Amsterdam }
     open-pull-requests-limit: 3
     rebase-strategy: disabled

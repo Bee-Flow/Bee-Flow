@@ -34,8 +34,12 @@ const userStore = require(path.join(__dirname, '..', 'stores', 'userStore'));
 const { isAzureOid } = require(path.join(__dirname, '..', 'auth', 'ssoUserResolver'));
 const { discoverUserTables, userDataFootprint, isSafeToDelete } = require('./lib/userDataFootprint');
 
-const APPLY = process.argv.includes('--apply');
-const FORCE = process.argv.includes('--force');
+const { parseOpsArgsOrExit } = require('./lib/opsArgs');
+
+const ARGS = parseOpsArgsOrExit({ force: { type: 'boolean', default: false } },
+    { usage: 'Usage: node server/scripts/cleanupAzureDuplicates.js [--apply [--force]]' });
+const APPLY = ARGS.apply;
+const FORCE = ARGS.force;
 
 function pickCanonical(a, b) {
     // Prefer the non-GUID id; if both look canonical or both look like GUIDs,

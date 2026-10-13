@@ -22,120 +22,23 @@ from __future__ import annotations
 import unittest
 
 from app.services.pii import (
+    _UI_DEFAULT_THRESHOLD,
     PiiService,
     _chunk_text,
     _chunk_text_tokens,
-    _model_limits,
-    _snap_boundary,
-    _token_index_at_char,
     _is_noise_person_org,
     _is_skippable,
+    _model_limits,
     _pick_label,
     _postprocess_entities,
     _precision_filter,
+    _snap_boundary,
     _snap_start_to_word,
+    _token_index_at_char,
     get_pii_service,
-    _UI_DEFAULT_THRESHOLD,
 )
 from app.services.pii_regex import detect_regex_pii
-
-
-class FakeTokenizer:
-    """Whitespace tokenizer with HF-style offset mapping — for token chunking.
-
-    Mimics the subset of the fast-tokenizer API the chunker uses:
-    ``tok(text, add_special_tokens=False, return_offsets_mapping=True)`` ->
-    ``{"input_ids": [...], "offset_mapping": [(start, end), ...]}``.
-    """
-
-    def __call__(self, text, add_special_tokens=False, return_offsets_mapping=False):
-        import re as _re
-
-        toks = list(_re.finditer(r"\S+", text))
-        out = {"input_ids": [1] * len(toks)}
-        if return_offsets_mapping:
-            out["offset_mapping"] = [(m.start(), m.end()) for m in toks]
-        return out
-
-
-class FakeGliner:
-    """Stand-in for the GLiNER model.
-
-    ``predict_entities`` finds each configured name in the chunk and returns a
-    span dict shaped like the real model's output. It deliberately IGNORES the
-    ``threshold`` argument so the detector's own per-category floor logic (the
-    thing we're testing) is what filters results.
-    """
-
-    def __init__(self, names, score=0.9, label="person", prompts=None):
-        self.names = names
-        self.score = score
-        self.label = label
-        # Custom label sets: {prompt: [(name, score), ...]}. A Mapping label
-        # set ({id: prompt}) is answered with the mapping's KEYS as labels,
-        # exactly like gliner 0.2.29 (the prompt is what the model reads, the
-        # key is what it returns).
-        self.prompts = prompts or {}
-        # Every inference call: (texts, labels), in call order.
-        self.calls = []
-
-    def _predict_mapping(self, text, mapping):
-        out = []
-        for key, prompt in mapping.items():
-            for name, score in self.prompts.get(prompt, ()):
-                idx = text.find(name)
-                while idx != -1:
-                    out.append(
-                        {
-                            "label": key,
-                            "score": score,
-                            "start": idx,
-                            "end": idx + len(name),
-                            "text": name,
-                        }
-                    )
-                    idx = text.find(name, idx + 1)
-        return out
-
-    def predict_entities(self, text, labels, threshold=0.0):
-        from collections.abc import Mapping
-
-        if isinstance(labels, Mapping):
-            return self._predict_mapping(text, labels)
-        if self.label not in labels:
-            return []
-        out = []
-        for name in self.names:
-            idx = text.find(name)
-            while idx != -1:
-                out.append(
-                    {
-                        "label": self.label,
-                        "score": self.score,
-                        "start": idx,
-                        "end": idx + len(name),
-                        "text": name,
-                    }
-                )
-                idx = text.find(name, idx + 1)
-        return out
-
-    def inference(self, texts, labels, threshold=0.0, **kwargs):
-        # The service batches chunks per label group; mirror that by running
-        # the single-text logic over each chunk and returning a list-per-text.
-        self.last_inference_kwargs = kwargs
-        self.calls.append((list(texts), labels))
-        return [self.predict_entities(t, labels, threshold) for t in texts]
-
-
-def _install_fake(names, score=0.9):
-    """Force the singleton into a ready state backed by a fake model."""
-    svc = get_pii_service()
-    svc._model = FakeGliner(names, score=score)
-    svc._ready = True
-    svc._load_error = None
-    svc._backend = "fake"
-    return svc
+from fakes import FakeGliner, FakeTokenizer, install_fake
 
 
 def _names(result):
@@ -230,6 +133,7 @@ class ValidatorContractTests(unittest.TestCase):
     def _tree(self):
         import ast
         import inspect
+
         from app.services import pii_validators
 
         return ast.parse(inspect.getsource(pii_validators))
@@ -283,6 +187,7 @@ class ValidatorContractTests(unittest.TestCase):
         left for "KVK" and start proposing.
         """
         import inspect
+
         from app.services.pii_validators import validate
 
         params = list(inspect.signature(validate).parameters)
@@ -407,7 +312,7 @@ class DetectCandidatesTests(unittest.TestCase):
     """
 
     def test_candidates_keep_the_losers_that_finalise_deletes(self):
-        svc = _install_fake(["Eva Meijer"])
+        svc = install_fake(["Eva Meijer"])
         text = "Beste Mw. Eva Meijer, hallo"
         # The regex tier emits the titled span at 0.95; the model emits the
         # bare name at 0.90. They overlap, so _finalise merges them into one.
@@ -429,7 +334,7 @@ class DetectCandidatesTests(unittest.TestCase):
         A parallel implementation would drift, and the drift would only show up
         as a calibration that no longer describes the detector.
         """
-        svc = _install_fake(["Eva Meijer"])
+        svc = install_fake(["Eva Meijer"])
         text = "Beste Mw. Eva Meijer, hallo"
         cands = svc.detect_candidates(text, 0.7, ["Person"])
         direct = PiiService._finalise([dict(e) for e in cands], text=text)
@@ -437,7 +342,7 @@ class DetectCandidatesTests(unittest.TestCase):
         self.assertEqual(direct["entities"], via_detect["entities"])
 
     def test_skippable_text_yields_no_candidates(self):
-        svc = _install_fake(["Eva Meijer"])
+        svc = install_fake(["Eva Meijer"])
         self.assertEqual(svc.detect_candidates("[token_1]", 0.7, ["Person"]), [])
 
 
@@ -613,6 +518,7 @@ class OverlapResolutionTests(unittest.TestCase):
         """
         import itertools
         import random
+
         from app.services.pii import ALL_CATEGORIES
 
         rng = random.Random(7)
@@ -698,7 +604,7 @@ class OverlapResolutionTests(unittest.TestCase):
             kept = _finalise(ents)["entities"]
             offs = [e["offset"] for e in kept]
             self.assertEqual(offs, sorted(offs))
-            for a, b in zip(kept, kept[1:]):
+            for a, b in zip(kept, kept[1:], strict=False):
                 self.assertLessEqual(a["offset"] + a["length"], b["offset"])
 
 
@@ -807,7 +713,7 @@ class TierModeTests(unittest.TestCase):
 
     def test_on_runs_the_regex_tier(self):
         self._set("on")
-        svc = _install_fake([])
+        svc = install_fake([])
         # An email is regex-complete: with the tier on it must be detected
         # even though the fake model reports nothing.
         res = svc.detect(
@@ -820,7 +726,7 @@ class TierModeTests(unittest.TestCase):
 
     def test_off_disables_the_regex_tier(self):
         self._set("off")
-        svc = _install_fake([])
+        svc = install_fake([])
         res = svc.detect(
             "mail mij op jan@example.nl",
             confidence_threshold=0.7,
@@ -836,11 +742,11 @@ class TierModeTests(unittest.TestCase):
         # union is returned. Only the observability differs.
         text = "mail mij op jan@example.nl"
         self._set("on")
-        on = _install_fake([]).detect(
+        on = install_fake([]).detect(
             text, confidence_threshold=0.7, enabled_categories=["Email"]
         )
         self._set("shadow")
-        shadow = _install_fake([]).detect(
+        shadow = install_fake([]).detect(
             text, confidence_threshold=0.7, enabled_categories=["Email"]
         )
         self.assertEqual(
@@ -864,9 +770,9 @@ class TierModeTests(unittest.TestCase):
         paper and undetectable in fact.
         """
         from app.services.pii import (
-            _grouped_categories,
-            ALL_CATEGORIES,
             _PER_CATEGORY_THRESHOLD,
+            ALL_CATEGORIES,
+            _grouped_categories,
         )
 
         unreachable = ALL_CATEGORIES - _grouped_categories()
@@ -920,7 +826,7 @@ class TierModeTests(unittest.TestCase):
 class MultiNameDetectionTests(unittest.TestCase):
     def test_all_distinct_names_returned(self):
         # BFSF-269: three names, only the last got redacted. Assert all three.
-        svc = _install_fake(["Mark", "Sanne", "Eva Meijer"])
+        svc = install_fake(["Mark", "Sanne", "Eva Meijer"])
         text = "Beste Mark en Sanne, met vriendelijke groet, Mr. Eva Meijer"
         result = svc.detect(
             text, confidence_threshold=0.7, enabled_categories=["Person"]
@@ -935,7 +841,7 @@ class MultiNameDetectionTests(unittest.TestCase):
         self.assertTrue(any("Eva" in n for n in found))
 
     def test_repeated_name_yields_multiple_spans(self):
-        svc = _install_fake(["Sanne"])
+        svc = install_fake(["Sanne"])
         text = "Sanne wil dit. Later zei Sanne iets anders."
         result = svc.detect(
             text, confidence_threshold=0.7, enabled_categories=["Person"]
@@ -992,7 +898,7 @@ class FalsePositiveFilterTests(unittest.TestCase):
     def test_noise_filtered_end_to_end(self):
         # A ready model returns both a real name and lowercase noise; only the
         # real name survives detection.
-        svc = _install_fake(["Sanne", "bank", "ouders"])
+        svc = install_fake(["Sanne", "bank", "ouders"])
         r = svc.detect(
             "Beste Sanne, de bank en de ouders.",
             confidence_threshold=0.7,
@@ -1010,9 +916,9 @@ class BatchingTests(unittest.TestCase):
         # in a second model batch — must still map to its absolute offset in
         # the full text (regression guard for the batched chunk_offset math
         # and the OOM-safe sub-batching).
-        from app.services.pii import _MODEL_BATCH_SIZE, _CHUNK_CHAR_LIMIT
+        from app.services.pii import _CHUNK_CHAR_LIMIT, _MODEL_BATCH_SIZE
 
-        svc = _install_fake(["Sanne"])
+        svc = install_fake(["Sanne"])
         # Enough filler to produce well more than _MODEL_BATCH_SIZE chunks.
         filler = "Dit is een lange zin over de zaak van de familie. " * (
             (_MODEL_BATCH_SIZE + 4) * (_CHUNK_CHAR_LIMIT // 50 + 1)
@@ -1028,7 +934,7 @@ class BatchingTests(unittest.TestCase):
     def test_every_call_is_one_padded_pass(self):
         # GLiNER.inference defaults to batch_size=8 and splits a longer list
         # into several passes; _MODEL_BATCH_SIZE promises one pass per call.
-        svc = _install_fake(["Sanne"])
+        svc = install_fake(["Sanne"])
         svc.detect(
             "Beste Sanne", confidence_threshold=0.7, enabled_categories=["Person"]
         )
@@ -1066,7 +972,7 @@ class DegradedSignalTests(unittest.TestCase):
         self.assertTrue(result["hasPii"])
 
     def test_ready_model_not_degraded(self):
-        svc = _install_fake(["Mark"])
+        svc = install_fake(["Mark"])
         result = svc.detect(
             "Beste Mark", confidence_threshold=0.7, enabled_categories=["Person"]
         )
@@ -1078,7 +984,7 @@ class SliderEffectivenessTests(unittest.TestCase):
     """The slider must shift the Person floor (BFSF-269 quality fix)."""
 
     def _detect_at(self, slider, score):
-        svc = _install_fake(["Mark"], score=score)
+        svc = install_fake(["Mark"], score=score)
         return svc.detect(
             "Beste Mark", confidence_threshold=slider, enabled_categories=["Person"]
         )
@@ -1117,7 +1023,7 @@ class ChunkingTests(unittest.TestCase):
     def test_name_past_first_chunk_is_detected(self):
         # A name well beyond the 1500-char first-chunk limit must still be
         # found — the detector accumulates across chunks (BFSF-269 legal docs).
-        svc = _install_fake(["Sanne"])
+        svc = install_fake(["Sanne"])
         filler = "Dit is een lange zin over de zaak. " * 60  # > 1500 chars
         text = filler + " Met vriendelijke groet, Sanne."
         self.assertGreater(len(text), 1500)
@@ -1231,7 +1137,7 @@ class TokenChunkingTests(unittest.TestCase):
         # THE regression: a name far past the model's per-chunk token budget was
         # silently truncated under char chunking. With token-aware chunking +
         # overlap it must be found. Install a fake tokenizer + fake model.
-        svc = _install_fake(["Sanne"])
+        svc = install_fake(["Sanne"])
         svc._tokenizer = FakeTokenizer()
         svc._text_token_budget = 12
         svc._overlap_tokens = 3
@@ -1257,7 +1163,7 @@ class PartialScanTests(unittest.TestCase):
     """Oversize input yields a bounded partial scan, not all-or-nothing."""
 
     def test_scan_char_limit_bounds_the_gliner_scan(self):
-        svc = _install_fake(["Sanne"])
+        svc = install_fake(["Sanne"])
         early = "Beste Sanne, "  # a name in the prefix
         filler = "Dit is filler tekst zonder namen. " * 80  # ~2700 chars
         tail = " En hier staat Sanne nogmaals."  # a name in the tail
@@ -1363,8 +1269,9 @@ class CacheKeyFingerprintTests(unittest.TestCase):
         return _engine_fingerprint()
 
     def test_tier_mode_is_part_of_the_fingerprint(self):
-        from app.config import settings
         from unittest.mock import patch
+
+        from app.config import settings
 
         with patch.object(settings, "pii_regex_tier", "on"):
             on = self._fp()
@@ -1375,9 +1282,10 @@ class CacheKeyFingerprintTests(unittest.TestCase):
         )
 
     def test_fingerprint_covers_model_and_grouping(self):
+        from unittest.mock import patch
+
         import app.services.pii as pii
         from app.config import settings
-        from unittest.mock import patch
 
         base = self._fp()
         pii.reset_engine_fingerprint()
@@ -1403,8 +1311,9 @@ class CacheKeyFingerprintTests(unittest.TestCase):
 
     def test_fingerprint_covers_the_gliner_library(self):
         # A gliner bump re-exports the ONNX graph under the same filename.
-        import app.services.pii as pii
         from unittest.mock import patch
+
+        import app.services.pii as pii
 
         pii.reset_engine_fingerprint()
         with patch(
@@ -1849,9 +1758,10 @@ class SizeCapTests(unittest.TestCase):
         # Beyond the ABSOLUTE ceiling: refuse outright (degraded) rather than
         # pin cores — the Node side then fails closed. Protects the pod.
         import asyncio
+
         from app.config import settings
 
-        svc = _install_fake(["Mark"])
+        svc = install_fake(["Mark"])
         big = "Mark en Sanne wonen hier. " * (
             (settings.pii_hard_max_chars // 26) + 1000
         )
@@ -1866,9 +1776,10 @@ class SizeCapTests(unittest.TestCase):
         # partial result (degraded + coverage) rather than dropping everything.
         # Sparse names keep _finalise's overlap resolution cheap.
         import asyncio
+
         from app.config import settings
 
-        svc = _install_fake(["Mark"])
+        svc = install_fake(["Mark"])
         block = "Dit is filler tekst voor de test. " * 30 + "Beste Mark, groet. "
         reps = (settings.pii_max_chars // len(block)) + 60
         big = block * reps
@@ -1935,10 +1846,11 @@ class ScanBudgetTests(unittest.TestCase):
 
     def test_text_over_the_budget_is_partial_rather_than_slow(self):
         import asyncio
+
         from app.services.pii import _scan_budget_chars
 
         self.settings.pii_scan_budget_chars = 2_000
-        svc = _install_fake(["Mark"])
+        svc = install_fake(["Mark"])
         big = "Beste Mark, dit is filler tekst voor de test. " * 200
         self.assertGreater(len(big), _scan_budget_chars())
         r = asyncio.run(svc.detect_async(big, 0.7, ["Person"]))
@@ -1953,7 +1865,7 @@ class ScanBudgetTests(unittest.TestCase):
         import asyncio
 
         self.settings.pii_scan_budget_chars = 100_000
-        svc = _install_fake(["Mark"])
+        svc = install_fake(["Mark"])
         r = asyncio.run(svc.detect_async("Beste Mark, groet.", 0.7, ["Person"]))
         self.assertFalse(r["degraded"])
         self.assertIsNone(r.get("processed_chars"))
@@ -2020,7 +1932,7 @@ class LabelGroupFileTests(unittest.TestCase):
                         )
 
     def test_candidate_files_cover_every_category(self):
-        from app.services.pii import GLINER_LABELS_TO_CATEGORY as M, ALL_CATEGORIES
+        from app.services.pii import ALL_CATEGORIES, GLINER_LABELS_TO_CATEGORY as M
 
         for name in ("current.json", "merged.json"):
             covered = {M[l] for g in self._load(name) for l in g if l in M}
@@ -2352,7 +2264,7 @@ class CellBoundarySplitTests(unittest.TestCase):
         self.assertEqual(persons, ["Mw. Fenna Wolters"])
 
     def test_detect_never_returns_a_span_over_a_cell_break(self):
-        svc = _install_fake(["Lotte\tvan\tDriel", "Joost\nBrink"])
+        svc = install_fake(["Lotte\tvan\tDriel", "Joost\nBrink"])
         text = "Lotte\tvan\tDriel\tHoutdorp\nJoost\nBrink\n"
         result = svc.detect(
             text, confidence_threshold=0.7, enabled_categories=["Person"]
@@ -2625,7 +2537,7 @@ class DisplayNameCellTests(unittest.TestCase):
     def _persons(self, text, spans):
         ents = [_model_span(text, s, "Person") for s in spans]
         # _model_span finds the first occurrence; the split cells come later.
-        for ent, span in zip(ents, spans):
+        for ent, span in zip(ents, spans, strict=False):
             ent["offset"] = text.rindex(span)
         out = _postprocess_entities(text, ents)
         return sorted(e["text"] for e in out if e["category"] == "Person")
@@ -2716,7 +2628,7 @@ class DisplayNameCellTests(unittest.TestCase):
         self.assertEqual(_spans(out), [("Address", "4321 ZX")])
 
     def test_detect_redacts_the_display_cell(self):
-        svc = _install_fake(["Fenna\tWolters"])
+        svc = install_fake(["Fenna\tWolters"])
         text = "Wolters, Fenna\tFenna\tWolters\tHoutdorp\n"
         result = svc.detect(
             text, confidence_threshold=0.7, enabled_categories=["Person"]

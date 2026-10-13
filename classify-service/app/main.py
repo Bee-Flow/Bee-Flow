@@ -17,8 +17,8 @@ _THREAD_CORES = apply_thread_env()
 import logging
 import threading
 import time
+from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
-from typing import AsyncIterator, Callable
 
 from fastapi import FastAPI, Response
 

@@ -33,7 +33,6 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import inspect
-import re
 import threading
 import time
 import unittest
@@ -41,6 +40,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 import app.services.pii as pii_mod
 from app.services.pii import PiiService, get_pii_service
+from fakes import mark_ready, whitespace_tokenize
 
 
 class SharedBorrowState:
@@ -81,11 +81,7 @@ class BorrowCheckingTokenizer:
 
     def __call__(self, text, add_special_tokens=False, return_offsets_mapping=False):
         with self.state.borrow("tokenizer"):
-            toks = list(re.finditer(r"\S+", text))
-            out = {"input_ids": [1] * len(toks)}
-            if return_offsets_mapping:
-                out["offset_mapping"] = [(m.start(), m.end()) for m in toks]
-            return out
+            return whitespace_tokenize(text, return_offsets_mapping)
 
 
 class BorrowCheckingGliner:
@@ -139,7 +135,6 @@ class SharedTokenizerConcurrencyTests(unittest.TestCase):
             getattr(svc, "_lock_mode", "global"),
             getattr(svc, "_predict_workers", 1),
         )
-        svc._model = BorrowCheckingGliner(self.state)
         svc._tokenizer = BorrowCheckingTokenizer(self.state)
         svc._text_token_budget = 8  # → many chunks from _TEXT
         svc._overlap_tokens = 2
@@ -149,9 +144,7 @@ class SharedTokenizerConcurrencyTests(unittest.TestCase):
         # ThreadLocalTokenizerTests with a fixture that matches its premises.
         svc._lock_mode = "global"
         svc._predict_workers = 1
-        svc._ready = True
-        svc._load_error = None
-        svc._backend = "fake"
+        mark_ready(svc, BorrowCheckingGliner(self.state))
         self.svc = svc
 
     def tearDown(self):
@@ -218,7 +211,7 @@ class PerInstanceBorrowTokenizer:
     instances, and the total violation count is zero.
     """
 
-    created: list["PerInstanceBorrowTokenizer"] = []
+    created: list[PerInstanceBorrowTokenizer] = []
 
     def __init__(self, hold_s: float = 0.005):
         self.state = SharedBorrowState(hold_s=hold_s)
@@ -226,11 +219,7 @@ class PerInstanceBorrowTokenizer:
 
     def __call__(self, text, add_special_tokens=False, return_offsets_mapping=False):
         with self.state.borrow("tokenizer"):
-            toks = list(re.finditer(r"\S+", text))
-            out = {"input_ids": [1] * len(toks)}
-            if return_offsets_mapping:
-                out["offset_mapping"] = [(m.start(), m.end()) for m in toks]
-            return out
+            return whitespace_tokenize(text, return_offsets_mapping)
 
 
 class ConcurrencyRecordingGliner:
@@ -309,13 +298,10 @@ class ThreadLocalTokenizerTests(unittest.TestCase):
         )
         svc._predict_pool = self._pool
         self.model = ConcurrencyRecordingGliner()
-        svc._model = self.model
         svc._tokenizer = pii_mod._ThreadLocalTokenizer(PerInstanceBorrowTokenizer)
         svc._text_token_budget = 8
         svc._overlap_tokens = 2
-        svc._ready = True
-        svc._load_error = None
-        svc._backend = "fake"
+        mark_ready(svc, self.model)
         self.svc = svc
 
     def tearDown(self):
@@ -448,11 +434,7 @@ class ChunkingSerialisationTests(unittest.TestCase):
                 self, text, add_special_tokens=False, return_offsets_mapping=False
             ):
                 seen.append(svc._inference_lock.locked())
-                toks = list(re.finditer(r"\S+", text))
-                out = {"input_ids": [1] * len(toks)}
-                if return_offsets_mapping:
-                    out["offset_mapping"] = [(m.start(), m.end()) for m in toks]
-                return out
+                return whitespace_tokenize(text, return_offsets_mapping)
 
         self.svc._tokenizer = Probe()
         self.svc._text_token_budget = 8

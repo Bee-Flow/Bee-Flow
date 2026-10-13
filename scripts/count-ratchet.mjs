@@ -104,6 +104,34 @@
  *                     `pgliteQuery(pg)`) and testUtils/pgliteDb.js
  *                     (`pgliteDb()`, `dbFacade()`); testUtils/ itself is not
  *                     counted.
+ *   empty-catch       catch clauses (non-test) whose block is empty or holds
+ *                     only comments: a failure swallowed without a trace. A
+ *                     promise `.catch(() => {})` is a call, not a clause, and
+ *                     is not counted. Measured in server and agent-hub.
+ *   rollback-in-store a ROLLBACK written into a query string in stores/
+ *                     (non-test): a hand-rolled BEGIN/COMMIT/ROLLBACK. The
+ *                     convention is db.withTransaction() from server/db.js,
+ *                     which owns the commit, the rollback and the release.
+ *                     `ROLLBACK TO SAVEPOINT` is a step inside a transaction
+ *                     and is not counted.
+ *   db-in-routes      imports of server/db.js from routes/ (non-test), in any
+ *                     relative spelling (`../db`, `../../db.js`, ...): a route
+ *                     running its own SQL. The target is a store or a core
+ *                     service between the route and the database.
+ *   long-function     functions whose body spans more than 200 lines (from the
+ *                     line of `{` to the line of `}`), in server and agent-hub
+ *                     non-test files. A brace-depth scanner, no parser: it
+ *                     blanks comments, strings, template text (keeping `${…}`
+ *                     as code) and regex literals, then a `{` opens a function
+ *                     when it follows `=>`, or a `)` (optionally with a
+ *                     TypeScript return type) whose `(` is not after if/for/
+ *                     while/switch/catch/with. Its limits, all deterministic:
+ *                     a quoted string ends at its line end, so an apostrophe
+ *                     in JSX text blanks the rest of that line only; a regex
+ *                     literal is told from a division by the character before
+ *                     the `/`, so `if (x) /re/.test(y)` is misread; braces in
+ *                     JSX text count as code; a function nested inside a long
+ *                     function counts on its own when it is long too.
  *
  * Usage:
  *   node scripts/count-ratchet.mjs <metric> <package>            gate
@@ -227,6 +255,145 @@ function countUncheckedMutations(text) {
 // inline-pglite: the shapes a hand-rolled node-postgres adapter over PGlite takes.
 const INLINE_PGLITE_ADAPTER = /^(?:async\s+)?function\s+(?:adapt\w*|rawQuery|q|query)\s*\(|\browCount\s*:|typeof\s+[\w?.]+\.affectedRows|\.affectedRows\s*\?\?|\bpool\.(?:query|connect)\s*=|\bquery\s*:\s*\(sql, params\)\s*=>\s*pg\.query/m;
 
+// empty-catch: a catch clause whose block holds nothing, or only comments.
+// `.catch(() => {})` on a promise is a call, not a clause, and is not counted.
+const EMPTY_CATCH = /(?<![\w$.])catch\s*(?:\([^)]*\))?\s*\{\s*(?:(?:\/\/[^\n]*\n|\/\*[\s\S]*?\*\/)\s*)*\}/g;
+
+// rollback-in-store: a ROLLBACK written into a query string by hand.
+// `ROLLBACK TO SAVEPOINT` is a step inside a transaction, not the end of one.
+const LITERAL_ROLLBACK = /(['"`])\s*ROLLBACK\b(?!\s+TO\b)/g;
+
+// long-function
+const LONG_FUNCTION_LINES = 200;
+const NOT_A_FUNCTION = new Set(['if', 'for', 'while', 'switch', 'catch', 'with', 'await', 'return']);
+// After one of these (or at the start), a `/` begins a regex literal, not a
+// division. `<` and `>` are left out on purpose: in JSX they precede `</tag>`
+// and `/>`, and a closing tag read as a regex would swallow real braces.
+const REGEX_BEFORE = /[(,=:[!&|?{};+\-*%~^]$|(?:^|[^\w$])(?:return|typeof|case|do|else|in|of|void|yield|await)$/;
+
+/**
+ * The source with every comment, string, template-literal text and regex
+ * literal blanked to spaces (newlines kept, so line numbers survive and
+ * `${…}` code inside a template stays code). Deterministic and approximate:
+ * a quoted string ends at the end of its line, so an apostrophe in JSX text
+ * (`<p>Don't</p>`) blanks the rest of that line only; a regex is recognised
+ * by the character before the `/`, which a division after `)` or a name
+ * gets right and a regex after `)` (`if (x) /a/.test(y)`) gets wrong.
+ */
+function blankNonCode(text) {
+    const out = text.split('');
+    const blank = (from, to) => { for (let k = from; k < to; k++) if (out[k] !== '\n') out[k] = ' '; };
+    const templateDepth = []; // brace depth at which each open `${` returns to its template
+    let depth = 0;
+    let i = 0;
+    const n = text.length;
+    const scanTemplate = (start) => {
+        // start is just after a backtick or the `}` closing a `${`. Returns the index to resume code at.
+        let k = start;
+        while (k < n) {
+            const c = text[k];
+            if (c === '\\') { k += 2; continue; }
+            if (c === '`') { blank(start, k + 1); return k + 1; }
+            if (c === '$' && text[k + 1] === '{') {
+                blank(start, k + 2);
+                templateDepth.push(depth);
+                depth++;
+                return k + 2;
+            }
+            k++;
+        }
+        blank(start, n);
+        return n;
+    };
+    while (i < n) {
+        const c = text[i];
+        const next = text[i + 1];
+        if (c === '/' && next === '/') {
+            const end = text.indexOf('\n', i);
+            const stop = end < 0 ? n : end;
+            blank(i, stop);
+            i = stop;
+        } else if (c === '/' && next === '*') {
+            const end = text.indexOf('*/', i + 2);
+            const stop = end < 0 ? n : end + 2;
+            blank(i, stop);
+            i = stop;
+        } else if (c === '\'' || c === '"') {
+            let k = i + 1;
+            while (k < n && text[k] !== c && text[k] !== '\n') k += text[k] === '\\' ? 2 : 1;
+            const stop = Math.min(n, text[k] === c ? k + 1 : k);
+            blank(i, stop);
+            i = stop;
+        } else if (c === '`') {
+            blank(i, i + 1);
+            i = scanTemplate(i + 1);
+        } else if (c === '/' && REGEX_BEFORE.test(out.slice(Math.max(0, i - 80), i).join('').trimEnd() || '(')) {
+            let k = i + 1;
+            let inClass = false;
+            while (k < n && text[k] !== '\n') {
+                const r = text[k];
+                if (r === '\\') { k += 2; continue; }
+                if (r === '[') inClass = true;
+                else if (r === ']') inClass = false;
+                else if (r === '/' && !inClass) break;
+                k++;
+            }
+            if (k < n && text[k] === '/') { blank(i, k + 1); i = k + 1; } else i++;
+        } else if (c === '{') {
+            depth++;
+            i++;
+        } else if (c === '}') {
+            depth--;
+            if (templateDepth.length && templateDepth[templateDepth.length - 1] === depth) {
+                templateDepth.pop();
+                blank(i, i + 1);
+                i = scanTemplate(i + 1);
+            } else i++;
+        } else i++;
+    }
+    return out.join('');
+}
+
+/** True when the `{` at `open` in blanked code starts a function body. */
+function opensFunction(code, open) {
+    let j = open - 1;
+    while (j >= 0 && /\s/.test(code[j])) j--;
+    if (code[j] === '>' && code[j - 1] === '=') return true; // arrow
+    if (code[j] !== ')') {
+        // A TypeScript return type between the parameters and the body: `): Promise<X> {`.
+        const head = code.slice(Math.max(0, j - 200), j + 1);
+        const typed = head.match(/\)\s*:\s*[\w$.<>[\]|&, ]+$/);
+        if (!typed) return false;
+        j = j - typed[0].length + 1;
+    }
+    let level = 0;
+    for (; j >= 0; j--) {
+        if (code[j] === ')') level++;
+        else if (code[j] === '(' && --level === 0) break;
+    }
+    if (j < 0) return false;
+    const word = code.slice(Math.max(0, j - 40), j).match(/([\w$]+)\s*$/);
+    return !word || !NOT_A_FUNCTION.has(word[1]);
+}
+
+/** Functions whose body spans more than LONG_FUNCTION_LINES lines, braces included. */
+function countLongFunctions(text) {
+    const code = blankNonCode(text);
+    const stack = [];
+    let line = 1;
+    let n = 0;
+    for (let i = 0; i < code.length; i++) {
+        const c = code[i];
+        if (c === '\n') line++;
+        else if (c === '{') stack.push(opensFunction(code, i) ? line : 0);
+        else if (c === '}') {
+            const start = stack.pop();
+            if (start && line - start + 1 > LONG_FUNCTION_LINES) n++;
+        }
+    }
+    return n;
+}
+
 const METRICS = {
     'inline-style': {
         measure: countMatches(/\bstyle=\{\s*\{/g),
@@ -332,6 +499,36 @@ const METRICS = {
         measure: (text) => (/\bnew PGlite\(/.test(text) && INLINE_PGLITE_ADAPTER.test(text) ? 1 : 0),
         what: 'test files with their own PGlite adapter',
         advice: 'use pgliteQuery(pg) / usePglitePool() from testUtils/pglitePool.js or pgliteDb()/dbFacade() from testUtils/pgliteDb.js instead',
+    },
+    'empty-catch': {
+        include: (rel) => !TEST_FILE.test(rel),
+        measure: countMatches(EMPTY_CATCH),
+        what: 'empty catch blocks',
+        advice: 'handle the error, log it (log.warn / log.debug with the reason it is safe to go on), or rethrow it; a comment alone hides the failure',
+    },
+    'rollback-in-store': {
+        include: (rel) => !TEST_FILE.test(rel) && rel.startsWith('stores/'),
+        measure: countMatches(LITERAL_ROLLBACK),
+        what: 'hand-written ROLLBACKs in stores/',
+        advice: 'wrap the work in db.withTransaction(async (client) => { … }) (server/db.js): it owns BEGIN, COMMIT, ROLLBACK and the release',
+    },
+    'db-in-routes': {
+        include: (rel) => !TEST_FILE.test(rel) && rel.startsWith('routes/'),
+        measure: (text, pkg, rel) => {
+            let n = 0;
+            for (const [, , spec] of text.matchAll(IMPORT_SPEC)) {
+                if (/^(?:db|db\.js)$/.test(resolveImport(spec, rel) ?? '')) n++;
+            }
+            return n;
+        },
+        what: 'imports of db.js in routes/',
+        advice: 'move the query into a store (stores/) or a service in core/ and call that from the route',
+    },
+    'long-function': {
+        include: (rel) => !TEST_FILE.test(rel),
+        measure: (text) => countLongFunctions(text),
+        what: `functions over ${LONG_FUNCTION_LINES} lines`,
+        advice: 'split the function: extract the phases into named helpers (or hooks and subcomponents for a React component)',
     },
 };
 

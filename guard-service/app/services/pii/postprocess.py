@@ -185,9 +185,9 @@ def _apply_validators(entities: list[dict]) -> list[dict]:
     still PII.
     """
     from app.services.pii_validators import (
-        validate,
-        VALIDATED_CONFIDENCE,
         REFUTED_CONFIDENCE_FACTOR,
+        VALIDATED_CONFIDENCE,
+        validate,
     )
 
     for ent in entities:

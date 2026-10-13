@@ -99,7 +99,7 @@ def _is_valid_aba_routing(candidate: str) -> bool:
     if len(d) != 9:
         return False
     weights = (3, 7, 1, 3, 7, 1, 3, 7, 1)
-    return sum(w * int(x) for w, x in zip(weights, d)) % 10 == 0
+    return sum(w * int(x) for w, x in zip(weights, d, strict=False)) % 10 == 0
 
 
 def _is_valid_ssn(candidate: str) -> bool:

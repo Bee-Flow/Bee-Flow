@@ -33,6 +33,7 @@ from common import (
     CORPUS,
     HEAD_TOKENS,
     RESULTS,
+    cap_text as _cap,
     env_info,
     load_adapter,
     load_corpus,
@@ -41,7 +42,6 @@ from common import (
     token_offsets,
     write_json,
 )
-from common import cap_text as _cap
 
 
 def _sha256(path: str) -> str:

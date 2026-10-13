@@ -26,7 +26,6 @@ from __future__ import annotations
 
 import logging
 import threading
-from typing import Optional
 
 from . import anchors as _anchors
 from .encoder import SentenceEncoder
@@ -38,10 +37,10 @@ logger = logging.getLogger("guard.disclosure")
 class DisclosureService:
     """Singleton AI-disclosure classifier over a fixed anchor bank."""
 
-    _instance: Optional["DisclosureService"] = None
+    _instance: DisclosureService | None = None
     _singleton_lock = threading.Lock()
 
-    def __new__(cls) -> "DisclosureService":
+    def __new__(cls) -> DisclosureService:
         with cls._singleton_lock:
             if cls._instance is None:
                 obj = super().__new__(cls)

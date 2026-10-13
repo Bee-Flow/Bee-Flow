@@ -9,11 +9,9 @@ exposes the ``pipe.prepare_input`` the real uni-encoder pipeline has.
 from __future__ import annotations
 
 import json
-
 import re
 
 import pytest
-
 from app.config import Settings
 from app.services.classifier import (
     ClassifierService,

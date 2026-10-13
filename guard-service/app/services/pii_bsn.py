@@ -74,7 +74,7 @@ def is_valid_bsn(digits: str) -> bool:
     if not (len(digits) == 9 and digits.isdigit()):
         return False
     weights = (9, 8, 7, 6, 5, 4, 3, 2, -1)
-    total = sum(w * int(d) for w, d in zip(weights, digits))
+    total = sum(w * int(d) for w, d in zip(weights, digits, strict=False))
     return total != 0 and total % 11 == 0
 
 

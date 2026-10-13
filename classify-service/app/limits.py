@@ -9,8 +9,8 @@ a queue of requests that time out one after another.
 from __future__ import annotations
 
 import asyncio
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import AsyncIterator
 
 from fastapi import HTTPException
 from starlette.responses import JSONResponse

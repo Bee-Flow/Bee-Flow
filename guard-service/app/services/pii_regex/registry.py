@@ -8,7 +8,7 @@ Order in ``_SPECS`` is load-bearing where two specs share a shape.
 
 from __future__ import annotations
 
-from typing import Iterable
+from collections.abc import Iterable
 
 from . import at, be, de, es, fr, gb, generic, it, nl, pl, se, us
 from .spec import (

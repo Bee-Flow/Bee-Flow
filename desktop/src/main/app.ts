@@ -519,7 +519,7 @@ export class DesktopApp {
     private async openNextcloudFolder(): Promise<void> {
         const folder = this.nextcloudStatus.accounts[0]?.folders[0]?.localPath;
         if (!folder) {
-            dialog.showMessageBox(noNextcloudFolder(this.nextcloudStatus));
+            void dialog.showMessageBox(noNextcloudFolder(this.nextcloudStatus)); // informational: nothing waits for it to close
             return;
         }
         await shell.openPath(folder);

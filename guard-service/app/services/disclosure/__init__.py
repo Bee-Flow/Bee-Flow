@@ -15,7 +15,7 @@ replace it, and with no encoder baked into this image (the default) it answers
 
 from __future__ import annotations
 
-from .anchors import (  # noqa: F401
+from .anchors import (
     NEGATIVE_ANCHORS,
     POSITIVE_ANCHORS,
     anchor_ids,
@@ -23,14 +23,34 @@ from .anchors import (  # noqa: F401
     bank_digest,
     positive_count,
 )
-from .encoder import SentenceEncoder  # noqa: F401
-from .service import DisclosureService, get_disclosure_service  # noqa: F401
-from .similarity import (  # noqa: F401
-    MAX_SEGMENTS,
+from .encoder import SentenceEncoder
+from .service import DisclosureService, get_disclosure_service
+from .similarity import (
     MAX_SEGMENT_CHARS,
+    MAX_SEGMENTS,
     MIN_SEGMENT_CHARS,
     best_similarity,
     cosine,
     segments,
     verdict,
 )
+
+# The re-exports above, named so a linter sees them as the public surface.
+__all__ = [
+    "NEGATIVE_ANCHORS",
+    "POSITIVE_ANCHORS",
+    "anchor_ids",
+    "anchor_texts",
+    "bank_digest",
+    "positive_count",
+    "SentenceEncoder",
+    "DisclosureService",
+    "get_disclosure_service",
+    "MAX_SEGMENT_CHARS",
+    "MAX_SEGMENTS",
+    "MIN_SEGMENT_CHARS",
+    "best_similarity",
+    "cosine",
+    "segments",
+    "verdict",
+]

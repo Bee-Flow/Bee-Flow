@@ -31,7 +31,7 @@ Pure stdlib; sits on the model-free CI path.
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Sequence
+from collections.abc import Sequence
 
 from .matcher import SpanTuple
 from .schema import Record
@@ -88,7 +88,7 @@ def evaluate_leak(  # noqa: C901, PLR0915
     over_redaction_chars = 0
     total_chars = 0
 
-    for rec, preds in zip(records, predictions):
+    for rec, preds in zip(records, predictions, strict=False):
         total_chars += len(rec.text)
         gold_spans = list(rec.spans)
 

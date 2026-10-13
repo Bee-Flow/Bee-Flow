@@ -449,3 +449,101 @@ test('local-zod-helper counts top-level schema-helper copies in routes/ and auth
     assert.strictEqual(run(dir, 'local-zod-helper').code, 0);
     assert.strictEqual(budgetOf(dir, 'local-zod-helper'), 3);
 });
+
+test('empty-catch counts empty and comment-only catch clauses, and leaves handled ones, promise .catch() and tests alone', () => {
+    const dir = sandbox({
+        files: {
+            'a.js': 'try { a(); } catch {}\ntry { b(); } catch (e) { }\ntry { c(); } catch (_) { /* best effort */ }\ntry { d(); } catch {\n    // already gone\n}\n',
+            'b.js': 'try { a(); } catch (e) { log.warn(e); }\ntry { b(); } catch { /* fall back */ return null; }\np.catch(() => {});\nx.catch((e) => {});\n',
+            'a.test.js': 'try { a(); } catch {}\n',
+        },
+    });
+    assert.strictEqual(run(dir, 'empty-catch').code, 0);
+    assert.strictEqual(budgetOf(dir, 'empty-catch'), 4);
+});
+
+test('empty-catch fails a new swallowed error over the budget and says what to do', () => {
+    const r = run(sandbox({ metric: 'empty-catch', files: { 'a.js': 'try { a(); } catch {}\n' }, budget: 0 }), 'empty-catch');
+    assert.strictEqual(r.code, 1);
+    assert.match(r.stderr, /1 empty catch blocks under src, budget is 0/);
+    assert.match(r.stderr, /rethrow/);
+});
+
+test('rollback-in-store counts hand-written ROLLBACKs in stores/, and leaves savepoints, comments, other folders and tests alone', () => {
+    const dir = sandbox({
+        src: false,
+        files: {
+            'stores/a.js': "await client.query('BEGIN');\nawait client.query(\"ROLLBACK\");\nawait client.query(ok ? 'COMMIT' : 'ROLLBACK');\nawait client.query(`ROLLBACK`).catch(() => {});\n",
+            'stores/lib/b.js': "await c.query('ROLLBACK TO SAVEPOINT sp');\n// withTransaction owns COMMIT/ROLLBACK\n",
+            'stores/c.js': "return db.withTransaction(async (client) => client.query('UPDATE t SET a = 1'));\n",
+            'core/d.js': "await client.query('ROLLBACK');\n",
+            'stores/a.test.js': "await client.query('ROLLBACK');\n",
+        },
+    });
+    assert.strictEqual(run(dir, 'rollback-in-store').code, 0);
+    assert.strictEqual(budgetOf(dir, 'rollback-in-store'), 3);
+});
+
+test('db-in-routes counts every spelling that resolves to db.js from routes/, and leaves other db modules, other folders and tests alone', () => {
+    const dir = sandbox({
+        src: false,
+        files: {
+            'routes/a.js': "const db = require('../db');\nconst { query } = require('../db.js');\n",
+            'routes/admin/b.js': "const db = require('../../db');\nimport { exec } from '../../db.js';\n",
+            'routes/admin/deep/c.js': "const { pool } = require('../../../db');\n",
+            'routes/d.js': "const s = require('../stores/db');\nconst r = require('./db');\nconst k = require('../db/index');\nconst pkg = require('db');\n",
+            'core/e.js': "const db = require('../db');\n",
+            'routes/a.test.js': "const db = require('../db');\n",
+        },
+    });
+    assert.strictEqual(run(dir, 'db-in-routes').code, 0);
+    assert.strictEqual(budgetOf(dir, 'db-in-routes'), 5);
+});
+
+const longBody = (n) => `${'    x();\n'.repeat(n)}`;
+
+test('long-function counts functions over 200 lines, of every shape, and not long blocks or object literals', () => {
+    const dir = sandbox({
+        files: {
+            // 202 lines from `{` to `}`: counted.
+            'a.js': `function big() {\n${longBody(200)}}\n`,
+            // 200 lines: at the limit, not over it.
+            'b.js': `function edge() {\n${longBody(198)}}\n`,
+            'c.ts': `export const arrow = async (a: number): Promise<void> => {\n${longBody(201)}};\nclass K {\n    method(a): string {\n${longBody(201)}    }\n}\n`,
+            'd.js': `if (a) {\n${longBody(250)}}\nconst o = {\n${longBody(250)}};\nfor (const x of y) {\n${longBody(250)}}\n`,
+            'a.test.js': `function big() {\n${longBody(250)}}\n`,
+        },
+    });
+    assert.strictEqual(run(dir, 'long-function').code, 0);
+    assert.strictEqual(budgetOf(dir, 'long-function'), 3);
+});
+
+test('long-function is not misled by braces in strings, templates, comments or regex literals', () => {
+    const noise = "    const s = '{{{'; const d = \"}\"; const t = `${'{'} } {`; // }}}\n    /* { */ const r = /[{]+/.test(s);\n";
+    const dir = sandbox({
+        files: {
+            // A short function full of stray braces must close where it really ends,
+            // so the long one after it is measured from its own `{`.
+            'a.js': `function short() {\n${noise}}\nfunction long() {\n${noise}${longBody(205)}}\n`,
+            // Stray braces inside a long function must not make it look shorter.
+            'b.js': `function long() {\n${noise.repeat(3)}${longBody(200)}}\n`,
+        },
+    });
+    assert.strictEqual(run(dir, 'long-function').code, 0);
+    assert.strictEqual(budgetOf(dir, 'long-function'), 2);
+});
+
+test('long-function --list names the files, and --update only lowers', () => {
+    const big = `function big() {\n${longBody(205)}}\n`;
+    const dir = sandbox({ metric: 'long-function', files: { 'two.js': `${big}${big}`, 'one.js': big, 'small.js': 'function s() {}\n' }, budget: 9 });
+    const r = run(dir, 'long-function', ['--list']);
+    assert.strictEqual(r.code, 0);
+    assert.match(r.stdout, /2 {2}src\/two\.js\n\s+1 {2}src\/one\.js/);
+    assert.doesNotMatch(r.stdout, /small\.js/);
+    run(dir, 'long-function', ['--update']);
+    assert.strictEqual(budgetOf(dir, 'long-function'), 3);
+    fs.writeFileSync(path.join(dir, 'pkg/src/three.js'), big);
+    run(dir, 'long-function', ['--update']);
+    assert.strictEqual(budgetOf(dir, 'long-function'), 3, 'an --update must not raise the budget');
+    assert.strictEqual(run(dir, 'long-function').code, 1);
+});

@@ -24,13 +24,13 @@ import hashlib
 import json
 import os
 import sys
-from typing import Sequence
+from collections.abc import Sequence
 
-from .schema import Record, load_jsonl
+from .categories import CLASS_MAPS, CONTROL_GROUP, HIGH_RISK, WAS_REGEX
+from .leak import evaluate_leak
 from .matcher import SpanTuple
 from .metrics import evaluate, format_summary
-from .categories import HIGH_RISK, WAS_REGEX, CLASS_MAPS, CONTROL_GROUP
-from .leak import evaluate_leak
+from .schema import Record, load_jsonl
 
 _CORPUS_DIR = os.path.join(os.path.dirname(__file__), "corpus")
 _CORPUS_FILES = ("short.jsonl", "large.jsonl", "negatives.jsonl")
@@ -123,8 +123,8 @@ def predict_regex_only(
     # the gain for every other country is a diff rather than a claim. That diff is
     # the evidence for turning GUARD_PII_REGEX_TIER back to `on` in production,
     # which is only safe once non-Dutch coverage exists.
-    from app.services.pii_regex import detect_regex_pii
     from app.services.pii import PiiService
+    from app.services.pii_regex import detect_regex_pii
 
     preds, degraded = [], []
     for r in records:
@@ -198,10 +198,10 @@ def predict_in_process(  # noqa: PLR0913
     import time
     from unittest.mock import patch
 
-    from app.config import settings
-    from app.services.pii import get_pii_service
     import app.services.pii as pii_mod
     import app.services.pii_bsn as bsn_mod
+    from app.config import settings
+    from app.services.pii import get_pii_service
 
     svc = get_pii_service()
     svc.load(settings.pii_model)

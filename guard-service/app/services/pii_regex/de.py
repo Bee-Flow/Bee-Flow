@@ -121,7 +121,7 @@ def _is_valid_de_rvnr(candidate: str) -> bool:
         return False
     effective = s[:8] + str(ord(s[8]) - ord("A") + 1).zfill(2) + s[9:11]
     total = 0
-    for ch, w in zip(effective, (2, 1, 2, 5, 7, 1, 2, 1, 2, 1, 2, 1)):
+    for ch, w in zip(effective, (2, 1, 2, 5, 7, 1, 2, 1, 2, 1, 2, 1), strict=False):
         product = int(ch) * w
         total += product // 10 + product % 10
     return total % 10 == int(s[11])
@@ -134,7 +134,7 @@ def _is_valid_de_kvnr(candidate: str) -> bool:
         return False
     effective = str(ord(s[0]) - ord("A") + 1).zfill(2) + s[1:9]
     total = 0
-    for ch, w in zip(effective, (1, 2) * 5):
+    for ch, w in zip(effective, (1, 2) * 5, strict=False):
         product = int(ch) * w
         total += product - 9 if product >= 10 else product
     return total % 10 == int(s[9])

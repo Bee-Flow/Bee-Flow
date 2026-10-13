@@ -8,8 +8,8 @@
     "app/services/pii/detection.py": 881,
     "eval/run_eval.py": 786,
     "eval/value_banks.py": 1030,
-    "tests/test_eval_harness.py": 1041,
-    "tests/test_pii_regions.py": 1164,
-    "tests/test_pii.py": 2728
+    "tests/test_eval_harness.py": 1040,
+    "tests/test_pii_regions.py": 1154,
+    "tests/test_pii.py": 2640
   }
 }

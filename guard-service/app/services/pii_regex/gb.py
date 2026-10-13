@@ -76,7 +76,7 @@ def _is_valid_uk_nhs(candidate: str) -> bool:
     d = "".join(c for c in candidate if c.isdigit())
     if len(d) != 10:
         return False
-    return sum(int(x) * w for x, w in zip(d, range(10, 0, -1))) % 11 == 0
+    return sum(int(x) * w for x, w in zip(d, range(10, 0, -1), strict=False)) % 11 == 0
 
 
 def _is_valid_uk_driving_licence(candidate: str) -> bool:

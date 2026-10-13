@@ -37,13 +37,13 @@ const { pool } = require(path.join(__dirname, '..', 'db'));
 const userStore = require(path.join(__dirname, '..', 'stores', 'userStore'));
 const freeEmailDomains = require(path.join(__dirname, '..', 'utils', 'freeEmailDomains'));
 
-const APPLY = process.argv.includes('--apply');
-function argValue(flag) {
-    const i = process.argv.indexOf(flag);
-    return i !== -1 && i + 1 < process.argv.length ? process.argv[i + 1] : null;
-}
-const ONLY_ORG = argValue('--org');
-const SINCE = argValue('--since'); // YYYY-MM-DD, compared against createdAt (date)
+const { parseOpsArgsOrExit } = require('./lib/opsArgs');
+
+const ARGS = parseOpsArgsOrExit({ org: { type: 'string' }, since: { type: 'string' } },
+    { usage: 'Usage: node server/scripts/detachMisassignedFreeEmailUsers.js [--apply] [--org <id>] [--since YYYY-MM-DD]' });
+const APPLY = ARGS.apply;
+const ONLY_ORG = ARGS.org ?? null;
+const SINCE = ARGS.since ?? null; // YYYY-MM-DD, compared against createdAt (date)
 
 // Same per-user data tables as cleanupAzureDuplicates.js — used to warn when a
 // detached user carries history (informational only; we never delete it).

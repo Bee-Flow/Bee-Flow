@@ -172,7 +172,7 @@ in worktrees under `.claude/worktrees/`. Their tests are
 
 | Script | Purpose |
 |--------|---------|
-| `rotate-master-key.js` | `MASTER_ENCRYPTION_KEY` rotation utility — rotates the master key without downtime |
+| `server/scripts/rotateMasterKey.js` | `MASTER_ENCRYPTION_KEY` rotation utility — rotates the master key without downtime. Lives in `server/` so it ships in the server image (`cd /app && node scripts/rotateMasterKey.js` on one app node); pinned by `server/stores/keyRotationEnvelopes.test.js` |
 
 Bee Flow's own hosted deployment (its manifests, deploy scripts and
 monitoring) is maintained in a private repository and is not part of this one.

@@ -9,12 +9,16 @@ import re
 
 from app.services.pii_validators import (
     is_valid_iban as _is_valid_iban,
-    is_valid_ipv4 as _is_valid_ipv4,  # noqa: F401 (re-exported)
-    is_valid_ipv6 as _is_valid_ipv6,  # noqa: F401 (re-exported)
-    is_valid_luhn as _is_valid_luhn,  # noqa: F401 (re-exported)
+    is_valid_ipv4 as _is_valid_ipv4,
+    is_valid_ipv6 as _is_valid_ipv6,
+    is_valid_luhn as _is_valid_luhn,
 )
 
 from .anchors import _ANCHOR_GAP, _LINE_SPACE
+
+# Re-exported for registry.py (generic._is_valid_ipv4 …), see the comment below.
+# No module star-imports this file; __all__ only marks the re-exports as used.
+__all__ = ["_is_valid_ipv4", "_is_valid_ipv6", "_is_valid_luhn"]
 
 # The mod-97, Luhn and IP checks are IMPORTED from pii_validators, the copy
 # model spans go through: a private copy here had already drifted (its IPv4

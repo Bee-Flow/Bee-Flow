@@ -59,6 +59,7 @@ const TARGETS = process.argv.includes('--standalone-connector')
     { dir: 'agent-hub', production: true, why: 'the SPA served to every user' },
     { dir: 'nextcloud-connector', production: true, why: 'holds the tenant signing key' },
     { dir: 'desktop', production: true, why: 'runs on the user\'s own machine, outside any sandbox we control' },
+    { dir: 'mobile', production: true, why: 'the Android client shipped as an APK to users\' phones' },
     { dir: '.', production: false, why: 'root dev tooling — dev:all, build scripts' },
 ];
 

@@ -38,10 +38,12 @@
 
 'use strict';
 
-const args = process.argv.slice(2);
-const apply = args.includes('--apply');
-const batchIdx = args.indexOf('--batch');
-const batch = batchIdx !== -1 ? Number(args[batchIdx + 1]) : 1000;
+const { parseOpsArgsOrExit } = require('./lib/opsArgs');
+
+const args = parseOpsArgsOrExit({ batch: { type: 'string' } },
+    { usage: 'Usage: node scripts/backfillSavedAudioKeys.js [--apply] [--batch <n>]' });
+const apply = args.apply;
+const batch = args.batch !== undefined ? Number(args.batch) : 1000;
 
 async function main() {
     const storageStore = require('../stores/storageStore');

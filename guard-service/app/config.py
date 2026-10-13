@@ -20,7 +20,8 @@ class Settings(BaseSettings):
     # already scanned. Unset in dev = "dev", which simply never invalidates.
     guard_build_id: str = "dev"
     debug: bool = False
-    host: str = "0.0.0.0"
+    # A container listens on every interface; the pod network is the boundary.
+    host: str = "0.0.0.0"  # noqa: S104
     port: int = 8100
 
     redis_url: str = "redis://localhost:6379/1"

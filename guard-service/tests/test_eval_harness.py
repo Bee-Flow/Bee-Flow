@@ -13,22 +13,21 @@ from __future__ import annotations
 import os
 import unittest
 
+from app.services.pii_regex import REGEX_COMPLETE_CATEGORIES, detect_regex_pii
+from eval import validators as ev, value_banks as vb
+from eval.categories import CLASS_MAPS, CONTROL_GROUP, HIGH_RISK, WAS_REGEX
+from eval.leak import evaluate_leak
+from eval.matcher import SpanTuple, iou, match_spans
+from eval.metrics import evaluate
+from eval.run_eval import gate
 from eval.schema import (
-    Record,
-    Span,
     CANONICAL_CATEGORIES,
     CorpusError,
-    validate_record,
+    Record,
+    Span,
     load_jsonl,
+    validate_record,
 )
-from eval.matcher import SpanTuple, iou, match_spans
-from eval.leak import evaluate_leak
-from eval.metrics import evaluate
-from eval import value_banks as vb
-from eval import validators as ev
-from eval.categories import WAS_REGEX, HIGH_RISK, CLASS_MAPS, CONTROL_GROUP
-from eval.run_eval import gate
-from app.services.pii_regex import REGEX_COMPLETE_CATEGORIES, detect_regex_pii
 
 _CORPUS_DIR = os.path.join(os.path.dirname(__file__), "..", "eval", "corpus")
 
@@ -847,8 +846,8 @@ class GateSelfTests(unittest.TestCase):
 
     def test_thin_categories_are_skipped_loudly_not_silently(self):
         """Refusing to gate is correct at n=15; doing it silently is not."""
-        import io
         import contextlib
+        import io
 
         thin = {
             c: {

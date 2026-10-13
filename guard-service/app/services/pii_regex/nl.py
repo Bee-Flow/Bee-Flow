@@ -71,7 +71,7 @@ _DUTCH_PASSPORT_ANCHOR_RE = re.compile(
 # joined by _LINE_SPACE, never `\s`: "Mr. <name>\n<name>" is two
 # lines, and one span over both would merge two people into one token.
 _DUTCH_TITLES = r"(?:Mw\.|Mevr\.|Mevrouw|Dhr\.|Dhr|Heer|Mr\.|Prof\.|Drs\.|Ir\.|Ing\.)"
-_DUTCH_NAME_TOKEN = r"(?:[A-Z][a-zA-Z\-]+|[A-Z](?:\.[A-Z])*\.)"
+_DUTCH_NAME_TOKEN = r"(?:[A-Z][a-zA-Z\-]+|[A-Z](?:\.[A-Z])*\.)"  # noqa: S105 - a regex, not a secret
 _DUTCH_TUSSENVOEGSEL = r"(?:van|de|der|den|ten|ter|te|van der|van de|van den)"
 _DUTCH_TITLED_PERSON_RE = re.compile(
     rf"\b{_DUTCH_TITLES}{_LINE_SPACE}+{_DUTCH_NAME_TOKEN}"
@@ -94,5 +94,5 @@ def _is_valid_bsn(digits: str) -> bool:
     if not (len(digits) == 9 and digits.isdigit()):
         return False
     weights = (9, 8, 7, 6, 5, 4, 3, 2, -1)
-    total = sum(w * int(d) for w, d in zip(weights, digits))
+    total = sum(w * int(d) for w, d in zip(weights, digits, strict=False))
     return total != 0 and total % 11 == 0

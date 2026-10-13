@@ -30,7 +30,7 @@ const SCRIPT = path.join(HERE, 'audit-ratchet.mjs');
 function sandbox({ counts, baseline, npmExit = 1, advisories = {} }) {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ratchet-'));
     fs.mkdirSync(path.join(dir, '.github/security'), { recursive: true });
-    for (const d of ['server', 'agent-hub', 'nextcloud-connector', 'desktop']) {
+    for (const d of ['server', 'agent-hub', 'nextcloud-connector', 'desktop', 'mobile']) {
         fs.mkdirSync(path.join(dir, d), { recursive: true });
     }
     fs.mkdirSync(path.join(dir, 'scripts'), { recursive: true });
@@ -93,7 +93,7 @@ test('the extracted connector release audits its own runtime and refuses unrevie
     assert.ok(calls[0].argv.includes('--omit=dev'));
 });
 
-const CLEAN = { server: { critical: 0, high: 2 }, 'agent-hub': { critical: 0, high: 1 }, 'nextcloud-connector': { critical: 0, high: 0 }, desktop: { critical: 0, high: 0 }, '.': { critical: 0, high: 0 } };
+const CLEAN = { server: { critical: 0, high: 2 }, 'agent-hub': { critical: 0, high: 1 }, 'nextcloud-connector': { critical: 0, high: 0 }, desktop: { critical: 0, high: 0 }, mobile: { critical: 0, high: 0 }, '.': { critical: 0, high: 0 } };
 const baselineOf = (counts) => ({
     counts: Object.fromEntries(Object.entries(counts).map(([d, c]) => [d, { critical: c.critical, high: c.high }])),
 });
@@ -270,7 +270,7 @@ test('the counts come from the lockfile, not from node_modules', () => {
     assert.strictEqual(run(box).code, 0);
     const calls = fs.readFileSync(path.join(box.dir, 'npm-calls.log'), 'utf8')
         .trim().split('\n').map((l) => JSON.parse(l));
-    assert.strictEqual(calls.length, 5, 'expected one npm audit per target');
+    assert.strictEqual(calls.length, 6, 'expected one npm audit per target');
     for (const c of calls) {
         assert.ok(c.argv.includes('--package-lock-only'), `npm ${c.argv.join(' ')} in ${c.dir} — missing --package-lock-only`);
     }
@@ -284,7 +284,7 @@ test('shipping packages are still audited without their dev dependencies', () =>
     run(box);
     const byDir = Object.fromEntries(fs.readFileSync(path.join(box.dir, 'npm-calls.log'), 'utf8')
         .trim().split('\n').map((l) => JSON.parse(l)).map((c) => [c.dir, c.argv]));
-    for (const d of ['server', 'agent-hub', 'nextcloud-connector', 'desktop']) {
+    for (const d of ['server', 'agent-hub', 'nextcloud-connector', 'desktop', 'mobile']) {
         assert.ok(byDir[d].includes('--omit=dev'), `${d} is a shipping package and must be audited --omit=dev`);
     }
     assert.ok(!byDir['.'].includes('--omit=dev'), 'the root is tooling: its whole tree counts');
@@ -313,7 +313,7 @@ test('the audit workflow checks every target lockfile and installs none', () => 
     assert.ok(loop, 'no manifest loop in dependency-audit.yml');
     const src = fs.readFileSync(SCRIPT, 'utf8');
     const targets = [...new Set([...src.matchAll(/\{\s*dir:\s*'([^']+)'/g)].map((m) => m[1]))];
-    assert.strictEqual(targets.length, 5, 'TARGETS changed — update this test and the workflow loop together');
+    assert.strictEqual(targets.length, 6, 'TARGETS changed — update this test and the workflow loop together');
     assert.deepStrictEqual(new Set(loop[1].trim().split(/\s+/)), new Set(targets),
         'the workflow loop and TARGETS in scripts/audit-ratchet.mjs have drifted apart');
 });

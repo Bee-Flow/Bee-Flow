@@ -41,6 +41,7 @@ def _get_inference_semaphore():
     global _inference_semaphore
     if _inference_semaphore is None:
         import asyncio
+
         from app.config import settings
 
         _inference_semaphore = asyncio.Semaphore(max(1, settings.pii_max_concurrency))
@@ -150,6 +151,7 @@ class _CacheAware:
         empty, everything here is exactly what it was before they existed.
         """
         import json
+
         from app.config import settings
 
         custom = _CustomSpec.from_request(custom_labels, confidence_threshold)

@@ -13,7 +13,7 @@ import contextlib
 import logging
 import time
 
-from .chunking import _ChunkBudget, _chunk_text, _chunk_text_chars, _label_prompt_width
+from .chunking import _chunk_text, _chunk_text_chars, _ChunkBudget, _label_prompt_width
 
 logger = logging.getLogger("guard.pii")
 
