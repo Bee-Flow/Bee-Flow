@@ -33,7 +33,7 @@ const sup = require('../../../stores/lib/chatSignalSuppression');
 const WINDOW_DAYS = 30;
 const LABEL = Object.freeze({ direct: 'Direct chat', agent: 'Agent chat', agent_public: 'Embedded agents' });
 const NOT_COUNTED = 'Not counted: voice, template chat, the webpage builder, the public webpage AI bridge, App Studio AI chat, '
-    + 'the Nextcloud Assistant, the learning coach, the component designer and the builders; agent chat without streaming '
+    + 'the Nextcloud Assistant, the learning coach and the builders; agent chat without streaming '
     + 'and the support responder; notebook chat (not yet); the mobile app (not yet).';
 
 function defaultDeps() {

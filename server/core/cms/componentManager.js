@@ -3,13 +3,11 @@ const path = require('path');
 const { exec } = require('child_process');
 const log = require('../../telemetry/log');
 
-// The shipped components, and every component the designer creates, live in
-// <repo>/components — in the container that is /components, which every
-// compose file mounts. routes/components.js and routes/ai/agentChat.js write
-// there, and componentManager.deps.test.js checks the shipped catalog there.
-// This file moved one level down into core/cms/ without its path following,
-// and for that time it scanned server/components instead: none of the
-// shipped components loaded, and updateComponent wrote into a second copy.
+// The shipped components live in <repo>/components — in the container that is
+// /components, which every compose file mounts. componentManager.deps.test.js
+// checks the shipped catalog there. This file moved one level down into
+// core/cms/ without its path following, and for that time it scanned
+// server/components instead: none of the shipped components loaded.
 const COMPONENTS_DIR = path.resolve(__dirname, '../../../components');
 
 /**
@@ -17,11 +15,11 @@ const COMPONENTS_DIR = path.resolve(__dirname, '../../../components');
  *
  * THIS LIST IS A TRUST BOUNDARY, not a convenience. `npm install` runs
  * lifecycle scripts (preinstall/install/postinstall) by default, as the server
- * process, out of a directory whose package.json a caller supplies — and
- * routes/components.js + routes/ai/agentChat.js both write that file from a
- * request body. So before this list, "create a component" meant "run arbitrary
- * code on the host", before the component itself had executed a single line.
- * The container has no USER directive (server/Dockerfile), so that was root.
+ * process, out of a component's directory. When components could still be
+ * written from a request body (the removed Component Designer), "create a
+ * component" meant "run arbitrary code on the host" before this list. Only the
+ * shipped, repo-tracked components install now; the list still pins what they
+ * may pull in.
  *
  * An allowlist rather than `--ignore-scripts` because two of the shipped
  * components depend on better-sqlite3, a native module that cannot install
@@ -31,8 +29,7 @@ const COMPONENTS_DIR = path.resolve(__dirname, '../../../components');
  *
  * Entries are exactly what the components in this repo already declare.
  * Adding one is a deliberate act: it is a code change, reviewed like any
- * other, which is the point — a component author cannot widen it from a
- * request body.
+ * other, which is the point.
  *
  * What this does NOT defend against: a compromised release of a package that
  * is already on the list. That is the same supply-chain exposure the server's
@@ -66,14 +63,12 @@ function disallowedDependencies(componentPath) {
 /**
  * Install a component's dependencies, or refuse and say why.
  *
- * The three call sites below (boot scan, single install, package.json edit) all
- * went through a bare `exec('npm install --silent')`. They share this now so a
- * future fourth caller cannot reintroduce the hole by copying the old line.
+ * The boot scan is the one caller; a future caller goes through this gate
+ * rather than a bare `exec('npm install --silent')`.
  *
  * Never throws: a component that cannot install is skipped and reported, the
  * same posture the original code had for an npm failure. The component's
- * definition still loads, so an admin sees it in the studio and can read the
- * reason, rather than the component silently vanishing.
+ * definition still loads, so it does not silently vanish.
  */
 async function installDependencies(componentPath, id) {
     const blocked = disallowedDependencies(componentPath);
@@ -160,40 +155,6 @@ function getComponentPath(id) {
     return comp ? comp.path : null;
 }
 
-function removeComponent(id) {
-    components = components.filter(c => c.id !== id);
-}
-
-// Install and add a single new component (for creation)
-async function installComponent(id) {
-    const componentPath = path.join(COMPONENTS_DIR, id);
-    const componentJsonPath = path.join(componentPath, 'component.json');
-    const packageJsonPath = path.join(componentPath, 'package.json');
-
-    if (!fs.existsSync(componentJsonPath) || !fs.existsSync(packageJsonPath)) {
-        throw new Error(`Component ${id} missing required files`);
-    }
-
-    // Load definition
-    const definition = JSON.parse(await fs.promises.readFile(componentJsonPath, 'utf8'));
-
-    // Install dependencies — allowlisted only; see installDependencies.
-    log.info(`Installing dependencies for ${id}...`);
-    await installDependencies(componentPath, id);
-
-    // Remove existing entry if any
-    components = components.filter(c => c.id !== id);
-
-    // Add to components list
-    components.push({
-        id: id,
-        path: componentPath,
-        definition: definition
-    });
-
-    log.info(`Component ${id} installed successfully.`);
-}
-
 // Reload a single component's definition (no reinstall of deps)
 async function reloadComponent(id) {
     const componentPath = path.join(COMPONENTS_DIR, id);
@@ -248,103 +209,6 @@ function reloadAll() {
     log.info(`Reloaded ${components.length} component definitions.`);
 }
 
-// Update a component's files (for AI modification)
-async function updateComponent(id, files) {
-    const componentPath = path.join(COMPONENTS_DIR, id);
-
-    if (!fs.existsSync(componentPath)) {
-        throw new Error(`Component ${id} not found`);
-    }
-
-    log.info(`[ComponentManager] Updating component ${id} with ${Object.keys(files).length} files`);
-
-    // `owner` (which org may list and call this component, see componentVisibleTo
-    // in core/agentRuntime/agentTools.js) is set once, by the route that created
-    // the component, and never by a rewrite of component.json. Without this the
-    // designer's update_component could drop it — and the component would be
-    // offered to every org again — or name another org and put the code in
-    // that org's catalogue.
-    const componentJsonPath = path.join(componentPath, 'component.json');
-    let ownerOnDisk;
-    try {
-        ownerOnDisk = JSON.parse(await fs.promises.readFile(componentJsonPath, 'utf8')).owner;
-    } catch { ownerOnDisk = undefined; }
-
-    for (const [filename, content] of Object.entries(files)) {
-        const filePath = path.join(componentPath, filename);
-
-        // Security check: prevent directory traversal
-        if (!filePath.startsWith(componentPath)) {
-            log.warn(`[ComponentManager] Security warning: Attempt to write outside component dir: ${filePath}`);
-            continue;
-        }
-
-        // If it's a JSON file, ensure it's valid JSON
-        if (filename.endsWith('.json') && typeof content === 'string') {
-            try {
-                // Formatting
-                const json = JSON.parse(content);
-                if (filePath === componentJsonPath && json && typeof json === 'object' && !Array.isArray(json)) {
-                    if (ownerOnDisk === undefined) delete json.owner;
-                    else json.owner = ownerOnDisk;
-                }
-                await fs.promises.writeFile(filePath, JSON.stringify(json, null, 2), 'utf8');
-            } catch (e) {
-                log.warn(`[ComponentManager] Invalid JSON for ${filename}, writing as string`, e);
-                await fs.promises.writeFile(filePath, content, 'utf8');
-            }
-        } else {
-            await fs.promises.writeFile(filePath, content, 'utf8');
-        }
-    }
-
-    // If package.json changed, reinstall deps
-    if (files['package.json']) {
-        // The sharpest of the three: a caller can rewrite package.json through
-        // this path as often as it likes, so an un-vetted name here used to be a
-        // repeatable way to run install scripts on the host.
-        log.info(`[ComponentManager] package.json modified, reinstalling dependencies for ${id}...`);
-        await installDependencies(componentPath, id);
-    }
-
-    // Reload definition in memory
-    await reloadComponent(id);
-
-    return { success: true, message: `Component ${id} updated` };
-}
-
-// Read all files for a component (for AI analysis)
-async function readComponentFiles(id) {
-    const componentPath = path.join(COMPONENTS_DIR, id);
-    try {
-        await fs.promises.access(componentPath);
-    } catch {
-        throw new Error(`Component ${id} not found`);
-    }
-
-    const files = {};
-
-    async function readDir(dir, relativeRoot = '') {
-        const entries = await fs.promises.readdir(dir, { withFileTypes: true });
-        for (const entry of entries) {
-            const relPath = path.join(relativeRoot, entry.name);
-
-            if (entry.isDirectory()) {
-                if (entry.name === 'node_modules' || entry.name === '.git') continue;
-                await readDir(path.join(dir, entry.name), relPath);
-            } else {
-                // Only text files we care about
-                if (/\.(js|json|css|html|md|txt)$/.test(entry.name)) {
-                    files[relPath] = await fs.promises.readFile(path.join(dir, entry.name), 'utf8');
-                }
-            }
-        }
-    }
-
-    await readDir(componentPath);
-    return files;
-}
-
 module.exports = {
     COMPONENTS_DIR,
     ALLOWED_DEPENDENCIES,
@@ -353,10 +217,6 @@ module.exports = {
     initialize,
     getComponents,
     getComponentPath,
-    removeComponent,
-    installComponent,
     reloadComponent,
     reloadAll,
-    updateComponent,
-    readComponentFiles
 };

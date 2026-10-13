@@ -37,7 +37,6 @@ export const PAGE_ROUTES = {
     // The member library keeps the normal sidebar and omits Studio management.
     documents: '/app/documents',
     reports: '/app/reports',
-    components: '/app/components',
     // Kept for /app/meeting-notes backward-compat — the page now renders
     // inside Studio so /app/meeting-notes redirects to /app/studio/meeting-notes.
     meetingNotes: '/app/meeting-notes',

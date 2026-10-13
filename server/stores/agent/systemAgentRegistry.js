@@ -46,14 +46,6 @@ const REGISTRY = [
         alwaysUpdate: false,
     },
     {
-        id: 'system-component-designer',
-        name: 'AI Component Designer',
-        description: 'Expert agent for designing, creating, and testing BeeFlow components',
-        promptFile: 'component-designer.md',
-        defaultModel: 'tier:thinking',
-        alwaysUpdate: false,
-    },
-    {
         id: 'system-pdf-extractor',
         name: 'PDF Extractor',
         description: 'Extracts text from PDF files using native LLM capabilities',

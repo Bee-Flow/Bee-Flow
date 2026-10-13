@@ -141,7 +141,8 @@ The server image runs as `node` (uid 1000). Two consequences:
   image: `docker compose run --rm --user root server chown -R node:node /app/data /components`. The same
   is needed whenever `components/` is not owned by uid 1000: a first `docker compose up` without
   `./selfhost.sh`, `./selfhost.sh` run with `sudo` or by another user, or rootless Docker. Until then the
-  Component Designer cannot save.
+  server cannot install the npm dependencies of the shipped components there at boot, and those
+  components fail to run.
 </details>
 
 <details>

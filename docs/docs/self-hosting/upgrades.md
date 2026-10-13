@@ -110,7 +110,8 @@ On a fresh install the data volume inherits the right owner from the image. The 
 folder is a bind mount, so it must be writable by uid 1000 (the `node` user). It is not when
 Docker created it (a first `docker compose up` without `./selfhost.sh`), when `./selfhost.sh` ran
 with `sudo` or as another user, or under rootless Docker. Run the same command then; until you do,
-the Component Designer cannot save.
+the server cannot install the npm dependencies of the shipped components there at boot, and those
+components fail to run.
 
 :::
 

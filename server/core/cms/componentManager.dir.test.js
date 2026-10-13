@@ -1,11 +1,10 @@
 /**
  * Where the component runtime looks (core/cms/componentManager.js).
  *
- * The routes that create and edit components (routes/components.js,
- * routes/ai/agentChat.js) write to <repo>/components — /components in the
+ * The shipped components live in <repo>/components — /components in the
  * container. componentManager moved into core/cms/ and kept a path that was
  * right one directory up, so it scanned server/components: the shipped
- * components never loaded, and updateComponent wrote into a second copy.
+ * components never loaded.
  * Found by validation batch 2a.
  *
  * Run: cd server && node --test core/cms/componentManager.dir.test.js
@@ -22,7 +21,7 @@ const { COMPONENTS_DIR } = require('./componentManager');
 
 const REPO_COMPONENTS = path.resolve(__dirname, '..', '..', '..', 'components');
 
-test('the runtime reads the directory the component routes write to', () => {
+test('the runtime reads <repo>/components', () => {
     assert.strictEqual(COMPONENTS_DIR, REPO_COMPONENTS);
 });
 

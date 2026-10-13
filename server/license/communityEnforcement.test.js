@@ -4,7 +4,7 @@
  * Mounts the `requireFeature(name)` middleware against a fake handler and
  * asserts that every Studio-class feature promoted in the tier tightening
  * (voice_chat, webpages, approvals, meeting_notes,
- * component_designer, notebooks) returns the documented `feature_locked`
+ * notebooks) returns the documented `feature_locked`
  * 403 body on a community session and reaches the handler on an
  * enterprise session.
  *
@@ -23,7 +23,6 @@ const FEATURES = [
     'voice_chat',
     'webpages',
     'meeting_notes',
-    'component_designer',
     'notebooks',
     'projects',
     'pii_tokenize',

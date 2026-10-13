@@ -67,7 +67,6 @@ describe('PAGE_ROUTES is frozen', () => {
             forms: '/app/forms',
             documents: '/app/documents',
             reports: '/app/reports',
-            components: '/app/components',
             meetingNotes: '/app/meeting-notes',
             templates: '/app/templates',
             notebooks: '/app/notebooks',

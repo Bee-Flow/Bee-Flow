@@ -32,13 +32,12 @@ Agents live in Postgres (`agents` table). The fields above are exposed in **Stud
 
 ## System starter agents
 
-Every new tenant gets 10 built-in system agents. They're seeded automatically, owned by the special `system` user, and selectively updated when their prompt files change (hash-based detection):
+Every new tenant gets 9 built-in system agents. They're seeded automatically, owned by the special `system` user, and selectively updated when their prompt files change (hash-based detection):
 
 | Agent | Purpose |
 |-------|---------|
 | **Title Generator** | Generates a short conversation title after the first turn. |
 | **Memory Extractor** | Pulls memorable facts out of a conversation for the user's profile memory. |
-| **Component Designer** | Designs custom UI components from a description. |
 | **PDF Extractor** | Specialised PDF reader; layout-aware extraction. |
 | **Prompt Designer** | Helps you write a system prompt for a new agent. |
 | **Conversation Starters** | Suggests opening messages for a new agent. |

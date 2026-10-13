@@ -14,7 +14,7 @@
  *     on the column DEFAULT, per stores/user/schema.js).
  *
  * The registry is mocked with one extra id ('x_test_capability') because
- * TODAY the real USER_FACING_CORE equals the seeded trio — the final test
+ * TODAY the real USER_FACING_CORE equals the seeded pair — the final test
  * pins that, which makes the migration a deliberate no-op in production
  * until the set actually grows.
  *
@@ -51,11 +51,11 @@ mock(path.join(SERVER, 'db.js'), {
     exec: (sql) => rawQuery(sql),
 });
 
-// The registry with one id beyond the seeded trio, to exercise the mechanism.
-const TRIO = ['notebooks', 'projects', 'component_designer'];
+// The registry with one id beyond the seeded pair, to exercise the mechanism.
+const SEEDED = ['notebooks', 'projects'];
 const NEW_ID = 'x_test_capability';
 mock(path.join(SERVER, 'core', 'entitlements', 'capabilityRegistry.js'), {
-    USER_FACING_CORE: new Set([...TRIO, NEW_ID]),
+    USER_FACING_CORE: new Set([...SEEDED, NEW_ID]),
 });
 
 const { up, newUserFacingCoreIds, SEEDED_DEFAULTS, MARKER_PREFIX } = require('./org-granted-capabilities-2026-09');
@@ -71,7 +71,7 @@ before(async () => {
     await pg.exec(`
         CREATE TABLE organizations (
             id TEXT PRIMARY KEY,
-            "org_granted_capabilities" TEXT DEFAULT '["notebooks","projects","component_designer"]'
+            "org_granted_capabilities" TEXT DEFAULT '["notebooks","projects"]'
         );
         CREATE TABLE config (
             key TEXT PRIMARY KEY,
@@ -79,13 +79,13 @@ before(async () => {
             updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         );
     `);
-    // org-a toggled component_designer OFF on purpose; org-b holds the default
-    // trio; org-c/org-d are the '[]'/NULL shapes the schema backfill still owes
+    // org-a toggled projects OFF on purpose; org-b holds the default
+    // pair; org-c/org-d are the '[]'/NULL shapes the schema backfill still owes
     // a seed (stores run before this migration in every real ladder); only
     // NULL is still pending, '[]' is a deliberate choice schema.js leaves alone.
     await pg.query(`INSERT INTO organizations (id, "org_granted_capabilities") VALUES
-        ('org-a', '["notebooks","projects"]'),
-        ('org-b', '["notebooks","projects","component_designer"]'),
+        ('org-a', '["notebooks"]'),
+        ('org-b', '["notebooks","projects"]'),
         ('org-c', '[]'),
         ('org-d', NULL)`);
 });
@@ -115,13 +115,13 @@ test('--dry-run reports but writes nothing — no grants, no marker', async () =
 test('an existing org keeps exactly what it had, plus the new id', async () => {
     await up();
     assert.deepStrictEqual(await grants(), [
-        // The deliberate toggle-off of component_designer is NOT resurrected.
-        ['org-a', ['notebooks', 'projects', NEW_ID]],
-        ['org-b', [...TRIO, NEW_ID]],
-        // A NULL row keeps its pending trio seed alongside the new id; '[]' is an
+        // The deliberate toggle-off of projects is NOT resurrected.
+        ['org-a', ['notebooks', NEW_ID]],
+        ['org-b', [...SEEDED, NEW_ID]],
+        // A NULL row keeps its pending seed alongside the new id; '[]' is an
         // admin's deliberate "all off" and only gets the new id.
         ['org-c', [NEW_ID]],
-        ['org-d', [...TRIO, NEW_ID]],
+        ['org-d', [...SEEDED, NEW_ID]],
     ]);
     assert.deepStrictEqual(await markers(), [`${MARKER_PREFIX}${NEW_ID}`]);
 });
@@ -137,10 +137,10 @@ test('a second run is a byte-identical no-op', async () => {
 
 test("after the marker, an admin's toggle-off of the new id survives every later boot", async () => {
     await pg.query(`UPDATE organizations SET "org_granted_capabilities" = $1 WHERE id = 'org-a'`,
-        [JSON.stringify(['notebooks', 'projects'])]);
+        [JSON.stringify(['notebooks'])]);
     await up();
     const rows = await grants();
-    assert.deepStrictEqual(rows.find(([id]) => id === 'org-a')[1], ['notebooks', 'projects'],
+    assert.deepStrictEqual(rows.find(([id]) => id === 'org-a')[1], ['notebooks'],
         'a marker-bounded grandfather must never fight the org-admin');
 });
 
@@ -148,11 +148,11 @@ test('an org created after the grandfather is not auto-granted', async () => {
     await pg.query(`INSERT INTO organizations (id) VALUES ('org-late')`);
     await up();
     const rows = await grants();
-    assert.deepStrictEqual(rows.find(([id]) => id === 'org-late')[1], TRIO,
+    assert.deepStrictEqual(rows.find(([id]) => id === 'org-late')[1], SEEDED,
         'new rows get the column DEFAULT; the grandfather is for orgs that predate the toggle');
 });
 
-test('today the real registry equals the seeded trio — production run is a no-op by design', () => {
+test('today the real registry equals the seeded pair — production run is a no-op by design', () => {
     // Extract the literal from the real source (the in-process module is mocked).
     const reg = fs.readFileSync(path.join(SERVER, 'core', 'entitlements', 'capabilityRegistry.js'), 'utf8');
     const m = reg.match(/const USER_FACING_CORE = new Set\(\[([^\]]*)\]\)/);
@@ -160,7 +160,7 @@ test('today the real registry equals the seeded trio — production run is a no-
     const ids = [...m[1].matchAll(/'([^']+)'/g)].map((x) => x[1]).sort();
     assert.deepStrictEqual(ids, [...SEEDED_DEFAULTS].sort(),
         'USER_FACING_CORE grew — that is fine, but it makes this migration LIVE: ' +
-        'update stores/user/schema.js (column DEFAULT + backfill trio) and the release checklist (U10), ' +
+        'update stores/user/schema.js (column DEFAULT + backfill pair) and the release checklist (U10), ' +
         'then update this pin to the new set');
     // And the derived "new ids" logic sees the mocked growth.
     assert.deepStrictEqual(newUserFacingCoreIds(), [NEW_ID]);

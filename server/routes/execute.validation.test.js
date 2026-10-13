@@ -7,16 +7,13 @@
  *
  *   - `workflowID` ran the graph with NO execution record (executionId: null);
  *   - `input` instead of `inputData` ran the subworkflow on `{}`, 200 success;
- *   - a test run's `inputs` given as text was spread into `{ 0: 'h', 1: 'i' }`
- *     and handed to the component as its input values;
  *   - a graph without `edges` died on a TypeError — a 500 — after its
  *     execution record had been written.
  *
  * What this file pins:
  *
  *   - the 400 NAMES the field, in a sentence;
- *   - a refused request runs nothing and records nothing;
- *   - the Component Studio's test body still runs.
+ *   - a refused request runs nothing and records nothing.
  *
  * Run: cd server && node --test routes/execute.validation.test.js
  */
@@ -37,7 +34,6 @@ const MOCKS = {
     '../core/executionEngine': {
         executeWorkflow: async (workflow) => { touched.push({ what: 'executeWorkflow', args: [workflow] }); return { 'test-node': { output: 42 } }; },
     },
-    '../core/cms/componentManager': { getComponents: () => [{ id: 'known-comp' }] },
     '../utils/routeHelpers': { getUserAuth: async () => ({}) },
     '../auth': { requireAuth: (req, res, next) => next() },
     '../stores/workflowStore': {
@@ -112,26 +108,6 @@ test('a graph still carries whatever else its nodes need, and runs with its reco
     assert.strictEqual(res.statusCode, 200);
     assert.strictEqual(res.body.executionId, 'exec-1');
     assert.deepStrictEqual(touched.find((t) => t.what === 'executeWorkflow').args[0].viewport, { x: 0 });
-});
-
-test('test inputs given as text are refused, instead of being spread character by character', async () => {
-    const res = await dispatch({ url: '/test-component', body: { componentId: 'known-comp', inputs: 'hi' } });
-    assert.strictEqual(res.statusCode, 400);
-    assert.strictEqual(res.body.error, 'inputs is an object of input values, like { "input": "hello" }.');
-    assert.deepStrictEqual(touched, []);
-});
-
-test('the Component Studio\'s test body still runs the component', async () => {
-    const res = await dispatch({ url: '/test-component', body: { componentId: 'known-comp', inputs: { input: 'hello' } } });
-    assert.strictEqual(res.statusCode, 200);
-    assert.deepStrictEqual(res.body, { output: 42 });
-    assert.deepStrictEqual(touched[0].args[0].nodes[0].data.inputValues, { input: 'hello' });
-});
-
-test('a missing component id is still refused with the message the studio shows', async () => {
-    const res = await dispatch({ url: '/test-component', body: { inputs: {} } });
-    assert.strictEqual(res.statusCode, 400);
-    assert.strictEqual(res.body.error, 'componentId is required');
 });
 
 test('a misspelled inputData is refused, instead of running the subworkflow on nothing', async () => {

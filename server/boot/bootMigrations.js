@@ -140,6 +140,10 @@ const LOOSE_MIGRATIONS = [
     // unreadable ledger, --force), so an owner who unlinks an agent later never
     // gets it back. Throws while a table is missing, so the next boot retries.
     'automation-agent-bindings-backfill-2026-10',
+    // The Component Designer was removed: drops "component_designer" from every
+    // org's org_granted_capabilities (and from the column DEFAULT) and deletes
+    // the system-component-designer agent row. A no-op once neither is there.
+    'drop-component-designer-2026-10',
 ];
 
 /**
@@ -231,7 +235,7 @@ const NL_TRANSLATIONS = [
     'add-nl-hardcoded-pages-shell-2026-10-translations', // Dutch for the user-facing text agent-hub used to hard-code in English: pages, shell, chat footer, meetings, renderers
     'add-nl-hardcoded-integrations-agents-2026-10-translations', // Hard-coded English literals converted to keys: integrations, agents, appearance, support, knowledge, setup wizards
     'add-nl-hardcoded-automation-builder-2026-10-translations', // Automation builder: Dutch for the strings that used to be hard-coded English (panels, step editors, trigger filters, pickers, output views)
-    'add-nl-hardcoded-website-admin-2026-10-translations', // Website admin (Product Website builder) and Component Studio: strings that had no key
+    'add-nl-hardcoded-website-admin-2026-10-translations', // Website admin (Product Website builder): strings that had no key
     'add-nl-hardcoded-studio-admin-2026-10-translations', // Studio screens (App Studio, Automations, Executions, Solutions, Support): Dutch for literals that now go through t()
     'add-nl-mcp-access-2026-10-translations',     // MCP access: named MCP tokens (Settings → Security) and the organisation's MCP access policy
     'add-nl-ui-complete-2026-10-translations',    // Every UI string without Dutch (2026-10): agent studio, knowledge, skills, meetings, webpages, cowork, admin, chat, ...

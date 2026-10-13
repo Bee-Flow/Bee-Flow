@@ -1,11 +1,10 @@
 /**
  * Auth gates on the workflow execution routes (routes/execute.js).
  *
- * POST /execute, /test-component and /subworkflow/:workflowId were pinned in
- * the U4 sweep as HIGH: anonymous execution of caller-supplied workflow JSON
- * (userId falling back to 'anonymous'). Their only real caller is the
- * signed-in Component Studio; workflow-to-workflow calls run in-process
- * through the execution engine, never over HTTP. All three now carry inline
+ * POST /execute and /subworkflow/:workflowId were pinned in the U4 sweep as
+ * HIGH: anonymous execution of caller-supplied workflow JSON (userId falling
+ * back to 'anonymous'). Workflow-to-workflow calls run in-process through the
+ * execution engine, never over HTTP. Both now carry inline
  * requireAuth and the 'anonymous' fallback is gone. This test pins:
  * anonymous → 401 before anything executes, signed-in → not 401, and the
  * session user (not 'anonymous') reaching the store calls.
@@ -54,9 +53,6 @@ const MOCKS = {
             state.executed.push({ workflow, userAuth });
             return { 'test-node': { output: 42 } };
         },
-    },
-    '../core/cms/componentManager': {
-        getComponents() { return [{ id: 'known-comp', name: 'Known' }]; },
     },
     '../utils/routeHelpers': {
         async getUserAuth(req) { return { userId: req.session?.user?.id || null }; },
@@ -154,21 +150,13 @@ test('execute: signed-in → 200, records the run under the session user (no ano
     assert.deepStrictEqual(state.completed, [{ id: 'exec-1', status: 'success', nodesExecuted: 1 }]);
 });
 
-// ── POST /test-component ────────────────────────────────────────────
+// ── POST /test-component (removed with the Component Studio) ────────
 
-test('test-component: anonymous → 401 and the engine never runs', async () => {
-    reset();
-    const r = await post('/test-component', { body: { componentId: 'known-comp' } });
-    assert.strictEqual(r.status, 401);
-    assert.deepStrictEqual(state.executed, []);
-});
-
-test('test-component: signed-in → 200 with the component result', async () => {
+test('test-component: the route is gone, nothing executes', async () => {
     reset();
     const r = await post('/test-component', { user: 'u1', body: { componentId: 'known-comp' } });
-    assert.strictEqual(r.status, 200);
-    assert.deepStrictEqual(r.json, { output: 42 });
-    assert.strictEqual(state.executed.length, 1);
+    assert.strictEqual(r.status, 404);
+    assert.deepStrictEqual(state.executed, []);
 });
 
 // ── POST /subworkflow/:workflowId ───────────────────────────────────

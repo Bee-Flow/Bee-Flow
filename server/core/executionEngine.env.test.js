@@ -1,8 +1,8 @@
 /**
  * A component's index.js does not see the server's secrets.
  *
- * Components are caller-authored code (POST /ai/create-component, the Component
- * Designer's update_component). runComponent spawned them with
+ * Components were caller-authored code until the Component Designer was
+ * removed (2026-10); the shipped ones remain. runComponent spawned them with
  * `env: process.env`, so `console.log(JSON.stringify(process.env))` in a
  * component was enough to read MASTER_ENCRYPTION_KEY and DATABASE_URL. These
  * tests spawn a real child and read back what it can see.

@@ -8,7 +8,7 @@ const { chatWithAgent } = require('./chatWithAgent');
 const { chatWithAgentStream } = require('./chatStream');
 const { generateChatTitle } = require('./chatTitle');
 const componentManager = require('../cms/componentManager');
-const { componentToTool, executeComponentTool, SYSTEM_TOOLS } = require('../tools/toolExecution');
+const { componentToTool, executeComponentTool } = require('../tools/toolExecution');
 const { processSystemPrompt } = require('../llm/promptUtils');
 
 module.exports = {
@@ -19,7 +19,6 @@ module.exports = {
     componentToTool,
     executeComponentTool,
     generateChatTitle,
-    SYSTEM_TOOLS,
     componentManager,
     processSystemPrompt,
     resolveAgentModel

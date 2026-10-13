@@ -110,7 +110,7 @@ test('otherwise pass, with suppressed figures in words and the static uncounted 
     assert.equal(res.status, 'pass');
     assert.ok(res.details.startsWith('100 turns on 1 chat type in 30 days; a hidden share completed a Privacy Shield scan; a hidden share of findings were protected before the model.'), res.details);
     assert.ok(res.details.includes('Counts are approximate.'));
-    for (const s of ['voice', 'template chat', 'webpage builder', 'App Studio', 'Nextcloud Assistant', 'learning coach', 'component designer', 'support responder', 'notebook', 'mobile app']) {
+    for (const s of ['voice', 'template chat', 'webpage builder', 'App Studio', 'Nextcloud Assistant', 'learning coach', 'support responder', 'notebook', 'mobile app']) {
         assert.ok(res.details.includes(s), s);
     }
     assert.equal(res.evidence.surfaces.direct.pct.blocked, '<5');

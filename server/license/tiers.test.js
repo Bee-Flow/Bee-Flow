@@ -48,8 +48,7 @@ const full = t.getFeaturesForTier('full');
 
 // Community is the free self-hosted core: chat + KB + Nextcloud + multi-user
 // + skills. Studio-class capabilities (voice, webpages, automations, agent
-// automations, meeting notes, ticket assistant, notebooks, component designer,
-// projects), the advanced Privacy Shield modes (tokenize PII, web-search
+// automations, meeting notes, ticket assistant, notebooks, projects), the advanced Privacy Shield modes (tokenize PII, web-search
 // guard), and the non-overview Usage tabs were promoted to Enterprise in
 // the tier tightening — see docs/docs/licensing/tiers.md.
 assert.ok(community.includes('chat_basic'));
@@ -82,7 +81,6 @@ for (const f of [
     'voice_chat',
     'webpages',
     'meeting_notes',
-    'component_designer',
     'notebooks',
     'projects',
     'pii_tokenize',
@@ -115,7 +113,6 @@ for (const f of [
     'voice_chat',
     'webpages',
     'meeting_notes',
-    'component_designer',
     'notebooks',
     'projects',
     'pii_tokenize',
@@ -201,7 +198,6 @@ assert.strictEqual(t.tierHasFeature('enterprise', 'automation_sharing'), true, '
 assert.strictEqual(t.tierHasFeature('community', 'voice_chat'), false, 'voice_chat is enterprise');
 assert.strictEqual(t.tierHasFeature('community', 'webpages'), false);
 assert.strictEqual(t.tierHasFeature('community', 'meeting_notes'), false);
-assert.strictEqual(t.tierHasFeature('community', 'component_designer'), false);
 assert.strictEqual(t.tierHasFeature('community', 'notebooks'), false);
 assert.strictEqual(t.tierHasFeature('community', 'projects'), false, 'projects is now enterprise');
 assert.strictEqual(t.tierHasFeature('community', 'pii_tokenize'), false);
@@ -211,7 +207,6 @@ assert.strictEqual(t.tierHasFeature('community', 'sso_saml'), false);
 assert.strictEqual(t.tierHasFeature('enterprise', 'automations'), true, 'enterprise gets promoted features');
 assert.strictEqual(t.tierHasFeature('enterprise', 'agent_routines'), true);
 assert.strictEqual(t.tierHasFeature('enterprise', 'voice_chat'), true);
-assert.strictEqual(t.tierHasFeature('enterprise', 'component_designer'), true);
 assert.strictEqual(t.tierHasFeature('enterprise', 'notebooks'), true);
 assert.strictEqual(t.tierHasFeature('enterprise', 'projects'), true);
 assert.strictEqual(t.tierHasFeature('enterprise', 'pii_tokenize'), true);

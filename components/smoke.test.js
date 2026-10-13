@@ -5,10 +5,10 @@
 // No test leaves this machine. Run: node --test components/smoke.test.js
 // (after `npm ci` in each component folder that has a package-lock.json).
 //
-// One file at components/ rather than one per folder on purpose: the
-// Component Designer lists every .js file in a component's folder, so a test
-// file there would show up as part of the component. Each case below is still
-// one component, and the last test fails when a component has no case.
+// One file at components/ rather than one per folder: a component's folder
+// holds only what the server runs (the Component Designer, removed 2026-10,
+// listed every .js file there as part of the component). Each case below is
+// still one component, and the last test fails when a component has no case.
 //
 // Where a component can only reach a fixed public host (tavily-search) or
 // refuses every internal address (the two safeGet components), the case drives

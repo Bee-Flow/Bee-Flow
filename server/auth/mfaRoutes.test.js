@@ -56,8 +56,8 @@ const MOCKS = {
     },
     '../utils/perUserRateLimit': { perUserRateLimit: () => mw },
     // Lazy requires inside POST /assist. llmClient.chat is the TOOL-LESS
-    // seam — the assist endpoint must never go through aiAgent._chatLoop
-    // (which always attaches component SYSTEM_TOOLS).
+    // seam — the assist endpoint must never go through an agent chat loop
+    // (which attaches component tools).
     '../core/aiAgent': {
         getAIConfig: async () => ({ model: 'test-model' }),
     },

@@ -112,11 +112,9 @@ Automations answer to `/app/studio/automations`; the older `/app/studio/automati
 
 ### Nearby, but not Studio sections
 
-Two pages are often thought of as Studio and are not — they have their own top-level
-addresses:
+One page is often thought of as Studio and is not — it has its own top-level
+address:
 
-- [Components](components.md) — AI-built UI components, at `/app/components`
-  (Enterprise, `component_designer`).
 - [Templates](templates.md) — your own Word (`.docx`) templates with `{{parameter}}`
   placeholders that the AI fills in, at `/app/templates`. Not agent templates: there is no
   agent recipe gallery in the product.

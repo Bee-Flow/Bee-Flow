@@ -3,7 +3,7 @@
  */
 const componentManager = require('../cms/componentManager');
 const agentStore = require('../../stores/agentStore');
-const { componentToTool, SYSTEM_TOOLS } = require('../tools/toolExecution');
+const { componentToTool } = require('../tools/toolExecution');
 const log = require('../../telemetry/log');
 
 // The stores and catalogues this module reads, each behind a getter so a test
@@ -72,11 +72,12 @@ async function subworkflowsVisibleTo(userId) {
 /**
  * Whether a FILE component is listed for, and callable by, one caller.
  *
- * components/ is one global directory, so a component written through POST
- * /ai/create-component used to land in the catalogue and the agent tools of
+ * components/ is one global directory, so a component written through the
+ * Component Designer (removed 2026-10) used to land in the catalogue and the agent tools of
  * EVERY organisation: an admin of org B was offered code a member of org A
  * had the model write, as a tool that would then receive org B's inputs. That
- * route now records who it belongs to in component.json:
+ * route recorded who a component belonged to in component.json, and a
+ * component it wrote that is still on disk carries the key:
  *
  *   "owner": { "orgId": "<creator's org>" }      — a creator in an org
  *   "owner": { "userId": "<creator>" }           — a creator without one
@@ -128,11 +129,11 @@ async function getAgentTools(agentId) {
     // agent's owner is known, together with the owner-org scope).
     //
     // FAIL CLOSED (`=== true`, not `!== false`). A component is a directory of
-    // caller-authored code that executionEngine spawns as the server's uid,
+    // code that executionEngine spawns as the server's uid,
     // and components/ is ONE GLOBAL UNTENANTED directory — so "agent-callable"
     // has to be a decision someone made, not the absence of a field. It was
-    // the absence: POST /ai/create-component writes component.json with no
-    // agentEnabled key at all, so a component the model had just written was
+    // the absence: the Component Designer (removed 2026-10) wrote component.json
+    // with no agentEnabled key at all, so a component the model had just written was
     // immediately reachable by every agent, in every org, with nobody having
     // chosen that.
     //
@@ -228,13 +229,6 @@ async function getAgentTools(agentId) {
     if (componentIds.length > 0) {
         const selectedComponents = allAvailable.filter(c => componentIds.includes(c.id));
         tools = selectedComponents.map(c => componentToTool(c, fixedParamsMap[c.id] || null));
-    }
-
-    // Inject System Tools (Restricted to AI Component Designer)
-    // These tools allow modifications to the codebase and must be protected.
-    const AI_COMPONENT_DESIGNER_AGENT_ID = 'system-component-designer';
-    if (agentId === AI_COMPONENT_DESIGNER_AGENT_ID) {
-        tools.push(...SYSTEM_TOOLS);
     }
 
     // MCP-server + custom-integration tools (integrations now), gated by the

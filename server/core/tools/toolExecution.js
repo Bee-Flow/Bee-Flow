@@ -2,14 +2,12 @@
  * Tool Execution — Component/system tool management and execution
  * 
  * Extracted from agentRuntime.js.
- * Handles converting components to OpenAI tool format, executing component tools,
- * and managing system tools (for the AI Component Designer agent).
+ * Handles converting components to OpenAI tool format and executing component
+ * tools, including the `execute_component` system tool.
  */
 
 const componentManager = require('../cms/componentManager');
 const executionEngine = require('../executionEngine');
-const fs = require('fs');
-const path = require('path');
 const log = require('../../telemetry/log');
 
 // Convert a component to OpenAI tool format
@@ -66,63 +64,10 @@ function componentToTool(component, fixedParams = null) {
     };
 }
 
-// System Tools — only available to AI Component Designer agent
+// System Tools. The Component Designer agent that used to receive these (with
+// its component write tools) is gone; `execute_component` is kept, and no
+// agent is given it (see the agentId check in executeComponentTool).
 const SYSTEM_TOOLS = [
-    {
-        type: 'function',
-        function: {
-            name: 'read_component_files',
-            description: 'Read all source files of a component. Use this before updating a component to understand its structure.',
-            parameters: {
-                type: 'object',
-                properties: {
-                    componentId: { type: 'string', description: 'The ID of the component to read' }
-                },
-                required: ['componentId']
-            }
-        }
-    },
-    {
-        type: 'function',
-        function: {
-            name: 'update_component',
-            description: 'Update the files of an existing component. Replaces content of specified files.',
-            parameters: {
-                type: 'object',
-                properties: {
-                    componentId: { type: 'string', description: 'The ID of the component to update' },
-                    files: {
-                        type: 'object',
-                        description: 'Map of filename to new content. e.g. { "index.js": "..." }',
-                        additionalProperties: { type: 'string' }
-                    }
-                },
-                required: ['componentId', 'files']
-            }
-        }
-    },
-    {
-        type: 'function',
-        function: {
-            name: 'update_component_outputs',
-            description: 'Update the outputs schema and sample output for a component. Use this after executing a component to define its structured output.',
-            parameters: {
-                type: 'object',
-                properties: {
-                    componentId: { type: 'string', description: 'The ID of the component to update' },
-                    outputs: {
-                        type: 'object',
-                        description: 'JSON Schema object defining the outputs (e.g. { "summary": { "type": "string" } })'
-                    },
-                    sampleOutput: {
-                        type: 'object',
-                        description: 'The actual JSON output sample from a test run'
-                    }
-                },
-                required: ['componentId', 'outputs']
-            }
-        }
-    },
     {
         type: 'function',
         function: {
@@ -141,50 +86,11 @@ const SYSTEM_TOOLS = [
             }
         }
     },
-    {
-        type: 'function',
-        function: {
-            name: 'configure_outputs_interaction',
-            description: 'Trigger an interactive UI for the user to select and rename component outputs. Use this immediately after getting an execution result.',
-            parameters: {
-                type: 'object',
-                properties: {
-                    componentId: { type: 'string', description: 'The ID of the component' },
-                    sampleOutput: {
-                        type: 'object',
-                        description: 'The JSON result from the execution'
-                    }
-                },
-                required: ['componentId', 'sampleOutput']
-            }
-        }
-    }
 ];
 
 // Execute System Tools
 async function executeSystemTool(name, args) {
     log.info(`[AgentRuntime] Executing system tool: ${name}`);
-
-    if (name === 'read_component_files') {
-        try {
-            const files = await componentManager.readComponentFiles(args.componentId);
-            return {
-                message: `Successfully read ${Object.keys(files).length} files from ${args.componentId}`,
-                files: files
-            };
-        } catch (e) {
-            return { error: e.message };
-        }
-    }
-
-    if (name === 'update_component') {
-        try {
-            const result = await componentManager.updateComponent(args.componentId, args.files);
-            return result;
-        } catch (e) {
-            return { error: e.message };
-        }
-    }
 
     if (name === 'execute_component') {
         try {
@@ -195,43 +101,6 @@ async function executeSystemTool(name, args) {
         }
     }
 
-    if (name === 'update_component_outputs') {
-        try {
-            const { componentId, outputs, sampleOutput } = args;
-
-            const componentPath = componentManager.getComponentPath(componentId);
-            if (!componentPath) {
-                return { error: `Component ${componentId} not found` };
-            }
-
-            const componentJsonPath = path.join(componentPath, 'component.json');
-            if (!fs.existsSync(componentJsonPath)) {
-                return { error: `component.json not found for ${componentId}` };
-            }
-
-            const componentDef = JSON.parse(await fs.promises.readFile(componentJsonPath, 'utf8'));
-            componentDef.outputs = outputs;
-            if (sampleOutput) {
-                componentDef.sampleOutput = sampleOutput;
-            }
-
-            await fs.promises.writeFile(componentJsonPath, JSON.stringify(componentDef, null, 2));
-            await componentManager.reloadComponent(componentId);
-
-            return { success: true, message: `Updated outputs for component ${componentId}` };
-        } catch (e) {
-            return { error: e.message };
-        }
-    }
-
-    if (name === 'configure_outputs_interaction') {
-        return {
-            success: true,
-            _action: 'SHOW_OUTPUT_SELECTOR',
-            message: 'Interactive output selection UI triggered for user.'
-        };
-    }
-
     return { error: `System tool ${name} not found` };
 }
 
@@ -240,8 +109,8 @@ async function executeSystemTool(name, args) {
 async function executeComponentTool(toolName, args, userAuth = {}, fixedParams = null, agentId = null) {
     // Check for System Tools first
     if (SYSTEM_TOOLS.some(t => t.function.name === toolName)) {
-        const AI_COMPONENT_DESIGNER_AGENT_ID = 'system-component-designer';
-        if (agentId && agentId !== AI_COMPONENT_DESIGNER_AGENT_ID) {
+        // The only agent ever allowed these was the removed Component Designer.
+        if (agentId) {
             return { error: `Access Denied: Agent '${agentId}' is not authorized to use system tool '${toolName}'.` };
         }
         return executeSystemTool(toolName, args);

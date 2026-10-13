@@ -2,7 +2,8 @@
  * A component written by one organisation is listed for, and callable by,
  * that organisation only.
  *
- * components/ is ONE global directory. POST /ai/create-component wrote a
+ * components/ is ONE global directory. The Component Designer (removed
+ * 2026-10) wrote a
  * component.json that said nothing about who it belonged to, so a component a
  * member of org A had the model write showed up in org B's agent designer
  * catalogue (GET /agents/meta/components) and could be attached to, and run by,

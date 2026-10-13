@@ -257,13 +257,13 @@ async function _initDB() {
         // intersects these with the plan/license ceiling. Grant-only by design — see
         // the unified entitlement plan. Backfill seeds the user-facing core toggles
         // that were implicitly on-for-everyone before this layer existed, so no org
-        // loses access to notebooks/projects/component_designer on first boot.
+        // loses access to notebooks/projects on first boot (component_designer: gone 2026-10).
         // DEFAULT carries the user-facing core toggles so BOTH existing rows (Postgres
         // backfills them from the populated default on ADD COLUMN) AND newly-created
-        // orgs grant notebooks/projects/component_designer to all members out of the
+        // orgs grant notebooks/projects to all members out of the
         // box — preserving today's "everyone gets these core features" behaviour. The
         // UPDATE is a belt-and-suspenders pass for a column that pre-existed at '[]'.
-        `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS "org_granted_capabilities" TEXT DEFAULT '["notebooks","projects","component_designer"]'`,
+        `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS "org_granted_capabilities" TEXT DEFAULT '["notebooks","projects"]'`,
         // ── Content encryption: tier + per-surface scope ──
         // DEFAULT 'none' is deliberate and load-bearing. An existing deployment
         // upgrading to this build must behave exactly as it did before: every
@@ -292,7 +292,7 @@ async function _initDB() {
         // choice back on at the next restart. The column DEFAULT already seeds
         // ADDed columns and new orgs, so a '[]' left over is a decision, not a gap.
         `UPDATE organizations
-            SET "org_granted_capabilities" = '["notebooks","projects","component_designer"]'
+            SET "org_granted_capabilities" = '["notebooks","projects"]'
             WHERE "org_granted_capabilities" IS NULL`,
 
         // org_available_capabilities = the per-org ACCESS MENU set by the super-admin:

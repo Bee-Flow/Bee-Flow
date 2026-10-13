@@ -81,7 +81,7 @@ You can paste, rotate, or remove a key any time later under **Settings → Organ
 The wizard closes and Bee Flow opens with:
 
 - A pre-seeded **Assistant** agent wired to all enabled integrations
-- The 10 system **starter agents** (Title Generator, Memory Extractor, Component Designer, etc.) available org-wide
+- The 9 system **starter agents** (Title Generator, Memory Extractor, PDF Extractor, etc.) available org-wide
 - An empty **Knowledge Bases** list
 - An empty **Automations** list (Pro+ only)
 

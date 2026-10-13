@@ -18,9 +18,9 @@ const COMPONENT_EXTRA_ENV = Object.freeze(['NODE_EXTRA_CA_CERTS']);
 /**
  * The environment a component's index.js runs with.
  *
- * A component is a directory of caller-authored code: /create-component and the
- * Component Designer's update_component write its index.js from a request. It
- * used to be spawned with `env: process.env`, which handed that code every
+ * A component is a directory of code (until 2026-10 it could be written from a
+ * request). It used to be spawned with `env: process.env`, which handed
+ * that code every
  * secret the server holds (MASTER_ENCRYPTION_KEY, DATABASE_URL,
  * OPAQUE_SERVER_SETUP, provider API keys, licence and session secrets). A
  * component needs none of them: what it needs from the server (the caller's

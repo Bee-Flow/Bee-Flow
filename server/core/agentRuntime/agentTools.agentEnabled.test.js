@@ -1,29 +1,22 @@
 /**
  * "Agent-callable" is a decision someone made, not the absence of a field.
  *
- * A component is a directory of caller-authored code that
- * core/executionEngine.js spawns with the server's environment, and
+ * A component is a directory of code that core/executionEngine.js spawns with the server's environment, and
  * `components/` is ONE GLOBAL UNTENANTED directory — every org's agents see
  * every component in it. The agent-tool filters nevertheless read
  * `agentEnabled !== false`, so a component.json with no agentEnabled key was
  * callable by every agent everywhere.
  *
- * That was not hypothetical. POST /ai/create-component wrote component.json
- * with name/description/category/inputs/outputs and NO agentEnabled key, so a
- * component the model had just authored — unreviewed, untested — went straight
- * into every agent's tool list because nobody had said otherwise.
+ * That was not hypothetical. The Component Designer (removed 2026-10) wrote
+ * component.json with name/description/category/inputs/outputs and NO
+ * agentEnabled key, so a component the model had just authored — unreviewed,
+ * untested — went straight into every agent's tool list because nobody had
+ * said otherwise.
  *
  * The sibling flag directChatEnabled has always been `=== true`
  * (core/tools/directChatToolStack.js). This pins the pair to the same rule, by
  * putting one component that says yes, one that says no and one that says
  * nothing through all three filters and looking at what comes out.
- *
- * The LAST test reads a file. POST /ai/create-component writes
- * component.json into the server's one real components/ directory, derived
- * from a module constant, so driving it in a unit test would either create a
- * component in the checkout or require rewriting the route to take a path.
- * What it must do is name the key rather than lean on a default — a statement
- * about that literal — so that is what the test says.
  *
  * Run: cd server && node --test --test-force-exit core/agentRuntime/agentTools.agentEnabled.test.js
  */
@@ -43,7 +36,7 @@ const Module = require('node:module');
 const COMPONENTS = [
     { id: 'says_yes', definition: { name: 'Says yes', agentEnabled: true, directChatEnabled: true, inputs: {} } },
     { id: 'says_no', definition: { name: 'Says no', agentEnabled: false, directChatEnabled: false, inputs: {} } },
-    // What POST /ai/create-component used to write: no answer at all.
+    // What the removed Component Designer used to write: no answer at all.
     { id: 'says_nothing', definition: { name: 'Says nothing', inputs: {} } },
 ];
 
@@ -137,14 +130,4 @@ test('every shipped component states its own answer', () => {
     assert.deepStrictEqual(missing, [],
         'these components declare no agentEnabled — under the fail-closed filter they are '
         + 'unreachable from every agent. Add "agentEnabled": true|false to their component.json.');
-});
-
-// ── Source-level, and why: see the file header ──────────────────────
-
-test('the AI creator writes the key instead of leaving it to a default', () => {
-    const routeSrc = fs.readFileSync(path.join(__dirname, '..', '..', 'routes', 'ai', 'agentChat.js'), 'utf8');
-    const body = routeSrc.slice(routeSrc.indexOf('const componentJson = {'));
-    assert.match(body.slice(0, 1200), /agentEnabled:/,
-        'POST /ai/create-component must write agentEnabled explicitly — omitting it is how a '
-        + 'model-authored component became callable everywhere without anyone choosing it');
 });

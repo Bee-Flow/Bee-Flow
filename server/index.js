@@ -10,7 +10,6 @@ require('./core/executionEngine');
 
 // Route modules
 const authRouter = require('./auth/router');
-const componentsRouter = require('./routes/components');
 const aiRouter = require('./routes/ai');
 const executeRouter = require('./routes/execute');
 const { router: agentsRouter } = require('./routes/agents');
@@ -248,11 +247,6 @@ app.use('/auth/mfa', require('./auth/mfaRoutes'));
 // Security keys (YubiKey / FIDO2) as an additional second factor; the
 // sign-in half is in the auth router beside /auth/mfa/verify-login.
 app.use('/auth/mfa', require('./auth/securityKeys').managementRouter);
-// Component Designer is enterprise-tier — same `requireFeature` middleware
-// the other gated routers use; inlined here because the destructure that
-// exposes it as `requireLicenseFeature` lives further down (same pattern as
-// the /api/compliance mount).
-app.use('/components', (req, res, next) => require('./core/entitlements/entitlements').requireCapability('component_designer')(req, res, next), componentsRouter);
 app.use('/ai', aiRouter);
 app.use('/workflow-ai', (req, res) => res.status(404).json({ error: 'Workflow AI removed' }));
 app.use('/', executeRouter);
