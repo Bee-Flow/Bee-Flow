@@ -331,6 +331,186 @@
   "JSCPD": {
    "status": "done",
    "note": "Nothing in the app changed. Only the duplication gate changed.\n\n1) .jscpd.json now ignores every generated file:\n   - agent-hub/src/shared/** (this replaces the separate expr/** and webpage/** entries)\n   - mobile/src/shared/expr/vendor/**\n   - mobile/src/core/theme/generated/**\n   - **/*.generated.…"
+  },
+  "split:server/projects/packaging/install.js": {
+   "status": "done",
+   "note": "1477 → 331 regels in het hoofdbestand; karakteriseringstest install.golden.test.js. The code moved verbatim. Only the relative require paths changed (lazy requires stay lazy and keep the same targets) and Dutch comments were translated to English. install.js is now the orchestrator and barrel: the module header, INSTALLERS, installOne, instal…"
+  },
+  "split:server/core/kb/localKBIngest.js": {
+   "status": "done",
+   "note": "1488 → 43 regels in het hoofdbestand; karakteriseringstest trackEmbeddingCost. A mutation check (dropping 'meeting' from CITED_SOURCE_TYPES) made 6 of the 12 tests fail.. Code moved verbatim; the barrel exports exactly the same 10 keys. New modules:\n- chunkPrimitives.js: constants, estimateTokens and the splitters.\n- chunking.js: chunkText.\n- kbChunksSchema.js: ensureKBChunksTable. It owns the schemaInitialized/pgvectorAvailabl…"
+  },
+  "split:server/routes/studioApps.js": {
+   "status": "done",
+   "note": "1505 → 61 regels in het hoofdbestand; karakteriseringstest studioApps.test.js (66 HTTP tests).. Pure moves. server/routes/studioApps.js is now the router that mounts the parts. It keeps its endpoint doc header, exports the same single router, and has the same index.js mount. Mount order: templates (GET /catalog and /templates/*, before any /:id), crud (G…"
+  },
+  "split:server/stores/transcriptionStore.js": {
+   "status": "done",
+   "note": "1378 → 66 regels in het hoofdbestand; karakteriseringstest transcriptionStore.characterisation.pg.test.js. The characterisation test was written first and passed against the original file. It runs on a real Postgres (pglite, no module mocks) and pins: the exact export key list; that getTranscription and canReadTranscription agree for each kind of reader (owner, sha…"
+  },
+  "split:server/routes/ai/automationBuilder/chatStream.js": {
+   "status": "done",
+   "note": "1894 → 257 regels in het hoofdbestand; karakteriseringstest builderStreamHarness: a fresh build that gets auto-finalized and named, an explicit finalize with summary and dry run, a finalize refused by validation, no_progress, a ladder stop, a tier missing from the map, the beta gate, provider 400 and 503, truncated twice, blank twice, a written plan, a question card and the answer turn, an approved plan that pauses and one with open steps, an approve proposal, a small buffered commit, a discuss refusal, invalid args, resume with auto tier and thinking, and delegation with an inspection read and a webpage tool. For each it compares the normalised record: every SSE event and payload, the tool calls, the persists, the stored session, and the shape and tail of each model round. Only UUIDs, timestamps, bs_ ids and promptChars are normalised. It was recorded on the original file before any code moved. A mutation check (one changed word in the stop sentence) makes it fail. To re-record: GOLDEN_RECORD=1 node --test .... The split is pure moves. The code moved verbatim into new modules. The only edits are mechanical: locals that more than one phase shares became fields on one `turn` object (lastFinalized, lastValidation, lastSummary, stopReason, reviewPlan, reviewQuestions, pl…"
+  },
+  "split:server/stores/notebookStore.js": {
+   "status": "done",
+   "note": "1600 → 105 regels in het hoofdbestand; karakteriseringstest 5 after the split. The six existing notebookStore.*.test.js files (idor, listCards, mirror, project.pg, sources, versions.pg) also exercise the store and needed no changes.. This is a pure move. notebookStore.js is now a barrel with the same export keys in the same order, including initDB. Function bodies moved verbatim except for these deliberate edits:\n\n1. **Lazy requires.** The three call-time requires (projectRole, documentSha…"
+  },
+  "split:server/core/automationRunner/execAi.js": {
+   "status": "done",
+   "note": "1314 → 654 regels in het hoofdbestand; karakteriseringstest .. execAi.js still exports exactly { execIntegrationAction, collectAiStepOutputFields, execAiStep } and keeps execAiStep and collectAiStepOutputFields. I checked by line multiset that every line of the original file is still present in one of the four files; only…"
+  },
+  "split:server/automation/builderTools/stepEditing.js": {
+   "status": "done",
+   "note": "1297 → 33 regels in het hoofdbestand; karakteriseringstest stepEditing.characterisation.test.js. stepEditing.js is now a barrel. It exports exactly the same keys as before (PATCHABLE_FIELDS, applyUpdateStep, applyUpdateSteps, applyReplaceStep, applyRemoveStep, findDanglingRefs), so builderTools.js, inlineLayer.js and the tests need no changes. Functions,…"
+  },
+  "split:server/stores/complianceStore.js": {
+   "status": "done",
+   "note": "1352 → 94 regels in het hoofdbestand; karakteriseringstest exec calls, the transaction client and the runDdl batches, and each public function's return value or thrown error. It covers the full boot DDL order, every settings, sanitizer, check, score, evidence (no-org, genesis and chained), notifier, finding-state, registration and hint path, plus the export surface (keys and types). Regenerate with UPDATE_GOLDEN=1.. This is a pure move behind a barrel. complianceStore.js keeps the header, requires the same dependencies with the same request strings ('../db', './lib/storeInit', './lib/_ddl', '../telemetry/log'), keeps the load-time log.info, and exports exactly the same 37…"
+  },
+  "split:server/stores/studioAppStore.js": {
+   "status": "done",
+   "note": "1579 → 129 regels in het hoofdbestand; karakteriseringstest conflict, Nextcloud menu, projects and public pages. It still matches after the split. Regenerate with UPDATE_GOLDEN=1.. Behaviour is unchanged. The code moved verbatim into nine modules under stores/studioApp/: schema (initDB/_initDB, the single memoised init), shared (guardOf, inTx, serializeDefinition), rowMappers (META_COLS plus the mappers), apps (CRUD, accessible listing,…"
+  },
+  "split:server/core/integrations/integrationTools.js": {
+   "status": "done",
+   "note": "1279 → 704 regels in het hoofdbestand; karakteriseringstest appendCustomIntegrationTools and the exported keys. Mutation check: turning off the NC group opt-out in the gate makes it fail. Regenerate with UPDATE_GOLDEN=1.. This is a pure move, and the golden test (tool order, config-lookup order, hint text, gate answers) is identical before and after. integrationTools.js is now the orchestration: it keeps getIntegrationTools (per-action grants, addTools, every family offer block…"
+  },
+  "split:server/routes/ai/notebookChat.js": {
+   "status": "done",
+   "note": "1391 → 352 regels in het hoofdbestand; karakteriseringstest source, content_replace and output regex redaction; (3) a stream error followed by the empty-answer fallback and history_locked; (4) the document scan blocks the turn before any model call; (5) the document is tokenised, a token minted after the write is re-restored at turn end (second notebook_doc_update), tokenisation_info is sent; (6) a 400 for a missing message. Regenerate with UPDATE_GOLDEN=1.. The single 1300-line handler is now a route that keeps model/provider resolution, the SSE open and the turn order, plus 5 steps in server/routes/ai/notebookChat/:\n- privacyScans: makeTurnScans (fail-closed, ledger scan, block abort, attachment scan) and STOP.…"
+  },
+  "split:server/appStudio/fileIntake.js": {
+   "status": "done",
+   "note": "1287 → 204 regels in het hoofdbestand; karakteriseringstest fileIntake.characterisation.test.js and fileIntake.characterisation.golden.json.. Behaviour is unchanged.\n\nfileIntake.js keeps the module doc and the `log` require, and now only runs the phases in order. It exports exactly the same keys: fileIntakeStep, the MAX_* constants, DEFAULT_PO_PATTERN and `_internal` with the same 17 helpers. Import…"
+  },
+  "split:server/stores/usageStore.js": {
+   "status": "done",
+   "note": "1311 → 76 regels in het hoofdbestand; karakteriseringstest usageStore.characterisation.golden.json). I wrote it and recorded the golden before the split, and it still passes unchanged afterwards. The real store runs with doubles injected through preloadStubs, which stubs each dependency under its resolved path: db, _ddl, modelCosts, requestClient, log, metrics, currency and paygDrain. One ordered trace records every SQL statement and its params, the DDL batches, log lines, metrics, FX lookups, drainOne calls, and each result or thrown error. It covers the init DDL and the memo, every widenCostColumns branch, and about 25 logUsage paths: self-hosted, PAYG org and user, fixed plan, canceled plan, inverse FX, the strict FX failure that the outer catch swallows, the fx_rate_unavailable error that propagates, insert failure, plan-query failure, the PAYG cache with invalidation, the Azure deployment, the future and unparseable timestamp clamps, and usage_raw truncation. It also runs every report query with no filters and with all filters, and the test-chat and studio-run counts. The export surface is pinned too.. The functions, constants and comments moved verbatim, and the barrel exports exactly the same keys (plus module.exports.initDB). Where they went: schema.js holds the DDL, initDB and widenCostColumns. payg.js holds the PAYG target, the plan currency and _paygCa…"
+  },
+  "split:agent-hub/src/components/agents/AgentWizard/BuilderSplit.jsx": {
+   "status": "done",
+   "note": "1476 → 753 regels in het hoofdbestand; karakteriseringstest :id and shows the server copy). The existing BuilderSplit.test.jsx (714 lines) already covered the tabs, the Can use cards, the tool chooser, refine and undo, and the one-off persona; it is unchanged and still green.. BuilderSplit.jsx keeps the same default export and props. No importer changed.\n\nWhat moved, all into new TypeScript modules:\n- `api/agentEditor.ts` holds the request helpers: fetchAgent, createAgent, publishAgentVersion, restoreAgentVersion, fetchCoworkSchedul…"
+  },
+  "split:server/core/providers/claude.js": {
+   "status": "done",
+   "note": "1288 → 743 regels in het hoofdbestand; karakteriseringstest fail. Regenerate with UPDATE_GOLDEN=1.. Pure moves; claude.js still exports only the ClaudeProvider class, with the same methods.\n- claude/messageRepair.js: mergeToolResultRuns and repairToolPairs, with their doc comments.\n- claude/promptCache.js: applyPromptCacheBreakpoints(normalized) is the cache…"
+  },
+  "split:server/stores/projectStore.js": {
+   "status": "done",
+   "note": "1527 → 193 regels in het hoofdbestand; karakteriseringstest transfer, access, the activity and event log (transaction order), stage cache hits and detach. It also pins the exported key sets of the module and of a built store (in order) and the applyProjectSchema statement sequence. Regenerate with UPDATE_GOLDEN=1. The golden was recorded before the split and is unchanged after it.. Pure move. makeProjectStore stays in projectStore.js and now only wires the per-store factories together. It builds makeStageLinkFns first, then passes its refuseStageBound into makeProjectFns (with guard) and makeMemberFns. makeConversationFns and makeEventFn…"
+  },
+  "split:server/services/stripeService.js": {
+   "status": "done",
+   "note": "1248 → 60 regels in het hoofdbestand; karakteriseringstest isTestMode, plan sync and recreate on resource_missing, PAYG meter create and cache, meter events, the live-subscription filter, the full call order and session params of an org checkout (search, create, listTaxIds, createTaxId, customers.update, sessions.create), the stored-customer and trial checkout variant, pushOrgBillingToStripe, the taxed trial params, seat sync, plan switch, preview, cancel and reactivate, the two-phase downgrade schedule and its release, portal, session retrieve, invoices and the PDF ownership guard, webhook verification, and promo codes.. The code moved verbatim into server/services/stripe/:\n- client.js: getClient, isEnabled, isTestMode, escapeSearchValue. It holds the only module state (_client, _lastKeyHash).\n- planSync.js: plan and PAYG sync, the meter, reportPaygUsage.\n- customer.js: EU_VAT…"
+  },
+  "split:server/stores/studioAppDataStore.js": {
+   "status": "done",
+   "note": "1260 → 106 regels in het hoofdbestand; karakteriseringstest dependency trace. The doubles are loaded under their real paths, so the test still holds after the split.. Pure move behind a barrel. The barrel exports exactly the same keys, including the `ready` getter and SYNC_STALE_MS, as plain properties, so tests that monkeypatch store exports (approvalHooks, actionExecutor.approval) still work. The parts are schema.js (DDL…"
+  },
+  "split:agent-hub/src/components/automation/Builder/BuilderShell.jsx": {
+   "status": "done",
+   "note": "1571 → 566 regels in het hoofdbestand; karakteriseringstest read-only, plan follow-up, pending tables, onTurnEnd and the breadcrumb slot.. Code moved verbatim into hooks; BuilderShell.jsx still has the same default export and still exports canAutoSend, so importers and tests are unchanged. The modules:\n- useAutomationPersistence.ts: lazy create, onSaveStep, onSaveAutomation, adopt*, the beforeunl…"
+  },
+  "split:server/routes/ai/webpageChat.js": {
+   "status": "done",
+   "note": "1290 → 209 regels in het hoofdbestand; karakteriseringstest 402 refusals plus a provider-resolution failure. The golden was the same before and after the split.. This is a pure move behind the same route; the characterisation golden matches byte for byte. webpageChat.js still exports only `router`, and the mount in routes/ai.js is unchanged. The file keeps the request checks, subscription limit, tier and model resoluti…"
+  },
+  "split:server/stores/knowledgeBases.js": {
+   "status": "done",
+   "note": "1431 → 130 regels in het hoofdbestand; karakteriseringstest solutionStageStore' with recording doubles; the real runDdl and the three migrations run against the stubbed db. It pins: the export keys with their order and types, the frozen constants, the full boot DDL order, and every statement, bind and return value or error for every public method (managed and carried guard paths included). It also pins self-dispatch: a method swapped on the exported object is the one the other methods call (getKB, canUserAccessKB, snapshotDocumentVersion, findDocumentsBySourceExternalId, findDocumentByContentHash). I also compared the raw traces of the original and the split store with SQL whitespace kept (no normalisation): they are byte-identical.. This is a pure move. The barrel keeps every original require under the same request string ('../db', './lib/storeInit', './lib/_ddl', '../telemetry/log', './managedPartsDefault') and passes them into the kb/ factories, so the hermetic tests that stub by reques…"
+  },
+  "split:server/stores/memoryStore.js": {
+   "status": "done",
+   "note": "1391 → 75 regels in het hoofdbestand; karakteriseringstest memoryStore.instructionBudget.test.js (new last section \"Characterisation (pinned before the split)\"). It pins: the exact export key set and that the memoryIndex re-exports are the same functions; the getMemoryStats, countActiveMemoriesForUser, countOrgMemoryStats and deleteMemoriesForOrg SQL, parameters and parsing; the schedule-coverage update and insert paths, the 30-day TTL, getScheduleCoverage and pruneExpiredCoverage; exact values of lexicalSimilarity and cosineSimilarity; the golden formatMemoriesForPrompt block; and findRelevantMemories on an empty scope (one query, no embed) and in JS mode, with keyword relevance and usage tracking. These tests passed on the original 1391-line file and on the split. I first wrote them as a separate memoryStore.characterisation.test.js, but a new file that stubs through require.cache pushed lint:module-mock-ratchet from 824 to 825. So I folded them into the existing stubbed test file. That file's db stub now records calls and has a makeStoreInit no-op, and it also stubs cpuEmbed. Its defaults are unchanged and none of its old assertions were dropped. Together with the pglite suite memoryStore.clear.pg.test.js, which covers CRUD, search, similarity, re-embedding and the upgrade backfill, the main flows are covered.. This was a pure move. Every function, constant and comment was copied verbatim by line range into flat sibling modules, the naming the proposal asked for:\n- memorySchema: _initDB and backfillMemoryColumns\n- memoryEmbedding: getEmbedding, cosineSimilarity, embe…"
+  },
+  "split:agent-hub/src/components/admin/Studio/AppStudio/runtime/components/AppDataGrid.jsx": {
+   "status": "done",
+   "note": "1406 → 400 regels in het hoofdbestand; karakteriseringstest AppDataGrid.editQueue.test.tsx (7 tests, written first and green against the unsplit file). They pin the edit queue's exact runAction payloads (formValues and item), the local-only overlay when there is no onRowSelect, the stale updated_at being dropped for a queued edit to the row just written but kept for another row, what happens after an error (rollback, then the next queued entry dispatches, then the queue goes idle), keeping queued overlays through a refetch, and that an unchanged value commits nothing. The existing AppDataGrid.test.jsx (95 tests) covers the rest of the component.. Code moved verbatim into new TypeScript modules under runtime/components/grid/:\n- gridConstants: TABLE_FEATURES, density, clamp, rowToneStyle and rowToneFor, now a pure function of (rowTone, record).\n- gridTypes: shared types.\n- gridCells: CellPeek, CellEditor…"
+  },
+  "split:agent-hub/src/components/automation/Builder/BuildTab.jsx": {
+   "status": "done",
+   "note": "1511 → 1252 regels in het hoofdbestand; karakteriseringstest collapse all, layerRefCounts, sidecar, an edit goes to onVisualEditRoot when something is expanded and to onVisualEdit otherwise).. These are pure moves into Builder/build/: useExpandedFlowletGraph.ts (the existing useExpandedFlowlets call, flatDef/sidecar/shift, onToggleInline, collapse/expand all, layerRefCounts, expandOnCanvas, onVisualEditFlat), useBuildCue.ts (lastAssistant, lastCall,…"
+  },
+  "split:agent-hub/src/components/admin/component-studio/ComponentBuilder.jsx": {
+   "status": "done",
+   "note": "1308 → 62 regels in het hoofdbestand; karakteriseringstest ComponentBuilder.test.tsx. I wrote it first and ran it green against the unchanged 1308-line file. It has 20 tests that pin:\n- the requests and their exact bodies: list, load, POST create, PUT update, single delete, category delete in list order, test run, sample save\n- the ?component= URL sync, including auto-select on mount\n- the id and name checks\n- the toasts for server errors and network errors\n- the unsaved marker\n- search, filter and category collapse\n- the line count on the code tab\n- the default test input\n- the flattened output schema from a test result\n- the AI designer reload. - The moves are pure. Every request, body key order, toast text, i18n key, DOM structure and class is unchanged.\n- ComponentBuilder.jsx keeps its default export. It now only composes the parts and holds the showDocs/showAI state.\n- The requests are in src/api/…"
+  },
+  "split:agent-hub/src/components/automation/Builder/DiagramPane.jsx": {
+   "status": "done",
+   "note": "1381 → 812 regels in het hoofdbestand; karakteriseringstest DiagramPane.characterisation.test.tsx. These were pure moves into TypeScript modules under flow/:\n- useInlineFlowletGraph: sidecar sets, inLoopBody, absPositionOf, scopeAtPoint\n- usePresenterToggle and useEdgeColorMode\n- useNodeOps: the ref-stable delete, detach, duplicate, patch and pin callbacks,…"
+  },
+  "split:agent-hub/src/AgentHub.jsx": {
+   "status": "done",
+   "note": "1216 → 590 regels in het hoofdbestand; karakteriseringstest studioRouteProps.test.ts, which compares the extracted mapping against the original inline formula for 15 sections x 7 route shapes.. lines_after_main_file is 590: the count lint:file-budget uses (blank and comment lines skipped). wc -l gives 683. Its ceiling in agent-hub/.file-budget.json was lowered from 1216 to 590 (only that entry).\n\nNew modules (all TS):\n- AgentHub/hubLazySlots.tsx: the…"
+  },
+  "split:agent-hub/src/hooks/useAutomationBuilderStream.ts": {
+   "status": "done",
+   "note": "1267 → 310 regels in het hoofdbestand; karakteriseringstest  plain-error answers plus clearError, and the run controls (watchActiveRun, hydrateLastRun, stopRun, a failed executeStep with its sub-rows, retryFromStep mode 'from').. Pure move: code and comments moved word for word. The main file re-exports the four types (AutomationBuilderSendOptions, AutomationBuilderInitial, AutomationBuilderState, BuilderWebSearchStatus) and keeps the default export, so no importer changed. The hook re…"
+  },
+  "split:server/core/agentRuntime/toolRoundExecutor.js": {
+   "status": "done",
+   "note": "1132 → 299 regels in het hoofdbestand; karakteriseringstest toolRoundExecutor.gateOrder.test.js. The steps moved verbatim into ./toolRound/ (parseAndGate, piiPolicy, dispatch, results, sideChannels, toolContent). A whitespace-normalised diff against HEAD shows only these differences: the function wrappers, the per-call requires turned into `deps` getters,…"
+  },
+  "split:server/auth/encryption.js": {
+   "status": "done",
+   "note": "1018 → 105 regels in het hoofdbestand; karakteriseringstest rewrap*Compat branch (PBKDF2 migration, master key past its deadline) and the adminResetUser payload. After the split I moved the export-surface assertion (exact keys and order, deriveKEK only under NODE_ENV=test) into encryption.test.js, and the characterisation test now injects its fake store through the new bindUserStore seam, so it uses no require.cache.. The split is a pure move: functions, constants and comments were cut verbatim by line range. auth/encryption.js is now a barrel with the same publicExports object: same keys, same order, and deriveKEK still added only under NODE_ENV test/development. The new m…"
+  },
+  "split:server/modules/packageLoader.js": {
+   "status": "done",
+   "note": "1454 → 147 regels in het hoofdbestand; karakteriseringstest packageLoader.gates.test.js (23 tests). Written first and run green against the unsplit file. It pins the order of the gates on the hub-install path: built-in id conflict, then the install lease, then download, signature verify, identity, compat, consent and entitlement, then staging when a running module needs a restart. It does the same for the sideload path: verify, then the built-in conflict before compat, then compat before the guard and before any write, then consent before entitlement, then the entitlement source order (offline grant, then signed license_class free, then the hub). It also pins the progress phase sequence, the audit trail, update and staged-update behaviour, the getInstallProgress fallback, reconcile activate and deactivate, retention GC and the tmp sweep, the sha-pinned boot self-heal (sideloaded packages are never healed), the getRuntimeHealth shape, and the exact export keys of the barrel. After the split the test injects its fakes through the new seam, packageState.wireDeps, instead of require.cache, so it does not add to lint:module-mock-ratchet. The existing packageLoader.test.js (18 tests) is unchanged.. The functions moved verbatim into 7 modules. A line-by-line diff confirms no original line was lost apart from the edits listed below. packageLoader.js is now the barrel and still exports exactly the same 25 keys. It also keeps dispatchRouter (the /api/mod mou…"
+  },
+  "split:server/core/automationRunner/execution.js": {
+   "status": "done",
+   "note": "1434 → 246 regels in het hoofdbestand; karakteriseringstest execution.golden.test.js (12 tests). I wrote it before the split and it passes on both the original and the split execution.js; I checked this by swapping the original file back in temporarily. For each main path it pins the exact order of everything a run does outside itself: store writes, lifecycle events, safety calls, notifications and the approval hand-off. The paths are: a live run, a dry run, a trigger payload that the Privacy Shield scans (scan, then restore, before step 1), a payload the shield blocks (the run fails before any step, the marker is released and no vault is written), a run skipped because the automation is already running, a failing step that is retried (every attempt recorded, then the error notification), a disabled If that passes through its then-port plus a pinned step, an approval pause (token, awaiting row, then the approval record, then the outcome, then the approver notification), the main schedule moving to its next run, a cron with no future run being disabled, an extra schedule moving forward before the marker is released, and a resumed run that seeds its vault from the run it continues and records the resume step first. It also pins that the token vault is flushed exactly once, just before the row is marked finished. It needs no module-system mocking: it replaces methods on the real module objects and restores them afterwards, so lint:module-mock-ratchet stays flat.. execution.js still holds the order of a run, now about 50 lines of orchestration. It exports exactly the same keys (runOrgFor, isManagedAutomation, disabledPassThroughBranch, resolveEnteredTrigger, resolveTriggerPayload, buildTriggerState, acquireRunMarker, ex…"
+  },
+  "split:server/auth/permissions.js": {
+   "status": "done",
+   "note": "1406 → 110 regels in het hoofdbestand; karakteriseringstest stubRequire, so the module-mock ratchet does not grow.. I split the file as pure moves into sibling modules in server/auth/ instead of the proposed auth/permissions/ subfolder. This follows the encryption split, and keeping the files side by side leaves every relative require ('../stores/userStore', '../db', './org…"
+  },
+  "split:server/index.js": {
+   "status": "done",
+   "note": "1126 → 747 regels in het hoofdbestand; karakteriseringstest  NODE_ENV; the bridge cases (no header, a valid token suppresses persistence and sets _bridgeTier, an unknown token, a failing lookup or tier lookup still continues); the static mount order (the uploads allow-list before express.static); and the lifecycle. Lifecycle: initDB, then migrate, then listen, then checks, reaper, tasks. The proxy and the terminal handler are re-registered when the full-tier runtime is on. A failed migration exits 1 without listening. Shutdown order runs drain first and OTEL last, then exit 0, and a second signal is ignored.. Pure moves into four boot modules. index.js calls them at exactly the points where the inline code used to sit.\n- boot/httpMiddleware.js: applyRequestIdAndSecurityHeaders, applyCors and applyBodyParsers. The process error handlers still sit between the first a…"
+  },
+  "H6": {
+   "status": "done",
+   "note": "toolRoundExecutor.gateOrder.test.js pint de 22 gate-volgordes op het origineel; daarna de stage-pipeline toolRound/{parseAndGate,piiPolicy,dispatch,results,sideChannels,toolContent}.js (1132 → 299). Het TurnState-object (signatuurwijziging voor aanroepers) is bewust niet gedaan."
+  },
+  "H20": {
+   "status": "done",
+   "note": "chatStream.js 1894 → 257, fileIntake.js 1287 → 204, stepEditing.js 1297 → 33, BuilderSplit.jsx 1476 → 753, BuilderShell.jsx 1571 → 566, BuildTab.jsx 1511 → 1252 (nog boven 1200: hooks eruit maar de render bleef groot)."
+  },
+  "H11": {
+   "status": "partial",
+   "note": "memoryStore is gesplitst (1391 → 75) als pure move; de eigen HTTP-embeddingclient staat nu in stores/memoryEmbedding.js en gaat nog niet via core/embed/dispatch (gedragswijziging, vervolg)."
+  },
+  "H25": {
+   "status": "done",
+   "note": "Mobile now has the npm-audit ratchet. `{ dir: 'mobile', production: true }` is in TARGETS (audited with --omit=dev, like the other shipped clients).\n\nOverrides in mobile/package.json. They are patch/minor bumps inside the same major, so Expo is not pinned against anything:\n- shell-quote ^1.11.0 (1.1… Open: - Is it fine that dependency-audit.yml was edited? It is outside the listed lane, but the ratchet's self-test requires the workflow loop to match TARGETS.\n- The node-forge acceptance rests on a reachability argument: the"
+  },
+  "I18N-MOBILE": {
+   "status": "done",
+   "note": "The mobile i18n ratchet is in place. The scanner needed a fix first: run on mobile, it stopped with \"37 files unparsed\". Two TypeScript shapes it did not handle caused this. One is an element with type arguments, like `<SectionList<SearchHit, ResultSection>` or `<Segmented<View>`. The other is a gen… Open: check:fast is red on lint:file-budget, and the three over-ceiling files sit in other lanes. server/core/automationRunner/execAi.js is at 699 lines against a ceiling of 654; it is probably the server split or K5 work in p"
+  },
+  "DESKTOP-PROMISES": {
+   "status": "done",
+   "note": "The rule @typescript-eslint/no-floating-promises is now an error in a new block for src/main/**/*.ts in desktop/eslint.config.js. That block sets parserOptions.projectService true and tsconfigRootDir to __dirname. The describe/it/test/suite/before/after/beforeEach/afterEach calls from node:test are… Open: None."
+  },
+  "PY-LINT": {
+   "status": "done",
+   "note": "ruff.toml (repo root, shared by both services):\n- Now selects B, S, UP and I on top of the existing rules.\n- per-file-ignores, scoped and with reasons:\n  - tests: S101/S104/S105/S106/S311\n  - eval: S311 (seeded corpus randomness), S310, S603\n  - guard-service/tools: S310\n- [lint.isort] combine-as-im… Open: 1. pyright is non-blocking for now. Making guard-service clean means declaring the attributes each PiiService mixin reads (e.g. in a Protocol or with class-level annotations). That is a follow-up of roughly an hour; afte"
+  },
+  "COMPONENTS-GATES": {
+   "status": "done",
+   "note": "No component source changed. components/ is now a tooling-only package: a private package.json with eslint ^10.12.0 (the server's major) and globals, plus its lockfile. componentManager only loads directories that contain component.json, so it ignores that root package.json and the root node_modules… Open: 1) components/tavily-search/component.json has a default apiKey \"tvly-dev-…\" and components/youtrack-read-items/component.json has a default apiToken \"perm-…\". Both look like real credentials committed to git. Outside th"
+  },
+  "H27": {
+   "status": "partial",
+   "note": "Done:\n- Moved the rotate script to server/scripts/rotateMasterKey.js, so it now ships in the server image (the Dockerfile does COPY . . from server/). Run it as `node scripts/rotateMasterKey.js` from server/ or /app.\n- Path changes: the script now requires '../db'. The test now requires '../scripts/… Open: 1. Should the subfolder move be its own item with a wider lane? It would need to cover server/package.json, server/Dockerfile, ci.yml jobs, docker-compose.from-registry.yml, .env.example files, docs/, migrations, server/"
+  },
+  "RATCHETS": {
+   "status": "done",
+   "note": "empty-catch (server 1218, agent-hub), rollback-in-store, db-in-routes, long-function als count-ratchets in check:fast; budgets gemeten op de huidige boom."
   }
  },
  "phases": {
@@ -351,21 +531,21 @@
    "note": "20 items; 18 volledig, 2 bewust gedeeltelijk (H19 data-laag: client.ts + queries + builder-stream-hook klaar, grotere *Api-modules nog niet; TEST-HELPERS: PGlite-kit klaar, routeHarness-tabellen niet). Generator-manifest met 12 entries (expr naar web en mobile, appDefinition, webpage, schedule, 3 CMS-twins, mapping web -> mobile, 3 component-kopieën). Nieuwe count-ratchets: sse-head, local-zod-helper, unchecked-mutation, authfetch-outside-api, inline-pglite; duplicatiebudget gesplitst in productie en test. check:fast 34/34, scripts 441, server-suite 28.446 groen (csv.test.js slaagt weer), agent-hub 8.160 gerelateerde tests + typecheck, mobile 1.896 + typecheck + lint, desktop 443, guard 401 + ruff, components 13, SDK 38. Gecommit op de laptop."
   },
   "5": {
-   "status": "todo",
-   "note": "phase5.workflow.js (golf 2 en 3)."
+   "status": "done",
+   "note": "35 bestanden (29 golf 2 + 6 golf 3), alle gesplitst achter een karakteriseringstest (golden call-order, gate-volgorde, cryptovectoren). Golf 3 draaide 4 parallel + permissions.js en index.js alleen. Na de workflow 21 rode testbestanden opgelost zonder assertions te schrappen: stepEditing-barrel vulde cycleDeps niet, drie execAi-modules via injectie uit de cyclus (scc blijft 569), zeven bron-lezende guards herwezen, mobile contract-tests herwezen, één timing-gevoelige test deterministisch (MASTER_ENCRYPTION_KEY). Server-suite 28.778 groen, agent-hub 3.143 related + typecheck, check:fast 39/39. Commit a180e4d28."
   },
   "6": {
-   "status": "todo",
-   "note": "phase6.workflow.js (best practices en ratchets)."
+   "status": "partial",
+   "note": "Deel 1 (6a) klaar en gecommit (0e9506462): mobile in de audit-ratchet (1 critical / 30 high → 0 / 27), i18n-ratchet mobile (220), desktop no-floating-promises, ruff B/S/UP/I + fakes, components eslint + rooktests + lockfiles + CI-job, rotate-master-key in de server-image, 4 nieuwe count-ratchets. Nog open: LOWER-BUDGETS (alle bevroren budgets omlaag) en CORE-LOOSE (losse core-bestanden naar hun domeinmap), na de K5-verwijdering. Let op: het test-duplicatiebudget staat rood (27.115 vs 26.804) door de nieuwe karakteriseringstests; wordt in 6b opgelost."
   }
  },
  "scores_now": {
   "structuur": 7,
-  "modulariteit": 5,
+  "modulariteit": 7,
   "duplicatie": 6,
-  "best_practices": 6,
-  "tests": 7,
-  "toelichting": "Na fase 4: gedupliceerde productieregels 21.775 → 15.634 (-28%), en wat dubbel was wordt nu gegenereerd uit één bron via scripts/shared-mirror.manifest.json (12 entries, lint:shared-mirror faalt op elke stale of handbewerkte kopie) in plaats van met de hand of met lockstep-tests synchroon gehouden; de 2.568 regels mapping web -> mobile, de App Studio-definitie, de webpage-preview, scheduleNextRun (drift opgelost, webgedrag wint) en drie CMS-twins zijn gegenereerd. Server-helpers (openSse, schemaParts, stableJson, connectorSnapshots, workerPool/leasedJobs, dockerKit, transcription/finalize, conversationSearch) vervangen 13 tot 117 kopieën per concept, met een count-ratchet die het restant alleen omlaag laat. Duplicatie 4 → 6; geen 7 omdat 77 afwijkende zod-helpers, 38 best-effort-mutaties en de router-mock-preambules (72 testbestanden) blijven staan. Modulariteit blijft 5 (golf 2 en 3 in fase 5), best practices 6 (ratchets en Python/components-gates in fase 6)."
+  "best_practices": 7,
+  "tests": 8,
+  "toelichting": "Na fase 5 en 6a: alle 50 geauditeerde splitsvoorstellen zijn uitgevoerd op de bewust-niet-nu-lijst na; van de 45 codebestanden boven 1200 regels is er nog 1 over (BuildTab.jsx, 1252). De beveiligingskritieke functies (toolRoundExecutor, execution.js, permissions, encryption, packageLoader, index.js) zijn stage-pipelines achter een gate-volgorde- of golden-test. Modulariteit 5 → 7; geen 8 omdat de grote server-cyclus (569) en de Studio-cyclus (68) niet kleiner werden en BuildTab.jsx groot blijft. Tests 7 → 8: 35 karakteriseringstests, rooktests voor components/, test-fakes in Python. Best practices 6 → 7: audit-ratchet dekt nu ook mobile, ruff B/S/UP/I, no-floating-promises, 4 patroon-ratchets; 8 pas als de bevroren budgets daadwerkelijk omlaag zijn (6b). Duplicatie blijft 6: productie 15.513, maar testduplicatie steeg door de nieuwe golden-tests (27.115 tegen budget 26.804, nog rood)."
  },
  "metrics_now": [
   [
@@ -376,22 +556,22 @@
   [
    "Hoog open",
    "29",
-   "8 (H6, H11, H20 en fase-6-items H25/H27; H9, H10, H19 gedeeltelijk)"
+   "4 (H11 deels, H19 deels, H9/H10 deels; K5 deel 2 vervalt: Component Designer wordt verwijderd)"
   ],
   [
    "Grootste server-cyclus (bestanden)",
    "603",
-   "569 (565 na fase 2; +4 door een pure splitsing binnen de cyclus)"
+   "569"
   ],
   [
    "Grootste agent-hub-cyclus (bestanden)",
    "68",
-   "68 (de 12-bestands mapping-cyclus is weg; de Studio-registry-cyclus blijft tot fase 5)"
+   "68"
   ],
   [
    "Gedupliceerde productieregels",
    "21.775",
-   "15.634 (testregels apart gebudgetteerd: 26.804)"
+   "15.513 (test: 27.115, budget 26.804: rood)"
   ],
   [
    "Gegenereerde kopieën (manifest-entries)",
@@ -401,7 +581,7 @@
   [
    "Codebestanden > 1200 regels",
    "45",
-   "34 (fase 4 splitst niet)"
+   "1 (BuildTab.jsx 1252)"
   ],
   [
    "Laag-guard",
@@ -411,7 +591,12 @@
   [
    "Per-bestand-groottebudget",
    "—",
-   "lint:file-budget actief"
+   "lint:file-budget actief, server/agent-hub/guard/components/mobile"
+  ],
+  [
+   "Count-ratchets",
+   "7",
+   "16 (sse-head, local-zod-helper, unchecked-mutation, authfetch-outside-api, inline-pglite, empty-catch, rollback-in-store, db-in-routes, long-function)"
   ]
  ]
 }
