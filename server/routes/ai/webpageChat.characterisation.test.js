@@ -149,7 +149,15 @@ const restore = installResolveStub(withStepAliases({
     },
     '../../agents/webpages/sourceIngestion': { ingestTextSource: rec('ingest.text', undefined) },
     '../../stores/terminationStore': {
-        logTermination: async (row) => { fx.trace.push(['termination', { ...row, duration_ms: row.duration_ms === undefined ? undefined : 'ms' }]); },
+        logTermination: async (row) => {
+            // The sanitizer keeps the first stack line with the home dir as `~`,
+            // which still differs per checkout (~/Projects/... here, ~/work/... on
+            // CI): pin the part inside the repo only.
+            const stack = typeof row.stack_first_line === 'string'
+                ? row.stack_first_line.replace(/\(.*?[\\/]server[\\/]/, '(<server>/')
+                : row.stack_first_line;
+            fx.trace.push(['termination', { ...row, duration_ms: row.duration_ms === undefined ? undefined : 'ms', stack_first_line: stack }]);
+        },
     },
     '../../auth/permissions': { requireAuth: pass },
     '../../core/entitlements/limits': { checkSubscriptionLimits: rec('limits.check', () => fx.limitError) },

@@ -2407,7 +2407,7 @@
      "error_code": "internal",
      "error_class": "Error",
      "error_first_line": "provider down",
-     "stack_first_line": "at Object.stream (~/Projects/Bee-Flow/server/routes/ai/webpageChat.characterisation.test.js:70:36)"
+     "stack_first_line": "at Object.stream (<server>/routes/ai/webpageChat.characterisation.test.js:70:36)"
     }
    ]
   ]
@@ -2840,7 +2840,7 @@
      "error_code": "internal",
      "error_class": "Error",
      "error_first_line": "secret store down (bing_search_key)",
-     "stack_first_line": "at Object.getSecret (~/Projects/Bee-Flow/server/routes/ai/webpageChat.characterisation.test.js:103:64)"
+     "stack_first_line": "at Object.getSecret (<server>/routes/ai/webpageChat.characterisation.test.js:103:64)"
     }
    ]
   ]
