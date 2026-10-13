@@ -188,7 +188,9 @@ it('a failed re-scan keeps the results on screen under the error', async () => {
 });
 
 it('"Not repetitive" removes the card, offers Undo, then records it by signature', async () => {
-    const { user, api } = await scanWith([done([card('s1', 'Delete me'), card('s2', 'Keep me')])]);
+    // A 1 s undo window: with the suite-wide 30 ms one, a loaded CI runner could
+    // commit (and drop the Undo bar) before the synchronous assertion below ran.
+    const { user, api } = await scanWith([done([card('s1', 'Delete me'), card('s2', 'Keep me')])], { props: { undoMs: 1000 } });
     const target = (await screen.findByText('Delete me')).closest('[data-testid="pattern-card"]') as HTMLElement;
     await user.click(within(target).getByRole('button', { name: /Not repetitive/ }));
     await user.click(screen.getByRole('menuitem', { name: 'This is already automated' }));
@@ -197,7 +199,7 @@ it('"Not repetitive" removes the card, offers Undo, then records it by signature
     expect(screen.getByTestId('repeating-undo')).toHaveTextContent('Marked as not repetitive.');
     await waitFor(() => expect(api.feedback).toHaveBeenCalledWith(expect.objectContaining({
         action: 'dismissed', signature: 'sig-s1', reasonCode: 'already_automated',
-    })));
+    })), { timeout: 5000 });
 });
 
 it('Undo puts the card back and records nothing', async () => {
