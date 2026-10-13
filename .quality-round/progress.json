@@ -544,7 +544,7 @@
   },
   "6": {
    "status": "done",
-   "note": "Deel 1 (0e9506462): mobile in de audit-ratchet, i18n-ratchet mobile, desktop no-floating-promises, ruff B/S/UP/I + fakes, components eslint/rooktests/lockfiles/CI-job, rotate-master-key in de image, 4 count-ratchets. Deel 2: losse core-bestanden verhuisd, alle budgets op de gemeten waarde, checkjs 493 → 991, check-fast --slack. Daartussen: K5-verwijdering (e6af8e830) en test-dedupe (testkits; test-duplicatie 27.115 → 26.279)."
+   "note": "Deel 1 (0e9506462): mobile in de audit-ratchet, i18n-ratchet mobile, desktop no-floating-promises, ruff B/S/UP/I + fakes, components eslint/rooktests/lockfiles/CI-job, rotate-master-key in de image, 4 count-ratchets. Deel 2: losse core-bestanden verhuisd, alle budgets op de gemeten waarde, checkjs 493 → 991, check-fast --slack. Daartussen: K5-verwijdering (e6af8e830) en test-dedupe (testkits; test-duplicatie 27.115 → 26.279). Eindvalidatie: check:fast 39/39, scripts 454, server 28.681, agent-hub 21.482 (vol), mobile 13.425 (vol, 761 suites; de eerste keer groen op deze branch), desktop 443, guard 401, classify 92, lint:deps."
   }
  },
  "scores_now": {
@@ -565,6 +565,11 @@
    "Hoog open",
    "29",
    "3 deels (H9 fouttekst-lint, H11 embedding-client, H19 data-laag)"
+  ],
+  [
+   "Mobile-suite (vol)",
+   "9 lockstep-suites rood sinds fase 2/3",
+   "761/761 groen"
   ],
   [
    "Grootste server-cyclus (bestanden)",
