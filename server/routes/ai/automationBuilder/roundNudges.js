@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Automation Builder — a round that ended without a tool call: a truncated
  * reply, unparseable arguments, a blank reply, prose on an empty draft, a

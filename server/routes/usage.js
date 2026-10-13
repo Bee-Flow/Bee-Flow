@@ -945,7 +945,7 @@ router.get('/azure-services/recent', async (req, res) => {
 // 33. Azure Service Cost Rates (current pricing config)
 router.get('/azure-services/rates', async (req, res) => {
     try {
-        const { getAllRates } = require('../core/azureServiceCosts');
+        const { getAllRates } = require('../core/llm/azureServiceCosts');
         res.json(getAllRates());
     } catch (err) {
         log.error('[Usage API] /azure-services/rates error:', err.message);

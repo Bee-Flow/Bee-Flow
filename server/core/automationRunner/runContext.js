@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The run's execution context and its first gates (moved verbatim out of
  * execution.js's executeAutomation): the `ctx` every step handler receives,

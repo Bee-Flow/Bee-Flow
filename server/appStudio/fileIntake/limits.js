@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * file_intake — the per-intake bounds. One module, so every phase reads the
  * same numbers.

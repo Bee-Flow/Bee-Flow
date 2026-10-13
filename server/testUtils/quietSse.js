@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The real core/http/sseHelpers for a route test, minus the keep-alive timer.
  *

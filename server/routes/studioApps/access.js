@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Who may build, and who may read, a Studio app (routes/studioApps/).
  *

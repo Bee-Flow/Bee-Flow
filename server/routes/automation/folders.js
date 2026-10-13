@@ -1,3 +1,4 @@
+// @typecheck
 // Automation folders, split out of routes/automation/crud.js: the sidebar's
 // org-wide labels. crud.js registers these routes on its own router, at the
 // place they always had (before `/:id`).

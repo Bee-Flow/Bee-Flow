@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Automation Builder — one tool call of a round: the route's own answers
  * (./routeTools.js) first, then the builder dispatch (or an org webpage tool

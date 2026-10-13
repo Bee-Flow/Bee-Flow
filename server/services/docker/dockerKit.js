@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Small Docker helpers shared by the services that start sidecar containers
  * (pwtRunner, guardInstaller, webpageRuntimeManager). Each takes the dockerode

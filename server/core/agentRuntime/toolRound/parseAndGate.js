@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * One tool call, before anything reads its arguments for real: the JSON
  * parse, gate 1 (was this name offered?) and gate 2 (does a person have to

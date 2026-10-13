@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The rate-limit buckets and the body-size gate of the form surface
  * (routes/automation/formPublic.js). One instance of each bucket, shared by

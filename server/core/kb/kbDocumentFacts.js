@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * What a retrieved chunk cannot say about itself, read from its `documents`
  * row (kind, meeting date, table rows, the metadata bag for relationHop).

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * CMS site management (the /sites routes with no /admin equivalent): list,
  * create, rename, duplicate and delete sites, and export / import a site as a

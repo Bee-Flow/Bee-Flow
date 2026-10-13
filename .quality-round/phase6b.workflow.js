@@ -30,7 +30,9 @@ ${prev ? `Earlier items in this lane already changed: ${prev}.` : ''}
 Rules: the app keeps working exactly as users know it (gates, tests, tooling and pure moves only); CLAUDE.md conventions apply (ratchets only lower, a new lint:* script is registered in root package.json, a new workflow job needs lint:checks/lint:workflows green, tests next to source); stay inside: ${lane.files}. Verify what you touched (node --test / vitest related / jest / pytest / npm run verify as applicable, npm run test:scripts and npm run check:fast after touching scripts/ or ratchets). Do NOT run the big suites inside the agent. Do NOT git commit, stash, checkout or reset.`
 
 phase('Gates')
-const results = await parallel(LANES.map(lane => async () => {
+// Sequential on purpose: CORE-LOOSE moves files, LOWER-BUDGETS measures the tree afterwards.
+const results = []
+for (const lane of [...LANES].sort((a, b) => (a.key === 'docs-core' ? -1 : b.key === 'docs-core' ? 1 : 0))) {
   const out = []; let prev = ''
   for (const item of lane.items) {
     const r = await agent(prompt(lane, item, prev), { label: `${lane.key}:${item.id}`, phase: 'Gates', schema: RESULT, model: MODEL })
@@ -38,6 +40,6 @@ const results = await parallel(LANES.map(lane => async () => {
     if (r) prev += (prev ? '; ' : '') + `${item.id}: ${r.files_changed.slice(0, 10).join(', ')}`
     log(`${lane.key}: ${item.id} ${r ? r.status : 'null'}`)
   }
-  return { lane: lane.key, items: out }
-}))
-return results.filter(Boolean)
+  results.push({ lane: lane.key, items: out })
+}
+return results

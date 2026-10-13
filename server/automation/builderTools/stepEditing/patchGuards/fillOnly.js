@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * builder_update_step — the fill-only fields of an ai_step (agentId) and a
  * knowledge_write (knowledgeBaseId): a blank one may be filled, a bound one

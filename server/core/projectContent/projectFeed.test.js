@@ -15,14 +15,14 @@
  *      produced it — a chat turn that answered correctly has not failed
  *      because the sidebar did not blink.
  *
- * Run: cd server && node --test core/projectFeed.test.js
+ * Run: cd server && node --test core/projectContent/projectFeed.test.js
  */
 
 const test = require('node:test');
 const assert = require('node:assert');
 
-const storePath = require.resolve('../stores/projectStore');
-const busPath = require.resolve('./projectEventBus');
+const storePath = require.resolve('../../stores/projectStore');
+const busPath = require.resolve('../projectEventBus');
 
 const calls = [];
 let appendResult = { seq: 7, id: 'evt1' };

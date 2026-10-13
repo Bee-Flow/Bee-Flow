@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * CMS page handlers: create / reorder / page settings / homepage / delete,
  * the full PageDoc read and write, page locale overrides, AI translation of a

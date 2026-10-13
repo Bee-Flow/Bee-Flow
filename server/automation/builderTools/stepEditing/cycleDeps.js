@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The dependencies of the stepEditing/ modules that live inside the server's
  * largest import cycle (stepBuilders/index and aiStep, inspection,

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The run's DAG raced against its time budget and its cancel signal (moved
  * verbatim out of execution.js's executeAutomation).

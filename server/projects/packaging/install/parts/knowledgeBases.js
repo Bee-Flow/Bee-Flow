@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Install the KNOWLEDGE BASES, as empty shells filed through the adapter.
  */

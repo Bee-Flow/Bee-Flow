@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The gates execIntegrationAction passes before it dispatches (moved verbatim
  * out of its body): the defence-in-depth permission re-check, the connection

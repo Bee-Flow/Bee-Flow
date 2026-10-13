@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * file_intake phase 3 — pair drawings with their CAD files. Exact first, then
  * SAFE normalisations only; deterministic, no I/O.

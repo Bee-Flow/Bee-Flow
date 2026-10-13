@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Public pages: anonymous entry points to an app (routes/studioApps/).
  */

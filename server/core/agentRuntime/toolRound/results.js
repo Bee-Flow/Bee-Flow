@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The second half of a tool round, once every call has settled: the
  * concurrent PII pre-scan of the results, then the in-order result loop —

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * file_intake — what a NAME says: base names, part keys, operations, folders,
  * the CAD format ranking and the deterministic classifier. Pure functions,

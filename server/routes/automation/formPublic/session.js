@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The visitor's session on a multi-page form: the poll that reports working,
  * the next page, done or error (with a trail of step titles while the

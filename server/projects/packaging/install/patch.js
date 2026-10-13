@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The second pass of an install: with every id known, put the references back
  * (`patchReferences`), and keep the installer's resolutions for later

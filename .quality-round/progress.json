@@ -1,8 +1,8 @@
 {
  "items": {
   "K5": {
-   "status": "partial",
-   "note": "Component processes started by executionEngine.runComponent (workflows, execute_component, agent tools) no longer get the server's process.env. They now get buildComponentEnv(), which is the MCP allow-list from core/mcpChildEnv.js (PATH, HOME, TMP, locale, proxy, NODE_ENV, NPM_CONFIG_*, TERM) plus N Open: Not done, as the scope says: (1) removing component_designer from the default org grant (stores/user/schema.js:266) and making /create-component admin-only are product decisions for the owner; (2) Part 2 is not started: "
+   "status": "done",
+   "note": "Deel 1 (env-allowlist, timeout, outputcap) in fase 1; deel 2 vervallen door een productbesluit van 2026-10-13: de Component Designer is verwijderd (e6af8e830). Er kan geen gebruikerscode meer op de server worden geschreven; de meegeleverde components blijven. Vervolg: execute_component is nog aanroepbaar zonder agentId (automation code-stappen) en slaat componentVisibleTo over."
   },
   "K1": {
    "status": "done",
@@ -41,8 +41,8 @@
    "note": "Gmail label.added automations now fire for every labelled message. Before the fix, one poll read only the first history page and at most 20 messages, then moved the cursor to the newest historyId, so the rest were silently dropped. Now the poller reads every page. It still handles at most 20 message Open: If a message gets a label before the per-tick limit and another label in a record after it, it fires once in each tick. Each firing is a separate label event, which seems right. Separately, the isCursorStaleError helper "
   },
   "H10": {
-   "status": "partial",
-   "note": "POST /ai/chat/template/stream now sends the same keep-alive the webpage and notebook chats already send: a `: ping` comment plus a no-op `event: ping` every 10 s. The keep-alive stops when the turn ends. The agent-hub client (useChatEngine/sseEvents.ts) already ignores `ping`, so users see nothing n Open: 1) The legacy Component Designer stream, POST /ai/chat-stream in server/routes/ai/agentChat.js:133-158, is not fixed. That file is outside this lane and another lane is editing it right now (it has uncommitted changes). "
+   "status": "done",
+   "note": "templateChat kreeg de keep-alive in fase 1; de legacy Component Designer-stream (/ai/chat-stream) is met K5 verwijderd; alle overige streams gaan via openSse (fase 4)."
   },
   "U6": {
    "status": "done",
@@ -511,6 +511,14 @@
   "RATCHETS": {
    "status": "done",
    "note": "empty-catch (server 1218, agent-hub), rollback-in-store, db-in-routes, long-function als count-ratchets in check:fast; budgets gemeten op de huidige boom."
+  },
+  "CORE-LOOSE": {
+   "status": "done",
+   "note": "8 losse core-bestanden naar core/{llm,kb,cms,automationRunner,http,projectContent}/ en utils/ met shims op het oude pad; ARCHITECTURE.md zonder --test-force-exit. Entry points (aiAgent, aiTaskRunner, automationRunner, executionEngine, mcpManager, eventbussen) en releaseNotes* bewust op het vlakke niveau."
+  },
+  "LOWER-BUDGETS": {
+   "status": "done",
+   "note": "Alle 37 ratchets op slack 0; checkjs-vloer 493 → 991 (86 nieuwe modules onder typecheck, 1.003 bestanden foutloos); duplicatie 15.488 / 26.279; version-drift 7; check-fast --list --slack."
   }
  },
  "phases": {
@@ -535,17 +543,17 @@
    "note": "35 bestanden (29 golf 2 + 6 golf 3), alle gesplitst achter een karakteriseringstest (golden call-order, gate-volgorde, cryptovectoren). Golf 3 draaide 4 parallel + permissions.js en index.js alleen. Na de workflow 21 rode testbestanden opgelost zonder assertions te schrappen: stepEditing-barrel vulde cycleDeps niet, drie execAi-modules via injectie uit de cyclus (scc blijft 569), zeven bron-lezende guards herwezen, mobile contract-tests herwezen, één timing-gevoelige test deterministisch (MASTER_ENCRYPTION_KEY). Server-suite 28.778 groen, agent-hub 3.143 related + typecheck, check:fast 39/39. Commit a180e4d28."
   },
   "6": {
-   "status": "partial",
-   "note": "Deel 1 (6a) klaar en gecommit (0e9506462): mobile in de audit-ratchet (1 critical / 30 high → 0 / 27), i18n-ratchet mobile (220), desktop no-floating-promises, ruff B/S/UP/I + fakes, components eslint + rooktests + lockfiles + CI-job, rotate-master-key in de server-image, 4 nieuwe count-ratchets. Nog open: LOWER-BUDGETS (alle bevroren budgets omlaag) en CORE-LOOSE (losse core-bestanden naar hun domeinmap), na de K5-verwijdering. Let op: het test-duplicatiebudget staat rood (27.115 vs 26.804) door de nieuwe karakteriseringstests; wordt in 6b opgelost."
+   "status": "done",
+   "note": "Deel 1 (0e9506462): mobile in de audit-ratchet, i18n-ratchet mobile, desktop no-floating-promises, ruff B/S/UP/I + fakes, components eslint/rooktests/lockfiles/CI-job, rotate-master-key in de image, 4 count-ratchets. Deel 2: losse core-bestanden verhuisd, alle budgets op de gemeten waarde, checkjs 493 → 991, check-fast --slack. Daartussen: K5-verwijdering (e6af8e830) en test-dedupe (testkits; test-duplicatie 27.115 → 26.279)."
   }
  },
  "scores_now": {
-  "structuur": 7,
+  "structuur": 8,
   "modulariteit": 7,
-  "duplicatie": 6,
-  "best_practices": 7,
+  "duplicatie": 7,
+  "best_practices": 8,
   "tests": 8,
-  "toelichting": "Na fase 5 en 6a: alle 50 geauditeerde splitsvoorstellen zijn uitgevoerd op de bewust-niet-nu-lijst na; van de 45 codebestanden boven 1200 regels is er nog 1 over (BuildTab.jsx, 1252). De beveiligingskritieke functies (toolRoundExecutor, execution.js, permissions, encryption, packageLoader, index.js) zijn stage-pipelines achter een gate-volgorde- of golden-test. Modulariteit 5 → 7; geen 8 omdat de grote server-cyclus (569) en de Studio-cyclus (68) niet kleiner werden en BuildTab.jsx groot blijft. Tests 7 → 8: 35 karakteriseringstests, rooktests voor components/, test-fakes in Python. Best practices 6 → 7: audit-ratchet dekt nu ook mobile, ruff B/S/UP/I, no-floating-promises, 4 patroon-ratchets; 8 pas als de bevroren budgets daadwerkelijk omlaag zijn (6b). Duplicatie blijft 6: productie 15.513, maar testduplicatie steeg door de nieuwe golden-tests (27.115 tegen budget 26.804, nog rood)."
+  "toelichting": "Eindstand. Structuur 8: lagen bewaakt met per-paar-budgetten en een SCC-ratchet, auth-router los van de middleware-barrel, index.js opgedeeld in boot/-modules, geen losse bestanden meer onder core/ behalve de gedocumenteerde entry points; geen 9 omdat de server-cyclus (569) en de Studio-cyclus (68) nog bestaan. Modulariteit 7: alle 50 geauditeerde splitsingen gedaan op de bewust-niet-nu-lijst na, 1 codebestand boven 1200 regels over (BuildTab.jsx), beveiligingsgates als stage-pipelines achter gate-volgorde-tests; lint:file-budget houdt elk bestand op zijn plafond. Duplicatie 7: productie 21.775 → 15.488, test 27.391 → 26.279, 12 gegenereerde kopieën uit één bron, budgets per groep op de gemeten waarde. Best practices 8: 37 ratchets met slack 0, 16 patroon-ratchets, audit-ratchet voor alle geleverde pakketten, ruff B/S/UP/I, components gelint en getest, de Component Designer (K5) verwijderd. Tests 8: 35 karakteriseringstests, rooktests voor components/, Python-fakes; coverage-vloeren zijn niet verhoogd (vervolg)."
  },
  "metrics_now": [
   [
@@ -556,7 +564,7 @@
   [
    "Hoog open",
    "29",
-   "4 (H11 deels, H19 deels, H9/H10 deels; K5 deel 2 vervalt: Component Designer wordt verwijderd)"
+   "3 deels (H9 fouttekst-lint, H11 embedding-client, H19 data-laag)"
   ],
   [
    "Grootste server-cyclus (bestanden)",
@@ -571,7 +579,7 @@
   [
    "Gedupliceerde productieregels",
    "21.775",
-   "15.513 (test: 27.115, budget 26.804: rood)"
+   "15.488 (test 27.391 → 26.279)"
   ],
   [
    "Gegenereerde kopieën (manifest-entries)",
@@ -584,19 +592,24 @@
    "1 (BuildTab.jsx 1252)"
   ],
   [
+   "Bestanden onder server-typecheck",
+   "493",
+   "1.003"
+  ],
+  [
    "Laag-guard",
    "11 features",
    "alle mappen, 66 paren gebudgetteerd"
   ],
   [
-   "Per-bestand-groottebudget",
-   "—",
-   "lint:file-budget actief, server/agent-hub/guard/components/mobile"
+   "Ratchets met slack",
+   "meeste bevroren sinds 2026-09-24",
+   "0 van 37 (check-fast --list --slack)"
   ],
   [
    "Count-ratchets",
    "7",
-   "16 (sse-head, local-zod-helper, unchecked-mutation, authfetch-outside-api, inline-pglite, empty-catch, rollback-in-store, db-in-routes, long-function)"
+   "16"
   ]
  ]
 }

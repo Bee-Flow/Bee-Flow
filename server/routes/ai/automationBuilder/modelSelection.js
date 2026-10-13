@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Automation Builder — which model a turn runs on: the `auto` classification
  * within this person's tiers, the builder's capability floor, the provider

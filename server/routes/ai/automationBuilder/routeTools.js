@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Automation Builder — the tool calls the route answers itself, before the
  * builder dispatch: a call behind a stop, unparseable arguments, the pause

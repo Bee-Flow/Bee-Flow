@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * What every notebook route module shares: the role gates, the collaborators
  * a test swaps (`seams`, re-exported as routes/notebooks.js `.seams`), the

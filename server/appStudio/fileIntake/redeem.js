@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * file_intake phase 2 — redeem every located row through
  * materializeAttachment (which re-checks access, quota and the malware scan per

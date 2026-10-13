@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Webpage chat: what one turn tells the model before the first round
  * (routes/ai/webpageChat.js). The knowledge-base grounding (stripped against

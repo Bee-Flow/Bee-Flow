@@ -1,3 +1,4 @@
+// @typecheck
 // Templates, import and export, split out of routes/automation/crud.js: the
 // gallery, a portability envelope coming in as a new draft, and one going out.
 // crud.js registers these routes on its own router at the places they always

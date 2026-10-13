@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Failure escalation for polling and MS Graph renewal, extracted verbatim from
  * ../triggerBus.js.

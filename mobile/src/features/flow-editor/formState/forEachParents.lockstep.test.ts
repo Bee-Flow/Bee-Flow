@@ -1,14 +1,15 @@
 /**
  * A step over a list inside a list keeps its outer lists (`forEach.parents`)
  * through a save, on the phone exactly as on the web
- * (agent-hub `flow/settings/formState.js` applyForEachPatch).
+ * (agent-hub `flow/settings/formState/stepOptions.ts` applyForEachPatch,
+ * which the `formState/` barrel's buildPatch runs).
  */
 
 import { buildPatch, extractFormState } from './index';
 import { BUILDER, requireWeb } from '../bindings/testing/web';
 import type { FlowNode } from '../bindings/types';
 
-const web = requireWeb(`${BUILDER}/flow/settings/formState.js`);
+const web = requireWeb(`${BUILDER}/flow/settings/formState`);
 
 const PLAIN = { overRef: 'steps.s1.output.results', itemVar: 'result', maxIterations: 100 };
 const DEEP = {

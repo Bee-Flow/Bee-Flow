@@ -59,7 +59,8 @@ and `npm run lint:secrets`.
   (`scripts/check-fast.mjs`): every `lint:*` script from the root `package.json` except a
   denylist of slow or install/network-dependent ones, plus the i18n key guard and a range
   secret scan against the merge base with `origin/main`. A new `lint:*` ratchet joins
-  automatically. `--list` shows what runs, `--only <text>` filters.
+  automatically. `--list` shows what runs, `--only <text>` filters, `--list --slack` runs the
+  ratchets and prints measured vs budget per scope (slack above 0: an `--update` lowers it).
 - `npm run test:scripts`: unit tests of all `scripts/*.mjs`. Not part of `check:fast`.
 - `npm run lint:workflows`: every workflow sits in exactly one concurrency bucket
   (`scripts/check-workflow-concurrency.mjs`). A NEW workflow fails with "in no bucket" until

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Install the DOCUMENT TEMPLATES, and the fields a template is written with.
  */

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Answers coming in: the first submission (POST /form/:token) and a later
  * page's answers on a multi-page form (POST /form/:token/s/:sid). Both claim

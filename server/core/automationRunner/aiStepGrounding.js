@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Grounding for an ai_step (moved verbatim out of execAi.js): personal
  * memory, knowledge bases and skills. Each helper is best-effort and

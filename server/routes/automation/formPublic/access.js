@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Who may open a hosted form, and what a token or a session id resolves to.
  *

@@ -5,7 +5,9 @@
  * slugifyFieldName); and the two mode switches — the component's `useStages`
  * and `dropStages` closures — are cut out and run against a recording `set`,
  * so "turn stages on / off" carries over exactly what the web carries over.
- * Then what an edit saves, through formState.
+ * Then what an edit saves, through formState. The stage helpers the switches
+ * call (STAGE_RULES, newStageKey, stageSeats) are the web's own, from the
+ * formState/ barrel (approvalStages.ts).
  */
 
 import fs from 'node:fs';
@@ -20,7 +22,7 @@ const SETTINGS = path.resolve(__dirname, '../../../../../../../agent-hub/src/com
 const src = fs.readFileSync(path.join(SETTINGS, 'approvalEditors.jsx'), 'utf8');
 const formSrc = fs.readFileSync(path.join(SETTINGS, 'FormBuilderFields.jsx'), 'utf8');
 /* eslint-disable-next-line @typescript-eslint/no-require-imports */
-const webState = require(path.join(SETTINGS, 'formState.js'));
+const webState = require(path.join(SETTINGS, 'formState'));
 
 const between = (text: string, start: string, end: string) => {
     const at = text.indexOf(start);
@@ -59,6 +61,10 @@ function webSwitch(name: 'useStages' | 'dropStages', draft: FormDraft): FormDraf
 const pairs = (block: string) => [...block.matchAll(/\{ value: (\d+), label: '([^']+)' \}/g)].map((m) => [Number(m[1]), m[2]]);
 
 describe('the approval editor against approvalEditors.jsx', () => {
+    it('the switches still take their stage helpers from the formState barrel', () => {
+        expect(src).toContain("import { STAGE_RULES, stageSeats, newStageKey } from './formState';");
+    });
+
     it('offers the web’s deadline and reminder choices', () => {
         expect(DEADLINE_CHOICES.map((c) => [c.value, c.label[1]])).toEqual(pairs(between(src, 'const APPROVAL_DEADLINE_CHOICES = [', '];')));
         expect(CLOCK_CHOICES.map((c) => [c.value, c.label[1]])).toEqual(pairs(between(src, 'const APPROVAL_CLOCK_CHOICES = [', '];')));

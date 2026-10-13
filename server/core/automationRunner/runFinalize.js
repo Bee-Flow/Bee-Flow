@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The end of a run (moved verbatim out of execution.js's executeAutomation).
  *

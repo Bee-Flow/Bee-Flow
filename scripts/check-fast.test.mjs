@@ -16,7 +16,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { DENYLIST, lintGates, invokesShellScript, branchGates, verdict, findBash, main } from './check-fast.mjs';
+import { DENYLIST, lintGates, invokesShellScript, branchGates, verdict, findBash, main, parseSlack } from './check-fast.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const SCRIPT = path.join(HERE, 'check-fast.mjs');
@@ -179,4 +179,57 @@ test('verdicts: no gitleaks is SKIP, a finding is FAIL, an unfinished run is nev
     assert.strictEqual(verdict(scan, run({ timedOut: true })).status, 'FAIL');
     assert.strictEqual(verdict(scan, run({ signal: 'SIGKILL' })).status, 'FAIL');
     assert.strictEqual(verdict(scan, run({ error: new Error('spawn ENOENT') })).status, 'FAIL');
+});
+
+test('parseSlack reads the verdict line of every ratchet kind: under, at, over, floor', () => {
+    const out = [
+        'Using config from .jscpd.json',
+        '✅ server: 50 files over the line limit in server, under the budget of 55. Run `x --update` to lower it.',
+        '➖ agent-hub: 233 files over the line limit under src, at budget',
+        '❌ server: 740 hand-written .status(5xx) responses in server, budget is 737 — use HttpError',
+        '✅ server: 991 of 3159 files checked (31.4%), over the floor of 905. Run `x --update` to raise it.',
+        '❌ server: 900 files carry // @typecheck, the floor is 905 — fix the type error',
+        '➖ server: 905 of 3159 files checked (28.6%), at the floor',
+        '✅ 7 dependencies on different majors in 2+ npm packages, under the budget of 8.',
+        '55 files, 103 source-text assertions under server',
+        '➖ at budget',
+        '✅ some unrelated success line without a budget',
+    ].join('\n');
+    const rows = parseSlack(out).map(({ label, measured, budget, slack, floor }) => [label, measured, budget, slack, floor]);
+    assert.deepStrictEqual(rows, [
+        ['server', 50, 55, 5, false],
+        ['agent-hub', 233, 233, 0, false],
+        ['server', 740, 737, -3, false],
+        ['server', 991, 905, 86, true],
+        ['server', 900, 905, -5, true],
+        ['server', 905, 905, 0, true],
+        ['', 7, 8, 1, false],
+        ['', 103, 103, 0, false],
+    ]);
+});
+
+test('--list --slack runs the ratchet gates and prints measured, budget and slack per scope', () => {
+    const dir = sandbox({
+        'lint:roomy-ratchet': nodeEval("console.log('✅ server: 40 things in server, under the budget of 45. Run it with --update to lower it.')"),
+        'lint:tight-ratchet': nodeEval("console.log('➖ agent-hub: 9 things under src, at budget')"),
+        'lint:plain': nodeEval("console.log('all fine')"),
+        'lint:secrets': './scripts/never-run.sh',
+    });
+    const r = cli(dir, ['--list', '--slack']);
+    assert.strictEqual(r.code, 0, r.stdout + r.stderr);
+    assert.match(r.stdout, /gate +scope +measured +budget +slack/);
+    assert.match(r.stdout, /lint:roomy-ratchet +server +40 +45 +5/);
+    assert.match(r.stdout, /lint:tight-ratchet +agent-hub +9 +9 +0/);
+    assert.doesNotMatch(r.stdout, /lint:plain|lint:secrets|i18n-key-guard/, 'no verdict line, a .sh gate and the branch gates are not ratchets');
+    assert.match(r.stdout, /2 ratchet\(s\); 1 with slack \(an --update would lower: lint:roomy-ratchet server\)/);
+});
+
+test('--slack exits 1 when a ratchet gate fails, and names it', () => {
+    const dir = sandbox({
+        'lint:over-ratchet': nodeEval("console.error('❌ server: 12 things, budget is 10 — fix it'); process.exit(1)"),
+    });
+    const r = cli(dir, ['--list', '--slack']);
+    assert.strictEqual(r.code, 1, r.stdout + r.stderr);
+    assert.match(r.stdout, /lint:over-ratchet +server +12 +10 +-2/);
+    assert.match(r.stdout, /failing: lint:over-ratchet/);
 });

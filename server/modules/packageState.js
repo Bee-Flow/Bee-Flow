@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Package loader: the shared state of the remote-module lifecycle.
  *

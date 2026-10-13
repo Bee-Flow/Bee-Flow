@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * file_intake phase 5 — the report: its full shape, and the trimmed form for
  * `resultDetail: 'summary'`.

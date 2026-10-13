@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Google Calendar pollers (event.changed via syncToken, event.upcoming),
  * extracted verbatim from ../../triggerBus.js.

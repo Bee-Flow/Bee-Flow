@@ -13,14 +13,14 @@
  *   3. ONE LOOKUP PER RUN, NOT THREE.
  *   4. A STANDALONE AUTOMATION IS SILENT — which is most of them.
  *
- * Run: cd server && node --test core/projectFeed.runs.test.js
+ * Run: cd server && node --test core/projectContent/projectFeed.runs.test.js
  */
 
 const test = require('node:test');
 const assert = require('node:assert');
 
 const feedPath = require.resolve('./projectFeed');
-const storePath = require.resolve('../stores/automationStore');
+const storePath = require.resolve('../../stores/automationStore');
 
 const emitted = [];
 let lookups = 0;

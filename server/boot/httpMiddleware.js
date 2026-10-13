@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * The HTTP front of the middleware chain, moved verbatim out of server/index.js.

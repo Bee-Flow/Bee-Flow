@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The dispatch of one tool call that every gate let through: connection
  * lending, the probed dispatch through the unified tool dispatcher, the

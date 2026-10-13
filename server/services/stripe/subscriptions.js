@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Live subscriptions: the duplicate-subscription probe, per-seat quantity
  * sync, plan switch (now or at period end), preview, cancel and reactivate.

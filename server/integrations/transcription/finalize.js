@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The provider-independent tail of a chat-tool transcription: merge
  * consecutive segments per speaker, tally speaking time, ask for speaker

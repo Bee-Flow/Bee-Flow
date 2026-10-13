@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Webpage chat: the builder's system prompt (routes/ai/webpageChat.js).
  *

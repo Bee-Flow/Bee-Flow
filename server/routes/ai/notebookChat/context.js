@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Notebook chat: what one turn puts in front of the model besides the
  * conversation (routes/ai/notebookChat.js): the knowledge-base passages and

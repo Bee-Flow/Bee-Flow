@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Package loader: the runtime plumbing an activation wires and unwires.
  *

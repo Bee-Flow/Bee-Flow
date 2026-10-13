@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Install the AGENTS, under the installer and acting as their user.
  */

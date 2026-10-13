@@ -16,7 +16,7 @@ function mock(relPath, exports) {
 }
 
 // No DB in tests — config reads return empty so env vars drive the client.
-mock('../stores/configStore', {
+mock('../../stores/configStore', {
     getConfig: async () => null,
     getSecret: async () => '',
 });

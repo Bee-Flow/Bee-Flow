@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The two dependencies of the Stripe modules that sit inside the server's big
  * import cycle: configStore and userStore. services/stripeService.js is the

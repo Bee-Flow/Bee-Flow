@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Organisation billing data on the Stripe Customer: VAT id resolution, the
  * structured billing address, and pushing an org's details to its customer.

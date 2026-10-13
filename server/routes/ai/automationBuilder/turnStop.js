@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Automation Builder — the turn's iteration ceiling and how a turn the model
  * cannot finish is stopped: the label and position of the step that kept

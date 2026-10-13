@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Webpage chat: the post-generation validation of one turn (BFSF-222,
  * routes/ai/webpageChat.js). At most one repair round per turn.

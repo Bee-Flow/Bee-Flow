@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Install the AUTOMATIONS (and blocks and layers): validated through the
  * single-automation import path, wired with the installer's resolutions,

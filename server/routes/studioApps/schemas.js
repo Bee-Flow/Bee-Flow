@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * What the App Studio management routes accept (routes/studioApps/).
  *

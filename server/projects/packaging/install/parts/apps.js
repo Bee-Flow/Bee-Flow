@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Install the APPS, each with its own data model (F13).
  */

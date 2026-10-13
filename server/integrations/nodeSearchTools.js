@@ -11,7 +11,7 @@
  */
 
 const configStore = require('../stores/configStore');
-const { resolveInferenceTargetsWithSecrets } = require('../core/webSearchInferenceResolver');
+const { resolveInferenceTargetsWithSecrets } = require('../core/llm/webSearchInferenceResolver');
 const { getAdapter } = require('../core/providers');
 // Shared Azure-aware embedding chain (provider → legacy Azure → CPU). Same
 // dispatcher KB ingestion uses, so cosine rerank works on an Azure-only setup

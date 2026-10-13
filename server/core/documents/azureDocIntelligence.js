@@ -18,7 +18,7 @@
  */
 
 const configStore = require('../../stores/configStore');
-const { computeDocIntelligenceCost } = require('../azureServiceCosts');
+const { computeDocIntelligenceCost } = require('../llm/azureServiceCosts');
 const azureServiceUsageStore = require('../../stores/azureServiceUsageStore');
 const log = require('../../telemetry/log');
 

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Latest-match lookups that seed manual runs, activation and trigger
  * simulation with a real payload. Extracted verbatim from ../triggerBus.js.

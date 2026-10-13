@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The two halves of "bridge grants are requires" (see the header of
  * install.js): what an install writes for a page, and what it refuses to

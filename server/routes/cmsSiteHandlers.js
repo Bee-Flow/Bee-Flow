@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * CMS site-level handlers: the SiteDoc itself, its locale overrides, AI
  * translation of the site chrome, publish, the per-site Live toggle and the

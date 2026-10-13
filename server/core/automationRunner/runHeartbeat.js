@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The run's marker, lifecycle events and heartbeat (moved verbatim out of
  * execution.js's executeAutomation).

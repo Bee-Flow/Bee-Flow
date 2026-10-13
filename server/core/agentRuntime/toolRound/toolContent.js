@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The serialisation helpers one tool round and its caller share: what a tool
  * result looks like on the model's tool message, the size cap on it, the

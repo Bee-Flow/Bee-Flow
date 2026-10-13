@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Google Drive poller (file.new via changes.list), extracted verbatim from
  * ../../triggerBus.js.

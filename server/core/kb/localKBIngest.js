@@ -30,7 +30,7 @@ const localRerank = require('./localRerank');
 localIngest.wire({
     dispatchEmbedTexts,
     loadEmbeddingMigration: () => require('./embeddingMigration'),
-    loadAzureServiceCosts: () => require('../azureServiceCosts'),
+    loadAzureServiceCosts: () => require('../llm/azureServiceCosts'),
 });
 localSearch.wire({ dispatchEmbedTexts });
 localRerank.wire({ configStore, loadLlamaCppRerank: () => require('../rerank/llamaCppRerank') });

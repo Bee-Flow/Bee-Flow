@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * builder_update_step — the `inputs` (or a set step's `fields`) binding map
  * of a patch, merged by key or replaced. Moved verbatim out of

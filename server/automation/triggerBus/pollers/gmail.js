@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Gmail pollers (mail.new, label.added), extracted verbatim from
  * ../../triggerBus.js. Both share the paginated history walk in

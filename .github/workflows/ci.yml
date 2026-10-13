@@ -210,6 +210,11 @@ jobs:
               - 'server/routes/*'
               - 'server/routes/admin/*'
               - 'server/routes/automation/*'
+              # read as text by src/features/forms/api/serverShapes.lockstep.test.ts:
+              # formPublic.js's route modules, the queue that answers the 202,
+              # and the answers dashboard
+              - 'server/routes/automation/formPublic/{page,submit,session,results}.js'
+              - 'server/automation/{formQueue.js,formAnswers/summary.js}'
               - 'server/routes/compliance/*'
               - 'server/routes/datatables/*'
               - 'server/routes/integrations/*'

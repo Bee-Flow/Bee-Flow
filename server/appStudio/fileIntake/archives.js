@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * file_intake phase 2b — expand archive packages into attachment rows of the
  * same conversation. Mutates the shared phase state: appends to `files`,

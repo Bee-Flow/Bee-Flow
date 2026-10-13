@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Where an install comes from: established by the server, or claimed by the
  * file. Split out of install.js, which re-exports both names unchanged.

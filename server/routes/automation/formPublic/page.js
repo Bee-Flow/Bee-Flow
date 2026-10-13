@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Before the first submission: the form's render config, one scanned file
  * upload, and an `app_pick` question's search box. The upload and the search

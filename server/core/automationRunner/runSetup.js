@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Setting a run up (moved verbatim out of execution.js's executeAutomation):
  * which organisation it belongs to, which trigger it entered through, which

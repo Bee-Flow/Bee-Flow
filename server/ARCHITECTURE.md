@@ -84,10 +84,42 @@ for the cost.
 single biggest obstacle to reading this module: nothing about it says which
 files belong together. They were grouped into the folders above, a domain at a time.
 
-- **Done.** The flat level is now 22 files, and every one of them is a
-  top-level entry point rather than a stray: `aiAgent`, `automationRunner`,
-  `aiTaskRunner`, `executionEngine`, `mcpManager`, the two event buses, and a
-  handful of small shared helpers. Everything else lives in a named folder:
+- **Done.** What is left at the flat level falls in three kinds, and none of
+  them is a stray:
+
+  - **Entry points** that stay where they are because half the tree (and
+    `CLAUDE.md`) names them: `aiAgent`, `aiTaskRunner`, `automationRunner`
+    (+ its `automationRunner.partial.testkit.js` for the runner tests),
+    `executionEngine`, `mcpManager` (+ `mcpChildEnv`, the environment its two
+    spawn sites hand an MCP child), and the two event buses `projectEventBus`
+    and `runEventBus`.
+  - **A CI contract**: `releaseNotesFormat` (+ `releaseNotesDrafter`). The
+    release workflow and `scripts/release-notes/draft.js` load
+    `server/core/releaseNotesFormat.js` by that path, so it moves only together
+    with them.
+  - **Re-export shims** at the old path of a file that moved into its domain
+    folder. Each is one `module.exports = require(...)` with a comment naming
+    the new home; existing requires, test stubs keyed on the old require string
+    and `require.cache` keys on the old path keep working. New code requires the
+    new path.
+
+    | Old path (shim) | Now lives in |
+    |---|---|
+    | `core/azureServiceCosts.js` | `core/llm/azureServiceCosts.js` |
+    | `core/webSearchInferenceResolver.js` | `core/llm/webSearchInferenceResolver.js` |
+    | `core/n8nWorkflowConverter.js` | `core/kb/n8nWorkflowConverter.js` |
+    | `core/umamiClient.js` | `core/cms/umamiClient.js` |
+    | `core/automationErrors.js` | `core/automationRunner/automationErrors.js` |
+    | `core/serviceAuth.js` | `core/http/serviceAuth.js` |
+    | `core/projectFeed.js`, `core/projectFeed.runs.js` | `core/projectContent/` |
+    | `core/concurrencyUtil.js` | `utils/concurrencyUtil.js` (dependency-free, so platform) |
+
+    A shim that sits between two files of an import cycle grows that cycle by
+    one and trips `lint:scc-ratchet`; point the importers inside the cycle at
+    the new path instead (that is why the importers of `azureServiceCosts` and
+    `webSearchInferenceResolver` already do).
+
+  Everything else lives in a named folder:
 
   `core/llm/` · `core/providers/` · `core/agentRuntime/` · `core/automationRunner/`
   `core/privacy/` · `core/dlp/` · `core/documents/` · `core/tools/` · `core/kb/`
@@ -97,7 +129,8 @@ files belong together. They were grouped into the folders above, a domain at a t
   `core/swarms/` · `core/meetingNotes/` · `core/voice/` · `core/markdown/`
   `core/customIntegrations/` · `core/dataEngine/` · `core/datasets/`
   `core/findings/` · `core/scheduling/` · `core/skills/` · `core/packaging/`
-  `core/automationModel/`
+  `core/automationModel/` · `core/projectContent/` · `core/classify/`
+  `core/collab/` · `core/media/` · `core/versioning/`
 
 New code goes in the folder for its domain. Do not add to the flat level.
 
@@ -282,9 +315,13 @@ violation — and with the guard sitting exactly at its baseline, that put all
 
 - **Tests sit next to their source** (`x.js` ↔ `x.test.js`), never in a central
   `tests/` directory. `npm test` runs `scripts/run-tests.mjs` over all of them
-  (minus the documented exclusions in `scripts/test-exclusions.json`); a single
-  file is `node --test --test-force-exit path/to/x.test.js`. Without
-  `--test-force-exit` the run hangs on files that keep a handle open.
+  (minus the documented exclusions in `scripts/test-exclusions.json`), each file
+  in its own process with its own timeout; a single file is
+  `node --test path/to/x.test.js`. Do not add `--test-force-exit`: it ends the
+  process as soon as the runner thinks it is done and silently drops results
+  that were not reported yet (the reasoning is in the header of
+  `scripts/run-tests.mjs`). A file that keeps the event loop open after its
+  tests is a bug in that file, and the runner names it (`HUNG`).
 - **A file's folder is its documentation.** If you cannot name the folder a new
   file belongs in, the design question is not yet answered.
 - **Personal data does not leave the product, except over email.** Anything in

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The side channels of one tool result, in the order the result loop emits
  * them: document_update for a Studio document a tool wrote, the email /

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Nextcloud pollers, extracted verbatim from ../../triggerBus.js: the
  * activity-feed channels (file.new / file.changed / share.received /

@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * Static file serving, moved verbatim out of server/index.js. Two halves, at

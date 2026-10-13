@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The `kb_chunks` table: its bootstrap, its dimension reconcile, and the one
  * place that knows whether pgvector is available. The flags are module state;

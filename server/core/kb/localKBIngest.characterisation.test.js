@@ -37,7 +37,7 @@ const embeddingMigration = require('./embeddingMigration');
 const relationHop = require('./relationHop');
 const llamaCppRerank = require('../rerank/llamaCppRerank');
 const cpuCrossEncoder = require('../rerank/cpuCrossEncoder');
-const azureServiceCosts = require('../azureServiceCosts');
+const azureServiceCosts = require('../llm/azureServiceCosts');
 const azureServiceUsageStore = require('../../stores/azureServiceUsageStore');
 
 const { swap, restore } = makeSwaps();

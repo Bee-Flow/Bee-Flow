@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Small helpers the Studio app routes share (routes/studioApps/).
  *

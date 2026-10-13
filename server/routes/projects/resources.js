@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * What is filed into a project, and how those pieces are wired together.
  *

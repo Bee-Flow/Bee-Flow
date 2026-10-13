@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * file_intake phases 3b/3c — the order document when its name does not say
  * so, and the bill of materials when one was sent.
