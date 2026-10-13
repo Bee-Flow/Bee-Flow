@@ -102,6 +102,24 @@ function labelEntities(text, entities) {
     return { scrubbed, replacedCategories: [...seen] };
 }
 
+/**
+ * The note that keeps a tokenised memory usable. Without it a model reads
+ * "My name is [person_7]" as "the name is redacted" and tells the user it does
+ * not know their name, although the un-tokeniser would have shown the real
+ * value. Placed inside the <memories> block when it has one, so the note stays
+ * part of the remembered data and never reads as an instruction of its own.
+ * @param {string} text
+ * @param {Record<string, string>} tokenMap
+ */
+function withTokenNote(text, tokenMap) {
+    const tokens = Object.keys(tokenMap || {}).filter((t) => text.includes(t));
+    if (!tokens.length) return text;
+    const note = `Placeholders such as ${tokens.map((t) => '`' + t + '`').join(', ')} in these notes stand for the user's own data (name, e-mail address, …); the user sees the real value. When the user asks for it, answer with the placeholder verbatim, never that it is unknown.\n`;
+    const close = '</memories>';
+    const at = text.lastIndexOf(close);
+    return at >= 0 ? text.slice(0, at) + note + text.slice(at) : text + '\n' + note;
+}
+
 function realTokenizeDeps() {
     const pii = require('../privacy/piiDetection');
     return {
@@ -176,7 +194,7 @@ async function tokenizeMemoryContext(text, orgShield = null, { conversationId = 
         if (!tokenMap || Object.keys(tokenMap).length === 0 || tokenizedText === text) throw new Error('nothing tokenised');
         dlpRunner.mergeTokenMap(conversationId, tokenMap);
         const cats = [...new Set(entities.map((e) => humaniseLabel(e.category)))];
-        return { text: tokenizedText, tokenMap, replacedCategories: cats, mode: 'tokens' };
+        return { text: withTokenNote(tokenizedText, tokenMap), tokenMap, replacedCategories: cats, mode: 'tokens' };
     } catch (err) {
         log.warn('[ScrubMemory] tokenising failed, using labels:', err.message);
         const { scrubbed, replacedCategories } = labelEntities(text, entities);
@@ -184,4 +202,4 @@ async function tokenizeMemoryContext(text, orgShield = null, { conversationId = 
     }
 }
 
-module.exports = { scrubMemoryContext, tokenizeMemoryContext };
+module.exports = { scrubMemoryContext, tokenizeMemoryContext, withTokenNote };

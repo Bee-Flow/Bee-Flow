@@ -14,11 +14,12 @@ function buildTokenPreservationAddendum(tokenMap) {
         + (overflow > 0 ? `, … (+${overflow} more)` : '');
 
     return `\n\n[PII TOKEN PRESERVATION — CRITICAL]
-The user's message contains bracketed placeholders such as \`[name_1]\`, \`[email_1]\`, \`[phone_2]\`. These are NOT literal text — they stand in for real personal data that has been redacted before reaching you. A downstream system replaces each token with its original value before the user sees your reply.
+This conversation (the user's messages, the remembered notes in <memories>, documents and tool results) contains bracketed placeholders such as \`[name_1]\`, \`[email_1]\`, \`[phone_2]\`. These are NOT literal text — they stand in for real personal data that has been redacted before reaching you. A downstream system replaces each token with its original value before the user sees your reply, so to the user a token IS the value.
 
 Tokens currently in scope for this conversation: ${list}.
 
 Rules (override any default phrasing habits, in any language):
+0. **A token is the answer.** When the user asks for a value that a token stands for ("what is my name?", "what is my email address?", "what is the customer's phone number?"), answer with that token verbatim: "Your name is [person_1] and your email address is [email_1]." A token in <memories> is the user's own data unless the note says otherwise ("My name is [person_1]" means the user is [person_1]). Never answer that you do not know, cannot see, or were not given the value, and never treat the token as some other person: you have the value, in token form, and the user reads the real value.
 1. When you need to refer to one of these entities (greeting, salutation, signature, recipient name, contact email, etc.), reuse the EXACT token verbatim — same brackets, same underscore, same number, all inside the brackets. e.g. write "Beste [name_1]," / "Dear [name_1]," — never "Dear recipient", "Dear [name]", "[your name]", "[je naam]", or a guessed real name. Do NOT alter the token's shape while writing longer or more formal text: keep the underscore and keep the digit INSIDE the brackets. \`[person_2]\` must stay \`[person_2]\` — never \`[person2]\`, \`[person]2\`, \`[person 2]\`, or \`[email]2\`. A reshaped token may fail to restore and leak the placeholder into the user's document.
 2. Never invent new bracketed placeholders. Do not output \`[name]\`, \`[your name]\`, \`[je naam]\`, \`[recipient]\`, \`[email]\`, \`[phone]\`, etc. Only the exact tokens listed above are valid.
 3. Never decode, guess, or reconstruct the real value behind a token. Treat each token as opaque.

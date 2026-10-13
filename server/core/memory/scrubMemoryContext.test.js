@@ -53,6 +53,26 @@ test('shield on: memory gets a reversible token, map + addendum + stream restore
     assert.strictEqual(ut.push(`Je naam is ${token}`) + ut.flush(), 'Je naam is tom');
 });
 
+test('tokens mode carries the note that the placeholder is the user\'s own value', async () => {
+    const deps = fakeDeps();
+    const block = '<memories>\n## Active Memory\n- My name is tom\n</memories>\n';
+    const r = await tokenizeMemoryContext(block, { enabled: true }, { conversationId: 'c1', userId: 'u1', deps });
+    assert.strictEqual(r.mode, 'tokens');
+    const token = Object.keys(r.tokenMap)[0];
+    assert.ok(r.text.includes(`Placeholders such as \`${token}\` in these notes stand for the user's own data`));
+    assert.match(r.text, /answer with the placeholder verbatim, never that it is unknown/);
+    // Inside the block, so it is remembered data, not a free-standing instruction.
+    assert.ok(r.text.indexOf('Placeholders such as') < r.text.indexOf('</memories>'));
+    assert.ok(r.text.trimEnd().endsWith('</memories>'));
+});
+
+test('label mode and untouched text carry no note', async () => {
+    const labels = await tokenizeMemoryContext(MEMORY, { enabled: true }, { conversationId: 'c1', userId: 'u1', deps: fakeDeps({ failTokenize: true }) });
+    assert.ok(!labels.text.includes('Placeholders such as'));
+    const none = await tokenizeMemoryContext('## Active Memory\n- likes tea', { enabled: true }, { conversationId: 'c1', deps: fakeDeps() });
+    assert.ok(!none.text.includes('Placeholders such as'));
+});
+
 test('the same value keeps its token across a second call', async () => {
     const deps = fakeDeps();
     const a = await tokenizeMemoryContext(MEMORY, { enabled: true }, { conversationId: 'c1', userId: 'u1', deps });
